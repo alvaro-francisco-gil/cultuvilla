@@ -9,12 +9,12 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "../firebase/firebaseApp";
-import type { EventRegistration } from "../models/event";
+import type { RegistrationData as EventRegistration } from "../models/event/RegistrationDataModel";
 
 const REGISTRATIONS_COLLECTION = "registrations";
 
 export async function registerToEvent(
-  registration: Omit<EventRegistration, "id" | "registeredAt">
+  registration: Omit<EventRegistration, "registeredAt">
 ): Promise<string> {
   const docRef = await addDoc(collection(db, REGISTRATIONS_COLLECTION), {
     ...registration,
@@ -47,6 +47,6 @@ export async function getEventRegistrations(
   );
   const snapshot = await getDocs(q);
   return snapshot.docs.map(
-    (doc) => ({ id: doc.id, ...doc.data() }) as EventRegistration
+    (doc) => ({ id: doc.id, ...doc.data() }) as unknown as EventRegistration
   );
 }
