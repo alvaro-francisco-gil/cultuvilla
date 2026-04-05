@@ -1,0 +1,19 @@
+{
+  "name": "villa-events",
+  "version": "1.0.0",
+  "packageManager": "pnpm@10.24.0",
+  "private": true,
+  "scripts": {
+    "web:dev": "pnpm --filter villa-events-web dev",
+    "web:build": "pnpm --filter villa-events-web build",
+    "web:start": "pnpm --filter villa-events-web start",
+    "web:lint": "pnpm --filter villa-events-web lint",
+    "shared:build": "pnpm --filter @villa-events/shared build",
+    "shared:test": "pnpm --filter @villa-events/shared test",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.3"
+  }
+}

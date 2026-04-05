@@ -1,0 +1,21 @@
+{
+  "name": "@villa-events/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.3",
+    "vitest": "^4.0.15"
+  },
+  "peerDependencies": {
+    "firebase": "^11.0.0"
+  }
+}
