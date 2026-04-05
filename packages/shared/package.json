@@ -7,15 +7,15 @@
   "types": "dist/index.d.ts",
   "files": ["dist"],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest"
+  },
+  "dependencies": {
+    "firebase": "^11.0.0"
   },
   "devDependencies": {
     "typescript": "~5.8.3",
     "vitest": "^4.0.15"
-  },
-  "peerDependencies": {
-    "firebase": "^11.0.0"
   }
 }
