@@ -2,27 +2,106 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Events: anyone can read, authenticated users can create/update/delete their own
-    match /events/{eventId} {
-      allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null
-        && resource.data.createdBy == request.auth.uid;
+
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // Registrations: anyone can read, authenticated users can manage their own
-    match /registrations/{registrationId} {
-      allow read: if true;
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid;
-      allow delete: if request.auth != null
-        && resource.data.userId == request.auth.uid;
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // User profiles: anyone can read, owner can write
+    function isAppAdmin() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isVillageAdmin(villageId) {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/villages/$(villageId)/members/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isVillageMember(villageId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/villages/$(villageId)/members/$(request.auth.uid));
+    }
+
+    function isOrgMember(villageId, orgId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/villages/$(villageId)/organizations/$(orgId)/members/$(request.auth.uid));
+    }
+
+    match /admins/{userId} {
+      allow read: if isAppAdmin();
+      allow write: if false;
+    }
+
     match /users/{userId} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if false;
+
+      match /personas/{personaId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
+      }
+
+      match /notifications/{notifId} {
+        allow read: if isOwner(userId);
+        allow update: if isOwner(userId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+        allow create: if false;
+        allow delete: if false;
+      }
+    }
+
+    match /villages/{villageId} {
+      allow read: if true;
+      allow create: if isAppAdmin();
+      allow update: if isVillageAdmin(villageId) || isAppAdmin();
+      allow delete: if isAppAdmin();
+
+      match /members/{userId} {
+        allow read: if true;
+        allow create: if isVillageAdmin(villageId) || isAppAdmin();
+        allow update: if isVillageAdmin(villageId);
+        allow delete: if isVillageAdmin(villageId) || isOwner(userId);
+      }
+
+      match /inviteTokens/{tokenId} {
+        allow read: if true;
+        allow create: if isVillageAdmin(villageId);
+        allow update: if isAuthenticated();
+        allow delete: if isVillageAdmin(villageId);
+      }
+
+      match /organizations/{orgId} {
+        allow read: if isVillageMember(villageId) || isAppAdmin();
+        allow create: if isVillageMember(villageId);
+        allow update: if isVillageAdmin(villageId);
+        allow delete: if isVillageAdmin(villageId);
+
+        match /members/{memberId} {
+          allow read: if isVillageMember(villageId);
+          allow create: if isOrgMember(villageId, orgId) || isVillageAdmin(villageId);
+          allow delete: if isOrgMember(villageId, orgId) || isVillageAdmin(villageId) || isOwner(memberId);
+        }
+      }
+
+      match /events/{eventId} {
+        allow read: if true;
+        allow create: if isOrgMember(villageId, request.resource.data.organizationId);
+        allow update: if isOrgMember(villageId, resource.data.organizationId) || isVillageAdmin(villageId);
+        allow delete: if isOrgMember(villageId, resource.data.organizationId) || isVillageAdmin(villageId);
+
+        match /registrations/{regId} {
+          allow read: if true;
+          allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+          allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+          allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+        }
+      }
     }
   }
 }
