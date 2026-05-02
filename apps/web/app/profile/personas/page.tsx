@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { usePersonas } from '@/hooks/usePersonas';
 import { createPersona, updatePersona, deletePersona } from '@villa-events/shared/services/personaService';
+import { uploadPersonImage } from '@villa-events/shared/services/imageService';
 import type { PersonaData } from '@villa-events/shared/models/user';
 import { PersonaCard } from '@/components/profile/PersonaCard';
 import { PersonaForm } from '@/components/profile/PersonaForm';
@@ -37,17 +38,25 @@ export default function PersonasPage() {
 
   if (!user) return null;
 
-  const handleAdd = async (data: { name: string; birthday: Date; biography: string | null }) => {
-    await createPersona(user.uid, data);
+  const handleAdd = async (data: { name: string; birthday: Date; biography: string | null; photoFile: File | null }) => {
+    const personaId = await createPersona(user.uid, data);
+    if (data.photoFile) {
+      const photoURL = await uploadPersonImage(personaId, data.photoFile);
+      await updatePersona(user.uid, personaId, { photoURL });
+    }
     setShowAddForm(false);
     reload();
   };
 
   const handleEdit = async (
     personaId: string,
-    data: { name: string; birthday: Date; biography: string | null }
+    data: { name: string; birthday: Date; biography: string | null; photoFile: File | null }
   ) => {
-    await updatePersona(user.uid, personaId, { name: data.name, biography: data.biography });
+    let photoURL: string | undefined;
+    if (data.photoFile) {
+      photoURL = await uploadPersonImage(personaId, data.photoFile);
+    }
+    await updatePersona(user.uid, personaId, { name: data.name, biography: data.biography, ...(photoURL !== undefined && { photoURL }) });
     setEditingId(null);
     reload();
   };
@@ -98,7 +107,7 @@ export default function PersonasPage() {
               <div key={persona.id} className="bg-white border border-gray-200 rounded-xl p-4">
                 <h2 className="text-sm font-semibold text-gray-700 mb-3">Editar</h2>
                 <PersonaForm
-                  initial={{ name: persona.name, birthday: persona.birthday, biography: persona.biography }}
+                  initial={{ name: persona.name, birthday: persona.birthday, biography: persona.biography, photoURL: persona.photoURL }}
                   onSubmit={(data) => handleEdit(persona.id, data)}
                   onCancel={() => setEditingId(null)}
                 />

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { registerToEvent } from '@villa-events/shared/services/registrationService';
-import type { PersonaData } from '@villa-events/shared/models/user';
+import type { PersonaData, UserData } from '@villa-events/shared/models/user';
 import type { EventData } from '@villa-events/shared/models/event';
 import { X, Phone } from 'lucide-react';
 import type { User } from 'firebase/auth';
@@ -10,7 +10,7 @@ import type { User } from 'firebase/auth';
 interface SignUpModalProps {
   event: EventData & { id: string };
   user: User;
-  userProfile: { displayName: string; telephone: string | null } | null;
+  userProfile: (UserData & { id: string }) | null;
   personas: (PersonaData & { id: string })[];
   onClose: () => void;
   onSuccess: () => void;
@@ -45,10 +45,10 @@ export function SignUpModal({
   const handleSubmit = async () => {
     const inputs = [];
 
-    if (selfSelected && canSignUpSelf) {
+    if (selfSelected && canSignUpSelf && userProfile?.id) {
       inputs.push({
         userId: user.uid,
-        personaId: null,
+        personId: userProfile.id,
         name: userProfile?.displayName ?? user.displayName ?? user.email ?? 'Yo',
       });
     }
@@ -56,7 +56,7 @@ export function SignUpModal({
     for (const personaId of selectedPersonaIds) {
       const persona = personas.find((p) => p.id === personaId);
       if (persona) {
-        inputs.push({ userId: user.uid, personaId, name: persona.name });
+        inputs.push({ userId: user.uid, personId: personaId, name: persona.name });
       }
     }
 
