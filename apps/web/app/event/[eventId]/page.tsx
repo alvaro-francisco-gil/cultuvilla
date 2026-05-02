@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { getEvent } from '@villa-events/shared/services/eventService';
 import { cancelRegistration } from '@villa-events/shared/services/registrationService';
 import { getUserProfile } from '@villa-events/shared/services/userService';
+import { isVillageMember } from '@villa-events/shared/services/villageMemberService';
+import { AttendeeBadge } from '@/components/event/AttendeeBadge';
 import type { EventData } from '@villa-events/shared/models/event';
 import type { UserData } from '@villa-events/shared/models/user';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,6 +26,7 @@ export default function EventDetailPage() {
   const [eventLoading, setEventLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<(UserData & { id: string }) | null>(null);
   const [showSignUpModal, setShowSignUpModal] = useState(false);
+  const [memberOfVillage, setMemberOfVillage] = useState<Set<string>>(new Set());
 
   const { allRegistrations, myRegistrations, confirmedCount, loading: regsLoading, reload: reloadRegs } = useRegistrations(eventId);
   const { personas } = usePersonas();
@@ -39,6 +42,18 @@ export default function EventDetailPage() {
       getUserProfile(user.uid).then(setUserProfile);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!event || allRegistrations.length === 0) return;
+    const uniqueUserIds = Array.from(new Set(allRegistrations.map((r) => r.userId)));
+    Promise.all(
+      uniqueUserIds.map((uid) =>
+        isVillageMember(event.villageId, uid).then((ok) => (ok ? uid : null)),
+      ),
+    ).then((results) => {
+      setMemberOfVillage(new Set(results.filter((x): x is string => x !== null)));
+    });
+  }, [event, allRegistrations]);
 
   const handleCancel = async (regId: string) => {
     if (!confirm('¿Cancelar esta inscripción?')) return;
@@ -161,7 +176,10 @@ export default function EventDetailPage() {
               {myRegistrations.map((reg) => (
                 <li key={reg.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{reg.name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium text-gray-900">{reg.name}</p>
+                      <AttendeeBadge isVecino={memberOfVillage.has(reg.userId)} />
+                    </div>
                     <p className="text-xs text-gray-500">
                       {reg.status === 'confirmed' ? 'Confirmado' : 'En lista de espera'} · posición {reg.position}
                     </p>
