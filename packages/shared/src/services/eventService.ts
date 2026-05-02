@@ -11,11 +11,11 @@ import {
   where,
   serverTimestamp,
   Timestamp,
+  GeoPoint,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { EventData, EventDataInput, EventStatus } from '../models/event/EventDataModel';
 import type { LocationData } from '../models/core/LocationDataModel';
-import { GeoPoint } from 'firebase/firestore';
 
 function eventsCol(villageId: string) {
   return collection(db, 'villages', villageId, 'events');
@@ -113,6 +113,10 @@ export async function createEvent(
     createdBy: input.createdBy,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
+    villageId: input.villageId,
+    villageName: input.villageName,
+    villageCoverImage: input.villageCoverImage ?? null,
+    villageCoordinates: input.villageCoordinates,
   });
   return newRef.id;
 }

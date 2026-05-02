@@ -12,6 +12,9 @@ describe('buildEventData', () => {
       organizationId: 'org-1',
       organizationName: 'Ayuntamiento',
       createdBy: 'user-1',
+      villageId: 'v1',
+      villageName: 'Test Village',
+      villageCoordinates: new GeoPoint(0, 0),
     });
     expect(event.title).toBe('Fiesta del pueblo');
     expect(event.status).toBe('draft');
@@ -34,6 +37,9 @@ describe('buildEventData', () => {
       maxAttendees: 50,
       telephoneRequired: true,
       price: 15,
+      villageId: 'v1',
+      villageName: 'Test Village',
+      villageCoordinates: new GeoPoint(0, 0),
     });
     expect(event.maxAttendees).toBe(50);
     expect(event.telephoneRequired).toBe(true);
@@ -75,6 +81,23 @@ describe('EventDataModel — village denormalization', () => {
       villageId: 'v1',
       villageName: 'Becerril',
       villageCoverImage: null,
+      villageCoordinates: new GeoPoint(0, 0),
+    });
+    expect(event.villageCoverImage).toBeNull();
+  });
+
+  it('defaults villageCoverImage to null when omitted', () => {
+    const event = buildEventData({
+      title: 't',
+      description: 'd',
+      startDate: new Date('2026-05-01'),
+      location: { type: 'text', coordinates: null, text: 'plaza' },
+      organizationId: 'org1',
+      organizationName: 'Org 1',
+      createdBy: 'u1',
+      villageId: 'v1',
+      villageName: 'Becerril',
+      // villageCoverImage omitted
       villageCoordinates: new GeoPoint(0, 0),
     });
     expect(event.villageCoverImage).toBeNull();
