@@ -23,6 +23,14 @@ export async function uploadVillageImage(villageId: string, file: File): Promise
   return getDownloadURL(storageRef);
 }
 
+export async function uploadPersonImage(personId: string, file: File): Promise<string> {
+  assertImage(file)
+  const imageId = generateImageId(file.name)
+  const storageRef = ref(storage, `persons/${personId}/photos/${imageId}`)
+  await uploadBytes(storageRef, file, { contentType: file.type })
+  return getDownloadURL(storageRef)
+}
+
 export async function deleteImageByURL(url: string): Promise<void> {
   const storageRef = ref(storage, url);
   await deleteObject(storageRef);
