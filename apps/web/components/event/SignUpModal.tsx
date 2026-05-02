@@ -9,7 +9,6 @@ import type { User } from 'firebase/auth';
 
 interface SignUpModalProps {
   event: EventData & { id: string };
-  villageId: string;
   user: User;
   userProfile: { displayName: string; telephone: string | null } | null;
   personas: (PersonaData & { id: string })[];
@@ -19,7 +18,6 @@ interface SignUpModalProps {
 
 export function SignUpModal({
   event,
-  villageId,
   user,
   userProfile,
   personas,
@@ -70,7 +68,7 @@ export function SignUpModal({
     setSubmitting(true);
     setError('');
     try {
-      await registerToEvent(villageId, event.id, inputs, event.maxAttendees);
+      await registerToEvent(event.id, inputs, event.maxAttendees);
       onSuccess();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al inscribirse.');

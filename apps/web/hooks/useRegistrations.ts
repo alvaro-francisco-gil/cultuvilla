@@ -7,7 +7,7 @@ import {
 import type { RegistrationData } from '@villa-events/shared/models/event';
 import { useAuth } from '@/hooks/useAuth';
 
-export function useRegistrations(villageId: string, eventId: string) {
+export function useRegistrations(eventId: string) {
   const { user } = useAuth();
   const [allRegistrations, setAllRegistrations] = useState<(RegistrationData & { id: string })[]>([]);
   const [myRegistrations, setMyRegistrations] = useState<(RegistrationData & { id: string })[]>([]);
@@ -18,14 +18,14 @@ export function useRegistrations(villageId: string, eventId: string) {
     setLoading(true);
     try {
       const [all, confirmed] = await Promise.all([
-        getEventRegistrations(villageId, eventId),
-        getConfirmedCount(villageId, eventId),
+        getEventRegistrations(eventId),
+        getConfirmedCount(eventId),
       ]);
       setAllRegistrations(all);
       setConfirmedCount(confirmed);
 
       if (user) {
-        const mine = await getUserRegistrations(villageId, eventId, user.uid);
+        const mine = await getUserRegistrations(eventId, user.uid);
         setMyRegistrations(mine);
       } else {
         setMyRegistrations([]);
@@ -33,7 +33,7 @@ export function useRegistrations(villageId: string, eventId: string) {
     } finally {
       setLoading(false);
     }
-  }, [villageId, eventId, user]);
+  }, [eventId, user]);
 
   useEffect(() => {
     reload();
