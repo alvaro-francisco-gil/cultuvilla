@@ -31,8 +31,11 @@ function mapOrgDoc(d: { id: string; data: () => Record<string, unknown> }): Orga
     description: (data['description'] as string | null) ?? null,
     type: data['type'] as OrganizationData['type'],
     status: data['status'] as OrganizationStatus,
+    villageId: (data['villageId'] as string) ?? '',
     requestedBy: data['requestedBy'] as string,
+    approvedBy: (data['approvedBy'] as string | null) ?? null,
     createdAt: (data['createdAt'] as Timestamp).toDate(),
+    decidedAt: data['decidedAt'] != null ? (data['decidedAt'] as Timestamp).toDate() : null,
   };
 }
 
