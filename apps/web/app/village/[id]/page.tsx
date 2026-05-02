@@ -1,93 +1,107 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Settings } from 'lucide-react';
+import { getVillage } from '@villa-events/shared/services/villageService';
 import { getEventsByVillage } from '@villa-events/shared/services/eventService';
+import { getOrganizationsByVillage } from '@villa-events/shared/services/organizationService';
+import { isVillageMember } from '@villa-events/shared/services/villageMemberService';
+import type { VillageData } from '@villa-events/shared/models/village';
 import type { EventData } from '@villa-events/shared/models/event';
-import { useVillage } from '@/hooks/useVillage';
-import { useIsAppAdmin } from '@/hooks/useIsAppAdmin';
-import { EventCard } from '@/components/event/EventCard';
+import type { OrganizationData } from '@villa-events/shared/models/organization';
+import { useAuth } from '@/hooks/useAuth';
+import { FeedCard } from '@/components/feed/FeedCard';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 
-interface VillagePageProps {
-  params: Promise<{ id: string }>;
-}
+export default function VillagePage() {
+  const params = useParams<{ id: string }>();
+  const villageId = params.id;
+  const { user } = useAuth();
 
-export default function VillagePage({ params }: VillagePageProps) {
-  const { id: villageId } = use(params);
-  const { village, isAdmin, loading: villageLoading } = useVillage();
-  const { isAppAdmin } = useIsAppAdmin();
+  const [village, setVillage] = useState<(VillageData & { id: string }) | null>(null);
   const [events, setEvents] = useState<(EventData & { id: string })[]>([]);
-  const [eventsLoading, setEventsLoading] = useState(true);
-
-  const canManage = isAdmin || isAppAdmin;
+  const [orgs, setOrgs] = useState<(OrganizationData & { id: string })[]>([]);
+  const [isMember, setIsMember] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getEventsByVillage(villageId, 'published')
-      .then(setEvents)
-      .finally(() => setEventsLoading(false));
-  }, [villageId]);
+    if (!villageId) return;
+    Promise.all([
+      getVillage(villageId),
+      getEventsByVillage(villageId, 'published'),
+      getOrganizationsByVillage(villageId, 'approved'),
+      user ? isVillageMember(villageId, user.uid) : Promise.resolve(false),
+    ])
+      .then(([v, evs, os, mem]) => {
+        setVillage(v);
+        setEvents(evs);
+        setOrgs(os);
+        setIsMember(mem);
+      })
+      .finally(() => setLoading(false));
+  }, [villageId, user]);
 
-  if (villageLoading) {
+  if (loading) {
     return (
       <div className="px-4 py-6 space-y-4">
-        <SkeletonLoader className="h-8 w-48" />
-        <SkeletonLoader className="h-4 w-32" />
-        {[1, 2, 3].map((i) => <SkeletonLoader key={i} className="h-44 rounded-xl" />)}
+        <SkeletonLoader className="h-40 rounded-xl" />
+        <SkeletonLoader className="h-6 w-40" />
+        <SkeletonLoader className="h-20 rounded-xl" />
       </div>
     );
   }
 
   if (!village) {
-    return (
-      <div className="px-4 py-6">
-        <p className="text-gray-500 text-center py-12">Pueblo no encontrado.</p>
-      </div>
-    );
+    return <p className="px-4 py-6 text-gray-500">Pueblo no encontrado.</p>;
   }
 
+  const cover = village.images?.[0] ?? null;
+
   return (
-    <div className="px-4 py-6">
-      {village.images[0] && (
-        <img src={village.images[0]} alt={village.name} className="w-full h-40 object-cover rounded-xl mb-4" />
+    <div className="pb-12">
+      {cover ? (
+        <img src={cover} alt={village.name} className="w-full h-44 object-cover" />
+      ) : (
+        <div className="w-full h-44 bg-gray-100" />
       )}
 
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-gray-900">{village.name}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{village.provincia}, {village.comunidadAutonoma}</p>
-        </div>
-        {canManage && (
-          <Link
-            href={`/village/${villageId}/admin`}
-            className="shrink-0 flex items-center gap-1 text-sm text-blue-600 border border-blue-200 bg-blue-50 px-3 py-2 rounded-xl"
-            title="Coordinar pueblo"
-          >
-            <Settings size={15} /> Coordinar
-          </Link>
+      <div className="px-4 py-6">
+        <h1 className="text-2xl font-bold text-gray-900">{village.name}</h1>
+        <p className="text-sm text-gray-500 mt-1">{village.provincia}</p>
+        {village.description && <p className="text-sm text-gray-700 mt-3">{village.description}</p>}
+
+        {!isMember && user && (
+          <div className="mt-4 p-3 rounded-lg bg-blue-50 text-blue-800 text-sm">
+            Eres visitante. Pídele a un coordinador un enlace de invitación para hacerte vecino.
+          </div>
+        )}
+
+        <h2 className="text-sm font-semibold text-gray-700 mt-8 mb-3">Próximos eventos</h2>
+        {events.length === 0 ? (
+          <p className="text-gray-500 text-sm">No hay eventos próximos en {village.name}.</p>
+        ) : (
+          <div className="space-y-3">
+            {events.map((e) => <FeedCard key={e.id} event={e} />)}
+          </div>
+        )}
+
+        <h2 className="text-sm font-semibold text-gray-700 mt-8 mb-3">Asociaciones y peñas</h2>
+        {orgs.length === 0 ? (
+          <p className="text-gray-500 text-sm">No hay organizaciones aprobadas todavía.</p>
+        ) : (
+          <ul className="space-y-2">
+            {orgs.map((o) => (
+              <li key={o.id}>
+                <Link href={`/org/${o.id}`} className="text-sm text-blue-700 hover:underline">
+                  {o.name}
+                </Link>
+                <span className="text-xs text-gray-400 ml-2">{o.type}</span>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
-
-      {village.description && (
-        <p className="mt-2 text-sm text-gray-600">{village.description}</p>
-      )}
-
-      <h2 className="text-lg font-semibold text-gray-900 mt-6 mb-4">Próximos eventos</h2>
-
-      {eventsLoading ? (
-        <div className="space-y-4">
-          {[1, 2].map((i) => <SkeletonLoader key={i} className="h-44 rounded-xl" />)}
-        </div>
-      ) : events.length === 0 ? (
-        <p className="text-gray-500 text-center py-8">No hay eventos publicados.</p>
-      ) : (
-        <div className="space-y-4">
-          {events.map((event) => (
-            <EventCard key={event.id} event={event} villageId={villageId} />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
