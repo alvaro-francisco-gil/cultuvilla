@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { GeoPoint } from 'firebase/firestore';
 import { buildEventData } from '../../src/models/event/EventDataModel';
 
 describe('buildEventData', () => {
@@ -37,5 +38,45 @@ describe('buildEventData', () => {
     expect(event.maxAttendees).toBe(50);
     expect(event.telephoneRequired).toBe(true);
     expect(event.price).toBe(15);
+  });
+});
+
+describe('EventDataModel — village denormalization', () => {
+  it('stores villageId, villageName, villageCoverImage, villageCoordinates', () => {
+    const coords = new GeoPoint(40.5, -4.0);
+    const event = buildEventData({
+      title: 't',
+      description: 'd',
+      startDate: new Date('2026-05-01'),
+      location: { type: 'text', coordinates: null, text: 'plaza' },
+      organizationId: 'org1',
+      organizationName: 'Org 1',
+      createdBy: 'u1',
+      villageId: 'v1',
+      villageName: 'Becerril',
+      villageCoverImage: 'https://example/cover.jpg',
+      villageCoordinates: coords,
+    });
+    expect(event.villageId).toBe('v1');
+    expect(event.villageName).toBe('Becerril');
+    expect(event.villageCoverImage).toBe('https://example/cover.jpg');
+    expect(event.villageCoordinates).toBe(coords);
+  });
+
+  it('allows villageCoverImage to be null', () => {
+    const event = buildEventData({
+      title: 't',
+      description: 'd',
+      startDate: new Date('2026-05-01'),
+      location: { type: 'text', coordinates: null, text: 'plaza' },
+      organizationId: 'org1',
+      organizationName: 'Org 1',
+      createdBy: 'u1',
+      villageId: 'v1',
+      villageName: 'Becerril',
+      villageCoverImage: null,
+      villageCoordinates: new GeoPoint(0, 0),
+    });
+    expect(event.villageCoverImage).toBeNull();
   });
 });

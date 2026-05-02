@@ -51,6 +51,10 @@ export function mapEventDoc(
     createdBy: data['createdBy'] as string,
     createdAt: (data['createdAt'] as Timestamp).toDate(),
     updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+    villageId: data['villageId'] as string,
+    villageName: data['villageName'] as string,
+    villageCoverImage: (data['villageCoverImage'] as string | null) ?? null,
+    villageCoordinates: data['villageCoordinates'] as GeoPoint,
   };
 }
 

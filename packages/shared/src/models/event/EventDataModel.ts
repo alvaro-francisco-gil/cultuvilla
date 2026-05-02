@@ -1,3 +1,4 @@
+import { GeoPoint } from 'firebase/firestore';
 import { LocationData } from '../core/LocationDataModel';
 
 export type EventStatus = 'draft' | 'published' | 'cancelled' | 'completed';
@@ -18,6 +19,11 @@ export interface EventData {
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
+  // Village context (denormalized for feed rendering).
+  villageId: string;
+  villageName: string;
+  villageCoverImage: string | null;
+  villageCoordinates: GeoPoint;
 }
 
 export interface EventDataInput {
@@ -36,6 +42,10 @@ export interface EventDataInput {
   createdBy: string;
   createdAt?: Date;
   updatedAt?: Date;
+  villageId: string;
+  villageName: string;
+  villageCoverImage?: string | null;
+  villageCoordinates: GeoPoint;
 }
 
 export function buildEventData(input: EventDataInput): EventData {
@@ -56,6 +66,10 @@ export function buildEventData(input: EventDataInput): EventData {
     createdBy: input.createdBy,
     createdAt: input.createdAt ?? now,
     updatedAt: input.updatedAt ?? now,
+    villageId: input.villageId,
+    villageName: input.villageName,
+    villageCoverImage: input.villageCoverImage ?? null,
+    villageCoordinates: input.villageCoordinates,
   };
 }
 
