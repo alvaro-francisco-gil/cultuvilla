@@ -12,7 +12,7 @@ import type { EventData } from '@villa-events/shared/models/event';
 import type { UserData } from '@villa-events/shared/models/user';
 import { useAuth } from '@/hooks/useAuth';
 import { useRegistrations } from '@/hooks/useRegistrations';
-import { usePersonas } from '@/hooks/usePersonas';
+import { usePersons } from '@/hooks/usePersons';
 import { SignUpModal } from '@/components/event/SignUpModal';
 import { AttendeeList } from '@/components/event/AttendeeList';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
@@ -29,7 +29,7 @@ export default function EventDetailPage() {
   const [memberOfVillage, setMemberOfVillage] = useState<Set<string>>(new Set());
 
   const { allRegistrations, myRegistrations, confirmedCount, loading: regsLoading, reload: reloadRegs } = useRegistrations(eventId);
-  const { personas } = usePersonas();
+  const { persons: personas } = usePersons();
 
   useEffect(() => {
     getEvent(eventId)

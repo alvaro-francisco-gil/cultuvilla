@@ -241,8 +241,8 @@ export default function ProfilePage() {
         />
       ))}
 
-      {/* Link to personas */}
-      <Link href="/profile/personas" className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-4 mb-4 hover:bg-gray-50 transition">
+      {/* Link to persons */}
+      <Link href="/profile/persons" className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-4 mb-4 hover:bg-gray-50 transition">
         <div className="flex items-center gap-3">
           <Users size={20} className="text-gray-500" />
           <span className="text-sm font-medium text-gray-900">Familiares / Acompañantes</span>
