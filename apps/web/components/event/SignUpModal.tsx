@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { registerToEvent } from '@villa-events/shared/services/registrationService';
-import type { UserData } from '@villa-events/shared/models/user';
-import type { PersonData } from '@villa-events/shared/models/person';
-import { buildDisplayName } from '@villa-events/shared/models/person';
-import type { EventData } from '@villa-events/shared/models/event';
+import { registerToEvent } from '@cultuvilla/shared/services/registrationService';
+import type { UserData } from '@cultuvilla/shared/models/user';
+import type { PersonData } from '@cultuvilla/shared/models/person';
+import { buildDisplayName } from '@cultuvilla/shared/models/person';
+import type { EventData } from '@cultuvilla/shared/models/event';
 import { X, Phone } from 'lucide-react';
 import type { User } from 'firebase/auth';
 
@@ -33,7 +33,8 @@ export function SignUpModal({
 
   const telephoneRequired = event.telephoneRequired;
   const hasTelephone = Boolean(userProfile?.telephone);
-  const canSignUpSelf = !telephoneRequired || hasTelephone;
+  const hasPersonRecord = Boolean(userProfile?.personId);
+  const canSignUpSelf = hasPersonRecord && (!telephoneRequired || hasTelephone);
 
   const togglePersona = (id: string) => {
     setSelectedPersonaIds((prev) => {
@@ -47,11 +48,11 @@ export function SignUpModal({
   const handleSubmit = async () => {
     const inputs = [];
 
-    if (selfSelected && canSignUpSelf && userProfile?.id) {
+    if (selfSelected && canSignUpSelf && userProfile?.personId) {
       inputs.push({
         userId: user.uid,
-        personId: userProfile.id,
-        name: userProfile?.displayName ?? user.displayName ?? user.email ?? 'Yo',
+        personId: userProfile.personId,
+        name: userProfile.displayName ?? user.displayName ?? user.email ?? 'Yo',
       });
     }
 
@@ -97,6 +98,14 @@ export function SignUpModal({
             <Phone size={16} className="text-amber-500 mt-0.5 shrink-0" />
             <p className="text-sm text-amber-700">
               Este evento requiere teléfono. Añade tu teléfono en tu perfil para inscribirte.
+            </p>
+          </div>
+        )}
+
+        {!hasPersonRecord && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm text-amber-700">
+              No tienes un registro de persona vinculado a tu cuenta. Contacta con un administrador.
             </p>
           </div>
         )}
