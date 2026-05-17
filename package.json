@@ -11,8 +11,15 @@
     "web:lint": "pnpm --filter cultuvilla-web lint",
     "shared:build": "pnpm --filter @cultuvilla/shared build",
     "shared:test": "pnpm --filter @cultuvilla/shared test",
-    "build": "pnpm -r build",
-    "test": "pnpm -r test",
+    "functions:build": "npm --prefix functions run build",
+    "functions:typecheck": "npm --prefix functions run typecheck",
+    "web:typecheck": "pnpm --filter cultuvilla-web typecheck",
+    "shared:typecheck": "pnpm --filter @cultuvilla/shared typecheck",
+    "lint": "pnpm web:lint",
+    "typecheck": "pnpm shared:typecheck && pnpm web:typecheck && pnpm functions:typecheck",
+    "build": "pnpm shared:build && pnpm web:build && pnpm functions:build",
+    "test": "pnpm shared:test",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "seed:municipalities": "node scripts/seed-municipalities.mjs"
   },
   "devDependencies": {

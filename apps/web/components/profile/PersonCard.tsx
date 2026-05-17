@@ -39,7 +39,7 @@ export function PersonCard({ person, onEdit, onDelete }: PersonCardProps) {
       <div className="flex-1 min-w-0">
         <h3 className="font-semibold text-gray-900">{displayName}</h3>
         {person.nickname && (
-          <p className="text-xs text-blue-600 font-medium">"{person.nickname}"</p>
+          <p className="text-xs text-blue-600 font-medium">&ldquo;{person.nickname}&rdquo;</p>
         )}
         {birthdayStr && (
           <p className="text-xs text-gray-500 mt-0.5">
