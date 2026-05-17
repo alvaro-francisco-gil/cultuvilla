@@ -7,3 +7,4 @@ export { onEventUpdated } from './notificationTriggers';
 export { acceptInvite } from './acceptInvite';
 export { updateCenso } from './updateCenso';
 export { syncVillageDenormalization } from './syncVillageDenormalization';
+export { onOccupationProposalApproved } from './onOccupationProposalApproved';

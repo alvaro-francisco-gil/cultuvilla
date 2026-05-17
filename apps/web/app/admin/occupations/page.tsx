@@ -12,6 +12,7 @@ import {
   getPendingProposals,
   reviewProposal,
 } from '@cultuvilla/shared/services/occupationService'
+import { getUserProfile } from '@cultuvilla/shared/services/userService'
 import type { OccupationProposalData } from '@cultuvilla/shared/models/occupation'
 import { TopBar } from '@/components/common/TopBar'
 import { Plus, Pencil, Trash2, Check, X } from 'lucide-react'
@@ -27,6 +28,7 @@ export default function OccupationsAdminPage() {
 
   const [proposals, setProposals] = useState<(OccupationProposalData & { id: string })[]>([])
   const [proposalsLoading, setProposalsLoading] = useState(false)
+  const [proposerNames, setProposerNames] = useState<Record<string, string>>({})
 
   // Occupation add state
   const [showAdd, setShowAdd] = useState(false)
@@ -53,7 +55,15 @@ export default function OccupationsAdminPage() {
   const loadProposals = async () => {
     setProposalsLoading(true)
     try {
-      setProposals(await getPendingProposals())
+      const fetched = await getPendingProposals()
+      setProposals(fetched)
+      const uniqueUids = [...new Set(fetched.map(p => p.proposedBy))]
+      const profiles = await Promise.all(uniqueUids.map(uid => getUserProfile(uid)))
+      const nameMap: Record<string, string> = {}
+      uniqueUids.forEach((uid, i) => {
+        nameMap[uid] = profiles[i]?.displayName ?? uid
+      })
+      setProposerNames(nameMap)
     } finally {
       setProposalsLoading(false)
     }
@@ -114,8 +124,8 @@ export default function OccupationsAdminPage() {
     if (!user) return
     setReviewingId(proposal.id)
     try {
-      await createOccupation({ name: proposal.name, createdBy: user.uid })
-      await reviewProposal(proposal.id, 'approved', user.uid)
+      const occId = await createOccupation({ name: proposal.name, createdBy: user.uid })
+      await reviewProposal(proposal.id, 'approved', user.uid, occId)
       reloadOccupations()
       await loadProposals()
     } finally {
@@ -268,7 +278,10 @@ export default function OccupationsAdminPage() {
                 <li key={p.id} className="bg-white rounded-lg p-3 border border-gray-200 flex items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{p.name}</p>
-                    <p className="text-xs text-gray-400 truncate">Propuesto por: {p.proposedBy}</p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {proposerNames[p.proposedBy] ?? p.proposedBy}
+                    </p>
+                    <p className="text-xs text-gray-400 truncate">{p.proposedBy}</p>
                   </div>
                   <div className="flex gap-1">
                     <button

@@ -22,6 +22,7 @@ export interface OccupationProposalData {
   status: OccupationProposalStatus
   reviewedBy: string | null
   reviewedAt: Date | null
+  approvedOccupationId: string | null
 }
 
 export interface OccupationProposalDataInput {
@@ -37,5 +38,6 @@ export function buildOccupationProposalData(input: OccupationProposalDataInput):
     status: 'pending',
     reviewedBy: null,
     reviewedAt: null,
+    approvedOccupationId: null,
   }
 }

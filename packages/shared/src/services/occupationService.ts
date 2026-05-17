@@ -56,6 +56,7 @@ export async function getPendingProposals(): Promise<(OccupationProposalData & {
       status: data.status as OccupationProposalStatus,
       reviewedBy: (data.reviewedBy as string | null) ?? null,
       reviewedAt: data.reviewedAt instanceof Timestamp ? data.reviewedAt.toDate() : null,
+      approvedOccupationId: (data.approvedOccupationId as string | null) ?? null,
     }
   })
 }
@@ -63,12 +64,14 @@ export async function getPendingProposals(): Promise<(OccupationProposalData & {
 export async function reviewProposal(
   proposalId: string,
   status: 'approved' | 'rejected',
-  reviewedBy: string
+  reviewedBy: string,
+  approvedOccupationId?: string | null,
 ): Promise<void> {
   await updateDoc(doc(proposalsCol(), proposalId), {
     status,
     reviewedBy,
     reviewedAt: serverTimestamp(),
+    approvedOccupationId: approvedOccupationId ?? null,
   })
 }
 

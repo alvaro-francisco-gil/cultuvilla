@@ -18,6 +18,7 @@ describe('buildOccupationProposalData', () => {
     expect(result.status).toBe('pending')
     expect(result.reviewedBy).toBeNull()
     expect(result.reviewedAt).toBeNull()
+    expect(result.approvedOccupationId).toBeNull()
     expect(result.proposedAt).toBeInstanceOf(Date)
   })
 })
