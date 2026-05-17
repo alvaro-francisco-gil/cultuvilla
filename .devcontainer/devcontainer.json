@@ -1,0 +1,8 @@
+{
+  "name": "villa-events",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "remoteUser": "node"
+}
