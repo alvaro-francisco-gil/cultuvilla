@@ -59,11 +59,43 @@ React Context for cross-tree state (auth, village). No global store. No query ca
 
 ### Styling
 
-Tailwind 4. Utility classes inline. No CSS modules, no styled-components. `lucide-react` for icons.
+Tailwind v4 with a JS-based `tailwind.config.ts` (`apps/web/tailwind.config.ts`).
+**Design tokens live in `@cultuvilla/shared/design-system`** and feed
+Tailwind's `backgroundColor` / `textColor` / `borderColor` / `boxShadow` /
+`borderRadius` / `spacing` / `fontSize` / `zIndex` extensions. New code
+must use semantic Tailwind classes (`bg-surface`, `text-primary`,
+`rounded-md`, `shadow-sm`, `text-body`, etc.) — not raw Tailwind palette
+names (`bg-white`, `text-gray-900`). Existing screens still use raw
+classes; migration is opportunistic, not mandatory.
+
+When a screen needs a raw numeric value (computed style, RN inline style),
+import directly from the design-system: `spacing[4]`, `iconSizes.md`,
+`elevation.sm.rn`. See [packages/shared/src/design-system/README.md]
+(packages/shared/src/design-system/README.md) for the full token vocabulary.
+
+**Web primitives** live under [apps/web/components/primitives/]
+(apps/web/components/primitives/) — `Screen`, `HStack`, `VStack`, `Text`,
+`Pressable`, `Button`, `Card`, `Input`. New screens compose primitives;
+inline `<div>` + Tailwind is fine where a primitive doesn't fit, but reach
+for the primitive first. The same component names will exist under
+`apps/mobile/components/primitives/` once the mobile app lands.
+
+Icons: `lucide-react` (web) / `lucide-react-native` (mobile). Pass
+`iconSizes.sm | md | lg` for size — no ad-hoc `size={18}`.
 
 ### i18n
 
-`next-intl` v4. Default locale is `es`. Messages in [apps/web/i18n/messages/](apps/web/i18n/messages/). User-facing strings go through `useTranslations()`; hardcoded Spanish is allowed only in dev-only surfaces (admin panels, debug pages) where i18n is not a current priority.
+Messages live in [@cultuvilla/i18n](packages/i18n/) and are consumed by web
+via next-intl (see `apps/web/i18n/request.ts`). The future mobile app will
+consume the same JSON via i18next + i18next-icu. User-facing strings go
+through `useTranslations()`; hardcoded Spanish is allowed only in
+dev-only surfaces (admin panels, debug pages) where i18n is not a current
+priority.
+
+Locale formatting (`formatDate`, `formatPrice`, `formatRelativeTime`)
+lives in `@cultuvilla/shared/utils/format.ts`, preset to `es-ES`. Never
+call `Intl.DateTimeFormat` or `Intl.NumberFormat` directly in screens —
+the formatter is the single point of locale truth.
 
 ### Cloud Functions logging
 
