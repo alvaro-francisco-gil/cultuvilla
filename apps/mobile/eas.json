@@ -1,0 +1,32 @@
+{
+  "cli": {
+    "version": ">= 13.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": { "APP_ENV": "dev" },
+      "ios": { "simulator": true }
+    },
+    "preview-dev": {
+      "distribution": "internal",
+      "env": { "APP_ENV": "dev" },
+      "channel": "dev"
+    },
+    "preview-beta": {
+      "distribution": "internal",
+      "env": { "APP_ENV": "beta" },
+      "channel": "beta"
+    },
+    "production": {
+      "env": { "APP_ENV": "prod" },
+      "channel": "production",
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
