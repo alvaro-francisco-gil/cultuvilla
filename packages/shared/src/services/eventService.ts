@@ -11,14 +11,14 @@ import {
   where,
   serverTimestamp,
   Timestamp,
+  GeoPoint,
 } from 'firebase/firestore';
-import { db } from '../firebase';
+import { getDb } from '../firebase';
 import type { EventData, EventDataInput, EventStatus } from '../models/event/EventDataModel';
 import type { LocationData } from '../models/core/LocationDataModel';
-import { GeoPoint } from 'firebase/firestore';
 
-function eventsCol(villageId: string) {
-  return collection(db, 'villages', villageId, 'events');
+function eventsCol() {
+  return collection(getDb(), 'events');
 }
 
 function mapLocationData(raw: Record<string, unknown>): LocationData {
@@ -51,48 +51,47 @@ export function mapEventDoc(
     createdBy: data['createdBy'] as string,
     createdAt: (data['createdAt'] as Timestamp).toDate(),
     updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+    municipalityId: data['municipalityId'] as string,
+    municipalityName: data['municipalityName'] as string,
+    municipalityCoverImage: (data['municipalityCoverImage'] as string | null) ?? null,
+    municipalityCoordinates: (data['municipalityCoordinates'] as GeoPoint | null) ?? null,
+    confirmedCount: typeof data['confirmedCount'] === 'number' ? (data['confirmedCount'] as number) : undefined,
+    totalCount: typeof data['totalCount'] === 'number' ? (data['totalCount'] as number) : undefined,
   };
 }
 
-export async function getEvent(
-  villageId: string,
-  eventId: string
-): Promise<(EventData & { id: string }) | null> {
-  const snap = await getDoc(doc(eventsCol(villageId), eventId));
+export async function getEvent(eventId: string): Promise<(EventData & { id: string }) | null> {
+  const snap = await getDoc(doc(eventsCol(), eventId));
   if (!snap.exists()) return null;
   return mapEventDoc(snap as Parameters<typeof mapEventDoc>[0]);
 }
 
-export async function getEvents(
-  villageId: string,
+export async function getEventsByMunicipality(
+  municipalityId: string,
   status?: EventStatus
 ): Promise<(EventData & { id: string })[]> {
   const constraints = status
-    ? [where('status', '==', status), orderBy('startDate', 'asc')]
-    : [orderBy('startDate', 'asc')];
-  const q = query(eventsCol(villageId), ...constraints);
+    ? [where('municipalityId', '==', municipalityId), where('status', '==', status), orderBy('startDate', 'asc')]
+    : [where('municipalityId', '==', municipalityId), orderBy('startDate', 'asc')];
+  const q = query(eventsCol(), ...constraints);
   const snap = await getDocs(q);
   return snap.docs.map((d) => mapEventDoc(d as Parameters<typeof mapEventDoc>[0]));
 }
 
-export async function getOrgEvents(
-  villageId: string,
-  orgId: string
+export async function getEventsByOrganization(
+  organizationId: string
 ): Promise<(EventData & { id: string })[]> {
   const q = query(
-    eventsCol(villageId),
-    where('organizationId', '==', orgId),
+    eventsCol(),
+    where('organizationId', '==', organizationId),
     orderBy('startDate', 'asc')
   );
   const snap = await getDocs(q);
   return snap.docs.map((d) => mapEventDoc(d as Parameters<typeof mapEventDoc>[0]));
 }
 
-export async function createEvent(
-  villageId: string,
-  input: EventDataInput
-): Promise<string> {
-  const newRef = doc(eventsCol(villageId));
+export async function createEvent(input: EventDataInput): Promise<string> {
+  const newRef = doc(eventsCol());
   await setDoc(newRef, {
     title: input.title,
     description: input.description,
@@ -109,14 +108,17 @@ export async function createEvent(
     createdBy: input.createdBy,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
+    municipalityId: input.municipalityId,
+    municipalityName: input.municipalityName,
+    municipalityCoverImage: input.municipalityCoverImage ?? null,
+    municipalityCoordinates: input.municipalityCoordinates,
   });
   return newRef.id;
 }
 
 export async function updateEvent(
-  villageId: string,
   eventId: string,
-  data: Partial<Omit<EventData, 'createdAt' | 'createdBy'>>
+  data: Partial<Omit<EventData, 'createdAt' | 'createdBy' | 'municipalityId'>>
 ): Promise<void> {
   const updates: Record<string, unknown> = { ...data, updatedAt: serverTimestamp() };
   if (data.startDate instanceof Date) {
@@ -128,23 +130,16 @@ export async function updateEvent(
     updates['endDate'] = null;
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await updateDoc(doc(eventsCol(villageId), eventId), updates as any);
+  await updateDoc(doc(eventsCol(), eventId), updates as any);
 }
 
-export async function updateEventStatus(
-  villageId: string,
-  eventId: string,
-  status: EventStatus
-): Promise<void> {
-  await updateDoc(doc(eventsCol(villageId), eventId), {
+export async function updateEventStatus(eventId: string, status: EventStatus): Promise<void> {
+  await updateDoc(doc(eventsCol(), eventId), {
     status,
     updatedAt: serverTimestamp(),
   });
 }
 
-export async function deleteEvent(
-  villageId: string,
-  eventId: string
-): Promise<void> {
-  await deleteDoc(doc(eventsCol(villageId), eventId));
+export async function deleteEvent(eventId: string): Promise<void> {
+  await deleteDoc(doc(eventsCol(), eventId));
 }

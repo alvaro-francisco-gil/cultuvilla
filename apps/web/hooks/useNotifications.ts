@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { getNotifications, getUnreadCount } from '@villa-events/shared/services/notificationService';
-import type { NotificationData } from '@villa-events/shared/models/notification';
+import { getNotifications, getUnreadCount } from '@cultuvilla/shared/services/notificationService';
+import type { NotificationData } from '@cultuvilla/shared/models/notification';
 import { useAuth } from '@/hooks/useAuth';
 
 export function useNotifications() {

@@ -1,25 +1,25 @@
 'use client';
 
 import { useState } from 'react';
-import { registerToEvent } from '@villa-events/shared/services/registrationService';
-import type { PersonaData } from '@villa-events/shared/models/user';
-import type { EventData } from '@villa-events/shared/models/event';
+import { registerToEvent } from '@cultuvilla/shared/services/registrationService';
+import type { UserData } from '@cultuvilla/shared/models/user';
+import type { PersonData } from '@cultuvilla/shared/models/person';
+import { buildDisplayName } from '@cultuvilla/shared/models/person';
+import type { EventData } from '@cultuvilla/shared/models/event';
 import { X, Phone } from 'lucide-react';
-import type { User } from 'firebase/auth';
+import type { User } from '@cultuvilla/shared/firebase';
 
 interface SignUpModalProps {
   event: EventData & { id: string };
-  villageId: string;
   user: User;
-  userProfile: { displayName: string; telephone: string | null } | null;
-  personas: (PersonaData & { id: string })[];
+  userProfile: (UserData & { id: string }) | null;
+  personas: (PersonData & { id: string })[];
   onClose: () => void;
   onSuccess: () => void;
 }
 
 export function SignUpModal({
   event,
-  villageId,
   user,
   userProfile,
   personas,
@@ -33,7 +33,8 @@ export function SignUpModal({
 
   const telephoneRequired = event.telephoneRequired;
   const hasTelephone = Boolean(userProfile?.telephone);
-  const canSignUpSelf = !telephoneRequired || hasTelephone;
+  const hasPersonRecord = Boolean(userProfile?.personId);
+  const canSignUpSelf = hasPersonRecord && (!telephoneRequired || hasTelephone);
 
   const togglePersona = (id: string) => {
     setSelectedPersonaIds((prev) => {
@@ -47,18 +48,17 @@ export function SignUpModal({
   const handleSubmit = async () => {
     const inputs = [];
 
-    if (selfSelected && canSignUpSelf) {
+    if (selfSelected && canSignUpSelf && userProfile?.personId) {
       inputs.push({
-        userId: user.uid,
-        personaId: null,
-        name: userProfile?.displayName ?? user.displayName ?? user.email ?? 'Yo',
+        personId: userProfile.personId,
+        name: userProfile.displayName ?? user.displayName ?? user.email ?? 'Yo',
       });
     }
 
     for (const personaId of selectedPersonaIds) {
       const persona = personas.find((p) => p.id === personaId);
       if (persona) {
-        inputs.push({ userId: user.uid, personaId, name: persona.name });
+        inputs.push({ personId: personaId, name: buildDisplayName(persona) });
       }
     }
 
@@ -70,7 +70,7 @@ export function SignUpModal({
     setSubmitting(true);
     setError('');
     try {
-      await registerToEvent(villageId, event.id, inputs, event.maxAttendees);
+      await registerToEvent(event.id, inputs);
       onSuccess();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al inscribirse.');
@@ -97,6 +97,14 @@ export function SignUpModal({
             <Phone size={16} className="text-amber-500 mt-0.5 shrink-0" />
             <p className="text-sm text-amber-700">
               Este evento requiere teléfono. Añade tu teléfono en tu perfil para inscribirte.
+            </p>
+          </div>
+        )}
+
+        {!hasPersonRecord && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm text-amber-700">
+              No tienes un registro de persona vinculado a tu cuenta. Contacta con un administrador.
             </p>
           </div>
         )}
@@ -130,7 +138,7 @@ export function SignUpModal({
                 className="accent-blue-600"
               />
               <div>
-                <p className="font-medium text-sm text-gray-900">{persona.name}</p>
+                <p className="font-medium text-sm text-gray-900">{buildDisplayName(persona)}</p>
                 <p className="text-xs text-gray-500">Familiar / acompañante</p>
               </div>
             </label>

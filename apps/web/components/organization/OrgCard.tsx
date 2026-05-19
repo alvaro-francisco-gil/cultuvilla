@@ -1,6 +1,6 @@
 'use client';
 
-import type { OrganizationData } from '@villa-events/shared/models/organization';
+import type { OrganizationData } from '@cultuvilla/shared/models/organization';
 import { CheckCircle, XCircle } from 'lucide-react';
 
 interface OrgCardProps {

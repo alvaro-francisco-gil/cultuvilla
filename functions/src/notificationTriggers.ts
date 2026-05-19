@@ -3,17 +3,23 @@ import * as admin from 'firebase-admin';
 
 const db = admin.firestore();
 
+/**
+ * Watches top-level /events/{eventId} docs and notifies all registrants on
+ * cancellation or significant edits.
+ */
 export const onEventUpdated = onDocumentUpdated(
-  'villages/{villageId}/events/{eventId}',
+  'events/{eventId}',
   async (event) => {
     const before = event.data?.before.data();
     const after = event.data?.after.data();
-    const { villageId, eventId } = event.params;
+    const { eventId } = event.params;
 
     if (!before || !after) return;
 
+    const municipalityId = (after.municipalityId as string | undefined) ?? null;
+
     if (before.status !== 'cancelled' && after.status === 'cancelled') {
-      const regs = await db.collection(`villages/${villageId}/events/${eventId}/registrations`).get();
+      const regs = await db.collection(`events/${eventId}/registrations`).get();
       const userIds = new Set(regs.docs.map((r) => r.data().userId));
       const batch = db.batch();
       for (const userId of userIds) {
@@ -22,7 +28,9 @@ export const onEventUpdated = onDocumentUpdated(
           type: 'event_cancelled',
           title: 'Evento cancelado',
           body: `El evento "${after.title}" ha sido cancelado`,
-          eventId, villageId, read: false,
+          eventId,
+          municipalityId,
+          read: false,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
       }
@@ -33,7 +41,7 @@ export const onEventUpdated = onDocumentUpdated(
       after.status === 'published' && before.status === 'published' &&
       (before.title !== after.title || before.startDate !== after.startDate || JSON.stringify(before.location) !== JSON.stringify(after.location))
     ) {
-      const regs = await db.collection(`villages/${villageId}/events/${eventId}/registrations`).get();
+      const regs = await db.collection(`events/${eventId}/registrations`).get();
       const userIds = new Set(regs.docs.map((r) => r.data().userId));
       const batch = db.batch();
       for (const userId of userIds) {
@@ -42,7 +50,9 @@ export const onEventUpdated = onDocumentUpdated(
           type: 'event_updated',
           title: 'Evento actualizado',
           body: `El evento "${after.title}" ha sido actualizado`,
-          eventId, villageId, read: false,
+          eventId,
+          municipalityId,
+          read: false,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
       }

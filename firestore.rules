@@ -3,35 +3,31 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
+    function isAuthenticated() { return request.auth != null; }
+    function isOwner(userId) { return isAuthenticated() && request.auth.uid == userId; }
     function isAppAdmin() {
-      return isAuthenticated() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
-    }
-
-    function isVillageAdmin(villageId) {
       return isAuthenticated() &&
-        get(/databases/$(database)/documents/villages/$(villageId)/members/$(request.auth.uid)).data.role == 'admin';
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
-
-    function isVillageMember(villageId) {
+    function isVillageAdmin(municipalityId) {
       return isAuthenticated() &&
-        exists(/databases/$(database)/documents/villages/$(villageId)/members/$(request.auth.uid));
+        exists(/databases/$(database)/documents/municipalities/$(municipalityId)/members/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/municipalities/$(municipalityId)/members/$(request.auth.uid)).data.role == 'admin';
     }
-
-    function isOrgMember(villageId, orgId) {
+    function isVillageMember(municipalityId) {
       return isAuthenticated() &&
-        exists(/databases/$(database)/documents/villages/$(villageId)/organizations/$(orgId)/members/$(request.auth.uid));
+        exists(/databases/$(database)/documents/municipalities/$(municipalityId)/members/$(request.auth.uid));
+    }
+    function isOrgMember(orgId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid));
+    }
+    function orgMunicipalityId(orgId) {
+      return get(/databases/$(database)/documents/organizations/$(orgId)).data.municipalityId;
     }
 
     match /admins/{userId} {
-      allow read: if isAppAdmin();
+      allow read: if isOwner(userId) || isAppAdmin();
       allow write: if false;
     }
 
@@ -41,67 +37,135 @@ service cloud.firestore {
       allow update: if isOwner(userId);
       allow delete: if false;
 
-      match /personas/{personaId} {
-        allow read: if isOwner(userId);
-        allow create: if isOwner(userId);
-        allow update: if isOwner(userId);
-        allow delete: if isOwner(userId);
-      }
-
       match /notifications/{notifId} {
         allow read: if isOwner(userId);
-        allow update: if isOwner(userId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
-        allow create: if false;
-        allow delete: if false;
+        allow update: if isOwner(userId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+        allow create, delete: if false;
       }
     }
 
-    match /villages/{villageId} {
+    // municipalities: reference data + optional community overlay.
+    // Reference fields are superadmin-only; community fields are managed by
+    // the village admin once activated.
+    match /municipalities/{municipalityId} {
       allow read: if true;
+      // Only superadmin can create the base municipality record (the seed
+      // script runs with admin credentials).
       allow create: if isAppAdmin();
-      allow update: if isVillageAdmin(villageId) || isAppAdmin();
+      // Updates: village admins can edit the community subfield + coordinates;
+      // superadmin can edit anything; nobody else can write.
+      allow update: if isAppAdmin() || isVillageAdmin(municipalityId);
       allow delete: if isAppAdmin();
+
+      match /barrios/{barrioId} {
+        allow read: if true;
+        allow write: if isAppAdmin();
+      }
+
+      match /cemeteries/{cemeteryId} {
+        allow read: if true;
+        allow write: if isAppAdmin();
+      }
 
       match /members/{userId} {
         allow read: if true;
-        allow create: if isVillageAdmin(villageId) || isAppAdmin();
-        allow update: if isVillageAdmin(villageId);
-        allow delete: if isVillageAdmin(villageId) || isOwner(userId);
+        allow create: if isVillageAdmin(municipalityId) || isAppAdmin();
+        allow update: if isVillageAdmin(municipalityId)
+                       || isAppAdmin()
+                       || (isOwner(userId)
+                           && request.resource.data.diff(resource.data).affectedKeys()
+                              .hasOnly(['profileAnswers', 'profileCompletedAt']));
+        allow delete: if isVillageAdmin(municipalityId) || isAppAdmin() || isOwner(userId);
       }
 
       match /inviteTokens/{tokenId} {
         allow read: if true;
-        allow create: if isVillageAdmin(villageId);
-        allow update: if isAuthenticated();
-        allow delete: if isVillageAdmin(villageId);
+        allow create: if isVillageAdmin(municipalityId) || isAppAdmin();
+        // acceptInvite Cloud Function handles redemption via admin SDK.
+        allow update: if false;
+        allow delete: if isVillageAdmin(municipalityId) || isAppAdmin();
       }
+    }
 
-      match /organizations/{orgId} {
-        allow read: if isVillageMember(villageId) || isAppAdmin();
-        allow create: if isVillageMember(villageId);
-        allow update: if isVillageAdmin(villageId);
-        allow delete: if isVillageAdmin(villageId);
+    match /organizations/{orgId} {
+      allow read: if true;
+      allow create: if isAuthenticated()
+        && (isVillageMember(request.resource.data.municipalityId) || isAppAdmin())
+        && request.resource.data.status == 'pending';
+      allow update: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
+      allow delete: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
 
-        match /members/{memberId} {
-          allow read: if isVillageMember(villageId);
-          allow create: if isOrgMember(villageId, orgId) || isVillageAdmin(villageId);
-          allow delete: if isOrgMember(villageId, orgId) || isVillageAdmin(villageId) || isOwner(memberId);
-        }
-      }
-
-      match /events/{eventId} {
+      match /members/{userId} {
         allow read: if true;
-        allow create: if isOrgMember(villageId, request.resource.data.organizationId);
-        allow update: if isOrgMember(villageId, resource.data.organizationId) || isVillageAdmin(villageId);
-        allow delete: if isOrgMember(villageId, resource.data.organizationId) || isVillageAdmin(villageId);
-
-        match /registrations/{regId} {
-          allow read: if true;
-          allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-          allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
-          allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
-        }
+        allow create: if isOrgMember(orgId)
+          || isVillageAdmin(orgMunicipalityId(orgId))
+          || isAppAdmin();
+        allow update: if false;
+        allow delete: if isOwner(userId)
+          || isVillageAdmin(orgMunicipalityId(orgId))
+          || isAppAdmin();
       }
+    }
+
+    match /events/{eventId} {
+      allow read: if true;
+      allow create: if isAuthenticated()
+        && isOrgMember(request.resource.data.organizationId)
+        && request.resource.data.municipalityId is string;
+      allow update: if isOrgMember(resource.data.organizationId)
+        || isVillageAdmin(resource.data.municipalityId)
+        || isAppAdmin();
+      allow delete: if isOrgMember(resource.data.organizationId)
+        || isVillageAdmin(resource.data.municipalityId)
+        || isAppAdmin();
+
+      match /registrations/{regId} {
+        allow read: if true;
+        // Creation goes through the `registerToEvent` callable (admin SDK
+        // bypasses rules). Direct client writes are not trusted because the
+        // capacity/waitlist decision must be made server-side in a
+        // transaction.
+        allow create: if false;
+        allow update: if isAuthenticated()
+          && resource.data.userId == request.auth.uid;
+        allow delete: if isAuthenticated()
+          && resource.data.userId == request.auth.uid;
+      }
+    }
+
+    // persons — canonical people registry
+    match /persons/{personId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isAuthenticated()
+        && (
+          resource.data.userId == request.auth.uid
+          || (resource.data.createdBy == request.auth.uid && resource.data.userId == null)
+          || isAppAdmin()
+        );
+      allow delete: if isAuthenticated()
+        && (
+          (resource.data.createdBy == request.auth.uid && resource.data.userId == null)
+          || isAppAdmin()
+        );
+    }
+
+    // occupations — superadmin managed list
+    match /occupations/{occupationId} {
+      allow read: if true;
+      allow write: if isAppAdmin();
+    }
+
+    // occupationProposals — users propose, superadmin reviews
+    match /occupationProposals/{proposalId} {
+      allow read: if isOwner(resource.data.proposedBy) || isAppAdmin();
+      allow create: if isAuthenticated()
+        && request.resource.data.proposedBy == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update: if isAppAdmin();
+      allow delete: if isOwner(resource.data.proposedBy) || isAppAdmin();
     }
   }
 }

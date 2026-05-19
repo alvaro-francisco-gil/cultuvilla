@@ -10,7 +10,7 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@villa-events/shared/*": ["packages/shared/src/*"]
+      "@cultuvilla/shared/*": ["packages/shared/src/*"]
     }
   }
 }

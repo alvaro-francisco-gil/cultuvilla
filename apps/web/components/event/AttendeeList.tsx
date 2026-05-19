@@ -1,6 +1,6 @@
 'use client';
 
-import type { RegistrationData } from '@villa-events/shared/models/event';
+import type { RegistrationData } from '@cultuvilla/shared/models/event';
 import { Users, Clock } from 'lucide-react';
 
 interface AttendeeListProps {

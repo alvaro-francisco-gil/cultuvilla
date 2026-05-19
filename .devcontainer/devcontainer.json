@@ -1,0 +1,8 @@
+{
+  "name": "cultuvilla",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "remoteUser": "node"
+}

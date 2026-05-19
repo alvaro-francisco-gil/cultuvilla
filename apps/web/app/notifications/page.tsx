@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
-import { markAllAsRead } from '@villa-events/shared/services/notificationService';
+import { markAllAsRead } from '@cultuvilla/shared/services/notificationService';
 import { NotificationItem } from '@/components/notification/NotificationItem';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 import { CheckCheck } from 'lucide-react';

@@ -1,0 +1,59 @@
+import { doc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { getDb } from '../firebase';
+import type { ProfileAnswers, ProfileFormField } from '../models/municipality/CensoTypes';
+import { isCensoComplete } from './censoService';
+
+/**
+ * Saves the user's answers to a municipality's censo. If all required fields
+ * are filled, sets profileCompletedAt; otherwise clears it.
+ *
+ * Only the user themselves should call this (security rules enforce that).
+ */
+export async function saveProfileAnswers(
+  municipalityId: string,
+  userId: string,
+  fields: ProfileFormField[],
+  answers: ProfileAnswers,
+): Promise<void> {
+  const memberRef = doc(getDb(), 'municipalities', municipalityId, 'members', userId);
+  const complete = isCensoComplete(fields, answers);
+  await updateDoc(memberRef, {
+    profileAnswers: answers,
+    profileCompletedAt: complete ? serverTimestamp() : null,
+  });
+}
+
+/**
+ * Aggregates predefined-field answers across all members of a municipality,
+ * returning a map of `{ key -> Set<value> }`. Useful as input to schema
+ * transition validation. Reading the full members collection is fine for
+ * a single-village admin operation; not used in hot paths.
+ */
+export function collectUsedValues(
+  members: { profileAnswers: ProfileAnswers }[],
+): Record<string, Set<string | number | boolean>> {
+  const out: Record<string, Set<string | number | boolean>> = {};
+  for (const m of members) {
+    for (const [k, v] of Object.entries(m.profileAnswers ?? {})) {
+      if (!out[k]) out[k] = new Set();
+      if (Array.isArray(v)) {
+        for (const item of v) {
+          if (typeof item === 'string') out[k].add(item);
+        }
+      } else if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+        if (v !== '' && v !== null && v !== undefined) out[k].add(v);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Marks profileCompletedAt by converting the Firestore Timestamp on read.
+ * Helper for callers that need a Date.
+ */
+export function profileCompletedAtToDate(
+  raw: unknown,
+): Date | null {
+  return raw instanceof Timestamp ? raw.toDate() : null;
+}

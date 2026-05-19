@@ -4,42 +4,61 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { getUserProfile, updateUserProfile } from '@villa-events/shared/services/userService';
-import type { UserData } from '@villa-events/shared/models/user';
-import { User, Pencil, Users, LogOut } from 'lucide-react';
+import {
+  setActiveMunicipality,
+  updateUserProfile,
+} from '@cultuvilla/shared/services/userService';
+import {
+  getUserMemberships,
+  type UserMembership,
+} from '@cultuvilla/shared/services/villageMemberService';
+import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
+import type { MunicipalityData } from '@cultuvilla/shared/models/municipality';
+import { User, Pencil, Users, LogOut, MapPin, Shield, Settings } from 'lucide-react';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { useIsAppAdmin } from '@/hooks/useIsAppAdmin';
+import { VillageCensoSection } from '@/components/profile/VillageCensoSection';
+
+type MunicipalitySummary = MunicipalityData & { id: string };
 
 export default function ProfilePage() {
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut, profile, refreshProfile } = useAuth();
+  const { isAppAdmin } = useIsAppAdmin();
   const router = useRouter();
 
-  const [profile, setProfile] = useState<(UserData & { id: string }) | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [telephone, setTelephone] = useState('');
   const [biography, setBiography] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  const [memberships, setMemberships] = useState<UserMembership[]>([]);
+  const [municipalitiesById, setMunicipalitiesById] = useState<Record<string, MunicipalitySummary>>({});
+  const [switching, setSwitching] = useState(false);
+
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
-    }
+    if (!authLoading && !user) router.push('/login');
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    if (user) {
-      getUserProfile(user.uid)
-        .then((p) => {
-          setProfile(p);
-          if (p) {
-            setTelephone(p.telephone ?? '');
-            setBiography(p.biography ?? '');
-          }
-        })
-        .finally(() => setProfileLoading(false));
+    if (profile) {
+      setTelephone(profile.telephone ?? '');
+      setBiography(profile.biography ?? '');
     }
-  }, [user]);
+  }, [profile]);
+
+  useEffect(() => {
+    if (!user) return;
+    getUserMemberships(user.uid).then(async (mems) => {
+      setMemberships(mems);
+      const ids = new Set(mems.map((m) => m.municipalityId));
+      if (profile?.activeMunicipalityId) ids.add(profile.activeMunicipalityId);
+      const municipalities = await Promise.all(Array.from(ids).map((id) => getMunicipality(id)));
+      const map: Record<string, MunicipalitySummary> = {};
+      municipalities.forEach((v) => { if (v) map[v.id] = v; });
+      setMunicipalitiesById(map);
+    });
+  }, [user, profile?.activeMunicipalityId]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -50,7 +69,7 @@ export default function ProfilePage() {
         telephone: telephone.trim() || null,
         biography: biography.trim() || null,
       });
-      setProfile((prev) => prev ? { ...prev, telephone: telephone.trim() || null, biography: biography.trim() || null } : prev);
+      await refreshProfile();
       setEditMode(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al guardar');
@@ -64,7 +83,19 @@ export default function ProfilePage() {
     router.push('/');
   };
 
-  if (authLoading || profileLoading) {
+  const handleSwitchVillage = async (municipalityId: string) => {
+    if (!user || municipalityId === profile?.activeMunicipalityId) return;
+    setSwitching(true);
+    try {
+      await setActiveMunicipality(user.uid, municipalityId);
+      await refreshProfile();
+      router.push(`/village/${municipalityId}`);
+    } finally {
+      setSwitching(false);
+    }
+  };
+
+  if (authLoading || !profile) {
     return (
       <div className="px-4 py-6 space-y-4">
         <SkeletonLoader className="h-16 w-16 rounded-full" />
@@ -76,8 +107,10 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
-  const displayName = profile?.displayName ?? user.displayName ?? 'Sin nombre';
-  const photoURL = profile?.photoURL ?? user.photoURL;
+  const displayName = profile.displayName ?? user.displayName ?? 'Sin nombre';
+  const photoURL = profile.photoURL ?? user.photoURL;
+  const adminMemberships = memberships.filter((m) => m.role === 'admin');
+  const showManagementSection = isAppAdmin || adminMemberships.length > 0;
 
   return (
     <div className="px-4 py-6">
@@ -98,6 +131,52 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* My villages */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <MapPin size={18} className="text-gray-500" />
+          <p className="text-sm font-semibold text-gray-900">Mis pueblos</p>
+        </div>
+        {memberships.length === 0 ? (
+          <p className="text-sm text-gray-500">Aún no perteneces a ningún pueblo.</p>
+        ) : (
+          <ul className="space-y-2">
+            {memberships.map((m) => {
+              const v = municipalitiesById[m.municipalityId];
+              if (!v) return null;
+              const isActive = m.municipalityId === profile.activeMunicipalityId;
+              return (
+                <li key={m.municipalityId} className="flex items-center justify-between">
+                  <Link href={`/village/${m.municipalityId}`} className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{v.name}</p>
+                    <p className="text-xs text-gray-400">{v.province}</p>
+                    {m.profileCompletedAt ? (
+                      <span className="text-xs text-emerald-600">Censo completo</span>
+                    ) : (
+                      <Link href={`/village/${m.municipalityId}/censo`} className="text-xs text-amber-600 hover:underline">
+                        Completar censo
+                      </Link>
+                    )}
+                  </Link>
+                  {isActive ? (
+                    <span className="text-xs text-blue-700 px-2 py-0.5 rounded-full bg-blue-50">Principal</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleSwitchVillage(m.municipalityId)}
+                      disabled={switching}
+                      className="text-xs text-blue-600 hover:underline disabled:opacity-50"
+                    >
+                      Hacer principal
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
       {/* Profile details */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
         {!editMode ? (
@@ -110,11 +189,11 @@ export default function ProfilePage() {
             </div>
             <div>
               <p className="text-xs text-gray-500">Teléfono</p>
-              <p className="text-sm text-gray-900">{profile?.telephone ?? 'No añadido'}</p>
+              <p className="text-sm text-gray-900">{profile.telephone ?? 'No añadido'}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500">Biografía</p>
-              <p className="text-sm text-gray-900 whitespace-pre-line">{profile?.biography ?? 'No añadida'}</p>
+              <p className="text-sm text-gray-900 whitespace-pre-line">{profile.biography ?? 'No añadida'}</p>
             </div>
           </div>
         ) : (
@@ -153,14 +232,66 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* Link to personas */}
-      <Link href="/profile/personas" className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-4 mb-4 hover:bg-gray-50 transition">
+      {/* Censo per village */}
+      {memberships.map((m) => (
+        <VillageCensoSection
+          key={m.municipalityId}
+          municipalityId={m.municipalityId}
+          userId={user.uid}
+        />
+      ))}
+
+      {/* Link to persons */}
+      <Link href="/profile/persons" className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-4 mb-4 hover:bg-gray-50 transition">
         <div className="flex items-center gap-3">
           <Users size={20} className="text-gray-500" />
           <span className="text-sm font-medium text-gray-900">Familiares / Acompañantes</span>
         </div>
         <span className="text-gray-400 text-lg">›</span>
       </Link>
+
+      {/* Management tools */}
+      {showManagementSection && (
+        <div className="bg-white border border-gray-200 rounded-xl mb-4 overflow-hidden">
+          <div className="px-4 pt-3 pb-1">
+            <h3 className="text-xs uppercase tracking-wide font-semibold text-gray-400">Herramientas de gestión</h3>
+          </div>
+
+          {isAppAdmin && (
+            <Link href="/admin" className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 border-t border-gray-100 transition">
+              <div className="flex items-center gap-3">
+                <Shield size={18} className="text-purple-600" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Administración global</p>
+                  <p className="text-xs text-gray-500">Activar y editar comunidades</p>
+                </div>
+              </div>
+              <span className="text-gray-400 text-lg">›</span>
+            </Link>
+          )}
+
+          {adminMemberships.map((m) => {
+            const v = municipalitiesById[m.municipalityId];
+            if (!v) return null;
+            return (
+              <Link
+                key={m.municipalityId}
+                href={`/village/${m.municipalityId}/admin`}
+                className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 border-t border-gray-100 transition"
+              >
+                <div className="flex items-center gap-3">
+                  <Settings size={18} className="text-blue-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Coordinar {v.name}</p>
+                    <p className="text-xs text-gray-500">Invitaciones, organizaciones, miembros</p>
+                  </div>
+                </div>
+                <span className="text-gray-400 text-lg">›</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
 
       {/* Sign out */}
       <button

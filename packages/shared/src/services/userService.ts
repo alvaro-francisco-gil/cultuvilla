@@ -1,38 +1,52 @@
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
   setDoc,
   updateDoc,
   serverTimestamp,
   Timestamp,
+  query,
+  orderBy,
 } from 'firebase/firestore';
-import { db } from '../firebase';
+import { getDb } from '../firebase';
 import type { UserData, UserDataInput } from '../models/user/UserDataModel';
+
+function mapUserDoc(id: string, data: Record<string, unknown>): UserData & { id: string } {
+  return {
+    id,
+    displayName: data['displayName'] as string,
+    email: data['email'] as string,
+    birthday: (data['birthday'] as Timestamp).toDate(),
+    biography: (data['biography'] as string) ?? null,
+    telephone: (data['telephone'] as string) ?? null,
+    photoURL: (data['photoURL'] as string) ?? null,
+    activeMunicipalityId: (data['activeMunicipalityId'] as string) ?? null,
+    personId: (data['personId'] as string) ?? null,
+    createdAt: (data['createdAt'] as Timestamp).toDate(),
+  };
+}
 
 export async function getUserProfile(
   userId: string
 ): Promise<(UserData & { id: string }) | null> {
-  const docRef = doc(db, 'users', userId);
-  const snap = await getDoc(docRef);
+  const snap = await getDoc(doc(getDb(), 'users', userId));
   if (!snap.exists()) return null;
-  const data = snap.data();
-  return {
-    id: snap.id,
-    displayName: data['displayName'],
-    email: data['email'],
-    birthday: (data['birthday'] as Timestamp).toDate(),
-    biography: data['biography'] ?? null,
-    telephone: data['telephone'] ?? null,
-    photoURL: data['photoURL'] ?? null,
-    createdAt: (data['createdAt'] as Timestamp).toDate(),
-  };
+  return mapUserDoc(snap.id, snap.data());
+}
+
+export async function getAllUsers(): Promise<(UserData & { id: string })[]> {
+  const q = query(collection(getDb(), 'users'), orderBy('displayName', 'asc'));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => mapUserDoc(d.id, d.data()));
 }
 
 export async function createUserProfile(
   userId: string,
   input: UserDataInput
 ): Promise<void> {
-  const docRef = doc(db, 'users', userId);
+  const docRef = doc(getDb(), 'users', userId);
   await setDoc(docRef, {
     displayName: input.displayName,
     email: input.email,
@@ -40,6 +54,8 @@ export async function createUserProfile(
     biography: input.biography ?? null,
     telephone: input.telephone ?? null,
     photoURL: input.photoURL ?? null,
+    activeMunicipalityId: input.activeMunicipalityId ?? null,
+    personId: input.personId ?? null,
     createdAt: serverTimestamp(),
   });
 }
@@ -48,7 +64,14 @@ export async function updateUserProfile(
   userId: string,
   data: Partial<Pick<UserData, 'displayName' | 'biography' | 'telephone' | 'photoURL'>>
 ): Promise<void> {
-  const docRef = doc(db, 'users', userId);
+  const docRef = doc(getDb(), 'users', userId);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await updateDoc(docRef, data as any);
+}
+
+export async function setActiveMunicipality(
+  userId: string,
+  municipalityId: string | null,
+): Promise<void> {
+  await updateDoc(doc(getDb(), 'users', userId), { activeMunicipalityId: municipalityId });
 }

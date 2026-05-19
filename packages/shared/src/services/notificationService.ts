@@ -1,7 +1,6 @@
 import {
   collection,
   doc,
-  getDoc,
   getDocs,
   setDoc,
   updateDoc,
@@ -14,11 +13,11 @@ import {
   Timestamp,
   getCountFromServer,
 } from 'firebase/firestore';
-import { db } from '../firebase';
+import { getDb } from '../firebase';
 import type { NotificationData, NotificationDataInput } from '../models/notification/NotificationDataModel';
 
 function notificationsCol(userId: string) {
-  return collection(db, 'users', userId, 'notifications');
+  return collection(getDb(), 'users', userId, 'notifications');
 }
 
 function mapNotificationDoc(
@@ -31,7 +30,7 @@ function mapNotificationDoc(
     title: data['title'] as string,
     body: data['body'] as string,
     eventId: (data['eventId'] as string | null) ?? null,
-    villageId: (data['villageId'] as string | null) ?? null,
+    municipalityId: (data['municipalityId'] as string | null) ?? null,
     read: (data['read'] as boolean) ?? false,
     createdAt: (data['createdAt'] as Timestamp).toDate(),
   };
@@ -66,7 +65,7 @@ export async function createNotification(
     title: input.title,
     body: input.body,
     eventId: input.eventId ?? null,
-    villageId: input.villageId ?? null,
+    municipalityId: input.municipalityId ?? null,
     read: input.read ?? false,
     createdAt: serverTimestamp(),
   });
@@ -84,7 +83,7 @@ export async function markAllAsRead(userId: string): Promise<void> {
   const q = query(notificationsCol(userId), where('read', '==', false));
   const snap = await getDocs(q);
   if (snap.empty) return;
-  const batch = writeBatch(db);
+  const batch = writeBatch(getDb());
   snap.docs.forEach((d) => {
     batch.update(d.ref, { read: true });
   });

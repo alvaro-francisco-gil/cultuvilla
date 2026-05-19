@@ -1,152 +1,125 @@
 import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  deleteDoc,
-  query,
-  orderBy,
-  where,
-  writeBatch,
-  serverTimestamp,
-  Timestamp,
-  collectionGroup,
-  getCountFromServer,
-} from 'firebase/firestore';
-import { db } from '../firebase';
-import type { RegistrationData, RegistrationStatus } from '../models/event/RegistrationDataModel';
+  collection, doc, getDocs, deleteDoc, query, orderBy, where,
+  Timestamp, collectionGroup, getCountFromServer,
+} from 'firebase/firestore'
+import { httpsCallable } from 'firebase/functions'
+import { getDb, getFirebaseFunctions } from '../firebase'
+import type { RegistrationData, RegistrationStatus } from '../models/event/RegistrationDataModel'
 
 export interface RegisterInput {
-  userId: string;
-  personaId: string | null;
-  name: string;
+  personId: string
+  name: string
 }
 
-function regsCol(villageId: string, eventId: string) {
-  return collection(db, 'villages', villageId, 'events', eventId, 'registrations');
+export interface RegistrationSummary {
+  id: string
+  status: RegistrationStatus
+  position: number
+  isMember: boolean
 }
 
-function mapRegDoc(
-  d: { id: string; data: () => Record<string, unknown> }
-): RegistrationData & { id: string } {
-  const data = d.data();
+function regsCol(eventId: string) {
+  return collection(getDb(), 'events', eventId, 'registrations')
+}
+
+function mapRegDoc(d: { id: string; data: () => Record<string, unknown> }): RegistrationData & { id: string } {
+  const data = d.data()
+  const isMember = typeof data['isMember'] === 'boolean' ? (data['isMember'] as boolean) : undefined
   return {
     id: d.id,
     userId: data['userId'] as string,
-    personaId: (data['personaId'] as string | null) ?? null,
+    personId: data['personId'] as string,
     name: data['name'] as string,
     status: data['status'] as RegistrationStatus,
     position: data['position'] as number,
     registeredAt: (data['registeredAt'] as Timestamp).toDate(),
-  };
+    isMember,
+  }
 }
 
-/**
- * Pure function for testability.
- * Returns 'confirmed' if under maxAttendees, 'waitlisted' if at or over.
- */
+// Kept for callers that want a quick local prediction (e.g., showing "se irá a
+// lista de espera" hints in the sign-up modal). The actual confirmed/waitlisted
+// decision is made by the `registerToEvent` Cloud Function in a transaction.
 export function determineRegistrationStatus(
   maxAttendees: number | null,
   currentConfirmedCount: number
 ): RegistrationStatus {
-  if (maxAttendees === null) return 'confirmed';
-  return currentConfirmedCount < maxAttendees ? 'confirmed' : 'waitlisted';
+  if (maxAttendees === null) return 'confirmed'
+  return currentConfirmedCount < maxAttendees ? 'confirmed' : 'waitlisted'
 }
 
-export async function getEventRegistrations(
-  villageId: string,
+export async function getEventRegistrations(eventId: string): Promise<(RegistrationData & { id: string })[]> {
+  const q = query(regsCol(eventId), orderBy('position', 'asc'))
+  const snap = await getDocs(q)
+  return snap.docs.map(d => mapRegDoc(d as Parameters<typeof mapRegDoc>[0]))
+}
+
+export async function getConfirmedCount(eventId: string): Promise<number> {
+  const q = query(regsCol(eventId), where('status', '==', 'confirmed'))
+  const snap = await getCountFromServer(q)
+  return snap.data().count
+}
+
+export async function getTotalCount(eventId: string): Promise<number> {
+  const snap = await getCountFromServer(regsCol(eventId))
+  return snap.data().count
+}
+
+export async function getUserRegistrations(eventId: string, userId: string): Promise<(RegistrationData & { id: string })[]> {
+  const q = query(regsCol(eventId), where('userId', '==', userId))
+  const snap = await getDocs(q)
+  return snap.docs.map(d => mapRegDoc(d as Parameters<typeof mapRegDoc>[0]))
+}
+
+interface RegisterToEventCallableData {
   eventId: string
-): Promise<(RegistrationData & { id: string })[]> {
-  const q = query(regsCol(villageId, eventId), orderBy('position', 'asc'));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => mapRegDoc(d as Parameters<typeof mapRegDoc>[0]));
+  registrants: RegisterInput[]
 }
 
-export async function getConfirmedCount(
-  villageId: string,
-  eventId: string
-): Promise<number> {
-  const q = query(regsCol(villageId, eventId), where('status', '==', 'confirmed'));
-  const snap = await getCountFromServer(q);
-  return snap.data().count;
-}
-
-export async function getTotalCount(
-  villageId: string,
-  eventId: string
-): Promise<number> {
-  const snap = await getCountFromServer(regsCol(villageId, eventId));
-  return snap.data().count;
-}
-
-export async function getUserRegistrations(
-  villageId: string,
-  eventId: string,
-  userId: string
-): Promise<(RegistrationData & { id: string })[]> {
-  const q = query(regsCol(villageId, eventId), where('userId', '==', userId));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => mapRegDoc(d as Parameters<typeof mapRegDoc>[0]));
+interface RegisterToEventCallableResult {
+  registrations: RegistrationSummary[]
 }
 
 export async function registerToEvent(
-  villageId: string,
   eventId: string,
-  inputs: RegisterInput[],
-  maxAttendees: number | null
-): Promise<void> {
-  const confirmedCount = await getConfirmedCount(villageId, eventId);
-  const totalCount = await getTotalCount(villageId, eventId);
-
-  const batch = writeBatch(db);
-  inputs.forEach((input, i) => {
-    const newRef = doc(regsCol(villageId, eventId));
-    const position = totalCount + i + 1;
-    const status = determineRegistrationStatus(maxAttendees, confirmedCount + i);
-    batch.set(newRef, {
-      userId: input.userId,
-      personaId: input.personaId ?? null,
-      name: input.name,
-      status,
-      position,
-      registeredAt: serverTimestamp(),
-    });
-  });
-  await batch.commit();
+  registrants: RegisterInput[],
+): Promise<RegistrationSummary[]> {
+  const callable = httpsCallable<RegisterToEventCallableData, RegisterToEventCallableResult>(
+    getFirebaseFunctions(),
+    'registerToEvent',
+  )
+  const res = await callable({ eventId, registrants })
+  return res.data.registrations
 }
 
-export async function cancelRegistration(
-  villageId: string,
-  eventId: string,
-  regId: string
-): Promise<void> {
-  await deleteDoc(doc(regsCol(villageId, eventId), regId));
+export async function cancelRegistration(eventId: string, regId: string): Promise<void> {
+  await deleteDoc(doc(regsCol(eventId), regId))
 }
 
-export async function getUserRegistrationsAcrossVillages(
+export async function getUserRegistrationsAcrossEvents(
   userId: string
 ): Promise<(RegistrationData & { id: string; eventPath: string })[]> {
   const q = query(
-    collectionGroup(db, 'registrations'),
+    collectionGroup(getDb(), 'registrations'),
     where('userId', '==', userId),
     orderBy('registeredAt', 'desc')
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => {
-    const data = d.data();
-    // ref path: villages/{villageId}/events/{eventId}/registrations/{regId}
-    const pathSegments = d.ref.path.split('/');
-    const eventPath = pathSegments.slice(0, 4).join('/');
+  )
+  const snap = await getDocs(q)
+  return snap.docs.map(d => {
+    const data = d.data()
+    const pathSegments = d.ref.path.split('/')
+    const eventPath = pathSegments.slice(0, 2).join('/')
+    const isMember = typeof data['isMember'] === 'boolean' ? (data['isMember'] as boolean) : undefined
     return {
       id: d.id,
       userId: data['userId'] as string,
-      personaId: (data['personaId'] as string | null) ?? null,
+      personId: data['personId'] as string,
       name: data['name'] as string,
       status: data['status'] as RegistrationStatus,
       position: data['position'] as number,
       registeredAt: (data['registeredAt'] as Timestamp).toDate(),
+      isMember,
       eventPath,
-    };
-  });
+    }
+  })
 }

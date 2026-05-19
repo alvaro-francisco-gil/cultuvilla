@@ -1,3 +1,4 @@
+import { GeoPoint } from 'firebase/firestore';
 import { LocationData } from '../core/LocationDataModel';
 
 export type EventStatus = 'draft' | 'published' | 'cancelled' | 'completed';
@@ -18,6 +19,17 @@ export interface EventData {
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
+  // Municipality context (denormalized for feed rendering).
+  municipalityId: string;
+  municipalityName: string;
+  municipalityCoverImage: string | null;
+  municipalityCoordinates: GeoPoint | null;
+  // Registration counters maintained by `registerToEvent` and
+  // `onRegistrationDeleted`. Optional because events created before the
+  // callable rollout don't carry them yet; readers should fall back to a
+  // count query when undefined.
+  confirmedCount?: number;
+  totalCount?: number;
 }
 
 export interface EventDataInput {
@@ -36,6 +48,10 @@ export interface EventDataInput {
   createdBy: string;
   createdAt?: Date;
   updatedAt?: Date;
+  municipalityId: string;
+  municipalityName: string;
+  municipalityCoverImage?: string | null;
+  municipalityCoordinates: GeoPoint | null;
 }
 
 export function buildEventData(input: EventDataInput): EventData {
@@ -56,6 +72,10 @@ export function buildEventData(input: EventDataInput): EventData {
     createdBy: input.createdBy,
     createdAt: input.createdAt ?? now,
     updatedAt: input.updatedAt ?? now,
+    municipalityId: input.municipalityId,
+    municipalityName: input.municipalityName,
+    municipalityCoverImage: input.municipalityCoverImage ?? null,
+    municipalityCoordinates: input.municipalityCoordinates,
   };
 }
 

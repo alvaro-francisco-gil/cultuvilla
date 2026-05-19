@@ -1,0 +1,176 @@
+// Handler test for onRegistrationDeleted (waitlistPromotion).
+// Runs against the Firestore emulator via firebase-admin and uses
+// firebase-functions-test to wrap the v2 trigger.
+//
+// Orchestrated by `pnpm test:functions` (root), which starts the emulator
+// suite first.
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import * as admin from 'firebase-admin';
+import functionsTestFactory from 'firebase-functions-test';
+import { resetEmulators } from '../helpers/firestoreEmulator';
+import { onRegistrationDeleted } from '../../waitlistPromotion';
+
+const ft = functionsTestFactory({ projectId: process.env.GCLOUD_PROJECT || 'cultuvilla-test' });
+
+const MUNICIPALITY_ID = 'mun-1';
+const EVENT_ID = 'e1';
+
+function regPath(regId: string): string {
+  return `events/${EVENT_ID}/registrations/${regId}`;
+}
+
+async function seedEvent(opts: { title: string; maxAttendees: number | null }): Promise<void> {
+  await admin.firestore().doc(`events/${EVENT_ID}`).set({
+    title: opts.title,
+    maxAttendees: opts.maxAttendees,
+    municipalityId: MUNICIPALITY_ID,
+  });
+}
+
+interface SeedReg {
+  id: string;
+  status: 'confirmed' | 'waitlisted';
+  userId: string;
+  name: string;
+  position?: number;
+}
+
+async function seedRegistration(reg: SeedReg): Promise<void> {
+  await admin.firestore().doc(regPath(reg.id)).set({
+    status: reg.status,
+    userId: reg.userId,
+    name: reg.name,
+    position: reg.position ?? 0,
+  });
+}
+
+async function invokeDelete(reg: SeedReg): Promise<void> {
+  const snap = ft.firestore.makeDocumentSnapshot(
+    { status: reg.status, userId: reg.userId, name: reg.name, position: reg.position ?? 0 },
+    regPath(reg.id),
+  );
+  // v2 firestore trigger: pass a synthesized CloudEvent.
+  const wrapped = ft.wrap(onRegistrationDeleted as unknown as Parameters<typeof ft.wrap>[0]);
+  await wrapped({
+    data: snap,
+    params: { eventId: EVENT_ID, regId: reg.id },
+  } as unknown as Parameters<typeof wrapped>[0]);
+}
+
+describe('onRegistrationDeleted (waitlist promotion)', () => {
+  beforeAll(async () => {
+    await resetEmulators();
+  });
+
+  beforeEach(async () => {
+    await resetEmulators();
+  });
+
+  afterAll(() => {
+    ft.cleanup();
+  });
+
+  it('is a no-op when the deleted registration was waitlisted', async () => {
+    await seedEvent({ title: 'Fiesta', maxAttendees: 1 });
+    await seedRegistration({ id: 'r1', status: 'confirmed', userId: 'alice', name: 'Alice' });
+    await seedRegistration({
+      id: 'r2',
+      status: 'waitlisted',
+      userId: 'bob',
+      name: 'Bob',
+      position: 1,
+    });
+
+    await invokeDelete({ id: 'r2', status: 'waitlisted', userId: 'bob', name: 'Bob', position: 1 });
+
+    const stillConfirmed = await admin.firestore().doc(regPath('r1')).get();
+    expect(stillConfirmed.data()?.status).toBe('confirmed');
+  });
+
+  it('is a no-op when the event has no maxAttendees cap', async () => {
+    await seedEvent({ title: 'Open event', maxAttendees: null });
+    await seedRegistration({
+      id: 'r2',
+      status: 'waitlisted',
+      userId: 'bob',
+      name: 'Bob',
+      position: 1,
+    });
+
+    await invokeDelete({ id: 'r1', status: 'confirmed', userId: 'alice', name: 'Alice' });
+
+    const bob = await admin.firestore().doc(regPath('r2')).get();
+    expect(bob.data()?.status).toBe('waitlisted');
+  });
+
+  it('is a no-op when there is no one on the waitlist', async () => {
+    await seedEvent({ title: 'Fiesta', maxAttendees: 2 });
+
+    await invokeDelete({ id: 'r1', status: 'confirmed', userId: 'alice', name: 'Alice' });
+
+    // Should not have created any notifications.
+    const notifs = await admin.firestore().collection('users/alice/notifications').get();
+    expect(notifs.size).toBe(0);
+  });
+
+  it('updates confirmedCount and totalCount on the event after deletion', async () => {
+    // Seed an event with bogus counts to ensure the trigger recomputes from
+    // the source of truth rather than trusting whatever was on the doc.
+    await admin.firestore().doc(`events/${EVENT_ID}`).set({
+      title: 'Fiesta',
+      maxAttendees: 5,
+      municipalityId: MUNICIPALITY_ID,
+      confirmedCount: 999,
+      totalCount: 999,
+    });
+    await seedRegistration({ id: 'r2', status: 'confirmed', userId: 'bob', name: 'Bob', position: 2 });
+    await seedRegistration({ id: 'r3', status: 'waitlisted', userId: 'carol', name: 'Carol', position: 3 });
+
+    await invokeDelete({ id: 'r1', status: 'confirmed', userId: 'alice', name: 'Alice' });
+
+    const eventDoc = await admin.firestore().doc(`events/${EVENT_ID}`).get();
+    // After the trigger handles the deletion: r3 is promoted from waitlist
+    // to confirmed, so r2 and r3 are both confirmed. Counts come from
+    // authoritative aggregates over the collection, overriding the bogus
+    // 999s seeded above.
+    expect(eventDoc.data()?.confirmedCount).toBe(2);
+    expect(eventDoc.data()?.totalCount).toBe(2);
+  });
+
+  it('promotes the next waitlisted user and creates a notification', async () => {
+    await seedEvent({ title: 'Fiesta del pueblo', maxAttendees: 2 });
+    await seedRegistration({
+      id: 'r2',
+      status: 'waitlisted',
+      userId: 'bob',
+      name: 'Bob',
+      position: 1,
+    });
+    await seedRegistration({
+      id: 'r3',
+      status: 'waitlisted',
+      userId: 'carol',
+      name: 'Carol',
+      position: 2,
+    });
+
+    await invokeDelete({ id: 'r1', status: 'confirmed', userId: 'alice', name: 'Alice' });
+
+    const bob = await admin.firestore().doc(regPath('r2')).get();
+    expect(bob.data()?.status).toBe('confirmed');
+
+    const carol = await admin.firestore().doc(regPath('r3')).get();
+    expect(carol.data()?.status).toBe('waitlisted');
+
+    const notifs = await admin.firestore().collection('users/bob/notifications').get();
+    expect(notifs.size).toBe(1);
+    const notif = notifs.docs[0].data();
+    expect(notif.type).toBe('waitlist_promoted');
+    expect(notif.eventId).toBe(EVENT_ID);
+    expect(notif.municipalityId).toBe(MUNICIPALITY_ID);
+    expect(notif.read).toBe(false);
+    expect(notif.body).toContain('Fiesta del pueblo');
+    expect(notif.body).toContain('Bob');
+  });
+});

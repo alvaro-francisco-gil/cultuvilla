@@ -1,8 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import type { EventData } from '@villa-events/shared/models/event';
-import type { LocationData } from '@villa-events/shared/models/core';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  EventFormSchema,
+  type EventData,
+  type EventFormInput,
+  type EventFormValues,
+} from '@cultuvilla/shared/models/event';
+import type { LocationData } from '@cultuvilla/shared/models/core';
 
 export interface EventFormData {
   title: string;
@@ -28,106 +34,86 @@ function toInputDateTime(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+const inputCls =
+  'w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+
 export function EventForm({ initial, onSubmit, onCancel, submitLabel = 'Guardar', extraActions }: EventFormProps) {
-  const [title, setTitle] = useState(initial?.title ?? '');
-  const [description, setDescription] = useState(initial?.description ?? '');
-  const [startDate, setStartDate] = useState(initial?.startDate ? toInputDateTime(initial.startDate) : '');
-  const [endDate, setEndDate] = useState(initial?.endDate ? toInputDateTime(initial.endDate) : '');
-  const [locationText, setLocationText] = useState(initial?.location?.text ?? '');
-  const [price, setPrice] = useState(initial?.price !== null && initial?.price !== undefined ? String(initial.price) : '');
-  const [maxAttendees, setMaxAttendees] = useState(
-    initial?.maxAttendees !== null && initial?.maxAttendees !== undefined ? String(initial.maxAttendees) : ''
-  );
-  const [telephoneRequired, setTelephoneRequired] = useState(initial?.telephoneRequired ?? false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<EventFormInput, unknown, EventFormValues>({
+    resolver: zodResolver(EventFormSchema),
+    defaultValues: {
+      title: initial?.title ?? '',
+      description: initial?.description ?? '',
+      startDate: initial?.startDate ? toInputDateTime(initial.startDate) : '',
+      endDate: initial?.endDate ? toInputDateTime(initial.endDate) : '',
+      locationText: initial?.location?.text ?? '',
+      price: initial?.price !== null && initial?.price !== undefined ? String(initial.price) : '',
+      maxAttendees:
+        initial?.maxAttendees !== null && initial?.maxAttendees !== undefined ? String(initial.maxAttendees) : '',
+      telephoneRequired: initial?.telephoneRequired ?? false,
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) { setError('El título es obligatorio'); return; }
-    if (!startDate) { setError('La fecha de inicio es obligatoria'); return; }
-
-    setError('');
-    setSubmitting(true);
-
+  const submit = handleSubmit(async (data) => {
+    const location: LocationData = {
+      type: 'text',
+      coordinates: null,
+      text: data.locationText,
+    };
     try {
       await onSubmit({
-        title: title.trim(),
-        description: description.trim(),
-        startDate: new Date(startDate),
-        endDate: endDate ? new Date(endDate) : null,
-        location: {
-          type: 'text',
-          coordinates: null,
-          text: locationText.trim() || null,
-        },
-        price: price !== '' ? Number(price) : null,
-        maxAttendees: maxAttendees !== '' ? Number(maxAttendees) : null,
-        telephoneRequired,
+        title: data.title,
+        description: data.description,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        location,
+        price: data.price,
+        maxAttendees: data.maxAttendees,
+        telephoneRequired: data.telephoneRequired,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al guardar');
-    } finally {
-      setSubmitting(false);
+      setError('root', { message: err instanceof Error ? err.message : 'Error al guardar' });
     }
-  };
+  });
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={submit} className="space-y-4" noValidate>
       <div>
         <label className="block text-xs text-gray-500 mb-1">Título *</label>
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-          placeholder="Nombre del evento"
-          className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <input type="text" {...register('title')} placeholder="Nombre del evento" className={inputCls} />
+        {errors.title && <p className="text-xs text-red-600 mt-1 ml-1">{errors.title.message}</p>}
       </div>
 
       <div>
         <label className="block text-xs text-gray-500 mb-1">Descripción</label>
         <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          {...register('description')}
           rows={4}
           placeholder="Describe el evento..."
-          className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={`${inputCls} resize-none`}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-gray-500 mb-1">Fecha inicio *</label>
-          <input
-            type="datetime-local"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            required
-            className="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <input type="datetime-local" {...register('startDate')} className={inputCls} />
+          {errors.startDate && <p className="text-xs text-red-600 mt-1 ml-1">{errors.startDate.message}</p>}
         </div>
         <div>
           <label className="block text-xs text-gray-500 mb-1">Fecha fin</label>
-          <input
-            type="datetime-local"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <input type="datetime-local" {...register('endDate')} className={inputCls} />
+          {errors.endDate && <p className="text-xs text-red-600 mt-1 ml-1">{errors.endDate.message}</p>}
         </div>
       </div>
 
       <div>
         <label className="block text-xs text-gray-500 mb-1">Ubicación</label>
-        <input
-          type="text"
-          value={locationText}
-          onChange={(e) => setLocationText(e.target.value)}
-          placeholder="Plaza Mayor, Calle..."
-          className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <input type="text" {...register('locationText')} placeholder="Plaza Mayor, Calle..." className={inputCls} />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -137,39 +123,30 @@ export function EventForm({ initial, onSubmit, onCancel, submitLabel = 'Guardar'
             type="number"
             min="0"
             step="0.01"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
+            {...register('price')}
             placeholder="0 = gratis"
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={inputCls}
           />
+          {errors.price && <p className="text-xs text-red-600 mt-1 ml-1">{errors.price.message}</p>}
         </div>
         <div>
           <label className="block text-xs text-gray-500 mb-1">Plazas máx.</label>
-          <input
-            type="number"
-            min="1"
-            value={maxAttendees}
-            onChange={(e) => setMaxAttendees(e.target.value)}
-            placeholder="Sin límite"
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <input type="number" min="1" {...register('maxAttendees')} placeholder="Sin límite" className={inputCls} />
+          {errors.maxAttendees && (
+            <p className="text-xs text-red-600 mt-1 ml-1">{errors.maxAttendees.message}</p>
+          )}
         </div>
       </div>
 
       <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50">
-        <input
-          type="checkbox"
-          checked={telephoneRequired}
-          onChange={(e) => setTelephoneRequired(e.target.checked)}
-          className="accent-blue-600"
-        />
+        <input type="checkbox" {...register('telephoneRequired')} className="accent-blue-600" />
         <div>
           <p className="text-sm font-medium text-gray-900">Requerir teléfono</p>
           <p className="text-xs text-gray-500">Los asistentes deben tener teléfono en su perfil</p>
         </div>
       </label>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {errors.root && <p className="text-sm text-red-600">{errors.root.message}</p>}
 
       <div className="flex gap-2">
         {onCancel && (
@@ -183,10 +160,10 @@ export function EventForm({ initial, onSubmit, onCancel, submitLabel = 'Guardar'
         )}
         <button
           type="submit"
-          disabled={submitting}
+          disabled={isSubmitting}
           className="flex-1 bg-blue-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50"
         >
-          {submitting ? 'Guardando...' : submitLabel}
+          {isSubmitting ? 'Guardando...' : submitLabel}
         </button>
       </div>
 

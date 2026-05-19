@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { getUserRegistrationsAcrossVillages } from '@villa-events/shared/services/registrationService';
-import type { RegistrationData } from '@villa-events/shared/models/event';
+import { getUserRegistrationsAcrossEvents } from '@cultuvilla/shared/services/registrationService';
+import type { RegistrationData } from '@cultuvilla/shared/models/event';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 import { CalendarCheck, Clock } from 'lucide-react';
 
@@ -14,11 +14,11 @@ interface RegistrationWithPath extends RegistrationData {
   eventPath: string;
 }
 
-function parseEventPath(eventPath: string): { villageId: string; eventId: string } | null {
-  // path: villages/{villageId}/events/{eventId}
+function parseEventPath(eventPath: string): { eventId: string } | null {
+  // path: events/{eventId}
   const parts = eventPath.split('/');
-  if (parts.length !== 4) return null;
-  return { villageId: parts[1], eventId: parts[3] };
+  if (parts.length !== 2) return null;
+  return { eventId: parts[1] };
 }
 
 export default function MySignUpsPage() {
@@ -35,7 +35,7 @@ export default function MySignUpsPage() {
 
   useEffect(() => {
     if (!user) return;
-    getUserRegistrationsAcrossVillages(user.uid)
+    getUserRegistrationsAcrossEvents(user.uid)
       .then(setRegistrations)
       .finally(() => setLoading(false));
   }, [user]);
@@ -65,7 +65,7 @@ export default function MySignUpsPage() {
           {registrations.map((reg) => {
             const parsed = parseEventPath(reg.eventPath);
             const href = parsed
-              ? `/village/${parsed.villageId}/event/${parsed.eventId}`
+              ? `/event/${parsed.eventId}`
               : '#';
 
             return (

@@ -14,6 +14,7 @@ describe('buildUserData', () => {
     expect(user.biography).toBeNull();
     expect(user.telephone).toBeNull();
     expect(user.photoURL).toBeNull();
+    expect(user.activeMunicipalityId).toBeNull();
     expect(user.createdAt).toBeInstanceOf(Date);
   });
 
@@ -25,9 +26,20 @@ describe('buildUserData', () => {
       biography: 'Vecina del pueblo',
       telephone: '+34612345678',
       photoURL: 'https://example.com/photo.jpg',
+      activeMunicipalityId: 'mun1',
     });
     expect(user.biography).toBe('Vecina del pueblo');
     expect(user.telephone).toBe('+34612345678');
     expect(user.photoURL).toBe('https://example.com/photo.jpg');
+    expect(user.activeMunicipalityId).toBe('mun1');
   });
+
+  it('defaults personId to null', () => {
+    const user = buildUserData({
+      displayName: 'Ana',
+      email: 'ana@test.com',
+      birthday: new Date('1990-01-01'),
+    })
+    expect(user.personId).toBeNull()
+  })
 });

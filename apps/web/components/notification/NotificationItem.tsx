@@ -1,6 +1,6 @@
 'use client';
 
-import type { NotificationData } from '@villa-events/shared/models/notification';
+import type { NotificationData } from '@cultuvilla/shared/models/notification';
 import { Bell } from 'lucide-react';
 
 interface NotificationItemProps {

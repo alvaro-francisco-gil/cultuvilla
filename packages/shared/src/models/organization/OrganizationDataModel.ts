@@ -6,8 +6,11 @@ export interface OrganizationData {
   description: string | null;
   type: OrganizationType;
   status: OrganizationStatus;
+  municipalityId: string;
   requestedBy: string;
+  approvedBy: string | null;
   createdAt: Date;
+  decidedAt: Date | null;
 }
 
 export interface OrganizationDataInput {
@@ -15,8 +18,11 @@ export interface OrganizationDataInput {
   description?: string | null;
   type: OrganizationType;
   status?: OrganizationStatus;
+  municipalityId: string;
   requestedBy: string;
+  approvedBy?: string | null;
   createdAt?: Date;
+  decidedAt?: Date | null;
 }
 
 export function buildOrganizationData(input: OrganizationDataInput): OrganizationData {
@@ -25,7 +31,10 @@ export function buildOrganizationData(input: OrganizationDataInput): Organizatio
     description: input.description ?? null,
     type: input.type,
     status: input.status ?? 'pending',
+    municipalityId: input.municipalityId,
     requestedBy: input.requestedBy,
+    approvedBy: input.approvedBy ?? null,
     createdAt: input.createdAt ?? new Date(),
+    decidedAt: input.decidedAt ?? null,
   };
 }

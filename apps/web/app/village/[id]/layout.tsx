@@ -12,7 +12,7 @@ export default function VillageLayout({ children, params }: VillageLayoutProps) 
   const { id } = use(params);
 
   return (
-    <VillageProvider villageId={id}>
+    <VillageProvider municipalityId={id}>
       {children}
     </VillageProvider>
   );

@@ -10,7 +10,7 @@ export interface NotificationData {
   title: string;
   body: string;
   eventId: string | null;
-  villageId: string | null;
+  municipalityId: string | null;
   read: boolean;
   createdAt: Date;
 }
@@ -20,7 +20,7 @@ export interface NotificationDataInput {
   title: string;
   body: string;
   eventId?: string | null;
-  villageId?: string | null;
+  municipalityId?: string | null;
   read?: boolean;
   createdAt?: Date;
 }
@@ -31,7 +31,7 @@ export function buildNotificationData(input: NotificationDataInput): Notificatio
     title: input.title,
     body: input.body,
     eventId: input.eventId ?? null,
-    villageId: input.villageId ?? null,
+    municipalityId: input.municipalityId ?? null,
     read: input.read ?? false,
     createdAt: input.createdAt ?? new Date(),
   };

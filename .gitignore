@@ -8,3 +8,10 @@ dist/
 .firebase/
 .vercel
 .env*.local
+
+# Firebase emulator runtime logs
+firestore-debug.log
+firebase-debug.log
+ui-debug.log
+pubsub-debug.log
+database-debug.log

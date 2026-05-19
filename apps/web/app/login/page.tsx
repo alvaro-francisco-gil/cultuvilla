@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { createUserProfile } from '@villa-events/shared/services/userService';
+import { createUserProfile } from '@cultuvilla/shared/services/userService';
 
 export default function LoginPage() {
   const { user, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
@@ -49,8 +49,8 @@ export default function LoginPage() {
         await signUpWithEmail(email, password);
         // After signUpWithEmail, user will be set by onAuthStateChanged.
         // We need the uid — get it from the auth module directly.
-        const { auth } = await import('@villa-events/shared/firebase');
-        const uid = auth.currentUser?.uid;
+        const { getAuth } = await import('@cultuvilla/shared/firebase');
+        const uid = getAuth().currentUser?.uid;
         if (uid) {
           await createUserProfile(uid, {
             displayName: displayName.trim(),
@@ -74,7 +74,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Villa Events</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Cultuvilla</h1>
           <p className="text-sm text-gray-500 mt-1">
             {isSignUp ? 'Crea tu cuenta' : 'Inicia sesión para continuar'}
           </p>

@@ -1,8 +1,12 @@
 {
-  "name": "villa-events-functions",
+  "name": "cultuvilla-functions",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.config.integration.mjs",
+    "test:watch": "vitest",
     "serve": "npm run build && firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions"
   },
@@ -14,6 +18,8 @@
     "firebase-functions": "^6.3.0"
   },
   "devDependencies": {
-    "typescript": "~5.8.3"
+    "firebase-functions-test": "^3.5.0",
+    "typescript": "~5.8.3",
+    "vitest": "^4.0.15"
   }
 }

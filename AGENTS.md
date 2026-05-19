@@ -1,0 +1,155 @@
+# AGENTS.md
+
+North star for anyone (human or AI) modifying this repo. Short, opinionated, load-bearing. When this file disagrees with code, the file wins — fix the code.
+
+## What this project is
+
+Cultuvilla is a mobile-first web app for Spanish village communities. Organizations (ayuntamientos, peñas, asociaciones) publish events; residents and visitors discover them, sign up themselves and family members ("personas"), and village admins manage invites and org approvals.
+
+The product surface and data model are specified in [docs/superpowers/specs/](docs/superpowers/specs/). Specs are the source of truth for *what* to build; this file is the source of truth for *how* to build it.
+
+## Repo health beats every rule below
+
+If a rule here makes the repo worse for a specific change, break the rule and update this file in the same PR. Rules exist to keep the codebase coherent, not to be obeyed mechanically.
+
+## Architecture invariants
+
+### 1. Service-layer ownership
+
+Components, pages, and hooks **must not** import from `firebase/firestore`, `firebase/storage`, `firebase/functions`, or `firebase/auth` directly. All Firebase access goes through a service in [packages/shared/src/services/](packages/shared/src/services/). See [_services-map.md](packages/shared/src/services/_services-map.md) for the catalogue.
+
+- Need `GeoPoint`, `Timestamp`, or the `User` type? Import from `@cultuvilla/shared/firebase` (the shared package re-exports them).
+- The **only** exempt file is [apps/web/contexts/AuthContext.tsx](apps/web/contexts/AuthContext.tsx) — it owns the auth boundary (sign-in/out, listeners). Everything else routes through services.
+
+This is enforced by `no-restricted-imports` in [apps/web/eslint.config.mjs](apps/web/eslint.config.mjs). If you find yourself wanting to disable it, add a service instead.
+
+**Why:** Firebase SDK calls scattered through UI code are the #1 source of duplicate reads, missing security checks, and broken offline behaviour. One place per collection. One place to add caching or migrate when needed.
+
+### 2. Shared types, shared models
+
+Anything that crosses workspace boundaries — between web, functions, and any future mobile app — lives in [packages/shared](packages/shared). Domain types live under `src/models/`, organized by entity (event, village, person, etc.). Services consume models, never the reverse.
+
+### 3. Data is nested under `villages/{villageId}/`
+
+Single Firebase project. All village-scoped data is nested under that village's document; cross-village queries use Firestore **collection group** indexes (declared in [firestore.indexes.json](firestore.indexes.json)). When you add a new sub-collection, add the collection-group index in the same change.
+
+### 4. Denormalized read models for high fan-out
+
+When a query would require N reads or live across collection boundaries, write a denormalized read model and keep it in sync via a Cloud Function trigger. See [docs/architecture/denormalized-read-models.md](docs/architecture/denormalized-read-models.md) for the pattern; [functions/src/syncVillageDenormalization.ts](functions/src/syncVillageDenormalization.ts) is the canonical example.
+
+### 5. Strict TypeScript
+
+`strict: true` everywhere. No `any`. No `@ts-nocheck`. If a type is genuinely unknown at the boundary, use `unknown` and narrow. `@typescript-eslint/no-explicit-any` is an error in `apps/web`; the same standard applies in `packages/shared` and `functions` even though those aren't lint-gated yet — fix at the source, never silence with `as any`.
+
+## Conventions
+
+### Forms
+
+Currently controlled inputs with `useState`. No form library yet. New forms should match the existing style until/unless we adopt `react-hook-form + zod` (see CHANGELOG — this is on the table).
+
+### State and data fetching
+
+React Context for cross-tree state (auth, village). No global store. No query cache today — every component fetches its own data via services. If you add a feature where this hurts (revalidation, optimistic updates, dedup), surface it in the PR rather than rolling your own cache.
+
+### Styling
+
+Tailwind 4. Utility classes inline. No CSS modules, no styled-components. `lucide-react` for icons.
+
+### i18n
+
+`next-intl` v4. Default locale is `es`. Messages in [apps/web/i18n/messages/](apps/web/i18n/messages/). User-facing strings go through `useTranslations()`; hardcoded Spanish is allowed only in dev-only surfaces (admin panels, debug pages) where i18n is not a current priority.
+
+### Cloud Functions logging
+
+Cloud Functions write to Cloud Logging. **Never use `console.*`** — `console.log("foo " + bar)` produces an unstructured `textPayload` that filters and dashboards can't query. Use the v2 logger instead, with a structured second arg:
+
+```ts
+import { logger } from 'firebase-functions/v2';
+
+logger.info('Migrated persons', {
+  handler: 'onOccupationProposalApproved',
+  proposalId,
+  pendingOccupation: name,
+  migratedCount: snap.size,
+});
+```
+
+The second arg becomes searchable `jsonPayload` fields in Cloud Logging. Always include a `handler` field so you can filter by Cloud Function name. Use `logger.warn` for recoverable anomalies and `logger.error` only when the function bails out unsuccessfully.
+
+This rule is enforced by [functions/src/__tests__/helpers/no-console.test.ts](functions/src/__tests__/helpers/no-console.test.ts) — any `console.*` call under `functions/src/` (outside `__tests__/`) fails the build.
+
+### File naming
+
+- React components: `PascalCase.tsx`
+- Hooks: `useCamelCase.ts`
+- Services and models: `camelCaseService.ts`, `entityName.ts`
+- Test files: colocated as `*.test.ts`
+
+### Commit messages
+
+Conventional commits, enforced by commitlint:
+
+```
+feat(scope): short imperative summary
+fix(scope): ...
+refactor(scope): ...
+docs(scope): ...
+chore(scope): ...
+ci(scope): ...
+```
+
+Header ≤ 100 chars. Direct-to-main is fine (see `feedback_push_main` in user memory) — keep commits small and self-contained.
+
+### Delete > deprecate
+
+If something is unused, delete it. Don't leave dead code, "removed: …" comments, or shim re-exports. Git keeps history; the codebase should reflect the present.
+
+### Comments
+
+Don't explain *what* the code does — name things well instead. Only comment to explain *why* something non-obvious is the way it is: a security constraint, a Firestore quirk, a workaround for a specific bug.
+
+## Commands
+
+```bash
+pnpm install          # workspace deps (functions has its own — npm ci in functions/)
+pnpm web:dev          # Next.js dev server
+pnpm check            # lint + typecheck + test + build (CI gate)
+pnpm lint             # eslint --max-warnings 0 in apps/web
+pnpm typecheck        # tsc --noEmit in shared, web, functions
+pnpm test             # vitest in packages/shared
+```
+
+Pre-commit (Husky + lint-staged) runs `eslint --max-warnings 0 --fix` on changed `apps/web` TypeScript files; commit-msg runs commitlint.
+
+## Development workflow
+
+All non-trivial changes follow the same loop. Tiny edits (typo in a doc, a renamed string) can skip steps 1 and 4, but any code change goes through every step.
+
+1. **Work in a git worktree, not on main.** Branch from the latest `main` into a worktree under `.claude/worktrees/<short-name>/`. Never edit files in the main checkout. Worktrees isolate dependencies, build outputs, and `.next/` caches so parallel changes don't fight each other, and they make it easy to abandon work that doesn't pan out.
+2. **Read the design spec** in [docs/superpowers/specs/](docs/superpowers/specs/) if one exists for the feature area.
+3. **Look at the relevant service** in [packages/shared/src/services/](packages/shared/src/services/) before writing UI code; extend the service if the API you need is missing.
+4. **Add or extend tests whenever possible.** Tests are the contract that survives refactors and AI rewrites. Specifically:
+   - Pure logic, model builders, validation, and service helpers go in `packages/shared/test/` (vitest).
+   - New ESLint rules, type-level contracts, or other "this must keep working" invariants get a test that fails if the invariant breaks (see [packages/shared/test/eslint/rules.test.ts](packages/shared/test/eslint/rules.test.ts) for the pattern).
+   - If a change is genuinely untestable today (UI-only, no extractable logic), say so in the PR description and explain why.
+5. **Keep documentation in sync.** If you add a new collection or denormalized field, update [packages/shared/src/services/_services-map.md](packages/shared/src/services/_services-map.md) and [docs/architecture/denormalized-read-models.md](docs/architecture/denormalized-read-models.md) in the same change. Note user-facing changes in [CHANGELOG.md](CHANGELOG.md) under `## [Unreleased]`.
+6. **Run `pnpm check` before pushing.** CI runs the same gate; failing locally is faster than failing in Actions.
+7. **Open a pull request** with `gh pr create`, even though direct-to-main is technically allowed. A PR is a written record of what changed and why, and lets CI gate the change before it touches `main`. The PR description should cover:
+   - **What** changed at a level the future reader needs (not a diff restatement).
+   - **Why** it was done — the motivating problem or design decision.
+   - **Tests** that were added (or an explicit note if none were possible).
+   - **Test plan** as a checklist: local check, CI, manual verification steps.
+8. **Wait for the user to confirm the merge.** Once the PR is open and CI is green, summarize the result and stop. Do **not** merge autonomously, even if every check passes — the human is the merge gate.
+9. **Before merging, rebase the branch onto the latest `main`.** `git fetch origin main && git rebase origin/main`, resolve any conflicts, re-run `pnpm check`, then `git push --force-with-lease`. CI must go green again on the rebased commits before the merge. Stale branches cause silent breakage when the merge crosses a refactor that landed on main while the PR was in review.
+10. **Merge with a merge commit, not squash or rebase.** Use `gh pr merge <n> --merge`. Squashing would collapse the carefully-scoped commits in the PR (e.g. "feature" + "test for feature") into one, which makes `git bisect` and `git blame` worse. Rebase-merging hides the PR boundary entirely. A merge commit preserves both.
+11. **If you broke a rule in this file deliberately**, update this file in the same PR.
+
+## Things to flag in PRs (or right here when you find them)
+
+- Logic that bypasses a service.
+- New `as any` / `@ts-nocheck` / `// eslint-disable`.
+- New `<img>` usage when image optimization could matter.
+- Reads in components that should be cached or batched.
+- Spanish strings that escaped the i18n message catalog.
+- Code changes that ship without tests when tests were possible.
+- Work that landed outside a worktree (and so might have polluted main's checkout state).

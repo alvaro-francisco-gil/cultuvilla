@@ -1,14 +1,13 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { getVillage } from '@villa-events/shared/services/villageService';
-import { getVillageMember } from '@villa-events/shared/services/villageMemberService';
+import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
+import { getVillageMember } from '@cultuvilla/shared/services/villageMemberService';
 import { useAuth } from './AuthContext';
-import type { VillageData } from '@villa-events/shared/models/village';
-import type { VillageMemberData } from '@villa-events/shared/models/village';
+import type { MunicipalityData, VillageMemberData } from '@cultuvilla/shared/models/municipality';
 
 interface VillageContextValue {
-  village: (VillageData & { id: string }) | null;
+  municipality: (MunicipalityData & { id: string }) | null;
   membership: (VillageMemberData & { id: string }) | null;
   isMember: boolean;
   isAdmin: boolean;
@@ -17,9 +16,9 @@ interface VillageContextValue {
 
 const VillageContext = createContext<VillageContextValue | null>(null);
 
-export function VillageProvider({ villageId, children }: { villageId: string; children: ReactNode }) {
+export function VillageProvider({ municipalityId, children }: { municipalityId: string; children: ReactNode }) {
   const { user } = useAuth();
-  const [village, setVillage] = useState<(VillageData & { id: string }) | null>(null);
+  const [municipality, setMunicipality] = useState<(MunicipalityData & { id: string }) | null>(null);
   const [membership, setMembership] = useState<(VillageMemberData & { id: string }) | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -28,21 +27,21 @@ export function VillageProvider({ villageId, children }: { villageId: string; ch
     async function load() {
       setLoading(true);
       const [v, m] = await Promise.all([
-        getVillage(villageId),
-        user ? getVillageMember(villageId, user.uid) : Promise.resolve(null),
+        getMunicipality(municipalityId),
+        user ? getVillageMember(municipalityId, user.uid) : Promise.resolve(null),
       ]);
       if (!cancelled) {
-        setVillage(v);
+        setMunicipality(v);
         setMembership(m);
         setLoading(false);
       }
     }
     load();
     return () => { cancelled = true; };
-  }, [villageId, user]);
+  }, [municipalityId, user]);
 
   return (
-    <VillageContext.Provider value={{ village, membership, isMember: membership !== null, isAdmin: membership?.role === 'admin', loading }}>
+    <VillageContext.Provider value={{ municipality, membership, isMember: membership !== null, isAdmin: membership?.role === 'admin', loading }}>
       {children}
     </VillageContext.Provider>
   );

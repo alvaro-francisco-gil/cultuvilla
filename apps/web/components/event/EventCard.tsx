@@ -1,12 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import type { EventData } from '@villa-events/shared/models/event';
+import type { EventData } from '@cultuvilla/shared/models/event';
 import { Calendar, MapPin, Users, Tag } from 'lucide-react';
 
 interface EventCardProps {
   event: EventData & { id: string };
-  villageId: string;
 }
 
 function statusLabel(status: EventData['status']): string {
@@ -27,7 +26,7 @@ function statusColor(status: EventData['status']): string {
   }
 }
 
-export function EventCard({ event, villageId }: EventCardProps) {
+export function EventCard({ event }: EventCardProps) {
   const formattedDate = event.startDate.toLocaleDateString('es-ES', {
     weekday: 'long',
     day: 'numeric',
@@ -39,7 +38,7 @@ export function EventCard({ event, villageId }: EventCardProps) {
 
   return (
     <Link
-      href={`/village/${villageId}/event/${event.id}`}
+      href={`/event/${event.id}`}
       className="block rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition overflow-hidden"
     >
       {event.imageURL && (
