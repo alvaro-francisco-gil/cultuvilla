@@ -59,6 +59,25 @@ Tailwind 4. Utility classes inline. No CSS modules, no styled-components. `lucid
 
 `next-intl` v4. Default locale is `es`. Messages in [apps/web/i18n/messages/](apps/web/i18n/messages/). User-facing strings go through `useTranslations()`; hardcoded Spanish is allowed only in dev-only surfaces (admin panels, debug pages) where i18n is not a current priority.
 
+### Cloud Functions logging
+
+Cloud Functions write to Cloud Logging. **Never use `console.*`** — `console.log("foo " + bar)` produces an unstructured `textPayload` that filters and dashboards can't query. Use the v2 logger instead, with a structured second arg:
+
+```ts
+import { logger } from 'firebase-functions/v2';
+
+logger.info('Migrated persons', {
+  handler: 'onOccupationProposalApproved',
+  proposalId,
+  pendingOccupation: name,
+  migratedCount: snap.size,
+});
+```
+
+The second arg becomes searchable `jsonPayload` fields in Cloud Logging. Always include a `handler` field so you can filter by Cloud Function name. Use `logger.warn` for recoverable anomalies and `logger.error` only when the function bails out unsuccessfully.
+
+This rule is enforced by [functions/src/__tests__/helpers/no-console.test.ts](functions/src/__tests__/helpers/no-console.test.ts) — any `console.*` call under `functions/src/` (outside `__tests__/`) fails the build.
+
 ### File naming
 
 - React components: `PascalCase.tsx`

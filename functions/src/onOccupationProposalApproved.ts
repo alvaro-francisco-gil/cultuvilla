@@ -1,8 +1,11 @@
 import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
+import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 const db = admin.firestore();
+
+const HANDLER = 'onOccupationProposalApproved';
 
 export const onOccupationProposalApproved = onDocumentUpdated(
   'occupationProposals/{proposalId}',
@@ -15,19 +18,23 @@ export const onOccupationProposalApproved = onDocumentUpdated(
     // Only trigger when transitioning to 'approved'
     if (before.status === 'approved' || after.status !== 'approved') return;
 
+    const proposalId = event.params.proposalId;
+
     const approvedOccupationId = after.approvedOccupationId as string | null | undefined;
     if (!approvedOccupationId) {
-      console.warn(
-        `onOccupationProposalApproved: proposal ${event.params.proposalId} approved but approvedOccupationId is missing.`
-      );
+      logger.warn('Proposal approved but approvedOccupationId is missing', {
+        handler: HANDLER,
+        proposalId,
+      });
       return;
     }
 
     const name = after.name as string | undefined;
     if (!name) {
-      console.warn(
-        `onOccupationProposalApproved: proposal ${event.params.proposalId} has no name field.`
-      );
+      logger.warn('Proposal has no name field', {
+        handler: HANDLER,
+        proposalId,
+      });
       return;
     }
 
@@ -36,9 +43,12 @@ export const onOccupationProposalApproved = onDocumentUpdated(
       .get();
 
     if (snap.empty) {
-      console.log(
-        `onOccupationProposalApproved: no persons found with pendingOccupation "${name}".`
-      );
+      logger.info('No persons matched pendingOccupation; nothing to migrate', {
+        handler: HANDLER,
+        proposalId,
+        pendingOccupation: name,
+        migratedCount: 0,
+      });
       return;
     }
 
@@ -51,8 +61,12 @@ export const onOccupationProposalApproved = onDocumentUpdated(
     }
     await batch.commit();
 
-    console.log(
-      `onOccupationProposalApproved: migrated ${snap.size} person(s) from pendingOccupation "${name}" → occupationId "${approvedOccupationId}".`
-    );
+    logger.info('Migrated persons from pendingOccupation to occupationId', {
+      handler: HANDLER,
+      proposalId,
+      pendingOccupation: name,
+      approvedOccupationId,
+      migratedCount: snap.size,
+    });
   },
 );

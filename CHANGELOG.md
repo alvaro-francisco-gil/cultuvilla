@@ -4,6 +4,15 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+- **Cloud Functions logging convention** documented in AGENTS.md: handlers use `logger.{info,warn,error}` from `firebase-functions/v2` with a structured second arg so Cloud Logging treats them as `jsonPayload` (searchable). The lone existing `console.*` call site (`onOccupationProposalApproved.ts`) was migrated.
+- **Invariant test** at [functions/src/__tests__/helpers/no-console.test.ts](functions/src/__tests__/helpers/no-console.test.ts) — scans `functions/src/` and fails the build if any `console.*` call slips back in.
+
+### Changed
+- **CI: Java 17 → 21** for the emulator-tests job. `firebase-tools@15` will drop support for Java < 21; bumping ahead of the deprecation removes the runtime warning and keeps the job working when firebase-tools rolls forward.
+
+## 2026-05-19 — Workflow conventions (PR #2)
+
 ### Changed
 - **AGENTS.md** now codifies the development workflow: work in a git worktree (not in the main checkout), add tests whenever possible, open a pull request (not direct-to-main), wait for explicit user confirmation before merging, **rebase the branch onto the latest `main` (and re-run CI) before merging**, and **merge with a merge commit** (`gh pr merge --merge`) rather than squash or rebase-merge so the per-commit scope is preserved. The "things to flag in PRs" list grew two entries: untested code changes and work that landed outside a worktree.
 

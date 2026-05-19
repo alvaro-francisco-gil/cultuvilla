@@ -87,7 +87,10 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          # firebase-tools@15 will drop support for Java < 21; bumping ahead
+          # of the deprecation removes the runtime warning and keeps the
+          # emulator job working when firebase-tools rolls forward.
+          java-version: '21'
 
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
