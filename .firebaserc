@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "villa-events"
+    "default": "villa-events",
+    "dev": "villa-events",
+    "beta": "cultuvilla-beta",
+    "prod": "cultuvilla-prod"
   }
 }

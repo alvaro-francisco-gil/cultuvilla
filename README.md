@@ -26,9 +26,20 @@ When code says `personaId`, it means "which family member is this registration f
 - **Web app**: Next.js (App Router) in `apps/web`
 - **Shared package**: `@cultuvilla/shared` (types, schemas, helpers) in `packages/shared`
 - **Backend**: Firebase (Firestore, Auth, Storage) + Cloud Functions in `functions/`
-- **Data model**: Single Firebase project, data nested under `villages/{villageId}/`, collection group indexes for cross-village queries
+- **Data model**: Data nested under `villages/{villageId}/`, collection group indexes for cross-village queries
+- **Environments**: `villa-events` (dev) + `cultuvilla-beta` (beta) + `cultuvilla-prod` (prod) Firebase projects — see [docs/ENVIRONMENTS.md](docs/ENVIRONMENTS.md)
 - **i18n**: Spanish default via `next-intl`
 - **Package manager**: pnpm workspaces
+
+## Setup
+
+```bash
+cp apps/web/.env.example apps/web/.env.local   # fill with DEV firebase values
+pnpm install
+pnpm web:dev
+```
+
+See [docs/ENVIRONMENTS.md](docs/ENVIRONMENTS.md) for the full env layout and deploy commands.
 
 ## Commands
 
@@ -39,6 +50,11 @@ pnpm web:dev          # Next.js dev server with hot reload
 pnpm check            # lint + typecheck + test + build (full CI gate)
 pnpm shared:test      # vitest in packages/shared
 pnpm typecheck        # all workspaces
+
+pnpm deploy:rules:dev      # firestore + storage rules → villa-events
+pnpm deploy:functions:dev  # cloud functions → villa-events
+pnpm deploy:all:dev        # everything → villa-events
+# :beta and :prod variants exist — see docs/ENVIRONMENTS.md
 ```
 
 ## Design docs
@@ -49,3 +65,4 @@ Source of truth for requirements lives in [docs/superpowers/specs/](docs/superpo
 - [2026-04-25-village-censo-design.md](docs/superpowers/specs/2026-04-25-village-censo-design.md) — village census
 - [2026-04-29-open-feed-architecture-design.md](docs/superpowers/specs/2026-04-29-open-feed-architecture-design.md) — open feed architecture
 - [2026-05-02-family-tree-exploration.md](docs/superpowers/specs/2026-05-02-family-tree-exploration.md) — family tree exploration
+- [2026-05-19-dev-prod-environments-design.md](docs/superpowers/specs/2026-05-19-dev-prod-environments-design.md) — dev/prod environment design
