@@ -102,13 +102,28 @@ pnpm test             # vitest in packages/shared
 
 Pre-commit (Husky + lint-staged) runs `eslint --max-warnings 0 --fix` on changed `apps/web` TypeScript files; commit-msg runs commitlint.
 
-## When you are working on a change
+## Development workflow
 
-1. Read the design spec in [docs/superpowers/specs/](docs/superpowers/specs/) if one exists for the feature area.
-2. Look at the relevant service in [packages/shared/src/services/](packages/shared/src/services/) before writing UI code; extend the service if the API you need is missing.
-3. If you add a new collection or denormalized field, update [packages/shared/src/services/_services-map.md](packages/shared/src/services/_services-map.md) and the denormalization doc in the same change.
-4. Run `pnpm check` before pushing. CI runs the same gate.
-5. If you broke a rule in this file deliberately, update this file.
+All non-trivial changes follow the same loop. Tiny edits (typo in a doc, a renamed string) can skip steps 1 and 4, but any code change goes through every step.
+
+1. **Work in a git worktree, not on main.** Branch from the latest `main` into a worktree under `.claude/worktrees/<short-name>/`. Never edit files in the main checkout. Worktrees isolate dependencies, build outputs, and `.next/` caches so parallel changes don't fight each other, and they make it easy to abandon work that doesn't pan out.
+2. **Read the design spec** in [docs/superpowers/specs/](docs/superpowers/specs/) if one exists for the feature area.
+3. **Look at the relevant service** in [packages/shared/src/services/](packages/shared/src/services/) before writing UI code; extend the service if the API you need is missing.
+4. **Add or extend tests whenever possible.** Tests are the contract that survives refactors and AI rewrites. Specifically:
+   - Pure logic, model builders, validation, and service helpers go in `packages/shared/test/` (vitest).
+   - New ESLint rules, type-level contracts, or other "this must keep working" invariants get a test that fails if the invariant breaks (see [packages/shared/test/eslint/rules.test.ts](packages/shared/test/eslint/rules.test.ts) for the pattern).
+   - If a change is genuinely untestable today (UI-only, no extractable logic), say so in the PR description and explain why.
+5. **Keep documentation in sync.** If you add a new collection or denormalized field, update [packages/shared/src/services/_services-map.md](packages/shared/src/services/_services-map.md) and [docs/architecture/denormalized-read-models.md](docs/architecture/denormalized-read-models.md) in the same change. Note user-facing changes in [CHANGELOG.md](CHANGELOG.md) under `## [Unreleased]`.
+6. **Run `pnpm check` before pushing.** CI runs the same gate; failing locally is faster than failing in Actions.
+7. **Open a pull request** with `gh pr create`, even though direct-to-main is technically allowed. A PR is a written record of what changed and why, and lets CI gate the change before it touches `main`. The PR description should cover:
+   - **What** changed at a level the future reader needs (not a diff restatement).
+   - **Why** it was done — the motivating problem or design decision.
+   - **Tests** that were added (or an explicit note if none were possible).
+   - **Test plan** as a checklist: local check, CI, manual verification steps.
+8. **Wait for the user to confirm the merge.** Once the PR is open and CI is green, summarize the result and stop. Do **not** merge autonomously, even if every check passes — the human is the merge gate.
+9. **Before merging, rebase the branch onto the latest `main`.** `git fetch origin main && git rebase origin/main`, resolve any conflicts, re-run `pnpm check`, then `git push --force-with-lease`. CI must go green again on the rebased commits before the merge. Stale branches cause silent breakage when the merge crosses a refactor that landed on main while the PR was in review.
+10. **Merge with a merge commit, not squash or rebase.** Use `gh pr merge <n> --merge`. Squashing would collapse the carefully-scoped commits in the PR (e.g. "feature" + "test for feature") into one, which makes `git bisect` and `git blame` worse. Rebase-merging hides the PR boundary entirely. A merge commit preserves both.
+11. **If you broke a rule in this file deliberately**, update this file in the same PR.
 
 ## Things to flag in PRs (or right here when you find them)
 
@@ -117,3 +132,5 @@ Pre-commit (Husky + lint-staged) runs `eslint --max-warnings 0 --fix` on changed
 - New `<img>` usage when image optimization could matter.
 - Reads in components that should be cached or batched.
 - Spanish strings that escaped the i18n message catalog.
+- Code changes that ship without tests when tests were possible.
+- Work that landed outside a worktree (and so might have polluted main's checkout state).

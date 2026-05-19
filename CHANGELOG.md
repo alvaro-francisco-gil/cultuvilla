@@ -1,8 +1,13 @@
 # Changelog
 
-All notable changes to this project. Format adapted from [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this project uses direct-to-main with conventional commits and dated sections rather than semver releases.
+All notable changes to this project. Format adapted from [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this project ships via PRs with conventional commit messages and uses dated sections rather than semver releases.
 
 ## [Unreleased]
+
+### Changed
+- **AGENTS.md** now codifies the development workflow: work in a git worktree (not in the main checkout), add tests whenever possible, open a pull request (not direct-to-main), wait for explicit user confirmation before merging, **rebase the branch onto the latest `main` (and re-run CI) before merging**, and **merge with a merge commit** (`gh pr merge --merge`) rather than squash or rebase-merge so the per-commit scope is preserved. The "things to flag in PRs" list grew two entries: untested code changes and work that landed outside a worktree.
+
+## 2026-05-19 — Ordago-apps conventions uplift (PR #1)
 
 ### Added
 - **AGENTS.md** at repo root: load-bearing conventions for human and AI contributors (service-layer ownership, denormalization pattern, strict TS, no `any`, conventional commits, delete > deprecate).
@@ -11,6 +16,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 - **Pre-commit hygiene**: Husky + lint-staged + commitlint. Pre-commit runs `eslint --max-warnings 0 --fix` on changed `apps/web` TypeScript files. Commit-msg enforces conventional commits with a 100-char header limit.
 - **ESLint `no-restricted-imports`** in `apps/web`: blocks direct `firebase/firestore`, `firebase/storage`, `firebase/functions`, and `firebase/auth` imports outside the documented auth boundary. `GeoPoint`, `Timestamp`, and the `User` type are now re-exported from `@cultuvilla/shared/firebase`.
 - **ESLint `@typescript-eslint/no-explicit-any: error`** in `apps/web`: no `any` allowed; use `unknown` or a precise type. (Pre-emptive: cultuvilla had no `any` in `apps/web` source before this rule landed.)
+- Tests for the new firebase re-exports and apps/web ESLint rules under `packages/shared/test/firebase/` and `packages/shared/test/eslint/`.
 
 ### Changed
 - `pnpm web:lint` (and the root `pnpm lint`) now runs `eslint . --max-warnings 0`. Warnings break the build.
@@ -18,7 +24,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 - Two pre-existing unused-import warnings in `apps/web` fixed so `--max-warnings 0` could land cleanly.
 
 ### Notes for future work
-The following items from the ordago-apps uplift survey were proposed but not landed in this change:
+The following items from the ordago-apps uplift survey were proposed but not landed:
 - Firebase Emulator Suite + vitest integration tests.
 - Multi-environment Firebase setup (dev / beta / prod).
 - Sentry on the web app; structured logging in Cloud Functions.
