@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatPrice } from '../../src/utils/format';
+import { formatDate, formatPrice, formatRelativeTime } from '../../src/utils/format';
 
 describe('formatDate', () => {
   const d = new Date('2026-05-19T15:30:00.000Z');
@@ -38,5 +38,30 @@ describe('formatPrice', () => {
 
   it('honors a custom currency', () => {
     expect(formatPrice(10, 'USD')).toMatch(/10,00/);
+  });
+});
+
+describe('formatRelativeTime', () => {
+  const NOW = new Date('2026-05-19T12:00:00.000Z');
+
+  it('says "hace 5 minutos" when 5 minutes in the past', () => {
+    const past = new Date(NOW.getTime() - 5 * 60 * 1000);
+    expect(formatRelativeTime(past, NOW)).toMatch(/hace\s+5\s+minuto/i);
+  });
+
+  it('says "en 2 horas" / "dentro de 2 horas" when 2 hours in the future', () => {
+    const future = new Date(NOW.getTime() + 2 * 60 * 60 * 1000);
+    // ICU ≥78 uses "dentro de", older uses "en" — accept both
+    expect(formatRelativeTime(future, NOW)).toMatch(/(?:en|dentro\s+de)\s+2\s+hora/i);
+  });
+
+  it('says "ayer" when ~1 day in the past', () => {
+    const yesterday = new Date(NOW.getTime() - 24 * 60 * 60 * 1000);
+    expect(formatRelativeTime(yesterday, NOW)).toMatch(/ayer/i);
+  });
+
+  it('says "mañana" when ~1 day in the future', () => {
+    const tomorrow = new Date(NOW.getTime() + 24 * 60 * 60 * 1000);
+    expect(formatRelativeTime(tomorrow, NOW)).toMatch(/mañana/i);
   });
 });
