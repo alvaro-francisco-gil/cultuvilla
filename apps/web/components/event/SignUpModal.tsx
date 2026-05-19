@@ -7,7 +7,7 @@ import type { PersonData } from '@cultuvilla/shared/models/person';
 import { buildDisplayName } from '@cultuvilla/shared/models/person';
 import type { EventData } from '@cultuvilla/shared/models/event';
 import { X, Phone } from 'lucide-react';
-import type { User } from 'firebase/auth';
+import type { User } from '@cultuvilla/shared/firebase';
 
 interface SignUpModalProps {
   event: EventData & { id: string };

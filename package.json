@@ -20,10 +20,21 @@
     "build": "pnpm shared:build && pnpm web:build && pnpm functions:build",
     "test": "pnpm shared:test",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
-    "seed:municipalities": "node scripts/seed-municipalities.mjs"
+    "seed:municipalities": "node scripts/seed-municipalities.mjs",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "apps/web/**/*.{ts,tsx,js,jsx,mjs,cjs}": [
+      "pnpm --filter cultuvilla-web exec eslint --max-warnings 0 --fix"
+    ],
+    "*.{json,md,yml,yaml}": []
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.0.1",
+    "@commitlint/config-conventional": "^21.0.1",
     "firebase-admin": "^13.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.5",
     "typescript": "~5.8.3"
   }
 }

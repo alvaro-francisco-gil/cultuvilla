@@ -16,7 +16,7 @@ const navItems = [
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [mounted, setMounted] = useState(false);
 

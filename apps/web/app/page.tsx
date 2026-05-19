@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { GeoPoint } from 'firebase/firestore';
+import { GeoPoint } from '@cultuvilla/shared/firebase';
 import { getUpcomingFeed, filterByDistanceKm } from '@cultuvilla/shared/services/feedService';
 import { getVillage } from '@cultuvilla/shared/services/villageService';
 import type { EventData } from '@cultuvilla/shared/models/event';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { GeoPoint } from 'firebase/firestore';
+import { GeoPoint } from '@cultuvilla/shared/firebase';
 import {
   createVillage,
   generateVillageId,
