@@ -23,6 +23,8 @@ Components, pages, and hooks **must not** import from `firebase/firestore`, `fir
 
 This is enforced by `no-restricted-imports` in [apps/web/eslint.config.mjs](apps/web/eslint.config.mjs). If you find yourself wanting to disable it, add a service instead.
 
+> **See also:** the `touch-service` and `guardrail-enforcement` skills for the procedures.
+
 **Why:** Firebase SDK calls scattered through UI code are the #1 source of duplicate reads, missing security checks, and broken offline behaviour. One place per collection. One place to add caching or migrate when needed.
 
 ### 2. Shared types, shared models
@@ -33,9 +35,13 @@ Anything that crosses workspace boundaries — between web, functions, and any f
 
 Single Firebase project. All village-scoped data is nested under that village's document; cross-village queries use Firestore **collection group** indexes (declared in [firestore.indexes.json](firestore.indexes.json)). When you add a new sub-collection, add the collection-group index in the same change.
 
+> **See also:** the `add-firestore-collection` skill for the multi-file checklist when adding a new sub-collection.
+
 ### 4. Denormalized read models for high fan-out
 
 When a query would require N reads or live across collection boundaries, write a denormalized read model and keep it in sync via a Cloud Function trigger. See [docs/architecture/denormalized-read-models.md](docs/architecture/denormalized-read-models.md) for the pattern; [functions/src/syncVillageDenormalization.ts](functions/src/syncVillageDenormalization.ts) is the canonical example.
+
+> **See also:** the `denormalized-read-model` skill for the step-by-step.
 
 ### 5. Strict TypeScript
 
@@ -74,6 +80,8 @@ logger.info('Migrated persons', {
 });
 ```
 
+> **See also:** the `cloud-function-logging` skill for the rationale and severity guidance.
+
 The second arg becomes searchable `jsonPayload` fields in Cloud Logging. Always include a `handler` field so you can filter by Cloud Function name. Use `logger.warn` for recoverable anomalies and `logger.error` only when the function bails out unsuccessfully.
 
 This rule is enforced by [functions/src/__tests__/helpers/no-console.test.ts](functions/src/__tests__/helpers/no-console.test.ts) — any `console.*` call under `functions/src/` (outside `__tests__/`) fails the build.
@@ -104,6 +112,16 @@ Header ≤ 100 chars. Direct-to-main is fine (see `feedback_push_main` in user m
 
 If something is unused, delete it. Don't leave dead code, "removed: …" comments, or shim re-exports. Git keeps history; the codebase should reflect the present.
 
+### No retrocompat shims unless asked
+
+When changing the shape of data already in Firestore, surface the migration explicitly:
+
+- Note the affected docs and field(s) in the commit body and the PR description.
+- Add a backfill script under `scripts/` when the change can't be expressed as a Cloud Function trigger.
+- Don't leave dual-read code, shim re-exports, or `// removed: …` comments. Pairs with the `### Delete > deprecate` rule above.
+
+Only add a compatibility layer when the user explicitly asks for one (e.g. when an in-flight client release would break without it).
+
 ### Comments
 
 Don't explain *what* the code does — name things well instead. Only comment to explain *why* something non-obvious is the way it is: a security constraint, a Firestore quirk, a workaround for a specific bug.
@@ -120,6 +138,17 @@ pnpm test             # vitest in packages/shared
 ```
 
 Pre-commit (Husky + lint-staged) runs `eslint --max-warnings 0 --fix` on changed `apps/web` TypeScript files; commit-msg runs commitlint.
+
+### Never start dev servers
+
+You (Claude) do not start long-running processes — the user owns the iteration loop. Don't run:
+
+- `pnpm web:dev` (Next.js dev server)
+- `pnpm test:integration`, `pnpm test:rules`, `pnpm test:functions`, or `pnpm test:emulators` (they boot Firebase emulators that the user wants to keep alive)
+- `firebase emulators:start` directly
+- Any deploy script (`pnpm deploy:*`) — use the `firestore-deploy` skill instead
+
+If you need output from a long-running service to verify a change, ask the user to run it and paste the relevant lines.
 
 ## Development workflow
 
@@ -153,3 +182,17 @@ All non-trivial changes follow the same loop. Tiny edits (typo in a doc, a renam
 - Spanish strings that escaped the i18n message catalog.
 - Code changes that ship without tests when tests were possible.
 - Work that landed outside a worktree (and so might have polluted main's checkout state).
+
+## Be proactive
+
+You're expected to propose improvements, not just execute tasks. End your response with a one-line suggestion (or an inline diff if the change is under ~10 lines) when you notice:
+
+- **Repeated manual ops (2+ times)** → script in `scripts/`.
+- **Encodable workflow** (deploy recipe, migration ritual, audit playbook) → skill under `.claude/skills/<name>/SKILL.md`.
+- **Convention used in 3+ places but undocumented** → addition to this file, or a new sub-directory `AGENTS.md` (e.g. `functions/AGENTS.md`, `packages/shared/AGENTS.md`, `apps/web/AGENTS.md`) so agents working there don't load the whole root file.
+- **Single source of truth violated** (duplicated enum, status string, threshold, hex colour) → consolidate in the same commit if small, propose a follow-up if not.
+- **Docs contradicting code** → fix or delete the doc; don't work around it.
+- **Shipped plan in `docs/superpowers/plans/`** → move to `docs/plans/` (canonical) or `docs/archive/plans/` (done). See the `manage-plan-docs` skill.
+- **Service touched without tests** → propose adding the missing coverage.
+
+Soft proposals are the default — the user accepts or declines. Don't pre-implement large refactors uninvited; surface, then wait.
