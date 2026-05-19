@@ -83,7 +83,13 @@ the env it deploys:
 | `cultuvilla`          | Development   | `dev`                 | `NEXT_PUBLIC_FIREBASE_*_DEV`   |
 | `cultuvilla`          | Preview       | `dev`                 | `NEXT_PUBLIC_FIREBASE_*_DEV`   |
 | `cultuvilla`          | Production    | `prod`                | `NEXT_PUBLIC_FIREBASE_*_PROD`  |
-| `cultuvilla-web-beta` | Production    | `beta`                | `NEXT_PUBLIC_FIREBASE_*_BETA`  |
+| `cultuvilla-web-beta` | All scopes    | `beta`                | `NEXT_PUBLIC_FIREBASE_*_BETA`  |
+
+The beta project sets its vars on **all three scopes** (Production +
+Preview + Development), since every deploy of that project — including
+PR previews — targets the `cultuvilla-beta` Firebase project. The
+`cultuvilla` project keeps Preview on `dev` so PR previews don't talk
+to prod.
 
 You can also redundantly set all three sets on every scope — the build
 only reads the active env's vars, but having values present everywhere
