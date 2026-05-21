@@ -1,4 +1,8 @@
 import type { Config } from 'tailwindcss';
+// Relative path to the TS source so jiti can resolve at tailwind-config load
+// time. The package subpath `@cultuvilla/shared/design-system` does not work
+// here: jiti uses node CJS resolution which would need an `exports` map on
+// `packages/shared/package.json`. The TS source resolves directly.
 import {
   colors as semanticColors,
   elevation,
@@ -6,7 +10,7 @@ import {
   spacing as semanticSpacing,
   typography,
   zIndex,
-} from '@cultuvilla/shared/design-system';
+} from '../../packages/shared/src/design-system';
 
 // Helper: convert numeric-valued record to px-string record
 function pxRecord<T extends Record<string | number, number>>(rec: T): Record<keyof T, string> {
