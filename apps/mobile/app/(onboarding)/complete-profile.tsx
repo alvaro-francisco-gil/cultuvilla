@@ -46,7 +46,7 @@ export default function CompleteProfileScreen() {
         telephone: telephone.trim() || null,
       });
       await refreshProfile();
-      router.replace('/(tabs)/explora');
+      router.replace('/');
     } catch (e) {
       setError(e instanceof Error ? e.message : t('onboarding.completeProfile.error'));
     } finally {

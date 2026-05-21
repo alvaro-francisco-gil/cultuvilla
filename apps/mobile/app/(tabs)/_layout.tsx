@@ -34,7 +34,7 @@ export default function TabsLayout() {
   return (
     <Tabs screenOptions={{ headerShown: false }}>
       <Tabs.Screen
-        name="explora"
+        name="index"
         options={{
           title: t('tabs.explora'),
           tabBarIcon: ({ color, size }) => (
