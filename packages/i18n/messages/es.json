@@ -130,5 +130,59 @@
     "title": "Notificaciones",
     "markAllRead": "Marcar todo como leído",
     "noNotifications": "No tienes notificaciones"
+  },
+  "tabs": {
+    "explora": "Explora",
+    "village": "Pueblo",
+    "findVillage": "Buscar pueblo",
+    "profile": "Perfil"
+  },
+  "onboarding": {
+    "completeProfile": {
+      "title": "Completa tu perfil",
+      "intro": "Antes de continuar necesitamos algunos datos.",
+      "displayName": "Nombre",
+      "birthday": "Fecha de nacimiento",
+      "telephone": "Teléfono (opcional)",
+      "submit": "Continuar",
+      "error": "No se pudo guardar el perfil"
+    }
+  },
+  "discover": {
+    "search": "Busca tu pueblo",
+    "empty": "No hay pueblos activos todavía",
+    "notSeeing": "¿No ves tu pueblo? Cargar todos",
+    "requestJoin": "Solicitar acceso",
+    "requestOrganizer": "Quiero organizar este pueblo",
+    "inactive": "Sin comunidad activa"
+  },
+  "requests": {
+    "status": {
+      "pending": "Pendiente",
+      "approved": "Aprobada",
+      "rejected": "Rechazada"
+    },
+    "join": {
+      "title": "Solicitar acceso",
+      "messageLabel": "Mensaje al administrador (opcional)",
+      "submit": "Enviar solicitud",
+      "submitted": "Solicitud enviada"
+    },
+    "organizer": {
+      "title": "Solicitar ser organizador",
+      "motivationLabel": "¿Por qué quieres organizar este pueblo?",
+      "submit": "Enviar solicitud",
+      "submitted": "Solicitud enviada"
+    },
+    "admin": {
+      "title": "Solicitudes pendientes",
+      "empty": "No hay solicitudes pendientes",
+      "approve": "Aprobar",
+      "reject": "Rechazar"
+    }
+  },
+  "villageSwitcher": {
+    "title": "Cambiar de pueblo",
+    "findAnother": "Buscar otro pueblo"
   }
 }
