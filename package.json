@@ -20,6 +20,8 @@
     "lint": "pnpm web:lint",
     "i18n:typecheck": "pnpm --filter @cultuvilla/i18n typecheck",
     "app:start": "pnpm --filter cultuvilla-mobile start",
+    "app:start:tunnel": "pnpm --filter cultuvilla-mobile start:tunnel",
+    "app:start:lan": "pnpm --filter cultuvilla-mobile start:lan",
     "app:android": "pnpm --filter cultuvilla-mobile android",
     "app:ios": "pnpm --filter cultuvilla-mobile ios",
     "app:web": "pnpm --filter cultuvilla-mobile web",
