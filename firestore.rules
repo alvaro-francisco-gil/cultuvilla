@@ -86,6 +86,19 @@ service cloud.firestore {
         allow update: if false;
         allow delete: if isVillageAdmin(municipalityId) || isAppAdmin();
       }
+
+      match /joinRequests/{userId} {
+        allow read: if isOwner(userId) || isVillageAdmin(municipalityId) || isAppAdmin();
+        // Cloud Functions (admin SDK) own create/update/delete.
+        allow create, update, delete: if false;
+      }
+    }
+
+    match /organizerRequests/{requestId} {
+      allow read: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid || isAppAdmin());
+      // Cloud Functions (admin SDK) own create/update/delete.
+      allow create, update, delete: if false;
     }
 
     match /organizations/{orgId} {
