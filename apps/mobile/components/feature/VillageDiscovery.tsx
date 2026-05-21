@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, ActivityIndicator, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { Screen, VStack, Text, Input, Button } from '../primitives';
 import { useT } from '../../lib/i18n';
 import { useAuth } from '../../lib/auth/useAuth';
@@ -81,9 +81,9 @@ export function VillageDiscovery() {
         renderItem={({ item }) => {
           const isActive = item.communityActive;
           const isPending = pendingIds.has(item.id);
-          const target = isActive
-            ? `/discover/request-join/${item.id}`
-            : `/discover/request-organizer/${item.id}`;
+          const target: Href = isActive
+            ? { pathname: '/discover/request-join/[municipalityId]', params: { municipalityId: item.id } }
+            : { pathname: '/discover/request-organizer/[municipalityId]', params: { municipalityId: item.id } };
           const sub = isPending
             ? t('requests.status.pending')
             : isActive

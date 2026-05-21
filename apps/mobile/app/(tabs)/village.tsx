@@ -24,8 +24,9 @@ export default function VillageTabScreen() {
       }
       const memberships = await getUserMemberships(user.uid);
       if (cancelled) return;
-      if (memberships.length > 0) {
-        await setActiveMunicipality(user.uid, memberships[0].municipalityId);
+      const first = memberships[0];
+      if (first) {
+        await setActiveMunicipality(user.uid, first.municipalityId);
         await refreshProfile();
       }
       if (!cancelled) setResolving(false);
