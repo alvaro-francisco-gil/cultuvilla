@@ -1,5 +1,5 @@
 import './../global.css';
-import { Redirect, Stack } from 'expo-router';
+import { Redirect, Stack, usePathname } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { bootstrapFirebase } from '../lib/firebaseInit';
 import { AuthProvider } from '../lib/auth/AuthContext';
@@ -23,6 +23,8 @@ export default function RootLayout() {
 
 function AuthGate() {
   const { user, loading, profile, profileChecked } = useAuth();
+  const pathname = usePathname();
+
   if (loading || (user && !profileChecked)) {
     return (
       <View className="flex-1 items-center justify-center bg-surface">
@@ -30,7 +32,9 @@ function AuthGate() {
       </View>
     );
   }
-  if (user && profileChecked && !profile) {
+  const needsOnboarding = !!user && profileChecked && !profile;
+  const onOnboardingRoute = pathname?.startsWith('/(onboarding)') || pathname === '/complete-profile';
+  if (needsOnboarding && !onOnboardingRoute) {
     return <Redirect href="/(onboarding)/complete-profile" />;
   }
   return <Stack screenOptions={{ headerShown: false }} />;
