@@ -193,8 +193,8 @@ pnpm --filter cultuvilla-mobile exec expo start --tunnel
 **Tests / typecheck**
 
 ```bash
-pnpm --filter cultuvilla-mobile test           # vitest suite for apps/mobile
-pnpm mobile:typecheck                          # tsc --noEmit for apps/mobile
+pnpm app:test                                  # jest suite for apps/mobile
+pnpm app:typecheck                             # tsc --noEmit for apps/mobile
 ```
 
 **Key conventions**

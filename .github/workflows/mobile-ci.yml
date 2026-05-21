@@ -35,7 +35,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Typecheck (mobile)
-        run: pnpm mobile:typecheck
+        run: pnpm app:typecheck
 
       - name: Test (mobile)
-        run: pnpm mobile:test
+        run: pnpm app:test
