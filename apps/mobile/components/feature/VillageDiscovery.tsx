@@ -1,0 +1,111 @@
+import { useEffect, useMemo, useState } from 'react';
+import { FlatList, ActivityIndicator, View } from 'react-native';
+import { router } from 'expo-router';
+import { Screen, VStack, Text, Input, Button } from '../primitives';
+import { useT } from '../../lib/i18n';
+import { useAuth } from '../../lib/auth/useAuth';
+import {
+  getActiveCommunities,
+  getMunicipalities,
+} from '@cultuvilla/shared/services/municipalityService';
+import { getMyJoinRequests } from '@cultuvilla/shared/services/joinRequestService';
+import type { MunicipalityData } from '@cultuvilla/shared/models/municipality';
+
+type Muni = MunicipalityData & { id: string };
+
+export function VillageDiscovery() {
+  const { user } = useAuth();
+  const { t } = useT();
+  const [search, setSearch] = useState('');
+  const [active, setActive] = useState<Muni[] | null>(null);
+  const [all, setAll] = useState<Muni[] | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    void getActiveCommunities().then(setActive);
+    if (user) {
+      void getMyJoinRequests(user.uid).then((rs) =>
+        setPendingIds(
+          new Set(rs.filter((r) => r.status === 'pending').map((r) => r.municipalityId)),
+        ),
+      );
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (showAll && !all) void getMunicipalities().then(setAll);
+  }, [showAll, all]);
+
+  const source = showAll ? all : active;
+
+  const data = useMemo(() => {
+    if (!source) return [];
+    if (!search.trim()) return source;
+    const q = search.toLowerCase();
+    return source.filter((m) => m.name.toLowerCase().includes(q));
+  }, [source, search]);
+
+  if (source === null) {
+    return (
+      <Screen>
+        <ActivityIndicator />
+      </Screen>
+    );
+  }
+
+  return (
+    <Screen padded={false}>
+      <View className="p-4">
+        <Input
+          label={t('discover.search')}
+          value={search}
+          onChangeText={setSearch}
+          autoCapitalize="none"
+        />
+      </View>
+      <FlatList
+        data={data}
+        keyExtractor={(m) => m.id}
+        contentContainerClassName="px-4 pb-8 gap-3"
+        ListEmptyComponent={<Text tone="muted">{t('discover.empty')}</Text>}
+        ListFooterComponent={
+          !showAll ? (
+            <View className="pt-2">
+              <Button variant="ghost" onPress={() => setShowAll(true)}>
+                <Text>{t('discover.notSeeing')}</Text>
+              </Button>
+            </View>
+          ) : null
+        }
+        renderItem={({ item }) => {
+          const isActive = item.communityActive;
+          const isPending = pendingIds.has(item.id);
+          const target = isActive
+            ? `/discover/request-join/${item.id}`
+            : `/discover/request-organizer/${item.id}`;
+          const sub = isPending
+            ? t('requests.status.pending')
+            : isActive
+              ? t('discover.requestJoin')
+              : t('discover.requestOrganizer');
+          return (
+            <Button
+              variant="secondary"
+              onPress={() => router.push(target)}
+              disabled={isPending}
+              fullWidth
+            >
+              <VStack gap={1}>
+                <Text>{item.name}</Text>
+                <Text tone="muted" variant="bodySm">
+                  {sub}
+                </Text>
+              </VStack>
+            </Button>
+          );
+        }}
+      />
+    </Screen>
+  );
+}
