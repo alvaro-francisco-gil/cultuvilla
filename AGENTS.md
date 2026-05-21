@@ -77,8 +77,9 @@ import directly from the design-system: `spacing[4]`, `iconSizes.md`,
 (apps/web/components/primitives/) — `Screen`, `HStack`, `VStack`, `Text`,
 `Pressable`, `Button`, `Card`, `Input`. New screens compose primitives;
 inline `<div>` + Tailwind is fine where a primitive doesn't fit, but reach
-for the primitive first. The same component names will exist under
-`apps/mobile/components/primitives/` once the mobile app lands.
+for the primitive first. The same component names and prop API exist under
+[apps/mobile/components/primitives/](apps/mobile/components/primitives/)
+for the React Native app — any prop-level change must land in both.
 
 Icons: `lucide-react` (web) / `lucide-react-native` (mobile). Pass
 `iconSizes.sm | md | lg` for size — no ad-hoc `size={18}`.
@@ -86,11 +87,12 @@ Icons: `lucide-react` (web) / `lucide-react-native` (mobile). Pass
 ### i18n
 
 Messages live in [@cultuvilla/i18n](packages/i18n/) and are consumed by web
-via next-intl (see `apps/web/i18n/request.ts`). The future mobile app will
-consume the same JSON via i18next + i18next-icu. User-facing strings go
-through `useTranslations()`; hardcoded Spanish is allowed only in
-dev-only surfaces (admin panels, debug pages) where i18n is not a current
-priority.
+via next-intl (see `apps/web/i18n/request.ts`) and by the mobile app via
+the thin `useT()` adapter in `apps/mobile/lib/i18n.tsx`. User-facing strings go
+through `useTranslations()` (web) or `useT()` (mobile); hardcoded Spanish is
+allowed only in dev-only surfaces (admin panels, debug pages) where i18n is
+not a current priority — mobile has no admin surfaces in v1, so this
+carve-out is web-only for now.
 
 Locale formatting (`formatDate`, `formatPrice`, `formatRelativeTime`)
 lives in `@cultuvilla/shared/utils/format.ts`, preset to `es-ES`. Never
@@ -170,6 +172,39 @@ pnpm test             # vitest in packages/shared
 ```
 
 Pre-commit (Husky + lint-staged) runs `eslint --max-warnings 0 --fix` on changed `apps/web` TypeScript files; commit-msg runs commitlint.
+
+### Mobile app
+
+Mobile code lives in [`apps/mobile/`](apps/mobile/). It is an Expo SDK 54 / Expo Router v4 / NativeWind v4 React Native app that consumes `@cultuvilla/shared` and `@cultuvilla/i18n` from the monorepo.
+
+**Boot**
+
+```bash
+# JS-only reload (most changes)
+pnpm --filter cultuvilla-mobile exec expo start
+
+# If you have a dev-client installed on device/emulator:
+pnpm --filter cultuvilla-mobile exec expo start --dev-client
+
+# Remote device (tunnels Metro through Expo's servers):
+pnpm --filter cultuvilla-mobile exec expo start --tunnel
+```
+
+**Tests / typecheck**
+
+```bash
+pnpm --filter cultuvilla-mobile test           # vitest suite for apps/mobile
+pnpm mobile:typecheck                          # tsc --noEmit for apps/mobile
+```
+
+**Key conventions**
+
+- **Primitives**: the same prop API as the web primitives (`Screen`, `HStack`, `VStack`, `Text`, `Pressable`, `Button`, `Card`, `Input`) is mirrored under `apps/mobile/components/primitives/`. Any change to the shared prop contract (new prop, renamed prop, removed prop) must land in both apps' primitives folders in the same commit.
+- **Image uploads**: use `pickImageAsBlob` (returns a `Blob`) and pass it to `imageService`. Never import from `firebase/storage` directly in mobile screens — route through the service.
+- **i18n**: add new strings to `packages/i18n/messages/es.json` (nested JSON). Both apps consume the same catalog: `apps/web` via next-intl, `apps/mobile` via the thin `useT()` adapter in `apps/mobile/lib/i18n.tsx`. Dotted-path lookup works in both (next-intl handles nested keys natively; the mobile adapter walks the object on `.` splits).
+- **EAS Build profiles**: `dev`, `beta`, `prod` (defined in `apps/mobile/eas.json`) map to the same Firebase environments as the web app's env split. Keep them in sync when Firebase config changes.
+- **App Check**: the `initMobileAppCheck` seam is wired in the app bootstrap but is a no-op. Do not remove it — it will be activated when the product opts in. Leave it untouched unless explicitly asked.
+- **Native rebuilds**: after installing a package that ships an Expo config plugin, or after changing the `plugins` array in `apps/mobile/app.config.ts`, run a clean prebuild. See the `expo-native-rebuild` skill.
 
 ### Never start dev servers
 
