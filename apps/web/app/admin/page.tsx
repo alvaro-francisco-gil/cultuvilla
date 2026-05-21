@@ -9,7 +9,7 @@ import { getActiveCommunities } from '@cultuvilla/shared/services/municipalitySe
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality';
 import { TopBar } from '@/components/common/TopBar';
 import { VillageForm } from '@/components/admin/VillageForm';
-import { Pencil, Settings, Plus, MapPin, Briefcase } from 'lucide-react';
+import { Pencil, Settings, Plus, MapPin, Briefcase, UserPlus } from 'lucide-react';
 
 type Status = 'checking' | 'allowed';
 type FormMode =
@@ -81,6 +81,16 @@ export default function AdminPage() {
               </div>
               <span className="text-sm font-medium text-gray-700 text-center">Ocupaciones</span>
               <span className="text-xs text-gray-400 text-center">Aprobadas y propuestas</span>
+            </Link>
+            <Link
+              href="/admin/organizer-requests"
+              className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col items-center gap-2 hover:bg-blue-50 hover:border-blue-200 transition"
+            >
+              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
+                <UserPlus size={20} />
+              </div>
+              <span className="text-sm font-medium text-gray-700 text-center">Solicitudes de organizador</span>
+              <span className="text-xs text-gray-400 text-center">Revisar pendientes</span>
             </Link>
           </div>
         </section>
