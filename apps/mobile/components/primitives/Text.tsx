@@ -1,0 +1,38 @@
+import { Text as RNText, type TextProps as RNTextProps } from 'react-native';
+import type { TypographyVariant } from '@cultuvilla/shared/design-system';
+
+// Tone mirrors apps/web/components/primitives/Text.tsx exactly.
+type Tone = 'primary' | 'muted' | 'onAccent' | 'danger' | 'success';
+
+export interface TextProps extends Omit<RNTextProps, 'children'> {
+  children: React.ReactNode;
+  variant?: TypographyVariant;
+  tone?: Tone;
+}
+
+const TONE_CLASS: Record<Tone, string> = {
+  primary: 'text-primary',
+  muted: 'text-muted',
+  onAccent: 'text-on-accent',
+  danger: 'text-danger',
+  success: 'text-success',
+};
+
+// Typography primitive. Mirrors apps/web/components/primitives/Text.tsx prop API
+// (variant: TypographyVariant, tone: Tone). Uses NativeWind font-size utilities
+// keyed by variant name (e.g. text-body, text-h1) that resolve to the shared
+// typography tokens wired in tailwind.config.ts.
+export function Text({
+  children,
+  variant = 'body',
+  tone = 'primary',
+  className = '',
+  ...rest
+}: TextProps) {
+  const classes = [`text-${variant}`, TONE_CLASS[tone], className].filter(Boolean).join(' ');
+  return (
+    <RNText className={classes} {...rest}>
+      {children}
+    </RNText>
+  );
+}
