@@ -1,0 +1,201 @@
+// Handler test for the respondToOrganizerRequest callable.
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import * as admin from 'firebase-admin';
+import functionsTestFactory from 'firebase-functions-test';
+import { resetEmulators } from '../helpers/firestoreEmulator';
+import { respondToOrganizerRequest } from '../../respondToOrganizerRequest';
+
+const ft = functionsTestFactory({ projectId: process.env.GCLOUD_PROJECT || 'cultuvilla-test' });
+
+const MUNICIPALITY_ID = 'mun-1';
+const REQUESTER_ID = 'alice';
+const APP_ADMIN_ID = 'super-1';
+const OUTSIDER_ID = 'eve';
+
+async function seedMunicipality(opts: {
+  communityActive: boolean;
+  adminUserId?: string | null;
+}): Promise<void> {
+  await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}`).set({
+    name: 'Villarriba',
+    communityActive: opts.communityActive,
+    community: opts.adminUserId
+      ? { adminUserId: opts.adminUserId, description: '', coverImages: [] }
+      : null,
+  });
+}
+
+async function seedAppAdmin(uid: string): Promise<void> {
+  await admin.firestore().doc(`admins/${uid}`).set({ createdAt: admin.firestore.FieldValue.serverTimestamp() });
+}
+
+async function seedOrganizerRequest(opts: {
+  userId: string;
+  municipalityId: string;
+  status: 'pending' | 'approved' | 'rejected';
+}): Promise<string> {
+  const ref = admin.firestore().collection('organizerRequests').doc();
+  await ref.set({
+    userId: opts.userId,
+    municipalityId: opts.municipalityId,
+    status: opts.status,
+    requestedAt: admin.firestore.FieldValue.serverTimestamp(),
+    motivation: null,
+    reviewedAt: null,
+    reviewedBy: null,
+  });
+  return ref.id;
+}
+
+interface CallableResult {
+  ok: true;
+}
+
+async function callRespond(opts: { uid: string | null; data: unknown }): Promise<CallableResult> {
+  const wrapped = ft.wrap(respondToOrganizerRequest as unknown as Parameters<typeof ft.wrap>[0]);
+  return (await wrapped({
+    data: opts.data,
+    auth: opts.uid ? { uid: opts.uid, token: {} } : undefined,
+  } as unknown as Parameters<typeof wrapped>[0])) as unknown as CallableResult;
+}
+
+describe('respondToOrganizerRequest (callable)', () => {
+  beforeAll(async () => {
+    await resetEmulators();
+  });
+
+  beforeEach(async () => {
+    await resetEmulators();
+  });
+
+  afterAll(() => {
+    ft.cleanup();
+  });
+
+  it('throws unauthenticated when no auth context', async () => {
+    await expect(
+      callRespond({ uid: null, data: { requestId: 'whatever', decision: 'approved' } }),
+    ).rejects.toThrow(/unauthenticated|inici/i);
+  });
+
+  it('throws permission-denied when caller is not an app admin', async () => {
+    await seedMunicipality({ communityActive: false });
+    const requestId = await seedOrganizerRequest({
+      userId: REQUESTER_ID,
+      municipalityId: MUNICIPALITY_ID,
+      status: 'pending',
+    });
+    await expect(
+      callRespond({ uid: OUTSIDER_ID, data: { requestId, decision: 'approved' } }),
+    ).rejects.toThrow(/superadmin|permission-denied/i);
+  });
+
+  it('throws not-found when the request does not exist', async () => {
+    await seedAppAdmin(APP_ADMIN_ID);
+    await expect(
+      callRespond({
+        uid: APP_ADMIN_ID,
+        data: { requestId: 'missing-id', decision: 'approved' },
+      }),
+    ).rejects.toThrow(/no encontrada|not.?found/i);
+  });
+
+  it('throws failed-precondition when the request is already resolved', async () => {
+    await seedAppAdmin(APP_ADMIN_ID);
+    await seedMunicipality({ communityActive: false });
+    const requestId = await seedOrganizerRequest({
+      userId: REQUESTER_ID,
+      municipalityId: MUNICIPALITY_ID,
+      status: 'approved',
+    });
+    await expect(
+      callRespond({ uid: APP_ADMIN_ID, data: { requestId, decision: 'approved' } }),
+    ).rejects.toThrow(/ya fue resuelta|failed-precondition/i);
+  });
+
+  it('throws failed-precondition when approving but communityActive is already true', async () => {
+    await seedAppAdmin(APP_ADMIN_ID);
+    await seedMunicipality({ communityActive: true, adminUserId: 'someone' });
+    const requestId = await seedOrganizerRequest({
+      userId: REQUESTER_ID,
+      municipalityId: MUNICIPALITY_ID,
+      status: 'pending',
+    });
+    await expect(
+      callRespond({ uid: APP_ADMIN_ID, data: { requestId, decision: 'approved' } }),
+    ).rejects.toThrow(/ya está activa|failed-precondition/i);
+  });
+
+  it('approves: flips communityActive, sets adminUserId, creates admin member, notifies requester', async () => {
+    await seedAppAdmin(APP_ADMIN_ID);
+    await seedMunicipality({ communityActive: false });
+    const requestId = await seedOrganizerRequest({
+      userId: REQUESTER_ID,
+      municipalityId: MUNICIPALITY_ID,
+      status: 'pending',
+    });
+
+    const result = await callRespond({
+      uid: APP_ADMIN_ID,
+      data: { requestId, decision: 'approved' },
+    });
+    expect(result.ok).toBe(true);
+
+    const reqDoc = await admin.firestore().doc(`organizerRequests/${requestId}`).get();
+    expect(reqDoc.data()?.status).toBe('approved');
+    expect(reqDoc.data()?.reviewedBy).toBe(APP_ADMIN_ID);
+
+    const muniDoc = await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}`).get();
+    expect(muniDoc.data()?.communityActive).toBe(true);
+    expect(muniDoc.data()?.community?.adminUserId).toBe(REQUESTER_ID);
+
+    const memberDoc = await admin
+      .firestore()
+      .doc(`municipalities/${MUNICIPALITY_ID}/members/${REQUESTER_ID}`)
+      .get();
+    expect(memberDoc.exists).toBe(true);
+    expect(memberDoc.data()?.role).toBe('admin');
+
+    const notifs = await admin
+      .firestore()
+      .collection(`users/${REQUESTER_ID}/notifications`)
+      .get();
+    expect(notifs.size).toBeGreaterThanOrEqual(1);
+    expect(notifs.docs[0].data().type).toBe('organizer_request_approved');
+  });
+
+  it('rejects: sets status to rejected, leaves municipality untouched, notifies requester', async () => {
+    await seedAppAdmin(APP_ADMIN_ID);
+    await seedMunicipality({ communityActive: false });
+    const requestId = await seedOrganizerRequest({
+      userId: REQUESTER_ID,
+      municipalityId: MUNICIPALITY_ID,
+      status: 'pending',
+    });
+
+    await callRespond({
+      uid: APP_ADMIN_ID,
+      data: { requestId, decision: 'rejected' },
+    });
+
+    const reqDoc = await admin.firestore().doc(`organizerRequests/${requestId}`).get();
+    expect(reqDoc.data()?.status).toBe('rejected');
+
+    const muniDoc = await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}`).get();
+    expect(muniDoc.data()?.communityActive).toBe(false);
+
+    const memberDoc = await admin
+      .firestore()
+      .doc(`municipalities/${MUNICIPALITY_ID}/members/${REQUESTER_ID}`)
+      .get();
+    expect(memberDoc.exists).toBe(false);
+
+    const notifs = await admin
+      .firestore()
+      .collection(`users/${REQUESTER_ID}/notifications`)
+      .get();
+    expect(notifs.size).toBeGreaterThanOrEqual(1);
+    expect(notifs.docs[0].data().type).toBe('organizer_request_rejected');
+  });
+});

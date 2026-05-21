@@ -1,0 +1,127 @@
+// Handler test for the requestOrganizeVillage callable.
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import * as admin from 'firebase-admin';
+import functionsTestFactory from 'firebase-functions-test';
+import { resetEmulators } from '../helpers/firestoreEmulator';
+import { requestOrganizeVillage } from '../../requestOrganizeVillage';
+
+const ft = functionsTestFactory({ projectId: process.env.GCLOUD_PROJECT || 'cultuvilla-test' });
+
+const MUNICIPALITY_ID = 'mun-1';
+const USER_ID = 'alice';
+const APP_ADMIN_A = 'super-1';
+const APP_ADMIN_B = 'super-2';
+
+async function seedMunicipality(communityActive: boolean): Promise<void> {
+  await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}`).set({
+    name: 'Villarriba',
+    communityActive,
+    community: null,
+  });
+}
+
+async function seedAppAdmin(uid: string): Promise<void> {
+  await admin.firestore().doc(`admins/${uid}`).set({ createdAt: admin.firestore.FieldValue.serverTimestamp() });
+}
+
+async function seedOrganizerRequest(opts: {
+  userId: string;
+  municipalityId: string;
+  status: 'pending' | 'approved' | 'rejected';
+}): Promise<string> {
+  const ref = admin.firestore().collection('organizerRequests').doc();
+  await ref.set({
+    userId: opts.userId,
+    municipalityId: opts.municipalityId,
+    status: opts.status,
+    requestedAt: admin.firestore.FieldValue.serverTimestamp(),
+    motivation: null,
+    reviewedAt: null,
+    reviewedBy: null,
+  });
+  return ref.id;
+}
+
+interface CallableResult {
+  ok: true;
+  requestId: string;
+}
+
+async function callRequest(opts: { uid: string | null; data: unknown }): Promise<CallableResult> {
+  const wrapped = ft.wrap(requestOrganizeVillage as unknown as Parameters<typeof ft.wrap>[0]);
+  return (await wrapped({
+    data: opts.data,
+    auth: opts.uid ? { uid: opts.uid, token: {} } : undefined,
+  } as unknown as Parameters<typeof wrapped>[0])) as unknown as CallableResult;
+}
+
+describe('requestOrganizeVillage (callable)', () => {
+  beforeAll(async () => {
+    await resetEmulators();
+  });
+
+  beforeEach(async () => {
+    await resetEmulators();
+  });
+
+  afterAll(() => {
+    ft.cleanup();
+  });
+
+  it('throws unauthenticated when no auth context', async () => {
+    await seedMunicipality(false);
+    await expect(
+      callRequest({ uid: null, data: { municipalityId: MUNICIPALITY_ID } }),
+    ).rejects.toThrow(/unauthenticated|inici/i);
+  });
+
+  it('throws invalid-argument when municipalityId is missing', async () => {
+    await expect(callRequest({ uid: USER_ID, data: {} })).rejects.toThrow(/municipalityId/);
+  });
+
+  it('throws failed-precondition when communityActive is already true', async () => {
+    await seedMunicipality(true);
+    await expect(
+      callRequest({ uid: USER_ID, data: { municipalityId: MUNICIPALITY_ID } }),
+    ).rejects.toThrow(/ya está activa|failed-precondition/i);
+  });
+
+  it('throws already-exists when a pending request from same user for same municipality exists', async () => {
+    await seedMunicipality(false);
+    await seedOrganizerRequest({
+      userId: USER_ID,
+      municipalityId: MUNICIPALITY_ID,
+      status: 'pending',
+    });
+    await expect(
+      callRequest({ uid: USER_ID, data: { municipalityId: MUNICIPALITY_ID } }),
+    ).rejects.toThrow(/pendiente|already-exists/i);
+  });
+
+  it('creates a pending organizerRequest and notifies all app admins on happy path', async () => {
+    await seedMunicipality(false);
+    await seedAppAdmin(APP_ADMIN_A);
+    await seedAppAdmin(APP_ADMIN_B);
+
+    const result = await callRequest({
+      uid: USER_ID,
+      data: { municipalityId: MUNICIPALITY_ID, motivation: 'porque sí' },
+    });
+    expect(result.ok).toBe(true);
+    expect(result.requestId).toBeTruthy();
+
+    const reqDoc = await admin.firestore().doc(`organizerRequests/${result.requestId}`).get();
+    expect(reqDoc.exists).toBe(true);
+    expect(reqDoc.data()?.status).toBe('pending');
+    expect(reqDoc.data()?.userId).toBe(USER_ID);
+    expect(reqDoc.data()?.municipalityId).toBe(MUNICIPALITY_ID);
+    expect(reqDoc.data()?.motivation).toBe('porque sí');
+
+    const notifsA = await admin.firestore().collection(`users/${APP_ADMIN_A}/notifications`).get();
+    const notifsB = await admin.firestore().collection(`users/${APP_ADMIN_B}/notifications`).get();
+    expect(notifsA.size).toBeGreaterThanOrEqual(1);
+    expect(notifsB.size).toBeGreaterThanOrEqual(1);
+    expect(notifsA.docs[0].data().type).toBe('organizer_request_created');
+  });
+});
