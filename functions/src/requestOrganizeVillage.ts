@@ -2,6 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { notifyOrganizerRequestCreated } from './helpers/notifyRequests';
 
 const db = admin.firestore();
 
@@ -57,6 +58,13 @@ export const requestOrganizeVillage = onCall<
       motivation: motivation ?? null,
       reviewedAt: null,
       reviewedBy: null,
+    });
+
+    const municipalityName = (muniSnap.get('name') as string) ?? municipalityId;
+    await notifyOrganizerRequestCreated({
+      municipalityId,
+      municipalityName,
+      requesterUid: uid,
     });
 
     logger.info('organizer request created', { handler, uid, municipalityId, requestId: ref.id });

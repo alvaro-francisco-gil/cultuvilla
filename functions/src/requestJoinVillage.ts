@@ -2,6 +2,10 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import {
+  listVillageAdminRecipients,
+  notifyJoinRequestCreated,
+} from './helpers/notifyRequests';
 
 const db = admin.firestore();
 
@@ -31,6 +35,7 @@ export const requestJoinVillage = onCall<RequestJoinVillageData, Promise<Request
     const memberRef = db.doc(`municipalities/${municipalityId}/members/${uid}`);
     const reqRef = db.doc(`municipalities/${municipalityId}/joinRequests/${uid}`);
 
+    let municipalityName = '';
     await db.runTransaction(async (tx) => {
       const [muni, member, existing] = await Promise.all([
         tx.get(muniRef),
@@ -47,6 +52,7 @@ export const requestJoinVillage = onCall<RequestJoinVillageData, Promise<Request
       if (existing.exists && existing.get('status') === 'pending') {
         throw new HttpsError('already-exists', 'Ya tienes una solicitud pendiente.');
       }
+      municipalityName = (muni.get('name') as string) ?? municipalityId;
 
       tx.set(reqRef, {
         userId: uid,
@@ -56,6 +62,17 @@ export const requestJoinVillage = onCall<RequestJoinVillageData, Promise<Request
         reviewedAt: null,
         reviewedBy: null,
       });
+    });
+
+    const recipientUserIds = await listVillageAdminRecipients({
+      municipalityId,
+      excludeUid: uid,
+    });
+    await notifyJoinRequestCreated({
+      municipalityId,
+      municipalityName,
+      requesterUid: uid,
+      recipientUserIds,
     });
 
     logger.info('join request created', { handler, uid, municipalityId });

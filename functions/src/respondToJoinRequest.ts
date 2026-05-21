@@ -2,6 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { notifyJoinRequestResolved } from './helpers/notifyRequests';
 
 const db = admin.firestore();
 
@@ -37,6 +38,7 @@ export const respondToJoinRequest = onCall<
     const callerMemberRef = db.doc(`municipalities/${municipalityId}/members/${callerUid}`);
     const adminRef = db.doc(`admins/${callerUid}`);
 
+    let municipalityName = '';
     await db.runTransaction(async (tx) => {
       const [muniSnap, reqSnap, callerSnap, appAdminSnap] = await Promise.all([
         tx.get(muniRef),
@@ -55,6 +57,7 @@ export const respondToJoinRequest = onCall<
       if (reqSnap.get('status') !== 'pending') {
         throw new HttpsError('failed-precondition', 'La solicitud ya fue resuelta.');
       }
+      municipalityName = (muniSnap.get('name') as string) ?? municipalityId;
 
       tx.update(reqRef, {
         status: decision,
@@ -71,6 +74,13 @@ export const respondToJoinRequest = onCall<
           profileCompletedAt: null,
         });
       }
+    });
+
+    await notifyJoinRequestResolved({
+      municipalityId,
+      municipalityName,
+      requesterUid: userId,
+      decision,
     });
 
     logger.info('join request resolved', { handler, municipalityId, userId, decision });

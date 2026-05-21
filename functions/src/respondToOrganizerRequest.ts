@@ -2,6 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { notifyOrganizerRequestResolved } from './helpers/notifyRequests';
 
 const db = admin.firestore();
 
@@ -36,6 +37,9 @@ export const respondToOrganizerRequest = onCall<
     }
 
     const reqRef = db.doc(`organizerRequests/${requestId}`);
+    let requesterUid = '';
+    let municipalityId = '';
+    let municipalityName = '';
 
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(reqRef);
@@ -44,14 +48,15 @@ export const respondToOrganizerRequest = onCall<
         throw new HttpsError('failed-precondition', 'La solicitud ya fue resuelta.');
       }
 
-      const requesterUid = snap.get('userId') as string;
-      const municipalityId = snap.get('municipalityId') as string;
+      requesterUid = snap.get('userId') as string;
+      municipalityId = snap.get('municipalityId') as string;
       const muniRef = db.doc(`municipalities/${municipalityId}`);
       const muniSnap = await tx.get(muniRef);
       if (!muniSnap.exists) throw new HttpsError('not-found', 'Pueblo no encontrado.');
       if (decision === 'approved' && muniSnap.get('communityActive') === true) {
         throw new HttpsError('failed-precondition', 'La comunidad ya está activa.');
       }
+      municipalityName = (muniSnap.get('name') as string) ?? municipalityId;
 
       tx.update(reqRef, {
         status: decision,
@@ -79,6 +84,15 @@ export const respondToOrganizerRequest = onCall<
         });
       }
     });
+
+    if (requesterUid && municipalityId) {
+      await notifyOrganizerRequestResolved({
+        municipalityId,
+        municipalityName,
+        requesterUid,
+        decision,
+      });
+    }
 
     logger.info('organizer request resolved', { handler, requestId, decision });
     return { ok: true };
