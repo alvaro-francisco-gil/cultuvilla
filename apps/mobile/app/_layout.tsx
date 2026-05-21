@@ -1,5 +1,5 @@
 import './../global.css';
-import { Stack } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { bootstrapFirebase } from '../lib/firebaseInit';
 import { AuthProvider } from '../lib/auth/AuthContext';
@@ -22,15 +22,16 @@ export default function RootLayout() {
 }
 
 function AuthGate() {
-  const { loading } = useAuth();
-  if (loading) {
+  const { user, loading, profile, profileChecked } = useAuth();
+  if (loading || (user && !profileChecked)) {
     return (
       <View className="flex-1 items-center justify-center bg-surface">
         <ActivityIndicator />
       </View>
     );
   }
-  // Both route groups coexist. Individual screens and (tabs)/_layout.tsx
-  // check useAuth and redirect to /login when user is null.
+  if (user && profileChecked && !profile) {
+    return <Redirect href="/(onboarding)/complete-profile" />;
+  }
   return <Stack screenOptions={{ headerShown: false }} />;
 }
