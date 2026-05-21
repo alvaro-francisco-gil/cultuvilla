@@ -46,11 +46,28 @@
   },
   "village": {
     "title": "Pueblos",
-    "events": "Eventos",
+    "events": {
+      "label": "Eventos",
+      "empty": "No hay eventos en este pueblo"
+    },
     "organizations": "Organizaciones",
     "members": "Miembros",
     "admin": "Administración",
-    "generateInvite": "Generar invitación"
+    "generateInvite": "Generar invitación",
+    "censo": {
+      "link": "Completar mi censo"
+    }
+  },
+  "villages": {
+    "empty": "Aún no perteneces a ningún pueblo"
+  },
+  "censo": {
+    "title": "Tu censo",
+    "save": "Guardar",
+    "saved": "Censo guardado",
+    "error": "No pudimos guardar",
+    "noFields": "Este pueblo no tiene censo configurado",
+    "missingRequired": "Campos obligatorios sin rellenar"
   },
   "event": {
     "title": "Título",
