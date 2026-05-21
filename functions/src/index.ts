@@ -9,3 +9,7 @@ export { acceptInvite } from './acceptInvite';
 export { updateCenso } from './updateCenso';
 export { syncVillageDenormalization } from './syncVillageDenormalization';
 export { onOccupationProposalApproved } from './onOccupationProposalApproved';
+export { requestJoinVillage } from './requestJoinVillage';
+export { respondToJoinRequest } from './respondToJoinRequest';
+export { requestOrganizeVillage } from './requestOrganizeVillage';
+export { respondToOrganizerRequest } from './respondToOrganizerRequest';
