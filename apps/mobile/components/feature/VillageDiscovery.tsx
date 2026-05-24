@@ -23,13 +23,21 @@ export function VillageDiscovery() {
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    void getActiveCommunities().then(setActive);
+    void getActiveCommunities()
+      .then((rs) => {
+        console.log('[VillageDiscovery] getActiveCommunities ok', rs.length);
+        setActive(rs);
+      })
+      .catch((e) => console.log('[VillageDiscovery] getActiveCommunities ERR', e?.code, e?.message));
     if (user) {
-      void getMyJoinRequests(user.uid).then((rs) =>
-        setPendingIds(
-          new Set(rs.filter((r) => r.status === 'pending').map((r) => r.municipalityId)),
-        ),
-      );
+      void getMyJoinRequests(user.uid)
+        .then((rs) => {
+          console.log('[VillageDiscovery] getMyJoinRequests ok', rs.length);
+          setPendingIds(
+            new Set(rs.filter((r) => r.status === 'pending').map((r) => r.municipalityId)),
+          );
+        })
+        .catch((e) => console.log('[VillageDiscovery] getMyJoinRequests ERR', e?.code, e?.message));
     }
   }, [user]);
 
