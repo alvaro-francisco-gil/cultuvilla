@@ -116,7 +116,7 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
 
   const displayName = profile?.displayName ?? '';
   const email = profile?.email ?? '';
-  const photoURL = profile?.photoURL ?? null;
+  const photoURL: string | null = null;
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={() => close()}>
