@@ -1,53 +1,138 @@
 import { useState } from 'react';
+import { ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { Screen, VStack, Text, Input, Button } from '../../components/primitives';
+import * as ImagePicker from 'expo-image-picker';
+import {
+  Screen,
+  VStack,
+  Text,
+  Input,
+  Button,
+  Avatar,
+  DateField,
+  VillagePicker,
+} from '../../components/primitives';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
-import { createUserProfile } from '@cultuvilla/shared/services/userService';
+import {
+  createPerson,
+  updatePerson,
+  getPersonByUserId,
+} from '@cultuvilla/shared/services/personService';
+import {
+  createUserProfile,
+  patchUserProfile,
+} from '@cultuvilla/shared/services/userService';
+import { uploadPersonImage } from '@cultuvilla/shared/services/imageService';
+import type { Sex, PartialDate, MunicipalityLink } from '@cultuvilla/shared/models/person';
 
-function parseBirthday(value: string): Date | null {
-  const m = value.trim().match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
-  if (!m) return null;
-  const [, d, mo, y] = m;
-  const date = new Date(Number(y), Number(mo) - 1, Number(d));
-  if (Number.isNaN(date.getTime())) return null;
-  if (date > new Date()) return null;
-  return date;
+function toPartialDate(d: Date | null): PartialDate | null {
+  if (!d) return null;
+  return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate() };
+}
+
+async function pickImage(): Promise<{ uri: string; blob: Blob } | null> {
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!perm.granted) return null;
+  const res = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    quality: 0.8,
+    allowsEditing: true,
+    aspect: [1, 1],
+  });
+  if (res.canceled || !res.assets[0]) return null;
+  const asset = res.assets[0];
+  const response = await fetch(asset.uri);
+  const blob = await response.blob();
+  return { uri: asset.uri, blob };
 }
 
 export default function CompleteProfileScreen() {
-  const { user, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const { t } = useT();
-  const [displayName, setDisplayName] = useState(user?.displayName ?? '');
-  const [birthday, setBirthday] = useState('');
-  const [telephone, setTelephone] = useState('');
+
+  const [displayName, setDisplayName] = useState(profile?.displayName ?? user?.displayName ?? '');
+  const [telephone, setTelephone] = useState(profile?.telephone ?? '');
+  const [accountVillage, setAccountVillage] = useState<string | null>(profile?.activeMunicipalityId ?? null);
+
+  const [photo, setPhoto] = useState<{ uri: string; blob: Blob } | null>(null);
+  const [givenName, setGivenName] = useState('');
+  const [firstSurname, setFirstSurname] = useState('');
+  const [secondSurname, setSecondSurname] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [sex, setSex] = useState<Sex | null>(null);
+  const [birthday, setBirthday] = useState<Date | null>(null);
+  const [birthPlace, setBirthPlace] = useState<string | null>(null);
+  const [biography, setBiography] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit() {
     if (!user) return;
     setError(null);
-    const trimmedName = displayName.trim();
-    if (!trimmedName) {
-      setError(t('onboarding.completeProfile.error'));
-      return;
-    }
-    const parsed = parseBirthday(birthday);
-    if (!parsed) {
-      setError(t('onboarding.completeProfile.error'));
+    const trimmedDisplay = displayName.trim();
+    const trimmedGiven = givenName.trim();
+    if (!trimmedDisplay || !trimmedGiven) {
+      setError(t('onboarding.completeProfile.requiredFields'));
       return;
     }
     setLoading(true);
     try {
-      await createUserProfile(user.uid, {
-        displayName: trimmedName,
-        email: user.email ?? '',
-        birthday: parsed,
-        telephone: telephone.trim() || null,
-      });
+      const birthPlaceLink: MunicipalityLink | null = birthPlace
+        ? { municipalityId: birthPlace, barrioId: null }
+        : null;
+
+      let personId: string;
+      if (profile?.personId) {
+        personId = profile.personId;
+      } else {
+        const existing = await getPersonByUserId(user.uid);
+        if (existing) {
+          personId = existing.id;
+        } else {
+          personId = await createPerson({
+            givenName: trimmedGiven,
+            firstSurname: firstSurname.trim() || null,
+            secondSurname: secondSurname.trim() || null,
+            nickname: nickname.trim() || null,
+            sex,
+            birthday: toPartialDate(birthday),
+            birthPlace: birthPlaceLink,
+            biography: biography.trim() || null,
+            userId: user.uid,
+            createdBy: user.uid,
+          });
+        }
+      }
+
+      if (photo) {
+        const url = await uploadPersonImage(personId, {
+          blob: photo.blob,
+          filename: `avatar-${Date.now()}.jpg`,
+          contentType: photo.blob.type || 'image/jpeg',
+        });
+        await updatePerson(personId, { photoURL: url });
+      }
+
+      if (profile) {
+        await patchUserProfile(user.uid, {
+          displayName: trimmedDisplay,
+          telephone: telephone.trim() || null,
+          activeMunicipalityId: accountVillage,
+          personId,
+        });
+      } else {
+        await createUserProfile(user.uid, {
+          displayName: trimmedDisplay,
+          email: user.email ?? '',
+          telephone: telephone.trim() || null,
+          activeMunicipalityId: accountVillage,
+          personId,
+        });
+      }
+
       await refreshProfile();
-      // Use a typed-routes-safe path; "/" can fail under typedRoutes with the
-      // (tabs) group as the only index. Land directly on the explora tab.
       router.replace({ pathname: '/(tabs)' });
     } catch (e) {
       setError(e instanceof Error ? e.message : t('onboarding.completeProfile.error'));
@@ -58,32 +143,98 @@ export default function CompleteProfileScreen() {
 
   return (
     <Screen>
-      <VStack gap={4}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
         <Text variant="h2">{t('onboarding.completeProfile.title')}</Text>
         <Text tone="muted">{t('onboarding.completeProfile.intro')}</Text>
-        <Input
-          label={t('onboarding.completeProfile.displayName')}
-          value={displayName}
-          onChangeText={setDisplayName}
-        />
-        <Input
-          label={`${t('onboarding.completeProfile.birthday')} (DD/MM/AAAA)`}
-          value={birthday}
-          onChangeText={setBirthday}
-          keyboardType="numbers-and-punctuation"
-          autoCapitalize="none"
-        />
-        <Input
-          label={t('onboarding.completeProfile.telephone')}
-          value={telephone}
-          onChangeText={setTelephone}
-          keyboardType="phone-pad"
-        />
+
+        <Text variant="h3">{t('onboarding.completeProfile.accountSection')}</Text>
+        <VStack gap={3}>
+          <Input
+            label={t('onboarding.completeProfile.displayName')}
+            value={displayName}
+            onChangeText={setDisplayName}
+          />
+          <Input
+            label={t('onboarding.completeProfile.telephone')}
+            value={telephone}
+            onChangeText={setTelephone}
+            keyboardType="phone-pad"
+          />
+          <VillagePicker
+            label={t('onboarding.completeProfile.village')}
+            value={accountVillage}
+            onChange={setAccountVillage}
+          />
+        </VStack>
+
+        <Text variant="h3">{t('onboarding.completeProfile.personaSection')}</Text>
+        <VStack gap={3}>
+          <Avatar
+            uri={photo?.uri}
+            size={96}
+            onPress={async () => {
+              const next = await pickImage();
+              if (next) setPhoto(next);
+            }}
+          />
+          <Input
+            label={t('onboarding.completeProfile.givenName')}
+            value={givenName}
+            onChangeText={setGivenName}
+          />
+          <Input
+            label={t('onboarding.completeProfile.firstSurname')}
+            value={firstSurname}
+            onChangeText={setFirstSurname}
+          />
+          <Input
+            label={t('onboarding.completeProfile.secondSurname')}
+            value={secondSurname}
+            onChangeText={setSecondSurname}
+          />
+          <Input
+            label={t('onboarding.completeProfile.nickname')}
+            value={nickname}
+            onChangeText={setNickname}
+          />
+          <Text tone="muted">{t('onboarding.completeProfile.sex')}</Text>
+          <VStack gap={2}>
+            {(['female', 'male', 'other'] as const).map((opt) => (
+              <Button
+                key={opt}
+                variant={sex === opt ? 'primary' : 'secondary'}
+                onPress={() => setSex(sex === opt ? null : opt)}
+              >
+                {t(`onboarding.completeProfile.sex_${opt}`)}
+              </Button>
+            ))}
+          </VStack>
+          <DateField
+            label={t('onboarding.completeProfile.birthday')}
+            value={birthday}
+            onChange={setBirthday}
+            minimumDate={new Date(1900, 0, 1)}
+            maximumDate={new Date()}
+          />
+          <VillagePicker
+            label={t('onboarding.completeProfile.birthPlace')}
+            value={birthPlace}
+            onChange={setBirthPlace}
+          />
+          <Input
+            label={t('onboarding.completeProfile.biography')}
+            value={biography}
+            onChangeText={setBiography}
+            multiline
+            numberOfLines={4}
+          />
+        </VStack>
+
         {error && <Text tone="danger">{error}</Text>}
         <Button onPress={onSubmit} loading={loading} fullWidth>
-          <Text tone="onAccent">{t('onboarding.completeProfile.submit')}</Text>
+          {t('onboarding.completeProfile.submit')}
         </Button>
-      </VStack>
+      </ScrollView>
     </Screen>
   );
 }

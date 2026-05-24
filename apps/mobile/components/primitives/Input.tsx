@@ -28,6 +28,7 @@ export function Input({ label, value, onChangeText, error, ...rest }: InputProps
         <TextInput
           value={value}
           onChangeText={onChangeText}
+          accessibilityLabel={rest.accessibilityLabel ?? label}
           className="text-primary text-body"
           {...rest}
         />
