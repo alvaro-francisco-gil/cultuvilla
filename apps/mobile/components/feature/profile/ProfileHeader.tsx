@@ -6,7 +6,6 @@ import type { PersonData } from '@cultuvilla/shared/models/person';
 export interface ProfileHeaderProps {
   person: (PersonData & { id: string }) | null;
   fallbackName: string;
-  subtitle?: string | null;
   uploading?: boolean;
   onPressAvatar?: () => void;
 }
@@ -14,13 +13,11 @@ export interface ProfileHeaderProps {
 export function ProfileHeader({
   person,
   fallbackName,
-  subtitle,
   uploading,
   onPressAvatar,
 }: ProfileHeaderProps) {
   const displayName = person ? buildDisplayName(person) : fallbackName;
   const shortName = person ? buildShortName(person) : fallbackName;
-  const nickname = person?.nickname ?? null;
   const initials = (shortName || fallbackName || '?').charAt(0).toUpperCase();
 
   return (
@@ -39,17 +36,7 @@ export function ProfileHeader({
         ) : null}
       </View>
       <VStack gap={1} className="flex-1">
-        {nickname ? (
-          <Text variant="h2" className="font-bold">@{nickname}</Text>
-        ) : (
-          <Text variant="h2" className="font-bold">{displayName}</Text>
-        )}
-        {nickname ? (
-          <Text tone="muted">{displayName}</Text>
-        ) : null}
-        {subtitle ? (
-          <Text variant="caption" tone="muted">{subtitle}</Text>
-        ) : null}
+        <Text variant="h2" className="font-bold">{displayName}</Text>
       </VStack>
     </HStack>
   );
