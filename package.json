@@ -5,20 +5,13 @@
   "private": true,
   "scripts": {
     "help": "node scripts/help.js",
-    "web:dev": "pnpm --filter cultuvilla-web dev",
-    "web:build": "pnpm --filter cultuvilla-web build",
-    "web:start": "pnpm --filter cultuvilla-web start",
-    "web:lint": "pnpm --filter cultuvilla-web lint",
     "shared:build": "pnpm --filter @cultuvilla/shared build",
     "shared:test": "pnpm --filter @cultuvilla/shared test",
-    "web:test": "pnpm --filter cultuvilla-web test",
+    "shared:typecheck": "pnpm --filter @cultuvilla/shared typecheck",
+    "i18n:typecheck": "pnpm --filter @cultuvilla/i18n typecheck",
     "functions:build": "npm --prefix functions run build",
     "functions:typecheck": "npm --prefix functions run typecheck",
     "functions:test": "npm --prefix functions run test",
-    "web:typecheck": "pnpm --filter cultuvilla-web typecheck",
-    "shared:typecheck": "pnpm --filter @cultuvilla/shared typecheck",
-    "lint": "pnpm web:lint",
-    "i18n:typecheck": "pnpm --filter @cultuvilla/i18n typecheck",
     "app:start": "pnpm --filter cultuvilla-mobile start",
     "app:start:tunnel": "pnpm --filter cultuvilla-mobile start:tunnel",
     "app:start:lan": "pnpm --filter cultuvilla-mobile start:lan",
@@ -28,14 +21,14 @@
     "app:test": "pnpm --filter cultuvilla-mobile test",
     "app:test:watch": "pnpm --filter cultuvilla-mobile test:watch",
     "app:typecheck": "pnpm --filter cultuvilla-mobile typecheck",
-    "typecheck": "pnpm shared:typecheck && pnpm web:typecheck && pnpm functions:typecheck && pnpm i18n:typecheck && pnpm app:typecheck",
-    "build": "pnpm shared:build && pnpm web:build && pnpm functions:build",
-    "test": "pnpm shared:test && pnpm web:test && pnpm app:test && pnpm functions:test",
+    "typecheck": "pnpm shared:typecheck && pnpm functions:typecheck && pnpm i18n:typecheck && pnpm app:typecheck",
+    "build": "pnpm shared:build && pnpm functions:build",
+    "test": "pnpm shared:test && pnpm app:test && pnpm functions:test",
     "test:integration": "node scripts/run-tests-with-emulators.mjs pnpm --filter @cultuvilla/shared test:integration",
     "test:rules": "ONLY=firestore node scripts/run-tests-with-emulators.mjs pnpm --filter @cultuvilla/shared test:rules",
     "test:functions": "node scripts/run-tests-with-emulators.mjs npm --prefix functions run test:integration",
     "test:emulators": "pnpm test:integration && pnpm test:rules && pnpm test:functions",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "check": "pnpm typecheck && pnpm test && pnpm build",
     "seed:municipalities": "node scripts/seed-municipalities.mjs",
     "seed:dev": "pnpm shared:build && node scripts/seed-dev-fixtures.mjs",
     "seed:dev:wipe": "node scripts/seed-dev-fixtures.mjs --wipe",
@@ -57,9 +50,6 @@
     "prepare": "husky"
   },
   "lint-staged": {
-    "apps/web/**/*.{ts,tsx,js,jsx,mjs,cjs}": [
-      "pnpm --filter cultuvilla-web exec eslint --max-warnings 0 --fix"
-    ],
     "*.{json,md,yml,yaml}": []
   },
   "devDependencies": {

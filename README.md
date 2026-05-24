@@ -23,20 +23,19 @@ When code says `personaId`, it means "which family member is this registration f
 
 ## Stack
 
-- **Web app**: Next.js (App Router) in `apps/web`
+- **App**: Expo + React Native (TypeScript) in `apps/mobile` — runs on iOS, Android, and web via React Native Web
 - **Shared package**: `@cultuvilla/shared` (types, schemas, helpers) in `packages/shared`
 - **Backend**: Firebase (Firestore, Auth, Storage) + Cloud Functions in `functions/`
 - **Data model**: Data nested under `villages/{villageId}/`, collection group indexes for cross-village queries
 - **Environments**: `villa-events` (dev) + `cultuvilla-beta` (beta) + `cultuvilla-prod` (prod) Firebase projects — see [docs/ENVIRONMENTS.md](docs/ENVIRONMENTS.md)
-- **i18n**: Spanish default via `next-intl`
+- **i18n**: Spanish default; shared message catalog in `packages/i18n`
 - **Package manager**: pnpm workspaces
 
 ## Setup
 
 ```bash
-cp apps/web/.env.example apps/web/.env.local   # fill with DEV firebase values
 pnpm install
-pnpm web:dev
+pnpm app:start        # Expo dev server (scan QR with Expo Go, or press 'w' for web)
 ```
 
 See [docs/ENVIRONMENTS.md](docs/ENVIRONMENTS.md) for the full env layout and deploy commands.
@@ -46,8 +45,9 @@ See [docs/ENVIRONMENTS.md](docs/ENVIRONMENTS.md) for the full env layout and dep
 Run `pnpm help` for the full list. Most-used:
 
 ```bash
-pnpm web:dev          # Next.js dev server with hot reload
-pnpm check            # lint + typecheck + test + build (full CI gate)
+pnpm app:start        # Expo dev server (iOS/Android/web)
+pnpm app:web          # Expo web only
+pnpm check            # typecheck + test + build (full CI gate)
 pnpm shared:test      # vitest in packages/shared
 pnpm typecheck        # all workspaces
 

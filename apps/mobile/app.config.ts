@@ -113,6 +113,10 @@ const config: ExpoConfig = {
       backgroundColor: '#ffffff',
     },
   },
+  web: {
+    bundler: 'metro',
+    output: 'single',
+  },
   extra: {
     APP_ENV: env,
     firebaseConfig: firebaseConfigPerEnv[env],

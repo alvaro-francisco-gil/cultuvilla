@@ -32,7 +32,8 @@ function AuthGate() {
       </View>
     );
   }
-  const needsOnboarding = !!user && profileChecked && !profile;
+  const needsOnboarding =
+    !!user && profileChecked && (!profile || !profile.personId);
   const onOnboardingRoute = pathname?.startsWith('/(onboarding)') || pathname === '/complete-profile';
   if (needsOnboarding && !onOnboardingRoute) {
     return <Redirect href="/(onboarding)/complete-profile" />;

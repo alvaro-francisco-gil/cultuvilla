@@ -53,16 +53,13 @@ jobs:
         run: npm ci
         working-directory: functions
 
-      - name: Lint (web)
-        run: pnpm lint
-
-      - name: Typecheck (shared, web, functions)
+      - name: Typecheck (shared, functions, i18n, mobile)
         run: pnpm typecheck
 
-      - name: Test (unit — shared + functions)
+      - name: Test (unit — shared, mobile, functions)
         run: pnpm test
 
-      - name: Build (shared, web, functions)
+      - name: Build (shared, functions)
         run: pnpm build
 
   emulator-tests:
