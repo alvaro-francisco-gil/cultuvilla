@@ -43,7 +43,7 @@ export default function ProfileScreen() {
 
   return (
     <Screen padded={false}>
-      <AppHeader hideAvatar />
+      <AppHeader />
       <VStack gap={4} className="p-4">
         <Text variant="h2">{t('profile.title')}</Text>
         {person?.photoURL ? (
