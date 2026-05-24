@@ -22,6 +22,11 @@ const MONTHS_ES = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
 
+const MONTHS_ES_SHORT = [
+  'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+  'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
+];
+
 function daysInMonth(year: number, monthZeroBased: number): number {
   return new Date(year, monthZeroBased + 1, 0).getDate();
 }
@@ -83,7 +88,7 @@ export function DateField({
   }
 
   const yearLabel = year != null ? String(year) : 'Año';
-  const monthLabel = month != null ? (MONTHS_ES[month] ?? 'Mes') : 'Mes';
+  const monthLabel = month != null ? (MONTHS_ES_SHORT[month] ?? 'Mes') : 'Mes';
   const dayLabel = day != null ? String(day) : 'Día';
 
   return (
@@ -155,7 +160,9 @@ function SegmentButton({ text, onPress, testID }: { text: string; onPress: () =>
       testID={testID}
       style={styles.segment}
     >
-      <Text>{text}</Text>
+      <Text numberOfLines={1} ellipsizeMode="tail" style={styles.segmentText}>
+        {text}
+      </Text>
       <Ionicons name="chevron-down" size={16} color="#64748b" />
     </Pressable>
   );
@@ -172,8 +179,13 @@ const styles = StyleSheet.create({
     borderColor: '#d1d5db',
     borderRadius: 8,
     paddingVertical: 12,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     backgroundColor: '#ffffff',
+    minWidth: 0,
+  },
+  segmentText: {
+    flexShrink: 1,
+    marginRight: 4,
   },
   modal: { flex: 1, padding: 16 },
   modalHeader: { paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e5e7eb' },

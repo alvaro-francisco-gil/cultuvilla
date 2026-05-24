@@ -16,7 +16,8 @@ describe('DateField (Year / Month / Day)', () => {
       <DateField label="Cumple" value={new Date(1990, 4, 5)} onChange={() => {}} />,
     );
     expect(getByText('1990')).toBeTruthy();
-    expect(getByText('Mayo')).toBeTruthy();
+    // Segment shows the short month name to fit on one line.
+    expect(getByText('May')).toBeTruthy();
     expect(getByText('5')).toBeTruthy();
   });
 
