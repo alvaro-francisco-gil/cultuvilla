@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,9 +12,11 @@ import { UserMenuModal } from '../feature/UserMenuModal';
 export type AppHeaderProps = {
   /** Optional override for the title (defaults to active municipality name). */
   centerLabel?: string;
+  /** Extra content rendered in the right slot, before the notifications/menu icons. */
+  extraRightSlot?: ReactNode;
 };
 
-export function AppHeader({ centerLabel }: AppHeaderProps) {
+export function AppHeader({ centerLabel, extraRightSlot }: AppHeaderProps) {
   const insets = useSafeAreaInsets();
   const { profile } = useAuth();
   const { t } = useT();
@@ -52,6 +54,7 @@ export function AppHeader({ centerLabel }: AppHeaderProps) {
           </View>
 
           <View className="flex-row items-center gap-2">
+            {extraRightSlot}
             <Pressable
               onPress={() => {
                 // notifications surface not built yet

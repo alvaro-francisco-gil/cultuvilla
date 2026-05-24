@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams, Link } from 'expo-router';
-import { ActivityIndicator, FlatList, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { AppHeader } from '../../../components/layout/AppHeader';
 import { router } from 'expo-router';
 import { Screen } from '../../../components/primitives/Screen';
@@ -8,8 +9,11 @@ import { VStack } from '../../../components/primitives/VStack';
 import { Text } from '../../../components/primitives/Text';
 import { EventCard } from '../../../components/feature/EventCard';
 import { useT } from '../../../lib/i18n';
+import { useAuth } from '../../../lib/auth/useAuth';
+import { useIsAppAdmin } from '../../../lib/auth/useIsAppAdmin';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { getEventsByMunicipality } from '@cultuvilla/shared/services/eventService';
+import { isVillageAdmin } from '@cultuvilla/shared/services/villageMemberService';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { EventData } from '@cultuvilla/shared/models/event/EventDataModel';
 
@@ -19,10 +23,29 @@ type Event = EventData & { id: string };
 export default function VillageHome() {
   const { villageId } = useLocalSearchParams<{ villageId: string }>();
   const { t } = useT();
+  const { user } = useAuth();
+  const { isAppAdmin } = useIsAppAdmin();
   const [village, setVillage] = useState<Village | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [villageAdmin, setVillageAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!user || !villageId) return;
+    isVillageAdmin(villageId as string, user.uid).then(setVillageAdmin);
+  }, [user, villageId]);
+  const canManage = isAppAdmin || villageAdmin;
+
+  const adminSlot = canManage ? (
+    <Pressable
+      onPress={() => router.push(`/village/${villageId}/admin` as never)}
+      accessibilityLabel={t('village.admin.open')}
+      className="p-1"
+    >
+      <Ionicons name="settings-outline" size={22} color="#0f172a" />
+    </Pressable>
+  ) : null;
 
   useEffect(() => {
     if (!villageId) return;
@@ -79,7 +102,7 @@ export default function VillageHome() {
 
   return (
     <Screen padded={false}>
-      <AppHeader centerLabel={village.name} />
+      <AppHeader centerLabel={village.name} extraRightSlot={adminSlot} />
       <VStack gap={4} className="p-4">
         <Text variant="h1">{village.name}</Text>
         <Link href={`/village/${village.id}/censo`}>
