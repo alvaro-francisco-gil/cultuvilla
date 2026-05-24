@@ -18,3 +18,8 @@ database-debug.log
 
 # Local Claude Code worktree state
 .claude/worktrees/
+
+# Firebase service-account keys — never commit
+*firebase-adminsdk*.json
+*service-account*.json
+dev-sa.json

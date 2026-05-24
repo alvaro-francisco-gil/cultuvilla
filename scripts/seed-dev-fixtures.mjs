@@ -333,31 +333,80 @@ async function upsertEvent(village, org, ev) {
 
 // ── Wipe ──────────────────────────────────────────────────────────────────────
 
-async function wipe() {
-  const collections = ['events', 'organizations', 'municipalities', 'admins', 'users'];
-  let total = 0;
-  for (const col of collections) {
-    const snap = await db.collection(col).where('seedBatch', '==', SEED_BATCH).get();
-    if (snap.empty) {
-      console.log(`[wipe] ${col}: 0`);
-      continue;
-    }
-    // Delete subcollections for municipalities (members/)
-    if (col === 'municipalities') {
-      for (const doc of snap.docs) {
-        const members = await doc.ref.collection('members').where('seedBatch', '==', SEED_BATCH).get();
-        const batch = db.batch();
-        members.docs.forEach((m) => batch.delete(m.ref));
-        if (!members.empty) await batch.commit();
+/**
+ * Enumerate every seed doc by deterministic ID. Avoids needing read perms
+ * (some ADC accounts only have write perms on dev). Returns refs only.
+ */
+function listSeedDocRefs() {
+  const refs = { events: [], organizations: [], municipalities: [], members: [] };
+  for (const v of VILLAGES) {
+    refs.municipalities.push(db.collection('municipalities').doc(v.id));
+    const orgs = orgsForVillage(v.id, v.municipality.name);
+    for (const org of orgs) {
+      refs.organizations.push(db.collection('organizations').doc(org.id));
+      for (const ev of eventsForOrg(org, v)) {
+        refs.events.push(db.collection('events').doc(ev.id));
       }
     }
-    const batch = db.batch();
-    snap.docs.forEach((d) => batch.delete(d.ref));
-    await batch.commit();
-    console.log(`[wipe] ${col}: ${snap.size}`);
-    total += snap.size;
   }
-  console.log(`[wipe] done. removed ${total} top-level docs.`);
+  return refs;
+}
+
+async function wipe() {
+  const refs = listSeedDocRefs();
+  let total = 0;
+
+  // Top-level seed docs (deterministic IDs)
+  for (const [name, list] of Object.entries(refs)) {
+    if (name === 'members') continue;
+    const batch = db.batch();
+    list.forEach((r) => batch.delete(r));
+    if (list.length) {
+      await batch.commit();
+      console.log(`[wipe] ${name}: ${list.length}`);
+      total += list.length;
+    }
+  }
+
+  // municipalities/{id}/members/{uid} — best-effort, only if ADMIN_UID known
+  const memberUid = process.env.ADMIN_UID;
+  if (memberUid) {
+    for (const v of VILLAGES) {
+      await db.collection('municipalities').doc(v.id).collection('members').doc(memberUid).delete().catch(() => {});
+    }
+    console.log(`[wipe] municipality members for ${memberUid}: best-effort`);
+  } else {
+    console.log('[wipe] skipping member subdocs (set ADMIN_UID to also clean those)');
+  }
+
+  // admins/{uid} and users/{uid} for the previously-seeded throwaway user, if
+  // ADMIN_UID provided OR ADMIN_EMAIL lookup succeeds via Auth (which we DO
+  // have perms for).
+  let uidsToCleanUser = new Set();
+  if (memberUid) uidsToCleanUser.add(memberUid);
+  const fallbackEmail = process.env.ADMIN_EMAIL ?? 'alvaro@cultuvilla.dev';
+  try {
+    const u = await auth.getUserByEmail(fallbackEmail);
+    uidsToCleanUser.add(u.uid);
+  } catch {
+    /* ignore */
+  }
+  for (const uid of uidsToCleanUser) {
+    await db.collection('admins').doc(uid).delete().catch(() => {});
+    await db.collection('users').doc(uid).delete().catch(() => {});
+    console.log(`[wipe] admins/${uid} + users/${uid}`);
+  }
+
+  // Also delete the throwaway Auth user from prior run if it exists.
+  try {
+    const u = await auth.getUserByEmail('alvaro@cultuvilla.dev');
+    await auth.deleteUser(u.uid);
+    console.log(`[wipe] auth user alvaro@cultuvilla.dev deleted`);
+  } catch (err) {
+    if (err.code !== 'auth/user-not-found') console.warn('[wipe] auth cleanup:', err.message);
+  }
+
+  console.log(`[wipe] done. blind-deleted ${total} top-level docs + ancillary cleanup.`);
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
