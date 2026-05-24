@@ -1,0 +1,383 @@
+// Firestore Rules e2e tests for news, newsComments, newsReactions, newsReports.
+// Also covers the tightened municipalities/{id}/members/{uid} update rule
+// that prevents clients from setting trustedNewsAuthor directly.
+import { describe, it, beforeAll, afterAll, beforeEach } from 'vitest';
+import {
+  initializeTestEnvironment,
+  assertSucceeds,
+  assertFails,
+  type RulesTestEnvironment,
+} from '@firebase/rules-unit-testing';
+import { doc, setDoc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+let env: RulesTestEnvironment;
+
+beforeAll(async () => {
+  const rules = readFileSync(resolve(__dirname, '../../../../firestore.rules'), 'utf8');
+  env = await initializeTestEnvironment({
+    projectId: process.env.TEST_PROJECT_ID || 'cultuvilla-rules-test',
+    firestore: { rules },
+  });
+});
+
+beforeEach(async () => {
+  await env.clearFirestore();
+});
+
+afterAll(async () => {
+  await env.cleanup();
+});
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+
+async function seedMember(
+  municipalityId: string,
+  userId: string,
+  extra: Record<string, unknown> = {}
+) {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), `municipalities/${municipalityId}/members/${userId}`), {
+      role: 'user',
+      joinedAt: new Date(),
+      profileAnswers: {},
+      profileCompletedAt: null,
+      trustedNewsAuthor: false,
+      ...extra,
+    });
+  });
+}
+
+async function seedPost(
+  postId: string,
+  municipalityId: string,
+  authorUserId: string,
+  extra: Record<string, unknown> = {}
+) {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), `news/${postId}`), {
+      municipalityId,
+      authorUserId,
+      authorOrgId: null,
+      title: 'Test post',
+      body: 'Body text',
+      category: 'otro',
+      images: [],
+      status: 'pending',
+      rejectionReason: null,
+      submittedAt: new Date(),
+      publishedAt: null,
+      createdBy: authorUserId,
+      updatedAt: new Date(),
+      reactionCounts: { like: 0, heart: 0 },
+      commentCount: 0,
+      ...extra,
+    });
+  });
+}
+
+// ── news post rules ───────────────────────────────────────────────────────────
+
+describe('firestore.rules — /news/{postId}', () => {
+  // 1. non-member tries to create a news doc → DENY
+  it('1: non-member cannot create a news post', async () => {
+    const stranger = env.authenticatedContext('stranger').firestore();
+    await assertFails(
+      setDoc(doc(stranger, 'news/p1'), {
+        municipalityId: 'm1',
+        authorUserId: 'stranger',
+        authorOrgId: null,
+        title: 'Hi',
+        body: 'Hello',
+        category: 'otro',
+        images: [],
+        status: 'pending',
+        rejectionReason: null,
+        submittedAt: new Date(),
+        publishedAt: null,
+        createdBy: 'stranger',
+        updatedAt: new Date(),
+        reactionCounts: { like: 0, heart: 0 },
+        commentCount: 0,
+      })
+    );
+  });
+
+  // 2. member with trustedNewsAuthor=false creates with status='pending' → ALLOW
+  it('2: regular member can create a pending news post', async () => {
+    await seedMember('m1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(
+      setDoc(doc(alice, 'news/p1'), {
+        municipalityId: 'm1',
+        authorUserId: 'alice',
+        authorOrgId: null,
+        title: 'Fiesta',
+        body: 'Detalles',
+        category: 'fiesta',
+        images: [],
+        status: 'pending',
+        rejectionReason: null,
+        submittedAt: new Date(),
+        publishedAt: null,
+        createdBy: 'alice',
+        updatedAt: new Date(),
+        reactionCounts: { like: 0, heart: 0 },
+        commentCount: 0,
+      })
+    );
+  });
+
+  // 3. member with trustedNewsAuthor=false creates with status='approved' → DENY
+  it('3: regular member cannot create an approved news post', async () => {
+    await seedMember('m1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertFails(
+      setDoc(doc(alice, 'news/p1'), {
+        municipalityId: 'm1',
+        authorUserId: 'alice',
+        authorOrgId: null,
+        title: 'Fiesta',
+        body: 'Detalles',
+        category: 'fiesta',
+        images: [],
+        status: 'approved',
+        rejectionReason: null,
+        submittedAt: new Date(),
+        publishedAt: new Date(),
+        createdBy: 'alice',
+        updatedAt: new Date(),
+        reactionCounts: { like: 0, heart: 0 },
+        commentCount: 0,
+      })
+    );
+  });
+
+  // 4. member with trustedNewsAuthor=true creates with status='approved' → ALLOW
+  it('4: trusted author can create an approved news post', async () => {
+    await seedMember('m1', 'bob', { trustedNewsAuthor: true });
+    const bob = env.authenticatedContext('bob').firestore();
+    await assertSucceeds(
+      setDoc(doc(bob, 'news/p1'), {
+        municipalityId: 'm1',
+        authorUserId: 'bob',
+        authorOrgId: null,
+        title: 'Historia',
+        body: 'Contenido',
+        category: 'historia',
+        images: [],
+        status: 'approved',
+        rejectionReason: null,
+        submittedAt: new Date(),
+        publishedAt: null,
+        createdBy: 'bob',
+        updatedAt: new Date(),
+        reactionCounts: { like: 0, heart: 0 },
+        commentCount: 0,
+      })
+    );
+  });
+
+  // 5. author updates own post (title/body only) → ALLOW
+  it('5: author can update own post title and body', async () => {
+    await seedMember('m1', 'alice');
+    await seedPost('p1', 'm1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(
+      updateDoc(doc(alice, 'news/p1'), { title: 'Updated title', body: 'Updated body', updatedAt: new Date() })
+    );
+  });
+
+  // 6. author tries to update own post's status to 'approved' → DENY
+  it('6: author cannot update post status to approved', async () => {
+    await seedMember('m1', 'alice');
+    await seedPost('p1', 'm1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertFails(
+      updateDoc(doc(alice, 'news/p1'), { status: 'approved' })
+    );
+  });
+
+  // 7. non-author updates someone else's post → DENY
+  it("7: non-author cannot update another member's post", async () => {
+    await seedMember('m1', 'alice');
+    await seedMember('m1', 'bob');
+    await seedPost('p1', 'm1', 'alice');
+    const bob = env.authenticatedContext('bob').firestore();
+    await assertFails(
+      updateDoc(doc(bob, 'news/p1'), { title: 'Hacked' })
+    );
+  });
+
+  // 8. client tries to delete a news post directly → DENY
+  it('8: client cannot delete a news post directly', async () => {
+    await seedMember('m1', 'alice');
+    await seedPost('p1', 'm1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertFails(deleteDoc(doc(alice, 'news/p1')));
+  });
+});
+
+// ── newsComments rules ────────────────────────────────────────────────────────
+
+describe('firestore.rules — /newsComments/{commentId}', () => {
+  // 9. member adds a comment with hidden=false → ALLOW
+  it('9: member can create a visible comment', async () => {
+    await seedMember('m1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(
+      setDoc(doc(alice, 'newsComments/c1'), {
+        postId: 'p1',
+        municipalityId: 'm1',
+        authorUserId: 'alice',
+        body: 'Great post!',
+        createdAt: new Date(),
+        hidden: false,
+      })
+    );
+  });
+
+  // 10. member tries to set hidden=true on a new comment → DENY
+  it('10: member cannot create a hidden comment', async () => {
+    await seedMember('m1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertFails(
+      setDoc(doc(alice, 'newsComments/c1'), {
+        postId: 'p1',
+        municipalityId: 'm1',
+        authorUserId: 'alice',
+        body: 'Sneaky',
+        createdAt: new Date(),
+        hidden: true,
+      })
+    );
+  });
+
+  // 11. member tries to update an existing comment → DENY
+  it('11: member cannot update a comment', async () => {
+    await seedMember('m1', 'alice');
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'newsComments/c1'), {
+        postId: 'p1',
+        municipalityId: 'm1',
+        authorUserId: 'alice',
+        body: 'Original',
+        createdAt: new Date(),
+        hidden: false,
+      });
+    });
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertFails(updateDoc(doc(alice, 'newsComments/c1'), { body: 'Edited' }));
+  });
+
+  // 12. comment author deletes their own comment → ALLOW
+  it('12: comment author can delete their own comment', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'newsComments/c1'), {
+        postId: 'p1',
+        municipalityId: 'm1',
+        authorUserId: 'alice',
+        body: 'Delete me',
+        createdAt: new Date(),
+        hidden: false,
+      });
+    });
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(deleteDoc(doc(alice, 'newsComments/c1')));
+  });
+});
+
+// ── newsReactions rules ───────────────────────────────────────────────────────
+
+describe('firestore.rules — /newsReactions/{reactionId}', () => {
+  // 13. member creates a reaction at id `${postId}_${myUid}` → ALLOW
+  it('13: member can create own reaction with correct doc id', async () => {
+    await seedMember('m1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(
+      setDoc(doc(alice, 'newsReactions/p1_alice'), {
+        postId: 'p1',
+        municipalityId: 'm1',
+        userId: 'alice',
+        kind: 'like',
+        createdAt: new Date(),
+      })
+    );
+  });
+
+  // 14. member tries to create a reaction at id `${postId}_${otherUid}` → DENY
+  it('14: member cannot create a reaction spoofing another user', async () => {
+    await seedMember('m1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertFails(
+      setDoc(doc(alice, 'newsReactions/p1_bob'), {
+        postId: 'p1',
+        municipalityId: 'm1',
+        userId: 'bob',
+        kind: 'like',
+        createdAt: new Date(),
+      })
+    );
+  });
+});
+
+// ── newsReports rules ─────────────────────────────────────────────────────────
+
+describe('firestore.rules — /newsReports/{reportId}', () => {
+  // 15. member submits a report with status='open' and reporterUserId=myUid → ALLOW
+  it('15: member can create a report about themselves with status open', async () => {
+    await seedMember('m1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(
+      setDoc(doc(alice, 'newsReports/r1'), {
+        targetType: 'comment',
+        targetId: 'c1',
+        postId: 'p1',
+        municipalityId: 'm1',
+        reporterUserId: 'alice',
+        reason: 'spam',
+        createdAt: new Date(),
+        status: 'open',
+        resolvedBy: null,
+        resolvedAt: null,
+      })
+    );
+  });
+
+  // 16. client tries to update a report directly → DENY
+  it('16: client cannot update a report directly', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'newsReports/r1'), {
+        targetType: 'comment',
+        targetId: 'c1',
+        postId: 'p1',
+        municipalityId: 'm1',
+        reporterUserId: 'alice',
+        reason: 'spam',
+        createdAt: new Date(),
+        status: 'open',
+        resolvedBy: null,
+        resolvedAt: null,
+      });
+    });
+    await seedMember('m1', 'alice', { role: 'admin' });
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertFails(updateDoc(doc(alice, 'newsReports/r1'), { status: 'dismissed' }));
+  });
+});
+
+// ── members trustedNewsAuthor tightening ──────────────────────────────────────
+
+describe('firestore.rules — members trustedNewsAuthor lock', () => {
+  // 17. client tries to write trustedNewsAuthor=true on their own member doc → DENY
+  it('17: member cannot set trustedNewsAuthor on their own member doc', async () => {
+    await seedMember('m1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertFails(
+      updateDoc(doc(alice, 'municipalities/m1/members/alice'), {
+        trustedNewsAuthor: true,
+      })
+    );
+  });
+});

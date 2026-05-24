@@ -25,6 +25,63 @@ service cloud.firestore {
     function orgMunicipalityId(orgId) {
       return get(/databases/$(database)/documents/organizations/$(orgId)).data.municipalityId;
     }
+    function isTrustedNewsAuthor(municipalityId) {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/municipalities/$(municipalityId)/members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/municipalities/$(municipalityId)/members/$(request.auth.uid)).data.trustedNewsAuthor == true;
+    }
+
+    match /news/{postId} {
+      allow read: if isVillageMember(resource.data.municipalityId);
+      allow create: if isVillageMember(request.resource.data.municipalityId)
+                      && request.resource.data.authorUserId == request.auth.uid
+                      && request.resource.data.createdBy == request.auth.uid
+                      && request.resource.data.publishedAt == null
+                      && request.resource.data.reactionCounts.like == 0
+                      && request.resource.data.reactionCounts.heart == 0
+                      && request.resource.data.commentCount == 0
+                      && (
+                        request.resource.data.status == 'pending'
+                        || (request.resource.data.status == 'approved'
+                            && isTrustedNewsAuthor(request.resource.data.municipalityId))
+                      );
+      allow update: if isOwner(resource.data.createdBy)
+                      && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+                           'status','publishedAt','authorUserId','authorOrgId',
+                           'municipalityId','submittedAt','createdBy',
+                           'reactionCounts','commentCount'
+                         ]);
+      allow delete: if false;
+    }
+
+    match /newsComments/{commentId} {
+      allow read: if isVillageMember(resource.data.municipalityId);
+      allow create: if isVillageMember(request.resource.data.municipalityId)
+                      && request.resource.data.authorUserId == request.auth.uid
+                      && request.resource.data.hidden == false;
+      allow update: if false;
+      allow delete: if isOwner(resource.data.authorUserId);
+    }
+
+    match /newsReactions/{reactionId} {
+      allow read: if isVillageMember(resource.data.municipalityId);
+      allow create, update: if isVillageMember(request.resource.data.municipalityId)
+                              && request.resource.data.userId == request.auth.uid
+                              && reactionId == request.resource.data.postId + '_' + request.auth.uid;
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    match /newsReports/{reportId} {
+      allow read: if isVillageAdmin(resource.data.municipalityId)
+                    || isOwner(resource.data.reporterUserId)
+                    || isAppAdmin();
+      allow create: if isVillageMember(request.resource.data.municipalityId)
+                      && request.resource.data.reporterUserId == request.auth.uid
+                      && request.resource.data.status == 'open'
+                      && request.resource.data.resolvedBy == null
+                      && request.resource.data.resolvedAt == null;
+      allow update, delete: if false;
+    }
 
     match /admins/{userId} {
       allow read: if isOwner(userId) || isAppAdmin();
@@ -71,8 +128,10 @@ service cloud.firestore {
       match /members/{userId} {
         allow read: if true;
         allow create: if isVillageAdmin(municipalityId) || isAppAdmin();
-        allow update: if isVillageAdmin(municipalityId)
-                       || isAppAdmin()
+        allow update: if (
+                         (isVillageAdmin(municipalityId) || isAppAdmin())
+                         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['trustedNewsAuthor'])
+                       )
                        || (isOwner(userId)
                            && request.resource.data.diff(resource.data).affectedKeys()
                               .hasOnly(['profileAnswers', 'profileCompletedAt']));
