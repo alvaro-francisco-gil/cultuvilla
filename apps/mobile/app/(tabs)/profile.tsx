@@ -1,67 +1,241 @@
-import { useEffect, useState } from 'react';
-import { Image } from 'react-native';
-import { Screen, VStack, HStack, Text, Button } from '../../components/primitives';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, Share, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { Button, HStack, Pressable, Screen, Text, VStack } from '../../components/primitives';
 import { AppHeader } from '../../components/layout/AppHeader';
+import { ProfileHeader } from '../../components/feature/profile/ProfileHeader';
+import { ProfileStatsRow } from '../../components/feature/profile/ProfileStatsRow';
+import { PersonaScroll } from '../../components/feature/profile/PersonaScroll';
+import { OrgList } from '../../components/feature/profile/OrgList';
+import type { OrgListItem } from '../../components/feature/profile/OrgList';
+import { ProfileSectionHeader } from '../../components/feature/profile/ProfileSectionHeader';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 import { pickImageAsBlob } from '../../lib/images';
-import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
+import {
+  getPersonByUserId,
+  getPersonsByCreator,
+} from '@cultuvilla/shared/services/personService';
 import { uploadPersonImage } from '@cultuvilla/shared/services/imageService';
+import { getEventCountByCreator } from '@cultuvilla/shared/services/eventService';
+import { getUserRegistrationsAcrossEvents } from '@cultuvilla/shared/services/registrationService';
+import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
+import { getOrgMembershipsByUserInMunicipality } from '@cultuvilla/shared/services/orgMemberService';
 import { buildDisplayName } from '@cultuvilla/shared/models/person';
 import type { PersonData } from '@cultuvilla/shared/models/person';
 
 type PersonDoc = PersonData & { id: string };
 
+function buildSubtitle(person: PersonDoc | null): string | null {
+  if (!person) return null;
+  const parts: string[] = [];
+  if (person.birthday?.year) parts.push(String(person.birthday.year));
+  if (person.birthPlace?.municipalityId) parts.push(person.birthPlace.municipalityId);
+  return parts.length ? parts.join(' · ') : null;
+}
+
 export default function ProfileScreen() {
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const { t } = useT();
-  const [person, setPerson] = useState<PersonDoc | null>(null);
+
+  const [selfPerson, setSelfPerson] = useState<PersonDoc | null>(null);
+  const [allPersonas, setAllPersonas] = useState<PersonDoc[]>([]);
+  const [eventsCreated, setEventsCreated] = useState<number | null>(null);
+  const [participations, setParticipations] = useState<number | null>(null);
+  const [orgs, setOrgs] = useState<OrgListItem[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const activeMunicipalityId = profile?.activeMunicipalityId ?? null;
+
+  const load = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const [self, mine] = await Promise.all([
+        getPersonByUserId(user.uid),
+        getPersonsByCreator(user.uid),
+      ]);
+      setSelfPerson(self);
+      setAllPersonas(mine);
+
+      const [count, regs] = await Promise.all([
+        getEventCountByCreator(user.uid),
+        getUserRegistrationsAcrossEvents(user.uid),
+      ]);
+      setEventsCreated(count);
+      const distinctEvents = new Set(regs.map((r) => r.eventPath));
+      setParticipations(distinctEvents.size);
+
+      if (activeMunicipalityId) {
+        const munOrgs = await getOrganizationsByMunicipality(
+          activeMunicipalityId,
+          'approved'
+        );
+        const memberships = await getOrgMembershipsByUserInMunicipality(
+          user.uid,
+          activeMunicipalityId,
+          munOrgs.map((o) => o.id)
+        );
+        const memberOrgIds = new Set(memberships.map((m) => m.orgId));
+        setOrgs(
+          munOrgs
+            .filter((o) => memberOrgIds.has(o.id))
+            .map((o) => ({ id: o.id, name: o.name }))
+        );
+      } else {
+        setOrgs([]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [user, activeMunicipalityId]);
 
   useEffect(() => {
-    if (!user) return;
-    getPersonByUserId(user.uid).then(setPerson);
-  }, [user]);
+    void load();
+  }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load])
+  );
 
   async function onChangePhoto() {
-    if (!person) return;
+    if (!selfPerson) return;
     const picked = await pickImageAsBlob();
     if (!picked) return;
     setUploading(true);
     try {
-      await uploadPersonImage(person.id, picked);
+      await uploadPersonImage(selfPerson.id, picked);
       const refreshed = await getPersonByUserId(user!.uid);
-      setPerson(refreshed);
+      setSelfPerson(refreshed);
     } finally {
       setUploading(false);
     }
   }
 
+  async function onShare() {
+    const name = selfPerson ? buildDisplayName(selfPerson) : profile?.displayName;
+    if (!name) return;
+    try {
+      await Share.share({ message: `${name} en Cultuvilla` });
+    } catch {
+      // ignored
+    }
+  }
+
   if (!user) return null;
 
-  const displayName = person ? buildDisplayName(person) : (user.email ?? '');
+  const subtitle = buildSubtitle(selfPerson);
+  const otherPersonas = allPersonas.filter((p) => p.userId !== user.uid);
+  const fallbackName = profile?.displayName ?? user.email ?? '';
 
   return (
     <Screen padded={false}>
       <AppHeader />
-      <VStack gap={4} className="p-4">
-        <Text variant="h2">{t('profile.title')}</Text>
-        {person?.photoURL ? (
-          <Image
-            source={{ uri: person.photoURL }}
-            style={{ width: 120, height: 120, borderRadius: 60 }}
+      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+        <ProfileHeader
+          person={selfPerson}
+          fallbackName={fallbackName}
+          subtitle={subtitle}
+          uploading={uploading}
+          onPressAvatar={onChangePhoto}
+        />
+
+        <View className="px-4">
+          <ProfileStatsRow
+            stats={[
+              { label: t('profile.stats.eventsCreated'), value: eventsCreated },
+              { label: t('profile.stats.participations'), value: participations },
+              { label: t('profile.stats.personas'), value: allPersonas.length },
+            ]}
           />
+        </View>
+
+        <HStack gap={2} className="px-4 mt-4">
+          <View className="flex-1">
+            <Button
+              variant="secondary"
+              onPress={() => {
+                if (selfPerson) router.push(`/person/${selfPerson.id}`);
+              }}
+            >
+              {t('profile.actions.edit')}
+            </Button>
+          </View>
+          <View className="flex-1">
+            <Button variant="secondary" onPress={onShare}>
+              {t('profile.actions.share')}
+            </Button>
+          </View>
+        </HStack>
+
+        {selfPerson?.biography ? (
+          <View className="px-4 mt-4">
+            <Text>{selfPerson.biography}</Text>
+          </View>
+        ) : selfPerson ? (
+          <View className="px-4 mt-4">
+            <Pressable
+              onPress={() => router.push(`/person/${selfPerson.id}`)}
+              accessibilityRole="button"
+            >
+              <Text tone="muted">
+                {t('profile.bio.empty')} · {t('profile.bio.cta')}
+              </Text>
+            </Pressable>
+          </View>
         ) : null}
-        <Text>{displayName}</Text>
-        <HStack gap={2}>
-          <Button onPress={onChangePhoto} loading={uploading}>
-            {t('profile.changePhoto')}
-          </Button>
+
+        <ProfileSectionHeader title={t('profile.personasSection.title')} />
+        {loading && allPersonas.length === 0 ? (
+          <View className="px-4">
+            <ActivityIndicator />
+          </View>
+        ) : (
+          <PersonaScroll
+            personas={otherPersonas}
+            addLabel={t('profile.personasSection.add')}
+            emptyLabel={t('profile.personasSection.empty')}
+            onPressPersona={(id) => router.push(`/person/${id}`)}
+            onPressAdd={() => router.push('/person/new')}
+          />
+        )}
+
+        {orgs.length > 0 ? (
+          <>
+            <ProfileSectionHeader title={t('profile.orgsSection.title')} />
+            <OrgList
+              orgs={orgs}
+              emptyLabel={t('profile.orgsSection.empty')}
+              defaultRoleLabel={t('profile.orgsSection.roleMember')}
+            />
+          </>
+        ) : null}
+
+        <ProfileSectionHeader title={t('profile.villagesEntry')} />
+        <View className="px-4">
+          <Pressable
+            onPress={() => router.push('/me/villages')}
+            accessibilityRole="button"
+            accessibilityLabel={t('profile.villagesEntry')}
+          >
+            <View className="flex-row items-center bg-surface border border-subtle rounded-xl p-3">
+              <Ionicons name="map-outline" size={20} color="#0f172a" />
+              <Text className="ml-3 flex-1">{t('profile.villagesEntry')}</Text>
+              <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
+            </View>
+          </Pressable>
+        </View>
+
+        <VStack gap={2} className="px-4 mt-6">
           <Button onPress={signOut} variant="ghost">
             {t('profile.signOut')}
           </Button>
-        </HStack>
-      </VStack>
+        </VStack>
+      </ScrollView>
     </Screen>
   );
 }

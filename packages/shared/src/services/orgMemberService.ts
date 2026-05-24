@@ -40,3 +40,29 @@ export async function isOrgMember(orgId: string, userId: string): Promise<boolea
   const snap = await getDoc(doc(orgMembersCol(orgId), userId));
   return snap.exists();
 }
+
+export interface UserOrgMembership {
+  orgId: string;
+}
+
+/**
+ * Reverse lookup: which organizations does `userId` belong to within a given
+ * municipality. Fetches all orgs in the municipality and checks membership in
+ * parallel — fine for the dev/early-stage scale; revisit when org counts grow.
+ */
+export async function getOrgMembershipsByUserInMunicipality(
+  userId: string,
+  municipalityId: string,
+  orgIdsCandidate: string[]
+): Promise<UserOrgMembership[]> {
+  const checks = await Promise.all(
+    orgIdsCandidate.map(async (orgId) => {
+      const snap = await getDoc(doc(orgMembersCol(orgId), userId));
+      return snap.exists() ? { orgId } : null;
+    })
+  );
+  // The municipality argument is currently passed through for symmetry with
+  // future server-side filtering; not used in the body yet.
+  void municipalityId;
+  return checks.filter((m): m is UserOrgMembership => m !== null);
+}

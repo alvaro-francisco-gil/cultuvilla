@@ -192,6 +192,16 @@
     "generateInvite": "Generar invitación",
     "censo": {
       "link": "Completar mi censo"
+    },
+    "hub": {
+      "events": "Eventos",
+      "organizations": "Organizaciones",
+      "censo": "Censo",
+      "news": "Anuncios"
+    },
+    "organizationsList": {
+      "title": "Organizaciones",
+      "empty": "Aún no hay organizaciones"
     }
   },
   "villages": {
@@ -260,7 +270,37 @@
     "addPersona": "Añadir persona",
     "editPersona": "Editar persona",
     "biography": "Biografía",
-    "telephone": "Teléfono"
+    "telephone": "Teléfono",
+    "stats": {
+      "eventsCreated": "Eventos creados",
+      "participations": "Participaciones",
+      "personas": "Personas"
+    },
+    "actions": {
+      "edit": "Editar perfil",
+      "share": "Compartir perfil"
+    },
+    "bio": {
+      "empty": "Aún no has añadido una biografía.",
+      "cta": "Añadir biografía"
+    },
+    "personasSection": {
+      "title": "Personas a tu cargo",
+      "empty": "No tienes otras personas a tu cargo aún.",
+      "add": "Añadir"
+    },
+    "orgsSection": {
+      "title": "Organizaciones",
+      "empty": "No perteneces a ninguna organización.",
+      "roleMember": "Miembro"
+    },
+    "villagesEntry": "Mis pueblos",
+    "born": "Nacido en {place}",
+    "bornYear": "{year}",
+    "personDetailTitle": "Persona",
+    "personEdit": "Editar",
+    "personDelete": "Eliminar",
+    "personCreated": "Persona añadida"
   },
   "notifications": {
     "title": "Notificaciones",
