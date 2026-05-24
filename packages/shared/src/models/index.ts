@@ -1,6 +1,7 @@
 export * from './core'
 export * from './user'
 export * from './municipality'
+export * from './news'
 export * from './organization'
 export * from './event'
 export * from './notification'
