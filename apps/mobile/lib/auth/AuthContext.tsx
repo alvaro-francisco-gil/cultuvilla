@@ -10,6 +10,7 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithCredential,
+  signInWithPopup,
 } from 'firebase/auth';
 import { getUserProfile } from '@cultuvilla/shared/services/userService';
 import type { UserData } from '@cultuvilla/shared/models/user';
@@ -67,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (googleConfigured.current) return;
+    if (Platform.OS === 'web') return;
     const cfg = getGoogleSignInConfig();
     if (!cfg) return;
     GoogleSignin.configure({
@@ -103,6 +105,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, loadProfile]);
 
   const signInWithGoogle = async (): Promise<void> => {
+    if (Platform.OS === 'web') {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(getAuth(), provider);
+      return;
+    }
     const cfg = getGoogleSignInConfig();
     if (!cfg) {
       throw new Error(
