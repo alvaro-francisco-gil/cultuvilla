@@ -12,6 +12,7 @@ import {
   serverTimestamp,
   Timestamp,
   GeoPoint,
+  getCountFromServer,
 } from 'firebase/firestore';
 import { getDb } from '../firebase';
 import type { EventData, EventDataInput, EventStatus } from '../models/event/EventDataModel';
@@ -142,4 +143,22 @@ export async function updateEventStatus(eventId: string, status: EventStatus): P
 
 export async function deleteEvent(eventId: string): Promise<void> {
   await deleteDoc(doc(eventsCol(), eventId));
+}
+
+export async function getEventsByCreator(
+  userId: string
+): Promise<(EventData & { id: string })[]> {
+  const q = query(
+    eventsCol(),
+    where('createdBy', '==', userId),
+    orderBy('createdAt', 'desc')
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => mapEventDoc(d as Parameters<typeof mapEventDoc>[0]));
+}
+
+export async function getEventCountByCreator(userId: string): Promise<number> {
+  const q = query(eventsCol(), where('createdBy', '==', userId));
+  const snap = await getCountFromServer(q);
+  return snap.data().count;
 }
