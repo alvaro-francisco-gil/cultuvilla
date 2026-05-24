@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Image } from 'react-native';
 import { Screen, VStack, HStack, Text, Button } from '../../components/primitives';
+import { AppHeader } from '../../components/layout/AppHeader';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 import { pickImageAsBlob } from '../../lib/images';
@@ -41,8 +42,9 @@ export default function ProfileScreen() {
   const displayName = person ? buildDisplayName(person) : (user.email ?? '');
 
   return (
-    <Screen>
-      <VStack gap={4}>
+    <Screen padded={false}>
+      <AppHeader hideAvatar />
+      <VStack gap={4} className="p-4">
         <Text variant="h2">{t('profile.title')}</Text>
         {person?.photoURL ? (
           <Image

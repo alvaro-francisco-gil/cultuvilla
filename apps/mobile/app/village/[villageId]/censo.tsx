@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { Screen } from '../../../components/primitives/Screen';
 import { VStack } from '../../../components/primitives/VStack';
 import { Text } from '../../../components/primitives/Text';
 import { CensoForm } from '../../../components/feature/CensoForm';
+import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { useAuth } from '../../../lib/auth/useAuth';
 import { useT } from '../../../lib/i18n';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
@@ -46,24 +47,30 @@ export default function CensoScreen() {
 
   if (loading) {
     return (
-      <Screen>
-        <ActivityIndicator />
+      <Screen padded={false}>
+        <ScreenHeader title={t('censo.title')} />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator />
+        </View>
       </Screen>
     );
   }
 
   if (error) {
     return (
-      <Screen>
-        <Text tone="danger">{error}</Text>
+      <Screen padded={false}>
+        <ScreenHeader title={t('censo.title')} />
+        <View className="p-4">
+          <Text tone="danger">{error}</Text>
+        </View>
       </Screen>
     );
   }
 
   return (
-    <Screen>
-      <VStack gap={4}>
-        <Text variant="h1">{t('censo.title')}</Text>
+    <Screen padded={false}>
+      <ScreenHeader title={t('censo.title')} />
+      <VStack gap={4} className="p-4">
         <CensoForm
           villageId={villageId}
           userId={user.uid}

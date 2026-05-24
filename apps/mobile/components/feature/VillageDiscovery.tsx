@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, ActivityIndicator, View } from 'react-native';
 import { router, type Href } from 'expo-router';
-import { Screen, VStack, Text, Input, Button } from '../primitives';
+import { VStack, Text, Input, Button } from '../primitives';
 import { useT } from '../../lib/i18n';
 import { useAuth } from '../../lib/auth/useAuth';
 import {
@@ -56,14 +56,14 @@ export function VillageDiscovery() {
 
   if (source === null) {
     return (
-      <Screen>
+      <View className="flex-1 items-center justify-center">
         <ActivityIndicator />
-      </Screen>
+      </View>
     );
   }
 
   return (
-    <Screen padded={false}>
+    <View className="flex-1">
       <View className="p-4">
         <Input
           label={t('discover.search')}
@@ -114,6 +114,6 @@ export function VillageDiscovery() {
           );
         }}
       />
-    </Screen>
+    </View>
   );
 }

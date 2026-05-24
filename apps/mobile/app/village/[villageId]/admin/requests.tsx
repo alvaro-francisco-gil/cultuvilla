@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { FlatList, ActivityIndicator, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Screen, VStack, HStack, Text, Button } from '../../../../components/primitives';
+import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
 import { useT } from '../../../../lib/i18n';
 import { useAuth } from '../../../../lib/auth/useAuth';
 import { isVillageAdmin } from '@cultuvilla/shared/services/villageMemberService';
@@ -49,30 +50,32 @@ export default function VillageAdminRequestsScreen() {
 
   if (allowed === null) {
     return (
-      <Screen>
-        <ActivityIndicator />
+      <Screen padded={false}>
+        <ScreenHeader title={t('requests.admin.title')} />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator />
+        </View>
       </Screen>
     );
   }
   if (!allowed) {
     return (
-      <Screen>
-        <Text tone="danger">403</Text>
+      <Screen padded={false}>
+        <ScreenHeader title={t('requests.admin.title')} />
+        <View className="p-4">
+          <Text tone="danger">403</Text>
+        </View>
       </Screen>
     );
   }
 
   return (
     <Screen padded={false}>
+      <ScreenHeader title={t('requests.admin.title')} />
       <FlatList
         data={rows ?? []}
         keyExtractor={(r) => r.id}
         contentContainerClassName="p-4 gap-3"
-        ListHeaderComponent={
-          <Text variant="h2" className="mb-2">
-            {t('requests.admin.title')}
-          </Text>
-        }
         ListEmptyComponent={<Text tone="muted">{t('requests.admin.empty')}</Text>}
         renderItem={({ item }) => (
           <View className="p-3 border border-subtle rounded-md bg-surface">
