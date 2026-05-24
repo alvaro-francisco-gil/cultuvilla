@@ -37,6 +37,8 @@
     "test:emulators": "pnpm test:integration && pnpm test:rules && pnpm test:functions",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "seed:municipalities": "node scripts/seed-municipalities.mjs",
+    "seed:dev": "pnpm shared:build && node scripts/seed-dev-fixtures.mjs",
+    "seed:dev:wipe": "node scripts/seed-dev-fixtures.mjs --wipe",
     "deploy:rules:dev": "firebase deploy --only firestore:rules,storage --project dev",
     "deploy:rules:beta": "firebase deploy --only firestore:rules,storage --project beta",
     "deploy:rules:prod": "firebase deploy --only firestore:rules,storage --project prod",
