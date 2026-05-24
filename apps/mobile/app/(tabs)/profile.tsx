@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Button, Pressable, Screen, Text, VStack } from '../../components/primitives';
+import { Pressable, Screen, Text } from '../../components/primitives';
 import { AppHeader } from '../../components/layout/AppHeader';
 import { ProfileHeader } from '../../components/feature/profile/ProfileHeader';
 import { ProfileStatsRow } from '../../components/feature/profile/ProfileStatsRow';
@@ -26,16 +26,8 @@ import type { PersonData } from '@cultuvilla/shared/models/person';
 
 type PersonDoc = PersonData & { id: string };
 
-function buildSubtitle(person: PersonDoc | null): string | null {
-  if (!person) return null;
-  const parts: string[] = [];
-  if (person.birthday?.year) parts.push(String(person.birthday.year));
-  if (person.birthPlace?.municipalityId) parts.push(person.birthPlace.municipalityId);
-  return parts.length ? parts.join(' · ') : null;
-}
-
 export default function ProfileScreen() {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile } = useAuth();
   const { t } = useT();
 
   const [selfPerson, setSelfPerson] = useState<PersonDoc | null>(null);
@@ -117,18 +109,16 @@ export default function ProfileScreen() {
 
   if (!user) return null;
 
-  const subtitle = buildSubtitle(selfPerson);
   const otherPersonas = allPersonas.filter((p) => p.userId !== user.uid);
   const fallbackName = profile?.displayName ?? user.email ?? '';
 
   return (
-    <Screen padded={false} topInset={false}>
+    <Screen padded={false}>
       <AppHeader />
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <ProfileHeader
           person={selfPerson}
           fallbackName={fallbackName}
-          subtitle={subtitle}
           uploading={uploading}
           onPressAvatar={onChangePhoto}
         />
@@ -201,11 +191,6 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        <VStack gap={2} className="px-4 mt-6">
-          <Button onPress={signOut} variant="ghost">
-            {t('profile.signOut')}
-          </Button>
-        </VStack>
       </ScrollView>
     </Screen>
   );
