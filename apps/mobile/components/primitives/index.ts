@@ -6,3 +6,5 @@ export * from './Pressable';
 export * from './Button';
 export * from './Card';
 export * from './Input';
+export { Avatar } from './Avatar';
+export type { AvatarProps } from './Avatar';
