@@ -88,7 +88,13 @@ service cloud.firestore {
       }
 
       match /joinRequests/{userId} {
-        allow read: if isOwner(userId) || isVillageAdmin(municipalityId) || isAppAdmin();
+        // Field-based so collection-group queries (where userId == auth.uid)
+        // are rules-safe. The doc ID also equals the user's uid, so the
+        // owner check works for direct get() too.
+        allow read: if isAuthenticated()
+          && (resource.data.userId == request.auth.uid
+              || isVillageAdmin(municipalityId)
+              || isAppAdmin());
         // Cloud Functions (admin SDK) own create/update/delete.
         allow create, update, delete: if false;
       }
