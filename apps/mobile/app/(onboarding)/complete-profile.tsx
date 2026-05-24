@@ -31,6 +31,10 @@ function toPartialDate(d: Date | null): PartialDate | null {
   return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate() };
 }
 
+function buildDisplayName(given: string, first: string, second: string): string {
+  return [given, first, second].map((s) => s.trim()).filter(Boolean).join(' ');
+}
+
 async function pickImage(): Promise<{ uri: string; blob: Blob } | null> {
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted) return null;
@@ -51,10 +55,6 @@ export default function CompleteProfileScreen() {
   const { user, profile, refreshProfile } = useAuth();
   const { t } = useT();
 
-  const [displayName, setDisplayName] = useState(profile?.displayName ?? user?.displayName ?? '');
-  const [telephone, setTelephone] = useState(profile?.telephone ?? '');
-  const [accountVillage, setAccountVillage] = useState<string | null>(profile?.activeMunicipalityId ?? null);
-
   const [photo, setPhoto] = useState<{ uri: string; blob: Blob } | null>(null);
   const [givenName, setGivenName] = useState('');
   const [firstSurname, setFirstSurname] = useState('');
@@ -65,18 +65,23 @@ export default function CompleteProfileScreen() {
   const [birthPlace, setBirthPlace] = useState<string | null>(null);
   const [biography, setBiography] = useState('');
 
+  const [telephone, setTelephone] = useState(profile?.telephone ?? '');
+  const [accountVillage, setAccountVillage] = useState<string | null>(profile?.activeMunicipalityId ?? null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit() {
     if (!user) return;
     setError(null);
-    const trimmedDisplay = displayName.trim();
     const trimmedGiven = givenName.trim();
-    if (!trimmedDisplay || !trimmedGiven) {
+    const trimmedFirst = firstSurname.trim();
+    const trimmedSecond = secondSurname.trim();
+    if (!trimmedGiven || !trimmedFirst || !trimmedSecond) {
       setError(t('onboarding.completeProfile.requiredFields'));
       return;
     }
+    const displayName = buildDisplayName(trimmedGiven, trimmedFirst, trimmedSecond);
     setLoading(true);
     try {
       const birthPlaceLink: MunicipalityLink | null = birthPlace
@@ -93,8 +98,8 @@ export default function CompleteProfileScreen() {
         } else {
           personId = await createPerson({
             givenName: trimmedGiven,
-            firstSurname: firstSurname.trim() || null,
-            secondSurname: secondSurname.trim() || null,
+            firstSurname: trimmedFirst,
+            secondSurname: trimmedSecond,
             nickname: nickname.trim() || null,
             sex,
             birthday: toPartialDate(birthday),
@@ -117,14 +122,14 @@ export default function CompleteProfileScreen() {
 
       if (profile) {
         await patchUserProfile(user.uid, {
-          displayName: trimmedDisplay,
+          displayName,
           telephone: telephone.trim() || null,
           activeMunicipalityId: accountVillage,
           personId,
         });
       } else {
         await createUserProfile(user.uid, {
-          displayName: trimmedDisplay,
+          displayName,
           email: user.email ?? '',
           telephone: telephone.trim() || null,
           activeMunicipalityId: accountVillage,
@@ -146,26 +151,6 @@ export default function CompleteProfileScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
         <Text variant="h2">{t('onboarding.completeProfile.title')}</Text>
         <Text tone="muted">{t('onboarding.completeProfile.intro')}</Text>
-
-        <Text variant="h3">{t('onboarding.completeProfile.accountSection')}</Text>
-        <VStack gap={3}>
-          <Input
-            label={t('onboarding.completeProfile.displayName')}
-            value={displayName}
-            onChangeText={setDisplayName}
-          />
-          <Input
-            label={t('onboarding.completeProfile.telephone')}
-            value={telephone}
-            onChangeText={setTelephone}
-            keyboardType="phone-pad"
-          />
-          <VillagePicker
-            label={t('onboarding.completeProfile.village')}
-            value={accountVillage}
-            onChange={setAccountVillage}
-          />
-        </VStack>
 
         <Text variant="h3">{t('onboarding.completeProfile.personaSection')}</Text>
         <VStack gap={3}>
@@ -227,6 +212,21 @@ export default function CompleteProfileScreen() {
             onChangeText={setBiography}
             multiline
             numberOfLines={4}
+          />
+        </VStack>
+
+        <Text variant="h3">{t('onboarding.completeProfile.accountSection')}</Text>
+        <VStack gap={3}>
+          <Input
+            label={t('onboarding.completeProfile.telephone')}
+            value={telephone}
+            onChangeText={setTelephone}
+            keyboardType="phone-pad"
+          />
+          <VillagePicker
+            label={t('onboarding.completeProfile.village')}
+            value={accountVillage}
+            onChange={setAccountVillage}
           />
         </VStack>
 

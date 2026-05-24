@@ -35,12 +35,11 @@ jest.mock('../../../lib/i18n', () => ({
         'onboarding.completeProfile.intro': 'Cuéntanos un poco sobre ti.',
         'onboarding.completeProfile.accountSection': 'Tu cuenta',
         'onboarding.completeProfile.personaSection': 'Tu persona',
-        'onboarding.completeProfile.displayName': 'Nombre visible',
         'onboarding.completeProfile.telephone': 'Teléfono (opcional)',
         'onboarding.completeProfile.village': 'Tu pueblo (opcional)',
         'onboarding.completeProfile.givenName': 'Nombre',
-        'onboarding.completeProfile.firstSurname': 'Primer apellido (opcional)',
-        'onboarding.completeProfile.secondSurname': 'Segundo apellido (opcional)',
+        'onboarding.completeProfile.firstSurname': 'Primer apellido',
+        'onboarding.completeProfile.secondSurname': 'Segundo apellido',
         'onboarding.completeProfile.nickname': 'Apodo (opcional)',
         'onboarding.completeProfile.sex': 'Sexo (opcional)',
         'onboarding.completeProfile.sex_female': 'Mujer',
@@ -50,7 +49,7 @@ jest.mock('../../../lib/i18n', () => ({
         'onboarding.completeProfile.birthPlace': 'Lugar de nacimiento (opcional)',
         'onboarding.completeProfile.biography': 'Sobre ti (opcional)',
         'onboarding.completeProfile.submit': 'Crear perfil',
-        'onboarding.completeProfile.requiredFields': 'El nombre visible y tu nombre son obligatorios.',
+        'onboarding.completeProfile.requiredFields': 'El nombre y los dos apellidos son obligatorios.',
         'onboarding.completeProfile.error': 'No se pudo guardar el perfil',
       };
       return map[key] ?? key;
@@ -61,16 +60,15 @@ jest.mock('../../../lib/i18n', () => ({
 describe('CompleteProfileScreen', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('rejects submit when displayName or givenName are empty', async () => {
+  it('rejects submit when name or surnames are empty', async () => {
     const { getByText, findByText } = render(<CompleteProfileScreen />);
     await act(async () => {
       fireEvent.press(getByText('Crear perfil'));
     });
-    // Spanish error from i18n key requiredFields
     expect(await findByText(/obligatorios/i)).toBeTruthy();
   });
 
-  it('writes person first, then account', async () => {
+  it('writes person first, then account, with derived displayName', async () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const personService = require('@cultuvilla/shared/services/personService');
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -80,8 +78,9 @@ describe('CompleteProfileScreen', () => {
     (userService.createUserProfile as jest.Mock).mockImplementation(async () => { order.push('user'); });
 
     const { getByLabelText, getByText } = render(<CompleteProfileScreen />);
-    fireEvent.changeText(getByLabelText('Nombre visible'), 'Ana');
     fireEvent.changeText(getByLabelText('Nombre'), 'Ana');
+    fireEvent.changeText(getByLabelText('Primer apellido'), 'García');
+    fireEvent.changeText(getByLabelText('Segundo apellido'), 'López');
     await act(async () => {
       fireEvent.press(getByText('Crear perfil'));
     });
@@ -90,8 +89,17 @@ describe('CompleteProfileScreen', () => {
       expect(order).toEqual(['person', 'user']);
     });
     expect(personService.createPerson).toHaveBeenCalledWith(
-      expect.objectContaining({ givenName: 'Ana', userId: 'uid-1', createdBy: 'uid-1' }),
+      expect.objectContaining({
+        givenName: 'Ana',
+        firstSurname: 'García',
+        secondSurname: 'López',
+        userId: 'uid-1',
+        createdBy: 'uid-1',
+      }),
     );
-    expect(userService.createUserProfile).toHaveBeenCalledWith('uid-1', expect.objectContaining({ displayName: 'Ana', personId: 'person-1' }));
+    expect(userService.createUserProfile).toHaveBeenCalledWith(
+      'uid-1',
+      expect.objectContaining({ displayName: 'Ana García López', personId: 'person-1' }),
+    );
   });
 });
