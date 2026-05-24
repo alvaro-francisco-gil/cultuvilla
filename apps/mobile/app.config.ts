@@ -116,6 +116,7 @@ const config: ExpoConfig = {
   web: {
     bundler: 'metro',
     output: 'single',
+    favicon: './assets/favicon.png',
   },
   extra: {
     APP_ENV: env,
