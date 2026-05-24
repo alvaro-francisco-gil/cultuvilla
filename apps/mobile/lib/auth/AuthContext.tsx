@@ -12,7 +12,8 @@ import {
   signInWithCredential,
   signInWithPopup,
 } from 'firebase/auth';
-import { getUserProfile } from '@cultuvilla/shared/services/userService';
+import { getUserProfile, setActiveMunicipality } from '@cultuvilla/shared/services/userService';
+import { getUserMemberships } from '@cultuvilla/shared/services/villageMemberService';
 import type { UserData } from '@cultuvilla/shared/models/user';
 import {
   GoogleSignin,
@@ -103,6 +104,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshProfile = useCallback(async () => {
     if (user) await loadProfile(user.uid);
   }, [user, loadProfile]);
+
+  // Once the profile is loaded, if the user has no active village, pick their
+  // first membership so the header reflects a real village instead of the
+  // generic "Cultuvilla" fallback. Runs once per session per user.
+  const activeSyncRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!user || !profile) return;
+    if (profile.activeMunicipalityId) return;
+    if (activeSyncRef.current === user.uid) return;
+    activeSyncRef.current = user.uid;
+    void (async () => {
+      const memberships = await getUserMemberships(user.uid);
+      const first = memberships[0];
+      if (!first) return;
+      await setActiveMunicipality(user.uid, first.municipalityId);
+      await loadProfile(user.uid);
+    })();
+  }, [user, profile, loadProfile]);
 
   const signInWithGoogle = async (): Promise<void> => {
     if (Platform.OS === 'web') {

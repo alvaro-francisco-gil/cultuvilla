@@ -9,11 +9,7 @@ import { VillageDiscovery } from '../../components/feature/VillageDiscovery';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
 import { useT } from '../../lib/i18n';
-import {
-  getUserMemberships,
-  isVillageAdmin,
-} from '@cultuvilla/shared/services/villageMemberService';
-import { setActiveMunicipality } from '@cultuvilla/shared/services/userService';
+import { isVillageAdmin } from '@cultuvilla/shared/services/villageMemberService';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 
@@ -27,55 +23,35 @@ type HubAction = {
 };
 
 export default function VillageTabScreen() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, profileChecked } = useAuth();
   const { t } = useT();
   const { isAppAdmin } = useIsAppAdmin();
-  const [resolving, setResolving] = useState(true);
   const [village, setVillage] = useState<Village | null>(null);
   const [villageAdmin, setVillageAdmin] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const activeMunicipalityId = profile?.activeMunicipalityId ?? null;
-
-  // Resolve an active municipality: if profile has none, pick the first
-  // membership (if any) and persist it so future loads skip this step.
-  useEffect(() => {
-    let cancelled = false;
-    async function resolve() {
-      if (!user || !profile) {
-        if (!cancelled) setResolving(false);
-        return;
-      }
-      if (profile.activeMunicipalityId) {
-        if (!cancelled) setResolving(false);
-        return;
-      }
-      const memberships = await getUserMemberships(user.uid);
-      if (cancelled) return;
-      const first = memberships[0];
-      if (first) {
-        await setActiveMunicipality(user.uid, first.municipalityId);
-        await refreshProfile();
-      }
-      if (!cancelled) setResolving(false);
-    }
-    void resolve();
-    return () => {
-      cancelled = true;
-    };
-  }, [user, profile, refreshProfile]);
 
   const loadVillage = useCallback(async () => {
     if (!activeMunicipalityId) {
       setVillage(null);
       setVillageAdmin(false);
+      setLoadError(null);
       return;
     }
-    const [mun, isAdmin] = await Promise.all([
-      getMunicipality(activeMunicipalityId),
-      user ? isVillageAdmin(activeMunicipalityId, user.uid) : Promise.resolve(false),
-    ]);
-    setVillage(mun);
-    setVillageAdmin(isAdmin);
+    try {
+      const [mun, isAdmin] = await Promise.all([
+        getMunicipality(activeMunicipalityId),
+        user ? isVillageAdmin(activeMunicipalityId, user.uid) : Promise.resolve(false),
+      ]);
+      setVillage(mun);
+      setVillageAdmin(isAdmin);
+      setLoadError(null);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.log('[VillageTab] loadVillage ERR', msg);
+      setLoadError(msg);
+    }
   }, [activeMunicipalityId, user]);
 
   useEffect(() => {
@@ -88,7 +64,8 @@ export default function VillageTabScreen() {
     }, [loadVillage])
   );
 
-  if (resolving) {
+  // AuthGate already waits for `profileChecked`, but guard once more for safety.
+  if (!profileChecked) {
     return (
       <Screen padded={false} topInset={false}>
         <AppHeader />
@@ -104,6 +81,17 @@ export default function VillageTabScreen() {
       <Screen padded={false} topInset={false}>
         <AppHeader />
         <VillageDiscovery />
+      </Screen>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <Screen padded={false} topInset={false}>
+        <AppHeader />
+        <View className="flex-1 items-center justify-center px-8">
+          <Text tone="danger">{loadError}</Text>
+        </View>
       </Screen>
     );
   }
