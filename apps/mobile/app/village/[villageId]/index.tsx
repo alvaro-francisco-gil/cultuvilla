@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useLocalSearchParams, Link } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import type { ComponentProps } from 'react';
 import { AppHeader } from '../../../components/layout/AppHeader';
 import { router } from 'expo-router';
 import { Screen } from '../../../components/primitives/Screen';
 import { VStack } from '../../../components/primitives/VStack';
 import { Text } from '../../../components/primitives/Text';
+import { Escudo } from '../../../components/primitives/Escudo';
 import { EventCard } from '../../../components/feature/EventCard';
 import { useT } from '../../../lib/i18n';
 import { useAuth } from '../../../lib/auth/useAuth';
@@ -69,7 +71,7 @@ export default function VillageHome() {
 
   if (loading) {
     return (
-      <Screen padded={false}>
+      <Screen padded={false} topInset={false}>
         <AppHeader centerLabel={village?.name} />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
@@ -80,7 +82,7 @@ export default function VillageHome() {
 
   if (error) {
     return (
-      <Screen padded={false}>
+      <Screen padded={false} topInset={false}>
         <AppHeader centerLabel={village?.name} />
         <View className="p-4">
           <Text tone="danger">{error}</Text>
@@ -91,7 +93,7 @@ export default function VillageHome() {
 
   if (!village) {
     return (
-      <Screen padded={false}>
+      <Screen padded={false} topInset={false}>
         <AppHeader />
         <View className="p-4">
           <Text tone="muted">{villageId}</Text>
@@ -100,19 +102,59 @@ export default function VillageHome() {
     );
   }
 
+  const hubActions: Array<{
+    key: string;
+    label: string;
+    icon: ComponentProps<typeof Ionicons>['name'];
+    onPress: () => void;
+  }> = [
+    {
+      key: 'organizations',
+      label: t('village.hub.organizations'),
+      icon: 'people',
+      onPress: () => router.push(`/village/${village.id}/organizations` as never),
+    },
+    {
+      key: 'censo',
+      label: t('village.hub.censo'),
+      icon: 'document-text',
+      onPress: () => router.push(`/village/${village.id}/censo` as never),
+    },
+  ];
+
   return (
-    <Screen padded={false}>
+    <Screen padded={false} topInset={false}>
       <AppHeader centerLabel={village.name} extraRightSlot={adminSlot} />
-      <VStack gap={4} className="p-4">
-        <Text variant="h1">{village.name}</Text>
-        <Link href={`/village/${village.id}/censo`}>
-          <Text tone="muted">{t('village.censo.link')}</Text>
-        </Link>
-      </VStack>
       <FlatList
         contentContainerClassName="p-4 gap-4"
         data={events}
         keyExtractor={(e) => e.id}
+        ListHeaderComponent={
+          <VStack gap={4} className="pb-2">
+            <View className="items-center pt-2 pb-1">
+              <Escudo url={village.escudoUrl} size={96} fallbackInitial={village.name} />
+              <Text variant="h2" className="mt-2">{village.name}</Text>
+              <Text tone="muted" variant="bodySm">{village.province}</Text>
+            </View>
+            <View className="flex-row flex-wrap -mx-1">
+              {hubActions.map((a) => (
+                <View key={a.key} className="w-1/2 px-1 pb-2">
+                  <Pressable
+                    onPress={a.onPress}
+                    accessibilityLabel={a.label}
+                    className="bg-surface-elevated rounded-lg p-4 items-center"
+                  >
+                    <Ionicons name={a.icon} size={28} color="#bb5d3a" />
+                    <Text variant="bodySm" className="mt-2">
+                      {a.label}
+                    </Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+            <Text variant="h3">{t('village.events.label')}</Text>
+          </VStack>
+        }
         ListEmptyComponent={<Text tone="muted">{t('village.events.empty')}</Text>}
         renderItem={({ item }) => (
           <EventCard

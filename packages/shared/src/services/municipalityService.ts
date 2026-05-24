@@ -61,6 +61,8 @@ function mapMunicipalityDoc(id: string, data: Record<string, unknown>): Municipa
     codigoINE: data.codigoINE as string,
     coordinates: (data.coordinates as GeoPoint | null) ?? null,
     createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
+    escudoUrl: (data.escudoUrl as string | null) ?? null,
+    escudoThumbUrl: (data.escudoThumbUrl as string | null) ?? null,
     community: mapCommunity(data.community),
     communityActive: (data.communityActive as boolean) ?? false,
   }
@@ -98,6 +100,8 @@ export async function createMunicipality(input: MunicipalityDataInput): Promise<
     codigoINE: input.codigoINE,
     coordinates: input.coordinates ?? null,
     createdAt: serverTimestamp(),
+    escudoUrl: input.escudoUrl ?? null,
+    escudoThumbUrl: input.escudoThumbUrl ?? null,
     community: null,
     communityActive: false,
   })

@@ -123,6 +123,11 @@ async function main() {
         province: entry.province,
         comunidadAutonoma: entry.comunidadAutonoma,
         codigoINE: entry.codigoINE,
+        coordinates: null,
+        escudoUrl: null,
+        escudoThumbUrl: null,
+        community: null,
+        communityActive: false,
         createdAt: FieldValue.serverTimestamp(),
       });
     }

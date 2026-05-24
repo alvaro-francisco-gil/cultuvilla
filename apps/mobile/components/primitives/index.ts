@@ -8,6 +8,8 @@ export * from './Card';
 export * from './Input';
 export { Avatar } from './Avatar';
 export type { AvatarProps } from './Avatar';
+export { Escudo } from './Escudo';
+export type { EscudoProps } from './Escudo';
 export { DateField } from './DateField';
 export type { DateFieldProps } from './DateField';
 export { PasswordInput } from './PasswordInput';

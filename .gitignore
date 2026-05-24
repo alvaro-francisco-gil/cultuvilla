@@ -26,3 +26,5 @@ dev-sa.json
 
 # Locally-downloaded escudos (coats of arms) — large, do not commit
 scripts/data/escudos/
+scripts/data/escudos-webp/
+scripts/data/escudos-webp-thumb/

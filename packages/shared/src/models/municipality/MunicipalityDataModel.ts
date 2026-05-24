@@ -28,6 +28,12 @@ export interface MunicipalityData {
   coordinates: GeoPoint | null
   createdAt: Date
 
+  // ── Escudo (coat of arms, sourced from Wikidata P94 → Cloud Storage) ──
+  /** Public URL for the 256×256 WebP. `null` when Wikidata has no escudo for this INE. */
+  escudoUrl: string | null
+  /** Public URL for the 64×64 WebP thumbnail. */
+  escudoThumbUrl: string | null
+
   // ── Community overlay ─────────────────────────────────────────────────
   community: VillageCommunity | null
   /** Denorm of `community != null` — needed for queries since Firestore
@@ -41,6 +47,8 @@ export interface MunicipalityDataInput {
   comunidadAutonoma: string
   codigoINE: string
   coordinates?: GeoPoint | null
+  escudoUrl?: string | null
+  escudoThumbUrl?: string | null
 }
 
 export function buildMunicipalityData(input: MunicipalityDataInput): MunicipalityData {
@@ -51,6 +59,8 @@ export function buildMunicipalityData(input: MunicipalityDataInput): Municipalit
     codigoINE: input.codigoINE,
     coordinates: input.coordinates ?? null,
     createdAt: new Date(),
+    escudoUrl: input.escudoUrl ?? null,
+    escudoThumbUrl: input.escudoThumbUrl ?? null,
     community: null,
     communityActive: false,
   }

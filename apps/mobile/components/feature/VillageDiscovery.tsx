@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, ActivityIndicator, View } from 'react-native';
 import { router, type Href } from 'expo-router';
-import { VStack, Text, Input, Button } from '../primitives';
+import { VStack, HStack, Text, Input, Button, Escudo } from '../primitives';
 import { useT } from '../../lib/i18n';
 import { useAuth } from '../../lib/auth/useAuth';
 import {
@@ -104,12 +104,15 @@ export function VillageDiscovery() {
               disabled={isPending}
               fullWidth
             >
-              <VStack gap={1}>
-                <Text>{item.name}</Text>
-                <Text tone="muted" variant="bodySm">
-                  {sub}
-                </Text>
-              </VStack>
+              <HStack gap={3} className="items-center">
+                <Escudo url={item.escudoThumbUrl} size={40} fallbackInitial={item.name} />
+                <VStack gap={1}>
+                  <Text>{item.name}</Text>
+                  <Text tone="muted" variant="bodySm">
+                    {item.province} · {sub}
+                  </Text>
+                </VStack>
+              </HStack>
             </Button>
           );
         }}

@@ -6,10 +6,13 @@ import { getMunicipalities } from '@cultuvilla/shared/services/municipalityServi
 import { Pressable } from './Pressable';
 import { Text } from './Text';
 import { Button } from './Button';
+import { Escudo } from './Escudo';
 
 interface Option {
   id: string;
-  displayName: string;
+  name: string;
+  province: string;
+  escudoThumbUrl: string | null;
 }
 
 export interface VillagePickerProps {
@@ -32,7 +35,9 @@ export function VillagePicker({ label, value, onChange, placeholder = 'Sin puebl
       setOptions(
         list.map((m) => ({
           id: m.id,
-          displayName: m.name,
+          name: m.name,
+          province: m.province,
+          escudoThumbUrl: m.escudoThumbUrl,
         })),
       );
     });
@@ -42,7 +47,9 @@ export function VillagePicker({ label, value, onChange, placeholder = 'Sin puebl
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
     if (!q) return options;
-    return options.filter((o) => o.displayName.toLowerCase().includes(q));
+    return options.filter(
+      (o) => o.name.toLowerCase().includes(q) || o.province.toLowerCase().includes(q),
+    );
   }, [options, filter]);
 
   const selected = options.find((o) => o.id === value);
@@ -51,7 +58,12 @@ export function VillagePicker({ label, value, onChange, placeholder = 'Sin puebl
     <View>
       <Text tone="muted">{label}</Text>
       <Pressable onPress={() => setOpen(true)} accessibilityRole="button" style={styles.trigger}>
-        <Text>{selected ? selected.displayName : placeholder}</Text>
+        <View style={styles.triggerInner}>
+          {selected && (
+            <Escudo url={selected.escudoThumbUrl} size={28} fallbackInitial={selected.name} />
+          )}
+          <Text>{selected ? `${selected.name} (${selected.province})` : placeholder}</Text>
+        </View>
         <Ionicons name="chevron-down" size={16} color="#64748b" />
       </Pressable>
       <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
@@ -66,6 +78,8 @@ export function VillagePicker({ label, value, onChange, placeholder = 'Sin puebl
           <FlatList
             data={filtered}
             keyExtractor={(o) => o.id}
+            initialNumToRender={20}
+            windowSize={10}
             renderItem={({ item }) => (
               <Pressable
                 onPress={() => {
@@ -75,7 +89,11 @@ export function VillagePicker({ label, value, onChange, placeholder = 'Sin puebl
                 }}
                 style={styles.row}
               >
-                <Text>{item.displayName}</Text>
+                <Escudo url={item.escudoThumbUrl} size={36} fallbackInitial={item.name} />
+                <View style={styles.rowText}>
+                  <Text>{item.name}</Text>
+                  <Text tone="muted" variant="caption">{item.province}</Text>
+                </View>
               </Pressable>
             )}
           />
@@ -108,8 +126,17 @@ const styles = StyleSheet.create({
     marginTop: 4,
     backgroundColor: '#ffffff',
   },
+  triggerInner: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   modal: { flex: 1, padding: 16, gap: 12 },
   search: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, padding: 12 },
-  row: { paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e5e7eb' },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e5e7eb',
+  },
+  rowText: { flexShrink: 1 },
   actions: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end' },
 });

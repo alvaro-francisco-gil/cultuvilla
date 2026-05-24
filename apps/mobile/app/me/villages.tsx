@@ -7,6 +7,7 @@ import { Text } from '../../components/primitives/Text';
 import { Pressable } from '../../components/primitives/Pressable';
 import { Button } from '../../components/primitives/Button';
 import { VStack } from '../../components/primitives/VStack';
+import { Escudo } from '../../components/primitives/Escudo';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
@@ -17,7 +18,7 @@ import {
 import { setActiveMunicipality } from '@cultuvilla/shared/services/userService';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 
-type Row = UserMembership & { name: string };
+type Row = UserMembership & { name: string; escudoThumbUrl: string | null };
 
 export default function MyVillagesScreen() {
   const { user, profile, refreshProfile } = useAuth();
@@ -36,7 +37,11 @@ export default function MyVillagesScreen() {
         const named = await Promise.all(
           memberships.map(async (m) => {
             const muni = await getMunicipality(m.municipalityId);
-            return { ...m, name: muni?.name ?? m.municipalityId };
+            return {
+              ...m,
+              name: muni?.name ?? m.municipalityId,
+              escudoThumbUrl: muni?.escudoThumbUrl ?? null,
+            };
           }),
         );
         if (!cancelled) setRows(named);
@@ -101,7 +106,8 @@ export default function MyVillagesScreen() {
                   (isActive ? 'border-strong bg-surface-elevated' : 'border-subtle bg-surface')
                 }
               >
-                <View className="flex-1">
+                <Escudo url={item.escudoThumbUrl} size={36} fallbackInitial={item.name} />
+                <View className="flex-1 ml-3">
                   <VStack gap={1}>
                     <Text className="font-semibold">{item.name}</Text>
                     <Text tone="muted" variant="caption">

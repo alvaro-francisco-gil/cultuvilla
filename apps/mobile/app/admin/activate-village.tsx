@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, View } from 'react-native';
 import { router } from 'expo-router';
-import { Screen, VStack, HStack, Text, Button, Input, Pressable } from '../../components/primitives';
+import { Screen, VStack, HStack, Text, Button, Input, Pressable, Escudo } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { useT } from '../../lib/i18n';
 import { useAuth } from '../../lib/auth/useAuth';
@@ -76,10 +76,15 @@ export default function ActivateVillageScreen() {
                   onPress={() => setSelected(item)}
                   className="py-3 border-b border-subtle"
                 >
-                  <Text>{item.name}</Text>
-                  <Text className="text-muted text-xs">
-                    {item.province} · {item.codigoINE}
-                  </Text>
+                  <HStack gap={3} className="items-center">
+                    <Escudo url={item.escudoThumbUrl} size={36} fallbackInitial={item.name} />
+                    <VStack>
+                      <Text>{item.name}</Text>
+                      <Text className="text-muted text-xs">
+                        {item.province} · {item.codigoINE}
+                      </Text>
+                    </VStack>
+                  </HStack>
                 </Pressable>
               )}
             />
@@ -87,10 +92,15 @@ export default function ActivateVillageScreen() {
         ) : (
           <>
             <View className="bg-surface border border-subtle rounded-xl p-3">
-              <Text variant="h3">{selected.name}</Text>
-              <Text className="text-muted text-sm">
-                {selected.province} · {selected.codigoINE}
-              </Text>
+              <HStack gap={3} className="items-center">
+                <Escudo url={selected.escudoUrl} size={64} fallbackInitial={selected.name} />
+                <VStack>
+                  <Text variant="h3">{selected.name}</Text>
+                  <Text className="text-muted text-sm">
+                    {selected.province} · {selected.codigoINE}
+                  </Text>
+                </VStack>
+              </HStack>
             </View>
             <Text>{t('admin.activate.description')}</Text>
             <Input value={description} onChangeText={setDescription} multiline />
