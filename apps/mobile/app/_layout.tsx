@@ -1,6 +1,7 @@
 import './../global.css';
 import { Redirect, Stack, usePathname } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useFonts, Fraunces_700Bold } from '@expo-google-fonts/fraunces';
 import { bootstrapFirebase } from '../lib/firebaseInit';
 import { AuthProvider } from '../lib/auth/AuthContext';
 import { I18nProvider } from '../lib/i18n';
@@ -10,6 +11,14 @@ import { ActivityIndicator, View } from 'react-native';
 bootstrapFirebase();
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({ Fraunces_700Bold });
+  if (!fontsLoaded) {
+    return (
+      <View className="flex-1 items-center justify-center bg-surface">
+        <ActivityIndicator />
+      </View>
+    );
+  }
   return (
     <SafeAreaProvider>
       <I18nProvider>

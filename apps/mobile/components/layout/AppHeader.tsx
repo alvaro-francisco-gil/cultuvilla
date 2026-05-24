@@ -43,17 +43,22 @@ export function AppHeader({ centerLabel, extraRightSlot }: AppHeaderProps) {
   return (
     <>
       <View
-        className="bg-surface border-b border-subtle"
+        className="bg-accent"
         style={{ paddingTop: insets.top }}
       >
-        <View className="h-11 flex-row items-center px-4">
+        <View className="h-9 flex-row items-center px-3">
           <View className="flex-1">
-            <Text variant="h3" numberOfLines={1}>
+            <Text
+              variant="h3"
+              tone="onAccent"
+              numberOfLines={1}
+              style={{ fontFamily: 'Fraunces_700Bold', letterSpacing: 0.3 }}
+            >
               {label}
             </Text>
           </View>
 
-          <View className="flex-row items-center gap-2">
+          <View className="flex-row items-center gap-1">
             {extraRightSlot}
             <Pressable
               onPress={() => {
@@ -62,14 +67,14 @@ export function AppHeader({ centerLabel, extraRightSlot }: AppHeaderProps) {
               accessibilityLabel={t('header.openNotifications')}
               className="p-1"
             >
-              <Ionicons name="notifications-outline" size={24} color="#0f172a" />
+              <Ionicons name="notifications" size={28} color="#f9f0e8" />
             </Pressable>
             <Pressable
               onPress={() => setMenuOpen(true)}
               accessibilityLabel={t('header.openMenu')}
               className="p-1 -mr-1"
             >
-              <Ionicons name="menu" size={24} color="#0f172a" />
+              <Ionicons name="menu-sharp" size={30} color="#f9f0e8" />
             </Pressable>
           </View>
         </View>
