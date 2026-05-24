@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 // @firebase/auth exports `getReactNativePersistence` only via the "react-native"
-// export condition in its package.json, but TypeScript resolves the "types"
-// condition first (which points to auth-public.d.ts and omits this symbol).
-// Metro/bundlers DO resolve the react-native condition at runtime, so the import
-// is correct — we just need to suppress the static type error here.
+// export condition in its package.json. On native, Metro resolves it at
+// runtime; on web, the symbol is undefined and calling it throws. The branch
+// in bootstrapFirebase() ensures we never reach the call on web.
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error -- getReactNativePersistence is in the RN bundle but absent from auth-public.d.ts
 import { initializeAuth, getReactNativePersistence } from '@firebase/auth';
@@ -38,11 +38,15 @@ function getFirebaseOptions(): FirebaseOptions {
  */
 export function bootstrapFirebase(): void {
   const config = getFirebaseOptions();
-  initFirebase(config, {
-    customizeAuth: (app) =>
-      initializeAuth(app, {
-        persistence: getReactNativePersistence(AsyncStorage),
-      }),
-  });
+  if (Platform.OS === 'web') {
+    initFirebase(config);
+  } else {
+    initFirebase(config, {
+      customizeAuth: (app) =>
+        initializeAuth(app, {
+          persistence: getReactNativePersistence(AsyncStorage),
+        }),
+    });
+  }
   initMobileAppCheck();
 }
