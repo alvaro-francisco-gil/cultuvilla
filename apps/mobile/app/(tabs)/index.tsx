@@ -49,7 +49,7 @@ export default function FeedScreen() {
   );
 
   return (
-    <Screen padded={false}>
+    <Screen padded={false} topInset={false}>
       <AppHeader />
       {toggle}
       {activeTab === 'noticias' ? (

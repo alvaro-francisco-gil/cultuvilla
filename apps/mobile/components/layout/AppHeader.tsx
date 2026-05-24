@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from '../primitives/Pressable';
 import { Text } from '../primitives/Text';
@@ -42,11 +43,12 @@ export function AppHeader({ centerLabel, extraRightSlot }: AppHeaderProps) {
 
   return (
     <>
+      <StatusBar style="light" translucent backgroundColor="transparent" />
       <View
         className="bg-accent"
-        style={{ paddingTop: insets.top }}
+        style={{ paddingTop: Math.max(insets.top - 4, 0) }}
       >
-        <View className="h-9 flex-row items-center px-3">
+        <View className="flex-row items-center px-3 pt-1 pb-3">
           <View className="flex-1">
             <Text
               variant="h3"

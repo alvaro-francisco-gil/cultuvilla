@@ -1,5 +1,4 @@
 import { View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
@@ -18,15 +17,11 @@ export type ScreenHeaderProps = {
 };
 
 export function ScreenHeader({ title, onBack, hideBack = false, rightSlot }: ScreenHeaderProps) {
-  const insets = useSafeAreaInsets();
   const { t } = useT();
   const handleBack = onBack ?? (() => router.back());
 
   return (
-    <View
-      className="bg-surface border-b border-subtle"
-      style={{ paddingTop: insets.top }}
-    >
+    <View className="bg-surface border-b border-subtle">
       <View className="h-11 flex-row items-center px-4">
         <View className="w-10 items-start">
           {!hideBack ? (
