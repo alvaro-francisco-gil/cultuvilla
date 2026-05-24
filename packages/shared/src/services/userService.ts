@@ -18,10 +18,7 @@ function mapUserDoc(id: string, data: Record<string, unknown>): UserData & { id:
     id,
     displayName: data['displayName'] as string,
     email: data['email'] as string,
-    birthday: (data['birthday'] as Timestamp).toDate(),
-    biography: (data['biography'] as string) ?? null,
     telephone: (data['telephone'] as string) ?? null,
-    photoURL: (data['photoURL'] as string) ?? null,
     activeMunicipalityId: (data['activeMunicipalityId'] as string) ?? null,
     personId: (data['personId'] as string) ?? null,
     createdAt: (data['createdAt'] as Timestamp).toDate(),
@@ -29,7 +26,7 @@ function mapUserDoc(id: string, data: Record<string, unknown>): UserData & { id:
 }
 
 export async function getUserProfile(
-  userId: string
+  userId: string,
 ): Promise<(UserData & { id: string }) | null> {
   const snap = await getDoc(doc(getDb(), 'users', userId));
   if (!snap.exists()) return null;
@@ -44,29 +41,24 @@ export async function getAllUsers(): Promise<(UserData & { id: string })[]> {
 
 export async function createUserProfile(
   userId: string,
-  input: UserDataInput
+  input: UserDataInput,
 ): Promise<void> {
   const docRef = doc(getDb(), 'users', userId);
   await setDoc(docRef, {
     displayName: input.displayName,
     email: input.email,
-    birthday: Timestamp.fromDate(input.birthday),
-    biography: input.biography ?? null,
     telephone: input.telephone ?? null,
-    photoURL: input.photoURL ?? null,
     activeMunicipalityId: input.activeMunicipalityId ?? null,
     personId: input.personId ?? null,
     createdAt: serverTimestamp(),
   });
 }
 
-export async function updateUserProfile(
+export async function patchUserProfile(
   userId: string,
-  data: Partial<Pick<UserData, 'displayName' | 'biography' | 'telephone' | 'photoURL'>>
+  data: Partial<Pick<UserData, 'displayName' | 'telephone' | 'activeMunicipalityId' | 'personId'>>,
 ): Promise<void> {
-  const docRef = doc(getDb(), 'users', userId);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await updateDoc(docRef, data as any);
+  await updateDoc(doc(getDb(), 'users', userId), data);
 }
 
 export async function setActiveMunicipality(
