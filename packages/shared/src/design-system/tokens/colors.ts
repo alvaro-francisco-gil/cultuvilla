@@ -17,31 +17,54 @@
  * outside this file. Keys use kebab-case so they survive into Tailwind
  * class generation unchanged.
  */
+/**
+ * Raw brand palette. Do not consume these directly from screens — map
+ * them into the semantic `light` (and future `dark`) tokens below.
+ */
+export const palette = {
+  terracotta: '#bb5d3a',
+  cream: '#f9f0e8',
+  olive: '#566047',
+  clay: '#d08f70',
+  peach: '#dcab93',
+  sage: '#a6a897',
+  rust: '#be6b47',
+} as const;
+
+export type PaletteColor = keyof typeof palette;
+
 const light = {
   bg: {
-    surface: '#ffffff',
-    'surface-elevated': '#f9fafb',
-    subtle: '#f3f4f6',
-    accent: '#2563eb',
+    surface: palette.cream,
+    'surface-elevated': '#ffffff',
+    subtle: palette.peach,
+    accent: palette.terracotta,
+    'accent-pressed': palette.rust,
+    'accent-subtle': palette.clay,
+    secondary: palette.olive,
+    'secondary-subtle': palette.sage,
     danger: '#dc2626',
     'danger-subtle': '#fef2f2',
     success: '#16a34a',
     'success-subtle': '#f0fdf4',
   },
   fg: {
-    primary: '#0f172a',
-    muted: '#64748b',
-    'on-accent': '#ffffff',
+    primary: palette.olive,
+    muted: palette.sage,
+    'on-accent': palette.cream,
+    'on-secondary': palette.cream,
     'on-danger': '#ffffff',
     'on-success': '#ffffff',
-    accent: '#2563eb',
+    accent: palette.terracotta,
+    secondary: palette.olive,
     danger: '#dc2626',
     success: '#16a34a',
   },
   border: {
-    subtle: '#e5e7eb',
-    strong: '#cbd5e1',
-    accent: '#2563eb',
+    subtle: palette.peach,
+    strong: palette.sage,
+    accent: palette.terracotta,
+    secondary: palette.olive,
     danger: '#dc2626',
   },
 } as const;
