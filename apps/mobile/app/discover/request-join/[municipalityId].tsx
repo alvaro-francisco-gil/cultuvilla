@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Screen, VStack, Text, Input, Button } from '../../../components/primitives';
+import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { useT } from '../../../lib/i18n';
 import { requestJoinVillage } from '@cultuvilla/shared/services/joinRequestService';
 
@@ -29,9 +30,9 @@ export default function RequestJoinScreen() {
   }
 
   return (
-    <Screen>
-      <VStack gap={4}>
-        <Text variant="h2">{t('requests.join.title')}</Text>
+    <Screen padded={false}>
+      <ScreenHeader title={t('requests.join.title')} />
+      <VStack gap={4} className="p-4">
         <Input
           label={t('requests.join.messageLabel')}
           value={message}

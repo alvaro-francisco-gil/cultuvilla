@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams, Link } from 'expo-router';
-import { ActivityIndicator, FlatList } from 'react-native';
+import { ActivityIndicator, FlatList, View } from 'react-native';
+import { AppHeader } from '../../../components/layout/AppHeader';
 import { router } from 'expo-router';
 import { Screen } from '../../../components/primitives/Screen';
 import { VStack } from '../../../components/primitives/VStack';
@@ -45,30 +46,40 @@ export default function VillageHome() {
 
   if (loading) {
     return (
-      <Screen>
-        <ActivityIndicator />
+      <Screen padded={false}>
+        <AppHeader centerLabel={village?.name} />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator />
+        </View>
       </Screen>
     );
   }
 
   if (error) {
     return (
-      <Screen>
-        <Text tone="danger">{error}</Text>
+      <Screen padded={false}>
+        <AppHeader centerLabel={village?.name} />
+        <View className="p-4">
+          <Text tone="danger">{error}</Text>
+        </View>
       </Screen>
     );
   }
 
   if (!village) {
     return (
-      <Screen>
-        <Text tone="muted">{villageId}</Text>
+      <Screen padded={false}>
+        <AppHeader />
+        <View className="p-4">
+          <Text tone="muted">{villageId}</Text>
+        </View>
       </Screen>
     );
   }
 
   return (
     <Screen padded={false}>
+      <AppHeader centerLabel={village.name} />
       <VStack gap={4} className="p-4">
         <Text variant="h1">{village.name}</Text>
         <Link href={`/village/${village.id}/censo`}>

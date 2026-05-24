@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Screen, VStack, Text, Input, Button } from '../../../components/primitives';
+import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { useT } from '../../../lib/i18n';
 import { requestOrganizeVillage } from '@cultuvilla/shared/services/organizerRequestService';
 
@@ -29,9 +30,9 @@ export default function RequestOrganizerScreen() {
   }
 
   return (
-    <Screen>
-      <VStack gap={4}>
-        <Text variant="h2">{t('requests.organizer.title')}</Text>
+    <Screen padded={false}>
+      <ScreenHeader title={t('requests.organizer.title')} />
+      <VStack gap={4} className="p-4">
         <Input
           label={t('requests.organizer.motivationLabel')}
           value={motivation}

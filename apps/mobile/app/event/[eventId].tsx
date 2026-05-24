@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { Screen } from '../../components/primitives/Screen';
 import { VStack } from '../../components/primitives/VStack';
 import { Text } from '../../components/primitives/Text';
 import { RegisterButton } from '../../components/feature/RegisterButton';
+import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { useAuth } from '../../lib/auth/useAuth';
 import { getEvent } from '@cultuvilla/shared/services/eventService';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
@@ -43,8 +44,11 @@ export default function EventDetailScreen() {
 
   if (!event) {
     return (
-      <Screen>
-        <ActivityIndicator />
+      <Screen padded={false}>
+        <ScreenHeader />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator />
+        </View>
       </Screen>
     );
   }
@@ -52,7 +56,9 @@ export default function EventDetailScreen() {
   const personName = person ? buildDisplayName(person) : '';
 
   return (
-    <Screen scroll>
+    <Screen padded={false}>
+      <ScreenHeader title={event.title} />
+      <ScrollView contentContainerClassName="p-4">
       <VStack gap={4}>
         <Text variant="h1">{event.title}</Text>
         <Text tone="muted">{event.organizationName}</Text>
@@ -74,6 +80,7 @@ export default function EventDetailScreen() {
           <Text tone="muted">{t('event.register.needsPerson')}</Text>
         )}
       </VStack>
+      </ScrollView>
     </Screen>
   );
 }

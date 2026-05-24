@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 import { Redirect } from 'expo-router';
 import { Screen } from '../../components/primitives';
+import { AppHeader } from '../../components/layout/AppHeader';
 import { useAuth } from '../../lib/auth/useAuth';
 import { getUserMemberships } from '@cultuvilla/shared/services/villageMemberService';
 import { setActiveMunicipality } from '@cultuvilla/shared/services/userService';
 import { VillageDiscovery } from '../../components/feature/VillageDiscovery';
+import { View } from 'react-native';
 
 export default function VillageTabScreen() {
   const { user, profile, refreshProfile } = useAuth();
@@ -39,13 +41,21 @@ export default function VillageTabScreen() {
 
   if (resolving) {
     return (
-      <Screen>
-        <ActivityIndicator />
+      <Screen padded={false}>
+        <AppHeader />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator />
+        </View>
       </Screen>
     );
   }
   if (profile?.activeMunicipalityId) {
     return <Redirect href={`/village/${profile.activeMunicipalityId}`} />;
   }
-  return <VillageDiscovery />;
+  return (
+    <Screen padded={false}>
+      <AppHeader />
+      <VillageDiscovery />
+    </Screen>
+  );
 }

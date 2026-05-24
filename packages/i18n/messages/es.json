@@ -36,7 +36,36 @@
   },
   "feed": {
     "title": "Inicio",
-    "empty": "No hay eventos próximos"
+    "empty": "No hay eventos próximos",
+    "tab": {
+      "events": "Eventos",
+      "news": "Noticias"
+    },
+    "news": {
+      "comingSoonTitle": "Próximamente",
+      "comingSoonBody": "Las noticias de tu pueblo llegarán pronto."
+    }
+  },
+  "header": {
+    "noVillage": "Cultuvilla",
+    "openMenu": "Abrir menú",
+    "openProfile": "Abrir perfil",
+    "back": "Volver"
+  },
+  "menu": {
+    "title": "Menú",
+    "close": "Cerrar",
+    "signOut": "Cerrar sesión",
+    "editProfile": "Editar perfil",
+    "myVillage": "Mi pueblo",
+    "findVillage": "Buscar pueblo",
+    "shareApp": "Compartir app",
+    "shareAppMessage": "Descubre Cultuvilla, la app de tu pueblo.",
+    "help": "Ayuda",
+    "section": {
+      "account": "Cuenta",
+      "app": "App"
+    }
   },
   "nav": {
     "home": "Inicio",
