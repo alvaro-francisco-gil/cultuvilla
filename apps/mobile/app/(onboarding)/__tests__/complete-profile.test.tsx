@@ -11,7 +11,7 @@ jest.mock('@cultuvilla/shared/services/userService', () => ({
   patchUserProfile: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('@cultuvilla/shared/services/imageService', () => ({
-  uploadPersonImage: jest.fn(),
+  uploadUserPhoto: jest.fn(),
 }));
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getMunicipalities: jest.fn().mockResolvedValue([]),

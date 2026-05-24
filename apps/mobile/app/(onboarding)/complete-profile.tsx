@@ -23,7 +23,7 @@ import {
   createUserProfile,
   patchUserProfile,
 } from '@cultuvilla/shared/services/userService';
-import { uploadPersonImage } from '@cultuvilla/shared/services/imageService';
+import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
 import type { Sex, PartialDate, MunicipalityLink } from '@cultuvilla/shared/models/person';
 
 function toPartialDate(d: Date | null): PartialDate | null {
@@ -112,7 +112,7 @@ export default function CompleteProfileScreen() {
       }
 
       if (photo) {
-        const url = await uploadPersonImage(personId, {
+        const url = await uploadUserPhoto(user.uid, {
           blob: photo.blob,
           filename: `avatar-${Date.now()}.jpg`,
           contentType: photo.blob.type || 'image/jpeg',

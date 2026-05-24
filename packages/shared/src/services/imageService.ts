@@ -51,6 +51,19 @@ export async function uploadPersonImage(
   return uploadToPath(`persons/${personId}/photos/${generateImageId(image.filename)}`, image);
 }
 
+/**
+ * Upload a photo owned by `userId` (its own account avatar, or a persona it
+ * created). Lives under the user-scoped storage prefix that the simplest
+ * storage rule already authorises (`users/{uid}/photo/{imageId}`), so it
+ * avoids cross-service `firestore.get()` checks during onboarding.
+ */
+export async function uploadUserPhoto(
+  userId: string,
+  image: UploadableImage,
+): Promise<string> {
+  return uploadToPath(`users/${userId}/photo/${generateImageId(image.filename)}`, image);
+}
+
 export async function deleteImageByURL(url: string): Promise<void> {
   const storageRef = ref(getFirebaseStorage(), url);
   await deleteObject(storageRef);
