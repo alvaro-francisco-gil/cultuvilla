@@ -48,10 +48,17 @@ export function formatPrice(amount: number, currency: string = 'EUR'): string {
   }).format(amount);
 }
 
-const RTF = new Intl.RelativeTimeFormat(LOCALE, { numeric: 'auto' });
+type RTFUnit =
+  | 'year'
+  | 'month'
+  | 'week'
+  | 'day'
+  | 'hour'
+  | 'minute'
+  | 'second';
 
 interface TimeUnit {
-  unit: Intl.RelativeTimeFormatUnit;
+  unit: RTFUnit;
   ms: number;
 }
 
@@ -65,12 +72,49 @@ const UNITS: TimeUnit[] = [
   { unit: 'second', ms: 1000 },
 ];
 
+type RelativeTimeFormatter = { format: (value: number, unit: RTFUnit) => string };
+
+let rtfCache: RelativeTimeFormatter | undefined;
+
+const ES_UNIT_LABELS: Record<RTFUnit, [string, string]> = {
+  year: ['año', 'años'],
+  month: ['mes', 'meses'],
+  week: ['semana', 'semanas'],
+  day: ['día', 'días'],
+  hour: ['hora', 'horas'],
+  minute: ['minuto', 'minutos'],
+  second: ['segundo', 'segundos'],
+};
+
+function fallbackRTF(): RelativeTimeFormatter {
+  return {
+    format(value, unit) {
+      const abs = Math.abs(value);
+      const [singular, plural] = ES_UNIT_LABELS[unit];
+      const label = abs === 1 ? singular : plural;
+      if (value === 0) return unit === 'second' ? 'ahora' : `en 0 ${label}`;
+      return value < 0 ? `hace ${abs} ${label}` : `en ${abs} ${label}`;
+    },
+  };
+}
+
+function getRTF(): RelativeTimeFormatter {
+  if (rtfCache) return rtfCache;
+  const Ctor = (Intl as unknown as { RelativeTimeFormat?: typeof Intl.RelativeTimeFormat })
+    .RelativeTimeFormat;
+  rtfCache = Ctor
+    ? (new Ctor(LOCALE, { numeric: 'auto' }) as RelativeTimeFormatter)
+    : fallbackRTF();
+  return rtfCache;
+}
+
 export function formatRelativeTime(date: Date, now: Date = new Date()): string {
   const diff = date.getTime() - now.getTime();
+  const rtf = getRTF();
   for (const { unit, ms } of UNITS) {
     if (Math.abs(diff) >= ms) {
-      return RTF.format(Math.round(diff / ms), unit);
+      return rtf.format(Math.round(diff / ms), unit);
     }
   }
-  return RTF.format(0, 'second');
+  return rtf.format(0, 'second');
 }
