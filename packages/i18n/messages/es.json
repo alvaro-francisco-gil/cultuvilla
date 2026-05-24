@@ -61,14 +61,37 @@
     "close": "Cerrar",
     "signOut": "Cerrar sesión",
     "editProfile": "Editar perfil",
-    "myVillage": "Mi pueblo",
+    "mySignups": "Mis inscripciones",
+    "settings": "Ajustes",
+    "switchVillage": "Cambiar de pueblo",
     "findVillage": "Buscar pueblo",
+    "myRequests": "Mis solicitudes",
+    "suggestions": "Sugerencias",
+    "terms": "Términos de uso",
+    "privacy": "Política de privacidad",
+    "rateApp": "Valorar app",
     "shareApp": "Compartir app",
     "shareAppMessage": "Descubre Cultuvilla, la app de tu pueblo.",
-    "help": "Ayuda",
+    "comingSoon": "Próximamente",
+    "version": "Cultuvilla v{version}",
     "section": {
       "account": "Cuenta",
+      "villages": "Mis pueblos",
+      "support": "Soporte",
+      "legal": "Legal",
       "app": "App"
+    }
+  },
+  "me": {
+    "registrations": {
+      "title": "Mis inscripciones",
+      "empty": "Aún no te has inscrito a ningún evento"
+    },
+    "villages": {
+      "empty": "Aún no perteneces a ningún pueblo",
+      "activeBadge": "Activo",
+      "adminBadge": "Administrador",
+      "memberBadge": "Miembro"
     }
   },
   "nav": {

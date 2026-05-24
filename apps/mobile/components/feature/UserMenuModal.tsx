@@ -3,7 +3,6 @@ import {
   Modal,
   View,
   ScrollView,
-  Image,
   Animated,
   Dimensions,
   Share,
@@ -11,7 +10,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
+import Constants from 'expo-constants';
 import { Pressable } from '../primitives/Pressable';
 import { Text } from '../primitives/Text';
 import { useAuth } from '../../lib/auth/useAuth';
@@ -27,7 +27,8 @@ export type UserMenuModalProps = {
 type MenuItem = {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
-  onPress: () => void;
+  onPress?: () => void;
+  comingSoon?: boolean;
 };
 
 type MenuSection = {
@@ -74,20 +75,76 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
           onPress: () => close(() => router.push('/(tabs)/profile')),
         },
         {
-          icon: 'home-outline',
-          label: t('menu.myVillage'),
-          onPress: () => close(() => router.push('/(tabs)/village')),
+          icon: 'ticket-outline',
+          label: t('menu.mySignups'),
+          onPress: () => close(() => router.push('/me/registrations' as Href)),
+        },
+        {
+          icon: 'settings-outline',
+          label: t('menu.settings'),
+          comingSoon: true,
+        },
+      ],
+    },
+    {
+      title: t('menu.section.villages'),
+      items: [
+        {
+          icon: 'swap-horizontal-outline',
+          label: t('menu.switchVillage'),
+          onPress: () => close(() => router.push('/me/villages' as Href)),
         },
         {
           icon: 'search-outline',
           label: t('menu.findVillage'),
           onPress: () => close(() => router.push('/(tabs)/village')),
         },
+        {
+          icon: 'paper-plane-outline',
+          label: t('menu.myRequests'),
+          comingSoon: true,
+        },
+      ],
+    },
+    {
+      title: t('menu.section.support'),
+      items: [
+        {
+          icon: 'chatbox-ellipses-outline',
+          label: t('menu.suggestions'),
+          onPress: async () => {
+            try {
+              await Linking.openURL('mailto:hola@cultuvilla.com');
+            } catch {
+              // best-effort
+            }
+          },
+        },
+      ],
+    },
+    {
+      title: t('menu.section.legal'),
+      items: [
+        {
+          icon: 'document-text-outline',
+          label: t('menu.terms'),
+          comingSoon: true,
+        },
+        {
+          icon: 'shield-checkmark-outline',
+          label: t('menu.privacy'),
+          comingSoon: true,
+        },
       ],
     },
     {
       title: t('menu.section.app'),
       items: [
+        {
+          icon: 'star-outline',
+          label: t('menu.rateApp'),
+          comingSoon: true,
+        },
         {
           icon: 'share-social-outline',
           label: t('menu.shareApp'),
@@ -99,31 +156,17 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
             }
           },
         },
-        {
-          icon: 'help-circle-outline',
-          label: t('menu.help'),
-          onPress: async () => {
-            try {
-              await Linking.openURL('mailto:hola@cultuvilla.com');
-            } catch {
-              // best-effort
-            }
-          },
-        },
       ],
     },
   ];
 
   const displayName = profile?.displayName ?? '';
   const email = profile?.email ?? '';
-  const photoURL: string | null = null;
+  const appVersion = Constants.expoConfig?.version ?? '0.0.0';
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={() => close()}>
-      <Animated.View
-        className="flex-1 bg-black/50"
-        style={{ opacity: fadeAnim }}
-      >
+      <Animated.View className="flex-1 bg-black/50" style={{ opacity: fadeAnim }}>
         <Animated.View
           className="absolute left-0 right-0 bottom-0 bg-surface-elevated"
           style={{ height: SCREEN_HEIGHT, transform: [{ translateY: slideAnim }] }}
@@ -147,13 +190,9 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
             contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 32 }}
           >
             <View className="flex-row items-center gap-3 mb-6">
-              {photoURL ? (
-                <Image source={{ uri: photoURL }} style={{ width: 56, height: 56, borderRadius: 28 }} />
-              ) : (
-                <View className="w-14 h-14 rounded-[28px] bg-subtle items-center justify-center">
-                  <Ionicons name="person" size={28} color="#64748b" />
-                </View>
-              )}
+              <View className="w-16 h-16 rounded-[32px] bg-subtle items-center justify-center">
+                <Ionicons name="person" size={32} color="#64748b" />
+              </View>
               <View className="flex-1">
                 {displayName ? (
                   <Text variant="body" className="font-semibold">
@@ -165,6 +204,14 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
                     {email}
                   </Text>
                 ) : null}
+                <Pressable
+                  onPress={() => close(() => router.push('/(tabs)/profile'))}
+                  className="mt-2 self-start px-3 py-1 rounded-md border border-strong"
+                >
+                  <Text variant="caption" className="font-semibold">
+                    {t('menu.editProfile')}
+                  </Text>
+                </Pressable>
               </View>
             </View>
 
@@ -174,23 +221,45 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
                   {section.title}
                 </Text>
                 <View className="bg-surface rounded-md border border-subtle">
-                  {section.items.map((item, idx) => (
-                    <Pressable
-                      key={item.label}
-                      onPress={item.onPress}
-                      className={
-                        'flex-row items-center px-4 py-3 ' +
-                        (idx < section.items.length - 1 ? 'border-b border-subtle' : '')
-                      }
-                    >
-                      <Ionicons name={item.icon} size={22} color="#0f172a" />
-                      <Text className="flex-1 ml-3">{item.label}</Text>
-                      <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
-                    </Pressable>
-                  ))}
+                  {section.items.map((item, idx) => {
+                    const disabled = item.comingSoon || !item.onPress;
+                    const rowClass =
+                      'flex-row items-center px-4 py-3 ' +
+                      (idx < section.items.length - 1 ? 'border-b border-subtle' : '');
+                    return (
+                      <Pressable
+                        key={item.label}
+                        onPress={() => {
+                          if (item.onPress) item.onPress();
+                        }}
+                        disabled={disabled}
+                        className={rowClass}
+                      >
+                        <Ionicons
+                          name={item.icon}
+                          size={22}
+                          color={disabled ? '#94a3b8' : '#0f172a'}
+                        />
+                        <Text className="flex-1 ml-3" tone={disabled ? 'muted' : 'primary'}>
+                          {item.label}
+                        </Text>
+                        {item.comingSoon ? (
+                          <Text variant="caption" tone="muted" className="uppercase">
+                            {t('menu.comingSoon')}
+                          </Text>
+                        ) : (
+                          <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
+                        )}
+                      </Pressable>
+                    );
+                  })}
                 </View>
               </View>
             ))}
+
+            <Text variant="caption" tone="muted" className="text-center mb-4">
+              {t('menu.version', { version: appVersion })}
+            </Text>
 
             <Pressable
               onPress={() => close(() => void signOut())}
