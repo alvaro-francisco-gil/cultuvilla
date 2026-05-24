@@ -46,7 +46,9 @@ export default function CompleteProfileScreen() {
         telephone: telephone.trim() || null,
       });
       await refreshProfile();
-      router.replace('/');
+      // Use a typed-routes-safe path; "/" can fail under typedRoutes with the
+      // (tabs) group as the only index. Land directly on the explora tab.
+      router.replace({ pathname: '/(tabs)' });
     } catch (e) {
       setError(e instanceof Error ? e.message : t('onboarding.completeProfile.error'));
     } finally {
