@@ -10,3 +10,5 @@ export { Avatar } from './Avatar';
 export type { AvatarProps } from './Avatar';
 export { DateField } from './DateField';
 export type { DateFieldProps } from './DateField';
+export { PasswordInput } from './PasswordInput';
+export type { PasswordInputProps } from './PasswordInput';
