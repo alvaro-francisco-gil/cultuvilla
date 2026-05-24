@@ -150,18 +150,8 @@ export default function CompleteProfileScreen() {
     <Screen>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
         <Text variant="h2">{t('onboarding.completeProfile.title')}</Text>
-        <Text tone="muted">{t('onboarding.completeProfile.intro')}</Text>
 
-        <Text variant="h3">{t('onboarding.completeProfile.personaSection')}</Text>
         <VStack gap={3}>
-          <Avatar
-            uri={photo?.uri}
-            size={96}
-            onPress={async () => {
-              const next = await pickImage();
-              if (next) setPhoto(next);
-            }}
-          />
           <Input
             label={t('onboarding.completeProfile.givenName')}
             value={givenName}
@@ -176,6 +166,15 @@ export default function CompleteProfileScreen() {
             label={t('onboarding.completeProfile.secondSurname')}
             value={secondSurname}
             onChangeText={setSecondSurname}
+          />
+          <Text tone="muted">{t('onboarding.completeProfile.photo')}</Text>
+          <Avatar
+            uri={photo?.uri}
+            size={96}
+            onPress={async () => {
+              const next = await pickImage();
+              if (next) setPhoto(next);
+            }}
           />
           <Input
             label={t('onboarding.completeProfile.nickname')}

@@ -196,14 +196,13 @@
   "onboarding": {
     "completeProfile": {
       "title": "Completa tu perfil",
-      "intro": "Cuéntanos un poco sobre ti.",
       "accountSection": "Tu cuenta",
-      "personaSection": "Tu persona",
       "telephone": "Teléfono (opcional)",
       "village": "Tu pueblo (opcional)",
       "givenName": "Nombre",
       "firstSurname": "Primer apellido",
       "secondSurname": "Segundo apellido",
+      "photo": "Foto de perfil (opcional)",
       "nickname": "Apodo (opcional)",
       "sex": "Sexo (opcional)",
       "sex_female": "Mujer",
@@ -211,7 +210,7 @@
       "sex_other": "Otro",
       "birthday": "Fecha de nacimiento (opcional)",
       "birthPlace": "Lugar de nacimiento (opcional)",
-      "biography": "Sobre ti (opcional)",
+      "biography": "Biografía (opcional)",
       "submit": "Crear perfil",
       "requiredFields": "El nombre y los dos apellidos son obligatorios.",
       "error": "No se pudo guardar el perfil"

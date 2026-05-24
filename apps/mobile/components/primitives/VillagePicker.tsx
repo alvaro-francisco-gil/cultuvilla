@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Modal, TextInput, View, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { getMunicipalities } from '@cultuvilla/shared/services/municipalityService';
 import { Pressable } from './Pressable';
 import { Text } from './Text';
@@ -48,11 +50,12 @@ export function VillagePicker({ label, value, onChange, placeholder = 'Sin puebl
   return (
     <View>
       <Text tone="muted">{label}</Text>
-      <Pressable onPress={() => setOpen(true)} accessibilityRole="button">
+      <Pressable onPress={() => setOpen(true)} accessibilityRole="button" style={styles.trigger}>
         <Text>{selected ? selected.displayName : placeholder}</Text>
+        <Ionicons name="chevron-down" size={16} color="#64748b" />
       </Pressable>
       <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
-        <View style={styles.modal}>
+        <SafeAreaView style={styles.modal} edges={['top', 'bottom']}>
           <TextInput
             placeholder="Buscar pueblo"
             value={filter}
@@ -86,13 +89,25 @@ export function VillagePicker({ label, value, onChange, placeholder = 'Sin puebl
               Cancelar
             </Button>
           </View>
-        </View>
+        </SafeAreaView>
       </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  trigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    marginTop: 4,
+    backgroundColor: '#ffffff',
+  },
   modal: { flex: 1, padding: 16, gap: 12 },
   search: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, padding: 12 },
   row: { paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e5e7eb' },

@@ -1,27 +1,43 @@
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { DateField } from '../DateField';
 
-jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
-
-describe('DateField', () => {
-  it('shows the placeholder when no value', () => {
+describe('DateField (Year / Month / Day)', () => {
+  it('shows Año / Mes / Día placeholders when no value', () => {
     const { getByText } = render(
-      <DateField label="Cumple" value={null} onChange={() => {}} placeholder="DD/MM/AAAA" />,
+      <DateField label="Cumple" value={null} onChange={() => {}} />,
     );
-    expect(getByText('DD/MM/AAAA')).toBeTruthy();
+    expect(getByText('Año')).toBeTruthy();
+    expect(getByText('Mes')).toBeTruthy();
+    expect(getByText('Día')).toBeTruthy();
   });
 
-  it('shows the formatted date when value provided', () => {
+  it('shows the parts of the date when a value is provided', () => {
     const { getByText } = render(
-      <DateField label="Cumple" value={new Date(1990, 4, 17)} onChange={() => {}} />,
+      <DateField label="Cumple" value={new Date(1990, 4, 5)} onChange={() => {}} />,
     );
-    expect(getByText('17/05/1990')).toBeTruthy();
+    expect(getByText('1990')).toBeTruthy();
+    expect(getByText('Mayo')).toBeTruthy();
+    expect(getByText('5')).toBeTruthy();
   });
 
-  it('exposes a trigger testID', () => {
-    const { getByTestId } = render(
-      <DateField label="Cumple" value={null} onChange={() => {}} testID="cumple" />,
+  it('emits the composed Date when all three segments are picked', () => {
+    const onChange = jest.fn();
+    const { getByTestId, getAllByText } = render(
+      <DateField label="Cumple" value={null} onChange={onChange} testID="cumple" />,
     );
-    expect(getByTestId('cumple-trigger')).toBeTruthy();
+
+    fireEvent.press(getByTestId('cumple-year'));
+    fireEvent.press(getAllByText('1990')[0]);
+    fireEvent.press(getByTestId('cumple-month'));
+    fireEvent.press(getAllByText('Mayo')[0]);
+    fireEvent.press(getByTestId('cumple-day'));
+    // Use day 5 — within FlatList's default initialNumToRender window.
+    const dayMatches = getAllByText('5');
+    fireEvent.press(dayMatches[dayMatches.length - 1]);
+
+    const last = onChange.mock.calls[onChange.mock.calls.length - 1][0] as Date;
+    expect(last.getFullYear()).toBe(1990);
+    expect(last.getMonth()).toBe(4);
+    expect(last.getDate()).toBe(5);
   });
 });
