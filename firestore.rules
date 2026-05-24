@@ -88,13 +88,21 @@ service cloud.firestore {
       }
 
       match /joinRequests/{userId} {
-        // Field-based so collection-group queries (where userId == auth.uid)
-        // are rules-safe. The doc ID also equals the user's uid, so the
-        // owner check works for direct get() too.
-        allow read: if isAuthenticated()
-          && (resource.data.userId == request.auth.uid
+        // Single-doc get: requester, village admin of that muni, or app admin.
+        allow get: if isAuthenticated()
+          && (request.auth.uid == userId
               || isVillageAdmin(municipalityId)
               || isAppAdmin());
+        // List: split into the two real use cases.
+        //  - User's own collection-group: query must filter on userId field
+        //    so resource.data.userId == auth.uid is guaranteed.
+        //  - Village admin / app admin listing per-municipality.
+        allow list: if isAuthenticated()
+          && (
+            (resource.data.userId == request.auth.uid)
+            || isVillageAdmin(municipalityId)
+            || isAppAdmin()
+          );
         // Cloud Functions (admin SDK) own create/update/delete.
         allow create, update, delete: if false;
       }
