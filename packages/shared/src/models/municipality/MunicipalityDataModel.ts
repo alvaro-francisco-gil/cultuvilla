@@ -19,9 +19,24 @@ export interface VillageCommunity {
   activatedAt: Date
 }
 
+/**
+ * Normalize a municipality name for prefix-search: NFD-decompose, strip
+ * combining marks, lowercase. "Ávila" → "avila", "Castellón" → "castellon".
+ * Used to populate the `nameLower` field on every municipality doc.
+ */
+export function municipalitySearchKey(name: string): string {
+  return name
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+}
+
 export interface MunicipalityData {
   // ── Reference data (INE-seeded, immutable in practice) ─────────────────
   name: string
+  /** Accent-stripped, lowercased copy of `name` for case/accent-insensitive
+   * prefix search. Always derivable from `name`; stored so Firestore can index. */
+  nameLower: string
   province: string
   comunidadAutonoma: string
   codigoINE: string
@@ -54,6 +69,7 @@ export interface MunicipalityDataInput {
 export function buildMunicipalityData(input: MunicipalityDataInput): MunicipalityData {
   return {
     name: input.name,
+    nameLower: municipalitySearchKey(input.name),
     province: input.province,
     comunidadAutonoma: input.comunidadAutonoma,
     codigoINE: input.codigoINE,

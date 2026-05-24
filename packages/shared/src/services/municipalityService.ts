@@ -1,6 +1,7 @@
 import {
   collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc,
-  query, orderBy, where, serverTimestamp, Timestamp, GeoPoint, writeBatch,
+  query, orderBy, where, limit as firestoreLimit,
+  serverTimestamp, Timestamp, GeoPoint, writeBatch,
 } from 'firebase/firestore'
 import { getDb } from '../firebase'
 import type {
@@ -13,6 +14,7 @@ import type {
   CemeteryData,
   CemeteryDataInput,
 } from '../models/municipality'
+import { municipalitySearchKey } from '../models/municipality/MunicipalityDataModel'
 import type { VillageProfileForm, ProfileFormField } from '../models/municipality/CensoTypes'
 
 // ── Collection refs ──────────────────────────────────────────────────────
@@ -53,9 +55,11 @@ function mapCommunity(raw: unknown): VillageCommunity | null {
 }
 
 function mapMunicipalityDoc(id: string, data: Record<string, unknown>): MunicipalityData & { id: string } {
+  const name = data.name as string
   return {
     id,
-    name: data.name as string,
+    name,
+    nameLower: (data.nameLower as string | undefined) ?? municipalitySearchKey(name),
     province: data.province as string,
     comunidadAutonoma: data.comunidadAutonoma as string,
     codigoINE: data.codigoINE as string,
@@ -82,6 +86,42 @@ export async function getMunicipalities(): Promise<(MunicipalityData & { id: str
   return snap.docs.map(d => mapMunicipalityDoc(d.id, d.data() as Record<string, unknown>))
 }
 
+/**
+ * Prefix-search municipalities by name. Matches against the indexed
+ * `nameLower` field (accent-stripped, lowercased) so "avila" finds "Ávila"
+ * and "castell" finds "Castellón".
+ *
+ * An empty query returns the first `limit` municipalities alphabetically.
+ *
+ * Cost: O(limit) doc reads regardless of collection size — safe to call
+ * on every keystroke (debounce in caller for UX).
+ */
+export async function searchMunicipalities(
+  searchQuery: string,
+  limit: number = 50,
+): Promise<(MunicipalityData & { id: string })[]> {
+  const key = municipalitySearchKey(searchQuery.trim())
+  if (key.length === 0) {
+    const q = query(
+      municipalitiesCol(),
+      orderBy('nameLower', 'asc'),
+      firestoreLimit(limit),
+    )
+    const snap = await getDocs(q)
+    return snap.docs.map(d => mapMunicipalityDoc(d.id, d.data() as Record<string, unknown>))
+  }
+  // Firestore prefix search: nameLower >= key AND nameLower < key+''
+  const q = query(
+    municipalitiesCol(),
+    orderBy('nameLower', 'asc'),
+    where('nameLower', '>=', key),
+    where('nameLower', '<', key + ''),
+    firestoreLimit(limit),
+  )
+  const snap = await getDocs(q)
+  return snap.docs.map(d => mapMunicipalityDoc(d.id, d.data() as Record<string, unknown>))
+}
+
 export async function getActiveCommunities(): Promise<(MunicipalityData & { id: string })[]> {
   const q = query(
     municipalitiesCol(),
@@ -95,6 +135,7 @@ export async function getActiveCommunities(): Promise<(MunicipalityData & { id: 
 export async function createMunicipality(input: MunicipalityDataInput): Promise<string> {
   const ref = await addDoc(municipalitiesCol(), {
     name: input.name,
+    nameLower: municipalitySearchKey(input.name),
     province: input.province,
     comunidadAutonoma: input.comunidadAutonoma,
     codigoINE: input.codigoINE,

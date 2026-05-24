@@ -6,33 +6,31 @@ import { useT } from '../../lib/i18n';
 import { useAuth } from '../../lib/auth/useAuth';
 import {
   getActiveCommunities,
-  getMunicipalities,
+  searchMunicipalities,
 } from '@cultuvilla/shared/services/municipalityService';
 import { getMyJoinRequests } from '@cultuvilla/shared/services/joinRequestService';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality';
 
 type Muni = MunicipalityData & { id: string };
 
+const PAGE_SIZE = 50;
+
 export function VillageDiscovery() {
   const { user } = useAuth();
   const { t } = useT();
   const [search, setSearch] = useState('');
   const [active, setActive] = useState<Muni[] | null>(null);
-  const [all, setAll] = useState<Muni[] | null>(null);
+  const [allResults, setAllResults] = useState<Muni[]>([]);
   const [showAll, setShowAll] = useState(false);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     void getActiveCommunities()
-      .then((rs) => {
-        console.log('[VillageDiscovery] getActiveCommunities ok', rs.length);
-        setActive(rs);
-      })
+      .then((rs) => setActive(rs))
       .catch((e) => console.log('[VillageDiscovery] getActiveCommunities ERR', e?.code, e?.message));
     if (user) {
       void getMyJoinRequests(user.uid)
         .then((rs) => {
-          console.log('[VillageDiscovery] getMyJoinRequests ok', rs.length);
           setPendingIds(
             new Set(rs.filter((r) => r.status === 'pending').map((r) => r.municipalityId)),
           );
@@ -41,20 +39,27 @@ export function VillageDiscovery() {
     }
   }, [user]);
 
+  // Paged server-side search when user opens the "show all" view.
   useEffect(() => {
-    if (showAll && !all) void getMunicipalities().then(setAll);
-  }, [showAll, all]);
+    if (!showAll) return;
+    let cancelled = false;
+    const handle = setTimeout(async () => {
+      const list = await searchMunicipalities(search, PAGE_SIZE);
+      if (!cancelled) setAllResults(list);
+    }, 200);
+    return () => { cancelled = true; clearTimeout(handle); };
+  }, [showAll, search]);
 
-  const source = showAll ? all : active;
-
+  // When NOT in showAll mode, client-side filter the small active list.
   const data = useMemo(() => {
-    if (!source) return [];
-    if (!search.trim()) return source;
+    if (showAll) return allResults;
+    if (!active) return [];
+    if (!search.trim()) return active;
     const q = search.toLowerCase();
-    return source.filter((m) => m.name.toLowerCase().includes(q));
-  }, [source, search]);
+    return active.filter((m) => m.name.toLowerCase().includes(q));
+  }, [showAll, allResults, active, search]);
 
-  if (source === null) {
+  if (!showAll && active === null) {
     return (
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator />

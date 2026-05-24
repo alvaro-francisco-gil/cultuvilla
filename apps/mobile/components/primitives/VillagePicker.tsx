@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Modal, TextInput, View, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Modal, TextInput, View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { getMunicipalities } from '@cultuvilla/shared/services/municipalityService';
+import {
+  searchMunicipalities,
+  getMunicipality,
+} from '@cultuvilla/shared/services/municipalityService';
 import { Pressable } from './Pressable';
 import { Text } from './Text';
 import { Button } from './Button';
@@ -22,17 +25,46 @@ export interface VillagePickerProps {
   placeholder?: string;
 }
 
+const PAGE_SIZE = 50;
+const DEBOUNCE_MS = 200;
+
 export function VillagePicker({ label, value, onChange, placeholder = 'Sin pueblo' }: VillagePickerProps) {
   const [open, setOpen] = useState(false);
-  const [options, setOptions] = useState<Option[]>([]);
   const [filter, setFilter] = useState('');
+  const [results, setResults] = useState<Option[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState<Option | null>(null);
 
+  // Fetch + cache the selected municipality (one doc) so the trigger
+  // renders correctly even when the modal is closed.
   useEffect(() => {
-    if (!open || options.length > 0) return;
+    if (!value) {
+      setSelected(null);
+      return;
+    }
+    if (selected?.id === value) return;
     let cancelled = false;
-    getMunicipalities().then((list) => {
+    getMunicipality(value).then((m) => {
+      if (cancelled || !m) return;
+      setSelected({
+        id: m.id,
+        name: m.name,
+        province: m.province,
+        escudoThumbUrl: m.escudoThumbUrl,
+      });
+    });
+    return () => { cancelled = true; };
+  }, [value, selected?.id]);
+
+  // Run search on modal open + on each (debounced) filter change.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setLoading(true);
+    const handle = setTimeout(async () => {
+      const list = await searchMunicipalities(filter, PAGE_SIZE);
       if (cancelled) return;
-      setOptions(
+      setResults(
         list.map((m) => ({
           id: m.id,
           name: m.name,
@@ -40,19 +72,13 @@ export function VillagePicker({ label, value, onChange, placeholder = 'Sin puebl
           escudoThumbUrl: m.escudoThumbUrl,
         })),
       );
-    });
-    return () => { cancelled = true; };
-  }, [open, options.length]);
-
-  const filtered = useMemo(() => {
-    const q = filter.trim().toLowerCase();
-    if (!q) return options;
-    return options.filter(
-      (o) => o.name.toLowerCase().includes(q) || o.province.toLowerCase().includes(q),
-    );
-  }, [options, filter]);
-
-  const selected = options.find((o) => o.id === value);
+      setLoading(false);
+    }, DEBOUNCE_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [open, filter]);
 
   return (
     <View>
@@ -75,28 +101,37 @@ export function VillagePicker({ label, value, onChange, placeholder = 'Sin puebl
             style={styles.search}
             autoCapitalize="none"
           />
-          <FlatList
-            data={filtered}
-            keyExtractor={(o) => o.id}
-            initialNumToRender={20}
-            windowSize={10}
-            renderItem={({ item }) => (
-              <Pressable
-                onPress={() => {
-                  onChange(item.id);
-                  setOpen(false);
-                  setFilter('');
-                }}
-                style={styles.row}
-              >
-                <Escudo url={item.escudoThumbUrl} size={36} fallbackInitial={item.name} />
-                <View style={styles.rowText}>
-                  <Text>{item.name}</Text>
-                  <Text tone="muted" variant="caption">{item.province}</Text>
-                </View>
-              </Pressable>
-            )}
-          />
+          {loading && results.length === 0 ? (
+            <View style={styles.center}>
+              <ActivityIndicator />
+            </View>
+          ) : (
+            <FlatList
+              data={results}
+              keyExtractor={(o) => o.id}
+              initialNumToRender={20}
+              windowSize={10}
+              ListEmptyComponent={
+                <Text tone="muted" style={styles.empty}>Sin resultados</Text>
+              }
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => {
+                    onChange(item.id);
+                    setOpen(false);
+                    setFilter('');
+                  }}
+                  style={styles.row}
+                >
+                  <Escudo url={item.escudoThumbUrl} size={36} fallbackInitial={item.name} />
+                  <View style={styles.rowText}>
+                    <Text>{item.name}</Text>
+                    <Text tone="muted" variant="caption">{item.province}</Text>
+                  </View>
+                </Pressable>
+              )}
+            />
+          )}
           <View style={styles.actions}>
             {value && (
               <Button variant="secondary" onPress={() => { onChange(null); setOpen(false); }}>
@@ -129,6 +164,8 @@ const styles = StyleSheet.create({
   triggerInner: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   modal: { flex: 1, padding: 16, gap: 12 },
   search: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, padding: 12 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  empty: { textAlign: 'center', paddingVertical: 24 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

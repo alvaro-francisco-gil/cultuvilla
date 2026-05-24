@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, FlatList, View } from 'react-native';
 import { router } from 'expo-router';
 import { Screen, VStack, HStack, Text, Button, Input, Pressable, Escudo } from '../../components/primitives';
@@ -6,37 +6,33 @@ import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { useT } from '../../lib/i18n';
 import { useAuth } from '../../lib/auth/useAuth';
 import {
-  getMunicipalities,
+  searchMunicipalities,
   activateCommunity,
 } from '@cultuvilla/shared/services/municipalityService';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality';
 
 type Row = MunicipalityData & { id: string };
 
+const PAGE_SIZE = 50;
+
 export default function ActivateVillageScreen() {
   const { t } = useT();
   const { user } = useAuth();
-  const [muns, setMuns] = useState<Row[] | null>(null);
+  const [results, setResults] = useState<Row[]>([]);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<Row | null>(null);
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    getMunicipalities().then(setMuns);
-  }, []);
-
-  const filtered = useMemo(() => {
-    if (!muns) return [];
-    const q = query.trim().toLowerCase();
-    const base = muns.filter((m) => !m.communityActive);
-    if (!q) return base.slice(0, 50);
-    return base
-      .filter((m) =>
-        [m.name, m.province, m.codigoINE].some((s) => s.toLowerCase().includes(q)),
-      )
-      .slice(0, 50);
-  }, [muns, query]);
+    let cancelled = false;
+    const handle = setTimeout(async () => {
+      const list = await searchMunicipalities(query, PAGE_SIZE);
+      if (cancelled) return;
+      setResults(list.filter((m) => !m.communityActive));
+    }, 200);
+    return () => { cancelled = true; clearTimeout(handle); };
+  }, [query]);
 
   async function onSubmit() {
     if (!selected || !user) return;
@@ -69,7 +65,7 @@ export default function ActivateVillageScreen() {
               placeholder={t('admin.activate.searchPlaceholder')}
             />
             <FlatList
-              data={filtered}
+              data={results}
               keyExtractor={(m) => m.id}
               renderItem={({ item }) => (
                 <Pressable

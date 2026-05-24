@@ -118,8 +118,13 @@ async function main() {
 
     for (const entry of chunk) {
       const docRef = collection.doc(); // auto-ID
+      const nameLower = entry.name
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .toLowerCase();
       batch.set(docRef, {
         name: entry.name,
+        nameLower,
         province: entry.province,
         comunidadAutonoma: entry.comunidadAutonoma,
         codigoINE: entry.codigoINE,
