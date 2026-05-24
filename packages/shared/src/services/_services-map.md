@@ -4,7 +4,7 @@ This is the catalogue of every backend-touching function in the app. **All Fireb
 
 When you add a service, add it to this file in the same change. When you add a function to an existing service, update the row below.
 
-> Collection paths: a leading `villages/{villageId}/...` means village-scoped (single-village writes/reads). Top-level paths (`users/`, `municipalities/`, `occupations/`, `admins/`) are app-wide. Cross-village reads use Firestore **collection group** queries (declared in `firestore.indexes.json`).
+> Collection paths reflect today's architecture: **first-class top-level collections** (`events/`, `organizations/`, `news/`, …) scoped by a `municipalityId` field, plus a small number of genuinely nested collections (`users/{uid}/notifications/`, `events/{eventId}/registrations/`, `organizations/{orgId}/members/`, `municipalities/{id}/members/`). See AGENTS.md §3 for the rationale.
 
 | Service | Owns collection(s) | What it does | Key entry points |
 |---|---|---|---|
@@ -18,6 +18,7 @@ When you add a service, add it to this file in the same change. When you add a f
 | [organizerRequestService](organizerRequestService.ts) | `organizerRequests/` | Requests to become organizer of an inactive municipality. Users create + read own; superadmin lists pending; mutations via Cloud Function. | `getOrganizerRequest`, `getPendingOrganizerRequests`, `getMyOrganizerRequests`, `requestOrganizeVillage`, `respondToOrganizerRequest` |
 | [membershipProfileService](membershipProfileService.ts) | `villages/{vid}/members/` (profile fields) | Writes user answers to a village's censo; sets `profileCompletedAt` when required fields are present. | `saveProfileAnswers`, `collectUsedValues`, `profileCompletedAtToDate` |
 | [municipalityService](municipalityService.ts) | `municipalities/`, `municipalities/{id}/barrios/`, `municipalities/{id}/cemeteries/` | App-wide INE municipalities + nested barrios and cemeteries. CRUD. | `getMunicipalities`, `createMunicipality`, `getBarrios`, `createBarrio`, `getCemeteries`, `createCemetery`, plus updates/deletes |
+| [newsService](newsService.ts) | `news/`, `newsComments/`, `newsReactions/`, `newsReports/` (all top-level, `municipalityId` field) | Village news feed: create/get/list/update posts, react, comment, report comments, fetch home + other-villages feeds. Cross-user moderation lives in Cloud Functions. | `createNewsPost`, `getNewsPost`, `getNewsPostsByMunicipality`, `updateNewsPost`, `reactToPost`, `removeReaction`, `getMyReaction`, `addComment`, `getComments`, `deleteOwnComment`, `reportComment`, `getHomeFeed`, `getOtherVillagesFeed` |
 | [notificationService](notificationService.ts) | `users/{uid}/notifications/` | In-app notification CRUD, unread counts, mark-as-read. | `getNotifications`, `getUnreadCount`, `createNotification`, `markAsRead`, `markAllAsRead` |
 | [occupationService](occupationService.ts) | `occupations/`, `occupationProposals/` | App-wide occupation taxonomy; user-submitted proposals with admin review. | `getOccupations`, `createOccupation`, `proposeOccupation`, `getPendingProposals`, `reviewProposal` |
 | [orgMemberService](orgMemberService.ts) | `villages/{vid}/organizations/{oid}/members/` | Add/remove/check org membership. | `getOrgMembers`, `addOrgMember`, `removeOrgMember`, `isOrgMember` |
