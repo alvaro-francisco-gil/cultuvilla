@@ -44,7 +44,7 @@ export function AppHeader({ centerLabel }: AppHeaderProps) {
         className="bg-surface border-b border-subtle"
         style={{ paddingTop: insets.top }}
       >
-        <View className="h-14 flex-row items-center px-4">
+        <View className="h-11 flex-row items-center px-4">
           <View className="flex-1">
             <Text variant="h3" numberOfLines={1}>
               {label}
@@ -57,16 +57,16 @@ export function AppHeader({ centerLabel }: AppHeaderProps) {
                 // notifications surface not built yet
               }}
               accessibilityLabel={t('header.openNotifications')}
-              className="p-2"
+              className="p-1"
             >
               <Ionicons name="notifications-outline" size={24} color="#0f172a" />
             </Pressable>
             <Pressable
               onPress={() => setMenuOpen(true)}
               accessibilityLabel={t('header.openMenu')}
-              className="p-2 -mr-2"
+              className="p-1 -mr-1"
             >
-              <Ionicons name="menu" size={26} color="#0f172a" />
+              <Ionicons name="menu" size={24} color="#0f172a" />
             </Pressable>
           </View>
         </View>

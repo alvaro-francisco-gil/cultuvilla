@@ -27,15 +27,15 @@ export function ScreenHeader({ title, onBack, hideBack = false, rightSlot }: Scr
       className="bg-surface border-b border-subtle"
       style={{ paddingTop: insets.top }}
     >
-      <View className="h-14 flex-row items-center px-4">
-        <View className="w-12 items-start">
+      <View className="h-11 flex-row items-center px-4">
+        <View className="w-10 items-start">
           {!hideBack ? (
             <Pressable
               onPress={handleBack}
               accessibilityLabel={t('header.back')}
-              className="p-2 -ml-2"
+              className="p-1 -ml-1"
             >
-              <Ionicons name="chevron-back" size={26} color="#0f172a" />
+              <Ionicons name="chevron-back" size={24} color="#0f172a" />
             </Pressable>
           ) : null}
         </View>
@@ -46,7 +46,7 @@ export function ScreenHeader({ title, onBack, hideBack = false, rightSlot }: Scr
             </Text>
           ) : null}
         </View>
-        <View className="w-12 items-end flex-row justify-end">{rightSlot}</View>
+        <View className="w-10 items-end flex-row justify-end">{rightSlot}</View>
       </View>
     </View>
   );
