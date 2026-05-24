@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Image } from 'react-native';
+import { Image, Pressable } from 'react-native';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Screen, VStack, HStack, Text, Button } from '../../components/primitives';
 import { AppHeader } from '../../components/layout/AppHeader';
 import { useAuth } from '../../lib/auth/useAuth';
+import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
 import { useT } from '../../lib/i18n';
 import { pickImageAsBlob } from '../../lib/images';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
@@ -15,6 +18,7 @@ type PersonDoc = PersonData & { id: string };
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
   const { t } = useT();
+  const { isAppAdmin } = useIsAppAdmin();
   const [person, setPerson] = useState<PersonDoc | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -61,6 +65,18 @@ export default function ProfileScreen() {
             {t('profile.signOut')}
           </Button>
         </HStack>
+        {isAppAdmin ? (
+          <Pressable
+            onPress={() => router.push('/admin')}
+            className="bg-surface border border-subtle rounded-xl p-4 mt-4 flex-row items-center"
+            accessibilityRole="button"
+            accessibilityLabel={t('admin.profileEntry')}
+          >
+            <Ionicons name="shield-checkmark-outline" size={20} color="#0f172a" />
+            <Text className="ml-3 flex-1">{t('admin.profileEntry')}</Text>
+            <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
+          </Pressable>
+        ) : null}
       </VStack>
     </Screen>
   );
