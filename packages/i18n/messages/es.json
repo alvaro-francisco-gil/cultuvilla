@@ -254,5 +254,60 @@
   "villageSwitcher": {
     "title": "Cambiar de pueblo",
     "findAnother": "Buscar otro pueblo"
+  },
+  "news": {
+    "feed": {
+      "title": "Noticias",
+      "tab": {
+        "home": "Mi pueblo",
+        "others": "Otros pueblos"
+      },
+      "empty": "Aún no hay noticias."
+    },
+    "compose": {
+      "title": "Nueva noticia",
+      "titleLabel": "Título",
+      "bodyLabel": "Contenido",
+      "categoryLabel": "Categoría",
+      "category": {
+        "fiesta": "Fiesta",
+        "tradicion": "Tradición",
+        "gastronomia": "Gastronomía",
+        "historia": "Historia",
+        "otro": "Otro"
+      },
+      "imagesLabel": "Imágenes",
+      "submit": "Enviar",
+      "submitTrusted": "Publicar",
+      "postAsOrg": "Publicar como…"
+    },
+    "status": {
+      "pending": "Pendiente de aprobación",
+      "rejected": "Rechazada",
+      "rejectedReason": "Motivo: {reason}"
+    },
+    "reactions": {
+      "like": "Me gusta",
+      "heart": "Me encanta"
+    },
+    "comments": {
+      "title": "Comentarios",
+      "empty": "Sé el primero en comentar.",
+      "placeholder": "Escribe un comentario…",
+      "send": "Enviar",
+      "report": "Reportar",
+      "reportConfirm": "¿Reportar este comentario?",
+      "reportSent": "Reporte enviado."
+    },
+    "moderation": {
+      "queueTitle": "Noticias pendientes",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "rejectReasonPrompt": "Motivo del rechazo",
+      "reportsTitle": "Reportes",
+      "dismiss": "Descartar",
+      "remove": "Eliminar comentario",
+      "trustToggle": "Autor de confianza"
+    }
   }
 }
