@@ -23,3 +23,6 @@ database-debug.log
 *firebase-adminsdk*.json
 *service-account*.json
 dev-sa.json
+
+# Locally-downloaded escudos (coats of arms) — large, do not commit
+scripts/data/escudos/
