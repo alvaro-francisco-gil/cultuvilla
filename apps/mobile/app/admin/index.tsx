@@ -38,21 +38,19 @@ export default function AdminHubScreen() {
   return (
     <Screen padded={false}>
       <ScreenHeader title={t('admin.title')} />
-      <VStack gap={3} className="p-4">
+      <VStack gap={2} className="p-4">
         {cards.map((c) => (
           <Pressable
             key={c.href}
             onPress={() => router.push(c.href)}
-            className="bg-surface border border-subtle rounded-xl p-4 flex-row items-center"
+            className="flex-row items-center bg-surface border border-subtle rounded-xl p-3"
           >
-            <View className="w-10 h-10 rounded-xl bg-blue-100 items-center justify-center mr-3">
-              <Ionicons name={c.icon} size={20} color="#1d4ed8" />
+            <Ionicons name={c.icon} size={20} color="#0f172a" />
+            <View className="ml-3 flex-1">
+              <Text>{c.title}</Text>
+              <Text tone="muted" variant="caption">{c.hint}</Text>
             </View>
-            <View className="flex-1">
-              <Text variant="h3">{c.title}</Text>
-              <Text className="text-muted text-sm">{c.hint}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
+            <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
           </Pressable>
         ))}
       </VStack>

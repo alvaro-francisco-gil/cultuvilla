@@ -1,4 +1,3 @@
-import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, VStack, Text, Pressable } from '../../../../components/primitives';
@@ -23,18 +22,16 @@ export default function VillageAdminHub() {
   return (
     <Screen padded={false}>
       <ScreenHeader title={t('village.admin.title')} />
-      <VStack gap={3} className="p-4">
+      <VStack gap={2} className="p-4">
         {items.map((it) => (
           <Pressable
             key={it.href}
             onPress={() => router.push(it.href as never)}
-            className="bg-surface border border-subtle rounded-xl p-4 flex-row items-center"
+            className="flex-row items-center bg-surface border border-subtle rounded-xl p-3"
           >
-            <View className="w-10 h-10 rounded-xl bg-blue-100 items-center justify-center mr-3">
-              <Ionicons name={it.icon} size={20} color="#1d4ed8" />
-            </View>
-            <Text className="flex-1">{it.label}</Text>
-            <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
+            <Ionicons name={it.icon} size={20} color="#0f172a" />
+            <Text className="ml-3 flex-1">{it.label}</Text>
+            <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
           </Pressable>
         ))}
       </VStack>
