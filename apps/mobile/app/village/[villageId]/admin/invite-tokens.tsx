@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, View, Alert, Platform } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
+import { FlatList, View, Alert, Share } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Screen, VStack, HStack, Text, Button, Pressable } from '../../../../components/primitives';
 import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
@@ -33,10 +32,9 @@ export default function InviteTokensScreen() {
     try { await createInviteToken(villageId); await load(); } finally { setBusy(false); }
   }
 
-  async function copy(r: Row) {
+  async function share(r: Row) {
     const url = `https://cultuvilla.app/invite/${r.id}`;
-    await Clipboard.setStringAsync(url);
-    if (Platform.OS !== 'web') Alert.alert(t('village.admin.invites.copied'));
+    await Share.share({ message: url, url });
   }
 
   function remove(r: Row) {
@@ -68,7 +66,7 @@ export default function InviteTokensScreen() {
             <View className="py-3 border-b border-subtle">
               <HStack gap={2}>
                 <Text className="flex-1 font-mono text-xs">{item.id}</Text>
-                <Pressable onPress={() => copy(item)}>
+                <Pressable onPress={() => share(item)}>
                   <Text className="text-blue-600">{t('village.admin.invites.copy')}</Text>
                 </Pressable>
                 <Pressable onPress={() => remove(item)}>

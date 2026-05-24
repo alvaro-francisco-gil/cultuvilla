@@ -179,8 +179,7 @@
       "invites": {
         "title": "Invitaciones",
         "create": "Crear invitación",
-        "copy": "Copiar enlace",
-        "copied": "Copiado",
+        "copy": "Compartir enlace",
         "delete": "Eliminar",
         "empty": "No hay invitaciones activas"
       },
