@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Share, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Button, HStack, Pressable, Screen, Text, VStack } from '../../components/primitives';
+import { Button, Pressable, Screen, Text, VStack } from '../../components/primitives';
 import { AppHeader } from '../../components/layout/AppHeader';
 import { ProfileHeader } from '../../components/feature/profile/ProfileHeader';
 import { ProfileStatsRow } from '../../components/feature/profile/ProfileStatsRow';
@@ -22,7 +22,6 @@ import { getEventCountByCreator } from '@cultuvilla/shared/services/eventService
 import { getUserRegistrationsAcrossEvents } from '@cultuvilla/shared/services/registrationService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 import { getOrgMembershipsByUserInMunicipality } from '@cultuvilla/shared/services/orgMemberService';
-import { buildDisplayName } from '@cultuvilla/shared/models/person';
 import type { PersonData } from '@cultuvilla/shared/models/person';
 
 type PersonDoc = PersonData & { id: string };
@@ -116,16 +115,6 @@ export default function ProfileScreen() {
     }
   }
 
-  async function onShare() {
-    const name = selfPerson ? buildDisplayName(selfPerson) : profile?.displayName;
-    if (!name) return;
-    try {
-      await Share.share({ message: `${name} en Cultuvilla` });
-    } catch {
-      // ignored
-    }
-  }
-
   if (!user) return null;
 
   const subtitle = buildSubtitle(selfPerson);
@@ -153,24 +142,6 @@ export default function ProfileScreen() {
             ]}
           />
         </View>
-
-        <HStack gap={2} className="px-4 mt-4">
-          <View className="flex-1">
-            <Button
-              variant="secondary"
-              onPress={() => {
-                if (selfPerson) router.push(`/person/${selfPerson.id}`);
-              }}
-            >
-              {t('profile.actions.edit')}
-            </Button>
-          </View>
-          <View className="flex-1">
-            <Button variant="secondary" onPress={onShare}>
-              {t('profile.actions.share')}
-            </Button>
-          </View>
-        </HStack>
 
         {selfPerson?.biography ? (
           <View className="px-4 mt-4">

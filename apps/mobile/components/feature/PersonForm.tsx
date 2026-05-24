@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import {
   Avatar,
@@ -66,6 +67,7 @@ export function PersonForm({
   onSubmit,
 }: PersonFormProps) {
   const { t } = useT();
+  const insets = useSafeAreaInsets();
   const [photo, setPhoto] = useState<PersonFormPhoto | null>(null);
   const [givenName, setGivenName] = useState(initial?.givenName ?? '');
   const [firstSurname, setFirstSurname] = useState(initial?.firstSurname ?? '');
@@ -95,7 +97,15 @@ export function PersonForm({
   }
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: insets.bottom + 80 }}
+      keyboardShouldPersistTaps="handled"
+    >
       <VStack gap={3}>
         <View className="items-center">
           <Avatar
@@ -165,6 +175,7 @@ export function PersonForm({
         {submitLabel}
       </Button>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

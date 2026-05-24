@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Modal,
   View,
@@ -12,11 +12,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
 import Constants from 'expo-constants';
+import { Avatar } from '../primitives/Avatar';
 import { Pressable } from '../primitives/Pressable';
 import { Text } from '../primitives/Text';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
 import { useT } from '../../lib/i18n';
+import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -38,12 +40,24 @@ type MenuSection = {
 };
 
 export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
-  const { profile, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const { isAppAdmin } = useIsAppAdmin();
   const { t } = useT();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [photoURL, setPhotoURL] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!visible || !user) return;
+    let cancelled = false;
+    getPersonByUserId(user.uid).then((p) => {
+      if (!cancelled) setPhotoURL(p?.photoURL ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, user]);
 
   useEffect(() => {
     if (visible) {
@@ -206,9 +220,11 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
             contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 32 }}
           >
             <View className="flex-row items-center gap-3 mb-6">
-              <View className="w-16 h-16 rounded-[32px] bg-subtle items-center justify-center">
-                <Ionicons name="person" size={32} color="#64748b" />
-              </View>
+              <Avatar
+                uri={photoURL ?? undefined}
+                size={64}
+                initials={(displayName || email || '?').charAt(0).toUpperCase()}
+              />
               <View className="flex-1">
                 {displayName ? (
                   <Text variant="body" className="font-semibold">
