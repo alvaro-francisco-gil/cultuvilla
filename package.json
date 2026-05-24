@@ -18,6 +18,7 @@
     "app:android": "pnpm --filter cultuvilla-mobile android",
     "app:ios": "pnpm --filter cultuvilla-mobile ios",
     "app:web": "pnpm --filter cultuvilla-mobile web",
+    "app:web:build": "pnpm --filter cultuvilla-mobile web:build",
     "app:test": "pnpm --filter cultuvilla-mobile test",
     "app:test:watch": "pnpm --filter cultuvilla-mobile test:watch",
     "app:typecheck": "pnpm --filter cultuvilla-mobile typecheck",
