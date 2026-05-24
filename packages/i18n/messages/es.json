@@ -38,6 +38,43 @@
       "unknown": "Algo salió mal"
     }
   },
+  "admin": {
+    "title": "Administración",
+    "profileEntry": "Administración",
+    "hub": {
+      "activateVillage": "Activar pueblo",
+      "activateVillageHint": "Crear una comunidad en un municipio",
+      "organizerRequests": "Solicitudes de organizador",
+      "organizerRequestsHint": "Revisar pendientes",
+      "occupations": "Ocupaciones",
+      "occupationsHint": "Aprobadas y propuestas"
+    },
+    "activate": {
+      "title": "Activar pueblo",
+      "pickMunicipality": "Elige un municipio",
+      "searchPlaceholder": "Buscar municipio…",
+      "description": "Descripción",
+      "submit": "Activar",
+      "success": "Pueblo activado",
+      "alreadyActive": "Este municipio ya tiene comunidad"
+    },
+    "organizerRequests": {
+      "title": "Solicitudes de organizador",
+      "empty": "No hay solicitudes pendientes",
+      "approve": "Aprobar",
+      "reject": "Rechazar"
+    },
+    "occupations": {
+      "title": "Ocupaciones",
+      "catalog": "Catálogo",
+      "proposals": "Propuestas pendientes",
+      "addName": "Nombre",
+      "add": "Añadir ocupación",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "noProposals": "Sin propuestas pendientes"
+    }
+  },
   "feed": {
     "title": "Inicio",
     "empty": "No hay eventos próximos",
@@ -108,7 +145,51 @@
     },
     "organizations": "Organizaciones",
     "members": "Miembros",
-    "admin": "Administración",
+    "admin": {
+      "open": "Administrar pueblo",
+      "title": "Administración del pueblo",
+      "hub": {
+        "barrios": "Barrios",
+        "cemeteries": "Cementerios",
+        "organizations": "Organizaciones",
+        "invites": "Invitaciones",
+        "censo": "Censo",
+        "community": "Comunidad",
+        "joinRequests": "Solicitudes de unión"
+      },
+      "barrios": {
+        "title": "Barrios",
+        "add": "Añadir barrio",
+        "name": "Nombre del barrio",
+        "empty": "Aún no hay barrios"
+      },
+      "cemeteries": {
+        "title": "Cementerios",
+        "add": "Añadir cementerio",
+        "name": "Nombre",
+        "description": "Descripción",
+        "empty": "Aún no hay cementerios"
+      },
+      "organizations": {
+        "title": "Organizaciones",
+        "empty": "Sin solicitudes pendientes",
+        "approve": "Aprobar",
+        "reject": "Rechazar"
+      },
+      "invites": {
+        "title": "Invitaciones",
+        "create": "Crear invitación",
+        "copy": "Copiar enlace",
+        "copied": "Copiado",
+        "delete": "Eliminar",
+        "empty": "No hay invitaciones activas"
+      },
+      "community": {
+        "title": "Comunidad",
+        "description": "Descripción",
+        "saved": "Guardado"
+      }
+    },
     "generateInvite": "Generar invitación",
     "censo": {
       "link": "Completar mi censo"
