@@ -31,11 +31,13 @@ This is enforced by `no-restricted-imports` in [apps/web/eslint.config.mjs](apps
 
 Anything that crosses workspace boundaries — between web, functions, and any future mobile app — lives in [packages/shared](packages/shared). Domain types live under `src/models/`, organized by entity (event, village, person, etc.). Services consume models, never the reverse.
 
-### 3. Data is nested under `villages/{villageId}/`
+### 3. First-class top-level collections, scoped by `municipalityId`
 
-Single Firebase project. All village-scoped data is nested under that village's document; cross-village queries use Firestore **collection group** indexes (declared in [firestore.indexes.json](firestore.indexes.json)). When you add a new sub-collection, add the collection-group index in the same change.
+Single Firebase project. Domain entities (`events`, `organizations`, `persons`, `occupations`, news, …) live at the **top level** of Firestore and carry a `municipalityId` field that scopes them to a village/municipality. The only nesting we keep is for data that is genuinely owned by a parent doc (e.g. `municipalities/{id}/members/{userId}`, `organizations/{orgId}/members/{userId}`, `events/{eventId}/registrations/{regId}`, `users/{uid}/notifications/{nid}`).
 
-> **See also:** the `add-firestore-collection` skill for the multi-file checklist when adding a new sub-collection.
+This is the result of the migration documented in [docs/superpowers/specs/2026-04-29-open-feed-architecture-design.md](docs/superpowers/specs/2026-04-29-open-feed-architecture-design.md): top-level keeps cross-village/global queries trivial, leaves the door open to multi-village orgs, and removes most of the collection-group indexing burden. Indexes on `municipalityId + <sortField>` (and similar single-collection composite indexes) are declared in [firestore.indexes.json](firestore.indexes.json) and must be added in the same change as a new query shape.
+
+> **See also:** the `add-firestore-collection` skill for the multi-file checklist when adding a new collection.
 
 ### 4. Denormalized read models for high fan-out
 

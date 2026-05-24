@@ -1,3 +1,11 @@
+---
+status: archived
+superseded_by: docs/superpowers/specs/2026-04-29-open-feed-architecture-design.md
+archived_on: 2026-05-24
+---
+
+> **⚠ Archived 2026-05-24.** This plan implemented the original "data nested under `villages/{villageId}/`" model, which has since been migrated to first-class top-level collections (`events/`, `organizations/`, `persons/`, …) scoped by `municipalityId`. Tasks and file paths in this document reflect the old layout and should not be used as a reference for current code. See AGENTS.md §3 and [docs/superpowers/specs/2026-04-29-open-feed-architecture-design.md](../../superpowers/specs/2026-04-29-open-feed-architecture-design.md).
+
 # Cultuvilla Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

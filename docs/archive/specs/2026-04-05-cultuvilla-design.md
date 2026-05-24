@@ -1,3 +1,11 @@
+---
+status: archived
+superseded_by: docs/superpowers/specs/2026-04-29-open-feed-architecture-design.md
+archived_on: 2026-05-24
+---
+
+> **⚠ Archived 2026-05-24.** The original "data nested under `villages/{villageId}/`" / "Approach A" design described here was abandoned in favour of first-class top-level collections scoped by `municipalityId`. See [docs/superpowers/specs/2026-04-29-open-feed-architecture-design.md](../../superpowers/specs/2026-04-29-open-feed-architecture-design.md) and AGENTS.md §3 for the current model. Sections of this doc that describe the nesting (e.g. `villages/{villageId}/events/...` paths) are historical only.
+
 # Cultuvilla — Design Spec
 
 ## Overview
