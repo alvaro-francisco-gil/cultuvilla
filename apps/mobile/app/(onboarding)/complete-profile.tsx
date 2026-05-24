@@ -77,7 +77,7 @@ export default function CompleteProfileScreen() {
     const trimmedGiven = givenName.trim();
     const trimmedFirst = firstSurname.trim();
     const trimmedSecond = secondSurname.trim();
-    if (!trimmedGiven || !trimmedFirst || !trimmedSecond) {
+    if (!trimmedGiven || !trimmedFirst || !trimmedSecond || !birthday) {
       setError(t('onboarding.completeProfile.requiredFields'));
       return;
     }
@@ -199,6 +199,7 @@ export default function CompleteProfileScreen() {
             onChange={setBirthday}
             minimumDate={new Date(1900, 0, 1)}
             maximumDate={new Date()}
+            testID="birthday"
           />
           <VillagePicker
             label={t('onboarding.completeProfile.birthPlace')}

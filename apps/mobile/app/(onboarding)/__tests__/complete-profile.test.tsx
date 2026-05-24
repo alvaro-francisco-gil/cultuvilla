@@ -44,11 +44,11 @@ jest.mock('../../../lib/i18n', () => ({
         'onboarding.completeProfile.sex_female': 'Mujer',
         'onboarding.completeProfile.sex_male': 'Hombre',
         'onboarding.completeProfile.sex_other': 'Otro',
-        'onboarding.completeProfile.birthday': 'Fecha de nacimiento (opcional)',
+        'onboarding.completeProfile.birthday': 'Fecha de nacimiento',
         'onboarding.completeProfile.birthPlace': 'Lugar de nacimiento (opcional)',
         'onboarding.completeProfile.biography': 'Biografía (opcional)',
         'onboarding.completeProfile.submit': 'Crear perfil',
-        'onboarding.completeProfile.requiredFields': 'El nombre y los dos apellidos son obligatorios.',
+        'onboarding.completeProfile.requiredFields': 'Nombre, ambos apellidos y fecha de nacimiento son obligatorios.',
         'onboarding.completeProfile.error': 'No se pudo guardar el perfil',
       };
       return map[key] ?? key;
@@ -76,10 +76,20 @@ describe('CompleteProfileScreen', () => {
     (personService.createPerson as jest.Mock).mockImplementation(async () => { order.push('person'); return 'person-1'; });
     (userService.createUserProfile as jest.Mock).mockImplementation(async () => { order.push('user'); });
 
-    const { getByLabelText, getByText } = render(<CompleteProfileScreen />);
+    const { getByLabelText, getByTestId, getAllByText, getByText } = render(<CompleteProfileScreen />);
     fireEvent.changeText(getByLabelText('Nombre'), 'Ana');
     fireEvent.changeText(getByLabelText('Primer apellido'), 'García');
     fireEvent.changeText(getByLabelText('Segundo apellido'), 'López');
+
+    // Birthday is required — pick year/month/day.
+    fireEvent.press(getByTestId('birthday-year'));
+    fireEvent.press(getAllByText('1990')[0]);
+    fireEvent.press(getByTestId('birthday-month'));
+    fireEvent.press(getAllByText('Mayo')[0]);
+    fireEvent.press(getByTestId('birthday-day'));
+    const dayMatches = getAllByText('5');
+    fireEvent.press(dayMatches[dayMatches.length - 1]);
+
     await act(async () => {
       fireEvent.press(getByText('Crear perfil'));
     });
@@ -92,6 +102,7 @@ describe('CompleteProfileScreen', () => {
         givenName: 'Ana',
         firstSurname: 'García',
         secondSurname: 'López',
+        birthday: { year: 1990, month: 5, day: 5 },
         userId: 'uid-1',
         createdBy: 'uid-1',
       }),

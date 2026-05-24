@@ -208,11 +208,11 @@
       "sex_female": "Mujer",
       "sex_male": "Hombre",
       "sex_other": "Otro",
-      "birthday": "Fecha de nacimiento (opcional)",
+      "birthday": "Fecha de nacimiento",
       "birthPlace": "Lugar de nacimiento (opcional)",
       "biography": "Biografía (opcional)",
       "submit": "Crear perfil",
-      "requiredFields": "El nombre y los dos apellidos son obligatorios.",
+      "requiredFields": "Nombre, ambos apellidos y fecha de nacimiento son obligatorios.",
       "error": "No se pudo guardar el perfil"
     }
   },
