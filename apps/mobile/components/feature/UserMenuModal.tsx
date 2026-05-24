@@ -15,6 +15,7 @@ import Constants from 'expo-constants';
 import { Pressable } from '../primitives/Pressable';
 import { Text } from '../primitives/Text';
 import { useAuth } from '../../lib/auth/useAuth';
+import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
 import { useT } from '../../lib/i18n';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -38,6 +39,7 @@ type MenuSection = {
 
 export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
   const { profile, signOut } = useAuth();
+  const { isAppAdmin } = useIsAppAdmin();
   const { t } = useT();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
@@ -137,6 +139,20 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
         },
       ],
     },
+    ...(isAppAdmin
+      ? [
+          {
+            title: t('admin.title'),
+            items: [
+              {
+                icon: 'shield-checkmark-outline' as const,
+                label: t('admin.profileEntry'),
+                onPress: () => close(() => router.push('/admin')),
+              },
+            ],
+          },
+        ]
+      : []),
     {
       title: t('menu.section.app'),
       items: [
