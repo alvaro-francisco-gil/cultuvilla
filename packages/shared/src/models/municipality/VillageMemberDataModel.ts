@@ -11,6 +11,7 @@ export interface VillageMemberData {
   joinedAt: Date;
   profileAnswers: ProfileAnswers;
   profileCompletedAt: Date | null;
+  trustedNewsAuthor: boolean;
 }
 
 export interface VillageMemberDataInput {
@@ -18,6 +19,7 @@ export interface VillageMemberDataInput {
   joinedAt?: Date;
   profileAnswers?: ProfileAnswers;
   profileCompletedAt?: Date | null;
+  trustedNewsAuthor?: boolean;
 }
 
 export function buildVillageMemberData(input: VillageMemberDataInput = {}): VillageMemberData {
@@ -26,5 +28,6 @@ export function buildVillageMemberData(input: VillageMemberDataInput = {}): Vill
     joinedAt: input.joinedAt ?? new Date(),
     profileAnswers: input.profileAnswers ?? {},
     profileCompletedAt: input.profileCompletedAt ?? null,
+    trustedNewsAuthor: input.trustedNewsAuthor ?? false,
   };
 }

@@ -23,4 +23,14 @@ describe('buildVillageMemberData', () => {
     expect(m.profileCompletedAt).toEqual(t);
     expect(m.joinedAt).toEqual(t);
   });
+
+  it('defaults trustedNewsAuthor to false', () => {
+    const m = buildVillageMemberData();
+    expect(m.trustedNewsAuthor).toBe(false);
+  });
+
+  it('passes trustedNewsAuthor through', () => {
+    const m = buildVillageMemberData({ trustedNewsAuthor: true });
+    expect(m.trustedNewsAuthor).toBe(true);
+  });
 });
