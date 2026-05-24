@@ -28,6 +28,39 @@ const bundleIdPerEnv: Record<Env, string> = {
 //   FIREBASE_API_KEY_DEV, FIREBASE_AUTH_DOMAIN_DEV, FIREBASE_PROJECT_ID_DEV,
 //   FIREBASE_STORAGE_BUCKET_DEV, FIREBASE_MESSAGING_SENDER_ID_DEV, FIREBASE_APP_ID_DEV,
 //   (same suffixes for _BETA and _PROD)
+// Google Sign-In OAuth client IDs (one set per env). Get them from the
+// Google Cloud Console for the matching Firebase project:
+//   APIs & Services → Credentials → OAuth 2.0 Client IDs
+// You need three per env: Web (used by Firebase to verify the idToken),
+// iOS (must match the iOS bundle id), and Android (must match the package
+// name + the SHA-1 of the signing key that built the app).
+// The iOS URL scheme is the reversed iOS client id, prefixed with
+// `com.googleusercontent.apps.` — copy the "iOS URL scheme" value shown
+// by the GCP console.
+interface GoogleSignInConfig {
+  webClientId: string;
+  iosClientId: string;
+  iosUrlScheme: string;
+}
+
+const googleSignInPerEnv: Record<Env, GoogleSignInConfig> = {
+  dev: {
+    webClientId: process.env['GOOGLE_WEB_CLIENT_ID_DEV'] ?? '',
+    iosClientId: process.env['GOOGLE_IOS_CLIENT_ID_DEV'] ?? '',
+    iosUrlScheme: process.env['GOOGLE_IOS_URL_SCHEME_DEV'] ?? '',
+  },
+  beta: {
+    webClientId: process.env['GOOGLE_WEB_CLIENT_ID_BETA'] ?? '',
+    iosClientId: process.env['GOOGLE_IOS_CLIENT_ID_BETA'] ?? '',
+    iosUrlScheme: process.env['GOOGLE_IOS_URL_SCHEME_BETA'] ?? '',
+  },
+  prod: {
+    webClientId: process.env['GOOGLE_WEB_CLIENT_ID_PROD'] ?? '',
+    iosClientId: process.env['GOOGLE_IOS_CLIENT_ID_PROD'] ?? '',
+    iosUrlScheme: process.env['GOOGLE_IOS_URL_SCHEME_PROD'] ?? '',
+  },
+};
+
 const firebaseConfigPerEnv: Record<Env, FirebaseOptions> = {
   dev: {
     apiKey: process.env['FIREBASE_API_KEY_DEV'] ?? '',
@@ -83,11 +116,18 @@ const config: ExpoConfig = {
   extra: {
     APP_ENV: env,
     firebaseConfig: firebaseConfigPerEnv[env],
+    googleSignIn: googleSignInPerEnv[env],
     eas: {
       projectId: process.env['EAS_PROJECT_ID'] ?? '',
     },
   },
-  plugins: ['expo-router'],
+  plugins: [
+    'expo-router',
+    [
+      '@react-native-google-signin/google-signin',
+      { iosUrlScheme: googleSignInPerEnv[env].iosUrlScheme },
+    ],
+  ],
   experiments: {
     typedRoutes: true,
   },

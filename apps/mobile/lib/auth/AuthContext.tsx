@@ -1,4 +1,6 @@
-import { createContext, useCallback, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import type { User } from 'firebase/auth';
 import { getAuth } from '@cultuvilla/shared/firebase';
 import {
@@ -6,9 +8,28 @@ import {
   createUserWithEmailAndPassword,
   signOut as fbSignOut,
   onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithCredential,
 } from 'firebase/auth';
 import { getUserProfile } from '@cultuvilla/shared/services/userService';
 import type { UserData } from '@cultuvilla/shared/models/user';
+import {
+  GoogleSignin,
+  statusCodes,
+  isSuccessResponse,
+} from '@react-native-google-signin/google-signin';
+
+interface GoogleSignInExtra {
+  webClientId: string;
+  iosClientId: string;
+}
+
+function getGoogleSignInConfig(): GoogleSignInExtra | null {
+  const extra = Constants.expoConfig?.extra as { googleSignIn?: GoogleSignInExtra } | undefined;
+  const cfg = extra?.googleSignIn;
+  if (!cfg?.webClientId) return null;
+  return cfg;
+}
 
 type Profile = (UserData & { id: string }) | null;
 
@@ -33,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileChecked, setProfileChecked] = useState(false);
+  const googleConfigured = useRef(false);
 
   useEffect(() => {
     const auth = getAuth();
@@ -41,6 +63,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       if (!u) setProfileChecked(true);
     });
+  }, []);
+
+  useEffect(() => {
+    if (googleConfigured.current) return;
+    const cfg = getGoogleSignInConfig();
+    if (!cfg) return;
+    GoogleSignin.configure({
+      webClientId: cfg.webClientId,
+      iosClientId: cfg.iosClientId || undefined,
+    });
+    googleConfigured.current = true;
   }, []);
 
   const loadProfile = useCallback(async (uid: string) => {
@@ -70,8 +103,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, loadProfile]);
 
   const signInWithGoogle = async (): Promise<void> => {
-    // Google sign-in on mobile uses expo-auth-session or similar; not implemented yet
-    throw new Error('Google sign-in not yet configured for mobile');
+    const cfg = getGoogleSignInConfig();
+    if (!cfg) {
+      throw new Error(
+        'Google sign-in is not configured — set GOOGLE_WEB_CLIENT_ID_* in apps/mobile/.env',
+      );
+    }
+    if (Platform.OS === 'android') {
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    }
+    try {
+      const response = await GoogleSignin.signIn();
+      if (!isSuccessResponse(response)) {
+        throw new Error('Google sign-in was cancelled');
+      }
+      const idToken = response.data.idToken;
+      if (!idToken) {
+        throw new Error('Google sign-in did not return an idToken');
+      }
+      const credential = GoogleAuthProvider.credential(idToken);
+      await signInWithCredential(getAuth(), credential);
+    } catch (err) {
+      const code = (err as { code?: string } | null)?.code;
+      if (code === statusCodes.SIGN_IN_CANCELLED || code === statusCodes.IN_PROGRESS) {
+        throw new Error('Google sign-in was cancelled');
+      }
+      if (code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        throw new Error('Google Play Services are not available on this device');
+      }
+      throw err;
+    }
   };
 
   const signInWithEmail = async (email: string, password: string): Promise<void> => {
@@ -83,6 +144,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async (): Promise<void> => {
+    if (googleConfigured.current) {
+      try {
+        await GoogleSignin.signOut();
+      } catch {
+        // Ignore — user may not have signed in with Google this session.
+      }
+    }
     await fbSignOut(getAuth());
   };
 
