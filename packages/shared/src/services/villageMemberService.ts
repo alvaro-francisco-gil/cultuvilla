@@ -30,6 +30,7 @@ function mapMemberDoc(
     joinedAt: (data['joinedAt'] as Timestamp).toDate(),
     profileAnswers: ((data['profileAnswers'] as ProfileAnswers) ?? {}) as ProfileAnswers,
     profileCompletedAt: completedAtRaw ? (completedAtRaw as Timestamp).toDate() : null,
+    trustedNewsAuthor: (data['trustedNewsAuthor'] as boolean) ?? false,
   };
 }
 
