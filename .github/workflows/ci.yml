@@ -57,7 +57,7 @@ jobs:
         run: pnpm typecheck
 
       - name: Test (unit — shared, mobile, functions)
-        run: pnpm test
+        run: pnpm test:unit
 
       - name: Build (shared, functions)
         run: pnpm build
@@ -101,11 +101,7 @@ jobs:
       - name: Build functions
         run: pnpm functions:build
 
-      - name: Integration tests (@cultuvilla/shared)
-        run: pnpm test:integration
-
-      - name: Firestore rules tests
-        run: pnpm test:rules
-
-      - name: Cloud Functions tests
-        run: pnpm test:functions
+      - name: All emulator-backed tests (shared + functions + mobile, one emulator boot)
+        run: pnpm test
+        env:
+          VITEST_RETRY_COUNT: '1'

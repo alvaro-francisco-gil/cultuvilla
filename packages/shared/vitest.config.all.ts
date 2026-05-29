@@ -1,15 +1,17 @@
 import { defineConfig } from 'vitest/config';
 
+// Runs every test category in @cultuvilla/shared under a single vitest
+// invocation. Intended for orchestration by scripts/run-tests-with-emulators.mjs
+// where the Firebase emulator suite is already running. Standalone use also
+// works but the emulator must be up for integration/e2e tests to pass.
 const RETRY = Number.parseInt(process.env.VITEST_RETRY_COUNT ?? '0', 10);
 
 export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    // Provide placeholder env so test files that import the shared `firebase`
-    // entry (which initializes Auth via getFirebaseConfig at module load)
-    // don't fail. No network calls are made; these values only satisfy the
-    // fail-fast checks in packages/shared/src/config/environments.ts.
+    // Same module-load env as the unit config so files that import
+    // packages/shared/src/firebase.ts at module load don't blow up.
     env: {
       NEXT_PUBLIC_APP_ENV: 'dev',
       NEXT_PUBLIC_FIREBASE_API_KEY_DEV: 'AIzaSyTEST_DUMMY_PLACEHOLDER_KEY_0000000',
@@ -19,8 +21,6 @@ export default defineConfig({
       NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID_DEV: '0',
       NEXT_PUBLIC_FIREBASE_APP_ID_DEV: 'test-app-id',
     },
-    // Default unit-test scope. Integration and e2e suites have their own
-    // configs (vitest.config.integration.ts / vitest.config.e2e.ts).
     include: [
       'test/config/**/*.test.ts',
       'test/models/**/*.test.ts',
@@ -29,7 +29,17 @@ export default defineConfig({
       'test/eslint/**/*.test.ts',
       'test/design-system/**/*.test.ts',
       'test/utils/**/*.test.ts',
+      'test/integration/**/*.test.ts',
+      'test/e2e/**/*.test.ts',
     ],
+    setupFiles: [
+      'test/setup/integration.setup.ts',
+      'test/setup/e2e.setup.ts',
+    ],
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
+    fileParallelism: false,
+    maxConcurrency: 1,
     retry: Number.isFinite(RETRY) && RETRY > 0 ? RETRY : 0,
   },
 });
