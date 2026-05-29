@@ -11,6 +11,7 @@ export default tseslint.config(
       'src/services/registrationService.ts',
       'src/services/municipalityService.ts',
       'src/services/inviteTokenService.ts',
+      'src/services/joinRequestService.ts',
       'test/firebase/**/*.ts',
       'test/services/feedHaversine.test.ts',
       'test/services/feedDistance.test.ts',
