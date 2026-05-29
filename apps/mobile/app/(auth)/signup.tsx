@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'expo-router';
-import { Screen, VStack, Text, Input, PasswordInput, Button } from '../../components/primitives';
+import { Button, Input, PasswordInput, Text, VStack } from '../../components/primitives';
+import {
+  AuthCard,
+  AuthHeader,
+  GoogleButton,
+  OrDivider,
+} from '../../components/auth';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 
@@ -41,15 +47,16 @@ export default function SignupScreen() {
   }
 
   return (
-    <Screen>
-      <VStack gap={4}>
-        <Text variant="h2">{t('auth.signup.title')}</Text>
+    <AuthCard>
+      <AuthHeader title={t('auth.signup.title')} />
+      <VStack gap={3}>
         <Input
           label={t('auth.email')}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
+          autoComplete="email"
         />
         <PasswordInput
           label={t('auth.password')}
@@ -57,18 +64,21 @@ export default function SignupScreen() {
           onChangeText={setPassword}
           testID="signup-password"
         />
-        <Text tone="muted">{t('auth.passwordHint')}</Text>
+        <Text tone="muted" variant="bodySm">
+          {t('auth.passwordHint')}
+        </Text>
         {error != null && <Text tone="danger">{error}</Text>}
-        <Button onPress={onSubmit} loading={loading} fullWidth>
+        <Button onPress={onSubmit} loading={loading} fullWidth testID="signup-submit">
           {t('auth.signup.submit')}
         </Button>
-        <Button onPress={onGoogle} loading={googleLoading} variant="secondary" fullWidth>
-          {t('auth.signInWithGoogle')}
-        </Button>
+        <OrDivider />
+        <GoogleButton onPress={onGoogle} loading={googleLoading} testID="signup-google-button" />
         <Link href="/login">
-          <Text tone="muted">{t('auth.signup.toLogin')}</Text>
+          <Text tone="muted" className="text-center">
+            {t('auth.signup.toLogin')}
+          </Text>
         </Link>
       </VStack>
-    </Screen>
+    </AuthCard>
   );
 }
