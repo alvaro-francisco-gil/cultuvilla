@@ -10,6 +10,7 @@ import { useAuth } from '../../lib/auth/useAuth';
 import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
 import { useT } from '../../lib/i18n';
 import { isVillageAdmin } from '@cultuvilla/shared/services/villageMemberService';
+import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 
@@ -41,8 +42,14 @@ export default function VillageTabScreen() {
     }
     try {
       const [mun, isAdmin] = await Promise.all([
-        getMunicipality(activeMunicipalityId),
-        user ? isVillageAdmin(activeMunicipalityId, user.uid) : Promise.resolve(false),
+        withFirestoreErrorLog('village:getMunicipality', () =>
+          getMunicipality(activeMunicipalityId),
+        ),
+        user
+          ? withFirestoreErrorLog('village:isVillageAdmin', () =>
+              isVillageAdmin(activeMunicipalityId, user.uid),
+            )
+          : Promise.resolve(false),
       ]);
       setVillage(mun);
       setVillageAdmin(isAdmin);

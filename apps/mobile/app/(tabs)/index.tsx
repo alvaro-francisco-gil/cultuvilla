@@ -8,6 +8,7 @@ import { EventCard } from '../../components/feature/EventCard';
 import { SegmentedToggle } from '../../components/feature/SegmentedToggle';
 import { AppHeader } from '../../components/layout/AppHeader';
 import { useT } from '../../lib/i18n';
+import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
 import { getUpcomingFeed } from '@cultuvilla/shared/services/feedService';
 import type { EventData } from '@cultuvilla/shared/models/event/EventDataModel';
 
@@ -24,7 +25,10 @@ export default function FeedScreen() {
   async function load() {
     try {
       setError(null);
-      const result = await getUpcomingFeed(50);
+      const result = await withFirestoreErrorLog(
+        'feed:getUpcomingFeed',
+        () => getUpcomingFeed(50),
+      );
       setEvents(result.events);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'unknown');

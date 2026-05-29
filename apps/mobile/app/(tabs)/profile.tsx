@@ -12,6 +12,7 @@ import type { OrgListItem } from '../../components/feature/profile/OrgList';
 import { ProfileSectionHeader } from '../../components/feature/profile/ProfileSectionHeader';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
+import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
 import { pickImageAsBlob } from '../../lib/images';
 import {
   getPersonByUserId,
@@ -45,35 +46,43 @@ export default function ProfileScreen() {
     setLoading(true);
     try {
       const [self, mine] = await Promise.all([
-        getPersonByUserId(user.uid),
-        getPersonsByCreator(user.uid),
+        withFirestoreErrorLog('profile:getPersonByUserId', () => getPersonByUserId(user.uid)),
+        withFirestoreErrorLog('profile:getPersonsByCreator', () => getPersonsByCreator(user.uid)),
       ]);
       setSelfPerson(self);
       setAllPersonas(mine);
 
       const [count, regs] = await Promise.all([
-        getEventCountByCreator(user.uid),
-        getUserRegistrationsAcrossEvents(user.uid),
+        withFirestoreErrorLog('profile:getEventCountByCreator', () =>
+          getEventCountByCreator(user.uid),
+        ),
+        withFirestoreErrorLog('profile:getUserRegistrationsAcrossEvents', () =>
+          getUserRegistrationsAcrossEvents(user.uid),
+        ),
       ]);
       setEventsCreated(count);
       const distinctEvents = new Set(regs.map((r) => r.eventPath));
       setParticipations(distinctEvents.size);
 
       if (activeMunicipalityId) {
-        const munOrgs = await getOrganizationsByMunicipality(
-          activeMunicipalityId,
-          'approved'
+        const munOrgs = await withFirestoreErrorLog(
+          'profile:getOrganizationsByMunicipality',
+          () => getOrganizationsByMunicipality(activeMunicipalityId, 'approved'),
         );
-        const memberships = await getOrgMembershipsByUserInMunicipality(
-          user.uid,
-          activeMunicipalityId,
-          munOrgs.map((o) => o.id)
+        const memberships = await withFirestoreErrorLog(
+          'profile:getOrgMembershipsByUserInMunicipality',
+          () =>
+            getOrgMembershipsByUserInMunicipality(
+              user.uid,
+              activeMunicipalityId,
+              munOrgs.map((o) => o.id),
+            ),
         );
         const memberOrgIds = new Set(memberships.map((m) => m.orgId));
         setOrgs(
           munOrgs
             .filter((o) => memberOrgIds.has(o.id))
-            .map((o) => ({ id: o.id, name: o.name }))
+            .map((o) => ({ id: o.id, name: o.name })),
         );
       } else {
         setOrgs([]);
@@ -100,7 +109,10 @@ export default function ProfileScreen() {
     setUploading(true);
     try {
       await uploadPersonImage(selfPerson.id, picked);
-      const refreshed = await getPersonByUserId(user!.uid);
+      const refreshed = await withFirestoreErrorLog(
+        'profile:getPersonByUserId:refresh',
+        () => getPersonByUserId(user!.uid),
+      );
       setSelfPerson(refreshed);
     } finally {
       setUploading(false);
