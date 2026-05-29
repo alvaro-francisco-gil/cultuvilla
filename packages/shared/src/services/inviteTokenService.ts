@@ -1,79 +1,67 @@
+// packages/shared/src/services/inviteTokenService.ts
 import {
-  collection,
   doc,
   getDoc,
   getDocs,
   setDoc,
   updateDoc,
   deleteDoc,
-  serverTimestamp,
-  Timestamp,
   increment,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { getDb, getFirebaseFunctions } from '../firebase';
+import {
+  municipalityInviteTokensCollection,
+  municipalityInviteTokenDoc,
+} from '../firebase/refs/client';
 import type { InviteTokenData } from '../models/municipality/InviteTokenDataModel';
 import { isTokenExpired } from '../models/municipality/InviteTokenDataModel';
 
-function tokensCol(municipalityId: string) {
-  return collection(getDb(), 'municipalities', municipalityId, 'inviteTokens');
-}
-
-function mapTokenDoc(d: { id: string; data: () => Record<string, unknown> }): InviteTokenData & { id: string } {
-  const data = d.data();
-  const expiresAtRaw = data['expiresAt'];
-  return {
-    id: d.id,
-    createdAt: (data['createdAt'] as Timestamp).toDate(),
-    expiresAt: expiresAtRaw ? (expiresAtRaw as Timestamp).toDate() : null,
-    usageCount: (data['usageCount'] as number) ?? 0,
-  };
-}
-
 export async function createInviteToken(
   municipalityId: string,
-  expiresAt?: Date | null
+  expiresAt?: Date | null,
 ): Promise<string> {
-  const newRef = doc(tokensCol(municipalityId));
-  await setDoc(newRef, {
-    createdAt: serverTimestamp(),
-    expiresAt: expiresAt ? Timestamp.fromDate(expiresAt) : null,
+  const newRef = doc(municipalityInviteTokensCollection(getDb(), municipalityId));
+  const data: InviteTokenData = {
+    createdAt: new Date(),
+    expiresAt: expiresAt ?? null,
     usageCount: 0,
-  });
+  };
+  await setDoc(newRef, data);
   return newRef.id;
 }
 
 export async function validateInviteToken(
   municipalityId: string,
-  tokenId: string
+  tokenId: string,
 ): Promise<boolean> {
-  const snap = await getDoc(doc(tokensCol(municipalityId), tokenId));
+  const snap = await getDoc(municipalityInviteTokenDoc(getDb(), municipalityId, tokenId));
   if (!snap.exists()) return false;
-  const token = mapTokenDoc(snap as Parameters<typeof mapTokenDoc>[0]);
-  return !isTokenExpired(token);
+  return !isTokenExpired(snap.data());
 }
 
 export async function consumeInviteToken(
   municipalityId: string,
-  tokenId: string
+  tokenId: string,
 ): Promise<void> {
-  await updateDoc(doc(tokensCol(municipalityId), tokenId), {
+  // updateDoc bypasses the converter; use untyped doc for the increment.
+  await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'inviteTokens', tokenId), {
     usageCount: increment(1),
   });
 }
 
 export async function getInviteTokens(
-  municipalityId: string
+  municipalityId: string,
 ): Promise<(InviteTokenData & { id: string })[]> {
-  const snap = await getDocs(tokensCol(municipalityId));
-  return snap.docs.map((d) => mapTokenDoc(d as Parameters<typeof mapTokenDoc>[0]));
+  const snap = await getDocs(municipalityInviteTokensCollection(getDb(), municipalityId));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 export async function deleteInviteToken(
   municipalityId: string,
-  tokenId: string
+  tokenId: string,
 ): Promise<void> {
-  await deleteDoc(doc(tokensCol(municipalityId), tokenId));
+  await deleteDoc(municipalityInviteTokenDoc(getDb(), municipalityId, tokenId));
 }
 
 export interface AcceptInviteProfile {
