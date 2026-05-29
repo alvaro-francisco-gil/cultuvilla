@@ -1,10 +1,15 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import {
+  municipalityDoc,
+  municipalityJoinRequestDoc,
+  municipalityMemberDoc,
+} from '@cultuvilla/shared/firebase/refs/admin';
+import type { VillageMemberData } from '@cultuvilla/shared';
 import { notifyJoinRequestResolved } from './helpers/notifyRequests';
 
-const db = admin.firestore();
+const db = getFirestore();
 
 interface RespondToJoinRequestData {
   municipalityId?: string;
@@ -26,16 +31,18 @@ export const respondToJoinRequest = onCall<
     const auth = request.auth;
     if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
-    const { municipalityId, userId, decision } = request.data ?? {};
+    const { municipalityId, userId, decision } = request.data;
     if (!municipalityId || !userId || (decision !== 'approved' && decision !== 'rejected')) {
       throw new HttpsError('invalid-argument', 'Argumentos inválidos.');
     }
 
     const callerUid = auth.uid;
-    const muniRef = db.doc(`municipalities/${municipalityId}`);
-    const memberRef = db.doc(`municipalities/${municipalityId}/members/${userId}`);
-    const reqRef = db.doc(`municipalities/${municipalityId}/joinRequests/${userId}`);
-    const callerMemberRef = db.doc(`municipalities/${municipalityId}/members/${callerUid}`);
+    const muniRef = municipalityDoc(db, municipalityId);
+    const memberRef = municipalityMemberDoc(db, municipalityId, userId);
+    const reqRef = municipalityJoinRequestDoc(db, municipalityId, userId);
+    const callerMemberRef = municipalityMemberDoc(db, municipalityId, callerUid);
+    // admins/ collection has no typed ref yet — it's only ever existence-
+    // checked here, so raw access is fine.
     const adminRef = db.doc(`admins/${callerUid}`);
 
     let municipalityName = '';
@@ -47,18 +54,23 @@ export const respondToJoinRequest = onCall<
         tx.get(adminRef),
       ]);
 
-      const isVillageAdmin = callerSnap.exists && callerSnap.get('role') === 'admin';
-      const isCommunityAdmin = muniSnap.get('community.adminUserId') === callerUid;
+      // Converter-wrapped reads: typed snapshots.
+      const callerData = callerSnap.data();
+      const isVillageAdmin = callerSnap.exists && callerData?.role === 'admin';
+      const muniData = muniSnap.data();
+      const isCommunityAdmin = muniData?.community?.adminUserId === callerUid;
       const isAppAdmin = appAdminSnap.exists;
       if (!(isVillageAdmin || isCommunityAdmin || isAppAdmin)) {
         throw new HttpsError('permission-denied', 'No autorizado.');
       }
       if (!reqSnap.exists) throw new HttpsError('not-found', 'Solicitud no encontrada.');
-      if (reqSnap.get('status') !== 'pending') {
+      const reqData = reqSnap.data();
+      if (reqData?.status !== 'pending') {
         throw new HttpsError('failed-precondition', 'La solicitud ya fue resuelta.');
       }
-      municipalityName = (muniSnap.get('name') as string) ?? municipalityId;
+      municipalityName = muniData?.name ?? municipalityId;
 
+      // tx.update bypasses the converter, so FieldValue.serverTimestamp() works.
       tx.update(reqRef, {
         status: decision,
         reviewedAt: FieldValue.serverTimestamp(),
@@ -66,13 +78,17 @@ export const respondToJoinRequest = onCall<
       });
 
       if (decision === 'approved') {
-        tx.set(memberRef, {
+        // Converter rejects FieldValue sentinels; joinedAt is a plain Date.
+        // trustedNewsAuthor is required by VillageMemberDataSchema.
+        const newMember: VillageMemberData = {
           userId,
           role: 'user',
-          joinedAt: FieldValue.serverTimestamp(),
+          joinedAt: new Date(),
           profileAnswers: {},
           profileCompletedAt: null,
-        });
+          trustedNewsAuthor: false,
+        };
+        tx.set(memberRef, newMember);
       }
     });
 

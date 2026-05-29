@@ -13,6 +13,7 @@ export default tseslint.config(
       'src/syncVillageDenormalization.ts',
       'src/acceptInvite.ts',
       'src/requestJoinVillage.ts',
+      'src/respondToJoinRequest.ts',
     ],
     extends: [
       ...tseslint.configs.recommendedTypeChecked,

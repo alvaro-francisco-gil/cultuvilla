@@ -17,16 +17,33 @@ async function seedMunicipality(opts: {
   communityActive: boolean;
   adminUserId?: string | null;
 }): Promise<void> {
+  // Schema-conformant write (MunicipalityDataSchema) so the handler's typed
+  // ref converter can normalize-and-parse the doc when it reads.
   await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}`).set({
     name: 'Villarriba',
+    nameLower: 'villarriba',
+    province: 'Madrid',
+    comunidadAutonoma: 'Madrid',
+    codigoINE: '28000',
+    coordinates: null,
+    createdAt: admin.firestore.Timestamp.fromDate(new Date('2026-01-01')),
+    escudoUrl: null,
+    escudoThumbUrl: null,
     communityActive: opts.communityActive,
     community: opts.adminUserId
-      ? { adminUserId: opts.adminUserId, description: '', coverImages: [] }
+      ? {
+          adminUserId: opts.adminUserId,
+          description: '',
+          coverImages: [],
+          profileForm: null,
+          activatedAt: admin.firestore.Timestamp.fromDate(new Date('2026-01-01')),
+        }
       : null,
   });
 }
 
 async function seedMember(userId: string, role: 'admin' | 'user'): Promise<void> {
+  // Schema-conformant write (VillageMemberDataSchema).
   await admin
     .firestore()
     .doc(`municipalities/${MUNICIPALITY_ID}/members/${userId}`)
@@ -34,6 +51,9 @@ async function seedMember(userId: string, role: 'admin' | 'user'): Promise<void>
       userId,
       role,
       joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+      profileAnswers: {},
+      profileCompletedAt: null,
+      trustedNewsAuthor: false,
     });
 }
 
