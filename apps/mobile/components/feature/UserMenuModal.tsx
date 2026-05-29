@@ -204,8 +204,15 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
         ]}
       >
         <Animated.View
-          className="absolute left-0 right-0 bottom-0 bg-surface-elevated"
-          style={{ height: SCREEN_HEIGHT, transform: [{ translateY: slideAnim }] }}
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: SCREEN_HEIGHT,
+            backgroundColor: '#ffffff',
+            transform: [{ translateY: slideAnim }],
+          }}
         >
           <View
             className="flex-row items-center justify-between px-4 border-b border-subtle"

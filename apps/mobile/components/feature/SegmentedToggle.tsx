@@ -14,6 +14,15 @@ export type SegmentedToggleProps<T extends string> = {
   onChange: (value: T) => void;
 };
 
+// NativeWind 4 strips `className` from Animated.View on the web target, so
+// any class set there silently no-ops (the indicator was rendering without
+// `position: absolute`, which pushed both pressables into the right half).
+// All Animated.View styling is therefore inlined. Colors mirror the design
+// tokens at packages/shared/src/design-system/tokens/colors.ts:
+//   surface         = palette.cream (#f9f0e8)
+//   subtle          = palette.peach (#dcab93)  (applied via the View track)
+const INDICATOR_BG = '#f9f0e8';
+
 /**
  * Pill-style segmented toggle with an animated sliding indicator.
  * Inspired by ordago-apps' TORNEOS/PARTIDAS switch.
@@ -41,19 +50,29 @@ export function SegmentedToggle<T extends string>({
 
   const segmentWidth = trackWidth > 0 ? Math.max((trackWidth - 4) / options.length, 0) : 0;
 
+  // TEMP DIAGNOSTIC — remove once toggle rendering is verified on web.
+  if (typeof window !== 'undefined') {
+    // eslint-disable-next-line no-console
+    console.log('[SegmentedToggle]', { trackWidth, segmentWidth, activeIndex });
+  }
+
   return (
     <View
       className="flex-row bg-subtle rounded-md p-[2px]"
       onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
     >
       <Animated.View
-        pointerEvents="none"
-        className="absolute bg-surface rounded-md"
         style={{
+          position: 'absolute',
           top: 2,
           bottom: 2,
           left: 2,
           width: segmentWidth,
+          backgroundColor: INDICATOR_BG,
+          borderRadius: 8,
+          pointerEvents: 'none',
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.08)',
+          elevation: 2,
           transform: [
             {
               translateX: indicatorAnim.interpolate({
@@ -62,14 +81,9 @@ export function SegmentedToggle<T extends string>({
               }),
             },
           ],
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.08,
-          shadowRadius: 2,
-          elevation: 2,
         }}
       />
-      {options.map((opt) => {
+      {options.map((opt, i) => {
         const isActive = opt.value === value;
         return (
           <Pressable
@@ -81,6 +95,13 @@ export function SegmentedToggle<T extends string>({
               variant="caption"
               tone={isActive ? 'primary' : 'muted'}
               className="uppercase font-semibold"
+              onLayout={(e) => {
+                if (typeof window !== 'undefined') {
+                  const { x, width } = e.nativeEvent.layout;
+                  // eslint-disable-next-line no-console
+                  console.log(`[SegmentedToggle] text[${i}] "${opt.label}"`, { x, width });
+                }
+              }}
             >
               {opt.label}
             </Text>
