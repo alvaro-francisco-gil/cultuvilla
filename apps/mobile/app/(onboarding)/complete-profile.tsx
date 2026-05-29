@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { ScrollView } from 'react-native';
-import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import {
   Screen,
@@ -133,7 +132,10 @@ export default function CompleteProfileScreen() {
       }
 
       await refreshProfile();
-      router.replace({ pathname: '/(tabs)' });
+      // AuthGate (_layout.tsx) owns post-onboarding routing — once
+      // refreshProfile() settles, needsOnboarding flips false and its
+      // <Redirect> moves us into (tabs). Calling router.replace here races
+      // with that and fires before (tabs) is mounted in the navigator.
     } catch (e) {
       setError(e instanceof Error ? e.message : t('onboarding.completeProfile.error'));
     } finally {
