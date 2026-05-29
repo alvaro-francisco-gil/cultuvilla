@@ -68,6 +68,19 @@ describe('denormalize', () => {
     expect(out.thing).toEqual({ lat: 1, lng: 2, label: 'home' });
   });
 
+  it('treats {lat, lng, extra: undefined} as coordinates (undefined keys are tolerated)', () => {
+    const out = denormalize({ coords: { lat: 1, lng: 2, alt: undefined } }, fakeSdk) as { coords: FakeGeoPoint };
+    expect(out.coords).toBeInstanceOf(FakeGeoPoint);
+    expect(out.coords.latitude).toBe(1);
+    expect(out.coords.longitude).toBe(2);
+  });
+
+  it('rejects {lat, lng} when either value is not a number', () => {
+    const input = { coords: { lat: '1', lng: 2 } };
+    const out = denormalize(input, fakeSdk) as { coords: unknown };
+    expect(out.coords).toEqual({ lat: '1', lng: 2 });  // passes through untouched
+  });
+
   it('passes primitives and null through unchanged', () => {
     expect(denormalize({ a: 1, b: 'x', c: null, d: false }, fakeSdk)).toEqual({
       a: 1, b: 'x', c: null, d: false,

@@ -31,10 +31,12 @@ export function normalize(value: unknown, sdk: SdkCtors): unknown {
 
 function isLatLng(v: unknown): v is { lat: number; lng: number } {
   if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
-  const keys = Object.keys(v);
-  if (keys.length !== 2) return false;
   const o = v as Record<string, unknown>;
-  return typeof o.lat === 'number' && typeof o.lng === 'number';
+  if (typeof o.lat !== 'number' || typeof o.lng !== 'number') return false;
+  for (const k of Object.keys(o)) {
+    if (k !== 'lat' && k !== 'lng' && o[k] !== undefined) return false;
+  }
+  return true;
 }
 
 export function denormalize(value: unknown, sdk: SdkCtors): unknown {
