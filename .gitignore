@@ -24,6 +24,9 @@ database-debug.log
 *service-account*.json
 dev-sa.json
 
+# Firebase CLI state — records which Google account the CLI is logged in as
+.firebase-account
+
 # Locally-downloaded escudos (coats of arms) — large, do not commit
 scripts/data/escudos/
 scripts/data/escudos-webp/

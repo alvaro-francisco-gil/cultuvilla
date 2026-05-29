@@ -50,12 +50,6 @@ export function SegmentedToggle<T extends string>({
 
   const segmentWidth = trackWidth > 0 ? Math.max((trackWidth - 4) / options.length, 0) : 0;
 
-  // TEMP DIAGNOSTIC — remove once toggle rendering is verified on web.
-  if (typeof window !== 'undefined') {
-    // eslint-disable-next-line no-console
-    console.log('[SegmentedToggle]', { trackWidth, segmentWidth, activeIndex });
-  }
-
   return (
     <View
       className="flex-row bg-subtle rounded-md p-[2px]"
@@ -83,7 +77,7 @@ export function SegmentedToggle<T extends string>({
           ],
         }}
       />
-      {options.map((opt, i) => {
+      {options.map((opt) => {
         const isActive = opt.value === value;
         return (
           <Pressable
@@ -95,13 +89,6 @@ export function SegmentedToggle<T extends string>({
               variant="caption"
               tone={isActive ? 'primary' : 'muted'}
               className="uppercase font-semibold"
-              onLayout={(e) => {
-                if (typeof window !== 'undefined') {
-                  const { x, width } = e.nativeEvent.layout;
-                  // eslint-disable-next-line no-console
-                  console.log(`[SegmentedToggle] text[${i}] "${opt.label}"`, { x, width });
-                }
-              }}
             >
               {opt.label}
             </Text>
