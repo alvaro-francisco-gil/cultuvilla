@@ -1,0 +1,55 @@
+import { describe, it, expect } from 'vitest';
+import {
+  VillageMemberDataSchema,
+  buildVillageMemberData,
+} from '../../../src/models/municipality/VillageMemberDataModel';
+
+const validMember = {
+  role: 'user' as const,
+  joinedAt: new Date('2026-01-01T00:00:00Z'),
+  profileAnswers: { barrio: 'Centro', householdSize: 4 },
+  profileCompletedAt: null,
+  trustedNewsAuthor: false,
+};
+
+describe('VillageMemberDataSchema', () => {
+  it('parses a valid member', () => {
+    expect(() => VillageMemberDataSchema.parse(validMember)).not.toThrow();
+  });
+
+  it('rejects an unknown role', () => {
+    expect(() =>
+      VillageMemberDataSchema.parse({ ...validMember, role: 'moderator' }),
+    ).toThrow();
+  });
+
+  it('rejects missing trustedNewsAuthor', () => {
+    const { trustedNewsAuthor, ...rest } = validMember;
+    expect(() => VillageMemberDataSchema.parse(rest)).toThrow();
+  });
+});
+
+describe('buildVillageMemberData', () => {
+  it('fills defaults and round-trips through the schema', () => {
+    const m = buildVillageMemberData();
+    expect(m.role).toBe('user');
+    expect(m.profileAnswers).toEqual({});
+    expect(m.profileCompletedAt).toBeNull();
+    expect(m.trustedNewsAuthor).toBe(false);
+    expect(() => VillageMemberDataSchema.parse(m)).not.toThrow();
+  });
+
+  it('preserves provided fields', () => {
+    const t = new Date('2026-05-01T00:00:00Z');
+    const m = buildVillageMemberData({
+      role: 'admin',
+      joinedAt: t,
+      profileAnswers: { barrio: 'Centro' },
+      profileCompletedAt: t,
+      trustedNewsAuthor: true,
+    });
+    expect(m.role).toBe('admin');
+    expect(m.trustedNewsAuthor).toBe(true);
+    expect(() => VillageMemberDataSchema.parse(m)).not.toThrow();
+  });
+});

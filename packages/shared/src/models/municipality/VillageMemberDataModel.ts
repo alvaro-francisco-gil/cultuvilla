@@ -1,23 +1,26 @@
-import type { ProfileAnswers } from './CensoTypes';
+import { z } from 'zod';
+import { ProfileAnswersSchema } from './CensoTypes';
 
-export type VillageMemberRole = 'admin' | 'user';
+export const VillageMemberRoleSchema = z.enum(['admin', 'user']);
+export type VillageMemberRole = z.infer<typeof VillageMemberRoleSchema>;
 
 /**
  * A member of the community living on a municipality.
  * Stored at /municipalities/{municipalityId}/members/{userId}.
  */
-export interface VillageMemberData {
-  role: VillageMemberRole;
-  joinedAt: Date;
-  profileAnswers: ProfileAnswers;
-  profileCompletedAt: Date | null;
-  trustedNewsAuthor: boolean;
-}
+export const VillageMemberDataSchema = z.object({
+  role: VillageMemberRoleSchema,
+  joinedAt: z.date(),
+  profileAnswers: ProfileAnswersSchema,
+  profileCompletedAt: z.date().nullable(),
+  trustedNewsAuthor: z.boolean(),
+});
+export type VillageMemberData = z.infer<typeof VillageMemberDataSchema>;
 
 export interface VillageMemberDataInput {
   role?: VillageMemberRole;
   joinedAt?: Date;
-  profileAnswers?: ProfileAnswers;
+  profileAnswers?: z.infer<typeof ProfileAnswersSchema>;
   profileCompletedAt?: Date | null;
   trustedNewsAuthor?: boolean;
 }
