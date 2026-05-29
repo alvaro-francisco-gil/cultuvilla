@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, router } from 'expo-router';
+import { Link } from 'expo-router';
 import { Screen, VStack, Text, Input, PasswordInput, Button } from '../../components/primitives';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
@@ -18,7 +18,9 @@ export default function SignupScreen() {
     setLoading(true);
     try {
       await signUpWithEmail(email, password);
-      router.replace('/(tabs)');
+      // AuthGate (app/_layout.tsx) handles the redirect once the user's
+      // profile state settles. Calling router.replace here races with its
+      // Stack unmount and dispatches into a missing navigator.
     } catch (e) {
       setError(e instanceof Error ? e.message : t('auth.error.unknown'));
     } finally {
@@ -31,7 +33,6 @@ export default function SignupScreen() {
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
-      router.replace('/(tabs)');
     } catch (e) {
       setError(e instanceof Error ? e.message : t('auth.error.unknown'));
     } finally {

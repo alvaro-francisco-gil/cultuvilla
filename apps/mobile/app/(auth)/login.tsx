@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, router } from 'expo-router';
+import { Link } from 'expo-router';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { getAuth } from '@cultuvilla/shared/firebase';
 import { Screen, VStack, Text, Input, PasswordInput, Button, Pressable } from '../../components/primitives';
@@ -20,7 +20,9 @@ export default function LoginScreen() {
     setError(null); setInfo(null); setLoading(true);
     try {
       await signInWithEmail(email, password);
-      router.replace('/(tabs)');
+      // Routing is owned by AuthGate (app/_layout.tsx) — calling router.replace
+      // here races with the AuthGate Stack unmount while the user's Firestore
+      // profile is loading and dispatches into a navigator that doesn't exist.
     } catch (e) {
       setError(e instanceof Error ? e.message : t('auth.error.unknown'));
     } finally {
@@ -32,7 +34,6 @@ export default function LoginScreen() {
     setError(null); setInfo(null); setGoogleLoading(true);
     try {
       await signInWithGoogle();
-      router.replace('/(tabs)');
     } catch (e) {
       setError(e instanceof Error ? e.message : t('auth.error.unknown'));
     } finally {

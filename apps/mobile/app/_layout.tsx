@@ -1,5 +1,5 @@
 import './../global.css';
-import { Redirect, Stack, usePathname } from 'expo-router';
+import { Redirect, Stack, useSegments } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts, Fraunces_700Bold } from '@expo-google-fonts/fraunces';
 import { bootstrapFirebase } from '../lib/firebaseInit';
@@ -32,7 +32,7 @@ export default function RootLayout() {
 
 function AuthGate() {
   const { user, loading, profile, profileChecked } = useAuth();
-  const pathname = usePathname();
+  const segments = useSegments();
 
   if (loading || (user && !profileChecked)) {
     return (
@@ -43,9 +43,17 @@ function AuthGate() {
   }
   const needsOnboarding =
     !!user && profileChecked && (!profile || !profile.personId);
-  const onOnboardingRoute = pathname?.startsWith('/(onboarding)') || pathname === '/complete-profile';
-  if (needsOnboarding && !onOnboardingRoute) {
+  const inOnboardingGroup = segments[0] === '(onboarding)';
+  const inAuthGroup = segments[0] === '(auth)';
+
+  if (needsOnboarding && !inOnboardingGroup) {
     return <Redirect href="/(onboarding)/complete-profile" />;
+  }
+  // Authenticated + fully onboarded users should never be sitting on an
+  // /(auth) screen. Single source of truth for post-login routing — keep
+  // login/signup screens from racing with this redirect.
+  if (user && !needsOnboarding && inAuthGroup) {
+    return <Redirect href="/(tabs)" />;
   }
   return <Stack screenOptions={{ headerShown: false }} />;
 }
