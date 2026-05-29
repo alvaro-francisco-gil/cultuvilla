@@ -10,7 +10,27 @@ import { initializeAuth, getReactNativePersistence } from '@firebase/auth';
 import type { FirebaseOptions } from 'firebase/app';
 import Constants from 'expo-constants';
 import { initFirebase } from '@cultuvilla/shared/firebase';
+import { FirebaseError } from '@firebase/util';
 import { initMobileAppCheck } from './appCheck';
+
+declare const __DEV__: boolean;
+
+let unhandledHookInstalled = false;
+function installUnhandledFirestoreDenyHook(): void {
+  if (!__DEV__ || unhandledHookInstalled) return;
+  unhandledHookInstalled = true;
+  const target: { addEventListener?: typeof globalThis.addEventListener } =
+    globalThis as never;
+  if (typeof target.addEventListener !== 'function') return;
+  target.addEventListener('unhandledrejection', (event: { reason?: unknown }) => {
+    const reason = (event as { reason?: unknown }).reason;
+    if (reason instanceof FirebaseError && reason.code === 'permission-denied') {
+      console.warn(
+        `[firestore-deny:unhandled] code=${reason.code} stack=${reason.stack ?? '<no stack>'}`,
+      );
+    }
+  });
+}
 
 /**
  * Read the per-environment FirebaseOptions that app.config.ts wrote into
@@ -49,4 +69,5 @@ export function bootstrapFirebase(): void {
     });
   }
   initMobileAppCheck();
+  installUnhandledFirestoreDenyHook();
 }
