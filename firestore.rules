@@ -241,6 +241,22 @@ service cloud.firestore {
         );
     }
 
+    // Collection-group queries: allow authenticated users to list only their
+    // own rows. These rules are evaluated for CG list operations on the named
+    // sub-collection regardless of which parent collection they live under.
+    // "allow read: if true" on nested paths allows single-doc gets but does
+    // NOT satisfy list operations on a collection-group in Firestore Rules v2.
+
+    match /{path=**}/members/{userId} {
+      allow list: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    match /{path=**}/registrations/{regId} {
+      allow list: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
     // occupations — superadmin managed list
     match /occupations/{occupationId} {
       allow read: if true;
