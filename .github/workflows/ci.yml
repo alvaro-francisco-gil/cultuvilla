@@ -16,7 +16,8 @@ concurrency:
 env:
   # CI builds against dev and never talks to Firebase. Placeholder values
   # satisfy the fail-fast check in packages/shared/src/config/environments.ts.
-  # Real values for deployed envs live in Vercel; CI does not deploy.
+  # Real deploy values live in apps/mobile/.env on the deployer's machine
+  # (Expo bakes them into the static bundle); CI does not deploy.
   NEXT_PUBLIC_APP_ENV: dev
   NEXT_PUBLIC_FIREBASE_API_KEY_DEV: ci-placeholder
   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN_DEV: ci.example.com

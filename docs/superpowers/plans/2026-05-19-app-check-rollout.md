@@ -41,7 +41,7 @@ Each Firebase project (`villa-events`, `cultuvilla-beta`, `cultuvilla-prod`) nee
 1. **reCAPTCHA Enterprise key** in GCP console:
    - Security → reCAPTCHA Enterprise → Create key
    - Key type: **Website**
-   - Domains: `localhost`, `*.vercel.app` (or the team-specific subdomain), any apex domain in use
+   - Domains: `localhost`, the Firebase Hosting domains (`villa-events.web.app` / `cultuvilla-beta.web.app` / `cultuvilla-prod.web.app` plus their `.firebaseapp.com` aliases), and any apex domain in use
    - Copy the **site key**
 
 2. **App Check provider registration** in Firebase console:
@@ -250,9 +250,9 @@ Repeat for each of `villa-events`, `cultuvilla-beta`, `cultuvilla-prod`. Start w
    - GCP console → switch to project (`cultuvilla-prod`, etc.) → Security → reCAPTCHA Enterprise → "Create key"
    - Key type: **Website**
    - Domains:
-     - For prod: apex domain (when configured), `*.vercel.app`
-     - For beta: `*.vercel.app` (or beta subdomain if/when configured)
-     - For dev: `localhost`, `*.vercel.app`
+     - For prod: apex domain (when configured), `cultuvilla-prod.web.app`, `cultuvilla-prod.firebaseapp.com`
+     - For beta: `cultuvilla-beta.web.app`, `cultuvilla-beta.firebaseapp.com` (plus beta subdomain if/when configured)
+     - For dev: `localhost`, `villa-events.web.app`, `villa-events.firebaseapp.com`
    - Copy the site key (looks like `6Lc...`).
 
 - [ ] **Step 2: Register the provider in Firebase console**
@@ -263,13 +263,12 @@ Repeat for each of `villa-events`, `cultuvilla-beta`, `cultuvilla-prod`. Start w
 
 - [ ] **Step 3: Add the site key to env vars**
 
-   - Local: edit `apps/web/.env.local` and fill `NEXT_PUBLIC_RECAPTCHA_SITE_KEY_<ENV>`.
-   - Vercel: `printf "<site-key>" | vercel env add NEXT_PUBLIC_RECAPTCHA_SITE_KEY_<ENV> <scope>` for the appropriate scope (or via Vercel dashboard).
+   - Local + deploys: edit `apps/mobile/.env` and fill `NEXT_PUBLIC_RECAPTCHA_SITE_KEY_<ENV>`. Expo bakes the value into the static bundle at build time, so the deployer's local env is the source of truth — there is no central secret store for Hosting.
 
 - [ ] **Step 4: Redeploy**
 
-   - Vercel auto-deploys on push to the relevant branch. Or trigger manually.
-   - Local: restart `pnpm web:dev`.
+   - Run `pnpm deploy:hosting:<env>` from the deployer's machine.
+   - Local: restart the Expo dev server.
 
 - [ ] **Step 5: Verify in browser**
 

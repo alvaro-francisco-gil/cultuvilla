@@ -3,7 +3,9 @@
  *
  * Each environment has its own set of NEXT_PUBLIC_FIREBASE_*_<ENV> keys
  * (suffix `_DEV`, `_BETA`, or `_PROD`). Local development reads from
- * `.env.local`; Vercel reads from the project's env-var configuration.
+ * `.env.local`; values for deployed builds are baked into the bundle at
+ * build time from the deployer's local env (no central secret store —
+ * these Firebase Web SDK values are public identifiers, not secrets).
  *
  * The active environment is chosen by `NEXT_PUBLIC_APP_ENV` (one of
  * "dev" | "beta" | "prod"). `getFirebaseConfig()` returns the config
@@ -40,8 +42,8 @@ export function resolveAppEnv(raw: string | undefined): AppEnv {
   if (raw === 'dev' || raw === 'beta' || raw === 'prod') return raw;
   throw new Error(
     `NEXT_PUBLIC_APP_ENV must be one of ${APP_ENVS.join(', ')} ` +
-      `(got ${JSON.stringify(raw)}). Set it in .env.local for local ` +
-      `development, or in your Vercel project's env vars for deployments.`,
+      `(got ${JSON.stringify(raw)}). Set it in .env.local (or the ` +
+      `deployer's apps/mobile/.env for hosting builds).`,
   );
 }
 
@@ -100,7 +102,8 @@ function assertComplete(env: AppEnv, cfg: FirebaseWebConfig): void {
   const suffix = env.toUpperCase();
   throw new Error(
     `Missing Firebase config for "${env}": ${missing.join(', ')}. ` +
-      `Set NEXT_PUBLIC_FIREBASE_*_${suffix} env vars in .env.local or Vercel.`,
+      `Set NEXT_PUBLIC_FIREBASE_*_${suffix} env vars in .env.local ` +
+      `(or apps/mobile/.env for hosting builds).`,
   );
 }
 

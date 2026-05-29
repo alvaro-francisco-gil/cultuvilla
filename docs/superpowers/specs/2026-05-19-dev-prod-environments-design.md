@@ -11,6 +11,14 @@
 > time by a single `NEXT_PUBLIC_APP_ENV` var. This was superseded by
 > Amendment #2.
 >
+> **Amendment #3 (2026-05-29):** The web app moved from Vercel to Firebase
+> Hosting (Expo web export served as a static bundle via
+> `pnpm deploy:hosting:<env>`). `apps/web` was deleted; `apps/mobile` is the
+> only UI. Env vars now live in `apps/mobile/.env` (read by `app.config.ts`,
+> baked into the bundle at build time) — there is no central env-var store,
+> the deployer's local `.env` is the source of truth. All Vercel references
+> below are historical; see `docs/ENVIRONMENTS.md` for the current setup.
+>
 > **Amendment #2 (2026-05-19):** A third environment (`beta`) was added —
 > "proper" multi-env layout (dev → beta → prod), Firebase free-tier so cost
 > is zero. The committed-config approach was reverted in favour of
@@ -212,10 +220,10 @@ If beta later gets its own Vercel project (or scope), set `NEXT_PUBLIC_APP_ENV=b
 | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | Accidentally deploying functions/rules to beta or prod from a dev machine. | All deploy scripts require an explicit `:beta` or `:prod` suffix. No bare `firebase deploy` shortcut. |
 | Seed script run against beta/prod by mistake.              | Seed script reads `GOOGLE_CLOUD_PROJECT` from env and fails closed if not set. No `:beta` / `:prod` shortcuts. |
-| Misconfigured Vercel scope → wrong env at runtime.         | `getFirebaseConfig` is fail-fast: unknown `NEXT_PUBLIC_APP_ENV` or missing `NEXT_PUBLIC_FIREBASE_*_<ENV>` values throw with a clear error listing what's missing. Production build with the wrong selector value won't start, surfacing the problem immediately. |
+| Misconfigured deploy env → wrong Firebase project at runtime. | `getFirebaseConfig` is fail-fast: unknown `NEXT_PUBLIC_APP_ENV` or missing `NEXT_PUBLIC_FIREBASE_*_<ENV>` values throw with a clear error listing what's missing. Production build with the wrong selector value won't start, surfacing the problem immediately. |
 | Firebase Auth providers differ between envs and break sign-in. | Mirror provider config across all three projects at creation time. Documented in `docs/ENVIRONMENTS.md`. |
 | Functions deployed to prod reference dev-only resources.   | Functions code is project-agnostic (`admin.initializeApp()` picks up the runtime project). |
-| Contributor onboarding: where do values come from?         | `.env.example` is committed with all keys + comments. `vercel env pull` is documented as a shortcut. Errors at startup name the missing vars. |
+| Contributor onboarding: where do values come from?         | `apps/mobile/.env.example` is committed with all keys + comments. Errors at startup name the missing vars. |
 
 ## 7. Rollback
 

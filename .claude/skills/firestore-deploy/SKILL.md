@@ -81,7 +81,7 @@ If the user insists, repeat back what will be deployed and to which env, then re
 
 - Rolling back a deploy. Direct the user to Firebase Console history; don't attempt automated rollback.
 - Storage rules-only deploys via a dedicated script — `pnpm deploy:rules:*` covers rules and storage together in cultuvilla. If storage-only is needed, fall back to `firebase deploy --only storage --project dev` after the diff check, and flag it to the user.
-- App/web deploys — Vercel handles `apps/web/`, not Firebase CLI.
+- App/web deploys — use `pnpm deploy:hosting:<env>` (Firebase Hosting), which is outside this skill's `deploy:rules|indexes|firestore|functions` scope. Refuse a request to bundle hosting into a rules/indexes/functions deploy.
 
 ## Companion skills
 

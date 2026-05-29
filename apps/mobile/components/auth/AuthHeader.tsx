@@ -16,7 +16,7 @@ export function AuthHeader({ title }: AuthHeaderProps) {
       <Text
         variant="display"
         className="text-center text-accent mt-4"
-        style={{ fontSize: 44, lineHeight: 48, fontWeight: '800' }}
+        style={{ fontSize: 18, lineHeight: 24, fontWeight: '800' }}
       >
         {title}
       </Text>
