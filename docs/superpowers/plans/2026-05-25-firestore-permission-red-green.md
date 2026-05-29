@@ -656,4 +656,9 @@ Invoke `superpowers:finishing-a-development-branch` to choose how to merge the w
 
 ## Phase A Findings
 
-_(Filled in during Task 4.)_
+Captured 2026-05-29 via `scripts/avd-dev.sh denies` against `Cultuvilla_Big` AVD, signed-in user `JkWXutMuh5cCe9AzgeOSlr2TIpa2`:
+
+- `village:getUserMemberships` — `permission-denied`. Pueblo tab boot: `useEffect` resolving an active municipality fires `getUserMemberships(user.uid)`, a `collectionGroup('members')` query on the user's own membership rows. Symptom: Pueblo tab renders blank with `FirebaseError: Missing or insufficient permissions.` LogBox.
+- `profile:getUserRegistrationsAcrossEvents` — `permission-denied`. Profile tab `load`: `getUserRegistrationsAcrossEvents(user.uid)`, a `collectionGroup('registrations')` query. Fires twice on first profile visit (mount + `useFocusEffect`).
+
+Both root causes look the same: a collection-group query whose per-document rule (`/municipalities/{m}/members/{uid}` for village members, `/events/{eventId}/registrations/{regId}` for registrations) doesn't authorize the CG list shape the query actually issues. Phase B will pin down whether the fix is widening the existing `allow list` clause, tightening the query's `where` predicate so the rule's invariants hold, or both.
