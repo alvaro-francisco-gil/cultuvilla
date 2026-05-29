@@ -12,15 +12,14 @@ export function PasswordInput({ testID, ...rest }: PasswordInputProps) {
   const [visible, setVisible] = useState(false);
   return (
     <View style={styles.row}>
-      <View style={styles.input}>
-        <Input {...rest} secureTextEntry={!visible} testID={testID ? `${testID}-input` : undefined} />
-      </View>
+      <Input {...rest} secureTextEntry={!visible} testID={testID ? `${testID}-input` : undefined} />
       <Pressable
         onPress={() => setVisible((v) => !v)}
         accessibilityRole="button"
         accessibilityLabel={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
         testID={testID ? `${testID}-toggle` : undefined}
         style={styles.toggle}
+        hitSlop={8}
       >
         <Ionicons name={visible ? 'eye-off' : 'eye'} size={20} />
       </Pressable>
@@ -30,6 +29,5 @@ export function PasswordInput({ testID, ...rest }: PasswordInputProps) {
 
 const styles = StyleSheet.create({
   row: { position: 'relative' },
-  input: { flex: 1 },
   toggle: { position: 'absolute', right: 12, bottom: 12 },
 });
