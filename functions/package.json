@@ -8,7 +8,8 @@
     "test:integration": "vitest run --config vitest.config.integration.mjs",
     "test:watch": "vitest",
     "serve": "npm run build && firebase emulators:start --only functions",
-    "deploy": "firebase deploy --only functions"
+    "deploy": "firebase deploy --only functions",
+    "test:all": "vitest run --config vitest.config.all.mjs"
   },
   "engines": {
     "node": "22"
