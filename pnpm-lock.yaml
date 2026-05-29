@@ -162,6 +162,9 @@ importers:
 
   packages/shared:
     dependencies:
+      firebase-admin:
+        specifier: ^13.0.0
+        version: 13.10.0
       zod:
         specifier: ^4.4.3
         version: 4.4.3
