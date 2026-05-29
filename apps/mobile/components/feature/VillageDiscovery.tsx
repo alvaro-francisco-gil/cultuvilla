@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, ActivityIndicator, View } from 'react-native';
+import { Alert, FlatList, ActivityIndicator, Platform, View } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { VStack, HStack, Text, Input, Button, Escudo, Pressable } from '../primitives';
 import { useT } from '../../lib/i18n';
@@ -107,17 +107,23 @@ export function VillageDiscovery() {
               router.push(joinTarget);
               return;
             }
-            Alert.alert(
-              t('discover.noOrganizerTitle'),
-              t('discover.noOrganizerBody', { name: item.name }),
-              [
-                { text: t('discover.cancel'), style: 'cancel' },
-                {
-                  text: t('discover.noOrganizerConfirm'),
-                  onPress: () => router.push(organizerTarget),
-                },
-              ],
-            );
+            const title = t('discover.noOrganizerTitle');
+            const body = t('discover.noOrganizerBody', { name: item.name });
+            // react-native-web 0.21 ships Alert.alert as a no-op, so we fall
+            // back to window.confirm on web (title + body in one prompt).
+            if (Platform.OS === 'web') {
+              if (typeof window !== 'undefined' && window.confirm(`${title}\n\n${body}`)) {
+                router.push(organizerTarget);
+              }
+              return;
+            }
+            Alert.alert(title, body, [
+              { text: t('discover.cancel'), style: 'cancel' },
+              {
+                text: t('discover.noOrganizerConfirm'),
+                onPress: () => router.push(organizerTarget),
+              },
+            ]);
           };
           return (
             <Pressable
