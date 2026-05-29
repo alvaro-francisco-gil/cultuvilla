@@ -28,6 +28,19 @@ When you add a service, add it to this file in the same change. When you add a f
 | [userService](userService.ts) | `users/` | User profile CRUD, active-municipality setter. | `getUserProfile`, `getAllUsers`, `createUserProfile`, `patchUserProfile`, `setActiveMunicipality` |
 | [villageMemberService](villageMemberService.ts) | `municipalities/{mid}/members/` + collection group | Village membership: add/remove, role checks, listing a user's villages. | `getVillageMember`, `getVillageMembers`, `addVillageMember`, `removeVillageMember`, `isVillageMember`, `isVillageAdmin`, `getUserMemberships` |
 | [villageService](villageService.ts) | `villages/` | Village CRUD + slug-style ID generation. | `getVillage`, `getVillages`, `generateVillageId`, `createVillage`, `updateVillage`, `deleteVillage` |
+| [listenerManager](listenerManager.ts) | — (infrastructure) | Global registry of Firestore listener unsubscribers. Every long-lived `onSnapshot` should register here so `clearAll()` on sign-out can tear them all down before auth flips closed (the cause of post-signout `[firestore-deny]` noise). | `add`, `removeByLabel`, `clearAll`, `count` |
+| [callableErrors](callableErrors.ts) | — (infrastructure) | Classifies Cloud Function callable rejections (`HttpsError` code first, Spanish message regex second) into `stale-state \| permission \| capacity \| network \| unknown` and provides a Spanish headline + detail for each. Consumed by mobile's `useCallable` hook. | `classifyCallableError`, `CallableErrorKind` |
+
+## Shared hooks
+
+The package also exports React hooks under [`hooks/`](../hooks/). React is a *peer* dependency — consumers that don't pull React in can ignore this surface.
+
+| Hook | What it does |
+|---|---|
+| [useFirestoreDoc](../hooks/firestoreSubscription/useFirestoreDoc.ts) | Subscribe to a single Firestore doc via the shared listener cache; multiple components on the same `doc.path` share one `onSnapshot`. |
+| [useFirestoreQuery](../hooks/firestoreSubscription/useFirestoreQuery.ts) | Subscribe to a Firestore query via the shared listener cache; cache key is derived from the SDK's canonical query id (or a caller-supplied `cacheKey` for dynamic queries). |
+
+The cache itself ([`hooks/firestoreSubscription/cache.ts`](../hooks/firestoreSubscription/cache.ts)) debounces teardown by 500ms so tab-navigation mount→unmount→remount reuses the still-open listener.
 
 ## Denormalized fields
 
