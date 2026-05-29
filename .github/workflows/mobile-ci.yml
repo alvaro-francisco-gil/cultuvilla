@@ -39,3 +39,20 @@ jobs:
 
       - name: Test (mobile)
         run: pnpm app:test
+
+      - name: Build (web export)
+        env:
+          # Placeholder values so app.config.ts resolves without a real .env.
+          # The web build is a smoke test for "does expo export -p web succeed";
+          # it does not deploy. Real values for deployed Hosting envs live in
+          # the maintainer's local .env (and will move to secrets when CI deploys).
+          APP_ENV: dev
+          GOOGLE_IOS_CLIENT_ID_DEV: ci-placeholder.apps.googleusercontent.com
+          GOOGLE_IOS_URL_SCHEME_DEV: com.googleusercontent.apps.ci-placeholder
+          FIREBASE_API_KEY_DEV: ci-placeholder
+          FIREBASE_AUTH_DOMAIN_DEV: ci.example.com
+          FIREBASE_PROJECT_ID_DEV: ci-placeholder
+          FIREBASE_STORAGE_BUCKET_DEV: ci.example.com
+          FIREBASE_MESSAGING_SENDER_ID_DEV: '0'
+          FIREBASE_APP_ID_DEV: ci-placeholder
+        run: pnpm app:web:build
