@@ -14,7 +14,7 @@ import {
   assertFails,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, collectionGroup, query, where, getDocs } from 'firebase/firestore';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -216,5 +216,57 @@ describe('firestore.rules — /municipalities/{mid}/joinRequests/{userId}', () =
         deleteDoc(doc(adminDb, `municipalities/${MID}/joinRequests/${REQUESTER}`)),
       );
     });
+  });
+});
+
+describe('firestore.rules — joinRequests collection-group self-list', () => {
+  async function seedMultiMuniJoinRequests() {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'municipalities/m1'), { name: 'Municipio1' });
+      await setDoc(doc(db, 'municipalities/m2'), { name: 'Municipio2' });
+      await setDoc(doc(db, 'municipalities/m1/joinRequests/alice'), {
+        userId: 'alice',
+        municipalityId: 'm1',
+        status: 'pending',
+        requestedAt: new Date(),
+      });
+      await setDoc(doc(db, 'municipalities/m2/joinRequests/alice'), {
+        userId: 'alice',
+        municipalityId: 'm2',
+        status: 'pending',
+        requestedAt: new Date(),
+      });
+    });
+  }
+
+  it('user can list their own joinRequests via collection group (where userId == uid)', async () => {
+    await seedMultiMuniJoinRequests();
+    const aliceDb = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(
+      getDocs(query(
+        collectionGroup(aliceDb, 'joinRequests'),
+        where('userId', '==', 'alice'),
+      )),
+    );
+  });
+
+  it('user cannot list ALL joinRequests via collection group (no where clause)', async () => {
+    await seedMultiMuniJoinRequests();
+    const aliceDb = env.authenticatedContext('alice').firestore();
+    await assertFails(
+      getDocs(collectionGroup(aliceDb, 'joinRequests')),
+    );
+  });
+
+  it('anonymous user cannot list joinRequests via collection group', async () => {
+    await seedMultiMuniJoinRequests();
+    const anon = env.unauthenticatedContext().firestore();
+    await assertFails(
+      getDocs(query(
+        collectionGroup(anon, 'joinRequests'),
+        where('userId', '==', 'alice'),
+      )),
+    );
   });
 });
