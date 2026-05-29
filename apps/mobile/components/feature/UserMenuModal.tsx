@@ -7,6 +7,7 @@ import {
   Dimensions,
   Share,
   Linking,
+  StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -196,7 +197,12 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={() => close()}>
-      <Animated.View className="flex-1 bg-black/50" style={{ opacity: fadeAnim }}>
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFillObject,
+          { backgroundColor: 'rgba(0, 0, 0, 0.5)', opacity: fadeAnim },
+        ]}
+      >
         <Animated.View
           className="absolute left-0 right-0 bottom-0 bg-surface-elevated"
           style={{ height: SCREEN_HEIGHT, transform: [{ translateY: slideAnim }] }}

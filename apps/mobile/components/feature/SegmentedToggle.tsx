@@ -33,7 +33,7 @@ export function SegmentedToggle<T extends string>({
   useEffect(() => {
     Animated.spring(indicatorAnim, {
       toValue: activeIndex,
-      useNativeDriver: true,
+      useNativeDriver: false,
       friction: 8,
       tension: 80,
     }).start();
