@@ -29,6 +29,7 @@ export function RegisterButton({ eventId, personId, name, onRegistered }: Regist
       await registerToEvent(eventId, [{ personId, name }]);
       onRegistered();
     } catch (e) {
+      // mobile-web-compat: native-only — TODO: convert to web-aware showAlert when web users can register
       Alert.alert(t('event.register.error'), e instanceof Error ? e.message : 'unknown');
     } finally {
       setLoading(false);

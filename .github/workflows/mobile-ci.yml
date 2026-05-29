@@ -37,6 +37,9 @@ jobs:
       - name: Typecheck (mobile)
         run: pnpm app:typecheck
 
+      - name: Mobile / web compatibility lint
+        run: pnpm app:check-web-compat
+
       - name: Test (mobile)
         run: pnpm app:test
 

@@ -48,6 +48,7 @@ export default function OccupationsScreen() {
   }
 
   async function remove(o: Occ) {
+    // mobile-web-compat: native-only — admin surface, not exercised on web
     Alert.alert(t('common.delete'), o.name, [
       { text: t('common.cancel'), style: 'cancel' },
       {

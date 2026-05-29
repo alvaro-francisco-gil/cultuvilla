@@ -38,6 +38,7 @@ export default function InviteTokensScreen() {
   }
 
   function remove(r: Row) {
+    // mobile-web-compat: native-only — admin surface, not exercised on web
     Alert.alert(t('common.delete'), r.id, [
       { text: t('common.cancel'), style: 'cancel' },
       {

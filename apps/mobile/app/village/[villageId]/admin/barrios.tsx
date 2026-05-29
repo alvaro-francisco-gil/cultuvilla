@@ -58,6 +58,7 @@ export default function BarriosScreen() {
   }
 
   function remove(r: Row) {
+    // mobile-web-compat: native-only — admin surface, not exercised on web
     Alert.alert(t('common.delete'), r.name, [
       { text: t('common.cancel'), style: 'cancel' },
       {

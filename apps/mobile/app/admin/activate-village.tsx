@@ -43,9 +43,11 @@ export default function ActivateVillageScreen() {
         coverImages: [],
         adminUserId: user.uid,
       });
+      // mobile-web-compat: native-only — admin surface, not exercised on web
       Alert.alert(t('admin.activate.success'));
       router.replace('/admin');
     } catch (e) {
+      // mobile-web-compat: native-only — admin surface, not exercised on web
       Alert.alert(e instanceof Error ? e.message : 'error');
     } finally {
       setSaving(false);

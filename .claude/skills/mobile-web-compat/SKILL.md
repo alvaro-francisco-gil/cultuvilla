@@ -13,22 +13,30 @@ The single class of regression that has burned us most: applying a web fix to **
 
 **Rule:** any style override / option you introduce specifically to fix a web rendering issue must live behind `Platform.OS === 'web'`. Do **not** apply it to native unless you've explicitly verified it doesn't regress there.
 
-```tsx
-import { Platform } from 'react-native';
+Use the helpers in `apps/mobile/lib/platform.ts` instead of inline `Platform.OS` checks:
 
-const webTabBarOverrides = Platform.OS === 'web'
-  ? {
-      tabBarStyle: { height: 64 },
-      tabBarLabelStyle: { fontSize: 11, marginTop: 0, paddingTop: 0 },
-    }
-  : {};
+```tsx
+import { webSpread } from '../../lib/platform';
+
+const webTabBarOverrides = webSpread({
+  tabBarStyle: { height: 64 },
+  tabBarLabelStyle: { fontSize: 11, marginTop: 0, paddingTop: 0 },
+});
 
 <Tabs screenOptions={{ ...sharedOptions, ...webTabBarOverrides }} />
 ```
 
+Available helpers:
+- `webOnly(value)` — returns `value` on web, `undefined` on native (use for a single field)
+- `webSpread(obj)` — returns `obj` on web, `{}` on native (use inside object spreads)
+- `nativeOnly(value)` — inverse of `webOnly`
+- `isWeb` — re-exported `Platform.OS === 'web'` constant
+
 Reference fix: `apps/mobile/app/(tabs)/_layout.tsx` (commit 6168e7d, undoing the over-applied 69dded8).
 
 **Verification rule:** before claiming a web fix is "done", boot the app on at least one native target and confirm the change doesn't regress there. `pnpm app:start` then press the QR for native AFTER pressing `w` for web. If the change was wrapped in `Platform.OS === 'web'` from the start, the native check is just confirming "this branch wasn't taken" — fast and cheap.
+
+**Automated enforcement:** `pnpm app:check-web-compat` (also runs in `mobile-ci.yml`) greps the source for known anti-patterns and fails if they appear without a `Platform.OS` guard or an explicit `// mobile-web-compat: native-only` allowlist comment on the line above. Catches `Alert.alert` without a guard, `className` on `Animated.*`, and `tabBarStyle` in a `screenOptions` block with no Platform branching anywhere in the file. New violations fail CI; pre-existing native-only call sites carry the allowlist comment instead.
 
 ## NativeWind drops `className` on `Animated.*`
 

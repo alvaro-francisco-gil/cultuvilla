@@ -27,6 +27,7 @@ export default function CommunitySettingsScreen() {
     setSaving(true);
     try {
       await updateCommunity(villageId, { description });
+      // mobile-web-compat: native-only — admin surface, not exercised on web
       Alert.alert(t('village.admin.community.saved'));
     } finally {
       setSaving(false);

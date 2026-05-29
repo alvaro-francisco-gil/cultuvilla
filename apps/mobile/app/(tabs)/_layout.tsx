@@ -1,7 +1,7 @@
-import { Platform } from 'react-native';
 import { Redirect, Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../lib/auth/useAuth';
+import { webSpread } from '../../lib/platform';
 import { useT } from '../../lib/i18n';
 
 // Web-only tab-bar metrics: RN-Web's text line-height clips labels with the
@@ -9,14 +9,12 @@ import { useT } from '../../lib/i18n';
 // safe-area insets (home indicator on iOS, gesture bar on Android), so the
 // override must be web-gated — otherwise it hides the bar on Android and
 // crowds the iPhone home indicator.
-const webTabBarOverrides = Platform.OS === 'web'
-  ? {
-      tabBarShowLabel: true,
-      tabBarLabelPosition: 'below-icon' as const,
-      tabBarStyle: { height: 64 },
-      tabBarLabelStyle: { fontSize: 11, marginTop: 0, paddingTop: 0 },
-    }
-  : {};
+const webTabBarOverrides = webSpread({
+  tabBarShowLabel: true,
+  tabBarLabelPosition: 'below-icon' as const,
+  tabBarStyle: { height: 64 },
+  tabBarLabelStyle: { fontSize: 11, marginTop: 0, paddingTop: 0 },
+});
 
 export default function TabsLayout() {
   const { user, loading } = useAuth();

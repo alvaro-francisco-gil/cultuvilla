@@ -47,6 +47,7 @@ export default function CensoSchemaScreen() {
   function removeField(key: string) {
     if (!fields) return;
     if (locked.has(key)) {
+      // mobile-web-compat: native-only — admin surface, not exercised on web
       Alert.alert('Locked', `${key} is in use and cannot be removed.`);
       return;
     }
@@ -58,6 +59,7 @@ export default function CensoSchemaScreen() {
     setSaving(true);
     try {
       await updateCensoSchema(villageId, fields);
+      // mobile-web-compat: native-only — admin surface, not exercised on web
       Alert.alert(t('village.admin.community.saved'));
     } finally {
       setSaving(false);

@@ -22,6 +22,7 @@
     "app:test": "pnpm --filter cultuvilla-mobile test",
     "app:test:watch": "pnpm --filter cultuvilla-mobile test:watch",
     "app:typecheck": "pnpm --filter cultuvilla-mobile typecheck",
+    "app:check-web-compat": "node scripts/check-mobile-web-compat.mjs",
     "typecheck": "pnpm shared:typecheck && pnpm functions:typecheck && pnpm i18n:typecheck && pnpm app:typecheck",
     "build": "pnpm shared:build && pnpm functions:build",
     "test": "pnpm shared:test && pnpm app:test && pnpm functions:test",
