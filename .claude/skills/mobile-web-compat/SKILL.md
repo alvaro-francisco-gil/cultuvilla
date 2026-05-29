@@ -7,6 +7,29 @@ description: Use whenever writing or modifying components under `apps/mobile/` t
 
 `apps/mobile/` ships to native (iOS/Android via Expo) **and** to the web via `expo export --platform web` + Firebase Hosting (https://villa-events.web.app). The Expo / React Native Web / NativeWind stack has several pitfalls where code looks correct, runs fine on native, but silently breaks on web. Every item below already broke in production at least once — fix proactively, not after the user opens DevTools.
 
+## The bigger rule: web-only fixes MUST be `Platform.OS`-gated
+
+The single class of regression that has burned us most: applying a web fix to **every** platform. `tabBarStyle: { height: 64 }` (commit 69dded8) restored the labels on web but hid the bottom tab bar on Android and would have crowded the iPhone home indicator. React Navigation, expo-router, Modal, and other libraries pick platform-aware defaults that correctly account for safe-area insets and platform metrics — overriding them globally is almost always wrong.
+
+**Rule:** any style override / option you introduce specifically to fix a web rendering issue must live behind `Platform.OS === 'web'`. Do **not** apply it to native unless you've explicitly verified it doesn't regress there.
+
+```tsx
+import { Platform } from 'react-native';
+
+const webTabBarOverrides = Platform.OS === 'web'
+  ? {
+      tabBarStyle: { height: 64 },
+      tabBarLabelStyle: { fontSize: 11, marginTop: 0, paddingTop: 0 },
+    }
+  : {};
+
+<Tabs screenOptions={{ ...sharedOptions, ...webTabBarOverrides }} />
+```
+
+Reference fix: `apps/mobile/app/(tabs)/_layout.tsx` (commit 6168e7d, undoing the over-applied 69dded8).
+
+**Verification rule:** before claiming a web fix is "done", boot the app on at least one native target and confirm the change doesn't regress there. `pnpm app:start` then press the QR for native AFTER pressing `w` for web. If the change was wrapped in `Platform.OS === 'web'` from the start, the native check is just confirming "this branch wasn't taken" — fast and cheap.
+
 ## NativeWind drops `className` on `Animated.*`
 
 NativeWind 4 does **not** transform `className` on `Animated.View`, `Animated.Text`, or anything from `Animated.createAnimatedComponent(...)`. The class string is silently stripped on the web target. Native works; web ends up with neither `position: absolute` nor the `bg-*` color, even though the CSS rules exist in the bundle.
@@ -89,21 +112,29 @@ Reference fix: `apps/mobile/components/feature/SegmentedToggle.tsx` (commit 31ce
 
 The default `bottom-tabs` height + label/icon spacing fits iOS / Android line-height but clips labels under RN-Web's text metrics. Default tab-bar height is shorter than expected and the label appears covered by padding.
 
-**Rule:** set `tabBarStyle: { height: 64 }` and `tabBarLabelPosition: 'below-icon'` explicitly in `screenOptions`. Do **not** add `paddingTop: 0` / `paddingBottom: 0` on `tabBarItemStyle` — that collapses the icon-to-label gap and re-introduces the original clipping.
+**Rule:** set `tabBarStyle: { height: 64 }` and `tabBarLabelPosition: 'below-icon'` explicitly — but **only on web**. The native defaults correctly handle safe-area insets; applying these to every platform hides the Android tab bar and crowds the iPhone home indicator.
 
 ```tsx
+import { Platform } from 'react-native';
+
+const webTabBarOverrides = Platform.OS === 'web'
+  ? {
+      tabBarShowLabel: true,
+      tabBarLabelPosition: 'below-icon' as const,
+      tabBarStyle: { height: 64 },
+      tabBarLabelStyle: { fontSize: 11, marginTop: 0, paddingTop: 0 },
+    }
+  : {};
+
 <Tabs
   screenOptions={{
     headerShown: false,
-    tabBarShowLabel: true,
-    tabBarLabelPosition: 'below-icon',
-    tabBarStyle: { height: 64 },
-    tabBarLabelStyle: { fontSize: 11, marginTop: 0, paddingTop: 0 },
+    ...webTabBarOverrides,
   }}
 >
 ```
 
-Reference fix: `apps/mobile/app/(tabs)/_layout.tsx` (commit 69dded8).
+Reference fix: `apps/mobile/app/(tabs)/_layout.tsx` (commit 6168e7d). The original web fix in 69dded8 was the bug — over-applying the override to every platform — until 6168e7d gated it.
 
 ## `Alert.alert` and Animated `className` are the two heavyweights
 
