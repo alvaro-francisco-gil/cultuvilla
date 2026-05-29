@@ -7,8 +7,13 @@ import { Pressable } from '../primitives/Pressable';
 import { Text } from '../primitives/Text';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
+import { webOnly } from '../../lib/platform';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { UserMenuModal } from '../feature/UserMenuModal';
+
+// Web has no safe-area inset, so the title would otherwise sit right against
+// the viewport edge. Native already gets the right offset from insets.top.
+const WEB_HEADER_OFFSET = 16;
 
 export type AppHeaderProps = {
   /** Optional override for the title (defaults to active municipality name). */
@@ -46,7 +51,7 @@ export function AppHeader({ centerLabel, extraRightSlot }: AppHeaderProps) {
       <StatusBar style="light" translucent backgroundColor="transparent" />
       <View
         className="bg-accent"
-        style={{ paddingTop: Math.max(insets.top - 4, 0) }}
+        style={{ paddingTop: Math.max(insets.top - 4, 0) + (webOnly(WEB_HEADER_OFFSET) ?? 0) }}
       >
         <View className="flex-row items-center px-3 pt-1 pb-3">
           <View className="flex-1">
