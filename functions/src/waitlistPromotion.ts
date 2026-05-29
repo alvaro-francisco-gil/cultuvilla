@@ -1,8 +1,12 @@
 import { onDocumentDeleted } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import {
+  eventDoc,
+  eventRegistrationsCollection,
+} from '@cultuvilla/shared/firebase/refs/admin';
 
-const db = admin.firestore();
+const db = getFirestore();
 
 /**
  * Promotes the next waitlisted registration when a confirmed one is deleted,
@@ -13,18 +17,23 @@ export const onRegistrationDeleted = onDocumentDeleted(
   'events/{eventId}/registrations/{regId}',
   async (event) => {
     const { eventId } = event.params;
-    const deletedData = event.data?.data();
-    if (!deletedData) return;
+    // The trigger framework hands us a raw DocumentSnapshot (no converter),
+    // so the values here are still Firestore Timestamps — we only need
+    // `status`, which is a primitive, so a narrow cast is sufficient.
+    const rawDeleted = event.data?.data();
+    if (!rawDeleted) return;
+    const deletedStatus = (rawDeleted as { status?: string }).status;
 
-    const eventRef = db.doc(`events/${eventId}`);
-    const regsCol = db.collection(`events/${eventId}/registrations`);
+    const eventRef = eventDoc(db, eventId);
+    const regsCol = eventRegistrationsCollection(db, eventId);
 
+    // eventSnap.data() comes through the converter: typed EventData.
     const eventSnap = await eventRef.get();
     const eventData = eventSnap.data();
     if (!eventData) return;
 
     let promoted = false;
-    if (deletedData.status === 'confirmed' && eventData.maxAttendees) {
+    if (deletedStatus === 'confirmed' && eventData.maxAttendees) {
       const waitlisted = await regsCol
         .where('status', '==', 'waitlisted')
         .orderBy('position', 'asc')
@@ -33,7 +42,9 @@ export const onRegistrationDeleted = onDocumentDeleted(
 
       if (!waitlisted.empty) {
         const nextInLine = waitlisted.docs[0];
+        // Converter-wrapped: typed RegistrationData.
         const nextData = nextInLine.data();
+        // update() bypasses the converter, partial shape is accepted.
         await nextInLine.ref.update({ status: 'confirmed' });
         promoted = true;
 
@@ -42,9 +53,9 @@ export const onRegistrationDeleted = onDocumentDeleted(
           title: '¡Plaza confirmada!',
           body: `Se ha liberado una plaza en "${eventData.title}" para ${nextData.name}`,
           eventId,
-          municipalityId: (eventData.municipalityId as string | undefined) ?? null,
+          municipalityId: eventData.municipalityId,
           read: false,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdAt: FieldValue.serverTimestamp(),
         });
       }
     }
@@ -64,7 +75,7 @@ export const onRegistrationDeleted = onDocumentDeleted(
     logger.info('Registration deleted handled', {
       handler: 'onRegistrationDeleted',
       eventId,
-      deletedStatus: deletedData.status,
+      deletedStatus,
       promoted,
       confirmedCount: confirmedSnap.data().count,
       totalCount: totalSnap.data().count,
