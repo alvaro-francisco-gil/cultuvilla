@@ -5,7 +5,7 @@ import {
   computeStatuses,
   validateRegisterInput,
   type RegisterToEventData,
-} from './helpers/registerToEventValidation';
+} from '../helpers/registerToEventValidation';
 
 const db = admin.firestore();
 

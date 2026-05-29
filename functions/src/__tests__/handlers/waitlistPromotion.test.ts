@@ -9,7 +9,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import * as admin from 'firebase-admin';
 import functionsTestFactory from 'firebase-functions-test';
 import { resetEmulators } from '../helpers/firestoreEmulator';
-import { onRegistrationDeleted } from '../../waitlistPromotion';
+import { onRegistrationDeleted } from '../../events/waitlistPromotion';
 
 const ft = functionsTestFactory({ projectId: process.env.GCLOUD_PROJECT || 'cultuvilla-test' });
 

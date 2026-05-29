@@ -10,10 +10,10 @@ When you add a service, add it to this file in the same change. When you add a f
 |---|---|---|---|
 | [adminService](adminService.ts) | `admins/` | Check whether a user is a global superadmin. | `isAppAdmin` |
 | [censoService](censoService.ts) | (callable) | Village censo / profile-schema utilities. Validates schema transitions, marks censo completion, calls the `updateCensoSchema` Cloud Function. | `validateSchemaTransition`, `missingRequiredAnswers`, `isCensoComplete`, `updateCensoSchema` |
-| [eventService](eventService.ts) | `villages/{vid}/events/` | CRUD for events, status transitions, listing by village or organization. | `getEvent`, `getEventsByVillage`, `getEventsByOrganization`, `createEvent`, `updateEvent`, `updateEventStatus`, `deleteEvent` |
-| [feedService](feedService.ts) | collection group `events` | Cross-village upcoming-events feed; haversine-based "nearby" filter. Read-only. | `getUpcomingFeed`, `haversineKm`, `filterByDistanceKm` |
+| [eventService](eventService.ts) | `events/` (top-level, `municipalityId` field) | CRUD for events, status transitions, listing by village or organization. | `getEvent`, `getEventsByVillage`, `getEventsByOrganization`, `createEvent`, `updateEvent`, `updateEventStatus`, `deleteEvent` |
+| [feedService](feedService.ts) | `events/` (top-level) | Cross-village upcoming-events feed; haversine-based "nearby" filter. Read-only. | `getUpcomingFeed`, `haversineKm`, `filterByDistanceKm` |
 | [imageService](imageService.ts) | Storage (`villages/`, `persons/`) | Upload/delete images with size+mime validation. | `uploadVillageImage`, `uploadPersonImage`, `deleteImageByURL` |
-| [inviteTokenService](inviteTokenService.ts) | `villages/{vid}/inviteTokens/` | Village invite link tokens — create, validate, consume, accept. | `createInviteToken`, `validateInviteToken`, `consumeInviteToken`, `acceptInvite` |
+| [inviteTokenService](inviteTokenService.ts) | `municipalities/{mid}/inviteTokens/` | Village invite link tokens — create, validate, consume, accept. | `createInviteToken`, `validateInviteToken`, `consumeInviteToken`, `acceptInvite` |
 | [joinRequestService](joinRequestService.ts) | `municipalities/{mid}/joinRequests/` + collection group | Village join requests — read your own, list per village (admins), create/respond via Cloud Function callables. | `getJoinRequest`, `getJoinRequestsForVillage`, `getMyJoinRequests`, `requestJoinVillage`, `respondToJoinRequest` |
 | [organizerRequestService](organizerRequestService.ts) | `organizerRequests/` | Requests to become organizer of an inactive municipality. Users create + read own; superadmin lists pending; mutations via Cloud Function. | `getOrganizerRequest`, `getPendingOrganizerRequests`, `getMyOrganizerRequests`, `requestOrganizeVillage`, `respondToOrganizerRequest` |
 | [membershipProfileService](membershipProfileService.ts) | `villages/{vid}/members/` (profile fields) | Writes user answers to a village's censo; sets `profileCompletedAt` when required fields are present. | `saveProfileAnswers`, `collectUsedValues`, `profileCompletedAtToDate` |
@@ -21,12 +21,12 @@ When you add a service, add it to this file in the same change. When you add a f
 | [newsService](newsService.ts) | `news/`, `newsComments/`, `newsReactions/`, `newsReports/` (all top-level, `municipalityId` field) | Village news feed: create/get/list/update posts, react, comment, report comments, fetch home + other-villages feeds. Cross-user moderation lives in Cloud Functions. | `createNewsPost`, `getNewsPost`, `getNewsPostsByMunicipality`, `updateNewsPost`, `reactToPost`, `removeReaction`, `getMyReaction`, `addComment`, `getComments`, `deleteOwnComment`, `reportComment`, `getHomeFeed`, `getOtherVillagesFeed` |
 | [notificationService](notificationService.ts) | `users/{uid}/notifications/` | In-app notification CRUD, unread counts, mark-as-read. | `getNotifications`, `getUnreadCount`, `createNotification`, `markAsRead`, `markAllAsRead` |
 | [occupationService](occupationService.ts) | `occupations/`, `occupationProposals/` | App-wide occupation taxonomy; user-submitted proposals with admin review. | `getOccupations`, `createOccupation`, `proposeOccupation`, `getPendingProposals`, `reviewProposal` |
-| [orgMemberService](orgMemberService.ts) | `villages/{vid}/organizations/{oid}/members/` | Add/remove/check org membership. | `getOrgMembers`, `addOrgMember`, `removeOrgMember`, `isOrgMember` |
-| [organizationService](organizationService.ts) | `villages/{vid}/organizations/` | Org CRUD + request/approve/reject lifecycle (ayuntamiento, peña, asociación). | `getOrganization`, `getOrganizationsByVillage`, `requestOrganization`, `approveOrganization`, `rejectOrganization`, `updateOrganization`, `deleteOrganization` |
+| [orgMemberService](orgMemberService.ts) | `organizations/{orgId}/members/` | Add/remove/check org membership. | `getOrgMembers`, `addOrgMember`, `removeOrgMember`, `isOrgMember` |
+| [organizationService](organizationService.ts) | `organizations/` (top-level, `municipalityId` field) | Org CRUD + request/approve/reject lifecycle (ayuntamiento, peña, asociación). | `getOrganization`, `getOrganizationsByVillage`, `requestOrganization`, `approveOrganization`, `rejectOrganization`, `updateOrganization`, `deleteOrganization` |
 | [personService](personService.ts) | `persons/` | "Persona" profiles (proxy profiles, up to 50 per user) for family-member sign-ups. CRUD. | `getPerson`, `getPersonsByCreator`, `getPersonByUserId`, `createPerson`, `updatePerson`, `deletePerson` |
 | [registrationService](registrationService.ts) | `events/{eid}/registrations/` + collection group | Event sign-ups for the user and their personas. `registerToEvent` is a thin wrapper around the `registerToEvent` callable Cloud Function (which runs the capacity-vs-waitlist decision in a transaction). The rest are reads. | `registerToEvent` (callable), `cancelRegistration`, `getEventRegistrations`, `getConfirmedCount`, `getUserRegistrations`, `getUserRegistrationsAcrossEvents`, `determineRegistrationStatus` |
 | [userService](userService.ts) | `users/` | User profile CRUD, active-municipality setter. | `getUserProfile`, `getAllUsers`, `createUserProfile`, `patchUserProfile`, `setActiveMunicipality` |
-| [villageMemberService](villageMemberService.ts) | `villages/{vid}/members/` + collection group | Village membership: add/remove, role checks, listing a user's villages. | `getVillageMember`, `getVillageMembers`, `addVillageMember`, `removeVillageMember`, `isVillageMember`, `isVillageAdmin`, `getUserMemberships` |
+| [villageMemberService](villageMemberService.ts) | `municipalities/{mid}/members/` + collection group | Village membership: add/remove, role checks, listing a user's villages. | `getVillageMember`, `getVillageMembers`, `addVillageMember`, `removeVillageMember`, `isVillageMember`, `isVillageAdmin`, `getUserMemberships` |
 | [villageService](villageService.ts) | `villages/` | Village CRUD + slug-style ID generation. | `getVillage`, `getVillages`, `generateVillageId`, `createVillage`, `updateVillage`, `deleteVillage` |
 
 ## Denormalized fields
@@ -35,12 +35,58 @@ Some documents carry denormalized copies of fields owned by other collections so
 
 | Denormalized field | Lives on | Source of truth | Propagated by |
 |---|---|---|---|
-| `villageName`, `villageCoverImage`, `villageCoordinates` | `villages/{vid}/events/{eid}` | `villages/{vid}` | [functions/src/syncVillageDenormalization.ts](../../../../functions/src/syncVillageDenormalization.ts) |
-| `displayName` on occupation usages | `persons/{pid}` (via `occupationIds`) | `occupations/{oid}` | [functions/src/onOccupationProposalApproved.ts](../../../../functions/src/onOccupationProposalApproved.ts) |
-| `isMember` on each registration | `events/{eid}/registrations/{regId}` | `municipalities/{mid}/members/{userId}` | [functions/src/registerToEvent.ts](../../../../functions/src/registerToEvent.ts) (written at create time) |
-| `confirmedCount`, `totalCount` on event doc | `events/{eid}` | aggregate over `events/{eid}/registrations/` | [functions/src/registerToEvent.ts](../../../../functions/src/registerToEvent.ts) + [functions/src/waitlistPromotion.ts](../../../../functions/src/waitlistPromotion.ts) |
+| `villageName`, `villageCoverImage`, `villageCoordinates` | `events/{eid}` (top-level) | `municipalities/{mid}` | [functions/src/village/syncVillageDenormalization.ts](../../../../functions/src/village/syncVillageDenormalization.ts) |
+| `displayName` on occupation usages | `persons/{pid}` (via `occupationIds`) | `occupations/{oid}` | [functions/src/census/onOccupationProposalApproved.ts](../../../../functions/src/census/onOccupationProposalApproved.ts) |
+| `isMember` on each registration | `events/{eid}/registrations/{regId}` | `municipalities/{mid}/members/{userId}` | [functions/src/events/registerToEvent.ts](../../../../functions/src/events/registerToEvent.ts) (written at create time) |
+| `confirmedCount`, `totalCount` on event doc | `events/{eid}` | aggregate over `events/{eid}/registrations/` | [functions/src/events/registerToEvent.ts](../../../../functions/src/events/registerToEvent.ts) + [functions/src/events/waitlistPromotion.ts](../../../../functions/src/events/waitlistPromotion.ts) |
 
 See [docs/architecture/denormalized-read-models.md](../../../../docs/architecture/denormalized-read-models.md) for the pattern. If you introduce a new denormalized field, add a row above and a trigger in the same change.
+
+## Placement decisions (non-obvious)
+
+The catalog above tells you *what* each service owns. This section tells you *why* a piece of logic lives where it does — the calls that are hard to recover by grep, and the cross-service interactions that aren't obvious from a single file.
+
+Add to this section as you touch a domain. Incremental beats one big sweep.
+
+### Village / municipality membership
+
+- **`acceptInvite` callable lives in `inviteTokenService`, but the actual transaction is in [functions/src/village/acceptInvite.ts](../../../../functions/src/village/acceptInvite.ts).** The client service is a thin wrapper around the callable. The function path is what enforces the security boundary (token validity, single-use consumption, member doc creation under `municipalities/{mid}/members/`) — token consumption + member doc add must be atomic, which the client can't guarantee.
+- **`joinRequestService` and `organizerRequestService` both split client reads from callable-only writes.** Reads (`getJoinRequestsForVillage`, `getMyOrganizerRequests`, …) use direct Firestore queries. Mutations (`requestJoinVillage`, `respondToJoinRequest`, `requestOrganizeVillage`, `respondToOrganizerRequest`) are `httpsCallable` wrappers because the response path must also write to membership/admin docs the requester can't reach.
+- **`villageMemberService` owns `municipalities/{mid}/members/{userId}` writes, but `membershipProfileService` writes the *profile* fields (`profileAnswers`, `profileCompletedAt`) on those same docs.** Both touch the same documents — village membership lifecycle (add/remove/role) goes through `villageMemberService`; censo answers go through `membershipProfileService`. Two services, one doc, by design.
+- **`organizationService.requestOrganization` writes to `organizations/`, NOT to `organizerRequests/`.** `organizerRequests/` is for *requesting to become organizer of an inactive municipality* (a different flow). Don't confuse the two.
+
+### Events / registrations / feed
+
+- **`registrationService.registerToEvent` is a thin callable wrapper around [functions/src/events/registerToEvent.ts](../../../../functions/src/events/registerToEvent.ts).** Capacity-vs-waitlist decision and `confirmedCount` increment happen inside a Firestore transaction in the function — never client-side. Direct `registrations/` writes from the client would race the count.
+- **`feedService` queries top-level `events/` directly**, not a collection group. (The earlier collection-group-on-`events` shape is gone since the Open Feed migration — see [docs/superpowers/specs/2026-04-29-open-feed-architecture-design.md](../../../../docs/superpowers/specs/2026-04-29-open-feed-architecture-design.md).) `feedService` is read-only — anything that mutates an event still goes through `eventService`.
+- **`feedService` does in-memory haversine filtering after Firestore returns.** No geo index — caller is expected to pull a reasonable village set first, then filter by distance. If a "nearby events" surface ever needs server-side geo, that's a feature add, not a bug.
+- **Cancellation/edit notifications come from [functions/src/events/notificationTriggers.ts](../../../../functions/src/events/notificationTriggers.ts), not from `eventService.updateEvent`.** Client-side notification fan-out would require writing to every registrant's `users/{uid}/notifications/` — outside the writer's security boundary.
+- **Waitlist promotion is owned by [functions/src/events/waitlistPromotion.ts](../../../../functions/src/events/waitlistPromotion.ts), triggered on registration delete.** `registrationService.cancelRegistration` only deletes the doc — promotion of the next waitlisted user happens server-side because the candidate registration belongs to a different user.
+
+### Census / occupation
+
+- **`censoService.updateCensoSchema` is a callable wrapper around [functions/src/census/updateCenso.ts](../../../../functions/src/census/updateCenso.ts).** The function validates the schema transition (no forbidden field-type changes) and stamps `censoUpdatedAt` on the municipality doc. Client-side schema mutation would bypass the validation.
+- **`occupationService.proposeOccupation` writes to `occupationProposals/`, not directly to `occupations/`.** Promotion of an approved proposal into the global `occupations/` taxonomy + denormalization of `displayName` onto every `persons/{pid}` doc that already uses it happens in [functions/src/census/onOccupationProposalApproved.ts](../../../../functions/src/census/onOccupationProposalApproved.ts) — cross-user writes that must be admin-scoped.
+- **`membershipProfileService.saveProfileAnswers` writes to the village's member doc**, which means the censo-completion state per user lives next to the user's village membership — not in a separate `profiles/` collection. Don't add a parallel collection; extend the member doc.
+
+### News
+
+- **`newsService` owns four top-level collections** (`news`, `newsComments`, `newsReactions`, `newsReports`), all scoped by `municipalityId`. The split is by access pattern, not by domain: reactions and comments are independent of the post doc so an unread-comment counter doesn't trigger a re-render of the post itself.
+- **Reaction and comment counts on the post doc are denormalized by triggers, not by the writer.** [functions/src/news/syncNewsReactionCounts.ts](../../../../functions/src/news/syncNewsReactionCounts.ts) and [functions/src/news/syncNewsCommentCount.ts](../../../../functions/src/news/syncNewsCommentCount.ts) keep `reactionCount` / `commentCount` on `news/{id}` in sync. `newsService.reactToPost` only writes the reaction doc.
+- **Moderation lives in functions** ([functions/src/news/moderateNewsPost.ts](../../../../functions/src/news/moderateNewsPost.ts), [functions/src/news/deleteNewsPost.ts](../../../../functions/src/news/deleteNewsPost.ts), [functions/src/news/resolveNewsReport.ts](../../../../functions/src/news/resolveNewsReport.ts), [functions/src/news/setTrustedNewsAuthor.ts](../../../../functions/src/news/setTrustedNewsAuthor.ts)), not in `newsService`. Cross-user writes (deleting another user's post, marking a report resolved, granting trusted-author status) require admin scope.
+- **`getHomeFeed` and `getOtherVillagesFeed` are split queries**, not one feed with a filter. Home feed = the user's own subscribed villages; other-villages feed = everything else, paginated separately. Two indexes, two cursors — don't try to merge.
+
+### Identity / users / persons
+
+- **`userService` owns the `users/{uid}` doc only.** `setActiveMunicipality` flips a single field on that doc; the village-membership-side of "which villages does this user belong to" is `villageMemberService.getUserMemberships` (collection-group query over `members/`). Don't denormalize membership lists onto the user doc — the membership doc IS the answer.
+- **`personService` writes `persons/{pid}` (top-level, `creatorUserId` field), not nested under users.** Personas are crosslinked to events via registrations; keeping them top-level lets a future "manage personas across multiple municipalities" surface work without a doc move.
+- **`isAppAdmin` in `adminService` reads `admins/{uid}`, not a flag on the user doc.** Separate collection so a leaked user doc never tells an attacker who the superadmins are; and admin-status checks don't trigger user-doc reads from screens that don't otherwise need the user doc.
+
+### Cross-cutting
+
+- **`imageService` is the single writer for Storage uploads from the client.** Never call `firebase/storage` directly from a component — `imageService` enforces mime+size limits and produces the public URL shape that gets stored on Firestore docs. Image *deletes* from Storage that the server triggers (on event/news/person delete) happen in functions, not here.
+- **`notificationService` is client-write-only** for the *current user's* `users/{uid}/notifications/`. Notifications *to other users* must go through a Cloud Function — security rules forbid writing to a different user's subcollection. (Pattern: domain function writes the notification doc; the recipient's app picks it up via subscription.)
+- **`municipalityService` owns three nested collections (`barrios/`, `cemeteries/`) under the same parent.** These are read-heavy reference data; the nested layout keeps them adjacent to the municipality doc that owns them. If you find yourself doing a collection-group query over `barrios`, that's the signal to denormalize the field onto the consuming doc instead.
 
 ## How to add a service
 
@@ -48,4 +94,5 @@ See [docs/architecture/denormalized-read-models.md](../../../../docs/architectur
 2. Export from [index.ts](index.ts).
 3. Add a row to this file: collection it owns, what it does, key entry points.
 4. If it denormalizes onto another doc, add the trigger and a row in the table above.
-5. Consume from components/hooks via `@cultuvilla/shared/services/...`.
+5. If the placement is non-obvious — e.g. mutations go through a callable instead of direct writes, or the service splits ownership with another service on the same doc — add a bullet to "Placement decisions" with the *why*.
+6. Consume from components/hooks via `@cultuvilla/shared/services/...`.
