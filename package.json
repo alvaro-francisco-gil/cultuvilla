@@ -25,7 +25,7 @@
     "app:check-web-compat": "node scripts/check-mobile-web-compat.mjs",
     "typecheck": "pnpm shared:typecheck && pnpm functions:typecheck && pnpm i18n:typecheck && pnpm app:typecheck",
     "build": "pnpm shared:build && pnpm functions:build",
-    "test": "pnpm shared:test && pnpm app:test && pnpm functions:test",
+    "test": "node scripts/run-tests-with-emulators.mjs --label shared pnpm --filter @cultuvilla/shared test:all --label functions pnpm --prefix functions run test:all --label mobile pnpm app:test",
     "test:integration": "node scripts/run-tests-with-emulators.mjs pnpm --filter @cultuvilla/shared test:integration",
     "test:rules": "ONLY=firestore node scripts/run-tests-with-emulators.mjs pnpm --filter @cultuvilla/shared test:rules",
     "test:functions": "node scripts/run-tests-with-emulators.mjs npm --prefix functions run test:integration",
@@ -58,7 +58,8 @@
     "deploy:all:dev": "pnpm functions:build && bash scripts/firebase.sh deploy --project dev",
     "deploy:all:beta": "pnpm functions:build && bash scripts/firebase.sh deploy --project beta",
     "deploy:all:prod": "pnpm functions:build && bash scripts/firebase.sh deploy --project prod",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:unit": "pnpm shared:test && pnpm app:test && pnpm functions:test"
   },
   "lint-staged": {
     "*.{json,md,yml,yaml}": []
