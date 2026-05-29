@@ -50,6 +50,7 @@ import { buildOrganizationData } from '@cultuvilla/shared/dist/models/organizati
 import { buildEventData } from '@cultuvilla/shared/dist/models/event/EventDataModel.js';
 import { buildLocationData } from '@cultuvilla/shared/dist/models/core/LocationDataModel.js';
 import { buildUserData } from '@cultuvilla/shared/dist/models/user/UserDataModel.js';
+import { buildPersonData } from '@cultuvilla/shared/dist/models/person/PersonDataModel.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
@@ -175,6 +176,7 @@ async function uploadImage(ref, remoteFolder) {
 const villageDocId = (vid) => `seed-${DATASET_SLUG}-village-${vid}`;
 const orgDocId = (vid, oid) => `seed-${DATASET_SLUG}-org-${vid}-${oid}`;
 const eventDocId = (vid, oid, eid) => `seed-${DATASET_SLUG}-event-${vid}-${oid}-${eid}`;
+const personDocId = (userRef) => `seed-${DATASET_SLUG}-person-${userRef}`;
 
 async function loadDataset() {
   const url = pathToFileURL(path.join(DATASET_DIR, 'fixtures.mjs')).href;
@@ -215,11 +217,44 @@ async function ensureUsers(users) {
       }
     }
 
+    // Create persona first when present so the syncPersonDenormalization
+    // trigger (deployed in dev) has a person to project from. We also write
+    // users.personId explicitly below so the app links them without waiting
+    // on the trigger.
+    let personId = null;
+    if (u.person) {
+      personId = personDocId(u.ref);
+      const personDoc = tag(
+        buildPersonData({
+          givenName: u.person.givenName,
+          middleNames: u.person.middleNames ?? [],
+          firstSurname: u.person.firstSurname ?? null,
+          secondSurname: u.person.secondSurname ?? null,
+          nickname: u.person.nickname ?? null,
+          sex: u.person.sex ?? null,
+          birthday: u.person.birthday ?? null,
+          deathDate: u.person.deathDate ?? null,
+          birthPlace: u.person.birthPlace ?? null,
+          burialPlace: u.person.burialPlace ?? null,
+          municipalityLinks: u.person.municipalityLinks ?? [],
+          occupationIds: u.person.occupationIds ?? [],
+          pendingOccupations: u.person.pendingOccupations ?? [],
+          biography: u.person.biography ?? null,
+          photoURL: u.person.photoURL ?? null,
+          userId: authUser.uid,
+          createdBy: authUser.uid,
+        }),
+      );
+      await db.collection('persons').doc(personId).set(personDoc, { merge: true });
+      console.log(`[seed]   persons/${personId} ✓`);
+    }
+
     await db.collection('users').doc(authUser.uid).set(
       tag(
         buildUserData({
           displayName: u.displayName,
           email: u.email,
+          personId,
         }),
       ),
       { merge: true },
@@ -386,6 +421,12 @@ async function wipe(dataset) {
   }
 
   for (const u of dataset.users ?? []) {
+    // Person doc is wiped by deterministic ID, independent of whether the
+    // Auth user still exists (rules out stragglers after manual cleanup).
+    if (u.person) {
+      await db.collection('persons').doc(personDocId(u.ref)).delete().catch(() => {});
+      docs++;
+    }
     try {
       const authUser = await auth.getUserByEmail(u.email);
       storage += await wipeStorageFolder(`users/${authUser.uid}/photo/`);

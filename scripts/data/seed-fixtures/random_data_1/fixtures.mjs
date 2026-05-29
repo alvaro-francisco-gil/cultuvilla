@@ -20,6 +20,16 @@ export default {
       displayName: 'Alvaro (dev)',
       isAppAdmin: true,
       photo: null,
+      // Persona keeps users.displayName in sync with the denorm trigger.
+      person: {
+        givenName: 'Alvaro',
+        middleNames: [],
+        firstSurname: '(dev)',
+        secondSurname: null,
+        nickname: null,
+        sex: null,
+        birthday: { year: 1990, month: 1, day: 1 },
+      },
     },
   ],
 

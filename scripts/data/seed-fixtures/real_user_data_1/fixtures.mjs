@@ -36,6 +36,18 @@ export default {
       displayName: 'Cultuvilla',
       isAppAdmin: true,
       photo: 'packages/shared/assets/icons/logo_cultuvilla_nobg.png',
+      // Persona seeded so users.displayName lines up with the denorm trigger's
+      // projection (givenName + middleNames + firstSurname + secondSurname).
+      // Cultuvilla is the app admin — single token "Cultuvilla" suffices.
+      person: {
+        givenName: 'Cultuvilla',
+        middleNames: [],
+        firstSurname: null,
+        secondSurname: null,
+        nickname: 'Cultuvilla',
+        sex: null,
+        birthday: { year: 2024, month: 1, day: 1 },
+      },
     },
     {
       ref: 'alvaro',
@@ -44,6 +56,15 @@ export default {
       displayName: 'Álvaro Francisco Gil',
       isAppAdmin: false,
       photo: 'alvaro_pic.jpg',
+      person: {
+        givenName: 'Álvaro',
+        middleNames: [],
+        firstSurname: 'Francisco',
+        secondSurname: 'Gil',
+        nickname: 'Varo',
+        sex: 'male',
+        birthday: { year: 2000, month: 7, day: 13 },
+      },
     },
   ],
 
