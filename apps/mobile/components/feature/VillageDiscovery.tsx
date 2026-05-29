@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, ActivityIndicator, View } from 'react-native';
+import { Alert, FlatList, ActivityIndicator, View } from 'react-native';
 import { router, type Href } from 'expo-router';
-import { VStack, HStack, Text, Input, Button, Escudo } from '../primitives';
+import { VStack, HStack, Text, Input, Button, Escudo, Pressable } from '../primitives';
 import { useT } from '../../lib/i18n';
 import { useAuth } from '../../lib/auth/useAuth';
 import {
@@ -94,31 +94,52 @@ export function VillageDiscovery() {
         renderItem={({ item }) => {
           const isActive = item.communityActive;
           const isPending = pendingIds.has(item.id);
-          const target: Href = isActive
-            ? { pathname: '/discover/request-join/[municipalityId]', params: { municipalityId: item.id } }
-            : { pathname: '/discover/request-organizer/[municipalityId]', params: { municipalityId: item.id } };
-          const sub = isPending
-            ? t('requests.status.pending')
-            : isActive
-              ? t('discover.requestJoin')
-              : t('discover.requestOrganizer');
+          const joinTarget: Href = {
+            pathname: '/discover/request-join/[municipalityId]',
+            params: { municipalityId: item.id },
+          };
+          const organizerTarget: Href = {
+            pathname: '/discover/request-organizer/[municipalityId]',
+            params: { municipalityId: item.id },
+          };
+          const onPress = () => {
+            if (isActive) {
+              router.push(joinTarget);
+              return;
+            }
+            Alert.alert(
+              t('discover.noOrganizerTitle'),
+              t('discover.noOrganizerBody', { name: item.name }),
+              [
+                { text: t('discover.cancel'), style: 'cancel' },
+                {
+                  text: t('discover.noOrganizerConfirm'),
+                  onPress: () => router.push(organizerTarget),
+                },
+              ],
+            );
+          };
           return (
-            <Button
-              variant="secondary"
-              onPress={() => router.push(target)}
+            <Pressable
+              onPress={onPress}
               disabled={isPending}
-              fullWidth
+              className={`w-full rounded-md border border-accent bg-surface px-4 py-3 ${isPending ? 'opacity-50' : ''}`}
             >
               <HStack gap={3} className="items-center">
                 <Escudo url={item.escudoThumbUrl} size={40} fallbackInitial={item.name} />
                 <VStack gap={1}>
                   <Text>{item.name}</Text>
                   <Text tone="muted" variant="bodySm">
-                    {item.province} · {sub}
+                    {item.province}
                   </Text>
+                  {isPending && (
+                    <Text tone="muted" variant="bodySm">
+                      {t('requests.status.pending')}
+                    </Text>
+                  )}
                 </VStack>
               </HStack>
-            </Button>
+            </Pressable>
           );
         }}
       />

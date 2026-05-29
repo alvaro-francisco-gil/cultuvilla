@@ -342,7 +342,11 @@
     "notSeeing": "¿No ves tu pueblo? Cargar todos",
     "requestJoin": "Solicitar acceso",
     "requestOrganizer": "Quiero organizar este pueblo",
-    "inactive": "Sin comunidad activa"
+    "inactive": "Sin comunidad activa",
+    "noOrganizerTitle": "Este pueblo no tiene organizador",
+    "noOrganizerBody": "¿Quieres solicitar ser el organizador de {name}?",
+    "noOrganizerConfirm": "Solicitar",
+    "cancel": "Cancelar"
   },
   "requests": {
     "status": {
