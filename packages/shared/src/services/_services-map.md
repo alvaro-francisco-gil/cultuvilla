@@ -36,6 +36,7 @@ Some documents carry denormalized copies of fields owned by other collections so
 | Denormalized field | Lives on | Source of truth | Propagated by |
 |---|---|---|---|
 | `villageName`, `villageCoverImage`, `villageCoordinates` | `events/{eid}` (top-level) | `municipalities/{mid}` | [functions/src/village/syncVillageDenormalization.ts](../../../../functions/src/village/syncVillageDenormalization.ts) |
+| `displayName` | `users/{uid}` | `persons/{pid}` (where `userId == uid`) | [functions/src/users/syncPersonDenormalization.ts](../../../../functions/src/users/syncPersonDenormalization.ts) |
 | `displayName` on occupation usages | `persons/{pid}` (via `occupationIds`) | `occupations/{oid}` | [functions/src/census/onOccupationProposalApproved.ts](../../../../functions/src/census/onOccupationProposalApproved.ts) |
 | `isMember` on each registration | `events/{eid}/registrations/{regId}` | `municipalities/{mid}/members/{userId}` | [functions/src/events/registerToEvent.ts](../../../../functions/src/events/registerToEvent.ts) (written at create time) |
 | `confirmedCount`, `totalCount` on event doc | `events/{eid}` | aggregate over `events/{eid}/registrations/` | [functions/src/events/registerToEvent.ts](../../../../functions/src/events/registerToEvent.ts) + [functions/src/events/waitlistPromotion.ts](../../../../functions/src/events/waitlistPromotion.ts) |

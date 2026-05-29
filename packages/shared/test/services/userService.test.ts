@@ -24,31 +24,35 @@ describe('createUserProfile', () => {
     vi.clearAllMocks();
   });
 
-  it('calls setDoc exactly once with only account-shape fields (no birthday/biography/photoURL)', async () => {
+  it('calls setDoc exactly once with only account-shape fields (no displayName/birthday/biography/photoURL)', async () => {
     vi.mocked(setDoc).mockResolvedValue(undefined);
 
-    await createUserProfile('uid-1', { displayName: 'Ana', email: 'a@b.test', telephone: '600' });
+    await createUserProfile('uid-1', { email: 'a@b.test', telephone: '600' });
 
     expect(setDoc).toHaveBeenCalledTimes(1);
-    const [, payload] = vi.mocked(setDoc).mock.calls[0];
+    const [, payload, options] = vi.mocked(setDoc).mock.calls[0];
 
-    // Must have all account-shape keys
-    expect(payload).toHaveProperty('displayName', 'Ana');
+    // displayName is denormalized from the persons doc by the
+    // syncPersonDenormalization trigger — clients must not write it.
+    expect(payload).not.toHaveProperty('displayName');
+
     expect(payload).toHaveProperty('email', 'a@b.test');
     expect(payload).toHaveProperty('telephone', '600');
     expect(payload).toHaveProperty('activeMunicipalityId', null);
     expect(payload).toHaveProperty('personId', null);
     expect(payload).toHaveProperty('createdAt', '__SERVER_TIMESTAMP__');
 
-    // Must NOT have dropped fields
     expect(payload).not.toHaveProperty('birthday');
     expect(payload).not.toHaveProperty('biography');
     expect(payload).not.toHaveProperty('photoURL');
 
-    // Keys are EXACTLY the 6 account fields
     expect(Object.keys(payload as object).sort()).toEqual(
-      ['activeMunicipalityId', 'createdAt', 'displayName', 'email', 'personId', 'telephone'],
+      ['activeMunicipalityId', 'createdAt', 'email', 'personId', 'telephone'],
     );
+
+    // setDoc must run with { merge: true } so the trigger-written displayName
+    // (if it landed first) survives the client's create call.
+    expect(options).toEqual({ merge: true });
   });
 });
 
@@ -71,7 +75,6 @@ describe('patchUserProfile', () => {
     vi.mocked(updateDoc).mockResolvedValue(undefined);
 
     await patchUserProfile('uid-1', {
-      displayName: 'Ana',
       telephone: null,
       activeMunicipalityId: null,
       personId: null,
@@ -80,7 +83,6 @@ describe('patchUserProfile', () => {
     expect(updateDoc).toHaveBeenCalledTimes(1);
     const [, payload] = vi.mocked(updateDoc).mock.calls[0];
     expect(payload).toEqual({
-      displayName: 'Ana',
       telephone: null,
       activeMunicipalityId: null,
       personId: null,

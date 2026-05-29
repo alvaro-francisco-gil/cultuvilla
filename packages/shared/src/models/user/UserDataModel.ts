@@ -1,4 +1,10 @@
 export interface UserData {
+  // ─── Denormalized from persons/{personId} — kept in sync by
+  //     functions/src/users/syncPersonDenormalization.ts. The persons doc owns
+  //     givenName / firstSurname / secondSurname; this field is the
+  //     buildDisplayName(person) projection. Clients cannot write this
+  //     directly (firestore.rules), so reads can briefly observe "" for
+  //     users created before their persona exists.
   displayName: string
   email: string
   telephone: string | null

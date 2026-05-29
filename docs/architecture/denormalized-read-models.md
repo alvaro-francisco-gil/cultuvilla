@@ -79,6 +79,29 @@ If any of these is false, don't denormalize — query the source instead.
 
 When adding a new denormalization trigger, mirror its structure.
 
+## Existing read models
+
+### `users/{uid}.displayName` ← `persons/{personId}`
+
+The user document carries a denormalized projection of the linked persona's
+name (`buildDisplayName(person)` = givenName + middleNames + firstSurname +
+secondSurname). The user menu and several name-rendering surfaces read it
+without joining the persons collection.
+
+- **Source of truth:** `persons/{personId}` with the link
+  `person.userId == users/{uid}`.
+- **Trigger:** [functions/src/users/syncPersonDenormalization.ts](../../functions/src/users/syncPersonDenormalization.ts).
+  Fires `onDocumentWritten`, projects the name, short-circuits when unchanged,
+  uses `set(merge:true)` so it can populate `users/{uid}.displayName` even
+  before the client's onboarding flow has finished creating the user doc.
+- **Rules:** `firestore.rules` blocks clients from writing `displayName` on
+  `users/{uid}` for both create and update.
+- **Backfill:** [scripts/backfill-user-displayname.mjs](../../scripts/backfill-user-displayname.mjs)
+  reconciles existing user docs whose persons predate the trigger.
+- **Delete behavior:** the trigger leaves `users/{uid}.displayName` intact on
+  person delete — the user's name is still a useful last-known value; an
+  explicit account flow can clear it later if needed.
+
 ## Adding a new denormalized field — checklist
 
 1. Add the field to the **read-model document's** data model in `packages/shared/src/models/`.

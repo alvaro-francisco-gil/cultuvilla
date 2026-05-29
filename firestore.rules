@@ -90,8 +90,13 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if true;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
+      // displayName is denormalized from persons/{id} by the
+      // syncPersonDenormalization Cloud Function — clients must not touch it.
+      allow create: if isOwner(userId)
+                    && !request.resource.data.keys().hasAny(['displayName']);
+      allow update: if isOwner(userId)
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                       .hasAny(['displayName']);
       allow delete: if false;
 
       match /notifications/{notifId} {

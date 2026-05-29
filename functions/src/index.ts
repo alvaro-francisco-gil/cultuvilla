@@ -19,6 +19,9 @@ export { syncVillageDenormalization } from './village/syncVillageDenormalization
 export { updateCenso } from './census/updateCenso';
 export { onOccupationProposalApproved } from './census/onOccupationProposalApproved';
 
+// Users (profile + persona denormalization)
+export { syncPersonDenormalization } from './users/syncPersonDenormalization';
+
 // News (posts, moderation, reactions, comments)
 export { moderateNewsPost } from './news/moderateNewsPost';
 export { deleteNewsPost } from './news/deleteNewsPost';

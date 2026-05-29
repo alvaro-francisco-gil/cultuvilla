@@ -67,7 +67,7 @@ describe('CompleteProfileScreen', () => {
     expect(await findByText(/obligatorios/i)).toBeTruthy();
   });
 
-  it('writes person first, then account, with derived displayName', async () => {
+  it('writes person first, then account; displayName is set by the Cloud Function trigger', async () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const personService = require('@cultuvilla/shared/services/personService');
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -109,7 +109,11 @@ describe('CompleteProfileScreen', () => {
     );
     expect(userService.createUserProfile).toHaveBeenCalledWith(
       'uid-1',
-      expect.objectContaining({ displayName: 'Ana García López', personId: 'person-1' }),
+      expect.objectContaining({ personId: 'person-1' }),
     );
+    // Client must NOT send displayName — firestore.rules forbid it and the
+    // trigger (functions/src/users/syncPersonDenormalization.ts) is the only writer.
+    const userArgs = (userService.createUserProfile as jest.Mock).mock.calls[0][1];
+    expect(userArgs).not.toHaveProperty('displayName');
   });
 });

@@ -31,10 +31,6 @@ function toPartialDate(d: Date | null): PartialDate | null {
   return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate() };
 }
 
-function buildDisplayName(given: string, first: string, second: string): string {
-  return [given, first, second].map((s) => s.trim()).filter(Boolean).join(' ');
-}
-
 async function pickImage(): Promise<{ uri: string; blob: Blob } | null> {
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted) return null;
@@ -81,7 +77,6 @@ export default function CompleteProfileScreen() {
       setError(t('onboarding.completeProfile.requiredFields'));
       return;
     }
-    const displayName = buildDisplayName(trimmedGiven, trimmedFirst, trimmedSecond);
     setLoading(true);
     try {
       const birthPlaceLink: MunicipalityLink | null = birthPlace
@@ -120,16 +115,16 @@ export default function CompleteProfileScreen() {
         await updatePerson(personId, { photoURL: url });
       }
 
+      // displayName is denormalized from the persons doc — written by the
+      // syncPersonDenormalization Cloud Function only. Don't send it here.
       if (profile) {
         await patchUserProfile(user.uid, {
-          displayName,
           telephone: telephone.trim() || null,
           activeMunicipalityId: accountVillage,
           personId,
         });
       } else {
         await createUserProfile(user.uid, {
-          displayName,
           email: user.email ?? '',
           telephone: telephone.trim() || null,
           activeMunicipalityId: accountVillage,

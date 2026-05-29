@@ -16,7 +16,10 @@ import type { UserData, UserDataInput } from '../models/user/UserDataModel';
 function mapUserDoc(id: string, data: Record<string, unknown>): UserData & { id: string } {
   return {
     id,
-    displayName: data['displayName'] as string,
+    // displayName is denormalized from persons/{id} via the
+    // syncPersonDenormalization Cloud Function and can be transiently absent
+    // for a user whose person doc hasn't propagated yet — tolerate "".
+    displayName: (data['displayName'] as string) ?? '',
     email: data['email'] as string,
     telephone: (data['telephone'] as string) ?? null,
     activeMunicipalityId: (data['activeMunicipalityId'] as string) ?? null,
@@ -39,24 +42,37 @@ export async function getAllUsers(): Promise<(UserData & { id: string })[]> {
   return snap.docs.map((d) => mapUserDoc(d.id, d.data()));
 }
 
+/**
+ * Input accepted by `createUserProfile` / `patchUserProfile`. `displayName` is
+ * intentionally excluded — it's denormalized from persons/{personId} and
+ * written exclusively by the syncPersonDenormalization Cloud Function. Client
+ * writes are blocked at the firestore.rules layer.
+ */
+export type ClientUserInput = Omit<UserDataInput, 'displayName'>;
+
 export async function createUserProfile(
   userId: string,
-  input: UserDataInput,
+  input: ClientUserInput,
 ): Promise<void> {
   const docRef = doc(getDb(), 'users', userId);
-  await setDoc(docRef, {
-    displayName: input.displayName,
-    email: input.email,
-    telephone: input.telephone ?? null,
-    activeMunicipalityId: input.activeMunicipalityId ?? null,
-    personId: input.personId ?? null,
-    createdAt: serverTimestamp(),
-  });
+  // setDoc with merge — the trigger may have already created a partial user
+  // doc carrying just displayName when the person was written first.
+  await setDoc(
+    docRef,
+    {
+      email: input.email,
+      telephone: input.telephone ?? null,
+      activeMunicipalityId: input.activeMunicipalityId ?? null,
+      personId: input.personId ?? null,
+      createdAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
 }
 
 export async function patchUserProfile(
   userId: string,
-  data: Partial<Pick<UserData, 'displayName' | 'telephone' | 'activeMunicipalityId' | 'personId'>>,
+  data: Partial<Pick<UserData, 'telephone' | 'activeMunicipalityId' | 'personId'>>,
 ): Promise<void> {
   await updateDoc(doc(getDb(), 'users', userId), data);
 }
