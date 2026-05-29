@@ -3,9 +3,15 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    // Phase 1 scope: nothing yet. Each collection-migration commit adds the
-    // touched function files to this glob until Phase 4 flips it to src/**.
-    files: ['src/__never__'],
+    // Phase 2 scope: event-touching handlers migrated in Task 13.
+    // Each collection-migration commit adds the touched function files to
+    // this glob until Phase 4 flips it to src/**.
+    files: [
+      'src/registerToEvent.ts',
+      'src/waitlistPromotion.ts',
+      'src/notificationTriggers.ts',
+      'src/syncVillageDenormalization.ts',
+    ],
     extends: [
       ...tseslint.configs.recommendedTypeChecked,
       ...tseslint.configs.strictTypeChecked,
@@ -18,6 +24,6 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['lib/**', 'node_modules/**'],
+    ignores: ['lib/**', 'dist/**', 'node_modules/**'],
   },
 );
