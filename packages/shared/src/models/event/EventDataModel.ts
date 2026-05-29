@@ -1,43 +1,40 @@
-import { GeoPoint } from 'firebase/firestore';
-import { LocationData } from '../core/LocationDataModel';
+import { z } from 'zod';
+import { LocationDataSchema, LatLngSchema, type LatLng } from '../core/LocationDataModel';
 
-export type EventStatus = 'draft' | 'published' | 'cancelled' | 'completed';
+export const EventStatusSchema = z.enum(['draft', 'published', 'cancelled', 'completed']);
+export type EventStatus = z.infer<typeof EventStatusSchema>;
 
-export interface EventData {
-  title: string;
-  description: string;
-  startDate: Date;
-  endDate: Date | null;
-  location: LocationData;
-  imageURL: string | null;
-  price: number | null;
-  maxAttendees: number | null;
-  telephoneRequired: boolean;
-  status: EventStatus;
-  organizationId: string;
-  organizationName: string;
-  createdBy: string;
-  createdAt: Date;
-  updatedAt: Date;
-  // Municipality context (denormalized for feed rendering).
-  municipalityId: string;
-  municipalityName: string;
-  municipalityCoverImage: string | null;
-  municipalityCoordinates: GeoPoint | null;
-  // Registration counters maintained by `registerToEvent` and
-  // `onRegistrationDeleted`. Optional because events created before the
-  // callable rollout don't carry them yet; readers should fall back to a
-  // count query when undefined.
-  confirmedCount?: number;
-  totalCount?: number;
-}
+export const EventDataSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  startDate: z.date(),
+  endDate: z.date().nullable(),
+  location: LocationDataSchema,
+  imageURL: z.string().nullable(),
+  price: z.number().nullable(),
+  maxAttendees: z.number().int().nullable(),
+  telephoneRequired: z.boolean(),
+  status: EventStatusSchema,
+  organizationId: z.string(),
+  organizationName: z.string(),
+  createdBy: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  municipalityId: z.string(),
+  municipalityName: z.string(),
+  municipalityCoverImage: z.string().nullable(),
+  municipalityCoordinates: LatLngSchema.nullable(),
+  confirmedCount: z.number().int().optional(),
+  totalCount: z.number().int().optional(),
+});
+export type EventData = z.infer<typeof EventDataSchema>;
 
 export interface EventDataInput {
   title: string;
   description: string;
   startDate: Date;
   endDate?: Date | null;
-  location: LocationData;
+  location: z.infer<typeof LocationDataSchema>;
   imageURL?: string | null;
   price?: number | null;
   maxAttendees?: number | null;
@@ -51,7 +48,7 @@ export interface EventDataInput {
   municipalityId: string;
   municipalityName: string;
   municipalityCoverImage?: string | null;
-  municipalityCoordinates: GeoPoint | null;
+  municipalityCoordinates: LatLng | null;
 }
 
 export function buildEventData(input: EventDataInput): EventData {
