@@ -1,4 +1,5 @@
 import { Image, View } from 'react-native';
+import { colors } from '@cultuvilla/shared/design-system';
 import { Text } from '../primitives/Text';
 
 const APP_LOGO = require('../../assets/logo.png');
@@ -17,8 +18,8 @@ export function AuthHeader({ title }: AuthHeaderProps) {
       </View>
       <Text
         variant="body"
-        className="text-center text-accent mt-10"
-        style={{ fontWeight: '800' }}
+        className="text-center mt-10"
+        style={{ color: colors.light.fg.accent, fontWeight: '800' }}
       >
         {title}
       </Text>
