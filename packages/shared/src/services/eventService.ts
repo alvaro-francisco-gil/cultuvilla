@@ -1,6 +1,5 @@
+// packages/shared/src/services/eventService.ts
 import {
-  collection,
-  doc,
   getDoc,
   getDocs,
   setDoc,
@@ -11,93 +10,68 @@ import {
   where,
   serverTimestamp,
   Timestamp,
-  GeoPoint,
   getCountFromServer,
+  doc,
+  type UpdateData,
+  type DocumentData,
 } from 'firebase/firestore';
 import { getDb } from '../firebase';
-import type { EventData, EventDataInput, EventStatus } from '../models/event/EventDataModel';
-import type { LocationData } from '../models/core/LocationDataModel';
-
-function eventsCol() {
-  return collection(getDb(), 'events');
-}
-
-function mapLocationData(raw: Record<string, unknown>): LocationData {
-  return {
-    type: raw['type'] as LocationData['type'],
-    coordinates: raw['coordinates'] ? (raw['coordinates'] as GeoPoint) : null,
-    text: (raw['text'] as string | null) ?? null,
-  };
-}
-
-export function mapEventDoc(
-  d: { id: string; data: () => Record<string, unknown> }
-): EventData & { id: string } {
-  const data = d.data();
-  const endDateRaw = data['endDate'];
-  return {
-    id: d.id,
-    title: data['title'] as string,
-    description: data['description'] as string,
-    startDate: (data['startDate'] as Timestamp).toDate(),
-    endDate: endDateRaw ? (endDateRaw as Timestamp).toDate() : null,
-    location: mapLocationData(data['location'] as Record<string, unknown>),
-    imageURL: (data['imageURL'] as string | null) ?? null,
-    price: (data['price'] as number | null) ?? null,
-    maxAttendees: (data['maxAttendees'] as number | null) ?? null,
-    telephoneRequired: (data['telephoneRequired'] as boolean) ?? false,
-    status: data['status'] as EventStatus,
-    organizationId: data['organizationId'] as string,
-    organizationName: data['organizationName'] as string,
-    createdBy: data['createdBy'] as string,
-    createdAt: (data['createdAt'] as Timestamp).toDate(),
-    updatedAt: (data['updatedAt'] as Timestamp).toDate(),
-    municipalityId: data['municipalityId'] as string,
-    municipalityName: data['municipalityName'] as string,
-    municipalityCoverImage: (data['municipalityCoverImage'] as string | null) ?? null,
-    municipalityCoordinates: (data['municipalityCoordinates'] as GeoPoint | null) ?? null,
-    confirmedCount: typeof data['confirmedCount'] === 'number' ? (data['confirmedCount'] as number) : undefined,
-    totalCount: typeof data['totalCount'] === 'number' ? (data['totalCount'] as number) : undefined,
-  };
-}
+import {
+  eventsCollection,
+  eventDoc,
+} from '../firebase/refs/client';
+import type {
+  EventData,
+  EventDataInput,
+  EventStatus,
+} from '../models/event/EventDataModel';
 
 export async function getEvent(eventId: string): Promise<(EventData & { id: string }) | null> {
-  const snap = await getDoc(doc(eventsCol(), eventId));
-  if (!snap.exists()) return null;
-  return mapEventDoc(snap as Parameters<typeof mapEventDoc>[0]);
+  const snap = await getDoc(eventDoc(getDb(), eventId));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
 export async function getEventsByMunicipality(
   municipalityId: string,
-  status?: EventStatus
+  status?: EventStatus,
 ): Promise<(EventData & { id: string })[]> {
-  const constraints = status
-    ? [where('municipalityId', '==', municipalityId), where('status', '==', status), orderBy('startDate', 'asc')]
-    : [where('municipalityId', '==', municipalityId), orderBy('startDate', 'asc')];
-  const q = query(eventsCol(), ...constraints);
+  const ref = eventsCollection(getDb());
+  const q = status
+    ? query(
+        ref,
+        where('municipalityId', '==', municipalityId),
+        where('status', '==', status),
+        orderBy('startDate', 'asc'),
+      )
+    : query(
+        ref,
+        where('municipalityId', '==', municipalityId),
+        orderBy('startDate', 'asc'),
+      );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => mapEventDoc(d as Parameters<typeof mapEventDoc>[0]));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 export async function getEventsByOrganization(
-  organizationId: string
+  organizationId: string,
 ): Promise<(EventData & { id: string })[]> {
   const q = query(
-    eventsCol(),
+    eventsCollection(getDb()),
     where('organizationId', '==', organizationId),
-    orderBy('startDate', 'asc')
+    orderBy('startDate', 'asc'),
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => mapEventDoc(d as Parameters<typeof mapEventDoc>[0]));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 export async function createEvent(input: EventDataInput): Promise<string> {
-  const newRef = doc(eventsCol());
-  await setDoc(newRef, {
+  const newRef = doc(eventsCollection(getDb()));
+  const now = new Date();
+  const event: EventData = {
     title: input.title,
     description: input.description,
-    startDate: Timestamp.fromDate(input.startDate),
-    endDate: input.endDate ? Timestamp.fromDate(input.endDate) : null,
+    startDate: input.startDate,
+    endDate: input.endDate ?? null,
     location: input.location,
     imageURL: input.imageURL ?? null,
     price: input.price ?? null,
@@ -107,21 +81,25 @@ export async function createEvent(input: EventDataInput): Promise<string> {
     organizationId: input.organizationId,
     organizationName: input.organizationName,
     createdBy: input.createdBy,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    createdAt: now,
+    updatedAt: now,
     municipalityId: input.municipalityId,
     municipalityName: input.municipalityName,
     municipalityCoverImage: input.municipalityCoverImage ?? null,
     municipalityCoordinates: input.municipalityCoordinates,
-  });
+  };
+  await setDoc(newRef, event);
   return newRef.id;
 }
 
 export async function updateEvent(
   eventId: string,
-  data: Partial<Omit<EventData, 'createdAt' | 'createdBy' | 'municipalityId'>>
+  data: Partial<Omit<EventData, 'createdAt' | 'createdBy' | 'municipalityId'>>,
 ): Promise<void> {
-  const updates: Record<string, unknown> = { ...data, updatedAt: serverTimestamp() };
+  // updateDoc bypasses the converter's toFirestore, so partial-update payloads
+  // still need explicit Timestamp conversion for Date fields. Use the untyped
+  // doc ref here since the converter type would require Date, not Timestamp.
+  const updates: UpdateData<DocumentData> = { ...data, updatedAt: serverTimestamp() };
   if (data.startDate instanceof Date) {
     updates['startDate'] = Timestamp.fromDate(data.startDate);
   }
@@ -130,35 +108,34 @@ export async function updateEvent(
   } else if (data.endDate === null) {
     updates['endDate'] = null;
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await updateDoc(doc(eventsCol(), eventId), updates as any);
+  await updateDoc(doc(getDb(), 'events', eventId), updates);
 }
 
 export async function updateEventStatus(eventId: string, status: EventStatus): Promise<void> {
-  await updateDoc(doc(eventsCol(), eventId), {
+  await updateDoc(doc(getDb(), 'events', eventId), {
     status,
     updatedAt: serverTimestamp(),
   });
 }
 
 export async function deleteEvent(eventId: string): Promise<void> {
-  await deleteDoc(doc(eventsCol(), eventId));
+  await deleteDoc(eventDoc(getDb(), eventId));
 }
 
 export async function getEventsByCreator(
-  userId: string
+  userId: string,
 ): Promise<(EventData & { id: string })[]> {
   const q = query(
-    eventsCol(),
+    eventsCollection(getDb()),
     where('createdBy', '==', userId),
-    orderBy('createdAt', 'desc')
+    orderBy('createdAt', 'desc'),
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => mapEventDoc(d as Parameters<typeof mapEventDoc>[0]));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 export async function getEventCountByCreator(userId: string): Promise<number> {
-  const q = query(eventsCol(), where('createdBy', '==', userId));
+  const q = query(eventsCollection(getDb()), where('createdBy', '==', userId));
   const snap = await getCountFromServer(q);
   return snap.data().count;
 }

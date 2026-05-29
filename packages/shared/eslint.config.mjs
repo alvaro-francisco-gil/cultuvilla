@@ -6,6 +6,7 @@ export default tseslint.config(
     files: [
       'src/firebase/**/*.ts',
       'src/models/**/*.ts',
+      'src/services/eventService.ts',
       'test/firebase/**/*.ts',
     ],
     extends: [

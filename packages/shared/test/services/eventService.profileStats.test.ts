@@ -2,9 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../src/firebase', () => ({ getDb: vi.fn() }));
 vi.mock('firebase/firestore', async () => {
+  const makeRef = (..._args: unknown[]) => {
+    const ref = { _path: _args, withConverter: vi.fn() };
+    ref.withConverter.mockReturnValue(ref);
+    return ref;
+  };
   return {
-    collection: vi.fn(),
-    doc: vi.fn((..._args) => ({ _path: _args })),
+    collection: vi.fn((..._args) => makeRef(..._args)),
+    doc: vi.fn((..._args) => makeRef(..._args)),
     getDoc: vi.fn(),
     getDocs: vi.fn(),
     setDoc: vi.fn(),
