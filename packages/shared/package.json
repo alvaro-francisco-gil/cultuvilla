@@ -28,7 +28,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.config.integration.ts",
-    "test:rules": "vitest run --config vitest.config.e2e.ts"
+    "test:rules": "vitest run --config vitest.config.e2e.ts",
+    "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
     "zod": "^4.4.3"

@@ -13,16 +13,16 @@ import { normalize, denormalize, type SdkCtors } from './walkers';
  * We don't import that type directly so the same converter works for both the
  * client SDK and the admin SDK (which expose structurally-identical interfaces).
  */
-export function makeConverter<S extends z.ZodTypeAny>(schema: S, sdk: SdkCtors) {
+export function makeConverter<S extends z.ZodType>(schema: S, sdk: SdkCtors) {
   type Model = z.infer<S>;
   return {
     toFirestore(model: Model): Record<string, unknown> {
-      const parsed = schema.parse(model) as Model;
+      const parsed = schema.parse(model);
       return denormalize(parsed, sdk) as Record<string, unknown>;
     },
     fromFirestore(snap: { data(): unknown }): Model {
       const normalized = normalize(snap.data(), sdk);
-      return schema.parse(normalized) as Model;
+      return schema.parse(normalized);
     },
   };
 }

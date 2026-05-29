@@ -8,7 +8,8 @@
     "test:integration": "vitest run --config vitest.config.integration.mjs",
     "test:watch": "vitest",
     "serve": "npm run build && firebase emulators:start --only functions",
-    "deploy": "firebase deploy --only functions"
+    "deploy": "firebase deploy --only functions",
+    "lint": "eslint . --max-warnings 0 --no-error-on-unmatched-pattern"
   },
   "engines": {
     "node": "22"
@@ -18,8 +19,11 @@
     "firebase-functions": "^7.2.5"
   },
   "devDependencies": {
+    "eslint": "^9.39.4",
     "firebase-functions-test": "^3.5.0",
+    "globals": "^17.6.0",
     "typescript": "~5.8.3",
+    "typescript-eslint": "^8.60.0",
     "vitest": "^4.0.15"
   }
 }
