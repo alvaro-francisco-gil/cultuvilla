@@ -22,12 +22,12 @@ The Firebase CLI keeps the "current" account globally — it leaks across repos.
 1. **First-time setup (per operator):**
    ```bash
    echo 'your.email@example.com' > .firebase-account   # gitignored
-   firebase login --add                                  # sign in with that same email
+   firebase login:add                                  # sign in with that same email
    ```
 2. All `pnpm deploy:*` scripts route through `scripts/firebase.sh`, which injects `--account=$(cat .firebase-account)` on every call. The global `firebase login:use` setting is ignored.
 3. Override for one command: `FIREBASE_ACCOUNT=other.email@example.com bash scripts/firebase.sh deploy --only ...`.
 
-If a deploy fails with `Error: ... HTTP Error: 403, The caller does not have permission`, check `.firebase-account` is set to an account with the right IAM role on `villa-events` (or whichever project), and that `firebase login:list` shows that account as available (run `firebase login --add` if not).
+If a deploy fails with `Error: ... HTTP Error: 403, The caller does not have permission`, check `.firebase-account` is set to an account with the right IAM role on `villa-events` (or whichever project), and that `firebase login:list` shows that account as available (run `firebase login:add` if not).
 
 ## Hard refusals
 

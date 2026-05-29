@@ -4,7 +4,7 @@
 # Pins which logged-in Google account `firebase` uses for this repo so the
 # global `firebase login:use` setting (which leaks across projects) doesn't
 # matter. The account is read from `.firebase-account` at the repo root
-# (gitignored) — each operator sets their own. Run `firebase login --add`
+# (gitignored) — each operator sets their own. Run `firebase login:add`
 # once with that account; this wrapper supplies `--account=<email>` on every
 # subsequent call.
 #
@@ -15,7 +15,7 @@
 #
 # Setup:
 #   echo 'your.email@example.com' > .firebase-account
-#   firebase login --add  # interactive — sign in with your.email@example.com
+#   firebase login:add  # interactive — sign in with your.email@example.com
 #
 # Override:
 #   FIREBASE_ACCOUNT=other.email@example.com bash scripts/firebase.sh ...
@@ -35,7 +35,7 @@ if [ -z "$ACCT" ]; then
   Pick the account that owns the Cultuvilla dev project (villa-events) and:
 
     echo 'your.email@example.com' > .firebase-account
-    firebase login --add   # sign in with that same email
+    firebase login:add   # sign in with that same email
 
   Or set FIREBASE_ACCOUNT inline for a single command:
 
