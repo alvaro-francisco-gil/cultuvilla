@@ -1,33 +1,53 @@
 import { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Input, type InputProps } from './Input';
 import { Pressable } from './Pressable';
 
-export type PasswordInputProps = Omit<InputProps, 'secureTextEntry'> & {
+export type PasswordInputProps = Omit<InputProps, 'secureTextEntry' | 'rightAdornment'> & {
   testID?: string;
 };
 
-export function PasswordInput({ testID, ...rest }: PasswordInputProps) {
+export function PasswordInput({ testID, value, onFocus, onBlur, ...rest }: PasswordInputProps) {
   const [visible, setVisible] = useState(false);
+  const [focused, setFocused] = useState(false);
+
+  const hasValue = value != null && value.length > 0;
+  const showToggle = focused || hasValue;
+
+  // Use parameter type inference from InputProps' onFocus/onBlur (which under
+  // react-native-web typings resolves to the DOM FocusEvent type, while on
+  // native it's NativeSyntheticEvent<TextInputFocusEventData>). Casting
+  // through `any` here keeps a single source file working across both.
+  const handleFocus: NonNullable<InputProps['onFocus']> = (e) => {
+    setFocused(true);
+    onFocus?.(e as never);
+  };
+  const handleBlur: NonNullable<InputProps['onBlur']> = (e) => {
+    setFocused(false);
+    onBlur?.(e as never);
+  };
+
+  const toggle = showToggle ? (
+    <Pressable
+      onPress={() => setVisible((v) => !v)}
+      accessibilityRole="button"
+      accessibilityLabel={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+      testID={testID ? `${testID}-toggle` : undefined}
+      hitSlop={8}
+    >
+      <Ionicons name={visible ? 'eye-off' : 'eye'} size={20} />
+    </Pressable>
+  ) : null;
+
   return (
-    <View style={styles.row}>
-      <Input {...rest} secureTextEntry={!visible} testID={testID ? `${testID}-input` : undefined} />
-      <Pressable
-        onPress={() => setVisible((v) => !v)}
-        accessibilityRole="button"
-        accessibilityLabel={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-        testID={testID ? `${testID}-toggle` : undefined}
-        style={styles.toggle}
-        hitSlop={8}
-      >
-        <Ionicons name={visible ? 'eye-off' : 'eye'} size={20} />
-      </Pressable>
-    </View>
+    <Input
+      {...rest}
+      value={value}
+      secureTextEntry={!visible}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      rightAdornment={toggle}
+      testID={testID ? `${testID}-input` : undefined}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  row: { position: 'relative' },
-  toggle: { position: 'absolute', right: 12, bottom: 12 },
-});

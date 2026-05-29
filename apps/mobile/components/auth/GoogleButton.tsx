@@ -21,14 +21,21 @@ export function GoogleButton({ onPress, loading = false, testID }: GoogleButtonP
       accessibilityRole="button"
       accessibilityLabel={t('auth.signInWithGoogle')}
       testID={testID}
-      className="bg-surface border border-subtle rounded-md h-14 px-4 justify-center"
+      className="bg-surface-elevated border-2 border-accent rounded-md h-14 px-4 justify-center"
+      style={{
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.18,
+        shadowRadius: 6,
+        elevation: 5,
+      }}
     >
       <View className="flex-row items-center justify-center">
         <Image
           source={GOOGLE_G}
-          style={{ width: 22, height: 22, marginRight: 12, resizeMode: 'contain' }}
+          style={{ width: 24, height: 24, marginRight: 12, resizeMode: 'contain' }}
         />
-        <Text>{label}</Text>
+        <Text className="font-semibold">{label}</Text>
       </View>
     </Pressable>
   );

@@ -11,7 +11,7 @@ export function AuthCard({ children }: AuthCardProps) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
-        <View className="flex-1 items-center justify-center">
+        <View className="flex-1 items-center pt-6">
           <View style={{ maxWidth: 360, width: '100%', alignSelf: 'center' }}>
             {children}
           </View>

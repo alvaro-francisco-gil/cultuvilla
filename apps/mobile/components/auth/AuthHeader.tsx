@@ -1,19 +1,19 @@
 import { Image, View } from 'react-native';
 import { Text } from '../primitives/Text';
 
-const APP_LOGO = require('../../assets/icon.png');
+const APP_LOGO = require('../../assets/logo.png');
 
 export type AuthHeaderProps = { title: string };
 
 export function AuthHeader({ title }: AuthHeaderProps) {
   return (
-    <View className="items-center mb-4">
+    <View className="items-center mb-6">
       <Image
         source={APP_LOGO}
         accessibilityLabel="Cultuvilla"
-        style={{ width: 96, height: 96, borderRadius: 20, resizeMode: 'contain' }}
+        style={{ width: 132, height: 132, resizeMode: 'contain' }}
       />
-      <Text variant="h2" className="text-center mt-4">
+      <Text variant="display" className="text-center text-accent mt-4">
         {title}
       </Text>
     </View>
