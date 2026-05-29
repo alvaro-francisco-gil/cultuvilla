@@ -11,6 +11,7 @@ export default tseslint.config(
       'src/waitlistPromotion.ts',
       'src/notificationTriggers.ts',
       'src/syncVillageDenormalization.ts',
+      'src/acceptInvite.ts',
     ],
     extends: [
       ...tseslint.configs.recommendedTypeChecked,
