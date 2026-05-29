@@ -64,6 +64,32 @@ the dev server after editing.
 
 `apps/mobile/.env` is gitignored.
 
+### Disaster recovery: rebuilding `apps/mobile/.env`
+
+If the file is ever lost, every value can be restored from
+[GitHub repo settings → Secrets and variables → Actions](https://github.com/alvaro-francisco-gil/cultuvilla/settings/secrets/actions):
+
+- **Variables** (readable): `APP_ENV`, `EAS_PROJECT_ID`, all `FIREBASE_*` and
+  `GOOGLE_*` keys. These are public identifiers — visible in the dashboard
+  by design, so you can copy them straight back into `.env`.
+- **Secrets** (write-only): `EXPO_TOKEN`. If lost, mint a fresh one at
+  https://expo.dev/settings/access-tokens and re-set it.
+
+There is no central read-time secret store for these values — they only
+exist as a backup. The deployer's local `apps/mobile/.env` remains the
+source of truth that Expo bakes into the bundle at build time.
+
+```bash
+# Rebuild .env from the repo (requires `gh` CLI, repo admin):
+cd apps/mobile
+{
+  for v in $(gh variable list --json name -q '.[].name'); do
+    printf '%s=%s\n' "$v" "$(gh variable get "$v")"
+  done
+  echo "EXPO_TOKEN=<paste from expo.dev / 1Password>"
+} > .env
+```
+
 ## Where deploy-time values live
 
 Firebase Hosting serves a static bundle — there is no server runtime and
