@@ -17,8 +17,8 @@ export function makeConverter<S extends z.ZodTypeAny>(schema: S, sdk: SdkCtors) 
   type Model = z.infer<S>;
   return {
     toFirestore(model: Model): Record<string, unknown> {
-      schema.parse(model);
-      return denormalize(model, sdk) as Record<string, unknown>;
+      const parsed = schema.parse(model) as Model;
+      return denormalize(parsed, sdk) as Record<string, unknown>;
     },
     fromFirestore(snap: { data(): unknown }): Model {
       const normalized = normalize(snap.data(), sdk);
