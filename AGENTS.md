@@ -175,6 +175,26 @@ pnpm test             # vitest in packages/shared
 
 Pre-commit (Husky + lint-staged) runs `eslint --max-warnings 0 --fix` on changed `apps/web` TypeScript files; commit-msg runs commitlint.
 
+### Dev seed data
+
+`pnpm seed:dev` populates the dev Firestore (`villa-events`) with a named dataset from [scripts/data/seed-fixtures/](scripts/data/seed-fixtures/). Each dataset folder is `<name>/fixtures.mjs` plus an `images/` folder whose files get uploaded to Cloud Storage and wired into the seeded docs.
+
+```bash
+DATASET=real_user_data_1 pnpm seed:dev          # seed
+DATASET=real_user_data_1 pnpm seed:dev:wipe     # remove just that dataset
+```
+
+`DATASET` defaults to `random_data_1` (legacy throwaway data). Requires `GOOGLE_APPLICATION_CREDENTIALS` (same key as the escudos uploader). See `firebase-admin-dev` skill.
+
+To activate real villages via the **actual organizer-request → admin-approval flow** (rather than direct seeding), use the sibling script:
+
+```bash
+DATASET=real_villages_1 pnpm seed:villages          # default DATASET
+DATASET=real_villages_1 pnpm seed:villages:wipe
+```
+
+It assumes `pnpm seed:dev` has been run (so the requester + approver users exist) and `pnpm seed:municipalities` has been run (so the target municipality with the matching `codigoINE` exists). Doc writes replay what the `requestOrganizeVillage` / `respondToOrganizerRequest` Cloud Functions do — `organizerRequests` records the audit trail.
+
 ### Mobile app
 
 Mobile code lives in [`apps/mobile/`](apps/mobile/). It is an Expo SDK 54 / Expo Router v4 / NativeWind v4 React Native app that consumes `@cultuvilla/shared` and `@cultuvilla/i18n` from the monorepo.

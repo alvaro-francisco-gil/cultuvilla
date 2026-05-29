@@ -2,52 +2,45 @@
 /**
  * seed-dev-fixtures.mjs
  *
- * Idempotently seeds the dev Firestore (`villa-events`) with a small set of
- * realistic-looking fixtures so you can open the mobile app and have villages,
- * organizations, and events to interact with — without going through the
- * admin/superadmin flows for each one.
+ * Loads a named dataset from `scripts/data/seed-fixtures/<dataset>/fixtures.mjs`
+ * and idempotently seeds the dev Firestore (`villa-events`) with the users,
+ * villages, organizations, and events it declares. Local image files in
+ * `scripts/data/seed-fixtures/<dataset>/images/` are uploaded to Cloud Storage
+ * and their download URLs wired into the seeded docs (village cover images,
+ * event images, user `photoURL`).
  *
- * Data shape is built via the same `build*Data` helpers from
- * `@cultuvilla/shared` that the app uses at runtime, so seed docs match
- * production shape exactly (no pseudo-replicated schemas here).
+ * Doc shape is built via the same `build*Data` helpers from `@cultuvilla/shared`
+ * that the app uses at runtime, so seed docs match production shape exactly.
  *
  * USAGE
- *   pnpm shared:build                          # builds @cultuvilla/shared once
- *   ADMIN_UID=<your firebase auth uid> pnpm seed:dev
+ *   pnpm shared:build                                # one-time
+ *   DATASET=real_data_1 pnpm seed:dev                # seed
+ *   DATASET=real_data_1 pnpm seed:dev:wipe           # remove just that dataset
  *
- *   # Cleanup (removes only docs tagged seedBatch=dev-fixtures-v1):
- *   pnpm seed:dev:wipe
+ *   DATASET defaults to `random_data_1` (the legacy throwaway dev data).
  *
- * ADMIN_UID / ADMIN_EMAIL / ADMIN_PASSWORD
- *   Two modes:
- *     a) ADMIN_UID set → use an existing Firebase Auth user.
- *     b) ADMIN_UID not set → script creates (or reuses) an Auth user from
- *        ADMIN_EMAIL + ADMIN_PASSWORD, writes `users/{uid}` + `admins/{uid}`,
- *        then uses that UID for everything.
- *   In both modes the user ends up in `admins/{uid}` (app superadmin).
- *   Defaults: ADMIN_EMAIL=alvaro@cultuvilla.dev  ADMIN_PASSWORD=cultuvilla-dev
- *
- * CREDENTIALS
- *   Authenticate with Application Default Credentials before running:
- *     gcloud auth application-default login
+ * AUTHENTICATION
+ *   Requires GOOGLE_APPLICATION_CREDENTIALS pointing at a `villa-events`
+ *   service-account JSON key (Storage writes use it). See firebase-admin-dev
+ *   skill at .claude/skills/firebase-admin-dev/SKILL.md.
  *
  * SAFETY
- *   - Only writes to the project resolved from firebase.json / env (dev).
- *   - Every doc is tagged `seedBatch: 'dev-fixtures-v1'`.
- *   - Deterministic IDs (seed-village-aranjuez, seed-org-aranjuez-ayto, ...) →
- *     re-running just upserts; no duplicates.
- *   - `--wipe` deletes only docs with the matching seedBatch tag.
+ *   - Hard-coded to project `villa-events` (dev). Refuses anything else.
+ *   - Doc IDs deterministic and namespaced by dataset:
+ *       seed-<dataset>-village-<id>
+ *       seed-<dataset>-org-<villageId>-<orgId>
+ *       seed-<dataset>-event-<villageId>-<orgId>-<eventId>
+ *   - Storage files prefixed `seed-` for the wipe to find them.
+ *   - Tag on every doc: `seedBatch: 'dev-fixtures-<dataset>'`.
+ *   - `--wipe` deletes ONLY docs/files/users from the chosen dataset.
  */
 
 import admin from 'firebase-admin';
-import { existsSync, readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
+import { existsSync, readFileSync, readdirSync } from 'fs';
+import { readFile } from 'node:fs/promises';
+import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
 
-// Deep-imports into the built dist/. The shared package is bundler-targeted
-// (directory imports), so we sidestep that by hitting concrete .js files.
-// These builders are pure (TS elided their type-only firebase imports), so
-// they have zero runtime dependencies.
 import {
   buildMunicipalityData,
   buildVillageCommunity,
@@ -61,10 +54,24 @@ import { buildUserData } from '@cultuvilla/shared/dist/models/user/UserDataModel
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 
-const SEED_BATCH = 'dev-fixtures-v1';
+const PROJECT_ID = 'villa-events';
+const BUCKET = 'villa-events.firebasestorage.app';
 const WIPE = process.argv.includes('--wipe');
+const DATASET = (process.env.DATASET ?? 'random_data_1').trim();
+const FIXTURES_ROOT = path.join(repoRoot, 'scripts', 'data', 'seed-fixtures');
+const DATASET_DIR = path.join(FIXTURES_ROOT, DATASET);
+const DATASET_SLUG = DATASET.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+const SEED_BATCH = `dev-fixtures-${DATASET_SLUG}`;
+const IMAGE_FILE_PREFIX = 'seed-';
+const CONTENT_TYPE_BY_EXT = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+};
 
-// ── Resolve project ID ────────────────────────────────────────────────────────
+// ── Guards ───────────────────────────────────────────────────────────────────
 
 function resolveProjectId() {
   if (process.env.GOOGLE_CLOUD_PROJECT) return process.env.GOOGLE_CLOUD_PROJECT;
@@ -73,361 +80,346 @@ function resolveProjectId() {
     try {
       const fj = JSON.parse(readFileSync(firebaseJsonPath, 'utf8'));
       if (fj.projectId) return fj.projectId;
-    } catch {
-      /* fall through */
-    }
+    } catch { /* fall through */ }
   }
-  // .firebaserc default → villa-events
   const rcPath = path.join(repoRoot, '.firebaserc');
   if (existsSync(rcPath)) {
     try {
       const rc = JSON.parse(readFileSync(rcPath, 'utf8'));
       if (rc?.projects?.default) return rc.projects.default;
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
   }
-  return undefined;
+  return PROJECT_ID;
 }
 
 const projectId = resolveProjectId();
-if (!projectId) {
-  console.error('[seed] Could not determine project ID. Set GOOGLE_CLOUD_PROJECT.');
+if (projectId !== PROJECT_ID) {
+  console.error(`[seed] Refusing to run against project "${projectId}". Dev-only (${PROJECT_ID}).`);
   process.exit(1);
 }
-if (projectId !== 'villa-events') {
+if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
   console.error(
-    `[seed] Refusing to run against project "${projectId}". This script is dev-only ` +
-      `(villa-events). Override by editing the guard if you really mean it.`,
+    '[seed] GOOGLE_APPLICATION_CREDENTIALS not set. Required for Storage uploads.\n' +
+      '       See .claude/skills/firebase-admin-dev/SKILL.md for how to set it.',
+  );
+  process.exit(1);
+}
+if (!existsSync(path.join(DATASET_DIR, 'fixtures.mjs'))) {
+  const available = existsSync(FIXTURES_ROOT)
+    ? readdirSync(FIXTURES_ROOT, { withFileTypes: true })
+        .filter((d) => d.isDirectory())
+        .map((d) => d.name)
+    : [];
+  console.error(
+    `[seed] Dataset "${DATASET}" not found at scripts/data/seed-fixtures/${DATASET}/fixtures.mjs\n` +
+      `       Available: ${available.join(', ') || '(none)'}`,
   );
   process.exit(1);
 }
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'alvaro@cultuvilla.dev';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'cultuvilla-dev';
-const ADMIN_DISPLAY_NAME = process.env.ADMIN_DISPLAY_NAME ?? 'Alvaro (dev)';
+// ── Init admin SDK ───────────────────────────────────────────────────────────
 
-// ── Init admin SDK ────────────────────────────────────────────────────────────
-
-admin.initializeApp({ projectId });
+admin.initializeApp({ projectId, storageBucket: BUCKET });
 const db = admin.firestore();
 const auth = admin.auth();
+const bucket = admin.storage().bucket();
 const { GeoPoint } = admin.firestore;
 
-// Resolved lazily — either from env or after creating/looking up the Auth user.
-let ADMIN_UID = process.env.ADMIN_UID ?? null;
-
-async function ensureAdminUser() {
-  if (ADMIN_UID) {
-    console.log(`[seed] using existing ADMIN_UID=${ADMIN_UID}`);
-  } else {
-    let user;
-    try {
-      user = await auth.getUserByEmail(ADMIN_EMAIL);
-      console.log(`[seed] reusing auth user ${user.uid} (${ADMIN_EMAIL})`);
-    } catch (err) {
-      if (err.code !== 'auth/user-not-found') throw err;
-      user = await auth.createUser({
-        email: ADMIN_EMAIL,
-        password: ADMIN_PASSWORD,
-        displayName: ADMIN_DISPLAY_NAME,
-        emailVerified: true,
-      });
-      console.log(`[seed] created auth user ${user.uid} (${ADMIN_EMAIL} / ${ADMIN_PASSWORD})`);
-    }
-    ADMIN_UID = user.uid;
-  }
-
-  // users/{uid} profile
-  const userDoc = tag(
-    buildUserData({
-      displayName: ADMIN_DISPLAY_NAME,
-      email: ADMIN_EMAIL,
-      // arbitrary placeholder DOB for dev — adults-only logic is satisfied
-      birthday: new Date('1990-01-01'),
-    }),
-  );
-  await db.collection('users').doc(ADMIN_UID).set(userDoc, { merge: true });
-
-  // admins/{uid} — app superadmin marker (see adminService.isAppAdmin)
-  await db
-    .collection('admins')
-    .doc(ADMIN_UID)
-    .set(tag({ createdAt: new Date() }), { merge: true });
-  console.log(`[seed] admins/${ADMIN_UID} ✓`);
-}
-
-// ── Fixture definitions ───────────────────────────────────────────────────────
-
-const VILLAGES = [
-  {
-    id: 'seed-village-aranjuez',
-    municipality: {
-      name: 'Aranjuez',
-      province: 'Madrid',
-      comunidadAutonoma: 'Comunidad de Madrid',
-      codigoINE: '28013',
-      coordinates: new GeoPoint(40.0319, -3.6033),
-    },
-    community: {
-      description:
-        'Comunidad de prueba de Aranjuez. Eventos del Real Sitio, peñas y asociaciones locales.',
-    },
-  },
-  {
-    id: 'seed-village-chinchon',
-    municipality: {
-      name: 'Chinchón',
-      province: 'Madrid',
-      comunidadAutonoma: 'Comunidad de Madrid',
-      codigoINE: '28045',
-      coordinates: new GeoPoint(40.1378, -3.4253),
-    },
-    community: {
-      description:
-        'Pueblo medieval con Plaza Mayor histórica. Fiestas patronales, anís y teatro.',
-    },
-  },
-];
-
-/** One org of each type per village. */
-function orgsForVillage(villageId, villageName) {
-  return [
-    {
-      id: `seed-org-${villageId.replace('seed-village-', '')}-ayto`,
-      name: `Ayuntamiento de ${villageName}`,
-      type: 'ayuntamiento',
-      description: 'Organización municipal oficial.',
-    },
-    {
-      id: `seed-org-${villageId.replace('seed-village-', '')}-pena-toros`,
-      name: 'Peña Los Toros',
-      type: 'peña',
-      description: 'Peña taurina y festiva.',
-    },
-    {
-      id: `seed-org-${villageId.replace('seed-village-', '')}-asoc-cultural`,
-      name: 'Asociación Cultural Raíces',
-      type: 'asociación',
-      description: 'Asociación cultural y de tradiciones.',
-    },
-  ];
-}
-
-/** A handful of events per org covering different states. */
-function eventsForOrg(org, village) {
-  const now = Date.now();
-  const day = 24 * 60 * 60 * 1000;
-  return [
-    {
-      idSuffix: 'verbena',
-      title: `Verbena de ${village.municipality.name}`,
-      description: 'Música en directo, comida y baile en la plaza.',
-      startDate: new Date(now + 7 * day),
-      endDate: new Date(now + 7 * day + 4 * 60 * 60 * 1000),
-      maxAttendees: 200,
-      price: 0,
-      status: 'published',
-    },
-    {
-      idSuffix: 'taller',
-      title: 'Taller tradicional para vecinos',
-      description: 'Plazas limitadas. Inscripción gratuita.',
-      startDate: new Date(now + 14 * day),
-      endDate: null,
-      maxAttendees: 20,
-      price: 0,
-      status: 'published',
-    },
-    {
-      idSuffix: 'past-fiesta',
-      title: 'Fiestas Patronales (pasado)',
-      description: 'Evento histórico — para probar feed de pasados.',
-      startDate: new Date(now - 30 * day),
-      endDate: new Date(now - 29 * day),
-      maxAttendees: null,
-      price: 0,
-      status: 'completed',
-    },
-  ].map((e) => ({
-    ...e,
-    id: `seed-event-${org.id.replace('seed-org-', '')}-${e.idSuffix}`,
-  }));
-}
-
-// ── Write helpers ─────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function tag(data) {
   return { ...data, seedBatch: SEED_BATCH };
 }
 
-async function upsertVillage(v) {
-  const ref = db.collection('municipalities').doc(v.id);
-  const baseMunicipality = buildMunicipalityData({
-    name: v.municipality.name,
-    province: v.municipality.province,
-    comunidadAutonoma: v.municipality.comunidadAutonoma,
-    codigoINE: v.municipality.codigoINE,
-    coordinates: v.municipality.coordinates,
-  });
-  const community = buildVillageCommunity({
-    description: v.community.description,
-    adminUserId: ADMIN_UID,
-  });
-  const data = tag({
-    ...baseMunicipality,
-    community,
-    communityActive: true,
-  });
-  await ref.set(data, { merge: true });
-
-  // Owner membership in municipalities/{id}/members/{uid}
-  const memberRef = ref.collection('members').doc(ADMIN_UID);
-  await memberRef.set(tag(buildVillageMemberData({ role: 'admin' })), { merge: true });
-  console.log(`[seed] village ${v.id} ✓`);
+function publicUrl(objectPath) {
+  return `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/${encodeURIComponent(objectPath)}?alt=media`;
 }
 
-async function upsertOrg(village, org) {
-  const ref = db.collection('organizations').doc(org.id);
-  const data = tag(
-    buildOrganizationData({
-      name: org.name,
-      description: org.description,
-      type: org.type,
-      status: 'approved',
-      municipalityId: village.id,
-      requestedBy: ADMIN_UID,
-      approvedBy: ADMIN_UID,
-      decidedAt: new Date(),
-    }),
-  );
-  await ref.set(data, { merge: true });
-  console.log(`[seed]   org ${org.id} ✓`);
+function contentTypeFor(filename) {
+  return CONTENT_TYPE_BY_EXT[path.extname(filename).toLowerCase()] ?? 'application/octet-stream';
 }
-
-async function upsertEvent(village, org, ev) {
-  const ref = db.collection('events').doc(ev.id);
-  const data = tag(
-    buildEventData({
-      title: ev.title,
-      description: ev.description,
-      startDate: ev.startDate,
-      endDate: ev.endDate,
-      location: buildLocationData({ type: 'text', text: `Plaza Mayor, ${village.municipality.name}` }),
-      price: ev.price,
-      maxAttendees: ev.maxAttendees,
-      telephoneRequired: false,
-      status: ev.status,
-      organizationId: org.id,
-      organizationName: org.name,
-      createdBy: ADMIN_UID,
-      municipalityId: village.id,
-      municipalityName: village.municipality.name,
-      municipalityCoverImage: null,
-      municipalityCoordinates: village.municipality.coordinates,
-    }),
-  );
-  await ref.set(data, { merge: true });
-  console.log(`[seed]     event ${ev.id} (${ev.status}) ✓`);
-}
-
-// ── Wipe ──────────────────────────────────────────────────────────────────────
 
 /**
- * Enumerate every seed doc by deterministic ID. Avoids needing read perms
- * (some ADC accounts only have write perms on dev). Returns refs only.
+ * Resolve a fixture image reference to an absolute path on disk.
+ * - Bare filename ("verbena.jpg") → scripts/data/seed-fixtures/<dataset>/images/<filename>
+ * - Anything containing "/" ("packages/shared/assets/icons/logo.png") → repo-relative
  */
-function listSeedDocRefs() {
-  const refs = { events: [], organizations: [], municipalities: [], members: [] };
-  for (const v of VILLAGES) {
-    refs.municipalities.push(db.collection('municipalities').doc(v.id));
-    const orgs = orgsForVillage(v.id, v.municipality.name);
-    for (const org of orgs) {
-      refs.organizations.push(db.collection('organizations').doc(org.id));
-      for (const ev of eventsForOrg(org, v)) {
-        refs.events.push(db.collection('events').doc(ev.id));
-      }
-    }
-  }
-  return refs;
+function resolveImage(ref) {
+  return ref.includes('/') ? path.join(repoRoot, ref) : path.join(DATASET_DIR, 'images', ref);
 }
 
-async function wipe() {
-  const refs = listSeedDocRefs();
-  let total = 0;
+async function uploadImage(ref, remoteFolder) {
+  const localAbs = resolveImage(ref);
+  if (!existsSync(localAbs)) {
+    throw new Error(`Image not found: ${path.relative(repoRoot, localAbs)} (referenced as "${ref}")`);
+  }
+  const buf = await readFile(localAbs);
+  const remotePath = `${remoteFolder}/${IMAGE_FILE_PREFIX}${path.basename(ref)}`;
+  const file = bucket.file(remotePath);
+  const [exists] = await file.exists();
+  if (exists) {
+    const [meta] = await file.getMetadata();
+    if (Number(meta.size) === buf.length) return publicUrl(remotePath);
+  }
+  await file.save(buf, {
+    contentType: contentTypeFor(ref),
+    metadata: {
+      cacheControl: 'public, max-age=86400',
+      metadata: { seedBatch: SEED_BATCH },
+    },
+    resumable: false,
+  });
+  return publicUrl(remotePath);
+}
 
-  // Top-level seed docs (deterministic IDs)
-  for (const [name, list] of Object.entries(refs)) {
-    if (name === 'members') continue;
-    const batch = db.batch();
-    list.forEach((r) => batch.delete(r));
-    if (list.length) {
-      await batch.commit();
-      console.log(`[wipe] ${name}: ${list.length}`);
-      total += list.length;
+const villageDocId = (vid) => `seed-${DATASET_SLUG}-village-${vid}`;
+const orgDocId = (vid, oid) => `seed-${DATASET_SLUG}-org-${vid}-${oid}`;
+const eventDocId = (vid, oid, eid) => `seed-${DATASET_SLUG}-event-${vid}-${oid}-${eid}`;
+
+async function loadDataset() {
+  const url = pathToFileURL(path.join(DATASET_DIR, 'fixtures.mjs')).href;
+  const mod = await import(url);
+  const data = mod.default ?? mod;
+  if (!data || !Array.isArray(data.users)) {
+    throw new Error(`Dataset "${DATASET}" must export users[] (and optionally villages[])`);
+  }
+  data.villages ??= [];
+  return data;
+}
+
+// ── Users / admins ───────────────────────────────────────────────────────────
+
+async function ensureUsers(users) {
+  const refToUid = new Map();
+  for (const u of users) {
+    let authUser;
+    try {
+      authUser = await auth.getUserByEmail(u.email);
+      console.log(`[seed] user ${u.email} reused (${authUser.uid})`);
+    } catch (err) {
+      if (err.code !== 'auth/user-not-found') throw err;
+      authUser = await auth.createUser({
+        email: u.email,
+        password: u.password,
+        displayName: u.displayName,
+        emailVerified: true,
+      });
+      console.log(`[seed] user ${u.email} created (${authUser.uid})`);
     }
-  }
 
-  // municipalities/{id}/members/{uid} — best-effort, only if ADMIN_UID known
-  const memberUid = process.env.ADMIN_UID;
-  if (memberUid) {
-    for (const v of VILLAGES) {
-      await db.collection('municipalities').doc(v.id).collection('members').doc(memberUid).delete().catch(() => {});
+    if (u.photo) {
+      const url = await uploadImage(u.photo, `users/${authUser.uid}/photo`);
+      if (authUser.photoURL !== url) {
+        await auth.updateUser(authUser.uid, { photoURL: url });
+        console.log(`[seed]   photoURL set for ${u.email}`);
+      }
     }
-    console.log(`[wipe] municipality members for ${memberUid}: best-effort`);
-  } else {
-    console.log('[wipe] skipping member subdocs (set ADMIN_UID to also clean those)');
+
+    await db.collection('users').doc(authUser.uid).set(
+      tag(
+        buildUserData({
+          displayName: u.displayName,
+          email: u.email,
+        }),
+      ),
+      { merge: true },
+    );
+
+    if (u.isAppAdmin) {
+      await db.collection('admins').doc(authUser.uid).set(tag({ createdAt: new Date() }), { merge: true });
+      console.log(`[seed]   admins/${authUser.uid} ✓`);
+    }
+
+    refToUid.set(u.ref, authUser.uid);
+  }
+  return refToUid;
+}
+
+// ── Villages / orgs / events ─────────────────────────────────────────────────
+
+async function upsertVillage(v, refToUid) {
+  const docId = villageDocId(v.id);
+  const adminUid = refToUid.get(v.adminUserRef);
+  if (!adminUid) {
+    throw new Error(`Village "${v.id}" adminUserRef "${v.adminUserRef}" not in users[]`);
   }
 
-  // admins/{uid} and users/{uid} for the previously-seeded throwaway user, if
-  // ADMIN_UID provided OR ADMIN_EMAIL lookup succeeds via Auth (which we DO
-  // have perms for).
-  let uidsToCleanUser = new Set();
-  if (memberUid) uidsToCleanUser.add(memberUid);
-  const fallbackEmail = process.env.ADMIN_EMAIL ?? 'alvaro@cultuvilla.dev';
-  try {
-    const u = await auth.getUserByEmail(fallbackEmail);
-    uidsToCleanUser.add(u.uid);
-  } catch {
-    /* ignore */
-  }
-  for (const uid of uidsToCleanUser) {
-    await db.collection('admins').doc(uid).delete().catch(() => {});
-    await db.collection('users').doc(uid).delete().catch(() => {});
-    console.log(`[wipe] admins/${uid} + users/${uid}`);
+  const coverUrls = [];
+  for (const file of v.coverImages ?? []) {
+    coverUrls.push(await uploadImage(file, `villages/${docId}/images`));
   }
 
-  // Also delete the throwaway Auth user from prior run if it exists.
+  const coords = new GeoPoint(v.coordinates.lat, v.coordinates.lng);
+  const baseMunicipality = buildMunicipalityData({
+    name: v.name,
+    province: v.province,
+    comunidadAutonoma: v.comunidadAutonoma,
+    codigoINE: v.codigoINE,
+    coordinates: coords,
+  });
+  const community = buildVillageCommunity({
+    description: v.description,
+    adminUserId: adminUid,
+    coverImages: coverUrls,
+  });
+  await db.collection('municipalities').doc(docId).set(
+    tag({ ...baseMunicipality, community, communityActive: true }),
+    { merge: true },
+  );
+  await db.collection('municipalities').doc(docId).collection('members').doc(adminUid).set(
+    tag(buildVillageMemberData({ role: 'admin' })),
+    { merge: true },
+  );
+  console.log(`[seed] village ${docId} ✓ (${coverUrls.length} cover image(s))`);
+
+  for (const org of v.organizations ?? []) {
+    await upsertOrg(v, org, adminUid, coords, coverUrls[0] ?? null);
+  }
+}
+
+async function upsertOrg(v, org, adminUid, coords, villageCover) {
+  const vDocId = villageDocId(v.id);
+  const oDocId = orgDocId(v.id, org.id);
+  await db.collection('organizations').doc(oDocId).set(
+    tag(
+      buildOrganizationData({
+        name: org.name,
+        description: org.description,
+        type: org.type,
+        status: 'approved',
+        municipalityId: vDocId,
+        requestedBy: adminUid,
+        approvedBy: adminUid,
+        decidedAt: new Date(),
+      }),
+    ),
+    { merge: true },
+  );
+  console.log(`[seed]   org ${oDocId} ✓`);
+
+  for (const ev of org.events ?? []) {
+    await upsertEvent(v, org, ev, adminUid, coords, villageCover);
+  }
+}
+
+async function upsertEvent(v, org, ev, adminUid, coords, villageCover) {
+  const vDocId = villageDocId(v.id);
+  const oDocId = orgDocId(v.id, org.id);
+  const eDocId = eventDocId(v.id, org.id, ev.id);
+
+  const day = 24 * 60 * 60 * 1000;
+  const startDate = new Date(Date.now() + ev.startOffsetDays * day);
+  const endDate = ev.durationHours == null
+    ? null
+    : new Date(startDate.getTime() + ev.durationHours * 60 * 60 * 1000);
+
+  let imageURL = null;
+  if (ev.image) {
+    imageURL = await uploadImage(ev.image, `villages/${vDocId}/events/${eDocId}/image`);
+  }
+
+  await db.collection('events').doc(eDocId).set(
+    tag(
+      buildEventData({
+        title: ev.title,
+        description: ev.description,
+        startDate,
+        endDate,
+        location: buildLocationData({ type: 'text', text: `Plaza Mayor, ${v.name}` }),
+        price: ev.price ?? 0,
+        maxAttendees: ev.maxAttendees ?? null,
+        telephoneRequired: false,
+        status: ev.status ?? 'published',
+        organizationId: oDocId,
+        organizationName: org.name,
+        createdBy: adminUid,
+        municipalityId: vDocId,
+        municipalityName: v.name,
+        municipalityCoverImage: villageCover,
+        municipalityCoordinates: coords,
+        imageURL,
+      }),
+    ),
+    { merge: true },
+  );
+  console.log(`[seed]     event ${eDocId} (${ev.status ?? 'published'})${imageURL ? ' + image' : ''} ✓`);
+}
+
+// ── Wipe ─────────────────────────────────────────────────────────────────────
+
+async function wipeStorageFolder(prefix) {
   try {
-    const u = await auth.getUserByEmail('alvaro@cultuvilla.dev');
-    await auth.deleteUser(u.uid);
-    console.log(`[wipe] auth user alvaro@cultuvilla.dev deleted`);
+    const [files] = await bucket.getFiles({ prefix });
+    if (!files.length) return 0;
+    await Promise.all(files.map((f) => f.delete().catch(() => {})));
+    return files.length;
   } catch (err) {
-    if (err.code !== 'auth/user-not-found') console.warn('[wipe] auth cleanup:', err.message);
+    console.warn(`[wipe] storage prefix ${prefix}: ${err.message}`);
+    return 0;
   }
-
-  console.log(`[wipe] done. blind-deleted ${total} top-level docs + ancillary cleanup.`);
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
+async function wipe(dataset) {
+  console.log(`[wipe] dataset=${DATASET}`);
+  let docs = 0;
+  let storage = 0;
 
-async function seed() {
-  console.log(`[seed] project=${projectId} batch=${SEED_BATCH}`);
-  await ensureAdminUser();
-  for (const v of VILLAGES) {
-    await upsertVillage(v);
-    const orgs = orgsForVillage(v.id, v.municipality.name);
-    for (const org of orgs) {
-      await upsertOrg(v, org);
-      for (const ev of eventsForOrg(org, v)) {
-        await upsertEvent(v, org, ev);
+  for (const v of dataset.villages ?? []) {
+    const vDocId = villageDocId(v.id);
+    for (const org of v.organizations ?? []) {
+      for (const ev of org.events ?? []) {
+        await db.collection('events').doc(eventDocId(v.id, org.id, ev.id)).delete();
+        docs++;
+      }
+      await db.collection('organizations').doc(orgDocId(v.id, org.id)).delete();
+      docs++;
+    }
+    storage += await wipeStorageFolder(`villages/${vDocId}/`);
+    const membersSnap = await db
+      .collection('municipalities')
+      .doc(vDocId)
+      .collection('members')
+      .listDocuments();
+    await Promise.all(membersSnap.map((d) => d.delete().catch(() => {})));
+    await db.collection('municipalities').doc(vDocId).delete();
+    docs += 1 + membersSnap.length;
+  }
+
+  for (const u of dataset.users ?? []) {
+    try {
+      const authUser = await auth.getUserByEmail(u.email);
+      storage += await wipeStorageFolder(`users/${authUser.uid}/photo/`);
+      await db.collection('admins').doc(authUser.uid).delete().catch(() => {});
+      await db.collection('users').doc(authUser.uid).delete().catch(() => {});
+      await auth.deleteUser(authUser.uid).catch(() => {});
+      docs += 2;
+      console.log(`[wipe] user ${u.email} (${authUser.uid}) ✓`);
+    } catch (err) {
+      if (err.code !== 'auth/user-not-found') {
+        console.warn(`[wipe] user ${u.email}: ${err.message}`);
       }
     }
+  }
+
+  console.log(`[wipe] done. ${docs} doc(s) + ${storage} storage file(s) removed.`);
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────────
+
+async function seed(dataset) {
+  console.log(`[seed] project=${projectId} dataset=${DATASET} batch=${SEED_BATCH}`);
+  const refToUid = await ensureUsers(dataset.users);
+  for (const v of dataset.villages) {
+    await upsertVillage(v, refToUid);
   }
   console.log('[seed] done.');
 }
 
-(WIPE ? wipe() : seed()).catch((err) => {
+(async () => {
+  const dataset = await loadDataset();
+  if (WIPE) await wipe(dataset);
+  else await seed(dataset);
+})().catch((err) => {
   console.error('[seed] fatal:', err);
   process.exit(1);
 });
