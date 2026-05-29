@@ -45,6 +45,12 @@ const config: Config = {
     './app/**/*.{ts,tsx}',
     './components/**/*.{ts,tsx}',
   ],
+  // NativeWind 4 + RN-Web crashes on boot with "Cannot manually set color
+  // scheme, as dark mode is type 'media'". The repo doesn't ship a dark
+  // theme yet (see colors.ts), so we set 'class' to silence the runtime
+  // observer; flipping the body class is a no-op until a dark palette
+  // lands.
+  darkMode: 'class',
   presets: [require('nativewind/preset')],
   theme: {
     extend: {
