@@ -31,7 +31,7 @@ export default {
   users: [
     {
       ref: 'admin',
-      email: 'cultuvilla@gmail.com',
+      email: 'cultuvilla.app@gmail.com',
       password: 'cultuvilla-dev',
       displayName: 'Cultuvilla',
       isAppAdmin: true,
