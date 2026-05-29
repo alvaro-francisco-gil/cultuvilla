@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts, Fraunces_700Bold } from '@expo-google-fonts/fraunces';
 import { bootstrapFirebase } from '../lib/firebaseInit';
 import { AuthProvider } from '../lib/auth/AuthContext';
+import { CallableErrorProvider } from '../lib/callableError';
 import { I18nProvider } from '../lib/i18n';
 import { useAuth } from '../lib/auth/useAuth';
 import { ActivityIndicator, View } from 'react-native';
@@ -22,9 +23,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <I18nProvider>
-        <AuthProvider>
-          <AuthGate />
-        </AuthProvider>
+        <CallableErrorProvider>
+          <AuthProvider>
+            <AuthGate />
+          </AuthProvider>
+        </CallableErrorProvider>
       </I18nProvider>
     </SafeAreaProvider>
   );

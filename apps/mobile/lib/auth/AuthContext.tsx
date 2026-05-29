@@ -14,6 +14,7 @@ import {
 } from 'firebase/auth';
 import { getUserProfile, setActiveMunicipality } from '@cultuvilla/shared/services/userService';
 import { getUserMemberships } from '@cultuvilla/shared/services/villageMemberService';
+import * as listenerManager from '@cultuvilla/shared/services/listenerManager';
 import type { UserData } from '@cultuvilla/shared/models/user';
 import {
   GoogleSignin,
@@ -170,6 +171,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async (): Promise<void> => {
+    // Tear down every registered Firestore listener BEFORE auth flips closed,
+    // so no listener fires a final permission-denied snapshot at the moment
+    // the rules flip. See packages/shared/src/services/listenerManager.ts.
+    await listenerManager.clearAll();
     if (googleConfigured.current) {
       try {
         await GoogleSignin.signOut();

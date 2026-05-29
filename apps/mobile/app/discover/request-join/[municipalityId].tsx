@@ -3,31 +3,25 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Screen, VStack, Text, Input, Button } from '../../../components/primitives';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { useT } from '../../../lib/i18n';
+import { useCallable } from '../../../lib/useCallable';
 import { requestJoinVillage } from '@cultuvilla/shared/services/joinRequestService';
 
 export default function RequestJoinScreen() {
   const { municipalityId } = useLocalSearchParams<{ municipalityId: string }>();
   const { t } = useT();
   const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  async function onSubmit() {
-    if (!municipalityId) return;
-    setError(null);
-    setLoading(true);
-    try {
-      await requestJoinVillage({
-        municipalityId,
+  const { fire: submit, isPending } = useCallable({
+    callable: () =>
+      requestJoinVillage({
+        municipalityId: municipalityId ?? '',
         message: message.trim() || null,
-      });
+      }),
+    onSuccess: () => {
       router.back();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'unknown');
-    } finally {
-      setLoading(false);
-    }
-  }
+    },
+    swallow: true,
+  });
 
   return (
     <Screen padded={false}>
@@ -40,8 +34,14 @@ export default function RequestJoinScreen() {
           multiline
           numberOfLines={4}
         />
-        {error && <Text tone="danger">{error}</Text>}
-        <Button onPress={onSubmit} loading={loading} fullWidth>
+        <Button
+          onPress={() => {
+            if (!municipalityId) return;
+            void submit();
+          }}
+          loading={isPending}
+          fullWidth
+        >
           <Text tone="onAccent">{t('requests.join.submit')}</Text>
         </Button>
       </VStack>
