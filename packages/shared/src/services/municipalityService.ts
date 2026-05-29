@@ -23,6 +23,7 @@ import {
   municipalityBarrioDoc,
   municipalityCemeteriesCollection,
   municipalityCemeteryDoc,
+  municipalityMemberDoc,
 } from '../firebase/refs/client';
 import type {
   MunicipalityData,
@@ -139,17 +140,16 @@ export async function deleteMunicipality(id: string): Promise<void> {
  *  - if `coordinates` provided, updates the municipality's coordinates
  *  - creates a /members/{adminUserId} doc with role=admin
  *
- * The member doc write uses an untyped ref so the legacy `userId`
- * denormalization (needed by `villageMemberService.getUserMemberships`'s
- * collectionGroup query) is preserved. The typed VillageMember schema does
- * not include `userId`; a follow-up task may align them.
+ * The municipality update is batch.update (bypasses the converter, so we can
+ * embed serverTimestamp() inside the nested community object). The member
+ * doc write is batch.set on a converter-typed ref, so it uses plain Date.
  */
 export async function activateCommunity(
   municipalityId: string,
   input: ActivateCommunityInput,
 ): Promise<void> {
   const munRef = doc(getDb(), 'municipalities', municipalityId);
-  const memberRef = doc(getDb(), 'municipalities', municipalityId, 'members', input.adminUserId);
+  const memberRef = municipalityMemberDoc(getDb(), municipalityId, input.adminUserId);
 
   const community = {
     description: input.description,
@@ -171,7 +171,7 @@ export async function activateCommunity(
   batch.set(memberRef, {
     userId: input.adminUserId,
     role: 'admin',
-    joinedAt: serverTimestamp(),
+    joinedAt: new Date(),
     profileAnswers: {},
     profileCompletedAt: null,
     trustedNewsAuthor: false,

@@ -1,91 +1,76 @@
 import {
-  collection,
   collectionGroup,
-  doc,
   getDoc,
   getDocs,
   setDoc,
   deleteDoc,
-  serverTimestamp,
-  Timestamp,
   where,
   query,
 } from 'firebase/firestore';
 import { getDb } from '../firebase';
-import type { VillageMemberData, VillageMemberRole } from '../models/municipality/VillageMemberDataModel';
-import type { ProfileAnswers } from '../models/municipality/CensoTypes';
-
-function membersCol(municipalityId: string) {
-  return collection(getDb(), 'municipalities', municipalityId, 'members');
-}
-
-function mapMemberDoc(
-  id: string,
-  data: Record<string, unknown>,
-): VillageMemberData & { id: string } {
-  const completedAtRaw = data['profileCompletedAt'];
-  return {
-    id,
-    role: data['role'] as VillageMemberRole,
-    joinedAt: (data['joinedAt'] as Timestamp).toDate(),
-    profileAnswers: ((data['profileAnswers'] as ProfileAnswers) ?? {}) as ProfileAnswers,
-    profileCompletedAt: completedAtRaw ? (completedAtRaw as Timestamp).toDate() : null,
-    trustedNewsAuthor: (data['trustedNewsAuthor'] as boolean) ?? false,
-  };
-}
+import {
+  municipalityMembersCollection,
+  municipalityMemberDoc,
+} from '../firebase/refs/client';
+import { villageMemberConverterClient } from '../firebase/converters/villageMemberConverter';
+import type {
+  VillageMemberData,
+  VillageMemberRole,
+} from '../models/municipality/VillageMemberDataModel';
 
 export async function getVillageMember(
   municipalityId: string,
-  userId: string
+  userId: string,
 ): Promise<(VillageMemberData & { id: string }) | null> {
-  const snap = await getDoc(doc(membersCol(municipalityId), userId));
-  if (!snap.exists()) return null;
-  return mapMemberDoc(snap.id, snap.data());
+  const snap = await getDoc(municipalityMemberDoc(getDb(), municipalityId, userId));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
 export async function getVillageMembers(
-  municipalityId: string
+  municipalityId: string,
 ): Promise<(VillageMemberData & { id: string })[]> {
-  const snap = await getDocs(membersCol(municipalityId));
-  return snap.docs.map((d) => mapMemberDoc(d.id, d.data()));
+  const snap = await getDocs(municipalityMembersCollection(getDb(), municipalityId));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 export async function addVillageMember(
   municipalityId: string,
   userId: string,
-  role: VillageMemberRole = 'user'
+  role: VillageMemberRole = 'user',
 ): Promise<void> {
-  await setDoc(doc(membersCol(municipalityId), userId), {
+  const ref = municipalityMemberDoc(getDb(), municipalityId, userId);
+  await setDoc(ref, {
     userId,
     role,
-    joinedAt: serverTimestamp(),
+    joinedAt: new Date(),
     profileAnswers: {},
     profileCompletedAt: null,
+    trustedNewsAuthor: false,
   });
 }
 
 export async function removeVillageMember(
   municipalityId: string,
-  userId: string
+  userId: string,
 ): Promise<void> {
-  await deleteDoc(doc(membersCol(municipalityId), userId));
+  await deleteDoc(municipalityMemberDoc(getDb(), municipalityId, userId));
 }
 
 export async function isVillageMember(
   municipalityId: string,
-  userId: string
+  userId: string,
 ): Promise<boolean> {
-  const snap = await getDoc(doc(membersCol(municipalityId), userId));
+  const snap = await getDoc(municipalityMemberDoc(getDb(), municipalityId, userId));
   return snap.exists();
 }
 
 export async function isVillageAdmin(
   municipalityId: string,
-  userId: string
+  userId: string,
 ): Promise<boolean> {
-  const snap = await getDoc(doc(membersCol(municipalityId), userId));
+  const snap = await getDoc(municipalityMemberDoc(getDb(), municipalityId, userId));
   if (!snap.exists()) return false;
-  return snap.data()['role'] === 'admin';
+  return snap.data().role === 'admin';
 }
 
 export interface UserMembership {
@@ -96,18 +81,21 @@ export interface UserMembership {
 }
 
 export async function getUserMemberships(userId: string): Promise<UserMembership[]> {
-  const q = query(collectionGroup(getDb(), 'members'), where('userId', '==', userId));
+  // collectionGroup doesn't carry the per-collection converter; attach it explicitly.
+  const cg = collectionGroup(getDb(), 'members').withConverter(villageMemberConverterClient);
+  const q = query(cg, where('userId', '==', userId));
   const snap = await getDocs(q);
   return snap.docs
     .filter((d) => d.ref.parent.parent?.parent.id === 'municipalities')
     .map((d) => {
       const data = d.data();
-      const completedAtRaw = data['profileCompletedAt'];
+      const municipalityId = d.ref.parent.parent?.id;
+      if (!municipalityId) throw new Error('member doc missing municipality parent');
       return {
-        municipalityId: d.ref.parent.parent!.id,
-        role: data['role'] as VillageMemberRole,
-        joinedAt: (data['joinedAt'] as Timestamp).toDate(),
-        profileCompletedAt: completedAtRaw ? (completedAtRaw as Timestamp).toDate() : null,
+        municipalityId,
+        role: data.role,
+        joinedAt: data.joinedAt,
+        profileCompletedAt: data.profileCompletedAt,
       };
     });
 }

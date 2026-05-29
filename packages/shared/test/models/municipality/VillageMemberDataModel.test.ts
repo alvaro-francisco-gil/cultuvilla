@@ -5,6 +5,7 @@ import {
 } from '../../../src/models/municipality/VillageMemberDataModel';
 
 const validMember = {
+  userId: 'u-1',
   role: 'user' as const,
   joinedAt: new Date('2026-01-01T00:00:00Z'),
   profileAnswers: { barrio: 'Centro', householdSize: 4 },
@@ -31,7 +32,8 @@ describe('VillageMemberDataSchema', () => {
 
 describe('buildVillageMemberData', () => {
   it('fills defaults and round-trips through the schema', () => {
-    const m = buildVillageMemberData();
+    const m = buildVillageMemberData({ userId: 'u-1' });
+    expect(m.userId).toBe('u-1');
     expect(m.role).toBe('user');
     expect(m.profileAnswers).toEqual({});
     expect(m.profileCompletedAt).toBeNull();
@@ -42,6 +44,7 @@ describe('buildVillageMemberData', () => {
   it('preserves provided fields', () => {
     const t = new Date('2026-05-01T00:00:00Z');
     const m = buildVillageMemberData({
+      userId: 'u-1',
       role: 'admin',
       joinedAt: t,
       profileAnswers: { barrio: 'Centro' },

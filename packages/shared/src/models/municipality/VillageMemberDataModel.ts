@@ -9,6 +9,9 @@ export type VillageMemberRole = z.infer<typeof VillageMemberRoleSchema>;
  * Stored at /municipalities/{municipalityId}/members/{userId}.
  */
 export const VillageMemberDataSchema = z.object({
+  // Denormalized so collection-group reverse lookups can filter by user.
+  // Same value as the doc id (municipalities/{municipalityId}/members/{userId}).
+  userId: z.string(),
   role: VillageMemberRoleSchema,
   joinedAt: z.date(),
   profileAnswers: ProfileAnswersSchema,
@@ -18,6 +21,7 @@ export const VillageMemberDataSchema = z.object({
 export type VillageMemberData = z.infer<typeof VillageMemberDataSchema>;
 
 export interface VillageMemberDataInput {
+  userId: string;
   role?: VillageMemberRole;
   joinedAt?: Date;
   profileAnswers?: z.infer<typeof ProfileAnswersSchema>;
@@ -25,8 +29,9 @@ export interface VillageMemberDataInput {
   trustedNewsAuthor?: boolean;
 }
 
-export function buildVillageMemberData(input: VillageMemberDataInput = {}): VillageMemberData {
+export function buildVillageMemberData(input: VillageMemberDataInput): VillageMemberData {
   return {
+    userId: input.userId,
     role: input.role ?? 'user',
     joinedAt: input.joinedAt ?? new Date(),
     profileAnswers: input.profileAnswers ?? {},
