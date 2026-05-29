@@ -37,7 +37,7 @@ export default {
       // Who requests the organizer role (must exist in real_user_data_1).
       organizerEmail: 'xxpowervaroxx@gmail.com',
       // Who approves (must be in admins/{uid}).
-      approverEmail: 'cultuvilla@gmail.com',
+      approverEmail: 'cultuvilla.app@gmail.com',
 
       motivation:
         'Soy vecino de Matabuena y quiero organizar la comunidad del pueblo en Cultuvilla.',
