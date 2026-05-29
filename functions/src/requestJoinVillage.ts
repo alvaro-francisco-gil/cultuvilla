@@ -1,13 +1,18 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
+import {
+  municipalityDoc,
+  municipalityJoinRequestDoc,
+  municipalityMemberDoc,
+} from '@cultuvilla/shared/firebase/refs/admin';
+import type { JoinRequestData } from '@cultuvilla/shared';
 import {
   listVillageAdminRecipients,
   notifyJoinRequestCreated,
 } from './helpers/notifyRequests';
 
-const db = admin.firestore();
+const db = getFirestore();
 
 interface RequestJoinVillageData {
   municipalityId?: string;
@@ -25,15 +30,15 @@ export const requestJoinVillage = onCall<RequestJoinVillageData, Promise<Request
     const auth = request.auth;
     if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
-    const { municipalityId, message } = request.data ?? {};
+    const { municipalityId, message } = request.data;
     if (!municipalityId) {
       throw new HttpsError('invalid-argument', 'municipalityId requerido.');
     }
 
     const uid = auth.uid;
-    const muniRef = db.doc(`municipalities/${municipalityId}`);
-    const memberRef = db.doc(`municipalities/${municipalityId}/members/${uid}`);
-    const reqRef = db.doc(`municipalities/${municipalityId}/joinRequests/${uid}`);
+    const muniRef = municipalityDoc(db, municipalityId);
+    const memberRef = municipalityMemberDoc(db, municipalityId, uid);
+    const reqRef = municipalityJoinRequestDoc(db, municipalityId, uid);
 
     let municipalityName = '';
     await db.runTransaction(async (tx) => {
@@ -43,25 +48,33 @@ export const requestJoinVillage = onCall<RequestJoinVillageData, Promise<Request
         tx.get(reqRef),
       ]);
       if (!muni.exists) throw new HttpsError('not-found', 'Pueblo no encontrado.');
-      if (muni.get('communityActive') !== true) {
+      // Converter-wrapped: typed MunicipalityData.
+      const muniData = muni.data();
+      if (muniData?.communityActive !== true) {
         throw new HttpsError('failed-precondition', 'La comunidad no está activa.');
       }
       if (member.exists) {
         throw new HttpsError('already-exists', 'Ya eres miembro de este pueblo.');
       }
-      if (existing.exists && existing.get('status') === 'pending') {
+      // Converter-wrapped: typed JoinRequestData.
+      const existingData = existing.data();
+      if (existing.exists && existingData?.status === 'pending') {
         throw new HttpsError('already-exists', 'Ya tienes una solicitud pendiente.');
       }
-      municipalityName = (muni.get('name') as string) ?? municipalityId;
+      municipalityName = muniData.name;
 
-      tx.set(reqRef, {
+      // Converter rejects FieldValue sentinels on tx.set, so requestedAt is a
+      // plain Date (the admin SDK will persist it as a Timestamp via the
+      // converter's toFirestore step).
+      const newRequest: JoinRequestData = {
         userId: uid,
-        requestedAt: FieldValue.serverTimestamp(),
+        requestedAt: new Date(),
         status: 'pending',
         message: message ?? null,
         reviewedAt: null,
         reviewedBy: null,
-      });
+      };
+      tx.set(reqRef, newRequest);
     });
 
     const recipientUserIds = await listVillageAdminRecipients({

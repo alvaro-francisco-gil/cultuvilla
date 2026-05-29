@@ -12,6 +12,7 @@ export default tseslint.config(
       'src/notificationTriggers.ts',
       'src/syncVillageDenormalization.ts',
       'src/acceptInvite.ts',
+      'src/requestJoinVillage.ts',
     ],
     extends: [
       ...tseslint.configs.recommendedTypeChecked,
