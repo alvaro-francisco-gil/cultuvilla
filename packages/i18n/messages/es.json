@@ -24,6 +24,10 @@
     "forgotPassword": "¿Olvidaste tu contraseña?",
     "forgotPasswordSent": "Te enviamos un correo para restablecerla.",
     "forgotPasswordNeedsEmail": "Introduce tu correo arriba primero.",
+    "divider": {
+      "or": "O"
+    },
+    "googleConnecting": "Conectando con Google…",
     "login": {
       "title": "Iniciar sesión",
       "submit": "Entrar",
