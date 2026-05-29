@@ -7,7 +7,10 @@ export default tseslint.config(
       'src/firebase/**/*.ts',
       'src/models/**/*.ts',
       'src/services/eventService.ts',
+      'src/services/feedService.ts',
       'test/firebase/**/*.ts',
+      'test/services/feedHaversine.test.ts',
+      'test/services/feedDistance.test.ts',
     ],
     extends: [
       ...tseslint.configs.recommendedTypeChecked,

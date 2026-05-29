@@ -1,5 +1,4 @@
 import {
-  collection,
   query,
   where,
   orderBy,
@@ -7,23 +6,23 @@ import {
   startAfter,
   getDocs,
   Timestamp,
-  GeoPoint,
   type QueryDocumentSnapshot,
-  type DocumentData,
 } from 'firebase/firestore';
 import { getDb } from '../firebase';
-import { mapEventDoc } from './eventService';
+import { eventsCollection } from '../firebase/refs/client';
 import type { EventData } from '../models/event/EventDataModel';
+import type { LatLng } from '../models/core/LocationDataModel';
 
 export interface FeedPage {
   events: (EventData & { id: string })[];
-  cursor: QueryDocumentSnapshot<DocumentData> | null;
+  cursor: QueryDocumentSnapshot<EventData> | null;
 }
 
 export async function getUpcomingFeed(
   pageSize: number = 20,
-  cursor: QueryDocumentSnapshot<DocumentData> | null = null,
+  cursor: QueryDocumentSnapshot<EventData> | null = null,
 ): Promise<FeedPage> {
+  const ref = eventsCollection(getDb());
   const baseConstraints = [
     where('status', '==', 'published'),
     where('startDate', '>=', Timestamp.now()),
@@ -31,11 +30,11 @@ export async function getUpcomingFeed(
     firestoreLimit(pageSize),
   ];
   const q = cursor
-    ? query(collection(getDb(), 'events'), ...baseConstraints, startAfter(cursor))
-    : query(collection(getDb(), 'events'), ...baseConstraints);
+    ? query(ref, ...baseConstraints, startAfter(cursor))
+    : query(ref, ...baseConstraints);
 
   const snap = await getDocs(q);
-  const events = snap.docs.map((d) => mapEventDoc(d as Parameters<typeof mapEventDoc>[0]));
+  const events = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   const lastDoc = snap.docs.length > 0 ? (snap.docs[snap.docs.length - 1] ?? null) : null;
   return { events, cursor: lastDoc };
 }
@@ -47,14 +46,14 @@ function toRadians(deg: number): number {
 }
 
 /**
- * Great-circle distance between two GeoPoints in kilometers.
+ * Great-circle distance between two coordinates in kilometers.
  * Pure function; no Firebase calls.
  */
-export function haversineKm(a: GeoPoint, b: GeoPoint): number {
-  const lat1 = toRadians(a.latitude);
-  const lat2 = toRadians(b.latitude);
-  const dLat = toRadians(b.latitude - a.latitude);
-  const dLon = toRadians(b.longitude - a.longitude);
+export function haversineKm(a: LatLng, b: LatLng): number {
+  const lat1 = toRadians(a.lat);
+  const lat2 = toRadians(b.lat);
+  const dLat = toRadians(b.lat - a.lat);
+  const dLon = toRadians(b.lng - a.lng);
   const sinDLat = Math.sin(dLat / 2);
   const sinDLon = Math.sin(dLon / 2);
   const h =
@@ -64,9 +63,9 @@ export function haversineKm(a: GeoPoint, b: GeoPoint): number {
   return EARTH_RADIUS_KM * c;
 }
 
-export function filterByDistanceKm<T extends { municipalityCoordinates: GeoPoint | null }>(
+export function filterByDistanceKm<T extends { municipalityCoordinates: LatLng | null }>(
   events: T[],
-  reference: GeoPoint,
+  reference: LatLng,
   maxKm: number,
 ): T[] {
   return events.filter(
