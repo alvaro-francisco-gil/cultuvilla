@@ -2,7 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { notifyOrganizerRequestResolved } from './helpers/notifyRequests';
+import { notifyOrganizerRequestResolved } from '../helpers/notifyRequests';
 
 const db = admin.firestore();
 

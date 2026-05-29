@@ -6,7 +6,7 @@ import {
   type PrevField,
   type ProfileFormField,
   type UsedValuesByKey,
-} from './helpers/profileFormValidation';
+} from '../helpers/profileFormValidation';
 
 const db = admin.firestore();
 

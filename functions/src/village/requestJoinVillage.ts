@@ -5,7 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import {
   listVillageAdminRecipients,
   notifyJoinRequestCreated,
-} from './helpers/notifyRequests';
+} from '../helpers/notifyRequests';
 
 const db = admin.firestore();
 
