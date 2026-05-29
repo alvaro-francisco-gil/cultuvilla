@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { EventDataSchema, buildEventData } from '../../../src/models/event/EventDataModel';
+import {
+  EventDataSchema,
+  buildEventData,
+  isEventFull,
+  isEventSignupOpen,
+  type EventData,
+} from '../../../src/models/event/EventDataModel';
 
 const validEvent = {
   title: 'Fiesta',
@@ -57,5 +63,56 @@ describe('buildEventData', () => {
     expect(built.telephoneRequired).toBe(false);
     expect(built.endDate).toBeNull();
     expect(() => EventDataSchema.parse(built)).not.toThrow();
+  });
+});
+
+describe('isEventFull', () => {
+  const base = EventDataSchema.parse({
+    title: 'X', description: 'Y',
+    startDate: new Date('2026-06-15T18:00:00Z'), endDate: null,
+    location: { type: 'text', coordinates: null, text: null },
+    imageURL: null, price: null, maxAttendees: null,
+    telephoneRequired: false, status: 'published',
+    organizationId: 'o', organizationName: 'O', createdBy: 'u',
+    createdAt: new Date('2026-01-01T00:00:00Z'),
+    updatedAt: new Date('2026-01-01T00:00:00Z'),
+    municipalityId: 'm', municipalityName: 'M',
+    municipalityCoverImage: null,
+    municipalityCoordinates: { lat: 1, lng: 2 },
+  }) as EventData;
+
+  it('returns false when maxAttendees is null', () => {
+    expect(isEventFull(base, 999)).toBe(false);
+  });
+
+  it('returns true when confirmedCount reaches maxAttendees', () => {
+    expect(isEventFull({ ...base, maxAttendees: 5 }, 5)).toBe(true);
+  });
+
+  it('returns false when confirmedCount is below maxAttendees', () => {
+    expect(isEventFull({ ...base, maxAttendees: 5 }, 4)).toBe(false);
+  });
+});
+
+describe('isEventSignupOpen', () => {
+  const base = EventDataSchema.parse({
+    title: 'X', description: 'Y',
+    startDate: new Date('2026-06-15T18:00:00Z'), endDate: null,
+    location: { type: 'text', coordinates: null, text: null },
+    imageURL: null, price: null, maxAttendees: null,
+    telephoneRequired: false, status: 'draft',
+    organizationId: 'o', organizationName: 'O', createdBy: 'u',
+    createdAt: new Date('2026-01-01T00:00:00Z'),
+    updatedAt: new Date('2026-01-01T00:00:00Z'),
+    municipalityId: 'm', municipalityName: 'M',
+    municipalityCoverImage: null,
+    municipalityCoordinates: { lat: 1, lng: 2 },
+  }) as EventData;
+
+  it('returns true only for status published', () => {
+    expect(isEventSignupOpen({ ...base, status: 'published' })).toBe(true);
+    expect(isEventSignupOpen({ ...base, status: 'draft' })).toBe(false);
+    expect(isEventSignupOpen({ ...base, status: 'cancelled' })).toBe(false);
+    expect(isEventSignupOpen({ ...base, status: 'completed' })).toBe(false);
   });
 });
