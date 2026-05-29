@@ -13,7 +13,11 @@ export function AuthHeader({ title }: AuthHeaderProps) {
         accessibilityLabel="Cultuvilla"
         style={{ width: 132, height: 132, resizeMode: 'contain' }}
       />
-      <Text variant="display" className="text-center text-accent mt-4">
+      <Text
+        variant="display"
+        className="text-center text-accent mt-4"
+        style={{ fontSize: 44, lineHeight: 48, fontWeight: '800' }}
+      >
         {title}
       </Text>
     </View>
