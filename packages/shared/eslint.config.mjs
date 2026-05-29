@@ -8,6 +8,7 @@ export default tseslint.config(
       'src/models/**/*.ts',
       'src/services/eventService.ts',
       'src/services/feedService.ts',
+      'src/services/registrationService.ts',
       'test/firebase/**/*.ts',
       'test/services/feedHaversine.test.ts',
       'test/services/feedDistance.test.ts',
