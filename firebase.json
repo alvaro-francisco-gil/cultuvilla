@@ -10,7 +10,11 @@
     {
       "source": "functions",
       "codebase": "default",
-      "ignore": ["node_modules", ".git"]
+      "ignore": ["node_modules", ".git"],
+      "predeploy": [
+        "pnpm --filter @cultuvilla/shared build",
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
     }
   ],
   "hosting": {
