@@ -8,6 +8,8 @@ import { cemeteryConverterClient } from '../converters/cemeteryConverter';
 import { villageMemberConverterClient } from '../converters/villageMemberConverter';
 import { inviteTokenConverterClient } from '../converters/inviteTokenConverter';
 import { joinRequestConverterClient } from '../converters/joinRequestConverter';
+import { organizationConverterClient } from '../converters/organizationConverter';
+import { orgMemberConverterClient } from '../converters/orgMemberConverter';
 
 export const eventsCollection = (db: Firestore) =>
   collection(db, 'events').withConverter(eventConverterClient);
@@ -58,3 +60,17 @@ export const municipalityJoinRequestsCollection = (db: Firestore, municipalityId
 
 export const municipalityJoinRequestDoc = (db: Firestore, municipalityId: string, requestId: string) =>
   doc(db, 'municipalities', municipalityId, 'joinRequests', requestId).withConverter(joinRequestConverterClient);
+
+// ── Organization domain ──────────────────────────────────────────────────
+
+export const organizationsCollection = (db: Firestore) =>
+  collection(db, 'organizations').withConverter(organizationConverterClient);
+
+export const organizationDoc = (db: Firestore, organizationId: string) =>
+  doc(db, 'organizations', organizationId).withConverter(organizationConverterClient);
+
+export const organizationMembersCollection = (db: Firestore, organizationId: string) =>
+  collection(db, 'organizations', organizationId, 'members').withConverter(orgMemberConverterClient);
+
+export const organizationMemberDoc = (db: Firestore, organizationId: string, memberId: string) =>
+  doc(db, 'organizations', organizationId, 'members', memberId).withConverter(orgMemberConverterClient);
