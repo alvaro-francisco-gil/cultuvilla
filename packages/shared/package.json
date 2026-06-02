@@ -2,19 +2,18 @@
   "name": "@cultuvilla/shared",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./firebase/refs/client": {
       "types": "./dist/firebase/refs/client.d.ts",
-      "import": "./dist/firebase/refs/client.js"
+      "default": "./dist/firebase/refs/client.js"
     },
     "./firebase/refs/admin": {
       "types": "./dist/firebase/refs/admin.d.ts",
-      "import": "./dist/firebase/refs/admin.js"
+      "default": "./dist/firebase/refs/admin.js"
     }
   },
   "main": "dist/index.js",
