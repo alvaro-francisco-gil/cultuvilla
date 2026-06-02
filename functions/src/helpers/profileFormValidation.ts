@@ -85,16 +85,16 @@ export function ensureValidFieldShape(f: unknown): asserts f is ProfileFormField
     throw new HttpsError('invalid-argument', 'label requerida en campos custom.');
   }
   if (!c.type || !VALID_FIELD_TYPES.has(c.type)) {
-    throw new HttpsError('invalid-argument', `Tipo inválido: ${c.type}`);
+    throw new HttpsError('invalid-argument', `Tipo inválido: ${String(c.type)}`);
   }
   if (!CUSTOM_KEY_RE.test(c.key as string)) {
-    throw new HttpsError('invalid-argument', `Clave personalizada inválida: ${c.key}`);
+    throw new HttpsError('invalid-argument', `Clave personalizada inválida: ${String(c.key)}`);
   }
   if (
     (c.type === 'select' || c.type === 'multiselect') &&
     (!Array.isArray(c.options) || c.options.length === 0)
   ) {
-    throw new HttpsError('invalid-argument', `El campo ${c.key} requiere opciones.`);
+    throw new HttpsError('invalid-argument', `El campo ${String(c.key)} requiere opciones.`);
   }
 }
 
@@ -115,7 +115,10 @@ export function validateTransition(
   for (const prevField of prev) {
     const nextField = nextByKey.get(prevField.key);
     if (!nextField) {
-      const hasAnswers = (used[prevField.key]?.size ?? 0) > 0;
+      // Index signature returns Set<...> (no `| undefined`) under current
+      // tsconfig (noUncheckedIndexedAccess=false), so the key may be missing
+      // at runtime even though TS doesn't admit it. Guard with `in`.
+      const hasAnswers = prevField.key in used && used[prevField.key].size > 0;
       if (hasAnswers) {
         throw new HttpsError(
           'failed-precondition',

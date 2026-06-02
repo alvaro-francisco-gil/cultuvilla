@@ -42,8 +42,8 @@ describe('validateRegisterInput', () => {
 
   it('rejects more than 50 registrants in one call', () => {
     const registrants = Array.from({ length: 51 }, (_, i) => ({
-      personId: `p${i}`,
-      name: `N${i}`,
+      personId: `p${String(i)}`,
+      name: `N${String(i)}`,
     }));
     expect(() => validateRegisterInput({ eventId: 'e1', registrants })).toThrow(/50/);
   });

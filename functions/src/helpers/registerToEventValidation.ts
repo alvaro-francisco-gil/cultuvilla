@@ -30,21 +30,22 @@ export function validateRegisterInput(data: RegisterToEventData | undefined): Va
   if (data.registrants.length > MAX_REGISTRANTS_PER_CALL) {
     throw new HttpsError(
       'invalid-argument',
-      `No puedes inscribir más de ${MAX_REGISTRANTS_PER_CALL} asistentes a la vez.`,
+      `No puedes inscribir más de ${String(MAX_REGISTRANTS_PER_CALL)} asistentes a la vez.`,
     );
   }
   const cleaned: RegistrantInput[] = [];
-  for (const r of data.registrants) {
+  for (const r of data.registrants as unknown[]) {
     if (!r || typeof r !== 'object') {
       throw new HttpsError('invalid-argument', 'Asistente inválido.');
     }
-    if (typeof r.personId !== 'string' || !r.personId.trim()) {
+    const reg = r as Partial<RegistrantInput>;
+    if (typeof reg.personId !== 'string' || !reg.personId.trim()) {
       throw new HttpsError('invalid-argument', 'personId requerido en cada asistente.');
     }
-    if (typeof r.name !== 'string' || !r.name.trim()) {
+    if (typeof reg.name !== 'string' || !reg.name.trim()) {
       throw new HttpsError('invalid-argument', 'name requerido en cada asistente.');
     }
-    cleaned.push({ personId: r.personId, name: r.name.trim() });
+    cleaned.push({ personId: reg.personId, name: reg.name.trim() });
   }
   return { eventId: data.eventId, registrants: cleaned };
 }

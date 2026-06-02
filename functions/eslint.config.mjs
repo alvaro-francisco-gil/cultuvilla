@@ -9,10 +9,29 @@ export default tseslint.config(
       ...tseslint.configs.strictTypeChecked,
     ],
     languageOptions: {
-      parserOptions: { project: true, tsconfigRootDir: import.meta.dirname },
+      parserOptions: {
+        project: ['./tsconfig.eslint.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
+    },
+  },
+  {
+    // firebase-functions-test returns untyped helper objects (wrap, makeChange,
+    // firestore, cleanup) plus snapshot.data() — its TS types are effectively
+    // `any` at the SDK boundary. These test files legitimately fake SDK shapes,
+    // so relax the no-unsafe-* family here. Production-style rules (no-explicit-any,
+    // template-expressions, etc.) still apply.
+    files: ['src/__tests__/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
     },
   },
   {

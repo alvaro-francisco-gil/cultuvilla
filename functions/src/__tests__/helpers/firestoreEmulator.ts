@@ -22,7 +22,7 @@ async function httpDelete(url: string): Promise<void> {
   const res = await fetch(url, { method: 'DELETE' });
   if (!res.ok && res.status !== 404) {
     const body = await res.text().catch(() => '');
-    throw new Error(`DELETE ${url} failed: ${res.status} ${res.statusText} ${body}`);
+    throw new Error(`DELETE ${url} failed: ${String(res.status)} ${res.statusText} ${body}`);
   }
 }
 
