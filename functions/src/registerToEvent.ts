@@ -4,6 +4,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import {
   eventDoc,
   eventRegistrationsCollection,
+  municipalityMemberDoc,
 } from '@cultuvilla/shared/firebase/refs/admin';
 import type { RegistrationData } from '@cultuvilla/shared';
 import {
@@ -58,7 +59,7 @@ export const registerToEvent = onCall<RegisterToEventData, Promise<RegisterToEve
       const [confirmedSnap, totalSnap, memberSnap] = await Promise.all([
         tx.get(regsCol.where('status', '==', 'confirmed')),
         tx.get(regsCol),
-        tx.get(db.doc(`municipalities/${municipalityId}/members/${userId}`)),
+        tx.get(municipalityMemberDoc(db, municipalityId, userId)),
       ]);
 
       const isMember = memberSnap.exists;
