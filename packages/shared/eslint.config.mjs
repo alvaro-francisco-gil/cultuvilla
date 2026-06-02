@@ -17,6 +17,8 @@ export default tseslint.config(
       'src/services/orgMemberService.ts',
       'src/services/organizerRequestService.ts',
       'src/services/personService.ts',
+      'src/services/userService.ts',
+      'src/services/notificationService.ts',
       'test/firebase/**/*.ts',
       'test/services/feedHaversine.test.ts',
       'test/services/feedDistance.test.ts',
