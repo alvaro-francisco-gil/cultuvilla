@@ -14,6 +14,10 @@ import { organizerRequestConverterAdmin } from '../converters/organizerRequestCo
 import { personConverterAdmin } from '../converters/personConverter';
 import { userConverterAdmin } from '../converters/userConverter';
 import { notificationConverterAdmin } from '../converters/notificationConverter';
+import { newsPostConverterAdmin } from '../converters/newsPostConverter';
+import { newsCommentConverterAdmin } from '../converters/newsCommentConverter';
+import { newsReactionConverterAdmin } from '../converters/newsReactionConverter';
+import { newsReportConverterAdmin } from '../converters/newsReportConverter';
 
 export const eventsCollection = (db: Firestore) =>
   db.collection('events').withConverter(eventConverterAdmin);
@@ -108,3 +112,29 @@ export const userNotificationsCollection = (db: Firestore, userId: string) =>
 
 export const userNotificationDoc = (db: Firestore, userId: string, notificationId: string) =>
   db.collection('users').doc(userId).collection('notifications').doc(notificationId).withConverter(notificationConverterAdmin);
+
+// ── News domain (top-level collections) ──────────────────────────────────
+
+export const newsCollection = (db: Firestore) =>
+  db.collection('news').withConverter(newsPostConverterAdmin);
+
+export const newsDoc = (db: Firestore, postId: string) =>
+  db.collection('news').doc(postId).withConverter(newsPostConverterAdmin);
+
+export const newsCommentsCollection = (db: Firestore) =>
+  db.collection('newsComments').withConverter(newsCommentConverterAdmin);
+
+export const newsCommentDoc = (db: Firestore, commentId: string) =>
+  db.collection('newsComments').doc(commentId).withConverter(newsCommentConverterAdmin);
+
+export const newsReactionsCollection = (db: Firestore) =>
+  db.collection('newsReactions').withConverter(newsReactionConverterAdmin);
+
+export const newsReactionDoc = (db: Firestore, reactionId: string) =>
+  db.collection('newsReactions').doc(reactionId).withConverter(newsReactionConverterAdmin);
+
+export const newsReportsCollection = (db: Firestore) =>
+  db.collection('newsReports').withConverter(newsReportConverterAdmin);
+
+export const newsReportDoc = (db: Firestore, reportId: string) =>
+  db.collection('newsReports').doc(reportId).withConverter(newsReportConverterAdmin);

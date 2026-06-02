@@ -14,6 +14,10 @@ import { organizerRequestConverterClient } from '../converters/organizerRequestC
 import { personConverterClient } from '../converters/personConverter';
 import { userConverterClient } from '../converters/userConverter';
 import { notificationConverterClient } from '../converters/notificationConverter';
+import { newsPostConverterClient } from '../converters/newsPostConverter';
+import { newsCommentConverterClient } from '../converters/newsCommentConverter';
+import { newsReactionConverterClient } from '../converters/newsReactionConverter';
+import { newsReportConverterClient } from '../converters/newsReportConverter';
 
 export const eventsCollection = (db: Firestore) =>
   collection(db, 'events').withConverter(eventConverterClient);
@@ -108,3 +112,29 @@ export const userNotificationsCollection = (db: Firestore, userId: string) =>
 
 export const userNotificationDoc = (db: Firestore, userId: string, notificationId: string) =>
   doc(db, 'users', userId, 'notifications', notificationId).withConverter(notificationConverterClient);
+
+// ── News domain (top-level collections) ──────────────────────────────────
+
+export const newsCollection = (db: Firestore) =>
+  collection(db, 'news').withConverter(newsPostConverterClient);
+
+export const newsDoc = (db: Firestore, postId: string) =>
+  doc(db, 'news', postId).withConverter(newsPostConverterClient);
+
+export const newsCommentsCollection = (db: Firestore) =>
+  collection(db, 'newsComments').withConverter(newsCommentConverterClient);
+
+export const newsCommentDoc = (db: Firestore, commentId: string) =>
+  doc(db, 'newsComments', commentId).withConverter(newsCommentConverterClient);
+
+export const newsReactionsCollection = (db: Firestore) =>
+  collection(db, 'newsReactions').withConverter(newsReactionConverterClient);
+
+export const newsReactionDoc = (db: Firestore, reactionId: string) =>
+  doc(db, 'newsReactions', reactionId).withConverter(newsReactionConverterClient);
+
+export const newsReportsCollection = (db: Firestore) =>
+  collection(db, 'newsReports').withConverter(newsReportConverterClient);
+
+export const newsReportDoc = (db: Firestore, reportId: string) =>
+  doc(db, 'newsReports', reportId).withConverter(newsReportConverterClient);
