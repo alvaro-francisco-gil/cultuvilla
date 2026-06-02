@@ -1,4 +1,4 @@
-import { doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy } from 'firebase/firestore';
+import { doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, limit } from 'firebase/firestore';
 import { getDb } from '../firebase';
 import { personsCollection, personDoc } from '../firebase/refs/client';
 import { buildPersonData, type PersonData, type PersonDataInput } from '../models/person';
@@ -23,11 +23,9 @@ export async function getPersonsByCreator(
 export async function getPersonByUserId(
   userId: string,
 ): Promise<(PersonData & { id: string }) | null> {
-  const q = query(personsCollection(getDb()), where('userId', '==', userId));
+  const q = query(personsCollection(getDb()), where('userId', '==', userId), limit(1));
   const snap = await getDocs(q);
-  if (snap.empty) return null;
-  const d = snap.docs[0];
-  return { id: d.id, ...d.data() };
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }))[0] ?? null;
 }
 
 export async function createPerson(input: PersonDataInput): Promise<string> {
