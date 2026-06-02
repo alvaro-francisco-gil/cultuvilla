@@ -1,64 +1,57 @@
 import {
-  collection, doc, getDocs, addDoc, updateDoc, deleteDoc,
-  query, where, orderBy, serverTimestamp, Timestamp,
-} from 'firebase/firestore'
-import { getDb } from '../firebase'
-import type { OccupationData, OccupationDataInput, OccupationProposalData, OccupationProposalStatus } from '../models/occupation'
-
-function occupationsCol() {
-  return collection(getDb(), 'occupations')
-}
-function proposalsCol() {
-  return collection(getDb(), 'occupationProposals')
-}
+  doc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  serverTimestamp,
+} from 'firebase/firestore';
+import { getDb } from '../firebase';
+import {
+  occupationsCollection,
+  occupationDoc,
+  occupationProposalsCollection,
+} from '../firebase/refs/client';
+import {
+  buildOccupationData,
+  buildOccupationProposalData,
+  type OccupationData,
+  type OccupationDataInput,
+  type OccupationProposalData,
+} from '../models/occupation/OccupationDataModel';
 
 export async function getOccupations(): Promise<(OccupationData & { id: string })[]> {
-  const q = query(occupationsCol(), orderBy('name', 'asc'))
-  const snap = await getDocs(q)
-  return snap.docs.map(d => {
-    const data = d.data() as Record<string, unknown>
-    return {
-      id: d.id,
-      name: data.name as string,
-      createdBy: data.createdBy as string,
-      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
-    }
-  })
+  const q = query(occupationsCollection(getDb()), orderBy('name', 'asc'));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 export async function createOccupation(input: OccupationDataInput): Promise<string> {
-  const ref = await addDoc(occupationsCol(), { ...input, createdAt: serverTimestamp() })
-  return ref.id
+  // doc() on a typed collection ref yields an auto-id typed doc ref.
+  const ref = doc(occupationsCollection(getDb()));
+  // setDoc routes through the typed converter — createdAt must be a plain
+  // Date (serverTimestamp sentinels are rejected by the schema).
+  await setDoc(ref, buildOccupationData(input));
+  return ref.id;
 }
 
 export async function proposeOccupation(name: string, proposedBy: string): Promise<string> {
-  const ref = await addDoc(proposalsCol(), {
-    name,
-    proposedBy,
-    proposedAt: serverTimestamp(),
-    status: 'pending' as OccupationProposalStatus,
-    reviewedBy: null,
-    reviewedAt: null,
-  })
-  return ref.id
+  const ref = doc(occupationProposalsCollection(getDb()));
+  await setDoc(ref, buildOccupationProposalData({ name, proposedBy }));
+  return ref.id;
 }
 
 export async function getPendingProposals(): Promise<(OccupationProposalData & { id: string })[]> {
-  const q = query(proposalsCol(), where('status', '==', 'pending'), orderBy('proposedAt', 'asc'))
-  const snap = await getDocs(q)
-  return snap.docs.map(d => {
-    const data = d.data() as Record<string, unknown>
-    return {
-      id: d.id,
-      name: data.name as string,
-      proposedBy: data.proposedBy as string,
-      proposedAt: data.proposedAt instanceof Timestamp ? data.proposedAt.toDate() : new Date(),
-      status: data.status as OccupationProposalStatus,
-      reviewedBy: (data.reviewedBy as string | null) ?? null,
-      reviewedAt: data.reviewedAt instanceof Timestamp ? data.reviewedAt.toDate() : null,
-      approvedOccupationId: (data.approvedOccupationId as string | null) ?? null,
-    }
-  })
+  const q = query(
+    occupationProposalsCollection(getDb()),
+    where('status', '==', 'pending'),
+    orderBy('proposedAt', 'asc'),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 export async function reviewProposal(
@@ -67,18 +60,24 @@ export async function reviewProposal(
   reviewedBy: string,
   approvedOccupationId?: string | null,
 ): Promise<void> {
-  await updateDoc(doc(proposalsCol(), proposalId), {
+  // updateDoc bypasses the converter, so partial-update payloads (and the
+  // serverTimestamp sentinel) go on the raw doc ref rather than the typed one.
+  await updateDoc(doc(getDb(), 'occupationProposals', proposalId), {
     status,
     reviewedBy,
     reviewedAt: serverTimestamp(),
     approvedOccupationId: approvedOccupationId ?? null,
-  })
+  });
 }
 
-export async function updateOccupation(id: string, data: Partial<Omit<OccupationData, 'createdAt'>>): Promise<void> {
-  await updateDoc(doc(occupationsCol(), id), data as any)
+export async function updateOccupation(
+  id: string,
+  data: Partial<Omit<OccupationData, 'createdAt'>>,
+): Promise<void> {
+  // updateDoc bypasses the converter; pass a partial on the raw doc ref.
+  await updateDoc(doc(getDb(), 'occupations', id), data);
 }
 
 export async function deleteOccupation(id: string): Promise<void> {
-  await deleteDoc(doc(occupationsCol(), id))
+  await deleteDoc(occupationDoc(getDb(), id));
 }

@@ -1,14 +1,18 @@
-export type OrganizerRequestStatus = 'pending' | 'approved' | 'rejected';
+import { z } from 'zod';
 
-export interface OrganizerRequestData {
-  userId: string;
-  municipalityId: string;
-  requestedAt: Date;
-  status: OrganizerRequestStatus;
-  motivation: string | null;
-  reviewedAt: Date | null;
-  reviewedBy: string | null;
-}
+export const OrganizerRequestStatusSchema = z.enum(['pending', 'approved', 'rejected']);
+export type OrganizerRequestStatus = z.infer<typeof OrganizerRequestStatusSchema>;
+
+export const OrganizerRequestDataSchema = z.object({
+  userId: z.string(),
+  municipalityId: z.string(),
+  requestedAt: z.date(),
+  status: OrganizerRequestStatusSchema,
+  motivation: z.string().nullable(),
+  reviewedAt: z.date().nullable(),
+  reviewedBy: z.string().nullable(),
+});
+export type OrganizerRequestData = z.infer<typeof OrganizerRequestDataSchema>;
 
 export interface OrganizerRequestDataInput {
   userId: string;

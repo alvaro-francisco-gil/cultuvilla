@@ -1,5 +1,4 @@
 import {
-  collection,
   doc,
   getDoc,
   getDocs,
@@ -15,58 +14,31 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { getDb } from '../firebase';
-import type {
-  NewsPostData,
-  NewsPostCategory,
-  NewsPostImage,
-  NewsPostStatus,
-  NewsReactionKind,
+import {
+  newsCollection,
+  newsDoc,
+  newsCommentsCollection,
+  newsCommentDoc,
+  newsReactionDoc,
+  newsReportsCollection,
+} from '../firebase/refs/client';
+import {
+  buildNewsPostData,
+  type NewsPostData,
+  type NewsPostCategory,
+  type NewsPostImage,
+  type NewsPostStatus,
+  type NewsReactionKind,
 } from '../models/news/NewsPostDataModel';
-import { reactionDocId } from '../models/news/NewsReactionDataModel';
-
-// ────── collections ──────
-function newsCol() {
-  return collection(getDb(), 'news');
-}
-function commentsCol() {
-  return collection(getDb(), 'newsComments');
-}
-function reactionsCol() {
-  return collection(getDb(), 'newsReactions');
-}
-function reportsCol() {
-  return collection(getDb(), 'newsReports');
-}
-
-// ────── doc mapper ──────
-export function mapNewsPostDoc(d: {
-  id: string;
-  data: () => Record<string, unknown>;
-}): NewsPostData & { id: string } {
-  const data = d.data();
-  const publishedAtRaw = data['publishedAt'];
-  return {
-    id: d.id,
-    municipalityId: data['municipalityId'] as string,
-    authorUserId: data['authorUserId'] as string,
-    authorOrgId: (data['authorOrgId'] as string | null) ?? null,
-    title: data['title'] as string,
-    body: data['body'] as string,
-    category: data['category'] as NewsPostCategory,
-    images: (data['images'] as NewsPostImage[]) ?? [],
-    status: data['status'] as NewsPostStatus,
-    rejectionReason: (data['rejectionReason'] as string | null) ?? null,
-    submittedAt: (data['submittedAt'] as Timestamp).toDate(),
-    publishedAt: publishedAtRaw ? (publishedAtRaw as Timestamp).toDate() : null,
-    createdBy: data['createdBy'] as string,
-    updatedAt: (data['updatedAt'] as Timestamp).toDate(),
-    reactionCounts: (data['reactionCounts'] as { like: number; heart: number }) ?? {
-      like: 0,
-      heart: 0,
-    },
-    commentCount: (data['commentCount'] as number) ?? 0,
-  };
-}
+import {
+  buildNewsCommentData,
+  type NewsCommentData,
+} from '../models/news/NewsCommentDataModel';
+import {
+  buildNewsReactionData,
+  reactionDocId,
+} from '../models/news/NewsReactionDataModel';
+import { buildNewsReportData } from '../models/news/NewsReportDataModel';
 
 // ────── input types ──────
 export interface CreateNewsPostInput {
@@ -96,33 +68,35 @@ const FORBIDDEN_UPDATE_KEYS = new Set<string>([
 
 // ────── post CRUD ──────
 export async function createNewsPost(input: CreateNewsPostInput): Promise<string> {
-  const ref = doc(newsCol());
-  await setDoc(ref, {
-    municipalityId: input.municipalityId,
-    authorUserId: input.authorUserId,
-    authorOrgId: input.authorOrgId ?? null,
-    title: input.title,
-    body: input.body,
-    category: input.category,
-    images: input.images ?? [],
-    status: 'pending' as NewsPostStatus,
-    rejectionReason: null,
-    submittedAt: serverTimestamp(),
-    publishedAt: null,
-    createdBy: input.authorUserId,
-    updatedAt: serverTimestamp(),
-    reactionCounts: { like: 0, heart: 0 },
-    commentCount: 0,
-  });
+  // doc() on a typed collection ref yields an auto-id typed doc ref.
+  const ref = doc(newsCollection(getDb()));
+  const now = new Date();
+  // setDoc routes through the typed converter — submittedAt/updatedAt must be
+  // plain Dates (serverTimestamp sentinels are rejected by the schema).
+  await setDoc(
+    ref,
+    buildNewsPostData({
+      municipalityId: input.municipalityId,
+      authorUserId: input.authorUserId,
+      authorOrgId: input.authorOrgId ?? null,
+      title: input.title,
+      body: input.body,
+      category: input.category,
+      images: input.images ?? [],
+      submittedAt: now,
+      createdBy: input.authorUserId,
+      updatedAt: now,
+    }),
+  );
   return ref.id;
 }
 
 export async function getNewsPost(
   id: string,
 ): Promise<(NewsPostData & { id: string }) | null> {
-  const snap = await getDoc(doc(newsCol(), id));
+  const snap = await getDoc(newsDoc(getDb(), id));
   if (!snap.exists()) return null;
-  return mapNewsPostDoc(snap as Parameters<typeof mapNewsPostDoc>[0]);
+  return { id: snap.id, ...snap.data() };
 }
 
 export async function getNewsPostsByMunicipality(
@@ -138,9 +112,9 @@ export async function getNewsPostsByMunicipality(
       : []),
     ...(options.limit ? [fsLimit(options.limit)] : []),
   ];
-  const q = query(newsCol(), ...constraints);
+  const q = query(newsCollection(getDb()), ...constraints);
   const snap = await getDocs(q);
-  return snap.docs.map((d) => mapNewsPostDoc(d as Parameters<typeof mapNewsPostDoc>[0]));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 export async function updateNewsPost(id: string, patch: UpdateNewsPostInput): Promise<void> {
@@ -149,7 +123,9 @@ export async function updateNewsPost(id: string, patch: UpdateNewsPostInput): Pr
       throw new Error(`updateNewsPost: cannot modify field "${k}" from the client`);
     }
   }
-  await updateDoc(doc(newsCol(), id), {
+  // updateDoc bypasses the converter, so partial-update payloads (and the
+  // serverTimestamp sentinel) go on the raw doc ref rather than the typed one.
+  await updateDoc(doc(getDb(), 'news', id), {
     ...patch,
     updatedAt: serverTimestamp(),
   });
@@ -162,27 +138,30 @@ export async function reactToPost(
   municipalityId: string,
   kind: NewsReactionKind,
 ): Promise<void> {
-  const ref = doc(reactionsCol(), reactionDocId(postId, userId));
-  await setDoc(ref, {
-    postId,
-    municipalityId,
-    userId,
-    kind,
-    createdAt: serverTimestamp(),
-  });
+  const ref = newsReactionDoc(getDb(), reactionDocId(postId, userId));
+  await setDoc(
+    ref,
+    buildNewsReactionData({
+      postId,
+      municipalityId,
+      userId,
+      kind,
+      createdAt: new Date(),
+    }),
+  );
 }
 
 export async function removeReaction(postId: string, userId: string): Promise<void> {
-  await deleteDoc(doc(reactionsCol(), reactionDocId(postId, userId)));
+  await deleteDoc(newsReactionDoc(getDb(), reactionDocId(postId, userId)));
 }
 
 export async function getMyReaction(
   postId: string,
   userId: string,
 ): Promise<NewsReactionKind | null> {
-  const snap = await getDoc(doc(reactionsCol(), reactionDocId(postId, userId)));
+  const snap = await getDoc(newsReactionDoc(getDb(), reactionDocId(postId, userId)));
   if (!snap.exists()) return null;
-  return snap.get('kind') as NewsReactionKind;
+  return snap.data().kind;
 }
 
 // ────── comments ──────
@@ -194,56 +173,37 @@ export interface AddCommentInput {
 }
 
 export async function addComment(input: AddCommentInput): Promise<string> {
-  const ref = doc(commentsCol());
-  await setDoc(ref, {
-    postId: input.postId,
-    municipalityId: input.municipalityId,
-    authorUserId: input.authorUserId,
-    body: input.body,
-    createdAt: serverTimestamp(),
-    hidden: false,
-  });
+  const ref = doc(newsCommentsCollection(getDb()));
+  await setDoc(
+    ref,
+    buildNewsCommentData({
+      postId: input.postId,
+      municipalityId: input.municipalityId,
+      authorUserId: input.authorUserId,
+      body: input.body,
+      createdAt: new Date(),
+    }),
+  );
   return ref.id;
 }
 
 export async function deleteOwnComment(commentId: string): Promise<void> {
-  await deleteDoc(doc(commentsCol(), commentId));
+  await deleteDoc(newsCommentDoc(getDb(), commentId));
 }
 
 export async function getComments(
   postId: string,
   options: { limit?: number } = {},
-): Promise<
-  {
-    id: string;
-    postId: string;
-    municipalityId: string;
-    authorUserId: string;
-    body: string;
-    createdAt: Date;
-    hidden: boolean;
-  }[]
-> {
+): Promise<(NewsCommentData & { id: string })[]> {
   const constraints = [
     where('postId', '==', postId),
     where('hidden', '==', false),
     orderBy('createdAt', 'asc'),
     ...(options.limit ? [fsLimit(options.limit)] : []),
   ];
-  const q = query(commentsCol(), ...constraints);
+  const q = query(newsCommentsCollection(getDb()), ...constraints);
   const snap = await getDocs(q);
-  return snap.docs.map((d) => {
-    const data = d.data();
-    return {
-      id: d.id,
-      postId: data['postId'] as string,
-      municipalityId: data['municipalityId'] as string,
-      authorUserId: data['authorUserId'] as string,
-      body: data['body'] as string,
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      hidden: data['hidden'] as boolean,
-    };
-  });
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 // ────── reports ──────
@@ -256,19 +216,19 @@ export interface ReportCommentInput {
 }
 
 export async function reportComment(input: ReportCommentInput): Promise<string> {
-  const ref = doc(reportsCol());
-  await setDoc(ref, {
-    targetType: 'comment',
-    targetId: input.commentId,
-    postId: input.postId,
-    municipalityId: input.municipalityId,
-    reporterUserId: input.reporterUserId,
-    reason: input.reason,
-    createdAt: serverTimestamp(),
-    status: 'open',
-    resolvedBy: null,
-    resolvedAt: null,
-  });
+  const ref = doc(newsReportsCollection(getDb()));
+  await setDoc(
+    ref,
+    buildNewsReportData({
+      targetType: 'comment',
+      targetId: input.commentId,
+      postId: input.postId,
+      municipalityId: input.municipalityId,
+      reporterUserId: input.reporterUserId,
+      reason: input.reason,
+      createdAt: new Date(),
+    }),
+  );
   return ref.id;
 }
 
@@ -286,8 +246,8 @@ export async function getHomeFeed(
       : []),
     ...(options.limit ? [fsLimit(options.limit)] : []),
   ];
-  const snap = await getDocs(query(newsCol(), ...constraints));
-  return snap.docs.map((d) => mapNewsPostDoc(d as Parameters<typeof mapNewsPostDoc>[0]));
+  const snap = await getDocs(query(newsCollection(getDb()), ...constraints));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 export async function getOtherVillagesFeed(
@@ -307,6 +267,6 @@ export async function getOtherVillagesFeed(
       : []),
     ...(options.limit ? [fsLimit(options.limit)] : []),
   ];
-  const snap = await getDocs(query(newsCol(), ...constraints));
-  return snap.docs.map((d) => mapNewsPostDoc(d as Parameters<typeof mapNewsPostDoc>[0]));
+  const snap = await getDocs(query(newsCollection(getDb()), ...constraints));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }

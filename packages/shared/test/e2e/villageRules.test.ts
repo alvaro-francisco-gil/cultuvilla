@@ -5,7 +5,7 @@
 // Uses @firebase/rules-unit-testing to mount the live firestore.rules file
 // against the firestore emulator and execute requests under different auth
 // contexts.
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, beforeAll, afterAll, beforeEach } from 'vitest';
 import {
   initializeTestEnvironment,
   assertSucceeds,

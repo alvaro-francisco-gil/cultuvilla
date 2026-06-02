@@ -34,14 +34,21 @@ export function collectUsedValues(
 ): Record<string, Set<string | number | boolean>> {
   const out: Record<string, Set<string | number | boolean>> = {};
   for (const m of members) {
-    for (const [k, v] of Object.entries(m.profileAnswers ?? {})) {
-      if (!out[k]) out[k] = new Set();
+    for (const [k, v] of Object.entries(m.profileAnswers)) {
+      // Lazy-init the bucket. Cast through `unknown | undefined` because the
+      // index signature elides `| undefined` here (apps/mobile compiles with
+      // noUncheckedIndexedAccess, so consumers do see the union).
+      let bucket = (out as Record<string, Set<string | number | boolean> | undefined>)[k];
+      if (bucket === undefined) {
+        bucket = new Set();
+        out[k] = bucket;
+      }
       if (Array.isArray(v)) {
         for (const item of v) {
-          if (typeof item === 'string') out[k].add(item);
+          if (typeof item === 'string') bucket.add(item);
         }
       } else if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
-        if (v !== '' && v !== null && v !== undefined) out[k].add(v);
+        if (v !== '') bucket.add(v);
       }
     }
   }

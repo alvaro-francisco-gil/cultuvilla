@@ -1,19 +1,34 @@
-export type NotificationType =
-  | 'waitlist_promoted'
-  | 'event_cancelled'
-  | 'event_updated'
-  | 'org_approved'
-  | 'org_rejected';
+import { z } from 'zod';
 
-export interface NotificationData {
-  type: NotificationType;
-  title: string;
-  body: string;
-  eventId: string | null;
-  municipalityId: string | null;
-  read: boolean;
-  createdAt: Date;
-}
+export const NotificationTypeSchema = z.enum([
+  'waitlist_promoted',
+  'event_cancelled',
+  'event_updated',
+  'org_approved',
+  'org_rejected',
+  'join_request_created',
+  'join_request_approved',
+  'join_request_rejected',
+  'organizer_request_created',
+  'organizer_request_approved',
+  'organizer_request_rejected',
+]);
+export type NotificationType = z.infer<typeof NotificationTypeSchema>;
+
+export const NotificationDataSchema = z.object({
+  type: NotificationTypeSchema,
+  title: z.string(),
+  body: z.string(),
+  eventId: z.string().nullable(),
+  municipalityId: z.string().nullable(),
+  // Set on request-flow notifications (join_request_*, organizer_request_*).
+  // Optional/unused on the original 5 types; nullable to support docs that
+  // explicitly write null.
+  requesterUid: z.string().nullable().optional(),
+  read: z.boolean(),
+  createdAt: z.date(),
+});
+export type NotificationData = z.infer<typeof NotificationDataSchema>;
 
 export interface NotificationDataInput {
   type: NotificationType;
@@ -21,6 +36,7 @@ export interface NotificationDataInput {
   body: string;
   eventId?: string | null;
   municipalityId?: string | null;
+  requesterUid?: string | null;
   read?: boolean;
   createdAt?: Date;
 }
@@ -32,6 +48,7 @@ export function buildNotificationData(input: NotificationDataInput): Notificatio
     body: input.body,
     eventId: input.eventId ?? null,
     municipalityId: input.municipalityId ?? null,
+    requesterUid: input.requesterUid ?? null,
     read: input.read ?? false,
     createdAt: input.createdAt ?? new Date(),
   };

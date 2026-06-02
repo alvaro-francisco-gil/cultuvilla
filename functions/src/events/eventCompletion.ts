@@ -13,7 +13,13 @@ export const completeExpiredEvents = onSchedule('every 1 hours', async () => {
       .get();
 
     for (const event of events.docs) {
-      const data = event.data();
+      // Legacy un-migrated path (villages/{id}/events). Treat data() as the
+      // narrow shape we read here; full migration to typed refs is tracked
+      // separately.
+      const data = event.data() as {
+        startDate: admin.firestore.Timestamp;
+        endDate?: admin.firestore.Timestamp;
+      };
       const compareDate = data.endDate ?? data.startDate;
       if (compareDate.toDate() < new Date()) {
         await event.ref.update({ status: 'completed', updatedAt: admin.firestore.FieldValue.serverTimestamp() });

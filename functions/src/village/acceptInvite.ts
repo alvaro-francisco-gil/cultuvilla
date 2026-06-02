@@ -1,8 +1,16 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import * as admin from 'firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import {
+  municipalityDoc,
+  municipalityInviteTokenDoc,
+  municipalityMemberDoc,
+  personsCollection,
+  userDoc,
+} from '@cultuvilla/shared/firebase/refs/admin';
+import { buildPersonData, buildUserData } from '@cultuvilla/shared';
+import type { VillageMemberData, PartialDate } from '@cultuvilla/shared';
 
-const db = admin.firestore();
+const db = getFirestore();
 
 interface InviteProfileInput {
   displayName: string;
@@ -29,17 +37,17 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
     const auth = request.auth;
     if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
-    const { municipalityId, tokenId, profile } = request.data ?? {};
+    const { municipalityId, tokenId, profile } = request.data;
     if (!municipalityId || !tokenId) {
       throw new HttpsError('invalid-argument', 'Faltan parámetros.');
     }
 
     const userId = auth.uid;
 
-    const municipalityRef = db.doc(`municipalities/${municipalityId}`);
-    const tokenRef = db.doc(`municipalities/${municipalityId}/inviteTokens/${tokenId}`);
-    const memberRef = db.doc(`municipalities/${municipalityId}/members/${userId}`);
-    const userRef = db.doc(`users/${userId}`);
+    const municipalityRef = municipalityDoc(db, municipalityId);
+    const tokenRef = municipalityInviteTokenDoc(db, municipalityId, tokenId);
+    const memberRef = municipalityMemberDoc(db, municipalityId, userId);
+    const userRef = userDoc(db, userId);
 
     return db.runTransaction(async (tx) => {
       const [municipalitySnap, tokenSnap, memberSnap, userSnap] = await Promise.all([
@@ -56,9 +64,9 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
       if (!tokenSnap.exists) {
         throw new HttpsError('failed-precondition', 'El enlace de invitación no es válido.');
       }
-      const tokenData = tokenSnap.data() ?? {};
-      const expiresAt = tokenData.expiresAt as admin.firestore.Timestamp | null | undefined;
-      if (expiresAt && expiresAt.toDate() < new Date()) {
+      // Converter-wrapped: typed InviteTokenData. expiresAt is already a Date.
+      const tokenData = tokenSnap.data();
+      if (tokenData?.expiresAt && tokenData.expiresAt < new Date()) {
         throw new HttpsError('failed-precondition', 'El enlace de invitación ha expirado.');
       }
 
@@ -71,63 +79,74 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
             'Falta el perfil del usuario.',
           );
         }
-        if (!profile.displayName?.trim() || !profile.email || !profile.birthday) {
+        if (!profile.displayName.trim() || !profile.email || !profile.birthday) {
           throw new HttpsError('invalid-argument', 'Perfil incompleto.');
         }
-        const birthday = new Date(profile.birthday);
-        if (Number.isNaN(birthday.getTime())) {
+        const birthdayDate = new Date(profile.birthday);
+        if (Number.isNaN(birthdayDate.getTime())) {
           throw new HttpsError('invalid-argument', 'Fecha de nacimiento inválida.');
         }
-        tx.set(userRef, {
-          displayName: profile.displayName.trim(),
-          email: profile.email,
-          birthday: admin.firestore.Timestamp.fromDate(birthday),
-          biography: null,
-          telephone: null,
-          photoURL: profile.photoURL ?? null,
-          activeMunicipalityId: municipalityId,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-        const personRef = db.collection('persons').doc()
-        await personRef.set({
-          givenName: (profile.displayName as string).split(' ')[0],
-          middleNames: [],
-          firstSurname: null,
-          secondSurname: null,
-          nickname: null,
-          sex: null,
-          birthday: null,
-          deathDate: null,
-          birthPlace: null,
-          burialPlace: null,
-          municipalityLinks: [],
-          occupationIds: [],
-          pendingOccupations: [],
-          biography: null,
-          photoURL: profile.photoURL ?? null,
-          userId: userId,
-          createdBy: userId,
-          createdAt: FieldValue.serverTimestamp(),
-        })
-        await db.collection('users').doc(userId).update({ personId: personRef.id })
+        // PartialDate aligns with how Person stores birthday — same field name,
+        // same shape — so the User and Person docs agree on the format.
+        const birthday: PartialDate = {
+          year: birthdayDate.getFullYear(),
+          month: birthdayDate.getMonth() + 1,
+          day: birthdayDate.getDate(),
+        };
+        // Converter-wrapped ref: createdAt must be a plain Date (sentinels
+        // are rejected by the schema). buildUserData defaults createdAt to
+        // new Date(), which the converter marshals to a Firestore Timestamp.
+        tx.set(
+          userRef,
+          buildUserData({
+            displayName: profile.displayName.trim(),
+            email: profile.email,
+            birthday,
+            biography: null,
+            telephone: null,
+            photoURL: profile.photoURL ?? null,
+            activeMunicipalityId: municipalityId,
+          }),
+        );
+        const personRef = personsCollection(db).doc();
+        await personRef.set(
+          buildPersonData({
+            givenName: profile.displayName.split(' ')[0] ?? profile.displayName,
+            photoURL: profile.photoURL ?? null,
+            userId,
+            createdBy: userId,
+          }),
+        );
+        // tx.update bypasses the converter so a partial { personId } update
+        // is fine — but personRef was created outside the tx, so use a
+        // post-tx update via the raw doc ref.
+        await db.collection('users').doc(userId).update({ personId: personRef.id });
         profileCreated = true;
       } else {
-        tx.set(userRef, { activeMunicipalityId: municipalityId }, { merge: true });
+        // merge:true requires a partial doc; converter rejects partial sets,
+        // so use the raw doc ref via untyped update for this branch.
+        tx.update(db.doc(`users/${userId}`), { activeMunicipalityId: municipalityId });
       }
 
       if (memberSnap.exists) {
         return { municipalityId, alreadyMember: true, profileCreated };
       }
 
-      tx.set(memberRef, {
+      // Converter rejects FieldValue sentinels on tx.set, so joinedAt is a
+      // plain Date (the admin SDK will store it as a Timestamp via the
+      // converter's toFirestore step). Schema requires trustedNewsAuthor.
+      const newMember: VillageMemberData = {
         userId,
         role: 'user',
-        joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+        joinedAt: new Date(),
         profileAnswers: {},
         profileCompletedAt: null,
-      });
+        trustedNewsAuthor: false,
+      };
+      tx.set(memberRef, newMember);
+      // tx.update bypasses the converter, so FieldValue.increment is fine.
       tx.update(tokenRef, {
-        usageCount: admin.firestore.FieldValue.increment(1),
+        usageCount: FieldValue.increment(1),
       });
 
       return { municipalityId, alreadyMember: false, profileCreated };

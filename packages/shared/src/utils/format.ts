@@ -93,7 +93,7 @@ function fallbackRTF(): RelativeTimeFormatter {
       const [singular, plural] = ES_UNIT_LABELS[unit];
       const label = abs === 1 ? singular : plural;
       if (value === 0) return unit === 'second' ? 'ahora' : `en 0 ${label}`;
-      return value < 0 ? `hace ${abs} ${label}` : `en ${abs} ${label}`;
+      return value < 0 ? `hace ${String(abs)} ${label}` : `en ${String(abs)} ${label}`;
     },
   };
 }
@@ -103,7 +103,7 @@ function getRTF(): RelativeTimeFormatter {
   const Ctor = (Intl as unknown as { RelativeTimeFormat?: typeof Intl.RelativeTimeFormat })
     .RelativeTimeFormat;
   rtfCache = Ctor
-    ? (new Ctor(LOCALE, { numeric: 'auto' }) as RelativeTimeFormatter)
+    ? (new Ctor(LOCALE, { numeric: 'auto' }))
     : fallbackRTF();
   return rtfCache;
 }

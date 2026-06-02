@@ -23,8 +23,9 @@ describe('getPredefinedField', () => {
   it('returns the definition for a known key', () => {
     const f = getPredefinedField('residencyType');
     expect(f).not.toBeNull();
-    expect(f!.type).toBe('select');
-    expect(f!.options).toEqual(['permanente', 'veraneante', 'visitante']);
+    if (!f) throw new Error('unreachable');
+    expect(f.type).toBe('select');
+    expect(f.options).toEqual(['permanente', 'veraneante', 'visitante']);
   });
 
   it('returns null for unknown key', () => {

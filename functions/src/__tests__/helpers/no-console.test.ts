@@ -37,7 +37,7 @@ describe('Cloud Functions structured logging invariant', () => {
       const lines = readFileSync(file, 'utf-8').split('\n');
       lines.forEach((line, idx) => {
         if (CONSOLE_CALL.test(line)) {
-          offenders.push(`${file}:${idx + 1}: ${line.trim()}`);
+          offenders.push(`${file}:${String(idx + 1)}: ${line.trim()}`);
         }
       });
     }

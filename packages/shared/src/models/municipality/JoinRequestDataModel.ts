@@ -1,13 +1,17 @@
-export type JoinRequestStatus = 'pending' | 'approved' | 'rejected';
+import { z } from 'zod';
 
-export interface JoinRequestData {
-  userId: string;
-  requestedAt: Date;
-  status: JoinRequestStatus;
-  message: string | null;
-  reviewedAt: Date | null;
-  reviewedBy: string | null;
-}
+export const JoinRequestStatusSchema = z.enum(['pending', 'approved', 'rejected']);
+export type JoinRequestStatus = z.infer<typeof JoinRequestStatusSchema>;
+
+export const JoinRequestDataSchema = z.object({
+  userId: z.string(),
+  requestedAt: z.date(),
+  status: JoinRequestStatusSchema,
+  message: z.string().nullable(),
+  reviewedAt: z.date().nullable(),
+  reviewedBy: z.string().nullable(),
+});
+export type JoinRequestData = z.infer<typeof JoinRequestDataSchema>;
 
 export interface JoinRequestDataInput {
   userId: string;

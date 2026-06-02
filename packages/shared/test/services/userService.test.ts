@@ -1,10 +1,23 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument,
+                  @typescript-eslint/no-explicit-any,
+                  @typescript-eslint/require-await */
+// vi.mock factories legitimately fake the firebase/firestore SDK shape;
+// the rule family doesn't add value for these inline mocks.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../src/firebase', () => ({ getDb: vi.fn() }));
 vi.mock('firebase/firestore', async () => {
+  const makeRef = (..._args: unknown[]) => {
+    const ref: { _path: unknown[]; withConverter: ReturnType<typeof vi.fn> } = {
+      _path: _args,
+      withConverter: vi.fn(),
+    };
+    ref.withConverter.mockReturnValue(ref);
+    return ref;
+  };
   return {
-    collection: vi.fn(),
-    doc: vi.fn((..._args) => ({ _path: _args })),
+    collection: vi.fn((..._args) => makeRef(..._args)),
+    doc: vi.fn((..._args) => makeRef(..._args)),
     getDoc: vi.fn(),
     getDocs: vi.fn(),
     setDoc: vi.fn(),
@@ -24,7 +37,7 @@ describe('createUserProfile', () => {
     vi.clearAllMocks();
   });
 
-  it('calls setDoc exactly once with only account-shape fields (no displayName/birthday/biography/photoURL)', async () => {
+  it('calls setDoc exactly once with merge:true and never writes displayName', async () => {
     vi.mocked(setDoc).mockResolvedValue(undefined);
 
     await createUserProfile('uid-1', { email: 'a@b.test', telephone: '600' });
@@ -42,12 +55,24 @@ describe('createUserProfile', () => {
     expect(payload).toHaveProperty('personId', null);
     expect(payload).toHaveProperty('createdAt', '__SERVER_TIMESTAMP__');
 
-    expect(payload).not.toHaveProperty('birthday');
-    expect(payload).not.toHaveProperty('biography');
-    expect(payload).not.toHaveProperty('photoURL');
+    // birthday/biography/photoURL are part of UserData (denormalized at
+    // acceptInvite/onboarding) and DO go through createUserProfile — they
+    // default to null when callers omit them.
+    expect(payload).toHaveProperty('birthday', null);
+    expect(payload).toHaveProperty('biography', null);
+    expect(payload).toHaveProperty('photoURL', null);
 
     expect(Object.keys(payload as object).sort()).toEqual(
-      ['activeMunicipalityId', 'createdAt', 'email', 'personId', 'telephone'],
+      [
+        'activeMunicipalityId',
+        'biography',
+        'birthday',
+        'createdAt',
+        'email',
+        'personId',
+        'photoURL',
+        'telephone',
+      ],
     );
 
     // setDoc must run with { merge: true } so the trigger-written displayName
@@ -103,7 +128,7 @@ describe('getUserProfile', () => {
     expect(result).toBeNull();
   });
 
-  it('returns a mapped object with account-shape fields and NO birthday/biography/photoURL', async () => {
+  it('returns the mapped user shape including denormalized displayName', async () => {
     const fakeDate = new Date('2024-01-01T00:00:00Z');
     vi.mocked(getDoc).mockResolvedValue({
       exists: () => true,
@@ -114,7 +139,10 @@ describe('getUserProfile', () => {
         telephone: '600',
         activeMunicipalityId: 'muni-1',
         personId: 'person-1',
-        createdAt: { toDate: () => fakeDate },
+        birthday: null,
+        biography: null,
+        photoURL: null,
+        createdAt: fakeDate,
       }),
     } as any);
 
@@ -128,11 +156,10 @@ describe('getUserProfile', () => {
       telephone: '600',
       activeMunicipalityId: 'muni-1',
       personId: 'person-1',
+      birthday: null,
+      biography: null,
+      photoURL: null,
       createdAt: fakeDate,
     });
-
-    expect(result).not.toHaveProperty('birthday');
-    expect(result).not.toHaveProperty('biography');
-    expect(result).not.toHaveProperty('photoURL');
   });
 });

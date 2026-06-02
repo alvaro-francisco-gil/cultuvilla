@@ -2,6 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { newsDoc } from '@cultuvilla/shared/firebase/refs/admin';
 
 const db = admin.firestore();
 
@@ -22,22 +23,27 @@ export const moderateNewsPost = onCall<ModerateNewsPostData, Promise<ModerateNew
     const auth = request.auth;
     if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
-    const { postId, decision, reason } = request.data ?? {};
+    const { postId, decision, reason } = request.data;
     if (!postId || (decision !== 'approved' && decision !== 'rejected')) {
       throw new HttpsError('invalid-argument', 'Argumentos inválidos.');
     }
 
-    const postRef = db.doc(`news/${postId}`);
+    const postRef = newsDoc(db, postId);
+    // Raw ref for tx.update (partial payload + FieldValue sentinels).
+    const postRawRef = db.doc(`news/${postId}`);
 
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(postRef);
       if (!snap.exists) throw new HttpsError('not-found', 'Post no encontrado.');
 
-      if (snap.get('status') !== 'pending') {
+      // Converter-wrapped: typed NewsPostData.
+      const post = snap.data();
+      if (!post) throw new HttpsError('not-found', 'Post no encontrado.');
+      if (post.status !== 'pending') {
         throw new HttpsError('failed-precondition', 'El post ya fue moderado.');
       }
 
-      const municipalityId = snap.get('municipalityId') as string;
+      const municipalityId = post.municipalityId;
       const callerMemberRef = db.doc(`municipalities/${municipalityId}/members/${auth.uid}`);
       const appAdminRef = db.doc(`admins/${auth.uid}`);
 
@@ -67,7 +73,8 @@ export const moderateNewsPost = onCall<ModerateNewsPostData, Promise<ModerateNew
               updatedAt: FieldValue.serverTimestamp(),
             };
 
-      tx.update(postRef, patch);
+      // tx.update bypasses the converter, so FieldValue sentinels are fine.
+      tx.update(postRawRef, patch);
     });
 
     logger.info('moderated news post', { handler, postId, decision });

@@ -1,26 +1,35 @@
 import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { personsCollection } from '@cultuvilla/shared/firebase/refs/admin';
 
-const db = admin.firestore();
+const db = getFirestore();
 
 const HANDLER = 'onOccupationProposalApproved';
 
+/**
+ * When an occupationProposal transitions to 'approved', migrate any persons
+ * carrying the proposed name in `pendingOccupations` over to the new canonical
+ * `occupationIds` entry.
+ *
+ * Firestore trigger snapshots are NOT converter-wrapped, so before/after
+ * data() returns raw DocumentData — we use bracket-notation reads + narrow
+ * casts on the primitive fields we actually consume.
+ */
 export const onOccupationProposalApproved = onDocumentUpdated(
   'occupationProposals/{proposalId}',
   async (event) => {
-    const before = event.data?.before.data();
-    const after = event.data?.after.data();
+    const before = event.data?.before.data() ?? null;
+    const after = event.data?.after.data() ?? null;
 
     if (!before || !after) return;
 
     // Only trigger when transitioning to 'approved'
-    if (before.status === 'approved' || after.status !== 'approved') return;
+    if (before['status'] === 'approved' || after['status'] !== 'approved') return;
 
     const proposalId = event.params.proposalId;
 
-    const approvedOccupationId = after.approvedOccupationId as string | null | undefined;
+    const approvedOccupationId = after['approvedOccupationId'] as string | null | undefined;
     if (!approvedOccupationId) {
       logger.warn('Proposal approved but approvedOccupationId is missing', {
         handler: HANDLER,
@@ -29,7 +38,7 @@ export const onOccupationProposalApproved = onDocumentUpdated(
       return;
     }
 
-    const name = after.name as string | undefined;
+    const name = after['name'] as string | undefined;
     if (!name) {
       logger.warn('Proposal has no name field', {
         handler: HANDLER,
@@ -38,7 +47,7 @@ export const onOccupationProposalApproved = onDocumentUpdated(
       return;
     }
 
-    const snap = await db.collection('persons')
+    const snap = await personsCollection(db)
       .where('pendingOccupations', 'array-contains', name)
       .get();
 

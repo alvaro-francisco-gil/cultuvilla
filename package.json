@@ -12,6 +12,9 @@
     "functions:build": "npm --prefix functions run build",
     "functions:typecheck": "npm --prefix functions run typecheck",
     "functions:test": "npm --prefix functions run test",
+    "shared:lint": "pnpm --filter @cultuvilla/shared lint",
+    "functions:lint": "npm --prefix functions run lint",
+    "lint": "pnpm shared:lint && pnpm functions:lint",
     "app:start": "pnpm --filter cultuvilla-mobile start",
     "app:start:tunnel": "pnpm --filter cultuvilla-mobile start:tunnel",
     "app:start:lan": "pnpm --filter cultuvilla-mobile start:lan",
@@ -30,7 +33,7 @@
     "test:rules": "ONLY=firestore node scripts/run-tests-with-emulators.mjs pnpm --filter @cultuvilla/shared test:rules",
     "test:functions": "node scripts/run-tests-with-emulators.mjs npm --prefix functions run test:integration",
     "test:emulators": "pnpm test:integration && pnpm test:rules && pnpm test:functions",
-    "check": "pnpm typecheck && pnpm test && pnpm build",
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
     "seed:municipalities": "node scripts/seed-municipalities.mjs",
     "escudos:fetch": "node scripts/fetch-escudos.mjs",
     "escudos:optimize": "node scripts/optimize-escudos.mjs",
@@ -67,11 +70,14 @@
   "devDependencies": {
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
+    "eslint": "^9.39.4",
     "firebase-admin": "^13.0.0",
     "firebase-tools": "^14.0.0",
+    "globals": "^17.6.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.5",
     "sharp": "^0.34.5",
-    "typescript": "~5.8.3"
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.60.0"
   }
 }

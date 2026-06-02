@@ -26,47 +26,47 @@ describe('validateUploadableImage', () => {
 
   it('accepts a small image/jpeg blob', () => {
     expect(() =>
-      validateUploadableImage({
+      { validateUploadableImage({
         blob: makeBlob({ size: 1024, type: 'image/jpeg' }),
         filename: 'a.jpg',
-      }),
+      }); },
     ).not.toThrow();
   });
 
   it('rejects a blob whose declared type is not an image', () => {
     expect(() =>
-      validateUploadableImage({
+      { validateUploadableImage({
         blob: makeBlob({ size: 1024, type: 'application/pdf' }),
         filename: 'a.pdf',
-      }),
+      }); },
     ).toThrow(/no es una imagen/);
   });
 
   it('rejects a blob over 5 MB', () => {
     expect(() =>
-      validateUploadableImage({
+      { validateUploadableImage({
         blob: makeBlob({ size: 6 * 1024 * 1024, type: 'image/png' }),
         filename: 'big.png',
-      }),
+      }); },
     ).toThrow(/5 MB/);
   });
 
   it('honors an explicit contentType override (used by RN when blob.type is empty)', () => {
     expect(() =>
-      validateUploadableImage({
+      { validateUploadableImage({
         blob: makeBlob({ size: 1024, type: '' }),
         filename: 'rn.jpg',
         contentType: 'image/jpeg',
-      }),
+      }); },
     ).not.toThrow();
   });
 
   it('rejects when neither blob.type nor contentType identifies an image', () => {
     expect(() =>
-      validateUploadableImage({
+      { validateUploadableImage({
         blob: makeBlob({ size: 1024, type: '' }),
         filename: 'mystery.bin',
-      }),
+      }); },
     ).toThrow(/no es una imagen/);
   });
 });

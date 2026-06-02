@@ -1,9 +1,30 @@
+// packages/shared/src/services/municipalityService.ts
 import {
-  collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc,
-  query, orderBy, where, limit as firestoreLimit,
-  serverTimestamp, Timestamp, GeoPoint, writeBatch,
-} from 'firebase/firestore'
-import { getDb } from '../firebase'
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  orderBy,
+  where,
+  limit as firestoreLimit,
+  serverTimestamp,
+  writeBatch,
+  type UpdateData,
+  type DocumentData,
+} from 'firebase/firestore';
+import { getDb } from '../firebase';
+import {
+  municipalitiesCollection,
+  municipalityDoc,
+  municipalityBarriosCollection,
+  municipalityBarrioDoc,
+  municipalityCemeteriesCollection,
+  municipalityCemeteryDoc,
+  municipalityMemberDoc,
+} from '../firebase/refs/client';
 import type {
   MunicipalityData,
   MunicipalityDataInput,
@@ -13,77 +34,21 @@ import type {
   BarrioDataInput,
   CemeteryData,
   CemeteryDataInput,
-} from '../models/municipality'
-import { municipalitySearchKey } from '../models/municipality/MunicipalityDataModel'
-import type { VillageProfileForm, ProfileFormField } from '../models/municipality/CensoTypes'
-
-// ── Collection refs ──────────────────────────────────────────────────────
-
-function municipalitiesCol() {
-  return collection(getDb(), 'municipalities')
-}
-function barriosCol(municipalityId: string) {
-  return collection(getDb(), 'municipalities', municipalityId, 'barrios')
-}
-function cemeteriesCol(municipalityId: string) {
-  return collection(getDb(), 'municipalities', municipalityId, 'cemeteries')
-}
-
-// ── Mappers ──────────────────────────────────────────────────────────────
-
-function mapProfileForm(raw: unknown): VillageProfileForm | null {
-  if (!raw || typeof raw !== 'object') return null
-  const r = raw as { fields?: ProfileFormField[]; updatedAt?: Timestamp }
-  if (!Array.isArray(r.fields)) return null
-  return {
-    fields: r.fields,
-    updatedAt: r.updatedAt instanceof Timestamp ? r.updatedAt.toDate() : new Date(),
-  }
-}
-
-function mapCommunity(raw: unknown): VillageCommunity | null {
-  if (!raw || typeof raw !== 'object') return null
-  const r = raw as Record<string, unknown>
-  if (typeof r.adminUserId !== 'string') return null
-  return {
-    description: (r.description as string) ?? '',
-    coverImages: Array.isArray(r.coverImages) ? (r.coverImages as string[]) : [],
-    adminUserId: r.adminUserId,
-    profileForm: mapProfileForm(r.profileForm),
-    activatedAt: r.activatedAt instanceof Timestamp ? r.activatedAt.toDate() : new Date(),
-  }
-}
-
-function mapMunicipalityDoc(id: string, data: Record<string, unknown>): MunicipalityData & { id: string } {
-  const name = data.name as string
-  return {
-    id,
-    name,
-    nameLower: (data.nameLower as string | undefined) ?? municipalitySearchKey(name),
-    province: data.province as string,
-    comunidadAutonoma: data.comunidadAutonoma as string,
-    codigoINE: data.codigoINE as string,
-    coordinates: (data.coordinates as GeoPoint | null) ?? null,
-    createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
-    escudoUrl: (data.escudoUrl as string | null) ?? null,
-    escudoThumbUrl: (data.escudoThumbUrl as string | null) ?? null,
-    community: mapCommunity(data.community),
-    communityActive: (data.communityActive as boolean) ?? false,
-  }
-}
+} from '../models/municipality';
+import { municipalitySearchKey } from '../models/municipality/MunicipalityDataModel';
 
 // ── Municipality CRUD ────────────────────────────────────────────────────
 
 export async function getMunicipality(id: string): Promise<(MunicipalityData & { id: string }) | null> {
-  const snap = await getDoc(doc(municipalitiesCol(), id))
-  if (!snap.exists()) return null
-  return mapMunicipalityDoc(snap.id, snap.data() as Record<string, unknown>)
+  const snap = await getDoc(municipalityDoc(getDb(), id));
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() };
 }
 
 export async function getMunicipalities(): Promise<(MunicipalityData & { id: string })[]> {
-  const q = query(municipalitiesCol(), orderBy('name', 'asc'))
-  const snap = await getDocs(q)
-  return snap.docs.map(d => mapMunicipalityDoc(d.id, d.data() as Record<string, unknown>))
+  const q = query(municipalitiesCollection(getDb()), orderBy('name', 'asc'));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 /**
@@ -98,67 +63,73 @@ export async function getMunicipalities(): Promise<(MunicipalityData & { id: str
  */
 export async function searchMunicipalities(
   searchQuery: string,
-  limit: number = 50,
+  limit = 50,
 ): Promise<(MunicipalityData & { id: string })[]> {
-  const key = municipalitySearchKey(searchQuery.trim())
+  const key = municipalitySearchKey(searchQuery.trim());
   if (key.length === 0) {
     const q = query(
-      municipalitiesCol(),
+      municipalitiesCollection(getDb()),
       orderBy('nameLower', 'asc'),
       firestoreLimit(limit),
-    )
-    const snap = await getDocs(q)
-    return snap.docs.map(d => mapMunicipalityDoc(d.id, d.data() as Record<string, unknown>))
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   }
-  // Firestore prefix search: nameLower >= key AND nameLower < key+''
+  // Firestore prefix search: nameLower >= key AND nameLower < key + ''
+  // ( is in a Unicode private-use area, sorting after most printable chars).
   const q = query(
-    municipalitiesCol(),
+    municipalitiesCollection(getDb()),
     orderBy('nameLower', 'asc'),
     where('nameLower', '>=', key),
     where('nameLower', '<', key + ''),
     firestoreLimit(limit),
-  )
-  const snap = await getDocs(q)
-  return snap.docs.map(d => mapMunicipalityDoc(d.id, d.data() as Record<string, unknown>))
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 export async function getActiveCommunities(): Promise<(MunicipalityData & { id: string })[]> {
   const q = query(
-    municipalitiesCol(),
+    municipalitiesCollection(getDb()),
     where('communityActive', '==', true),
     orderBy('name', 'asc'),
-  )
-  const snap = await getDocs(q)
-  return snap.docs.map(d => mapMunicipalityDoc(d.id, d.data() as Record<string, unknown>))
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 export async function createMunicipality(input: MunicipalityDataInput): Promise<string> {
-  const ref = await addDoc(municipalitiesCol(), {
+  const newRef = doc(municipalitiesCollection(getDb()));
+  const now = new Date();
+  const data: MunicipalityData = {
     name: input.name,
     nameLower: municipalitySearchKey(input.name),
     province: input.province,
     comunidadAutonoma: input.comunidadAutonoma,
     codigoINE: input.codigoINE,
     coordinates: input.coordinates ?? null,
-    createdAt: serverTimestamp(),
+    createdAt: now,
     escudoUrl: input.escudoUrl ?? null,
     escudoThumbUrl: input.escudoThumbUrl ?? null,
     community: null,
     communityActive: false,
-  })
-  return ref.id
+  };
+  await setDoc(newRef, data);
+  return newRef.id;
 }
 
 export async function updateMunicipality(
   id: string,
   data: Partial<Pick<MunicipalityData, 'name' | 'province' | 'comunidadAutonoma' | 'codigoINE' | 'coordinates'>>,
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await updateDoc(doc(municipalitiesCol(), id), data as any)
+  // updateDoc bypasses the converter; use untyped doc + UpdateData<DocumentData>
+  // so partial payloads (no required fields, plain values) typecheck.
+  const updates: UpdateData<DocumentData> = { ...data };
+  await updateDoc(doc(getDb(), 'municipalities', id), updates);
 }
 
 export async function deleteMunicipality(id: string): Promise<void> {
-  await deleteDoc(doc(municipalitiesCol(), id))
+  await deleteDoc(municipalityDoc(getDb(), id));
 }
 
 // ── Community lifecycle ──────────────────────────────────────────────────
@@ -168,13 +139,17 @@ export async function deleteMunicipality(id: string): Promise<void> {
  *  - sets `community` and `communityActive: true` on the municipality doc
  *  - if `coordinates` provided, updates the municipality's coordinates
  *  - creates a /members/{adminUserId} doc with role=admin
+ *
+ * The municipality update is batch.update (bypasses the converter, so we can
+ * embed serverTimestamp() inside the nested community object). The member
+ * doc write is batch.set on a converter-typed ref, so it uses plain Date.
  */
 export async function activateCommunity(
   municipalityId: string,
   input: ActivateCommunityInput,
 ): Promise<void> {
-  const munRef = doc(municipalitiesCol(), municipalityId)
-  const memberRef = doc(getDb(), 'municipalities', municipalityId, 'members', input.adminUserId)
+  const munRef = doc(getDb(), 'municipalities', municipalityId);
+  const memberRef = municipalityMemberDoc(getDb(), municipalityId, input.adminUserId);
 
   const community = {
     description: input.description,
@@ -182,70 +157,63 @@ export async function activateCommunity(
     adminUserId: input.adminUserId,
     profileForm: null,
     activatedAt: serverTimestamp(),
-  }
+  };
 
-  const batch = writeBatch(getDb())
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const munUpdate: Record<string, any> = {
+  const batch = writeBatch(getDb());
+  const munUpdate: UpdateData<DocumentData> = {
     community,
     communityActive: true,
-  }
+  };
   if (input.coordinates !== undefined) {
-    munUpdate.coordinates = input.coordinates
+    munUpdate['coordinates'] = input.coordinates;
   }
-  batch.update(munRef, munUpdate)
+  batch.update(munRef, munUpdate);
   batch.set(memberRef, {
     userId: input.adminUserId,
     role: 'admin',
-    joinedAt: serverTimestamp(),
+    joinedAt: new Date(),
     profileAnswers: {},
     profileCompletedAt: null,
-  })
-  await batch.commit()
+    trustedNewsAuthor: false,
+  });
+  await batch.commit();
 }
 
 export async function updateCommunity(
   municipalityId: string,
   data: Partial<Pick<VillageCommunity, 'description' | 'coverImages' | 'adminUserId'>>,
 ): Promise<void> {
-  const updates: Record<string, unknown> = {}
-  if (data.description !== undefined) updates['community.description'] = data.description
-  if (data.coverImages !== undefined) updates['community.coverImages'] = data.coverImages
-  if (data.adminUserId !== undefined) updates['community.adminUserId'] = data.adminUserId
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await updateDoc(doc(municipalitiesCol(), municipalityId), updates as any)
+  const updates: UpdateData<DocumentData> = {};
+  if (data.description !== undefined) updates['community.description'] = data.description;
+  if (data.coverImages !== undefined) updates['community.coverImages'] = data.coverImages;
+  if (data.adminUserId !== undefined) updates['community.adminUserId'] = data.adminUserId;
+  await updateDoc(doc(getDb(), 'municipalities', municipalityId), updates);
 }
 
 export async function deactivateCommunity(municipalityId: string): Promise<void> {
-  await updateDoc(doc(municipalitiesCol(), municipalityId), {
+  await updateDoc(doc(getDb(), 'municipalities', municipalityId), {
     community: null,
     communityActive: false,
-  })
+  });
 }
 
 // ── Barrios ──────────────────────────────────────────────────────────────
 
 export async function getBarrios(municipalityId: string): Promise<(BarrioData & { id: string })[]> {
-  const q = query(barriosCol(municipalityId), orderBy('name', 'asc'))
-  const snap = await getDocs(q)
-  return snap.docs.map(d => {
-    const data = d.data() as Record<string, unknown>
-    return {
-      id: d.id,
-      name: data.name as string,
-      municipalityId,
-      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
-    }
-  })
+  const q = query(municipalityBarriosCollection(getDb(), municipalityId), orderBy('name', 'asc'));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 export async function createBarrio(municipalityId: string, input: BarrioDataInput): Promise<string> {
-  const ref = await addDoc(barriosCol(municipalityId), {
+  const newRef = doc(municipalityBarriosCollection(getDb(), municipalityId));
+  const data: BarrioData = {
     name: input.name,
     municipalityId,
-    createdAt: serverTimestamp(),
-  })
-  return ref.id
+    createdAt: new Date(),
+  };
+  await setDoc(newRef, data);
+  return newRef.id;
 }
 
 export async function updateBarrio(
@@ -253,39 +221,32 @@ export async function updateBarrio(
   barrioId: string,
   data: Partial<Omit<BarrioData, 'createdAt'>>,
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await updateDoc(doc(barriosCol(municipalityId), barrioId), data as any)
+  const updates: UpdateData<DocumentData> = { ...data };
+  await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'barrios', barrioId), updates);
 }
 
 export async function deleteBarrio(municipalityId: string, barrioId: string): Promise<void> {
-  await deleteDoc(doc(barriosCol(municipalityId), barrioId))
+  await deleteDoc(municipalityBarrioDoc(getDb(), municipalityId, barrioId));
 }
 
 // ── Cemeteries ───────────────────────────────────────────────────────────
 
 export async function getCemeteries(municipalityId: string): Promise<(CemeteryData & { id: string })[]> {
-  const q = query(cemeteriesCol(municipalityId), orderBy('name', 'asc'))
-  const snap = await getDocs(q)
-  return snap.docs.map(d => {
-    const data = d.data() as Record<string, unknown>
-    return {
-      id: d.id,
-      name: data.name as string,
-      description: (data.description as string | null) ?? null,
-      municipalityId,
-      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
-    }
-  })
+  const q = query(municipalityCemeteriesCollection(getDb(), municipalityId), orderBy('name', 'asc'));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 export async function createCemetery(municipalityId: string, input: CemeteryDataInput): Promise<string> {
-  const ref = await addDoc(cemeteriesCol(municipalityId), {
+  const newRef = doc(municipalityCemeteriesCollection(getDb(), municipalityId));
+  const data: CemeteryData = {
     name: input.name,
     description: input.description ?? null,
     municipalityId,
-    createdAt: serverTimestamp(),
-  })
-  return ref.id
+    createdAt: new Date(),
+  };
+  await setDoc(newRef, data);
+  return newRef.id;
 }
 
 export async function updateCemetery(
@@ -293,13 +254,13 @@ export async function updateCemetery(
   cemeteryId: string,
   data: Partial<Omit<CemeteryData, 'createdAt'>>,
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await updateDoc(doc(cemeteriesCol(municipalityId), cemeteryId), data as any)
+  const updates: UpdateData<DocumentData> = { ...data };
+  await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'cemeteries', cemeteryId), updates);
 }
 
 export async function deleteCemetery(municipalityId: string, cemeteryId: string): Promise<void> {
-  await deleteDoc(doc(cemeteriesCol(municipalityId), cemeteryId))
+  await deleteDoc(municipalityCemeteryDoc(getDb(), municipalityId, cemeteryId));
 }
 
 // keep export so other code can call setDoc directly for seed-style work
-export { setDoc }
+export { setDoc };

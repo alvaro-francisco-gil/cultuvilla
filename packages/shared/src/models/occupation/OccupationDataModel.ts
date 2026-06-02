@@ -1,36 +1,50 @@
-export interface OccupationData {
-  name: string
-  createdBy: string
-  createdAt: Date
-}
+import { z } from 'zod';
+
+/**
+ * A canonical occupation. Stored at /occupations/{occupationId} (top-level).
+ */
+export const OccupationDataSchema = z.object({
+  name: z.string(),
+  createdBy: z.string(),
+  createdAt: z.date(),
+});
+export type OccupationData = z.infer<typeof OccupationDataSchema>;
 
 export interface OccupationDataInput {
-  name: string
-  createdBy: string
+  name: string;
+  createdBy: string;
 }
 
 export function buildOccupationData(input: OccupationDataInput): OccupationData {
-  return { ...input, createdAt: new Date() }
+  return { ...input, createdAt: new Date() };
 }
 
-export type OccupationProposalStatus = 'pending' | 'approved' | 'rejected'
+export const OccupationProposalStatusSchema = z.enum(['pending', 'approved', 'rejected']);
+export type OccupationProposalStatus = z.infer<typeof OccupationProposalStatusSchema>;
 
-export interface OccupationProposalData {
-  name: string
-  proposedBy: string
-  proposedAt: Date
-  status: OccupationProposalStatus
-  reviewedBy: string | null
-  reviewedAt: Date | null
-  approvedOccupationId: string | null
-}
+/**
+ * A user-submitted occupation proposal awaiting moderator review.
+ * Stored at /occupationProposals/{proposalId} (top-level).
+ */
+export const OccupationProposalDataSchema = z.object({
+  name: z.string(),
+  proposedBy: z.string(),
+  proposedAt: z.date(),
+  status: OccupationProposalStatusSchema,
+  reviewedBy: z.string().nullable(),
+  reviewedAt: z.date().nullable(),
+  approvedOccupationId: z.string().nullable(),
+});
+export type OccupationProposalData = z.infer<typeof OccupationProposalDataSchema>;
 
 export interface OccupationProposalDataInput {
-  name: string
-  proposedBy: string
+  name: string;
+  proposedBy: string;
 }
 
-export function buildOccupationProposalData(input: OccupationProposalDataInput): OccupationProposalData {
+export function buildOccupationProposalData(
+  input: OccupationProposalDataInput,
+): OccupationProposalData {
   return {
     name: input.name,
     proposedBy: input.proposedBy,
@@ -39,5 +53,5 @@ export function buildOccupationProposalData(input: OccupationProposalDataInput):
     reviewedBy: null,
     reviewedAt: null,
     approvedOccupationId: null,
-  }
+  };
 }

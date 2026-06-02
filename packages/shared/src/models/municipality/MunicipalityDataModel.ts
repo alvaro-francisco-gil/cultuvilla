@@ -1,5 +1,6 @@
-import { GeoPoint } from 'firebase/firestore'
-import type { VillageProfileForm } from './CensoTypes'
+import { z } from 'zod';
+import { LatLngSchema, type LatLng } from '../core/LocationDataModel';
+import { VillageProfileFormSchema } from './CensoTypes';
 
 /**
  * A municipality is the canonical Spanish administrative unit (INE-coded).
@@ -11,13 +12,14 @@ import type { VillageProfileForm } from './CensoTypes'
  * structurally by storing the community inside the municipality doc.
  */
 
-export interface VillageCommunity {
-  description: string
-  coverImages: string[]
-  adminUserId: string
-  profileForm: VillageProfileForm | null
-  activatedAt: Date
-}
+export const VillageCommunitySchema = z.object({
+  description: z.string(),
+  coverImages: z.array(z.string()),
+  adminUserId: z.string(),
+  profileForm: VillageProfileFormSchema.nullable(),
+  activatedAt: z.date(),
+});
+export type VillageCommunity = z.infer<typeof VillageCommunitySchema>;
 
 /**
  * Normalize a municipality name for prefix-search: NFD-decompose, strip
@@ -28,42 +30,43 @@ export function municipalitySearchKey(name: string): string {
   return name
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
+    .toLowerCase();
 }
 
-export interface MunicipalityData {
+export const MunicipalityDataSchema = z.object({
   // ── Reference data (INE-seeded, immutable in practice) ─────────────────
-  name: string
+  name: z.string(),
   /** Accent-stripped, lowercased copy of `name` for case/accent-insensitive
    * prefix search. Always derivable from `name`; stored so Firestore can index. */
-  nameLower: string
-  province: string
-  comunidadAutonoma: string
-  codigoINE: string
-  coordinates: GeoPoint | null
-  createdAt: Date
+  nameLower: z.string(),
+  province: z.string(),
+  comunidadAutonoma: z.string(),
+  codigoINE: z.string(),
+  coordinates: LatLngSchema.nullable(),
+  createdAt: z.date(),
 
   // ── Escudo (coat of arms, sourced from Wikidata P94 → Cloud Storage) ──
   /** Public URL for the 256×256 WebP. `null` when Wikidata has no escudo for this INE. */
-  escudoUrl: string | null
+  escudoUrl: z.string().nullable(),
   /** Public URL for the 64×64 WebP thumbnail. */
-  escudoThumbUrl: string | null
+  escudoThumbUrl: z.string().nullable(),
 
   // ── Community overlay ─────────────────────────────────────────────────
-  community: VillageCommunity | null
+  community: VillageCommunitySchema.nullable(),
   /** Denorm of `community != null` — needed for queries since Firestore
    * can't index "field exists" cheaply. */
-  communityActive: boolean
-}
+  communityActive: z.boolean(),
+});
+export type MunicipalityData = z.infer<typeof MunicipalityDataSchema>;
 
 export interface MunicipalityDataInput {
-  name: string
-  province: string
-  comunidadAutonoma: string
-  codigoINE: string
-  coordinates?: GeoPoint | null
-  escudoUrl?: string | null
-  escudoThumbUrl?: string | null
+  name: string;
+  province: string;
+  comunidadAutonoma: string;
+  codigoINE: string;
+  coordinates?: LatLng | null;
+  escudoUrl?: string | null;
+  escudoThumbUrl?: string | null;
 }
 
 export function buildMunicipalityData(input: MunicipalityDataInput): MunicipalityData {
@@ -79,14 +82,14 @@ export function buildMunicipalityData(input: MunicipalityDataInput): Municipalit
     escudoThumbUrl: input.escudoThumbUrl ?? null,
     community: null,
     communityActive: false,
-  }
+  };
 }
 
 export interface ActivateCommunityInput {
-  description: string
-  coverImages?: string[]
-  adminUserId: string
-  coordinates?: GeoPoint | null
+  description: string;
+  coverImages?: string[];
+  adminUserId: string;
+  coordinates?: LatLng | null;
 }
 
 export function buildVillageCommunity(input: ActivateCommunityInput): VillageCommunity {
@@ -96,39 +99,41 @@ export function buildVillageCommunity(input: ActivateCommunityInput): VillageCom
     adminUserId: input.adminUserId,
     profileForm: null,
     activatedAt: new Date(),
-  }
+  };
 }
 
 // ── Barrios (subcollection: /municipalities/{id}/barrios/{barrioId}) ────
 
-export interface BarrioData {
-  name: string
-  municipalityId: string
-  createdAt: Date
-}
+export const BarrioDataSchema = z.object({
+  name: z.string(),
+  municipalityId: z.string(),
+  createdAt: z.date(),
+});
+export type BarrioData = z.infer<typeof BarrioDataSchema>;
 
 export interface BarrioDataInput {
-  name: string
-  municipalityId: string
+  name: string;
+  municipalityId: string;
 }
 
 export function buildBarrioData(input: BarrioDataInput): BarrioData {
-  return { ...input, createdAt: new Date() }
+  return { ...input, createdAt: new Date() };
 }
 
 // ── Cemeteries (subcollection: /municipalities/{id}/cemeteries/{cemId}) ──
 
-export interface CemeteryData {
-  name: string
-  description: string | null
-  municipalityId: string
-  createdAt: Date
-}
+export const CemeteryDataSchema = z.object({
+  name: z.string(),
+  description: z.string().nullable(),
+  municipalityId: z.string(),
+  createdAt: z.date(),
+});
+export type CemeteryData = z.infer<typeof CemeteryDataSchema>;
 
 export interface CemeteryDataInput {
-  name: string
-  municipalityId: string
-  description?: string | null
+  name: string;
+  municipalityId: string;
+  description?: string | null;
 }
 
 export function buildCemeteryData(input: CemeteryDataInput): CemeteryData {
@@ -137,5 +142,5 @@ export function buildCemeteryData(input: CemeteryDataInput): CemeteryData {
     municipalityId: input.municipalityId,
     description: input.description ?? null,
     createdAt: new Date(),
-  }
+  };
 }

@@ -53,7 +53,11 @@ export function validateSchemaTransition(
   for (const [key, prevField] of prevByKey.entries()) {
     const nextField = nextByKey.get(key);
     if (!nextField) {
-      const hasAnswers = (usedValuesByKey[key]?.size ?? 0) > 0;
+      // Record/index signature: read once and check for undefined explicitly,
+      // since downstream consumers (e.g. apps/mobile) enable
+      // noUncheckedIndexedAccess and require the narrowing.
+      const used = usedValuesByKey[key] as Set<unknown> | undefined;
+      const hasAnswers = used !== undefined && used.size > 0;
       if (hasAnswers) {
         violations.push({ code: 'field_removed_with_answers', fieldKey: key });
       }

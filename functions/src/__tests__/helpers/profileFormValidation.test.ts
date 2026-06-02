@@ -30,7 +30,7 @@ function code(e: unknown): string | undefined {
 
 describe('ensureValidFieldShape', () => {
   it('accepts a known predefined field', () => {
-    expect(() => ensureValidFieldShape(predefined('barrio'))).not.toThrow();
+    expect(() => { ensureValidFieldShape(predefined('barrio')); }).not.toThrow();
   });
 
   it('rejects predefined fields with unknown keys', () => {
@@ -64,7 +64,7 @@ describe('ensureValidFieldShape', () => {
   });
 
   it('accepts a custom text field', () => {
-    expect(() => ensureValidFieldShape(customField())).not.toThrow();
+    expect(() => { ensureValidFieldShape(customField()); }).not.toThrow();
   });
 
   it('rejects custom keys that violate the slug pattern', () => {
@@ -89,7 +89,7 @@ describe('ensureValidFieldShape', () => {
 
   it('accepts a custom select field with options', () => {
     expect(() =>
-      ensureValidFieldShape(customField({ type: 'select', options: ['a', 'b'] })),
+      { ensureValidFieldShape(customField({ type: 'select', options: ['a', 'b'] })); },
     ).not.toThrow();
   });
 
@@ -108,11 +108,11 @@ describe('validateTransition', () => {
   const noUsage = {} as const;
 
   it('allows an empty → empty transition', () => {
-    expect(() => validateTransition([], [], noUsage)).not.toThrow();
+    expect(() => { validateTransition([], [], noUsage); }).not.toThrow();
   });
 
   it('allows adding a brand new field', () => {
-    expect(() => validateTransition([], [predefined('barrio')], noUsage)).not.toThrow();
+    expect(() => { validateTransition([], [predefined('barrio')], noUsage); }).not.toThrow();
   });
 
   it('rejects duplicate keys in the next form', () => {
@@ -128,7 +128,7 @@ describe('validateTransition', () => {
 
   it('allows removing a field that no member has answered', () => {
     const prev: PrevField[] = [{ source: 'predefined', key: 'barrio' }];
-    expect(() => validateTransition(prev, [], noUsage)).not.toThrow();
+    expect(() => { validateTransition(prev, [], noUsage); }).not.toThrow();
   });
 
   it('rejects removing a field that members have already answered', () => {
@@ -195,6 +195,6 @@ describe('validateTransition', () => {
     const next: ProfileFormField[] = [
       customField({ key: 'occupation', type: 'select', options: ['agri'] }),
     ];
-    expect(() => validateTransition(prev, next, noUsage)).not.toThrow();
+    expect(() => { validateTransition(prev, next, noUsage); }).not.toThrow();
   });
 });

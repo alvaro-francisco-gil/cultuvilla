@@ -1,9 +1,8 @@
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
-const db = admin.firestore();
+const db = getFirestore();
 
 /**
  * Keeps commentCount on a news post in sync with newsComments writes.
@@ -11,6 +10,10 @@ const db = admin.firestore();
  *
  * NOTE: Uses FieldValue.increment(±1) without clamping. Counter drift on
  * partial failures is acceptable per spec; a reconciliation job is deferred.
+ *
+ * Firestore trigger snapshots are NOT converter-wrapped, so before/after
+ * data() returns raw DocumentData — we use narrow casts on the primitive
+ * fields we actually read.
  */
 export const syncNewsCommentCount = onDocumentWritten(
   { document: 'newsComments/{commentId}', region: 'us-central1' },
@@ -23,10 +26,8 @@ export const syncNewsCommentCount = onDocumentWritten(
     const postId = (after?.['postId'] ?? before?.['postId']) as string | undefined;
     if (!postId) return;
 
-    const postRef = db.doc(`news/${postId}`);
-
-    const wasVisible = before ? (before['hidden'] as boolean) === false : false;
-    const isVisible = after ? (after['hidden'] as boolean) === false : false;
+    const wasVisible = before ? !(before['hidden'] as boolean) : false;
+    const isVisible = after ? !(after['hidden'] as boolean) : false;
 
     let delta = 0;
     if (!before && after) {
@@ -43,7 +44,8 @@ export const syncNewsCommentCount = onDocumentWritten(
 
     if (delta === 0) return;
 
-    await postRef.update({ commentCount: FieldValue.increment(delta) });
+    // Raw doc ref: partial update with FieldValue sentinel bypasses converter.
+    await db.doc(`news/${postId}`).update({ commentCount: FieldValue.increment(delta) });
     logger.info('comment count updated', {
       handler: 'syncNewsCommentCount',
       postId,
