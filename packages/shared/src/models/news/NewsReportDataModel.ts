@@ -1,18 +1,24 @@
-export type NewsReportTargetType = 'comment';
-export type NewsReportStatus = 'open' | 'dismissed' | 'actioned';
+import { z } from 'zod';
 
-export interface NewsReportData {
-  targetType: NewsReportTargetType;
-  targetId: string;
-  postId: string;
-  municipalityId: string;
-  reporterUserId: string;
-  reason: string;
-  createdAt: Date;
-  status: NewsReportStatus;
-  resolvedBy: string | null;
-  resolvedAt: Date | null;
-}
+export const NewsReportTargetTypeSchema = z.enum(['comment']);
+export type NewsReportTargetType = z.infer<typeof NewsReportTargetTypeSchema>;
+
+export const NewsReportStatusSchema = z.enum(['open', 'dismissed', 'actioned']);
+export type NewsReportStatus = z.infer<typeof NewsReportStatusSchema>;
+
+export const NewsReportDataSchema = z.object({
+  targetType: NewsReportTargetTypeSchema,
+  targetId: z.string(),
+  postId: z.string(),
+  municipalityId: z.string(),
+  reporterUserId: z.string(),
+  reason: z.string(),
+  createdAt: z.date(),
+  status: NewsReportStatusSchema,
+  resolvedBy: z.string().nullable(),
+  resolvedAt: z.date().nullable(),
+});
+export type NewsReportData = z.infer<typeof NewsReportDataSchema>;
 
 export interface NewsReportDataInput {
   targetType: NewsReportTargetType;
