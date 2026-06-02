@@ -1,10 +1,15 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import {
+  municipalityDoc,
+  municipalityMemberDoc,
+  organizerRequestDoc,
+} from '@cultuvilla/shared/firebase/refs/admin';
+import type { VillageMemberData } from '@cultuvilla/shared';
 import { notifyOrganizerRequestResolved } from './helpers/notifyRequests';
 
-const db = admin.firestore();
+const db = getFirestore();
 
 interface RespondToOrganizerRequestData {
   requestId?: string;
@@ -25,18 +30,19 @@ export const respondToOrganizerRequest = onCall<
     const auth = request.auth;
     if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
-    const { requestId, decision } = request.data ?? {};
+    const { requestId, decision } = request.data;
     if (!requestId || (decision !== 'approved' && decision !== 'rejected')) {
       throw new HttpsError('invalid-argument', 'Argumentos inválidos.');
     }
 
     const callerUid = auth.uid;
+    // admins/ collection has no typed ref yet — existence-only check, raw is fine.
     const adminSnap = await db.doc(`admins/${callerUid}`).get();
     if (!adminSnap.exists) {
       throw new HttpsError('permission-denied', 'Sólo superadmin.');
     }
 
-    const reqRef = db.doc(`organizerRequests/${requestId}`);
+    const reqRef = organizerRequestDoc(db, requestId);
     let requesterUid = '';
     let municipalityId = '';
     let municipalityName = '';
@@ -44,20 +50,25 @@ export const respondToOrganizerRequest = onCall<
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(reqRef);
       if (!snap.exists) throw new HttpsError('not-found', 'Solicitud no encontrada.');
-      if (snap.get('status') !== 'pending') {
+      // Converter-wrapped: typed OrganizerRequestData.
+      const reqData = snap.data();
+      if (reqData?.status !== 'pending') {
         throw new HttpsError('failed-precondition', 'La solicitud ya fue resuelta.');
       }
 
-      requesterUid = snap.get('userId') as string;
-      municipalityId = snap.get('municipalityId') as string;
-      const muniRef = db.doc(`municipalities/${municipalityId}`);
+      requesterUid = reqData.userId;
+      municipalityId = reqData.municipalityId;
+      const muniRef = municipalityDoc(db, municipalityId);
       const muniSnap = await tx.get(muniRef);
       if (!muniSnap.exists) throw new HttpsError('not-found', 'Pueblo no encontrado.');
-      if (decision === 'approved' && muniSnap.get('communityActive') === true) {
+      // Converter-wrapped: typed MunicipalityData.
+      const muniData = muniSnap.data();
+      if (decision === 'approved' && muniData?.communityActive === true) {
         throw new HttpsError('failed-precondition', 'La comunidad ya está activa.');
       }
-      municipalityName = (muniSnap.get('name') as string) ?? municipalityId;
+      municipalityName = muniData?.name ?? municipalityId;
 
+      // tx.update bypasses the converter — FieldValue.serverTimestamp() is fine.
       tx.update(reqRef, {
         status: decision,
         reviewedAt: FieldValue.serverTimestamp(),
@@ -75,13 +86,16 @@ export const respondToOrganizerRequest = onCall<
             activatedAt: FieldValue.serverTimestamp(),
           },
         });
-        tx.set(db.doc(`municipalities/${municipalityId}/members/${requesterUid}`), {
+        // Converter rejects FieldValue sentinels on set; joinedAt is a plain Date.
+        const newMember: VillageMemberData = {
           userId: requesterUid,
           role: 'admin',
-          joinedAt: FieldValue.serverTimestamp(),
+          joinedAt: new Date(),
           profileAnswers: {},
           profileCompletedAt: null,
-        });
+          trustedNewsAuthor: false,
+        };
+        tx.set(municipalityMemberDoc(db, municipalityId, requesterUid), newMember);
       }
     });
 

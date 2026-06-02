@@ -1,10 +1,14 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
+import {
+  municipalityDoc,
+  organizerRequestsCollection,
+} from '@cultuvilla/shared/firebase/refs/admin';
+import type { OrganizerRequestData } from '@cultuvilla/shared';
 import { notifyOrganizerRequestCreated } from './helpers/notifyRequests';
 
-const db = admin.firestore();
+const db = getFirestore();
 
 interface RequestOrganizeVillageData {
   municipalityId?: string;
@@ -26,20 +30,22 @@ export const requestOrganizeVillage = onCall<
     const auth = request.auth;
     if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
-    const { municipalityId, motivation } = request.data ?? {};
+    const { municipalityId, motivation } = request.data;
     if (!municipalityId) {
       throw new HttpsError('invalid-argument', 'municipalityId requerido.');
     }
 
     const uid = auth.uid;
-    const muniSnap = await db.doc(`municipalities/${municipalityId}`).get();
+    const muniSnap = await municipalityDoc(db, municipalityId).get();
     if (!muniSnap.exists) throw new HttpsError('not-found', 'Pueblo no encontrado.');
-    if (muniSnap.get('communityActive') === true) {
+    // Converter-wrapped: typed MunicipalityData.
+    const muniData = muniSnap.data();
+    if (muniData?.communityActive === true) {
       throw new HttpsError('failed-precondition', 'La comunidad ya está activa.');
     }
 
-    const dup = await db
-      .collection('organizerRequests')
+    const reqsCol = organizerRequestsCollection(db);
+    const dup = await reqsCol
       .where('userId', '==', uid)
       .where('municipalityId', '==', municipalityId)
       .where('status', '==', 'pending')
@@ -49,18 +55,21 @@ export const requestOrganizeVillage = onCall<
       throw new HttpsError('already-exists', 'Ya tienes una solicitud pendiente para este pueblo.');
     }
 
-    const ref = db.collection('organizerRequests').doc();
-    await ref.set({
+    const ref = reqsCol.doc();
+    // Converter rejects FieldValue sentinels on set; requestedAt is a plain Date
+    // (the admin SDK persists it as a Timestamp via the converter's toFirestore).
+    const newRequest: OrganizerRequestData = {
       userId: uid,
       municipalityId,
-      requestedAt: FieldValue.serverTimestamp(),
+      requestedAt: new Date(),
       status: 'pending',
       motivation: motivation ?? null,
       reviewedAt: null,
       reviewedBy: null,
-    });
+    };
+    await ref.set(newRequest);
 
-    const municipalityName = (muniSnap.get('name') as string) ?? municipalityId;
+    const municipalityName = muniData?.name ?? municipalityId;
     await notifyOrganizerRequestCreated({
       municipalityId,
       municipalityName,
