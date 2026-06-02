@@ -18,6 +18,8 @@ import { newsPostConverterClient } from '../converters/newsPostConverter';
 import { newsCommentConverterClient } from '../converters/newsCommentConverter';
 import { newsReactionConverterClient } from '../converters/newsReactionConverter';
 import { newsReportConverterClient } from '../converters/newsReportConverter';
+import { occupationConverterClient } from '../converters/occupationConverter';
+import { occupationProposalConverterClient } from '../converters/occupationProposalConverter';
 
 export const eventsCollection = (db: Firestore) =>
   collection(db, 'events').withConverter(eventConverterClient);
@@ -138,3 +140,17 @@ export const newsReportsCollection = (db: Firestore) =>
 
 export const newsReportDoc = (db: Firestore, reportId: string) =>
   doc(db, 'newsReports', reportId).withConverter(newsReportConverterClient);
+
+// ── Occupation domain (top-level collections) ────────────────────────────
+
+export const occupationsCollection = (db: Firestore) =>
+  collection(db, 'occupations').withConverter(occupationConverterClient);
+
+export const occupationDoc = (db: Firestore, occupationId: string) =>
+  doc(db, 'occupations', occupationId).withConverter(occupationConverterClient);
+
+export const occupationProposalsCollection = (db: Firestore) =>
+  collection(db, 'occupationProposals').withConverter(occupationProposalConverterClient);
+
+export const occupationProposalDoc = (db: Firestore, proposalId: string) =>
+  doc(db, 'occupationProposals', proposalId).withConverter(occupationProposalConverterClient);
