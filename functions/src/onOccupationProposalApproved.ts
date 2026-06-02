@@ -2,6 +2,7 @@ import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { personsCollection } from '@cultuvilla/shared/firebase/refs/admin';
 
 const db = admin.firestore();
 
@@ -38,7 +39,7 @@ export const onOccupationProposalApproved = onDocumentUpdated(
       return;
     }
 
-    const snap = await db.collection('persons')
+    const snap = await personsCollection(db)
       .where('pendingOccupations', 'array-contains', name)
       .get();
 

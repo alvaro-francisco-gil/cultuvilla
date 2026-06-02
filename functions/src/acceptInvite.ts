@@ -4,7 +4,9 @@ import {
   municipalityDoc,
   municipalityInviteTokenDoc,
   municipalityMemberDoc,
+  personsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
+import { buildPersonData } from '@cultuvilla/shared';
 import type { VillageMemberData } from '@cultuvilla/shared';
 
 const db = getFirestore();
@@ -44,9 +46,8 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
     const municipalityRef = municipalityDoc(db, municipalityId);
     const tokenRef = municipalityInviteTokenDoc(db, municipalityId, tokenId);
     const memberRef = municipalityMemberDoc(db, municipalityId, userId);
-    // users/ and persons/ collections are not yet migrated to typed refs, so
-    // they stay on the raw db.doc() path. Touch points to revisit once those
-    // schemas land.
+    // users/ collection is not yet migrated to typed refs, so it stays on the
+    // raw db.doc() path. Touch point to revisit once the user schema lands.
     const userRef = db.doc(`users/${userId}`);
 
     return db.runTransaction(async (tx) => {
@@ -96,27 +97,18 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
           activeMunicipalityId: municipalityId,
           createdAt: FieldValue.serverTimestamp(),
         });
-        const personRef = db.collection('persons').doc();
-        await personRef.set({
-          givenName: profile.displayName.split(' ')[0],
-          middleNames: [],
-          firstSurname: null,
-          secondSurname: null,
-          nickname: null,
-          sex: null,
-          birthday: null,
-          deathDate: null,
-          birthPlace: null,
-          burialPlace: null,
-          municipalityLinks: [],
-          occupationIds: [],
-          pendingOccupations: [],
-          biography: null,
-          photoURL: profile.photoURL ?? null,
-          userId: userId,
-          createdBy: userId,
-          createdAt: FieldValue.serverTimestamp(),
-        });
+        // Converter-wrapped ref: createdAt must be a plain Date (rejected if
+        // we pass FieldValue.serverTimestamp). The converter marshals it to a
+        // Firestore Timestamp on write.
+        const personRef = personsCollection(db).doc();
+        await personRef.set(
+          buildPersonData({
+            givenName: profile.displayName.split(' ')[0] ?? profile.displayName,
+            photoURL: profile.photoURL ?? null,
+            userId,
+            createdBy: userId,
+          }),
+        );
         await db.collection('users').doc(userId).update({ personId: personRef.id });
         profileCreated = true;
       } else {

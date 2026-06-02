@@ -17,6 +17,7 @@ export default tseslint.config(
       'src/updateCenso.ts',
       'src/requestOrganizeVillage.ts',
       'src/respondToOrganizerRequest.ts',
+      'src/onOccupationProposalApproved.ts',
     ],
     extends: [
       ...tseslint.configs.recommendedTypeChecked,
