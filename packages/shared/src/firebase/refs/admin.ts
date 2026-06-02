@@ -11,6 +11,7 @@ import { joinRequestConverterAdmin } from '../converters/joinRequestConverter';
 import { organizationConverterAdmin } from '../converters/organizationConverter';
 import { orgMemberConverterAdmin } from '../converters/orgMemberConverter';
 import { organizerRequestConverterAdmin } from '../converters/organizerRequestConverter';
+import { personConverterAdmin } from '../converters/personConverter';
 
 export const eventsCollection = (db: Firestore) =>
   db.collection('events').withConverter(eventConverterAdmin);
@@ -83,3 +84,11 @@ export const organizerRequestsCollection = (db: Firestore) =>
 
 export const organizerRequestDoc = (db: Firestore, requestId: string) =>
   db.collection('organizerRequests').doc(requestId).withConverter(organizerRequestConverterAdmin);
+
+// ── Person domain ────────────────────────────────────────────────────────
+
+export const personsCollection = (db: Firestore) =>
+  db.collection('persons').withConverter(personConverterAdmin);
+
+export const personDoc = (db: Firestore, personId: string) =>
+  db.collection('persons').doc(personId).withConverter(personConverterAdmin);
