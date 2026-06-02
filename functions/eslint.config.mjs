@@ -18,6 +18,7 @@ export default tseslint.config(
       'src/requestOrganizeVillage.ts',
       'src/respondToOrganizerRequest.ts',
       'src/onOccupationProposalApproved.ts',
+      'src/helpers/notifyRequests.ts',
     ],
     extends: [
       ...tseslint.configs.recommendedTypeChecked,

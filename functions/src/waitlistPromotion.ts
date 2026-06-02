@@ -1,10 +1,12 @@
 import { onDocumentDeleted } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions/v2';
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
 import {
   eventDoc,
   eventRegistrationsCollection,
+  userNotificationsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
+import { buildNotificationData } from '@cultuvilla/shared';
 
 const db = getFirestore();
 
@@ -48,15 +50,17 @@ export const onRegistrationDeleted = onDocumentDeleted(
         await nextInLine.ref.update({ status: 'confirmed' });
         promoted = true;
 
-        await db.collection(`users/${nextData.userId}/notifications`).add({
-          type: 'waitlist_promoted',
-          title: '¡Plaza confirmada!',
-          body: `Se ha liberado una plaza en "${eventData.title}" para ${nextData.name}`,
-          eventId,
-          municipalityId: eventData.municipalityId,
-          read: false,
-          createdAt: FieldValue.serverTimestamp(),
-        });
+        // Typed converter ref — .add() marshals through the schema, so
+        // createdAt is a plain Date (sentinels would be rejected).
+        await userNotificationsCollection(db, nextData.userId).add(
+          buildNotificationData({
+            type: 'waitlist_promoted',
+            title: '¡Plaza confirmada!',
+            body: `Se ha liberado una plaza en "${eventData.title}" para ${nextData.name}`,
+            eventId,
+            municipalityId: eventData.municipalityId,
+          }),
+        );
       }
     }
 

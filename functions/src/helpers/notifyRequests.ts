@@ -4,6 +4,8 @@
 // after its transaction commits.
 
 import * as admin from 'firebase-admin';
+import { userNotificationsCollection } from '@cultuvilla/shared/firebase/refs/admin';
+import { buildNotificationData } from '@cultuvilla/shared';
 
 const db = admin.firestore();
 
@@ -19,16 +21,19 @@ export async function notifyJoinRequestCreated(input: NotifyJoinRequestCreatedIn
   if (ids.size === 0) return;
   const batch = db.batch();
   for (const userId of ids) {
-    const ref = db.collection(`users/${userId}/notifications`).doc();
-    batch.set(ref, {
-      type: 'join_request_created',
-      title: 'Nueva solicitud para unirse',
-      body: `Hay una nueva solicitud para unirse a ${input.municipalityName}`,
-      municipalityId: input.municipalityId,
-      requesterUid: input.requesterUid,
-      read: false,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    // Typed converter ref — batch.set marshals through the schema, so
+    // createdAt is a plain Date (sentinels would be rejected).
+    const ref = userNotificationsCollection(db, userId).doc();
+    batch.set(
+      ref,
+      buildNotificationData({
+        type: 'join_request_created',
+        title: 'Nueva solicitud para unirse',
+        body: `Hay una nueva solicitud para unirse a ${input.municipalityName}`,
+        municipalityId: input.municipalityId,
+        requesterUid: input.requesterUid,
+      }),
+    );
   }
   await batch.commit();
 }
@@ -41,18 +46,18 @@ interface NotifyJoinRequestResolvedInput {
 }
 
 export async function notifyJoinRequestResolved(input: NotifyJoinRequestResolvedInput): Promise<void> {
-  const ref = db.collection(`users/${input.requesterUid}/notifications`).doc();
   const approved = input.decision === 'approved';
-  await ref.set({
-    type: approved ? 'join_request_approved' : 'join_request_rejected',
-    title: approved ? 'Solicitud aprobada' : 'Solicitud rechazada',
-    body: approved
-      ? `Tu solicitud para unirte a ${input.municipalityName} fue aprobada.`
-      : `Tu solicitud para unirte a ${input.municipalityName} fue rechazada.`,
-    municipalityId: input.municipalityId,
-    read: false,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
+  const ref = userNotificationsCollection(db, input.requesterUid).doc();
+  await ref.set(
+    buildNotificationData({
+      type: approved ? 'join_request_approved' : 'join_request_rejected',
+      title: approved ? 'Solicitud aprobada' : 'Solicitud rechazada',
+      body: approved
+        ? `Tu solicitud para unirte a ${input.municipalityName} fue aprobada.`
+        : `Tu solicitud para unirte a ${input.municipalityName} fue rechazada.`,
+      municipalityId: input.municipalityId,
+    }),
+  );
 }
 
 interface NotifyOrganizerRequestCreatedInput {
@@ -68,16 +73,17 @@ export async function notifyOrganizerRequestCreated(
   if (admins.empty) return;
   const batch = db.batch();
   for (const a of admins.docs) {
-    const ref = db.collection(`users/${a.id}/notifications`).doc();
-    batch.set(ref, {
-      type: 'organizer_request_created',
-      title: 'Nueva solicitud de organizador',
-      body: `${input.requesterUid} quiere organizar ${input.municipalityName}`,
-      municipalityId: input.municipalityId,
-      requesterUid: input.requesterUid,
-      read: false,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    const ref = userNotificationsCollection(db, a.id).doc();
+    batch.set(
+      ref,
+      buildNotificationData({
+        type: 'organizer_request_created',
+        title: 'Nueva solicitud de organizador',
+        body: `${input.requesterUid} quiere organizar ${input.municipalityName}`,
+        municipalityId: input.municipalityId,
+        requesterUid: input.requesterUid,
+      }),
+    );
   }
   await batch.commit();
 }
@@ -93,17 +99,17 @@ export async function notifyOrganizerRequestResolved(
   input: NotifyOrganizerRequestResolvedInput,
 ): Promise<void> {
   const approved = input.decision === 'approved';
-  const ref = db.collection(`users/${input.requesterUid}/notifications`).doc();
-  await ref.set({
-    type: approved ? 'organizer_request_approved' : 'organizer_request_rejected',
-    title: approved ? 'Solicitud aprobada' : 'Solicitud rechazada',
-    body: approved
-      ? `Tu solicitud para organizar ${input.municipalityName} fue aprobada.`
-      : `Tu solicitud para organizar ${input.municipalityName} fue rechazada.`,
-    municipalityId: input.municipalityId,
-    read: false,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
+  const ref = userNotificationsCollection(db, input.requesterUid).doc();
+  await ref.set(
+    buildNotificationData({
+      type: approved ? 'organizer_request_approved' : 'organizer_request_rejected',
+      title: approved ? 'Solicitud aprobada' : 'Solicitud rechazada',
+      body: approved
+        ? `Tu solicitud para organizar ${input.municipalityName} fue aprobada.`
+        : `Tu solicitud para organizar ${input.municipalityName} fue rechazada.`,
+      municipalityId: input.municipalityId,
+    }),
+  );
 }
 
 interface ListVillageAdminRecipientsInput {
@@ -125,7 +131,8 @@ export async function listVillageAdminRecipients(
     membersRef.where('role', '==', 'admin').get(),
   ]);
   const recipients = new Set<string>();
-  const communityAdmin = muniSnap.get('community.adminUserId');
+  // muniRef is untyped (raw db.doc), so .get() returns `unknown` field values.
+  const communityAdmin: unknown = muniSnap.get('community.adminUserId');
   if (typeof communityAdmin === 'string' && communityAdmin) recipients.add(communityAdmin);
   for (const d of membersSnap.docs) recipients.add(d.id);
   if (input.excludeUid) recipients.delete(input.excludeUid);

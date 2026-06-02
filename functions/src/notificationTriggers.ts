@@ -1,6 +1,10 @@
 import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
-import { eventRegistrationsCollection } from '@cultuvilla/shared/firebase/refs/admin';
+import { getFirestore } from 'firebase-admin/firestore';
+import {
+  eventRegistrationsCollection,
+  userNotificationsCollection,
+} from '@cultuvilla/shared/firebase/refs/admin';
+import { buildNotificationData } from '@cultuvilla/shared';
 
 const db = getFirestore();
 
@@ -34,16 +38,20 @@ export const onEventUpdated = onDocumentUpdated(
       const userIds = new Set(regs.docs.map((r) => r.data().userId));
       const batch = db.batch();
       for (const userId of userIds) {
-        const ref = db.collection(`users/${userId}/notifications`).doc();
-        batch.set(ref, {
-          type: 'event_cancelled',
-          title: 'Evento cancelado',
-          body: `El evento "${afterTitle ?? ''}" ha sido cancelado`,
-          eventId,
-          municipalityId,
-          read: false,
-          createdAt: FieldValue.serverTimestamp(),
-        });
+        // Typed converter ref — batch.set marshals through the schema, so
+        // createdAt is a plain Date (FieldValue.serverTimestamp would be
+        // rejected by the schema).
+        const ref = userNotificationsCollection(db, userId).doc();
+        batch.set(
+          ref,
+          buildNotificationData({
+            type: 'event_cancelled',
+            title: 'Evento cancelado',
+            body: `El evento "${afterTitle ?? ''}" ha sido cancelado`,
+            eventId,
+            municipalityId,
+          }),
+        );
       }
       await batch.commit();
     }
@@ -62,16 +70,17 @@ export const onEventUpdated = onDocumentUpdated(
       const userIds = new Set(regs.docs.map((r) => r.data().userId));
       const batch = db.batch();
       for (const userId of userIds) {
-        const ref = db.collection(`users/${userId}/notifications`).doc();
-        batch.set(ref, {
-          type: 'event_updated',
-          title: 'Evento actualizado',
-          body: `El evento "${afterTitle ?? ''}" ha sido actualizado`,
-          eventId,
-          municipalityId,
-          read: false,
-          createdAt: FieldValue.serverTimestamp(),
-        });
+        const ref = userNotificationsCollection(db, userId).doc();
+        batch.set(
+          ref,
+          buildNotificationData({
+            type: 'event_updated',
+            title: 'Evento actualizado',
+            body: `El evento "${afterTitle ?? ''}" ha sido actualizado`,
+            eventId,
+            municipalityId,
+          }),
+        );
       }
       await batch.commit();
     }

@@ -1,13 +1,14 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import {
   municipalityDoc,
   municipalityInviteTokenDoc,
   municipalityMemberDoc,
   personsCollection,
+  userDoc,
 } from '@cultuvilla/shared/firebase/refs/admin';
-import { buildPersonData } from '@cultuvilla/shared';
-import type { VillageMemberData } from '@cultuvilla/shared';
+import { buildPersonData, buildUserData } from '@cultuvilla/shared';
+import type { VillageMemberData, PartialDate } from '@cultuvilla/shared';
 
 const db = getFirestore();
 
@@ -46,9 +47,7 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
     const municipalityRef = municipalityDoc(db, municipalityId);
     const tokenRef = municipalityInviteTokenDoc(db, municipalityId, tokenId);
     const memberRef = municipalityMemberDoc(db, municipalityId, userId);
-    // users/ collection is not yet migrated to typed refs, so it stays on the
-    // raw db.doc() path. Touch point to revisit once the user schema lands.
-    const userRef = db.doc(`users/${userId}`);
+    const userRef = userDoc(db, userId);
 
     return db.runTransaction(async (tx) => {
       const [municipalitySnap, tokenSnap, memberSnap, userSnap] = await Promise.all([
@@ -83,23 +82,32 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
         if (!profile.displayName.trim() || !profile.email || !profile.birthday) {
           throw new HttpsError('invalid-argument', 'Perfil incompleto.');
         }
-        const birthday = new Date(profile.birthday);
-        if (Number.isNaN(birthday.getTime())) {
+        const birthdayDate = new Date(profile.birthday);
+        if (Number.isNaN(birthdayDate.getTime())) {
           throw new HttpsError('invalid-argument', 'Fecha de nacimiento inválida.');
         }
-        tx.set(userRef, {
-          displayName: profile.displayName.trim(),
-          email: profile.email,
-          birthday: Timestamp.fromDate(birthday),
-          biography: null,
-          telephone: null,
-          photoURL: profile.photoURL ?? null,
-          activeMunicipalityId: municipalityId,
-          createdAt: FieldValue.serverTimestamp(),
-        });
-        // Converter-wrapped ref: createdAt must be a plain Date (rejected if
-        // we pass FieldValue.serverTimestamp). The converter marshals it to a
-        // Firestore Timestamp on write.
+        // PartialDate aligns with how Person stores birthday — same field name,
+        // same shape — so the User and Person docs agree on the format.
+        const birthday: PartialDate = {
+          year: birthdayDate.getFullYear(),
+          month: birthdayDate.getMonth() + 1,
+          day: birthdayDate.getDate(),
+        };
+        // Converter-wrapped ref: createdAt must be a plain Date (sentinels
+        // are rejected by the schema). buildUserData defaults createdAt to
+        // new Date(), which the converter marshals to a Firestore Timestamp.
+        tx.set(
+          userRef,
+          buildUserData({
+            displayName: profile.displayName.trim(),
+            email: profile.email,
+            birthday,
+            biography: null,
+            telephone: null,
+            photoURL: profile.photoURL ?? null,
+            activeMunicipalityId: municipalityId,
+          }),
+        );
         const personRef = personsCollection(db).doc();
         await personRef.set(
           buildPersonData({
@@ -109,10 +117,15 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
             createdBy: userId,
           }),
         );
+        // tx.update bypasses the converter so a partial { personId } update
+        // is fine — but personRef was created outside the tx, so use a
+        // post-tx update via the raw doc ref.
         await db.collection('users').doc(userId).update({ personId: personRef.id });
         profileCreated = true;
       } else {
-        tx.set(userRef, { activeMunicipalityId: municipalityId }, { merge: true });
+        // merge:true requires a partial doc; converter rejects partial sets,
+        // so use the raw doc ref via untyped update for this branch.
+        tx.update(db.doc(`users/${userId}`), { activeMunicipalityId: municipalityId });
       }
 
       if (memberSnap.exists) {
