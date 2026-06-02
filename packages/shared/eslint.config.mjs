@@ -3,28 +3,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    files: [
-      'src/firebase/**/*.ts',
-      'src/models/**/*.ts',
-      'src/services/eventService.ts',
-      'src/services/feedService.ts',
-      'src/services/registrationService.ts',
-      'src/services/municipalityService.ts',
-      'src/services/inviteTokenService.ts',
-      'src/services/joinRequestService.ts',
-      'src/services/villageMemberService.ts',
-      'src/services/organizationService.ts',
-      'src/services/orgMemberService.ts',
-      'src/services/organizerRequestService.ts',
-      'src/services/personService.ts',
-      'src/services/userService.ts',
-      'src/services/notificationService.ts',
-      'src/services/newsService.ts',
-      'src/services/occupationService.ts',
-      'test/firebase/**/*.ts',
-      'test/services/feedHaversine.test.ts',
-      'test/services/feedDistance.test.ts',
-    ],
+    files: ['src/**/*.ts', 'test/**/*.ts'],
     extends: [
       ...tseslint.configs.recommendedTypeChecked,
       ...tseslint.configs.strictTypeChecked,
