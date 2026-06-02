@@ -19,6 +19,7 @@ export default tseslint.config(
       'src/services/personService.ts',
       'src/services/userService.ts',
       'src/services/notificationService.ts',
+      'src/services/newsService.ts',
       'test/firebase/**/*.ts',
       'test/services/feedHaversine.test.ts',
       'test/services/feedDistance.test.ts',

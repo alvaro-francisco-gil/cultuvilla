@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ─── Firebase mocks ────────────────────────────────────────────────────────────
 // We build a tiny in-memory Firestore so that the service functions can be
-// exercised without a real Firebase project or emulator.
+// exercised without a real Firebase project or emulator. The typed refs in
+// src/firebase/refs/client call .withConverter() on every collection/doc — our
+// mock returns objects with .withConverter that is a no-op so the refs are
+// structurally compatible with the rest of the mocked API.
 
 vi.mock('../../src/firebase', () => ({ getDb: () => ({}) }));
 
@@ -16,12 +19,23 @@ function nextId() {
 
 function makeFakeDocRef(colId: string, docId: string) {
   const fullId = `${colId}/${docId}`;
-  return {
+  const ref: Record<string, unknown> = {
     id: docId,
     _col: colId,
     _id: fullId,
     get: (field: string) => (store[fullId] ?? {})[field],
   };
+  ref['withConverter'] = () => ref;
+  return ref as ReturnType<typeof _shape>;
+}
+function _shape(): { id: string; _col: string; _id: string; get: (f: string) => unknown; withConverter: () => unknown } {
+  throw new Error('shape only');
+}
+
+function makeFakeCollRef(colId: string) {
+  const ref: Record<string, unknown> = { _col: colId };
+  ref['withConverter'] = () => ref;
+  return ref as { _col: string; withConverter: () => unknown };
 }
 
 function makeDocSnap(colId: string, docId: string) {
@@ -42,27 +56,30 @@ vi.mock('firebase/firestore', () => {
   };
 
   function collection(_db: unknown, colId: string) {
-    return { _col: colId };
+    return makeFakeCollRef(colId);
   }
 
-  function doc(colOrRef: { _col: string } | string, ...rest: string[]) {
-    // Called as doc(collection(db, col)) — one arg
+  function doc(colOrRef: { _col: string } | unknown, ...rest: string[]) {
+    // doc(collection(...)) — one arg, auto id
     if (rest.length === 0) {
       const colId = (colOrRef as { _col: string })._col;
-      const id = nextId();
-      return makeFakeDocRef(colId, id);
+      return makeFakeDocRef(colId, nextId());
     }
-    // Called as doc(collection(db, col), id) or doc(collection, id)
+    // doc(db, 'col', id) — three args (path style)
+    if (rest.length === 2 && typeof rest[0] === 'string' && typeof rest[1] === 'string') {
+      return makeFakeDocRef(rest[0], rest[1]);
+    }
+    // doc(collection(...), id) — two args
     const colId = (colOrRef as { _col: string })._col;
     const id = rest[0];
     return makeFakeDocRef(colId, id);
   }
 
-  async function getDoc(ref: ReturnType<typeof makeFakeDocRef>) {
+  async function getDoc(ref: { _col: string; id: string }) {
     return makeDocSnap(ref._col, ref.id);
   }
 
-  async function setDoc(ref: ReturnType<typeof makeFakeDocRef>, data: FakeDoc) {
+  async function setDoc(ref: { _id: string }, data: FakeDoc) {
     // Resolve server timestamps
     const resolved: FakeDoc = {};
     for (const [k, v] of Object.entries(data)) {
@@ -79,7 +96,7 @@ vi.mock('firebase/firestore', () => {
     store[ref._id] = resolved;
   }
 
-  async function updateDoc(ref: ReturnType<typeof makeFakeDocRef>, patch: FakeDoc) {
+  async function updateDoc(ref: { _id: string }, patch: FakeDoc) {
     const existing = store[ref._id] ?? {};
     const resolved: FakeDoc = {};
     for (const [k, v] of Object.entries(patch)) {
@@ -96,7 +113,7 @@ vi.mock('firebase/firestore', () => {
     store[ref._id] = { ...existing, ...resolved };
   }
 
-  async function deleteDoc(ref: ReturnType<typeof makeFakeDocRef>) {
+  async function deleteDoc(ref: { _id: string }) {
     delete store[ref._id];
   }
 
@@ -129,7 +146,6 @@ vi.mock('firebase/firestore', () => {
         return { id: docId, data: () => data };
       });
 
-    // Apply where filters
     for (const c of q._constraints) {
       const constraint = c as Record<string, unknown>;
       if (constraint['_type'] === 'where') {
@@ -164,7 +180,7 @@ vi.mock('firebase/firestore', () => {
     getDocs,
     where,
     orderBy,
-    limit: limit,
+    limit,
     startAfter,
     serverTimestamp,
     Timestamp,
@@ -217,6 +233,8 @@ describe('newsService — Task 4: CRUD', () => {
     expect(snap!['authorUserId']).toBe('u1');
     expect(snap!['createdBy']).toBe('u1');
     expect(snap!['images']).toEqual([]);
+    expect(snap!['submittedAt']).toBeInstanceOf(Date);
+    expect(snap!['updatedAt']).toBeInstanceOf(Date);
   });
 
   it('createNewsPost passes authorOrgId when provided', async () => {
@@ -410,7 +428,7 @@ describe('newsService — Task 7: Feed queries', () => {
   async function seedApprovedPost(municipalityId: string, title: string) {
     const id = await createNewsPost({ municipalityId, authorUserId: 'u1', title, body: 'B', category: 'fiesta' });
     store[`news/${id}`]!['status'] = 'approved';
-    store[`news/${id}`]!['publishedAt'] = { toDate: () => new Date(2024, 1, 1), _isTimestamp: true };
+    store[`news/${id}`]!['publishedAt'] = new Date(2024, 1, 1);
     return id;
   }
 
