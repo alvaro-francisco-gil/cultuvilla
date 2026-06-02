@@ -1,3 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument,
+                  @typescript-eslint/no-unsafe-assignment,
+                  @typescript-eslint/no-extraneous-class,
+                  @typescript-eslint/require-await */
+// vi.mock factories legitimately fake the firebase/firestore SDK shape;
+// the rule family doesn't add value for these inline mocks.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../src/firebase', () => ({ getDb: vi.fn() }));

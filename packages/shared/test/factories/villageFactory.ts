@@ -17,7 +17,7 @@ export function makeMunicipality(
 ): MunicipalityData {
   const n = nextId();
   const base = buildMunicipalityData({
-    name: `Test Municipality ${n}`,
+    name: `Test Municipality ${String(n)}`,
     province: 'Salamanca',
     comunidadAutonoma: 'Castilla y León',
     codigoINE: `99${String(n).padStart(3, '0')}`,

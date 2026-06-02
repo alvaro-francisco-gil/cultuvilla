@@ -4,7 +4,6 @@ import {
   buildEventData,
   isEventFull,
   isEventSignupOpen,
-  type EventData,
 } from '../../../src/models/event/EventDataModel';
 
 const validEvent = {
@@ -39,7 +38,7 @@ describe('EventDataSchema', () => {
   });
 
   it('rejects a missing required field', () => {
-    const { title, ...rest } = validEvent;
+    const { title: _title, ...rest } = validEvent;
     expect(() => EventDataSchema.parse(rest)).toThrow();
   });
 
@@ -79,7 +78,7 @@ describe('isEventFull', () => {
     municipalityId: 'm', municipalityName: 'M',
     municipalityCoverImage: null,
     municipalityCoordinates: { lat: 1, lng: 2 },
-  }) as EventData;
+  });
 
   it('returns false when maxAttendees is null', () => {
     expect(isEventFull(base, 999)).toBe(false);
@@ -107,7 +106,7 @@ describe('isEventSignupOpen', () => {
     municipalityId: 'm', municipalityName: 'M',
     municipalityCoverImage: null,
     municipalityCoordinates: { lat: 1, lng: 2 },
-  }) as EventData;
+  });
 
   it('returns true only for status published', () => {
     expect(isEventSignupOpen({ ...base, status: 'published' })).toBe(true);

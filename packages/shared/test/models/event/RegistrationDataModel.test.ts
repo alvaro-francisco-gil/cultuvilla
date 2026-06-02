@@ -25,7 +25,7 @@ describe('RegistrationDataSchema', () => {
   });
 
   it('rejects a missing required field', () => {
-    const { name, ...rest } = validRegistration;
+    const { name: _name, ...rest } = validRegistration;
     expect(() => RegistrationDataSchema.parse(rest)).toThrow();
   });
 

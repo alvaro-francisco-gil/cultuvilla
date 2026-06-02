@@ -26,7 +26,7 @@ describe('OrganizerRequestDataSchema', () => {
   });
 
   it('rejects a missing municipalityId', () => {
-    const { municipalityId, ...rest } = validRequest;
+    const { municipalityId: _municipalityId, ...rest } = validRequest;
     expect(() => OrganizerRequestDataSchema.parse(rest)).toThrow();
   });
 });

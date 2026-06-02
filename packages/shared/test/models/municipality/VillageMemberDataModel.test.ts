@@ -25,7 +25,7 @@ describe('VillageMemberDataSchema', () => {
   });
 
   it('rejects missing trustedNewsAuthor', () => {
-    const { trustedNewsAuthor, ...rest } = validMember;
+    const { trustedNewsAuthor: _trustedNewsAuthor, ...rest } = validMember;
     expect(() => VillageMemberDataSchema.parse(rest)).toThrow();
   });
 });

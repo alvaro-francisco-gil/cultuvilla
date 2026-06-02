@@ -25,7 +25,7 @@ describe('JoinRequestDataSchema', () => {
   });
 
   it('rejects a missing userId', () => {
-    const { userId, ...rest } = validRequest;
+    const { userId: _userId, ...rest } = validRequest;
     expect(() => JoinRequestDataSchema.parse(rest)).toThrow();
   });
 });

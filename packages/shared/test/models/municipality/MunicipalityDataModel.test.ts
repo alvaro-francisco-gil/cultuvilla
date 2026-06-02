@@ -47,7 +47,7 @@ describe('MunicipalityDataSchema', () => {
   });
 
   it('rejects a missing required field', () => {
-    const { name, ...rest } = validMunicipality;
+    const { name: _name, ...rest } = validMunicipality;
     expect(() => MunicipalityDataSchema.parse(rest)).toThrow();
   });
 

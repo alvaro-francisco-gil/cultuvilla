@@ -22,7 +22,7 @@ describe('OrganizationDataSchema', () => {
   });
 
   it('rejects a missing required field', () => {
-    const { name, ...rest } = validOrg;
+    const { name: _name, ...rest } = validOrg;
     expect(() => OrganizationDataSchema.parse(rest)).toThrow();
   });
 

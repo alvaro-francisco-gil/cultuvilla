@@ -56,7 +56,9 @@ describe('municipality roundtrip (emulator)', () => {
       const ref = await addDoc(collection(db, 'municipalities'), municipality);
 
       const snap = await getDoc(doc(db, 'municipalities', ref.id));
-      const data = snap.data();
+      const data = snap.data() as
+        | { communityActive?: boolean; community?: { adminUserId?: string } }
+        | undefined;
       expect(data?.communityActive).toBe(true);
       expect(data?.community?.adminUserId).toBe('test-admin');
     });

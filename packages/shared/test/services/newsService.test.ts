@@ -1,3 +1,12 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion,
+                  @typescript-eslint/no-unnecessary-condition,
+                  @typescript-eslint/no-redundant-type-constituents,
+                  @typescript-eslint/no-dynamic-delete,
+                  @typescript-eslint/require-await,
+                  @typescript-eslint/restrict-template-expressions */
+// This file is a vi.mock-driven in-memory Firestore fake. Strict type-aware
+// rules around mock SDK shapes and non-null assertions on test fixtures add
+// noise without catching real bugs; the test logic is what matters.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ─── Firebase mocks ────────────────────────────────────────────────────────────
@@ -224,17 +233,17 @@ describe('newsService — Task 4: CRUD', () => {
     expect(id).toBeTruthy();
     const snap = store[`news/${id}`];
     expect(snap).toBeDefined();
-    expect(snap!['status']).toBe('pending');
-    expect(snap!['publishedAt']).toBeNull();
-    expect(snap!['authorOrgId']).toBeNull();
-    expect(snap!['reactionCounts']).toEqual({ like: 0, heart: 0 });
-    expect(snap!['commentCount']).toBe(0);
-    expect(snap!['municipalityId']).toBe('m1');
-    expect(snap!['authorUserId']).toBe('u1');
-    expect(snap!['createdBy']).toBe('u1');
-    expect(snap!['images']).toEqual([]);
-    expect(snap!['submittedAt']).toBeInstanceOf(Date);
-    expect(snap!['updatedAt']).toBeInstanceOf(Date);
+    expect(snap['status']).toBe('pending');
+    expect(snap['publishedAt']).toBeNull();
+    expect(snap['authorOrgId']).toBeNull();
+    expect(snap['reactionCounts']).toEqual({ like: 0, heart: 0 });
+    expect(snap['commentCount']).toBe(0);
+    expect(snap['municipalityId']).toBe('m1');
+    expect(snap['authorUserId']).toBe('u1');
+    expect(snap['createdBy']).toBe('u1');
+    expect(snap['images']).toEqual([]);
+    expect(snap['submittedAt']).toBeInstanceOf(Date);
+    expect(snap['updatedAt']).toBeInstanceOf(Date);
   });
 
   it('createNewsPost passes authorOrgId when provided', async () => {
@@ -246,7 +255,7 @@ describe('newsService — Task 4: CRUD', () => {
       body: 'B',
       category: 'otro',
     });
-    expect(store[`news/${id}`]!['authorOrgId']).toBe('org1');
+    expect(store[`news/${id}`]['authorOrgId']).toBe('org1');
   });
 
   it('getNewsPost returns mapped doc', async () => {
@@ -275,33 +284,33 @@ describe('newsService — Task 4: CRUD', () => {
 
     const posts = await getNewsPostsByMunicipality('m1');
     expect(posts.length).toBe(1);
-    expect(posts[0]!.municipalityId).toBe('m1');
+    expect(posts[0].municipalityId).toBe('m1');
   });
 
   it('getNewsPostsByMunicipality filters by status', async () => {
     const id = await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'A', body: 'B', category: 'fiesta' });
     // Manually set status to approved
-    store[`news/${id}`]!['status'] = 'approved';
+    store[`news/${id}`]['status'] = 'approved';
 
     await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'B', body: 'C', category: 'fiesta' });
 
     const approved = await getNewsPostsByMunicipality('m1', { status: 'approved' });
     expect(approved.length).toBe(1);
-    expect(approved[0]!.id).toBe(id);
+    expect(approved[0].id).toBe(id);
   });
 
   it('updateNewsPost updates allowed fields', async () => {
     const id = await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'Old', body: 'B', category: 'fiesta' });
     await updateNewsPost(id, { title: 'New title', body: 'New body' });
     const snap = store[`news/${id}`];
-    expect(snap!['title']).toBe('New title');
-    expect(snap!['body']).toBe('New body');
+    expect(snap['title']).toBe('New title');
+    expect(snap['body']).toBe('New body');
   });
 
   it('updateNewsPost throws when trying to modify forbidden field "status"', async () => {
     const id = await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'T', body: 'B', category: 'fiesta' });
     await expect(
-      updateNewsPost(id, { title: 'X' } as Parameters<typeof updateNewsPost>[1])
+      updateNewsPost(id, { title: 'X' })
         .then(() => {
           // @ts-expect-error intentionally passing forbidden field
           return updateNewsPost(id, { status: 'approved' });
@@ -321,13 +330,13 @@ describe('newsService — Task 5: Reactions', () => {
   it('reactToPost writes a doc with deterministic id postId_userId', async () => {
     await reactToPost('p1', 'u1', 'm1', 'like');
     expect(store['newsReactions/p1_u1']).toBeDefined();
-    expect(store['newsReactions/p1_u1']!['kind']).toBe('like');
+    expect(store['newsReactions/p1_u1']['kind']).toBe('like');
   });
 
   it('calling reactToPost twice with different kinds overwrites (one reaction per user)', async () => {
     await reactToPost('p1', 'u1', 'm1', 'like');
     await reactToPost('p1', 'u1', 'm1', 'heart');
-    expect(store['newsReactions/p1_u1']!['kind']).toBe('heart');
+    expect(store['newsReactions/p1_u1']['kind']).toBe('heart');
     // Still only one doc
     const reactionDocs = Object.keys(store).filter((k) => k.startsWith('newsReactions/'));
     expect(reactionDocs.length).toBe(1);
@@ -369,9 +378,9 @@ describe('newsService — Task 6: Comments and Reports', () => {
     });
     expect(id).toBeTruthy();
     const snap = store[`newsComments/${id}`];
-    expect(snap!['hidden']).toBe(false);
-    expect(snap!['body']).toBe('Hola pueblo!');
-    expect(snap!['postId']).toBe('p1');
+    expect(snap['hidden']).toBe(false);
+    expect(snap['body']).toBe('Hola pueblo!');
+    expect(snap['postId']).toBe('p1');
   });
 
   it('deleteOwnComment removes the comment doc', async () => {
@@ -386,7 +395,7 @@ describe('newsService — Task 6: Comments and Reports', () => {
     const id2 = await addComment({ postId: 'p1', municipalityId: 'm1', authorUserId: 'u2', body: 'Second' });
     // A hidden comment (manually set)
     const id3 = await addComment({ postId: 'p1', municipalityId: 'm1', authorUserId: 'u3', body: 'Hidden' });
-    store[`newsComments/${id3}`]!['hidden'] = true;
+    store[`newsComments/${id3}`]['hidden'] = true;
     // A comment on another post
     await addComment({ postId: 'p2', municipalityId: 'm1', authorUserId: 'u1', body: 'Other post' });
 
@@ -409,11 +418,11 @@ describe('newsService — Task 6: Comments and Reports', () => {
     });
     expect(id).toBeTruthy();
     const snap = store[`newsReports/${id}`];
-    expect(snap!['status']).toBe('open');
-    expect(snap!['targetType']).toBe('comment');
-    expect(snap!['reporterUserId']).toBe('u1');
-    expect(snap!['resolvedBy']).toBeNull();
-    expect(snap!['resolvedAt']).toBeNull();
+    expect(snap['status']).toBe('open');
+    expect(snap['targetType']).toBe('comment');
+    expect(snap['reporterUserId']).toBe('u1');
+    expect(snap['resolvedBy']).toBeNull();
+    expect(snap['resolvedAt']).toBeNull();
   });
 });
 
@@ -427,8 +436,8 @@ describe('newsService — Task 7: Feed queries', () => {
 
   async function seedApprovedPost(municipalityId: string, title: string) {
     const id = await createNewsPost({ municipalityId, authorUserId: 'u1', title, body: 'B', category: 'fiesta' });
-    store[`news/${id}`]!['status'] = 'approved';
-    store[`news/${id}`]!['publishedAt'] = new Date(2024, 1, 1);
+    store[`news/${id}`]['status'] = 'approved';
+    store[`news/${id}`]['publishedAt'] = new Date(2024, 1, 1);
     return id;
   }
 

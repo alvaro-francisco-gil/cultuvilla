@@ -45,7 +45,7 @@ function runEslint(stdinFilename: string, source: string): LintResult {
   // want a loud failure.
   if (res.status === 2 || res.error) {
     throw new Error(
-      `eslint failed to run: status=${res.status} err=${res.error?.message} stderr=${res.stderr}`,
+      `eslint failed to run: status=${String(res.status)} err=${String(res.error?.message)} stderr=${res.stderr}`,
     );
   }
   const parsed = JSON.parse(res.stdout) as Array<{ messages: LintMessage[] }>;

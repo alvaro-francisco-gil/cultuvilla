@@ -6,11 +6,11 @@ let counter = 0;
 const nextId = () => ++counter;
 
 export function makeUniqueEmail(prefix = 'test'): string {
-  return `${prefix}-${Date.now()}-${nextId()}@cultuvilla.test`;
+  return `${prefix}-${String(Date.now())}-${String(nextId())}@cultuvilla.test`;
 }
 
 export function makeTestUid(prefix = 'user'): string {
-  return `${prefix}-${nextId()}-${Date.now()}`;
+  return `${prefix}-${String(nextId())}-${String(Date.now())}`;
 }
 
 export interface TestUser {
@@ -47,7 +47,7 @@ export async function createAuthUser(input: Partial<TestUser> = {}): Promise<Tes
   });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new Error(`createAuthUser failed: ${res.status} ${res.statusText} ${body}`);
+    throw new Error(`createAuthUser failed: ${String(res.status)} ${res.statusText} ${body}`);
   }
   return user;
 }
