@@ -10,6 +10,7 @@ import { inviteTokenConverterAdmin } from '../converters/inviteTokenConverter';
 import { joinRequestConverterAdmin } from '../converters/joinRequestConverter';
 import { organizationConverterAdmin } from '../converters/organizationConverter';
 import { orgMemberConverterAdmin } from '../converters/orgMemberConverter';
+import { organizerRequestConverterAdmin } from '../converters/organizerRequestConverter';
 
 export const eventsCollection = (db: Firestore) =>
   db.collection('events').withConverter(eventConverterAdmin);
@@ -74,3 +75,11 @@ export const organizationMembersCollection = (db: Firestore, organizationId: str
 
 export const organizationMemberDoc = (db: Firestore, organizationId: string, memberId: string) =>
   db.collection('organizations').doc(organizationId).collection('members').doc(memberId).withConverter(orgMemberConverterAdmin);
+
+// ── Organizer requests ───────────────────────────────────────────────────
+
+export const organizerRequestsCollection = (db: Firestore) =>
+  db.collection('organizerRequests').withConverter(organizerRequestConverterAdmin);
+
+export const organizerRequestDoc = (db: Firestore, requestId: string) =>
+  db.collection('organizerRequests').doc(requestId).withConverter(organizerRequestConverterAdmin);

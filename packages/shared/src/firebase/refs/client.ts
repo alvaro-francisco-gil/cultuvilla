@@ -10,6 +10,7 @@ import { inviteTokenConverterClient } from '../converters/inviteTokenConverter';
 import { joinRequestConverterClient } from '../converters/joinRequestConverter';
 import { organizationConverterClient } from '../converters/organizationConverter';
 import { orgMemberConverterClient } from '../converters/orgMemberConverter';
+import { organizerRequestConverterClient } from '../converters/organizerRequestConverter';
 
 export const eventsCollection = (db: Firestore) =>
   collection(db, 'events').withConverter(eventConverterClient);
@@ -74,3 +75,11 @@ export const organizationMembersCollection = (db: Firestore, organizationId: str
 
 export const organizationMemberDoc = (db: Firestore, organizationId: string, memberId: string) =>
   doc(db, 'organizations', organizationId, 'members', memberId).withConverter(orgMemberConverterClient);
+
+// ── Organizer requests ───────────────────────────────────────────────────
+
+export const organizerRequestsCollection = (db: Firestore) =>
+  collection(db, 'organizerRequests').withConverter(organizerRequestConverterClient);
+
+export const organizerRequestDoc = (db: Firestore, requestId: string) =>
+  doc(db, 'organizerRequests', requestId).withConverter(organizerRequestConverterClient);
