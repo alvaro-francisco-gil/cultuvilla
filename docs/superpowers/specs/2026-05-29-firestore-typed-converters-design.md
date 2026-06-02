@@ -312,3 +312,54 @@ The implementation plan (next document, produced by `superpowers:writing-plans`)
 - The verification gate that must pass before the next commit lands
 
 Expected commit count: 8–12 small commits on `worktree-firestore-typed-converters`, landing as a single fast-forward merge to `main` once `pnpm check` passes cleanly.
+
+## Follow-ups discovered during execution
+
+These were surfaced while implementing the plan and must land before the migration is deploy-ready. Each one is its own PR.
+
+### 1. `packages/shared` dist is not Node-loadable (BLOCKS FUNCTIONS DEPLOY)
+
+`packages/shared` emits ESM (`"type": "module"`) but its `tsc` output uses **extensionless** internal imports (e.g. `import { eventConverterAdmin } from '../converters/eventConverter';` with no `.js`). Bundlers (Metro, Vitest, TSC's compile-time resolution) accept this; Node ESM does NOT. Concretely:
+
+```
+Cannot find module '.../packages/shared/dist/firebase/converters/eventConverter'
+imported from .../packages/shared/dist/firebase/refs/admin.js
+```
+
+This affects every Node consumer of the dist: Cloud Functions runtime, the `scripts/seed-*.mjs` family. It is hidden during this migration because typecheck + Metro + Vitest all use bundler-mode resolution.
+
+**Fix options:**
+- Add `.js` extensions to every relative import in `packages/shared/src/` (smallest diff; keeps ESM).
+- Switch `packages/shared` emission to CJS (`"module": "commonjs"`, drop `"type": "module"`). Mobile still bundles cleanly via Metro; functions `require()` works cleanly without ESM/CJS interop.
+
+Recommended: CJS emit. Mobile is bundler-agnostic about source format, and the Cloud Functions runtime is CJS-native.
+
+### 2. Wire `@cultuvilla/shared` as a real dep of `functions/`
+
+After (1) is fixed: add `"@cultuvilla/shared": "file:../packages/shared"` to `functions/package.json`. The `tsconfig.json` `paths` block becomes unnecessary — standard module resolution finds it via the symlink in `functions/node_modules/`.
+
+For Firebase deploy, the file: dep won't survive server-side `npm install`. Add a `predeploy` step that vendors `packages/shared/dist` into `functions/` (copy the package into a path Firebase's install can resolve) OR bundle functions with esbuild/ncc so the dep is inlined.
+
+### 3. Audit + backfill before beta
+
+Before any beta launch, run an audit script against the dev Firestore that calls `Schema.safeParse(doc.data())` for every doc in every migrated collection and reports drift. Backfill any drift with targeted migration scripts. See the spec's "Rollout safety" section.
+
+The migrated converters are STRICT — reads throw on drift. Without an audit + backfill pass, beta launch risks crashing the mobile app on legacy seed data.
+
+### 4. Mobile dev users may need a one-off backfill
+
+Task 20 extended `UserData` to include `birthday: PartialDate | null`, `biography: string | null`, and `photoURL: string | null`. Existing dev `users/` docs that lack these fields will fail the strict-read converter. A one-off Node script that writes `null` for the missing fields on every existing user doc resolves it. Only dev DB affected (no beta/prod deploys yet).
+
+### 5. Notification doc backfill
+
+Task 20 also extended the notification schema with 6 new types and an optional `requesterUid`. Existing notifications in dev that used the old shape are still valid (the `NotificationType` union grew, not shrank). No backfill needed — but worth verifying via the audit script in (3).
+
+### 6. Legacy paths not covered
+
+- `functions/src/eventCompletion.ts` still uses the legacy `villages/{id}/events` path. Out of scope for this migration; tracked separately.
+- `functions/src/acceptInvite.ts:123` uses `db.collection('users').doc(userId).update({ personId })` raw — `updateDoc` bypasses the converter anyway, but worth swapping to `userDoc(db, userId)` for consistency.
+- `functions/src/helpers/notifyRequests.ts` queries the global `admins` collection and `municipalities/{id}/members` ad-hoc. The `admins` collection has no typed model yet.
+
+### 7. Typed test fixtures (per ordago's blocked plan)
+
+Still deferred. Worth revisiting once the test surface grows enough that the cost/value flips.
