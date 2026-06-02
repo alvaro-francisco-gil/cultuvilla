@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
+import { municipalityMemberDoc } from '@cultuvilla/shared/firebase/refs/admin';
 
 const db = admin.firestore();
 
@@ -21,14 +22,14 @@ export const setTrustedNewsAuthor = onCall<SetTrustedNewsAuthorData, Promise<Set
     const auth = request.auth;
     if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
-    const { municipalityId, userId, trusted } = request.data ?? {};
+    const { municipalityId, userId, trusted } = request.data;
     if (!municipalityId || !userId || typeof trusted !== 'boolean') {
       throw new HttpsError('invalid-argument', 'Argumentos inválidos.');
     }
 
-    const callerMemberRef = db.doc(`municipalities/${municipalityId}/members/${auth.uid}`);
+    const callerMemberRef = municipalityMemberDoc(db, municipalityId, auth.uid);
     const appAdminRef = db.doc(`admins/${auth.uid}`);
-    const targetMemberRef = db.doc(`municipalities/${municipalityId}/members/${userId}`);
+    const targetMemberRef = municipalityMemberDoc(db, municipalityId, userId);
 
     const [callerMemberSnap, appAdminSnap, targetMemberSnap] = await Promise.all([
       callerMemberRef.get(),
@@ -36,7 +37,8 @@ export const setTrustedNewsAuthor = onCall<SetTrustedNewsAuthorData, Promise<Set
       targetMemberRef.get(),
     ]);
 
-    const isVillageAdmin = callerMemberSnap.exists && callerMemberSnap.get('role') === 'admin';
+    const isVillageAdmin =
+      callerMemberSnap.exists && callerMemberSnap.data()?.role === 'admin';
     const isAppAdmin = appAdminSnap.exists;
 
     if (!isVillageAdmin && !isAppAdmin) {
@@ -47,7 +49,10 @@ export const setTrustedNewsAuthor = onCall<SetTrustedNewsAuthorData, Promise<Set
       throw new HttpsError('not-found', 'El usuario no es miembro de este municipio.');
     }
 
-    await targetMemberRef.update({ trustedNewsAuthor: trusted });
+    // update bypasses the converter; partial payload goes on the raw doc ref.
+    await db.doc(`municipalities/${municipalityId}/members/${userId}`).update({
+      trustedNewsAuthor: trusted,
+    });
 
     logger.info('toggled trustedNewsAuthor', { handler, municipalityId, userId, trusted });
     return { ok: true };

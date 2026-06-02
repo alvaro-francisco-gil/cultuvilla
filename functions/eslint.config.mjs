@@ -19,6 +19,12 @@ export default tseslint.config(
       'src/respondToOrganizerRequest.ts',
       'src/onOccupationProposalApproved.ts',
       'src/helpers/notifyRequests.ts',
+      'src/news/deleteNewsPost.ts',
+      'src/news/moderateNewsPost.ts',
+      'src/news/resolveNewsReport.ts',
+      'src/news/setTrustedNewsAuthor.ts',
+      'src/news/syncNewsCommentCount.ts',
+      'src/news/syncNewsReactionCounts.ts',
     ],
     extends: [
       ...tseslint.configs.recommendedTypeChecked,
