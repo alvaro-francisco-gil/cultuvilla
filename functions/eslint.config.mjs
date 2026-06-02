@@ -14,6 +14,7 @@ export default tseslint.config(
       'src/acceptInvite.ts',
       'src/requestJoinVillage.ts',
       'src/respondToJoinRequest.ts',
+      'src/updateCenso.ts',
     ],
     extends: [
       ...tseslint.configs.recommendedTypeChecked,
