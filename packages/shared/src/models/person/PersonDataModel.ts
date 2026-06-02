@@ -1,73 +1,80 @@
-export type Sex = 'male' | 'female' | 'other'
+import { z } from 'zod';
 
-export interface PartialDate {
-  year: number | null
-  month: number | null  // 1–12
-  day: number | null    // 1–31
-}
+export const SexSchema = z.enum(['male', 'female', 'other']);
+export type Sex = z.infer<typeof SexSchema>;
 
-export interface MunicipalityLink {
-  municipalityId: string
-  barrioId: string | null
-}
+export const PartialDateSchema = z.object({
+  year: z.number().int().nullable(),
+  month: z.number().int().nullable(), // 1–12 (not enforced; matches legacy shape)
+  day: z.number().int().nullable(),   // 1–31 (not enforced; matches legacy shape)
+});
+export type PartialDate = z.infer<typeof PartialDateSchema>;
 
-export interface BurialPlace {
-  municipalityId: string
-  cemeteryId: string
-}
+export const MunicipalityLinkSchema = z.object({
+  municipalityId: z.string(),
+  barrioId: z.string().nullable(),
+});
+export type MunicipalityLink = z.infer<typeof MunicipalityLinkSchema>;
 
-export interface PersonData {
+export const BurialPlaceSchema = z.object({
+  municipalityId: z.string(),
+  cemeteryId: z.string(),
+});
+export type BurialPlace = z.infer<typeof BurialPlaceSchema>;
+
+export const PersonDataSchema = z.object({
   // Name
-  givenName: string
-  middleNames: string[]
-  firstSurname: string | null
-  secondSurname: string | null
-  nickname: string | null
-  sex: Sex | null
+  givenName: z.string(),
+  middleNames: z.array(z.string()),
+  firstSurname: z.string().nullable(),
+  secondSurname: z.string().nullable(),
+  nickname: z.string().nullable(),
+  sex: SexSchema.nullable(),
 
   // Dates
-  birthday: PartialDate | null
-  deathDate: PartialDate | null
+  birthday: PartialDateSchema.nullable(),
+  deathDate: PartialDateSchema.nullable(),
 
   // Places
-  birthPlace: MunicipalityLink | null
-  burialPlace: BurialPlace | null
-  municipalityLinks: MunicipalityLink[]
+  birthPlace: MunicipalityLinkSchema.nullable(),
+  burialPlace: BurialPlaceSchema.nullable(),
+  municipalityLinks: z.array(MunicipalityLinkSchema),
 
   // Work — multi-select
-  occupationIds: string[]        // approved occupation IDs
-  pendingOccupations: string[]   // free text while proposals are pending
+  occupationIds: z.array(z.string()),       // approved occupation IDs
+  pendingOccupations: z.array(z.string()),  // free text while proposals are pending
 
   // Bio
-  biography: string | null
-  photoURL: string | null
+  biography: z.string().nullable(),
+  photoURL: z.string().nullable(),
 
   // Auth link
-  userId: string | null          // Firebase Auth uid if this person has an account
+  userId: z.string().nullable(),            // Firebase Auth uid if this person has an account
 
   // Meta
-  createdBy: string
-  createdAt: Date
-}
+  createdBy: z.string(),
+  createdAt: z.date(),
+});
+export type PersonData = z.infer<typeof PersonDataSchema>;
 
 export interface PersonDataInput {
-  givenName: string
-  middleNames?: string[]
-  firstSurname?: string | null
-  secondSurname?: string | null
-  nickname?: string | null
-  sex?: Sex | null
-  birthday?: PartialDate | null
-  deathDate?: PartialDate | null
-  birthPlace?: MunicipalityLink | null
-  burialPlace?: BurialPlace | null
-  municipalityLinks?: MunicipalityLink[]
-  occupationIds?: string[]
-  pendingOccupations?: string[]
-  biography?: string | null
-  photoURL?: string | null
-  userId?: string | null
-  createdBy: string
+  givenName: string;
+  middleNames?: string[];
+  firstSurname?: string | null;
+  secondSurname?: string | null;
+  nickname?: string | null;
+  sex?: Sex | null;
+  birthday?: PartialDate | null;
+  deathDate?: PartialDate | null;
+  birthPlace?: MunicipalityLink | null;
+  burialPlace?: BurialPlace | null;
+  municipalityLinks?: MunicipalityLink[];
+  occupationIds?: string[];
+  pendingOccupations?: string[];
+  biography?: string | null;
+  photoURL?: string | null;
+  userId?: string | null;
+  createdBy: string;
 }
 
 export function buildPersonData(input: PersonDataInput): PersonData {
@@ -90,21 +97,21 @@ export function buildPersonData(input: PersonDataInput): PersonData {
     userId: input.userId ?? null,
     createdBy: input.createdBy,
     createdAt: new Date(),
-  }
+  };
 }
 
 /** Full display name: "Juan Carlos García López" */
 export function buildDisplayName(
-  person: Pick<PersonData, 'givenName' | 'middleNames' | 'firstSurname' | 'secondSurname'>
+  person: Pick<PersonData, 'givenName' | 'middleNames' | 'firstSurname' | 'secondSurname'>,
 ): string {
   return [person.givenName, ...person.middleNames, person.firstSurname, person.secondSurname]
     .filter(Boolean)
-    .join(' ')
+    .join(' ');
 }
 
 /** Short name for tight spaces: nickname if set, otherwise "Juan García" */
 export function buildShortName(
-  person: Pick<PersonData, 'givenName' | 'nickname' | 'firstSurname'>
+  person: Pick<PersonData, 'givenName' | 'nickname' | 'firstSurname'>,
 ): string {
-  return person.nickname ?? [person.givenName, person.firstSurname].filter(Boolean).join(' ')
+  return person.nickname ?? [person.givenName, person.firstSurname].filter(Boolean).join(' ');
 }
