@@ -12,6 +12,8 @@ import { organizationConverterClient } from '../converters/organizationConverter
 import { orgMemberConverterClient } from '../converters/orgMemberConverter';
 import { organizerRequestConverterClient } from '../converters/organizerRequestConverter';
 import { personConverterClient } from '../converters/personConverter';
+import { userConverterClient } from '../converters/userConverter';
+import { notificationConverterClient } from '../converters/notificationConverter';
 
 export const eventsCollection = (db: Firestore) =>
   collection(db, 'events').withConverter(eventConverterClient);
@@ -92,3 +94,17 @@ export const personsCollection = (db: Firestore) =>
 
 export const personDoc = (db: Firestore, personId: string) =>
   doc(db, 'persons', personId).withConverter(personConverterClient);
+
+// ── User + notifications domain ──────────────────────────────────────────
+
+export const usersCollection = (db: Firestore) =>
+  collection(db, 'users').withConverter(userConverterClient);
+
+export const userDoc = (db: Firestore, userId: string) =>
+  doc(db, 'users', userId).withConverter(userConverterClient);
+
+export const userNotificationsCollection = (db: Firestore, userId: string) =>
+  collection(db, 'users', userId, 'notifications').withConverter(notificationConverterClient);
+
+export const userNotificationDoc = (db: Firestore, userId: string, notificationId: string) =>
+  doc(db, 'users', userId, 'notifications', notificationId).withConverter(notificationConverterClient);

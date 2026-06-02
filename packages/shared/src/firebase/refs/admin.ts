@@ -12,6 +12,8 @@ import { organizationConverterAdmin } from '../converters/organizationConverter'
 import { orgMemberConverterAdmin } from '../converters/orgMemberConverter';
 import { organizerRequestConverterAdmin } from '../converters/organizerRequestConverter';
 import { personConverterAdmin } from '../converters/personConverter';
+import { userConverterAdmin } from '../converters/userConverter';
+import { notificationConverterAdmin } from '../converters/notificationConverter';
 
 export const eventsCollection = (db: Firestore) =>
   db.collection('events').withConverter(eventConverterAdmin);
@@ -92,3 +94,17 @@ export const personsCollection = (db: Firestore) =>
 
 export const personDoc = (db: Firestore, personId: string) =>
   db.collection('persons').doc(personId).withConverter(personConverterAdmin);
+
+// ── User + notifications domain ──────────────────────────────────────────
+
+export const usersCollection = (db: Firestore) =>
+  db.collection('users').withConverter(userConverterAdmin);
+
+export const userDoc = (db: Firestore, userId: string) =>
+  db.collection('users').doc(userId).withConverter(userConverterAdmin);
+
+export const userNotificationsCollection = (db: Firestore, userId: string) =>
+  db.collection('users').doc(userId).collection('notifications').withConverter(notificationConverterAdmin);
+
+export const userNotificationDoc = (db: Firestore, userId: string, notificationId: string) =>
+  db.collection('users').doc(userId).collection('notifications').doc(notificationId).withConverter(notificationConverterAdmin);
