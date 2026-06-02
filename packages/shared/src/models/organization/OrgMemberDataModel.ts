@@ -1,6 +1,9 @@
-export interface OrgMemberData {
-  joinedAt: Date;
-}
+import { z } from 'zod';
+
+export const OrgMemberDataSchema = z.object({
+  joinedAt: z.date(),
+});
+export type OrgMemberData = z.infer<typeof OrgMemberDataSchema>;
 
 export interface OrgMemberDataInput {
   joinedAt?: Date;
