@@ -20,8 +20,8 @@ export const syncPersonDenormalization = onDocumentWritten(
   { document: 'persons/{personId}', region: 'us-central1' },
   async (event) => {
     const handler = 'syncPersonDenormalization';
-    const before = event.data?.before?.data();
-    const after = event.data?.after?.data();
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
 
     // Delete: leave the user doc alone. The displayName is a snapshot — it
     // stays valid even if the source persona is removed. Reads downstream can
@@ -56,18 +56,19 @@ export const syncPersonDenormalization = onDocumentWritten(
 );
 
 function projectName(person: FirebaseFirestore.DocumentData): string {
+  const p = person as Record<string, unknown>;
   const parts: string[] = [];
-  const given = person['givenName'];
+  const given: unknown = p['givenName'];
   if (typeof given === 'string' && given.length > 0) parts.push(given);
-  const middle = person['middleNames'];
+  const middle: unknown = p['middleNames'];
   if (Array.isArray(middle)) {
-    for (const m of middle) {
+    for (const m of middle as unknown[]) {
       if (typeof m === 'string' && m.length > 0) parts.push(m);
     }
   }
-  const first = person['firstSurname'];
+  const first: unknown = p['firstSurname'];
   if (typeof first === 'string' && first.length > 0) parts.push(first);
-  const second = person['secondSurname'];
+  const second: unknown = p['secondSurname'];
   if (typeof second === 'string' && second.length > 0) parts.push(second);
   return parts.join(' ');
 }

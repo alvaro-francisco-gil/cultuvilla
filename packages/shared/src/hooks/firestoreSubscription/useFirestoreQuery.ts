@@ -52,7 +52,11 @@ const fallbackKeyByQuery = new WeakMap<object, string>();
 const deriveCacheKey = <T,>(query: Query<T>, override?: string): string => {
   if (override) return `queryKey:${override}`;
 
+  // Reaching into SDK internals — every level is defensively optional in
+  // practice even though the cast types them as present, since this code runs
+  // against multiple SDK versions and shims (RN, web, tests).
   const internals = query as unknown as ModularQueryInternals;
+  /* eslint-disable @typescript-eslint/no-unnecessary-condition */
   const canonical = internals?._query?.canonicalId?.();
   if (canonical) return `query:${canonical}`;
 
@@ -60,6 +64,7 @@ const deriveCacheKey = <T,>(query: Query<T>, override?: string): string => {
   if (canonicalPath) return `query:${canonicalPath}`;
 
   const segments = internals?._query?.path?.segments;
+  /* eslint-enable @typescript-eslint/no-unnecessary-condition */
   if (Array.isArray(segments) && segments.length > 0) {
     return `query:${segments.join('/')}`;
   }
@@ -68,7 +73,7 @@ const deriveCacheKey = <T,>(query: Query<T>, override?: string): string => {
   let key = fallbackKeyByQuery.get(identity);
   if (!key) {
     fallbackKeyCounter += 1;
-    key = `query:fallback:${fallbackKeyCounter}`;
+    key = `query:fallback:${String(fallbackKeyCounter)}`;
     fallbackKeyByQuery.set(identity, key);
   }
   return key;

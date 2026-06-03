@@ -67,7 +67,7 @@ export function useFirestoreDoc<T = unknown>(
         return onSnapshot(
           currentRef,
           (snapshot: DocumentSnapshot<T>) => {
-            onNext(snapshot.exists() ? (snapshot.data() as T) : undefined);
+            onNext(snapshot.exists() ? (snapshot.data()) : undefined);
           },
           (err: unknown) => {
             onError(err instanceof Error ? err : new Error(String(err)));

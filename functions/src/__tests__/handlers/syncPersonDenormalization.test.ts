@@ -67,7 +67,7 @@ beforeEach(async () => {
   await resetEmulators();
 });
 
-afterAll(async () => {
+afterAll(() => {
   ft.cleanup();
 });
 

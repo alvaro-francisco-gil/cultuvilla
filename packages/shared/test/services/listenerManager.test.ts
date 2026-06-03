@@ -10,7 +10,7 @@ describe('listenerManager', () => {
   it('returns a no-op when given a non-function', () => {
     const unsubscribe = listenerManager.add(undefined, 'invalid');
     expect(listenerManager.count()).toBe(0);
-    expect(() => unsubscribe()).not.toThrow();
+    expect(() => { unsubscribe(); }).not.toThrow();
   });
 
   it('registers a listener and the returned unsubscribe deregisters + invokes', () => {
@@ -28,7 +28,7 @@ describe('listenerManager', () => {
       throw new Error('boom');
     });
     const unsubscribe = listenerManager.add(raw, 'b');
-    expect(() => unsubscribe()).not.toThrow();
+    expect(() => { unsubscribe(); }).not.toThrow();
     expect(listenerManager.count()).toBe(0);
   });
 
@@ -49,11 +49,11 @@ describe('listenerManager', () => {
 
   it('clearAll tears down every active listener', async () => {
     const raws = [vi.fn(), vi.fn(), vi.fn()];
-    raws.forEach((r, i) => listenerManager.add(r, `l${i}`));
+    raws.forEach((r, i) => listenerManager.add(r, `l${String(i)}`));
     expect(listenerManager.count()).toBe(3);
 
     await listenerManager.clearAll();
-    raws.forEach((r) => expect(r).toHaveBeenCalledTimes(1));
+    raws.forEach((r) => { expect(r).toHaveBeenCalledTimes(1); });
     expect(listenerManager.count()).toBe(0);
   });
 });

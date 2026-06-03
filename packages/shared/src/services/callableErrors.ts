@@ -149,6 +149,9 @@ function extractMessage(error: unknown): string {
     if (typeof anyErr.details === 'string' && anyErr.details.length > 0) return anyErr.details;
   }
   try {
+    // Last-resort coercion; we tolerate "[object Object]" since the caller
+    // already exhausted message/details extraction above.
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     return String(error);
   } catch {
     return '';

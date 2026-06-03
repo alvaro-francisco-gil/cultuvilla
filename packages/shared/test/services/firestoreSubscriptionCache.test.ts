@@ -121,6 +121,6 @@ describe('firestoreSubscription cache', () => {
     expect(cb).toHaveBeenCalledWith(undefined, expect.any(Error));
     expect(_getCacheSize()).toBe(0);
     // Returned unsubscribe is safe to call.
-    expect(() => unsub()).not.toThrow();
+    expect(() => { unsub(); }).not.toThrow();
   });
 });

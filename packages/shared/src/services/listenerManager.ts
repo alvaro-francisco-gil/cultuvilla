@@ -23,7 +23,7 @@ const NO_OP: Unsubscribe = () => {};
 
 function generateId(label?: string): string {
   const suffix = label?.trim() || 'listener';
-  return `${Date.now()}-${nextId++}-${suffix}`;
+  return `${String(Date.now())}-${String(nextId++)}-${suffix}`;
 }
 
 export function add(unsubscribeFn?: unknown, label?: string): Unsubscribe {
