@@ -9,6 +9,7 @@ import {
   getNewsLink,
   getVillageInviteLink,
   getOrgInviteLink,
+  parseLink,
 } from '../../src/services/deepLinkService';
 
 describe('deepLinkService builders', () => {
@@ -54,5 +55,68 @@ describe('deepLinkService builders', () => {
 
   it('throws on empty id', () => {
     expect(() => getEventLink('')).toThrow(/id/i);
+  });
+});
+
+describe('deepLinkService.parseLink', () => {
+  it('parses an event https URL', () => {
+    expect(parseLink('https://example.test.app/event/evt_123')).toEqual({
+      kind: 'content',
+      resource: 'event',
+      id: 'evt_123',
+    });
+  });
+
+  it('parses a news https URL', () => {
+    expect(parseLink('https://example.test.app/news/news_42')).toEqual({
+      kind: 'content',
+      resource: 'news',
+      id: 'news_42',
+    });
+  });
+
+  it('parses a village invite https URL', () => {
+    expect(parseLink('https://example.test.app/village/mun_abc')).toEqual({
+      kind: 'invite',
+      resource: 'village',
+      id: 'mun_abc',
+    });
+  });
+
+  it('parses an org invite https URL using /o/', () => {
+    expect(parseLink('https://example.test.app/o/org_xyz')).toEqual({
+      kind: 'invite',
+      resource: 'organization',
+      id: 'org_xyz',
+    });
+  });
+
+  it('parses a cultuvilla:// scheme URL', () => {
+    expect(parseLink('cultuvilla://event/evt_123')).toEqual({
+      kind: 'content',
+      resource: 'event',
+      id: 'evt_123',
+    });
+  });
+
+  it('returns null for a host mismatch', () => {
+    expect(parseLink('https://other.host/event/evt_123')).toBeNull();
+  });
+
+  it('returns null for an unknown resource segment', () => {
+    expect(parseLink('https://example.test.app/profile/user_1')).toBeNull();
+  });
+
+  it('returns null for a malformed URL', () => {
+    expect(parseLink('not-a-url')).toBeNull();
+  });
+
+  it('round-trips a generated link', () => {
+    const link = getEventLink('evt_round');
+    expect(parseLink(link.url)).toEqual({
+      kind: 'content',
+      resource: 'event',
+      id: 'evt_round',
+    });
   });
 });

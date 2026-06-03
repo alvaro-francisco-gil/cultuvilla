@@ -53,3 +53,42 @@ export const getNewsLink = (newsId: string): DeepLink => buildLink('news', newsI
 export const getVillageInviteLink = (villageId: string): DeepLink =>
   buildLink('village', villageId);
 export const getOrgInviteLink = (orgId: string): DeepLink => buildLink('organization', orgId);
+
+export interface ParsedDeepLink {
+  kind: LinkKind;
+  resource: DeepLinkResource;
+  id: string;
+}
+
+const PATH_TO_RESOURCE: Record<string, DeepLinkResource> = {
+  event: 'event',
+  news: 'news',
+  village: 'village',
+  o: 'organization',
+};
+
+const SCHEME = 'cultuvilla';
+
+function interpret(segments: string[]): ParsedDeepLink | null {
+  if (segments.length !== 2) return null;
+  const [pathSegment, id] = segments;
+  const resource = PATH_TO_RESOURCE[pathSegment];
+  if (!resource || !id) return null;
+  return { kind: RESOURCE_TO_KIND[resource], resource, id };
+}
+
+export function parseLink(input: string): ParsedDeepLink | null {
+  if (input.startsWith(`${SCHEME}://`)) {
+    const rest = input.slice(`${SCHEME}://`.length);
+    return interpret(rest.split('/').filter(Boolean));
+  }
+  let url: URL;
+  try {
+    url = new URL(input);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== 'https:') return null;
+  if (url.hostname !== getDeepLinkHost()) return null;
+  return interpret(url.pathname.split('/').filter(Boolean));
+}
