@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'expo-router';
-import { Button, Input, PasswordInput, Text, VStack } from '../../components/primitives';
+import { Button, Input, Text, VStack } from '../../components/primitives';
 import {
   AuthCard,
   AuthHeader,
@@ -11,22 +11,21 @@ import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 
 export default function SignupScreen() {
-  const { signUpWithEmail, signInWithGoogle } = useAuth();
+  const { sendEmailLink, signInWithGoogle } = useAuth();
   const { t } = useT();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   async function onSubmit() {
     setError(null);
+    setSent(false);
     setLoading(true);
     try {
-      await signUpWithEmail(email, password);
-      // AuthGate (app/_layout.tsx) handles the redirect once the user's
-      // profile state settles. Calling router.replace here races with its
-      // Stack unmount and dispatches into a missing navigator.
+      await sendEmailLink(email);
+      setSent(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : t('auth.error.unknown'));
     } finally {
@@ -58,16 +57,15 @@ export default function SignupScreen() {
           keyboardType="email-address"
           autoComplete="email"
         />
-        <PasswordInput
-          label={t('auth.password')}
-          value={password}
-          onChangeText={setPassword}
-          testID="signup-password"
-        />
         <Text tone="muted" variant="bodySm">
-          {t('auth.passwordHint')}
+          {t('auth.emailLinkHint')}
         </Text>
         {error != null && <Text tone="danger">{error}</Text>}
+        {sent && (
+          <Text tone="muted" testID="signup-link-sent">
+            {t('auth.emailLinkSent', { email })}
+          </Text>
+        )}
         <Button onPress={onSubmit} loading={loading} fullWidth testID="signup-submit">
           {t('auth.signup.submit')}
         </Button>

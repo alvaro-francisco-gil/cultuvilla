@@ -1,16 +1,20 @@
 import { createContext, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import type { FirebaseOptions } from 'firebase/app';
 import type { User } from 'firebase/auth';
 import { getAuth } from '@cultuvilla/shared/firebase';
 import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signOut as fbSignOut,
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithCredential,
   signInWithPopup,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
+  type ActionCodeSettings,
 } from 'firebase/auth';
 import { getUserProfile, setActiveMunicipality } from '@cultuvilla/shared/services/userService';
 import { getUserMemberships } from '@cultuvilla/shared/services/villageMemberService';
@@ -34,6 +38,25 @@ function getGoogleSignInConfig(): GoogleSignInExtra | null {
   return cfg;
 }
 
+// Firebase requires the continueUrl domain to be on Auth's "Authorized
+// domains" list. The auto-hosted `*.firebaseapp.com` and `*.web.app` domains
+// for the project are always authorized — derive the web SPA URL from
+// authDomain so we don't have to maintain another env var.
+const PENDING_EMAIL_KEY = 'cultuvilla.pendingEmailSignIn';
+
+function getEmailLinkContinueUrl(): string {
+  const cfg = (Constants.expoConfig?.extra as { firebaseConfig?: FirebaseOptions } | undefined)
+    ?.firebaseConfig;
+  const authDomain = cfg?.authDomain;
+  if (!authDomain) {
+    throw new Error(
+      '[cultuvilla] firebaseConfig.authDomain missing — cannot build email-link continueUrl',
+    );
+  }
+  const host = authDomain.replace(/\.firebaseapp\.com$/, '.web.app');
+  return `https://${host}/finish`;
+}
+
 type Profile = (UserData & { id: string }) | null;
 
 export interface AuthContextValue {
@@ -44,8 +67,10 @@ export interface AuthContextValue {
   profileChecked: boolean;
   refreshProfile: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string) => Promise<void>;
+  sendEmailLink: (email: string) => Promise<void>;
+  completeEmailLinkSignIn: (url: string, emailOverride?: string) => Promise<void>;
+  isEmailLink: (url: string) => boolean;
+  readPendingEmail: () => Promise<string | null>;
   signOut: () => Promise<void>;
 }
 
@@ -162,13 +187,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signInWithEmail = async (email: string, password: string): Promise<void> => {
-    await signInWithEmailAndPassword(getAuth(), email, password);
+  const sendEmailLink = async (email: string): Promise<void> => {
+    const trimmed = email.trim();
+    if (!trimmed) throw new Error('email-required');
+    const settings: ActionCodeSettings = {
+      url: getEmailLinkContinueUrl(),
+      handleCodeInApp: true,
+    };
+    await sendSignInLinkToEmail(getAuth(), trimmed, settings);
+    await AsyncStorage.setItem(PENDING_EMAIL_KEY, trimmed);
   };
 
-  const signUpWithEmail = async (email: string, password: string): Promise<void> => {
-    await createUserWithEmailAndPassword(getAuth(), email, password);
+  const completeEmailLinkSignIn = async (url: string, emailOverride?: string): Promise<void> => {
+    const auth = getAuth();
+    if (!isSignInWithEmailLink(auth, url)) {
+      throw new Error('not-an-email-link');
+    }
+    const stored = emailOverride ?? (await AsyncStorage.getItem(PENDING_EMAIL_KEY));
+    if (!stored) throw new Error('email-required');
+    await signInWithEmailLink(auth, stored, url);
+    await AsyncStorage.removeItem(PENDING_EMAIL_KEY);
   };
+
+  const isEmailLink = (url: string): boolean => isSignInWithEmailLink(getAuth(), url);
+
+  const readPendingEmail = async (): Promise<string | null> =>
+    AsyncStorage.getItem(PENDING_EMAIL_KEY);
 
   const signOut = async (): Promise<void> => {
     // Tear down every registered Firestore listener BEFORE auth flips closed,
@@ -195,8 +239,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profileChecked,
         refreshProfile,
         signInWithGoogle,
-        signInWithEmail,
-        signUpWithEmail,
+        sendEmailLink,
+        completeEmailLinkSignIn,
+        isEmailLink,
+        readPendingEmail,
         signOut,
       }}
     >

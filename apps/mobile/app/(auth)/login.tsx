@@ -1,12 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'expo-router';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { getAuth } from '@cultuvilla/shared/firebase';
-import { Button, Input, PasswordInput, Text, VStack } from '../../components/primitives';
+import { Button, Input, Text, VStack } from '../../components/primitives';
 import {
   AuthCard,
   AuthHeader,
-  ForgotPasswordLink,
   GoogleButton,
   OrDivider,
 } from '../../components/auth';
@@ -14,24 +11,21 @@ import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 
 export default function LoginScreen() {
-  const { signInWithEmail, signInWithGoogle } = useAuth();
+  const { sendEmailLink, signInWithGoogle } = useAuth();
   const { t } = useT();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   async function onSubmit() {
     setError(null);
-    setInfo(null);
+    setSent(false);
     setLoading(true);
     try {
-      await signInWithEmail(email, password);
-      // Routing is owned by AuthGate (app/_layout.tsx) — calling router.replace
-      // here races with the AuthGate Stack unmount while the user's Firestore
-      // profile is loading and dispatches into a navigator that doesn't exist.
+      await sendEmailLink(email);
+      setSent(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : t('auth.error.unknown'));
     } finally {
@@ -41,7 +35,6 @@ export default function LoginScreen() {
 
   async function onGoogle() {
     setError(null);
-    setInfo(null);
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
@@ -49,22 +42,6 @@ export default function LoginScreen() {
       setError(e instanceof Error ? e.message : t('auth.error.unknown'));
     } finally {
       setGoogleLoading(false);
-    }
-  }
-
-  async function onForgot() {
-    setError(null);
-    setInfo(null);
-    const trimmed = email.trim();
-    if (!trimmed) {
-      setError(t('auth.forgotPasswordNeedsEmail'));
-      return;
-    }
-    try {
-      await sendPasswordResetEmail(getAuth(), trimmed);
-      setInfo(t('auth.forgotPasswordSent'));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t('auth.error.unknown'));
     }
   }
 
@@ -80,15 +57,15 @@ export default function LoginScreen() {
           keyboardType="email-address"
           autoComplete="email"
         />
-        <PasswordInput
-          label={t('auth.password')}
-          value={password}
-          onChangeText={setPassword}
-          testID="login-password"
-        />
-        <ForgotPasswordLink onPress={onForgot} />
+        <Text tone="muted" variant="bodySm">
+          {t('auth.emailLinkHint')}
+        </Text>
         {error != null && <Text tone="danger">{error}</Text>}
-        {info != null && <Text tone="muted">{info}</Text>}
+        {sent && (
+          <Text tone="muted" testID="login-link-sent">
+            {t('auth.emailLinkSent', { email })}
+          </Text>
+        )}
         <Button onPress={onSubmit} loading={loading} fullWidth testID="login-submit">
           {t('auth.login.submit')}
         </Button>
