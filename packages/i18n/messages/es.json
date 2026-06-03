@@ -9,7 +9,8 @@
     "confirm": "Confirmar",
     "back": "Volver",
     "search": "Buscar",
-    "noResults": "Sin resultados"
+    "noResults": "Sin resultados",
+    "notFound": "No encontrado"
   },
   "auth": {
     "signIn": "Iniciar sesión",
@@ -443,5 +444,11 @@
       "village": "Te invito a este pueblo en Cultuvilla: {url}",
       "organization": "Te invito a esta organización en Cultuvilla: {url}"
     }
+  },
+  "organization": {
+    "title": "Organización",
+    "membersCount": "{count} miembros",
+    "join": "Unirme a esta organización",
+    "signInToJoin": "Inicia sesión para unirte"
   }
 }
