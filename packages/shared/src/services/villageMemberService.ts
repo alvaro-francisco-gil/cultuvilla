@@ -12,7 +12,7 @@ import {
   municipalityMembersCollection,
   municipalityMemberDoc,
 } from '../firebase/refs/client';
-import { villageMemberConverterClient } from '../firebase/converters/villageMemberConverter';
+import { villageMemberConverterClient } from '../firebase/converters/villageMemberConverter.client';
 import type {
   VillageMemberData,
   VillageMemberRole,

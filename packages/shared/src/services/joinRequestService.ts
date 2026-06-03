@@ -13,7 +13,7 @@ import {
   municipalityJoinRequestsCollection,
   municipalityJoinRequestDoc,
 } from '../firebase/refs/client';
-import { joinRequestConverterClient } from '../firebase/converters/joinRequestConverter';
+import { joinRequestConverterClient } from '../firebase/converters/joinRequestConverter.client';
 import type {
   JoinRequestData,
   JoinRequestStatus,

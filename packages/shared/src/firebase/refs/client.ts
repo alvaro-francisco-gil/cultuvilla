@@ -1,26 +1,26 @@
 // packages/shared/src/firebase/refs/client.ts
 import { collection, doc, type Firestore } from 'firebase/firestore';
-import { eventConverterClient } from '../converters/eventConverter';
-import { registrationConverterClient } from '../converters/registrationConverter';
-import { municipalityConverterClient } from '../converters/municipalityConverter';
-import { barrioConverterClient } from '../converters/barrioConverter';
-import { cemeteryConverterClient } from '../converters/cemeteryConverter';
-import { villageMemberConverterClient } from '../converters/villageMemberConverter';
-import { inviteTokenConverterClient } from '../converters/inviteTokenConverter';
-import { joinRequestConverterClient } from '../converters/joinRequestConverter';
-import { organizationConverterClient } from '../converters/organizationConverter';
-import { orgMemberConverterClient } from '../converters/orgMemberConverter';
-import { organizerRequestConverterClient } from '../converters/organizerRequestConverter';
-import { personConverterClient } from '../converters/personConverter';
-import { userConverterClient } from '../converters/userConverter';
-import { notificationConverterClient } from '../converters/notificationConverter';
-import { newsPostConverterClient } from '../converters/newsPostConverter';
-import { newsCommentConverterClient } from '../converters/newsCommentConverter';
-import { newsReactionConverterClient } from '../converters/newsReactionConverter';
-import { newsReportConverterClient } from '../converters/newsReportConverter';
-import { occupationConverterClient } from '../converters/occupationConverter';
-import { occupationProposalConverterClient } from '../converters/occupationProposalConverter';
-import { adminConverterClient } from '../converters/adminConverter';
+import { eventConverterClient } from '../converters/eventConverter.client';
+import { registrationConverterClient } from '../converters/registrationConverter.client';
+import { municipalityConverterClient } from '../converters/municipalityConverter.client';
+import { barrioConverterClient } from '../converters/barrioConverter.client';
+import { cemeteryConverterClient } from '../converters/cemeteryConverter.client';
+import { villageMemberConverterClient } from '../converters/villageMemberConverter.client';
+import { inviteTokenConverterClient } from '../converters/inviteTokenConverter.client';
+import { joinRequestConverterClient } from '../converters/joinRequestConverter.client';
+import { organizationConverterClient } from '../converters/organizationConverter.client';
+import { orgMemberConverterClient } from '../converters/orgMemberConverter.client';
+import { organizerRequestConverterClient } from '../converters/organizerRequestConverter.client';
+import { personConverterClient } from '../converters/personConverter.client';
+import { userConverterClient } from '../converters/userConverter.client';
+import { notificationConverterClient } from '../converters/notificationConverter.client';
+import { newsPostConverterClient } from '../converters/newsPostConverter.client';
+import { newsCommentConverterClient } from '../converters/newsCommentConverter.client';
+import { newsReactionConverterClient } from '../converters/newsReactionConverter.client';
+import { newsReportConverterClient } from '../converters/newsReportConverter.client';
+import { occupationConverterClient } from '../converters/occupationConverter.client';
+import { occupationProposalConverterClient } from '../converters/occupationProposalConverter.client';
+import { adminConverterClient } from '../converters/adminConverter.client';
 
 export const eventsCollection = (db: Firestore) =>
   collection(db, 'events').withConverter(eventConverterClient);

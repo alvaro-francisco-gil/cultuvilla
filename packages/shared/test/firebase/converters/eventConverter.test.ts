@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Timestamp, GeoPoint } from 'firebase/firestore';
-import { eventConverterClient } from '../../../src/firebase/converters/eventConverter';
+import { eventConverterClient } from '../../../src/firebase/converters/eventConverter.client';
 
 const baseFirestoreShape = {
   title: 'Fiesta',

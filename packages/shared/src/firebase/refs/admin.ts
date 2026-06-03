@@ -1,26 +1,26 @@
 // packages/shared/src/firebase/refs/admin.ts
 import type { Firestore } from 'firebase-admin/firestore';
-import { eventConverterAdmin } from '../converters/eventConverter';
-import { registrationConverterAdmin } from '../converters/registrationConverter';
-import { municipalityConverterAdmin } from '../converters/municipalityConverter';
-import { barrioConverterAdmin } from '../converters/barrioConverter';
-import { cemeteryConverterAdmin } from '../converters/cemeteryConverter';
-import { villageMemberConverterAdmin } from '../converters/villageMemberConverter';
-import { inviteTokenConverterAdmin } from '../converters/inviteTokenConverter';
-import { joinRequestConverterAdmin } from '../converters/joinRequestConverter';
-import { organizationConverterAdmin } from '../converters/organizationConverter';
-import { orgMemberConverterAdmin } from '../converters/orgMemberConverter';
-import { organizerRequestConverterAdmin } from '../converters/organizerRequestConverter';
-import { personConverterAdmin } from '../converters/personConverter';
-import { userConverterAdmin } from '../converters/userConverter';
-import { notificationConverterAdmin } from '../converters/notificationConverter';
-import { newsPostConverterAdmin } from '../converters/newsPostConverter';
-import { newsCommentConverterAdmin } from '../converters/newsCommentConverter';
-import { newsReactionConverterAdmin } from '../converters/newsReactionConverter';
-import { newsReportConverterAdmin } from '../converters/newsReportConverter';
-import { occupationConverterAdmin } from '../converters/occupationConverter';
-import { occupationProposalConverterAdmin } from '../converters/occupationProposalConverter';
-import { adminConverterAdmin } from '../converters/adminConverter';
+import { eventConverterAdmin } from '../converters/eventConverter.admin';
+import { registrationConverterAdmin } from '../converters/registrationConverter.admin';
+import { municipalityConverterAdmin } from '../converters/municipalityConverter.admin';
+import { barrioConverterAdmin } from '../converters/barrioConverter.admin';
+import { cemeteryConverterAdmin } from '../converters/cemeteryConverter.admin';
+import { villageMemberConverterAdmin } from '../converters/villageMemberConverter.admin';
+import { inviteTokenConverterAdmin } from '../converters/inviteTokenConverter.admin';
+import { joinRequestConverterAdmin } from '../converters/joinRequestConverter.admin';
+import { organizationConverterAdmin } from '../converters/organizationConverter.admin';
+import { orgMemberConverterAdmin } from '../converters/orgMemberConverter.admin';
+import { organizerRequestConverterAdmin } from '../converters/organizerRequestConverter.admin';
+import { personConverterAdmin } from '../converters/personConverter.admin';
+import { userConverterAdmin } from '../converters/userConverter.admin';
+import { notificationConverterAdmin } from '../converters/notificationConverter.admin';
+import { newsPostConverterAdmin } from '../converters/newsPostConverter.admin';
+import { newsCommentConverterAdmin } from '../converters/newsCommentConverter.admin';
+import { newsReactionConverterAdmin } from '../converters/newsReactionConverter.admin';
+import { newsReportConverterAdmin } from '../converters/newsReportConverter.admin';
+import { occupationConverterAdmin } from '../converters/occupationConverter.admin';
+import { occupationProposalConverterAdmin } from '../converters/occupationProposalConverter.admin';
+import { adminConverterAdmin } from '../converters/adminConverter.admin';
 
 export const eventsCollection = (db: Firestore) =>
   db.collection('events').withConverter(eventConverterAdmin);

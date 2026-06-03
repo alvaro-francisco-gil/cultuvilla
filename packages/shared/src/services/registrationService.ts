@@ -13,7 +13,7 @@ import {
   eventRegistrationsCollection,
   eventRegistrationDoc,
 } from '../firebase/refs/client';
-import { registrationConverterClient } from '../firebase/converters/registrationConverter';
+import { registrationConverterClient } from '../firebase/converters/registrationConverter.client';
 import type {
   RegistrationData,
   RegistrationStatus,
