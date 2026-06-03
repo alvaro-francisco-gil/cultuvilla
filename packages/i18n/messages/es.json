@@ -144,6 +144,8 @@
   },
   "village": {
     "title": "Pueblos",
+    "join": "Unirme a este pueblo",
+    "signInToJoin": "Inicia sesión para unirte",
     "events": {
       "label": "Eventos",
       "empty": "No hay eventos en este pueblo"
