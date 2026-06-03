@@ -71,9 +71,11 @@ const SCHEME = 'cultuvilla';
 
 function interpret(segments: string[]): ParsedDeepLink | null {
   if (segments.length !== 2) return null;
-  const [pathSegment, id] = segments;
+  const pathSegment = segments[0];
+  const id = segments[1];
+  if (!pathSegment || !id) return null;
   const resource = PATH_TO_RESOURCE[pathSegment];
-  if (!resource || !id) return null;
+  if (!resource) return null;
   return { kind: RESOURCE_TO_KIND[resource], resource, id };
 }
 
