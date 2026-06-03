@@ -23,6 +23,12 @@ const bundleIdPerEnv: Record<Env, string> = {
   prod: 'com.cultuvilla.app',
 };
 
+const deepLinkHostPerEnv: Record<Env, string> = {
+  dev: process.env['DEEP_LINK_HOST_DEV'] ?? 'villa-events-dev.web.app',
+  beta: process.env['DEEP_LINK_HOST_BETA'] ?? 'villa-events-beta.web.app',
+  prod: process.env['DEEP_LINK_HOST_PROD'] ?? 'villa-events.web.app',
+};
+
 // Firebase config is injected per-environment from .env (or EAS secrets).
 // DO NOT commit real keys — use a local .env file (gitignored) with these vars:
 //   FIREBASE_API_KEY_DEV, FIREBASE_AUTH_DOMAIN_DEV, FIREBASE_PROJECT_ID_DEV,
@@ -122,6 +128,7 @@ const config: ExpoConfig = {
     APP_ENV: env,
     firebaseConfig: firebaseConfigPerEnv[env],
     googleSignIn: googleSignInPerEnv[env],
+    deepLinkHost: deepLinkHostPerEnv[env],
     eas: {
       projectId: process.env['EAS_PROJECT_ID'] ?? '',
     },
