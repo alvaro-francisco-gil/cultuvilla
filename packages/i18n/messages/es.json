@@ -435,5 +435,13 @@
       "remove": "Eliminar comentario",
       "trustToggle": "Autor de confianza"
     }
+  },
+  "deeplink": {
+    "share": {
+      "event": "Te invito a este evento en Cultuvilla: {url}",
+      "news": "Mira esta noticia en Cultuvilla: {url}",
+      "village": "Te invito a este pueblo en Cultuvilla: {url}",
+      "organization": "Te invito a esta organización en Cultuvilla: {url}"
+    }
   }
 }

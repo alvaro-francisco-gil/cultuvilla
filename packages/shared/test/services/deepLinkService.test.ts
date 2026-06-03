@@ -10,6 +10,7 @@ import {
   getVillageInviteLink,
   getOrgInviteLink,
   parseLink,
+  buildShareMessage,
 } from '../../src/services/deepLinkService';
 
 describe('deepLinkService builders', () => {
@@ -118,5 +119,34 @@ describe('deepLinkService.parseLink', () => {
       resource: 'event',
       id: 'evt_round',
     });
+  });
+});
+
+describe('deepLinkService.buildShareMessage', () => {
+  const t = (key: string, vars?: Record<string, string | number>) => {
+    const map: Record<string, string> = {
+      'deeplink.share.event': 'Te invito a este evento: {url}',
+      'deeplink.share.news': 'Mira esta noticia: {url}',
+      'deeplink.share.village': 'Te invito a este pueblo: {url}',
+      'deeplink.share.organization': 'Te invito a esta organización: {url}',
+    };
+    let out = map[key] ?? key;
+    if (vars) for (const [k, v] of Object.entries(vars)) out = out.replaceAll(`{${k}}`, String(v));
+    return out;
+  };
+
+  it('produces an event share message', () => {
+    const link = getEventLink('evt_1');
+    expect(buildShareMessage(link, t)).toBe(`Te invito a este evento: ${link.url}`);
+  });
+
+  it('produces a village share message', () => {
+    const link = getVillageInviteLink('mun_1');
+    expect(buildShareMessage(link, t)).toBe(`Te invito a este pueblo: ${link.url}`);
+  });
+
+  it('produces an organization share message', () => {
+    const link = getOrgInviteLink('org_1');
+    expect(buildShareMessage(link, t)).toBe(`Te invito a esta organización: ${link.url}`);
   });
 });

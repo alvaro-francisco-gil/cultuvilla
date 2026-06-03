@@ -92,3 +92,12 @@ export function parseLink(input: string): ParsedDeepLink | null {
   if (url.hostname !== getDeepLinkHost()) return null;
   return interpret(url.pathname.split('/').filter(Boolean));
 }
+
+export type DeepLinkTranslate = (
+  key: string,
+  vars?: Record<string, string | number>,
+) => string;
+
+export function buildShareMessage(link: DeepLink, t: DeepLinkTranslate): string {
+  return t(`deeplink.share.${link.resource}`, { url: link.url });
+}
