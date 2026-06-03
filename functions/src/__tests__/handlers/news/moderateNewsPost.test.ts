@@ -16,26 +16,35 @@ async function seedMember(uid: string, role: 'admin' | 'user'): Promise<void> {
   await admin
     .firestore()
     .doc(`municipalities/${MUNICIPALITY_ID}/members/${uid}`)
-    .set({ uid, role, joinedAt: admin.firestore.FieldValue.serverTimestamp() });
+    .set({
+      userId: uid,
+      role,
+      joinedAt: new Date(),
+      profileAnswers: {},
+      profileCompletedAt: null,
+      trustedNewsAuthor: false,
+    });
 }
 
 async function seedPost(postId: string, status: 'pending' | 'approved' | 'rejected'): Promise<void> {
+  const now = new Date();
   await admin
     .firestore()
     .doc(`news/${postId}`)
     .set({
       municipalityId: MUNICIPALITY_ID,
       authorUserId: 'author-1',
+      authorOrgId: null,
       title: 'Fiesta del pueblo',
       body: 'Descripción',
       category: 'fiesta',
       images: [],
       status,
       rejectionReason: null,
-      submittedAt: admin.firestore.FieldValue.serverTimestamp(),
+      submittedAt: now,
       publishedAt: null,
       createdBy: 'author-1',
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: now,
       reactionCounts: { like: 0, heart: 0 },
       commentCount: 0,
     });

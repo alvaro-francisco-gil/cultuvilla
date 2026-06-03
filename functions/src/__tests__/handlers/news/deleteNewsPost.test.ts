@@ -16,23 +16,32 @@ async function seedMember(uid: string, role: 'admin' | 'user'): Promise<void> {
   await admin
     .firestore()
     .doc(`municipalities/${MUNICIPALITY_ID}/members/${uid}`)
-    .set({ uid, role, joinedAt: admin.firestore.FieldValue.serverTimestamp() });
+    .set({
+      userId: uid,
+      role,
+      joinedAt: new Date(),
+      profileAnswers: {},
+      profileCompletedAt: null,
+      trustedNewsAuthor: false,
+    });
 }
 
 async function seedPost(postId: string): Promise<void> {
+  const now = new Date();
   await admin.firestore().doc(`news/${postId}`).set({
     municipalityId: MUNICIPALITY_ID,
     authorUserId: 'author-1',
+    authorOrgId: null,
     title: 'Test post',
     body: 'Body',
     category: 'fiesta',
     images: [],
     status: 'approved',
     rejectionReason: null,
-    submittedAt: admin.firestore.FieldValue.serverTimestamp(),
-    publishedAt: admin.firestore.FieldValue.serverTimestamp(),
+    submittedAt: now,
+    publishedAt: now,
     createdBy: 'author-1',
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: now,
     reactionCounts: { like: 0, heart: 0 },
     commentCount: 0,
   });
@@ -44,7 +53,7 @@ async function seedComment(commentId: string, postId: string, hidden = false): P
     municipalityId: MUNICIPALITY_ID,
     authorUserId: 'user-1',
     body: 'A comment',
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: new Date(),
     hidden,
   });
 }
@@ -55,11 +64,15 @@ async function seedReaction(reactionId: string, postId: string): Promise<void> {
     municipalityId: MUNICIPALITY_ID,
     userId: 'user-1',
     kind: 'like',
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: new Date(),
   });
 }
 
-async function seedReport(reportId: string, postId: string, status = 'open'): Promise<void> {
+async function seedReport(
+  reportId: string,
+  postId: string,
+  status: 'open' | 'dismissed' | 'actioned' = 'open',
+): Promise<void> {
   await admin.firestore().doc(`newsReports/${reportId}`).set({
     targetType: 'comment',
     targetId: 'c1',
@@ -67,7 +80,7 @@ async function seedReport(reportId: string, postId: string, status = 'open'): Pr
     municipalityId: MUNICIPALITY_ID,
     reporterUserId: 'user-1',
     reason: 'spam',
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: new Date(),
     status,
     resolvedBy: null,
     resolvedAt: null,

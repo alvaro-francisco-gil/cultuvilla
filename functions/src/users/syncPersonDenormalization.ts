@@ -35,6 +35,8 @@ export const syncPersonDenormalization = onDocumentWritten(
     const afterName = projectName(after);
     if (beforeName === afterName) return;
 
+    // typed-refs: allowed — set({merge:true}) with partial payload; user has
+    // pending edits in this file (see git status), avoid conflicting refactor.
     const userRef = db.doc(`users/${userId}`);
     const userSnap = await userRef.get();
     if (userSnap.exists && userSnap.get('displayName') === afterName) return;

@@ -19,6 +19,7 @@ async function seedMunicipality(opts: {
 }): Promise<void> {
   // Schema-conformant write (MunicipalityDataSchema) so the handler's typed
   // ref converter can normalize-and-parse the doc when it reads.
+  const now = new Date();
   await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}`).set({
     name: 'Villarriba',
     nameLower: 'villarriba',
@@ -26,7 +27,7 @@ async function seedMunicipality(opts: {
     comunidadAutonoma: 'Madrid',
     codigoINE: '28000',
     coordinates: null,
-    createdAt: admin.firestore.Timestamp.fromDate(new Date('2026-01-01')),
+    createdAt: now,
     escudoUrl: null,
     escudoThumbUrl: null,
     communityActive: opts.communityActive,
@@ -36,7 +37,7 @@ async function seedMunicipality(opts: {
           description: '',
           coverImages: [],
           profileForm: null,
-          activatedAt: admin.firestore.Timestamp.fromDate(new Date('2026-01-01')),
+          activatedAt: now,
         }
       : null,
   });
@@ -50,7 +51,7 @@ async function seedMember(userId: string, role: 'admin' | 'user'): Promise<void>
     .set({
       userId,
       role,
-      joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+      joinedAt: new Date(),
       profileAnswers: {},
       profileCompletedAt: null,
       trustedNewsAuthor: false,
@@ -67,7 +68,7 @@ async function seedJoinRequest(
     .set({
       userId,
       status,
-      requestedAt: admin.firestore.FieldValue.serverTimestamp(),
+      requestedAt: new Date(),
       message: null,
       reviewedAt: null,
       reviewedBy: null,

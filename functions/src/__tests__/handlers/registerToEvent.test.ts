@@ -16,11 +16,27 @@ const USER_ID = 'alice';
 const OTHER_USER_ID = 'visitor';
 
 async function seedEvent(opts: { maxAttendees: number | null }): Promise<void> {
+  const now = new Date();
   await admin.firestore().doc(`events/${EVENT_ID}`).set({
     title: 'Fiesta',
+    description: 'Una fiesta',
+    startDate: now,
+    endDate: null,
+    location: { type: 'text', coordinates: null, text: 'plaza' },
+    imageURL: null,
+    price: null,
     maxAttendees: opts.maxAttendees,
-    municipalityId: MUNICIPALITY_ID,
+    telephoneRequired: false,
     status: 'published',
+    organizationId: 'org-1',
+    organizationName: 'Org 1',
+    createdBy: 'creator-1',
+    createdAt: now,
+    updatedAt: now,
+    municipalityId: MUNICIPALITY_ID,
+    municipalityName: 'Villarriba',
+    municipalityCoverImage: null,
+    municipalityCoordinates: null,
   });
 }
 
@@ -28,7 +44,10 @@ async function seedMembership(userId: string): Promise<void> {
   await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}/members/${userId}`).set({
     userId,
     role: 'user',
-    joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+    joinedAt: new Date(),
+    profileAnswers: {},
+    profileCompletedAt: null,
+    trustedNewsAuthor: false,
   });
 }
 
@@ -43,7 +62,7 @@ async function seedExistingReg(
     status: opts.status,
     position: opts.position,
     isMember: false,
-    registeredAt: admin.firestore.FieldValue.serverTimestamp(),
+    registeredAt: new Date(),
   });
 }
 

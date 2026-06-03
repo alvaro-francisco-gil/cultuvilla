@@ -57,6 +57,12 @@ jobs:
       - name: Typecheck (shared, functions, i18n, mobile)
         run: pnpm typecheck
 
+      - name: Lint (shared, functions)
+        run: pnpm lint
+
+      - name: Check no raw Firestore refs outside firebase/refs/
+        run: pnpm check:no-raw-firestore-refs
+
       - name: Test (unit — shared, mobile, functions)
         run: pnpm test:unit
 

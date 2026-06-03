@@ -15,9 +15,10 @@ export async function saveProfileAnswers(
   fields: ProfileFormField[],
   answers: ProfileAnswers,
 ): Promise<void> {
-  const memberRef = doc(getDb(), 'municipalities', municipalityId, 'members', userId);
+  // updateDoc bypasses the converter; inline untyped doc lets the partial
+  // payload (FieldValue | null union on profileCompletedAt) typecheck.
   const complete = isCensoComplete(fields, answers);
-  await updateDoc(memberRef, {
+  await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'members', userId), {
     profileAnswers: answers,
     profileCompletedAt: complete ? serverTimestamp() : null,
   });

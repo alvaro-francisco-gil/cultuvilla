@@ -120,12 +120,12 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
         // tx.update bypasses the converter so a partial { personId } update
         // is fine — but personRef was created outside the tx, so use a
         // post-tx update via the raw doc ref.
-        await db.collection('users').doc(userId).update({ personId: personRef.id });
+        await userDoc(db, userId).update({ personId: personRef.id });
         profileCreated = true;
       } else {
         // merge:true requires a partial doc; converter rejects partial sets,
         // so use the raw doc ref via untyped update for this branch.
-        tx.update(db.doc(`users/${userId}`), { activeMunicipalityId: municipalityId });
+        tx.update(userDoc(db, userId), { activeMunicipalityId: municipalityId });
       }
 
       if (memberSnap.exists) {

@@ -1,29 +1,21 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import * as admin from 'firebase-admin';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { eventsCollection } from '@cultuvilla/shared/firebase/refs/admin';
 
-const db = admin.firestore();
+const db = getFirestore();
 
 export const completeExpiredEvents = onSchedule('every 1 hours', async () => {
-  const villages = await db.collection('villages').get();
+  const events = await eventsCollection(db).where('status', '==', 'published').get();
+  const now = new Date();
 
-  for (const village of villages.docs) {
-    const events = await db
-      .collection(`villages/${village.id}/events`)
-      .where('status', '==', 'published')
-      .get();
-
-    for (const event of events.docs) {
-      // Legacy un-migrated path (villages/{id}/events). Treat data() as the
-      // narrow shape we read here; full migration to typed refs is tracked
-      // separately.
-      const data = event.data() as {
-        startDate: admin.firestore.Timestamp;
-        endDate?: admin.firestore.Timestamp;
-      };
-      const compareDate = data.endDate ?? data.startDate;
-      if (compareDate.toDate() < new Date()) {
-        await event.ref.update({ status: 'completed', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-      }
+  for (const event of events.docs) {
+    const data = event.data();
+    const compareDate = data.endDate ?? data.startDate;
+    if (compareDate < now) {
+      await event.ref.update({
+        status: 'completed',
+        updatedAt: FieldValue.serverTimestamp(),
+      });
     }
   }
 });

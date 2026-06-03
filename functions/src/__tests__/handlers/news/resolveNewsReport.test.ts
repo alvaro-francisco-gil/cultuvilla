@@ -16,7 +16,14 @@ async function seedMember(uid: string, role: 'admin' | 'user'): Promise<void> {
   await admin
     .firestore()
     .doc(`municipalities/${MUNICIPALITY_ID}/members/${uid}`)
-    .set({ uid, role, joinedAt: admin.firestore.FieldValue.serverTimestamp() });
+    .set({
+      userId: uid,
+      role,
+      joinedAt: new Date(),
+      profileAnswers: {},
+      profileCompletedAt: null,
+      trustedNewsAuthor: false,
+    });
 }
 
 async function seedComment(commentId: string, hidden = false): Promise<void> {
@@ -25,7 +32,7 @@ async function seedComment(commentId: string, hidden = false): Promise<void> {
     municipalityId: MUNICIPALITY_ID,
     authorUserId: 'user-1',
     body: 'A comment',
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: new Date(),
     hidden,
   });
 }
@@ -42,7 +49,7 @@ async function seedReport(
     municipalityId: MUNICIPALITY_ID,
     reporterUserId: 'user-1',
     reason: 'spam',
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: new Date(),
     status,
     resolvedBy: null,
     resolvedAt: null,

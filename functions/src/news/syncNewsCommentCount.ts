@@ -1,6 +1,7 @@
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions/v2';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { newsDoc } from '@cultuvilla/shared/firebase/refs/admin';
 
 const db = getFirestore();
 
@@ -44,8 +45,25 @@ export const syncNewsCommentCount = onDocumentWritten(
 
     if (delta === 0) return;
 
-    // Raw doc ref: partial update with FieldValue sentinel bypasses converter.
-    await db.doc(`news/${postId}`).update({ commentCount: FieldValue.increment(delta) });
+    // Typed ref — .update() bypasses the converter, so the partial +
+    // FieldValue payload typechecks against UpdateData<NewsPostData>.
+    try {
+      await newsDoc(db, postId).update({ commentCount: FieldValue.increment(delta) });
+    } catch (err) {
+      // Race: the parent news post was deleted before this trigger ran. Treat
+      // as a no-op (the post is gone, no counters to maintain) and avoid
+      // throwing — otherwise Eventarc would retry the trigger indefinitely.
+      const code = (err as { code?: number | string } | null)?.code;
+      if (code === 5 || code === 'NOT_FOUND' || code === 'not-found') {
+        logger.warn('news post missing when updating comment count, skipping', {
+          handler: 'syncNewsCommentCount',
+          postId,
+          delta,
+        });
+        return;
+      }
+      throw err;
+    }
     logger.info('comment count updated', {
       handler: 'syncNewsCommentCount',
       postId,

@@ -18,9 +18,11 @@ async function seedMember(uid: string, role: 'admin' | 'user', trusted = false):
     .firestore()
     .doc(`municipalities/${MUNICIPALITY_ID}/members/${uid}`)
     .set({
-      uid,
+      userId: uid,
       role,
-      joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+      joinedAt: new Date(),
+      profileAnswers: {},
+      profileCompletedAt: null,
       trustedNewsAuthor: trusted,
     });
 }

@@ -3,6 +3,8 @@ import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import {
+  adminDoc,
+  municipalityMemberDoc,
   newsDoc,
   newsCommentsCollection,
   newsReactionsCollection,
@@ -21,8 +23,8 @@ interface DeleteNewsPostResult {
 
 async function isAdminCaller(uid: string, municipalityId: string): Promise<boolean> {
   const [callerMemberSnap, appAdminSnap] = await Promise.all([
-    db.doc(`municipalities/${municipalityId}/members/${uid}`).get(),
-    db.doc(`admins/${uid}`).get(),
+    municipalityMemberDoc(db, municipalityId, uid).get(),
+    adminDoc(db, uid).get(),
   ]);
   return (callerMemberSnap.exists && callerMemberSnap.get('role') === 'admin') || appAdminSnap.exists;
 }

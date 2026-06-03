@@ -48,13 +48,16 @@ describe('villageMemberService — getUserMemberships', () => {
       const db = ctx.firestore() as unknown as Firestore;
       const now = new Date();
       await setDoc(doc(db, 'municipalities/m1/members/alice'), {
-        userId: 'alice', role: 'member', joinedAt: now, profileCompletedAt: null,
+        userId: 'alice', role: 'user', joinedAt: now, profileAnswers: {},
+        profileCompletedAt: null, trustedNewsAuthor: false,
       });
       await setDoc(doc(db, 'municipalities/m2/members/alice'), {
-        userId: 'alice', role: 'admin', joinedAt: now, profileCompletedAt: null,
+        userId: 'alice', role: 'admin', joinedAt: now, profileAnswers: {},
+        profileCompletedAt: null, trustedNewsAuthor: false,
       });
       await setDoc(doc(db, 'municipalities/m3/members/bob'), {
-        userId: 'bob', role: 'member', joinedAt: now, profileCompletedAt: null,
+        userId: 'bob', role: 'user', joinedAt: now, profileAnswers: {},
+        profileCompletedAt: null, trustedNewsAuthor: false,
       });
     });
 

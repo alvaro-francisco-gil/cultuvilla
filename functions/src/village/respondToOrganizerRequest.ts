@@ -2,6 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import {
+  adminDoc,
   municipalityDoc,
   municipalityMemberDoc,
   organizerRequestDoc,
@@ -36,8 +37,7 @@ export const respondToOrganizerRequest = onCall<
     }
 
     const callerUid = auth.uid;
-    // admins/ collection has no typed ref yet — existence-only check, raw is fine.
-    const adminSnap = await db.doc(`admins/${callerUid}`).get();
+    const adminSnap = await adminDoc(db, callerUid).get();
     if (!adminSnap.exists) {
       throw new HttpsError('permission-denied', 'Sólo superadmin.');
     }

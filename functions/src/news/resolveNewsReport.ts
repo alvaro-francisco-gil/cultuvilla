@@ -2,7 +2,12 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { newsReportDoc } from '@cultuvilla/shared/firebase/refs/admin';
+import {
+  adminDoc,
+  municipalityMemberDoc,
+  newsCommentDoc,
+  newsReportDoc,
+} from '@cultuvilla/shared/firebase/refs/admin';
 
 const db = admin.firestore();
 
@@ -28,8 +33,9 @@ export const resolveNewsReport = onCall<ResolveNewsReportData, Promise<ResolveNe
     }
 
     const reportRef = newsReportDoc(db, reportId);
-    // Raw refs for tx.update (partial payload + FieldValue sentinels).
-    const reportRawRef = db.doc(`newsReports/${reportId}`);
+    // Same typed ref reused for tx.update — partial + FieldValue sentinels
+    // typecheck against UpdateData<NewsReportData> and bypass the converter.
+    const reportRawRef = reportRef;
 
     await db.runTransaction(async (tx) => {
       const reportSnap = await tx.get(reportRef);
@@ -43,8 +49,8 @@ export const resolveNewsReport = onCall<ResolveNewsReportData, Promise<ResolveNe
       }
 
       const municipalityId = report.municipalityId;
-      const callerMemberRef = db.doc(`municipalities/${municipalityId}/members/${auth.uid}`);
-      const appAdminRef = db.doc(`admins/${auth.uid}`);
+      const callerMemberRef = municipalityMemberDoc(db, municipalityId, auth.uid);
+      const appAdminRef = adminDoc(db, auth.uid);
 
       const [callerMemberSnap, appAdminSnap] = await Promise.all([
         tx.get(callerMemberRef),
@@ -68,7 +74,7 @@ export const resolveNewsReport = onCall<ResolveNewsReportData, Promise<ResolveNe
         });
       } else {
         // action === 'remove': hide the target comment and mark report as actioned
-        const commentRawRef = db.doc(`newsComments/${report.targetId}`);
+        const commentRawRef = newsCommentDoc(db, report.targetId);
         tx.update(commentRawRef, { hidden: true });
         tx.update(reportRawRef, {
           status: 'actioned',

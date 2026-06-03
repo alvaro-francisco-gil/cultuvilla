@@ -2,7 +2,11 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { newsDoc } from '@cultuvilla/shared/firebase/refs/admin';
+import {
+  adminDoc,
+  municipalityMemberDoc,
+  newsDoc,
+} from '@cultuvilla/shared/firebase/refs/admin';
 
 const db = admin.firestore();
 
@@ -29,8 +33,6 @@ export const moderateNewsPost = onCall<ModerateNewsPostData, Promise<ModerateNew
     }
 
     const postRef = newsDoc(db, postId);
-    // Raw ref for tx.update (partial payload + FieldValue sentinels).
-    const postRawRef = db.doc(`news/${postId}`);
 
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(postRef);
@@ -44,8 +46,8 @@ export const moderateNewsPost = onCall<ModerateNewsPostData, Promise<ModerateNew
       }
 
       const municipalityId = post.municipalityId;
-      const callerMemberRef = db.doc(`municipalities/${municipalityId}/members/${auth.uid}`);
-      const appAdminRef = db.doc(`admins/${auth.uid}`);
+      const callerMemberRef = municipalityMemberDoc(db, municipalityId, auth.uid);
+      const appAdminRef = adminDoc(db, auth.uid);
 
       const [callerMemberSnap, appAdminSnap] = await Promise.all([
         tx.get(callerMemberRef),
@@ -73,8 +75,11 @@ export const moderateNewsPost = onCall<ModerateNewsPostData, Promise<ModerateNew
               updatedAt: FieldValue.serverTimestamp(),
             };
 
-      // tx.update bypasses the converter, so FieldValue sentinels are fine.
-      tx.update(postRawRef, patch);
+      // tx.update bypasses the converter; inline untyped ref keeps the
+      // partial + FieldValue + null payload typecheckable (the typed
+      // UpdateData<NewsPostData> distribution chokes on `null` siblings of
+      // FieldValue sentinels).
+      tx.update(db.doc(`news/${postId}`), patch);
     });
 
     logger.info('moderated news post', { handler, postId, decision });

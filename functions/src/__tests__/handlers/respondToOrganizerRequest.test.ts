@@ -17,17 +17,32 @@ async function seedMunicipality(opts: {
   communityActive: boolean;
   adminUserId?: string | null;
 }): Promise<void> {
+  const now = new Date();
   await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}`).set({
     name: 'Villarriba',
+    nameLower: 'villarriba',
+    province: 'Madrid',
+    comunidadAutonoma: 'Madrid',
+    codigoINE: '28000',
+    coordinates: null,
+    createdAt: now,
+    escudoUrl: null,
+    escudoThumbUrl: null,
     communityActive: opts.communityActive,
     community: opts.adminUserId
-      ? { adminUserId: opts.adminUserId, description: '', coverImages: [] }
+      ? {
+          adminUserId: opts.adminUserId,
+          description: '',
+          coverImages: [],
+          profileForm: null,
+          activatedAt: now,
+        }
       : null,
   });
 }
 
 async function seedAppAdmin(uid: string): Promise<void> {
-  await admin.firestore().doc(`admins/${uid}`).set({ createdAt: admin.firestore.FieldValue.serverTimestamp() });
+  await admin.firestore().doc(`admins/${uid}`).set({ createdAt: new Date() });
 }
 
 async function seedOrganizerRequest(opts: {
@@ -40,7 +55,7 @@ async function seedOrganizerRequest(opts: {
     userId: opts.userId,
     municipalityId: opts.municipalityId,
     status: opts.status,
-    requestedAt: admin.firestore.FieldValue.serverTimestamp(),
+    requestedAt: new Date(),
     motivation: null,
     reviewedAt: null,
     reviewedBy: null,

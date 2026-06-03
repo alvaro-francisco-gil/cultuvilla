@@ -2,6 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import {
+  adminDoc,
   municipalityDoc,
   municipalityJoinRequestDoc,
   municipalityMemberDoc,
@@ -41,9 +42,7 @@ export const respondToJoinRequest = onCall<
     const memberRef = municipalityMemberDoc(db, municipalityId, userId);
     const reqRef = municipalityJoinRequestDoc(db, municipalityId, userId);
     const callerMemberRef = municipalityMemberDoc(db, municipalityId, callerUid);
-    // admins/ collection has no typed ref yet — it's only ever existence-
-    // checked here, so raw access is fine.
-    const adminRef = db.doc(`admins/${callerUid}`);
+    const adminRef = adminDoc(db, callerUid);
 
     let municipalityName = '';
     await db.runTransaction(async (tx) => {

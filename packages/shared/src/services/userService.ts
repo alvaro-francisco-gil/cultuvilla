@@ -42,6 +42,7 @@ export async function createUserProfile(
   // written first. Bypass the typed converter (which would write a full
   // schema-shaped object, including displayName: '' that firestore.rules
   // blocks for clients) by using a raw doc ref for this merge payload.
+  // typed-refs: allowed
   const docRef = doc(getDb(), 'users', userId);
   await setDoc(
     docRef,

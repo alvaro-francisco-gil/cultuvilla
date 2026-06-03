@@ -148,7 +148,6 @@ export async function activateCommunity(
   municipalityId: string,
   input: ActivateCommunityInput,
 ): Promise<void> {
-  const munRef = doc(getDb(), 'municipalities', municipalityId);
   const memberRef = municipalityMemberDoc(getDb(), municipalityId, input.adminUserId);
 
   const community = {
@@ -167,7 +166,9 @@ export async function activateCommunity(
   if (input.coordinates !== undefined) {
     munUpdate['coordinates'] = input.coordinates;
   }
-  batch.update(munRef, munUpdate);
+  // batch.update bypasses the converter; pass an untyped ref so the partial +
+  // FieldValue payload typechecks.
+  batch.update(doc(getDb(), 'municipalities', municipalityId), munUpdate);
   batch.set(memberRef, {
     userId: input.adminUserId,
     role: 'admin',

@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import {
+  adminDoc,
   municipalityDoc,
   municipalityMembersCollection,
   municipalityMemberDoc,
@@ -71,7 +72,7 @@ export const updateCenso = onCall<UpdateCensoData, Promise<UpdateCensoResult>>(
     const memberSnap = await memberRef.get();
     const isVillageAdmin = memberSnap.exists && memberSnap.data()?.role === 'admin';
     // admins/ collection has no typed ref yet — existence-check only.
-    const adminDocRef = db.doc(`admins/${auth.uid}`);
+    const adminDocRef = adminDoc(db, auth.uid);
     const isAppAdmin = (await adminDocRef.get()).exists;
     if (!isVillageAdmin && !isAppAdmin) {
       throw new HttpsError('permission-denied', 'Solo el coordinador puede modificar el censo.');

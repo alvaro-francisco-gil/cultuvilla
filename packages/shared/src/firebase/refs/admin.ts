@@ -20,6 +20,7 @@ import { newsReactionConverterAdmin } from '../converters/newsReactionConverter'
 import { newsReportConverterAdmin } from '../converters/newsReportConverter';
 import { occupationConverterAdmin } from '../converters/occupationConverter';
 import { occupationProposalConverterAdmin } from '../converters/occupationProposalConverter';
+import { adminConverterAdmin } from '../converters/adminConverter';
 
 export const eventsCollection = (db: Firestore) =>
   db.collection('events').withConverter(eventConverterAdmin);
@@ -154,3 +155,11 @@ export const occupationProposalsCollection = (db: Firestore) =>
 
 export const occupationProposalDoc = (db: Firestore, proposalId: string) =>
   db.collection('occupationProposals').doc(proposalId).withConverter(occupationProposalConverterAdmin);
+
+// ── Admin domain ─────────────────────────────────────────────────────────
+
+export const adminsCollection = (db: Firestore) =>
+  db.collection('admins').withConverter(adminConverterAdmin);
+
+export const adminDoc = (db: Firestore, userId: string) =>
+  db.collection('admins').doc(userId).withConverter(adminConverterAdmin);

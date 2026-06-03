@@ -41,7 +41,16 @@ function isLatLng(v: unknown): v is { lat: number; lng: number } {
 
 export function denormalize(value: unknown, sdk: SdkCtors): unknown {
   if (value === null || value === undefined) return value;
-  if (value instanceof Date) return sdk.TimestampFromDate(value);
+  // Both admin and client SDKs natively convert JS Date -> Firestore Timestamp
+  // on write. We intentionally do NOT call `sdk.TimestampFromDate` here:
+  // packages/shared and the consumer (functions/, apps/mobile) can each end up
+  // with their own copy of @google-cloud/firestore (npm `file:` link installs
+  // duplicate the dep). Creating a Timestamp from shared's copy and writing
+  // through the consumer's copy fails the SDK's `instanceof` check with
+  // `Detected an object of type "Timestamp" that doesn't match the expected
+  // instance`. Passing the raw Date through dodges the cross-copy class
+  // identity problem entirely.
+  if (value instanceof Date) return value;
   if (isLatLng(value)) return sdk.GeoPointFrom(value.lat, value.lng);
   if (Array.isArray(value)) return value.map((v) => denormalize(v, sdk));
   if (typeof value === 'object') {

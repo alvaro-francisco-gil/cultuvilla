@@ -4,7 +4,12 @@
 // after its transaction commits.
 
 import * as admin from 'firebase-admin';
-import { userNotificationsCollection } from '@cultuvilla/shared/firebase/refs/admin';
+import {
+  adminsCollection,
+  municipalityDoc,
+  municipalityMembersCollection,
+  userNotificationsCollection,
+} from '@cultuvilla/shared/firebase/refs/admin';
 import { buildNotificationData } from '@cultuvilla/shared';
 
 const db = admin.firestore();
@@ -69,7 +74,7 @@ interface NotifyOrganizerRequestCreatedInput {
 export async function notifyOrganizerRequestCreated(
   input: NotifyOrganizerRequestCreatedInput,
 ): Promise<void> {
-  const admins = await db.collection('admins').get();
+  const admins = await adminsCollection(db).get();
   if (admins.empty) return;
   const batch = db.batch();
   for (const a of admins.docs) {
@@ -124,16 +129,16 @@ interface ListVillageAdminRecipientsInput {
 export async function listVillageAdminRecipients(
   input: ListVillageAdminRecipientsInput,
 ): Promise<string[]> {
-  const muniRef = db.doc(`municipalities/${input.municipalityId}`);
-  const membersRef = db.collection(`municipalities/${input.municipalityId}/members`);
+  const muniRef = municipalityDoc(db, input.municipalityId);
+  const membersRef = municipalityMembersCollection(db, input.municipalityId);
   const [muniSnap, membersSnap] = await Promise.all([
     muniRef.get(),
     membersRef.where('role', '==', 'admin').get(),
   ]);
   const recipients = new Set<string>();
-  // muniRef is untyped (raw db.doc), so .get() returns `unknown` field values.
-  const communityAdmin: unknown = muniSnap.get('community.adminUserId');
-  if (typeof communityAdmin === 'string' && communityAdmin) recipients.add(communityAdmin);
+  const muniData = muniSnap.data();
+  const communityAdmin = muniData?.community?.adminUserId ?? null;
+  if (communityAdmin) recipients.add(communityAdmin);
   for (const d of membersSnap.docs) recipients.add(d.id);
   if (input.excludeUid) recipients.delete(input.excludeUid);
   return [...recipients];

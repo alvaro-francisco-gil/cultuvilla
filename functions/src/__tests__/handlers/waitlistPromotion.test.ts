@@ -21,10 +21,27 @@ function regPath(regId: string): string {
 }
 
 async function seedEvent(opts: { title: string; maxAttendees: number | null }): Promise<void> {
+  const now = new Date();
   await admin.firestore().doc(`events/${EVENT_ID}`).set({
     title: opts.title,
+    description: 'Una fiesta',
+    startDate: now,
+    endDate: null,
+    location: { type: 'text', coordinates: null, text: 'plaza' },
+    imageURL: null,
+    price: null,
     maxAttendees: opts.maxAttendees,
+    telephoneRequired: false,
+    status: 'published',
+    organizationId: 'org-1',
+    organizationName: 'Org 1',
+    createdBy: 'creator-1',
+    createdAt: now,
+    updatedAt: now,
     municipalityId: MUNICIPALITY_ID,
+    municipalityName: 'Villarriba',
+    municipalityCoverImage: null,
+    municipalityCoordinates: null,
   });
 }
 
@@ -37,11 +54,17 @@ interface SeedReg {
 }
 
 async function seedRegistration(reg: SeedReg): Promise<void> {
+  // Schema-conformant write (RegistrationDataSchema) so the trigger's typed
+  // ref converter can normalize-and-parse the doc when it reads existing
+  // waitlisted regs to promote.
   await admin.firestore().doc(regPath(reg.id)).set({
     status: reg.status,
     userId: reg.userId,
+    personId: `${reg.userId}-self`,
     name: reg.name,
     position: reg.position ?? 0,
+    isMember: false,
+    registeredAt: new Date(),
   });
 }
 
@@ -117,10 +140,27 @@ describe('onRegistrationDeleted (waitlist promotion)', () => {
   it('updates confirmedCount and totalCount on the event after deletion', async () => {
     // Seed an event with bogus counts to ensure the trigger recomputes from
     // the source of truth rather than trusting whatever was on the doc.
+    const now = new Date();
     await admin.firestore().doc(`events/${EVENT_ID}`).set({
       title: 'Fiesta',
+      description: 'Una fiesta',
+      startDate: now,
+      endDate: null,
+      location: { type: 'text', coordinates: null, text: 'plaza' },
+      imageURL: null,
+      price: null,
       maxAttendees: 5,
+      telephoneRequired: false,
+      status: 'published',
+      organizationId: 'org-1',
+      organizationName: 'Org 1',
+      createdBy: 'creator-1',
+      createdAt: now,
+      updatedAt: now,
       municipalityId: MUNICIPALITY_ID,
+      municipalityName: 'Villarriba',
+      municipalityCoverImage: null,
+      municipalityCoordinates: null,
       confirmedCount: 999,
       totalCount: 999,
     });

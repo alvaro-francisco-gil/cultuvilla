@@ -1,7 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
-import { municipalityMemberDoc } from '@cultuvilla/shared/firebase/refs/admin';
+import { adminDoc, municipalityMemberDoc } from '@cultuvilla/shared/firebase/refs/admin';
 
 const db = admin.firestore();
 
@@ -28,7 +28,7 @@ export const setTrustedNewsAuthor = onCall<SetTrustedNewsAuthorData, Promise<Set
     }
 
     const callerMemberRef = municipalityMemberDoc(db, municipalityId, auth.uid);
-    const appAdminRef = db.doc(`admins/${auth.uid}`);
+    const appAdminRef = adminDoc(db, auth.uid);
     const targetMemberRef = municipalityMemberDoc(db, municipalityId, userId);
 
     const [callerMemberSnap, appAdminSnap, targetMemberSnap] = await Promise.all([
@@ -49,8 +49,9 @@ export const setTrustedNewsAuthor = onCall<SetTrustedNewsAuthorData, Promise<Set
       throw new HttpsError('not-found', 'El usuario no es miembro de este municipio.');
     }
 
-    // update bypasses the converter; partial payload goes on the raw doc ref.
-    await db.doc(`municipalities/${municipalityId}/members/${userId}`).update({
+    // Typed ref — .update() bypasses the converter, so a partial payload
+    // typechecks against UpdateData<VillageMemberData>.
+    await targetMemberRef.update({
       trustedNewsAuthor: trusted,
     });
 

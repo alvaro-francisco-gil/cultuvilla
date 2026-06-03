@@ -16,15 +16,63 @@ Cultuvilla uses **first-class top-level collections** scoped by a `municipalityI
 
 ## Checklist
 
-### 1. Model
+### 1. Model (Zod schema is source of truth)
 
-Create `packages/shared/src/models/<entity>.ts`. Export the type, the `Collections.<EntityKey>` path constant if the file maintains one, and any input shapes used at create/update time (`CreateXInput`, `UpdateXInput`). Keep fields strict — no `any`.
+Create `packages/shared/src/models/<entity>/<Entity>DataModel.ts`. The Zod schema is the source of truth — the TypeScript type is derived from it:
 
-If the entity has subdocs (e.g. nested `images`), model the sub-shape as its own interface in the same file unless reused elsewhere.
+```ts
+import { z } from 'zod';
 
-### 2. Service
+export const <Entity>DataSchema = z.object({
+  // all fields, strict — no any. Use z.string(), z.number(), z.date(),
+  // z.boolean(), z.array(...), nested z.object(...), z.enum(...),
+  // .nullable() for nullable fields.
+});
+export type <Entity>Data = z.infer<typeof <Entity>DataSchema>;
 
-Create `packages/shared/src/services/<entity>Service.ts`. Banner-section style matching `eventService.ts` or `personService.ts`. Strict types on every export. No `any` at boundaries. No silent fallbacks.
+export interface <Entity>DataInput { /* fields with optional defaults */ }
+export function build<Entity>Data(input: <Entity>DataInput): <Entity>Data { /* apply defaults */ }
+```
+
+Add a `packages/shared/src/models/<entity>/index.ts` re-exporting, and add `export * from './<entity>'` to `packages/shared/src/models/index.ts`.
+
+### 2. Converter (binds the schema to the SDKs)
+
+Create `packages/shared/src/firebase/converters/<entity>Converter.ts`:
+
+```ts
+import { <Entity>DataSchema } from '../../models/<entity>/<Entity>DataModel';
+import { makeConverter } from './makeConverter';
+import { clientSdkCtors } from './sdkAdapters.client';
+import { adminSdkCtors } from './sdkAdapters.admin';
+
+export const <entity>ConverterClient = makeConverter(<Entity>DataSchema, clientSdkCtors);
+export const <entity>ConverterAdmin = makeConverter(<Entity>DataSchema, adminSdkCtors);
+```
+
+### 3. Ref factories (the ONLY place raw `collection()` / `db.collection()` is allowed)
+
+Add factories in BOTH `packages/shared/src/firebase/refs/client.ts` and `packages/shared/src/firebase/refs/admin.ts`:
+
+```ts
+// client.ts
+export const <entity>sCollection = (db: Firestore) =>
+  collection(db, '<entity>s').withConverter(<entity>ConverterClient);
+export const <entity>Doc = (db: Firestore, id: string) =>
+  doc(db, '<entity>s', id).withConverter(<entity>ConverterClient);
+
+// admin.ts — same shape, admin SDK
+export const <entity>sCollection = (db: Firestore) =>
+  db.collection('<entity>s').withConverter(<entity>ConverterAdmin);
+export const <entity>Doc = (db: Firestore, id: string) =>
+  db.collection('<entity>s').doc(id).withConverter(<entity>ConverterAdmin);
+```
+
+The CI grep gate (`scripts/check-no-raw-firestore-refs.mjs`) fails the build if these strings appear anywhere else.
+
+### 4. Service
+
+Create `packages/shared/src/services/<entity>Service.ts`. Banner-section style matching `eventService.ts` or `personService.ts`. Strict types on every export. No `any` at boundaries. No silent fallbacks. **Always use the typed ref factories from step 3** — never construct `doc(getDb(), '<entity>', id)` inline. The only exception: an `updateDoc(doc(getDb(), '<entity>', id), partial)` pattern is allowed *on the same line* when the typed `UpdateData<<Entity>Data>` distribution chokes on `null + FieldValue` siblings — see `membershipProfileService.ts` for an example.
 
 Standard entry points to define (only those that are actually needed — YAGNI). For top-level collections the doc id alone identifies the entity; the `municipalityId` lives inside the doc and is passed in `create<Entity>Input`:
 
@@ -38,11 +86,11 @@ For nested sub-collections (the exception, not the default — see "Decide the p
 
 Cross-user writes or trust-sensitive updates DO NOT go in the client service — they go in a Cloud Function callable. See the `guardrail-enforcement` skill.
 
-### 3. Index re-export
+### 5. Index re-export
 
 Add the service to `packages/shared/src/services/index.ts`. Match the style of existing entries (`export * from './<entity>Service';`).
 
-### 4. Services map
+### 6. Services map
 
 Add a row to [`packages/shared/src/services/_services-map.md`](../../../packages/shared/src/services/_services-map.md):
 
@@ -52,14 +100,31 @@ Add a row to [`packages/shared/src/services/_services-map.md`](../../../packages
 
 The map is the agent index. Skipping this row means future sessions won't find your service.
 
-### 5. Rules
+### 7. Rules — auth + shape validation
 
-Open [`firestore.rules`](../../../firestore.rules). Add a top-level match block for the new collection. Derive the municipality from the doc's `municipalityId` field, not from the path:
+Open [`firestore.rules`](../../../firestore.rules). TWO things go in:
+
+**(a)** A shape predicate at the top of the file (next to `isValidNewsPostCreate` and friends). It mirrors the Zod schema — `keys().hasOnly([...])` rejects unknown fields, `keys().hasAll([...])` requires every field, plus type checks (`is string`, `is number`, `is bool`, `is timestamp`, or `in [enum, values]`):
+
+```
+function isValid<Entity>Create(d) {
+  return d.keys().hasOnly([/* every field in <Entity>DataSchema */])
+      && d.keys().hasAll([/* every required field */])
+      && isString(d.<field>)
+      && d.<enum> in ['a', 'b', 'c']
+      && isTimestamp(d.<dateField>)
+      ;
+}
+```
+
+**(b)** A top-level match block that uses both the helper predicates AND the shape predicate. Derive the municipality from the doc's `municipalityId` field, not from the path:
 
 ```
 match /<collection>/{docId} {
   allow read: if isVillageMember(resource.data.municipalityId);
-  allow create: if isVillageMember(request.resource.data.municipalityId);
+  allow create: if isVillageMember(request.resource.data.municipalityId)
+                  && isValid<Entity>Create(request.resource.data)
+                  && request.resource.data.createdBy == request.auth.uid;
   allow update: if isOwner(resource.data.createdBy)
                   || isVillageAdmin(resource.data.municipalityId);
   allow delete: if isOwner(resource.data.createdBy)
@@ -67,11 +132,13 @@ match /<collection>/{docId} {
 }
 ```
 
-Adjust the predicates for the actual access model. Use the existing helper functions (`isVillageMember`, `isVillageAdmin`, `isOwner`, `isAppAdmin`) — don't redefine identity checks inline. They already take a `municipalityId` argument.
+Use the existing helper functions (`isVillageMember`, `isVillageAdmin`, `isOwner`, `isAppAdmin`) — don't redefine identity checks inline.
+
+Shape enforcement at the rules level is the **only** defense against direct console writes or any code path that forgets to use a typed ref. The typed converter only enforces on writes that go through it; the rules apply to every write. Skipping this step means a future regression bypasses the entire schema.
 
 If the write is cross-user or trust-sensitive (only the village admin can grant a role, only the organizer can finalize an event, etc.), tighten the rule to `allow write: if false` for the affected fields and route the write through a Cloud Function — see `guardrail-enforcement`.
 
-### 6. Composite index
+### 8. Composite index
 
 Open [`firestore.indexes.json`](../../../firestore.indexes.json). Add a composite index for the standard `(municipalityId, <sortField>)` filter+sort shape that the by-municipality query uses:
 
@@ -88,7 +155,7 @@ Open [`firestore.indexes.json`](../../../firestore.indexes.json). Add a composit
 
 Use `queryScope: "COLLECTION_GROUP"` only when you genuinely need to query across nested parents (rare, since most collections are top-level). The cost of an unused index is negligible; the cost of a runtime "this query requires an index" error in front of a user is high.
 
-### 7. Vitest
+### 9. Vitest
 
 Create `packages/shared/test/services/<entity>Service.test.ts`. Cover at minimum:
 
@@ -98,32 +165,45 @@ Create `packages/shared/test/services/<entity>Service.test.ts`. Cover at minimum
 
 Run: `pnpm shared:test` — should pass.
 
-### 8. Rules test
+### 10. Rules tests — auth AND shape
 
-Create `packages/shared/test/e2e/<entity>Rules.test.ts` (the convention in this repo — rules tests live in `e2e/`, e.g. `villageRules.test.ts`). Cover at minimum:
+Create `packages/shared/test/e2e/<entity>Rules.test.ts` for auth checks and add cases to `packages/shared/test/e2e/shapeRules.test.ts` (or a new `<entity>ShapeRules.test.ts`) for shape checks. Cover at minimum:
 
+Auth:
 - An authenticated village member CAN create a doc.
 - An authenticated NON-member CANNOT create a doc.
 - A doc owner CAN update; a non-owner non-admin CANNOT.
 
+Shape (in `shapeRules.test.ts`):
+- A valid full-shape payload is ACCEPTED.
+- A payload with an unknown field is REJECTED (`hasOnly` check).
+- A payload with a missing required field is REJECTED (`hasAll` check).
+- A payload with the wrong type on a critical field is REJECTED.
+- A payload with an unknown enum value is REJECTED.
+
 Run: `pnpm test:rules` — should pass.
 
-### 9. Deploy notes in the PR description
+### 11. Deploy notes in the PR description
 
 If the rules or indexes file changed, the PR description must note that a deploy is needed and to which env (default dev — use the `firestore-deploy` skill). Indexes build asynchronously after deploy.
 
 ## Required outputs
 
-- [ ] Model in `packages/shared/src/models/<entity>.ts` with strict types.
-- [ ] Service in `packages/shared/src/services/<entity>Service.ts`, exported from `index.ts`.
-- [ ] Row added to `_services-map.md` in the same commit.
-- [ ] Rules block in `firestore.rules` using existing helper predicates.
+- [ ] Zod schema in `packages/shared/src/models/<entity>/<Entity>DataModel.ts` with `z.infer` type and `build<Entity>Data` factory.
+- [ ] Converter file in `packages/shared/src/firebase/converters/<entity>Converter.ts` (client + admin).
+- [ ] Ref factories in BOTH `packages/shared/src/firebase/refs/client.ts` and `admin.ts`.
+- [ ] Service in `packages/shared/src/services/<entity>Service.ts` using the typed refs (zero raw `doc()` / `collection()` outside the documented `updateDoc` pairing).
+- [ ] Service exported from `index.ts` + row added to `_services-map.md` in the same commit.
+- [ ] Rules block in `firestore.rules` with BOTH auth helpers AND a `isValid<Entity>Create` shape predicate wired into `allow create`.
 - [ ] Composite index entry in `firestore.indexes.json` for `(municipalityId, sortField)` (or the equivalent shape your queries use).
-- [ ] Service vitest + rules e2e test.
+- [ ] Service vitest + auth rules e2e test + shape rules e2e cases.
+- [ ] `pnpm check:no-raw-firestore-refs` passes.
 - [ ] PR description notes the deploy needed.
 
 ## Don't
 
+- **Don't write raw `collection(getDb(), '...')` or `db.collection('...')` anywhere outside `firebase/refs/`.** The grep gate fails the build. The ONE exception is an inline `updateDoc(doc(getDb(), '...', id), partial)` on the same line, and only when the typed `UpdateData<T>` distribution chokes on `null + FieldValue` siblings.
+- **Don't skip the shape predicate in the rules.** The converter only protects writes that go through typed services. A manual console edit, a third-party script, or any future code that forgets to use a typed ref bypasses the converter entirely. Rules are the only enforcement that catches that.
 - **Don't ship the service without updating `_services-map.md`.** Stale map = blind future sessions.
 - **Don't put a cross-user write in the service.** Wrong layer. Use a callable. See `guardrail-enforcement`.
 - **Don't nest under a parent doc when top-level works.** Top-level + `municipalityId` is the default; only nest when the parent–child ownership is genuine and you'll never need to query children across parents.
