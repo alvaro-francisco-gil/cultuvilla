@@ -7,6 +7,7 @@ import { AuthProvider } from '../lib/auth/AuthContext';
 import { CallableErrorProvider } from '../lib/callableError';
 import { I18nProvider } from '../lib/i18n';
 import { useAuth } from '../lib/auth/useAuth';
+import { useDeepLinkRouter } from '../lib/deeplink/useDeepLinkRouter';
 import { ActivityIndicator, View } from 'react-native';
 
 bootstrapFirebase();
@@ -36,6 +37,7 @@ export default function RootLayout() {
 function AuthGate() {
   const { user, loading, profile, profileChecked } = useAuth();
   const segments = useSegments();
+  useDeepLinkRouter();
 
   if (loading || (user && !profileChecked)) {
     return (

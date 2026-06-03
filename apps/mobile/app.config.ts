@@ -23,6 +23,12 @@ const bundleIdPerEnv: Record<Env, string> = {
   prod: 'com.cultuvilla.app',
 };
 
+const deepLinkHostPerEnv: Record<Env, string> = {
+  dev: process.env['DEEP_LINK_HOST_DEV'] ?? 'villa-events-dev.web.app',
+  beta: process.env['DEEP_LINK_HOST_BETA'] ?? 'villa-events-beta.web.app',
+  prod: process.env['DEEP_LINK_HOST_PROD'] ?? 'villa-events.web.app',
+};
+
 // Firebase config is injected per-environment from .env (or EAS secrets).
 // DO NOT commit real keys — use a local .env file (gitignored) with these vars:
 //   FIREBASE_API_KEY_DEV, FIREBASE_AUTH_DOMAIN_DEV, FIREBASE_PROJECT_ID_DEV,
@@ -105,6 +111,7 @@ const config: ExpoConfig = {
   ios: {
     bundleIdentifier: bundleIdPerEnv[env],
     supportsTablet: true,
+    associatedDomains: [`applinks:${deepLinkHostPerEnv[env]}`],
   },
   android: {
     package: bundleIdPerEnv[env],
@@ -112,6 +119,19 @@ const config: ExpoConfig = {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#ffffff',
     },
+    intentFilters: [
+      {
+        action: 'VIEW',
+        autoVerify: true,
+        data: [
+          { scheme: 'https', host: deepLinkHostPerEnv[env], pathPrefix: '/event/' },
+          { scheme: 'https', host: deepLinkHostPerEnv[env], pathPrefix: '/news/' },
+          { scheme: 'https', host: deepLinkHostPerEnv[env], pathPrefix: '/village/' },
+          { scheme: 'https', host: deepLinkHostPerEnv[env], pathPrefix: '/o/' },
+        ],
+        category: ['BROWSABLE', 'DEFAULT'],
+      },
+    ],
   },
   web: {
     bundler: 'metro',
@@ -122,6 +142,7 @@ const config: ExpoConfig = {
     APP_ENV: env,
     firebaseConfig: firebaseConfigPerEnv[env],
     googleSignIn: googleSignInPerEnv[env],
+    deepLinkHost: deepLinkHostPerEnv[env],
     eas: {
       projectId: process.env['EAS_PROJECT_ID'] ?? '',
     },

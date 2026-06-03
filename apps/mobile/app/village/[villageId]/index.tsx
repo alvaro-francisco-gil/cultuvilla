@@ -15,7 +15,11 @@ import { useAuth } from '../../../lib/auth/useAuth';
 import { useIsAppAdmin } from '../../../lib/auth/useIsAppAdmin';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { getEventsByMunicipality } from '@cultuvilla/shared/services/eventService';
-import { isVillageAdmin } from '@cultuvilla/shared/services/villageMemberService';
+import {
+  isVillageAdmin,
+  isVillageMember,
+  addVillageMember,
+} from '@cultuvilla/shared/services/villageMemberService';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { EventData } from '@cultuvilla/shared/models/event/EventDataModel';
 
@@ -32,12 +36,29 @@ export default function VillageHome() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [villageAdmin, setVillageAdmin] = useState(false);
+  const [isMember, setIsMember] = useState(false);
+  const [joining, setJoining] = useState(false);
 
   useEffect(() => {
     if (!user || !villageId) return;
     isVillageAdmin(villageId as string, user.uid).then(setVillageAdmin);
+    isVillageMember(villageId as string, user.uid).then(setIsMember);
   }, [user, villageId]);
   const canManage = isAppAdmin || villageAdmin;
+
+  const onJoin = async () => {
+    if (!user || !villageId) {
+      router.push('/(auth)/login' as never);
+      return;
+    }
+    setJoining(true);
+    try {
+      await addVillageMember(villageId as string, user.uid);
+      setIsMember(true);
+    } finally {
+      setJoining(false);
+    }
+  };
 
   const adminSlot = canManage ? (
     <Pressable
@@ -136,6 +157,18 @@ export default function VillageHome() {
               <Text variant="h2" className="mt-2">{village.name}</Text>
               <Text tone="muted" variant="bodySm">{village.province}</Text>
             </View>
+            {!isMember ? (
+              <Pressable
+                onPress={onJoin}
+                disabled={joining}
+                accessibilityLabel={t('village.join')}
+                className="bg-primary rounded-lg p-3 items-center"
+              >
+                <Text tone="onAccent">
+                  {user ? t('village.join') : t('village.signInToJoin')}
+                </Text>
+              </Pressable>
+            ) : null}
             <View className="flex-row flex-wrap -mx-1">
               {hubActions.map((a) => (
                 <View key={a.key} className="w-1/2 px-1 pb-2">

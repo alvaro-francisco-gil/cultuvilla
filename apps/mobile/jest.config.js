@@ -9,6 +9,12 @@ module.exports = {
   transform: { '\\.mjs$': 'babel-jest' },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    // jest-expo's preset hard-codes `<rootDir>/packages/shared/src/$1`, which
+    // assumes shared lives inside this app. In our monorepo it's at the
+    // workspace root, so we override here.
+    '^@cultuvilla/shared/(.*)$': '<rootDir>/../../packages/shared/src/$1',
+    '^@cultuvilla/i18n$': '<rootDir>/../../packages/i18n/src',
+    '^@cultuvilla/i18n/(.*)$': '<rootDir>/../../packages/i18n/$1',
   },
   collectCoverageFrom: ['lib/**/*.ts', 'components/**/*.{ts,tsx}'],
 };

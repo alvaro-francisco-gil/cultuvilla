@@ -9,7 +9,8 @@
     "confirm": "Confirmar",
     "back": "Volver",
     "search": "Buscar",
-    "noResults": "Sin resultados"
+    "noResults": "Sin resultados",
+    "notFound": "No encontrado"
   },
   "auth": {
     "signIn": "Iniciar sesión",
@@ -153,6 +154,8 @@
   },
   "village": {
     "title": "Pueblos",
+    "join": "Unirme a este pueblo",
+    "signInToJoin": "Inicia sesión para unirte",
     "events": {
       "label": "Eventos",
       "empty": "No hay eventos en este pueblo"
@@ -445,5 +448,19 @@
       "remove": "Eliminar comentario",
       "trustToggle": "Autor de confianza"
     }
+  },
+  "deeplink": {
+    "share": {
+      "event": "Te invito a este evento en Cultuvilla: {url}",
+      "news": "Mira esta noticia en Cultuvilla: {url}",
+      "village": "Te invito a este pueblo en Cultuvilla: {url}",
+      "organization": "Te invito a esta organización en Cultuvilla: {url}"
+    }
+  },
+  "organization": {
+    "title": "Organización",
+    "membersCount": "{count} miembros",
+    "join": "Unirme a esta organización",
+    "signInToJoin": "Inicia sesión para unirte"
   }
 }
