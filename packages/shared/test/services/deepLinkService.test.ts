@@ -123,15 +123,18 @@ describe('deepLinkService.parseLink', () => {
 });
 
 describe('deepLinkService.buildShareMessage', () => {
-  const t = (key: string, vars?: Record<string, string | number>) => {
+  const t = (key: string, vars?: Record<string, string | number>): string => {
     const map: Record<string, string> = {
       'deeplink.share.event': 'Te invito a este evento: {url}',
       'deeplink.share.news': 'Mira esta noticia: {url}',
       'deeplink.share.village': 'Te invito a este pueblo: {url}',
       'deeplink.share.organization': 'Te invito a esta organización: {url}',
     };
-    let out = map[key] ?? key;
-    if (vars) for (const [k, v] of Object.entries(vars)) out = out.replaceAll(`{${k}}`, String(v));
+    let out: string = map[key] ?? key;
+    if (!vars) return out;
+    for (const k of Object.keys(vars)) {
+      out = out.split(`{${k}}`).join(String(vars[k]));
+    }
     return out;
   };
 

@@ -25,9 +25,8 @@ const RESOURCE_TO_KIND: Record<DeepLinkResource, LinkKind> = {
 };
 
 export function getDeepLinkHost(): string {
-  const host = (Constants.expoConfig?.extra as Record<string, unknown> | undefined)?.[
-    'deepLinkHost'
-  ];
+  const extra = Constants.expoConfig?.extra ?? {};
+  const host: unknown = (extra as Record<string, unknown>)['deepLinkHost'];
   if (typeof host !== 'string' || host.length === 0) {
     throw new Error(
       'deepLinkService: extra.deepLinkHost is not configured. Set DEEP_LINK_HOST_<ENV> env vars or app.config.ts extra.deepLinkHost.',
@@ -60,7 +59,7 @@ export interface ParsedDeepLink {
   id: string;
 }
 
-const PATH_TO_RESOURCE: Record<string, DeepLinkResource> = {
+const PATH_TO_RESOURCE: { readonly [path: string]: DeepLinkResource | undefined } = {
   event: 'event',
   news: 'news',
   village: 'village',
@@ -71,9 +70,7 @@ const SCHEME = 'cultuvilla';
 
 function interpret(segments: string[]): ParsedDeepLink | null {
   if (segments.length !== 2) return null;
-  const pathSegment = segments[0];
-  const id = segments[1];
-  if (!pathSegment || !id) return null;
+  const [pathSegment, id] = segments as [string, string];
   const resource = PATH_TO_RESOURCE[pathSegment];
   if (!resource) return null;
   return { kind: RESOURCE_TO_KIND[resource], resource, id };
