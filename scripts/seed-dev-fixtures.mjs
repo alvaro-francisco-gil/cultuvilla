@@ -44,13 +44,13 @@ import path from 'path';
 import {
   buildMunicipalityData,
   buildVillageCommunity,
-} from '@cultuvilla/shared/dist/models/municipality/MunicipalityDataModel.js';
-import { buildVillageMemberData } from '@cultuvilla/shared/dist/models/municipality/VillageMemberDataModel.js';
-import { buildOrganizationData } from '@cultuvilla/shared/dist/models/organization/OrganizationDataModel.js';
-import { buildEventData } from '@cultuvilla/shared/dist/models/event/EventDataModel.js';
-import { buildLocationData } from '@cultuvilla/shared/dist/models/core/LocationDataModel.js';
-import { buildUserData } from '@cultuvilla/shared/dist/models/user/UserDataModel.js';
-import { buildPersonData } from '@cultuvilla/shared/dist/models/person/PersonDataModel.js';
+  buildVillageMemberData,
+  buildOrganizationData,
+  buildEventData,
+  buildLocationData,
+  buildUserData,
+  buildPersonData,
+} from '@cultuvilla/shared';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
@@ -302,7 +302,7 @@ async function upsertVillage(v, refToUid) {
     { merge: true },
   );
   await db.collection('municipalities').doc(docId).collection('members').doc(adminUid).set(
-    tag(buildVillageMemberData({ role: 'admin' })),
+    tag(buildVillageMemberData({ userId: adminUid, role: 'admin' })),
     { merge: true },
   );
   console.log(`[seed] village ${docId} ✓ (${coverUrls.length} cover image(s))`);

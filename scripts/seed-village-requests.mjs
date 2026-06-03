@@ -44,6 +44,7 @@ import { existsSync, readFileSync } from 'fs';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
+import { buildVillageMemberData, buildOrganizerRequestData } from '@cultuvilla/shared';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
@@ -215,13 +216,11 @@ async function seedOne(v) {
   } else {
     reqRef = db.collection('organizerRequests').doc();
     await reqRef.set({
-      userId: requesterUid,
-      municipalityId: muniId,
-      requestedAt: FieldValue.serverTimestamp(),
-      status: 'pending',
-      motivation: v.motivation ?? null,
-      reviewedAt: null,
-      reviewedBy: null,
+      ...buildOrganizerRequestData({
+        userId: requesterUid,
+        municipalityId: muniId,
+        motivation: v.motivation ?? null,
+      }),
       seedBatch: SEED_BATCH,
     });
     console.log(`[seed-villages]   pending request ${reqRef.id} created by ${v.organizerEmail}`);
@@ -255,11 +254,7 @@ async function seedOne(v) {
       },
     });
     tx.set(db.doc(`municipalities/${muniId}/members/${requesterUid}`), {
-      userId: requesterUid,
-      role: 'admin',
-      joinedAt: FieldValue.serverTimestamp(),
-      profileAnswers: {},
-      profileCompletedAt: null,
+      ...buildVillageMemberData({ userId: requesterUid, role: 'admin' }),
       seedBatch: SEED_BATCH,
     });
   });
