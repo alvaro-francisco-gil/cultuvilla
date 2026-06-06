@@ -59,10 +59,7 @@ export default function FeedScreen() {
       {activeTab === 'noticias' ? (
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="newspaper-outline" size={48} color="#64748b" />
-          <Text variant="h3" className="mt-3 text-center">
-            {t('feed.news.comingSoonTitle')}
-          </Text>
-          <Text tone="muted" className="mt-1 text-center">
+          <Text tone="muted" className="mt-3 text-center">
             {t('feed.news.comingSoonBody')}
           </Text>
         </View>
@@ -76,10 +73,21 @@ export default function FeedScreen() {
         </View>
       ) : (
         <FlatList
-          contentContainerClassName="p-4 gap-4"
+          contentContainerClassName={
+            (events ?? []).length === 0
+              ? 'flex-1 items-center justify-center px-8'
+              : 'p-4 gap-4'
+          }
           data={events ?? []}
           keyExtractor={(e) => e.id}
-          ListEmptyComponent={<Text tone="muted">{t('feed.empty')}</Text>}
+          ListEmptyComponent={
+            <View className="items-center justify-center px-8">
+              <Ionicons name="calendar-outline" size={48} color="#64748b" />
+              <Text tone="muted" className="mt-3 text-center">
+                {t('feed.empty')}
+              </Text>
+            </View>
+          }
           renderItem={({ item }) => (
             <EventCard
               event={{

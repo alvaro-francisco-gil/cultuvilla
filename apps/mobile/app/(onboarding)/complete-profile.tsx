@@ -3,6 +3,7 @@ import { ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import {
   Screen,
+  HStack,
   VStack,
   Text,
   Input,
@@ -179,17 +180,18 @@ export default function CompleteProfileScreen() {
             onChangeText={setNickname}
           />
           <Text tone="muted">{t('onboarding.completeProfile.sex')}</Text>
-          <VStack gap={2}>
-            {(['female', 'male', 'other'] as const).map((opt) => (
+          <HStack gap={2}>
+            {(['male', 'female', 'other'] as const).map((opt) => (
               <Button
                 key={opt}
+                className="flex-1"
                 variant={sex === opt ? 'primary' : 'secondary'}
                 onPress={() => setSex(sex === opt ? null : opt)}
               >
                 {t(`onboarding.completeProfile.sex_${opt}`)}
               </Button>
             ))}
-          </VStack>
+          </HStack>
           <DateField
             label={t('onboarding.completeProfile.birthday')}
             value={birthday}
