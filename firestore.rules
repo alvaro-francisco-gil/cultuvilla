@@ -81,16 +81,8 @@ service cloud.firestore {
     // /users/{userId} on create: clients omit `displayName` (the
     // syncPersonDenormalization function fills it). All other UserData
     // fields must be present.
-    function isValidUserCreate(d) {
-      return d.keys().hasOnly([
-              'email', 'telephone', 'activeMunicipalityId', 'personId',
-              'birthday', 'biography', 'photoURL', 'createdAt',
-            ])
-          && d.keys().hasAll([
-              'email', 'telephone', 'activeMunicipalityId', 'personId',
-              'birthday', 'biography', 'photoURL', 'createdAt',
-            ])
-          && isString(d.email)
+    function hasValidUserFields(d) {
+      return isString(d.email)
           && isStringOrNull(d.telephone)
           && isStringOrNull(d.activeMunicipalityId)
           && isStringOrNull(d.personId)
@@ -100,13 +92,41 @@ service cloud.firestore {
           && isTimestamp(d.createdAt);
     }
 
-    // /users/{userId} on update: same field set as create plus implicit
-    // `displayName` lock (handled by separate diff() rule in the match block).
+    function isValidUserCreate(d) {
+      return d.keys().hasOnly([
+              'email', 'telephone', 'activeMunicipalityId', 'personId',
+              'birthday', 'biography', 'photoURL', 'createdAt',
+            ])
+          && d.keys().hasAll([
+              'email', 'telephone', 'activeMunicipalityId', 'personId',
+              'birthday', 'biography', 'photoURL', 'createdAt',
+            ])
+          && hasValidUserFields(d);
+    }
+
+    // /users/{userId} on update: same field set as create minus `displayName`
+    // (denormalized by the Cloud Function; clients must never touch it).
     function isValidUserUpdateKeys(affected) {
       return affected.hasOnly([
         'email', 'telephone', 'activeMunicipalityId', 'personId',
         'birthday', 'biography', 'photoURL',
       ]);
+    }
+
+    // Onboarding race: createPerson() fires syncPersonDenormalization, which
+    // pre-creates users/{uid} carrying only `displayName`. The client's
+    // subsequent createUserProfile() setDoc(merge) then lands on the UPDATE
+    // path and carries `createdAt`. Allow that one-time set — but only when no
+    // createdAt exists yet (it stays immutable afterwards) and the merged
+    // fields validate. `displayName` is excluded from the affected keys, so a
+    // client still can't overwrite it on this path.
+    function isOnboardingUserMerge(reqData, resData) {
+      return !('createdAt' in resData)
+          && reqData.diff(resData).affectedKeys().hasOnly([
+               'email', 'telephone', 'activeMunicipalityId', 'personId',
+               'birthday', 'biography', 'photoURL', 'createdAt',
+             ])
+          && hasValidUserFields(reqData);
     }
 
     function isValidNewsPostCreate(d) {
@@ -368,8 +388,11 @@ service cloud.firestore {
                     && !request.resource.data.keys().hasAny(['displayName'])
                     && isValidUserCreate(request.resource.data);
       allow update: if isOwner(userId)
-                    && isValidUserUpdateKeys(
-                         request.resource.data.diff(resource.data).affectedKeys()
+                    && (
+                         isValidUserUpdateKeys(
+                           request.resource.data.diff(resource.data).affectedKeys()
+                         )
+                         || isOnboardingUserMerge(request.resource.data, resource.data)
                        );
       allow delete: if false;
 
