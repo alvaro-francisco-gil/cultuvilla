@@ -10,7 +10,7 @@ import {
   municipalityMembersCollection,
   userNotificationsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
-import { buildNotificationData } from '@cultuvilla/shared';
+import { buildNotificationData } from '@cultuvilla/shared/models';
 
 const db = admin.firestore();
 

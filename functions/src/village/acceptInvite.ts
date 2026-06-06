@@ -7,7 +7,7 @@ import {
   personsCollection,
   userDoc,
 } from '@cultuvilla/shared/firebase/refs/admin';
-import { buildPersonData, buildUserData } from '@cultuvilla/shared';
+import { buildPersonData, buildUserData } from '@cultuvilla/shared/models';
 import type { VillageMemberData, PartialDate } from '@cultuvilla/shared';
 
 const db = getFirestore();
