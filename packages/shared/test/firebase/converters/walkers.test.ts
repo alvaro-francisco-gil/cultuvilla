@@ -48,11 +48,10 @@ describe('normalize', () => {
 });
 
 describe('denormalize', () => {
-  it('converts Date instances to Timestamp via TimestampFromDate', () => {
+  it('passes Date instances through unchanged (SDKs convert Date -> Timestamp natively on write)', () => {
     const d = new Date('2026-01-01T00:00:00Z');
-    const out = denormalize({ createdAt: d }, fakeSdk) as { createdAt: FakeTimestamp };
-    expect(out.createdAt).toBeInstanceOf(FakeTimestamp);
-    expect(out.createdAt.toDate()).toEqual(d);
+    const out = denormalize({ createdAt: d }, fakeSdk) as { createdAt: Date };
+    expect(out.createdAt).toBe(d);
   });
 
   it('converts {lat, lng} objects to GeoPoint via GeoPointFrom', () => {

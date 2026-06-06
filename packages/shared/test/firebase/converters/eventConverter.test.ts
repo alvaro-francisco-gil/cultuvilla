@@ -33,10 +33,11 @@ describe('eventConverterClient', () => {
     expect(event.status).toBe('published');
   });
 
-  it('toFirestore returns Firestore-shaped data with Timestamp and GeoPoint', () => {
+  it('toFirestore returns Firestore-shaped data with Date passed through and GeoPoint', () => {
     const event = eventConverterClient.fromFirestore({ data: () => baseFirestoreShape });
     const out = eventConverterClient.toFirestore(event);
-    expect(out.startDate).toBeInstanceOf(Timestamp);
+    // Date is passed through unchanged; the SDK converts it to a Timestamp on write.
+    expect(out.startDate).toBeInstanceOf(Date);
     expect(out.municipalityCoordinates).toBeInstanceOf(GeoPoint);
   });
 

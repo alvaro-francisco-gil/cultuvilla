@@ -18,14 +18,16 @@ function isTimestampLike(v: unknown): v is { toDate(): Date } {
 }
 
 function isGeoPointLike(v: unknown): v is { latitude: number; longitude: number } {
+  // Duck-type on `latitude`/`longitude` (full words). A real GeoPoint exposes
+  // these as prototype getters — its own enumerable keys are private (`_lat`,
+  // `_long`) — so an `Object.keys(...).every(...)` allowlist would reject the
+  // instance. The schema read-model shape uses `{ lat, lng }` and has neither
+  // `latitude` nor `longitude`, so these two checks already disambiguate.
   return (
     typeof v === 'object'
     && v !== null
     && typeof (v as { latitude?: unknown }).latitude === 'number'
     && typeof (v as { longitude?: unknown }).longitude === 'number'
-    // Exclude our schema-shape {lat, lng}: GeoPoint has latitude/longitude
-    // (full words). LatLng would already have been normalized away.
-    && Object.keys(v).every((k) => k === 'latitude' || k === 'longitude')
   );
 }
 

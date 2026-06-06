@@ -48,11 +48,11 @@ describe('makeConverter', () => {
     it('returns Firestore-shaped data when the model matches the schema', () => {
       const d = new Date('2026-01-01T00:00:00Z');
       const out = converter.toFirestore({ name: 'x', createdAt: d, coords: { lat: 1, lng: 2 } }) as {
-        name: string; createdAt: FakeTimestamp; coords: FakeGeoPoint;
+        name: string; createdAt: Date; coords: FakeGeoPoint;
       };
       expect(out.name).toBe('x');
-      expect(out.createdAt).toBeInstanceOf(FakeTimestamp);
-      expect(out.createdAt.toDate()).toEqual(d);
+      // Date passes through unchanged; the SDK converts it to a Timestamp on write.
+      expect(out.createdAt).toBe(d);
       expect(out.coords).toBeInstanceOf(FakeGeoPoint);
     });
 
