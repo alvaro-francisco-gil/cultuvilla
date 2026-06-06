@@ -209,6 +209,12 @@
     "censo": {
       "link": "Completar mi censo"
     },
+    "notRegistered": {
+      "body": "Este pueblo aún no está registrado en Cultuvilla. Para que forme parte necesitamos un administrador que active la comunidad y gestione sus eventos, organizaciones y vecinos.",
+      "cta": "¿Te gustaría serlo?",
+      "button": "Quiero ser administrador",
+      "pending": "Tu solicitud está pendiente de revisión"
+    },
     "hub": {
       "events": "Eventos",
       "organizations": "Organizaciones",
