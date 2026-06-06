@@ -50,7 +50,7 @@ import {
   buildLocationData,
   buildUserData,
   buildPersonData,
-} from '@cultuvilla/shared';
+} from '@cultuvilla/shared/models';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');

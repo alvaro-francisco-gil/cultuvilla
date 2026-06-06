@@ -14,6 +14,10 @@
     "./firebase/refs/admin": {
       "types": "./dist/firebase/refs/admin.d.ts",
       "default": "./dist/firebase/refs/admin.js"
+    },
+    "./models": {
+      "types": "./dist/models/index.d.ts",
+      "default": "./dist/models/index.js"
     }
   },
   "main": "dist/index.js",

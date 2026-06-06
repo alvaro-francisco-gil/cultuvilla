@@ -44,7 +44,7 @@ import { existsSync, readFileSync } from 'fs';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
-import { buildVillageMemberData, buildOrganizerRequestData } from '@cultuvilla/shared';
+import { buildVillageMemberData, buildOrganizerRequestData } from '@cultuvilla/shared/models';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
