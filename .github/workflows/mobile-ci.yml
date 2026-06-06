@@ -34,6 +34,11 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
+      # The mobile app resolves the bare @cultuvilla/shared import via the
+      # package's built dist/ (gitignored), so build it before typechecking.
+      - name: Build shared package
+        run: pnpm shared:build
+
       - name: Typecheck (mobile)
         run: pnpm app:typecheck
 

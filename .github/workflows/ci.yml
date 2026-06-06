@@ -54,6 +54,12 @@ jobs:
         run: npm ci
         working-directory: functions
 
+      # Downstream packages (functions, mobile) resolve @cultuvilla/shared via
+      # its built dist/ (gitignored). Build it before any typecheck step
+      # consumes it, otherwise module resolution fails.
+      - name: Build shared package
+        run: pnpm shared:build
+
       - name: Typecheck (shared, functions, i18n, mobile)
         run: pnpm typecheck
 
@@ -104,6 +110,11 @@ jobs:
       - name: Install functions dependencies
         run: npm ci
         working-directory: functions
+
+      # functions:build (tsc) resolves @cultuvilla/shared via its built dist/,
+      # so the shared package must be built first.
+      - name: Build shared package
+        run: pnpm shared:build
 
       - name: Build functions
         run: pnpm functions:build
