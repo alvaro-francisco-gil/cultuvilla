@@ -14,7 +14,15 @@ import { onRegistrationDeleted } from '../../events/waitlistPromotion';
 const ft = functionsTestFactory({ projectId: process.env.GCLOUD_PROJECT || 'cultuvilla-test' });
 
 const MUNICIPALITY_ID = 'mun-1';
-const EVENT_ID = 'e1';
+// File-unique event + user namespace. The whole functions suite shares one
+// emulator boot; other files exercise the *deployed* onRegistrationDeleted
+// trigger by really deleting `events/e1/registrations/*` docs, and those
+// Eventarc deliveries can arrive late — during this file's tests — promoting
+// an extra waitlisted user and writing a second notification. This file only
+// ever invokes the handler in-process via ft.wrap (no real deletes, REST
+// reset fires no triggers), so a private event id + user ids keep that
+// cross-file fallout from ever touching our assertions.
+const EVENT_ID = 'wl-e1';
 
 function regPath(regId: string): string {
   return `events/${EVENT_ID}/registrations/${regId}`;
@@ -96,16 +104,16 @@ describe('onRegistrationDeleted (waitlist promotion)', () => {
 
   it('is a no-op when the deleted registration was waitlisted', async () => {
     await seedEvent({ title: 'Fiesta', maxAttendees: 1 });
-    await seedRegistration({ id: 'r1', status: 'confirmed', userId: 'alice', name: 'Alice' });
+    await seedRegistration({ id: 'r1', status: 'confirmed', userId: 'wl-alice', name: 'Alice' });
     await seedRegistration({
       id: 'r2',
       status: 'waitlisted',
-      userId: 'bob',
+      userId: 'wl-bob',
       name: 'Bob',
       position: 1,
     });
 
-    await invokeDelete({ id: 'r2', status: 'waitlisted', userId: 'bob', name: 'Bob', position: 1 });
+    await invokeDelete({ id: 'r2', status: 'waitlisted', userId: 'wl-bob', name: 'Bob', position: 1 });
 
     const stillConfirmed = await admin.firestore().doc(regPath('r1')).get();
     expect(stillConfirmed.data()?.status).toBe('confirmed');
@@ -116,12 +124,12 @@ describe('onRegistrationDeleted (waitlist promotion)', () => {
     await seedRegistration({
       id: 'r2',
       status: 'waitlisted',
-      userId: 'bob',
+      userId: 'wl-bob',
       name: 'Bob',
       position: 1,
     });
 
-    await invokeDelete({ id: 'r1', status: 'confirmed', userId: 'alice', name: 'Alice' });
+    await invokeDelete({ id: 'r1', status: 'confirmed', userId: 'wl-alice', name: 'Alice' });
 
     const bob = await admin.firestore().doc(regPath('r2')).get();
     expect(bob.data()?.status).toBe('waitlisted');
@@ -130,10 +138,10 @@ describe('onRegistrationDeleted (waitlist promotion)', () => {
   it('is a no-op when there is no one on the waitlist', async () => {
     await seedEvent({ title: 'Fiesta', maxAttendees: 2 });
 
-    await invokeDelete({ id: 'r1', status: 'confirmed', userId: 'alice', name: 'Alice' });
+    await invokeDelete({ id: 'r1', status: 'confirmed', userId: 'wl-alice', name: 'Alice' });
 
     // Should not have created any notifications.
-    const notifs = await admin.firestore().collection('users/alice/notifications').get();
+    const notifs = await admin.firestore().collection('users/wl-alice/notifications').get();
     expect(notifs.size).toBe(0);
   });
 
@@ -164,10 +172,10 @@ describe('onRegistrationDeleted (waitlist promotion)', () => {
       confirmedCount: 999,
       totalCount: 999,
     });
-    await seedRegistration({ id: 'r2', status: 'confirmed', userId: 'bob', name: 'Bob', position: 2 });
-    await seedRegistration({ id: 'r3', status: 'waitlisted', userId: 'carol', name: 'Carol', position: 3 });
+    await seedRegistration({ id: 'r2', status: 'confirmed', userId: 'wl-bob', name: 'Bob', position: 2 });
+    await seedRegistration({ id: 'r3', status: 'waitlisted', userId: 'wl-carol', name: 'Carol', position: 3 });
 
-    await invokeDelete({ id: 'r1', status: 'confirmed', userId: 'alice', name: 'Alice' });
+    await invokeDelete({ id: 'r1', status: 'confirmed', userId: 'wl-alice', name: 'Alice' });
 
     const eventDoc = await admin.firestore().doc(`events/${EVENT_ID}`).get();
     // After the trigger handles the deletion: r3 is promoted from waitlist
@@ -183,19 +191,19 @@ describe('onRegistrationDeleted (waitlist promotion)', () => {
     await seedRegistration({
       id: 'r2',
       status: 'waitlisted',
-      userId: 'bob',
+      userId: 'wl-bob',
       name: 'Bob',
       position: 1,
     });
     await seedRegistration({
       id: 'r3',
       status: 'waitlisted',
-      userId: 'carol',
+      userId: 'wl-carol',
       name: 'Carol',
       position: 2,
     });
 
-    await invokeDelete({ id: 'r1', status: 'confirmed', userId: 'alice', name: 'Alice' });
+    await invokeDelete({ id: 'r1', status: 'confirmed', userId: 'wl-alice', name: 'Alice' });
 
     const bob = await admin.firestore().doc(regPath('r2')).get();
     expect(bob.data()?.status).toBe('confirmed');
@@ -203,7 +211,7 @@ describe('onRegistrationDeleted (waitlist promotion)', () => {
     const carol = await admin.firestore().doc(regPath('r3')).get();
     expect(carol.data()?.status).toBe('waitlisted');
 
-    const notifs = await admin.firestore().collection('users/bob/notifications').get();
+    const notifs = await admin.firestore().collection('users/wl-bob/notifications').get();
     expect(notifs.size).toBe(1);
     const notif = notifs.docs[0].data();
     expect(notif.type).toBe('waitlist_promoted');
