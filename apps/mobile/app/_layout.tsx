@@ -7,6 +7,7 @@ import { AuthProvider } from '../lib/auth/AuthContext';
 import { CallableErrorProvider } from '../lib/callableError';
 import { I18nProvider } from '../lib/i18n';
 import { useAuth } from '../lib/auth/useAuth';
+import { resolveAuthRoute } from '../lib/auth/authRoute';
 import { useDeepLinkRouter } from '../lib/deeplink/useDeepLinkRouter';
 import { ActivityIndicator, View } from 'react-native';
 
@@ -46,19 +47,14 @@ function AuthGate() {
       </View>
     );
   }
-  const needsOnboarding =
-    !!user && profileChecked && (!profile || !profile.personId);
-  const inOnboardingGroup = segments[0] === '(onboarding)';
-  const inAuthGroup = segments[0] === '(auth)';
-
-  if (needsOnboarding && !inOnboardingGroup) {
-    return <Redirect href="/(onboarding)/complete-profile" />;
-  }
-  // Authenticated + fully onboarded users should never be sitting on an
-  // /(auth) screen. Single source of truth for post-login routing — keep
-  // login/signup screens from racing with this redirect.
-  if (user && !needsOnboarding && inAuthGroup) {
-    return <Redirect href="/(tabs)" />;
+  const target = resolveAuthRoute({
+    user: !!user,
+    profileChecked,
+    hasPersonId: !!profile?.personId,
+    topSegment: segments[0],
+  });
+  if (target) {
+    return <Redirect href={target} />;
   }
   return <Stack screenOptions={{ headerShown: false }} />;
 }
