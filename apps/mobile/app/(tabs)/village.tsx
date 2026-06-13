@@ -165,15 +165,6 @@ export default function VillageTabScreen() {
   }
 
   const canManage = isAppAdmin || villageAdmin;
-  const adminSlot = canManage ? (
-    <Pressable
-      onPress={() => router.push(`/village/${village.id}/admin` as never)}
-      accessibilityLabel={t('village.admin.open')}
-      className="p-1"
-    >
-      <Ionicons name="settings-outline" size={22} color="#0f172a" />
-    </Pressable>
-  ) : null;
 
   const actions: HubAction[] = [
     {
@@ -204,7 +195,7 @@ export default function VillageTabScreen() {
 
   return (
     <Screen padded={false} topInset={false}>
-      <AppHeader centerLabel={village.name} extraRightSlot={adminSlot} />
+      <AppHeader centerLabel={village.name} />
       <FlatList
         contentContainerClassName="p-4"
         data={actions}
@@ -220,6 +211,18 @@ export default function VillageTabScreen() {
             <Text tone="muted" variant="bodySm">
               {village.province}
             </Text>
+            {canManage && (
+              <Pressable
+                onPress={() => router.push(`/village/${village.id}/admin` as never)}
+                accessibilityLabel={t('village.admin.open')}
+                className="w-full bg-surface-elevated rounded-2xl py-5 items-center mt-4"
+              >
+                <Ionicons name="settings" size={32} color="#bb5d3a" />
+                <Text variant="bodySm" className="mt-2 font-medium">
+                  {t('village.admin.open')}
+                </Text>
+              </Pressable>
+            )}
           </VStack>
         }
         renderItem={({ item }) => (

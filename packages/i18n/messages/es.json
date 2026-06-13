@@ -98,7 +98,12 @@
       "news": "Noticias"
     },
     "news": {
-      "comingSoonBody": "Las noticias de tu pueblo llegarán pronto."
+      "comingSoonBody": "Las noticias de tu pueblo llegarán pronto.",
+      "empty": "Aún no hay noticias en tu pueblo.",
+      "create": "Crear noticia"
+    },
+    "events": {
+      "create": "Crear evento"
     }
   },
   "header": {
@@ -196,6 +201,7 @@
       },
       "organizations": {
         "title": "Organizaciones",
+        "add": "Añadir organización",
         "empty": "Sin solicitudes pendientes",
         "approve": "Aprobar",
         "reject": "Rechazar"
@@ -210,7 +216,19 @@
       "community": {
         "title": "Comunidad",
         "description": "Descripción",
+        "images": "Imágenes",
+        "addImage": "Añadir imagen",
         "saved": "Guardado"
+      },
+      "overview": {
+        "manage": "Gestionar",
+        "more": "Más ajustes",
+        "edit": "Editar",
+        "noDescription": "Añade una descripción de tu pueblo",
+        "people": "Personas",
+        "requestBadge": "Solicita unirse",
+        "noPeople": "Aún no hay vecinos",
+        "organizationsEmpty": "Aún no hay organizaciones"
       }
     },
     "generateInvite": "Generar invitación",
@@ -271,6 +289,15 @@
     "publish": "Publicar",
     "createEvent": "Crear evento",
     "editEvent": "Editar evento",
+    "organizationLabel": "Organización",
+    "imageLabel": "Imagen",
+    "addImage": "Añadir imagen",
+    "changeImage": "Cambiar imagen",
+    "eligibility": {
+      "body": "Para crear un evento necesitas pertenecer a una organización de este pueblo.",
+      "requestOrganizer": "Solicitar organizar este pueblo",
+      "browseOrgs": "Ver organizaciones"
+    },
     "register": {
       "cta": "Apuntarme",
       "done": "¡Apuntado!",
@@ -279,6 +306,10 @@
     }
   },
   "organization": {
+    "title": "Organización",
+    "membersCount": "{count} miembros",
+    "join": "Unirme a esta organización",
+    "signInToJoin": "Inicia sesión para unirte",
     "name": "Nombre",
     "type": "Tipo",
     "ayuntamiento": "Ayuntamiento",
@@ -429,9 +460,12 @@
         "otro": "Otro"
       },
       "imagesLabel": "Imágenes",
+      "addImage": "Añadir imagen",
       "submit": "Enviar",
       "submitTrusted": "Publicar",
-      "postAsOrg": "Publicar como…"
+      "postAsOrg": "Publicar como…",
+      "successPending": "Tu noticia se ha enviado y está pendiente de aprobación.",
+      "needsMembership": "Únete a este pueblo para publicar noticias."
     },
     "status": {
       "pending": "Pendiente de aprobación",
@@ -469,11 +503,5 @@
       "village": "Te invito a este pueblo en Cultuvilla: {url}",
       "organization": "Te invito a esta organización en Cultuvilla: {url}"
     }
-  },
-  "organization": {
-    "title": "Organización",
-    "membersCount": "{count} miembros",
-    "join": "Unirme a esta organización",
-    "signInToJoin": "Inicia sesión para unirte"
   }
 }
