@@ -210,6 +210,7 @@ import {
   getComments,
   reportComment,
   getHomeFeed,
+  getAllVillagesFeed,
   getOtherVillagesFeed,
 } from '../../src/services/newsService';
 
@@ -454,6 +455,19 @@ describe('newsService — Task 7: Feed queries', () => {
     expect(ids).toContain(id1);
     expect(ids).toContain(id2);
     expect(feed.every((p) => p.municipalityId === 'm1')).toBe(true);
+    expect(feed.every((p) => p.status === 'approved')).toBe(true);
+  });
+
+  it('getAllVillagesFeed returns approved posts across every municipality', async () => {
+    const id1 = await seedApprovedPost('m1', 'Home');
+    const id2 = await seedApprovedPost('m2', 'Other');
+    // pending post anywhere should be excluded
+    await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'Pending', body: 'B', category: 'fiesta' });
+
+    const feed = await getAllVillagesFeed();
+    const ids = feed.map((p) => p.id);
+    expect(ids).toContain(id1);
+    expect(ids).toContain(id2);
     expect(feed.every((p) => p.status === 'approved')).toBe(true);
   });
 

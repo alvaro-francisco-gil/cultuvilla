@@ -14,6 +14,15 @@ service firebase.storage {
       allow write: if false;
     }
 
+    // Community cover images uploaded by village admins via
+    // imageService.uploadMunicipalityImage (villageId === municipalityId).
+    match /municipalities/{municipalityId}/images/{imageId} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
     match /villages/{villageId}/images/{imageId} {
       allow read: if true;
       allow write: if request.auth != null

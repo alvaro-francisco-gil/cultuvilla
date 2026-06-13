@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, View, Image, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import type { ReactNode } from 'react';
 import {
   Screen,
   VStack,
@@ -10,8 +9,16 @@ import {
   Text,
   Pressable,
   Escudo,
-  Avatar,
 } from '../../../../components/primitives';
+import {
+  ACCENT,
+  Stat,
+  StatSeparator,
+  Section,
+  PersonCard,
+  EntityCard,
+  SettingsLink,
+} from '../../../../components/feature/VillageSections';
 import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
 import { useT } from '../../../../lib/i18n';
 import {
@@ -39,7 +46,6 @@ type Person = {
   isRequest: boolean;
 };
 
-const ACCENT = '#bb5d3a';
 /** Cap profile look-ups for the horizontal scroll; "Gestionar" opens the full list. */
 const PEOPLE_LIMIT = 20;
 
@@ -147,9 +153,9 @@ export default function VillageAdminHub() {
           {/* ── Stats ────────────────────────────────────────────── */}
           <HStack className="items-center justify-center py-5">
             <Stat value={barrios.length} label={t('village.admin.hub.barrios')} />
-            <Separator />
+            <StatSeparator />
             <Stat value={places.length} label={t('village.admin.hub.places')} />
-            <Separator />
+            <StatSeparator />
             <Stat value={organizations.length} label={t('village.admin.hub.organizations')} />
           </HStack>
 
@@ -253,168 +259,5 @@ export default function VillageAdminHub() {
         </ScrollView>
       )}
     </Screen>
-  );
-}
-
-function Stat({ value, label }: { value: number; label: string }) {
-  return (
-    <VStack className="items-center px-5">
-      <Text variant="h2">{value}</Text>
-      <Text tone="muted" variant="bodySm">
-        {label}
-      </Text>
-    </VStack>
-  );
-}
-
-function Separator() {
-  return <View className="w-px h-8 bg-subtle" />;
-}
-
-function Section({
-  title,
-  onManage,
-  isEmpty,
-  emptyLabel,
-  addLabel,
-  onAdd,
-  children,
-}: {
-  title: string;
-  onManage: () => void;
-  isEmpty: boolean;
-  emptyLabel: string;
-  addLabel?: string;
-  onAdd?: () => void;
-  children: ReactNode;
-}) {
-  const { t } = useT();
-  return (
-    <VStack gap={3} className="pt-4">
-      <HStack className="items-center justify-between px-4">
-        <Text variant="h3">{title}</Text>
-        <Pressable onPress={onManage} accessibilityLabel={t('village.admin.overview.manage')}>
-          <Text variant="bodySm" style={{ color: ACCENT }} className="font-medium">
-            {t('village.admin.overview.manage')}
-          </Text>
-        </Pressable>
-      </HStack>
-      {isEmpty && !onAdd ? (
-        <Text tone="muted" variant="bodySm" className="px-4">
-          {emptyLabel}
-        </Text>
-      ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerClassName="px-4 gap-3"
-        >
-          {children}
-          {onAdd && addLabel ? <AddCard label={addLabel} onPress={onAdd} /> : null}
-        </ScrollView>
-      )}
-    </VStack>
-  );
-}
-
-function PersonCard({
-  name,
-  photoURL,
-  badge,
-  onPress,
-}: {
-  name: string;
-  photoURL: string | null;
-  badge?: string;
-  onPress?: () => void;
-}) {
-  const initials = name.slice(0, 1).toUpperCase();
-  const body = (
-    <View
-      className="w-24 items-center rounded-2xl py-3 px-2 gap-2 bg-surface-elevated"
-      style={badge ? { borderWidth: 1, borderColor: ACCENT } : undefined}
-    >
-      <Avatar uri={photoURL} size={56} initials={initials} />
-      <Text variant="bodySm" className="font-medium text-center" numberOfLines={1}>
-        {name}
-      </Text>
-      {badge ? (
-        <Text variant="bodySm" style={{ color: ACCENT }} className="text-center" numberOfLines={1}>
-          {badge}
-        </Text>
-      ) : null}
-    </View>
-  );
-  if (!onPress) return body;
-  return (
-    <Pressable onPress={onPress} accessibilityLabel={name}>
-      {body}
-    </Pressable>
-  );
-}
-
-function EntityCard({
-  label,
-  sub,
-  icon,
-  onPress,
-}: {
-  label: string;
-  sub?: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityLabel={label}
-      className="w-36 bg-surface-elevated rounded-2xl p-4"
-    >
-      <Ionicons name={icon} size={28} color={ACCENT} />
-      <Text variant="bodySm" className="mt-3 font-medium" numberOfLines={2}>
-        {label}
-      </Text>
-      {sub ? (
-        <Text tone="muted" variant="bodySm" numberOfLines={1}>
-          {sub}
-        </Text>
-      ) : null}
-    </Pressable>
-  );
-}
-
-function AddCard({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityLabel={label}
-      className="w-36 border border-dashed border-subtle rounded-2xl p-4 items-center justify-center"
-    >
-      <Ionicons name="add" size={28} color={ACCENT} />
-      <Text variant="bodySm" className="mt-3 font-medium text-center" numberOfLines={2}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
-function SettingsLink({
-  icon,
-  label,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="flex-row items-center bg-surface border border-subtle rounded-xl p-3"
-    >
-      <Ionicons name={icon} size={20} color="#0f172a" />
-      <Text className="ml-3 flex-1">{label}</Text>
-      <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
-    </Pressable>
   );
 }

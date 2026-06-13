@@ -1,28 +1,55 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import type { ComponentProps } from 'react';
-import { Screen, Text, VStack, Escudo, Button } from '../../components/primitives';
+import { Screen, Text, VStack, HStack, Pressable, Escudo, Button } from '../../components/primitives';
 import { AppHeader } from '../../components/layout/AppHeader';
 import { VillageDiscovery } from '../../components/feature/VillageDiscovery';
+import {
+  ACCENT,
+  Stat,
+  StatSeparator,
+  Section,
+  PersonCard,
+  EntityCard,
+  SettingsLink,
+} from '../../components/feature/VillageSections';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
 import { useT } from '../../lib/i18n';
-import { isVillageAdmin } from '@cultuvilla/shared/services/villageMemberService';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
-import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
+import {
+  getMunicipality,
+  getBarrios,
+  getPlaces,
+} from '@cultuvilla/shared/services/municipalityService';
+import {
+  isVillageAdmin,
+  getVillageMembers,
+} from '@cultuvilla/shared/services/villageMemberService';
+import { getJoinRequestsForVillage } from '@cultuvilla/shared/services/joinRequestService';
+import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 import { getMyOrganizerRequests } from '@cultuvilla/shared/services/organizerRequestService';
+import { getUserProfile } from '@cultuvilla/shared/services/userService';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
+import type { BarrioData, PlaceData } from '@cultuvilla/shared/models/municipality';
+import type { OrganizationData } from '@cultuvilla/shared/models/organization';
 
 type Village = MunicipalityData & { id: string };
+type Barrio = BarrioData & { id: string };
+type Place = PlaceData & { id: string };
+type Organization = OrganizationData & { id: string };
 
-type HubAction = {
-  key: string;
-  label: string;
-  icon: ComponentProps<typeof Ionicons>['name'];
-  href: string;
+/** A person shown in the "Personas" scroll — either a member or a pending join request. */
+type Person = {
+  userId: string;
+  name: string;
+  photoURL: string | null;
+  isRequest: boolean;
 };
+
+/** Cap profile look-ups for the horizontal scroll; "Gestionar" opens the full list. */
+const PEOPLE_LIMIT = 20;
 
 export default function VillageTabScreen() {
   const { user, profile, profileChecked } = useAuth();
@@ -30,6 +57,10 @@ export default function VillageTabScreen() {
   const { isAppAdmin } = useIsAppAdmin();
   const [village, setVillage] = useState<Village | null>(null);
   const [villageAdmin, setVillageAdmin] = useState(false);
+  const [barrios, setBarrios] = useState<Barrio[]>([]);
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [people, setPeople] = useState<Person[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pendingOrganizerRequest, setPendingOrganizerRequest] = useState(false);
 
@@ -39,12 +70,16 @@ export default function VillageTabScreen() {
     if (!activeMunicipalityId) {
       setVillage(null);
       setVillageAdmin(false);
+      setBarrios([]);
+      setPlaces([]);
+      setOrganizations([]);
+      setPeople([]);
       setPendingOrganizerRequest(false);
       setLoadError(null);
       return;
     }
     try {
-      const [mun, isAdmin, myReqs] = await Promise.all([
+      const [mun, isAdmin, myReqs, bar, plc, members] = await Promise.all([
         withFirestoreErrorLog('village:getMunicipality', () =>
           getMunicipality(activeMunicipalityId),
         ),
@@ -58,9 +93,54 @@ export default function VillageTabScreen() {
               getMyOrganizerRequests(user.uid),
             )
           : Promise.resolve([]),
+        withFirestoreErrorLog('village:getBarrios', () => getBarrios(activeMunicipalityId)),
+        withFirestoreErrorLog('village:getPlaces', () => getPlaces(activeMunicipalityId)),
+        withFirestoreErrorLog('village:getVillageMembers', () =>
+          getVillageMembers(activeMunicipalityId),
+        ),
       ]);
+
+      const canManageNow = isAppAdmin || isAdmin;
+
+      // Admins see every organization (incl. pending moderation); villagers
+      // only see approved ones. Pending join requests are admin-only per rules.
+      const [orgs, requests] = await Promise.all([
+        withFirestoreErrorLog('village:getOrganizations', () =>
+          getOrganizationsByMunicipality(
+            activeMunicipalityId,
+            canManageNow ? undefined : 'approved',
+          ),
+        ),
+        canManageNow && user
+          ? withFirestoreErrorLog('village:getJoinRequests', () =>
+              getJoinRequestsForVillage(activeMunicipalityId, 'pending'),
+            )
+          : Promise.resolve([]),
+      ]);
+
+      // Pending requests come first, then members; resolve display name + photo.
+      const pending = requests.map((r) => ({ userId: r.userId, isRequest: true }));
+      const joined = members
+        .slice(0, PEOPLE_LIMIT)
+        .map((m) => ({ userId: m.userId, isRequest: false }));
+      const resolved = await Promise.all(
+        [...pending, ...joined].map(async (p) => {
+          const prof = await getUserProfile(p.userId);
+          return {
+            userId: p.userId,
+            name: prof?.displayName ?? p.userId,
+            photoURL: prof?.photoURL ?? null,
+            isRequest: p.isRequest,
+          };
+        }),
+      );
+
       setVillage(mun);
       setVillageAdmin(isAdmin);
+      setBarrios(bar);
+      setPlaces(plc);
+      setOrganizations(orgs);
+      setPeople(resolved);
       setPendingOrganizerRequest(
         myReqs.some(
           (r) => r.municipalityId === activeMunicipalityId && r.status === 'pending',
@@ -72,7 +152,7 @@ export default function VillageTabScreen() {
       console.log('[VillageTab] loadVillage ERR', msg);
       setLoadError(msg);
     }
-  }, [activeMunicipalityId, user]);
+  }, [activeMunicipalityId, user, isAppAdmin]);
 
   useEffect(() => {
     void loadVillage();
@@ -81,7 +161,7 @@ export default function VillageTabScreen() {
   useFocusEffect(
     useCallback(() => {
       void loadVillage();
-    }, [loadVillage])
+    }, [loadVillage]),
   );
 
   // AuthGate already waits for `profileChecked`, but guard once more for safety.
@@ -165,79 +245,165 @@ export default function VillageTabScreen() {
   }
 
   const canManage = isAppAdmin || villageAdmin;
-
-  const actions: HubAction[] = [
-    {
-      key: 'events',
-      label: t('village.hub.events'),
-      icon: 'calendar',
-      href: `/village/${village.id}`,
-    },
-    {
-      key: 'organizations',
-      label: t('village.hub.organizations'),
-      icon: 'people',
-      href: `/village/${village.id}/organizations`,
-    },
-    {
-      key: 'censo',
-      label: t('village.hub.censo'),
-      icon: 'document-text',
-      href: `/village/${village.id}/censo`,
-    },
-    {
-      key: 'news',
-      label: t('village.hub.news'),
-      icon: 'newspaper',
-      href: `/village/${village.id}`,
-    },
-  ];
+  const base = `/village/${village.id}/admin` as const;
+  const cover = village.community?.coverImages?.[0] ?? null;
+  const description = village.community?.description?.trim();
 
   return (
     <Screen padded={false} topInset={false}>
       <AppHeader centerLabel={village.name} />
-      <FlatList
-        contentContainerClassName="p-4"
-        data={actions}
-        numColumns={2}
-        keyExtractor={(a) => a.key}
-        columnWrapperStyle={{ gap: 12 }}
-        ListHeaderComponent={
-          <VStack gap={2} className="items-center pt-2 pb-6">
+      <ScrollView contentContainerClassName="pb-10">
+        {/* ── Hero ─────────────────────────────────────────────── */}
+        {cover ? (
+          <Image source={{ uri: cover }} className="w-full h-40" resizeMode="cover" />
+        ) : null}
+        <VStack gap={1} className={`items-center px-4 ${cover ? '-mt-12' : 'pt-4'}`}>
+          <View className="bg-surface rounded-2xl p-2 shadow-sm">
             <Escudo url={village.escudoUrl} size={96} fallbackInitial={village.name} />
-            <Text variant="h2" className="mt-2">
-              {village.name}
+          </View>
+          <Text variant="h2" className="mt-2 text-center">
+            {village.name}
+          </Text>
+          <Text tone="muted" variant="bodySm">
+            {village.province}
+          </Text>
+          {description ? (
+            <Text tone="muted" variant="bodySm" className="text-center mt-1" numberOfLines={4}>
+              {description}
             </Text>
-            <Text tone="muted" variant="bodySm">
-              {village.province}
+          ) : canManage ? (
+            <Text tone="muted" variant="bodySm" className="text-center mt-1">
+              {t('village.admin.overview.noDescription')}
             </Text>
-            {canManage && (
-              <Pressable
-                onPress={() => router.push(`/village/${village.id}/admin` as never)}
-                accessibilityLabel={t('village.admin.open')}
-                className="w-full bg-surface-elevated rounded-2xl py-5 items-center mt-4"
-              >
-                <Ionicons name="settings" size={32} color="#bb5d3a" />
-                <Text variant="bodySm" className="mt-2 font-medium">
-                  {t('village.admin.open')}
-                </Text>
-              </Pressable>
-            )}
+          ) : null}
+          {canManage ? (
+            <Pressable
+              onPress={() => router.push(`${base}/community` as never)}
+              accessibilityLabel={t('village.admin.overview.edit')}
+              className="flex-row items-center mt-2"
+            >
+              <Ionicons name="create-outline" size={16} color={ACCENT} />
+              <Text variant="bodySm" style={{ color: ACCENT }} className="ml-1 font-medium">
+                {t('village.admin.overview.edit')}
+              </Text>
+            </Pressable>
+          ) : null}
+        </VStack>
+
+        {/* ── Stats ────────────────────────────────────────────── */}
+        <HStack className="items-center justify-center py-5">
+          <Stat value={barrios.length} label={t('village.admin.hub.barrios')} />
+          <StatSeparator />
+          <Stat value={places.length} label={t('village.admin.hub.places')} />
+          <StatSeparator />
+          <Stat value={organizations.length} label={t('village.hub.organizations')} />
+        </HStack>
+
+        {/* ── Personas (members + pending join requests for admins) ─ */}
+        <Section
+          title={t('village.admin.overview.people')}
+          onManage={canManage ? () => router.push(`${base}/requests` as never) : undefined}
+          isEmpty={people.length === 0}
+          emptyLabel={t('village.admin.overview.noPeople')}
+        >
+          {people.map((p) =>
+            p.isRequest ? (
+              <PersonCard
+                key={`req-${p.userId}`}
+                name={p.name}
+                photoURL={p.photoURL}
+                badge={t('village.admin.overview.requestBadge')}
+                onPress={() => router.push(`${base}/requests` as never)}
+              />
+            ) : (
+              <PersonCard key={`mem-${p.userId}`} name={p.name} photoURL={p.photoURL} />
+            ),
+          )}
+        </Section>
+
+        {/* ── Barrios ──────────────────────────────────────────── */}
+        <Section
+          title={t('village.admin.hub.barrios')}
+          onManage={canManage ? () => router.push(`${base}/barrios` as never) : undefined}
+          isEmpty={barrios.length === 0}
+          emptyLabel={t('village.admin.barrios.empty')}
+          addLabel={canManage ? t('village.admin.barrios.add') : undefined}
+          onAdd={canManage ? () => router.push(`${base}/barrios` as never) : undefined}
+        >
+          {barrios.map((b) => (
+            <EntityCard
+              key={b.id}
+              label={b.name}
+              icon="map-outline"
+              onPress={canManage ? () => router.push(`${base}/barrios` as never) : undefined}
+            />
+          ))}
+        </Section>
+
+        {/* ── Lugares ──────────────────────────────────────────── */}
+        <Section
+          title={t('village.admin.hub.places')}
+          onManage={canManage ? () => router.push(`${base}/places` as never) : undefined}
+          isEmpty={places.length === 0}
+          emptyLabel={t('village.admin.places.empty')}
+          addLabel={canManage ? t('village.admin.places.add') : undefined}
+          onAdd={canManage ? () => router.push(`${base}/places` as never) : undefined}
+        >
+          {places.map((p) => (
+            <EntityCard
+              key={p.id}
+              label={p.name}
+              sub={t(`village.admin.places.kind.${p.kind}`)}
+              icon="location-outline"
+              onPress={canManage ? () => router.push(`${base}/places` as never) : undefined}
+            />
+          ))}
+        </Section>
+
+        {/* ── Agrupaciones ─────────────────────────────────────── */}
+        <Section
+          title={t('village.hub.organizations')}
+          onManage={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
+          isEmpty={organizations.length === 0}
+          emptyLabel={t('village.organizationsList.empty')}
+          addLabel={canManage ? t('village.admin.organizations.add') : undefined}
+          onAdd={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
+        >
+          {organizations.map((o) => (
+            <EntityCard
+              key={o.id}
+              label={o.name}
+              sub={canManage ? o.status : undefined}
+              icon="business-outline"
+              onPress={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
+            />
+          ))}
+        </Section>
+
+        {/* ── More settings (admins only) ──────────────────────── */}
+        {canManage ? (
+          <VStack gap={2} className="px-4 pt-4">
+            <Text variant="h3" className="mb-1">
+              {t('village.admin.overview.more')}
+            </Text>
+            <SettingsLink
+              icon="link-outline"
+              label={t('village.admin.hub.invites')}
+              onPress={() => router.push(`${base}/invite-tokens` as never)}
+            />
           </VStack>
-        }
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() => router.push(item.href as never)}
-            accessibilityLabel={item.label}
-            className="flex-1 bg-surface-elevated rounded-2xl py-8 items-center mb-3"
+        ) : null}
+
+        {/* ── Censo (everyone) ─────────────────────────────────── */}
+        <View className="px-4 pt-6">
+          <Button
+            variant="secondary"
+            onPress={() => router.push(`/village/${village.id}/censo` as never)}
           >
-            <Ionicons name={item.icon} size={32} color="#bb5d3a" />
-            <Text variant="bodySm" className="mt-3 font-medium">
-              {item.label}
-            </Text>
-          </Pressable>
-        )}
-      />
+            {t('village.censo.link')}
+          </Button>
+        </View>
+      </ScrollView>
     </Screen>
   );
 }

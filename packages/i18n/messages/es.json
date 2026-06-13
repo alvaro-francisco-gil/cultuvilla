@@ -97,6 +97,27 @@
       "events": "Eventos",
       "news": "Noticias"
     },
+    "filter": {
+      "all": "Todos",
+      "village": "Pueblo",
+      "villageTitle": "Pueblo",
+      "villageAll": "Todos los pueblos",
+      "search": "Buscar",
+      "searchPlaceholder": "Buscar...",
+      "date": "Fecha",
+      "dateTitle": "Fecha",
+      "dateAll": "Cualquier fecha",
+      "dateToday": "Hoy",
+      "dateWeek": "Esta semana",
+      "dateMonth": "Este mes",
+      "category": "Categoría",
+      "categoryTitle": "Categoría",
+      "categoryAll": "Todas las categorías",
+      "sort": "Ordenar",
+      "sortTitle": "Ordenar por",
+      "sortDate": "Por fecha",
+      "sortProximity": "Por cercanía"
+    },
     "news": {
       "comingSoonBody": "Las noticias de tu pueblo llegarán pronto.",
       "empty": "Aún no hay noticias en tu pueblo.",
@@ -243,13 +264,13 @@
     },
     "hub": {
       "events": "Eventos",
-      "organizations": "Organizaciones",
+      "organizations": "Agrupaciones",
       "censo": "Censo",
       "news": "Anuncios"
     },
     "organizationsList": {
-      "title": "Organizaciones",
-      "empty": "Aún no hay organizaciones"
+      "title": "Agrupaciones",
+      "empty": "Aún no hay agrupaciones"
     }
   },
   "villages": {

@@ -250,6 +250,23 @@ export async function getHomeFeed(
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+// Cross-village feed: every approved post regardless of municipality. Backs the
+// Explora "all villages" view; callers narrow by village client-side.
+export async function getAllVillagesFeed(
+  options: { limit?: number; afterPublishedAt?: Date } = {},
+): Promise<(NewsPostData & { id: string })[]> {
+  const constraints = [
+    where('status', '==', 'approved'),
+    orderBy('publishedAt', 'desc'),
+    ...(options.afterPublishedAt
+      ? [startAfter(Timestamp.fromDate(options.afterPublishedAt))]
+      : []),
+    ...(options.limit ? [fsLimit(options.limit)] : []),
+  ];
+  const snap = await getDocs(query(newsCollection(getDb()), ...constraints));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
 export async function getOtherVillagesFeed(
   homeMunicipalityId: string,
   options: { limit?: number; afterPublishedAt?: Date } = {},
