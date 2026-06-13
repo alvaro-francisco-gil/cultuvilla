@@ -120,25 +120,42 @@ export function buildBarrioData(input: BarrioDataInput): BarrioData {
   return { ...input, createdAt: new Date() };
 }
 
-// ── Cemeteries (subcollection: /municipalities/{id}/cemeteries/{cemId}) ──
+// ── Places (subcollection: /municipalities/{id}/places/{placeId}) ────────
+//
+// Notable places within a municipality (cemeteries, churches, etc.),
+// discriminated by `kind`. `cemetery` is load-bearing: it is the target of
+// Person.burialPlace (see PersonDataModel.BurialPlaceSchema). Barrios remain a
+// separate concept — they are administrative subdivisions, not physical sites.
 
-export const CemeteryDataSchema = z.object({
+export const PlaceKindSchema = z.enum([
+  'cemetery',
+  'church', // iglesia — parish church in the village
+  'hermitage', // ermita — standalone chapel/shrine, often on the outskirts
+  'plaza', // plaza — main square (an open area, not a building)
+  'town_hall', // ayuntamiento — civic seat
+]);
+export type PlaceKind = z.infer<typeof PlaceKindSchema>;
+
+export const PlaceDataSchema = z.object({
   name: z.string(),
+  kind: PlaceKindSchema,
   description: z.string().nullable(),
   municipalityId: z.string(),
   createdAt: z.date(),
 });
-export type CemeteryData = z.infer<typeof CemeteryDataSchema>;
+export type PlaceData = z.infer<typeof PlaceDataSchema>;
 
-export interface CemeteryDataInput {
+export interface PlaceDataInput {
   name: string;
+  kind: PlaceKind;
   municipalityId: string;
   description?: string | null;
 }
 
-export function buildCemeteryData(input: CemeteryDataInput): CemeteryData {
+export function buildPlaceData(input: PlaceDataInput): PlaceData {
   return {
     name: input.name,
+    kind: input.kind,
     municipalityId: input.municipalityId,
     description: input.description ?? null,
     createdAt: new Date(),

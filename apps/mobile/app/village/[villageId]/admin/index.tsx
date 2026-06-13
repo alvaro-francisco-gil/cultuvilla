@@ -12,7 +12,7 @@ export default function VillageAdminHub() {
   const items: Array<{ href: string; icon: keyof typeof Ionicons.glyphMap; label: string }> = [
     { href: `${base}/community`, icon: 'home-outline', label: t('village.admin.hub.community') },
     { href: `${base}/barrios`, icon: 'map-outline', label: t('village.admin.hub.barrios') },
-    { href: `${base}/cemeteries`, icon: 'leaf-outline', label: t('village.admin.hub.cemeteries') },
+    { href: `${base}/places`, icon: 'location-outline', label: t('village.admin.hub.places') },
     { href: `${base}/organizations`, icon: 'business-outline', label: t('village.admin.hub.organizations') },
     { href: `${base}/invite-tokens`, icon: 'link-outline', label: t('village.admin.hub.invites') },
     { href: `${base}/censo`, icon: 'list-outline', label: t('village.admin.hub.censo') },

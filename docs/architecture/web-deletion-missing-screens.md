@@ -25,7 +25,7 @@ The mobile app already covers most screens. The list below is what the deleted w
 | `/village/[id]/admin/censo` | Edit village censo schema | Village admin | Low |
 | `/village/[id]/censo` | Resident-facing censo display (the **admin/edit** form is above; the read view lives at the village page in mobile, so this may already be covered — verify) | Village member | Low |
 | `/admin` (superadmin home) | Superadmin landing | Superadmin | Low |
-| `/admin/municipalities` + `/admin/municipalities/[id]` | Manage municipalities (create, edit, barrios, cemeteries) | Superadmin | Low |
+| `/admin/municipalities` + `/admin/municipalities/[id]` | Manage municipalities (create, edit, barrios, places) | Superadmin | Low |
 | `/admin/occupations` | Manage occupation taxonomy | Superadmin | Low |
 | `/admin/organizer-requests` | Approve/reject org creation requests | Superadmin | Low |
 | `/complete-profile` (web variant) | Profile completion step | New users | **Already covered** by `app/(onboarding)/complete-profile.tsx` — keep an eye on parity if any field drifts |

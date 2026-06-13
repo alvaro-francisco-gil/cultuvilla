@@ -5,29 +5,35 @@ import { Screen, VStack, HStack, Text, Button, Input, Pressable } from '../../..
 import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
 import { useT } from '../../../../lib/i18n';
 import {
-  getCemeteries,
-  createCemetery,
-  updateCemetery,
-  deleteCemetery,
+  getPlaces,
+  createPlace,
+  updatePlace,
+  deletePlace,
 } from '@cultuvilla/shared/services/municipalityService';
-import type { CemeteryData } from '@cultuvilla/shared/models/municipality';
+import type { PlaceData, PlaceKind } from '@cultuvilla/shared/models/municipality';
 
-type Row = CemeteryData & { id: string };
+type Row = PlaceData & { id: string };
 
-export default function CemeteriesScreen() {
+const KINDS: PlaceKind[] = ['cemetery', 'church', 'hermitage', 'plaza', 'town_hall'];
+
+export default function PlacesScreen() {
   const { villageId } = useLocalSearchParams<{ villageId: string }>();
   const { t } = useT();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [kind, setKind] = useState<PlaceKind>('cemetery');
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [editKind, setEditKind] = useState<PlaceKind>('cemetery');
+
+  const kindLabel = (k: PlaceKind) => t(`village.admin.places.kind.${k}`);
 
   const load = useCallback(async () => {
     if (!villageId) return;
-    setRows(await getCemeteries(villageId));
+    setRows(await getPlaces(villageId));
   }, [villageId]);
 
   useEffect(() => {
@@ -38,13 +44,15 @@ export default function CemeteriesScreen() {
     if (!villageId || !name.trim()) return;
     setSaving(true);
     try {
-      await createCemetery(villageId, {
+      await createPlace(villageId, {
         name: name.trim(),
+        kind,
         description: description.trim(),
         municipalityId: villageId,
       });
       setName('');
       setDescription('');
+      setKind('cemetery');
       await load();
     } finally {
       setSaving(false);
@@ -55,8 +63,9 @@ export default function CemeteriesScreen() {
     if (!villageId || !editingId) return;
     setSaving(true);
     try {
-      await updateCemetery(villageId, editingId, {
+      await updatePlace(villageId, editingId, {
         name: editName.trim(),
+        kind: editKind,
         description: editDescription.trim(),
       });
       setEditingId(null);
@@ -75,27 +84,48 @@ export default function CemeteriesScreen() {
         style: 'destructive',
         onPress: async () => {
           if (!villageId) return;
-          await deleteCemetery(villageId, r.id);
+          await deletePlace(villageId, r.id);
           await load();
         },
       },
     ]);
   }
 
+  // Chip-row selector — avoids Modal/Picker for mobile-web-compat.
+  const KindPicker = ({ value, onChange }: { value: PlaceKind; onChange: (k: PlaceKind) => void }) => (
+    <VStack gap={1}>
+      <Text className="text-muted text-sm">{t('village.admin.places.kindLabel')}</Text>
+      <HStack gap={2} className="flex-wrap">
+        {KINDS.map((k) => (
+          <Pressable
+            key={k}
+            onPress={() => onChange(k)}
+            className={`px-3 py-1 rounded-full border ${
+              value === k ? 'bg-blue-600 border-blue-600' : 'border-subtle'
+            }`}
+          >
+            <Text className={value === k ? 'text-white' : undefined}>{kindLabel(k)}</Text>
+          </Pressable>
+        ))}
+      </HStack>
+    </VStack>
+  );
+
   return (
     <Screen padded={false}>
-      <ScreenHeader title={t('village.admin.cemeteries.title')} />
+      <ScreenHeader title={t('village.admin.places.title')} />
       <VStack gap={3} className="p-4">
         <VStack gap={2}>
-          <Input value={name} onChangeText={setName} placeholder={t('village.admin.cemeteries.name')} />
+          <Input value={name} onChangeText={setName} placeholder={t('village.admin.places.name')} />
           <Input
             value={description}
             onChangeText={setDescription}
-            placeholder={t('village.admin.cemeteries.description')}
+            placeholder={t('village.admin.places.description')}
             multiline
           />
+          <KindPicker value={kind} onChange={setKind} />
           <Button onPress={add} loading={saving} disabled={!name.trim()}>
-            {t('village.admin.cemeteries.add')}
+            {t('village.admin.places.add')}
           </Button>
         </VStack>
         <FlatList
@@ -107,6 +137,7 @@ export default function CemeteriesScreen() {
                 <VStack gap={2}>
                   <Input value={editName} onChangeText={setEditName} />
                   <Input value={editDescription} onChangeText={setEditDescription} multiline />
+                  <KindPicker value={editKind} onChange={setEditKind} />
                   <HStack gap={2}>
                     <Button onPress={saveEdit} loading={saving}>{t('common.save')}</Button>
                     <Button variant="ghost" onPress={() => setEditingId(null)}>{t('common.cancel')}</Button>
@@ -116,6 +147,7 @@ export default function CemeteriesScreen() {
                 <HStack gap={2}>
                   <View className="flex-1">
                     <Text>{item.name}</Text>
+                    <Text className="text-muted text-sm">{kindLabel(item.kind)}</Text>
                     {item.description ? (
                       <Text className="text-muted text-sm">{item.description}</Text>
                     ) : null}
@@ -125,6 +157,7 @@ export default function CemeteriesScreen() {
                       setEditingId(item.id);
                       setEditName(item.name);
                       setEditDescription(item.description ?? '');
+                      setEditKind(item.kind);
                     }}
                   >
                     <Text className="text-blue-600">{t('common.edit')}</Text>
@@ -138,7 +171,7 @@ export default function CemeteriesScreen() {
           )}
           ListEmptyComponent={
             rows && rows.length === 0 ? (
-              <Text className="text-muted">{t('village.admin.cemeteries.empty')}</Text>
+              <Text className="text-muted">{t('village.admin.places.empty')}</Text>
             ) : null
           }
         />

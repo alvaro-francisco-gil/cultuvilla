@@ -21,8 +21,8 @@ import {
   municipalityDoc,
   municipalityBarriosCollection,
   municipalityBarrioDoc,
-  municipalityCemeteriesCollection,
-  municipalityCemeteryDoc,
+  municipalityPlacesCollection,
+  municipalityPlaceDoc,
   municipalityMemberDoc,
 } from '../firebase/refs/client';
 import type {
@@ -32,8 +32,9 @@ import type {
   ActivateCommunityInput,
   BarrioData,
   BarrioDataInput,
-  CemeteryData,
-  CemeteryDataInput,
+  PlaceData,
+  PlaceDataInput,
+  PlaceKind,
 } from '../models/municipality';
 import { municipalitySearchKey } from '../models/municipality/MunicipalityDataModel';
 
@@ -230,18 +231,25 @@ export async function deleteBarrio(municipalityId: string, barrioId: string): Pr
   await deleteDoc(municipalityBarrioDoc(getDb(), municipalityId, barrioId));
 }
 
-// ── Cemeteries ───────────────────────────────────────────────────────────
+// ── Places (cemeteries, churches, …) ───────────────────────────────────────
 
-export async function getCemeteries(municipalityId: string): Promise<(CemeteryData & { id: string })[]> {
-  const q = query(municipalityCemeteriesCollection(getDb(), municipalityId), orderBy('name', 'asc'));
+// Returns all places for a municipality ordered by name. Pass `kind` to filter
+// in memory — a village has few places, so we avoid a composite index.
+export async function getPlaces(
+  municipalityId: string,
+  kind?: PlaceKind,
+): Promise<(PlaceData & { id: string })[]> {
+  const q = query(municipalityPlacesCollection(getDb(), municipalityId), orderBy('name', 'asc'));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return kind ? rows.filter((r) => r.kind === kind) : rows;
 }
 
-export async function createCemetery(municipalityId: string, input: CemeteryDataInput): Promise<string> {
-  const newRef = doc(municipalityCemeteriesCollection(getDb(), municipalityId));
-  const data: CemeteryData = {
+export async function createPlace(municipalityId: string, input: PlaceDataInput): Promise<string> {
+  const newRef = doc(municipalityPlacesCollection(getDb(), municipalityId));
+  const data: PlaceData = {
     name: input.name,
+    kind: input.kind,
     description: input.description ?? null,
     municipalityId,
     createdAt: new Date(),
@@ -250,17 +258,17 @@ export async function createCemetery(municipalityId: string, input: CemeteryData
   return newRef.id;
 }
 
-export async function updateCemetery(
+export async function updatePlace(
   municipalityId: string,
-  cemeteryId: string,
-  data: Partial<Omit<CemeteryData, 'createdAt'>>,
+  placeId: string,
+  data: Partial<Omit<PlaceData, 'createdAt'>>,
 ): Promise<void> {
   const updates: UpdateData<DocumentData> = { ...data };
-  await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'cemeteries', cemeteryId), updates);
+  await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'places', placeId), updates);
 }
 
-export async function deleteCemetery(municipalityId: string, cemeteryId: string): Promise<void> {
-  await deleteDoc(municipalityCemeteryDoc(getDb(), municipalityId, cemeteryId));
+export async function deletePlace(municipalityId: string, placeId: string): Promise<void> {
+  await deleteDoc(municipalityPlaceDoc(getDb(), municipalityId, placeId));
 }
 
 // keep export so other code can call setDoc directly for seed-style work

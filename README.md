@@ -13,7 +13,7 @@ Cultuvilla has **six user types**. They compose — an org member is also a vill
 | 3 | **Village member** | Joined a village via invite link. Sees full attendee lists for that village's events, can request org creation. |
 | 4 | **Org member** | Belongs to an `ayuntamiento`, `peña`, or `asociación` within a village. Creates, edits, and cancels that org's events. |
 | 5 | **Village admin** | One per village. Generates invite links, approves/rejects org requests, manages village info, can cancel any event in the village. |
-| 6 | **Superadmin** (app-wide) | Global. Creates villages, manages all villages and users. Owns the `/admin/*` pages (municipalities, barrios, cemeteries, occupations, proposals). |
+| 6 | **Superadmin** (app-wide) | Global. Creates villages, manages all villages and users. Owns the `/admin/*` pages (municipalities, barrios, places, occupations, proposals). |
 
 ### "Persona" — distinct concept
 

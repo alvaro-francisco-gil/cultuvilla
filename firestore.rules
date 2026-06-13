@@ -425,7 +425,7 @@ service cloud.firestore {
         allow write: if isAppAdmin();
       }
 
-      match /cemeteries/{cemeteryId} {
+      match /places/{placeId} {
         allow read: if true;
         allow write: if isAppAdmin();
       }

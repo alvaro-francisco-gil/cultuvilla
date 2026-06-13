@@ -16,7 +16,8 @@ referenced a nullable `personaId`.
 - **Registrations always require a `personId`** — the nullable `personaId` is
   gone. Every registration points at a real person record.
 - Added supporting reference domains: **`municipalities`** (predefined Spanish
-  ayuntamientos, with `barrios` / `cemeteries` subcollections) and
+  ayuntamientos, with `barrios` / `places` subcollections — `places` holds
+  notable sites by `kind`, where `kind === 'cemetery'` backs burial links) and
   **`occupations`** (superadmin-managed multi-select list with a user
   `occupationProposals` flow).
 - `PersonaDataModel` / `personaService` were deleted, not deprecated.

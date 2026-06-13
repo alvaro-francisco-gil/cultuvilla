@@ -2,12 +2,12 @@ import { describe, it, expect } from 'vitest';
 import {
   MunicipalityDataSchema,
   BarrioDataSchema,
-  CemeteryDataSchema,
+  PlaceDataSchema,
   VillageCommunitySchema,
   buildMunicipalityData,
   buildVillageCommunity,
   buildBarrioData,
-  buildCemeteryData,
+  buildPlaceData,
   municipalitySearchKey,
 } from '../../../src/models/municipality/MunicipalityDataModel';
 
@@ -121,10 +121,23 @@ describe('BarrioDataSchema and buildBarrioData', () => {
   });
 });
 
-describe('CemeteryDataSchema and buildCemeteryData', () => {
-  it('defaults description to null and round-trips', () => {
-    const c = buildCemeteryData({ name: 'C', municipalityId: 'm1' });
-    expect(c.description).toBeNull();
-    expect(() => CemeteryDataSchema.parse(c)).not.toThrow();
+describe('PlaceDataSchema and buildPlaceData', () => {
+  it('defaults description to null, keeps kind, and round-trips', () => {
+    const p = buildPlaceData({ name: 'C', kind: 'cemetery', municipalityId: 'm1' });
+    expect(p.description).toBeNull();
+    expect(p.kind).toBe('cemetery');
+    expect(() => PlaceDataSchema.parse(p)).not.toThrow();
+  });
+
+  it('rejects an unknown kind', () => {
+    expect(() =>
+      PlaceDataSchema.parse({
+        name: 'X',
+        kind: 'castle',
+        description: null,
+        municipalityId: 'm1',
+        createdAt: new Date(),
+      }),
+    ).toThrow();
   });
 });
