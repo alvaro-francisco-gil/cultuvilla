@@ -4,7 +4,7 @@ import { eventConverterClient } from '../converters/eventConverter.client';
 import { registrationConverterClient } from '../converters/registrationConverter.client';
 import { municipalityConverterClient } from '../converters/municipalityConverter.client';
 import { barrioConverterClient } from '../converters/barrioConverter.client';
-import { cemeteryConverterClient } from '../converters/cemeteryConverter.client';
+import { placeConverterClient } from '../converters/placeConverter.client';
 import { villageMemberConverterClient } from '../converters/villageMemberConverter.client';
 import { inviteTokenConverterClient } from '../converters/inviteTokenConverter.client';
 import { joinRequestConverterClient } from '../converters/joinRequestConverter.client';
@@ -48,11 +48,11 @@ export const municipalityBarriosCollection = (db: Firestore, municipalityId: str
 export const municipalityBarrioDoc = (db: Firestore, municipalityId: string, barrioId: string) =>
   doc(db, 'municipalities', municipalityId, 'barrios', barrioId).withConverter(barrioConverterClient);
 
-export const municipalityCemeteriesCollection = (db: Firestore, municipalityId: string) =>
-  collection(db, 'municipalities', municipalityId, 'cemeteries').withConverter(cemeteryConverterClient);
+export const municipalityPlacesCollection = (db: Firestore, municipalityId: string) =>
+  collection(db, 'municipalities', municipalityId, 'places').withConverter(placeConverterClient);
 
-export const municipalityCemeteryDoc = (db: Firestore, municipalityId: string, cemeteryId: string) =>
-  doc(db, 'municipalities', municipalityId, 'cemeteries', cemeteryId).withConverter(cemeteryConverterClient);
+export const municipalityPlaceDoc = (db: Firestore, municipalityId: string, placeId: string) =>
+  doc(db, 'municipalities', municipalityId, 'places', placeId).withConverter(placeConverterClient);
 
 export const municipalityMembersCollection = (db: Firestore, municipalityId: string) =>
   collection(db, 'municipalities', municipalityId, 'members').withConverter(villageMemberConverterClient);

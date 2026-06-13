@@ -18,7 +18,7 @@ describe('PersonDataSchema', () => {
       birthday: { year: 1943, month: 6, day: 15 },
       deathDate: { year: 2020, month: null, day: null },
       birthPlace: { municipalityId: 'mun1', barrioId: 'barrio1' },
-      burialPlace: { municipalityId: 'mun1', cemeteryId: 'cem1' },
+      burialPlace: { municipalityId: 'mun1', placeId: 'place1' },
       municipalityLinks: [{ municipalityId: 'mun1', barrioId: null }],
       occupationIds: ['occ1', 'occ2'],
       pendingOccupations: ['Molinera'],
@@ -117,7 +117,7 @@ describe('buildPersonData', () => {
       birthday: { year: 1943, month: 6, day: 15 },
       deathDate: { year: 2020, month: null, day: null },
       birthPlace: { municipalityId: 'mun1', barrioId: 'barrio1' },
-      burialPlace: { municipalityId: 'mun1', cemeteryId: 'cem1' },
+      burialPlace: { municipalityId: 'mun1', placeId: 'place1' },
       municipalityLinks: [{ municipalityId: 'mun1', barrioId: null }],
       occupationIds: ['occ1', 'occ2'],
       pendingOccupations: ['Molinera'],
@@ -131,7 +131,7 @@ describe('buildPersonData', () => {
     expect(result.sex).toBe('female');
     expect(result.birthday).toEqual({ year: 1943, month: 6, day: 15 });
     expect(result.deathDate).toEqual({ year: 2020, month: null, day: null });
-    expect(result.burialPlace).toEqual({ municipalityId: 'mun1', cemeteryId: 'cem1' });
+    expect(result.burialPlace).toEqual({ municipalityId: 'mun1', placeId: 'place1' });
     expect(result.occupationIds).toEqual(['occ1', 'occ2']);
     expect(result.pendingOccupations).toEqual(['Molinera']);
   });

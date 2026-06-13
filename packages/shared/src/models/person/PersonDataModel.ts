@@ -18,7 +18,7 @@ export type MunicipalityLink = z.infer<typeof MunicipalityLinkSchema>;
 
 export const BurialPlaceSchema = z.object({
   municipalityId: z.string(),
-  cemeteryId: z.string(),
+  placeId: z.string(), // references a /municipalities/{id}/places doc with kind === 'cemetery'
 });
 export type BurialPlace = z.infer<typeof BurialPlaceSchema>;
 

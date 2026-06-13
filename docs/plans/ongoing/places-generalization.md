@@ -5,12 +5,12 @@
 ## Status
 
 - **Updated:** 2026-06-13
-- **Stage:** Implementation starting — model + refs layer first.
+- **Stage:** Code complete (Stages 1–5). Stages 6 deferred (see below).
 - **Branch:** repo `feat/places-generalization` (worktree at `.claude/worktrees/places-generalization`)
-- **Done:** Plan drafted; design decisions locked (see Decisions).
-- **Next:** Replace `CemeteryDataSchema` with `PlaceDataSchema` + `PlaceKindSchema` in `MunicipalityDataModel.ts`.
+- **Done:** Shared data layer (model, `Person.burialPlace` FK, converters, refs, service, services-map); `firestore.rules` (`cemeteries`→`places`); mobile `places.tsx` + kind picker + admin hub link; i18n `places` namespace + kind labels; tests updated; docs swept (README, CHANGELOG, persons-registry decision, web-deletion-missing-screens). Verified: `shared:typecheck` ✅, `shared:test` 360 ✅, `test:rules` 102 ✅, `i18n:typecheck` ✅, `app:typecheck` ✅, `shared:lint` ✅, web-compat ✅, no-raw-firestore-refs ✅. Mobile jest 58/59 (the 1 failure is a pre-existing suite-ordering flake in `complete-profile.test.tsx`, passes in isolation, unrelated).
+- **Next:** Review + merge. Then deploy rules to dev (`deploy:rules:dev`), then reset dev data (Stage 6).
 - **Blockers:** none
-- **Handoff:** Dev phase — **no migration/backfill**. Existing dev `cemeteries` docs and any `Person.burialPlace` values get wiped and recreated via the `firebase-admin-dev` skill (see Task 9). Don't write migration code.
+- **Handoff:** Worktree needed both `pnpm install` and `npm --prefix functions install` to run vitest/rules. Dev phase — **no migration/backfill code**. Stage 6 (dev data wipe + recreate) is deliberately deferred until rules are deployed to dev, else the app would read `places` against stale `cemeteries` rules. Burial guard (kind==='cemetery' assertion) deferred — no mobile form writes `burialPlace` yet, so it guards nothing.
 
 ## Context
 
@@ -68,25 +68,25 @@ We want to add more notable-place types (iglesia, ermita, plaza, ayuntamiento) w
 ## Tasks
 
 ### Stage 1 — Shared data layer
-- [ ] Model: `PlaceKindSchema` + `PlaceDataSchema` + `buildPlaceData` replace cemetery schema in `MunicipalityDataModel.ts`.
-- [ ] Model: `BurialPlaceSchema.cemeteryId` → `placeId` in `PersonDataModel.ts` (+ input + builder).
-- [ ] Rename + rewrite both converters (`placeConverter.{client,admin}.ts`); delete old cemetery converter files.
-- [ ] Refs: rename collection/doc helpers + path in `client.ts` and `admin.ts`.
-- [ ] Service: rename the four CRUD fns in `municipalityService.ts`; add optional in-memory `kind` filter to `getPlaces`. Follow the `touch-service` skill.
-- [ ] Update `_services-map.md`.
+- [x] Model: `PlaceKindSchema` + `PlaceDataSchema` + `buildPlaceData` replace cemetery schema in `MunicipalityDataModel.ts`.
+- [x] Model: `BurialPlaceSchema.cemeteryId` → `placeId` in `PersonDataModel.ts` (+ input + builder).
+- [x] Rename + rewrite both converters (`placeConverter.{client,admin}.ts`); delete old cemetery converter files.
+- [x] Refs: rename collection/doc helpers + path in `client.ts` and `admin.ts`.
+- [x] Service: rename the four CRUD fns in `municipalityService.ts`; add optional in-memory `kind` filter to `getPlaces`. Follow the `touch-service` skill.
+- [x] Update `_services-map.md`.
 
 ### Stage 2 — Rules
-- [ ] `firestore.rules`: `cemeteries` → `places` match block. (Per `guardrail-enforcement`: write stays `isAppAdmin()`, read public.)
+- [x] `firestore.rules`: `cemeteries` → `places` match block. (Per `guardrail-enforcement`: write stays `isAppAdmin()`, read public.)
 
 ### Stage 3 — Mobile UI
-- [ ] Rename `cemeteries.tsx` → `places.tsx`; add `kind` picker; wire to renamed service fns.
-- [ ] Update admin `index.tsx` import, label, and nav route.
-- [ ] i18n: `places` namespace + kind labels in `es.json` (via `i18n-add-string` conventions).
+- [x] Rename `cemeteries.tsx` → `places.tsx`; add `kind` picker; wire to renamed service fns.
+- [x] Update admin `index.tsx` import, label, and nav route.
+- [x] i18n: `places` namespace + kind labels in `es.json` (via `i18n-add-string` conventions).
 
 ### Stage 4 — Tests + verify
-- [ ] Update model tests (municipality + person).
-- [ ] Run `vitest` in `packages/shared`; run rules e2e tests; typecheck the monorepo.
-- [ ] Docs sweep (README, CHANGELOG, architecture, decision doc).
+- [x] Update model tests (municipality + person).
+- [x] Run `vitest` in `packages/shared`; run rules e2e tests; typecheck the monorepo.
+- [x] Docs sweep (README, CHANGELOG, architecture, decision doc).
 
 ### Stage 5 — Dev data reset (NO migration)
 - [ ] Via `firebase-admin-dev` skill: delete all `cemeteries` docs under every municipality; null out `Person.burialPlace` where set. Recreate sample `places` with assorted kinds for manual UI verification.

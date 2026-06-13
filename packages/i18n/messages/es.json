@@ -166,7 +166,7 @@
       "title": "Administración del pueblo",
       "hub": {
         "barrios": "Barrios",
-        "cemeteries": "Cementerios",
+        "places": "Lugares",
         "organizations": "Organizaciones",
         "invites": "Invitaciones",
         "censo": "Censo",
@@ -179,12 +179,20 @@
         "name": "Nombre del barrio",
         "empty": "Aún no hay barrios"
       },
-      "cemeteries": {
-        "title": "Cementerios",
-        "add": "Añadir cementerio",
+      "places": {
+        "title": "Lugares",
+        "add": "Añadir lugar",
         "name": "Nombre",
         "description": "Descripción",
-        "empty": "Aún no hay cementerios"
+        "empty": "Aún no hay lugares",
+        "kindLabel": "Tipo",
+        "kind": {
+          "cemetery": "Cementerio",
+          "church": "Iglesia",
+          "hermitage": "Ermita",
+          "plaza": "Plaza",
+          "town_hall": "Ayuntamiento"
+        }
       },
       "organizations": {
         "title": "Organizaciones",

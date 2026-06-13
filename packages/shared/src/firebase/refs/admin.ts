@@ -4,7 +4,7 @@ import { eventConverterAdmin } from '../converters/eventConverter.admin';
 import { registrationConverterAdmin } from '../converters/registrationConverter.admin';
 import { municipalityConverterAdmin } from '../converters/municipalityConverter.admin';
 import { barrioConverterAdmin } from '../converters/barrioConverter.admin';
-import { cemeteryConverterAdmin } from '../converters/cemeteryConverter.admin';
+import { placeConverterAdmin } from '../converters/placeConverter.admin';
 import { villageMemberConverterAdmin } from '../converters/villageMemberConverter.admin';
 import { inviteTokenConverterAdmin } from '../converters/inviteTokenConverter.admin';
 import { joinRequestConverterAdmin } from '../converters/joinRequestConverter.admin';
@@ -48,11 +48,11 @@ export const municipalityBarriosCollection = (db: Firestore, municipalityId: str
 export const municipalityBarrioDoc = (db: Firestore, municipalityId: string, barrioId: string) =>
   db.collection('municipalities').doc(municipalityId).collection('barrios').doc(barrioId).withConverter(barrioConverterAdmin);
 
-export const municipalityCemeteriesCollection = (db: Firestore, municipalityId: string) =>
-  db.collection('municipalities').doc(municipalityId).collection('cemeteries').withConverter(cemeteryConverterAdmin);
+export const municipalityPlacesCollection = (db: Firestore, municipalityId: string) =>
+  db.collection('municipalities').doc(municipalityId).collection('places').withConverter(placeConverterAdmin);
 
-export const municipalityCemeteryDoc = (db: Firestore, municipalityId: string, cemeteryId: string) =>
-  db.collection('municipalities').doc(municipalityId).collection('cemeteries').doc(cemeteryId).withConverter(cemeteryConverterAdmin);
+export const municipalityPlaceDoc = (db: Firestore, municipalityId: string, placeId: string) =>
+  db.collection('municipalities').doc(municipalityId).collection('places').doc(placeId).withConverter(placeConverterAdmin);
 
 export const municipalityMembersCollection = (db: Firestore, municipalityId: string) =>
   db.collection('municipalities').doc(municipalityId).collection('members').withConverter(villageMemberConverterAdmin);
