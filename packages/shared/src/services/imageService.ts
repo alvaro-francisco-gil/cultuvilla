@@ -34,6 +34,19 @@ async function uploadToPath(path: string, image: UploadableImage): Promise<strin
   return getDownloadURL(storageRef);
 }
 
+/**
+ * Like `uploadToPath` but returns the storage path that was written rather
+ * than its download URL. News posts persist `storagePath` (not a URL) so the
+ * UI can resolve a fresh download URL on demand via `newsImageDownloadURL`.
+ */
+async function uploadReturningPath(path: string, image: UploadableImage): Promise<string> {
+  validateUploadableImage(image);
+  const storageRef = ref(getFirebaseStorage(), path);
+  const contentType = image.contentType ?? image.blob.type;
+  await uploadBytes(storageRef, image.blob, { contentType });
+  return path;
+}
+
 export async function uploadMunicipalityImage(
   municipalityId: string,
   image: UploadableImage,
@@ -62,6 +75,40 @@ export async function uploadUserPhoto(
   image: UploadableImage,
 ): Promise<string> {
   return uploadToPath(`users/${userId}/photo/${generateImageId(image.filename)}`, image);
+}
+
+/**
+ * Upload a news post image. Returns the storage **path** (e.g.
+ * `news/{postId}/images/{id}`) to persist in `NewsPostImage.storagePath`.
+ * The post doc must already exist (storage rules check
+ * `news/{postId}.authorUserId == uid`), so upload after `createNewsPost`.
+ */
+export async function uploadNewsImage(
+  postId: string,
+  image: UploadableImage,
+): Promise<string> {
+  return uploadReturningPath(`news/${postId}/images/${generateImageId(image.filename)}`, image);
+}
+
+/**
+ * Upload an event cover image. Returns the **download URL** to persist in
+ * `EventData.imageURL`. Uses the existing `villages/{villageId}/events/...`
+ * storage path (villageId is the municipalityId).
+ */
+export async function uploadEventImage(
+  villageId: string,
+  eventId: string,
+  image: UploadableImage,
+): Promise<string> {
+  return uploadToPath(
+    `villages/${villageId}/events/${eventId}/image/${generateImageId(image.filename)}`,
+    image,
+  );
+}
+
+/** Resolve a download URL for a stored news image path. */
+export async function newsImageDownloadURL(storagePath: string): Promise<string> {
+  return getDownloadURL(ref(getFirebaseStorage(), storagePath));
 }
 
 export async function deleteImageByURL(url: string): Promise<void> {
