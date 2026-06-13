@@ -62,7 +62,6 @@ export default function NewEventScreen() {
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [locationText, setLocationText] = useState('');
-  const [price, setPrice] = useState('');
   const [maxAttendees, setMaxAttendees] = useState('');
   const [telephoneRequired, setTelephoneRequired] = useState(false);
   const [cover, setCover] = useState<PickedImage | null>(null);
@@ -124,7 +123,6 @@ export default function NewEventScreen() {
         startDate,
         endDate: endDate ?? null,
         location: buildLocationData({ type: 'text', text: locationText.trim() || null }),
-        price: price.trim() ? Number(price) : null,
         maxAttendees: maxAttendees.trim() ? Number(maxAttendees) : null,
         telephoneRequired,
         status: 'draft',
@@ -265,12 +263,6 @@ export default function NewEventScreen() {
             testID="endDate"
           />
           <Input label={t('event.location')} value={locationText} onChangeText={setLocationText} />
-          <Input
-            label={t('event.price')}
-            value={price}
-            onChangeText={setPrice}
-            keyboardType="numeric"
-          />
           <Input
             label={t('event.maxAttendees')}
             value={maxAttendees}

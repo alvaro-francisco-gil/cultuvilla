@@ -283,7 +283,7 @@ service cloud.firestore {
     function isValidEventCreate(d) {
       return d.keys().hasOnly([
               'title', 'description', 'startDate', 'endDate', 'location',
-              'imageURL', 'price', 'maxAttendees', 'telephoneRequired',
+              'imageURL', 'maxAttendees', 'telephoneRequired',
               'status', 'organizationId', 'organizationName', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'municipalityName',
               'municipalityCoverImage', 'municipalityCoordinates',
@@ -291,7 +291,7 @@ service cloud.firestore {
             ])
           && d.keys().hasAll([
               'title', 'description', 'startDate', 'endDate', 'location',
-              'imageURL', 'price', 'maxAttendees', 'telephoneRequired',
+              'imageURL', 'maxAttendees', 'telephoneRequired',
               'status', 'organizationId', 'organizationName', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'municipalityName',
               'municipalityCoverImage', 'municipalityCoordinates',
@@ -302,7 +302,6 @@ service cloud.firestore {
           && isTimestampOrNull(d.endDate)
           && isMap(d.location)
           && isStringOrNull(d.imageURL)
-          && isNumberOrNull(d.price)
           && isNumberOrNull(d.maxAttendees)
           && isBool(d.telephoneRequired)
           && d.status in ['draft', 'published', 'cancelled', 'completed']

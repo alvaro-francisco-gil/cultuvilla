@@ -5,11 +5,6 @@ const emptyToNull = (v: unknown): unknown =>
 
 const optionalDate = z.preprocess(emptyToNull, z.coerce.date().nullable());
 
-const optionalNonNegativeNumber = z.preprocess(
-  emptyToNull,
-  z.coerce.number().min(0, 'Mínimo 0').nullable(),
-);
-
 const optionalPositiveInt = z.preprocess(
   emptyToNull,
   z.coerce.number().int('Debe ser un número entero').min(1, 'Mínimo 1').nullable(),
@@ -36,7 +31,6 @@ export const EventFormSchema = z.object({
   startDate: z.coerce.date({ message: 'La fecha de inicio es obligatoria' }),
   endDate: optionalDate,
   locationText: optionalTrimmedString,
-  price: optionalNonNegativeNumber,
   maxAttendees: optionalPositiveInt,
   telephoneRequired: z.boolean().default(false),
 });

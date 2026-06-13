@@ -348,7 +348,6 @@ describe('shape enforcement — /events/{eventId}', () => {
     endDate: null,
     location: { type: 'text', coordinates: null, text: 'Plaza' },
     imageURL: null,
-    price: null,
     maxAttendees: null,
     telephoneRequired: false,
     status: 'published' as const,
