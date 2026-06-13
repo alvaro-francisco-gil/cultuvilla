@@ -8,7 +8,17 @@
 
 **Tech Stack:** Expo 54, expo-router, Firebase JS SDK (auth/firestore/storage), `expo-image-picker` (already installed), `@react-native-community/datetimepicker` (new), Vitest for `packages/shared` tests, Jest + RTL for mobile component tests, `@firebase/rules-unit-testing` for rules tests.
 
-**Source spec:** [../specs/2026-05-24-auth-and-persona-redesign-design.md](../specs/2026-05-24-auth-and-persona-redesign-design.md)
+**Source spec:** retired (recover via `git log -- docs/superpowers/specs/2026-05-24-auth-and-persona-redesign-design.md`).
+
+## Status
+
+- **Updated:** 2026-06-13
+- **Stage:** persona-first onboarding shipped; auth-screen polish + `UserData` slimming outstanding
+- **Branch:** `main`
+- **Done:** `complete-profile.tsx` rewritten (two sections, persona-first write order); onboarding redirect gate widened to `!profile || !profile.personId`; primitives `Avatar`/`DateField`/`PasswordInput`/`VillagePicker`; `patchUserProfile` in `userService`
+- **Next:** decide whether the shipped email-link auth flow supersedes the spec's password-reveal + password-reset screens; then either slim `birthday`/`biography`/`photoURL` off `UserData` or accept the denormalization on purpose
+- **Blockers:** spec drift — the live auth screens use an email-link flow, not the password-based screens the spec described. Confirm intended direction before "finishing" the plan.
+- **Handoff:** `UserData` still denormalizes persona fields; the spec is **not** the source of truth here — verify against the shipped auth screens before acting.
 
 ---
 

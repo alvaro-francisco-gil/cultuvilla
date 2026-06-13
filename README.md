@@ -59,10 +59,11 @@ pnpm deploy:all:dev        # everything → villa-events
 
 ## Design docs
 
-Source of truth for requirements lives in [docs/superpowers/specs/](docs/superpowers/specs/):
+The code is the source of truth for what exists. Design work follows a lifecycle
+(see the `managing-plans-lifecycle` skill):
 
-- [2026-04-05-cultuvilla-design.md](docs/superpowers/specs/2026-04-05-cultuvilla-design.md) — core platform design
-- [2026-04-25-village-censo-design.md](docs/superpowers/specs/2026-04-25-village-censo-design.md) — village census
-- [2026-04-29-open-feed-architecture-design.md](docs/superpowers/specs/2026-04-29-open-feed-architecture-design.md) — open feed architecture
-- [2026-05-02-family-tree-exploration.md](docs/superpowers/specs/2026-05-02-family-tree-exploration.md) — family tree exploration
-- [2026-05-19-dev-prod-environments-design.md](docs/superpowers/specs/2026-05-19-dev-prod-environments-design.md) — dev/prod environment design
+- **[docs/plans/](docs/plans/)** — in-flight design by stage: `ideas/` (proposals),
+  `ready/` (decided, not started), `ongoing/` (being implemented, with a Status header).
+- **[docs/decisions/](docs/decisions/)** — durable rationale for shipped work
+  (open feed architecture, persons registry, village censo, dev/beta/prod
+  environments, news feed, typed converters, deep links, mobile scaffold, …).

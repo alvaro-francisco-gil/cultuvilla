@@ -1,8 +1,18 @@
-# Profile screen refactor — design spec
+# Profile screen refactor — implementation plan
 
 **Topic:** Replace the minimal mobile profile tab with a richer, ordago-inspired profile that surfaces the user's "self persona", stats, the personas they manage, and the organizations they belong to.
 
 **Source app for inspiration:** `~/githubs/ordago-apps` (`apps/ordago-app/screens/profile/ProfileScreen.js`, `components/profile/ProfileView.js`). Not a 1:1 port — we adopt the header+stats+sections shape, not the friend/medal/ELO content.
+
+## Status
+
+- **Updated:** 2026-06-13
+- **Stage:** components + layout shipped; two data queries + persona-form extraction outstanding
+- **Branch:** `main`
+- **Done:** `ProfileHeader`/`ProfileStatsRow`/`PersonaScroll`/`PersonaCard`/`ProfileSectionHeader`/`OrgList` components; `profile.tsx` wired to them; `getEventCountByCreator` + `getOrgMembershipsByUserInMunicipality`; i18n keys (`profile.stats`/`actions`/`bio`)
+- **Next:** add `getRegistrationsByPersonIds` (chunked collection-group query) for the participation stat and wire it into `profile.tsx`; add an all-municipality `getOrgMembershipsByUser`; extract the person edit form into `PersonForm.tsx`
+- **Blockers:** confirm the composite indexes the participation collection-group query needs exist in `firestore.indexes.json` before shipping it
+- **Handoff:** the stats row currently renders a partial set (participation count is missing); the new collection-group reads need matching rules **and** indexes, not just the query.
 
 ## Goals
 

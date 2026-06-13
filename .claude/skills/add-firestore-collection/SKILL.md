@@ -9,7 +9,7 @@ Adding a collection is a multi-file change that's easy to do incompletely. Every
 
 ## Decide the path
 
-Cultuvilla uses **first-class top-level collections** scoped by a `municipalityId` field (see AGENTS.md §3 and [docs/superpowers/specs/2026-04-29-open-feed-architecture-design.md](../../../docs/superpowers/specs/2026-04-29-open-feed-architecture-design.md)). Two questions:
+Cultuvilla uses **first-class top-level collections** scoped by a `municipalityId` field (see AGENTS.md §3 and [docs/decisions/open-feed-architecture.md](../../../docs/decisions/open-feed-architecture.md)). Two questions:
 
 1. **Is this entity owned by exactly one parent doc, with no cross-parent queries?** Yes → nest under that parent (e.g. `users/{uid}/notifications/{nid}`, `events/{eid}/registrations/{rid}`, `organizations/{orgId}/members/{uid}`). No → top-level (`events/`, `organizations/`, `persons/`, `news/`, …) with a `municipalityId` field.
 2. **Default to top-level.** Only nest when the parent–child ownership is genuine and you never need to read children across parents. Nesting is the exception, not the rule.

@@ -8,11 +8,21 @@
 
 **Tech Stack:** Expo / React Native (`apps/mobile/`), `@firebase/auth` + `@firebase/firestore` JS SDK, `@firebase/rules-unit-testing` against the Firebase emulator (`pnpm test:rules`), vitest.
 
+## Status
+
+- **Updated:** 2026-06-13
+- **Stage:** Phase A (denial attribution) shipped; Phase B (regression coverage) not started
+- **Branch:** `main`
+- **Done:** `withFirestoreErrorLog` helper in `apps/mobile/lib/`; global `unhandledrejection` hook in `firebaseInit.ts`; call sites in the three tab screens wrapped to log `label`/`code`/`uid`
+- **Next:** run the app cold against the emulator, capture the labelled denials, and add one `<service>Rules.test.ts` per denial under `packages/shared/test/e2e/` (RED → fix rule/call site → GREEN)
+- **Blockers:** none
+- **Handoff:** Phase B is a capture-then-cover loop — it needs a real cold-start run to enumerate the denials before any tests can be written; the Phase A logging is what produces that list.
+
 ---
 
 ### Spec
 
-See [docs/superpowers/specs/2026-05-25-firestore-permission-red-green-design.md](../specs/2026-05-25-firestore-permission-red-green-design.md).
+Original design spec retired (recover via `git log -- docs/superpowers/specs/2026-05-25-firestore-permission-red-green-design.md`).
 
 ### File Structure
 
@@ -437,10 +447,10 @@ If `[firestore-deny:unhandled]` lines appear with no `label=` prefix, identify t
 
 - [ ] **Step 4: Commit the findings as a worktree note**
 
-Append the findings list to the bottom of this plan file (`docs/superpowers/plans/2026-05-25-firestore-permission-red-green.md`) under a `## Phase A Findings` heading, then:
+Append the findings list to the bottom of this plan file (`docs/plans/ongoing/firestore-permission-red-green.md`) under a `## Phase A Findings` heading, then:
 
 ```bash
-git add docs/superpowers/plans/2026-05-25-firestore-permission-red-green.md
+git add docs/plans/ongoing/firestore-permission-red-green.md
 git commit -m "docs(plan): record phase A firestore deny findings"
 ```
 

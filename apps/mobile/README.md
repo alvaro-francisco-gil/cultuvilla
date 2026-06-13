@@ -1,6 +1,6 @@
 # cultuvilla mobile
 
-Expo SDK 54 React Native app. See [docs/superpowers/specs/2026-05-19-mobile-app-scaffold-design.md](../../docs/superpowers/specs/2026-05-19-mobile-app-scaffold-design.md) for design.
+Expo SDK 54 React Native app. See [docs/decisions/mobile-app-scaffold.md](../../docs/decisions/mobile-app-scaffold.md) for the scaffold design rationale.
 
 ## Local dev
 

@@ -7,7 +7,7 @@
 // DeviceCheck (iOS) / Play Integrity (Android) when an env-specific
 // site key / token provider is configured.
 //
-// See docs/superpowers/plans/2026-05-19-app-check-rollout.md for the
+// See docs/plans/ready/app-check-rollout.md for the
 // per-env opt-in pattern.
 export function initMobileAppCheck(): void {
   // intentionally empty

@@ -2,7 +2,7 @@
 
 **Status:** active backlog
 **Created:** 2026-05-24
-**Context:** [docs/superpowers/specs/2026-04-05-cultuvilla-design.md](../superpowers/specs/2026-04-05-cultuvilla-design.md)
+**Context:** original platform design — retired (recover via `git log -- docs/superpowers/specs/2026-04-05-cultuvilla-design.md`)
 
 On 2026-05-24 the Next.js web app at `apps/web/` was deleted. Cultuvilla is now app-first: a single Expo + React Native codebase (`apps/mobile/`) renders to iOS, Android, and the web (via React Native Web + `expo export --platform web`).
 

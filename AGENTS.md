@@ -6,7 +6,7 @@ North star for anyone (human or AI) modifying this repo. Short, opinionated, loa
 
 Cultuvilla is a mobile-first web app for Spanish village communities. Organizations (ayuntamientos, peñas, asociaciones) publish events; residents and visitors discover them, sign up themselves and family members ("personas"), and village admins manage invites and org approvals.
 
-The product surface and data model are specified in [docs/superpowers/specs/](docs/superpowers/specs/). Specs are the source of truth for *what* to build; this file is the source of truth for *how* to build it.
+Design work lives under [docs/plans/](docs/plans/) by lifecycle stage (`ideas/` → `ready/` → `ongoing/`); durable rationale for shipped work is distilled into [docs/decisions/](docs/decisions/). **The code is the source of truth for *what* exists**; this file is the source of truth for *how* to build. See the `managing-plans-lifecycle` skill for where a given doc belongs. There is no `docs/superpowers/` or `docs/archive/`.
 
 ## Repo health beats every rule below
 
@@ -35,7 +35,7 @@ Anything that crosses workspace boundaries — between web, functions, and any f
 
 Single Firebase project. Domain entities (`events`, `organizations`, `persons`, `occupations`, news, …) live at the **top level** of Firestore and carry a `municipalityId` field that scopes them to a village/municipality. The only nesting we keep is for data that is genuinely owned by a parent doc (e.g. `municipalities/{id}/members/{userId}`, `organizations/{orgId}/members/{userId}`, `events/{eventId}/registrations/{regId}`, `users/{uid}/notifications/{nid}`).
 
-This is the result of the migration documented in [docs/superpowers/specs/2026-04-29-open-feed-architecture-design.md](docs/superpowers/specs/2026-04-29-open-feed-architecture-design.md): top-level keeps cross-village/global queries trivial, leaves the door open to multi-village orgs, and removes most of the collection-group indexing burden. Indexes on `municipalityId + <sortField>` (and similar single-collection composite indexes) are declared in [firestore.indexes.json](firestore.indexes.json) and must be added in the same change as a new query shape.
+This is the result of the migration recorded in [docs/decisions/open-feed-architecture.md](docs/decisions/open-feed-architecture.md): top-level keeps cross-village/global queries trivial, leaves the door open to multi-village orgs, and removes most of the collection-group indexing burden. Indexes on `municipalityId + <sortField>` (and similar single-collection composite indexes) are declared in [firestore.indexes.json](firestore.indexes.json) and must be added in the same change as a new query shape.
 
 > **See also:** the `add-firestore-collection` skill for the multi-file checklist when adding a new collection.
 
@@ -244,7 +244,7 @@ If you need output from a long-running service to verify a change, ask the user 
 All non-trivial changes follow the same loop. Tiny edits (typo in a doc, a renamed string) can skip steps 1 and 4, but any code change goes through every step.
 
 1. **Work in a git worktree, not on main.** Branch from the latest `main` into a worktree under `.claude/worktrees/<short-name>/`. Never edit files in the main checkout. Worktrees isolate dependencies, build outputs, and `.next/` caches so parallel changes don't fight each other, and they make it easy to abandon work that doesn't pan out.
-2. **Read the design spec** in [docs/superpowers/specs/](docs/superpowers/specs/) if one exists for the feature area.
+2. **Read any in-flight plan** in [docs/plans/](docs/plans/) and the relevant record in [docs/decisions/](docs/decisions/) for the feature area.
 3. **Look at the relevant service** in [packages/shared/src/services/](packages/shared/src/services/) before writing UI code; extend the service if the API you need is missing.
 4. **Add or extend tests whenever possible.** Tests are the contract that survives refactors and AI rewrites. Specifically:
    - Pure logic, model builders, validation, and service helpers go in `packages/shared/test/` (vitest).
@@ -281,7 +281,7 @@ You're expected to propose improvements, not just execute tasks. End your respon
 - **Convention used in 3+ places but undocumented** → addition to this file, or a new sub-directory `AGENTS.md` (e.g. `functions/AGENTS.md`, `packages/shared/AGENTS.md`, `apps/web/AGENTS.md`) so agents working there don't load the whole root file.
 - **Single source of truth violated** (duplicated enum, status string, threshold, hex colour) → consolidate in the same commit if small, propose a follow-up if not.
 - **Docs contradicting code** → fix or delete the doc; don't work around it.
-- **Shipped plan in `docs/superpowers/plans/`** → move to `docs/plans/` (canonical) or `docs/archive/plans/` (done). See the `manage-plan-docs` skill.
+- **Shipped plan still in `docs/plans/ongoing/`** → distil durable rationale into `docs/decisions/<slug>.md`, then delete the plan (code is the source of truth). See the `managing-plans-lifecycle` skill. Don't archive — there is no `docs/archive/`.
 - **Service touched without tests** → propose adding the missing coverage.
 
 Soft proposals are the default — the user accepts or declines. Don't pre-implement large refactors uninvited; surface, then wait.
