@@ -20,11 +20,13 @@ export type NewsLike = {
 
 export type NewsCardProps = {
   post: NewsLike;
+  /** Village cover photo, used as the fallback when the post has no image. */
+  fallbackImageUri?: string | null;
   onPress: (id: string) => void;
   testID?: string;
 };
 
-export function NewsCard({ post, onPress, testID }: NewsCardProps) {
+export function NewsCard({ post, fallbackImageUri = null, onPress, testID }: NewsCardProps) {
   const { t } = useT();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
@@ -52,6 +54,7 @@ export function NewsCard({ post, onPress, testID }: NewsCardProps) {
   return (
     <FeedCard
       imageUri={imageUrl}
+      fallbackImageUri={fallbackImageUri}
       title={post.title}
       metaLeft={t(`news.compose.category.${post.category}`)}
       metaRight={formatDate(date, 'short')}

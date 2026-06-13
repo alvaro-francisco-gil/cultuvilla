@@ -42,7 +42,12 @@ type FeedNews = NewsPostData & { id: string };
 type FeedTab = 'eventos' | 'noticias';
 type DatePreset = 'hoy' | 'semana' | 'mes';
 type ActiveSheet = 'village' | 'date' | 'category' | 'sort' | null;
-type Village = { id: string; name: string; coordinates: LatLng | null };
+type Village = {
+  id: string;
+  name: string;
+  coordinates: LatLng | null;
+  coverImage: string | null;
+};
 
 /** True when `d` falls inside the upcoming window named by `preset`. */
 function inDatePreset(d: Date, preset: DatePreset): boolean {
@@ -111,7 +116,12 @@ export default function FeedScreen() {
     void getActiveCommunities()
       .then((communities) =>
         setVillages(
-          communities.map((c) => ({ id: c.id, name: c.name, coordinates: c.coordinates })),
+          communities.map((c) => ({
+            id: c.id,
+            name: c.name,
+            coordinates: c.coordinates,
+            coverImage: c.community?.coverImages?.[0] ?? null,
+          })),
         ),
       )
       .catch(() => setVillages([]));
@@ -127,6 +137,12 @@ export default function FeedScreen() {
   const referenceCoords = useMemo<LatLng | null>(
     () => villages.find((v) => v.id === activeMunicipalityId)?.coordinates ?? null,
     [villages, activeMunicipalityId],
+  );
+
+  // municipalityId → village cover photo, used as a feed-card image fallback.
+  const villageCoverById = useMemo(
+    () => new Map(villages.map((v) => [v.id, v.coverImage])),
+    [villages],
   );
 
   const query = search.trim().toLowerCase();
@@ -343,6 +359,8 @@ export default function FeedScreen() {
               startDate: item.startDate,
               organizationName: item.organizationName,
               imageURL: item.imageURL,
+              municipalityCoverImage:
+                item.municipalityCoverImage ?? villageCoverById.get(item.municipalityId) ?? null,
             }}
             onPress={(id) => router.push(`/event/${id}`)}
           />
@@ -387,7 +405,11 @@ export default function FeedScreen() {
           </View>
         }
         renderItem={({ item }) => (
-          <NewsCard post={item} onPress={(id) => router.push(`/news/${id}`)} />
+          <NewsCard
+            post={item}
+            fallbackImageUri={villageCoverById.get(item.municipalityId) ?? null}
+            onPress={(id) => router.push(`/news/${id}`)}
+          />
         )}
         refreshControl={
           <RefreshControl

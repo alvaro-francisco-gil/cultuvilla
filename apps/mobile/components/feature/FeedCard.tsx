@@ -7,7 +7,9 @@ import { Text } from '../primitives/Text';
  * Image-forward feed card shared by EventCard and NewsCard. The image fills
  * the whole card (full-bleed, no padding) at a fixed aspect ratio; the title
  * and meta sit over a dark scrim pinned to the bottom so the picture stays as
- * large as possible. No image → a tinted placeholder with `fallbackIcon`.
+ * large as possible. When the item has no image of its own we fall back to the
+ * village's cover photo (`fallbackImageUri`), then to a tinted placeholder with
+ * `fallbackIcon`.
  */
 
 // Width:height. Taller than 16:9 so the picture dominates the card.
@@ -16,6 +18,8 @@ const PLACEHOLDER_BG = '#dcab93'; // palette.peach
 
 export type FeedCardProps = {
   imageUri: string | null;
+  /** Village cover photo, shown when the item has no image of its own. */
+  fallbackImageUri?: string | null;
   title: string;
   metaLeft: string;
   metaRight: string;
@@ -26,6 +30,7 @@ export type FeedCardProps = {
 
 export function FeedCard({
   imageUri,
+  fallbackImageUri = null,
   title,
   metaLeft,
   metaRight,
@@ -33,13 +38,14 @@ export function FeedCard({
   onPress,
   testID,
 }: FeedCardProps) {
+  const displayUri = imageUri ?? fallbackImageUri;
   return (
     <Pressable onPress={onPress} testID={testID}>
       <View className="rounded-lg overflow-hidden bg-surface border border-subtle">
         <View style={{ width: '100%', aspectRatio: ASPECT_RATIO }}>
-          {imageUri ? (
+          {displayUri ? (
             <Image
-              source={{ uri: imageUri }}
+              source={{ uri: displayUri }}
               style={{ width: '100%', height: '100%' }}
               resizeMode="cover"
               accessibilityIgnoresInvertColors
@@ -61,8 +67,8 @@ export function FeedCard({
               right: 0,
               bottom: 0,
               paddingHorizontal: 16,
-              paddingTop: 32,
-              paddingBottom: 14,
+              paddingTop: 12,
+              paddingBottom: 12,
               backgroundColor: 'rgba(0,0,0,0.45)',
             }}
           >
