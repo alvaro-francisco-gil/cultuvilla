@@ -1,6 +1,6 @@
 # AGENTS.md
 
-North star for anyone (human or AI) modifying this repo. Short, opinionated, load-bearing. When this file disagrees with code, the file wins — fix the code.
+The authoritative guide for anyone (human or AI) modifying this repo. Short, opinionated, load-bearing. When this file disagrees with code, the file wins — fix the code.
 
 ## What this project is
 
@@ -19,9 +19,9 @@ If a rule here makes the repo worse for a specific change, break the rule and up
 Components, pages, and hooks **must not** import from `firebase/firestore`, `firebase/storage`, `firebase/functions`, or `firebase/auth` directly. All Firebase access goes through a service in [packages/shared/src/services/](packages/shared/src/services/). See [_services-map.md](packages/shared/src/services/_services-map.md) for the catalogue.
 
 - Need `GeoPoint`, `Timestamp`, or the `User` type? Import from `@cultuvilla/shared/firebase` (the shared package re-exports them).
-- The **only** exempt file is [apps/web/contexts/AuthContext.tsx](apps/web/contexts/AuthContext.tsx) — it owns the auth boundary (sign-in/out, listeners). Everything else routes through services.
+- The **only** exempt file is [apps/mobile/lib/auth/AuthContext.tsx](apps/mobile/lib/auth/AuthContext.tsx) — it owns the auth boundary (sign-in/out, listeners). Everything else routes through services.
 
-This is enforced by `no-restricted-imports` in [apps/web/eslint.config.mjs](apps/web/eslint.config.mjs). If you find yourself wanting to disable it, add a service instead.
+`packages/shared` and `functions/` are ESLint-gated ([packages/shared/eslint.config.mjs](packages/shared/eslint.config.mjs), [functions/eslint.config.mjs](functions/eslint.config.mjs)); `apps/mobile` has no ESLint config yet, so there the rule is convention — don't import `firebase/*` from a screen, add a service instead.
 
 > **See also:** the `touch-service` and `guardrail-enforcement` skills for the procedures.
 
@@ -29,7 +29,7 @@ This is enforced by `no-restricted-imports` in [apps/web/eslint.config.mjs](apps
 
 ### 2. Shared types, shared models
 
-Anything that crosses workspace boundaries — between web, functions, and any future mobile app — lives in [packages/shared](packages/shared). Domain types live under `src/models/`, organized by entity (event, village, person, etc.). Services consume models, never the reverse.
+Anything that crosses workspace boundaries — between the mobile app and functions — lives in [packages/shared](packages/shared). Domain types live under `src/models/`, organized by entity (event, village, person, etc.). Services consume models, never the reverse.
 
 ### 3. First-class top-level collections, scoped by `municipalityId`
 
@@ -47,7 +47,7 @@ When a query would require N reads or live across collection boundaries, write a
 
 ### 5. Strict TypeScript
 
-`strict: true` everywhere. No `any`. No `@ts-nocheck`. If a type is genuinely unknown at the boundary, use `unknown` and narrow. `@typescript-eslint/no-explicit-any` is an error in `apps/web`; the same standard applies in `packages/shared` and `functions` even though those aren't lint-gated yet — fix at the source, never silence with `as any`.
+`strict: true` everywhere. No `any`. No `@ts-nocheck`. If a type is genuinely unknown at the boundary, use `unknown` and narrow. `@typescript-eslint/no-explicit-any` is an error in `packages/shared` and `functions`; the same standard applies in `apps/mobile` even though it isn't lint-gated yet — fix at the source, never silence with `as any`.
 
 ## Conventions
 
@@ -61,7 +61,7 @@ React Context for cross-tree state (auth, village). No global store. No query ca
 
 ### Styling
 
-Tailwind v4 with a JS-based `tailwind.config.ts` (`apps/web/tailwind.config.ts`).
+Tailwind v4 via NativeWind v4, with a JS-based `tailwind.config.ts` ([apps/mobile/tailwind.config.ts](apps/mobile/tailwind.config.ts)).
 **Design tokens live in `@cultuvilla/shared/design-system`** and feed
 Tailwind's `backgroundColor` / `textColor` / `borderColor` / `boxShadow` /
 `borderRadius` / `spacing` / `fontSize` / `zIndex` extensions. New code
@@ -75,26 +75,23 @@ import directly from the design-system: `spacing[4]`, `iconSizes.md`,
 `elevation.sm.rn`. See [packages/shared/src/design-system/README.md]
 (packages/shared/src/design-system/README.md) for the full token vocabulary.
 
-**Web primitives** live under [apps/web/components/primitives/]
-(apps/web/components/primitives/) — `Screen`, `HStack`, `VStack`, `Text`,
-`Pressable`, `Button`, `Card`, `Input`. New screens compose primitives;
-inline `<div>` + Tailwind is fine where a primitive doesn't fit, but reach
-for the primitive first. The same component names and prop API exist under
-[apps/mobile/components/primitives/](apps/mobile/components/primitives/)
-for the React Native app — any prop-level change must land in both.
+**Primitives** live under
+[apps/mobile/components/primitives/](apps/mobile/components/primitives/) —
+`Screen`, `HStack`, `VStack`, `Text`, `Pressable`, `Button`, `Card`,
+`Input`, and more. New screens compose primitives; an inline RN `<View>` +
+NativeWind class is fine where a primitive doesn't fit, but reach for the
+primitive first.
 
-Icons: `lucide-react` (web) / `lucide-react-native` (mobile). Pass
+Icons: `@expo/vector-icons` (`Ionicons`). Pass
 `iconSizes.sm | md | lg` for size — no ad-hoc `size={18}`.
 
 ### i18n
 
-Messages live in [@cultuvilla/i18n](packages/i18n/) and are consumed by web
-via next-intl (see `apps/web/i18n/request.ts`) and by the mobile app via
-the thin `useT()` adapter in `apps/mobile/lib/i18n.tsx`. User-facing strings go
-through `useTranslations()` (web) or `useT()` (mobile); hardcoded Spanish is
-allowed only in dev-only surfaces (admin panels, debug pages) where i18n is
-not a current priority — mobile has no admin surfaces in v1, so this
-carve-out is web-only for now.
+Messages live in [@cultuvilla/i18n](packages/i18n/) and are consumed by the
+mobile app via the thin `useT()` adapter in
+[apps/mobile/lib/i18n.tsx](apps/mobile/lib/i18n.tsx). User-facing strings go
+through `useT()`; hardcoded Spanish is allowed only in dev-only admin
+surfaces where i18n is not a current priority.
 
 Locale formatting (`formatDate`, `formatPrice`, `formatRelativeTime`)
 lives in `@cultuvilla/shared/utils/format.ts`, preset to `es-ES`. Never
@@ -166,14 +163,14 @@ Don't explain *what* the code does — name things well instead. Only comment to
 
 ```bash
 pnpm install          # workspace deps (functions has its own — npm ci in functions/)
-pnpm web:dev          # Next.js dev server
+pnpm app:start        # Expo dev server (apps/mobile)
 pnpm check            # lint + typecheck + test + build (CI gate)
-pnpm lint             # eslint --max-warnings 0 in apps/web
-pnpm typecheck        # tsc --noEmit in shared, web, functions
-pnpm test             # vitest in packages/shared
+pnpm lint             # eslint --max-warnings 0 in packages/shared + functions
+pnpm typecheck        # tsc --noEmit in shared, functions, i18n, mobile
+pnpm test             # vitest (shared) + jest (mobile) + functions, under emulators
 ```
 
-Pre-commit (Husky + lint-staged) runs `eslint --max-warnings 0 --fix` on changed `apps/web` TypeScript files; commit-msg runs commitlint.
+Pre-commit (Husky + lint-staged) currently only formats `*.{json,md,yml,yaml}`; commit-msg runs commitlint. The lint/typecheck/test gate runs via `pnpm check` and in CI, not on commit.
 
 ### Dev seed data
 
@@ -221,10 +218,10 @@ pnpm app:typecheck                             # tsc --noEmit for apps/mobile
 
 **Key conventions**
 
-- **Primitives**: the same prop API as the web primitives (`Screen`, `HStack`, `VStack`, `Text`, `Pressable`, `Button`, `Card`, `Input`) is mirrored under `apps/mobile/components/primitives/`. Any change to the shared prop contract (new prop, renamed prop, removed prop) must land in both apps' primitives folders in the same commit.
+- **Primitives**: `Screen`, `HStack`, `VStack`, `Text`, `Pressable`, `Button`, `Card`, `Input`, and more live under `apps/mobile/components/primitives/`. Compose them rather than dropping to raw `<View>` + NativeWind where a primitive fits.
 - **Image uploads**: use `pickImageAsBlob` (returns a `Blob`) and pass it to `imageService`. Never import from `firebase/storage` directly in mobile screens — route through the service.
-- **i18n**: add new strings to `packages/i18n/messages/es.json` (nested JSON). Both apps consume the same catalog: `apps/web` via next-intl, `apps/mobile` via the thin `useT()` adapter in `apps/mobile/lib/i18n.tsx`. Dotted-path lookup works in both (next-intl handles nested keys natively; the mobile adapter walks the object on `.` splits).
-- **EAS Build profiles**: `dev`, `beta`, `prod` (defined in `apps/mobile/eas.json`) map to the same Firebase environments as the web app's env split. Keep them in sync when Firebase config changes.
+- **i18n**: add new strings to `packages/i18n/messages/es.json` (nested JSON), consumed via the thin `useT()` adapter in `apps/mobile/lib/i18n.tsx`. Dotted-path lookup works (the adapter walks the object on `.` splits).
+- **EAS Build profiles**: `dev`, `beta`, `prod` (defined in `apps/mobile/eas.json`) map to the `villa-events` / `cultuvilla-beta` / `cultuvilla-prod` Firebase environments. Keep them in sync when Firebase config changes.
 - **App Check**: the `initMobileAppCheck` seam is wired in the app bootstrap but is a no-op. Do not remove it — it will be activated when the product opts in. Leave it untouched unless explicitly asked.
 - **Native rebuilds**: after installing a package that ships an Expo config plugin, or after changing the `plugins` array in `apps/mobile/app.config.ts`, run a clean prebuild. See the `expo-native-rebuild` skill.
 
@@ -232,7 +229,7 @@ pnpm app:typecheck                             # tsc --noEmit for apps/mobile
 
 You (Claude) do not start long-running processes — the user owns the iteration loop. Don't run:
 
-- `pnpm web:dev` (Next.js dev server)
+- `pnpm app:start` / `expo start` (Expo/Metro dev server)
 - `pnpm test:integration`, `pnpm test:rules`, `pnpm test:functions`, or `pnpm test:emulators` (they boot Firebase emulators that the user wants to keep alive)
 - `firebase emulators:start` directly
 - Any deploy script (`pnpm deploy:*`) — use the `firestore-deploy` skill instead
@@ -282,7 +279,7 @@ You're expected to propose improvements, not just execute tasks. End your respon
 
 - **Repeated manual ops (2+ times)** → script in `scripts/`.
 - **Encodable workflow** (deploy recipe, migration ritual, audit playbook) → skill under `.claude/skills/<name>/SKILL.md`.
-- **Convention used in 3+ places but undocumented** → addition to this file, or a new sub-directory `AGENTS.md` (e.g. `functions/AGENTS.md`, `packages/shared/AGENTS.md`, `apps/web/AGENTS.md`) so agents working there don't load the whole root file.
+- **Convention used in 3+ places but undocumented** → addition to this file, or a new sub-directory `AGENTS.md` (e.g. `functions/AGENTS.md`, `packages/shared/AGENTS.md`, `apps/mobile/AGENTS.md`) so agents working there don't load the whole root file.
 - **Single source of truth violated** (duplicated enum, status string, threshold, hex colour) → consolidate in the same commit if small, propose a follow-up if not.
 - **Docs contradicting code** → fix or delete the doc; don't work around it.
 - **Shipped plan still in `docs/plans/ongoing/`** → distil durable rationale into `docs/decisions/<slug>.md`, then delete the plan (code is the source of truth). See the `managing-plans-lifecycle` skill. Don't archive — there is no `docs/archive/`.
