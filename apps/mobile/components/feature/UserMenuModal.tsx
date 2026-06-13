@@ -114,7 +114,7 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
         {
           icon: 'search-outline',
           label: t('menu.findVillage'),
-          onPress: () => close(() => router.push('/(tabs)/village')),
+          onPress: () => close(() => router.push('/discover')),
         },
         {
           icon: 'paper-plane-outline',

@@ -17,6 +17,7 @@ import {
 } from '@cultuvilla/shared/services/villageMemberService';
 import { setActiveMunicipality } from '@cultuvilla/shared/services/userService';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
+import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
 
 type Row = UserMembership & { name: string; escudoThumbUrl: string | null };
 
@@ -40,7 +41,7 @@ export default function MyVillagesScreen() {
             return {
               ...m,
               name: muni?.name ?? m.municipalityId,
-              escudoThumbUrl: muni?.escudoThumbUrl ?? null,
+              escudoThumbUrl: muni ? escudoThumbDisplayUrl(muni) : null,
             };
           }),
         );
@@ -88,7 +89,7 @@ export default function MyVillagesScreen() {
           ListEmptyComponent={<Text tone="muted">{t('me.villages.empty')}</Text>}
           ListFooterComponent={
             <View className="pt-4">
-              <Button variant="ghost" onPress={() => router.push('/(tabs)/village')}>
+              <Button variant="ghost" onPress={() => router.push('/discover')}>
                 <Text>{t('villageSwitcher.findAnother')}</Text>
               </Button>
             </View>
