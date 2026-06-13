@@ -15,6 +15,9 @@ export { requestOrganizeVillage } from './village/requestOrganizeVillage';
 export { respondToOrganizerRequest } from './village/respondToOrganizerRequest';
 export { syncVillageDenormalization } from './village/syncVillageDenormalization';
 
+// Organizations (ayuntamiento singleton enforcement)
+export { requestAyuntamiento } from './organizations/requestAyuntamiento';
+
 // Census (censo + occupation proposals)
 export { updateCenso } from './census/updateCenso';
 export { onOccupationProposalApproved } from './census/onOccupationProposalApproved';

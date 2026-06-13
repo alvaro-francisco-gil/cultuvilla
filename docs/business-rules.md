@@ -141,8 +141,9 @@ See [docs/decisions/persons-registry.md](decisions/persons-registry.md).
   carries the request state (`status`, `requestedBy`, `approvedBy`, `decidedAt`) —
   there is no separate request collection.
 - **Cardinality:** **one `ayuntamiento` per village; unlimited `peña` /
-  `asociación`.** ⚠️ This cap is *not* yet enforced server-side — see
-  [§13](#13-known-code-discrepancies-to-reconcile).
+  `asociación`.** The ayuntamiento cap is enforced by the `requestAyuntamiento`
+  callable — a transaction rejects a second *pending or approved* one (a *rejected*
+  prior request frees the slot). `peña` / `asociación` stay client-side creates.
 - **Org membership:** each org has its own **admin(s)** who invite/approve members.
   **Org-members create and manage that org's events.**
 - **One org belongs to one village.** Multi-village organizations are explicitly
@@ -290,9 +291,12 @@ A user may delete their account. Handling is **hybrid**:
 
 ## 11. Open questions
 
-| # | Question | Current lean |
+| # | Question | How it works **today** (for the discussion) |
 |---|---|---|
-| OQ-1 | Must an **org member also be a member of that org's village**? | Lean: being added to an org **auto-creates** village membership if absent. **Pending cofounder discussion.** |
+| OQ-1 | Must an **org member also be a member of that org's village**? | Not enforced either way. Lean: being added to an org **auto-creates** village membership if absent. **Pending cofounder discussion.** |
+| OQ-2 | **Oficios (occupations) — what should the predefined list be, and what's the policy for adding/approving new ones?** | A canonical list lives at top-level `occupations/` (superadmin-managed: `createOccupation`/`updateOccupation`/`deleteOccupation`). Any user can **propose** a new oficio (`proposeOccupation` → `occupationProposals/{id}` with `status: 'pending'`); a superadmin reviews it (`reviewProposal`), and on approval the `onOccupationProposalApproved` Cloud Function promotes it to a canonical `occupations/` doc and migrates the pending references on Persons. **Open:** which oficios to seed, and who reviews/with what criteria. |
+| OQ-3 | **News categories — which categories should exist?** | Fixed enum today: `fiesta`, `tradicion`, `gastronomia`, `historia`, `otro` (`NEWS_POST_CATEGORIES` in `NewsPostDataModel.ts`, mirrored in `firestore.rules`). Every post must pick exactly one. **Open:** is this the right set (add/rename/remove)? |
+| OQ-4 | **Organization types — which types can exist in a village?** | Fixed enum today: `ayuntamiento` (singleton), `peña`, `asociación` (`OrganizationTypeSchema`). **Open:** are these the right types (e.g. add `cofradía`, `club deportivo`, `comisión de fiestas`…)? Adding a type touches the enum, the rules validator, and any type-specific cardinality. |
 
 ---
 
@@ -317,4 +321,4 @@ diverges, or has a known gap.
 | **No price/payment** (§7.1) | ✅ Reconciled | `price` removed from `EventData`, the form schema, `firestore.rules`, seed fixtures, and tests. The generic `formatPrice` locale util is kept (it is event-agnostic and documented in AGENTS.md). |
 | **Village = municipality + community** (§1) | ✅ Reconciled (docs) | The data model is already municipality-canonical (`municipalityId` / `municipalityName` / `municipalityCoverImage` / `municipalityCoordinates`, `activeMunicipalityId`). Stale field names in the decision docs were corrected. The remaining `villages/` references are **Cloud Storage paths** and **mobile route-param folder names**, where "village/pueblo" is the intended colloquial term — left as-is (renaming Storage paths would orphan already-uploaded images). |
 | **Organizers are a set** of users + orgs (§7.2) | ⏳ Planned | Code still stores a single `organizationId` / `organizationName` / `createdBy`. This is a large, security-sensitive change — Firestore rules cannot express "a member of *any* co-organizing org may edit" by array iteration, so it needs a callable-mediated or denormalized approach. Plan: [event-co-organizers](plans/ready/event-co-organizers.md). |
-| **Ayuntamiento uniqueness** (§6) | ⚠️ Gap | "Max one `ayuntamiento` per village" is documented but **not enforced** server-side (org creation is a rules-gated client write). Enforcing it atomically needs a callable, since rules can't query for an existing ayuntamiento at create time. |
+| **Ayuntamiento uniqueness** (§6) | ✅ Reconciled | Enforced by the `requestAyuntamiento` callable (a transaction rejects a second pending/approved ayuntamiento). `firestore.rules` denies client-side `type == 'ayuntamiento'` creates; `peña` / `asociación` remain client creates. |
