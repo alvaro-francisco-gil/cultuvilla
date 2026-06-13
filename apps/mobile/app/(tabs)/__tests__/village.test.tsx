@@ -9,9 +9,21 @@ import {
 
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getMunicipality: jest.fn(),
+  getBarrios: jest.fn().mockResolvedValue([]),
+  getPlaces: jest.fn().mockResolvedValue([]),
 }));
 jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
   isVillageAdmin: jest.fn().mockResolvedValue(false),
+  getVillageMembers: jest.fn().mockResolvedValue([]),
+}));
+jest.mock('@cultuvilla/shared/services/joinRequestService', () => ({
+  getJoinRequestsForVillage: jest.fn().mockResolvedValue([]),
+}));
+jest.mock('@cultuvilla/shared/services/organizationService', () => ({
+  getOrganizationsByMunicipality: jest.fn().mockResolvedValue([]),
+}));
+jest.mock('@cultuvilla/shared/services/userService', () => ({
+  getUserProfile: jest.fn().mockResolvedValue(null),
 }));
 jest.mock('@cultuvilla/shared/services/organizerRequestService', () => ({
   getMyOrganizerRequests: jest.fn().mockResolvedValue([]),
@@ -76,10 +88,14 @@ const inactiveMuni = { ...base, id: 'mun1' }; // communityActive: false, communi
 describe('VillageTabScreen', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('renders the hub when the community is active', async () => {
+  it('renders the village page when the community is active', async () => {
     (getMunicipality as jest.Mock).mockResolvedValue(activeMuni);
-    const { findByText } = render(<VillageTabScreen />);
-    expect(await findByText('Eventos')).toBeTruthy();
+    const { findByText, queryByText } = render(<VillageTabScreen />);
+    // Active community renders the redesigned village page (hero + sections);
+    // the inactive organizer CTA must not appear. The active page resolves
+    // several chained service calls, so allow a generous find timeout.
+    expect(await findByText('Sotos de Mayorga', undefined, { timeout: 5000 })).toBeTruthy();
+    expect(queryByText('Quiero ser administrador')).toBeNull();
   });
 
   it('shows the organizer CTA when the community is inactive and no request is pending', async () => {
@@ -87,7 +103,8 @@ describe('VillageTabScreen', () => {
     (getMyOrganizerRequests as jest.Mock).mockResolvedValue([]);
     const { findByText, queryByText } = render(<VillageTabScreen />);
     expect(await findByText('Quiero ser administrador')).toBeTruthy();
-    expect(queryByText('Eventos')).toBeNull();
+    // "Organizaciones" only renders in the active village page, not the CTA.
+    expect(queryByText('Organizaciones')).toBeNull();
   });
 
   it('shows pending status when an organizer request is already pending', async () => {
