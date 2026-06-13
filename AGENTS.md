@@ -243,7 +243,11 @@ If you need output from a long-running service to verify a change, ask the user 
 
 All non-trivial changes follow the same loop. Tiny edits (typo in a doc, a renamed string) can skip steps 1 and 4, but any code change goes through every step.
 
-1. **Work in a git worktree, not on main.** Branch from the latest `main` into a worktree under `.claude/worktrees/<short-name>/`. Never edit files in the main checkout. Worktrees isolate dependencies, build outputs, and `.next/` caches so parallel changes don't fight each other, and they make it easy to abandon work that doesn't pan out.
+1. **Ask which mode to use, then work in it.** Before writing code, ask the user to pick one of two modes:
+   - **Worktree + feature branch (default).** Branch from the latest `main` into a worktree under `.claude/worktrees/<short-name>/` and work there. Never edit the main checkout in this mode. Worktrees isolate dependencies, build outputs, and `.next/` caches so parallel changes don't fight each other, and they make it easy to abandon work that doesn't pan out.
+   - **Direct to main.** Edit the main checkout and commit to `main`. Only when the user explicitly chooses this for the task.
+
+   Worktree is the default — propose it unless the user opts into direct-to-main. Surface the choice up front (during planning); don't assume it.
 2. **Read any in-flight plan** in [docs/plans/](docs/plans/) and the relevant record in [docs/decisions/](docs/decisions/) for the feature area.
 3. **Look at the relevant service** in [packages/shared/src/services/](packages/shared/src/services/) before writing UI code; extend the service if the API you need is missing.
 4. **Add or extend tests whenever possible.** Tests are the contract that survives refactors and AI rewrites. Specifically:
@@ -270,7 +274,7 @@ All non-trivial changes follow the same loop. Tiny edits (typo in a doc, a renam
 - Reads in components that should be cached or batched.
 - Spanish strings that escaped the i18n message catalog.
 - Code changes that ship without tests when tests were possible.
-- Work that landed outside a worktree (and so might have polluted main's checkout state).
+- Work that landed outside a worktree *without the user choosing direct-to-main mode* (see Development workflow step 1) — and so might have polluted main's checkout state.
 
 ## Be proactive
 
