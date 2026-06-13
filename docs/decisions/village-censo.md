@@ -9,10 +9,11 @@ registration *for that village*.
 
 ## Decision
 
-- The censo schema lives on the village doc (`villages/{id}.profileForm`); a
-  member's answers live on their membership doc
-  (`villages/{id}/members/{uid}.profileAnswers` + `profileCompletedAt`). Schema
-  is publicly readable; answers are visible only to authenticated co-members.
+- The censo schema lives on the municipality doc (`municipalities/{id}.profileForm`);
+  a member's answers live on their membership doc
+  (`municipalities/{id}/members/{uid}.profileAnswers` + `profileCompletedAt`).
+  Schema is publicly readable; answers are visible only to authenticated
+  co-members.
 - **Lazy fill, not signup-time.** Joining via invite never prompts the censo.
   It's filled any time from `/profile`, and **force-prompted on first event
   registration** if any required field is unanswered.
