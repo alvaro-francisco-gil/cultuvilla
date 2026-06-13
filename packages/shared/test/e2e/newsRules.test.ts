@@ -8,7 +8,17 @@ import {
   assertFails,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import {
+  doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  getDoc,
+  getDocs,
+  collection,
+  query,
+  where,
+} from 'firebase/firestore';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -216,6 +226,41 @@ describe('firestore.rules — /news/{postId}', () => {
     await seedPost('p1', 'm1', 'alice');
     const alice = env.authenticatedContext('alice').firestore();
     await assertFails(deleteDoc(doc(alice, 'news/p1')));
+  });
+});
+
+// ── news read rules (cross-village Explora feed) ──────────────────────────────
+// Regression: the Explora "all villages" feed (getAllVillagesFeed) lists every
+// approved news post regardless of municipality. The read rule must therefore
+// admit approved posts to non-members; pending posts stay members-only.
+describe('firestore.rules — /news read', () => {
+  it('R1: approved post is readable by a non-member (cross-village feed)', async () => {
+    await seedPost('p1', 'm1', 'alice', { status: 'approved', publishedAt: new Date() });
+    // bob is not a member of m1 — mirrors a user browsing another village.
+    const bob = env.authenticatedContext('bob').firestore();
+    await assertSucceeds(getDoc(doc(bob, 'news/p1')));
+  });
+
+  it('R2: cross-village approved list query succeeds for a non-member', async () => {
+    await seedPost('p1', 'm1', 'alice', { status: 'approved', publishedAt: new Date() });
+    await seedPost('p2', 'm2', 'carol', { status: 'approved', publishedAt: new Date() });
+    const bob = env.authenticatedContext('bob').firestore();
+    await assertSucceeds(
+      getDocs(query(collection(bob, 'news'), where('status', '==', 'approved'))),
+    );
+  });
+
+  it('R3: pending post stays hidden from non-members', async () => {
+    await seedPost('p1', 'm1', 'alice', { status: 'pending' });
+    const bob = env.authenticatedContext('bob').firestore();
+    await assertFails(getDoc(doc(bob, 'news/p1')));
+  });
+
+  it('R4: member can still read a pending post in their own village', async () => {
+    await seedMember('m1', 'alice');
+    await seedPost('p1', 'm1', 'alice', { status: 'pending' });
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(getDoc(doc(alice, 'news/p1')));
   });
 });
 

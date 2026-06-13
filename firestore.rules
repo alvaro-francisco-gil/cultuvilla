@@ -320,7 +320,11 @@ service cloud.firestore {
     // ── Collections ──────────────────────────────────────────────────────
 
     match /news/{postId} {
-      allow read: if isVillageMember(resource.data.municipalityId);
+      // Approved posts are public (parity with published events) so the
+      // cross-village Explora feed can list them. Pending/rejected posts stay
+      // visible only to members of the post's own village (moderation + author).
+      allow read: if resource.data.status == 'approved'
+                    || isVillageMember(resource.data.municipalityId);
       allow create: if isVillageMember(request.resource.data.municipalityId)
                       && isValidNewsPostCreate(request.resource.data)
                       && request.resource.data.authorUserId == request.auth.uid
