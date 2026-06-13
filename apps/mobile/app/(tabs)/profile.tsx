@@ -125,7 +125,7 @@ export default function ProfileScreen() {
   const fallbackName = profile?.displayName ?? user.email ?? '';
 
   return (
-    <Screen padded={false} topInset={false}>
+    <Screen padded={false} topInset={false} bottomInset={false}>
       <AppHeader />
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <ProfileHeader

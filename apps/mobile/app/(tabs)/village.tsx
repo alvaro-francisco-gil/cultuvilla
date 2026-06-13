@@ -167,7 +167,7 @@ export default function VillageTabScreen() {
   // AuthGate already waits for `profileChecked`, but guard once more for safety.
   if (!profileChecked) {
     return (
-      <Screen padded={false} topInset={false}>
+      <Screen padded={false} topInset={false} bottomInset={false}>
         <AppHeader />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
@@ -178,7 +178,7 @@ export default function VillageTabScreen() {
 
   if (!activeMunicipalityId) {
     return (
-      <Screen padded={false} topInset={false}>
+      <Screen padded={false} topInset={false} bottomInset={false}>
         <AppHeader />
         <VillageDiscovery />
       </Screen>
@@ -187,7 +187,7 @@ export default function VillageTabScreen() {
 
   if (loadError) {
     return (
-      <Screen padded={false} topInset={false}>
+      <Screen padded={false} topInset={false} bottomInset={false}>
         <AppHeader />
         <View className="flex-1 items-center justify-center px-8">
           <Text tone="danger">{loadError}</Text>
@@ -198,7 +198,7 @@ export default function VillageTabScreen() {
 
   if (!village) {
     return (
-      <Screen padded={false} topInset={false}>
+      <Screen padded={false} topInset={false} bottomInset={false}>
         <AppHeader />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
@@ -209,7 +209,7 @@ export default function VillageTabScreen() {
 
   if (!village.communityActive) {
     return (
-      <Screen padded={false} topInset={false}>
+      <Screen padded={false} topInset={false} bottomInset={false}>
         <AppHeader centerLabel={village.name} />
         <View className="flex-1 items-center justify-center px-8">
           <VStack gap={2} className="items-center">
@@ -250,7 +250,7 @@ export default function VillageTabScreen() {
   const description = village.community?.description?.trim();
 
   return (
-    <Screen padded={false} topInset={false}>
+    <Screen padded={false} topInset={false} bottomInset={false}>
       <AppHeader centerLabel={village.name} />
       <ScrollView contentContainerClassName="pb-10">
         {/* ── Hero ─────────────────────────────────────────────── */}

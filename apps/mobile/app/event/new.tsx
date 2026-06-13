@@ -215,8 +215,9 @@ export default function NewEventScreen() {
   }
 
   // ── Create form ───────────────────────────────────────────────────────────
+  // bottomInset={false}: the ScrollView below applies insets.bottom itself.
   return (
-    <Screen padded={false}>
+    <Screen padded={false} bottomInset={false}>
       <ScreenHeader title={t('event.createEvent')} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}

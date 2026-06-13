@@ -1,4 +1,4 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { ScrollView, View } from 'react-native';
 import type { ReactNode } from 'react';
 
@@ -12,6 +12,11 @@ export type ScreenProps = {
    * extend behind the OS status bar, set false so SafeAreaView doesn't claim
    * the top inset with the surface background. Defaults to true. */
   topInset?: boolean;
+  /** Claim the bottom safe-area inset (home indicator / gesture bar) so footer
+   * content isn't clipped. Defaults to true. Set false on bottom-tab screens
+   * (the tab bar already reserves the bottom inset) and on screens that apply
+   * insets.bottom themselves, to avoid double padding. */
+  bottomInset?: boolean;
   testID?: string;
 };
 
@@ -26,11 +31,14 @@ export function Screen({
   padded = true,
   scroll = false,
   topInset = true,
+  bottomInset = true,
   testID,
 }: ScreenProps) {
   const contentClass = padded ? 'flex-1 bg-surface p-4' : 'flex-1 bg-surface';
   const Inner = scroll ? ScrollView : View;
-  const edges = topInset ? (['top', 'left', 'right'] as const) : (['left', 'right'] as const);
+  const edges: Edge[] = ['left', 'right'];
+  if (topInset) edges.unshift('top');
+  if (bottomInset) edges.push('bottom');
   return (
     <SafeAreaView className="flex-1 bg-surface" edges={edges}>
       <Inner

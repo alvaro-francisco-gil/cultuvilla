@@ -402,7 +402,7 @@ export default function FeedScreen() {
     );
 
   return (
-    <Screen padded={false} topInset={false}>
+    <Screen padded={false} topInset={false} bottomInset={false}>
       <AppHeader />
       {toggle}
       {filterBar}
