@@ -9,6 +9,10 @@ import {
   searchMunicipalities,
   activateCommunity,
 } from '@cultuvilla/shared/services/municipalityService';
+import {
+  escudoFullUrl,
+  escudoThumbDisplayUrl,
+} from '@cultuvilla/shared/models/municipality';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality';
 
 type Row = MunicipalityData & { id: string };
@@ -75,7 +79,11 @@ export default function ActivateVillageScreen() {
                   className="py-3 border-b border-subtle"
                 >
                   <HStack gap={3} className="items-center">
-                    <Escudo url={item.escudoThumbUrl} size={36} fallbackInitial={item.name} />
+                    <Escudo
+                      url={escudoThumbDisplayUrl(item)}
+                      size={36}
+                      fallbackInitial={item.name}
+                    />
                     <VStack>
                       <Text>{item.name}</Text>
                       <Text className="text-muted text-xs">
@@ -91,7 +99,7 @@ export default function ActivateVillageScreen() {
           <>
             <View className="bg-surface border border-subtle rounded-xl p-3">
               <HStack gap={3} className="items-center">
-                <Escudo url={selected.escudoUrl} size={64} fallbackInitial={selected.name} />
+                <Escudo url={escudoFullUrl(selected)} size={64} fallbackInitial={selected.name} />
                 <VStack>
                   <Text variant="h3">{selected.name}</Text>
                   <Text className="text-muted text-sm">

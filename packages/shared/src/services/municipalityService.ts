@@ -121,7 +121,17 @@ export async function createMunicipality(input: MunicipalityDataInput): Promise<
 
 export async function updateMunicipality(
   id: string,
-  data: Partial<Pick<MunicipalityData, 'name' | 'province' | 'comunidadAutonoma' | 'codigoINE' | 'coordinates'>>,
+  data: Partial<
+    Pick<
+      MunicipalityData,
+      | 'name'
+      | 'province'
+      | 'comunidadAutonoma'
+      | 'codigoINE'
+      | 'coordinates'
+      | 'escudoManualUrl'
+    >
+  >,
 ): Promise<void> {
   // updateDoc bypasses the converter; use untyped doc + UpdateData<DocumentData>
   // so partial payloads (no required fields, plain values) typecheck.

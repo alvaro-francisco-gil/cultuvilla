@@ -46,10 +46,20 @@ export const MunicipalityDataSchema = z.object({
   createdAt: z.date(),
 
   // ── Escudo (coat of arms, sourced from Wikidata P94 → Cloud Storage) ──
-  /** Public URL for the 256×256 WebP. `null` when Wikidata has no escudo for this INE. */
+  /** Public URL for the 256×256 WebP. `null` when Wikidata has no escudo for this INE.
+   *  Owned by the `escudos:upload` pipeline — it overwrites this on every run, so
+   *  never store an admin upload here (it would be clobbered). */
   escudoUrl: z.string().nullable(),
-  /** Public URL for the 64×64 WebP thumbnail. */
+  /** Public URL for the 64×64 WebP thumbnail. Also pipeline-owned. */
   escudoThumbUrl: z.string().nullable(),
+  /**
+   * Escudo uploaded by a village admin from the app. When set, it takes
+   * precedence over the Wikidata-sourced `escudoUrl` everywhere (see
+   * `escudoFullUrl` / `escudoThumbDisplayUrl`). Clearing it reverts the village
+   * to the Wikidata escudo. Its presence IS the "manually uploaded" signal — no
+   * separate flag to keep in sync. Optional so legacy docs/fixtures still parse.
+   */
+  escudoManualUrl: z.string().nullish(),
 
   // ── Community overlay ─────────────────────────────────────────────────
   community: VillageCommunitySchema.nullable(),
@@ -67,6 +77,32 @@ export interface MunicipalityDataInput {
   coordinates?: LatLng | null;
   escudoUrl?: string | null;
   escudoThumbUrl?: string | null;
+  escudoManualUrl?: string | null;
+}
+
+/** Fields needed to resolve which escudo image to display. */
+type EscudoFields = Pick<
+  MunicipalityData,
+  'escudoUrl' | 'escudoThumbUrl' | 'escudoManualUrl'
+>;
+
+/** True when a village admin has uploaded a custom escudo. */
+export function hasManualEscudo(m: Pick<MunicipalityData, 'escudoManualUrl'>): boolean {
+  return m.escudoManualUrl != null;
+}
+
+/** Full-size escudo to display: the manual upload wins over the Wikidata one. */
+export function escudoFullUrl(m: EscudoFields): string | null {
+  return m.escudoManualUrl ?? m.escudoUrl;
+}
+
+/**
+ * Thumbnail-size escudo to display. Manual uploads have no separate thumbnail,
+ * so the full manual image is reused (displayed small); otherwise the Wikidata
+ * 64×64 thumb.
+ */
+export function escudoThumbDisplayUrl(m: EscudoFields): string | null {
+  return m.escudoManualUrl ?? m.escudoThumbUrl;
 }
 
 export function buildMunicipalityData(input: MunicipalityDataInput): MunicipalityData {
@@ -80,6 +116,7 @@ export function buildMunicipalityData(input: MunicipalityDataInput): Municipalit
     createdAt: new Date(),
     escudoUrl: input.escudoUrl ?? null,
     escudoThumbUrl: input.escudoThumbUrl ?? null,
+    escudoManualUrl: input.escudoManualUrl ?? null,
     community: null,
     communityActive: false,
   };

@@ -30,6 +30,7 @@ import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/orga
 import { getVillageMembers } from '@cultuvilla/shared/services/villageMemberService';
 import { getJoinRequestsForVillage } from '@cultuvilla/shared/services/joinRequestService';
 import { getUserProfile } from '@cultuvilla/shared/services/userService';
+import { escudoFullUrl } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { BarrioData, PlaceData } from '@cultuvilla/shared/models/municipality';
 import type { OrganizationData } from '@cultuvilla/shared/models/organization';
@@ -122,7 +123,11 @@ export default function VillageAdminHub() {
           ) : null}
           <VStack gap={1} className={`items-center px-4 ${cover ? '-mt-12' : 'pt-4'}`}>
             <View className="bg-surface rounded-2xl p-2 shadow-sm">
-              <Escudo url={village?.escudoUrl} size={96} fallbackInitial={village?.name} />
+              <Escudo
+                url={village ? escudoFullUrl(village) : null}
+                size={96}
+                fallbackInitial={village?.name}
+              />
             </View>
             <Text variant="h2" className="mt-2 text-center">
               {village?.name}

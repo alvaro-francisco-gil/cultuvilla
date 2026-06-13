@@ -20,6 +20,7 @@ import {
   isVillageMember,
   addVillageMember,
 } from '@cultuvilla/shared/services/villageMemberService';
+import { escudoFullUrl } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { EventData } from '@cultuvilla/shared/models/event/EventDataModel';
 
@@ -153,7 +154,7 @@ export default function VillageHome() {
         ListHeaderComponent={
           <VStack gap={4} className="pb-2">
             <View className="items-center pt-2 pb-1">
-              <Escudo url={village.escudoUrl} size={96} fallbackInitial={village.name} />
+              <Escudo url={escudoFullUrl(village)} size={96} fallbackInitial={village.name} />
               <Text variant="h2" className="mt-2">{village.name}</Text>
               <Text tone="muted" variant="bodySm">{village.province}</Text>
             </View>

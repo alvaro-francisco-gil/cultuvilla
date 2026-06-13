@@ -256,6 +256,11 @@
     "censo": {
       "link": "Completar mi censo"
     },
+    "escudo": {
+      "add": "Añadir escudo",
+      "change": "Cambiar escudo",
+      "manual": "Escudo subido por el pueblo"
+    },
     "notRegistered": {
       "body": "Este pueblo aún no está registrado en Cultuvilla. Para que forme parte necesitamos un administrador que active la comunidad y gestione sus eventos, organizaciones y vecinos.",
       "cta": "¿Te gustaría serlo?",
@@ -265,12 +270,14 @@
     "hub": {
       "events": "Eventos",
       "organizations": "Agrupaciones",
+      "penas": "Peñas",
       "censo": "Censo",
       "news": "Anuncios"
     },
     "organizationsList": {
       "title": "Agrupaciones",
-      "empty": "Aún no hay agrupaciones"
+      "empty": "Aún no hay agrupaciones",
+      "penasEmpty": "Aún no hay peñas"
     }
   },
   "villages": {

@@ -6,6 +6,7 @@ import {
   searchMunicipalities,
   getMunicipality,
 } from '@cultuvilla/shared/services/municipalityService';
+import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
 import { Pressable } from './Pressable';
 import { Text } from './Text';
 import { Button } from './Button';
@@ -50,7 +51,7 @@ export function VillagePicker({ label, value, onChange, placeholder = 'Sin puebl
         id: m.id,
         name: m.name,
         province: m.province,
-        escudoThumbUrl: m.escudoThumbUrl,
+        escudoThumbUrl: escudoThumbDisplayUrl(m),
       });
     });
     return () => { cancelled = true; };
@@ -69,7 +70,7 @@ export function VillagePicker({ label, value, onChange, placeholder = 'Sin puebl
           id: m.id,
           name: m.name,
           province: m.province,
-          escudoThumbUrl: m.escudoThumbUrl,
+          escudoThumbUrl: escudoThumbDisplayUrl(m),
         })),
       );
       setLoading(false);

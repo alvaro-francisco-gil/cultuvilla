@@ -9,6 +9,7 @@ import {
   searchMunicipalities,
 } from '@cultuvilla/shared/services/municipalityService';
 import { getMyJoinRequests } from '@cultuvilla/shared/services/joinRequestService';
+import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality';
 
 type Muni = MunicipalityData & { id: string };
@@ -132,7 +133,7 @@ export function VillageDiscovery() {
               className={`w-full rounded-md border border-accent bg-surface px-4 py-3 ${isPending ? 'opacity-50' : ''}`}
             >
               <HStack gap={3} className="items-center">
-                <Escudo url={item.escudoThumbUrl} size={40} fallbackInitial={item.name} />
+                <Escudo url={escudoThumbDisplayUrl(item)} size={40} fallbackInitial={item.name} />
                 <VStack gap={1}>
                   <Text>{item.name}</Text>
                   <Text tone="muted" variant="bodySm">
