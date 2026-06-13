@@ -13,7 +13,8 @@ import {
   type UpdateData,
   type DocumentData,
 } from 'firebase/firestore';
-import { getDb } from '../firebase';
+import { httpsCallable } from 'firebase/functions';
+import { getDb, getFirebaseFunctions } from '../firebase';
 import {
   organizationsCollection,
   organizationDoc,
@@ -51,6 +52,22 @@ export async function getOrganizationsByMunicipality(
 }
 
 export async function requestOrganization(input: OrganizationDataInput): Promise<string> {
+  // ayuntamiento is a singleton per village; the cap can only be enforced
+  // server-side (rules can't query for an existing one), so it goes through the
+  // requestAyuntamiento callable. peña / asociación are unlimited, written directly.
+  if (input.type === 'ayuntamiento') {
+    const fn = httpsCallable<
+      { name: string; description: string | null; municipalityId: string },
+      { ok: true; orgId: string }
+    >(getFirebaseFunctions(), 'requestAyuntamiento');
+    const res = await fn({
+      name: input.name,
+      description: input.description ?? null,
+      municipalityId: input.municipalityId,
+    });
+    return res.data.orgId;
+  }
+
   const newRef = doc(organizationsCollection(getDb()));
   const data: OrganizationData = {
     name: input.name,

@@ -9,7 +9,6 @@ const baseFirestoreShape = {
   endDate: null,
   location: { type: 'text', coordinates: null, text: 'Plaza' },
   imageURL: null,
-  price: null,
   maxAttendees: 100,
   telephoneRequired: false,
   status: 'published',

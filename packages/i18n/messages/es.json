@@ -290,8 +290,6 @@
     "startDate": "Fecha de inicio",
     "endDate": "Fecha de fin",
     "location": "Ubicación",
-    "price": "Precio",
-    "free": "Gratis",
     "maxAttendees": "Máximo de asistentes",
     "unlimited": "Sin límite",
     "telephoneRequired": "Teléfono requerido",

@@ -133,11 +133,17 @@ See [docs/decisions/persons-registry.md](decisions/persons-registry.md).
 
 ## 6. Organizations
 
-- **Types:** `ayuntamiento` (**max one per village**), `peña`, `asociación`
-  (**unlimited**).
-- **Creation:** a village member **requests** an org; a **village admin approves or
-  rejects**. *(The request→approval flow is a rule here; it is not yet built — see
-  [§13](#13-known-code-discrepancies-to-reconcile).)*
+- **Types:** `ayuntamiento`, `peña`, `asociación`.
+- **Creation — request → approval (already built):** a village member submits an
+  organization with `status: 'pending'` (`requestOrganization` in
+  `organizationService`); a **village admin** (or superadmin) approves or rejects
+  it (`approveOrganization` / `rejectOrganization`). The organization doc itself
+  carries the request state (`status`, `requestedBy`, `approvedBy`, `decidedAt`) —
+  there is no separate request collection.
+- **Cardinality:** **one `ayuntamiento` per village; unlimited `peña` /
+  `asociación`.** The ayuntamiento cap is enforced by the `requestAyuntamiento`
+  callable — a transaction rejects a second *pending or approved* one (a *rejected*
+  prior request frees the slot). `peña` / `asociación` stay client-side creates.
 - **Org membership:** each org has its own **admin(s)** who invite/approve members.
   **Org-members create and manage that org's events.**
 - **One org belongs to one village.** Multi-village organizations are explicitly
@@ -152,8 +158,8 @@ See [docs/decisions/persons-registry.md](decisions/persons-registry.md).
 - An event happens in **exactly one village** (`municipalityId` = the location),
   regardless of how many people or orgs co-organize it.
 - **No price / payment concept.** Money is never mentioned natively in the app; any
-  cost is handled offline by the organizer. *(The model still carries a `price`
-  field — see [§13](#13-known-code-discrepancies-to-reconcile).)*
+  cost is handled offline by the organizer. (The `price` field has been removed
+  from the event model.)
 
 ### 7.2 Who creates & who is credited
 
@@ -164,6 +170,11 @@ See [docs/decisions/persons-registry.md](decisions/persons-registry.md).
 - **Co-organizers must belong to the same village as the event.** Any member of that
   village can add any other member, or any organization of that village, as a
   co-organizer — **with no consent or approval step.**
+
+> **Status:** the organizer *set* is the target model; the code today stores a
+> single `organizationId` (one org per event). The migration is planned in
+> [event-co-organizers](plans/ready/event-co-organizers.md) — see
+> [§13](#13-known-code-discrepancies-to-reconcile).
 
 ### 7.3 Lifecycle
 
@@ -273,14 +284,19 @@ A user may delete their account. Handling is **hybrid**:
   co-organized events.
 - **Preserved:** their **news posts and comments** are kept (author anonymized, e.g.
   "Usuario eliminado") for community-record continuity.
+- **Reactions** by the deleted user are **removed** (decrementing post counters) —
+  they carry no content worth preserving.
 
 ---
 
 ## 11. Open questions
 
-| # | Question | Current lean |
+| # | Question | How it works **today** (for the discussion) |
 |---|---|---|
-| OQ-1 | Must an **org member also be a member of that org's village**? | Lean: being added to an org **auto-creates** village membership if absent. **Pending cofounder discussion.** |
+| OQ-1 | Must an **org member also be a member of that org's village**? | Not enforced either way. Lean: being added to an org **auto-creates** village membership if absent. **Pending cofounder discussion.** |
+| OQ-2 | **Oficios (occupations) — what should the predefined list be, and what's the policy for adding/approving new ones?** | A canonical list lives at top-level `occupations/` (superadmin-managed: `createOccupation`/`updateOccupation`/`deleteOccupation`). Any user can **propose** a new oficio (`proposeOccupation` → `occupationProposals/{id}` with `status: 'pending'`); a superadmin reviews it (`reviewProposal`), and on approval the `onOccupationProposalApproved` Cloud Function promotes it to a canonical `occupations/` doc and migrates the pending references on Persons. **Open:** which oficios to seed, and who reviews/with what criteria. |
+| OQ-3 | **News categories — which categories should exist?** | Fixed enum today: `fiesta`, `tradicion`, `gastronomia`, `historia`, `otro` (`NEWS_POST_CATEGORIES` in `NewsPostDataModel.ts`, mirrored in `firestore.rules`). Every post must pick exactly one. **Open:** is this the right set (add/rename/remove)? |
+| OQ-4 | **Organization types — which types can exist in a village?** | Fixed enum today: `ayuntamiento` (singleton), `peña`, `asociación` (`OrganizationTypeSchema`). **Open:** are these the right types (e.g. add `cofradía`, `club deportivo`, `comisión de fiestas`…)? Adding a type touches the enum, the rules validator, and any type-specific cardinality. |
 
 ---
 
@@ -297,12 +313,12 @@ A user may delete their account. Handling is **hybrid**:
 
 ## 13. Known code discrepancies to reconcile
 
-These rules are **authoritative**; the code below currently disagrees and should be
-brought into line.
+These rules are **authoritative**. This table tracks where the code agrees,
+diverges, or has a known gap.
 
-| Rule | Code today | Action |
+| Rule | Status | Notes |
 |---|---|---|
-| **No price/payment** (§7.1) | `EventDataModel` has a `price` field | Remove the field (or leave permanently unused) |
-| **Organizers are a set** of users + orgs (§7.2) | Event has a single required `organizationId` / `organizationName` + `createdBy` | Replace with an organizer set (`users[]` + `orgs[]`); migrate existing events |
-| **Org creation = member-request → admin-approval** (§6) | No org-request/approval flow exists | Build the request + approval callables |
-| **Village = municipality + community** (§1) | Some docs/paths say `villages/{id}`; code uses `municipalities/{id}` | Treat `municipalities/` + `community` overlay as canonical; "village" is colloquial only |
+| **No price/payment** (§7.1) | ✅ Reconciled | `price` removed from `EventData`, the form schema, `firestore.rules`, seed fixtures, and tests. The generic `formatPrice` locale util is kept (it is event-agnostic and documented in AGENTS.md). |
+| **Village = municipality + community** (§1) | ✅ Reconciled (docs) | The data model is already municipality-canonical (`municipalityId` / `municipalityName` / `municipalityCoverImage` / `municipalityCoordinates`, `activeMunicipalityId`). Stale field names in the decision docs were corrected. The remaining `villages/` references are **Cloud Storage paths** and **mobile route-param folder names**, where "village/pueblo" is the intended colloquial term — left as-is (renaming Storage paths would orphan already-uploaded images). |
+| **Organizers are a set** of users + orgs (§7.2) | ⏳ Planned | Code still stores a single `organizationId` / `organizationName` / `createdBy`. This is a large, security-sensitive change — Firestore rules cannot express "a member of *any* co-organizing org may edit" by array iteration, so it needs a callable-mediated or denormalized approach. Plan: [event-co-organizers](plans/ready/event-co-organizers.md). |
+| **Ayuntamiento uniqueness** (§6) | ✅ Reconciled | Enforced by the `requestAyuntamiento` callable (a transaction rejects a second pending/approved ayuntamiento). `firestore.rules` denies client-side `type == 'ayuntamiento'` creates; `peña` / `asociación` remain client creates. |

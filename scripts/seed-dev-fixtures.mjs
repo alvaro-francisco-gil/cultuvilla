@@ -361,7 +361,6 @@ async function upsertEvent(v, org, ev, adminUid, coords, villageCover) {
         startDate,
         endDate,
         location: buildLocationData({ type: 'text', text: `Plaza Mayor, ${v.name}` }),
-        price: ev.price ?? 0,
         maxAttendees: ev.maxAttendees ?? null,
         telephoneRequired: false,
         status: ev.status ?? 'published',
