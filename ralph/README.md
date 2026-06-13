@@ -10,7 +10,7 @@ Inspired by Matt Pocock's *ralph loop* (`ai-engineer-workshop-2026-project`) and
 brief / GitHub issue body
         │
         ▼
-manage-plan-docs              →  docs/superpowers/plans/YYYY-MM-DD-<slug>.md   (PRD draft)
+managing-plans-lifecycle      →  docs/plans/ideas/<slug>.md                   (proposal)
         │
         ▼
 break-down-into-slices        →  implementation-queue/<plan-slug>/000-prd-link.md
@@ -43,7 +43,7 @@ This is intentional. A "plan" is a feature; the slices are facets of that featur
 - **HITL slices in the plan**: you implement them yourself on the same branch (`git switch feat/<plan-slug>`, work, commit, push). Next Ralph iteration sees your commits via `git pull --ff-only` and continues with whatever AFK slices are still pending.
 - **All slices done**: PR body grows a `## Ready — All slices completed` note. The merge is your call. Ralph never merges.
 
-`docs/superpowers/plans/` is for PRD drafts (per `manage-plan-docs`). `implementation-queue/` is operational — the cola Ralph eats from. They live separately on purpose.
+`docs/plans/ideas/` is for proposals (per `managing-plans-lifecycle`). `implementation-queue/` is operational — the cola Ralph eats from. They live separately on purpose.
 
 **Note on cultuvilla's direct-to-main policy:** the user is allowed to push directly to `main`. Ralph is not. Autonomous work always goes through a PR for human review — the PR is the safety mechanism that makes unattended iteration safe.
 
@@ -181,6 +181,6 @@ Then edit the relevant slice files and rerun Ralph.
 
 ## Future work
 
-- A `prd-to-slices` skill that converts a draft PRD under `docs/superpowers/plans/` into a directory of slice files under `implementation-queue/<plan-slug>/` with `type`, `blocked_by`, `allowed_paths`, and `feedback_loop` filled in. Currently the user authors slice files by hand.
+- A `prd-to-slices` skill that converts a proposal under `docs/plans/ideas/` into a directory of slice files under `implementation-queue/<plan-slug>/` with `type`, `blocked_by`, `allowed_paths`, and `feedback_loop` filled in. Currently the user authors slice files by hand.
 - Hook up cultuvilla's CI workflow (`.github/workflows/check.yml`) to the PR Ralph opens — currently `pnpm check` runs locally only.
 - When `apps/mobile/` gets per-slot Metro infrastructure (the `parallel-agent-workflow` skill is currently a stub), revisit running Ralph against mobile slices.
