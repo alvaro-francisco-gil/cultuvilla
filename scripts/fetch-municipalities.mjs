@@ -20,7 +20,7 @@ import path from 'node:path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT_PATH = path.join(__dirname, 'data', 'municipalities-es.json');
-const USER_AGENT = 'cultuvilla-municipality-fetcher/0.1 (alvaro.gil@northstar-data.com)';
+const USER_AGENT = 'cultuvilla-municipality-fetcher/0.1 (https://github.com/alvaro-francisco-gil/cultuvilla)';
 
 const args = process.argv.slice(2);
 const DRY_RUN = args.includes('--dry-run');
