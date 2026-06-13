@@ -342,6 +342,7 @@ export default function FeedScreen() {
               title: item.title,
               startDate: item.startDate,
               organizationName: item.organizationName,
+              imageURL: item.imageURL,
             }}
             onPress={(id) => router.push(`/event/${id}`)}
           />
