@@ -1,324 +1,358 @@
-# Cultuvilla — Business Rules
+# Cultuvilla — Reglas de negocio
 
-The single source of truth for **what the product allows and forbids** — the rules
-that govern users, villages, events, and content. It complements, and where they
-disagree overrides, the prose in [README.md](../README.md) and the per-feature
-rationale in [docs/decisions/](decisions/).
+La única fuente de verdad sobre **qué permite y qué prohíbe el producto** — las
+reglas que gobiernan a los usuarios, los pueblos, los eventos y el contenido.
+Complementa, y donde discrepan prevalece sobre, el texto de
+[README.md](../README.md) y el razonamiento por funcionalidad de
+[docs/decisions/](decisions/).
 
-> **Scope of this document:** the *rules*, not the implementation. Where a rule
-> currently disagrees with the code, that is called out in
-> [§13 Known code discrepancies](#13-known-code-discrepancies-to-reconcile). Items
-> still under discussion are in [§11 Open questions](#11-open-questions) and
-> [§12 Deferred](#12-deferred-handled-on-other-branches).
+> **Alcance de este documento:** las *reglas*, no la implementación. Cuando una
+> regla discrepa hoy del código, se señala en
+> [§13 Discrepancias conocidas](#13-discrepancias-conocidas-a-reconciliar). Los
+> puntos aún en debate están en [§11 Preguntas abiertas](#11-preguntas-abiertas)
+> y [§12 Diferido](#12-diferido-en-otras-ramas).
 
 ---
 
-## 1. Glossary & core entities
+## 1. Glosario y entidades centrales
 
-| Term | Meaning | Where it lives |
+| Término | Significado | Dónde vive |
 |---|---|---|
-| **Municipality** | A fixed, predefined Spanish *ayuntamiento*. Always exists as a reference doc, whether or not anyone uses the app there. | `municipalities/{id}` |
-| **Community** | The activatable *overlay* on a municipality. Flips on when someone organizes the village. **One community per municipality.** | `municipalities/{id}.community` |
-| **Village** | Colloquial word for *a municipality with an active community*. Not a separate entity. | — |
-| **Person** | A canonical identity record (name, surnames, sex, birthday, birthplace, biography, photo). The unit a registration points at. | `persons/{personId}` |
-| **User account** | Account metadata for a signed-in user (display name, email, telephone, active village, link to own Person). | `users/{uid}` |
-| **Organization** | An *ayuntamiento*, *peña*, or *asociación*. Belongs to exactly one municipality. | `organizations/{orgId}` |
+| **Municipio** (*Municipality*) | Un *ayuntamiento* español fijo y predefinido. Siempre existe como documento de referencia, lo use o no alguien en la app. | `municipalities/{id}` |
+| **Comunidad** (*Community*) | La *capa* activable sobre un municipio. Se activa cuando alguien organiza el pueblo. **Una comunidad por municipio.** | `municipalities/{id}.community` |
+| **Pueblo** (*Village*) | Palabra coloquial para *un municipio con una comunidad activa*. No es una entidad aparte. | — |
+| **Persona** (*Person*) | Un registro de identidad canónico (nombre, apellidos, sexo, fecha y lugar de nacimiento, biografía, foto). La unidad a la que apunta una inscripción. | `persons/{personId}` |
+| **Cuenta de usuario** (*User account*) | Metadatos de cuenta de un usuario autenticado (nombre visible, email, teléfono, pueblo activo, enlace a su propia Persona). | `users/{uid}` |
+| **Organización** (*Organization*) | Un *ayuntamiento*, *peña* o *asociación*. Pertenece a exactamente un municipio. | `organizations/{orgId}` |
 
-**Person vs. user account.** Every user has their **own Person** (`users/{uid}.personId`,
-where that Person's `userId == uid`). A user may also create **additional Person
-records for relatives** (`userId == null`, `createdBy == uid`) so they can register
-family members. "Persona" in older docs = a Person record; it is **not** a user type.
+**Persona vs. cuenta de usuario.** Cada usuario tiene su **propia Persona**
+(`users/{uid}.personId`, donde esa Persona tiene `userId == uid`). Un usuario
+también puede crear **Personas adicionales para familiares** (`userId == null`,
+`createdBy == uid`) para inscribir a miembros de la familia. «Persona» en
+documentos antiguos = un registro Person; **no** es un tipo de usuario.
 
-**Village = municipality + community.** There is no `villages/` collection; the
-canonical collection is `municipalities/`. "Village" is only a human label for a
-municipality whose `community.active == true`.
+**Pueblo = municipio + comunidad.** No existe una colección `villages/`; la
+colección canónica es `municipalities/`. «Pueblo» es solo una etiqueta humana
+para un municipio cuyo `community.active == true`.
 
 ---
 
-## 2. User types & roles
+## 2. Tipos de usuario y roles
 
-Roles **compose** — an org member is also a village member is also an authenticated
-user.
+Los roles **se componen**: un miembro de organización es también miembro del
+pueblo y también un usuario autenticado.
 
-| Role | Defined by | Core capability |
+| Rol | Definido por | Capacidad principal |
 |---|---|---|
-| **Anonymous visitor** | not signed in | Browse public events & approved news. Sees attendee **counts only**, never names. |
-| **Authenticated user** | signed in | Everything above + register to **any** event in **any** village, manage own account + Persons, author/comment/react on news. |
-| **Village member** | `municipalities/{id}/members/{uid}` (`role: user`) | Member of a specific village. Sees attendee **names** for that village's events. Subject to that village's censo. |
-| **Village admin** | `municipalities/{id}/members/{uid}` (`role: admin`) | Manage the village: approve join requests, moderate news, manage barrios/cemeteries, edit/cancel any event in the village, approve org-creation requests. |
-| **Org member** | `organizations/{orgId}/members/{uid}` | Create/manage that org's events. |
-| **Superadmin** | `admins/{uid}` | Global. Creates municipalities, approves organizer requests, manages reference data, and holds full village-admin powers everywhere. |
+| **Visitante anónimo** | sin sesión iniciada | Explora eventos públicos y noticias aprobadas. Ve **solo recuentos** de asistentes, nunca nombres. |
+| **Usuario autenticado** | con sesión iniciada | Todo lo anterior + inscribirse a **cualquier** evento de **cualquier** pueblo, gestionar su cuenta y Personas, publicar/comentar/reaccionar en noticias. |
+| **Miembro del pueblo** | `municipalities/{id}/members/{uid}` (`role: user`) | Miembro de un pueblo concreto. Ve los **nombres** de asistentes en los eventos de ese pueblo. Sujeto al censo de ese pueblo. |
+| **Administrador del pueblo** | `municipalities/{id}/members/{uid}` (`role: admin`) | Gestiona el pueblo: aprueba solicitudes de ingreso, modera noticias, gestiona barrios/cementerios, edita/cancela cualquier evento del pueblo, aprueba solicitudes de creación de organizaciones. |
+| **Miembro de organización** | `organizations/{orgId}/members/{uid}` | Crea/gestiona los eventos de esa organización. |
+| **Superadministrador** | `admins/{uid}` | Global. Crea municipios, aprueba solicitudes de organizador, gestiona los datos de referencia y tiene plenos poderes de administrador de pueblo en todas partes. |
 
-**Admins are not a singleton.** A village can have **multiple admins**. The founding
-organizer (`community.adminUserId`) is the first admin; existing admins can promote
-other members to admin.
+**Los administradores no son únicos.** Un pueblo puede tener **varios
+administradores**. El organizador fundador (`community.adminUserId`) es el primer
+administrador; los administradores existentes pueden promover a otros miembros a
+administrador.
 
-**Multi-village.** A user may be a member (or admin) of **many villages at once**.
-`activeMunicipalityId` on the user account selects which village the UI focuses on —
-it is a **UI hint only and never an access-control primitive** (tolerate `null`).
-
----
-
-## 3. Becoming & leaving a village member
-
-### 3.1 Joining (three pathways)
-
-1. **Request to join** — the user requests; a **village admin approves**. Requests
-   are keyed by uid (`municipalities/{id}/joinRequests/{uid}`) so duplicates are
-   structurally impossible; one pending request per user per village.
-2. **Invite token** — an admin shares a token; the user redeems it. *(Rules deferred —
-   see [§12](#12-deferred-handled-on-other-branches).)*
-3. **Organize an inactive village** — the user requests to organize a municipality
-   with no active community; a **superadmin approves**, which activates the community
-   and makes the requester the founding admin.
-
-All request writes go through Cloud Function callables (clients never write the
-request/membership docs directly); guardrails run server-side in a transaction
-(not already a member, no prior pending request, target community active for join /
-inactive for organize).
-
-### 3.2 Trust model
-
-There is **no verification of real-world residency**. "Village member" is an
-app-relationship established by **admin approval or a valid invite** — never by
-self-assertion. The censo's residency fields are **self-reported and unverified**.
-
-### 3.3 Leaving
-
-- A member may **leave voluntarily**; a **village admin may remove** a member.
-- On exit: the member's **future event registrations are cancelled** (freeing
-  capacity) and their **censo answers are deleted**.
-- The **last admin must promote another admin before leaving**.
+**Multipueblo.** Un usuario puede ser miembro (o administrador) de **varios
+pueblos a la vez**. `activeMunicipalityId` en la cuenta selecciona en qué pueblo
+se centra la interfaz — es **solo una pista de UI, nunca un mecanismo de control
+de acceso** (tolerar `null`).
 
 ---
 
-## 4. The censo (per-village profile form)
+## 3. Hacerse miembro de un pueblo y darse de baja
 
-- Each village's admin defines a **censo** — a profile form capturing pueblo-specific
-  info (barrio, residency type, household, …). Schema is **publicly readable**;
-  answers are visible only to authenticated co-members.
-- **Member-only.** The censo is the village's census of *its own members*. A member's
-  answers live on their membership doc (`profileAnswers` + `profileCompletedAt`).
-  **Visitors have no censo.**
-- **Lazy fill, gated at first registration.** Joining never prompts the censo. A
-  member who has not completed required censo fields is **force-prompted the first
-  time they register to one of that village's events**; the gate is enforced
-  **server-side**, the client redirect is a convenience.
-- **Fields** are either **predefined** (from a code registry with stable cross-village
-  keys) or **custom** (village-local, admin-defined).
-- **Append-only after first answer:** a field can be removed only while zero members
-  have answered it; select options can be appended but not removed once selected;
-  field `type` and `key` are immutable.
+### 3.1 Unirse (tres vías)
 
-See [docs/decisions/village-censo.md](decisions/village-censo.md).
+1. **Solicitar ingreso** — el usuario lo solicita; un **administrador del pueblo
+   aprueba**. Las solicitudes se indexan por uid
+   (`municipalities/{id}/joinRequests/{uid}`), por lo que los duplicados son
+   estructuralmente imposibles; una solicitud pendiente por usuario y pueblo.
+2. **Token de invitación** — un administrador comparte un token; el usuario lo
+   canjea. *(Reglas diferidas — ver [§12](#12-diferido-en-otras-ramas).)*
+3. **Organizar un pueblo inactivo** — el usuario solicita organizar un municipio
+   sin comunidad activa; un **superadministrador aprueba**, lo que activa la
+   comunidad y convierte al solicitante en el administrador fundador.
 
----
+Todas las escrituras de solicitudes pasan por Cloud Functions (callables) — los
+clientes nunca escriben directamente los documentos de solicitud/membresía; las
+salvaguardas se ejecutan en el servidor dentro de una transacción (no ser ya
+miembro, no haber una solicitud pendiente previa, comunidad destino activa para
+unirse / inactiva para organizar).
 
-## 5. Persons (identity records)
+### 3.2 Modelo de confianza
 
-- A Person is **owner-only**: only its `createdBy` can read, write, or delete it.
-- A user has **one self-Person** (`userId == uid`) and may create **any number of
-  relative-Persons** (`userId == null`). **No cap.**
-- **Registrations always point at a Person** the registering user owns (self or
-  relative). There is no anonymous/nameless registration.
-- **Deleting a Person cascades** — its event registrations are removed too (freeing
-  capacity and triggering waitlist promotion). There is no "block delete while
-  registered."
-- Standalone Persons not tied to an account (e.g. deceased ancestors for a future
-  family tree) are allowed by the model but not a v1 product surface.
+**No hay verificación de residencia real.** «Miembro del pueblo» es una relación
+a nivel de app establecida por **aprobación del administrador o una invitación
+válida** — nunca por autodeclaración. Los campos de residencia del censo son
+**autodeclarados y no verificados**.
 
-See [docs/decisions/persons-registry.md](decisions/persons-registry.md).
+### 3.3 Darse de baja
+
+- Un miembro puede **darse de baja voluntariamente**; un **administrador del
+  pueblo puede expulsar** a un miembro.
+- Al salir: las **inscripciones futuras del miembro se cancelan** (liberando
+  plazas) y sus **respuestas del censo se eliminan**.
+- El **último administrador debe promover a otro administrador antes de irse**.
 
 ---
 
-## 6. Organizations
+## 4. El censo (formulario de perfil por pueblo)
 
-- **Types:** `ayuntamiento`, `peña`, `asociación`.
-- **Creation — request → approval (already built):** a village member submits an
-  organization with `status: 'pending'` (`requestOrganization` in
-  `organizationService`); a **village admin** (or superadmin) approves or rejects
-  it (`approveOrganization` / `rejectOrganization`). The organization doc itself
-  carries the request state (`status`, `requestedBy`, `approvedBy`, `decidedAt`) —
-  there is no separate request collection.
-- **Cardinality:** **one `ayuntamiento` per village; unlimited `peña` /
-  `asociación`.** The ayuntamiento cap is enforced by the `requestAyuntamiento`
-  callable — a transaction rejects a second *pending or approved* one (a *rejected*
-  prior request frees the slot). `peña` / `asociación` stay client-side creates.
-- **Org membership:** each org has its own **admin(s)** who invite/approve members.
-  **Org-members create and manage that org's events.**
-- **One org belongs to one village.** Multi-village organizations are explicitly
-  future (would add `villageIds[]` / `parentOrgId`).
+- El administrador de cada pueblo define un **censo** — un formulario de perfil
+  que captura información específica del pueblo (barrio, tipo de residencia,
+  hogar, …). El esquema es **de lectura pública**; las respuestas solo son
+  visibles para co-miembros autenticados.
+- **Solo para miembros.** El censo es el padrón del pueblo sobre *sus propios
+  miembros*. Las respuestas de un miembro viven en su documento de membresía
+  (`profileAnswers` + `profileCompletedAt`). **Los visitantes no tienen censo.**
+- **Relleno diferido, exigido en la primera inscripción.** Unirse nunca solicita
+  el censo. A un miembro que no haya completado los campos obligatorios se le
+  **fuerza a rellenarlo la primera vez que se inscribe** a un evento de ese
+  pueblo; la comprobación se aplica **en el servidor**, la redirección del
+  cliente es una comodidad.
+- Los **campos** son **predefinidos** (de un registro en código con claves
+  estables entre pueblos) o **personalizados** (locales del pueblo, definidos por
+  el administrador).
+- **Solo se añade tras la primera respuesta:** un campo solo puede eliminarse
+  mientras ningún miembro lo haya respondido; las opciones de un desplegable
+  pueden añadirse pero no eliminarse una vez seleccionadas; el `type` y la `key`
+  del campo son inmutables.
+
+Ver [docs/decisions/village-censo.md](decisions/village-censo.md).
 
 ---
 
-## 7. Events
+## 5. Personas (registros de identidad)
 
-### 7.1 Identity & scope
+- Una Persona es **solo del propietario**: solo su `createdBy` puede leerla,
+  escribirla o eliminarla.
+- Un usuario tiene **una Persona propia** (`userId == uid`) y puede crear
+  **cualquier número de Personas-familiar** (`userId == null`). **Sin límite.**
+- Las **inscripciones siempre apuntan a una Persona** que el usuario que inscribe
+  posee (él mismo o un familiar). No hay inscripción anónima/sin nombre.
+- **Eliminar una Persona es en cascada** — sus inscripciones a eventos también se
+  eliminan (liberando plazas y disparando la promoción de la lista de espera). No
+  existe «bloquear el borrado mientras esté inscrita».
+- Las Personas autónomas no vinculadas a una cuenta (p. ej. ancestros fallecidos
+  para un futuro árbol genealógico) están permitidas por el modelo pero no son
+  una superficie de producto en v1.
 
-- An event happens in **exactly one village** (`municipalityId` = the location),
-  regardless of how many people or orgs co-organize it.
-- **No price / payment concept.** Money is never mentioned natively in the app; any
-  cost is handled offline by the organizer. (The `price` field has been removed
-  from the event model.)
+Ver [docs/decisions/persons-registry.md](decisions/persons-registry.md).
 
-### 7.2 Who creates & who is credited
+---
 
-- **Any member of the event's village can create an event** there.
-- An event's **organizers are a set**: zero-or-more **users** and zero-or-more **orgs**.
-  The **creator is always an organizer**. Valid shapes: self-only, org(s)-name-only,
-  or self + org(s); multiple users *and* multiple orgs may co-organize.
-- **Co-organizers must belong to the same village as the event.** Any member of that
-  village can add any other member, or any organization of that village, as a
-  co-organizer — **with no consent or approval step.**
+## 6. Organizaciones
 
-> **Status:** the organizer *set* is the target model; the code today stores a
-> single `organizationId` (one org per event). The migration is planned in
-> [event-co-organizers](plans/ready/event-co-organizers.md) — see
-> [§13](#13-known-code-discrepancies-to-reconcile).
+- **Tipos:** `ayuntamiento`, `peña`, `asociación`.
+- **Creación — solicitud → aprobación (ya implementado):** un miembro del pueblo
+  envía una organización con `status: 'pending'` (`requestOrganization` en
+  `organizationService`); un **administrador del pueblo** (o superadministrador)
+  la aprueba o rechaza (`approveOrganization` / `rejectOrganization`). El propio
+  documento de la organización lleva el estado de la solicitud (`status`,
+  `requestedBy`, `approvedBy`, `decidedAt`) — no hay colección de solicitudes
+  aparte.
+- **Cardinalidad:** **un `ayuntamiento` por pueblo; `peña` / `asociación`
+  ilimitadas.** El límite de ayuntamiento lo aplica el callable
+  `requestAyuntamiento` — una transacción rechaza un segundo *pendiente o
+  aprobado* (una solicitud previa *rechazada* libera el hueco). `peña` /
+  `asociación` se siguen creando desde el cliente.
+- **Membresía de organización:** cada organización tiene sus propios
+  **administradores** que invitan/aprueban miembros. **Los miembros de la
+  organización crean y gestionan los eventos de esa organización.**
+- **Una organización pertenece a un pueblo.** Las organizaciones multipueblo son
+  explícitamente futuras (añadirían `villageIds[]` / `parentOrgId`).
 
-### 7.3 Lifecycle
+---
+
+## 7. Eventos
+
+### 7.1 Identidad y alcance
+
+- Un evento ocurre en **exactamente un pueblo** (`municipalityId` = la ubicación),
+  sin importar cuántas personas u organizaciones co-organicen.
+- **Sin concepto de precio / pago.** El dinero nunca se menciona de forma nativa
+  en la app; cualquier coste lo gestiona el organizador fuera de la app. (El campo
+  `price` se ha eliminado del modelo de evento.)
+
+### 7.2 Quién crea y a quién se atribuye
+
+- **Cualquier miembro del pueblo del evento puede crear un evento** allí.
+- Los **organizadores de un evento son un conjunto**: cero o más **usuarios** y
+  cero o más **organizaciones**. El **creador siempre es organizador**. Formas
+  válidas: solo-él, solo-nombre(s)-de-organización, o él + organización(es);
+  pueden co-organizar varios usuarios *y* varias organizaciones.
+- **Los co-organizadores deben pertenecer al mismo pueblo que el evento.**
+  Cualquier miembro de ese pueblo puede añadir a cualquier otro miembro, o a
+  cualquier organización de ese pueblo, como co-organizador — **sin paso de
+  consentimiento ni aprobación.**
+
+> **Estado:** el *conjunto* de organizadores es el modelo objetivo; el código hoy
+> almacena un único `organizationId` (una organización por evento). La migración
+> está planificada en [event-co-organizers](plans/ready/event-co-organizers.md) —
+> ver [§13](#13-discrepancias-conocidas-a-reconciliar).
+
+### 7.3 Ciclo de vida
 
 ```
-draft ── publish ──▶ published ── cancel ──▶ cancelled   (terminal)
+draft ── publicar ──▶ published ── cancelar ──▶ cancelled   (terminal)
                           │
-                          └── auto (dates pass) ──▶ completed
+                          └── automático (al pasar las fechas) ──▶ completed
 ```
 
-- **Linear and one-way.** No un-publish, no reopen; **cancel is terminal**.
-- `completed` is set **automatically** when `startDate`/`endDate` passes (scheduled).
-- **Drafts are visible only to the event's organizers.**
+- **Lineal y en un solo sentido.** No hay despublicar ni reabrir; **cancelar es
+  terminal**.
+- `completed` se asigna **automáticamente** cuando pasa `startDate`/`endDate`
+  (tarea programada).
+- **Los borradores (`draft`) solo son visibles para los organizadores del evento.**
 
-### 7.4 Edit & cancel permissions
+### 7.4 Permisos de edición y cancelación
 
-Edit or cancel an event may be done by:
-- any **co-organizer user**, or
-- any **member of a co-organizing org**, or
-- a **village admin** of the event's village, or
-- a **superadmin**.
+Editar o cancelar un evento lo pueden hacer:
+- cualquier **usuario co-organizador**, o
+- cualquier **miembro de una organización co-organizadora**, o
+- un **administrador del pueblo** del evento, o
+- un **superadministrador**.
 
-Editing a published event with registrants:
-- changing **title / date / location** notifies all registrants (`event_updated`);
-- **cancelling** notifies all registrants (`event_cancelled`).
+Editar un evento publicado con inscritos:
+- cambiar **título / fecha / ubicación** notifica a todos los inscritos
+  (`event_updated`);
+- **cancelar** notifica a todos los inscritos (`event_cancelled`).
 
 ---
 
-## 8. Event registration
+## 8. Inscripción a eventos
 
-- **Instant and capacity-gated** — no organizer approval.
-- **Open to any authenticated user**, member or not (membership never gates
-  participation). The censo gate (§4) applies only to members of the event's village.
-- Each registration is for **one Person** owned by the registering user.
-- **Uniqueness:** at most **one registration per (event, Person)** — no double
-  registration.
-- **Capacity:** `maxAttendees` counts **confirmed registrations only**.
-  - `confirmedCount < maxAttendees` → `confirmed`; otherwise → `waitlisted`.
-  - `maxAttendees == null` → **unlimited**; never waitlists.
-- **Waitlist:** ordered FIFO by `position`. When a confirmed registration is
-  cancelled, the **lowest-position waitlister is auto-promoted** (notified via
-  `waitlist_promoted`) and counters are recomputed.
-- `telephoneRequired` (per event): when true, the registrant must have a telephone on
-  file before registering.
+- **Inmediata y limitada por aforo** — sin aprobación del organizador.
+- **Abierta a cualquier usuario autenticado**, sea miembro o no (la membresía
+  nunca condiciona la participación). La comprobación del censo (§4) solo aplica a
+  los miembros del pueblo del evento.
+- Cada inscripción es para **una Persona** que posee el usuario que inscribe.
+- **Unicidad:** como máximo **una inscripción por (evento, Persona)** — sin
+  inscripciones duplicadas.
+- **Aforo:** `maxAttendees` cuenta **solo las inscripciones confirmadas**.
+  - `confirmedCount < maxAttendees` → `confirmed`; en caso contrario →
+    `waitlisted`.
+  - `maxAttendees == null` → **ilimitado**; nunca pone en lista de espera.
+- **Lista de espera:** ordenada FIFO por `position`. Cuando se cancela una
+  inscripción confirmada, se **promueve automáticamente al de menor `position` en
+  espera** (se le notifica con `waitlist_promoted`) y se recalculan los
+  contadores.
+- `telephoneRequired` (por evento): si es `true`, quien se inscribe debe tener un
+  teléfono guardado antes de inscribirse.
 
-### 8.1 Attendee privacy
+### 8.1 Privacidad de asistentes
 
-| Viewer | What they see |
+| Quién lo ve | Qué ve |
 |---|---|
-| Anonymous visitor | Attendee **count** only |
-| Authenticated **non-member** of the event's village | Attendee **count** only |
-| **Member** of the event's village | Full attendee **names** |
-| The event's **organizers** (+ superadmin) | Full attendee **names** |
+| Visitante anónimo | **Solo el recuento** de asistentes |
+| Usuario autenticado **no miembro** del pueblo del evento | **Solo el recuento** de asistentes |
+| **Miembro** del pueblo del evento | **Nombres** completos de asistentes |
+| Los **organizadores** del evento (+ superadministrador) | **Nombres** completos de asistentes |
 
-Registrations denormalize the attendee `name` and an `isMember` badge (member of the
-event's village vs. visitor) so lists need no per-attendee lookup.
-
----
-
-## 9. News (noticias)
-
-- Lives in **top-level collections** scoped by `municipalityId`: `news/`,
-  `newsComments/`, `newsReactions/`, `newsReports/`.
-- **Authoring:** **any authenticated user** may post to any village's news. Posts are
-  created **`pending`** and **reviewed by the village's admins** (+ superadmin), who
-  approve or reject. A member flagged `trustedNewsAuthor` for that village posts
-  **directly as `approved`** (trust is per-village and dies with the membership; set
-  only via the `setTrustedNewsAuthor` callable).
-- **Reading:** **approved** posts are **public** (anonymous included). `pending`/hidden
-  posts are visible only to their author, village admins, and superadmins.
-- **Authors** can **edit** (never re-enters moderation) and **delete their own** posts.
-  Admins can **delete any** post (cascade).
-- **Comments & reactions:** **any authenticated user** may comment and react. Comments
-  **auto-publish** (no queue). One reaction per (user, post) (deterministic id
-  `${postId}_${userId}`).
-- **Reports:** **comments only** in v1. Resolving a report **hides** the comment (does
-  not delete it).
-- Privileged writes are callables (`moderateNewsPost`, `deleteNewsPost`,
-  `resolveNewsReport`, `setTrustedNewsAuthor`); counters are denormalized and **not
-  clamped** (may drift on partial failure — do not assume exact).
-
-See [docs/decisions/news-feed.md](decisions/news-feed.md).
+Las inscripciones desnormalizan el `name` del asistente y una marca `isMember`
+(miembro del pueblo del evento vs. visitante) para que las listas no necesiten una
+consulta de membresía por asistente.
 
 ---
 
-## 10. Reference data
+## 9. Noticias
 
-- **Municipalities** and the **occupations** list are **superadmin-managed**.
-- **Barrios** and **cemeteries** are managed by **each village's admin** (local
-  knowledge), under their municipality.
-- **Occupation proposals:** any user can **propose** a new occupation (stored as
-  *pending* on their Person). A **superadmin approves** it, which promotes it to a
-  canonical occupation and **migrates pending references** across Persons.
+- Viven en **colecciones de nivel superior** con ámbito por `municipalityId`:
+  `news/`, `newsComments/`, `newsReactions/`, `newsReports/`.
+- **Autoría:** **cualquier usuario autenticado** puede publicar en las noticias de
+  cualquier pueblo. Las publicaciones se crean como **`pending`** y las **revisan
+  los administradores del pueblo** (+ superadministrador), que aprueban o
+  rechazan. Un miembro marcado como `trustedNewsAuthor` para ese pueblo publica
+  **directamente como `approved`** (la confianza es por pueblo y desaparece con la
+  membresía; se establece solo con el callable `setTrustedNewsAuthor`).
+- **Lectura:** las publicaciones **`approved`** son **públicas** (incluido el
+  anónimo). Las publicaciones `pending`/ocultas solo son visibles para su autor,
+  los administradores del pueblo y los superadministradores.
+- Los **autores** pueden **editar** (no vuelve a moderación) y **eliminar sus
+  propias** publicaciones. Los administradores pueden **eliminar cualquier**
+  publicación (en cascada).
+- **Comentarios y reacciones:** **cualquier usuario autenticado** puede comentar y
+  reaccionar. Los comentarios **se publican automáticamente** (sin cola). Una
+  reacción por (usuario, publicación) (id determinista `${postId}_${userId}`).
+- **Reportes:** **solo comentarios** en v1. Resolver un reporte **oculta** el
+  comentario (no lo elimina).
+- Las escrituras privilegiadas son callables (`moderateNewsPost`,
+  `deleteNewsPost`, `resolveNewsReport`, `setTrustedNewsAuthor`); los contadores
+  están desnormalizados y **no acotados** (pueden desviarse ante un fallo parcial
+  — no asumir exactitud).
 
-### 10.1 Notifications
-
-In-app only (`users/{uid}/notifications`); **push is deferred**. Types:
-`join_request_created` / `_approved` / `_rejected`, `organizer_request_created` /
-`_approved` / `_rejected`, `event_cancelled`, `event_updated`, `waitlist_promoted`.
-
-### 10.2 Account deletion
-
-A user may delete their account. Handling is **hybrid**:
-
-- **Cascaded / removed:** their owned Persons (and those Persons' registrations),
-  village memberships (cancelling future registrations), events they **solely**
-  organize (cancelled), and they are **dropped from the organizer set** of
-  co-organized events.
-- **Preserved:** their **news posts and comments** are kept (author anonymized, e.g.
-  "Usuario eliminado") for community-record continuity.
-- **Reactions** by the deleted user are **removed** (decrementing post counters) —
-  they carry no content worth preserving.
+Ver [docs/decisions/news-feed.md](decisions/news-feed.md).
 
 ---
 
-## 11. Open questions
+## 10. Datos de referencia
 
-| # | Question | How it works **today** (for the discussion) |
+- Los **municipios** y la lista de **oficios** (*occupations*) los **gestiona el
+  superadministrador**.
+- Los **barrios** y **cementerios** los gestiona **el administrador de cada
+  pueblo** (conocimiento local), bajo su municipio.
+- **Propuestas de oficios:** cualquier usuario puede **proponer** un nuevo oficio
+  (almacenado como *pendiente* en su Persona). Un **superadministrador lo
+  aprueba**, lo que lo promueve a oficio canónico y **migra las referencias
+  pendientes** en las Personas.
+
+### 10.1 Notificaciones
+
+Solo dentro de la app (`users/{uid}/notifications`); **el push está diferido**.
+Tipos: `join_request_created` / `_approved` / `_rejected`,
+`organizer_request_created` / `_approved` / `_rejected`, `event_cancelled`,
+`event_updated`, `waitlist_promoted`.
+
+### 10.2 Eliminación de cuenta
+
+Un usuario puede eliminar su cuenta. El tratamiento es **híbrido**:
+
+- **En cascada / eliminado:** sus Personas (y las inscripciones de esas Personas),
+  sus membresías de pueblo (cancelando inscripciones futuras), los eventos que
+  organiza **en solitario** (se cancelan), y se le **quita del conjunto de
+  organizadores** de los eventos co-organizados.
+- **Conservado:** sus **publicaciones y comentarios de noticias** se conservan
+  (autor anonimizado, p. ej. «Usuario eliminado») por continuidad del registro de
+  la comunidad.
+- Las **reacciones** del usuario eliminado se **eliminan** (decrementando los
+  contadores de la publicación) — no tienen contenido que merezca conservarse.
+
+---
+
+## 11. Preguntas abiertas
+
+| # | Pregunta | Cómo funciona **hoy** (para el debate) |
 |---|---|---|
-| OQ-1 | Must an **org member also be a member of that org's village**? | Not enforced either way. Lean: being added to an org **auto-creates** village membership if absent. **Pending cofounder discussion.** |
-| OQ-2 | **Oficios (occupations) — what should the predefined list be, and what's the policy for adding/approving new ones?** | A canonical list lives at top-level `occupations/` (superadmin-managed: `createOccupation`/`updateOccupation`/`deleteOccupation`). Any user can **propose** a new oficio (`proposeOccupation` → `occupationProposals/{id}` with `status: 'pending'`); a superadmin reviews it (`reviewProposal`), and on approval the `onOccupationProposalApproved` Cloud Function promotes it to a canonical `occupations/` doc and migrates the pending references on Persons. **Open:** which oficios to seed, and who reviews/with what criteria. |
-| OQ-3 | **News categories — which categories should exist?** | Fixed enum today: `fiesta`, `tradicion`, `gastronomia`, `historia`, `otro` (`NEWS_POST_CATEGORIES` in `NewsPostDataModel.ts`, mirrored in `firestore.rules`). Every post must pick exactly one. **Open:** is this the right set (add/rename/remove)? |
-| OQ-4 | **Organization types — which types can exist in a village?** | Fixed enum today: `ayuntamiento` (singleton), `peña`, `asociación` (`OrganizationTypeSchema`). **Open:** are these the right types (e.g. add `cofradía`, `club deportivo`, `comisión de fiestas`…)? Adding a type touches the enum, the rules validator, and any type-specific cardinality. |
+| OQ-1 | ¿Debe un **miembro de organización ser también miembro del pueblo de esa organización**? | No se exige en ningún sentido. Inclinación: al añadir a alguien a una organización se **crea automáticamente** la membresía del pueblo si no la tiene. **Pendiente de debate con los cofundadores.** |
+| OQ-2 | **Oficios (*occupations*) — ¿cuál debería ser la lista predefinida y cuál la política para añadir/aprobar nuevos?** | Existe una lista canónica en el nivel superior `occupations/` (gestionada por el superadministrador: `createOccupation`/`updateOccupation`/`deleteOccupation`). Cualquier usuario puede **proponer** un oficio nuevo (`proposeOccupation` → `occupationProposals/{id}` con `status: 'pending'`); un superadministrador lo revisa (`reviewProposal`), y al aprobarlo la Cloud Function `onOccupationProposalApproved` lo promueve a un documento canónico en `occupations/` y migra las referencias pendientes en las Personas. **Abierto:** qué oficios precargar y quién revisa / con qué criterios. |
+| OQ-3 | **Categorías de noticias — ¿qué categorías deberían existir?** | Enum fijo hoy: `fiesta`, `tradicion`, `gastronomia`, `historia`, `otro` (`NEWS_POST_CATEGORIES` en `NewsPostDataModel.ts`, replicado en `firestore.rules`). Cada publicación debe elegir exactamente una. **Abierto:** ¿es el conjunto correcto (añadir/renombrar/eliminar)? |
+| OQ-4 | **Tipos de organización — ¿qué tipos pueden existir en un pueblo?** | Enum fijo hoy: `ayuntamiento` (único), `peña`, `asociación` (`OrganizationTypeSchema`). **Abierto:** ¿son los tipos correctos (p. ej. añadir `cofradía`, `club deportivo`, `comisión de fiestas`…)? Añadir un tipo afecta al enum, al validador de reglas y a cualquier cardinalidad específica del tipo. |
 
 ---
 
-## 12. Deferred (handled on other branches)
+## 12. Diferido (en otras ramas)
 
-- **Invite tokens** — generation, single/multi-use, expiry, max-uses, revocation.
-  Being designed on a parallel branch.
-- **Community deactivation / archival** — whether and how an active community can be
-  turned off. Being designed on a parallel branch. *(Activation itself is settled: a
-  community becomes active when an organizer request is approved and a village
-  organizer exists.)*
+- **Tokens de invitación** — generación, uso único/múltiple, caducidad, máximo de
+  usos, revocación. En diseño en una rama paralela.
+- **Desactivación / archivado de comunidad** — si una comunidad activa puede
+  desactivarse y cómo. En diseño en una rama paralela. *(La activación en sí está
+  decidida: una comunidad se activa cuando se aprueba una solicitud de organizador
+  y existe un organizador del pueblo.)*
 
 ---
 
-## 13. Known code discrepancies to reconcile
+## 13. Discrepancias conocidas a reconciliar
 
-These rules are **authoritative**. This table tracks where the code agrees,
-diverges, or has a known gap.
+Estas reglas son **autoritativas**. Esta tabla registra dónde el código coincide,
+diverge o tiene una carencia conocida (reglas vs. código).
 
-| Rule | Status | Notes |
+| Regla | Estado | Notas |
 |---|---|---|
-| **No price/payment** (§7.1) | ✅ Reconciled | `price` removed from `EventData`, the form schema, `firestore.rules`, seed fixtures, and tests. The generic `formatPrice` locale util is kept (it is event-agnostic and documented in AGENTS.md). |
-| **Village = municipality + community** (§1) | ✅ Reconciled (docs) | The data model is already municipality-canonical (`municipalityId` / `municipalityName` / `municipalityCoverImage` / `municipalityCoordinates`, `activeMunicipalityId`). Stale field names in the decision docs were corrected. The remaining `villages/` references are **Cloud Storage paths** and **mobile route-param folder names**, where "village/pueblo" is the intended colloquial term — left as-is (renaming Storage paths would orphan already-uploaded images). |
-| **Organizers are a set** of users + orgs (§7.2) | ⏳ Planned | Code still stores a single `organizationId` / `organizationName` / `createdBy`. This is a large, security-sensitive change — Firestore rules cannot express "a member of *any* co-organizing org may edit" by array iteration, so it needs a callable-mediated or denormalized approach. Plan: [event-co-organizers](plans/ready/event-co-organizers.md). |
-| **Ayuntamiento uniqueness** (§6) | ✅ Reconciled | Enforced by the `requestAyuntamiento` callable (a transaction rejects a second pending/approved ayuntamiento). `firestore.rules` denies client-side `type == 'ayuntamiento'` creates; `peña` / `asociación` remain client creates. |
+| **Sin precio/pago** (§7.1) | ✅ Conciliado | `price` eliminado de `EventData`, el esquema del formulario, `firestore.rules`, los fixtures de seed y los tests. Se conserva la utilidad genérica de formato `formatPrice` (es agnóstica al evento y está documentada en AGENTS.md). |
+| **Pueblo = municipio + comunidad** (§1) | ✅ Conciliado (docs) | El modelo de datos ya es canónico de municipio (`municipalityId` / `municipalityName` / `municipalityCoverImage` / `municipalityCoordinates`, `activeMunicipalityId`). Se corrigieron los nombres de campo obsoletos en los docs de decisión. Las referencias `villages/` restantes son **rutas de Cloud Storage** y **nombres de carpeta de parámetros de ruta en móvil**, donde «village/pueblo» es el término coloquial pretendido — se dejan tal cual (renombrar las rutas de Storage huérfanaría imágenes ya subidas). |
+| **Organizadores como conjunto** de usuarios + organizaciones (§7.2) | ⏳ Planificado | El código aún almacena un único `organizationId` / `organizationName` / `createdBy`. Es un cambio grande y sensible a la seguridad — las reglas de Firestore no pueden expresar «un miembro de *cualquier* organización co-organizadora puede editar» mediante iteración de arrays, así que requiere un enfoque mediante callable o desnormalizado. Plan: [event-co-organizers](plans/ready/event-co-organizers.md). |
+| **Unicidad de ayuntamiento** (§6) | ✅ Conciliado | Aplicado por el callable `requestAyuntamiento` (una transacción rechaza un segundo ayuntamiento pendiente/aprobado). `firestore.rules` deniega las creaciones de `type == 'ayuntamiento'` desde el cliente; `peña` / `asociación` siguen creándose desde el cliente. |
