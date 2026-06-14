@@ -12,6 +12,8 @@ const db = getFirestore();
 
 interface RequestOrganizeVillageData {
   municipalityId?: string;
+  description?: string;
+  coverImages?: string[];
   motivation?: string | null;
 }
 
@@ -30,10 +32,15 @@ export const requestOrganizeVillage = onCall<
     const auth = request.auth;
     if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
-    const { municipalityId, motivation } = request.data;
+    const { municipalityId, description, coverImages, motivation } = request.data;
     if (!municipalityId) {
       throw new HttpsError('invalid-argument', 'municipalityId requerido.');
     }
+    const trimmedDescription = (description ?? '').trim();
+    if (!trimmedDescription) {
+      throw new HttpsError('invalid-argument', 'La descripción es obligatoria.');
+    }
+    const coverImageUrls = Array.isArray(coverImages) ? coverImages : [];
 
     const uid = auth.uid;
     const muniSnap = await municipalityDoc(db, municipalityId).get();
@@ -63,6 +70,8 @@ export const requestOrganizeVillage = onCall<
       municipalityId,
       requestedAt: new Date(),
       status: 'pending',
+      description: trimmedDescription,
+      coverImages: coverImageUrls,
       motivation: motivation ?? null,
       reviewedAt: null,
       reviewedBy: null,

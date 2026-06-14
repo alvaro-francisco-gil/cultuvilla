@@ -57,6 +57,19 @@ export async function uploadMunicipalityImage(
   );
 }
 
+// Village cover image. Storage path `villages/{municipalityId}/images/{id}` is
+// writable by any authenticated user (storage.rules), so an organizer requester
+// can upload covers before being granted admin. Returns the download URL.
+export async function uploadVillageCoverImage(
+  municipalityId: string,
+  image: UploadableImage,
+): Promise<string> {
+  return uploadToPath(
+    `villages/${municipalityId}/images/${generateImageId(image.filename)}`,
+    image,
+  );
+}
+
 export async function uploadPersonImage(
   personId: string,
   image: UploadableImage,

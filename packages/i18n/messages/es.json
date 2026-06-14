@@ -57,21 +57,10 @@
     "title": "Administración",
     "profileEntry": "Administración",
     "hub": {
-      "activateVillage": "Activar pueblo",
-      "activateVillageHint": "Crear una comunidad en un municipio",
       "organizerRequests": "Solicitudes de organizador",
       "organizerRequestsHint": "Revisar pendientes",
       "occupations": "Ocupaciones",
       "occupationsHint": "Aprobadas y propuestas"
-    },
-    "activate": {
-      "title": "Activar pueblo",
-      "pickMunicipality": "Elige un municipio",
-      "searchPlaceholder": "Buscar municipio…",
-      "description": "Descripción",
-      "submit": "Activar",
-      "success": "Pueblo activado",
-      "alreadyActive": "Este municipio ya tiene comunidad"
     },
     "organizerRequests": {
       "title": "Solicitudes de organizador",
@@ -450,6 +439,10 @@
     },
     "organizer": {
       "title": "Solicitar ser organizador",
+      "descriptionLabel": "Descripción del pueblo",
+      "descriptionPlaceholder": "Cuenta algo sobre tu pueblo…",
+      "coversLabel": "Imágenes de portada (opcional)",
+      "addCover": "Añadir imagen",
       "motivationLabel": "¿Por qué quieres organizar este pueblo?",
       "submit": "Enviar solicitud",
       "submitted": "Solicitud enviada"
