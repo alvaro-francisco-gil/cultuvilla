@@ -9,8 +9,10 @@ export type OrganizationStatus = z.infer<typeof OrganizationStatusSchema>;
 export const OrganizationDataSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
-  /** Public download URL for the organization's picture. `null` when unset. */
-  imageURL: z.string().nullable(),
+  /** Public download URL for the organization's picture. `null` when unset.
+   * `.default(null)` keeps pre-imageURL docs readable through the strict
+   * converter (missing key → null). */
+  imageURL: z.string().nullable().default(null),
   type: OrganizationTypeSchema,
   status: OrganizationStatusSchema,
   municipalityId: z.string(),

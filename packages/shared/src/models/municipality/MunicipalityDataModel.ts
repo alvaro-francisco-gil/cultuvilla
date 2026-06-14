@@ -144,8 +144,10 @@ export function buildVillageCommunity(input: ActivateCommunityInput): VillageCom
 export const BarrioDataSchema = z.object({
   name: z.string(),
   municipalityId: z.string(),
-  /** Public download URL for the barrio's picture. `null` when unset. */
-  imageURL: z.string().nullable(),
+  /** Public download URL for the barrio's picture. `null` when unset.
+   * `.default(null)` keeps pre-imageURL docs readable through the strict
+   * converter (missing key → null). */
+  imageURL: z.string().nullable().default(null),
   createdAt: z.date(),
 });
 export type BarrioData = z.infer<typeof BarrioDataSchema>;
@@ -186,8 +188,10 @@ export const PlaceDataSchema = z.object({
   kind: PlaceKindSchema,
   description: z.string().nullable(),
   municipalityId: z.string(),
-  /** Public download URL for the place's picture. `null` when unset. */
-  imageURL: z.string().nullable(),
+  /** Public download URL for the place's picture. `null` when unset.
+   * `.default(null)` keeps pre-imageURL docs readable through the strict
+   * converter (missing key → null). */
+  imageURL: z.string().nullable().default(null),
   createdAt: z.date(),
 });
 export type PlaceData = z.infer<typeof PlaceDataSchema>;

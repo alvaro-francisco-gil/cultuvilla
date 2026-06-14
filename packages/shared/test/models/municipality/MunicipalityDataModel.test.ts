@@ -154,6 +154,12 @@ describe('BarrioDataSchema and buildBarrioData', () => {
     expect(b.imageURL).toBe('https://x/b.png');
     expect(() => BarrioDataSchema.parse(b)).not.toThrow();
   });
+
+  // Backward compat: legacy barrio docs predate imageURL — must still read.
+  it('reads a legacy doc without imageURL (defaults to null)', () => {
+    const parsed = BarrioDataSchema.parse({ name: 'X', municipalityId: 'm1', createdAt: new Date() });
+    expect(parsed.imageURL).toBeNull();
+  });
 });
 
 describe('PlaceDataSchema and buildPlaceData', () => {
@@ -182,5 +188,17 @@ describe('PlaceDataSchema and buildPlaceData', () => {
         createdAt: new Date(),
       }),
     ).toThrow();
+  });
+
+  // Backward compat: legacy place docs predate imageURL — must still read.
+  it('reads a legacy doc without imageURL (defaults to null)', () => {
+    const parsed = PlaceDataSchema.parse({
+      name: 'X',
+      kind: 'cemetery',
+      description: null,
+      municipalityId: 'm1',
+      createdAt: new Date(),
+    });
+    expect(parsed.imageURL).toBeNull();
   });
 });
