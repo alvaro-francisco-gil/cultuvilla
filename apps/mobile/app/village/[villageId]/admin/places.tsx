@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, View, Alert } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { Screen, VStack, HStack, Text, Button, Input, Pressable } from '../../../../components/primitives';
+import { Screen, VStack, HStack, Text, Button, Input, Pressable, Avatar } from '../../../../components/primitives';
 import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
 import { useT } from '../../../../lib/i18n';
+import { pickImageAsBlob } from '../../../../lib/images';
 import {
   getPlaces,
   createPlace,
   updatePlace,
   deletePlace,
 } from '@cultuvilla/shared/services/municipalityService';
+import { uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
+import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 import type { PlaceData, PlaceKind } from '@cultuvilla/shared/models/municipality';
 
 type Row = PlaceData & { id: string };
@@ -23,6 +26,7 @@ export default function PlacesScreen() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [kind, setKind] = useState<PlaceKind>('cemetery');
+  const [image, setImage] = useState<UploadableImage | null>(null);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -44,15 +48,20 @@ export default function PlacesScreen() {
     if (!villageId || !name.trim()) return;
     setSaving(true);
     try {
-      await createPlace(villageId, {
+      const id = await createPlace(villageId, {
         name: name.trim(),
         kind,
         description: description.trim(),
         municipalityId: villageId,
       });
+      if (image) {
+        const imageURL = await uploadPlaceImage(villageId, id, image);
+        await updatePlace(villageId, id, { imageURL });
+      }
       setName('');
       setDescription('');
       setKind('cemetery');
+      setImage(null);
       await load();
     } finally {
       setSaving(false);
@@ -124,6 +133,20 @@ export default function PlacesScreen() {
             multiline
           />
           <KindPicker value={kind} onChange={setKind} />
+          <HStack gap={2} className="items-center">
+            <Pressable
+              onPress={async () => {
+                const picked = await pickImageAsBlob();
+                if (picked) setImage(picked);
+              }}
+              accessibilityLabel={image ? t('village.admin.places.changeImage') : t('village.admin.places.addImage')}
+            >
+              <Avatar size={48} initials={image ? '✓' : '+'} />
+            </Pressable>
+            <Text tone="muted" variant="bodySm">
+              {image ? t('village.admin.places.imageSelected') : t('village.admin.places.addImage')}
+            </Text>
+          </HStack>
           <Button onPress={add} loading={saving} disabled={!name.trim()}>
             {t('village.admin.places.add')}
           </Button>
@@ -144,7 +167,8 @@ export default function PlacesScreen() {
                   </HStack>
                 </VStack>
               ) : (
-                <HStack gap={2}>
+                <HStack gap={2} className="items-center">
+                  <Avatar uri={item.imageURL} size={40} initials={item.name.slice(0, 1)} />
                   <View className="flex-1">
                     <Text>{item.name}</Text>
                     <Text className="text-muted text-sm">{kindLabel(item.kind)}</Text>

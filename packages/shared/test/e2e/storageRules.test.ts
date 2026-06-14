@@ -68,3 +68,32 @@ describe('storage.rules — /municipalities/{municipalityId}/images/{imageId}', 
     );
   });
 });
+
+describe('storage.rules — org / place / barrio images', () => {
+  const paths = {
+    organization: 'organizations/o1/image/cover.png',
+    place: 'municipalities/m1/places/p1/image/cover.png',
+    barrio: 'municipalities/m1/barrios/b1/image/cover.png',
+  };
+
+  for (const [label, path] of Object.entries(paths)) {
+    it(`an authenticated user can upload a ${label} image`, async () => {
+      const alice = env.authenticatedContext('alice').storage() as unknown as FirebaseStorage;
+      await assertSucceeds(uploadBytes(ref(alice, path), PNG, { contentType: 'image/png' }));
+    });
+
+    it(`an unauthenticated user cannot upload a ${label} image`, async () => {
+      const anon = env.unauthenticatedContext().storage() as unknown as FirebaseStorage;
+      await assertFails(uploadBytes(ref(anon, path), PNG, { contentType: 'image/png' }));
+    });
+
+    it(`a non-image ${label} upload is rejected`, async () => {
+      const alice = env.authenticatedContext('alice').storage() as unknown as FirebaseStorage;
+      await assertFails(
+        uploadBytes(ref(alice, path.replace('cover.png', 'notes.txt')), PNG, {
+          contentType: 'text/plain',
+        }),
+      );
+    });
+  }
+});

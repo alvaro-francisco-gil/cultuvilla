@@ -107,6 +107,8 @@ export function buildVillageCommunity(input: ActivateCommunityInput): VillageCom
 export const BarrioDataSchema = z.object({
   name: z.string(),
   municipalityId: z.string(),
+  /** Public download URL for the barrio's picture. `null` when unset. */
+  imageURL: z.string().nullable(),
   createdAt: z.date(),
 });
 export type BarrioData = z.infer<typeof BarrioDataSchema>;
@@ -114,10 +116,16 @@ export type BarrioData = z.infer<typeof BarrioDataSchema>;
 export interface BarrioDataInput {
   name: string;
   municipalityId: string;
+  imageURL?: string | null;
 }
 
 export function buildBarrioData(input: BarrioDataInput): BarrioData {
-  return { ...input, createdAt: new Date() };
+  return {
+    name: input.name,
+    municipalityId: input.municipalityId,
+    imageURL: input.imageURL ?? null,
+    createdAt: new Date(),
+  };
 }
 
 // ── Places (subcollection: /municipalities/{id}/places/{placeId}) ────────
@@ -141,6 +149,8 @@ export const PlaceDataSchema = z.object({
   kind: PlaceKindSchema,
   description: z.string().nullable(),
   municipalityId: z.string(),
+  /** Public download URL for the place's picture. `null` when unset. */
+  imageURL: z.string().nullable(),
   createdAt: z.date(),
 });
 export type PlaceData = z.infer<typeof PlaceDataSchema>;
@@ -150,6 +160,7 @@ export interface PlaceDataInput {
   kind: PlaceKind;
   municipalityId: string;
   description?: string | null;
+  imageURL?: string | null;
 }
 
 export function buildPlaceData(input: PlaceDataInput): PlaceData {
@@ -158,6 +169,7 @@ export function buildPlaceData(input: PlaceDataInput): PlaceData {
     kind: input.kind,
     municipalityId: input.municipalityId,
     description: input.description ?? null,
+    imageURL: input.imageURL ?? null,
     createdAt: new Date(),
   };
 }

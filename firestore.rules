@@ -244,15 +244,16 @@ service cloud.firestore {
 
     function isValidOrganizationCreate(d) {
       return d.keys().hasOnly([
-              'name', 'description', 'type', 'status', 'municipalityId',
+              'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
               'requestedBy', 'approvedBy', 'createdAt', 'decidedAt',
             ])
           && d.keys().hasAll([
-              'name', 'description', 'type', 'status', 'municipalityId',
+              'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
               'requestedBy', 'approvedBy', 'createdAt', 'decidedAt',
             ])
           && isString(d.name)
           && isStringOrNull(d.description)
+          && isStringOrNull(d.imageURL)
           && d.type in ['ayuntamiento', 'peña', 'asociación']
           && d.status in ['pending', 'approved', 'rejected']
           && isString(d.municipalityId)

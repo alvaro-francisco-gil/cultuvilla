@@ -7,6 +7,7 @@ import {
 const validOrg = {
   name: 'Peña X',
   description: null,
+  imageURL: null,
   type: 'peña' as const,
   status: 'pending' as const,
   municipalityId: 'm-1',
@@ -43,6 +44,7 @@ describe('buildOrganizationData', () => {
     expect(o.municipalityId).toBe('v1');
     expect(o.status).toBe('pending');
     expect(o.description).toBeNull();
+    expect(o.imageURL).toBeNull();
     expect(o.approvedBy).toBeNull();
     expect(o.decidedAt).toBeNull();
     expect(o.createdAt).toBeInstanceOf(Date);

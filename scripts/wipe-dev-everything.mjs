@@ -13,6 +13,7 @@
  *   pnpm seed:municipalities                      # re-creates the 6k INE docs
  *   # optional, if you still have local escudo files:
  *   pnpm escudos:upload                           # rehydrates escudoUrl
+ *   DATASET=demo_1 pnpm seed:dev                  # showcase villages (orgs/places/events/news)
  *   DATASET=real_user_data_1 pnpm seed:dev        # creates cultuvilla + Álvaro
  *   DATASET=real_villages_1 pnpm seed:villages    # activates Matabuena
  *
@@ -123,7 +124,8 @@ function previewPlan() {
   await wipeStorage();
   console.log(`[wipe] DONE. Recovery:`);
   console.log(`[wipe]   pnpm seed:municipalities`);
-  console.log(`[wipe]   DATASET=real_user_data_1 pnpm seed:dev`);
+  console.log(`[wipe]   DATASET=demo_1 pnpm seed:dev                 # showcase villages`);
+  console.log(`[wipe]   DATASET=real_user_data_1 pnpm seed:dev       # optional`);
   console.log(`[wipe]   DATASET=real_villages_1 pnpm seed:villages   # optional`);
 })().catch((err) => {
   console.error('[wipe] fatal:', err);

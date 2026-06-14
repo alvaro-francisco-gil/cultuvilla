@@ -335,6 +335,7 @@ export default function VillageTabScreen() {
               key={b.id}
               label={b.name}
               icon="map-outline"
+              imageUri={b.imageURL}
               onPress={canManage ? () => router.push(`${base}/barrios` as never) : undefined}
             />
           ))}
@@ -355,6 +356,7 @@ export default function VillageTabScreen() {
               label={p.name}
               sub={t(`village.admin.places.kind.${p.kind}`)}
               icon="location-outline"
+              imageUri={p.imageURL}
               onPress={canManage ? () => router.push(`${base}/places` as never) : undefined}
             />
           ))}
@@ -375,6 +377,7 @@ export default function VillageTabScreen() {
               label={o.name}
               sub={canManage ? o.status : undefined}
               icon="business-outline"
+              imageUri={o.imageURL}
               onPress={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
             />
           ))}

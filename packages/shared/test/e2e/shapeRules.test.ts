@@ -308,6 +308,7 @@ describe('shape enforcement — /organizations/{orgId}', () => {
   const validOrg = {
     name: 'Peña X',
     description: null,
+    imageURL: null,
     type: 'peña' as const,
     status: 'pending' as const,
     municipalityId: 'm1',
@@ -321,6 +322,14 @@ describe('shape enforcement — /organizations/{orgId}', () => {
     await seedMember('m1', 'alice');
     const alice = env.authenticatedContext('alice').firestore();
     await assertSucceeds(setDoc(doc(alice, 'organizations/o1'), validOrg));
+  });
+
+  it('accepts an imageURL string', async () => {
+    await seedMember('m1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(
+      setDoc(doc(alice, 'organizations/o1'), { ...validOrg, imageURL: 'https://x/o.png' }),
+    );
   });
 
   it('rejects an unknown field', async () => {

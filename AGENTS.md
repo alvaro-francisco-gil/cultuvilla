@@ -174,14 +174,18 @@ Pre-commit (Husky + lint-staged) currently only formats `*.{json,md,yml,yaml}`; 
 
 ### Dev seed data
 
-`pnpm seed:dev` populates the dev Firestore (`villa-events`) with a named dataset from [scripts/data/seed-fixtures/](scripts/data/seed-fixtures/). Each dataset folder is `<name>/fixtures.mjs` plus an `images/` folder whose files get uploaded to Cloud Storage and wired into the seeded docs.
+`pnpm seed:dev` populates the dev Firestore (`villa-events`) with a named dataset from [scripts/data/seed-fixtures/](scripts/data/seed-fixtures/). Each dataset folder is `<name>/fixtures.mjs`, an optional `images.manifest.mjs`, and an `images/` folder whose files get uploaded to Cloud Storage and wired into the seeded docs. The seeders live under [scripts/seed/](scripts/seed/) — one per domain, sharing [scripts/seed/lib/](scripts/seed/lib/); [scripts/seed/all.mjs](scripts/seed/all.mjs) is the orchestrator.
 
 ```bash
-DATASET=real_user_data_1 pnpm seed:dev          # seed
-DATASET=real_user_data_1 pnpm seed:dev:wipe     # remove just that dataset
+DATASET=demo_1 pnpm seed:dev          # seed everything (users → villages → orgs → places → events → news)
+DATASET=demo_1 pnpm seed:dev:wipe     # remove just that dataset (reverse order)
 ```
 
-`DATASET` defaults to `random_data_1` (legacy throwaway data). Requires `GOOGLE_APPLICATION_CREDENTIALS` (same key as the escudos uploader). See `firebase-admin-dev` skill.
+`DATASET` defaults to `demo_1` (the showcase dataset). Requires `GOOGLE_APPLICATION_CREDENTIALS` (same key as the escudos uploader). See `firebase-admin-dev` skill.
+
+Each domain also runs à la carte (resolves its dependencies by email / deterministic ID), e.g. `pnpm seed:dev:news` or `pnpm seed:dev:events:wipe`. Available: `users`, `villages`, `orgs`, `places`, `events`, `news`.
+
+Images are **pre-downloaded once, not fetched at seed time**. `DATASET=demo_1 pnpm seed:images` reads `images.manifest.mjs` and downloads each entry (Lorem Picsum by default) into the dataset's `images/`, resized with sharp; commit the results. Image-capable entities: user/persona photo, village `coverImages` + escudo, event `imageURL`, news `images[]`. Orgs, places and barrios have no image field.
 
 To activate real villages via the **actual organizer-request → admin-approval flow** (rather than direct seeding), use the sibling script:
 

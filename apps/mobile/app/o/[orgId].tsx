@@ -5,6 +5,7 @@ import { AppHeader } from '../../components/layout/AppHeader';
 import { Screen } from '../../components/primitives/Screen';
 import { Text } from '../../components/primitives/Text';
 import { VStack } from '../../components/primitives/VStack';
+import { Avatar } from '../../components/primitives/Avatar';
 import { useT } from '../../lib/i18n';
 import { useAuth } from '../../lib/auth/useAuth';
 import { getOrganization } from '@cultuvilla/shared/services/organizationService';
@@ -63,6 +64,11 @@ export default function OrgDetailStub() {
         {!loading && !org ? <Text>{t('common.notFound')}</Text> : null}
         {org ? (
           <>
+            {org.imageURL ? (
+              <VStack className="items-center pb-1">
+                <Avatar uri={org.imageURL} size={96} />
+              </VStack>
+            ) : null}
             {org.description ? <Text>{org.description}</Text> : null}
             <Text tone="muted">
               {t('organization.membersCount', { count: membersCount ?? 0 })}

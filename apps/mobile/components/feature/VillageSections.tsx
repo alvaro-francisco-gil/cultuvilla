@@ -119,16 +119,22 @@ export function EntityCard({
   label,
   sub,
   icon,
+  imageUri,
   onPress,
 }: {
   label: string;
   sub?: string;
   icon: keyof typeof Ionicons.glyphMap;
+  imageUri?: string | null;
   onPress?: () => void;
 }) {
   const body = (
     <>
-      <Ionicons name={icon} size={28} color={ACCENT} />
+      {imageUri ? (
+        <Avatar uri={imageUri} size={48} />
+      ) : (
+        <Ionicons name={icon} size={28} color={ACCENT} />
+      )}
       <Text variant="bodySm" className="mt-3 font-medium" numberOfLines={2}>
         {label}
       </Text>

@@ -51,7 +51,7 @@ const auth = admin.auth();
 const { GeoPoint } = admin.firestore;
 ```
 
-Refuse to run against `cultuvilla-beta` / `cultuvilla-prod` from a Node script without explicit user insistence; those are CI-deploy targets, not ad-hoc-script targets. Mirror the guard from [scripts/seed-dev-fixtures.mjs](../../../scripts/seed-dev-fixtures.mjs):
+Refuse to run against `cultuvilla-beta` / `cultuvilla-prod` from a Node script without explicit user insistence; those are CI-deploy targets, not ad-hoc-script targets. Mirror the guard from [scripts/seed/lib/context.mjs](../../../scripts/seed/lib/context.mjs):
 
 ```js
 if (projectId !== 'villa-events') {
@@ -75,7 +75,7 @@ Two import paths:
   ```
   Always `pnpm shared:build` first so `dist/` is current — wire that into the pnpm script:
   ```json
-  "seed:dev": "pnpm shared:build && node scripts/seed-dev-fixtures.mjs"
+  "seed:dev": "pnpm shared:build && node scripts/seed/all.mjs"
   ```
 
 The builders are pure (TS elides the `firebase/firestore` type-only imports at compile time) so they have zero runtime dependencies in Node.
@@ -146,14 +146,16 @@ For ancillary docs that depend on UID (`admins/{uid}`, `users/{uid}`, `municipal
 
 | pnpm script | What it does |
 |---|---|
-| `pnpm seed:dev` | Builds `@cultuvilla/shared`, then seeds dev fixtures. Requires `GOOGLE_APPLICATION_CREDENTIALS`. |
-| `pnpm seed:dev:wipe` | Removes seed-tagged docs (ID-enumerated). Also deletes throwaway Auth user. |
+| `pnpm seed:dev` | Builds `@cultuvilla/shared`, then runs the orchestrator ([scripts/seed/all.mjs](../../../scripts/seed/all.mjs)) — seeds all domains. Requires `GOOGLE_APPLICATION_CREDENTIALS`. |
+| `pnpm seed:dev:wipe` | Removes seed-tagged docs (ID-enumerated) in reverse order. Also deletes throwaway Auth users. |
+| `pnpm seed:dev:<domain>` | À-la-carte seeder (`users`/`villages`/`orgs`/`places`/`events`/`news`), `:wipe` variants too. |
+| `pnpm seed:images` | One-time, network: downloads `images.manifest.mjs` entries into the dataset's `images/` (commit them). Not run at seed time. |
 | `pnpm seed:municipalities` | INE municipalities reference data. Separate concern from dev fixtures. |
 
 When adding a **new** one-off script:
 
 1. Put it under `scripts/`.
-2. Mirror the project guard, deterministic IDs, `seedBatch` tag, and ID-based wipe pattern from [scripts/seed-dev-fixtures.mjs](../../../scripts/seed-dev-fixtures.mjs).
+2. Mirror the project guard, deterministic IDs, `seedBatch` tag, and ID-based wipe pattern from the shared lib at [scripts/seed/lib/](../../../scripts/seed/lib/) (or [scripts/seed/news.mjs](../../../scripts/seed/news.mjs) for a per-domain example).
 3. Add a pnpm alias in root `package.json`.
 4. Document it in the script's own header comment.
 

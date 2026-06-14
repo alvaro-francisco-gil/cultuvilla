@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, View, Alert } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { Screen, VStack, HStack, Text, Button, Input, Pressable } from '../../../../components/primitives';
+import { Screen, VStack, HStack, Text, Button, Input, Pressable, Avatar } from '../../../../components/primitives';
 import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
 import { useT } from '../../../../lib/i18n';
+import { pickImageAsBlob } from '../../../../lib/images';
 import {
   getBarrios,
   createBarrio,
   updateBarrio,
   deleteBarrio,
 } from '@cultuvilla/shared/services/municipalityService';
+import { uploadBarrioImage } from '@cultuvilla/shared/services/imageService';
+import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 import type { BarrioData } from '@cultuvilla/shared/models/municipality';
 
 type Row = BarrioData & { id: string };
@@ -19,6 +22,7 @@ export default function BarriosScreen() {
   const { t } = useT();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [name, setName] = useState('');
+  const [image, setImage] = useState<UploadableImage | null>(null);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -36,8 +40,13 @@ export default function BarriosScreen() {
     if (!villageId || !name.trim()) return;
     setSaving(true);
     try {
-      await createBarrio(villageId, { name: name.trim(), municipalityId: villageId });
+      const id = await createBarrio(villageId, { name: name.trim(), municipalityId: villageId });
+      if (image) {
+        const imageURL = await uploadBarrioImage(villageId, id, image);
+        await updateBarrio(villageId, id, { imageURL });
+      }
       setName('');
+      setImage(null);
       await load();
     } finally {
       setSaving(false);
@@ -77,7 +86,16 @@ export default function BarriosScreen() {
     <Screen padded={false}>
       <ScreenHeader title={t('village.admin.barrios.title')} />
       <VStack gap={3} className="p-4">
-        <HStack gap={2}>
+        <HStack gap={2} className="items-center">
+          <Pressable
+            onPress={async () => {
+              const picked = await pickImageAsBlob();
+              if (picked) setImage(picked);
+            }}
+            accessibilityLabel={image ? t('village.admin.barrios.changeImage') : t('village.admin.barrios.addImage')}
+          >
+            <Avatar size={48} initials={image ? '✓' : '+'} />
+          </Pressable>
           <View className="flex-1">
             <Input
               value={name}
@@ -89,6 +107,11 @@ export default function BarriosScreen() {
             {t('village.admin.barrios.add')}
           </Button>
         </HStack>
+        {image ? (
+          <Text tone="muted" variant="bodySm">
+            {t('village.admin.barrios.imageSelected')}
+          </Text>
+        ) : null}
         <FlatList
           data={rows ?? []}
           keyExtractor={(r) => r.id}
@@ -107,7 +130,8 @@ export default function BarriosScreen() {
                   </Button>
                 </HStack>
               ) : (
-                <HStack gap={2}>
+                <HStack gap={2} className="items-center">
+                  <Avatar uri={item.imageURL} size={40} initials={item.name.slice(0, 1)} />
                   <Text className="flex-1">{item.name}</Text>
                   <Pressable onPress={() => { setEditingId(item.id); setEditName(item.name); }}>
                     <Text className="text-blue-600">{t('common.edit')}</Text>

@@ -4,6 +4,8 @@ import { useLocalSearchParams } from 'expo-router';
 import { Screen } from '../../../components/primitives/Screen';
 import { Text } from '../../../components/primitives/Text';
 import { Card } from '../../../components/primitives/Card';
+import { Avatar } from '../../../components/primitives/Avatar';
+import { HStack } from '../../../components/primitives/HStack';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { useT } from '../../../lib/i18n';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
@@ -43,12 +45,17 @@ export default function VillageOrganizations() {
           ListEmptyComponent={<Text tone="muted">{t('village.organizationsList.empty')}</Text>}
           renderItem={({ item }) => (
             <Card>
-              <Text variant="h3">{item.name}</Text>
-              {item.description ? (
-                <Text tone="muted" className="mt-1">
-                  {item.description}
-                </Text>
-              ) : null}
+              <HStack className="gap-3 items-center">
+                <Avatar uri={item.imageURL} size={48} initials={item.name.slice(0, 1)} />
+                <View className="flex-1">
+                  <Text variant="h3">{item.name}</Text>
+                  {item.description ? (
+                    <Text tone="muted" className="mt-1">
+                      {item.description}
+                    </Text>
+                  ) : null}
+                </View>
+              </HStack>
             </Card>
           )}
         />

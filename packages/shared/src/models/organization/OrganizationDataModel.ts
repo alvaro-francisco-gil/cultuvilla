@@ -9,6 +9,8 @@ export type OrganizationStatus = z.infer<typeof OrganizationStatusSchema>;
 export const OrganizationDataSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
+  /** Public download URL for the organization's picture. `null` when unset. */
+  imageURL: z.string().nullable(),
   type: OrganizationTypeSchema,
   status: OrganizationStatusSchema,
   municipalityId: z.string(),
@@ -22,6 +24,7 @@ export type OrganizationData = z.infer<typeof OrganizationDataSchema>;
 export interface OrganizationDataInput {
   name: string;
   description?: string | null;
+  imageURL?: string | null;
   type: OrganizationType;
   status?: OrganizationStatus;
   municipalityId: string;
@@ -35,6 +38,7 @@ export function buildOrganizationData(input: OrganizationDataInput): Organizatio
   return {
     name: input.name,
     description: input.description ?? null,
+    imageURL: input.imageURL ?? null,
     type: input.type,
     status: input.status ?? 'pending',
     municipalityId: input.municipalityId,

@@ -212,6 +212,7 @@ export async function createBarrio(municipalityId: string, input: BarrioDataInpu
   const data: BarrioData = {
     name: input.name,
     municipalityId,
+    imageURL: input.imageURL ?? null,
     createdAt: new Date(),
   };
   await setDoc(newRef, data);
@@ -252,6 +253,7 @@ export async function createPlace(municipalityId: string, input: PlaceDataInput)
     kind: input.kind,
     description: input.description ?? null,
     municipalityId,
+    imageURL: input.imageURL ?? null,
     createdAt: new Date(),
   };
   await setDoc(newRef, data);

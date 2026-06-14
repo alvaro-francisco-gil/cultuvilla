@@ -115,17 +115,31 @@ describe('buildVillageCommunity', () => {
 });
 
 describe('BarrioDataSchema and buildBarrioData', () => {
-  it('builds and round-trips', () => {
+  it('builds, defaults imageURL to null, and round-trips', () => {
     const b = buildBarrioData({ name: 'El Castillo', municipalityId: 'm1' });
+    expect(b.imageURL).toBeNull();
+    expect(() => BarrioDataSchema.parse(b)).not.toThrow();
+  });
+
+  it('keeps a provided imageURL', () => {
+    const b = buildBarrioData({ name: 'El Castillo', municipalityId: 'm1', imageURL: 'https://x/b.png' });
+    expect(b.imageURL).toBe('https://x/b.png');
     expect(() => BarrioDataSchema.parse(b)).not.toThrow();
   });
 });
 
 describe('PlaceDataSchema and buildPlaceData', () => {
-  it('defaults description to null, keeps kind, and round-trips', () => {
+  it('defaults description + imageURL to null, keeps kind, and round-trips', () => {
     const p = buildPlaceData({ name: 'C', kind: 'cemetery', municipalityId: 'm1' });
     expect(p.description).toBeNull();
+    expect(p.imageURL).toBeNull();
     expect(p.kind).toBe('cemetery');
+    expect(() => PlaceDataSchema.parse(p)).not.toThrow();
+  });
+
+  it('keeps a provided imageURL', () => {
+    const p = buildPlaceData({ name: 'C', kind: 'church', municipalityId: 'm1', imageURL: 'https://x/p.png' });
+    expect(p.imageURL).toBe('https://x/p.png');
     expect(() => PlaceDataSchema.parse(p)).not.toThrow();
   });
 
@@ -136,6 +150,7 @@ describe('PlaceDataSchema and buildPlaceData', () => {
         kind: 'castle',
         description: null,
         municipalityId: 'm1',
+        imageURL: null,
         createdAt: new Date(),
       }),
     ).toThrow();

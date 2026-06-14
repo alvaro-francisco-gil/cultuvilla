@@ -106,6 +106,47 @@ export async function uploadEventImage(
   );
 }
 
+/**
+ * Upload an organization's picture. Returns the **download URL** to persist in
+ * `OrganizationData.imageURL`.
+ */
+export async function uploadOrganizationImage(
+  organizationId: string,
+  image: UploadableImage,
+): Promise<string> {
+  return uploadToPath(`organizations/${organizationId}/image/${generateImageId(image.filename)}`, image);
+}
+
+/**
+ * Upload a place's picture. Returns the **download URL** to persist in
+ * `PlaceData.imageURL`.
+ */
+export async function uploadPlaceImage(
+  municipalityId: string,
+  placeId: string,
+  image: UploadableImage,
+): Promise<string> {
+  return uploadToPath(
+    `municipalities/${municipalityId}/places/${placeId}/image/${generateImageId(image.filename)}`,
+    image,
+  );
+}
+
+/**
+ * Upload a barrio's picture. Returns the **download URL** to persist in
+ * `BarrioData.imageURL`.
+ */
+export async function uploadBarrioImage(
+  municipalityId: string,
+  barrioId: string,
+  image: UploadableImage,
+): Promise<string> {
+  return uploadToPath(
+    `municipalities/${municipalityId}/barrios/${barrioId}/image/${generateImageId(image.filename)}`,
+    image,
+  );
+}
+
 /** Resolve a download URL for a stored news image path. */
 export async function newsImageDownloadURL(storagePath: string): Promise<string> {
   return getDownloadURL(ref(getFirebaseStorage(), storagePath));

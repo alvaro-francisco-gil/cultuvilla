@@ -55,6 +55,7 @@ export async function requestOrganization(input: OrganizationDataInput): Promise
   const data: OrganizationData = {
     name: input.name,
     description: input.description ?? null,
+    imageURL: input.imageURL ?? null,
     type: input.type,
     status: 'pending',
     municipalityId: input.municipalityId,

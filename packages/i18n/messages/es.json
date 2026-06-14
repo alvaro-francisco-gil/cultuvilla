@@ -203,7 +203,10 @@
         "title": "Barrios",
         "add": "Añadir barrio",
         "name": "Nombre del barrio",
-        "empty": "Aún no hay barrios"
+        "empty": "Aún no hay barrios",
+        "addImage": "Añadir imagen",
+        "changeImage": "Cambiar imagen",
+        "imageSelected": "Imagen seleccionada"
       },
       "places": {
         "title": "Lugares",
@@ -211,6 +214,9 @@
         "name": "Nombre",
         "description": "Descripción",
         "empty": "Aún no hay lugares",
+        "addImage": "Añadir imagen",
+        "changeImage": "Cambiar imagen",
+        "imageSelected": "Imagen seleccionada",
         "kindLabel": "Tipo",
         "kind": {
           "cemetery": "Cementerio",
