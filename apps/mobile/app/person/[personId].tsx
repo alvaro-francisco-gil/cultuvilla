@@ -12,7 +12,7 @@ import {
   getPerson,
   updatePerson,
 } from '@cultuvilla/shared/services/personService';
-import { uploadPersonImage, uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
+import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
 import type { MunicipalityLink, PartialDate, PersonData } from '@cultuvilla/shared/models/person';
 
 type PersonDoc = PersonData & { id: string };
@@ -98,8 +98,10 @@ export default function PersonDetailScreen() {
       }
 
       if (photo) {
-        const uploader = isNew ? uploadUserPhoto : uploadPersonImage;
-        const url = await uploader(isNew ? user.uid : pid, {
+        // Always upload to the user-scoped path (rule: auth.uid == userId).
+        // The person-scoped path needs a cross-service firestore.get the live
+        // project can't resolve, so it 403s when editing an existing person.
+        const url = await uploadUserPhoto(user.uid, {
           blob: photo.blob,
           filename: `avatar-${Date.now()}.jpg`,
           contentType: photo.blob.type || 'image/jpeg',
