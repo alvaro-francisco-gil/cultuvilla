@@ -1,10 +1,13 @@
 import { Image, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { FloatingBackButton } from './FloatingBackButton';
 
 /**
  * Full-bleed hero image shown at the top of event/news detail screens. Mirrors
  * the FeedCard image chain: the item's own image → the village cover photo
- * (`fallbackImageUri`) → a tinted placeholder with `fallbackIcon`.
+ * (`fallbackImageUri`) → a tinted placeholder with `fallbackIcon`. Renders a
+ * floating back button over its top-left corner so the detail screen needs no
+ * header bar (set `showBack={false}` to suppress it).
  */
 
 // Width:height. Matches FeedCard so the card image and the detail hero agree.
@@ -15,12 +18,18 @@ export type DetailHeroImageProps = {
   imageUri: string | null;
   fallbackImageUri?: string | null;
   fallbackIcon: keyof typeof Ionicons.glyphMap;
+  /** Render the floating back button over the image. Defaults to true. */
+  showBack?: boolean;
+  /** Custom back handler (defaults to router.back). */
+  onBack?: () => void;
 };
 
 export function DetailHeroImage({
   imageUri,
   fallbackImageUri = null,
   fallbackIcon,
+  showBack = true,
+  onBack,
 }: DetailHeroImageProps) {
   const displayUri = imageUri ?? fallbackImageUri;
   return (
@@ -40,6 +49,7 @@ export function DetailHeroImage({
           <Ionicons name={fallbackIcon} size={72} color="#ffffff" />
         </View>
       )}
+      {showBack ? <FloatingBackButton onBack={onBack} /> : null}
     </View>
   );
 }
