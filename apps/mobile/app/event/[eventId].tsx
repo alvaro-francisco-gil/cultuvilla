@@ -5,6 +5,7 @@ import { Screen } from '../../components/primitives/Screen';
 import { VStack } from '../../components/primitives/VStack';
 import { Text } from '../../components/primitives/Text';
 import { RegisterButton } from '../../components/feature/RegisterButton';
+import { DetailHeroImage } from '../../components/feature/DetailHeroImage';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { useAuth } from '../../lib/auth/useAuth';
 import { getEvent } from '@cultuvilla/shared/services/eventService';
@@ -58,8 +59,13 @@ export default function EventDetailScreen() {
   return (
     <Screen padded={false}>
       <ScreenHeader title={event.title} />
-      <ScrollView contentContainerClassName="p-4">
-      <VStack gap={4}>
+      <ScrollView>
+      <DetailHeroImage
+        imageUri={event.imageURL}
+        fallbackImageUri={event.municipalityCoverImage}
+        fallbackIcon="calendar-outline"
+      />
+      <VStack gap={4} className="p-4">
         <Text variant="h1">{event.title}</Text>
         <Text tone="muted">{event.organizationName}</Text>
         <Text>{formatDate(event.startDate, 'long')}</Text>
