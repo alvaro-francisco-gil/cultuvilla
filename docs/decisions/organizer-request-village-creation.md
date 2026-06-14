@@ -1,8 +1,12 @@
 # Organizer-request-driven village creation
 
-**Status:** Draft (spec)
+**Status:** Implemented
 **Date:** 2026-06-06
 **Branch:** `worktree-organizer-request-village-data`
+
+> Implemented in commit `4de51bc`. All layers (model, Cloud Functions, client
+> service, mobile UI, i18n, dev seed) landed with tests; `pnpm check`-equivalent
+> (typecheck + lint + full emulator suite + build) green.
 
 ## Problem
 
