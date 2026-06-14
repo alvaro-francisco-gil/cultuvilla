@@ -1,6 +1,10 @@
 module.exports = {
   preset: 'jest-expo',
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
+  // jest-expo render suites are heavy (~12-15s each) and run in parallel; the
+  // default 5000ms per-test limit is too tight under CI contention and flakes
+  // (e.g. complete-profile timing out). 15s gives headroom without hiding hangs.
+  testTimeout: 15000,
   // pnpm stores packages under .pnpm/; include it so nested ESM packages get transpiled
   transformIgnorePatterns: [
     '/node_modules/(?!(.pnpm|react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|@cultuvilla|nativewind|firebase|@firebase))',

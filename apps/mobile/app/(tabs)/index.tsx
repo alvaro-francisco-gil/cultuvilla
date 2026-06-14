@@ -477,7 +477,7 @@ export default function FeedScreen() {
 
   return (
     <Screen padded={false} topInset={false} bottomInset={false}>
-      <AppHeader />
+      <AppHeader centerLabel={t('header.brand')} />
       {toggle}
       <View style={{ flex: 1 }}>
         <ScrollView

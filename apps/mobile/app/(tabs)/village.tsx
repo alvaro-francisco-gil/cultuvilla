@@ -180,7 +180,7 @@ export default function VillageTabScreen() {
   // Wikidata escudo at display time and survives `escudos:upload` re-runs.
   const changeEscudo = useCallback(async () => {
     if (!activeMunicipalityId) return;
-    const picked = await pickImageAsBlob();
+    const picked = await pickImageAsBlob({ square: true });
     if (!picked) return;
     setUploadingEscudo(true);
     try {
@@ -292,7 +292,9 @@ export default function VillageTabScreen() {
         {cover ? (
           <Image source={{ uri: cover }} className="w-full h-40" resizeMode="cover" />
         ) : null}
-        <VStack gap={2} className={`px-4 ${cover ? '-mt-12' : 'pt-4'}`}>
+        {/* Content starts after the cover image — escudo + name sit below it,
+            never overlapping the photo. */}
+        <VStack gap={2} className="px-4 pt-4">
           <HStack gap={3} className="items-center">
             <Pressable
               onPress={changeEscudo}
@@ -304,26 +306,16 @@ export default function VillageTabScreen() {
                     : t('village.escudo.add')
                   : undefined
               }
-              className="relative bg-surface rounded-2xl p-2 shadow-sm"
+              className={`relative bg-surface rounded-2xl shadow-sm ${
+                hasManualEscudo(village) ? '' : 'p-2'
+              }`}
             >
-              <Escudo url={escudoFullUrl(village)} size={88} fallbackInitial={village.name} />
-              {hasManualEscudo(village) ? (
-                <View
-                  className="absolute top-0 right-0 bg-surface rounded-full p-0.5"
-                  accessibilityLabel={t('village.escudo.manual')}
-                >
-                  <Ionicons name="shield-checkmark" size={18} color={ACCENT} />
-                </View>
-              ) : null}
-              {canManage ? (
-                <View className="absolute bottom-0 right-0 bg-surface rounded-full p-1 shadow-sm">
-                  <Ionicons
-                    name={escudoFullUrl(village) ? 'camera' : 'add'}
-                    size={14}
-                    color={ACCENT}
-                  />
-                </View>
-              ) : null}
+              <Escudo
+                url={escudoFullUrl(village)}
+                size={88}
+                fill={hasManualEscudo(village)}
+                fallbackInitial={village.name}
+              />
               {uploadingEscudo ? (
                 <View className="absolute inset-0 items-center justify-center rounded-2xl bg-black/30">
                   <ActivityIndicator color="#fff" />

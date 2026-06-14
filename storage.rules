@@ -53,14 +53,25 @@ service firebase.storage {
                    && request.resource.contentType.matches('image/.*');
     }
 
+    // A person photo can be managed by whoever may edit the person doc itself.
+    // Mirror firestore.rules /persons/{personId} update: the linked account
+    // owner (userId == uid), or the creator while no account is linked. The
+    // bare `createdBy == uid` check broke seed/migrated self-persons, whose
+    // `createdBy` is the seed but whose `userId` is the real owner.
+    function personOwnsPhoto(personId) {
+      return firestore.get(/databases/(default)/documents/persons/$(personId)).data.userId == request.auth.uid
+             || (firestore.get(/databases/(default)/documents/persons/$(personId)).data.createdBy == request.auth.uid
+                 && firestore.get(/databases/(default)/documents/persons/$(personId)).data.userId == null);
+    }
+
     match /persons/{personId}/photos/{imageId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null
                    && request.resource.size < 5 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*')
-                   && firestore.get(/databases/(default)/documents/persons/$(personId)).data.createdBy == request.auth.uid;
+                   && personOwnsPhoto(personId);
       allow delete: if request.auth != null
-                    && firestore.get(/databases/(default)/documents/persons/$(personId)).data.createdBy == request.auth.uid;
+                    && personOwnsPhoto(personId);
     }
 
     match /news/{postId}/images/{imageId} {

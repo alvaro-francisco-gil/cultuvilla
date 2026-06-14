@@ -17,8 +17,9 @@ import { pickImageAsBlob } from '../../lib/images';
 import {
   getPersonByUserId,
   getPersonsByCreator,
+  updatePerson,
 } from '@cultuvilla/shared/services/personService';
-import { uploadPersonImage } from '@cultuvilla/shared/services/imageService';
+import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
 import { getEventCountByCreator } from '@cultuvilla/shared/services/eventService';
 import { getUserRegistrationsAcrossEvents } from '@cultuvilla/shared/services/registrationService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
@@ -103,15 +104,20 @@ export default function ProfileScreen() {
   );
 
   async function onChangePhoto() {
-    if (!selfPerson) return;
-    const picked = await pickImageAsBlob();
+    if (!selfPerson || !user) return;
+    const picked = await pickImageAsBlob({ square: true });
     if (!picked) return;
     setUploading(true);
     try {
-      await uploadPersonImage(selfPerson.id, picked);
+      // Upload to the user-scoped storage path (rule: auth.uid == userId) and
+      // persist the URL on the person doc — same flow as onboarding's
+      // complete-profile. The person-scoped path needs a cross-service
+      // firestore.get the live project can't resolve, so it 403s.
+      const url = await uploadUserPhoto(user.uid, picked);
+      await updatePerson(selfPerson.id, { photoURL: url });
       const refreshed = await withFirestoreErrorLog(
         'profile:getPersonByUserId:refresh',
-        () => getPersonByUserId(user!.uid),
+        () => getPersonByUserId(user.uid),
       );
       setSelfPerson(refreshed);
     } finally {
@@ -126,7 +132,7 @@ export default function ProfileScreen() {
 
   return (
     <Screen padded={false} topInset={false} bottomInset={false}>
-      <AppHeader />
+      <AppHeader centerLabel={t('header.profile')} />
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <ProfileHeader
           person={selfPerson}

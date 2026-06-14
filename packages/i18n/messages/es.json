@@ -118,6 +118,8 @@
   },
   "header": {
     "noVillage": "Cultuvilla",
+    "brand": "Cultuvilla",
+    "profile": "Perfil",
     "openMenu": "Abrir menú",
     "openNotifications": "Abrir notificaciones",
     "back": "Volver"
@@ -228,6 +230,11 @@
         "description": "Descripción",
         "images": "Imágenes",
         "addImage": "Añadir imagen",
+        "escudo": "Escudo",
+        "coordinates": "Coordenadas",
+        "latitude": "Latitud",
+        "longitude": "Longitud",
+        "invalidCoordinates": "Coordenadas no válidas",
         "saved": "Guardado"
       },
       "overview": {
