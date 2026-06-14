@@ -31,6 +31,15 @@ describe('OrganizerRequestDataSchema', () => {
     const { municipalityId: _municipalityId, ...rest } = validRequest;
     expect(() => OrganizerRequestDataSchema.parse(rest)).toThrow();
   });
+
+  // Backward compat: requests written before description/coverImages existed have
+  // no such keys. The strict converter must still read them (default → ''/[]), not throw.
+  it('reads a legacy doc without description/coverImages (defaults to ""/[])', () => {
+    const { description: _d, coverImages: _c, ...legacy } = validRequest;
+    const parsed = OrganizerRequestDataSchema.parse(legacy);
+    expect(parsed.description).toBe('');
+    expect(parsed.coverImages).toEqual([]);
+  });
 });
 
 describe('buildOrganizerRequestData', () => {
