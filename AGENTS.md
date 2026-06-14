@@ -246,6 +246,8 @@ All non-trivial changes follow the same loop. Tiny edits (typo in a doc, a renam
 
 1. **Ask which mode to use, then work in it.** Before writing code, ask the user to pick one of two modes:
    - **Worktree + feature branch (default).** Branch from the latest `main` into a worktree under `.claude/worktrees/<short-name>/` and work there. Never edit the main checkout in this mode. Worktrees isolate dependencies, build outputs, and `.next/` caches so parallel changes don't fight each other, and they make it easy to abandon work that doesn't pan out.
+
+   **The VSCode checkout must always stay on `main`** — never run `git checkout`/`git switch` to a feature branch in the open editor workspace. A feature branch always lives in its own worktree, created with `git worktree add` and committed to from there, so the VSCode view never leaves `main`.
    - **Direct to main.** Edit the main checkout and commit to `main`. Only when the user explicitly chooses this for the task.
 
    Worktree is the default — propose it unless the user opts into direct-to-main. Surface the choice up front (during planning); don't assume it.
