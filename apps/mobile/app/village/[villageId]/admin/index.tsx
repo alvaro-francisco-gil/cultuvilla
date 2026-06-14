@@ -118,9 +118,26 @@ export default function VillageAdminHub() {
       ) : (
         <ScrollView contentContainerClassName="pb-10">
           {/* ── Hero ─────────────────────────────────────────────── */}
-          {cover ? (
-            <Image source={{ uri: cover }} className="w-full h-40" resizeMode="cover" />
-          ) : null}
+          <View>
+            {cover ? (
+              <Image source={{ uri: cover }} className="w-full h-56" resizeMode="cover" />
+            ) : null}
+            {/* With a cover, edit floats top-right over the image; without one
+                there's nothing to float on, so it falls back to an inline link
+                below the name (see end of this block). */}
+            {cover ? (
+              <Pressable
+                onPress={() => router.push(`${base}/community` as never)}
+                accessibilityLabel={t('village.admin.overview.edit')}
+                className="absolute right-3 top-3 flex-row items-center bg-surface rounded-full px-3 py-1.5 shadow-sm"
+              >
+                <Ionicons name="create-outline" size={16} color={ACCENT} />
+                <Text variant="bodySm" style={{ color: ACCENT }} className="ml-1 font-medium">
+                  {t('village.admin.overview.edit')}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
           <VStack gap={1} className={`items-center px-4 ${cover ? '-mt-12' : 'pt-4'}`}>
             <View className="bg-surface rounded-2xl p-2 shadow-sm">
               <Escudo
@@ -129,7 +146,7 @@ export default function VillageAdminHub() {
                 fallbackInitial={village?.name}
               />
             </View>
-            <Text variant="h2" className="mt-2 text-center">
+            <Text variant="h2" className="mt-3 text-center">
               {village?.name}
             </Text>
             <Text tone="muted" variant="bodySm">
@@ -143,16 +160,18 @@ export default function VillageAdminHub() {
             >
               {description || t('village.admin.overview.noDescription')}
             </Text>
-            <Pressable
-              onPress={() => router.push(`${base}/community` as never)}
-              accessibilityLabel={t('village.admin.overview.edit')}
-              className="flex-row items-center mt-2"
-            >
-              <Ionicons name="create-outline" size={16} color={ACCENT} />
-              <Text variant="bodySm" style={{ color: ACCENT }} className="ml-1 font-medium">
-                {t('village.admin.overview.edit')}
-              </Text>
-            </Pressable>
+            {!cover ? (
+              <Pressable
+                onPress={() => router.push(`${base}/community` as never)}
+                accessibilityLabel={t('village.admin.overview.edit')}
+                className="flex-row items-center mt-2"
+              >
+                <Ionicons name="create-outline" size={16} color={ACCENT} />
+                <Text variant="bodySm" style={{ color: ACCENT }} className="ml-1 font-medium">
+                  {t('village.admin.overview.edit')}
+                </Text>
+              </Pressable>
+            ) : null}
           </VStack>
 
           {/* ── Stats ────────────────────────────────────────────── */}
