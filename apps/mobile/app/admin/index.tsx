@@ -6,7 +6,7 @@ import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { useT } from '../../lib/i18n';
 
 type CardSpec = {
-  href: '/admin/activate-village' | '/admin/organizer-requests' | '/admin/occupations';
+  href: '/admin/organizer-requests' | '/admin/occupations';
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   hint: string;
@@ -15,12 +15,6 @@ type CardSpec = {
 export default function AdminHubScreen() {
   const { t } = useT();
   const cards: CardSpec[] = [
-    {
-      href: '/admin/activate-village',
-      icon: 'flag-outline',
-      title: t('admin.hub.activateVillage'),
-      hint: t('admin.hub.activateVillageHint'),
-    },
     {
       href: '/admin/organizer-requests',
       icon: 'person-add-outline',

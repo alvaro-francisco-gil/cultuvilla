@@ -49,6 +49,8 @@ async function seedOrganizerRequest(opts: {
   userId: string;
   municipalityId: string;
   status: 'pending' | 'approved' | 'rejected';
+  description?: string;
+  coverImages?: string[];
 }): Promise<string> {
   const ref = admin.firestore().collection('organizerRequests').doc();
   await ref.set({
@@ -56,6 +58,8 @@ async function seedOrganizerRequest(opts: {
     municipalityId: opts.municipalityId,
     status: opts.status,
     requestedAt: new Date(),
+    description: opts.description ?? '',
+    coverImages: opts.coverImages ?? [],
     motivation: null,
     reviewedAt: null,
     reviewedBy: null,
@@ -142,13 +146,15 @@ describe('respondToOrganizerRequest (callable)', () => {
     ).rejects.toThrow(/ya está activa|failed-precondition/i);
   });
 
-  it('approves: flips communityActive, sets adminUserId, creates admin member, notifies requester', async () => {
+  it('approves: flips communityActive, populates community from request, creates admin member, notifies requester', async () => {
     await seedAppAdmin(APP_ADMIN_ID);
     await seedMunicipality({ communityActive: false });
     const requestId = await seedOrganizerRequest({
       userId: REQUESTER_ID,
       municipalityId: MUNICIPALITY_ID,
       status: 'pending',
+      description: 'Un pueblo con mucha vida',
+      coverImages: ['https://example.com/cover.jpg'],
     });
 
     const result = await callRespond({
@@ -164,6 +170,8 @@ describe('respondToOrganizerRequest (callable)', () => {
     const muniDoc = await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}`).get();
     expect(muniDoc.data()?.communityActive).toBe(true);
     expect(muniDoc.data()?.community?.adminUserId).toBe(REQUESTER_ID);
+    expect(muniDoc.data()?.community?.description).toBe('Un pueblo con mucha vida');
+    expect(muniDoc.data()?.community?.coverImages).toEqual(['https://example.com/cover.jpg']);
 
     const memberDoc = await admin
       .firestore()
@@ -212,5 +220,25 @@ describe('respondToOrganizerRequest (callable)', () => {
       .get();
     expect(notifs.size).toBeGreaterThanOrEqual(1);
     expect(notifs.docs[0].data().type).toBe('organizer_request_rejected');
+  });
+
+  it('rejects a request that has cover images and still resolves to rejected', async () => {
+    await seedAppAdmin(APP_ADMIN_ID);
+    await seedMunicipality({ communityActive: false });
+    const requestId = await seedOrganizerRequest({
+      userId: REQUESTER_ID,
+      municipalityId: MUNICIPALITY_ID,
+      status: 'pending',
+      coverImages: ['https://example.com/cover.jpg'],
+    });
+
+    const result = await callRespond({
+      uid: APP_ADMIN_ID,
+      data: { requestId, decision: 'rejected' },
+    });
+    expect(result.ok).toBe(true);
+
+    const reqDoc = await admin.firestore().doc(`organizerRequests/${requestId}`).get();
+    expect(reqDoc.data()?.status).toBe('rejected');
   });
 });

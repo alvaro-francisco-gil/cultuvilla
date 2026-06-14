@@ -9,6 +9,7 @@ import {
 } from '@cultuvilla/shared/firebase/refs/admin';
 import type { VillageMemberData } from '@cultuvilla/shared';
 import { notifyOrganizerRequestResolved } from '../helpers/notifyRequests';
+import { deleteVillageCoverImages } from '../helpers/villageCoverImages';
 
 const db = getFirestore();
 
@@ -46,6 +47,7 @@ export const respondToOrganizerRequest = onCall<
     let requesterUid = '';
     let municipalityId = '';
     let municipalityName = '';
+    let coverImagesToCleanup: string[] = [];
 
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(reqRef);
@@ -79,8 +81,8 @@ export const respondToOrganizerRequest = onCall<
         tx.update(muniRef, {
           communityActive: true,
           community: {
-            description: '',
-            coverImages: [],
+            description: reqData.description,
+            coverImages: reqData.coverImages,
             adminUserId: requesterUid,
             profileForm: null,
             activatedAt: FieldValue.serverTimestamp(),
@@ -96,8 +98,16 @@ export const respondToOrganizerRequest = onCall<
           trustedNewsAuthor: false,
         };
         tx.set(municipalityMemberDoc(db, municipalityId, requesterUid), newMember);
+      } else {
+        // Rejected: the uploaded cover images are now orphans — clean them up
+        // after the transaction commits.
+        coverImagesToCleanup = reqData.coverImages;
       }
     });
+
+    if (coverImagesToCleanup.length > 0) {
+      await deleteVillageCoverImages(coverImagesToCleanup);
+    }
 
     if (requesterUid && municipalityId) {
       await notifyOrganizerRequestResolved({

@@ -50,14 +50,14 @@ Add two fields to `OrganizerRequestDataSchema`:
 
 ```ts
 description: z.string(),
-coverImages: z.array(z.string()),   // Storage object paths, not download URLs
+coverImages: z.array(z.string()),   // Firebase download URLs, like community.coverImages
 ```
 
 - Keep `motivation` (`z.string().nullable()`).
-- `coverImages` stores **Storage object paths** (e.g.
-  `villages/{municipalityId}/images/{id}`), not download URLs, so the reject
-  handler can delete the blobs server-side via the admin SDK. Objects are
-  public-read, so the UI resolves paths to display URLs on read.
+- `coverImages` stores **Firebase download URLs**, consistent with how the rest
+  of the codebase stores images (events, news, `community.coverImages`) and with
+  what `imageService` returns. The reject handler deletes the blobs server-side
+  by parsing the Storage object path out of each download URL (admin SDK).
 
 Update `OrganizerRequestDataInput` (`description: string`, `coverImages?: string[]`)
 and `buildOrganizerRequestData` (defaults: `coverImages: input.coverImages ?? []`).
@@ -78,8 +78,8 @@ and `buildOrganizerRequestData` (defaults: `coverImages: input.coverImages ?? []
 - Add a **description** input (required; submit disabled until non-empty).
 - Add a **cover-image picker** (multi-image) using the existing `imageService`.
   Images are **uploaded on submit**, not on pick — pick locally, then on submit
-  upload to `villages/{municipalityId}/images/{id}` and collect the Storage
-  paths, then call the callable. This bounds any orphan to a real, submitted
+  upload to `villages/{municipalityId}/images/{id}` and collect the download
+  URLs, then call the callable. This bounds any orphan to a real, submitted
   request.
 - Keep the **motivation** input.
 

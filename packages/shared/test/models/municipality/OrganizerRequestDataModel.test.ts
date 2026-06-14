@@ -9,6 +9,8 @@ const validRequest = {
   municipalityId: 'm1',
   requestedAt: new Date('2026-01-01T00:00:00Z'),
   status: 'pending' as const,
+  description: 'Un pueblo con mucha vida',
+  coverImages: [],
   motivation: null,
   reviewedAt: null,
   reviewedBy: null,
@@ -48,5 +50,22 @@ describe('buildOrganizerRequestData', () => {
       motivation: 'quiero ayudar',
     });
     expect(r.motivation).toBe('quiero ayudar');
+  });
+
+  it('defaults description to empty string and coverImages to []', () => {
+    const r = buildOrganizerRequestData({ userId: 'u1', municipalityId: 'm1' });
+    expect(r.description).toBe('');
+    expect(r.coverImages).toEqual([]);
+  });
+
+  it('preserves provided description and coverImages', () => {
+    const r = buildOrganizerRequestData({
+      userId: 'u1',
+      municipalityId: 'm1',
+      description: 'Mi pueblo',
+      coverImages: ['https://example.com/a.jpg'],
+    });
+    expect(r.description).toBe('Mi pueblo');
+    expect(r.coverImages).toEqual(['https://example.com/a.jpg']);
   });
 });

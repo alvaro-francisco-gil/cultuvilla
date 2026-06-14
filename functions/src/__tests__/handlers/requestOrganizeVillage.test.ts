@@ -44,6 +44,8 @@ async function seedOrganizerRequest(opts: {
     municipalityId: opts.municipalityId,
     status: opts.status,
     requestedAt: new Date(),
+    description: '',
+    coverImages: [],
     motivation: null,
     reviewedAt: null,
     reviewedBy: null,
@@ -88,10 +90,20 @@ describe('requestOrganizeVillage (callable)', () => {
     await expect(callRequest({ uid: USER_ID, data: {} })).rejects.toThrow(/municipalityId/);
   });
 
+  it('throws invalid-argument when description is missing or blank', async () => {
+    await seedMunicipality(false);
+    await expect(
+      callRequest({ uid: USER_ID, data: { municipalityId: MUNICIPALITY_ID, description: '   ' } }),
+    ).rejects.toThrow(/descripci|invalid-argument/i);
+  });
+
   it('throws failed-precondition when communityActive is already true', async () => {
     await seedMunicipality(true);
     await expect(
-      callRequest({ uid: USER_ID, data: { municipalityId: MUNICIPALITY_ID } }),
+      callRequest({
+        uid: USER_ID,
+        data: { municipalityId: MUNICIPALITY_ID, description: 'Mi pueblo' },
+      }),
     ).rejects.toThrow(/ya está activa|failed-precondition/i);
   });
 
@@ -103,7 +115,10 @@ describe('requestOrganizeVillage (callable)', () => {
       status: 'pending',
     });
     await expect(
-      callRequest({ uid: USER_ID, data: { municipalityId: MUNICIPALITY_ID } }),
+      callRequest({
+        uid: USER_ID,
+        data: { municipalityId: MUNICIPALITY_ID, description: 'Mi pueblo' },
+      }),
     ).rejects.toThrow(/pendiente|already-exists/i);
   });
 
@@ -114,7 +129,12 @@ describe('requestOrganizeVillage (callable)', () => {
 
     const result = await callRequest({
       uid: USER_ID,
-      data: { municipalityId: MUNICIPALITY_ID, motivation: 'porque sí' },
+      data: {
+        municipalityId: MUNICIPALITY_ID,
+        description: 'Un pueblo con mucha vida',
+        coverImages: ['https://example.com/cover.jpg'],
+        motivation: 'porque sí',
+      },
     });
     expect(result.ok).toBe(true);
     expect(result.requestId).toBeTruthy();
@@ -124,6 +144,8 @@ describe('requestOrganizeVillage (callable)', () => {
     expect(reqDoc.data()?.status).toBe('pending');
     expect(reqDoc.data()?.userId).toBe(USER_ID);
     expect(reqDoc.data()?.municipalityId).toBe(MUNICIPALITY_ID);
+    expect(reqDoc.data()?.description).toBe('Un pueblo con mucha vida');
+    expect(reqDoc.data()?.coverImages).toEqual(['https://example.com/cover.jpg']);
     expect(reqDoc.data()?.motivation).toBe('porque sí');
 
     const notifsA = await admin.firestore().collection(`users/${APP_ADMIN_A}/notifications`).get();

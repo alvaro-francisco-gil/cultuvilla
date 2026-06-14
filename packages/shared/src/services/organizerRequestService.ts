@@ -38,6 +38,9 @@ export async function getMyOrganizerRequests(
 
 interface RequestOrgPayload {
   municipalityId: string;
+  // Village data carried by the request; copied to community.* on approval.
+  description: string;
+  coverImages?: string[];
   motivation?: string | null;
 }
 
