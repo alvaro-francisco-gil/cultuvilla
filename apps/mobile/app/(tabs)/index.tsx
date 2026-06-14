@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   FlatList,
   ActivityIndicator,
   RefreshControl,
@@ -36,13 +37,21 @@ import {
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 
 const ACCENT = '#bb5d3a'; // colors.ts: light.bg.accent (terracotta)
+// Breathing room between the filter bar and the first card. Lives in the feed's
+// top padding (the content behind), not in the filter component itself.
+const FEED_TOP_GAP = 12;
 
 type FeedEvent = EventData & { id: string };
 type FeedNews = NewsPostData & { id: string };
 type FeedTab = 'eventos' | 'noticias';
 type DatePreset = 'hoy' | 'semana' | 'mes';
 type ActiveSheet = 'village' | 'date' | 'category' | 'sort' | null;
-type Village = { id: string; name: string; coordinates: LatLng | null };
+type Village = {
+  id: string;
+  name: string;
+  coordinates: LatLng | null;
+  coverImage: string | null;
+};
 
 /** True when `d` falls inside the upcoming window named by `preset`. */
 function inDatePreset(d: Date, preset: DatePreset): boolean {
@@ -84,6 +93,15 @@ export default function FeedScreen() {
   const [sortByProximity, setSortByProximity] = useState(false);
   const [activeSheet, setActiveSheet] = useState<ActiveSheet>(null);
 
+  // Fade-on-scroll for the floating filter bar: 0 = shown, 1 = hidden.
+  const filterAnim = useRef(new Animated.Value(0)).current;
+  const filterHiddenRef = useRef(false);
+  const lastScrollY = useRef(0);
+  const [barHeight, setBarHeight] = useState(FILTER_PILL_HEIGHT + 12);
+  // Mirrors the hidden state so the faded-out (but still positioned) pills stop
+  // intercepting taps meant for the feed behind them.
+  const [filterInteractive, setFilterInteractive] = useState(true);
+
   async function load() {
     try {
       setError(null);
@@ -111,7 +129,12 @@ export default function FeedScreen() {
     void getActiveCommunities()
       .then((communities) =>
         setVillages(
-          communities.map((c) => ({ id: c.id, name: c.name, coordinates: c.coordinates })),
+          communities.map((c) => ({
+            id: c.id,
+            name: c.name,
+            coordinates: c.coordinates,
+            coverImage: c.community?.coverImages?.[0] ?? null,
+          })),
         ),
       )
       .catch(() => setVillages([]));
@@ -127,6 +150,12 @@ export default function FeedScreen() {
   const referenceCoords = useMemo<LatLng | null>(
     () => villages.find((v) => v.id === activeMunicipalityId)?.coordinates ?? null,
     [villages, activeMunicipalityId],
+  );
+
+  // municipalityId → village cover photo, used as a feed-card image fallback.
+  const villageCoverById = useMemo(
+    () => new Map(villages.map((v) => [v.id, v.coverImage])),
+    [villages],
   );
 
   const query = search.trim().toLowerCase();
@@ -192,6 +221,38 @@ export default function FeedScreen() {
     setActiveTab((prev) => (prev === tab ? prev : tab));
   }
 
+  const setFilterHidden = useCallback(
+    (hide: boolean) => {
+      if (filterHiddenRef.current === hide) return;
+      filterHiddenRef.current = hide;
+      setFilterInteractive(!hide);
+      // Opacity-only fade, in place (no movement). useNativeDriver:true is safe
+      // for opacity on the web build (unlike interpolated transforms).
+      Animated.timing(filterAnim, {
+        toValue: hide ? 1 : 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    },
+    [filterAnim],
+  );
+
+  // Vertical feed scroll → hide the filter bar going down, reveal it going up.
+  const onFeedScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const y = e.nativeEvent.contentOffset.y;
+      const dy = y - lastScrollY.current;
+      lastScrollY.current = y;
+      if (y <= 0) setFilterHidden(false);
+      else if (dy > 6) setFilterHidden(true);
+      else if (dy < -6) setFilterHidden(false);
+    },
+    [setFilterHidden],
+  );
+
+  const feedPaddingTop = villages.length > 0 ? barHeight + FEED_TOP_GAP : 0;
+  const filterOpacity = filterAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
+
   const toggle = (
     <View className="px-4 pt-3 pb-2 bg-surface">
       <SegmentedToggle<FeedTab>
@@ -209,11 +270,11 @@ export default function FeedScreen() {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      className="bg-surface"
-      // flexGrow:0 keeps the row hugging the toggle instead of stretching down
-      // the column (RN-Web gives a horizontal ScrollView flexGrow:1 by default).
+      // Transparent so the feed flows behind the opaque pills; no padding below
+      // the buttons. flexGrow:0 keeps the row hugging its content height
+      // (RN-Web gives a horizontal ScrollView flexGrow:1 by default).
       style={{ flexGrow: 0 }}
-      contentContainerStyle={{ alignItems: 'center', paddingHorizontal: 16, paddingBottom: 8 }}
+      contentContainerStyle={{ alignItems: 'center', paddingHorizontal: 16 }}
     >
       {/* Pueblo — the primary filter, always first. */}
       <FilterPill
@@ -321,8 +382,11 @@ export default function FeedScreen() {
     ) : (
       <FlatList
         style={{ flex: 1 }}
+        onScroll={onFeedScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingTop: feedPaddingTop }}
         contentContainerClassName={
-          visibleEvents.length === 0 ? 'flex-1 items-center justify-center px-8' : 'p-4 gap-4'
+          visibleEvents.length === 0 ? 'flex-1 items-center justify-center px-8' : 'px-4 pb-4 gap-4'
         }
         data={visibleEvents}
         keyExtractor={(e) => e.id}
@@ -342,6 +406,9 @@ export default function FeedScreen() {
               title: item.title,
               startDate: item.startDate,
               organizationName: item.organizationName,
+              imageURL: item.imageURL,
+              municipalityCoverImage:
+                item.municipalityCoverImage ?? villageCoverById.get(item.municipalityId) ?? null,
             }}
             onPress={(id) => router.push(`/event/${id}`)}
           />
@@ -371,8 +438,11 @@ export default function FeedScreen() {
     ) : (
       <FlatList
         style={{ flex: 1 }}
+        onScroll={onFeedScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingTop: feedPaddingTop }}
         contentContainerClassName={
-          visibleNews.length === 0 ? 'flex-1 items-center justify-center px-8' : 'p-4 gap-4'
+          visibleNews.length === 0 ? 'flex-1 items-center justify-center px-8' : 'px-4 pb-4 gap-4'
         }
         data={visibleNews}
         keyExtractor={(n) => n.id}
@@ -386,7 +456,11 @@ export default function FeedScreen() {
           </View>
         }
         renderItem={({ item }) => (
-          <NewsCard post={item} onPress={(id) => router.push(`/news/${id}`)} />
+          <NewsCard
+            post={item}
+            fallbackImageUri={villageCoverById.get(item.municipalityId) ?? null}
+            onPress={(id) => router.push(`/news/${id}`)}
+          />
         )}
         refreshControl={
           <RefreshControl
@@ -402,22 +476,42 @@ export default function FeedScreen() {
     );
 
   return (
-    <Screen padded={false} topInset={false}>
-      <AppHeader />
+    <Screen padded={false} topInset={false} bottomInset={false}>
+      <AppHeader centerLabel={t('header.brand')} />
       {toggle}
-      {filterBar}
-      <ScrollView
-        ref={pagerRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        scrollEventThrottle={32}
-        onScroll={onPagerScroll}
-        style={{ flex: 1 }}
-      >
-        <View style={{ width }}>{eventsPage}</View>
-        <View style={{ width }}>{newsPage}</View>
-      </ScrollView>
+      <View style={{ flex: 1 }}>
+        <ScrollView
+          ref={pagerRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          scrollEventThrottle={32}
+          onScroll={onPagerScroll}
+          style={{ flex: 1 }}
+        >
+          <View style={{ width }}>{eventsPage}</View>
+          <View style={{ width }}>{newsPage}</View>
+        </ScrollView>
+
+        {/* Floating filter bar — overlays the feed (which flows behind it) and
+            fades out in place on scroll-down, back in on scroll-up. */}
+        {filterBar ? (
+          <Animated.View
+            onLayout={(e) => setBarHeight(e.nativeEvent.layout.height)}
+            pointerEvents={filterInteractive ? 'box-none' : 'none'}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 10,
+              opacity: filterOpacity,
+            }}
+          >
+            {filterBar}
+          </Animated.View>
+        ) : null}
+      </View>
 
       <FilterSheet
         visible={activeSheet === 'village'}

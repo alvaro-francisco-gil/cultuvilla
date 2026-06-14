@@ -9,6 +9,9 @@ import {
   buildBarrioData,
   buildPlaceData,
   municipalitySearchKey,
+  hasManualEscudo,
+  escudoFullUrl,
+  escudoThumbDisplayUrl,
 } from '../../../src/models/municipality/MunicipalityDataModel';
 
 const validMunicipality = {
@@ -102,6 +105,31 @@ describe('buildMunicipalityData', () => {
       coordinates: { lat: 37.85, lng: -3.35 },
     });
     expect(built.coordinates).toEqual({ lat: 37.85, lng: -3.35 });
+  });
+});
+
+describe('escudo resolution helpers', () => {
+  const wikidata = { escudoUrl: 'wiki-full', escudoThumbUrl: 'wiki-thumb', escudoManualUrl: null };
+  const manual = { escudoUrl: 'wiki-full', escudoThumbUrl: 'wiki-thumb', escudoManualUrl: 'manual' };
+  const none = { escudoUrl: null, escudoThumbUrl: null, escudoManualUrl: null };
+  const legacy = { escudoUrl: 'wiki-full', escudoThumbUrl: 'wiki-thumb' }; // pre-field doc
+
+  it('hasManualEscudo is true only when a manual upload exists', () => {
+    expect(hasManualEscudo(manual)).toBe(true);
+    expect(hasManualEscudo(wikidata)).toBe(false);
+    expect(hasManualEscudo(legacy)).toBe(false);
+  });
+
+  it('escudoFullUrl prefers the manual upload, else Wikidata, else null', () => {
+    expect(escudoFullUrl(manual)).toBe('manual');
+    expect(escudoFullUrl(wikidata)).toBe('wiki-full');
+    expect(escudoFullUrl(none)).toBeNull();
+  });
+
+  it('escudoThumbDisplayUrl prefers the manual upload, else the Wikidata thumb', () => {
+    expect(escudoThumbDisplayUrl(manual)).toBe('manual');
+    expect(escudoThumbDisplayUrl(wikidata)).toBe('wiki-thumb');
+    expect(escudoThumbDisplayUrl(none)).toBeNull();
   });
 });
 

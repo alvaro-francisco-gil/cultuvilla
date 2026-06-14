@@ -12,21 +12,22 @@ meaningful but no longer gates participation.
 ## Decision
 
 - `events/{eventId}` and `organizations/{orgId}` live at the **top level**, each
-  carrying a `villageId` field. Registrations stay nested under events
+  carrying a `municipalityId` field. Registrations stay nested under events
   (`events/{eventId}/registrations/{regId}`); village members and org members
-  stay nested under their village / org (intrinsic per-pair relationships).
-- Event docs carry **denormalized village display fields** (`villageName`,
-  `villageCoverImage`, `villageCoordinates`) kept in sync by a Cloud Function
-  trigger on `villages/{id}` writes. This is the canonical example in
+  stay nested under their municipality / org (intrinsic per-pair relationships).
+- Event docs carry **denormalized municipality display fields**
+  (`municipalityName`, `municipalityCoverImage`, `municipalityCoordinates`) kept
+  in sync by a Cloud Function trigger on `municipalities/{id}` writes. This is the
+  canonical example in
   [denormalized-read-models.md](../architecture/denormalized-read-models.md);
   the trigger is [syncVillageDenormalization.ts](../../functions/src/syncVillageDenormalization.ts).
 - The home feed is a pure chronological query
   (`events where status==published and startDate>=now orderBy startDate`).
   "Cerca de mí" is a **client-side haversine filter**, not a server-side
   proximity rank.
-- `activeVillageId` on the user doc is demoted to a **UI hint** (feed centering,
-  default village when creating events, censo nudge target) — never a routing or
-  security primitive.
+- `activeMunicipalityId` on the user doc is demoted to a **UI hint** (feed
+  centering, default village when creating events, censo nudge target) — never a
+  routing or security primitive.
 
 ## Rejected alternatives
 
@@ -42,11 +43,11 @@ meaningful but no longer gates participation.
 ## What this binds
 
 - New event/org queries are single-collection; add composite indexes
-  (`status asc, startDate asc` and `villageId asc, startDate asc`) in the same
-  change as a new query shape.
-- Any code reading `activeVillageId` must tolerate `null` (zero-membership users)
-  and must not use it for access control.
-- Adding a village display field to feed cards means extending the
+  (`status asc, startDate asc` and `municipalityId asc, startDate asc`) in the
+  same change as a new query shape.
+- Any code reading `activeMunicipalityId` must tolerate `null` (zero-membership
+  users) and must not use it for access control.
+- Adding a municipality display field to feed cards means extending the
   denormalization trigger, not an N+1 read in the feed.
 
 ## Revisit when

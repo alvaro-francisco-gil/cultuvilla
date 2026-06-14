@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Image, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { VStack, HStack, Text, Pressable, Avatar } from '../primitives';
 import { useT } from '../../lib/i18n';
@@ -91,20 +91,32 @@ export function PersonCard({
   onPress?: () => void;
 }) {
   const initials = name.slice(0, 1).toUpperCase();
+  // Image-forward card (inspired by ordago's frequent-partners scroll): a
+  // full-width photo fills the top, name/badge sit in the body below.
   const body = (
     <View
-      className="w-24 items-center rounded-2xl py-3 px-2 gap-2 bg-surface-elevated"
-      style={badge ? { borderWidth: 1, borderColor: ACCENT } : undefined}
+      className="w-36 rounded-2xl overflow-hidden bg-surface-elevated border border-subtle"
+      style={badge ? { borderColor: ACCENT } : undefined}
     >
-      <Avatar uri={photoURL} size={56} initials={initials} />
-      <Text variant="bodySm" className="font-medium text-center" numberOfLines={1}>
-        {name}
-      </Text>
-      {badge ? (
-        <Text variant="bodySm" style={{ color: ACCENT }} className="text-center" numberOfLines={1}>
-          {badge}
+      <View className="h-32 w-full items-center justify-center bg-subtle">
+        {photoURL ? (
+          <Image source={{ uri: photoURL }} className="w-full h-full" resizeMode="cover" />
+        ) : (
+          <Text variant="h1" tone="muted">
+            {initials}
+          </Text>
+        )}
+      </View>
+      <View className="px-3 py-2 gap-0.5">
+        <Text variant="body" className="font-medium" numberOfLines={1}>
+          {name}
         </Text>
-      ) : null}
+        {badge ? (
+          <Text variant="bodySm" style={{ color: ACCENT }} numberOfLines={1}>
+            {badge}
+          </Text>
+        ) : null}
+      </View>
     </View>
   );
   if (!onPress) return body;

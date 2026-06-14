@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, View, Image, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import {
   Screen,
   VStack,
@@ -11,7 +10,6 @@ import {
   Escudo,
 } from '../../../../components/primitives';
 import {
-  ACCENT,
   Stat,
   StatSeparator,
   Section,
@@ -30,6 +28,7 @@ import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/orga
 import { getVillageMembers } from '@cultuvilla/shared/services/villageMemberService';
 import { getJoinRequestsForVillage } from '@cultuvilla/shared/services/joinRequestService';
 import { getUserProfile } from '@cultuvilla/shared/services/userService';
+import { escudoFullUrl } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { BarrioData, PlaceData } from '@cultuvilla/shared/models/municipality';
 import type { OrganizationData } from '@cultuvilla/shared/models/organization';
@@ -117,16 +116,33 @@ export default function VillageAdminHub() {
       ) : (
         <ScrollView contentContainerClassName="pb-10">
           {/* ── Hero ─────────────────────────────────────────────── */}
+          {/* Image stands alone; escudo + name sit fully below it (never over
+              the photo). Edit is a rounded button beside the name. */}
           {cover ? (
-            <Image source={{ uri: cover }} className="w-full h-40" resizeMode="cover" />
+            <Image source={{ uri: cover }} className="w-full h-56" resizeMode="cover" />
           ) : null}
-          <VStack gap={1} className={`items-center px-4 ${cover ? '-mt-12' : 'pt-4'}`}>
+          <VStack gap={1} className="items-center px-4 pt-5">
             <View className="bg-surface rounded-2xl p-2 shadow-sm">
-              <Escudo url={village?.escudoUrl} size={96} fallbackInitial={village?.name} />
+              <Escudo
+                url={village ? escudoFullUrl(village) : null}
+                size={96}
+                fallbackInitial={village?.name}
+              />
             </View>
-            <Text variant="h2" className="mt-2 text-center">
-              {village?.name}
-            </Text>
+            <HStack gap={2} className="items-center mt-3">
+              <Text variant="h2" numberOfLines={1} className="shrink text-center">
+                {village?.name}
+              </Text>
+              <Pressable
+                onPress={() => router.push(`${base}/community` as never)}
+                accessibilityLabel={t('village.admin.overview.edit')}
+                className="rounded-full bg-accent px-4 py-1.5"
+              >
+                <Text variant="bodySm" tone="onAccent" className="font-medium">
+                  {t('village.admin.overview.edit')}
+                </Text>
+              </Pressable>
+            </HStack>
             <Text tone="muted" variant="bodySm">
               {village?.province}
             </Text>
@@ -138,16 +154,6 @@ export default function VillageAdminHub() {
             >
               {description || t('village.admin.overview.noDescription')}
             </Text>
-            <Pressable
-              onPress={() => router.push(`${base}/community` as never)}
-              accessibilityLabel={t('village.admin.overview.edit')}
-              className="flex-row items-center mt-2"
-            >
-              <Ionicons name="create-outline" size={16} color={ACCENT} />
-              <Text variant="bodySm" style={{ color: ACCENT }} className="ml-1 font-medium">
-                {t('village.admin.overview.edit')}
-              </Text>
-            </Pressable>
           </VStack>
 
           {/* ── Stats ────────────────────────────────────────────── */}

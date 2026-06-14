@@ -42,6 +42,13 @@ const args = process.argv.slice(2);
 const DRY_RUN = args.includes('--dry-run');
 const limitIdx = args.indexOf('--limit');
 const LIMIT = limitIdx >= 0 ? Number.parseInt(args[limitIdx + 1] ?? '0', 10) : 0;
+// --ine 40123,28079 → download only these INE codes (targeted refresh for a
+// few villages instead of the ~8k full crawl).
+const ineIdx = args.indexOf('--ine');
+const INE_FILTER =
+  ineIdx >= 0
+    ? new Set((args[ineIdx + 1] ?? '').split(',').map((s) => s.trim()).filter(Boolean))
+    : null;
 
 // ── SPARQL ────────────────────────────────────────────────────────────────────
 
@@ -159,6 +166,15 @@ async function main() {
   }
   let items = [...byIne.values()];
   console.log(`  After dedupe by INE: ${items.length} unique municipalities.`);
+
+  if (INE_FILTER) {
+    items = items.filter((it) => INE_FILTER.has(it.ine));
+    const missing = [...INE_FILTER].filter((ine) => !byIne.has(ine));
+    console.log(`  --ine applied: ${items.length} match(es).`);
+    if (missing.length) {
+      console.log(`  No Wikidata coat of arms (P94) for INE: ${missing.join(', ')}.`);
+    }
+  }
 
   if (LIMIT > 0) {
     items = items.slice(0, LIMIT);

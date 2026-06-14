@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Text, VStack, HStack, Pressable, Escudo, Button } from '../../components/primitives';
@@ -22,7 +22,10 @@ import {
   getMunicipality,
   getBarrios,
   getPlaces,
+  updateMunicipality,
 } from '@cultuvilla/shared/services/municipalityService';
+import { uploadMunicipalityImage } from '@cultuvilla/shared/services/imageService';
+import { pickImageAsBlob } from '../../lib/images';
 import {
   isVillageAdmin,
   getVillageMembers,
@@ -31,6 +34,10 @@ import { getJoinRequestsForVillage } from '@cultuvilla/shared/services/joinReque
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 import { getMyOrganizerRequests } from '@cultuvilla/shared/services/organizerRequestService';
 import { getUserProfile } from '@cultuvilla/shared/services/userService';
+import {
+  escudoFullUrl,
+  hasManualEscudo,
+} from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { BarrioData, PlaceData } from '@cultuvilla/shared/models/municipality';
 import type { OrganizationData } from '@cultuvilla/shared/models/organization';
@@ -61,8 +68,10 @@ export default function VillageTabScreen() {
   const [places, setPlaces] = useState<Place[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
+  const [peopleCount, setPeopleCount] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pendingOrganizerRequest, setPendingOrganizerRequest] = useState(false);
+  const [uploadingEscudo, setUploadingEscudo] = useState(false);
 
   const activeMunicipalityId = profile?.activeMunicipalityId ?? null;
 
@@ -74,6 +83,7 @@ export default function VillageTabScreen() {
       setPlaces([]);
       setOrganizations([]);
       setPeople([]);
+      setPeopleCount(0);
       setPendingOrganizerRequest(false);
       setLoadError(null);
       return;
@@ -141,6 +151,7 @@ export default function VillageTabScreen() {
       setPlaces(plc);
       setOrganizations(orgs);
       setPeople(resolved);
+      setPeopleCount(members.length + requests.length);
       setPendingOrganizerRequest(
         myReqs.some(
           (r) => r.municipalityId === activeMunicipalityId && r.status === 'pending',
@@ -164,10 +175,30 @@ export default function VillageTabScreen() {
     }, [loadVillage]),
   );
 
+  // Admin-only: pick an image, upload it, and store it as the manual escudo.
+  // It lands in `escudoManualUrl` (not `escudoUrl`), which wins over the
+  // Wikidata escudo at display time and survives `escudos:upload` re-runs.
+  const changeEscudo = useCallback(async () => {
+    if (!activeMunicipalityId) return;
+    const picked = await pickImageAsBlob({ square: true });
+    if (!picked) return;
+    setUploadingEscudo(true);
+    try {
+      const url = await uploadMunicipalityImage(activeMunicipalityId, picked);
+      await updateMunicipality(activeMunicipalityId, { escudoManualUrl: url });
+      await loadVillage();
+    } catch (e) {
+      // mobile-web-compat: native-only — admin surface, not exercised on web
+      Alert.alert(e instanceof Error ? e.message : String(e));
+    } finally {
+      setUploadingEscudo(false);
+    }
+  }, [activeMunicipalityId, loadVillage]);
+
   // AuthGate already waits for `profileChecked`, but guard once more for safety.
   if (!profileChecked) {
     return (
-      <Screen padded={false} topInset={false}>
+      <Screen padded={false} topInset={false} bottomInset={false}>
         <AppHeader />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
@@ -178,7 +209,7 @@ export default function VillageTabScreen() {
 
   if (!activeMunicipalityId) {
     return (
-      <Screen padded={false} topInset={false}>
+      <Screen padded={false} topInset={false} bottomInset={false}>
         <AppHeader />
         <VillageDiscovery />
       </Screen>
@@ -187,7 +218,7 @@ export default function VillageTabScreen() {
 
   if (loadError) {
     return (
-      <Screen padded={false} topInset={false}>
+      <Screen padded={false} topInset={false} bottomInset={false}>
         <AppHeader />
         <View className="flex-1 items-center justify-center px-8">
           <Text tone="danger">{loadError}</Text>
@@ -198,7 +229,7 @@ export default function VillageTabScreen() {
 
   if (!village) {
     return (
-      <Screen padded={false} topInset={false}>
+      <Screen padded={false} topInset={false} bottomInset={false}>
         <AppHeader />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
@@ -209,11 +240,11 @@ export default function VillageTabScreen() {
 
   if (!village.communityActive) {
     return (
-      <Screen padded={false} topInset={false}>
+      <Screen padded={false} topInset={false} bottomInset={false}>
         <AppHeader centerLabel={village.name} />
         <View className="flex-1 items-center justify-center px-8">
           <VStack gap={2} className="items-center">
-            <Escudo url={village.escudoUrl} size={96} fallbackInitial={village.name} />
+            <Escudo url={escudoFullUrl(village)} size={96} fallbackInitial={village.name} />
             <Text variant="h2" className="mt-2 text-center">
               {village.name}
             </Text>
@@ -249,30 +280,61 @@ export default function VillageTabScreen() {
   const cover = village.community?.coverImages?.[0] ?? null;
   const description = village.community?.description?.trim();
 
+  // "Agrupaciones" groups ayuntamiento + asociación; peñas get their own scroll.
+  const penas = organizations.filter((o) => o.type === 'peña');
+  const agrupaciones = organizations.filter((o) => o.type !== 'peña');
+
   return (
-    <Screen padded={false} topInset={false}>
+    <Screen padded={false} topInset={false} bottomInset={false}>
       <AppHeader centerLabel={village.name} />
       <ScrollView contentContainerClassName="pb-10">
         {/* ── Hero ─────────────────────────────────────────────── */}
         {cover ? (
           <Image source={{ uri: cover }} className="w-full h-40" resizeMode="cover" />
         ) : null}
-        <VStack gap={1} className={`items-center px-4 ${cover ? '-mt-12' : 'pt-4'}`}>
-          <View className="bg-surface rounded-2xl p-2 shadow-sm">
-            <Escudo url={village.escudoUrl} size={96} fallbackInitial={village.name} />
-          </View>
-          <Text variant="h2" className="mt-2 text-center">
-            {village.name}
-          </Text>
-          <Text tone="muted" variant="bodySm">
-            {village.province}
-          </Text>
+        {/* Content starts after the cover image — escudo + name sit below it,
+            never overlapping the photo. */}
+        <VStack gap={2} className="px-4 pt-4">
+          <HStack gap={3} className="items-center">
+            <Pressable
+              onPress={changeEscudo}
+              disabled={!canManage || uploadingEscudo}
+              accessibilityLabel={
+                canManage
+                  ? escudoFullUrl(village)
+                    ? t('village.escudo.change')
+                    : t('village.escudo.add')
+                  : undefined
+              }
+              className={`relative bg-surface rounded-2xl shadow-sm ${
+                hasManualEscudo(village) ? '' : 'p-2'
+              }`}
+            >
+              <Escudo
+                url={escudoFullUrl(village)}
+                size={88}
+                fill={hasManualEscudo(village)}
+                fallbackInitial={village.name}
+              />
+              {uploadingEscudo ? (
+                <View className="absolute inset-0 items-center justify-center rounded-2xl bg-black/30">
+                  <ActivityIndicator color="#fff" />
+                </View>
+              ) : null}
+            </Pressable>
+            <VStack gap={0} className="flex-1">
+              <Text variant="h1">{village.name}</Text>
+              <Text tone="muted" variant="bodySm">
+                {village.province}
+              </Text>
+            </VStack>
+          </HStack>
           {description ? (
-            <Text tone="muted" variant="bodySm" className="text-center mt-1" numberOfLines={4}>
+            <Text tone="muted" variant="bodySm">
               {description}
             </Text>
           ) : canManage ? (
-            <Text tone="muted" variant="bodySm" className="text-center mt-1">
+            <Text tone="muted" variant="bodySm">
               {t('village.admin.overview.noDescription')}
             </Text>
           ) : null}
@@ -280,7 +342,7 @@ export default function VillageTabScreen() {
             <Pressable
               onPress={() => router.push(`${base}/community` as never)}
               accessibilityLabel={t('village.admin.overview.edit')}
-              className="flex-row items-center mt-2"
+              className="flex-row items-center"
             >
               <Ionicons name="create-outline" size={16} color={ACCENT} />
               <Text variant="bodySm" style={{ color: ACCENT }} className="ml-1 font-medium">
@@ -292,11 +354,11 @@ export default function VillageTabScreen() {
 
         {/* ── Stats ────────────────────────────────────────────── */}
         <HStack className="items-center justify-center py-5">
-          <Stat value={barrios.length} label={t('village.admin.hub.barrios')} />
+          <Stat value={peopleCount} label={t('village.admin.overview.people')} />
+          <StatSeparator />
+          <Stat value={penas.length} label={t('village.hub.penas')} />
           <StatSeparator />
           <Stat value={places.length} label={t('village.admin.hub.places')} />
-          <StatSeparator />
-          <Stat value={organizations.length} label={t('village.hub.organizations')} />
         </HStack>
 
         {/* ── Personas (members + pending join requests for admins) ─ */}
@@ -362,22 +424,42 @@ export default function VillageTabScreen() {
           ))}
         </Section>
 
-        {/* ── Agrupaciones ─────────────────────────────────────── */}
+        {/* ── Agrupaciones (ayuntamiento + asociación) ─────────── */}
         <Section
           title={t('village.hub.organizations')}
           onManage={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
-          isEmpty={organizations.length === 0}
+          isEmpty={agrupaciones.length === 0}
           emptyLabel={t('village.organizationsList.empty')}
           addLabel={canManage ? t('village.admin.organizations.add') : undefined}
           onAdd={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
         >
-          {organizations.map((o) => (
+          {agrupaciones.map((o) => (
             <EntityCard
               key={o.id}
               label={o.name}
               sub={canManage ? o.status : undefined}
               icon="business-outline"
               imageUri={o.imageURL}
+              onPress={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
+            />
+          ))}
+        </Section>
+
+        {/* ── Peñas ────────────────────────────────────────────── */}
+        <Section
+          title={t('village.hub.penas')}
+          onManage={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
+          isEmpty={penas.length === 0}
+          emptyLabel={t('village.organizationsList.penasEmpty')}
+          addLabel={canManage ? t('village.admin.organizations.add') : undefined}
+          onAdd={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
+        >
+          {penas.map((o) => (
+            <EntityCard
+              key={o.id}
+              label={o.name}
+              sub={canManage ? o.status : undefined}
+              icon="people-circle-outline"
               onPress={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
             />
           ))}

@@ -57,21 +57,10 @@
     "title": "Administración",
     "profileEntry": "Administración",
     "hub": {
-      "activateVillage": "Activar pueblo",
-      "activateVillageHint": "Crear una comunidad en un municipio",
       "organizerRequests": "Solicitudes de organizador",
       "organizerRequestsHint": "Revisar pendientes",
       "occupations": "Ocupaciones",
       "occupationsHint": "Aprobadas y propuestas"
-    },
-    "activate": {
-      "title": "Activar pueblo",
-      "pickMunicipality": "Elige un municipio",
-      "searchPlaceholder": "Buscar municipio…",
-      "description": "Descripción",
-      "submit": "Activar",
-      "success": "Pueblo activado",
-      "alreadyActive": "Este municipio ya tiene comunidad"
     },
     "organizerRequests": {
       "title": "Solicitudes de organizador",
@@ -129,6 +118,8 @@
   },
   "header": {
     "noVillage": "Cultuvilla",
+    "brand": "Cultuvilla",
+    "profile": "Perfil",
     "openMenu": "Abrir menú",
     "openNotifications": "Abrir notificaciones",
     "back": "Volver"
@@ -245,6 +236,11 @@
         "description": "Descripción",
         "images": "Imágenes",
         "addImage": "Añadir imagen",
+        "escudo": "Escudo",
+        "coordinates": "Coordenadas",
+        "latitude": "Latitud",
+        "longitude": "Longitud",
+        "invalidCoordinates": "Coordenadas no válidas",
         "saved": "Guardado"
       },
       "overview": {
@@ -262,6 +258,11 @@
     "censo": {
       "link": "Completar mi censo"
     },
+    "escudo": {
+      "add": "Añadir escudo",
+      "change": "Cambiar escudo",
+      "manual": "Escudo subido por el pueblo"
+    },
     "notRegistered": {
       "body": "Este pueblo aún no está registrado en Cultuvilla. Para que forme parte necesitamos un administrador que active la comunidad y gestione sus eventos, organizaciones y vecinos.",
       "cta": "¿Te gustaría serlo?",
@@ -271,12 +272,14 @@
     "hub": {
       "events": "Eventos",
       "organizations": "Agrupaciones",
+      "penas": "Peñas",
       "censo": "Censo",
       "news": "Anuncios"
     },
     "organizationsList": {
       "title": "Agrupaciones",
-      "empty": "Aún no hay agrupaciones"
+      "empty": "Aún no hay agrupaciones",
+      "penasEmpty": "Aún no hay peñas"
     }
   },
   "villages": {
@@ -296,8 +299,6 @@
     "startDate": "Fecha de inicio",
     "endDate": "Fecha de fin",
     "location": "Ubicación",
-    "price": "Precio",
-    "free": "Gratis",
     "maxAttendees": "Máximo de asistentes",
     "unlimited": "Sin límite",
     "telephoneRequired": "Teléfono requerido",
@@ -425,6 +426,7 @@
     }
   },
   "discover": {
+    "title": "Buscar pueblo",
     "search": "Busca tu pueblo",
     "empty": "No hay pueblos activos todavía",
     "notSeeing": "¿No ves tu pueblo? Cargar todos",
@@ -450,6 +452,10 @@
     },
     "organizer": {
       "title": "Solicitar ser organizador",
+      "descriptionLabel": "Descripción del pueblo",
+      "descriptionPlaceholder": "Cuenta algo sobre tu pueblo…",
+      "coversLabel": "Imágenes de portada (opcional)",
+      "addCover": "Añadir imagen",
       "motivationLabel": "¿Por qué quieres organizar este pueblo?",
       "submit": "Enviar solicitud",
       "submitted": "Solicitud enviada"

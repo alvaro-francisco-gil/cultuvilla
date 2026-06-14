@@ -10,8 +10,6 @@ import {
   orderBy,
   where,
   limit as firestoreLimit,
-  serverTimestamp,
-  writeBatch,
   type UpdateData,
   type DocumentData,
 } from 'firebase/firestore';
@@ -23,13 +21,11 @@ import {
   municipalityBarrioDoc,
   municipalityPlacesCollection,
   municipalityPlaceDoc,
-  municipalityMemberDoc,
 } from '../firebase/refs/client';
 import type {
   MunicipalityData,
   MunicipalityDataInput,
   VillageCommunity,
-  ActivateCommunityInput,
   BarrioData,
   BarrioDataInput,
   PlaceData,
@@ -121,7 +117,17 @@ export async function createMunicipality(input: MunicipalityDataInput): Promise<
 
 export async function updateMunicipality(
   id: string,
-  data: Partial<Pick<MunicipalityData, 'name' | 'province' | 'comunidadAutonoma' | 'codigoINE' | 'coordinates'>>,
+  data: Partial<
+    Pick<
+      MunicipalityData,
+      | 'name'
+      | 'province'
+      | 'comunidadAutonoma'
+      | 'codigoINE'
+      | 'coordinates'
+      | 'escudoManualUrl'
+    >
+  >,
 ): Promise<void> {
   // updateDoc bypasses the converter; use untyped doc + UpdateData<DocumentData>
   // so partial payloads (no required fields, plain values) typecheck.
@@ -134,52 +140,11 @@ export async function deleteMunicipality(id: string): Promise<void> {
 }
 
 // ── Community lifecycle ──────────────────────────────────────────────────
-
-/**
- * Activate a community on a municipality. Atomically:
- *  - sets `community` and `communityActive: true` on the municipality doc
- *  - if `coordinates` provided, updates the municipality's coordinates
- *  - creates a /members/{adminUserId} doc with role=admin
- *
- * The municipality update is batch.update (bypasses the converter, so we can
- * embed serverTimestamp() inside the nested community object). The member
- * doc write is batch.set on a converter-typed ref, so it uses plain Date.
- */
-export async function activateCommunity(
-  municipalityId: string,
-  input: ActivateCommunityInput,
-): Promise<void> {
-  const memberRef = municipalityMemberDoc(getDb(), municipalityId, input.adminUserId);
-
-  const community = {
-    description: input.description,
-    coverImages: input.coverImages ?? [],
-    adminUserId: input.adminUserId,
-    profileForm: null,
-    activatedAt: serverTimestamp(),
-  };
-
-  const batch = writeBatch(getDb());
-  const munUpdate: UpdateData<DocumentData> = {
-    community,
-    communityActive: true,
-  };
-  if (input.coordinates !== undefined) {
-    munUpdate['coordinates'] = input.coordinates;
-  }
-  // batch.update bypasses the converter; pass an untyped ref so the partial +
-  // FieldValue payload typechecks.
-  batch.update(doc(getDb(), 'municipalities', municipalityId), munUpdate);
-  batch.set(memberRef, {
-    userId: input.adminUserId,
-    role: 'admin',
-    joinedAt: new Date(),
-    profileAnswers: {},
-    profileCompletedAt: null,
-    trustedNewsAuthor: false,
-  });
-  await batch.commit();
-}
+//
+// Communities are *created* server-side by the respondToOrganizerRequest
+// Cloud Function (it owns the trust-sensitive role grant + activation), so
+// there is no client-side `activateCommunity`. The functions below only edit
+// or tear down an already-active community.
 
 export async function updateCommunity(
   municipalityId: string,

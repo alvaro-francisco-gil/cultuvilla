@@ -284,7 +284,7 @@ service cloud.firestore {
     function isValidEventCreate(d) {
       return d.keys().hasOnly([
               'title', 'description', 'startDate', 'endDate', 'location',
-              'imageURL', 'price', 'maxAttendees', 'telephoneRequired',
+              'imageURL', 'maxAttendees', 'telephoneRequired',
               'status', 'organizationId', 'organizationName', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'municipalityName',
               'municipalityCoverImage', 'municipalityCoordinates',
@@ -292,7 +292,7 @@ service cloud.firestore {
             ])
           && d.keys().hasAll([
               'title', 'description', 'startDate', 'endDate', 'location',
-              'imageURL', 'price', 'maxAttendees', 'telephoneRequired',
+              'imageURL', 'maxAttendees', 'telephoneRequired',
               'status', 'organizationId', 'organizationName', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'municipalityName',
               'municipalityCoverImage', 'municipalityCoordinates',
@@ -303,7 +303,6 @@ service cloud.firestore {
           && isTimestampOrNull(d.endDate)
           && isMap(d.location)
           && isStringOrNull(d.imageURL)
-          && isNumberOrNull(d.price)
           && isNumberOrNull(d.maxAttendees)
           && isBool(d.telephoneRequired)
           && d.status in ['draft', 'published', 'cancelled', 'completed']
@@ -489,10 +488,14 @@ service cloud.firestore {
 
     match /organizations/{orgId} {
       allow read: if true;
+      // ayuntamiento is a singleton per village — created only via the
+      // requestAyuntamiento callable (admin SDK), which enforces the cap in a
+      // transaction. peña / asociación are unlimited and created client-side.
       allow create: if isAuthenticated()
         && (isVillageMember(request.resource.data.municipalityId) || isAppAdmin())
         && isValidOrganizationCreate(request.resource.data)
-        && request.resource.data.status == 'pending';
+        && request.resource.data.status == 'pending'
+        && request.resource.data.type != 'ayuntamiento';
       allow update: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
       allow delete: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
 

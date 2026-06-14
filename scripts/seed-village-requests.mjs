@@ -207,11 +207,23 @@ async function seedOne(v) {
     );
   }
 
+  // The request now carries the village data (description + cover images), and
+  // approval copies it into the community — so upload covers and resolve the
+  // description up front, before the request exists.
+  const description = typeof v.description === 'string' ? v.description : '';
+  const coverImages = [];
+  if (Array.isArray(v.coverImages)) {
+    for (const ref of v.coverImages) {
+      coverImages.push(await uploadImage(ref, `villages/${muniId}/images`));
+    }
+  }
+
   // Step 1: create the pending request (mirrors requestOrganizeVillage callable).
   let reqRef;
   const pending = existing.docs.find((d) => d.data().status === 'pending');
   if (pending) {
     reqRef = pending.ref;
+    await reqRef.update({ description, coverImages });
     console.log(`[seed-villages]   reusing pending request ${reqRef.id}`);
   } else {
     reqRef = db.collection('organizerRequests').doc();
@@ -219,6 +231,8 @@ async function seedOne(v) {
       ...buildOrganizerRequestData({
         userId: requesterUid,
         municipalityId: muniId,
+        description,
+        coverImages,
         motivation: v.motivation ?? null,
       }),
       seedBatch: SEED_BATCH,
@@ -246,8 +260,8 @@ async function seedOne(v) {
     tx.update(muniRef, {
       communityActive: true,
       community: {
-        description: '',
-        coverImages: [],
+        description: fresh.get('description') ?? '',
+        coverImages: fresh.get('coverImages') ?? [],
         adminUserId: requesterUid,
         profileForm: null,
         activatedAt: FieldValue.serverTimestamp(),
@@ -259,28 +273,6 @@ async function seedOne(v) {
     });
   });
   console.log(`[seed-villages]   approved by ${v.approverEmail} — ${v.name} now active`);
-
-  // Step 3: optional post-activation polish (simulates the new admin filling
-  // in the village's profile after their request landed).
-  await patchCommunityExtras(v, muniId);
-}
-
-async function patchCommunityExtras(v, muniId) {
-  const updates = {};
-  if (typeof v.description === 'string' && v.description.length > 0) {
-    updates['community.description'] = v.description;
-  }
-  if (Array.isArray(v.coverImages) && v.coverImages.length > 0) {
-    const urls = [];
-    for (const ref of v.coverImages) {
-      urls.push(await uploadImage(ref, `villages/${muniId}/images`));
-    }
-    updates['community.coverImages'] = urls;
-  }
-  if (Object.keys(updates).length > 0) {
-    await db.doc(`municipalities/${muniId}`).update(updates);
-    console.log(`[seed-villages]   patched community extras (${Object.keys(updates).join(', ')})`);
-  }
 }
 
 // ── Wipe ─────────────────────────────────────────────────────────────────────

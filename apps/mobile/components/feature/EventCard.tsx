@@ -1,8 +1,4 @@
-import { Pressable } from '../primitives/Pressable';
-import { Card } from '../primitives/Card';
-import { VStack } from '../primitives/VStack';
-import { HStack } from '../primitives/HStack';
-import { Text } from '../primitives/Text';
+import { FeedCard } from './FeedCard';
 import { formatDate } from '@cultuvilla/shared/utils';
 
 /**
@@ -10,12 +6,16 @@ import { formatDate } from '@cultuvilla/shared/utils';
  * Callers using real EventData should map:
  *   startDate  → startDate  (already a Date from mapEventDoc)
  *   organizationName → organizationName
+ *   imageURL → imageURL     (cover image, optional)
  */
 export type EventLike = {
   id: string;
   title: string;
   startDate: Date;
   organizationName: string;
+  imageURL?: string | null;
+  /** Village cover photo, used as the fallback when the event has no image. */
+  municipalityCoverImage?: string | null;
 };
 
 export type EventCardProps = {
@@ -26,16 +26,15 @@ export type EventCardProps = {
 
 export function EventCard({ event, onPress, testID }: EventCardProps) {
   return (
-    <Pressable onPress={() => onPress(event.id)} testID={testID}>
-      <Card>
-        <VStack gap={2}>
-          <Text variant="h3">{event.title}</Text>
-          <HStack gap={2} justify="between">
-            <Text tone="muted">{event.organizationName}</Text>
-            <Text tone="muted">{formatDate(event.startDate, 'short')}</Text>
-          </HStack>
-        </VStack>
-      </Card>
-    </Pressable>
+    <FeedCard
+      imageUri={event.imageURL ?? null}
+      fallbackImageUri={event.municipalityCoverImage ?? null}
+      title={event.title}
+      metaLeft={event.organizationName}
+      metaRight={formatDate(event.startDate, 'short')}
+      fallbackIcon="calendar-outline"
+      onPress={() => onPress(event.id)}
+      testID={testID}
+    />
   );
 }

@@ -1,10 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Image, View } from 'react-native';
-import { Pressable } from '../primitives/Pressable';
-import { Card } from '../primitives/Card';
-import { VStack } from '../primitives/VStack';
-import { HStack } from '../primitives/HStack';
-import { Text } from '../primitives/Text';
+import { FeedCard } from './FeedCard';
 import { useT } from '../../lib/i18n';
 import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
 import { formatDate } from '@cultuvilla/shared/utils';
@@ -25,27 +20,29 @@ export type NewsLike = {
 
 export type NewsCardProps = {
   post: NewsLike;
+  /** Village cover photo, used as the fallback when the post has no image. */
+  fallbackImageUri?: string | null;
   onPress: (id: string) => void;
   testID?: string;
 };
 
-export function NewsCard({ post, onPress, testID }: NewsCardProps) {
+export function NewsCard({ post, fallbackImageUri = null, onPress, testID }: NewsCardProps) {
   const { t } = useT();
-  const [thumbUrl, setThumbUrl] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const firstImagePath = post.images[0]?.storagePath ?? null;
   useEffect(() => {
     let cancelled = false;
     if (!firstImagePath) {
-      setThumbUrl(null);
+      setImageUrl(null);
       return;
     }
     newsImageDownloadURL(firstImagePath)
       .then((url) => {
-        if (!cancelled) setThumbUrl(url);
+        if (!cancelled) setImageUrl(url);
       })
       .catch(() => {
-        if (!cancelled) setThumbUrl(null);
+        if (!cancelled) setImageUrl(null);
       });
     return () => {
       cancelled = true;
@@ -55,27 +52,15 @@ export function NewsCard({ post, onPress, testID }: NewsCardProps) {
   const date = post.publishedAt ?? post.submittedAt;
 
   return (
-    <Pressable onPress={() => onPress(post.id)} testID={testID}>
-      <Card>
-        <HStack gap={3} justify="between">
-          <VStack gap={2} className="flex-1">
-            <Text variant="h3">{post.title}</Text>
-            <HStack gap={2} justify="between">
-              <Text tone="muted">{t(`news.compose.category.${post.category}`)}</Text>
-              <Text tone="muted">{formatDate(date, 'short')}</Text>
-            </HStack>
-          </VStack>
-          {thumbUrl ? (
-            <Image
-              source={{ uri: thumbUrl }}
-              style={{ width: 56, height: 56, borderRadius: 8 }}
-              accessibilityIgnoresInvertColors
-            />
-          ) : (
-            <View />
-          )}
-        </HStack>
-      </Card>
-    </Pressable>
+    <FeedCard
+      imageUri={imageUrl}
+      fallbackImageUri={fallbackImageUri}
+      title={post.title}
+      metaLeft={t(`news.compose.category.${post.category}`)}
+      metaRight={formatDate(date, 'short')}
+      fallbackIcon="newspaper-outline"
+      onPress={() => onPress(post.id)}
+      testID={testID}
+    />
   );
 }

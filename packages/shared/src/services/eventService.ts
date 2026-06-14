@@ -74,7 +74,6 @@ export async function createEvent(input: EventDataInput): Promise<string> {
     endDate: input.endDate ?? null,
     location: input.location,
     imageURL: input.imageURL ?? null,
-    price: input.price ?? null,
     maxAttendees: input.maxAttendees ?? null,
     telephoneRequired: input.telephoneRequired ?? false,
     status: input.status ?? 'draft',

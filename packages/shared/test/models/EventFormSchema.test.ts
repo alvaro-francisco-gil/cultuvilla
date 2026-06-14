@@ -8,7 +8,6 @@ describe('EventFormSchema', () => {
     startDate: '2026-08-15T20:00',
     endDate: '',
     locationText: '',
-    price: '',
     maxAttendees: '',
     telephoneRequired: false,
   };
@@ -21,7 +20,6 @@ describe('EventFormSchema', () => {
     expect(result.data.startDate).toBeInstanceOf(Date);
     expect(result.data.endDate).toBeNull();
     expect(result.data.locationText).toBeNull();
-    expect(result.data.price).toBeNull();
     expect(result.data.maxAttendees).toBeNull();
     expect(result.data.telephoneRequired).toBe(false);
   });
@@ -40,18 +38,6 @@ describe('EventFormSchema', () => {
     if (result.success) return;
     const err = result.error.issues.find((i) => i.path[0] === 'startDate');
     expect(err).toBeDefined();
-  });
-
-  it('coerces price string to number', () => {
-    const result = EventFormSchema.safeParse({ ...validBase, price: '15.50' });
-    expect(result.success).toBe(true);
-    if (!result.success) return;
-    expect(result.data.price).toBe(15.5);
-  });
-
-  it('rejects a negative price', () => {
-    const result = EventFormSchema.safeParse({ ...validBase, price: '-5' });
-    expect(result.success).toBe(false);
   });
 
   it('coerces maxAttendees string to integer', () => {

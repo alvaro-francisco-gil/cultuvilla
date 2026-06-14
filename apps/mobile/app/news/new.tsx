@@ -107,8 +107,9 @@ export default function NewNewsScreen() {
     );
   }
 
+  // bottomInset={false}: the ScrollView below applies insets.bottom itself.
   return (
-    <Screen padded={false}>
+    <Screen padded={false} bottomInset={false}>
       <ScreenHeader title={t('news.compose.title')} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}

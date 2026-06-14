@@ -347,6 +347,16 @@ describe('shape enforcement — /organizations/{orgId}', () => {
       setDoc(doc(alice, 'organizations/o1'), { ...validOrg, type: 'corporation' }),
     );
   });
+
+  // ayuntamiento is a singleton per village; clients can't create one directly —
+  // it goes through the requestAyuntamiento callable, which enforces the cap.
+  it('rejects a client-side ayuntamiento create', async () => {
+    await seedMember('m1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertFails(
+      setDoc(doc(alice, 'organizations/o-ayto'), { ...validOrg, type: 'ayuntamiento' }),
+    );
+  });
 });
 
 describe('shape enforcement — /events/{eventId}', () => {
@@ -357,7 +367,6 @@ describe('shape enforcement — /events/{eventId}', () => {
     endDate: null,
     location: { type: 'text', coordinates: null, text: 'Plaza' },
     imageURL: null,
-    price: null,
     maxAttendees: null,
     telephoneRequired: false,
     status: 'published' as const,

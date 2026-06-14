@@ -11,7 +11,6 @@ export const EventDataSchema = z.object({
   endDate: z.date().nullable(),
   location: LocationDataSchema,
   imageURL: z.string().nullable(),
-  price: z.number().nullable(),
   maxAttendees: z.number().int().nullable(),
   telephoneRequired: z.boolean(),
   status: EventStatusSchema,
@@ -36,7 +35,6 @@ export interface EventDataInput {
   endDate?: Date | null;
   location: z.infer<typeof LocationDataSchema>;
   imageURL?: string | null;
-  price?: number | null;
   maxAttendees?: number | null;
   telephoneRequired?: boolean;
   status?: EventStatus;
@@ -60,7 +58,6 @@ export function buildEventData(input: EventDataInput): EventData {
     endDate: input.endDate ?? null,
     location: input.location,
     imageURL: input.imageURL ?? null,
-    price: input.price ?? null,
     maxAttendees: input.maxAttendees ?? null,
     telephoneRequired: input.telephoneRequired ?? false,
     status: input.status ?? 'draft',

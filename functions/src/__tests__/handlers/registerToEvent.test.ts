@@ -24,7 +24,6 @@ async function seedEvent(opts: { maxAttendees: number | null }): Promise<void> {
     endDate: null,
     location: { type: 'text', coordinates: null, text: 'plaza' },
     imageURL: null,
-    price: null,
     maxAttendees: opts.maxAttendees,
     telephoneRequired: false,
     status: 'published',
