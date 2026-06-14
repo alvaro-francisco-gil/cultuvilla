@@ -34,7 +34,15 @@ export function Screen({
   bottomInset = true,
   testID,
 }: ScreenProps) {
-  const contentClass = padded ? 'flex-1 bg-surface p-4' : 'flex-1 bg-surface';
+  const paddingClass = padded ? 'p-4' : '';
+  // A View fills with `flex-1`. A ScrollView must NOT put `flex-1` on its
+  // content container — that locks the content to the viewport height so there
+  // is nothing to overflow and the screen won't scroll (silently broken on
+  // web). Use `grow` (flex-grow) on the content container instead: it still
+  // fills the surface for short content but lets long content overflow + scroll.
+  const viewClass = `flex-1 bg-surface ${paddingClass}`.trim();
+  const scrollClass = 'flex-1 bg-surface';
+  const scrollContentClass = `grow bg-surface ${paddingClass}`.trim();
   const Inner = scroll ? ScrollView : View;
   const edges: Edge[] = ['left', 'right'];
   if (topInset) edges.unshift('top');
@@ -42,9 +50,9 @@ export function Screen({
   return (
     <SafeAreaView className="flex-1 bg-surface" edges={edges}>
       <Inner
-        className={contentClass}
+        className={scroll ? scrollClass : viewClass}
         testID={testID}
-        {...(scroll ? { contentContainerClassName: contentClass } : {})}
+        {...(scroll ? { contentContainerClassName: scrollContentClass } : {})}
       >
         {children}
       </Inner>
