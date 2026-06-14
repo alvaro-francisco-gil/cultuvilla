@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { AppHeader } from '../../components/layout/AppHeader';
+import { StatusBar } from 'expo-status-bar';
 import { Screen } from '../../components/primitives/Screen';
 import { Text } from '../../components/primitives/Text';
 import { VStack } from '../../components/primitives/VStack';
 import { HStack } from '../../components/primitives/HStack';
 import { DetailHeroImage } from '../../components/feature/DetailHeroImage';
+import { FloatingBackButton } from '../../components/feature/FloatingBackButton';
 import { useT } from '../../lib/i18n';
 import { getNewsPost } from '@cultuvilla/shared/services/newsService';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
@@ -76,21 +77,22 @@ export default function NewsDetailScreen() {
   const date = post ? (post.publishedAt ?? post.submittedAt) : null;
 
   return (
-    <Screen padded={false}>
-      <AppHeader centerLabel={post?.title ?? 'Noticia'} />
+    <Screen padded={false} topInset={false}>
+      <StatusBar style="light" translucent backgroundColor="transparent" />
+      {!post ? <FloatingBackButton /> : null}
       <ScrollView>
         {loading ? (
-          <VStack className="p-4">
+          <VStack className="p-4 pt-16">
             <ActivityIndicator />
           </VStack>
         ) : null}
         {error ? (
-          <VStack className="p-4">
+          <VStack className="p-4 pt-16">
             <Text tone="danger">{error}</Text>
           </VStack>
         ) : null}
         {!loading && !post && !error ? (
-          <VStack className="p-4">
+          <VStack className="p-4 pt-16">
             <Text>No encontrada.</Text>
           </VStack>
         ) : null}

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { Screen } from '../../components/primitives/Screen';
 import { VStack } from '../../components/primitives/VStack';
 import { Text } from '../../components/primitives/Text';
 import { RegisterButton } from '../../components/feature/RegisterButton';
 import { DetailHeroImage } from '../../components/feature/DetailHeroImage';
-import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { FloatingBackButton } from '../../components/feature/FloatingBackButton';
 import { useAuth } from '../../lib/auth/useAuth';
 import { getEvent } from '@cultuvilla/shared/services/eventService';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
@@ -45,11 +46,12 @@ export default function EventDetailScreen() {
 
   if (!event) {
     return (
-      <Screen padded={false}>
-        <ScreenHeader />
+      <Screen padded={false} topInset={false}>
+        <StatusBar style="light" translucent backgroundColor="transparent" />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
         </View>
+        <FloatingBackButton />
       </Screen>
     );
   }
@@ -57,8 +59,8 @@ export default function EventDetailScreen() {
   const personName = person ? buildDisplayName(person) : '';
 
   return (
-    <Screen padded={false}>
-      <ScreenHeader title={event.title} />
+    <Screen padded={false} topInset={false}>
+      <StatusBar style="light" translucent backgroundColor="transparent" />
       <ScrollView>
       <DetailHeroImage
         imageUri={event.imageURL}
