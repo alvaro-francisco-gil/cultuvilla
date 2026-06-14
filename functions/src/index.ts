@@ -1,5 +1,6 @@
-import * as admin from 'firebase-admin';
-admin.initializeApp();
+// Must be the first import: initializes the Admin SDK before any handler module
+// (which call getFirestore() at top-level) evaluates. See initApp.ts.
+import './initApp';
 
 // Events
 export { registerToEvent } from './events/registerToEvent';
