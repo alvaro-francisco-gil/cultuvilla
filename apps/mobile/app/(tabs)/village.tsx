@@ -280,6 +280,9 @@ export default function VillageTabScreen() {
 
   const canManage = isAppAdmin || villageAdmin;
   const base = `/village/${village.id}/admin` as const;
+  // Member-accessible base for the shared propose-pending surfaces (barrios,
+  // places): any villager can open these to propose; organizers manage there.
+  const villageBase = `/village/${village.id}` as const;
   const cover = village.community?.coverImages?.[0] ?? null;
   const description = village.community?.description?.trim();
 
@@ -425,19 +428,20 @@ export default function VillageTabScreen() {
         {/* ── Barrios ──────────────────────────────────────────── */}
         <Section
           title={t('village.admin.hub.barrios')}
-          onManage={canManage ? () => router.push(`${base}/barrios` as never) : undefined}
+          onManage={() => router.push(`${villageBase}/barrios` as never)}
           isEmpty={barrios.length === 0}
           emptyLabel={t('village.admin.barrios.empty')}
-          addLabel={canManage ? t('village.admin.barrios.add') : undefined}
-          onAdd={canManage ? () => router.push(`${base}/barrios` as never) : undefined}
+          addLabel={canManage ? t('village.admin.barrios.add') : t('village.proposals.propose')}
+          onAdd={() => router.push(`${villageBase}/barrios` as never)}
         >
           {barrios.map((b) => (
             <EntityCard
               key={b.id}
               label={b.name}
+              sub={b.status === 'pending' ? t('village.proposals.pending') : undefined}
               icon="map-outline"
               imageUri={b.imageURL}
-              onPress={canManage ? () => router.push(`${base}/barrios` as never) : undefined}
+              onPress={() => router.push(`${villageBase}/barrios` as never)}
             />
           ))}
         </Section>
@@ -445,19 +449,20 @@ export default function VillageTabScreen() {
         {/* ── Lugares ──────────────────────────────────────────── */}
         <Section
           title={t('village.admin.hub.places')}
-          onManage={canManage ? () => router.push(`${base}/places` as never) : undefined}
+          onManage={() => router.push(`${villageBase}/places` as never)}
           isEmpty={places.length === 0}
           emptyLabel={t('village.admin.places.empty')}
-          addLabel={canManage ? t('village.admin.places.add') : undefined}
-          onAdd={canManage ? () => router.push(`${base}/places` as never) : undefined}
+          addLabel={canManage ? t('village.admin.places.add') : t('village.proposals.propose')}
+          onAdd={() => router.push(`${villageBase}/places` as never)}
         >
           {places.map((p) => (
             <EntityCard
               key={p.id}
               label={p.name}
+              sub={p.status === 'pending' ? t('village.proposals.pending') : undefined}
               icon="location-outline"
               imageUri={p.imageURL}
-              onPress={canManage ? () => router.push(`${base}/places` as never) : undefined}
+              onPress={() => router.push(`${villageBase}/places` as never)}
             />
           ))}
         </Section>
