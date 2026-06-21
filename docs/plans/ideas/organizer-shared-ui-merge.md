@@ -21,12 +21,13 @@ The codebase already has a clean precedent for "anyone proposes, organizer commi
 
 Remove the `/village/[villageId]/admin/` route group entirely. Management happens on the shared village screens. You are never routed *to* management; you are already on the screen and the affordances differ by role. This is what makes "Gestionar" disappear.
 
-Every screen falls into exactly one of three interaction patterns:
+Every screen falls into one of three interaction patterns:
 
 | Pattern | Villager | Organizer | Domains |
 |---|---|---|---|
 | **Propose-pending** | Add → creates a `pending` item visible to all; can edit/withdraw their own pending item | Add → commits live; taps any `pending` item to accept/reject; edits live items directly | Places, Barrios, Organizations |
 | **Role-mode** | Consumes: answers census / views header | Authors: edits census schema / edits header in place | Census, Community header |
+| **Shared view + drill-in console** | Views the detail screen and acts (registers for an event) | Same screen reveals light inline affordances + an entry into a dedicated organizer-only management console | Events |
 
 A capability layer, **not** a generic mega-component. A `useEntityCapabilities(municipalityId)` hook answers *can I commit directly? can I approve? is this my own pending item?* A small set of presentational primitives — `PendingBadge`, `AddAffordance`, `ApproveRejectActions`, own-pending `Edit`/`Withdraw` — compose into each screen. We deliberately avoid a config-driven `<ProposableList>`: places/barrios/orgs have different item shapes and census/community are not lists, so a single component would force-fit them.
 
@@ -99,9 +100,40 @@ One shared header, branching on `isVillageAdmin`:
 
 This removes the two duplicate "Edit" entry points (village-tab pencil + admin hero) — there is one header, edited in place.
 
+### Events: shared detail + organize console (hybrid)
+
+The event detail screen (`event/[eventId].tsx`) stays the single shared screen for everyone: title, description, date, location, the **public** attendee/waitlist list, and the register ("asistir") button. Registration stays **instant** — confirmed, or waitlisted if at `maxAttendees`, via the existing `registerToEvent` callable. Events have **no approval/request queue**; "organizing" an event is management, not moderation.
+
+Organizer of an event = `isOrgMember(event.organizationId) || isVillageAdmin(municipalityId) || isAppAdmin()` (matches the existing event update/delete rules — note this is a *different* axis from village-admin: a peña member who is not a village admin still organizes their own org's events). Determined client-side via `getOrgMembershipsByUserInMunicipality(uid, municipalityId, [organizationId])` plus the admin checks.
+
+For an organizer the shared detail screen reveals (light, inline):
+
+- Edit pencils on the editable fields (title / description / date / location / capacity / image) writing through the existing `updateEvent` service.
+- A cancel-event control (`status:'cancelled'`).
+- An **"Organize this event"** entry → the dedicated console.
+
+The dedicated **`/event/[eventId]/organize` console** (organizer-only route) holds the roster-heavy management:
+
+- Attendee + waitlist roster: names, member badge, confirmed/waitlist, count vs `maxAttendees`. **Organizer-only phone numbers** (see constraint below).
+- **Check-in** — *greenfield*: a `checkedInAt: Date | null` on the registration doc + a per-attendee toggle.
+- **Manual walk-in add** — *greenfield, explicitly required*: an organizer-created registration that does **not** require a real `userId`/`personId`, routed through the same server-side capacity/waitlist logic.
+- **Remove a registration** (no-show / duplicate) — *rules tweak*: delete is currently self-only; extend to organizer.
+- Cancel / mark `completed`.
+
+**Drop the `draft` status.** Creating an event writes `status:'published'` directly; the current `draft` state is unreachable (no publish UI exists). `status` enum becomes `published | cancelled | completed`. Event-create validation drops `draft`.
+
+Model / rules deltas for events:
+
+- Registration model gains `checkedInAt: Date | null`.
+- **Phone privacy:** Firestore rules are document-level — you cannot make a single field of a public doc private. The attendee roster stays `read: true`, so the phone (captured when the event has `telephoneRequired`) must live in a **separately-gated** doc, e.g. `events/{eventId}/registrationContacts/{regId}`, readable only by `isOrgMember(...) || isVillageAdmin || isAppAdmin`. Not as a field on the public registration doc.
+- Registration `delete` rule extended from self-only to also allow `isOrgMember(event org) || isVillageAdmin || isAppAdmin`.
+- Walk-in path: a registration shape that represents an organizer-added attendee without an auth account.
+
+The cheap core (edit + cancel + public roster + delete) and the heavier greenfield items (check-in, walk-in, organizer-gated phones) can split into separate plan stages — the heavy three could be a v2 if the first cut needs to land fast.
+
 ### Net result
 
-The village screens (header, people/members, places, barrios, organizations, census) become the only surface. `/admin/` is deleted. Organizer = the same screens with extra inline affordances driven by `useEntityCapabilities`.
+The village screens (header, people/members, places, barrios, organizations, census) become the only surface. `/admin/` is deleted. Organizer = the same screens with extra inline affordances driven by `useEntityCapabilities`. Events follow the same spirit — one shared detail screen — with a single organizer-only drill-in route (`/event/[eventId]/organize`) for roster-heavy management that would otherwise bloat the public screen.
 
 ## Out of scope (handled elsewhere / deferred)
 
@@ -115,3 +147,6 @@ The village screens (header, people/members, places, barrios, organizations, cen
 - Exact placement of the (now minimal) organizer-only bits once join-approval and multi-token are gone — likely nothing organizer-only-without-a-public-equivalent remains on the People screen, but confirm when that screen is built.
 - Whether `proposedBy` backfill sentinel for legacy admin-created places/barrios should be a real admin uid or a reserved constant (affects whether `isOwnPending` could ever match legacy rows — a reserved non-uid constant is safer).
 - Whether organizations need any UI change at all beyond adopting the shared primitives, since their data model + rules already fit the pattern.
+- Where the attendee phone is captured today (the registration doc has no phone field) — registration-time capture into the gated `registrationContacts` doc is the assumption, but confirm whether `telephoneRequired` collects a phone anywhere currently.
+- Walk-in attendee representation: a sentinel/null `userId` on the registration vs. a distinct shape — affects the roster query, the capacity logic, and waitlist promotion.
+- Whether check-in / walk-in / organizer-gated phones ship in v1 or as a v2 stage after edit + roster + cancel + delete.
