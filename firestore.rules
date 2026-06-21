@@ -281,6 +281,46 @@ service cloud.firestore {
           && isStringOrNull(d.approvedOccupationId);
     }
 
+    function isValidPlaceProposalCreate(d) {
+      return d.keys().hasOnly([
+              'name', 'kind', 'description', 'municipalityId', 'imageURL',
+              'createdAt', 'status', 'proposedBy', 'approvedBy', 'decidedAt',
+            ])
+          && d.keys().hasAll([
+              'name', 'kind', 'description', 'municipalityId', 'imageURL',
+              'createdAt', 'status', 'proposedBy', 'approvedBy', 'decidedAt',
+            ])
+          && isString(d.name)
+          && d.kind in ['cemetery', 'church', 'hermitage', 'plaza', 'town_hall']
+          && isStringOrNull(d.description)
+          && isString(d.municipalityId)
+          && isStringOrNull(d.imageURL)
+          && isTimestamp(d.createdAt)
+          && d.status in ['pending', 'approved', 'rejected']
+          && isStringOrNull(d.proposedBy)
+          && isStringOrNull(d.approvedBy)
+          && isTimestampOrNull(d.decidedAt);
+    }
+
+    function isValidBarrioProposalCreate(d) {
+      return d.keys().hasOnly([
+              'name', 'municipalityId', 'imageURL', 'createdAt',
+              'status', 'proposedBy', 'approvedBy', 'decidedAt',
+            ])
+          && d.keys().hasAll([
+              'name', 'municipalityId', 'imageURL', 'createdAt',
+              'status', 'proposedBy', 'approvedBy', 'decidedAt',
+            ])
+          && isString(d.name)
+          && isString(d.municipalityId)
+          && isStringOrNull(d.imageURL)
+          && isTimestamp(d.createdAt)
+          && d.status in ['pending', 'approved', 'rejected']
+          && isStringOrNull(d.proposedBy)
+          && isStringOrNull(d.approvedBy)
+          && isTimestampOrNull(d.decidedAt);
+    }
+
     function isValidEventCreate(d) {
       return d.keys().hasOnly([
               'title', 'description', 'startDate', 'endDate', 'location',
@@ -424,14 +464,47 @@ service cloud.firestore {
       allow update: if isAppAdmin() || isVillageAdmin(municipalityId);
       allow delete: if isAppAdmin();
 
+      // Propose-pending: any village member may create a `pending` barrio
+      // (visible to all); organizers (village/app admin) create directly and
+      // approve/reject. A proposer may edit/withdraw their own still-pending one.
       match /barrios/{barrioId} {
         allow read: if true;
-        allow write: if isAppAdmin();
+        allow create: if isAppAdmin()
+          || isVillageAdmin(municipalityId)
+          || (
+               isVillageMember(municipalityId)
+               && isValidBarrioProposalCreate(request.resource.data)
+               && request.resource.data.status == 'pending'
+               && request.resource.data.proposedBy == request.auth.uid
+             );
+        allow update: if isVillageAdmin(municipalityId) || isAppAdmin()
+          || (
+               isOwner(resource.data.proposedBy)
+               && resource.data.status == 'pending'
+               && request.resource.data.status == 'pending'
+             );
+        allow delete: if isVillageAdmin(municipalityId) || isAppAdmin()
+          || (isOwner(resource.data.proposedBy) && resource.data.status == 'pending');
       }
 
       match /places/{placeId} {
         allow read: if true;
-        allow write: if isAppAdmin();
+        allow create: if isAppAdmin()
+          || isVillageAdmin(municipalityId)
+          || (
+               isVillageMember(municipalityId)
+               && isValidPlaceProposalCreate(request.resource.data)
+               && request.resource.data.status == 'pending'
+               && request.resource.data.proposedBy == request.auth.uid
+             );
+        allow update: if isVillageAdmin(municipalityId) || isAppAdmin()
+          || (
+               isOwner(resource.data.proposedBy)
+               && resource.data.status == 'pending'
+               && request.resource.data.status == 'pending'
+             );
+        allow delete: if isVillageAdmin(municipalityId) || isAppAdmin()
+          || (isOwner(resource.data.proposedBy) && resource.data.status == 'pending');
       }
 
       match /members/{userId} {
