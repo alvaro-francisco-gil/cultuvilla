@@ -70,11 +70,11 @@ export default function ProfileScreen() {
       const distinctEvents = new Set(regs.map((r) => r.eventPath));
       setParticipations(distinctEvents.size);
 
-      const memberships = await withFirestoreErrorLog('profile:getUserMemberships', () =>
+      const villageMemberships = await withFirestoreErrorLog('profile:getUserMemberships', () =>
         getUserMemberships(user.uid),
       );
       const villageRows = await Promise.all(
-        memberships.map(async (m) => {
+        villageMemberships.map(async (m) => {
           const muni = await withFirestoreErrorLog('profile:getMunicipality', () =>
             getMunicipality(m.municipalityId),
           );
