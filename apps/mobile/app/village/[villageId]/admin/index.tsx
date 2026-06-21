@@ -259,11 +259,6 @@ export default function VillageAdminHub() {
               label={t('village.admin.hub.censo')}
               onPress={() => router.push(`${base}/censo` as never)}
             />
-            <SettingsLink
-              icon="link-outline"
-              label={t('village.admin.hub.invites')}
-              onPress={() => router.push(`${base}/invite-tokens` as never)}
-            />
           </VStack>
         </ScrollView>
       )}

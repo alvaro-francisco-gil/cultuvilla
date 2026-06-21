@@ -17,12 +17,14 @@ const RESOURCE_TO_PATH: Record<DeepLinkResource, string> = {
   organization: 'o',
 };
 
-const RESOURCE_TO_KIND: Record<DeepLinkResource, LinkKind> = {
-  event: 'content',
-  news: 'content',
-  village: 'invite',
-  organization: 'invite',
+const SUPPORTS_INVITE: Record<DeepLinkResource, boolean> = {
+  event: false,
+  news: false,
+  village: true,
+  organization: true,
 };
+
+const INVITE_SUFFIX = 'join';
 
 export function getDeepLinkHost(): string {
   const extra = Constants.expoConfig?.extra ?? {};
@@ -35,23 +37,34 @@ export function getDeepLinkHost(): string {
   return host;
 }
 
-function buildLink(resource: DeepLinkResource, id: string): DeepLink {
+function buildLink(resource: DeepLinkResource, id: string, kind: LinkKind): DeepLink {
   if (!id) throw new Error(`deepLinkService: id is required for ${resource}`);
+  if (kind === 'invite' && !SUPPORTS_INVITE[resource]) {
+    throw new Error(`deepLinkService: ${resource} does not have an invite link`);
+  }
   const host = getDeepLinkHost();
   const path = RESOURCE_TO_PATH[resource];
+  const suffix = kind === 'invite' ? `/${INVITE_SUFFIX}` : '';
   return {
-    url: `https://${host}/${path}/${id}`,
-    kind: RESOURCE_TO_KIND[resource],
+    url: `https://${host}/${path}/${id}${suffix}`,
+    kind,
     resource,
     id,
   };
 }
 
-export const getEventLink = (eventId: string): DeepLink => buildLink('event', eventId);
-export const getNewsLink = (newsId: string): DeepLink => buildLink('news', newsId);
+export const getEventLink = (eventId: string): DeepLink => buildLink('event', eventId, 'content');
+export const getNewsLink = (newsId: string): DeepLink => buildLink('news', newsId, 'content');
+
+export const getVillageViewLink = (villageId: string): DeepLink =>
+  buildLink('village', villageId, 'content');
 export const getVillageInviteLink = (villageId: string): DeepLink =>
-  buildLink('village', villageId);
-export const getOrgInviteLink = (orgId: string): DeepLink => buildLink('organization', orgId);
+  buildLink('village', villageId, 'invite');
+
+export const getOrgViewLink = (orgId: string): DeepLink =>
+  buildLink('organization', orgId, 'content');
+export const getOrgInviteLink = (orgId: string): DeepLink =>
+  buildLink('organization', orgId, 'invite');
 
 export interface ParsedDeepLink {
   kind: LinkKind;
@@ -69,11 +82,20 @@ const PATH_TO_RESOURCE: { readonly [path: string]: DeepLinkResource | undefined 
 const SCHEME = 'cultuvilla';
 
 function interpret(segments: string[]): ParsedDeepLink | null {
-  if (segments.length !== 2) return null;
-  const [pathSegment, id] = segments as [string, string];
-  const resource = PATH_TO_RESOURCE[pathSegment];
-  if (!resource) return null;
-  return { kind: RESOURCE_TO_KIND[resource], resource, id };
+  if (segments.length === 2) {
+    const [pathSegment, id] = segments as [string, string];
+    const resource = PATH_TO_RESOURCE[pathSegment];
+    if (!resource) return null;
+    return { kind: 'content', resource, id };
+  }
+  if (segments.length === 3) {
+    const [pathSegment, id, suffix] = segments as [string, string, string];
+    if (suffix !== INVITE_SUFFIX) return null;
+    const resource = PATH_TO_RESOURCE[pathSegment];
+    if (!resource || !SUPPORTS_INVITE[resource]) return null;
+    return { kind: 'invite', resource, id };
+  }
+  return null;
 }
 
 export function parseLink(input: string): ParsedDeepLink | null {
@@ -98,5 +120,6 @@ export type DeepLinkTranslate = (
 ) => string;
 
 export function buildShareMessage(link: DeepLink, t: DeepLinkTranslate): string {
-  return t(`deeplink.share.${link.resource}`, { url: link.url });
+  const kindKey = link.kind === 'invite' ? 'invite' : 'view';
+  return t(`deeplink.share.${link.resource}.${kindKey}`, { url: link.url });
 }

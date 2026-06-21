@@ -168,6 +168,7 @@
     "title": "Pueblos",
     "join": "Unirme a este pueblo",
     "signInToJoin": "Inicia sesión para unirte",
+    "invitedBanner": "Te han invitado a unirte a este pueblo",
     "events": {
       "label": "Eventos",
       "empty": "No hay eventos en este pueblo"
@@ -334,6 +335,7 @@
     "membersCount": "{count} miembros",
     "join": "Unirme a esta organización",
     "signInToJoin": "Inicia sesión para unirte",
+    "invitedBanner": "Te han invitado a unirte a esta organización",
     "name": "Nombre",
     "type": "Tipo",
     "ayuntamiento": "Ayuntamiento",
@@ -527,10 +529,18 @@
   },
   "deeplink": {
     "share": {
-      "event": "Te invito a este evento en Cultuvilla: {url}",
-      "news": "Mira esta noticia en Cultuvilla: {url}",
-      "village": "Te invito a este pueblo en Cultuvilla: {url}",
-      "organization": "Te invito a esta organización en Cultuvilla: {url}"
-    }
+      "event": { "view": "Mira este evento en Cultuvilla: {url}" },
+      "news": { "view": "Mira esta noticia en Cultuvilla: {url}" },
+      "village": {
+        "view": "Mira este pueblo en Cultuvilla: {url}",
+        "invite": "Te invito a unirte a este pueblo en Cultuvilla: {url}"
+      },
+      "organization": {
+        "view": "Mira esta organización en Cultuvilla: {url}",
+        "invite": "Te invito a unirte a esta organización en Cultuvilla: {url}"
+      }
+    },
+    "shareViewLabel": "Compartir",
+    "shareInviteLabel": "Invitar a unirse"
   }
 }

@@ -17,7 +17,8 @@ function route(url: string): void {
   const parsed = parseLink(url);
   if (!parsed) return;
   const segment = RESOURCE_TO_ROUTE[parsed.resource];
-  router.replace(`/${segment}/${parsed.id}` as never);
+  const inviteQuery = parsed.kind === 'invite' ? '?intent=join' : '';
+  router.replace(`/${segment}/${parsed.id}${inviteQuery}` as never);
 }
 
 export function useDeepLinkRouter(): void {

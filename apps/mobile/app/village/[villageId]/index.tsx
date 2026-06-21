@@ -6,6 +6,7 @@ import type { ComponentProps } from 'react';
 import { AppHeader } from '../../../components/layout/AppHeader';
 import { router } from 'expo-router';
 import { Screen } from '../../../components/primitives/Screen';
+import { HStack } from '../../../components/primitives/HStack';
 import { VStack } from '../../../components/primitives/VStack';
 import { Text } from '../../../components/primitives/Text';
 import { Escudo } from '../../../components/primitives/Escudo';
@@ -13,6 +14,7 @@ import { EventCard } from '../../../components/feature/EventCard';
 import { useT } from '../../../lib/i18n';
 import { useAuth } from '../../../lib/auth/useAuth';
 import { useIsAppAdmin } from '../../../lib/auth/useIsAppAdmin';
+import { useShareDeepLink } from '../../../lib/deeplink/useShareDeepLink';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { getEventsByMunicipality } from '@cultuvilla/shared/services/eventService';
 import {
@@ -20,6 +22,10 @@ import {
   isVillageMember,
   addVillageMember,
 } from '@cultuvilla/shared/services/villageMemberService';
+import {
+  getVillageViewLink,
+  getVillageInviteLink,
+} from '@cultuvilla/shared/services/deepLinkService';
 import { escudoFullUrl } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { EventData } from '@cultuvilla/shared/models/event/EventDataModel';
@@ -28,10 +34,12 @@ type Village = MunicipalityData & { id: string };
 type Event = EventData & { id: string };
 
 export default function VillageHome() {
-  const { villageId } = useLocalSearchParams<{ villageId: string }>();
+  const { villageId, intent } = useLocalSearchParams<{ villageId: string; intent?: string }>();
+  const arrivedViaInvite = intent === 'join';
   const { t } = useT();
   const { user } = useAuth();
   const { isAppAdmin } = useIsAppAdmin();
+  const share = useShareDeepLink();
   const [village, setVillage] = useState<Village | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,15 +69,33 @@ export default function VillageHome() {
     }
   };
 
-  const adminSlot = canManage ? (
-    <Pressable
-      onPress={() => router.push(`/village/${villageId}/admin` as never)}
-      accessibilityLabel={t('village.admin.open')}
-      className="p-1"
-    >
-      <Ionicons name="settings-outline" size={22} color="#0f172a" />
-    </Pressable>
-  ) : null;
+  const headerSlot = (
+    <HStack gap={2}>
+      <Pressable
+        onPress={() => villageId && void share(getVillageViewLink(villageId as string))}
+        accessibilityLabel={t('deeplink.shareViewLabel')}
+        className="p-1"
+      >
+        <Ionicons name="share-outline" size={22} color="#0f172a" />
+      </Pressable>
+      <Pressable
+        onPress={() => villageId && void share(getVillageInviteLink(villageId as string))}
+        accessibilityLabel={t('deeplink.shareInviteLabel')}
+        className="p-1"
+      >
+        <Ionicons name="person-add-outline" size={22} color="#0f172a" />
+      </Pressable>
+      {canManage ? (
+        <Pressable
+          onPress={() => router.push(`/village/${villageId}/admin` as never)}
+          accessibilityLabel={t('village.admin.open')}
+          className="p-1"
+        >
+          <Ionicons name="settings-outline" size={22} color="#0f172a" />
+        </Pressable>
+      ) : null}
+    </HStack>
+  );
 
   useEffect(() => {
     if (!villageId) return;
@@ -146,7 +172,7 @@ export default function VillageHome() {
 
   return (
     <Screen padded={false} topInset={false}>
-      <AppHeader centerLabel={village.name} extraRightSlot={adminSlot} />
+      <AppHeader centerLabel={village.name} extraRightSlot={headerSlot} />
       <FlatList
         contentContainerClassName="p-4 gap-4"
         data={events}
@@ -159,16 +185,23 @@ export default function VillageHome() {
               <Text tone="muted" variant="bodySm">{village.province}</Text>
             </View>
             {!isMember ? (
-              <Pressable
-                onPress={onJoin}
-                disabled={joining}
-                accessibilityLabel={t('village.join')}
-                className="bg-primary rounded-lg p-3 items-center"
-              >
-                <Text tone="onAccent">
-                  {user ? t('village.join') : t('village.signInToJoin')}
-                </Text>
-              </Pressable>
+              <VStack gap={1}>
+                {arrivedViaInvite ? (
+                  <Text tone="muted" variant="bodySm" className="text-center">
+                    {t('village.invitedBanner')}
+                  </Text>
+                ) : null}
+                <Pressable
+                  onPress={onJoin}
+                  disabled={joining}
+                  accessibilityLabel={t('village.join')}
+                  className="bg-primary rounded-lg p-3 items-center"
+                >
+                  <Text tone="onAccent">
+                    {user ? t('village.join') : t('village.signInToJoin')}
+                  </Text>
+                </Pressable>
+              </VStack>
             ) : null}
             <View className="flex-row flex-wrap -mx-1">
               {hubActions.map((a) => (

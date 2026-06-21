@@ -468,16 +468,7 @@ export default function VillageTabScreen() {
 
         {/* ── More settings (admins only) ──────────────────────── */}
         {canManage ? (
-          <VStack gap={2} className="px-4 pt-4">
-            <Text variant="h3" className="mb-1">
-              {t('village.admin.overview.more')}
-            </Text>
-            <SettingsLink
-              icon="link-outline"
-              label={t('village.admin.hub.invites')}
-              onPress={() => router.push(`${base}/invite-tokens` as never)}
-            />
-          </VStack>
+          null
         ) : null}
 
         {/* ── Censo (everyone) ─────────────────────────────────── */}

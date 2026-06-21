@@ -8,7 +8,10 @@ import { VStack } from '../../components/primitives/VStack';
 import { HStack } from '../../components/primitives/HStack';
 import { DetailHeroImage } from '../../components/feature/DetailHeroImage';
 import { FloatingBackButton } from '../../components/feature/FloatingBackButton';
+import { FloatingShareButton } from '../../components/feature/FloatingShareButton';
 import { useT } from '../../lib/i18n';
+import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
+import { getNewsLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getNewsPost } from '@cultuvilla/shared/services/newsService';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
@@ -20,6 +23,7 @@ type Post = NewsPostData & { id: string };
 export default function NewsDetailScreen() {
   const { newsId } = useLocalSearchParams<{ newsId: string }>();
   const { t } = useT();
+  const share = useShareDeepLink();
   const [post, setPost] = useState<Post | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [villageCover, setVillageCover] = useState<string | null>(null);
@@ -80,6 +84,9 @@ export default function NewsDetailScreen() {
     <Screen padded={false} topInset={false}>
       <StatusBar style="light" translucent backgroundColor="transparent" />
       {!post ? <FloatingBackButton /> : null}
+      {post ? (
+        <FloatingShareButton onPress={() => void share(getNewsLink(post.id))} />
+      ) : null}
       <ScrollView>
         {loading ? (
           <VStack className="p-4 pt-16">

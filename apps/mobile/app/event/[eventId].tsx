@@ -10,8 +10,11 @@ import { LiveAvatar } from '../../components/feature/LiveAvatar';
 import { RegisterButton } from '../../components/feature/RegisterButton';
 import { DetailHeroImage } from '../../components/feature/DetailHeroImage';
 import { FloatingBackButton } from '../../components/feature/FloatingBackButton';
+import { FloatingShareButton } from '../../components/feature/FloatingShareButton';
 import { useAuth } from '../../lib/auth/useAuth';
+import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { getEvent } from '@cultuvilla/shared/services/eventService';
+import { getEventLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 import { buildDisplayName } from '@cultuvilla/shared/models/person/PersonDataModel';
 import { formatDate } from '@cultuvilla/shared/utils';
@@ -26,6 +29,7 @@ export default function EventDetailScreen() {
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
   const { user } = useAuth();
   const { t } = useT();
+  const share = useShareDeepLink();
   const [event, setEvent] = useState<EventDoc | null>(null);
   const [person, setPerson] = useState<PersonDoc | null>(null);
   const [registered, setRegistered] = useState(false);
@@ -69,6 +73,8 @@ export default function EventDetailScreen() {
         fallbackImageUri={event.municipalityCoverImage}
         fallbackIcon="calendar-outline"
       />
+      <FloatingBackButton />
+      <FloatingShareButton onPress={() => void share(getEventLink(event.id))} />
       <VStack gap={4} className="p-4">
         <Text variant="h1">{event.title}</Text>
         <HStack gap={2} className="items-center">
