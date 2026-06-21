@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Screen, Text } from '../../components/primitives';
 import { AppHeader } from '../../components/layout/AppHeader';
 import { ProfileHeader } from '../../components/feature/profile/ProfileHeader';
@@ -20,23 +19,34 @@ import {
   updatePerson,
 } from '@cultuvilla/shared/services/personService';
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
-import { getEventCountByCreator } from '@cultuvilla/shared/services/eventService';
+import { getEventsByCreator } from '@cultuvilla/shared/services/eventService';
+import {
+  ManagedEventsScroll,
+  type ManagedEvent,
+} from '../../components/feature/profile/ManagedEventsScroll';
 import { getUserRegistrationsAcrossEvents } from '@cultuvilla/shared/services/registrationService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 import { getOrgMembershipsByUserInMunicipality } from '@cultuvilla/shared/services/orgMemberService';
+import { getUserMemberships } from '@cultuvilla/shared/services/villageMemberService';
+import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
+import { setActiveMunicipality } from '@cultuvilla/shared/services/userService';
+import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
+import { VillagesScroll, type VillageRow } from '../../components/feature/profile/VillagesScroll';
 import type { PersonData } from '@cultuvilla/shared/models/person';
 
 type PersonDoc = PersonData & { id: string };
 
 export default function ProfileScreen() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const { t } = useT();
 
   const [selfPerson, setSelfPerson] = useState<PersonDoc | null>(null);
   const [allPersonas, setAllPersonas] = useState<PersonDoc[]>([]);
   const [eventsCreated, setEventsCreated] = useState<number | null>(null);
+  const [managedEvents, setManagedEvents] = useState<ManagedEvent[]>([]);
   const [participations, setParticipations] = useState<number | null>(null);
   const [orgs, setOrgs] = useState<OrgListItem[]>([]);
+  const [villages, setVillages] = useState<VillageRow[]>([]);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -53,17 +63,36 @@ export default function ProfileScreen() {
       setSelfPerson(self);
       setAllPersonas(mine);
 
-      const [count, regs] = await Promise.all([
-        withFirestoreErrorLog('profile:getEventCountByCreator', () =>
-          getEventCountByCreator(user.uid),
+      const [myEvents, regs] = await Promise.all([
+        withFirestoreErrorLog('profile:getEventsByCreator', () =>
+          getEventsByCreator(user.uid),
         ),
         withFirestoreErrorLog('profile:getUserRegistrationsAcrossEvents', () =>
           getUserRegistrationsAcrossEvents(user.uid),
         ),
       ]);
-      setEventsCreated(count);
+      setManagedEvents(myEvents);
+      setEventsCreated(myEvents.length);
       const distinctEvents = new Set(regs.map((r) => r.eventPath));
       setParticipations(distinctEvents.size);
+
+      const villageMemberships = await withFirestoreErrorLog('profile:getUserMemberships', () =>
+        getUserMemberships(user.uid),
+      );
+      const villageRows = await Promise.all(
+        villageMemberships.map(async (m) => {
+          const muni = await withFirestoreErrorLog('profile:getMunicipality', () =>
+            getMunicipality(m.municipalityId),
+          );
+          return {
+            municipalityId: m.municipalityId,
+            name: muni?.name ?? m.municipalityId,
+            escudoThumbUrl: muni ? escudoThumbDisplayUrl(muni) : null,
+            role: m.role,
+          } satisfies VillageRow;
+        }),
+      );
+      setVillages(villageRows);
 
       if (activeMunicipalityId) {
         const munOrgs = await withFirestoreErrorLog(
@@ -125,6 +154,13 @@ export default function ProfileScreen() {
     }
   }
 
+  async function selectVillage(municipalityId: string) {
+    if (!user) return;
+    await setActiveMunicipality(user.uid, municipalityId);
+    await refreshProfile();
+    router.replace('/(tabs)/village');
+  }
+
   if (!user) return null;
 
   const otherPersonas = allPersonas.filter((p) => p.userId !== user.uid);
@@ -183,6 +219,15 @@ export default function ProfileScreen() {
           />
         )}
 
+        <ProfileSectionHeader title={t('profile.managedEventsSection.title')} />
+        <ManagedEventsScroll
+          events={managedEvents}
+          now={new Date()}
+          ongoingLabel={t('profile.managedEventsSection.ongoing')}
+          emptyLabel={t('profile.managedEventsSection.empty')}
+          onPressEvent={(id) => router.push(`/event/${id}` as never)}
+        />
+
         {orgs.length > 0 ? (
           <>
             <ProfileSectionHeader title={t('profile.orgsSection.title')} />
@@ -195,19 +240,19 @@ export default function ProfileScreen() {
         ) : null}
 
         <ProfileSectionHeader title={t('profile.villagesEntry')} />
-        <View className="px-4">
-          <Pressable
-            onPress={() => router.push('/me/villages')}
-            accessibilityRole="button"
-            accessibilityLabel={t('profile.villagesEntry')}
-          >
-            <View className="flex-row items-center bg-surface border border-subtle rounded-xl p-3">
-              <Ionicons name="map-outline" size={20} color="#0f172a" />
-              <Text className="ml-3 flex-1">{t('profile.villagesEntry')}</Text>
-              <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
-            </View>
-          </Pressable>
-        </View>
+        <VillagesScroll
+          villages={villages}
+          activeId={activeMunicipalityId}
+          joinLabel={t('profile.villagesSection.join')}
+          emptyLabel={t('me.villages.empty')}
+          badges={{
+            active: t('me.villages.activeBadge'),
+            admin: t('me.villages.adminBadge'),
+            member: t('me.villages.memberBadge'),
+          }}
+          onPressVillage={(id) => void selectVillage(id)}
+          onPressJoin={() => router.push('/discover')}
+        />
 
       </ScrollView>
     </Screen>

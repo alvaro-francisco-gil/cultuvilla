@@ -19,14 +19,21 @@ jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
 jest.mock('@cultuvilla/shared/services/organizationService', () => ({
   getOrganizationsByMunicipality: jest.fn().mockResolvedValue([]),
 }));
-jest.mock('@cultuvilla/shared/services/userService', () => ({
-  getUserProfile: jest.fn().mockResolvedValue(null),
+jest.mock('@cultuvilla/shared/services/orgMemberService', () => ({
+  getOrgMemberCount: jest.fn().mockResolvedValue(0),
 }));
-jest.mock('@cultuvilla/shared/services/organizerRequestService', () => ({
-  getMyOrganizerRequests: jest.fn().mockResolvedValue([]),
+// VillageInfoModal calls useSafeAreaInsets; the test renders without a
+// SafeAreaProvider, so stub the hook while keeping the real SafeAreaView used
+// by <Screen>.
+jest.mock('react-native-safe-area-context', () => ({
+  ...jest.requireActual('react-native-safe-area-context'),
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('@cultuvilla/shared/services/eventService', () => ({
   getEventsByMunicipality: jest.fn().mockResolvedValue([]),
+}));
+jest.mock('@cultuvilla/shared/services/organizerRequestService', () => ({
+  getMyOrganizerRequests: jest.fn().mockResolvedValue([]),
 }));
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({
   getVillageViewLink: jest.fn().mockReturnValue('https://example.test'),

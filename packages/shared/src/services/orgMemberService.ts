@@ -1,5 +1,5 @@
 // packages/shared/src/services/orgMemberService.ts
-import { getDoc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
+import { getCountFromServer, getDoc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
 import { getDb } from '../firebase';
 import {
   organizationMembersCollection,
@@ -10,6 +10,12 @@ import type { OrgMemberData } from '../models/organization/OrgMemberDataModel';
 export async function getOrgMembers(orgId: string): Promise<(OrgMemberData & { id: string })[]> {
   const snap = await getDocs(organizationMembersCollection(getDb(), orgId));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+// Server-side aggregate; avoids pulling every member doc just to size the scroll card.
+export async function getOrgMemberCount(orgId: string): Promise<number> {
+  const snap = await getCountFromServer(organizationMembersCollection(getDb(), orgId));
+  return snap.data().count;
 }
 
 export async function addOrgMember(orgId: string, userId: string): Promise<void> {

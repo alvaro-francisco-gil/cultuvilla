@@ -21,10 +21,11 @@ export type EventLike = {
 export type EventCardProps = {
   event: EventLike;
   onPress: (id: string) => void;
+  badge?: string | null;
   testID?: string;
 };
 
-export function EventCard({ event, onPress, testID }: EventCardProps) {
+export function EventCard({ event, onPress, badge, testID }: EventCardProps) {
   return (
     <FeedCard
       imageUri={event.imageURL ?? null}
@@ -33,6 +34,7 @@ export function EventCard({ event, onPress, testID }: EventCardProps) {
       metaLeft={event.organizationName}
       metaRight={formatDate(event.startDate, 'short')}
       fallbackIcon="calendar-outline"
+      badge={badge}
       onPress={() => onPress(event.id)}
       testID={testID}
     />

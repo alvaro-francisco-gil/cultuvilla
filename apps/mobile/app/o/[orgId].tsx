@@ -68,14 +68,14 @@ export default function OrgDetailStub() {
   const headerSlot = (
     <HStack gap={2}>
       <Pressable
-        onPress={() => orgId && void share(getOrgViewLink(orgId as string))}
+        onPress={() => org && void share(getOrgViewLink(org.id), org.name)}
         accessibilityLabel={t('deeplink.shareViewLabel')}
         className="p-1"
       >
         <Ionicons name="share-outline" size={22} color="#0f172a" />
       </Pressable>
       <Pressable
-        onPress={() => orgId && void share(getOrgInviteLink(orgId as string))}
+        onPress={() => org && void share(getOrgInviteLink(org.id), org.name)}
         accessibilityLabel={t('deeplink.shareInviteLabel')}
         className="p-1"
       >

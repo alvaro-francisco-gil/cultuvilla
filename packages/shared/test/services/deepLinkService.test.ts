@@ -167,12 +167,12 @@ describe('deepLinkService.parseLink', () => {
 describe('deepLinkService.buildShareMessage', () => {
   const t = (key: string, vars?: Record<string, string | number>): string => {
     const map: Record<string, string> = {
-      'deeplink.share.event.view': 'Mira este evento: {url}',
-      'deeplink.share.news.view': 'Mira esta noticia: {url}',
-      'deeplink.share.village.view': 'Mira este pueblo: {url}',
-      'deeplink.share.village.invite': 'Te invito a unirte a este pueblo: {url}',
-      'deeplink.share.organization.view': 'Mira esta organización: {url}',
-      'deeplink.share.organization.invite': 'Te invito a unirte a esta organización: {url}',
+      'deeplink.share.event.view': 'Mira «{name}»: {url}',
+      'deeplink.share.news.view': 'Mira «{name}»: {url}',
+      'deeplink.share.village.view': 'Mira {name}: {url}',
+      'deeplink.share.village.invite': 'Te invito a unirte a {name}: {url}',
+      'deeplink.share.organization.view': 'Mira {name}: {url}',
+      'deeplink.share.organization.invite': 'Te invito a unirte a {name}: {url}',
     };
     let out: string = map[key] ?? key;
     if (!vars) return out;
@@ -182,23 +182,29 @@ describe('deepLinkService.buildShareMessage', () => {
     return out;
   };
 
-  it('uses the view key for content links', () => {
+  it('interpolates the event title into the view message', () => {
     const link = getEventLink('evt_1');
-    expect(buildShareMessage(link, t)).toBe(`Mira este evento: ${link.url}`);
+    expect(buildShareMessage(link, t, 'Fiesta de San Juan')).toBe(
+      `Mira «Fiesta de San Juan»: ${link.url}`,
+    );
   });
 
-  it('uses the invite key for village invite links', () => {
+  it('interpolates the village name into the invite message', () => {
     const link = getVillageInviteLink('mun_1');
-    expect(buildShareMessage(link, t)).toBe(`Te invito a unirte a este pueblo: ${link.url}`);
+    expect(buildShareMessage(link, t, 'Matabuena')).toBe(
+      `Te invito a unirte a Matabuena: ${link.url}`,
+    );
   });
 
-  it('uses the view key for village view links', () => {
+  it('interpolates the village name into the view message', () => {
     const link = getVillageViewLink('mun_1');
-    expect(buildShareMessage(link, t)).toBe(`Mira este pueblo: ${link.url}`);
+    expect(buildShareMessage(link, t, 'Matabuena')).toBe(`Mira Matabuena: ${link.url}`);
   });
 
-  it('uses the invite key for org invite links', () => {
+  it('interpolates the org name into the invite message', () => {
     const link = getOrgInviteLink('org_1');
-    expect(buildShareMessage(link, t)).toBe(`Te invito a unirte a esta organización: ${link.url}`);
+    expect(buildShareMessage(link, t, 'Peña El Roble')).toBe(
+      `Te invito a unirte a Peña El Roble: ${link.url}`,
+    );
   });
 });

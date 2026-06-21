@@ -86,7 +86,7 @@ export default function NewsDetailScreen() {
       <StatusBar style="light" translucent backgroundColor="transparent" />
       {!post ? <FloatingBackButton /> : null}
       {post ? (
-        <FloatingShareButton onPress={() => void share(getNewsLink(post.id))} />
+        <FloatingShareButton onPress={() => void share(getNewsLink(post.id), post.title)} />
       ) : null}
       <ScrollView>
         {loading ? (

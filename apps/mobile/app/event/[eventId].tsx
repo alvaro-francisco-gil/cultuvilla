@@ -74,7 +74,7 @@ export default function EventDetailScreen() {
         fallbackIcon="calendar-outline"
       />
       <FloatingBackButton />
-      <FloatingShareButton onPress={() => void share(getEventLink(event.id))} />
+      <FloatingShareButton onPress={() => void share(getEventLink(event.id), event.title)} />
       <VStack gap={4} className="p-4">
         <Text variant="h1">{event.title}</Text>
         <HStack gap={2} className="items-center">

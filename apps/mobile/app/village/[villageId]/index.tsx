@@ -88,14 +88,18 @@ export default function VillageHome() {
   const headerSlot = (
     <HStack gap={2}>
       <Pressable
-        onPress={() => villageId && void share(getVillageViewLink(villageId as string))}
+        onPress={() =>
+          village && void share(getVillageViewLink(village.id), village.name)
+        }
         accessibilityLabel={t('deeplink.shareViewLabel')}
         className="p-1"
       >
         <Ionicons name="share-outline" size={22} color="#0f172a" />
       </Pressable>
       <Pressable
-        onPress={() => villageId && void share(getVillageInviteLink(villageId as string))}
+        onPress={() =>
+          village && void share(getVillageInviteLink(village.id), village.name)
+        }
         accessibilityLabel={t('deeplink.shareInviteLabel')}
         className="p-1"
       >

@@ -195,7 +195,7 @@ export default function NewEventScreen() {
             <Text className="text-center">{t('event.eligibility.body')}</Text>
             <Button
               fullWidth
-              onPress={() => router.push(`/discover/request-organizer/${municipalityId}` as never)}
+              onPress={() => router.push(`/discover/organize/${municipalityId}` as never)}
             >
               {t('event.eligibility.requestOrganizer')}
             </Button>

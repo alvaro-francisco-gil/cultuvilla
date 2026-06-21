@@ -119,7 +119,14 @@ export type DeepLinkTranslate = (
   vars?: Record<string, string | number>,
 ) => string;
 
-export function buildShareMessage(link: DeepLink, t: DeepLinkTranslate): string {
+export function buildShareMessage(
+  link: DeepLink,
+  t: DeepLinkTranslate,
+  name: string,
+): string {
   const kindKey = link.kind === 'invite' ? 'invite' : 'view';
-  return t(`deeplink.share.${link.resource}.${kindKey}`, { url: link.url });
+  return t(`deeplink.share.${link.resource}.${kindKey}`, {
+    url: link.url,
+    name,
+  });
 }

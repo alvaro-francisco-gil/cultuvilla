@@ -45,6 +45,7 @@ export default function EditVillageInfoScreen() {
       const url = await uploadMunicipalityImage(villageId, picked);
       setImages((prev) => [...prev, url]);
     } catch (e) {
+      // mobile-web-compat: native-only — guarded image-upload error toast
       if (Platform.OS !== 'web') Alert.alert(e instanceof Error ? e.message : String(e));
     } finally {
       setUploading(false);
