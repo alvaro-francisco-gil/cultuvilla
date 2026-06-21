@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { FlatList, View, ActivityIndicator, Image } from 'react-native';
 import { Screen, VStack, HStack, Text, Button } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
 import { useT } from '../../lib/i18n';
 import {
   getPendingOrganizerRequests,
@@ -55,7 +56,12 @@ export default function OrganizerRequestsScreen() {
           contentContainerStyle={{ padding: 16, gap: 12 }}
           renderItem={({ item }) => (
             <VStack gap={2} className="bg-surface border border-subtle rounded-xl p-3">
-              <Text variant="h3">{item.userId}</Text>
+              <LiveOwnerChip
+                ownerId={item.userId}
+                ownerType="user"
+                fallbackName={item.userId}
+                size={40}
+              />
               <Text className="text-muted text-sm">{item.municipalityId}</Text>
               {item.description.trim().length > 0 && (
                 <Text>{item.description}</Text>

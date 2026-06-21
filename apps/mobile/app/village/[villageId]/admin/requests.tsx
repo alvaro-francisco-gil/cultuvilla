@@ -3,7 +3,7 @@ import { FlatList, ActivityIndicator, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Screen, VStack, HStack, Text, Button } from '../../../../components/primitives';
 import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
-import { LiveAvatar } from '../../../../components/feature/LiveAvatar';
+import { LiveOwnerChip } from '../../../../components/feature/LiveOwnerChip';
 import { useT } from '../../../../lib/i18n';
 import { useAuth } from '../../../../lib/auth/useAuth';
 import { isVillageAdmin } from '@cultuvilla/shared/services/villageMemberService';
@@ -81,15 +81,7 @@ export default function VillageAdminRequestsScreen() {
         renderItem={({ item }) => (
           <View className="p-3 border border-subtle rounded-md bg-surface">
             <VStack gap={2}>
-              <HStack gap={2} className="items-center">
-                <LiveAvatar
-                  ownerId={item.userId}
-                  ownerType="user"
-                  size={36}
-                  initials={item.userId.slice(0, 1).toUpperCase()}
-                />
-                <Text>{item.userId}</Text>
-              </HStack>
+              <LiveOwnerChip ownerId={item.userId} ownerType="user" fallbackName={item.userId} />
               {item.message && <Text tone="muted">{item.message}</Text>}
               <HStack gap={2}>
                 <Button

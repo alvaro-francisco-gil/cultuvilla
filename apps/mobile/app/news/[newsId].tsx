@@ -7,6 +7,7 @@ import { Text } from '../../components/primitives/Text';
 import { VStack } from '../../components/primitives/VStack';
 import { HStack } from '../../components/primitives/HStack';
 import { DetailHeroImage } from '../../components/feature/DetailHeroImage';
+import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
 import { FloatingBackButton } from '../../components/feature/FloatingBackButton';
 import { FloatingShareButton } from '../../components/feature/FloatingShareButton';
 import { useT } from '../../lib/i18n';
@@ -112,6 +113,12 @@ export default function NewsDetailScreen() {
             />
             <VStack gap={3} className="p-4">
               <Text variant="h1">{post.title}</Text>
+              <LiveOwnerChip
+                ownerId={post.authorOrgId ?? post.authorUserId}
+                ownerType={post.authorOrgId ? 'organization' : 'user'}
+                size={28}
+                tone="muted"
+              />
               <HStack gap={2} justify="between">
                 <Text tone="muted">{t(`news.compose.category.${post.category}`)}</Text>
                 {date ? <Text tone="muted">{formatDate(date, 'long')}</Text> : null}

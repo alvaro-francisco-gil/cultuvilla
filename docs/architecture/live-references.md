@@ -63,12 +63,19 @@ cheap and convenient as denormalization usually is:
    the source (upload a new photo) and every reference updates instantly. There
    is no denormalized copy to go stale, and therefore no sync trigger to write.
 
-The canonical consumer is
-[`LiveAvatar`](../../apps/mobile/components/feature/LiveAvatar.tsx): given an
-`ownerId` + `ownerType` (`user`/`person` → `photoURL`, `organization` →
-`imageURL`), it builds the typed doc ref, subscribes, and renders the dumb
-`Avatar` primitive with the resolved image. The primitive stays presentation-only;
-all Firestore knowledge lives in the wrapper.
+The resolution lives in one hook,
+[`useOwnerSummary`](../../apps/mobile/lib/useOwnerSummary.ts): given an `ownerId`
++ `ownerType` (`user`/`person` → name + `photoURL`, `organization` → `name` +
+`imageURL`) it builds the typed doc ref, subscribes, and returns `{ name,
+imageUri }`. Two presentation components consume it:
+
+- [`LiveAvatar`](../../apps/mobile/components/feature/LiveAvatar.tsx) — image
+  only; renders the dumb `Avatar` primitive with the resolved photo.
+- [`LiveOwnerChip`](../../apps/mobile/components/feature/LiveOwnerChip.tsx) —
+  avatar **+ live name**, for the admin/byline surfaces that used to print a raw
+  uid (join-request and organizer-request submitters, news authors).
+
+The primitives stay presentation-only; all Firestore knowledge lives in the hook.
 
 ## Why we don't port ordago's token-pinning
 
@@ -105,15 +112,21 @@ that flips the decision toward denormalizing the safe fields instead (rule 2).
 Same app, different jobs, different strategy. Reach for the decision rule above
 when adding a new one.
 
-## Good follow-up surfaces for `LiveAvatar`
+## Where it's applied
 
-Places that currently show a reference by id with no face, or do a one-shot
-`getUserProfile` join that can go stale on screen:
+Live (done): event-detail organization logo, news-detail author byline,
+village-admin join-request submitter, app-admin organizer-request submitter, and
+the organization approval list logo.
 
-- News-feed post / comment / reaction authors (`authorUserId`, `userId`).
+Remaining follow-up surfaces — references shown by id with no face, or one-shot
+joins that can go stale on screen:
+
+- News-feed card author (needs a byline slot on the shared `FeedCard`), plus
+  news comment / reaction authors once those get UI.
 - Event attendee lists (`registrations/*.userId` / `personId`).
-- Organization / peña member lists.
+- Organization / peña member lists (`o/[orgId].tsx` shows only a count today).
 - The people-scroll joins in both village screens
   ([(tabs)/village.tsx](../../apps/mobile/app/(tabs)/village.tsx),
   [village/[villageId]/admin/index.tsx](../../apps/mobile/app/village/[villageId]/admin/index.tsx))
-  — these fetch `displayName` + `photoURL` once and don't refresh.
+  — these fetch `displayName` + `photoURL` once and don't refresh; `PersonCard`
+  could take an `ownerId` and live-resolve instead.

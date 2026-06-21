@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, View, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { Screen, VStack, HStack, Text, Button } from '../../../../components/primitives';
+import { Screen, VStack, HStack, Text, Button, Avatar } from '../../../../components/primitives';
 import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
 import { useT } from '../../../../lib/i18n';
 import { useAuth } from '../../../../lib/auth/useAuth';
@@ -54,7 +54,12 @@ export default function OrganizationsScreen() {
           contentContainerStyle={{ padding: 16, gap: 12 }}
           renderItem={({ item }) => (
             <VStack gap={2} className="bg-surface border border-subtle rounded-xl p-3">
-              <Text variant="h3">{item.name}</Text>
+              <HStack gap={2} align="center">
+                <Avatar uri={item.imageURL} size={40} initials={item.name.slice(0, 1)} />
+                <Text variant="h3" numberOfLines={1} className="shrink">
+                  {item.name}
+                </Text>
+              </HStack>
               <Text className="text-muted text-sm">{item.status}</Text>
               {item.status === 'pending' ? (
                 <HStack gap={2}>
