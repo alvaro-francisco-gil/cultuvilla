@@ -155,6 +155,14 @@ When changing the shape of data already in Firestore, surface the migration expl
 
 Only add a compatibility layer when the user explicitly asks for one (e.g. when an in-flight client release would break without it).
 
+### Backfill dev when a schema field is added
+
+Reads route through a **strict** Zod converter ([makeConverter](packages/shared/src/firebase/converters/makeConverter.ts) → `schema.parse`), so a doc missing a newly-added field makes the converter *throw* and crashes whatever screen reads that collection. When a feature adds or tightens a model field, backfill the existing dev docs (`villa-events`) in the same change — don't leave the field optional just to tolerate stale data (that's a retrocompat shim; see above).
+
+- **Dev backfill is autonomous — no confirmation needed.** Dev (`villa-events`) is safe to mutate; an agent implementing a feature may write and run the backfill script directly. Beta/prod stay off-limits (CI / explicit user instruction only — see `firebase-admin-dev` skill).
+- Write the backfill as a one-off, idempotent `scripts/backfill-<thing>.mjs` (mirror `scripts/backfill-municipality-namelower.mjs`): project-id guard, only patch docs missing the field, set the same default the model builder uses.
+- Verify with **`pnpm check:dev-conformance`** ([scripts/check-dev-conformance.mjs](scripts/check-dev-conformance.mjs)) — it walks every dev collection through its converter and reports nonconforming docs. Run it before and after the backfill. It needs dev credentials, so it is **not** part of the `pnpm check` CI gate; run it manually (or wire it into a credentialed job) after schema changes.
+
 ### Comments
 
 Don't explain *what* the code does — name things well instead. Only comment to explain *why* something non-obvious is the way it is: a security constraint, a Firestore quirk, a workaround for a specific bug.
