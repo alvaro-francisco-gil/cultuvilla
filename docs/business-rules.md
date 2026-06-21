@@ -65,27 +65,44 @@ de acceso** (tolerar `null`).
 
 ## 3. Hacerse miembro de un pueblo y darse de baja
 
-### 3.1 Unirse (tres vías)
+Tres capas independientes — **pertenecer**, **iniciar** y **organizar** — en
+lugar de un único acto «organizar». La activación está **desacoplada** del rol
+de administrador.
 
-1. **Unirse directamente (autoservicio)** — cualquier usuario autenticado se
-   añade como miembro (`role: user`) de un pueblo con **comunidad activa**, sin
-   aprobación. La pertenencia se crea al instante; la app muestra antes una
-   confirmación que deja claro que unirse es una **autodeclaración** («este es mi
-   pueblo») y **no verifica residencia**. La membresía se escribe directamente
-   desde el cliente y la salvaguarda se aplica en las **reglas de Firestore**:
-   solo el propietario, sobre comunidad activa, con `role: user` y sin
-   `trustedNewsAuthor`. Estar ya inscrito lo impide la semántica de `create`. **No
-   existe cola de solicitudes de ingreso ni aprobación de organizador.**
-2. **Token de invitación** — un administrador comparte un token; el usuario lo
-   canjea. *(Reglas diferidas — ver [§12](#12-diferido-en-otras-ramas).)*
-3. **Organizar un pueblo inactivo** — el usuario solicita organizar un municipio
-   sin comunidad activa; un **superadministrador aprueba**, lo que activa la
-   comunidad y convierte al solicitante en el administrador fundador.
+### 3.1 Unirse a un pueblo activo (autoservicio)
 
-Las solicitudes de **organizador** siguen pasando por Cloud Functions
-(callables), con sus salvaguardas en transacción (comunidad destino inactiva
-para organizar). La **membresía**, en cambio, ya no usa callable: es una
-escritura directa del cliente gobernada por reglas.
+Cualquier usuario autenticado se añade como miembro (`role: user`) de un pueblo
+con **comunidad activa**, sin aprobación. La pertenencia se crea al instante; la
+app muestra antes una confirmación que deja claro que unirse es una
+**autodeclaración** («este es mi pueblo») y **no verifica residencia**. La
+membresía se escribe directamente desde el cliente y la salvaguarda se aplica en
+las **reglas de Firestore**: solo el propietario, sobre comunidad activa, con
+`role: user` y sin `trustedNewsAuthor`. Estar ya inscrito lo impide la semántica
+de `create`. **No existe cola de solicitudes de ingreso.**
+
+También: **token de invitación** — un administrador comparte un token; el usuario
+lo canjea. *(Reglas diferidas — ver [§12](#12-diferido-en-otras-ramas).)*
+
+### 3.1b Iniciar un pueblo dormido (activación, autoservicio)
+
+Un municipio sin comunidad se **inicia** con el callable `startVillage`:
+cualquier usuario lo activa (crea `community` con `adminUserId: null`,
+`communityActive: true`) y queda como su **primer miembro**. Iniciar **no**
+convierte en organizador. Mientras `community.adminUserId == null` (sin
+organizador todavía — *fase wiki*), **cualquier miembro** puede editar la
+información básica (descripción e imágenes) vía el callable `updateVillageInfo`;
+cuando se concede un organizador, esa edición se consolida en los
+administradores.
+
+### 3.1c Organizar (rol de administrador, aprobado)
+
+Un miembro de un pueblo **activo y sin organizador** solicita organizarlo
+(`requestOrganizeVillage`, solo motivación); un **superadministrador aprueba**
+(`respondToOrganizerRequest`). La aprobación **no crea la comunidad** (ya existe):
+fija `community.adminUserId` al solicitante y lo promueve a `role: admin`. Las
+solicitudes de organizador siguen pasando por Cloud Functions; la **membresía** y
+el **inicio** del pueblo, en cambio, son escrituras gobernadas por reglas /
+callables sin aprobación.
 
 ### 3.2 Modelo de confianza
 
