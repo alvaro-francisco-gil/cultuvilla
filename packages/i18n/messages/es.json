@@ -21,10 +21,6 @@
     "password": "Contraseña",
     "displayName": "Nombre",
     "birthday": "Fecha de nacimiento",
-    "passwordHint": "Mínimo 6 caracteres.",
-    "forgotPassword": "¿Olvidaste tu contraseña?",
-    "forgotPasswordSent": "Te enviamos un correo para restablecerla.",
-    "forgotPasswordNeedsEmail": "Introduce tu correo arriba primero.",
     "divider": {
       "or": "O"
     },
