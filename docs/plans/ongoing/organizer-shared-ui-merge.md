@@ -11,12 +11,13 @@
 ## Status
 
 - **Updated:** 2026-06-22
-- **Stage:** Phases 1 & 2 complete (Places/Barrios backend + shared-surface UI). Phase 3 (Organizations) is next.
+- **Stage:** Phases 1–3 complete (Places/Barrios backend + shared UI; Organizations on shared surface). Phase 4 (Census role-mode) is next.
+- **Phase 3 note:** `OrganizationsManager` added (villager proposes peña/asociación → pending; organizer auto-approves via `requestOrganization`+`approveOrganization`). Org rules forbid member edit/withdraw, so proposers get no such affordance. Member-level `/village/[id]/organizations` now the shared manager; `/admin/organizations` is a wrapper. Tab routes everyone to the shared screen. Minor known gap: the village tab still loads orgs filtered to `approved` for members, so pending orgs surface on the org screen but not as tab cards. Mobile suite 102/102.
 - **Branch:** repo `worktree-organizer-shared-ui-merge` (worktree `.claude/worktrees/organizer-shared-ui-merge`). Not merged to main.
 - **Done:** Phase 1 — model/services/rules (green: model/unit 382, rules e2e 143, integration 11). Phase 2 — `useEntityCapabilities` hook, `ProposableListItem`+`PendingBadge`, `PlacesManager`/`BarriosManager`, member-accessible `/village/[id]/places|barrios` routes, admin screens reduced to wrappers, village tab routes everyone + shows pending badges. New mobile tests green (4 suites: hook, item, both managers). Commits `751ee5e`,`1e0f527`,`fdb6a38`,`c343443`,`75ce648`,`32d8136`.
 - **Next:** Phase 3 — Organizations adopt the propose-pending primitives.
 - **Blockers:** Events phases carry two unresolved open questions (phone capture location, walk-in shape) — resolve before Phase 6/7.
-- **Pre-existing breakage (NOT from this work, flagged for a separate fix):** `pnpm --filter cultuvilla-mobile typecheck` fails with 2 errors in `app/(tabs)/village.tsx` (line 39 `getOrgMemberCount` import does not exist; line 147 `{}` not assignable to `number`), and 3 `village.test.tsx` cases fail with "Firebase is not initialized". Both reproduce with all Phase-2 edits stashed.
+- **Pre-existing breakage — FIXED:** mobile typecheck (`getOrgMemberCount` was imported but never defined → added it to `orgMemberService`) and 3 `village.test.tsx` cases (the test didn't mock `eventService`/`orgMemberService`). Mobile suite now 99/99, typecheck exit 0.
 - **Handoff:** emulator tests from repo root (`pnpm test:integration`, `pnpm test:rules`). Worktree setup needed `npm --prefix functions install` + `pnpm --filter @cultuvilla/shared build` before the emulator harness builds functions. Mobile tests: `pnpm app:test`. Mobile has no lint script (only shared+functions are linted); commit subjects must be lowercase (commitlint rejects PascalCase). Rules NOT deployed to dev yet.
 
 ## Rollout status
@@ -25,7 +26,7 @@
 |---|---|---|---|---|---|
 | 1 | Places & Barrios — backend (model/rules/service) | ✅ | ✅ | ⬜ | ⬜ |
 | 2 | Capability hook + propose-pending UI + merge Places/Barrios screens | ✅ | ✅ | — | ⬜ |
-| 3 | Organizations adopt the shared primitives | ⬜ | ⬜ | — | ⬜ |
+| 3 | Organizations adopt the shared primitives | ✅ | ✅ | — | ⬜ |
 | 4 | Census role-mode merge (author vs answer) | ⬜ | ⬜ | — | ⬜ |
 | 5 | Community-header role-mode merge (edit vs view) | ⬜ | ⬜ | — | ⬜ |
 | 6 | Events v1 — shared detail + organize console (edit/cancel/roster/delete) | ⬜ | ⬜ | ⬜ | ⬜ |
@@ -93,8 +94,8 @@ Shipped in commits `751ee5e`, `1e0f527`, `fdb6a38`. Full TDD detail is in those 
 **Files:** Create `apps/mobile/components/feature/OrganizationsManager.tsx` over the primitives; mount on the shared village surface; reduce `admin/organizations.tsx` to a wrapper. Tests: villager create → `requestOrganization` (pending); organizer approve → `approveOrganization`; ayuntamiento still goes through `requestAyuntamiento` (singleton), not the generic form.
 
 **Tasks:**
-- [ ] **3.1** `OrganizationsManager` test + impl (reuse `ProposableListItem`; map approve→`approveOrganization`, reject→`rejectOrganization`, propose→`requestOrganization`). Keep the ayuntamiento carve-out. Commit.
-- [ ] **3.2** Mount on shared surface; wrapper for `admin/organizations.tsx`. `pnpm app:test` green. Commit.
+- [x] **3.1** `OrganizationsManager` test + impl (reuse `ProposableListItem`; map approve→`approveOrganization`, reject→`rejectOrganization`, propose→`requestOrganization`). Keep the ayuntamiento carve-out. Commit.
+- [x] **3.2** Mount on shared surface; wrapper for `admin/organizations.tsx`. `pnpm app:test` green. Commit.
 
 ---
 
