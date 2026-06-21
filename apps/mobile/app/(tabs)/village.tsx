@@ -380,8 +380,7 @@ export default function VillageTabScreen() {
                 minHeight: 36,
               }}
             >
-              <Ionicons name="share-outline" size={16} color={ACCENT} />
-              <Text style={{ color: ACCENT }} className="ml-2 font-semibold">
+              <Text style={{ color: ACCENT }} className="font-semibold">
                 {t('village.share.title')}
               </Text>
             </Pressable>
@@ -398,8 +397,7 @@ export default function VillageTabScreen() {
                 minHeight: 36,
               }}
             >
-              <Ionicons name="person-add-outline" size={16} color={ACCENT} />
-              <Text style={{ color: ACCENT }} className="ml-2 font-semibold">
+              <Text style={{ color: ACCENT }} className="font-semibold">
                 {t('village.invite.title')}
               </Text>
             </Pressable>
