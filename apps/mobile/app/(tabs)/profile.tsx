@@ -19,7 +19,11 @@ import {
   updatePerson,
 } from '@cultuvilla/shared/services/personService';
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
-import { getEventCountByCreator } from '@cultuvilla/shared/services/eventService';
+import { getEventsByCreator } from '@cultuvilla/shared/services/eventService';
+import {
+  ManagedEventsScroll,
+  type ManagedEvent,
+} from '../../components/feature/profile/ManagedEventsScroll';
 import { getUserRegistrationsAcrossEvents } from '@cultuvilla/shared/services/registrationService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 import { getOrgMembershipsByUserInMunicipality } from '@cultuvilla/shared/services/orgMemberService';
@@ -39,6 +43,7 @@ export default function ProfileScreen() {
   const [selfPerson, setSelfPerson] = useState<PersonDoc | null>(null);
   const [allPersonas, setAllPersonas] = useState<PersonDoc[]>([]);
   const [eventsCreated, setEventsCreated] = useState<number | null>(null);
+  const [managedEvents, setManagedEvents] = useState<ManagedEvent[]>([]);
   const [participations, setParticipations] = useState<number | null>(null);
   const [orgs, setOrgs] = useState<OrgListItem[]>([]);
   const [villages, setVillages] = useState<VillageRow[]>([]);
@@ -58,15 +63,16 @@ export default function ProfileScreen() {
       setSelfPerson(self);
       setAllPersonas(mine);
 
-      const [count, regs] = await Promise.all([
-        withFirestoreErrorLog('profile:getEventCountByCreator', () =>
-          getEventCountByCreator(user.uid),
+      const [myEvents, regs] = await Promise.all([
+        withFirestoreErrorLog('profile:getEventsByCreator', () =>
+          getEventsByCreator(user.uid),
         ),
         withFirestoreErrorLog('profile:getUserRegistrationsAcrossEvents', () =>
           getUserRegistrationsAcrossEvents(user.uid),
         ),
       ]);
-      setEventsCreated(count);
+      setManagedEvents(myEvents);
+      setEventsCreated(myEvents.length);
       const distinctEvents = new Set(regs.map((r) => r.eventPath));
       setParticipations(distinctEvents.size);
 
@@ -212,6 +218,15 @@ export default function ProfileScreen() {
             onPressAdd={() => router.push('/person/new')}
           />
         )}
+
+        <ProfileSectionHeader title={t('profile.managedEventsSection.title')} />
+        <ManagedEventsScroll
+          events={managedEvents}
+          now={new Date()}
+          ongoingLabel={t('profile.managedEventsSection.ongoing')}
+          emptyLabel={t('profile.managedEventsSection.empty')}
+          onPressEvent={(id) => router.push(`/event/${id}` as never)}
+        />
 
         {orgs.length > 0 ? (
           <>

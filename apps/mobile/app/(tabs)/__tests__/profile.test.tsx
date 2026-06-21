@@ -32,7 +32,7 @@ jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadPersonImage: jest.fn().mockResolvedValue('https://photo.test/new.jpg'),
 }));
 jest.mock('@cultuvilla/shared/services/eventService', () => ({
-  getEventCountByCreator: jest.fn().mockResolvedValue(0),
+  getEventsByCreator: jest.fn().mockResolvedValue([]),
 }));
 jest.mock('@cultuvilla/shared/services/registrationService', () => ({
   getUserRegistrationsAcrossEvents: jest.fn().mockResolvedValue([]),
@@ -88,6 +88,9 @@ jest.mock('../../../components/feature/profile/OrgList', () => ({ OrgList: () =>
 jest.mock('../../../components/feature/profile/VillagesScroll', () => ({
   VillagesScroll: () => null,
 }));
+jest.mock('../../../components/feature/profile/ManagedEventsScroll', () => ({
+  ManagedEventsScroll: () => null,
+}));
 jest.mock('../../../components/feature/profile/ProfileSectionHeader', () => ({
   ProfileSectionHeader: () => null,
 }));
@@ -115,6 +118,22 @@ describe('ProfileScreen — mis pueblos', () => {
 
     await waitFor(() => {
       expect(villageMemberService.getUserMemberships).toHaveBeenCalledWith('uid-1');
+    });
+  });
+});
+
+describe('ProfileScreen — eventos gestionados', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('loads the events created by the user on mount', async () => {
+    const personService = require('@cultuvilla/shared/services/personService');
+    const eventService = require('@cultuvilla/shared/services/eventService');
+    (personService.getPersonByUserId as jest.Mock).mockResolvedValue(null);
+
+    render(<ProfileScreen />);
+
+    await waitFor(() => {
+      expect(eventService.getEventsByCreator).toHaveBeenCalledWith('uid-1');
     });
   });
 });
