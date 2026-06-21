@@ -30,4 +30,16 @@ describe('<EventCard>', () => {
     fireEvent.press(getByTestId('card'));
     expect(onPress).toHaveBeenCalledWith('e1');
   });
+
+  it('renders a badge when provided', () => {
+    const { getByText } = render(
+      <EventCard event={fixture} onPress={() => {}} badge="En curso" />,
+    );
+    expect(getByText('En curso')).toBeTruthy();
+  });
+
+  it('renders no badge when none is provided', () => {
+    const { queryByText } = render(<EventCard event={fixture} onPress={() => {}} />);
+    expect(queryByText('En curso')).toBeNull();
+  });
 });
