@@ -13,7 +13,6 @@ import {
   EntityCard,
   SettingsLink,
 } from '../../components/feature/VillageSections';
-import { LivePersonCard } from '../../components/feature/LivePersonCard';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
@@ -56,12 +55,6 @@ type Place = PlaceData & { id: string };
 type Organization = OrganizationData & { id: string };
 type Event = EventData & { id: string };
 
-/** A person in the "Personas" scroll — a member or a pending join request. */
-type Person = { userId: string; isRequest: boolean };
-
-/** Cap the horizontal people scroll; "Gestionar" opens the full list. */
-const PEOPLE_LIMIT = 20;
-
 export default function VillageTabScreen() {
   const { user, profile, profileChecked } = useAuth();
   const { t } = useT();
@@ -74,7 +67,6 @@ export default function VillageTabScreen() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [orgMemberCounts, setOrgMemberCounts] = useState<Record<string, number>>({});
   const [events, setEvents] = useState<Event[]>([]);
-  const [people, setPeople] = useState<Person[]>([]);
   const [peopleCount, setPeopleCount] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pendingOrganizerRequest, setPendingOrganizerRequest] = useState(false);
@@ -91,7 +83,6 @@ export default function VillageTabScreen() {
       setOrganizations([]);
       setOrgMemberCounts({});
       setEvents([]);
-      setPeople([]);
       setPeopleCount(0);
       setPendingOrganizerRequest(false);
       setLoadError(null);
@@ -163,12 +154,6 @@ export default function VillageTabScreen() {
       setOrganizations(orgs);
       setOrgMemberCounts(countByOrg);
       setEvents(upcoming);
-      // Pending join requests first (admins only), then members; capped for the
-      // horizontal scroll. The cards live-resolve name + photo from each user doc.
-      setPeople([
-        ...requests.map((r) => ({ userId: r.userId, isRequest: true })),
-        ...members.slice(0, PEOPLE_LIMIT).map((m) => ({ userId: m.userId, isRequest: false })),
-      ]);
       setPeopleCount(members.length + requests.length);
       setPendingOrganizerRequest(
         myReqs.some(
@@ -436,27 +421,6 @@ export default function VillageTabScreen() {
               onPress={() => router.push(`/event/${e.id}` as never)}
             />
           ))}
-        </Section>
-
-        {/* ── Personas (members + pending join requests for admins) ─ */}
-        <Section
-          title={t('village.admin.overview.people')}
-          onManage={canManage ? () => router.push(`${base}/requests` as never) : undefined}
-          isEmpty={people.length === 0}
-          emptyLabel={t('village.admin.overview.noPeople')}
-        >
-          {people.map((p) =>
-            p.isRequest ? (
-              <LivePersonCard
-                key={`req-${p.userId}`}
-                userId={p.userId}
-                badge={t('village.admin.overview.requestBadge')}
-                onPress={() => router.push(`${base}/requests` as never)}
-              />
-            ) : (
-              <LivePersonCard key={`mem-${p.userId}`} userId={p.userId} />
-            ),
-          )}
         </Section>
 
         {/* ── Barrios ──────────────────────────────────────────── */}
