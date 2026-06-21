@@ -139,6 +139,17 @@ export function buildVillageCommunity(input: ActivateCommunityInput): VillageCom
   };
 }
 
+// ── Proposals (propose-pending shared by barrios & places) ──────────────
+//
+// Any village member may propose a barrio/place; it lands as `pending` and is
+// visible to everyone. Organizers (village/app admin) create directly and
+// approve/reject. The new fields use `.default(...)` so legacy docs (created
+// before this pattern, with no key) read back as an approved, unowned item —
+// no data migration needed. Enforcement lives in firestore.rules.
+
+export const ProposalStatusSchema = z.enum(['pending', 'approved', 'rejected']);
+export type ProposalStatus = z.infer<typeof ProposalStatusSchema>;
+
 // ── Barrios (subcollection: /municipalities/{id}/barrios/{barrioId}) ────
 
 export const BarrioDataSchema = z.object({
@@ -149,6 +160,10 @@ export const BarrioDataSchema = z.object({
    * converter (missing key → null). */
   imageURL: z.string().nullable().default(null),
   createdAt: z.date(),
+  status: ProposalStatusSchema.default('approved'),
+  proposedBy: z.string().nullable().default(null),
+  approvedBy: z.string().nullable().default(null),
+  decidedAt: z.date().nullable().default(null),
 });
 export type BarrioData = z.infer<typeof BarrioDataSchema>;
 
@@ -156,6 +171,10 @@ export interface BarrioDataInput {
   name: string;
   municipalityId: string;
   imageURL?: string | null;
+  status?: ProposalStatus;
+  proposedBy?: string | null;
+  approvedBy?: string | null;
+  decidedAt?: Date | null;
 }
 
 export function buildBarrioData(input: BarrioDataInput): BarrioData {
@@ -164,6 +183,10 @@ export function buildBarrioData(input: BarrioDataInput): BarrioData {
     municipalityId: input.municipalityId,
     imageURL: input.imageURL ?? null,
     createdAt: new Date(),
+    status: input.status ?? 'pending',
+    proposedBy: input.proposedBy ?? null,
+    approvedBy: input.approvedBy ?? null,
+    decidedAt: input.decidedAt ?? null,
   };
 }
 
@@ -193,6 +216,10 @@ export const PlaceDataSchema = z.object({
    * converter (missing key → null). */
   imageURL: z.string().nullable().default(null),
   createdAt: z.date(),
+  status: ProposalStatusSchema.default('approved'),
+  proposedBy: z.string().nullable().default(null),
+  approvedBy: z.string().nullable().default(null),
+  decidedAt: z.date().nullable().default(null),
 });
 export type PlaceData = z.infer<typeof PlaceDataSchema>;
 
@@ -202,6 +229,10 @@ export interface PlaceDataInput {
   municipalityId: string;
   description?: string | null;
   imageURL?: string | null;
+  status?: ProposalStatus;
+  proposedBy?: string | null;
+  approvedBy?: string | null;
+  decidedAt?: Date | null;
 }
 
 export function buildPlaceData(input: PlaceDataInput): PlaceData {
@@ -212,5 +243,9 @@ export function buildPlaceData(input: PlaceDataInput): PlaceData {
     description: input.description ?? null,
     imageURL: input.imageURL ?? null,
     createdAt: new Date(),
+    status: input.status ?? 'pending',
+    proposedBy: input.proposedBy ?? null,
+    approvedBy: input.approvedBy ?? null,
+    decidedAt: input.decidedAt ?? null,
   };
 }

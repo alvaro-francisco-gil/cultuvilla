@@ -32,7 +32,11 @@ import type {
   PlaceDataInput,
   PlaceKind,
 } from '../models/municipality';
-import { municipalitySearchKey } from '../models/municipality/MunicipalityDataModel';
+import {
+  municipalitySearchKey,
+  buildBarrioData,
+  buildPlaceData,
+} from '../models/municipality/MunicipalityDataModel';
 
 // ── Municipality CRUD ────────────────────────────────────────────────────
 
@@ -174,13 +178,7 @@ export async function getBarrios(municipalityId: string): Promise<(BarrioData & 
 
 export async function createBarrio(municipalityId: string, input: BarrioDataInput): Promise<string> {
   const newRef = doc(municipalityBarriosCollection(getDb(), municipalityId));
-  const data: BarrioData = {
-    name: input.name,
-    municipalityId,
-    imageURL: input.imageURL ?? null,
-    createdAt: new Date(),
-  };
-  await setDoc(newRef, data);
+  await setDoc(newRef, buildBarrioData({ ...input, municipalityId, status: input.status ?? 'approved' }));
   return newRef.id;
 }
 
@@ -213,15 +211,7 @@ export async function getPlaces(
 
 export async function createPlace(municipalityId: string, input: PlaceDataInput): Promise<string> {
   const newRef = doc(municipalityPlacesCollection(getDb(), municipalityId));
-  const data: PlaceData = {
-    name: input.name,
-    kind: input.kind,
-    description: input.description ?? null,
-    municipalityId,
-    imageURL: input.imageURL ?? null,
-    createdAt: new Date(),
-  };
-  await setDoc(newRef, data);
+  await setDoc(newRef, buildPlaceData({ ...input, municipalityId, status: input.status ?? 'approved' }));
   return newRef.id;
 }
 
