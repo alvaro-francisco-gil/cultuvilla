@@ -168,6 +168,7 @@
     "title": "Pueblos",
     "join": "Unirme a este pueblo",
     "signInToJoin": "Inicia sesión para unirte",
+    "invitedBanner": "Te han invitado a unirte a este pueblo",
     "events": {
       "label": "Eventos",
       "empty": "No hay eventos en este pueblo"
@@ -334,6 +335,7 @@
     "membersCount": "{count} miembros",
     "join": "Unirme a esta organización",
     "signInToJoin": "Inicia sesión para unirte",
+    "invitedBanner": "Te han invitado a unirte a esta organización",
     "name": "Nombre",
     "type": "Tipo",
     "ayuntamiento": "Ayuntamiento",
