@@ -349,6 +349,7 @@
   },
   "organization": {
     "title": "Organización",
+    "description": "Descripción",
     "membersCount": "{count} miembros",
     "join": "Unirme a esta organización",
     "signInToJoin": "Inicia sesión para unirte",

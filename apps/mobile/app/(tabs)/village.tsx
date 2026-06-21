@@ -470,11 +470,11 @@ export default function VillageTabScreen() {
         {/* ── Agrupaciones (ayuntamiento + asociación) ─────────── */}
         <Section
           title={t('village.hub.organizations')}
-          onManage={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
+          onManage={() => router.push(`${villageBase}/organizations` as never)}
           isEmpty={agrupaciones.length === 0}
           emptyLabel={t('village.organizationsList.empty')}
-          addLabel={canManage ? t('village.admin.organizations.add') : undefined}
-          onAdd={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
+          addLabel={canManage ? t('village.admin.organizations.add') : t('village.proposals.propose')}
+          onAdd={() => router.push(`${villageBase}/organizations` as never)}
         >
           {agrupaciones.map((o) => (
             <EntityCard
@@ -483,7 +483,7 @@ export default function VillageTabScreen() {
               sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
               icon="business-outline"
               imageUri={o.imageURL}
-              onPress={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
+              onPress={() => router.push(`${villageBase}/organizations` as never)}
             />
           ))}
         </Section>
@@ -491,11 +491,11 @@ export default function VillageTabScreen() {
         {/* ── Peñas ────────────────────────────────────────────── */}
         <Section
           title={t('village.hub.penas')}
-          onManage={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
+          onManage={() => router.push(`${villageBase}/organizations` as never)}
           isEmpty={penas.length === 0}
           emptyLabel={t('village.organizationsList.penasEmpty')}
-          addLabel={canManage ? t('village.admin.organizations.add') : undefined}
-          onAdd={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
+          addLabel={canManage ? t('village.admin.organizations.add') : t('village.proposals.propose')}
+          onAdd={() => router.push(`${villageBase}/organizations` as never)}
         >
           {penas.map((o) => (
             <EntityCard
@@ -504,7 +504,7 @@ export default function VillageTabScreen() {
               sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
               icon="people-circle-outline"
               imageUri={o.imageURL}
-              onPress={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
+              onPress={() => router.push(`${villageBase}/organizations` as never)}
             />
           ))}
         </Section>
