@@ -28,6 +28,12 @@ jest.mock('@cultuvilla/shared/services/userService', () => ({
 jest.mock('@cultuvilla/shared/services/organizerRequestService', () => ({
   getMyOrganizerRequests: jest.fn().mockResolvedValue([]),
 }));
+jest.mock('@cultuvilla/shared/services/orgMemberService', () => ({
+  getOrgMemberCount: jest.fn().mockResolvedValue(0),
+}));
+jest.mock('@cultuvilla/shared/services/eventService', () => ({
+  getEventsByMunicipality: jest.fn().mockResolvedValue([]),
+}));
 jest.mock('../../../lib/auth/useAuth', () => ({
   useAuth: () => ({
     user: { uid: 'uid-1' },

@@ -12,6 +12,11 @@ export async function getOrgMembers(orgId: string): Promise<(OrgMemberData & { i
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+export async function getOrgMemberCount(orgId: string): Promise<number> {
+  const snap = await getDocs(organizationMembersCollection(getDb(), orgId));
+  return snap.size;
+}
+
 export async function addOrgMember(orgId: string, userId: string): Promise<void> {
   await setDoc(organizationMemberDoc(getDb(), orgId, userId), {
     joinedAt: new Date(),
