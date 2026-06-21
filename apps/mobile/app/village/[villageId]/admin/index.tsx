@@ -13,10 +13,10 @@ import {
   Stat,
   StatSeparator,
   Section,
-  PersonCard,
   EntityCard,
   SettingsLink,
 } from '../../../../components/feature/VillageSections';
+import { LivePersonCard } from '../../../../components/feature/LivePersonCard';
 import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
 import { useT } from '../../../../lib/i18n';
 import {
@@ -27,7 +27,6 @@ import {
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 import { getVillageMembers } from '@cultuvilla/shared/services/villageMemberService';
 import { getJoinRequestsForVillage } from '@cultuvilla/shared/services/joinRequestService';
-import { getUserProfile } from '@cultuvilla/shared/services/userService';
 import { escudoFullUrl } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { BarrioData, PlaceData } from '@cultuvilla/shared/models/municipality';
@@ -38,14 +37,9 @@ type Place = PlaceData & { id: string };
 type Organization = OrganizationData & { id: string };
 
 /** A person shown in the "Personas" scroll — either a member or a pending join request. */
-type Person = {
-  userId: string;
-  name: string;
-  photoURL: string | null;
-  isRequest: boolean;
-};
+type Person = { userId: string; isRequest: boolean };
 
-/** Cap profile look-ups for the horizontal scroll; "Gestionar" opens the full list. */
+/** Cap the horizontal scroll; "Gestionar" opens the full list. */
 const PEOPLE_LIMIT = 20;
 
 export default function VillageAdminHub() {
@@ -75,21 +69,12 @@ export default function VillageAdminHub() {
     setPlaces(plc);
     setOrganizations(orgs);
 
-    // Pending requests come first, then members; resolve display name + photo.
-    const pending = requests.map((r) => ({ userId: r.userId, isRequest: true }));
-    const joined = members.slice(0, PEOPLE_LIMIT).map((m) => ({ userId: m.userId, isRequest: false }));
-    const resolved = await Promise.all(
-      [...pending, ...joined].map(async (p) => {
-        const profile = await getUserProfile(p.userId);
-        return {
-          userId: p.userId,
-          name: profile?.displayName ?? p.userId,
-          photoURL: profile?.photoURL ?? null,
-          isRequest: p.isRequest,
-        };
-      }),
-    );
-    setPeople(resolved);
+    // Pending requests first, then members; capped for the horizontal scroll.
+    // The cards live-resolve name + photo from each user doc — no N+1 join here.
+    setPeople([
+      ...requests.map((r) => ({ userId: r.userId, isRequest: true })),
+      ...members.slice(0, PEOPLE_LIMIT).map((m) => ({ userId: m.userId, isRequest: false })),
+    ]);
     setLoading(false);
   }, [villageId]);
 
@@ -174,15 +159,14 @@ export default function VillageAdminHub() {
           >
             {people.map((p) =>
               p.isRequest ? (
-                <PersonCard
+                <LivePersonCard
                   key={`req-${p.userId}`}
-                  name={p.name}
-                  photoURL={p.photoURL}
+                  userId={p.userId}
                   badge={t('village.admin.overview.requestBadge')}
                   onPress={() => router.push(`${base}/requests` as never)}
                 />
               ) : (
-                <PersonCard key={`mem-${p.userId}`} name={p.name} photoURL={p.photoURL} />
+                <LivePersonCard key={`mem-${p.userId}`} userId={p.userId} />
               ),
             )}
           </Section>
