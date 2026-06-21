@@ -1,0 +1,40 @@
+import { render } from '@testing-library/react-native';
+import CensoScreen from '../censo';
+import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+
+jest.mock('expo-router', () => ({ useLocalSearchParams: () => ({ villageId: 'm1' }) }));
+jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({ useEntityCapabilities: jest.fn() }));
+jest.mock('../../../../lib/auth/useAuth', () => ({ useAuth: () => ({ user: { uid: 'u1' } }) }));
+jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('../../../../components/feature/CensoSchemaEditor', () => ({
+  CensoSchemaEditor: () => {
+    const { Text } = require('react-native');
+    return <Text>SCHEMA_EDITOR</Text>;
+  },
+}));
+jest.mock('../../../../components/feature/CensoAnswers', () => ({
+  CensoAnswers: () => {
+    const { Text } = require('react-native');
+    return <Text>ANSWER_FORM</Text>;
+  },
+}));
+
+const mockCaps = useEntityCapabilities as jest.Mock;
+
+beforeEach(() => jest.clearAllMocks());
+
+describe('CensoScreen (role-mode)', () => {
+  it('an organizer lands in the schema editor', () => {
+    mockCaps.mockReturnValue({ canManage: true, canApprove: true, uid: 'u1', loading: false });
+    const { getByText, queryByText } = render(<CensoScreen />);
+    expect(getByText('SCHEMA_EDITOR')).toBeTruthy();
+    expect(queryByText('ANSWER_FORM')).toBeNull();
+  });
+
+  it('a villager lands in the answer form', () => {
+    mockCaps.mockReturnValue({ canManage: false, canApprove: false, uid: 'u1', loading: false });
+    const { getByText, queryByText } = render(<CensoScreen />);
+    expect(getByText('ANSWER_FORM')).toBeTruthy();
+    expect(queryByText('SCHEMA_EDITOR')).toBeNull();
+  });
+});
