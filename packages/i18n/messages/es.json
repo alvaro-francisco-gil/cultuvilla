@@ -169,6 +169,12 @@
     "join": "Unirme a este pueblo",
     "signInToJoin": "Inicia sesión para unirte",
     "invitedBanner": "Te han invitado a unirte a este pueblo",
+    "joinConfirm": {
+      "title": "Unirte a este pueblo",
+      "body": "Unirte significa que consideras este tu pueblo. No verifica que vivas aquí.",
+      "confirm": "Unirme",
+      "cancel": "Cancelar"
+    },
     "events": {
       "label": "Eventos",
       "empty": "No hay eventos en este pueblo"
