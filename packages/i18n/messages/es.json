@@ -5,6 +5,8 @@
     "cancel": "Cancelar",
     "delete": "Eliminar",
     "edit": "Editar",
+    "approve": "Aprobar",
+    "reject": "Rechazar",
     "create": "Crear",
     "confirm": "Confirmar",
     "back": "Volver",
@@ -166,6 +168,11 @@
   },
   "village": {
     "title": "Pueblos",
+    "proposals": {
+      "pending": "Pendiente",
+      "withdraw": "Retirar",
+      "propose": "Proponer"
+    },
     "join": "Unirme a este pueblo",
     "signInToJoin": "Inicia sesión para unirte",
     "invitedBanner": "Te han invitado a unirte a este pueblo",
