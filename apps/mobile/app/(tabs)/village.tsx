@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Text, VStack, HStack, Pressable, Escudo, Button } from '../../components/primitives';
 import { AppHeader } from '../../components/layout/AppHeader';
 import { VillageDiscovery } from '../../components/feature/VillageDiscovery';
+import { VillageInfoModal } from '../../components/feature/VillageInfoModal';
 import {
   ACCENT,
   Stat,
@@ -26,10 +27,7 @@ import {
   getMunicipality,
   getBarrios,
   getPlaces,
-  updateMunicipality,
 } from '@cultuvilla/shared/services/municipalityService';
-import { uploadMunicipalityImage } from '@cultuvilla/shared/services/imageService';
-import { pickImageAsBlob } from '../../lib/images';
 import {
   isVillageAdmin,
   getVillageMembers,
@@ -70,7 +68,7 @@ export default function VillageTabScreen() {
   const [peopleCount, setPeopleCount] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pendingOrganizerRequest, setPendingOrganizerRequest] = useState(false);
-  const [uploadingEscudo, setUploadingEscudo] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   const activeMunicipalityId = profile?.activeMunicipalityId ?? null;
 
@@ -178,26 +176,6 @@ export default function VillageTabScreen() {
     }, [loadVillage]),
   );
 
-  // Admin-only: pick an image, upload it, and store it as the manual escudo.
-  // It lands in `escudoManualUrl` (not `escudoUrl`), which wins over the
-  // Wikidata escudo at display time and survives `escudos:upload` re-runs.
-  const changeEscudo = useCallback(async () => {
-    if (!activeMunicipalityId) return;
-    const picked = await pickImageAsBlob({ square: true });
-    if (!picked) return;
-    setUploadingEscudo(true);
-    try {
-      const url = await uploadMunicipalityImage(activeMunicipalityId, picked);
-      await updateMunicipality(activeMunicipalityId, { escudoManualUrl: url });
-      await loadVillage();
-    } catch (e) {
-      // mobile-web-compat: native-only — admin surface, not exercised on web
-      Alert.alert(e instanceof Error ? e.message : String(e));
-    } finally {
-      setUploadingEscudo(false);
-    }
-  }, [activeMunicipalityId, loadVillage]);
-
   // AuthGate already waits for `profileChecked`, but guard once more for safety.
   if (!profileChecked) {
     return (
@@ -281,7 +259,6 @@ export default function VillageTabScreen() {
   const canManage = isAppAdmin || villageAdmin;
   const base = `/village/${village.id}/admin` as const;
   const cover = village.community?.coverImages?.[0] ?? null;
-  const description = village.community?.description?.trim();
 
   // "Agrupaciones" groups ayuntamiento + asociación; peñas get their own scroll.
   const penas = organizations.filter((o) => o.type === 'peña');
@@ -299,17 +276,8 @@ export default function VillageTabScreen() {
             never overlapping the photo. */}
         <VStack gap={2} className="px-4 pt-4">
           <HStack gap={3} className="items-center">
-            <Pressable
-              onPress={changeEscudo}
-              disabled={!canManage || uploadingEscudo}
-              accessibilityLabel={
-                canManage
-                  ? escudoFullUrl(village)
-                    ? t('village.escudo.change')
-                    : t('village.escudo.add')
-                  : undefined
-              }
-              className={`relative bg-surface rounded-2xl shadow-sm ${
+            <View
+              className={`bg-surface rounded-2xl shadow-sm ${
                 hasManualEscudo(village) ? '' : 'p-2'
               }`}
             >
@@ -319,40 +287,23 @@ export default function VillageTabScreen() {
                 fill={hasManualEscudo(village)}
                 fallbackInitial={village.name}
               />
-              {uploadingEscudo ? (
-                <View className="absolute inset-0 items-center justify-center rounded-2xl bg-black/30">
-                  <ActivityIndicator color="#fff" />
-                </View>
-              ) : null}
-            </Pressable>
+            </View>
             <VStack gap={0} className="flex-1">
-              <Text variant="h1">{village.name}</Text>
+              <HStack gap={2} className="items-center">
+                <Text variant="h1">{village.name}</Text>
+                <Pressable
+                  onPress={() => setInfoOpen(true)}
+                  accessibilityLabel={t('village.info.title')}
+                  className="p-1"
+                >
+                  <Ionicons name="information-circle-outline" size={24} color={ACCENT} />
+                </Pressable>
+              </HStack>
               <Text tone="muted" variant="bodySm">
                 {village.province}
               </Text>
             </VStack>
           </HStack>
-          {description ? (
-            <Text tone="muted" variant="bodySm">
-              {description}
-            </Text>
-          ) : canManage ? (
-            <Text tone="muted" variant="bodySm">
-              {t('village.admin.overview.noDescription')}
-            </Text>
-          ) : null}
-          {canManage ? (
-            <Pressable
-              onPress={() => router.push(`${base}/community` as never)}
-              accessibilityLabel={t('village.admin.overview.edit')}
-              className="flex-row items-center"
-            >
-              <Ionicons name="create-outline" size={16} color={ACCENT} />
-              <Text variant="bodySm" style={{ color: ACCENT }} className="ml-1 font-medium">
-                {t('village.admin.overview.edit')}
-              </Text>
-            </Pressable>
-          ) : null}
         </VStack>
 
         {/* ── Stats ────────────────────────────────────────────── */}
@@ -363,46 +314,6 @@ export default function VillageTabScreen() {
           <StatSeparator />
           <Stat value={places.length} label={t('village.admin.hub.places')} />
         </HStack>
-
-        {/* ── Compartir / Invitar ──────────────────────────────── */}
-        {activeMunicipalityId ? (
-          <HStack gap={3} className="px-4 pb-2">
-            <Pressable
-              onPress={() => void share(getVillageViewLink(activeMunicipalityId), village.name)}
-              accessibilityLabel={t('village.share.title')}
-              className="flex-1 flex-row items-center justify-center bg-surface"
-              style={{
-                paddingVertical: 8,
-                paddingHorizontal: 12,
-                borderRadius: 24,
-                borderWidth: 1.5,
-                borderColor: ACCENT,
-                minHeight: 36,
-              }}
-            >
-              <Text style={{ color: ACCENT }} className="font-semibold">
-                {t('village.share.title')}
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => void share(getVillageInviteLink(activeMunicipalityId), village.name)}
-              accessibilityLabel={t('village.invite.title')}
-              className="flex-1 flex-row items-center justify-center bg-surface"
-              style={{
-                paddingVertical: 8,
-                paddingHorizontal: 12,
-                borderRadius: 24,
-                borderWidth: 1.5,
-                borderColor: ACCENT,
-                minHeight: 36,
-              }}
-            >
-              <Text style={{ color: ACCENT }} className="font-semibold">
-                {t('village.invite.title')}
-              </Text>
-            </Pressable>
-          </HStack>
-        ) : null}
 
         {/* ── Próximos eventos (upcoming published events, everyone) ─ */}
         <Section
@@ -518,7 +429,54 @@ export default function VillageTabScreen() {
             {t('village.censo.link')}
           </Button>
         </View>
+
+        {/* ── Compartir / Invitar (everyone) ───────────────────── */}
+        {activeMunicipalityId ? (
+          <HStack gap={3} className="px-4 pt-3">
+            <Pressable
+              onPress={() => void share(getVillageViewLink(activeMunicipalityId), village.name)}
+              accessibilityLabel={t('village.share.title')}
+              className="flex-1 flex-row items-center justify-center bg-surface"
+              style={{
+                paddingVertical: 5,
+                paddingHorizontal: 12,
+                borderRadius: 24,
+                borderWidth: 1.5,
+                borderColor: ACCENT,
+                minHeight: 32,
+              }}
+            >
+              <Text style={{ color: ACCENT }} className="font-semibold">
+                {t('village.share.title')}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => void share(getVillageInviteLink(activeMunicipalityId), village.name)}
+              accessibilityLabel={t('village.invite.title')}
+              className="flex-1 flex-row items-center justify-center bg-surface"
+              style={{
+                paddingVertical: 5,
+                paddingHorizontal: 12,
+                borderRadius: 24,
+                borderWidth: 1.5,
+                borderColor: ACCENT,
+                minHeight: 32,
+              }}
+            >
+              <Text style={{ color: ACCENT }} className="font-semibold">
+                {t('village.invite.title')}
+              </Text>
+            </Pressable>
+          </HStack>
+        ) : null}
       </ScrollView>
+
+      <VillageInfoModal
+        visible={infoOpen}
+        onClose={() => setInfoOpen(false)}
+        village={village}
+        canManage={canManage}
+      />
     </Screen>
   );
 }
