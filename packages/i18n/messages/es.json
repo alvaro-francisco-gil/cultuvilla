@@ -291,6 +291,14 @@
       "news": "Anuncios",
       "memberCount": "{count} personas"
     },
+    "barrioDetail": {
+      "residents": "Vecinos",
+      "residentsEmpty": "Aún no hay vecinos registrados en este barrio"
+    },
+    "placeDetail": {
+      "buried": "Personas enterradas aquí",
+      "buriedEmpty": "Aún no hay personas registradas en este lugar"
+    },
     "organizationsList": {
       "title": "Agrupaciones",
       "empty": "Aún no hay agrupaciones",
