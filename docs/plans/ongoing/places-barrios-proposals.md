@@ -7,12 +7,25 @@
 ## Status
 
 - **Updated:** 2026-06-21
-- **Stage:** Task 1 (model fields + build helpers)
+- **Stage:** All four tasks complete — foundation implemented, not yet merged to main.
 - **Branch:** repo `worktree-organizer-shared-ui-merge` (worktree `.claude/worktrees/organizer-shared-ui-merge`)
-- **Done:** plan authored; baseline green (377 shared unit tests)
-- **Next:** implement Task 1 (status/proposedBy/approvedBy/decidedAt on Place & Barrio schemas)
-- **Blockers:** none
-- **Handoff:** emulator-backed tests run from repo root — `pnpm test:integration` and `pnpm test:rules` (both wrap `scripts/run-tests-with-emulators.mjs`). Model/unit tests: `pnpm shared:test`. Rules deploy to dev is deferred to the UI plan.
+- **Done:** Task 1 (model fields + build helpers + service compile), Task 2 (propose/approve/reject services), Task 3 (place rules), Task 4 (barrio rules). All green: model/unit 382, rules e2e 143, integration 11; `shared:typecheck` + `shared:lint` clean. Commits `751ee5e`, `1e0f527`, `fdb6a38`.
+- **Next:** the UI plan (shared capability hook + propose-pending primitives + merged Places/Barrios screens). Deploy rules to dev with `firestore-deploy` when the UI exercises them, then merge this branch.
+- **Blockers:** none.
+- **Handoff:** emulator-backed tests run from repo root — `pnpm test:integration` and `pnpm test:rules` (both wrap `scripts/run-tests-with-emulators.mjs`). Worktree setup required `npm --prefix functions install` and `pnpm --filter @cultuvilla/shared build` before the emulator harness could build functions. The integration test seeds members in `beforeEach` so the new rules permit the service writes. The husky pre-commit lint-staged reported "no matching staged files" — run `pnpm shared:lint` manually. Rules NOT yet deployed to dev.
+
+## Rollout status
+
+| Step | Done |
+|---|---|
+| Model fields (status/proposedBy/approvedBy/decidedAt) | ✅ |
+| Service functions (propose/approve/reject place & barrio) | ✅ |
+| Place rules + e2e tests | ✅ |
+| Barrio rules + e2e tests | ✅ |
+| Rules deployed to dev | ⬜ (deferred to UI plan) |
+| Branch merged to main | ⬜ |
+
+Legend: ⬜ pending · ✅ done
 
 **Architecture:** The propose-pending pattern lives in the **existing** `places` / `barrios` subcollections (not a separate collection) so pending and approved items share one list. Place/Barrio schemas gain `status` + `proposedBy` + `approvedBy` + `decidedAt`, mirroring `OrganizationDataModel`. Zod `.default(...)` on the new fields keeps legacy docs readable with no data migration (missing `status` → `'approved'`, missing `proposedBy` → `null`). Rules allow member creates only as `pending`, organizer/app-admin creates unrestricted, status transitions organizer-only, and proposers may edit/withdraw their own still-pending item.
 
