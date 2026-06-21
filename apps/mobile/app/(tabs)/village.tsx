@@ -293,48 +293,7 @@ export default function VillageTabScreen() {
       <ScrollView contentContainerClassName="pb-10">
         {/* ── Hero ─────────────────────────────────────────────── */}
         {cover ? (
-          <View>
-            <Image source={{ uri: cover }} className="w-full h-40" resizeMode="cover" />
-            {activeMunicipalityId ? (
-              <View
-                style={{
-                  position: 'absolute',
-                  top: 8,
-                  right: 8,
-                  flexDirection: 'row',
-                  gap: 8,
-                  zIndex: 10,
-                }}
-              >
-                <Pressable
-                  onPress={() => void share(getVillageViewLink(activeMunicipalityId))}
-                  accessibilityLabel={t('deeplink.shareViewLabel')}
-                  className="items-center justify-center"
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 18,
-                    backgroundColor: 'rgba(0,0,0,0.45)',
-                  }}
-                >
-                  <Ionicons name="share-outline" size={20} color="#fff" />
-                </Pressable>
-                <Pressable
-                  onPress={() => void share(getVillageInviteLink(activeMunicipalityId))}
-                  accessibilityLabel={t('deeplink.shareInviteLabel')}
-                  className="items-center justify-center"
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 18,
-                    backgroundColor: 'rgba(0,0,0,0.45)',
-                  }}
-                >
-                  <Ionicons name="person-add-outline" size={20} color="#fff" />
-                </Pressable>
-              </View>
-            ) : null}
-          </View>
+          <Image source={{ uri: cover }} className="w-full h-40" resizeMode="cover" />
         ) : null}
         {/* Content starts after the cover image — escudo + name sit below it,
             never overlapping the photo. */}
@@ -404,6 +363,48 @@ export default function VillageTabScreen() {
           <StatSeparator />
           <Stat value={places.length} label={t('village.admin.hub.places')} />
         </HStack>
+
+        {/* ── Compartir / Invitar ──────────────────────────────── */}
+        {activeMunicipalityId ? (
+          <HStack gap={3} className="px-4 pb-2">
+            <Pressable
+              onPress={() => void share(getVillageViewLink(activeMunicipalityId))}
+              accessibilityLabel={t('village.share.title')}
+              className="flex-1 flex-row items-center justify-center bg-surface"
+              style={{
+                paddingVertical: 8,
+                paddingHorizontal: 12,
+                borderRadius: 24,
+                borderWidth: 1.5,
+                borderColor: ACCENT,
+                minHeight: 36,
+              }}
+            >
+              <Ionicons name="share-outline" size={16} color={ACCENT} />
+              <Text style={{ color: ACCENT }} className="ml-2 font-semibold">
+                {t('village.share.title')}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => void share(getVillageInviteLink(activeMunicipalityId))}
+              accessibilityLabel={t('village.invite.title')}
+              className="flex-1 flex-row items-center justify-center bg-surface"
+              style={{
+                paddingVertical: 8,
+                paddingHorizontal: 12,
+                borderRadius: 24,
+                borderWidth: 1.5,
+                borderColor: ACCENT,
+                minHeight: 36,
+              }}
+            >
+              <Ionicons name="person-add-outline" size={16} color={ACCENT} />
+              <Text style={{ color: ACCENT }} className="ml-2 font-semibold">
+                {t('village.invite.title')}
+              </Text>
+            </Pressable>
+          </HStack>
+        ) : null}
 
         {/* ── Próximos eventos (upcoming published events, everyone) ─ */}
         <Section

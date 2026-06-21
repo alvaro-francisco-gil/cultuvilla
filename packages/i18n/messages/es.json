@@ -169,9 +169,15 @@
     "join": "Unirme a este pueblo",
     "signInToJoin": "Inicia sesión para unirte",
     "invitedBanner": "Te han invitado a unirte a este pueblo",
+    "share": { "title": "Compartir pueblo" },
+    "invite": { "title": "Invitar vecino" },
     "events": {
       "label": "Eventos",
       "empty": "No hay eventos en este pueblo"
+    },
+    "upcomingEvents": {
+      "title": "Próximos eventos",
+      "empty": "No hay eventos próximos"
     },
     "organizations": "Organizaciones",
     "members": "Miembros",
@@ -271,7 +277,8 @@
       "organizations": "Agrupaciones",
       "penas": "Peñas",
       "censo": "Censo",
-      "news": "Anuncios"
+      "news": "Anuncios",
+      "memberCount": "{count} personas"
     },
     "organizationsList": {
       "title": "Agrupaciones",
