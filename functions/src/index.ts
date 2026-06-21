@@ -10,8 +10,6 @@ export { onEventUpdated } from './events/notificationTriggers';
 
 // Village (memberships, organizer requests, invites, denormalization)
 export { acceptInvite } from './village/acceptInvite';
-export { requestJoinVillage } from './village/requestJoinVillage';
-export { respondToJoinRequest } from './village/respondToJoinRequest';
 export { requestOrganizeVillage } from './village/requestOrganizeVillage';
 export { respondToOrganizerRequest } from './village/respondToOrganizerRequest';
 export { syncVillageDenormalization } from './village/syncVillageDenormalization';

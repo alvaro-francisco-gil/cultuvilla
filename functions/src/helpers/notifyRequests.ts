@@ -6,64 +6,11 @@
 import * as admin from 'firebase-admin';
 import {
   adminsCollection,
-  municipalityDoc,
-  municipalityMembersCollection,
   userNotificationsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
 import { buildNotificationData } from '@cultuvilla/shared/models';
 
 const db = admin.firestore();
-
-interface NotifyJoinRequestCreatedInput {
-  municipalityId: string;
-  municipalityName: string;
-  requesterUid: string;
-  recipientUserIds: Iterable<string>;
-}
-
-export async function notifyJoinRequestCreated(input: NotifyJoinRequestCreatedInput): Promise<void> {
-  const ids = new Set(input.recipientUserIds);
-  if (ids.size === 0) return;
-  const batch = db.batch();
-  for (const userId of ids) {
-    // Typed converter ref — batch.set marshals through the schema, so
-    // createdAt is a plain Date (sentinels would be rejected).
-    const ref = userNotificationsCollection(db, userId).doc();
-    batch.set(
-      ref,
-      buildNotificationData({
-        type: 'join_request_created',
-        title: 'Nueva solicitud para unirse',
-        body: `Hay una nueva solicitud para unirse a ${input.municipalityName}`,
-        municipalityId: input.municipalityId,
-        requesterUid: input.requesterUid,
-      }),
-    );
-  }
-  await batch.commit();
-}
-
-interface NotifyJoinRequestResolvedInput {
-  municipalityId: string;
-  municipalityName: string;
-  requesterUid: string;
-  decision: 'approved' | 'rejected';
-}
-
-export async function notifyJoinRequestResolved(input: NotifyJoinRequestResolvedInput): Promise<void> {
-  const approved = input.decision === 'approved';
-  const ref = userNotificationsCollection(db, input.requesterUid).doc();
-  await ref.set(
-    buildNotificationData({
-      type: approved ? 'join_request_approved' : 'join_request_rejected',
-      title: approved ? 'Solicitud aprobada' : 'Solicitud rechazada',
-      body: approved
-        ? `Tu solicitud para unirte a ${input.municipalityName} fue aprobada.`
-        : `Tu solicitud para unirte a ${input.municipalityName} fue rechazada.`,
-      municipalityId: input.municipalityId,
-    }),
-  );
-}
 
 interface NotifyOrganizerRequestCreatedInput {
   municipalityId: string;
@@ -117,29 +64,3 @@ export async function notifyOrganizerRequestResolved(
   );
 }
 
-interface ListVillageAdminRecipientsInput {
-  municipalityId: string;
-  excludeUid?: string | null;
-}
-
-/**
- * Returns the union of (a) the community.adminUserId from the municipality
- * doc and (b) all member docs with role === 'admin'. Excludes excludeUid.
- */
-export async function listVillageAdminRecipients(
-  input: ListVillageAdminRecipientsInput,
-): Promise<string[]> {
-  const muniRef = municipalityDoc(db, input.municipalityId);
-  const membersRef = municipalityMembersCollection(db, input.municipalityId);
-  const [muniSnap, membersSnap] = await Promise.all([
-    muniRef.get(),
-    membersRef.where('role', '==', 'admin').get(),
-  ]);
-  const recipients = new Set<string>();
-  const muniData = muniSnap.data();
-  const communityAdmin = muniData?.community?.adminUserId ?? null;
-  if (communityAdmin) recipients.add(communityAdmin);
-  for (const d of membersSnap.docs) recipients.add(d.id);
-  if (input.excludeUid) recipients.delete(input.excludeUid);
-  return [...recipients];
-}
