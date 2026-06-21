@@ -43,6 +43,18 @@ jest.mock('@cultuvilla/shared/services/organizationService', () => ({
 jest.mock('@cultuvilla/shared/services/orgMemberService', () => ({
   getOrgMembershipsByUserInMunicipality: jest.fn().mockResolvedValue([]),
 }));
+jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
+  getUserMemberships: jest.fn().mockResolvedValue([]),
+}));
+jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
+  getMunicipality: jest.fn().mockResolvedValue(null),
+}));
+jest.mock('@cultuvilla/shared/services/userService', () => ({
+  setActiveMunicipality: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('@cultuvilla/shared/models/municipality', () => ({
+  escudoThumbDisplayUrl: jest.fn().mockReturnValue(null),
+}));
 jest.mock('../../../lib/images', () => ({
   pickImageAsBlob: jest.fn(),
 }));
@@ -54,8 +66,9 @@ jest.mock('../../../lib/firestoreErrorLog', () => ({
 // retrigger its effect in an infinite loop.
 const mockUser = { uid: 'uid-1', email: 'a@b.test', displayName: null };
 const mockProfile = { activeMunicipalityId: null };
+const mockRefreshProfile = jest.fn().mockResolvedValue(undefined);
 jest.mock('../../../lib/auth/useAuth', () => ({
-  useAuth: () => ({ user: mockUser, profile: mockProfile }),
+  useAuth: () => ({ user: mockUser, profile: mockProfile, refreshProfile: mockRefreshProfile }),
 }));
 jest.mock('expo-router', () => ({
   router: { push: jest.fn() },
@@ -72,6 +85,9 @@ jest.mock('../../../components/feature/profile/PersonaScroll', () => ({
   PersonaScroll: () => null,
 }));
 jest.mock('../../../components/feature/profile/OrgList', () => ({ OrgList: () => null }));
+jest.mock('../../../components/feature/profile/VillagesScroll', () => ({
+  VillagesScroll: () => null,
+}));
 jest.mock('../../../components/feature/profile/ProfileSectionHeader', () => ({
   ProfileSectionHeader: () => null,
 }));
@@ -85,6 +101,22 @@ jest.mock('../../../components/feature/profile/ProfileHeader', () => {
       </Pressable>
     ),
   };
+});
+
+describe('ProfileScreen — mis pueblos', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('loads the user memberships on mount', async () => {
+    const personService = require('@cultuvilla/shared/services/personService');
+    const villageMemberService = require('@cultuvilla/shared/services/villageMemberService');
+    (personService.getPersonByUserId as jest.Mock).mockResolvedValue(null);
+
+    render(<ProfileScreen />);
+
+    await waitFor(() => {
+      expect(villageMemberService.getUserMemberships).toHaveBeenCalledWith('uid-1');
+    });
+  });
 });
 
 describe('ProfileScreen — change photo', () => {
