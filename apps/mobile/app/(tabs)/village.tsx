@@ -10,13 +10,18 @@ import {
   Stat,
   StatSeparator,
   Section,
-  PersonCard,
   EntityCard,
   SettingsLink,
 } from '../../components/feature/VillageSections';
+import { LivePersonCard } from '../../components/feature/LivePersonCard';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
+import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { useT } from '../../lib/i18n';
+import {
+  getVillageViewLink,
+  getVillageInviteLink,
+} from '@cultuvilla/shared/services/deepLinkService';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
 import {
   getMunicipality,
@@ -33,7 +38,8 @@ import {
 import { getJoinRequestsForVillage } from '@cultuvilla/shared/services/joinRequestService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 import { getMyOrganizerRequests } from '@cultuvilla/shared/services/organizerRequestService';
-import { getUserProfile } from '@cultuvilla/shared/services/userService';
+import { getEventsByMunicipality } from '@cultuvilla/shared/services/eventService';
+import { formatDate } from '@cultuvilla/shared/utils';
 import {
   escudoFullUrl,
   hasManualEscudo,
@@ -41,32 +47,31 @@ import {
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { BarrioData, PlaceData } from '@cultuvilla/shared/models/municipality';
 import type { OrganizationData } from '@cultuvilla/shared/models/organization';
+import type { EventData } from '@cultuvilla/shared/models/event';
 
 type Village = MunicipalityData & { id: string };
 type Barrio = BarrioData & { id: string };
 type Place = PlaceData & { id: string };
 type Organization = OrganizationData & { id: string };
+type Event = EventData & { id: string };
 
-/** A person shown in the "Personas" scroll — either a member or a pending join request. */
-type Person = {
-  userId: string;
-  name: string;
-  photoURL: string | null;
-  isRequest: boolean;
-};
+/** A person in the "Personas" scroll — a member or a pending join request. */
+type Person = { userId: string; isRequest: boolean };
 
-/** Cap profile look-ups for the horizontal scroll; "Gestionar" opens the full list. */
+/** Cap the horizontal people scroll; "Gestionar" opens the full list. */
 const PEOPLE_LIMIT = 20;
 
 export default function VillageTabScreen() {
   const { user, profile, profileChecked } = useAuth();
   const { t } = useT();
   const { isAppAdmin } = useIsAppAdmin();
+  const share = useShareDeepLink();
   const [village, setVillage] = useState<Village | null>(null);
   const [villageAdmin, setVillageAdmin] = useState(false);
   const [barrios, setBarrios] = useState<Barrio[]>([]);
   const [places, setPlaces] = useState<Place[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
   const [peopleCount, setPeopleCount] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -82,6 +87,7 @@ export default function VillageTabScreen() {
       setBarrios([]);
       setPlaces([]);
       setOrganizations([]);
+      setEvents([]);
       setPeople([]);
       setPeopleCount(0);
       setPendingOrganizerRequest(false);
@@ -89,7 +95,7 @@ export default function VillageTabScreen() {
       return;
     }
     try {
-      const [mun, isAdmin, myReqs, bar, plc, members] = await Promise.all([
+      const [mun, isAdmin, myReqs, bar, plc, members, evts] = await Promise.all([
         withFirestoreErrorLog('village:getMunicipality', () =>
           getMunicipality(activeMunicipalityId),
         ),
@@ -107,6 +113,9 @@ export default function VillageTabScreen() {
         withFirestoreErrorLog('village:getPlaces', () => getPlaces(activeMunicipalityId)),
         withFirestoreErrorLog('village:getVillageMembers', () =>
           getVillageMembers(activeMunicipalityId),
+        ),
+        withFirestoreErrorLog('village:getEvents', () =>
+          getEventsByMunicipality(activeMunicipalityId, 'published'),
         ),
       ]);
 
@@ -128,29 +137,22 @@ export default function VillageTabScreen() {
           : Promise.resolve([]),
       ]);
 
-      // Pending requests come first, then members; resolve display name + photo.
-      const pending = requests.map((r) => ({ userId: r.userId, isRequest: true }));
-      const joined = members
-        .slice(0, PEOPLE_LIMIT)
-        .map((m) => ({ userId: m.userId, isRequest: false }));
-      const resolved = await Promise.all(
-        [...pending, ...joined].map(async (p) => {
-          const prof = await getUserProfile(p.userId);
-          return {
-            userId: p.userId,
-            name: prof?.displayName ?? p.userId,
-            photoURL: prof?.photoURL ?? null,
-            isRequest: p.isRequest,
-          };
-        }),
-      );
+      // Only upcoming events; the service already orders them by startDate asc.
+      const now = new Date();
+      const upcoming = evts.filter((e) => e.startDate >= now);
 
       setVillage(mun);
       setVillageAdmin(isAdmin);
       setBarrios(bar);
       setPlaces(plc);
       setOrganizations(orgs);
-      setPeople(resolved);
+      setEvents(upcoming);
+      // Pending join requests first (admins only), then members; capped for the
+      // horizontal scroll. The cards live-resolve name + photo from each user doc.
+      setPeople([
+        ...requests.map((r) => ({ userId: r.userId, isRequest: true })),
+        ...members.slice(0, PEOPLE_LIMIT).map((m) => ({ userId: m.userId, isRequest: false })),
+      ]);
       setPeopleCount(members.length + requests.length);
       setPendingOrganizerRequest(
         myReqs.some(
@@ -284,9 +286,28 @@ export default function VillageTabScreen() {
   const penas = organizations.filter((o) => o.type === 'peña');
   const agrupaciones = organizations.filter((o) => o.type !== 'peña');
 
+  const shareHeaderSlot = activeMunicipalityId ? (
+    <HStack gap={2}>
+      <Pressable
+        onPress={() => void share(getVillageViewLink(activeMunicipalityId))}
+        accessibilityLabel={t('deeplink.shareViewLabel')}
+        className="p-1"
+      >
+        <Ionicons name="share-outline" size={22} color="#0f172a" />
+      </Pressable>
+      <Pressable
+        onPress={() => void share(getVillageInviteLink(activeMunicipalityId))}
+        accessibilityLabel={t('deeplink.shareInviteLabel')}
+        className="p-1"
+      >
+        <Ionicons name="person-add-outline" size={22} color="#0f172a" />
+      </Pressable>
+    </HStack>
+  ) : null;
+
   return (
     <Screen padded={false} topInset={false} bottomInset={false}>
-      <AppHeader centerLabel={village.name} />
+      <AppHeader centerLabel={village.name} extraRightSlot={shareHeaderSlot} />
       <ScrollView contentContainerClassName="pb-10">
         {/* ── Hero ─────────────────────────────────────────────── */}
         {cover ? (
@@ -361,6 +382,24 @@ export default function VillageTabScreen() {
           <Stat value={places.length} label={t('village.admin.hub.places')} />
         </HStack>
 
+        {/* ── Próximos eventos (upcoming published events, everyone) ─ */}
+        <Section
+          title={t('village.upcomingEvents.title')}
+          isEmpty={events.length === 0}
+          emptyLabel={t('village.upcomingEvents.empty')}
+        >
+          {events.map((e) => (
+            <EntityCard
+              key={e.id}
+              label={e.title}
+              sub={formatDate(e.startDate, 'short')}
+              icon="calendar-outline"
+              imageUri={e.imageURL ?? e.municipalityCoverImage}
+              onPress={() => router.push(`/event/${e.id}` as never)}
+            />
+          ))}
+        </Section>
+
         {/* ── Personas (members + pending join requests for admins) ─ */}
         <Section
           title={t('village.admin.overview.people')}
@@ -370,15 +409,14 @@ export default function VillageTabScreen() {
         >
           {people.map((p) =>
             p.isRequest ? (
-              <PersonCard
+              <LivePersonCard
                 key={`req-${p.userId}`}
-                name={p.name}
-                photoURL={p.photoURL}
+                userId={p.userId}
                 badge={t('village.admin.overview.requestBadge')}
                 onPress={() => router.push(`${base}/requests` as never)}
               />
             ) : (
-              <PersonCard key={`mem-${p.userId}`} name={p.name} photoURL={p.photoURL} />
+              <LivePersonCard key={`mem-${p.userId}`} userId={p.userId} />
             ),
           )}
         </Section>
