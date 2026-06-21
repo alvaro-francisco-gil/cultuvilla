@@ -37,6 +37,7 @@ import {
 } from '@cultuvilla/shared/services/villageMemberService';
 import { getJoinRequestsForVillage } from '@cultuvilla/shared/services/joinRequestService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
+import { getOrgMemberCount } from '@cultuvilla/shared/services/orgMemberService';
 import { getMyOrganizerRequests } from '@cultuvilla/shared/services/organizerRequestService';
 import { getEventsByMunicipality } from '@cultuvilla/shared/services/eventService';
 import { formatDate } from '@cultuvilla/shared/utils';
@@ -71,6 +72,7 @@ export default function VillageTabScreen() {
   const [barrios, setBarrios] = useState<Barrio[]>([]);
   const [places, setPlaces] = useState<Place[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [orgMemberCounts, setOrgMemberCounts] = useState<Record<string, number>>({});
   const [events, setEvents] = useState<Event[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
   const [peopleCount, setPeopleCount] = useState(0);
@@ -87,6 +89,7 @@ export default function VillageTabScreen() {
       setBarrios([]);
       setPlaces([]);
       setOrganizations([]);
+      setOrgMemberCounts({});
       setEvents([]);
       setPeople([]);
       setPeopleCount(0);
@@ -141,11 +144,24 @@ export default function VillageTabScreen() {
       const now = new Date();
       const upcoming = evts.filter((e) => e.startDate >= now);
 
+      // People count shown on each agrupación/peña card — one server-side
+      // aggregate per org, fanned out in parallel.
+      const counts = await Promise.all(
+        orgs.map((o) =>
+          withFirestoreErrorLog('village:getOrgMemberCount', () => getOrgMemberCount(o.id)),
+        ),
+      );
+      const countByOrg: Record<string, number> = {};
+      orgs.forEach((o, i) => {
+        countByOrg[o.id] = counts[i] ?? 0;
+      });
+
       setVillage(mun);
       setVillageAdmin(isAdmin);
       setBarrios(bar);
       setPlaces(plc);
       setOrganizations(orgs);
+      setOrgMemberCounts(countByOrg);
       setEvents(upcoming);
       // Pending join requests first (admins only), then members; capped for the
       // horizontal scroll. The cards live-resolve name + photo from each user doc.
@@ -286,32 +302,54 @@ export default function VillageTabScreen() {
   const penas = organizations.filter((o) => o.type === 'peña');
   const agrupaciones = organizations.filter((o) => o.type !== 'peña');
 
-  const shareHeaderSlot = activeMunicipalityId ? (
-    <HStack gap={2}>
-      <Pressable
-        onPress={() => void share(getVillageViewLink(activeMunicipalityId))}
-        accessibilityLabel={t('deeplink.shareViewLabel')}
-        className="p-1"
-      >
-        <Ionicons name="share-outline" size={22} color="#0f172a" />
-      </Pressable>
-      <Pressable
-        onPress={() => void share(getVillageInviteLink(activeMunicipalityId))}
-        accessibilityLabel={t('deeplink.shareInviteLabel')}
-        className="p-1"
-      >
-        <Ionicons name="person-add-outline" size={22} color="#0f172a" />
-      </Pressable>
-    </HStack>
-  ) : null;
-
   return (
     <Screen padded={false} topInset={false} bottomInset={false}>
-      <AppHeader centerLabel={village.name} extraRightSlot={shareHeaderSlot} />
+      <AppHeader centerLabel={village.name} />
       <ScrollView contentContainerClassName="pb-10">
         {/* ── Hero ─────────────────────────────────────────────── */}
         {cover ? (
-          <Image source={{ uri: cover }} className="w-full h-40" resizeMode="cover" />
+          <View>
+            <Image source={{ uri: cover }} className="w-full h-40" resizeMode="cover" />
+            {activeMunicipalityId ? (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  flexDirection: 'row',
+                  gap: 8,
+                  zIndex: 10,
+                }}
+              >
+                <Pressable
+                  onPress={() => void share(getVillageViewLink(activeMunicipalityId))}
+                  accessibilityLabel={t('deeplink.shareViewLabel')}
+                  className="items-center justify-center"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: 'rgba(0,0,0,0.45)',
+                  }}
+                >
+                  <Ionicons name="share-outline" size={20} color="#fff" />
+                </Pressable>
+                <Pressable
+                  onPress={() => void share(getVillageInviteLink(activeMunicipalityId))}
+                  accessibilityLabel={t('deeplink.shareInviteLabel')}
+                  className="items-center justify-center"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: 'rgba(0,0,0,0.45)',
+                  }}
+                >
+                  <Ionicons name="person-add-outline" size={20} color="#fff" />
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
         ) : null}
         {/* Content starts after the cover image — escudo + name sit below it,
             never overlapping the photo. */}
@@ -454,7 +492,6 @@ export default function VillageTabScreen() {
             <EntityCard
               key={p.id}
               label={p.name}
-              sub={t(`village.admin.places.kind.${p.kind}`)}
               icon="location-outline"
               imageUri={p.imageURL}
               onPress={canManage ? () => router.push(`${base}/places` as never) : undefined}
@@ -475,7 +512,7 @@ export default function VillageTabScreen() {
             <EntityCard
               key={o.id}
               label={o.name}
-              sub={canManage ? o.status : undefined}
+              sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
               icon="business-outline"
               imageUri={o.imageURL}
               onPress={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
@@ -496,7 +533,7 @@ export default function VillageTabScreen() {
             <EntityCard
               key={o.id}
               label={o.name}
-              sub={canManage ? o.status : undefined}
+              sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
               icon="people-circle-outline"
               imageUri={o.imageURL}
               onPress={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
