@@ -3,10 +3,10 @@
 ## Status
 
 - **Updated:** 2026-06-22
-- **Stage:** kickoff — SDK upgrade
+- **Stage:** Stage 2 — switch `web.output: 'server'` + SSR-safety
 - **Branch:** cultuvilla `worktree-ssr-web-cloud-run`
-- **Done:** plan doc written
-- **Next:** bump Expo SDK 54 → 56, run `expo-doctor`, fix breakages
+- **Done:** plan doc written; Stage 1 SDK 54 → 56 (expo, expo-router, RN 0.85, React 19.2, jest-expo 56, react-test-renderer 19.2.3, @react-native/normalize-colors, scheduler); fixed StatusBar/StyleSheet API drops, splash → expo-splash-screen plugin, conditional google-signin plugin, added missing `getOrgMemberCount`, jest `^@cultuvilla/shared$` mapping, missing service mocks in village.test.tsx; all 85 mobile tests green, typecheck clean, `expo export -p web` succeeds
+- **Next:** flip `web.output: 'server'` and audit SSR-safety of `bootstrapFirebase`/browser-only API usage
 - **Blockers:** none
 - **Handoff:** all work happens in `.claude/worktrees/ssr-web-cloud-run/`. Do NOT rebase onto main mid-flight; this branch touches `package.json`/lockfile/native config heavily and merge conflicts will be brutal. Resolve breakages before opening a PR.
 

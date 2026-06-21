@@ -87,14 +87,14 @@ export function FilterSheet({
     <Modal visible={visible} transparent animationType="none" onRequestClose={() => close()}>
       <Animated.View
         style={[
-          StyleSheet.absoluteFillObject,
+          StyleSheet.absoluteFill,
           { backgroundColor: 'rgba(0, 0, 0, 0.5)', opacity: fadeAnim },
         ]}
       >
         <Pressable
           onPress={() => close()}
           accessibilityLabel={title}
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill}
         >
           <View />
         </Pressable>

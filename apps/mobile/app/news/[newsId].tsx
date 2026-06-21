@@ -83,7 +83,7 @@ export default function NewsDetailScreen() {
 
   return (
     <Screen padded={false} topInset={false}>
-      <StatusBar style="light" translucent backgroundColor="transparent" />
+      <StatusBar style="light" />
       {!post ? <FloatingBackButton /> : null}
       {post ? (
         <FloatingShareButton onPress={() => void share(getNewsLink(post.id), post.title)} />

@@ -58,7 +58,7 @@ export default function EventDetailScreen() {
   if (!event) {
     return (
       <Screen padded={false} topInset={false}>
-        <StatusBar style="light" translucent backgroundColor="transparent" />
+        <StatusBar style="light" />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
         </View>
@@ -71,7 +71,7 @@ export default function EventDetailScreen() {
 
   return (
     <Screen padded={false} topInset={false}>
-      <StatusBar style="light" translucent backgroundColor="transparent" />
+      <StatusBar style="light" />
       <ScrollView>
       <DetailHeroImage
         imageUri={event.imageURL}

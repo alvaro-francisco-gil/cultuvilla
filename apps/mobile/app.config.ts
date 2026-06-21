@@ -102,12 +102,6 @@ const config: ExpoConfig = {
   icon: './assets/icon.png',
   scheme: 'cultuvilla',
   userInterfaceStyle: 'light',
-  newArchEnabled: true,
-  splash: {
-    image: './assets/splash-icon.png',
-    resizeMode: 'contain',
-    backgroundColor: '#ffffff',
-  },
   ios: {
     bundleIdentifier: bundleIdPerEnv[env],
     supportsTablet: true,
@@ -150,9 +144,21 @@ const config: ExpoConfig = {
   plugins: [
     'expo-router',
     [
-      '@react-native-google-signin/google-signin',
-      { iosUrlScheme: googleSignInPerEnv[env].iosUrlScheme },
+      'expo-splash-screen',
+      {
+        image: './assets/splash-icon.png',
+        resizeMode: 'contain',
+        backgroundColor: '#ffffff',
+      },
     ],
+    ...(googleSignInPerEnv[env].iosUrlScheme
+      ? [
+          [
+            '@react-native-google-signin/google-signin',
+            { iosUrlScheme: googleSignInPerEnv[env].iosUrlScheme },
+          ] as [string, { iosUrlScheme: string }],
+        ]
+      : []),
     '@react-native-community/datetimepicker',
   ],
   experiments: {

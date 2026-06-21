@@ -83,12 +83,12 @@ describe('CompleteProfileScreen', () => {
 
     // Birthday is required — pick year/month/day.
     fireEvent.press(getByTestId('birthday-year'));
-    fireEvent.press(getAllByText('1990')[0]);
+    fireEvent.press(getAllByText('1990')[0]!);
     fireEvent.press(getByTestId('birthday-month'));
-    fireEvent.press(getAllByText('Mayo')[0]);
+    fireEvent.press(getAllByText('Mayo')[0]!);
     fireEvent.press(getByTestId('birthday-day'));
     const dayMatches = getAllByText('5');
-    fireEvent.press(dayMatches[dayMatches.length - 1]);
+    fireEvent.press(dayMatches[dayMatches.length - 1]!);
 
     await act(async () => {
       fireEvent.press(getByText('Crear perfil'));

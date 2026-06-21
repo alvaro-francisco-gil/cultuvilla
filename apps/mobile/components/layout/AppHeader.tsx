@@ -43,7 +43,7 @@ export function AppHeader({ centerLabel, extraRightSlot }: AppHeaderProps) {
 
   return (
     <>
-      <StatusBar style="light" translucent backgroundColor="transparent" />
+      <StatusBar style="light" />
       <View
         className="bg-accent"
         style={{ paddingTop: insets.top }}

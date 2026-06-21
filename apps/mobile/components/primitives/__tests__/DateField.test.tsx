@@ -28,13 +28,13 @@ describe('DateField (Year / Month / Day)', () => {
     );
 
     fireEvent.press(getByTestId('cumple-year'));
-    fireEvent.press(getAllByText('1990')[0]);
+    fireEvent.press(getAllByText('1990')[0]!);
     fireEvent.press(getByTestId('cumple-month'));
-    fireEvent.press(getAllByText('Mayo')[0]);
+    fireEvent.press(getAllByText('Mayo')[0]!);
     fireEvent.press(getByTestId('cumple-day'));
     // Use day 5 — within FlatList's default initialNumToRender window.
     const dayMatches = getAllByText('5');
-    fireEvent.press(dayMatches[dayMatches.length - 1]);
+    fireEvent.press(dayMatches[dayMatches.length - 1]!);
 
     const last = onChange.mock.calls[onChange.mock.calls.length - 1][0] as Date;
     expect(last.getFullYear()).toBe(1990);

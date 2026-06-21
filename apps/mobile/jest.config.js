@@ -16,6 +16,7 @@ module.exports = {
     // jest-expo's preset hard-codes `<rootDir>/packages/shared/src/$1`, which
     // assumes shared lives inside this app. In our monorepo it's at the
     // workspace root, so we override here.
+    '^@cultuvilla/shared$': '<rootDir>/../../packages/shared/src',
     '^@cultuvilla/shared/(.*)$': '<rootDir>/../../packages/shared/src/$1',
     // @cultuvilla/i18n's entry is index.ts at the package root (no src/ dir).
     '^@cultuvilla/i18n$': '<rootDir>/../../packages/i18n/index',
