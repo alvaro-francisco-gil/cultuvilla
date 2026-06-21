@@ -47,7 +47,7 @@ pueblo y también un usuario autenticado.
 | **Visitante anónimo** | sin sesión iniciada | Explora eventos públicos y noticias aprobadas. Ve **solo recuentos** de asistentes, nunca nombres. |
 | **Usuario autenticado** | con sesión iniciada | Todo lo anterior + inscribirse a **cualquier** evento de **cualquier** pueblo, gestionar su cuenta y Personas, publicar/comentar/reaccionar en noticias. |
 | **Miembro del pueblo** | `municipalities/{id}/members/{uid}` (`role: user`) | Miembro de un pueblo concreto. Ve los **nombres** de asistentes en los eventos de ese pueblo. Sujeto al censo de ese pueblo. |
-| **Administrador del pueblo** | `municipalities/{id}/members/{uid}` (`role: admin`) | Gestiona el pueblo: aprueba solicitudes de ingreso, modera noticias, gestiona barrios/cementerios, edita/cancela cualquier evento del pueblo, aprueba solicitudes de creación de organizaciones. |
+| **Administrador del pueblo** | `municipalities/{id}/members/{uid}` (`role: admin`) | Gestiona el pueblo: expulsa miembros, modera noticias, gestiona barrios/cementerios, edita/cancela cualquier evento del pueblo, aprueba solicitudes de creación de organizaciones. *(El ingreso es autoservicio — el administrador ya no lo aprueba.)* |
 | **Miembro de organización** | `organizations/{orgId}/members/{uid}` | Crea/gestiona los eventos de esa organización. |
 | **Superadministrador** | `admins/{uid}` | Global. Crea municipios, aprueba solicitudes de organizador, gestiona los datos de referencia y tiene plenos poderes de administrador de pueblo en todas partes. |
 
@@ -67,27 +67,32 @@ de acceso** (tolerar `null`).
 
 ### 3.1 Unirse (tres vías)
 
-1. **Solicitar ingreso** — el usuario lo solicita; un **administrador del pueblo
-   aprueba**. Las solicitudes se indexan por uid
-   (`municipalities/{id}/joinRequests/{uid}`), por lo que los duplicados son
-   estructuralmente imposibles; una solicitud pendiente por usuario y pueblo.
+1. **Unirse directamente (autoservicio)** — cualquier usuario autenticado se
+   añade como miembro (`role: user`) de un pueblo con **comunidad activa**, sin
+   aprobación. La pertenencia se crea al instante; la app muestra antes una
+   confirmación que deja claro que unirse es una **autodeclaración** («este es mi
+   pueblo») y **no verifica residencia**. La membresía se escribe directamente
+   desde el cliente y la salvaguarda se aplica en las **reglas de Firestore**:
+   solo el propietario, sobre comunidad activa, con `role: user` y sin
+   `trustedNewsAuthor`. Estar ya inscrito lo impide la semántica de `create`. **No
+   existe cola de solicitudes de ingreso ni aprobación de organizador.**
 2. **Token de invitación** — un administrador comparte un token; el usuario lo
    canjea. *(Reglas diferidas — ver [§12](#12-diferido-en-otras-ramas).)*
 3. **Organizar un pueblo inactivo** — el usuario solicita organizar un municipio
    sin comunidad activa; un **superadministrador aprueba**, lo que activa la
    comunidad y convierte al solicitante en el administrador fundador.
 
-Todas las escrituras de solicitudes pasan por Cloud Functions (callables) — los
-clientes nunca escriben directamente los documentos de solicitud/membresía; las
-salvaguardas se ejecutan en el servidor dentro de una transacción (no ser ya
-miembro, no haber una solicitud pendiente previa, comunidad destino activa para
-unirse / inactiva para organizar).
+Las solicitudes de **organizador** siguen pasando por Cloud Functions
+(callables), con sus salvaguardas en transacción (comunidad destino inactiva
+para organizar). La **membresía**, en cambio, ya no usa callable: es una
+escritura directa del cliente gobernada por reglas.
 
 ### 3.2 Modelo de confianza
 
 **No hay verificación de residencia real.** «Miembro del pueblo» es una relación
-a nivel de app establecida por **aprobación del administrador o una invitación
-válida** — nunca por autodeclaración. Los campos de residencia del censo son
+a nivel de app que el usuario establece por **autodeclaración** al unirse a un
+pueblo con comunidad activa (o mediante una invitación válida) — ya **no**
+requiere aprobación del administrador. Los campos de residencia del censo son
 **autodeclarados y no verificados**.
 
 ### 3.3 Darse de baja
