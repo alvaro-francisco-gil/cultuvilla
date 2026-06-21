@@ -3,12 +3,10 @@ import { Alert, FlatList, ActivityIndicator, Platform, View } from 'react-native
 import { router, type Href } from 'expo-router';
 import { VStack, HStack, Text, Input, Button, Escudo, Pressable } from '../primitives';
 import { useT } from '../../lib/i18n';
-import { useAuth } from '../../lib/auth/useAuth';
 import {
   getActiveCommunities,
   searchMunicipalities,
 } from '@cultuvilla/shared/services/municipalityService';
-import { getMyJoinRequests } from '@cultuvilla/shared/services/joinRequestService';
 import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality';
 
@@ -17,28 +15,17 @@ type Muni = MunicipalityData & { id: string };
 const PAGE_SIZE = 50;
 
 export function VillageDiscovery() {
-  const { user } = useAuth();
   const { t } = useT();
   const [search, setSearch] = useState('');
   const [active, setActive] = useState<Muni[] | null>(null);
   const [allResults, setAllResults] = useState<Muni[]>([]);
   const [showAll, setShowAll] = useState(false);
-  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     void getActiveCommunities()
       .then((rs) => setActive(rs))
       .catch((e) => console.log('[VillageDiscovery] getActiveCommunities ERR', e?.code, e?.message));
-    if (user) {
-      void getMyJoinRequests(user.uid)
-        .then((rs) => {
-          setPendingIds(
-            new Set(rs.filter((r) => r.status === 'pending').map((r) => r.municipalityId)),
-          );
-        })
-        .catch((e) => console.log('[VillageDiscovery] getMyJoinRequests ERR', e?.code, e?.message));
-    }
-  }, [user]);
+  }, []);
 
   // Paged server-side search when user opens the "show all" view.
   useEffect(() => {
@@ -94,10 +81,9 @@ export function VillageDiscovery() {
         }
         renderItem={({ item }) => {
           const isActive = item.communityActive;
-          const isPending = pendingIds.has(item.id);
-          const joinTarget: Href = {
-            pathname: '/discover/request-join/[municipalityId]',
-            params: { municipalityId: item.id },
+          const villageTarget: Href = {
+            pathname: '/village/[villageId]',
+            params: { villageId: item.id },
           };
           const organizerTarget: Href = {
             pathname: '/discover/request-organizer/[municipalityId]',
@@ -105,7 +91,7 @@ export function VillageDiscovery() {
           };
           const onPress = () => {
             if (isActive) {
-              router.push(joinTarget);
+              router.push(villageTarget);
               return;
             }
             const title = t('discover.noOrganizerTitle');
@@ -129,8 +115,7 @@ export function VillageDiscovery() {
           return (
             <Pressable
               onPress={onPress}
-              disabled={isPending}
-              className={`w-full rounded-md border border-accent bg-surface px-4 py-3 ${isPending ? 'opacity-50' : ''}`}
+              className="w-full rounded-md border border-accent bg-surface px-4 py-3"
             >
               <HStack gap={3} className="items-center">
                 <Escudo url={escudoThumbDisplayUrl(item)} size={40} fallbackInitial={item.name} />
@@ -139,11 +124,6 @@ export function VillageDiscovery() {
                   <Text tone="muted" variant="bodySm">
                     {item.province}
                   </Text>
-                  {isPending && (
-                    <Text tone="muted" variant="bodySm">
-                      {t('requests.status.pending')}
-                    </Text>
-                  )}
                 </VStack>
               </HStack>
             </Pressable>
