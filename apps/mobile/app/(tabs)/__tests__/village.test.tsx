@@ -1,11 +1,16 @@
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import VillageTabScreen from '../village';
-import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
+import { getMunicipality, getBarrios, getPlaces } from '@cultuvilla/shared/services/municipalityService';
 import { getMyOrganizerRequests } from '@cultuvilla/shared/services/organizerRequestService';
+import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
+import { router } from 'expo-router';
 import {
   buildMunicipalityData,
   buildVillageCommunity,
+  buildBarrioData,
+  buildPlaceData,
 } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
+import { buildOrganizationData } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
 
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getMunicipality: jest.fn(),
@@ -147,5 +152,49 @@ describe('VillageTabScreen', () => {
       await findByText('Tu solicitud de organizador está pendiente de revisión'),
     ).toBeTruthy();
     expect(queryByText('Organizar este pueblo')).toBeNull();
+  });
+
+  describe('card navigation (non-admin viewer)', () => {
+    const barrio = { ...buildBarrioData({ name: 'El Barrio', municipalityId: 'mun1' }), id: 'barrio1' };
+    const place = { ...buildPlaceData({ name: 'La Iglesia', kind: 'church', municipalityId: 'mun1' }), id: 'place1' };
+    const agrupacion = {
+      ...buildOrganizationData({ name: 'Ayuntamiento', type: 'ayuntamiento', municipalityId: 'mun1', requestedBy: 'uid-1', status: 'approved' }),
+      id: 'org1',
+    };
+    const pena = {
+      ...buildOrganizationData({ name: 'Peña La Juerga', type: 'peña', municipalityId: 'mun1', requestedBy: 'uid-1', status: 'approved' }),
+      id: 'org2',
+    };
+
+    beforeEach(() => {
+      (getMunicipality as jest.Mock).mockResolvedValue(activeMuni);
+      (getBarrios as jest.Mock).mockResolvedValue([barrio]);
+      (getPlaces as jest.Mock).mockResolvedValue([place]);
+      (getOrganizationsByMunicipality as jest.Mock).mockResolvedValue([agrupacion, pena]);
+    });
+
+    it('tapping a barrio card pushes the barrio detail route', async () => {
+      const { findByText } = render(<VillageTabScreen />);
+      fireEvent.press(await findByText('El Barrio', undefined, { timeout: 5000 }));
+      expect(router.push).toHaveBeenCalledWith('/village/mun1/barrio/barrio1');
+    });
+
+    it('tapping a lugar card pushes the place detail route', async () => {
+      const { findByText } = render(<VillageTabScreen />);
+      fireEvent.press(await findByText('La Iglesia', undefined, { timeout: 5000 }));
+      expect(router.push).toHaveBeenCalledWith('/village/mun1/place/place1');
+    });
+
+    it('tapping an agrupación card pushes the org detail route', async () => {
+      const { findByText } = render(<VillageTabScreen />);
+      fireEvent.press(await findByText('Ayuntamiento', undefined, { timeout: 5000 }));
+      expect(router.push).toHaveBeenCalledWith('/o/org1');
+    });
+
+    it('tapping a peña card pushes the org detail route', async () => {
+      const { findByText } = render(<VillageTabScreen />);
+      fireEvent.press(await findByText('Peña La Juerga', undefined, { timeout: 5000 }));
+      expect(router.push).toHaveBeenCalledWith('/o/org2');
+    });
   });
 });

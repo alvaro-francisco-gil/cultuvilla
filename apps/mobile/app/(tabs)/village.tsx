@@ -375,7 +375,7 @@ export default function VillageTabScreen() {
               label={b.name}
               icon="map-outline"
               imageUri={b.imageURL}
-              onPress={canManage ? () => router.push(`${base}/barrios` as never) : undefined}
+              onPress={() => router.push(`/village/${village.id}/barrio/${b.id}` as never)}
             />
           ))}
         </Section>
@@ -395,7 +395,7 @@ export default function VillageTabScreen() {
               label={p.name}
               icon="location-outline"
               imageUri={p.imageURL}
-              onPress={canManage ? () => router.push(`${base}/places` as never) : undefined}
+              onPress={() => router.push(`/village/${village.id}/place/${p.id}` as never)}
             />
           ))}
         </Section>
@@ -416,7 +416,7 @@ export default function VillageTabScreen() {
               sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
               icon="business-outline"
               imageUri={o.imageURL}
-              onPress={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
+              onPress={() => router.push(`/o/${o.id}` as never)}
             />
           ))}
         </Section>
@@ -437,7 +437,7 @@ export default function VillageTabScreen() {
               sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
               icon="people-circle-outline"
               imageUri={o.imageURL}
-              onPress={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
+              onPress={() => router.push(`/o/${o.id}` as never)}
             />
           ))}
         </Section>
