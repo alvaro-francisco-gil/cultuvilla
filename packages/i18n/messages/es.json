@@ -179,6 +179,9 @@
       "title": "Próximos eventos",
       "empty": "No hay eventos próximos"
     },
+    "info": {
+      "title": "Información del pueblo"
+    },
     "organizations": "Organizaciones",
     "members": "Miembros",
     "admin": {

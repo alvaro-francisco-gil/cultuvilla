@@ -368,7 +368,7 @@ export default function VillageTabScreen() {
         {activeMunicipalityId ? (
           <HStack gap={3} className="px-4 pb-2">
             <Pressable
-              onPress={() => void share(getVillageViewLink(activeMunicipalityId))}
+              onPress={() => void share(getVillageViewLink(activeMunicipalityId), village.name)}
               accessibilityLabel={t('village.share.title')}
               className="flex-1 flex-row items-center justify-center bg-surface"
               style={{
@@ -385,7 +385,7 @@ export default function VillageTabScreen() {
               </Text>
             </Pressable>
             <Pressable
-              onPress={() => void share(getVillageInviteLink(activeMunicipalityId))}
+              onPress={() => void share(getVillageInviteLink(activeMunicipalityId), village.name)}
               accessibilityLabel={t('village.invite.title')}
               className="flex-1 flex-row items-center justify-center bg-surface"
               style={{

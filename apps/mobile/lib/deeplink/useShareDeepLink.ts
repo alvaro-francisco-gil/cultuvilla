@@ -11,11 +11,11 @@ import { useT } from '../i18n';
  * Falls back silently if the platform (e.g. some web browsers without the
  * Web Share API) cannot present a share UI.
  */
-export function useShareDeepLink(): (link: DeepLink) => Promise<void> {
+export function useShareDeepLink(): (link: DeepLink, name: string) => Promise<void> {
   const { t } = useT();
   return useCallback(
-    async (link: DeepLink) => {
-      const message = buildShareMessage(link, t);
+    async (link: DeepLink, name: string) => {
+      const message = buildShareMessage(link, t, name);
       try {
         await Share.share({ message, url: link.url });
       } catch {
