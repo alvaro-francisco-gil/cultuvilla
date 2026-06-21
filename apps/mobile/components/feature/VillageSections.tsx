@@ -52,7 +52,9 @@ export function Section({
   return (
     <VStack gap={3} className="pt-4">
       <HStack className="items-center justify-between px-4">
-        <Text variant="h3">{title}</Text>
+        <Text variant="h2" style={{ color: ACCENT }}>
+          {title}
+        </Text>
         {onManage ? (
           <Pressable onPress={onManage} accessibilityLabel={t('village.admin.overview.manage')}>
             <Text variant="bodySm" style={{ color: ACCENT }} className="font-medium">
@@ -106,7 +108,7 @@ function BigCard({
 }) {
   const body = (
     <View
-      className="w-36 rounded-2xl overflow-hidden bg-surface-elevated border border-subtle"
+      className="w-48 rounded-2xl overflow-hidden bg-surface-elevated border border-subtle"
       style={accent ? { borderColor: ACCENT } : undefined}
     >
       <View className="h-32 w-full items-center justify-center bg-subtle">
@@ -174,12 +176,14 @@ export function EntityCard({
   sub,
   icon,
   imageUri,
+  accent,
   onPress,
 }: {
   label: string;
   sub?: string;
   icon: keyof typeof Ionicons.glyphMap;
   imageUri?: string | null;
+  accent?: boolean;
   onPress?: () => void;
 }) {
   return (
@@ -188,25 +192,26 @@ export function EntityCard({
       imageUri={imageUri}
       fallback={<Ionicons name={icon} size={44} color={ACCENT} />}
       secondary={sub}
+      accent={accent}
       onPress={onPress}
     />
   );
 }
 
 export function AddCard({ label, onPress }: { label: string; onPress: () => void }) {
-  // Matches BigCard's footprint (w-36 + h-32 image area) so it lines up with the
+  // Matches BigCard's footprint (w-48 + h-32 image area) so it lines up with the
   // image-forward cards it sits beside in the horizontal scroll.
   return (
     <Pressable
       onPress={onPress}
       accessibilityLabel={label}
-      className="w-36 rounded-2xl overflow-hidden border border-dashed border-subtle"
+      className="w-48 rounded-2xl overflow-hidden border border-dashed border-subtle"
     >
       <View className="h-32 w-full items-center justify-center">
         <Ionicons name="add" size={44} color={ACCENT} />
       </View>
       <View className="px-3 py-2">
-        <Text variant="bodySm" className="font-medium" numberOfLines={2}>
+        <Text variant="bodySm" className="font-medium text-center" numberOfLines={2}>
           {label}
         </Text>
       </View>
