@@ -1,7 +1,7 @@
 import { doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, limit } from 'firebase/firestore';
 import { getDb } from '../firebase';
 import { personsCollection, personDoc } from '../firebase/refs/client';
-import { buildPersonData, type PersonData, type PersonDataInput } from '../models/person';
+import { buildPersonData, buildDisplayName, type PersonData, type PersonDataInput } from '../models/person';
 
 export async function getPerson(personId: string): Promise<(PersonData & { id: string }) | null> {
   const snap = await getDoc(personDoc(getDb(), personId));
@@ -48,4 +48,30 @@ export async function updatePerson(
 
 export async function deletePerson(personId: string): Promise<void> {
   await deleteDoc(personDoc(getDb(), personId));
+}
+
+/** People linked to a given barrio (residence link in `municipalityLinks`). */
+export async function getPersonsByBarrio(
+  municipalityId: string,
+  barrioId: string,
+): Promise<(PersonData & { id: string })[]> {
+  const q = query(
+    personsCollection(getDb()),
+    where('municipalityLinks', 'array-contains', { municipalityId, barrioId }),
+  );
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => buildDisplayName(a).localeCompare(buildDisplayName(b)));
+}
+
+/** People buried in a given place (cemetery), via `burialPlace.placeId`. */
+export async function getPersonsByBurialPlace(
+  placeId: string,
+): Promise<(PersonData & { id: string })[]> {
+  const q = query(personsCollection(getDb()), where('burialPlace.placeId', '==', placeId));
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => buildDisplayName(a).localeCompare(buildDisplayName(b)));
 }
