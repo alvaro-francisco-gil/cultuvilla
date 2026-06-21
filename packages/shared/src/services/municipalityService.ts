@@ -10,6 +10,7 @@ import {
   orderBy,
   where,
   limit as firestoreLimit,
+  serverTimestamp,
   type UpdateData,
   type DocumentData,
 } from 'firebase/firestore';
@@ -195,6 +196,39 @@ export async function deleteBarrio(municipalityId: string, barrioId: string): Pr
   await deleteDoc(municipalityBarrioDoc(getDb(), municipalityId, barrioId));
 }
 
+// A village member proposes a barrio; it lands as `pending` and is visible to
+// all. Organizers approve/reject. To withdraw an own pending proposal, callers
+// use deleteBarrio (rules permit the proposer to delete while pending).
+export async function proposeBarrio(
+  municipalityId: string,
+  input: BarrioDataInput & { proposedBy: string },
+): Promise<string> {
+  const newRef = doc(municipalityBarriosCollection(getDb(), municipalityId));
+  await setDoc(newRef, buildBarrioData({ ...input, municipalityId, status: 'pending' }));
+  return newRef.id;
+}
+
+export async function approveBarrio(
+  municipalityId: string,
+  barrioId: string,
+  approvedBy: string,
+): Promise<void> {
+  // updateDoc bypasses the converter, so serverTimestamp() is fine here.
+  await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'barrios', barrioId), {
+    status: 'approved',
+    approvedBy,
+    decidedAt: serverTimestamp(),
+  });
+}
+
+export async function rejectBarrio(municipalityId: string, barrioId: string): Promise<void> {
+  await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'barrios', barrioId), {
+    status: 'rejected',
+    approvedBy: null,
+    decidedAt: serverTimestamp(),
+  });
+}
+
 // ── Places (cemeteries, churches, …) ───────────────────────────────────────
 
 // Returns all places for a municipality ordered by name. Pass `kind` to filter
@@ -226,6 +260,38 @@ export async function updatePlace(
 
 export async function deletePlace(municipalityId: string, placeId: string): Promise<void> {
   await deleteDoc(municipalityPlaceDoc(getDb(), municipalityId, placeId));
+}
+
+// A village member proposes a place; it lands as `pending` and is visible to
+// all. Organizers approve/reject. To withdraw an own pending proposal, callers
+// use deletePlace (rules permit the proposer to delete while pending).
+export async function proposePlace(
+  municipalityId: string,
+  input: PlaceDataInput & { proposedBy: string },
+): Promise<string> {
+  const newRef = doc(municipalityPlacesCollection(getDb(), municipalityId));
+  await setDoc(newRef, buildPlaceData({ ...input, municipalityId, status: 'pending' }));
+  return newRef.id;
+}
+
+export async function approvePlace(
+  municipalityId: string,
+  placeId: string,
+  approvedBy: string,
+): Promise<void> {
+  await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'places', placeId), {
+    status: 'approved',
+    approvedBy,
+    decidedAt: serverTimestamp(),
+  });
+}
+
+export async function rejectPlace(municipalityId: string, placeId: string): Promise<void> {
+  await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'places', placeId), {
+    status: 'rejected',
+    approvedBy: null,
+    decidedAt: serverTimestamp(),
+  });
 }
 
 // keep export so other code can call setDoc directly for seed-style work
