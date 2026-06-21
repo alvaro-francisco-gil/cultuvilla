@@ -1,8 +1,15 @@
 # Organizer-request-driven village creation
 
-**Status:** Implemented
+**Status:** Partially superseded (2026-06-21)
 **Date:** 2026-06-06
 **Branch:** `worktree-organizer-request-village-data`
+
+> **Superseded in part by [self-service-membership](self-service-membership.md):**
+> activation is now decoupled from organizing. A village is *started* (activated)
+> by any villager via `startVillage`; the organizer request no longer creates the
+> community — it only **grants** admin on an already-active village. The
+> request/approval mechanics below still apply to the *grant*; the activation +
+> description/cover-image carrying described here no longer does.
 
 > Implemented in commit `4de51bc`. All layers (model, Cloud Functions, client
 > service, mobile UI, i18n, dev seed) landed with tests; `pnpm check`-equivalent
