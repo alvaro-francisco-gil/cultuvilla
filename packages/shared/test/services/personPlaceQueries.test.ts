@@ -1,4 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any,
+                  @typescript-eslint/no-unsafe-argument,
+                  @typescript-eslint/no-unsafe-assignment,
+                  @typescript-eslint/no-unsafe-member-access,
+                  @typescript-eslint/no-unsafe-return,
+                  @typescript-eslint/require-await,
+                  @typescript-eslint/restrict-template-expressions */
+// This file is a vi.mock-driven in-memory Firestore fake. Strict type-aware
+// rules around mock SDK shapes and non-null assertions on test fixtures add
+// noise without catching real bugs; the test logic is what matters.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../src/firebase', () => ({ getDb: () => ({}) }));
