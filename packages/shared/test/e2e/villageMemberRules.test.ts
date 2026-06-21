@@ -27,6 +27,31 @@ let env: RulesTestEnvironment;
 const ALICE = 'alice';
 const NOW = new Date();
 
+async function seedActiveMunicipality(id = 'mActive') {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, `municipalities/${id}`), { name: 'Activo', communityActive: true });
+  });
+}
+
+async function seedInactiveMunicipality(id = 'mInactive') {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, `municipalities/${id}`), { name: 'Inactivo', communityActive: false });
+  });
+}
+
+function memberDocData() {
+  return {
+    userId: ALICE,
+    role: 'user',
+    joinedAt: NOW,
+    profileAnswers: {},
+    profileCompletedAt: null,
+    trustedNewsAuthor: false,
+  };
+}
+
 async function seedAliceMemberships() {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
@@ -88,5 +113,61 @@ describe('firestore.rules — members collection-group', () => {
     await seedAliceMemberships();
     const db = env.unauthenticatedContext().firestore();
     await assertSucceeds(getDoc(doc(db, 'municipalities/m1/members/alice')));
+  });
+});
+
+describe('firestore.rules — self-join membership create', () => {
+  it('owner can self-join an active village as role user', async () => {
+    await seedActiveMunicipality();
+    const db = env.authenticatedContext(ALICE).firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'municipalities/mActive/members/alice'), memberDocData()),
+    );
+  });
+
+  it('owner cannot self-join an inactive village', async () => {
+    await seedInactiveMunicipality();
+    const db = env.authenticatedContext(ALICE).firestore();
+    await assertFails(
+      setDoc(doc(db, 'municipalities/mInactive/members/alice'), memberDocData()),
+    );
+  });
+
+  it('owner cannot self-join as role admin', async () => {
+    await seedActiveMunicipality();
+    const db = env.authenticatedContext(ALICE).firestore();
+    await assertFails(
+      setDoc(doc(db, 'municipalities/mActive/members/alice'), {
+        ...memberDocData(),
+        role: 'admin',
+      }),
+    );
+  });
+
+  it('owner cannot self-grant trustedNewsAuthor on join', async () => {
+    await seedActiveMunicipality();
+    const db = env.authenticatedContext(ALICE).firestore();
+    await assertFails(
+      setDoc(doc(db, 'municipalities/mActive/members/alice'), {
+        ...memberDocData(),
+        trustedNewsAuthor: true,
+      }),
+    );
+  });
+
+  it('user cannot create a membership doc for someone else', async () => {
+    await seedActiveMunicipality();
+    const db = env.authenticatedContext('mallory').firestore();
+    await assertFails(
+      setDoc(doc(db, 'municipalities/mActive/members/alice'), memberDocData()),
+    );
+  });
+
+  it('anonymous user cannot self-join', async () => {
+    await seedActiveMunicipality();
+    const db = env.unauthenticatedContext().firestore();
+    await assertFails(
+      setDoc(doc(db, 'municipalities/mActive/members/alice'), memberDocData()),
+    );
   });
 });

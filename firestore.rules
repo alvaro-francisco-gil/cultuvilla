@@ -18,6 +18,10 @@ service cloud.firestore {
       return isAuthenticated() &&
         exists(/databases/$(database)/documents/municipalities/$(municipalityId)/members/$(request.auth.uid));
     }
+    function isCommunityActive(municipalityId) {
+      return exists(/databases/$(database)/documents/municipalities/$(municipalityId))
+        && get(/databases/$(database)/documents/municipalities/$(municipalityId)).data.communityActive == true;
+    }
     function isOrgMember(orgId) {
       return isAuthenticated() &&
         exists(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid));
@@ -436,7 +440,20 @@ service cloud.firestore {
 
       match /members/{userId} {
         allow read: if true;
-        allow create: if isVillageAdmin(municipalityId) || isAppAdmin();
+        // Self-service join: an authenticated user adds themselves to an active
+        // village as a plain member. Owner-only, role pinned to 'user', cannot
+        // self-grant trustedNewsAuthor. Already-a-member is handled by create
+        // semantics (create fails when the doc exists). Village admin / app
+        // admin retain their direct-create power (e.g. organizer activation).
+        allow create: if isVillageAdmin(municipalityId)
+                       || isAppAdmin()
+                       || (
+                            isOwner(userId)
+                            && isCommunityActive(municipalityId)
+                            && request.resource.data.userId == userId
+                            && request.resource.data.role == 'user'
+                            && request.resource.data.trustedNewsAuthor == false
+                          );
         allow update: if (
                          (isVillageAdmin(municipalityId) || isAppAdmin())
                          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['trustedNewsAuthor'])
