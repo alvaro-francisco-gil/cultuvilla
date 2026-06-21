@@ -4,7 +4,9 @@ import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Screen } from '../../components/primitives/Screen';
 import { VStack } from '../../components/primitives/VStack';
+import { HStack } from '../../components/primitives/HStack';
 import { Text } from '../../components/primitives/Text';
+import { LiveAvatar } from '../../components/feature/LiveAvatar';
 import { RegisterButton } from '../../components/feature/RegisterButton';
 import { DetailHeroImage } from '../../components/feature/DetailHeroImage';
 import { FloatingBackButton } from '../../components/feature/FloatingBackButton';
@@ -69,7 +71,15 @@ export default function EventDetailScreen() {
       />
       <VStack gap={4} className="p-4">
         <Text variant="h1">{event.title}</Text>
-        <Text tone="muted">{event.organizationName}</Text>
+        <HStack gap={2} className="items-center">
+          <LiveAvatar
+            ownerId={event.organizationId}
+            ownerType="organization"
+            size={28}
+            initials={event.organizationName.slice(0, 1).toUpperCase()}
+          />
+          <Text tone="muted">{event.organizationName}</Text>
+        </HStack>
         <Text>{formatDate(event.startDate, 'long')}</Text>
         {event.description ? <Text>{event.description}</Text> : null}
 

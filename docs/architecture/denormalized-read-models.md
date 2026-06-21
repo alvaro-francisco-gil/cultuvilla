@@ -56,6 +56,7 @@ If any of these is false, don't denormalize — query the source instead.
 - The query is admin-only or runs once a day.
 - The field changes on every read-side event (e.g., live attendee count — use a counter document or `getCountFromServer` instead).
 - You're tempted to copy *every* field of the source. That isn't denormalization, it's duplication; you'll fight drift forever.
+- The value should stay **current** everywhere, lives on a **readable** source doc, and you never query by it (e.g. a villager's profile photo). Don't copy it — store the id and subscribe to the source. See [live references](./live-references.md) for that pattern and the full copy-vs-reference decision rule.
 
 ## The rules
 

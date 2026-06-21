@@ -460,6 +460,7 @@ export default function VillageTabScreen() {
               label={o.name}
               sub={canManage ? o.status : undefined}
               icon="people-circle-outline"
+              imageUri={o.imageURL}
               onPress={canManage ? () => router.push(`${base}/organizations` as never) : undefined}
             />
           ))}

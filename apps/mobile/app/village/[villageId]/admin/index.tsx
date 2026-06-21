@@ -201,6 +201,7 @@ export default function VillageAdminHub() {
                 key={b.id}
                 label={b.name}
                 icon="map-outline"
+                imageUri={b.imageURL}
                 onPress={() => router.push(`${base}/barrios` as never)}
               />
             ))}
@@ -221,6 +222,7 @@ export default function VillageAdminHub() {
                 label={p.name}
                 sub={t(`village.admin.places.kind.${p.kind}`)}
                 icon="location-outline"
+                imageUri={p.imageURL}
                 onPress={() => router.push(`${base}/places` as never)}
               />
             ))}
@@ -241,6 +243,7 @@ export default function VillageAdminHub() {
                 label={o.name}
                 sub={o.status}
                 icon="business-outline"
+                imageUri={o.imageURL}
                 onPress={() => router.push(`${base}/organizations` as never)}
               />
             ))}
