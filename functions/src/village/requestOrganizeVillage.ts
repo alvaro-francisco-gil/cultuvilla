@@ -36,10 +36,10 @@ export const requestOrganizeVillage = onCall<
     if (!municipalityId) {
       throw new HttpsError('invalid-argument', 'municipalityId requerido.');
     }
+    // Activation is decoupled from organizing: the village must already be
+    // started (active). Description/cover images now come from the start flow
+    // and the wiki phase, so they are optional here (motivation is the payload).
     const trimmedDescription = (description ?? '').trim();
-    if (!trimmedDescription) {
-      throw new HttpsError('invalid-argument', 'La descripción es obligatoria.');
-    }
     const coverImageUrls = Array.isArray(coverImages) ? coverImages : [];
 
     const uid = auth.uid;
@@ -47,8 +47,11 @@ export const requestOrganizeVillage = onCall<
     if (!muniSnap.exists) throw new HttpsError('not-found', 'Pueblo no encontrado.');
     // Converter-wrapped: typed MunicipalityData.
     const muniData = muniSnap.data();
-    if (muniData?.communityActive === true) {
-      throw new HttpsError('failed-precondition', 'La comunidad ya está activa.');
+    if (muniData?.communityActive !== true) {
+      throw new HttpsError('failed-precondition', 'Primero hay que iniciar el pueblo.');
+    }
+    if (muniData?.community?.adminUserId != null) {
+      throw new HttpsError('already-exists', 'Este pueblo ya tiene organizador.');
     }
 
     const reqsCol = organizerRequestsCollection(db);

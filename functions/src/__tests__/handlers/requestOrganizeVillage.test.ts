@@ -13,20 +13,29 @@ const USER_ID = 'alice';
 const APP_ADMIN_A = 'super-1';
 const APP_ADMIN_B = 'super-2';
 
-async function seedMunicipality(communityActive: boolean): Promise<void> {
-  await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}`).set({
-    name: 'Villarriba',
-    nameLower: 'villarriba',
-    province: 'Madrid',
-    comunidadAutonoma: 'Madrid',
-    codigoINE: '28000',
-    coordinates: null,
-    createdAt: new Date(),
-    escudoUrl: null,
-    escudoThumbUrl: null,
-    communityActive,
-    community: null,
-  });
+async function seedMunicipality(
+  communityActive: boolean,
+  adminUserId: string | null = null,
+): Promise<void> {
+  const now = new Date();
+  await admin
+    .firestore()
+    .doc(`municipalities/${MUNICIPALITY_ID}`)
+    .set({
+      name: 'Villarriba',
+      nameLower: 'villarriba',
+      province: 'Madrid',
+      comunidadAutonoma: 'Madrid',
+      codigoINE: '28000',
+      coordinates: null,
+      createdAt: now,
+      escudoUrl: null,
+      escudoThumbUrl: null,
+      communityActive,
+      community: communityActive
+        ? { description: '', coverImages: [], adminUserId, profileForm: null, activatedAt: now }
+        : null,
+    });
 }
 
 async function seedAppAdmin(uid: string): Promise<void> {
@@ -80,7 +89,7 @@ describe('requestOrganizeVillage (callable)', () => {
   });
 
   it('throws unauthenticated when no auth context', async () => {
-    await seedMunicipality(false);
+    await seedMunicipality(true);
     await expect(
       callRequest({ uid: null, data: { municipalityId: MUNICIPALITY_ID } }),
     ).rejects.toThrow(/unauthenticated|inici/i);
@@ -90,40 +99,34 @@ describe('requestOrganizeVillage (callable)', () => {
     await expect(callRequest({ uid: USER_ID, data: {} })).rejects.toThrow(/municipalityId/);
   });
 
-  it('throws invalid-argument when description is missing or blank', async () => {
+  it('throws failed-precondition when the village is not started (inactive)', async () => {
     await seedMunicipality(false);
     await expect(
-      callRequest({ uid: USER_ID, data: { municipalityId: MUNICIPALITY_ID, description: '   ' } }),
-    ).rejects.toThrow(/descripci|invalid-argument/i);
+      callRequest({ uid: USER_ID, data: { municipalityId: MUNICIPALITY_ID } }),
+    ).rejects.toThrow(/iniciar|failed-precondition/i);
   });
 
-  it('throws failed-precondition when communityActive is already true', async () => {
-    await seedMunicipality(true);
+  it('throws already-exists when the village already has an organizer', async () => {
+    await seedMunicipality(true, 'someone-else');
     await expect(
-      callRequest({
-        uid: USER_ID,
-        data: { municipalityId: MUNICIPALITY_ID, description: 'Mi pueblo' },
-      }),
-    ).rejects.toThrow(/ya está activa|failed-precondition/i);
+      callRequest({ uid: USER_ID, data: { municipalityId: MUNICIPALITY_ID } }),
+    ).rejects.toThrow(/ya tiene organizador|already-exists/i);
   });
 
   it('throws already-exists when a pending request from same user for same municipality exists', async () => {
-    await seedMunicipality(false);
+    await seedMunicipality(true);
     await seedOrganizerRequest({
       userId: USER_ID,
       municipalityId: MUNICIPALITY_ID,
       status: 'pending',
     });
     await expect(
-      callRequest({
-        uid: USER_ID,
-        data: { municipalityId: MUNICIPALITY_ID, description: 'Mi pueblo' },
-      }),
+      callRequest({ uid: USER_ID, data: { municipalityId: MUNICIPALITY_ID } }),
     ).rejects.toThrow(/pendiente|already-exists/i);
   });
 
   it('creates a pending organizerRequest and notifies all app admins on happy path', async () => {
-    await seedMunicipality(false);
+    await seedMunicipality(true);
     await seedAppAdmin(APP_ADMIN_A);
     await seedAppAdmin(APP_ADMIN_B);
 
@@ -131,8 +134,6 @@ describe('requestOrganizeVillage (callable)', () => {
       uid: USER_ID,
       data: {
         municipalityId: MUNICIPALITY_ID,
-        description: 'Un pueblo con mucha vida',
-        coverImages: ['https://example.com/cover.jpg'],
         motivation: 'porque sí',
       },
     });
@@ -144,8 +145,6 @@ describe('requestOrganizeVillage (callable)', () => {
     expect(reqDoc.data()?.status).toBe('pending');
     expect(reqDoc.data()?.userId).toBe(USER_ID);
     expect(reqDoc.data()?.municipalityId).toBe(MUNICIPALITY_ID);
-    expect(reqDoc.data()?.description).toBe('Un pueblo con mucha vida');
-    expect(reqDoc.data()?.coverImages).toEqual(['https://example.com/cover.jpg']);
     expect(reqDoc.data()?.motivation).toBe('porque sí');
 
     const notifsA = await admin.firestore().collection(`users/${APP_ADMIN_A}/notifications`).get();
