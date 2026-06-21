@@ -10,6 +10,7 @@ const BADGES = { active: 'Activo', admin: 'Administrador', member: 'Miembro' };
 const ROWS: VillageRow[] = [
   { municipalityId: 'm1', name: 'Pueblo Uno', escudoThumbUrl: null, role: 'user' },
   { municipalityId: 'm2', name: 'Pueblo Dos', escudoThumbUrl: null, role: 'admin' },
+  { municipalityId: 'm3', name: 'Pueblo Tres', escudoThumbUrl: null, role: 'user' },
 ];
 
 function setup(overrides: Partial<React.ComponentProps<typeof VillagesScroll>> = {}) {
@@ -41,6 +42,7 @@ describe('VillagesScroll', () => {
     const { getByText } = setup();
     expect(getByText('Activo')).toBeTruthy(); // m1 is active
     expect(getByText('Administrador')).toBeTruthy(); // m2 is admin, not active
+    expect(getByText('Miembro')).toBeTruthy(); // m3 is user, not active
   });
 
   it('renders the join card and fires onPressJoin when pressed', () => {
