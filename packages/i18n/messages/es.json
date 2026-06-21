@@ -252,7 +252,6 @@
         "edit": "Editar",
         "noDescription": "Añade una descripción de tu pueblo",
         "people": "Personas",
-        "requestBadge": "Solicita unirse",
         "noPeople": "Aún no hay vecinos",
         "organizationsEmpty": "Aún no hay organizaciones"
       }
@@ -443,17 +442,6 @@
     "cancel": "Cancelar"
   },
   "requests": {
-    "status": {
-      "pending": "Pendiente",
-      "approved": "Aprobada",
-      "rejected": "Rechazada"
-    },
-    "join": {
-      "title": "Solicitar acceso",
-      "messageLabel": "Mensaje al administrador (opcional)",
-      "submit": "Enviar solicitud",
-      "submitted": "Solicitud enviada"
-    },
     "organizer": {
       "title": "Solicitar ser organizador",
       "descriptionLabel": "Descripción del pueblo",
@@ -463,12 +451,6 @@
       "motivationLabel": "¿Por qué quieres organizar este pueblo?",
       "submit": "Enviar solicitud",
       "submitted": "Solicitud enviada"
-    },
-    "admin": {
-      "title": "Solicitudes pendientes",
-      "empty": "No hay solicitudes pendientes",
-      "approve": "Aprobar",
-      "reject": "Rechazar"
     }
   },
   "villageSwitcher": {

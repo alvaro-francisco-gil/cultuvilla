@@ -472,28 +472,6 @@ service cloud.firestore {
         allow delete: if isVillageAdmin(municipalityId) || isAppAdmin();
       }
 
-      match /joinRequests/{userId} {
-        // Single-doc get: requester, village admin of that muni, or app admin.
-        allow get: if isAuthenticated()
-          && (request.auth.uid == userId
-              || isVillageAdmin(municipalityId)
-              || isAppAdmin());
-        // Per-municipality list (village admin moderation UI / app admin).
-        allow list: if isAuthenticated()
-          && (isVillageAdmin(municipalityId) || isAppAdmin());
-        // Cloud Functions (admin SDK) own create/update/delete.
-        allow create, update, delete: if false;
-      }
-    }
-
-    // Collection-group self-list for joinRequests. Required because
-    // Firestore's v2 list-rule analyzer can't safely union the nested
-    // match path above with collection-group queries that include
-    // `get()`/`exists()` calls in OR branches. This block applies only
-    // when the query filters on `userId == auth.uid`.
-    match /{path=**}/joinRequests/{userId} {
-      allow list: if isAuthenticated()
-        && resource.data.userId == request.auth.uid;
     }
 
     match /organizerRequests/{requestId} {
@@ -586,11 +564,6 @@ service cloud.firestore {
     }
 
     match /{path=**}/registrations/{regId} {
-      allow list: if isAuthenticated()
-        && resource.data.userId == request.auth.uid;
-    }
-
-    match /{path=**}/joinRequests/{userId} {
       allow list: if isAuthenticated()
         && resource.data.userId == request.auth.uid;
     }

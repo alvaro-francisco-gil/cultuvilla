@@ -16,9 +16,6 @@ jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
   isVillageAdmin: jest.fn().mockResolvedValue(false),
   getVillageMembers: jest.fn().mockResolvedValue([]),
 }));
-jest.mock('@cultuvilla/shared/services/joinRequestService', () => ({
-  getJoinRequestsForVillage: jest.fn().mockResolvedValue([]),
-}));
 jest.mock('@cultuvilla/shared/services/organizationService', () => ({
   getOrganizationsByMunicipality: jest.fn().mockResolvedValue([]),
 }));
@@ -27,6 +24,16 @@ jest.mock('@cultuvilla/shared/services/userService', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/organizerRequestService', () => ({
   getMyOrganizerRequests: jest.fn().mockResolvedValue([]),
+}));
+jest.mock('@cultuvilla/shared/services/eventService', () => ({
+  getEventsByMunicipality: jest.fn().mockResolvedValue([]),
+}));
+jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({
+  getVillageViewLink: jest.fn().mockReturnValue('https://example.test'),
+  getVillageInviteLink: jest.fn().mockReturnValue('https://example.test'),
+}));
+jest.mock('../../../lib/deeplink/useShareDeepLink', () => ({
+  useShareDeepLink: () => jest.fn(),
 }));
 jest.mock('../../../lib/auth/useAuth', () => ({
   useAuth: () => ({

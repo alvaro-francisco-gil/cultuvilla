@@ -26,7 +26,6 @@ import {
 } from '@cultuvilla/shared/services/municipalityService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 import { getVillageMembers } from '@cultuvilla/shared/services/villageMemberService';
-import { getJoinRequestsForVillage } from '@cultuvilla/shared/services/joinRequestService';
 import { escudoFullUrl } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { BarrioData, PlaceData } from '@cultuvilla/shared/models/municipality';
@@ -36,8 +35,8 @@ type Barrio = BarrioData & { id: string };
 type Place = PlaceData & { id: string };
 type Organization = OrganizationData & { id: string };
 
-/** A person shown in the "Personas" scroll — either a member or a pending join request. */
-type Person = { userId: string; isRequest: boolean };
+/** A person shown in the "Personas" scroll — a village member. */
+type Person = { userId: string };
 
 /** Cap the horizontal scroll; "Gestionar" opens the full list. */
 const PEOPLE_LIMIT = 20;
@@ -56,25 +55,21 @@ export default function VillageAdminHub() {
 
   const load = useCallback(async () => {
     if (!villageId) return;
-    const [mun, bar, plc, orgs, members, requests] = await Promise.all([
+    const [mun, bar, plc, orgs, members] = await Promise.all([
       getMunicipality(villageId),
       getBarrios(villageId),
       getPlaces(villageId),
       getOrganizationsByMunicipality(villageId),
       getVillageMembers(villageId),
-      getJoinRequestsForVillage(villageId, 'pending'),
     ]);
     setVillage(mun);
     setBarrios(bar);
     setPlaces(plc);
     setOrganizations(orgs);
 
-    // Pending requests first, then members; capped for the horizontal scroll.
-    // The cards live-resolve name + photo from each user doc — no N+1 join here.
-    setPeople([
-      ...requests.map((r) => ({ userId: r.userId, isRequest: true })),
-      ...members.slice(0, PEOPLE_LIMIT).map((m) => ({ userId: m.userId, isRequest: false })),
-    ]);
+    // Members, capped for the horizontal scroll. The cards live-resolve name +
+    // photo from each user doc — no N+1 join here.
+    setPeople(members.slice(0, PEOPLE_LIMIT).map((m) => ({ userId: m.userId })));
     setLoading(false);
   }, [villageId]);
 
@@ -150,25 +145,15 @@ export default function VillageAdminHub() {
             <Stat value={organizations.length} label={t('village.admin.hub.organizations')} />
           </HStack>
 
-          {/* ── Personas (members + pending join requests) ───────── */}
+          {/* ── Personas (village members) ───────────────────────── */}
           <Section
             title={t('village.admin.overview.people')}
-            onManage={() => router.push(`${base}/requests` as never)}
             isEmpty={people.length === 0}
             emptyLabel={t('village.admin.overview.noPeople')}
           >
-            {people.map((p) =>
-              p.isRequest ? (
-                <LivePersonCard
-                  key={`req-${p.userId}`}
-                  userId={p.userId}
-                  badge={t('village.admin.overview.requestBadge')}
-                  onPress={() => router.push(`${base}/requests` as never)}
-                />
-              ) : (
-                <LivePersonCard key={`mem-${p.userId}`} userId={p.userId} />
-              ),
-            )}
+            {people.map((p) => (
+              <LivePersonCard key={`mem-${p.userId}`} userId={p.userId} />
+            ))}
           </Section>
 
           {/* ── Barrios ──────────────────────────────────────────── */}

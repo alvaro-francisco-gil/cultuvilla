@@ -35,7 +35,6 @@ import {
   isVillageAdmin,
   getVillageMembers,
 } from '@cultuvilla/shared/services/villageMemberService';
-import { getJoinRequestsForVillage } from '@cultuvilla/shared/services/joinRequestService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 import { getMyOrganizerRequests } from '@cultuvilla/shared/services/organizerRequestService';
 import { getEventsByMunicipality } from '@cultuvilla/shared/services/eventService';
@@ -56,7 +55,7 @@ type Organization = OrganizationData & { id: string };
 type Event = EventData & { id: string };
 
 /** A person in the "Personas" scroll — a member or a pending join request. */
-type Person = { userId: string; isRequest: boolean };
+type Person = { userId: string };
 
 /** Cap the horizontal people scroll; "Gestionar" opens the full list. */
 const PEOPLE_LIMIT = 20;
@@ -122,20 +121,13 @@ export default function VillageTabScreen() {
       const canManageNow = isAppAdmin || isAdmin;
 
       // Admins see every organization (incl. pending moderation); villagers
-      // only see approved ones. Pending join requests are admin-only per rules.
-      const [orgs, requests] = await Promise.all([
-        withFirestoreErrorLog('village:getOrganizations', () =>
-          getOrganizationsByMunicipality(
-            activeMunicipalityId,
-            canManageNow ? undefined : 'approved',
-          ),
+      // only see approved ones.
+      const orgs = await withFirestoreErrorLog('village:getOrganizations', () =>
+        getOrganizationsByMunicipality(
+          activeMunicipalityId,
+          canManageNow ? undefined : 'approved',
         ),
-        canManageNow && user
-          ? withFirestoreErrorLog('village:getJoinRequests', () =>
-              getJoinRequestsForVillage(activeMunicipalityId, 'pending'),
-            )
-          : Promise.resolve([]),
-      ]);
+      );
 
       // Only upcoming events; the service already orders them by startDate asc.
       const now = new Date();
@@ -147,13 +139,10 @@ export default function VillageTabScreen() {
       setPlaces(plc);
       setOrganizations(orgs);
       setEvents(upcoming);
-      // Pending join requests first (admins only), then members; capped for the
-      // horizontal scroll. The cards live-resolve name + photo from each user doc.
-      setPeople([
-        ...requests.map((r) => ({ userId: r.userId, isRequest: true })),
-        ...members.slice(0, PEOPLE_LIMIT).map((m) => ({ userId: m.userId, isRequest: false })),
-      ]);
-      setPeopleCount(members.length + requests.length);
+      // Members, capped for the horizontal scroll. The cards live-resolve name +
+      // photo from each user doc.
+      setPeople(members.slice(0, PEOPLE_LIMIT).map((m) => ({ userId: m.userId })));
+      setPeopleCount(members.length);
       setPendingOrganizerRequest(
         myReqs.some(
           (r) => r.municipalityId === activeMunicipalityId && r.status === 'pending',
@@ -400,25 +389,15 @@ export default function VillageTabScreen() {
           ))}
         </Section>
 
-        {/* ── Personas (members + pending join requests for admins) ─ */}
+        {/* ── Personas (village members) ───────────────────────── */}
         <Section
           title={t('village.admin.overview.people')}
-          onManage={canManage ? () => router.push(`${base}/requests` as never) : undefined}
           isEmpty={people.length === 0}
           emptyLabel={t('village.admin.overview.noPeople')}
         >
-          {people.map((p) =>
-            p.isRequest ? (
-              <LivePersonCard
-                key={`req-${p.userId}`}
-                userId={p.userId}
-                badge={t('village.admin.overview.requestBadge')}
-                onPress={() => router.push(`${base}/requests` as never)}
-              />
-            ) : (
-              <LivePersonCard key={`mem-${p.userId}`} userId={p.userId} />
-            ),
-          )}
+          {people.map((p) => (
+            <LivePersonCard key={`mem-${p.userId}`} userId={p.userId} />
+          ))}
         </Section>
 
         {/* ── Barrios ──────────────────────────────────────────── */}
