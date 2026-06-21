@@ -4,6 +4,7 @@ import {
   buildEventData,
   isEventFull,
   isEventSignupOpen,
+  isEventOngoing,
 } from '../../../src/models/event/EventDataModel';
 
 const validEvent = {
@@ -112,5 +113,54 @@ describe('isEventSignupOpen', () => {
     expect(isEventSignupOpen({ ...base, status: 'draft' })).toBe(false);
     expect(isEventSignupOpen({ ...base, status: 'cancelled' })).toBe(false);
     expect(isEventSignupOpen({ ...base, status: 'completed' })).toBe(false);
+  });
+});
+
+describe('isEventOngoing', () => {
+  const now = new Date('2026-06-15T19:00:00Z');
+
+  it('is true for a published event started, with a future end', () => {
+    expect(
+      isEventOngoing(
+        { status: 'published', startDate: new Date('2026-06-15T18:00:00Z'), endDate: new Date('2026-06-15T22:00:00Z') },
+        now,
+      ),
+    ).toBe(true);
+  });
+
+  it('is true for a published event started, with no end date', () => {
+    expect(
+      isEventOngoing(
+        { status: 'published', startDate: new Date('2026-06-15T18:00:00Z'), endDate: null },
+        now,
+      ),
+    ).toBe(true);
+  });
+
+  it('is false before the start date', () => {
+    expect(
+      isEventOngoing(
+        { status: 'published', startDate: new Date('2026-06-15T20:00:00Z'), endDate: null },
+        now,
+      ),
+    ).toBe(false);
+  });
+
+  it('is false after the end date', () => {
+    expect(
+      isEventOngoing(
+        { status: 'published', startDate: new Date('2026-06-15T10:00:00Z'), endDate: new Date('2026-06-15T12:00:00Z') },
+        now,
+      ),
+    ).toBe(false);
+  });
+
+  it('is false for a non-published event inside its window', () => {
+    expect(
+      isEventOngoing(
+        { status: 'draft', startDate: new Date('2026-06-15T18:00:00Z'), endDate: null },
+        now,
+      ),
+    ).toBe(false);
   });
 });

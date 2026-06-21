@@ -81,3 +81,18 @@ export function isEventFull(event: EventData, confirmedCount: number): boolean {
 export function isEventSignupOpen(event: EventData): boolean {
   return event.status === 'published';
 }
+
+/**
+ * "Ongoing" / en curso is derived, never stored: a published event whose start
+ * has passed and whose end (if any) has not. `now` is passed in so callers
+ * compute it once and tests stay deterministic.
+ */
+export function isEventOngoing(
+  event: Pick<EventData, 'status' | 'startDate' | 'endDate'>,
+  now: Date,
+): boolean {
+  if (event.status !== 'published') return false;
+  if (event.startDate > now) return false;
+  if (event.endDate !== null && event.endDate < now) return false;
+  return true;
+}
