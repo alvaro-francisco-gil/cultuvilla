@@ -66,6 +66,20 @@ describe('useDeepLinkRouter', () => {
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
+  it('routes village invite URL with intent=join query', async () => {
+    mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/village/mun_5/join');
+    render(<Probe />);
+    await waitFor(() =>
+      expect(mockReplace).toHaveBeenCalledWith('/village/mun_5?intent=join'),
+    );
+  });
+
+  it('routes org invite URL with intent=join query', async () => {
+    mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/o/org_5/join');
+    render(<Probe />);
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/o/org_5?intent=join'));
+  });
+
   it('unsubscribes on unmount', async () => {
     mockGetInitialURL.mockResolvedValueOnce(null);
     const { unmount } = render(<Probe />);
