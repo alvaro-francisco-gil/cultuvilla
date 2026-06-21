@@ -180,7 +180,7 @@
       "empty": "No hay eventos próximos"
     },
     "info": {
-      "title": "Información del pueblo"
+      "title": "Información sobre el pueblo"
     },
     "organizations": "Organizaciones",
     "members": "Miembros",
@@ -394,6 +394,11 @@
     "villagesEntry": "Mis pueblos",
     "villagesSection": {
       "join": "Unirse a otro pueblo"
+    },
+    "managedEventsSection": {
+      "title": "Eventos gestionados",
+      "empty": "Aún no gestionas ningún evento",
+      "ongoing": "En curso"
     },
     "born": "Nacido en {place}",
     "bornYear": "{year}",
