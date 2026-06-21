@@ -67,10 +67,12 @@ jest.mock('../../../lib/i18n', () => ({
         'village.hub.organizations': 'Organizaciones',
         'village.hub.censo': 'Censo',
         'village.hub.news': 'Anuncios',
-        'village.notRegistered.body': 'Este pueblo aún no está registrado en Cultuvilla.',
-        'village.notRegistered.cta': '¿Te gustaría serlo?',
-        'village.notRegistered.button': 'Quiero ser administrador',
-        'village.notRegistered.pending': 'Tu solicitud está pendiente de revisión',
+        'village.notRegistered.body': 'Este pueblo todavía no está activo en Cultuvilla.',
+        'village.notRegistered.cta': '¿Quieres iniciarlo?',
+        'village.notRegistered.button': 'Iniciar este pueblo',
+        'village.noOrganizer.body': 'Este pueblo todavía no tiene organizador.',
+        'village.noOrganizer.cta': 'Organizar este pueblo',
+        'village.noOrganizer.pending': 'Tu solicitud de organizador está pendiente de revisión',
         'village.admin.open': 'Administrar pueblo',
       };
       return map[key] ?? key;
@@ -90,37 +92,53 @@ const activeMuni = {
   communityActive: true,
   community: buildVillageCommunity({ description: 'x', adminUserId: 'admin-1' }),
 };
+// Active but "started" — no organizer granted yet (adminUserId === null).
+const activeNoOrganizer = {
+  ...base,
+  id: 'mun1',
+  communityActive: true,
+  community: buildVillageCommunity({ description: 'x' }),
+};
 const inactiveMuni = { ...base, id: 'mun1' }; // communityActive: false, community: null
 
 describe('VillageTabScreen', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('renders the village page when the community is active', async () => {
+  it('renders the village page when the community is active and has an organizer', async () => {
     (getMunicipality as jest.Mock).mockResolvedValue(activeMuni);
     const { findByText, queryByText } = render(<VillageTabScreen />);
     // Active community renders the redesigned village page (hero + sections);
-    // the inactive organizer CTA must not appear. The active page resolves
-    // several chained service calls, so allow a generous find timeout.
+    // neither the start CTA nor the no-organizer banner must appear.
     expect(await findByText('Sotos de Mayorga', undefined, { timeout: 5000 })).toBeTruthy();
-    expect(queryByText('Quiero ser administrador')).toBeNull();
+    expect(queryByText('Iniciar este pueblo')).toBeNull();
+    expect(queryByText('Organizar este pueblo')).toBeNull();
   });
 
-  it('shows the organizer CTA when the community is inactive and no request is pending', async () => {
+  it('shows the "start this village" CTA when the community is inactive', async () => {
     (getMunicipality as jest.Mock).mockResolvedValue(inactiveMuni);
     (getMyOrganizerRequests as jest.Mock).mockResolvedValue([]);
     const { findByText, queryByText } = render(<VillageTabScreen />);
-    expect(await findByText('Quiero ser administrador')).toBeTruthy();
-    // "Organizaciones" only renders in the active village page, not the CTA.
+    expect(await findByText('Iniciar este pueblo')).toBeTruthy();
+    // "Organizaciones" only renders on the active village page, not the CTA.
     expect(queryByText('Organizaciones')).toBeNull();
   });
 
-  it('shows pending status when an organizer request is already pending', async () => {
-    (getMunicipality as jest.Mock).mockResolvedValue(inactiveMuni);
+  it('shows the organize CTA when active but with no organizer and no pending request', async () => {
+    (getMunicipality as jest.Mock).mockResolvedValue(activeNoOrganizer);
+    (getMyOrganizerRequests as jest.Mock).mockResolvedValue([]);
+    const { findByText } = render(<VillageTabScreen />);
+    expect(await findByText('Organizar este pueblo')).toBeTruthy();
+  });
+
+  it('shows the pending status when an organizer request is already pending', async () => {
+    (getMunicipality as jest.Mock).mockResolvedValue(activeNoOrganizer);
     (getMyOrganizerRequests as jest.Mock).mockResolvedValue([
       { id: 'r1', userId: 'uid-1', municipalityId: 'mun1', status: 'pending' },
     ]);
     const { findByText, queryByText } = render(<VillageTabScreen />);
-    expect(await findByText('Tu solicitud está pendiente de revisión')).toBeTruthy();
-    expect(queryByText('Quiero ser administrador')).toBeNull();
+    expect(
+      await findByText('Tu solicitud de organizador está pendiente de revisión'),
+    ).toBeTruthy();
+    expect(queryByText('Organizar este pueblo')).toBeNull();
   });
 });

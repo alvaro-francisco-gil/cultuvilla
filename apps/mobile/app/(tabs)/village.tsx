@@ -73,6 +73,7 @@ export default function VillageTabScreen() {
   const [events, setEvents] = useState<Event[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
   const [peopleCount, setPeopleCount] = useState(0);
+  const [isMember, setIsMember] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pendingOrganizerRequest, setPendingOrganizerRequest] = useState(false);
   const [uploadingEscudo, setUploadingEscudo] = useState(false);
@@ -143,6 +144,7 @@ export default function VillageTabScreen() {
       // photo from each user doc.
       setPeople(members.slice(0, PEOPLE_LIMIT).map((m) => ({ userId: m.userId })));
       setPeopleCount(members.length);
+      setIsMember(!!user && members.some((m) => m.userId === user.uid));
       setPendingOrganizerRequest(
         myReqs.some(
           (r) => r.municipalityId === activeMunicipalityId && r.status === 'pending',
@@ -246,20 +248,14 @@ export default function VillageTabScreen() {
             <Text variant="h3" className="text-center mt-2">
               {t('village.notRegistered.cta')}
             </Text>
-            {pendingOrganizerRequest ? (
-              <Text tone="muted" className="text-center mt-4">
-                {t('village.notRegistered.pending')}
-              </Text>
-            ) : (
-              <Button
-                className="mt-4"
-                onPress={() =>
-                  router.push(`/discover/request-organizer/${village.id}` as never)
-                }
-              >
-                {t('village.notRegistered.button')}
-              </Button>
-            )}
+            {/* Activation is self-service: starting the village is instant (no
+                approval), so there is no pending state here. */}
+            <Button
+              className="mt-4"
+              onPress={() => router.push(`/discover/start/${village.id}` as never)}
+            >
+              {t('village.notRegistered.button')}
+            </Button>
           </VStack>
         </View>
       </Screen>
@@ -267,6 +263,10 @@ export default function VillageTabScreen() {
   }
 
   const canManage = isAppAdmin || villageAdmin;
+  // Wiki phase: the village is active but nobody has been granted the organizer
+  // role yet (community.adminUserId === null). Any member may edit its info.
+  const noOrganizer = village.community?.adminUserId == null;
+  const canEditInfo = canManage || (noOrganizer && isMember);
   const base = `/village/${village.id}/admin` as const;
   const cover = village.community?.coverImages?.[0] ?? null;
   const description = village.community?.description?.trim();
@@ -343,14 +343,20 @@ export default function VillageTabScreen() {
             <Text tone="muted" variant="bodySm">
               {description}
             </Text>
-          ) : canManage ? (
+          ) : canEditInfo ? (
             <Text tone="muted" variant="bodySm">
               {t('village.admin.overview.noDescription')}
             </Text>
           ) : null}
-          {canManage ? (
+          {canEditInfo ? (
             <Pressable
-              onPress={() => router.push(`${base}/community` as never)}
+              onPress={() =>
+                router.push(
+                  (canManage
+                    ? `${base}/community`
+                    : `/village/${village.id}/edit-info`) as never,
+                )
+              }
               accessibilityLabel={t('village.admin.overview.edit')}
               className="flex-row items-center"
             >
@@ -361,6 +367,28 @@ export default function VillageTabScreen() {
             </Pressable>
           ) : null}
         </VStack>
+
+        {/* ── No organizer yet (wiki phase): invite someone to organize ─ */}
+        {noOrganizer ? (
+          <View className="mx-4 mt-3 p-3 rounded-lg border border-subtle bg-surface">
+            <Text variant="bodySm">{t('village.noOrganizer.body')}</Text>
+            {pendingOrganizerRequest ? (
+              <Text tone="muted" variant="bodySm" className="mt-1">
+                {t('village.noOrganizer.pending')}
+              </Text>
+            ) : (
+              <Pressable
+                onPress={() => router.push(`/discover/organize/${village.id}` as never)}
+                className="mt-2 flex-row items-center"
+              >
+                <Ionicons name="ribbon-outline" size={16} color={ACCENT} />
+                <Text variant="bodySm" style={{ color: ACCENT }} className="ml-1 font-medium">
+                  {t('village.noOrganizer.cta')}
+                </Text>
+              </Pressable>
+            )}
+          </View>
+        ) : null}
 
         {/* ── Stats ────────────────────────────────────────────── */}
         <HStack className="items-center justify-center py-5">
