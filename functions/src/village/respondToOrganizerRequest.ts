@@ -72,7 +72,7 @@ export const respondToOrganizerRequest = onCall<
         if (muniData?.communityActive !== true) {
           throw new HttpsError('failed-precondition', 'El pueblo aún no está iniciado.');
         }
-        if (muniData?.community?.adminUserId != null) {
+        if (muniData.community?.adminUserId != null) {
           throw new HttpsError('already-exists', 'Este pueblo ya tiene organizador.');
         }
       }

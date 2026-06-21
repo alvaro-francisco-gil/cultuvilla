@@ -57,7 +57,7 @@ export const updateVillageInfo = onCall<UpdateVillageInfoData, Promise<UpdateVil
         throw new HttpsError('failed-precondition', 'La comunidad no está activa.');
       }
 
-      const hasOrganizer = muniData?.community?.adminUserId != null;
+      const hasOrganizer = muniData.community?.adminUserId != null;
       const memberData = memberSnap.data();
       const isMember = memberSnap.exists;
       const isAdmin = isMember && memberData?.role === 'admin';
