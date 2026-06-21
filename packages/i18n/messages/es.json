@@ -389,6 +389,9 @@
       "roleMember": "Miembro"
     },
     "villagesEntry": "Mis pueblos",
+    "villagesSection": {
+      "join": "Unirse a otro pueblo"
+    },
     "born": "Nacido en {place}",
     "bornYear": "{year}",
     "personDetailTitle": "Persona",
@@ -536,15 +539,15 @@
   },
   "deeplink": {
     "share": {
-      "event": { "view": "Mira este evento en Cultuvilla: {url}" },
-      "news": { "view": "Mira esta noticia en Cultuvilla: {url}" },
+      "event": { "view": "Mira «{name}» en Cultuvilla: {url}" },
+      "news": { "view": "Mira «{name}» en Cultuvilla: {url}" },
       "village": {
-        "view": "Mira este pueblo en Cultuvilla: {url}",
-        "invite": "Te invito a unirte a este pueblo en Cultuvilla: {url}"
+        "view": "Mira {name} en Cultuvilla: {url}",
+        "invite": "Te invito a unirte a {name} en Cultuvilla: {url}"
       },
       "organization": {
-        "view": "Mira esta organización en Cultuvilla: {url}",
-        "invite": "Te invito a unirte a esta organización en Cultuvilla: {url}"
+        "view": "Mira {name} en Cultuvilla: {url}",
+        "invite": "Te invito a unirte a {name} en Cultuvilla: {url}"
       }
     },
     "shareViewLabel": "Compartir",
