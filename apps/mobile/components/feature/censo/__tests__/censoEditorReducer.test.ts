@@ -53,7 +53,7 @@ describe('censoEditorReducer', () => {
 
   it('addCustom of a non-choice type has no options property', () => {
     const r = censoEditorReducer([], { kind: 'addCustom', type: 'text' });
-    expect('options' in r[0]).toBe(false);
+    expect('options' in r[0]!).toBe(false);
   });
 
   it('addPredefined appends the predefined field', () => {
