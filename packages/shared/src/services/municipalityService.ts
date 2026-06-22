@@ -9,10 +9,13 @@ import {
   query,
   orderBy,
   where,
+  startAfter,
   limit as firestoreLimit,
   serverTimestamp,
   type UpdateData,
   type DocumentData,
+  type QueryConstraint,
+  type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { getDb, getFirebaseFunctions } from '../firebase';
@@ -99,6 +102,44 @@ export async function getActiveCommunities(): Promise<(MunicipalityData & { id: 
   );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export interface MunicipalitiesPage {
+  items: (MunicipalityData & { id: string })[];
+  nextCursor: QueryDocumentSnapshot | null;
+}
+
+/**
+ * One cursor-paginated page of municipalities ordered by `nameLower`.
+ *
+ * - `search` (optional) applies the same accent-stripped prefix match as
+ *   `searchMunicipalities` so the active-group filter and the full-list search
+ *   agree.
+ * - `cursor` is the opaque `nextCursor` from the previous page (omit/`null`
+ *   for the first page). Pages with `startAfter`.
+ * - `nextCursor` is the last snapshot of a full page, or `null` once fewer than
+ *   `limit` rows come back (list exhausted).
+ */
+export async function listMunicipalitiesPage(opts: {
+  search?: string;
+  cursor?: QueryDocumentSnapshot | null;
+  limit?: number;
+}): Promise<MunicipalitiesPage> {
+  const pageSize = opts.limit ?? 20;
+  const key = municipalitySearchKey((opts.search ?? '').trim());
+  const constraints: QueryConstraint[] = [orderBy('nameLower', 'asc')];
+  if (key.length > 0) {
+    constraints.push(where('nameLower', '>=', key));
+    constraints.push(where('nameLower', '<', key + ''));
+  }
+  if (opts.cursor) constraints.push(startAfter(opts.cursor));
+  constraints.push(firestoreLimit(pageSize));
+
+  const snap = await getDocs(query(municipalitiesCollection(getDb()), ...constraints));
+  const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const nextCursor =
+    snap.docs.length === pageSize ? snap.docs[snap.docs.length - 1] : null;
+  return { items, nextCursor };
 }
 
 export async function createMunicipality(input: MunicipalityDataInput): Promise<string> {
