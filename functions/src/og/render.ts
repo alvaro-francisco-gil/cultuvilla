@@ -69,7 +69,13 @@ export const ogRenderer = onRequest(
   },
   async (req, res) => {
     try {
-      const host = req.get('host') ?? 'localhost';
+      // When Firebase Hosting routes a request here, `host` is the Cloud Run
+      // service URL (ogrenderer-xxx.run.app) and `x-forwarded-host` is the
+      // Hosting domain (villa-events.web.app). For the SPA-shell fetch we
+      // need the Hosting domain — otherwise the fetch loops back into this
+      // function via the Cloud Run URL and the request times out.
+      const xHost = req.get('x-forwarded-host')?.split(',')[0]?.trim();
+      const host = xHost ?? req.get('host') ?? 'localhost';
       const proto = (req.get('x-forwarded-proto') ?? 'https').split(',')[0]?.trim() ?? 'https';
       const origin = `${proto}://${host}`;
       const url = new URL(req.originalUrl, origin);
