@@ -20,3 +20,5 @@ export { VillagePicker } from './VillagePicker';
 export type { VillagePickerProps } from './VillagePicker';
 export { BarrioPicker } from './BarrioPicker';
 export type { BarrioPickerProps } from './BarrioPicker';
+export { Toggle } from './Toggle';
+export type { ToggleProps } from './Toggle';
