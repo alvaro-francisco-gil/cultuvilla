@@ -3,7 +3,7 @@ import { FlatList, ActivityIndicator, View, Modal } from 'react-native';
 import { router, type Href } from 'expo-router';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
-import { VStack, HStack, Text, Input, Escudo, Pressable } from '../primitives';
+import { VStack, HStack, Text, Input, Escudo, Pressable, Button } from '../primitives';
 import { useT } from '../../lib/i18n';
 import {
   getActiveCommunities,
@@ -254,30 +254,21 @@ export function VillageDiscovery() {
           style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}
           className="items-center justify-center px-8"
         >
-          <Pressable onPress={() => {}} className="w-full rounded-lg bg-surface p-5">
+          <Pressable
+            onPress={() => {}}
+            className="w-full rounded-lg bg-surface-elevated p-5 border border-subtle"
+          >
             <VStack gap={3}>
               <Text variant="h3">{t('village.joinConfirm.title')}</Text>
               {pendingJoin ? <Text className="font-semibold">{pendingJoin.name}</Text> : null}
               <Text tone="muted">{t('village.joinConfirm.body')}</Text>
               <HStack gap={3} className="justify-end items-center">
-                <Pressable
-                  onPress={() => setPendingJoin(null)}
-                  disabled={joining}
-                  className="px-4 py-2 rounded-md border border-subtle"
-                >
-                  <Text>{t('village.joinConfirm.cancel')}</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => void confirmJoin()}
-                  disabled={joining}
-                  className="px-4 py-2 rounded-md bg-primary items-center"
-                >
-                  {joining ? (
-                    <ActivityIndicator color="#ffffff" />
-                  ) : (
-                    <Text tone="onAccent">{t('village.joinConfirm.confirm')}</Text>
-                  )}
-                </Pressable>
+                <Button variant="ghost" onPress={() => setPendingJoin(null)} disabled={joining}>
+                  {t('village.joinConfirm.cancel')}
+                </Button>
+                <Button variant="primary" onPress={() => void confirmJoin()} loading={joining}>
+                  {t('village.joinConfirm.confirm')}
+                </Button>
               </HStack>
             </VStack>
           </Pressable>
