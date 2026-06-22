@@ -3,12 +3,12 @@
 ## Status
 
 - **Updated:** 2026-06-22
-- **Stage:** Stage 2 — implement `ogRenderer`
-- **Branch:** cultuvilla `worktree-ssr-web-cloud-run` (branch name now misleading; will rename or merge as-is)
-- **Done:** SDK 54→56 upgrade (commit 7692606, independent value); old SSR-on-Cloud-Run plan retired after discovering `expo export` doesn't emit a per-request SSR runtime in SDK 56
-- **Next:** scaffold `functions/src/og/` (fetchers, html, spaShell, render) + emulator test
-- **Blockers:** none
-- **Handoff:** We explored SDK-56 SSR via Cloud Run and pivoted. Reasons in the commit message of the retire-plan commit. Keep the SDK 56 upgrade; the rest of the SSR exploration was discarded with `git reset --hard 7692606`. The original SPA shell config (`web.output: 'single'`) is intact; this plan does not touch the mobile app at all.
+- **Stage:** Stage 4 — dev deploy verified end-to-end; beta/prod deferred until we're past dev
+- **Branch:** cultuvilla `worktree-ssr-web-cloud-run` (branch name misleading; merge to main when ready)
+- **Done:** Stages 1–4. SDK 56 upgrade, og-renderer function + tests, Hosting rewrites, dev deploy. Curl against `villa-events.web.app/village/<real-id>` returns the SPA shell with `<title>` and `<meta og:*>` populated from the Firestore doc. The function is deployed to `europe-west1`; Hosting rewrites `/event/*`, `/news/*`, `/village/*`, `/o/*` (and the `/join` variants) route to it.
+- **Next:** beta + prod rollout (deferred — user is still in dev phase). When beta-ready, redeploy from this branch to those projects.
+- **Blockers:** none.
+- **Handoff:** Two notes for whoever ships this beyond dev: (1) the global `Cache-Control: no-cache, no-store` header in `firebase.json` currently overrides the function's per-response cache directive, so every OG request hits Firestore. For dev that's fine (fresh previews while iterating); before going to prod, add an override entry under `hosting.headers` for `/event/*`, `/news/*`, `/village/*`, `/o/*` matching the function's `public, max-age=600, s-maxage=3600`. (2) During dev deploy we found that `host` header inside Cloud Run is the run.app URL, not the Hosting domain — the fix (use `x-forwarded-host` first) is in commit e2258f8.
 
 ## Goal
 
@@ -136,8 +136,9 @@ Function deploys to `europe-west1` (closest to Spain). Cold-start latency is hid
 
 | Step                              | Dev | Beta | Prod |
 |-----------------------------------|-----|------|------|
-| Function deployed                 | ⬜  | ⬜   | ⬜   |
-| Hosting rewrites live             | ⬜  | ⬜   | ⬜   |
+| Function deployed                 | ✅  | ⬜   | ⬜   |
+| Hosting rewrites live             | ✅  | ⬜   | ⬜   |
+| Curl-verified `og:*` from real doc | ✅  | ⬜   | ⬜   |
 | FB Debugger preview verified      | ⬜  | ⬜   | ⬜   |
 | Twitter Card verified             | ⬜  | ⬜   | ⬜   |
 | WhatsApp preview verified         | ⬜  | ⬜   | ⬜   |
