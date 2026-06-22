@@ -40,3 +40,4 @@ export { ogRenderer } from './og/render';
 
 // Maps (Google Static Maps proxy + geocoding — key stays server-side)
 export { staticMap } from './maps/staticMap';
+export { geocodeSearch } from './maps/geocodeSearch';
