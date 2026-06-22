@@ -33,6 +33,12 @@ export const eventRegistrationsCollection = (db: Firestore, eventId: string) =>
 export const eventRegistrationDoc = (db: Firestore, eventId: string, registrationId: string) =>
   doc(db, 'events', eventId, 'registrations', registrationId).withConverter(registrationConverterClient);
 
+// Organizer-only contact info (phone) keyed by registration id. No converter:
+// the payload is a small untyped `{ phone, name }` and the subcollection has no
+// shared model. The factory exists so call sites stay off raw `doc(getDb(), …)`.
+export const eventRegistrationContactDoc = (db: Firestore, eventId: string, registrationId: string) =>
+  doc(db, 'events', eventId, 'registrationContacts', registrationId);
+
 // ── Municipality domain ────────────────────────────────────────────────────
 
 export const municipalitiesCollection = (db: Firestore) =>

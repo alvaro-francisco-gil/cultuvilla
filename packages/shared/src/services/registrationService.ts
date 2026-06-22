@@ -16,6 +16,7 @@ import { getDb, getFirebaseFunctions } from '../firebase';
 import {
   eventRegistrationsCollection,
   eventRegistrationDoc,
+  eventRegistrationContactDoc,
 } from '../firebase/refs/client';
 import { registrationConverterClient } from '../firebase/converters/registrationConverter.client';
 import type {
@@ -145,7 +146,7 @@ export async function addWalkInRegistration(
 // Organizer-only read of a registrant's phone (the registration doc itself is
 // public, so the phone lives in a separately-gated subcollection).
 export async function getRegistrationPhone(eventId: string, regId: string): Promise<string | null> {
-  const snap = await getDoc(doc(getDb(), 'events', eventId, 'registrationContacts', regId));
+  const snap = await getDoc(eventRegistrationContactDoc(getDb(), eventId, regId));
   return snap.exists() ? ((snap.data() as { phone?: string }).phone ?? null) : null;
 }
 

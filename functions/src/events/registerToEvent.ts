@@ -4,6 +4,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import {
   eventDoc,
   eventRegistrationsCollection,
+  eventRegistrationContactDoc,
   municipalityMemberDoc,
 } from '@cultuvilla/shared/firebase/refs/admin';
 import type { RegistrationData } from '@cultuvilla/shared';
@@ -92,7 +93,7 @@ export const registerToEvent = onCall<RegisterToEventData, Promise<RegisterToEve
         // Phone (when telephoneRequired) lands in a separately-gated
         // subcollection, never on the public registration doc. Keyed by reg id.
         if (registrant.phone) {
-          tx.set(eventRef.firestore.doc(`events/${eventId}/registrationContacts/${newRef.id}`), {
+          tx.set(eventRegistrationContactDoc(db, eventId, newRef.id), {
             phone: registrant.phone,
             name: registrant.name,
           });

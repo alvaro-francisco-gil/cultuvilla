@@ -18,7 +18,7 @@ const SHELL =
 // this file so other handler tests are unaffected. vi.mock is hoisted above
 // the import below, so the renderer picks up the mocked spaShell.
 vi.mock('../../../og/spaShell', () => ({
-  getSpaShell: vi.fn(async () => SHELL),
+  getSpaShell: vi.fn(() => Promise.resolve(SHELL)),
   _resetSpaShellCache: vi.fn(),
 }));
 
@@ -262,7 +262,8 @@ describe('ogRenderer', () => {
     const res = await invoke('/news/n-long');
     const match = /property="og:description" content="(a+…)"/.exec(res.body);
     expect(match).not.toBeNull();
-    expect(match![1]!.length).toBeLessThanOrEqual(200);
-    expect(match![1]!.endsWith('…')).toBe(true);
+    const description = match?.[1] ?? '';
+    expect(description.length).toBeLessThanOrEqual(200);
+    expect(description.endsWith('…')).toBe(true);
   });
 });

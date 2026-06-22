@@ -4,6 +4,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import {
   eventDoc,
   eventRegistrationsCollection,
+  eventRegistrationContactDoc,
   municipalityMemberDoc,
   organizationMemberDoc,
   adminDoc,
@@ -89,7 +90,7 @@ export const addWalkInRegistration = onCall<AddWalkInData, Promise<AddWalkInResu
       };
       tx.set(newRef, reg);
       if (phone) {
-        tx.set(eventRef.firestore.doc(`events/${eventId}/registrationContacts/${newRef.id}`), {
+        tx.set(eventRegistrationContactDoc(db, eventId, newRef.id), {
           phone,
           name,
         });

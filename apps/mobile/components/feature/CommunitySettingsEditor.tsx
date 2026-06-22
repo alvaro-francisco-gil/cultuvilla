@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { VStack, HStack, Text, Button, Input, Pressable, Escudo } from '../primitives';
 import { useT } from '../../lib/i18n';
+import { showAlert } from '../../lib/dialogs';
 import { pickImageAsBlob } from '../../lib/images';
 import {
   getMunicipality,
@@ -59,7 +60,7 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
       await updateMunicipality(villageId, { escudoManualUrl: url });
       await load();
     } catch (e) {
-      Alert.alert(e instanceof Error ? e.message : String(e));
+      showAlert(e instanceof Error ? e.message : String(e));
     } finally {
       setUploadingEscudo(false);
     }
@@ -74,7 +75,7 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
       const url = await uploadMunicipalityImage(villageId, picked);
       setImages((prev) => [...prev, url]);
     } catch (e) {
-      Alert.alert(e instanceof Error ? e.message : String(e));
+      showAlert(e instanceof Error ? e.message : String(e));
     } finally {
       setUploading(false);
     }
@@ -100,14 +101,14 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
     if (!villageId || description === null) return;
     const coordinates = parseCoordinates();
     if (coordinates === false) {
-      Alert.alert(t('village.admin.community.invalidCoordinates'));
+      showAlert(t('village.admin.community.invalidCoordinates'));
       return;
     }
     setSaving(true);
     try {
       await updateCommunity(villageId, { description, coverImages: images });
       await updateMunicipality(villageId, { coordinates });
-      Alert.alert(t('village.admin.community.saved'));
+      showAlert(t('village.admin.community.saved'));
     } finally {
       setSaving(false);
     }

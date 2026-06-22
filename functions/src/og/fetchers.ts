@@ -73,6 +73,7 @@ function trim(text: string | null | undefined): string {
 }
 
 export async function getEventOg(eventId: string): Promise<OgMeta | null> {
+  // typed-refs: allowed — intentional converter-less read; see file header.
   const snap = await getFirestore().collection('events').doc(eventId).get();
   if (!snap.exists) return null;
   const e = (snap.data() ?? {}) as RawEvent;
@@ -85,6 +86,7 @@ export async function getEventOg(eventId: string): Promise<OgMeta | null> {
 }
 
 export async function getVillageOg(municipalityId: string): Promise<OgMeta | null> {
+  // typed-refs: allowed — intentional converter-less read; see file header.
   const snap = await getFirestore().collection('municipalities').doc(municipalityId).get();
   if (!snap.exists) return null;
   const v = (snap.data() ?? {}) as RawVillage;
@@ -99,6 +101,7 @@ export async function getVillageOg(municipalityId: string): Promise<OgMeta | nul
 }
 
 export async function getOrgOg(orgId: string): Promise<OgMeta | null> {
+  // typed-refs: allowed — intentional converter-less read; see file header.
   const snap = await getFirestore().collection('organizations').doc(orgId).get();
   if (!snap.exists) return null;
   const o = (snap.data() ?? {}) as RawOrg;
@@ -119,6 +122,7 @@ export async function getOrgOg(orgId: string): Promise<OgMeta | null> {
  * the default. The text content (title + description) still renders.
  */
 export async function getNewsOg(postId: string): Promise<OgMeta | null> {
+  // typed-refs: allowed — intentional converter-less read; see file header.
   const snap = await getFirestore().collection('news').doc(postId).get();
   if (!snap.exists) return null;
   const n = (snap.data() ?? {}) as RawNews;
