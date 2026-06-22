@@ -529,7 +529,9 @@
     "inactive": "Sin comunidad",
     "activeGroup": "Municipios activos",
     "allGroup": "Todos",
-    "activeBadge": "Activo"
+    "viewVillage": "Ver pueblo",
+    "joinVillage": "Unirse a este pueblo",
+    "alreadyMember": "Ya eres miembro"
   },
   "requests": {
     "organizer": {
