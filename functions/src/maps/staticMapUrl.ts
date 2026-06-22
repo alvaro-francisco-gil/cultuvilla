@@ -1,0 +1,62 @@
+export interface StaticMapParams {
+  lat: number;
+  lng: number;
+  zoom?: number;
+  w?: number;
+  h?: number;
+  scale?: number;
+}
+
+function assertCoords(lat: number, lng: number): void {
+  if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+    throw new RangeError(`lat out of range: ${lat}`);
+  }
+  if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
+    throw new RangeError(`lng out of range: ${lng}`);
+  }
+}
+
+/** Builds a Google Static Maps URL with a red pin at the coordinate. Throws RangeError on bad coords. */
+export function buildStaticMapUrl(p: StaticMapParams, apiKey: string): string {
+  assertCoords(p.lat, p.lng);
+  const zoom = p.zoom ?? 14;
+  const w = p.w ?? 600;
+  const h = p.h ?? 400;
+  const scale = p.scale ?? 2;
+  const center = `${p.lat},${p.lng}`;
+  const q = new URLSearchParams({
+    center,
+    zoom: String(zoom),
+    size: `${w}x${h}`,
+    scale: String(scale),
+    markers: `color:red|${center}`,
+    key: apiKey,
+  });
+  return `https://maps.googleapis.com/maps/api/staticmap?${q.toString()}`;
+}
+
+function num(v: unknown): number | undefined {
+  if (v === undefined || v === null || v === '') return undefined;
+  const n = Number(v);
+  return Number.isNaN(n) ? Number.NaN : n;
+}
+
+/** Parses & validates raw query params. Throws RangeError if lat/lng missing or invalid. */
+export function parseStaticMapQuery(query: Record<string, unknown>): StaticMapParams {
+  const lat = num(query.lat);
+  const lng = num(query.lng);
+  if (lat === undefined || lng === undefined) {
+    throw new RangeError('lat and lng are required');
+  }
+  assertCoords(lat, lng);
+  const out: StaticMapParams = { lat, lng };
+  const zoom = num(query.zoom);
+  const w = num(query.w);
+  const h = num(query.h);
+  const scale = num(query.scale);
+  if (zoom !== undefined && Number.isFinite(zoom)) out.zoom = zoom;
+  if (w !== undefined && Number.isFinite(w)) out.w = w;
+  if (h !== undefined && Number.isFinite(h)) out.h = h;
+  if (scale !== undefined && Number.isFinite(scale)) out.scale = scale;
+  return out;
+}
