@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, ActivityIndicator, View } from 'react-native';
+import { FlatList, ActivityIndicator, View, Modal } from 'react-native';
 import { router, type Href } from 'expo-router';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
+import { Ionicons } from '@expo/vector-icons';
 import { VStack, HStack, Text, Input, Escudo, Pressable } from '../primitives';
 import { useT } from '../../lib/i18n';
 import {
@@ -10,6 +11,11 @@ import {
 } from '@cultuvilla/shared/services/municipalityService';
 import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality';
+import { useAuth } from '../../lib/auth/useAuth';
+import {
+  getUserMemberships,
+  addVillageMember,
+} from '@cultuvilla/shared/services/villageMemberService';
 
 type Muni = MunicipalityData & { id: string };
 const PAGE_SIZE = 20;
@@ -32,6 +38,29 @@ export function VillageDiscovery() {
   const [loadingMore, setLoadingMore] = useState(false);
   // Bumped on every new search so a slow in-flight page can't clobber a newer one.
   const reqId = useRef(0);
+
+  const { user } = useAuth();
+  const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
+  const [pendingJoin, setPendingJoin] = useState<Muni | null>(null);
+  const [joining, setJoining] = useState(false);
+
+  useEffect(() => {
+    if (!user) {
+      setJoinedIds(new Set());
+      return;
+    }
+    let cancelled = false;
+    void getUserMemberships(user.uid)
+      .then((ms) => {
+        if (!cancelled) setJoinedIds(new Set(ms.map((m) => m.municipalityId)));
+      })
+      .catch((e) =>
+        console.log('[VillageDiscovery] getUserMemberships ERR', e?.code, e?.message),
+      );
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   useEffect(() => {
     void getActiveCommunities()
@@ -96,13 +125,34 @@ export function VillageDiscovery() {
     );
   }
 
-  const openMuni = (m: Muni) => {
-    // Active villages → the rich village home (self-join lives there).
-    // Dormant municipalities → the "start this village" flow.
+  const viewMuni = (m: Muni) => {
+    // Active villages → the rich village home; dormant municipalities → the "start" flow.
     const target: Href = m.communityActive
       ? { pathname: '/village/[villageId]', params: { villageId: m.id } }
       : { pathname: '/discover/start/[municipalityId]', params: { municipalityId: m.id } };
     router.push(target);
+  };
+
+  const onPressJoin = (m: Muni) => {
+    if (!user) {
+      router.push('/(auth)/login' as Href);
+      return;
+    }
+    setPendingJoin(m);
+  };
+
+  const confirmJoin = async () => {
+    if (!user || !pendingJoin) return;
+    const id = pendingJoin.id;
+    setJoining(true);
+    try {
+      await addVillageMember(id, user.uid);
+      setJoinedIds((prev) => new Set(prev).add(id));
+      setPendingJoin(null);
+      router.push({ pathname: '/village/[villageId]', params: { villageId: id } });
+    } finally {
+      setJoining(false);
+    }
   };
 
   return (
@@ -138,9 +188,10 @@ export function VillageDiscovery() {
             );
           }
           const m = item.muni;
+          const joined = joinedIds.has(m.id);
           return (
             <Pressable
-              onPress={() => openMuni(m)}
+              onPress={() => viewMuni(m)}
               className={`w-full rounded-md border bg-surface px-4 py-3 ${
                 m.communityActive ? 'border-accent' : 'border-subtle'
               }`}
@@ -153,18 +204,85 @@ export function VillageDiscovery() {
                     {m.province}
                   </Text>
                 </VStack>
-                <Text
-                  variant="bodySm"
-                  tone={m.communityActive ? undefined : 'muted'}
-                  style={m.communityActive ? { color: ACCENT } : undefined}
-                >
-                  {m.communityActive ? t('discover.activeBadge') : t('discover.inactive')}
-                </Text>
+                {m.communityActive ? (
+                  <HStack gap={1} className="items-center">
+                    <Pressable
+                      onPress={() => viewMuni(m)}
+                      accessibilityLabel={t('discover.viewVillage')}
+                      hitSlop={8}
+                      className="p-2"
+                    >
+                      <Ionicons name="eye-outline" size={22} color={ACCENT} />
+                    </Pressable>
+                    {joined ? (
+                      <View accessibilityLabel={t('discover.alreadyMember')} className="p-2">
+                        <Ionicons name="checkmark-circle" size={22} color="#16a34a" />
+                      </View>
+                    ) : (
+                      <Pressable
+                        onPress={() => onPressJoin(m)}
+                        accessibilityLabel={t('discover.joinVillage')}
+                        hitSlop={8}
+                        className="p-2"
+                      >
+                        <Ionicons name="person-add-outline" size={22} color={ACCENT} />
+                      </Pressable>
+                    )}
+                  </HStack>
+                ) : (
+                  <Text tone="muted" variant="bodySm">
+                    {t('discover.inactive')}
+                  </Text>
+                )}
               </HStack>
             </Pressable>
           );
         }}
       />
+      <Modal
+        visible={pendingJoin !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!joining) setPendingJoin(null);
+        }}
+      >
+        <Pressable
+          onPress={() => {
+            if (!joining) setPendingJoin(null);
+          }}
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}
+          className="items-center justify-center px-8"
+        >
+          <Pressable onPress={() => {}} className="w-full rounded-lg bg-surface p-5">
+            <VStack gap={3}>
+              <Text variant="h3">{t('village.joinConfirm.title')}</Text>
+              {pendingJoin ? <Text className="font-semibold">{pendingJoin.name}</Text> : null}
+              <Text tone="muted">{t('village.joinConfirm.body')}</Text>
+              <HStack gap={3} className="justify-end items-center">
+                <Pressable
+                  onPress={() => setPendingJoin(null)}
+                  disabled={joining}
+                  className="px-4 py-2 rounded-md border border-subtle"
+                >
+                  <Text>{t('village.joinConfirm.cancel')}</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => void confirmJoin()}
+                  disabled={joining}
+                  className="px-4 py-2 rounded-md bg-primary items-center"
+                >
+                  {joining ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <Text tone="onAccent">{t('village.joinConfirm.confirm')}</Text>
+                  )}
+                </Pressable>
+              </HStack>
+            </VStack>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
