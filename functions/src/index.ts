@@ -34,3 +34,6 @@ export { setTrustedNewsAuthor } from './news/setTrustedNewsAuthor';
 export { resolveNewsReport } from './news/resolveNewsReport';
 export { syncNewsReactionCounts } from './news/syncNewsReactionCounts';
 export { syncNewsCommentCount } from './news/syncNewsCommentCount';
+
+// Share-link Open Graph preview renderer (HTTPS function behind a Hosting rewrite).
+export { ogRenderer } from './og/render';
