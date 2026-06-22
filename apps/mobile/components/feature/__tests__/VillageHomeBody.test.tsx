@@ -18,7 +18,7 @@ jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({
   getVillageViewLink: jest.fn().mockReturnValue('https://example.test'),
   getVillageInviteLink: jest.fn().mockReturnValue('https://example.test'),
 }));
-const mockAddVillageMember = jest.fn(async () => undefined);
+const mockAddVillageMember = jest.fn(async (..._a: unknown[]) => undefined);
 jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
   addVillageMember: (...a: unknown[]) => mockAddVillageMember(...a),
 }));

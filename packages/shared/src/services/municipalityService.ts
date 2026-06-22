@@ -137,8 +137,12 @@ export async function listMunicipalitiesPage(opts: {
 
   const snap = await getDocs(query(municipalitiesCollection(getDb()), ...constraints));
   const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  // The cursor is opaque to callers (handed straight back to startAfter), so we
+  // erase the converter's model generic to the public QueryDocumentSnapshot.
   const nextCursor =
-    snap.docs.length === pageSize ? snap.docs[snap.docs.length - 1] : null;
+    snap.docs.length === pageSize
+      ? (snap.docs[snap.docs.length - 1] as QueryDocumentSnapshot)
+      : null;
   return { items, nextCursor };
 }
 

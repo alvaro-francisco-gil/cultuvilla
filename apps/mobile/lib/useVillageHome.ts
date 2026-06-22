@@ -57,6 +57,10 @@ const EMPTY: VillageHomeState = {
  */
 export function useVillageHome(municipalityId: string | null) {
   const { user } = useAuth();
+  // Depend on the stable uid primitive, not the `user` object — the AuthContext
+  // value can be a fresh object per render; keying `reload` off `uid` keeps it
+  // stable so the focus/mount effects don't re-fire in a loop.
+  const uid = user?.uid ?? null;
   const [state, setState] = useState<VillageHomeState>({ ...EMPTY, loading: !!municipalityId });
 
   const reload = useCallback(async () => {
@@ -68,14 +72,14 @@ export function useVillageHome(municipalityId: string | null) {
     try {
       const [mun, isAdmin, myReqs, bar, plc, members, evts] = await Promise.all([
         withFirestoreErrorLog('villageHome:getMunicipality', () => getMunicipality(municipalityId)),
-        user
+        uid
           ? withFirestoreErrorLog('villageHome:isVillageAdmin', () =>
-              isVillageAdmin(municipalityId, user.uid),
+              isVillageAdmin(municipalityId, uid),
             )
           : Promise.resolve(false),
-        user
+        uid
           ? withFirestoreErrorLog('villageHome:getMyOrganizerRequests', () =>
-              getMyOrganizerRequests(user.uid),
+              getMyOrganizerRequests(uid),
             )
           : Promise.resolve([]),
         withFirestoreErrorLog('villageHome:getBarrios', () => getBarrios(municipalityId)),
@@ -110,7 +114,7 @@ export function useVillageHome(municipalityId: string | null) {
         loadError: null,
         village: mun,
         villageAdmin: isAdmin,
-        isMember: !!user && members.some((m) => m.userId === user.uid),
+        isMember: uid != null && members.some((m) => m.userId === uid),
         barrios: bar,
         places: plc,
         organizations: orgs,
@@ -126,7 +130,7 @@ export function useVillageHome(municipalityId: string | null) {
       console.log('[useVillageHome] reload ERR', msg);
       setState((s) => ({ ...s, loading: false, loadError: msg }));
     }
-  }, [municipalityId, user]);
+  }, [municipalityId, uid]);
 
   useEffect(() => {
     void reload();
