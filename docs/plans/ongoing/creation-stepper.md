@@ -11,7 +11,8 @@ Event) onto it.
 `apps/mobile/components/feature/`, built only from existing primitives
 (`Button`, `Pressable`, `Text`, `HStack`, `View`) and themed with the existing
 `accent` (terracotta) token. It renders one step at a time (no horizontal swipe),
-gates forward navigation on per-step validation (inline errors, no `Alert`), and
+gates forward navigation on per-step validation — invalid steps simply disable
+the Next button (decided: no per-field error messages, no `Alert`) — and
 owns only step-cursor state — form data stays in each screen. `PersonForm`
 renders the `Stepper` internally, so both Profile and Persona adopt it through a
 single shared form.
