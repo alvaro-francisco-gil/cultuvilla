@@ -349,6 +349,7 @@
     "createEvent": "Crear evento",
     "editEvent": "Editar evento",
     "organizationLabel": "Organización",
+    "noOrganization": "Sin organización",
     "imageLabel": "Imagen",
     "addImage": "Añadir imagen",
     "changeImage": "Cambiar imagen",
