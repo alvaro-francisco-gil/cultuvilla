@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import {
   Avatar,
+  BarrioPicker,
   Button,
   DateField,
   Input,
@@ -22,6 +23,10 @@ export interface PersonFormValues {
   sex: Sex | null;
   birthday: Date | null;
   birthPlaceMunicipalityId: string | null;
+  /** Residence village → stored as the person's municipalityLinks. */
+  municipalityId: string | null;
+  /** Residence barrio within `municipalityId`; null = whole village. */
+  barrioId: string | null;
   biography: string;
 }
 
@@ -78,7 +83,18 @@ export function PersonForm({
   const [birthPlace, setBirthPlace] = useState<string | null>(
     initial?.birthPlaceMunicipalityId ?? null
   );
+  const [municipalityId, setMunicipalityId] = useState<string | null>(
+    initial?.municipalityId ?? null
+  );
+  const [barrioId, setBarrioId] = useState<string | null>(initial?.barrioId ?? null);
   const [biography, setBiography] = useState(initial?.biography ?? '');
+
+  // A barrio only makes sense within its village, so changing the village
+  // clears any previously selected barrio.
+  function handleVillageChange(id: string | null) {
+    setMunicipalityId(id);
+    setBarrioId(null);
+  }
 
   async function handleSubmit() {
     await onSubmit(
@@ -90,6 +106,8 @@ export function PersonForm({
         sex,
         birthday,
         birthPlaceMunicipalityId: birthPlace,
+        municipalityId,
+        barrioId,
         biography,
       },
       photo
@@ -161,6 +179,18 @@ export function PersonForm({
           label={t('onboarding.completeProfile.birthPlace')}
           value={birthPlace}
           onChange={setBirthPlace}
+        />
+        <VillagePicker
+          label={t('profile.personForm.village')}
+          value={municipalityId}
+          onChange={handleVillageChange}
+        />
+        <BarrioPicker
+          label={t('profile.personForm.barrio')}
+          municipalityId={municipalityId}
+          value={barrioId}
+          onChange={setBarrioId}
+          wholeVillageLabel={t('profile.personForm.wholeVillage')}
         />
         <Input
           label={t('onboarding.completeProfile.biography')}

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   PersonDataSchema,
   buildPersonData,
+  buildResidenceLinks,
   buildDisplayName,
   buildShortName,
 } from '../../../src/models/person/PersonDataModel';
@@ -182,6 +183,32 @@ describe('buildDisplayName', () => {
     expect(
       buildDisplayName({ givenName: 'Paco', middleNames: [], firstSurname: null, secondSurname: null }),
     ).toBe('Paco');
+  });
+});
+
+describe('buildResidenceLinks', () => {
+  it('returns an empty array when no municipality is selected', () => {
+    expect(buildResidenceLinks(null, null)).toEqual([]);
+    expect(buildResidenceLinks(null, 'barrio-1')).toEqual([]);
+  });
+
+  it('returns a single link with barrioId null when only a village is selected', () => {
+    expect(buildResidenceLinks('muni-1', null)).toEqual([
+      { municipalityId: 'muni-1', barrioId: null },
+    ]);
+  });
+
+  it('returns a single link with both ids when a barrio is selected', () => {
+    expect(buildResidenceLinks('muni-1', 'barrio-1')).toEqual([
+      { municipalityId: 'muni-1', barrioId: 'barrio-1' },
+    ]);
+  });
+
+  it('produces a link whose shape exactly matches the getPersonsByBarrio query object', () => {
+    // getPersonsByBarrio matches via array-contains { municipalityId, barrioId },
+    // so the stored object must have exactly those two keys and no others.
+    const [link] = buildResidenceLinks('muni-1', 'barrio-1');
+    expect(Object.keys(link).sort()).toEqual(['barrioId', 'municipalityId']);
   });
 });
 

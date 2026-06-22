@@ -18,3 +18,5 @@ export { PasswordInput } from './PasswordInput';
 export type { PasswordInputProps } from './PasswordInput';
 export { VillagePicker } from './VillagePicker';
 export type { VillagePickerProps } from './VillagePicker';
+export { BarrioPicker } from './BarrioPicker';
+export type { BarrioPickerProps } from './BarrioPicker';

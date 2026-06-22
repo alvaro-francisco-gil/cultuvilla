@@ -13,6 +13,7 @@ import {
   updatePerson,
 } from '@cultuvilla/shared/services/personService';
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
+import { buildResidenceLinks } from '@cultuvilla/shared/models/person';
 import type { MunicipalityLink, PartialDate, PersonData } from '@cultuvilla/shared/models/person';
 
 type PersonDoc = PersonData & { id: string };
@@ -29,7 +30,7 @@ function partialDateToDate(d: PartialDate | null): Date | null {
 
 export default function PersonDetailScreen() {
   const { personId } = useLocalSearchParams<{ personId: string }>();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { t } = useT();
   const isNew = personId === 'new';
 
@@ -68,6 +69,7 @@ export default function PersonDetailScreen() {
       const birthPlaceLink: MunicipalityLink | null = values.birthPlaceMunicipalityId
         ? { municipalityId: values.birthPlaceMunicipalityId, barrioId: null }
         : null;
+      const municipalityLinks = buildResidenceLinks(values.municipalityId, values.barrioId);
 
       let pid: string;
       if (isNew) {
@@ -79,6 +81,7 @@ export default function PersonDetailScreen() {
           sex: values.sex,
           birthday: toPartialDate(values.birthday),
           birthPlace: birthPlaceLink,
+          municipalityLinks,
           biography: values.biography.trim() || null,
           createdBy: user.uid,
         });
@@ -93,6 +96,7 @@ export default function PersonDetailScreen() {
           sex: values.sex,
           birthday: toPartialDate(values.birthday),
           birthPlace: birthPlaceLink,
+          municipalityLinks,
           biography: values.biography.trim() || null,
         });
       }
@@ -126,10 +130,13 @@ export default function PersonDetailScreen() {
         sex: person.sex,
         birthday: partialDateToDate(person.birthday),
         birthPlaceMunicipalityId: person.birthPlace?.municipalityId ?? null,
+        municipalityId: person.municipalityLinks[0]?.municipalityId ?? null,
+        barrioId: person.municipalityLinks[0]?.barrioId ?? null,
         biography: person.biography ?? '',
         photoURL: person.photoURL,
       }
-    : undefined;
+    : // New person: default residence to the user's currently selected village.
+      { municipalityId: profile?.activeMunicipalityId ?? null };
 
   return (
     <Screen padded={false}>

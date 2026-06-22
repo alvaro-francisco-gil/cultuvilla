@@ -151,7 +151,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
         <VStack gap={2} className="px-4 pt-4">
           <HStack gap={3} className="items-center">
             <View
-              className={`bg-surface rounded-2xl shadow-sm ${hasManualEscudo(village) ? '' : 'p-2'}`}
+              className={`bg-surface rounded-full overflow-hidden ${hasManualEscudo(village) ? '' : 'p-2'}`}
             >
               <Escudo
                 url={escudoFullUrl(village)}
@@ -241,25 +241,8 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           <Stat value={places.length} label={t('village.admin.hub.places')} />
         </HStack>
 
-        {/* ── Compartir / Invitar (everyone) ───────────────────── */}
+        {/* ── Invitar / Compartir (everyone) ───────────────────── */}
         <HStack gap={3} className="px-4 pb-2">
-          <Pressable
-            onPress={() => void share(getVillageViewLink(village.id), village.name)}
-            accessibilityLabel={t('village.share.title')}
-            className="flex-1 flex-row items-center justify-center bg-surface"
-            style={{
-              paddingVertical: 5,
-              paddingHorizontal: 12,
-              borderRadius: 24,
-              borderWidth: 1.5,
-              borderColor: ACCENT,
-              minHeight: 32,
-            }}
-          >
-            <Text style={{ color: ACCENT }} className="font-semibold">
-              {t('village.share.title')}
-            </Text>
-          </Pressable>
           <Pressable
             onPress={() => void share(getVillageInviteLink(village.id), village.name)}
             accessibilityLabel={t('village.invite.title')}
@@ -275,6 +258,23 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           >
             <Text style={{ color: ACCENT }} className="font-semibold">
               {t('village.invite.title')}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => void share(getVillageViewLink(village.id), village.name)}
+            accessibilityLabel={t('village.share.title')}
+            className="flex-1 flex-row items-center justify-center bg-surface"
+            style={{
+              paddingVertical: 5,
+              paddingHorizontal: 12,
+              borderRadius: 24,
+              borderWidth: 1.5,
+              borderColor: ACCENT,
+              minHeight: 32,
+            }}
+          >
+            <Text style={{ color: ACCENT }} className="font-semibold">
+              {t('village.share.title')}
             </Text>
           </Pressable>
         </HStack>

@@ -13,6 +13,7 @@ const RESOURCE_TO_ROUTE: Partial<Record<DeepLinkResource, string>> = {
   news: 'news',
   village: 'village',
   organization: 'o',
+  person: 'person',
 };
 
 function route(url: string): void {

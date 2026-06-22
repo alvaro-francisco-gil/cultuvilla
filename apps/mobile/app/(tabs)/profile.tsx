@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { Pressable, Screen, Text } from '../../components/primitives';
+import { HStack, Pressable, Screen, Text } from '../../components/primitives';
 import { AppHeader } from '../../components/layout/AppHeader';
 import { ProfileHeader } from '../../components/feature/profile/ProfileHeader';
 import { ProfileStatsRow } from '../../components/feature/profile/ProfileStatsRow';
@@ -9,7 +9,9 @@ import { PersonaScroll } from '../../components/feature/profile/PersonaScroll';
 import { OrgList } from '../../components/feature/profile/OrgList';
 import type { OrgListItem } from '../../components/feature/profile/OrgList';
 import { ProfileSectionHeader } from '../../components/feature/profile/ProfileSectionHeader';
+import { ACCENT } from '../../components/feature/VillageSections';
 import { useAuth } from '../../lib/auth/useAuth';
+import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { useT } from '../../lib/i18n';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
 import { pickImageAsBlob } from '../../lib/images';
@@ -20,6 +22,8 @@ import {
 } from '@cultuvilla/shared/services/personService';
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
 import { getEventsByCreator } from '@cultuvilla/shared/services/eventService';
+import { getPersonViewLink } from '@cultuvilla/shared/services/deepLinkService';
+import { buildDisplayName } from '@cultuvilla/shared/models/person';
 import {
   ManagedEventsScroll,
   type ManagedEvent,
@@ -39,6 +43,7 @@ type PersonDoc = PersonData & { id: string };
 export default function ProfileScreen() {
   const { user, profile, refreshProfile } = useAuth();
   const { t } = useT();
+  const share = useShareDeepLink();
 
   const [selfPerson, setSelfPerson] = useState<PersonDoc | null>(null);
   const [allPersonas, setAllPersonas] = useState<PersonDoc[]>([]);
@@ -187,20 +192,50 @@ export default function ProfileScreen() {
           />
         </View>
 
+        {selfPerson ? (
+          <HStack gap={3} className="px-4 pt-2 pb-1">
+            <Pressable
+              onPress={() => router.push(`/person/${selfPerson.id}`)}
+              accessibilityLabel={t('profile.actions.edit')}
+              className="flex-1 flex-row items-center justify-center bg-surface"
+              style={{
+                paddingVertical: 5,
+                paddingHorizontal: 12,
+                borderRadius: 24,
+                borderWidth: 1.5,
+                borderColor: ACCENT,
+                minHeight: 32,
+              }}
+            >
+              <Text style={{ color: ACCENT }} className="font-semibold">
+                {t('profile.actions.edit')}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() =>
+                void share(getPersonViewLink(selfPerson.id), buildDisplayName(selfPerson))
+              }
+              accessibilityLabel={t('profile.actions.share')}
+              className="flex-1 flex-row items-center justify-center bg-surface"
+              style={{
+                paddingVertical: 5,
+                paddingHorizontal: 12,
+                borderRadius: 24,
+                borderWidth: 1.5,
+                borderColor: ACCENT,
+                minHeight: 32,
+              }}
+            >
+              <Text style={{ color: ACCENT }} className="font-semibold">
+                {t('profile.actions.share')}
+              </Text>
+            </Pressable>
+          </HStack>
+        ) : null}
+
         {selfPerson?.biography ? (
           <View className="px-4 mt-4">
             <Text>{selfPerson.biography}</Text>
-          </View>
-        ) : selfPerson ? (
-          <View className="px-4 mt-4">
-            <Pressable
-              onPress={() => router.push(`/person/${selfPerson.id}`)}
-              accessibilityRole="button"
-            >
-              <Text tone="muted">
-                {t('profile.bio.empty')} · {t('profile.bio.cta')}
-              </Text>
-            </Pressable>
           </View>
         ) : null}
 

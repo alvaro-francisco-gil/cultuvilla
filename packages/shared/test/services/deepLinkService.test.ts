@@ -11,6 +11,7 @@ import {
   getVillageInviteLink,
   getOrgViewLink,
   getOrgInviteLink,
+  getPersonViewLink,
   getPlaceViewLink,
   getBarrioViewLink,
   parseLink,
@@ -92,6 +93,15 @@ describe('deepLinkService builders', () => {
     });
   });
 
+  it('builds a person view link using /person/', () => {
+    expect(getPersonViewLink('person_1')).toEqual({
+      url: 'https://example.test.app/person/person_1',
+      kind: 'content',
+      resource: 'person',
+      id: 'person_1',
+    });
+  });
+
   it('throws on empty id', () => {
     expect(() => getEventLink('')).toThrow(/id/i);
   });
@@ -162,6 +172,23 @@ describe('deepLinkService.parseLink', () => {
 
   it('returns null for a host mismatch', () => {
     expect(parseLink('https://other.host/event/evt_123')).toBeNull();
+  });
+
+  it('parses a person view URL', () => {
+    expect(parseLink('https://example.test.app/person/person_1')).toEqual({
+      kind: 'content',
+      resource: 'person',
+      id: 'person_1',
+    });
+  });
+
+  it('round-trips a person view link', () => {
+    const link = getPersonViewLink('person_round');
+    expect(parseLink(link.url)).toEqual({
+      kind: 'content',
+      resource: 'person',
+      id: 'person_round',
+    });
   });
 
   it('returns null for an unknown resource segment', () => {
@@ -257,6 +284,7 @@ describe('deepLinkService.buildShareMessage', () => {
       'deeplink.share.organization.invite': 'Te invito a unirte a {name}: {url}',
       'deeplink.share.place.view': 'Mira «{name}»: {url}',
       'deeplink.share.barrio.view': 'Mira {name}: {url}',
+      'deeplink.share.person.view': 'Mira el perfil de {name}: {url}',
     };
     let out: string = map[key] ?? key;
     if (!vars) return out;
@@ -302,5 +330,12 @@ describe('deepLinkService.buildShareMessage', () => {
   it('interpolates the barrio name into the view message', () => {
     const link = getBarrioViewLink('mun_1', 'barrio_1');
     expect(buildShareMessage(link, t, 'El Arrabal')).toBe(`Mira El Arrabal: ${link.url}`);
+  });
+
+  it('interpolates the person name into the view message', () => {
+    const link = getPersonViewLink('person_1');
+    expect(buildShareMessage(link, t, 'María García')).toBe(
+      `Mira el perfil de María García: ${link.url}`,
+    );
   });
 });

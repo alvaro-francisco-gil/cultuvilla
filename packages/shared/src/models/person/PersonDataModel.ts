@@ -100,6 +100,20 @@ export function buildPersonData(input: PersonDataInput): PersonData {
   };
 }
 
+/**
+ * Build the `municipalityLinks` array for a person from a single residence
+ * selection. Returns `[]` when no village is chosen, otherwise a one-element
+ * array. The link shape is exactly `{ municipalityId, barrioId }` so it matches
+ * the `array-contains` query in `getPersonsByBarrio`.
+ */
+export function buildResidenceLinks(
+  municipalityId: string | null,
+  barrioId: string | null,
+): MunicipalityLink[] {
+  if (!municipalityId) return [];
+  return [{ municipalityId, barrioId }];
+}
+
 /** Full display name: "Juan Carlos García López" */
 export function buildDisplayName(
   person: Pick<PersonData, 'givenName' | 'middleNames' | 'firstSurname' | 'secondSurname'>,

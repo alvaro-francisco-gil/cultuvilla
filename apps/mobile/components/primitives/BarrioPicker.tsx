@@ -1,0 +1,148 @@
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Modal, View, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { getBarrios } from '@cultuvilla/shared/services/municipalityService';
+import { Pressable } from './Pressable';
+import { Text } from './Text';
+import { Button } from './Button';
+
+interface Option {
+  id: string;
+  name: string;
+}
+
+export interface BarrioPickerProps {
+  label: string;
+  /** Municipality whose barrios are offered. When null the picker is disabled. */
+  municipalityId: string | null;
+  value: string | null;
+  onChange: (id: string | null) => void;
+  /** Label for the "no specific barrio" choice, e.g. "Todo el pueblo". */
+  wholeVillageLabel: string;
+}
+
+export function BarrioPicker({
+  label,
+  municipalityId,
+  value,
+  onChange,
+  wholeVillageLabel,
+}: BarrioPickerProps) {
+  const [open, setOpen] = useState(false);
+  const [options, setOptions] = useState<Option[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Load the (approved) barrios whenever the municipality changes, so the
+  // trigger can render the selected barrio's name even while the modal is
+  // closed. Barrio lists are small, so a single fetch per village is fine.
+  useEffect(() => {
+    if (!municipalityId) {
+      setOptions([]);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    getBarrios(municipalityId)
+      .then((rows) => {
+        if (cancelled) return;
+        setOptions(
+          rows.filter((b) => b.status === 'approved').map((b) => ({ id: b.id, name: b.name })),
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [municipalityId]);
+
+  const disabled = !municipalityId;
+  const selected = value ? options.find((o) => o.id === value) ?? null : null;
+  const triggerText = disabled
+    ? wholeVillageLabel
+    : selected
+      ? selected.name
+      : wholeVillageLabel;
+
+  return (
+    <View>
+      <Text tone="muted">{label}</Text>
+      <Pressable
+        onPress={() => !disabled && setOpen(true)}
+        accessibilityRole="button"
+        disabled={disabled}
+        style={[styles.trigger, disabled && styles.triggerDisabled]}
+      >
+        <Text tone={disabled ? 'muted' : undefined}>{triggerText}</Text>
+        <Ionicons name="chevron-down" size={16} color="#64748b" />
+      </Pressable>
+      <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
+        <SafeAreaView style={styles.modal} edges={['top', 'bottom']}>
+          {loading && options.length === 0 ? (
+            <View style={styles.center}>
+              <ActivityIndicator />
+            </View>
+          ) : (
+            <FlatList
+              data={options}
+              keyExtractor={(o) => o.id}
+              ListHeaderComponent={
+                <Pressable
+                  onPress={() => {
+                    onChange(null);
+                    setOpen(false);
+                  }}
+                  style={styles.row}
+                >
+                  <Text>{wholeVillageLabel}</Text>
+                </Pressable>
+              }
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => {
+                    onChange(item.id);
+                    setOpen(false);
+                  }}
+                  style={styles.row}
+                >
+                  <Text>{item.name}</Text>
+                </Pressable>
+              )}
+            />
+          )}
+          <View style={styles.actions}>
+            <Button variant="secondary" onPress={() => setOpen(false)}>
+              Cancelar
+            </Button>
+          </View>
+        </SafeAreaView>
+      </Modal>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  trigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    marginTop: 4,
+    backgroundColor: '#ffffff',
+  },
+  triggerDisabled: { backgroundColor: '#f3f4f6' },
+  modal: { flex: 1, padding: 16, gap: 12 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  row: {
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e5e7eb',
+  },
+  actions: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end' },
+});

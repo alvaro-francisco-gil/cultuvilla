@@ -51,8 +51,8 @@ export function Section({
   return (
     <VStack gap={3} className="pt-4">
       <HStack className="items-center justify-between px-4">
-        {/* 1px larger than the card title (body = 16px), kept bold + accent. */}
-        <Text variant="h2" style={{ color: ACCENT, fontSize: 17 }}>
+        {/* Matches the profile screen's section header (h3, bold, default tone). */}
+        <Text variant="h3" className="font-bold">
           {title}
         </Text>
         {onManage ? (
