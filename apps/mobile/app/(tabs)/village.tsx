@@ -279,9 +279,9 @@ export default function VillageTabScreen() {
   }
 
   const canManage = isAppAdmin || villageAdmin;
-  const base = `/village/${village.id}/admin` as const;
   // Member-accessible base for the shared propose-pending surfaces (barrios,
-  // places): any villager can open these to propose; organizers manage there.
+  // places, organizations, community, censo): any villager can open these to
+  // propose; organizers manage there. The old /admin group was removed.
   const villageBase = `/village/${village.id}` as const;
   const cover = village.community?.coverImages?.[0] ?? null;
   const description = village.community?.description?.trim();

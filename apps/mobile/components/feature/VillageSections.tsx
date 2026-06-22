@@ -5,11 +5,10 @@ import { VStack, HStack, Text, Pressable } from '../primitives';
 import { useT } from '../../lib/i18n';
 
 /**
- * Presentational building blocks for the village overview, shared between the
- * public village tab ((tabs)/village.tsx) and the admin hub
- * (village/[villageId]/admin/index.tsx). The management affordances —
- * `onManage` (Gestionar) and `onAdd` (Añadir card) — are optional so the same
- * sections render read-only for regular villagers and editable for admins.
+ * Presentational building blocks for the village overview on the shared
+ * village tab ((tabs)/village.tsx). The management affordances — `onManage`
+ * and `onAdd` — route everyone to the shared propose-pending screens; the add
+ * label reads "Proponer" for villagers and "Añadir" for organizers.
  */
 
 export const ACCENT = '#bb5d3a';

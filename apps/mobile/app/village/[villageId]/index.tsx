@@ -89,15 +89,6 @@ export default function VillageHome() {
       >
         <Ionicons name="person-add-outline" size={22} color="#0f172a" />
       </Pressable>
-      {canManage ? (
-        <Pressable
-          onPress={() => router.push(`/village/${villageId}/admin` as never)}
-          accessibilityLabel={t('village.admin.open')}
-          className="p-1"
-        >
-          <Ionicons name="settings-outline" size={22} color="#0f172a" />
-        </Pressable>
-      ) : null}
     </HStack>
   );
 
