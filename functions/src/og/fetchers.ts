@@ -46,7 +46,6 @@ interface RawVillage {
   escudoManualUrl?: unknown;
   community?: {
     description?: unknown;
-    coverImages?: unknown;
   } | null;
 }
 
@@ -58,11 +57,6 @@ interface RawOrg {
 
 function asString(v: unknown): string | null {
   return typeof v === 'string' && v.length > 0 ? v : null;
-}
-
-function asStringArray(v: unknown): string[] {
-  if (!Array.isArray(v)) return [];
-  return v.filter((x): x is string => typeof x === 'string');
 }
 
 function trim(text: string | null | undefined): string {
@@ -91,12 +85,10 @@ export async function getVillageOg(municipalityId: string): Promise<OgMeta | nul
   if (!snap.exists) return null;
   const v = (snap.data() ?? {}) as RawVillage;
   const community = v.community ?? null;
-  const coverImage = community ? asStringArray(community.coverImages)[0] ?? null : null;
-  const escudo = asString(v.escudoManualUrl) ?? asString(v.escudoUrl);
   return {
     title: asString(v.name) ?? '',
     description: trim(community ? asString(community.description) : ''),
-    imageUrl: coverImage ?? escudo,
+    imageUrl: asString(v.escudoManualUrl) ?? asString(v.escudoUrl),
   };
 }
 

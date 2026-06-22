@@ -6,9 +6,9 @@ import { eventsCollection } from '@cultuvilla/shared/firebase/refs/admin';
 const db = getFirestore();
 
 /**
- * When a municipality's name, community cover images, or coordinates change,
- * propagate to all events with that municipalityId so the feed always renders
- * fresh values.
+ * When a municipality's name, escudo (escudoManualUrl / escudoUrl), or
+ * coordinates change, propagate to all events with that municipalityId so the
+ * feed always renders fresh values.
  *
  * Note: the municipality side (before/after) is still raw — the municipality
  * collection has not migrated to schema-first models yet (Task 16). Once it
@@ -26,8 +26,14 @@ export const syncVillageDenormalization = onDocumentUpdated(
       JSON.stringify(before['coordinates'] ?? null) !==
       JSON.stringify(after['coordinates'] ?? null);
 
-    const beforeCover = pickCover(before['community']);
-    const afterCover = pickCover(after['community']);
+    const beforeCover =
+      (before['escudoManualUrl'] as string | null | undefined) ??
+      (before['escudoUrl'] as string | null | undefined) ??
+      null;
+    const afterCover =
+      (after['escudoManualUrl'] as string | null | undefined) ??
+      (after['escudoUrl'] as string | null | undefined) ??
+      null;
     const coverChanged = beforeCover !== afterCover;
 
     if (!nameChanged && !coverChanged && !coordsChanged) return;
@@ -61,11 +67,3 @@ export const syncVillageDenormalization = onDocumentUpdated(
   },
 );
 
-function pickCover(community: unknown): string | null {
-  if (!community || typeof community !== 'object') return null;
-  const c = community as { coverImages?: unknown };
-  if (Array.isArray(c.coverImages) && c.coverImages.length > 0 && typeof c.coverImages[0] === 'string') {
-    return c.coverImages[0];
-  }
-  return null;
-}

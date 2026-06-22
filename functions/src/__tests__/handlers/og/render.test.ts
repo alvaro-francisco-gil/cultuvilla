@@ -116,7 +116,7 @@ describe('ogRenderer', () => {
     expect(res.body).toContain('<div id="root">');
   });
 
-  it('village: uses community cover image when present', async () => {
+  it('village: uses escudoManualUrl as og:image when present', async () => {
     await admin.firestore().doc('municipalities/mun-1').set({
       name: 'Villarriba',
       nameLower: 'villarriba',
@@ -128,10 +128,9 @@ describe('ogRenderer', () => {
       coordinates: null,
       escudoUrl: 'https://cdn.example/escudo.png',
       escudoThumbUrl: null,
-      escudoManualUrl: null,
+      escudoManualUrl: 'https://x/manual.png',
       community: {
         description: 'Comunidad pequeña pero apañada',
-        coverImages: ['https://cdn.example/village-mun1.jpg'],
         adminUserId: 'admin-1',
         createdAt: new Date(),
       },
@@ -143,7 +142,34 @@ describe('ogRenderer', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain('<title>Villarriba</title>');
     expect(res.body).toContain('property="og:description" content="Comunidad pequeña pero apañada"');
-    expect(res.body).toContain('property="og:image" content="https://cdn.example/village-mun1.jpg"');
+    expect(res.body).toContain('property="og:image" content="https://x/manual.png"');
+  });
+
+  it('village: falls back to escudoUrl when escudoManualUrl is absent', async () => {
+    await admin.firestore().doc('municipalities/mun-1b').set({
+      name: 'Villarriba B',
+      nameLower: 'villarriba b',
+      province: 'Valladolid',
+      provinceLower: 'valladolid',
+      comunidadAutonoma: 'Castilla y León',
+      comunidadAutonomaLower: 'castilla y leon',
+      codigoINE: '47001b',
+      coordinates: null,
+      escudoUrl: 'https://cdn.example/escudo-fallback.png',
+      escudoThumbUrl: null,
+      escudoManualUrl: null,
+      community: {
+        description: 'Comunidad con escudo genérico',
+        adminUserId: 'admin-1',
+        createdAt: new Date(),
+      },
+      communityActive: true,
+    });
+
+    const res = await invoke('/village/mun-1b');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toContain('property="og:image" content="https://cdn.example/escudo-fallback.png"');
   });
 
   it('village invite variant uses the same og as the view URL', async () => {
@@ -161,7 +187,6 @@ describe('ogRenderer', () => {
       escudoManualUrl: null,
       community: {
         description: 'Pueblo bonito',
-        coverImages: [],
         adminUserId: 'admin-2',
         createdAt: new Date(),
       },
