@@ -82,15 +82,17 @@ export default function EventDetailScreen() {
       <FloatingShareButton onPress={() => void share(getEventLink(event.id), event.title)} />
       <VStack gap={4} className="p-4">
         <Text variant="h1">{event.title}</Text>
-        <HStack gap={2} className="items-center">
-          <LiveAvatar
-            ownerId={event.organizationId}
-            ownerType="organization"
-            size={28}
-            initials={event.organizationName.slice(0, 1).toUpperCase()}
-          />
-          <Text tone="muted">{event.organizationName}</Text>
-        </HStack>
+        {event.organizationId && event.organizationName ? (
+          <HStack gap={2} className="items-center">
+            <LiveAvatar
+              ownerId={event.organizationId}
+              ownerType="organization"
+              size={28}
+              initials={event.organizationName.slice(0, 1).toUpperCase()}
+            />
+            <Text tone="muted">{event.organizationName}</Text>
+          </HStack>
+        ) : null}
         <Text>{formatDate(event.startDate, 'long')}</Text>
         {event.description ? <Text>{event.description}</Text> : null}
 

@@ -12,7 +12,7 @@ export type EventLike = {
   id: string;
   title: string;
   startDate: Date;
-  organizationName: string;
+  organizationName: string | null;
   imageURL?: string | null;
   /** Village cover photo, used as the fallback when the event has no image. */
   municipalityCoverImage?: string | null;

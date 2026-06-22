@@ -44,4 +44,30 @@ describe('useEventOrganizer', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.canOrganize).toBe(false);
   });
+
+  it('the event creator can organize (org-based event)', async () => {
+    const { result } = renderHook(() =>
+      useEventOrganizer({ organizationId: 'o1', municipalityId: 'm1', createdBy: 'u1' }),
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.canOrganize).toBe(true);
+  });
+
+  it('the creator of an org-less event can organize without calling isOrgMember', async () => {
+    const { result } = renderHook(() =>
+      useEventOrganizer({ organizationId: null, municipalityId: 'm1', createdBy: 'u1' }),
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.canOrganize).toBe(true);
+    expect(mockOrg).not.toHaveBeenCalled();
+  });
+
+  it('a non-creator villager cannot organize an org-less event', async () => {
+    const { result } = renderHook(() =>
+      useEventOrganizer({ organizationId: null, municipalityId: 'm1', createdBy: 'someone-else' }),
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.canOrganize).toBe(false);
+    expect(mockOrg).not.toHaveBeenCalled();
+  });
 });

@@ -22,7 +22,7 @@ export type FeedCardProps = {
   /** Village cover photo, shown when the item has no image of its own. */
   fallbackImageUri?: string | null;
   title: string;
-  metaLeft: string;
+  metaLeft: string | null;
   metaRight: string;
   fallbackIcon: keyof typeof Ionicons.glyphMap;
   /** Optional pill shown over the top-left of the image (e.g. "En curso"). */
