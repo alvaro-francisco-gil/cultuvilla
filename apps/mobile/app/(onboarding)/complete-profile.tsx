@@ -1,17 +1,7 @@
 import { useState } from 'react';
-import { ScrollView } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import {
-  Screen,
-  HStack,
-  VStack,
-  Text,
-  Input,
-  Button,
-  Avatar,
-  DateField,
-  VillagePicker,
-} from '../../components/primitives';
+import { Screen, Text } from '../../components/primitives';
+import { PersonForm } from '../../components/feature/PersonForm';
+import type { PersonFormPhoto, PersonFormValues } from '../../components/feature/PersonForm';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 import {
@@ -24,86 +14,50 @@ import {
   patchUserProfile,
 } from '@cultuvilla/shared/services/userService';
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
-import type { Sex, PartialDate, MunicipalityLink } from '@cultuvilla/shared/models/person';
+import { buildResidenceLinks } from '@cultuvilla/shared/models/person';
+import type { MunicipalityLink, PartialDate } from '@cultuvilla/shared/models/person';
 
 function toPartialDate(d: Date | null): PartialDate | null {
   if (!d) return null;
   return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate() };
 }
 
-async function pickImage(): Promise<{ uri: string; blob: Blob } | null> {
-  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!perm.granted) return null;
-  const res = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    quality: 0.8,
-    allowsEditing: true,
-    aspect: [1, 1],
-  });
-  if (res.canceled || !res.assets[0]) return null;
-  const asset = res.assets[0];
-  const response = await fetch(asset.uri);
-  const blob = await response.blob();
-  return { uri: asset.uri, blob };
-}
-
 export default function CompleteProfileScreen() {
   const { user, profile, refreshProfile } = useAuth();
   const { t } = useT();
-
-  const [photo, setPhoto] = useState<{ uri: string; blob: Blob } | null>(null);
-  const [givenName, setGivenName] = useState('');
-  const [firstSurname, setFirstSurname] = useState('');
-  const [secondSurname, setSecondSurname] = useState('');
-  const [nickname, setNickname] = useState('');
-  const [sex, setSex] = useState<Sex | null>(null);
-  const [birthday, setBirthday] = useState<Date | null>(null);
-  const [birthPlace, setBirthPlace] = useState<string | null>(null);
-  const [biography, setBiography] = useState('');
-
-  const [telephone, setTelephone] = useState(profile?.telephone ?? '');
-  const [accountVillage, setAccountVillage] = useState<string | null>(profile?.activeMunicipalityId ?? null);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function onSubmit() {
+  async function onSubmit(values: PersonFormValues, photo: PersonFormPhoto | null) {
     if (!user) return;
     setError(null);
-    const trimmedGiven = givenName.trim();
-    const trimmedFirst = firstSurname.trim();
-    const trimmedSecond = secondSurname.trim();
-    if (!trimmedGiven || !trimmedFirst || !trimmedSecond || !birthday) {
-      setError(t('onboarding.completeProfile.requiredFields'));
-      return;
-    }
     setLoading(true);
     try {
-      const birthPlaceLink: MunicipalityLink | null = birthPlace
-        ? { municipalityId: birthPlace, barrioId: null }
+      const birthPlaceLink: MunicipalityLink | null = values.birthPlaceMunicipalityId
+        ? { municipalityId: values.birthPlaceMunicipalityId, barrioId: null }
         : null;
+      const municipalityLinks = buildResidenceLinks(values.municipalityId, values.barrioId);
 
       let personId: string;
       if (profile?.personId) {
         personId = profile.personId;
       } else {
         const existing = await getPersonByUserId(user.uid);
-        if (existing) {
-          personId = existing.id;
-        } else {
-          personId = await createPerson({
-            givenName: trimmedGiven,
-            firstSurname: trimmedFirst,
-            secondSurname: trimmedSecond,
-            nickname: nickname.trim() || null,
-            sex,
-            birthday: toPartialDate(birthday),
-            birthPlace: birthPlaceLink,
-            biography: biography.trim() || null,
-            userId: user.uid,
-            createdBy: user.uid,
-          });
-        }
+        personId = existing
+          ? existing.id
+          : await createPerson({
+              givenName: values.givenName.trim(),
+              firstSurname: values.firstSurname.trim() || null,
+              secondSurname: values.secondSurname.trim() || null,
+              nickname: values.nickname.trim() || null,
+              sex: values.sex,
+              birthday: toPartialDate(values.birthday),
+              birthPlace: birthPlaceLink,
+              municipalityLinks,
+              biography: values.biography.trim() || null,
+              userId: user.uid,
+              createdBy: user.uid,
+            });
       }
 
       if (photo) {
@@ -115,28 +69,17 @@ export default function CompleteProfileScreen() {
         await updatePerson(personId, { photoURL: url });
       }
 
-      // displayName is denormalized from the persons doc — written by the
-      // syncPersonDenormalization Cloud Function only. Don't send it here.
+      const profilePatch = {
+        activeMunicipalityId: values.municipalityId,
+        personId,
+      };
       if (profile) {
-        await patchUserProfile(user.uid, {
-          telephone: telephone.trim() || null,
-          activeMunicipalityId: accountVillage,
-          personId,
-        });
+        await patchUserProfile(user.uid, profilePatch);
       } else {
-        await createUserProfile(user.uid, {
-          email: user.email ?? '',
-          telephone: telephone.trim() || null,
-          activeMunicipalityId: accountVillage,
-          personId,
-        });
+        await createUserProfile(user.uid, { email: user.email ?? '', ...profilePatch });
       }
-
       await refreshProfile();
-      // AuthGate (_layout.tsx) owns post-onboarding routing — once
-      // refreshProfile() settles, needsOnboarding flips false and its
-      // <Redirect> moves us into (tabs). Calling router.replace here races
-      // with that and fires before (tabs) is mounted in the navigator.
+      // AuthGate (_layout.tsx) owns post-onboarding routing.
     } catch (e) {
       setError(e instanceof Error ? e.message : t('onboarding.completeProfile.error'));
     } finally {
@@ -145,95 +88,16 @@ export default function CompleteProfileScreen() {
   }
 
   return (
-    <Screen>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-        <Text variant="h2">{t('onboarding.completeProfile.title')}</Text>
-
-        <VStack gap={3}>
-          <Input
-            label={t('onboarding.completeProfile.givenName')}
-            value={givenName}
-            onChangeText={setGivenName}
-          />
-          <Input
-            label={t('onboarding.completeProfile.firstSurname')}
-            value={firstSurname}
-            onChangeText={setFirstSurname}
-          />
-          <Input
-            label={t('onboarding.completeProfile.secondSurname')}
-            value={secondSurname}
-            onChangeText={setSecondSurname}
-          />
-          <Text tone="muted">{t('onboarding.completeProfile.photo')}</Text>
-          <Avatar
-            uri={photo?.uri}
-            size={96}
-            onPress={async () => {
-              const next = await pickImage();
-              if (next) setPhoto(next);
-            }}
-          />
-          <Input
-            label={t('onboarding.completeProfile.nickname')}
-            value={nickname}
-            onChangeText={setNickname}
-          />
-          <Text tone="muted">{t('onboarding.completeProfile.sex')}</Text>
-          <HStack gap={2}>
-            {(['male', 'female', 'other'] as const).map((opt) => (
-              <Button
-                key={opt}
-                className="flex-1"
-                variant={sex === opt ? 'primary' : 'secondary'}
-                onPress={() => setSex(sex === opt ? null : opt)}
-              >
-                {t(`onboarding.completeProfile.sex_${opt}`)}
-              </Button>
-            ))}
-          </HStack>
-          <DateField
-            label={t('onboarding.completeProfile.birthday')}
-            value={birthday}
-            onChange={setBirthday}
-            minimumDate={new Date(1900, 0, 1)}
-            maximumDate={new Date()}
-            testID="birthday"
-          />
-          <VillagePicker
-            label={t('onboarding.completeProfile.birthPlace')}
-            value={birthPlace}
-            onChange={setBirthPlace}
-          />
-          <Input
-            label={t('onboarding.completeProfile.biography')}
-            value={biography}
-            onChangeText={setBiography}
-            multiline
-            numberOfLines={4}
-          />
-        </VStack>
-
-        <Text variant="h3">{t('onboarding.completeProfile.accountSection')}</Text>
-        <VStack gap={3}>
-          <Input
-            label={t('onboarding.completeProfile.telephone')}
-            value={telephone}
-            onChangeText={setTelephone}
-            keyboardType="phone-pad"
-          />
-          <VillagePicker
-            label={t('onboarding.completeProfile.village')}
-            value={accountVillage}
-            onChange={setAccountVillage}
-          />
-        </VStack>
-
-        {error && <Text tone="danger">{error}</Text>}
-        <Button onPress={onSubmit} loading={loading} fullWidth>
-          {t('onboarding.completeProfile.submit')}
-        </Button>
-      </ScrollView>
+    <Screen padded={false} bottomInset={false}>
+      <Text variant="h2" className="px-4 pt-4">{t('onboarding.completeProfile.title')}</Text>
+      <PersonForm
+        requireFullName
+        initial={{ municipalityId: profile?.activeMunicipalityId ?? null }}
+        submitLabel={t('onboarding.completeProfile.submit')}
+        loading={loading}
+        error={error}
+        onSubmit={onSubmit}
+      />
     </Screen>
   );
 }
