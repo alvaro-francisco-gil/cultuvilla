@@ -55,7 +55,7 @@ export function CensoSchemaEditor({ villageId }: { villageId: string }) {
     try {
       await updateCensoSchema(villageId, fields);
       // mobile-web-compat: native-only — Alert is a no-op on web.
-      Alert.alert(t('common.save'));
+      Alert.alert(t('censo.saved'));
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : t('censo.error'));
     } finally {
@@ -69,7 +69,7 @@ export function CensoSchemaEditor({ villageId }: { villageId: string }) {
     <VStack gap={3} className="p-4">
       {fields.map((f, i) => (
         <QuestionCard
-          key={`${f.key}-${i}`}
+          key={f.key}
           field={f}
           index={i}
           dispatch={dispatch as (a: EditorAction) => void}
