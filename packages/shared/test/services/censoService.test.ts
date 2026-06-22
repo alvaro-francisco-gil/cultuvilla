@@ -204,3 +204,36 @@ describe('validateSchemaTransition', () => {
     expect(r.ok).toBe(true);
   });
 });
+
+describe('validateSchemaTransition optionsSource', () => {
+  const sel = (over: Partial<ProfileFormField> = {}): ProfileFormField => ({
+    source: 'custom', key: 'k', label: 'L', type: 'select', options: ['a'], required: false, ...over,
+  } as ProfileFormField);
+
+  it('accepts a select backed by optionsSource and no static options', () => {
+    const f = sel({ options: undefined, optionsSource: 'barrios' });
+    expect(validateSchemaTransition([], [f], {}).ok).toBe(true);
+  });
+  it('rejects a select with neither options nor optionsSource', () => {
+    const f = sel({ options: undefined, optionsSource: undefined });
+    const r = validateSchemaTransition([], [f], {});
+    expect(r.ok).toBe(false);
+    expect(r.violations.map((v) => v.code)).toContain('missing_options');
+  });
+  it('rejects a select with both options and optionsSource', () => {
+    const f = sel({ options: ['a'], optionsSource: 'places' });
+    const r = validateSchemaTransition([], [f], {});
+    expect(r.violations.map((v) => v.code)).toContain('options_source_conflict');
+  });
+  it('rejects optionsSource on a non-choice type', () => {
+    const f = sel({ type: 'text', options: undefined, optionsSource: 'barrios' });
+    const r = validateSchemaTransition([], [f], {});
+    expect(r.violations.map((v) => v.code)).toContain('options_source_invalid_type');
+  });
+  it('skips option-removal checks for dynamic-source fields', () => {
+    const prev = sel({ options: undefined, optionsSource: 'barrios' });
+    const next = sel({ options: undefined, optionsSource: 'barrios' });
+    const used = { k: new Set(['some-deleted-id']) };
+    expect(validateSchemaTransition([prev], [next], used).ok).toBe(true);
+  });
+});
