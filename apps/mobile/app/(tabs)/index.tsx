@@ -450,7 +450,7 @@ export default function FeedScreen() {
         renderItem={({ item }) => (
           <NewsCard
             post={item}
-            fallbackImageUri={villageCoverById.get(item.municipalityId) ?? null}
+            fallbackImageUri={null}
             onPress={(id) => router.push(`/news/${id}`)}
           />
         )}

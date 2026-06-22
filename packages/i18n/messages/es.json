@@ -265,8 +265,6 @@
       "community": {
         "title": "Comunidad",
         "description": "Descripción",
-        "images": "Imágenes",
-        "addImage": "Añadir imagen",
         "escudo": "Escudo",
         "saved": "Guardado",
         "location": "Ubicación",
@@ -545,8 +543,6 @@
       "title": "Solicitar ser organizador",
       "descriptionLabel": "Descripción del pueblo",
       "descriptionPlaceholder": "Cuenta algo sobre tu pueblo…",
-      "coversLabel": "Imágenes de portada (opcional)",
-      "addCover": "Añadir imagen",
       "motivationLabel": "¿Por qué quieres organizar este pueblo?",
       "submit": "Enviar solicitud",
       "submitted": "Solicitud enviada"
@@ -557,8 +553,6 @@
     "explainer": "Iniciar el pueblo lo activa para que cualquier vecino pueda unirse. Serás su primer miembro y podrás añadir su información. No te convierte en organizador.",
     "descriptionLabel": "Descripción del pueblo (opcional)",
     "descriptionPlaceholder": "Cuenta algo sobre tu pueblo…",
-    "coversLabel": "Imágenes de portada (opcional)",
-    "addCover": "Añadir imagen",
     "organizeToggle": "Quiero organizar este pueblo",
     "organizeHint": "Enviaremos una solicitud para que te concedan el rol de organizador (requiere aprobación).",
     "submit": "Iniciar pueblo"
@@ -570,8 +564,6 @@
   },
   "editInfo": {
     "title": "Editar información",
-    "imagesLabel": "Imágenes",
-    "addImage": "Añadir imagen",
     "descriptionLabel": "Descripción"
   },
   "villageSwitcher": {

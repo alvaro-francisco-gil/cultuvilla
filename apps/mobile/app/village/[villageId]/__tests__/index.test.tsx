@@ -11,7 +11,7 @@ jest.mock('../../../../lib/useVillageHome', () => ({
       name: 'Anaya',
       province: 'Segovia',
       communityActive: true,
-      community: { adminUserId: null, coverImages: [] },
+      community: { adminUserId: null },
     },
     villageAdmin: false,
     isMember: true,

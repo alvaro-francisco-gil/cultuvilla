@@ -5,12 +5,12 @@
 ## Status
 
 - **Updated:** 2026-06-22
-- **Stage:** Task 1 (i18n keys) — starting
+- **Stage:** All 3 tasks implemented & committed; awaiting on-device verification.
 - **Branch:** `main` (direct-to-main per repo policy)
-- **Done:** none (plan just promoted from ready)
-- **Next:** Task 1 — add discover a11y i18n keys
-- **Blockers:** none
-- **Handoff:** No mobile component-test harness; verification is `pnpm check` + manual AVD. `addVillageMember`/`getUserMemberships` already exist in `packages/shared`.
+- **Done:** Task 1 i18n keys (`8af89bb`); Task 2 discover card + join modal (`23ff892`); Task 3 menu gating (`76c5da2`). `tsc` clean on both changed files; `app:check-web-compat` clean.
+- **Next:** Manual AVD verification (deferred — working tree has unrelated cover-images WIP that makes the full app hard to run cleanly). Then retire plan.
+- **Blockers:** none for this work. Unrelated uncommitted WIP (cover-images removal) lives in the tree; left untouched.
+- **Handoff:** Mobile lint is not wired for `apps/mobile` (only `tsc` + jest); these two components have no jest tests and none were added (not in scope). Verify on device: active discover cards show eye + person-plus (no "Activo"), join modal joins → village home, already-member shows green check, and "Cambiar de pueblo" hides for single-village users.
 
 ## Context
 

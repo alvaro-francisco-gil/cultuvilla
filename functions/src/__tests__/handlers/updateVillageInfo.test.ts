@@ -32,7 +32,7 @@ async function seedMunicipality(adminUserId: string | null): Promise<void> {
       escudoUrl: null,
       escudoThumbUrl: null,
       communityActive: true,
-      community: { description: 'old', coverImages: [], adminUserId, profileForm: null, activatedAt: now },
+      community: { description: 'old', adminUserId, profileForm: null, activatedAt: now },
     });
 }
 
@@ -117,12 +117,11 @@ describe('updateVillageInfo (callable)', () => {
     await seedMember(MEMBER_ID, 'user');
     const result = await callUpdate({
       uid: MEMBER_ID,
-      data: { municipalityId: MUNICIPALITY_ID, description: '  nueva descripción  ', coverImages: ['https://x/c.jpg'] },
+      data: { municipalityId: MUNICIPALITY_ID, description: '  nueva descripción  ' },
     });
     expect(result.ok).toBe(true);
     const muniDoc = await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}`).get();
     expect(muniDoc.data()?.community?.description).toBe('nueva descripción');
-    expect(muniDoc.data()?.community?.coverImages).toEqual(['https://x/c.jpg']);
   });
 
   it('rejects a non-member during the wiki phase', async () => {
