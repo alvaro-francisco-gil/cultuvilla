@@ -25,6 +25,16 @@ service cloud.firestore {
     function orgMunicipalityId(orgId) {
       return get(/databases/$(database)/documents/organizations/$(orgId)).data.municipalityId;
     }
+    // Organizer of an event: a member of the event's owning org, a village admin
+    // of the event's municipality, or an app admin. Used to gate the attendee
+    // roster (check-in, remove, organizer-only phone contacts).
+    function isEventOrganizer(eventId) {
+      return isAuthenticated() && (
+        isAppAdmin()
+        || isOrgMember(get(/databases/$(database)/documents/events/$(eventId)).data.organizationId)
+        || isVillageAdmin(get(/databases/$(database)/documents/events/$(eventId)).data.municipalityId)
+      );
+    }
     function isTrustedNewsAuthor(municipalityId) {
       return isAuthenticated()
         && exists(/databases/$(database)/documents/municipalities/$(municipalityId)/members/$(request.auth.uid))
@@ -345,7 +355,7 @@ service cloud.firestore {
           && isStringOrNull(d.imageURL)
           && isNumberOrNull(d.maxAttendees)
           && isBool(d.telephoneRequired)
-          && d.status in ['draft', 'published', 'cancelled', 'completed']
+          && d.status in ['published', 'cancelled', 'completed']
           && isString(d.organizationId)
           && isString(d.organizationName)
           && isString(d.createdBy)
@@ -604,10 +614,19 @@ service cloud.firestore {
         // capacity/waitlist decision must be made server-side in a
         // transaction.
         allow create: if false;
-        allow update: if isAuthenticated()
-          && resource.data.userId == request.auth.uid;
-        allow delete: if isAuthenticated()
-          && resource.data.userId == request.auth.uid;
+        // Self may update/cancel their own registration; an organizer may too
+        // (check-in via `checkedInAt`, or removing a no-show / walk-in).
+        allow update: if (isAuthenticated() && resource.data.userId == request.auth.uid)
+          || isEventOrganizer(eventId);
+        allow delete: if (isAuthenticated() && resource.data.userId == request.auth.uid)
+          || isEventOrganizer(eventId);
+      }
+
+      // Organizer-only attendee phone contacts (the registration doc itself is
+      // public, so phones live here). Written only by callables (admin SDK).
+      match /registrationContacts/{regId} {
+        allow read: if isEventOrganizer(eventId);
+        allow write: if false;
       }
     }
 

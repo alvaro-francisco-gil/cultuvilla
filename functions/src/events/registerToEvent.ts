@@ -86,8 +86,17 @@ export const registerToEvent = onCall<RegisterToEventData, Promise<RegisterToEve
           position,
           isMember,
           registeredAt,
+          checkedInAt: null,
         };
         tx.set(newRef, reg);
+        // Phone (when telephoneRequired) lands in a separately-gated
+        // subcollection, never on the public registration doc. Keyed by reg id.
+        if (registrant.phone) {
+          tx.set(eventRef.firestore.doc(`events/${eventId}/registrationContacts/${newRef.id}`), {
+            phone: registrant.phone,
+            name: registrant.name,
+          });
+        }
         summaries.push({ id: newRef.id, status, position, isMember });
       });
 

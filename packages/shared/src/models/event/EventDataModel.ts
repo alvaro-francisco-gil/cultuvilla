@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import { LocationDataSchema, LatLngSchema, type LatLng } from '../core/LocationDataModel';
 
-export const EventStatusSchema = z.enum(['draft', 'published', 'cancelled', 'completed']);
+// `draft` was dropped — events publish on create. Legacy `draft` docs coerce to
+// `published` on read via the `.catch` on the status field below (no migration).
+export const EventStatusSchema = z.enum(['published', 'cancelled', 'completed']);
 export type EventStatus = z.infer<typeof EventStatusSchema>;
 
 export const EventDataSchema = z.object({
@@ -13,7 +15,9 @@ export const EventDataSchema = z.object({
   imageURL: z.string().nullable(),
   maxAttendees: z.number().int().nullable(),
   telephoneRequired: z.boolean(),
-  status: EventStatusSchema,
+  // Migrate legacy `draft` → `published` on read; genuinely invalid values
+  // still fail enum validation (preprocess only rewrites the dropped value).
+  status: z.preprocess((v) => (v === 'draft' ? 'published' : v), EventStatusSchema),
   organizationId: z.string(),
   organizationName: z.string(),
   createdBy: z.string(),
@@ -60,7 +64,7 @@ export function buildEventData(input: EventDataInput): EventData {
     imageURL: input.imageURL ?? null,
     maxAttendees: input.maxAttendees ?? null,
     telephoneRequired: input.telephoneRequired ?? false,
-    status: input.status ?? 'draft',
+    status: input.status ?? 'published',
     organizationId: input.organizationId,
     organizationName: input.organizationName,
     createdBy: input.createdBy,

@@ -1,11 +1,15 @@
 import {
+  doc,
+  getDoc,
   getDocs,
+  updateDoc,
   deleteDoc,
   query,
   orderBy,
   where,
   collectionGroup,
   getCountFromServer,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { getDb, getFirebaseFunctions } from '../firebase';
@@ -22,6 +26,10 @@ import type {
 export interface RegisterInput {
   personId: string;
   name: string;
+  /** Collected when the event has `telephoneRequired`; stored in the
+   * organizer-only registrationContacts subcollection, never on the public
+   * registration doc. */
+  phone?: string;
 }
 
 export interface RegistrationSummary {
@@ -93,6 +101,52 @@ export async function registerToEvent(
 
 export async function cancelRegistration(eventId: string, regId: string): Promise<void> {
   await deleteDoc(eventRegistrationDoc(getDb(), eventId, regId));
+}
+
+// Organizer toggles attendance. updateDoc bypasses the converter, so the
+// serverTimestamp() sentinel is fine. Gated by firestore.rules (event organizer).
+export async function setRegistrationCheckIn(
+  eventId: string,
+  regId: string,
+  checkedIn: boolean,
+): Promise<void> {
+  // Converter-less ref: updateDoc on the typed (converter-wrapped) ref rejects
+  // the serverTimestamp()/null union. The raw path write is fine here.
+  await updateDoc(doc(getDb(), 'events', eventId, 'registrations', regId), {
+    checkedInAt: checkedIn ? serverTimestamp() : null,
+  });
+}
+
+interface AddWalkInCallableData {
+  eventId: string;
+  name: string;
+  phone?: string;
+}
+interface AddWalkInCallableResult {
+  registration: RegistrationSummary;
+}
+
+// Organizer adds an attendee who isn't a registered user (walk-in). Goes
+// through a callable so the same capacity/waitlist logic and counter updates
+// apply; the registration carries an empty userId/personId.
+export async function addWalkInRegistration(
+  eventId: string,
+  name: string,
+  phone?: string,
+): Promise<RegistrationSummary> {
+  const callable = httpsCallable<AddWalkInCallableData, AddWalkInCallableResult>(
+    getFirebaseFunctions(),
+    'addWalkInRegistration',
+  );
+  const res = await callable({ eventId, name, phone });
+  return res.data.registration;
+}
+
+// Organizer-only read of a registrant's phone (the registration doc itself is
+// public, so the phone lives in a separately-gated subcollection).
+export async function getRegistrationPhone(eventId: string, regId: string): Promise<string | null> {
+  const snap = await getDoc(doc(getDb(), 'events', eventId, 'registrationContacts', regId));
+  return snap.exists() ? ((snap.data() as { phone?: string }).phone ?? null) : null;
 }
 
 export async function getUserRegistrationsAcrossEvents(

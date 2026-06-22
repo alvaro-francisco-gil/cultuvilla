@@ -3,6 +3,7 @@ import { HttpsError } from 'firebase-functions/v2/https';
 export interface RegistrantInput {
   personId: string;
   name: string;
+  phone?: string;
 }
 
 export interface RegisterToEventData {
@@ -45,7 +46,8 @@ export function validateRegisterInput(data: RegisterToEventData | undefined): Va
     if (typeof reg.name !== 'string' || !reg.name.trim()) {
       throw new HttpsError('invalid-argument', 'name requerido en cada asistente.');
     }
-    cleaned.push({ personId: reg.personId, name: reg.name.trim() });
+    const phone = typeof reg.phone === 'string' && reg.phone.trim() ? reg.phone.trim() : undefined;
+    cleaned.push({ personId: reg.personId, name: reg.name.trim(), ...(phone ? { phone } : {}) });
   }
   return { eventId: data.eventId, registrants: cleaned };
 }

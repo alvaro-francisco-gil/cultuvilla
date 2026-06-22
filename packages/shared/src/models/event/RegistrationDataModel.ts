@@ -16,6 +16,9 @@ export const RegistrationDataSchema = z.object({
   // lookup. Optional because pre-callable registrations may lack the field;
   // treat missing as `false` and rely on a backfill to converge.
   isMember: z.boolean().optional(),
+  // Set by an organizer when the attendee is checked in. `null` until then.
+  // `.default(null)` keeps pre-check-in docs readable through the converter.
+  checkedInAt: z.date().nullable().default(null),
 });
 export type RegistrationData = z.infer<typeof RegistrationDataSchema>;
 
@@ -27,8 +30,13 @@ export interface RegistrationDataInput {
   position: number;
   registeredAt?: Date;
   isMember?: boolean;
+  checkedInAt?: Date | null;
 }
 
 export function buildRegistrationData(input: RegistrationDataInput): RegistrationData {
-  return { ...input, registeredAt: input.registeredAt ?? new Date() };
+  return {
+    ...input,
+    registeredAt: input.registeredAt ?? new Date(),
+    checkedInAt: input.checkedInAt ?? null,
+  };
 }

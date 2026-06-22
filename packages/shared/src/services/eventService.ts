@@ -76,7 +76,7 @@ export async function createEvent(input: EventDataInput): Promise<string> {
     imageURL: input.imageURL ?? null,
     maxAttendees: input.maxAttendees ?? null,
     telephoneRequired: input.telephoneRequired ?? false,
-    status: input.status ?? 'draft',
+    status: input.status ?? 'published',
     organizationId: input.organizationId,
     organizationName: input.organizationName,
     createdBy: input.createdBy,
