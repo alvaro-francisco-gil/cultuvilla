@@ -39,7 +39,7 @@ export function ProfileHeader({
         ) : null}
       </View>
       <VStack gap={0} className="flex-1">
-        <ScreenTitle>{displayName}</ScreenTitle>
+        <ScreenTitle variant="h2">{displayName}</ScreenTitle>
         {subtitle ? (
           <Text tone="muted" variant="bodySm" numberOfLines={1}>
             {subtitle}

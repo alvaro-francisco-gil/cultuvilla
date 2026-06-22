@@ -7,10 +7,10 @@ import { Text, type TextProps } from './Text';
  * `adjustsFontSizeToFit`; on web (RN-Web doesn't support it) it degrades to a
  * single line with an ellipsis.
  */
-export function ScreenTitle({ className = '', ...rest }: Omit<TextProps, 'variant'>) {
+export function ScreenTitle({ variant = 'h1', className = '', ...rest }: TextProps) {
   return (
     <Text
-      variant="h1"
+      variant={variant}
       numberOfLines={1}
       adjustsFontSizeToFit
       minimumFontScale={0.6}
