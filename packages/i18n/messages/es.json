@@ -12,7 +12,8 @@
     "back": "Volver",
     "search": "Buscar",
     "noResults": "Sin resultados",
-    "notFound": "No encontrado"
+    "notFound": "No encontrado",
+    "stepper": { "back": "Atrás", "next": "Siguiente" }
   },
   "auth": {
     "signIn": "Iniciar sesión",
@@ -402,6 +403,9 @@
     "imageLabel": "Imagen",
     "addImage": "Añadir imagen",
     "changeImage": "Cambiar imagen",
+    "stepBasics": "Lo básico",
+    "stepWhen": "Cuándo y dónde",
+    "stepDetails": "Detalles",
     "eligibility": {
       "body": "Para crear un evento necesitas pertenecer a una organización de este pueblo.",
       "requestOrganizer": "Solicitar organizar este pueblo",
@@ -481,7 +485,10 @@
     "personForm": {
       "village": "Pueblo",
       "barrio": "Barrio",
-      "wholeVillage": "Todo el pueblo"
+      "wholeVillage": "Todo el pueblo",
+      "stepIdentity": "Identidad",
+      "stepResidence": "Origen y residencia",
+      "stepAbout": "Sobre ti"
     },
     "personDetailTitle": "Persona",
     "personEdit": "Editar",
