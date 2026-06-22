@@ -10,7 +10,7 @@ import {
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import { Screen, VStack, Text, Input, Button, DateField } from '../../components/primitives';
+import { Screen, Text, Input, Button, DateField } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
@@ -25,6 +25,7 @@ import { createEvent, updateEvent } from '@cultuvilla/shared/services/eventServi
 import { uploadEventImage } from '@cultuvilla/shared/services/imageService';
 import { buildLocationData } from '@cultuvilla/shared/models/core/LocationDataModel';
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
+import { Stepper, type StepConfig } from '../../components/feature/Stepper';
 
 type MemberOrg = { id: string; name: string };
 type PickedImage = { uri: string; blob: Blob };
@@ -41,6 +42,18 @@ async function pickImage(): Promise<PickedImage | null> {
   const response = await fetch(asset.uri);
   const blob = await response.blob();
   return { uri: asset.uri, blob };
+}
+
+function stepBody(children: React.ReactNode, insets: { bottom: number }) {
+  return (
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: insets.bottom + 16 }}
+      keyboardShouldPersistTaps="handled"
+    >
+      {children}
+    </ScrollView>
+  );
 }
 
 export default function NewEventScreen() {
@@ -110,9 +123,6 @@ export default function NewEventScreen() {
   }, [municipalityId, user]);
 
   const selectedOrg = memberOrgs.find((o) => o.id === selectedOrgId) ?? null;
-  const canSubmit =
-    !!municipalityId && !!user && title.trim().length > 0 &&
-    description.trim().length > 0 && !!startDate;
 
   const { fire: submit, isPending } = useCallable({
     callable: async () => {
@@ -186,45 +196,18 @@ export default function NewEventScreen() {
   }
 
   // ── Create form ───────────────────────────────────────────────────────────
-  // bottomInset={false}: the ScrollView below applies insets.bottom itself.
-  return (
-    <Screen padded={false} bottomInset={false}>
-      <ScreenHeader title={t('event.createEvent')} />
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: insets.bottom + 80 }}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text tone="muted">{t('event.organizationLabel')}</Text>
-          <VStack gap={2}>
-            <Button
-              variant={selectedOrgId === null ? 'primary' : 'secondary'}
-              onPress={() => setSelectedOrgId(null)}
-            >
-              {t('event.noOrganization')}
-            </Button>
-            {memberOrgs.map((o) => (
-              <Button
-                key={o.id}
-                variant={selectedOrgId === o.id ? 'primary' : 'secondary'}
-                onPress={() => setSelectedOrgId(o.id)}
-              >
-                {o.name}
-              </Button>
-            ))}
-          </VStack>
-          {memberOrgs.length === 0 && (
-            <Button
-              variant="secondary"
-              onPress={() => router.push(`/discover/organize/${municipalityId}` as never)}
-            >
-              {t('event.eligibility.requestOrganizer')}
-            </Button>
-          )}
+  const steps: StepConfig[] = [
+    {
+      key: 'basics',
+      title: t('event.stepBasics'),
+      validate: () => {
+        const e: string[] = [];
+        if (!title.trim()) e.push('title');
+        if (!description.trim()) e.push('description');
+        return e;
+      },
+      render: () => stepBody(
+        <>
           <Input label={t('event.title')} value={title} onChangeText={setTitle} />
           <Input
             label={t('event.description')}
@@ -233,6 +216,33 @@ export default function NewEventScreen() {
             multiline
             numberOfLines={5}
           />
+          <Text tone="muted">{t('event.imageLabel')}</Text>
+          {cover && (
+            <Image
+              source={{ uri: cover.uri }}
+              style={{ width: '100%', height: 160, borderRadius: 8 }}
+              accessibilityIgnoresInvertColors
+            />
+          )}
+          <Button
+            variant="secondary"
+            onPress={async () => {
+              const n = await pickImage();
+              if (n) setCover(n);
+            }}
+          >
+            {cover ? t('event.changeImage') : t('event.addImage')}
+          </Button>
+        </>,
+        insets,
+      ),
+    },
+    {
+      key: 'when',
+      title: t('event.stepWhen'),
+      validate: () => (startDate ? [] : ['startDate']),
+      render: () => stepBody(
+        <>
           <DateField
             label={t('event.startDate')}
             value={startDate}
@@ -246,6 +256,39 @@ export default function NewEventScreen() {
             testID="endDate"
           />
           <Input label={t('event.location')} value={locationText} onChangeText={setLocationText} />
+        </>,
+        insets,
+      ),
+    },
+    {
+      key: 'details',
+      title: t('event.stepDetails'),
+      render: () => stepBody(
+        <>
+          <Text tone="muted">{t('event.organizationLabel')}</Text>
+          <Button
+            variant={selectedOrgId === null ? 'primary' : 'secondary'}
+            onPress={() => setSelectedOrgId(null)}
+          >
+            {t('event.noOrganization')}
+          </Button>
+          {memberOrgs.map((o) => (
+            <Button
+              key={o.id}
+              variant={selectedOrgId === o.id ? 'primary' : 'secondary'}
+              onPress={() => setSelectedOrgId(o.id)}
+            >
+              {o.name}
+            </Button>
+          ))}
+          {memberOrgs.length === 0 && (
+            <Button
+              variant="secondary"
+              onPress={() => router.push(`/discover/organize/${municipalityId}` as never)}
+            >
+              {t('event.eligibility.requestOrganizer')}
+            </Button>
+          )}
           <Input
             label={t('event.maxAttendees')}
             value={maxAttendees}
@@ -258,32 +301,18 @@ export default function NewEventScreen() {
           >
             {t('event.telephoneRequired')}
           </Button>
-          <Text tone="muted">{t('event.imageLabel')}</Text>
-          {cover && (
-            <Image
-              source={{ uri: cover.uri }}
-              style={{ width: '100%', height: 160, borderRadius: 8 }}
-              accessibilityIgnoresInvertColors
-            />
-          )}
-          <Button
-            variant="secondary"
-            onPress={async () => {
-              const next = await pickImage();
-              if (next) setCover(next);
-            }}
-          >
-            {cover ? t('event.changeImage') : t('event.addImage')}
-          </Button>
-          <Button
-            onPress={() => void submit()}
-            loading={isPending}
-            disabled={!canSubmit}
-            fullWidth
-          >
-            {t('event.createEvent')}
-          </Button>
-        </ScrollView>
+        </>,
+        insets,
+      ),
+    },
+  ];
+
+  // bottomInset={false}: the ScrollView inside each step applies insets.bottom itself.
+  return (
+    <Screen padded={false} bottomInset={false}>
+      <ScreenHeader title={t('event.createEvent')} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <Stepper steps={steps} onComplete={() => void submit()} submitLabel={t('event.createEvent')} loading={isPending} />
       </KeyboardAvoidingView>
     </Screen>
   );
