@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, FlatList, Pressable, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Platform, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import { AppHeader } from '../../../components/layout/AppHeader';
@@ -55,18 +55,34 @@ export default function VillageHome() {
   }, [user, villageId]);
   const canManage = isAppAdmin || villageAdmin;
 
-  const onJoin = async () => {
+  const onJoin = () => {
     if (!user || !villageId) {
       router.push('/(auth)/login' as never);
       return;
     }
-    setJoining(true);
-    try {
-      await addVillageMember(villageId as string, user.uid);
-      setIsMember(true);
-    } finally {
-      setJoining(false);
+    const title = t('village.joinConfirm.title');
+    const body = t('village.joinConfirm.body');
+    const doJoin = async () => {
+      setJoining(true);
+      try {
+        await addVillageMember(villageId as string, user.uid);
+        setIsMember(true);
+      } finally {
+        setJoining(false);
+      }
+    };
+    // react-native-web 0.21 ships Alert.alert as a no-op, so fall back to
+    // window.confirm on web (title + body in one prompt).
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(`${title}\n\n${body}`)) {
+        void doJoin();
+      }
+      return;
     }
+    Alert.alert(title, body, [
+      { text: t('village.joinConfirm.cancel'), style: 'cancel' },
+      { text: t('village.joinConfirm.confirm'), onPress: () => void doJoin() },
+    ]);
   };
 
   const headerSlot = (

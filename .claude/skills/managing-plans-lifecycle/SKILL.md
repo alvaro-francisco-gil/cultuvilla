@@ -1,6 +1,6 @@
 ---
 name: managing-plans-lifecycle
-description: Use when creating a new design/plan, promoting a plan between stages (ideas → ready → ongoing → retired), starting or resuming an `ongoing` plan, retiring a finished plan to `docs/decisions/`, or surveying what plans are in flight. Defines the `docs/plans/{ideas,ready,ongoing}/` lifecycle convention; per-repo policy on what plans live where is encoded in `AGENTS.md`.
+description: Use when creating a new design/plan, promoting a plan between stages (ideas → ready → ongoing → retired), starting or resuming an `ongoing` plan, retiring a finished plan to `docs/decisions/`, or surveying what plans are in flight. ALSO invoke this whenever `superpowers:brainstorming` or `superpowers:writing-plans` runs — those skills hardcode `docs/superpowers/specs|plans/` with date-prefixed filenames, which this repo does NOT use; this skill redirects their output to `docs/plans/ideas/` with the date prefix stripped. Defines the `docs/plans/{ideas,ready,ongoing}/` lifecycle convention; per-repo policy on what plans live where is encoded in `AGENTS.md`.
 ---
 
 # Managing the plans lifecycle

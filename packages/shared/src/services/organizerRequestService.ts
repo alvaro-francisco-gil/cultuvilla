@@ -38,9 +38,8 @@ export async function getMyOrganizerRequests(
 
 interface RequestOrgPayload {
   municipalityId: string;
-  // Village data carried by the request; copied to community.* on approval.
-  description: string;
-  coverImages?: string[];
+  // Activation is decoupled from organizing — the village is already started, so
+  // the request only carries why the user wants to organize it.
   motivation?: string | null;
 }
 

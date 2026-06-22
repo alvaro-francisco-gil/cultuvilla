@@ -14,7 +14,8 @@ import {
   type UpdateData,
   type DocumentData,
 } from 'firebase/firestore';
-import { getDb } from '../firebase';
+import { httpsCallable } from 'firebase/functions';
+import { getDb, getFirebaseFunctions } from '../firebase';
 import {
   municipalitiesCollection,
   municipalityDoc,
@@ -146,10 +147,43 @@ export async function deleteMunicipality(id: string): Promise<void> {
 
 // ── Community lifecycle ──────────────────────────────────────────────────
 //
-// Communities are *created* server-side by the respondToOrganizerRequest
-// Cloud Function (it owns the trust-sensitive role grant + activation), so
-// there is no client-side `activateCommunity`. The functions below only edit
-// or tear down an already-active community.
+// A dormant municipality's community is *activated* by the `startVillage`
+// callable (any villager — adminUserId starts null). Basic info is edited via
+// the `updateVillageInfo` callable, which enforces the wiki-phase rule
+// server-side. The organizer role is granted separately by
+// respondToOrganizerRequest. The direct-write helpers below only apply once the
+// caller is a village admin (the admin community-edit screen).
+
+interface StartVillagePayload {
+  municipalityId: string;
+  description?: string;
+  coverImages?: string[];
+}
+
+/** Activate a dormant municipality's community and join it as the first member. */
+export async function startVillage(payload: StartVillagePayload): Promise<void> {
+  const fn = httpsCallable<StartVillagePayload, { ok: true }>(
+    getFirebaseFunctions(),
+    'startVillage',
+  );
+  await fn(payload);
+}
+
+interface UpdateVillageInfoPayload {
+  municipalityId: string;
+  description?: string;
+  coverImages?: string[];
+}
+
+/** Edit a village's basic info. Allowed for any member during the wiki phase
+ *  (no organizer yet), and for admins afterwards — enforced server-side. */
+export async function updateVillageInfo(payload: UpdateVillageInfoPayload): Promise<void> {
+  const fn = httpsCallable<UpdateVillageInfoPayload, { ok: true }>(
+    getFirebaseFunctions(),
+    'updateVillageInfo',
+  );
+  await fn(payload);
+}
 
 export async function updateCommunity(
   municipalityId: string,

@@ -18,26 +18,42 @@ async function seedMunicipality(opts: {
   adminUserId?: string | null;
 }): Promise<void> {
   const now = new Date();
-  await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}`).set({
-    name: 'Villarriba',
-    nameLower: 'villarriba',
-    province: 'Madrid',
-    comunidadAutonoma: 'Madrid',
-    codigoINE: '28000',
-    coordinates: null,
-    createdAt: now,
-    escudoUrl: null,
-    escudoThumbUrl: null,
-    communityActive: opts.communityActive,
-    community: opts.adminUserId
-      ? {
-          adminUserId: opts.adminUserId,
-          description: '',
-          coverImages: [],
-          profileForm: null,
-          activatedAt: now,
-        }
-      : null,
+  await admin
+    .firestore()
+    .doc(`municipalities/${MUNICIPALITY_ID}`)
+    .set({
+      name: 'Villarriba',
+      nameLower: 'villarriba',
+      province: 'Madrid',
+      comunidadAutonoma: 'Madrid',
+      codigoINE: '28000',
+      coordinates: null,
+      createdAt: now,
+      escudoUrl: null,
+      escudoThumbUrl: null,
+      communityActive: opts.communityActive,
+      // An active community always has a community object; adminUserId may be
+      // null (started, no organizer yet).
+      community: opts.communityActive
+        ? {
+            adminUserId: opts.adminUserId ?? null,
+            description: 'Mi pueblo',
+            coverImages: [],
+            profileForm: null,
+            activatedAt: now,
+          }
+        : null,
+    });
+}
+
+async function seedMember(uid: string, role: 'user' | 'admin'): Promise<void> {
+  await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}/members/${uid}`).set({
+    userId: uid,
+    role,
+    joinedAt: new Date(),
+    profileAnswers: {},
+    profileCompletedAt: null,
+    trustedNewsAuthor: false,
   });
 }
 
@@ -133,9 +149,9 @@ describe('respondToOrganizerRequest (callable)', () => {
     ).rejects.toThrow(/ya fue resuelta|failed-precondition/i);
   });
 
-  it('throws failed-precondition when approving but communityActive is already true', async () => {
+  it('throws failed-precondition when approving but the village is not started', async () => {
     await seedAppAdmin(APP_ADMIN_ID);
-    await seedMunicipality({ communityActive: true, adminUserId: 'someone' });
+    await seedMunicipality({ communityActive: false });
     const requestId = await seedOrganizerRequest({
       userId: REQUESTER_ID,
       municipalityId: MUNICIPALITY_ID,
@@ -143,18 +159,30 @@ describe('respondToOrganizerRequest (callable)', () => {
     });
     await expect(
       callRespond({ uid: APP_ADMIN_ID, data: { requestId, decision: 'approved' } }),
-    ).rejects.toThrow(/ya está activa|failed-precondition/i);
+    ).rejects.toThrow(/iniciado|failed-precondition/i);
   });
 
-  it('approves: flips communityActive, populates community from request, creates admin member, notifies requester', async () => {
+  it('throws already-exists when approving but the village already has an organizer', async () => {
     await seedAppAdmin(APP_ADMIN_ID);
-    await seedMunicipality({ communityActive: false });
+    await seedMunicipality({ communityActive: true, adminUserId: 'someone-else' });
     const requestId = await seedOrganizerRequest({
       userId: REQUESTER_ID,
       municipalityId: MUNICIPALITY_ID,
       status: 'pending',
-      description: 'Un pueblo con mucha vida',
-      coverImages: ['https://example.com/cover.jpg'],
+    });
+    await expect(
+      callRespond({ uid: APP_ADMIN_ID, data: { requestId, decision: 'approved' } }),
+    ).rejects.toThrow(/ya tiene organizador|already-exists/i);
+  });
+
+  it('approves: sets the organizer on the active community and promotes the existing member to admin', async () => {
+    await seedAppAdmin(APP_ADMIN_ID);
+    await seedMunicipality({ communityActive: true, adminUserId: null });
+    await seedMember(REQUESTER_ID, 'user'); // already joined/started the village
+    const requestId = await seedOrganizerRequest({
+      userId: REQUESTER_ID,
+      municipalityId: MUNICIPALITY_ID,
+      status: 'pending',
     });
 
     const result = await callRespond({
@@ -170,8 +198,8 @@ describe('respondToOrganizerRequest (callable)', () => {
     const muniDoc = await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}`).get();
     expect(muniDoc.data()?.communityActive).toBe(true);
     expect(muniDoc.data()?.community?.adminUserId).toBe(REQUESTER_ID);
-    expect(muniDoc.data()?.community?.description).toBe('Un pueblo con mucha vida');
-    expect(muniDoc.data()?.community?.coverImages).toEqual(['https://example.com/cover.jpg']);
+    // Existing community info is preserved (not overwritten by the grant).
+    expect(muniDoc.data()?.community?.description).toBe('Mi pueblo');
 
     const memberDoc = await admin
       .firestore()
@@ -186,6 +214,25 @@ describe('respondToOrganizerRequest (callable)', () => {
       .get();
     expect(notifs.size).toBeGreaterThanOrEqual(1);
     expect(notifs.docs[0].data().type).toBe('organizer_request_approved');
+  });
+
+  it('approves: creates an admin member when the requester was not yet a member', async () => {
+    await seedAppAdmin(APP_ADMIN_ID);
+    await seedMunicipality({ communityActive: true, adminUserId: null });
+    const requestId = await seedOrganizerRequest({
+      userId: REQUESTER_ID,
+      municipalityId: MUNICIPALITY_ID,
+      status: 'pending',
+    });
+
+    await callRespond({ uid: APP_ADMIN_ID, data: { requestId, decision: 'approved' } });
+
+    const memberDoc = await admin
+      .firestore()
+      .doc(`municipalities/${MUNICIPALITY_ID}/members/${REQUESTER_ID}`)
+      .get();
+    expect(memberDoc.exists).toBe(true);
+    expect(memberDoc.data()?.role).toBe('admin');
   });
 
   it('rejects: sets status to rejected, leaves municipality untouched, notifies requester', async () => {

@@ -7,7 +7,6 @@ import { barrioConverterAdmin } from '../converters/barrioConverter.admin';
 import { placeConverterAdmin } from '../converters/placeConverter.admin';
 import { villageMemberConverterAdmin } from '../converters/villageMemberConverter.admin';
 import { inviteTokenConverterAdmin } from '../converters/inviteTokenConverter.admin';
-import { joinRequestConverterAdmin } from '../converters/joinRequestConverter.admin';
 import { organizationConverterAdmin } from '../converters/organizationConverter.admin';
 import { orgMemberConverterAdmin } from '../converters/orgMemberConverter.admin';
 import { organizerRequestConverterAdmin } from '../converters/organizerRequestConverter.admin';
@@ -65,12 +64,6 @@ export const municipalityInviteTokensCollection = (db: Firestore, municipalityId
 
 export const municipalityInviteTokenDoc = (db: Firestore, municipalityId: string, tokenId: string) =>
   db.collection('municipalities').doc(municipalityId).collection('inviteTokens').doc(tokenId).withConverter(inviteTokenConverterAdmin);
-
-export const municipalityJoinRequestsCollection = (db: Firestore, municipalityId: string) =>
-  db.collection('municipalities').doc(municipalityId).collection('joinRequests').withConverter(joinRequestConverterAdmin);
-
-export const municipalityJoinRequestDoc = (db: Firestore, municipalityId: string, requestId: string) =>
-  db.collection('municipalities').doc(municipalityId).collection('joinRequests').doc(requestId).withConverter(joinRequestConverterAdmin);
 
 // ── Organization domain ──────────────────────────────────────────────────
 

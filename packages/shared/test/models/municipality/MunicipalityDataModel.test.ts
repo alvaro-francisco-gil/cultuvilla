@@ -140,6 +140,25 @@ describe('buildVillageCommunity', () => {
     expect(c.profileForm).toBeNull();
     expect(() => VillageCommunitySchema.parse(c)).not.toThrow();
   });
+
+  // A village "started" by a villager has no organizer yet — adminUserId is null.
+  it('defaults adminUserId to null when omitted (no organizer yet)', () => {
+    const c = buildVillageCommunity({ description: 'p' });
+    expect(c.adminUserId).toBeNull();
+    expect(() => VillageCommunitySchema.parse(c)).not.toThrow();
+  });
+
+  it('VillageCommunitySchema accepts a null adminUserId', () => {
+    expect(() =>
+      VillageCommunitySchema.parse({
+        description: '',
+        coverImages: [],
+        adminUserId: null,
+        profileForm: null,
+        activatedAt: new Date(),
+      }),
+    ).not.toThrow();
+  });
 });
 
 describe('BarrioDataSchema and buildBarrioData', () => {

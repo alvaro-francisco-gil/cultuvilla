@@ -7,7 +7,6 @@ import { barrioConverterClient } from '../converters/barrioConverter.client';
 import { placeConverterClient } from '../converters/placeConverter.client';
 import { villageMemberConverterClient } from '../converters/villageMemberConverter.client';
 import { inviteTokenConverterClient } from '../converters/inviteTokenConverter.client';
-import { joinRequestConverterClient } from '../converters/joinRequestConverter.client';
 import { organizationConverterClient } from '../converters/organizationConverter.client';
 import { orgMemberConverterClient } from '../converters/orgMemberConverter.client';
 import { organizerRequestConverterClient } from '../converters/organizerRequestConverter.client';
@@ -65,12 +64,6 @@ export const municipalityInviteTokensCollection = (db: Firestore, municipalityId
 
 export const municipalityInviteTokenDoc = (db: Firestore, municipalityId: string, tokenId: string) =>
   doc(db, 'municipalities', municipalityId, 'inviteTokens', tokenId).withConverter(inviteTokenConverterClient);
-
-export const municipalityJoinRequestsCollection = (db: Firestore, municipalityId: string) =>
-  collection(db, 'municipalities', municipalityId, 'joinRequests').withConverter(joinRequestConverterClient);
-
-export const municipalityJoinRequestDoc = (db: Firestore, municipalityId: string, requestId: string) =>
-  doc(db, 'municipalities', municipalityId, 'joinRequests', requestId).withConverter(joinRequestConverterClient);
 
 // ── Organization domain ──────────────────────────────────────────────────
 

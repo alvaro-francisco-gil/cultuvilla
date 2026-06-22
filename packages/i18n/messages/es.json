@@ -176,6 +176,12 @@
     "join": "Unirme a este pueblo",
     "signInToJoin": "Inicia sesión para unirte",
     "invitedBanner": "Te han invitado a unirte a este pueblo",
+    "joinConfirm": {
+      "title": "Unirte a este pueblo",
+      "body": "Unirte significa que consideras este tu pueblo. No verifica que vivas aquí.",
+      "confirm": "Unirme",
+      "cancel": "Cancelar"
+    },
     "share": { "title": "Compartir pueblo" },
     "invite": { "title": "Invitar vecino" },
     "events": {
@@ -187,7 +193,7 @@
       "empty": "No hay eventos próximos"
     },
     "info": {
-      "title": "Información del pueblo"
+      "title": "Información sobre el pueblo"
     },
     "organizations": "Organizaciones",
     "members": "Miembros",
@@ -200,8 +206,7 @@
         "organizations": "Organizaciones",
         "invites": "Invitaciones",
         "censo": "Censo",
-        "community": "Comunidad",
-        "joinRequests": "Solicitudes de unión"
+        "community": "Comunidad"
       },
       "barrios": {
         "title": "Barrios",
@@ -262,7 +267,6 @@
         "edit": "Editar",
         "noDescription": "Añade una descripción de tu pueblo",
         "people": "Personas",
-        "requestBadge": "Solicita unirse",
         "noPeople": "Aún no hay vecinos",
         "organizationsEmpty": "Aún no hay organizaciones"
       }
@@ -277,10 +281,14 @@
       "manual": "Escudo subido por el pueblo"
     },
     "notRegistered": {
-      "body": "Este pueblo aún no está registrado en Cultuvilla. Para que forme parte necesitamos un administrador que active la comunidad y gestione sus eventos, organizaciones y vecinos.",
-      "cta": "¿Te gustaría serlo?",
-      "button": "Quiero ser administrador",
-      "pending": "Tu solicitud está pendiente de revisión"
+      "body": "Este pueblo todavía no está activo en Cultuvilla. Puedes iniciarlo: se activará para que cualquiera pueda unirse y tú serás su primer vecino.",
+      "cta": "¿Quieres iniciarlo?",
+      "button": "Iniciar este pueblo"
+    },
+    "noOrganizer": {
+      "body": "Este pueblo todavía no tiene organizador.",
+      "cta": "Organizar este pueblo",
+      "pending": "Tu solicitud de organizador está pendiente de revisión"
     },
     "hub": {
       "events": "Eventos",
@@ -403,6 +411,11 @@
     "villagesSection": {
       "join": "Unirse a otro pueblo"
     },
+    "managedEventsSection": {
+      "title": "Eventos gestionados",
+      "empty": "Aún no gestionas ningún evento",
+      "ongoing": "En curso"
+    },
     "born": "Nacido en {place}",
     "bornYear": "{year}",
     "personDetailTitle": "Persona",
@@ -449,26 +462,9 @@
     "search": "Busca tu pueblo",
     "empty": "No hay pueblos activos todavía",
     "notSeeing": "¿No ves tu pueblo? Cargar todos",
-    "requestJoin": "Solicitar acceso",
-    "requestOrganizer": "Quiero organizar este pueblo",
-    "inactive": "Sin comunidad activa",
-    "noOrganizerTitle": "Este pueblo no tiene organizador",
-    "noOrganizerBody": "¿Quieres solicitar ser el organizador de {name}?",
-    "noOrganizerConfirm": "Solicitar",
-    "cancel": "Cancelar"
+    "inactive": "Sin comunidad activa"
   },
   "requests": {
-    "status": {
-      "pending": "Pendiente",
-      "approved": "Aprobada",
-      "rejected": "Rechazada"
-    },
-    "join": {
-      "title": "Solicitar acceso",
-      "messageLabel": "Mensaje al administrador (opcional)",
-      "submit": "Enviar solicitud",
-      "submitted": "Solicitud enviada"
-    },
     "organizer": {
       "title": "Solicitar ser organizador",
       "descriptionLabel": "Descripción del pueblo",
@@ -478,13 +474,29 @@
       "motivationLabel": "¿Por qué quieres organizar este pueblo?",
       "submit": "Enviar solicitud",
       "submitted": "Solicitud enviada"
-    },
-    "admin": {
-      "title": "Solicitudes pendientes",
-      "empty": "No hay solicitudes pendientes",
-      "approve": "Aprobar",
-      "reject": "Rechazar"
     }
+  },
+  "start": {
+    "title": "Iniciar este pueblo",
+    "explainer": "Iniciar el pueblo lo activa para que cualquier vecino pueda unirse. Serás su primer miembro y podrás añadir su información. No te convierte en organizador.",
+    "descriptionLabel": "Descripción del pueblo (opcional)",
+    "descriptionPlaceholder": "Cuenta algo sobre tu pueblo…",
+    "coversLabel": "Imágenes de portada (opcional)",
+    "addCover": "Añadir imagen",
+    "organizeToggle": "Quiero organizar este pueblo",
+    "organizeHint": "Enviaremos una solicitud para que te concedan el rol de organizador (requiere aprobación).",
+    "submit": "Iniciar pueblo"
+  },
+  "organize": {
+    "title": "Organizar este pueblo",
+    "explainer": "El organizador gestiona el censo, modera las noticias, administra lugares y agrupaciones, y edita o cancela eventos del pueblo. La solicitud requiere aprobación.",
+    "submit": "Enviar solicitud"
+  },
+  "editInfo": {
+    "title": "Editar información",
+    "imagesLabel": "Imágenes",
+    "addImage": "Añadir imagen",
+    "descriptionLabel": "Descripción"
   },
   "villageSwitcher": {
     "title": "Cambiar de pueblo",

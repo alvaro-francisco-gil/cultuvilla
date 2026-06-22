@@ -15,6 +15,7 @@ import { Text } from '../primitives/Text';
 // Width:height. Taller than 16:9 so the picture dominates the card.
 const ASPECT_RATIO = 4 / 3;
 const PLACEHOLDER_BG = '#dcab93'; // palette.peach
+const BADGE_BG = '#bb5d3a'; // palette.accent
 
 export type FeedCardProps = {
   imageUri: string | null;
@@ -24,6 +25,8 @@ export type FeedCardProps = {
   metaLeft: string;
   metaRight: string;
   fallbackIcon: keyof typeof Ionicons.glyphMap;
+  /** Optional pill shown over the top-left of the image (e.g. "En curso"). */
+  badge?: string | null;
   onPress: () => void;
   testID?: string;
 };
@@ -35,6 +38,7 @@ export function FeedCard({
   metaLeft,
   metaRight,
   fallbackIcon,
+  badge = null,
   onPress,
   testID,
 }: FeedCardProps) {
@@ -93,6 +97,24 @@ export function FeedCard({
               </Text>
             </View>
           </View>
+
+          {badge ? (
+            <View
+              style={{
+                position: 'absolute',
+                top: 8,
+                left: 8,
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+                borderRadius: 9999,
+                backgroundColor: BADGE_BG,
+              }}
+            >
+              <Text variant="bodySm" style={{ color: '#ffffff' }} numberOfLines={1}>
+                {badge}
+              </Text>
+            </View>
+          ) : null}
         </View>
       </View>
     </Pressable>

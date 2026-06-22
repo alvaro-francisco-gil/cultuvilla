@@ -15,7 +15,10 @@ import { VillageProfileFormSchema } from './CensoTypes';
 export const VillageCommunitySchema = z.object({
   description: z.string(),
   coverImages: z.array(z.string()),
-  adminUserId: z.string(),
+  /** The village organizer (founding admin). `null` while the community has been
+   * "started" by a villager but nobody has been granted the organizer role yet —
+   * during that window any member can edit the basic info (wiki phase). */
+  adminUserId: z.string().nullable(),
   profileForm: VillageProfileFormSchema.nullable(),
   activatedAt: z.date(),
 });
@@ -125,7 +128,7 @@ export function buildMunicipalityData(input: MunicipalityDataInput): Municipalit
 export interface ActivateCommunityInput {
   description: string;
   coverImages?: string[];
-  adminUserId: string;
+  adminUserId?: string | null;
   coordinates?: LatLng | null;
 }
 
@@ -133,7 +136,7 @@ export function buildVillageCommunity(input: ActivateCommunityInput): VillageCom
   return {
     description: input.description,
     coverImages: input.coverImages ?? [],
-    adminUserId: input.adminUserId,
+    adminUserId: input.adminUserId ?? null,
     profileForm: null,
     activatedAt: new Date(),
   };

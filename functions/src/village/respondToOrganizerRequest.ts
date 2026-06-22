@@ -9,7 +9,6 @@ import {
 } from '@cultuvilla/shared/firebase/refs/admin';
 import type { VillageMemberData } from '@cultuvilla/shared';
 import { notifyOrganizerRequestResolved } from '../helpers/notifyRequests';
-import { deleteVillageCoverImages } from '../helpers/villageCoverImages';
 
 const db = getFirestore();
 
@@ -47,7 +46,6 @@ export const respondToOrganizerRequest = onCall<
     let requesterUid = '';
     let municipalityId = '';
     let municipalityName = '';
-    let coverImagesToCleanup: string[] = [];
 
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(reqRef);
@@ -61,12 +59,22 @@ export const respondToOrganizerRequest = onCall<
       requesterUid = reqData.userId;
       municipalityId = reqData.municipalityId;
       const muniRef = municipalityDoc(db, municipalityId);
-      const muniSnap = await tx.get(muniRef);
+      const memberRef = municipalityMemberDoc(db, municipalityId, requesterUid);
+      // All reads before any write (transaction requirement).
+      const [muniSnap, memberSnap] = await Promise.all([tx.get(muniRef), tx.get(memberRef)]);
       if (!muniSnap.exists) throw new HttpsError('not-found', 'Pueblo no encontrado.');
       // Converter-wrapped: typed MunicipalityData.
       const muniData = muniSnap.data();
-      if (decision === 'approved' && muniData?.communityActive === true) {
-        throw new HttpsError('failed-precondition', 'La comunidad ya está activa.');
+      if (decision === 'approved') {
+        // Activation is decoupled: the village must already be started, and it
+        // must not already have an organizer. Granting just sets the organizer
+        // and promotes the requester to admin — it never creates the community.
+        if (muniData?.communityActive !== true) {
+          throw new HttpsError('failed-precondition', 'El pueblo aún no está iniciado.');
+        }
+        if (muniData.community?.adminUserId != null) {
+          throw new HttpsError('already-exists', 'Este pueblo ya tiene organizador.');
+        }
       }
       municipalityName = muniData?.name ?? municipalityId;
 
@@ -78,36 +86,26 @@ export const respondToOrganizerRequest = onCall<
       });
 
       if (decision === 'approved') {
-        tx.update(muniRef, {
-          communityActive: true,
-          community: {
-            description: reqData.description,
-            coverImages: reqData.coverImages,
-            adminUserId: requesterUid,
-            profileForm: null,
-            activatedAt: FieldValue.serverTimestamp(),
-          },
-        });
-        // Converter rejects FieldValue sentinels on set; joinedAt is a plain Date.
-        const newMember: VillageMemberData = {
-          userId: requesterUid,
-          role: 'admin',
-          joinedAt: new Date(),
-          profileAnswers: {},
-          profileCompletedAt: null,
-          trustedNewsAuthor: false,
-        };
-        tx.set(municipalityMemberDoc(db, municipalityId, requesterUid), newMember);
-      } else {
-        // Rejected: the uploaded cover images are now orphans — clean them up
-        // after the transaction commits.
-        coverImagesToCleanup = reqData.coverImages;
+        // Set the organizer on the existing community (dotted path preserves the
+        // description/coverImages/profileForm/activatedAt seeded at start time).
+        tx.update(muniRef, { 'community.adminUserId': requesterUid });
+        if (memberSnap.exists) {
+          // Already a member (joined or started the village) → promote to admin.
+          tx.update(memberRef, { role: 'admin' });
+        } else {
+          // Converter rejects FieldValue sentinels on set; joinedAt is a plain Date.
+          const newMember: VillageMemberData = {
+            userId: requesterUid,
+            role: 'admin',
+            joinedAt: new Date(),
+            profileAnswers: {},
+            profileCompletedAt: null,
+            trustedNewsAuthor: false,
+          };
+          tx.set(memberRef, newMember);
+        }
       }
     });
-
-    if (coverImagesToCleanup.length > 0) {
-      await deleteVillageCoverImages(coverImagesToCleanup);
-    }
 
     if (requesterUid && municipalityId) {
       await notifyOrganizerRequestResolved({
