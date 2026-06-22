@@ -6,6 +6,7 @@ import { Screen } from '../../components/primitives/Screen';
 import { VStack } from '../../components/primitives/VStack';
 import { HStack } from '../../components/primitives/HStack';
 import { Text } from '../../components/primitives/Text';
+import { Button } from '../../components/primitives/Button';
 import { Input } from '../../components/primitives/Input';
 import { LiveAvatar } from '../../components/feature/LiveAvatar';
 import { RegisterButton } from '../../components/feature/RegisterButton';
@@ -15,6 +16,7 @@ import { FloatingBackButton } from '../../components/feature/FloatingBackButton'
 import { FloatingShareButton } from '../../components/feature/FloatingShareButton';
 import { FloatingEditButton } from '../../components/feature/FloatingEditButton';
 import { useAuth } from '../../lib/auth/useAuth';
+import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { getEvent } from '@cultuvilla/shared/services/eventService';
 import { getEventLink } from '@cultuvilla/shared/services/deepLinkService';
@@ -31,6 +33,7 @@ type PersonDoc = PersonData & { id: string };
 export default function EventDetailScreen() {
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
   const { user } = useAuth();
+  const gate = useRegisterGate();
   const { t } = useT();
   const share = useShareDeepLink();
   const [event, setEvent] = useState<EventDoc | null>(null);
@@ -102,6 +105,15 @@ export default function EventDetailScreen() {
         <Text>{formatDate(event.startDate, 'long')}</Text>
         {event.description ? <Text>{event.description}</Text> : null}
 
+        {!user && (
+          <Button
+            variant="primary"
+            fullWidth
+            onPress={() => gate.requireAuth(`/event/${event.id}`, t('guest.event'))}
+          >
+            {t('guest.eventCta')}
+          </Button>
+        )}
         {person && !registered && event.telephoneRequired && (
           <Input
             value={phone}

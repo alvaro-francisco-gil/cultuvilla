@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Screen } from '../../components/primitives/Screen';
 import { Text } from '../../components/primitives/Text';
 import { VStack } from '../../components/primitives/VStack';
@@ -11,6 +11,7 @@ import { FloatingBackButton } from '../../components/feature/FloatingBackButton'
 import { FloatingShareButton } from '../../components/feature/FloatingShareButton';
 import { useT } from '../../lib/i18n';
 import { useAuth } from '../../lib/auth/useAuth';
+import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { getOrganization } from '@cultuvilla/shared/services/organizationService';
 import {
@@ -31,6 +32,7 @@ export default function OrgDetailScreen() {
   const arrivedViaInvite = intent === 'join';
   const { t } = useT();
   const { user } = useAuth();
+  const gate = useRegisterGate();
   const share = useShareDeepLink();
   const [org, setOrg] = useState<Org | null>(null);
   const [membersCount, setMembersCount] = useState<number | null>(null);
@@ -53,10 +55,11 @@ export default function OrgDetailScreen() {
   }, [refresh]);
 
   const onJoin = useCallback(async () => {
-    if (!user || !orgId) {
-      router.push('/(auth)/login' as never);
+    if (!user) {
+      gate.requireAuth(`/o/${orgId}`, t('guest.org'));
       return;
     }
+    if (!orgId) return;
     setJoining(true);
     try {
       await addOrgMember(orgId as string, user.uid);
@@ -64,7 +67,7 @@ export default function OrgDetailScreen() {
     } finally {
       setJoining(false);
     }
-  }, [user, orgId, refresh]);
+  }, [user, orgId, refresh, gate, t]);
 
   if (loading || !org) {
     return (
