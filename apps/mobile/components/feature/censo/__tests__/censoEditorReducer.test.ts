@@ -34,6 +34,38 @@ describe('censoEditorReducer', () => {
     const r = censoEditorReducer([cf()], { kind: 'reset', fields: [cf({ key: 'x', label: 'X' })] });
     expect(r.map((f) => f.key)).toEqual(['x']);
   });
+
+  it('changeType from non-choice to select yields empty options', () => {
+    const r = censoEditorReducer([cf({ type: 'text' })], { kind: 'changeType', index: 0, type: 'select' });
+    expect(r[0]).toMatchObject({ type: 'select', options: [] });
+    expect((r[0] as { optionsSource?: unknown }).optionsSource).toBeUndefined();
+  });
+
+  it('changeType between choice types preserves existing options', () => {
+    const r = censoEditorReducer([cf({ type: 'select', options: ['a', 'b'] })], { kind: 'changeType', index: 0, type: 'multiselect' });
+    expect(r[0]).toMatchObject({ type: 'multiselect', options: ['a', 'b'] });
+  });
+
+  it('changeType to a non-choice type drops options', () => {
+    const r = censoEditorReducer([cf({ type: 'select', options: ['a'] })], { kind: 'changeType', index: 0, type: 'number' });
+    expect((r[0] as { options?: unknown }).options).toBeUndefined();
+  });
+
+  it('addCustom of a non-choice type has no options property', () => {
+    const r = censoEditorReducer([], { kind: 'addCustom', type: 'text' });
+    expect('options' in r[0]).toBe(false);
+  });
+
+  it('addPredefined appends the predefined field', () => {
+    const r = censoEditorReducer([], { kind: 'addPredefined', key: 'barrio' });
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ source: 'predefined', key: 'barrio' });
+  });
+
+  it('addPredefined is a no-op when the key already exists', () => {
+    const r = censoEditorReducer([{ source: 'predefined', key: 'barrio', required: false }], { kind: 'addPredefined', key: 'barrio' });
+    expect(r).toHaveLength(1);
+  });
 });
 
 describe('uniqueKey', () => {
