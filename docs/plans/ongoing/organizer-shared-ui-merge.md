@@ -11,12 +11,14 @@
 ## Status
 
 - **Updated:** 2026-06-22
-- **Stage:** Phases 1–4 complete (Places/Barrios, Organizations, Census). Phase 5 (Community-header role-mode) is next; Phase 6+ (Events) needs the two open questions resolved first.
+- **Stage:** ALL 8 phases implemented on the branch. Not yet deployed to dev or merged. Rules for places/barrios + events still need `firestore-deploy` to dev; the two event callables (`addWalkInRegistration`, plus the extended `registerToEvent`) need a functions deploy.
+- **Final verification (all green):** shared unit 385, mobile 114, rules e2e 149, functions 81; shared/functions/mobile/i18n typecheck clean; `pnpm lint` clean.
+- **Events decisions (per user):** built everything at once — no v1/v2 defer. Phones live in an organizer-only `events/{id}/registrationContacts/{regId}` subcollection (written by callables, read-gated by `isEventOrganizer`). Walk-ins are organizer-created registrations with empty `userId`/`personId` via the `addWalkInRegistration` callable. `draft` status dropped (legacy coerces to `published` on read via `z.preprocess`).
 - **Phase 3 note:** `OrganizationsManager` added (villager proposes peña/asociación → pending; organizer auto-approves via `requestOrganization`+`approveOrganization`). Org rules forbid member edit/withdraw, so proposers get no such affordance. Member-level `/village/[id]/organizations` now the shared manager; `/admin/organizations` is a wrapper. Tab routes everyone to the shared screen. Minor known gap: the village tab still loads orgs filtered to `approved` for members, so pending orgs surface on the org screen but not as tab cards. Mobile suite 102/102.
 - **Branch:** repo `worktree-organizer-shared-ui-merge` (worktree `.claude/worktrees/organizer-shared-ui-merge`). Not merged to main.
 - **Done:** Phase 1 — model/services/rules (green: model/unit 382, rules e2e 143, integration 11). Phase 2 — `useEntityCapabilities` hook, `ProposableListItem`+`PendingBadge`, `PlacesManager`/`BarriosManager`, member-accessible `/village/[id]/places|barrios` routes, admin screens reduced to wrappers, village tab routes everyone + shows pending badges. New mobile tests green (4 suites: hook, item, both managers). Commits `751ee5e`,`1e0f527`,`fdb6a38`,`c343443`,`75ce648`,`32d8136`.
-- **Next:** Phase 5 — Community-header role-mode (organizer edits header in place, villager views).
-- **Blockers:** Events phases carry two unresolved open questions (phone capture location, walk-in shape) — resolve before Phase 6/7.
+- **Next:** Deploy rules + functions to dev (`firestore-deploy`), then verify on device and merge the branch. (8.2 was a no-op: requests/invite-tokens screens were already absent from the admin group.)
+- **Blockers:** none — the two event open questions are resolved (see Events decisions above).
 - **Pre-existing breakage — FIXED:** mobile typecheck (`getOrgMemberCount` was imported but never defined → added it to `orgMemberService`) and 3 `village.test.tsx` cases (the test didn't mock `eventService`/`orgMemberService`). Mobile suite now 99/99, typecheck exit 0.
 - **Handoff:** emulator tests from repo root (`pnpm test:integration`, `pnpm test:rules`). Worktree setup needed `npm --prefix functions install` + `pnpm --filter @cultuvilla/shared build` before the emulator harness builds functions. Mobile tests: `pnpm app:test`. Mobile has no lint script (only shared+functions are linted); commit subjects must be lowercase (commitlint rejects PascalCase). Rules NOT deployed to dev yet.
 
@@ -28,10 +30,10 @@
 | 2 | Capability hook + propose-pending UI + merge Places/Barrios screens | ✅ | ✅ | — | ⬜ |
 | 3 | Organizations adopt the shared primitives | ✅ | ✅ | — | ⬜ |
 | 4 | Census role-mode merge (author vs answer) | ✅ | ✅ | — | ⬜ |
-| 5 | Community-header role-mode merge (edit vs view) | ⬜ | ⬜ | — | ⬜ |
-| 6 | Events v1 — shared detail + organize console (edit/cancel/roster/delete) | ⬜ | ⬜ | ⬜ | ⬜ |
-| 7 | Events v2 — check-in, walk-in, organizer-gated phones | ⬜ | ⬜ | ⬜ | ⬜ |
-| 8 | Delete the `/admin/` route group | ⬜ | ⬜ | — | ⬜ |
+| 5 | Community-header role-mode merge (edit vs view) | ✅ | ✅ | — | ⬜ |
+| 6 | Events v1 — shared detail + organize console (edit/cancel/roster/delete) | ✅ | ✅ | ⬜ | ⬜ |
+| 7 | Events v2 — check-in, walk-in, organizer-gated phones | ✅ | ✅ | ⬜ | ⬜ |
+| 8 | Delete the village `/admin/` route group | ✅ | ✅ | — | ⬜ |
 
 Legend: ⬜ pending · ✅ done · — n/a
 
@@ -118,8 +120,8 @@ Shipped in commits `751ee5e`, `1e0f527`, `fdb6a38`. Full TDD detail is in those 
 **Files:** Create/adjust the shared village header component with inline edit affordances gated by `canManage` (escudo via `uploadMunicipalityImage`+`updateMunicipality`; cover/description via `updateCommunity`; coordinates via `updateMunicipality` with the existing lat/lng validation). Remove the village-tab pencil deep-link and the admin hero Edit. Reduce `admin/community.tsx` to a wrapper. Tests: organizer sees edit controls and the right service calls fire; villager sees read-only header.
 
 **Tasks:**
-- [ ] **5.1** Shared header edit-mode test + impl (gated by `canManage`). Commit.
-- [ ] **5.2** Remove the two duplicate Edit entry points; wrapper for `admin/community.tsx`. `pnpm app:test` green. Commit.
+- [x] **5.1** Shared header edit-mode test + impl (gated by `canManage`). Commit.
+- [x] **5.2** Remove the two duplicate Edit entry points; wrapper for `admin/community.tsx`. `pnpm app:test` green. Commit.
 
 ---
 
@@ -136,11 +138,11 @@ Shipped in commits `751ee5e`, `1e0f527`, `fdb6a38`. Full TDD detail is in those 
 - Tests: model/rules tests for the dropped draft + extended registration delete (rules e2e); `useEventOrganizer` unit test; console renders roster + organizer-only actions.
 
 **Tasks:**
-- [ ] **6.1** Drop `draft`: model enum + `isValidEventCreate` + `event/new.tsx`; model/unit + a rules e2e asserting a member can't create non-published… (decide create constraints). Commit.
-- [ ] **6.2** Registration `delete` rule extension + e2e test (organizer can delete a registration; a non-organizer non-owner cannot). Commit.
-- [ ] **6.3** `useEventOrganizer` test + impl. Commit.
-- [ ] **6.4** Event detail inline affordances (edit pencils, cancel, Organize entry) gated by organizer. `pnpm app:test`. Commit.
-- [ ] **6.5** `/event/[eventId]/organize` console: roster + edit + cancel/complete + remove-registration. `pnpm app:test`. Commit.
+- [x] **6.1** Drop `draft`: model enum + `isValidEventCreate` + `event/new.tsx`; model/unit + a rules e2e asserting a member can't create non-published… (decide create constraints). Commit.
+- [x] **6.2** Registration `delete` rule extension + e2e test (organizer can delete a registration; a non-organizer non-owner cannot). Commit.
+- [x] **6.3** `useEventOrganizer` test + impl. Commit.
+- [x] **6.4** Event detail inline affordances (edit pencils, cancel, Organize entry) gated by organizer. `pnpm app:test`. Commit.
+- [x] **6.5** `/event/[eventId]/organize` console: roster + edit + cancel/complete + remove-registration. `pnpm app:test`. Commit.
 
 ---
 
@@ -153,9 +155,9 @@ Shipped in commits `751ee5e`, `1e0f527`, `fdb6a38`. Full TDD detail is in those 
 **Files (after resolution):** registration model gains `checkedInAt: Date | null`; new `registrationContacts` subcollection + rules + service; walk-in path in `registerToEvent` (or a sibling callable); console UI for check-in toggle, walk-in add, phone column.
 
 **Tasks (outline — detail when Phase 6 lands and the two questions are answered):**
-- [ ] **7.1** `registrationContacts` subcollection + organizer-only read rules + e2e tests.
-- [ ] **7.2** `checkedInAt` model field + check-in service/callable + console toggle.
-- [ ] **7.3** Walk-in registration path + capacity/waitlist coverage + console add.
+- [x] **7.1** `registrationContacts` subcollection + organizer-only read rules + e2e tests.
+- [x] **7.2** `checkedInAt` model field + check-in service/callable + console toggle.
+- [x] **7.3** Walk-in registration path + capacity/waitlist coverage + console add.
 
 ---
 
@@ -166,8 +168,8 @@ Shipped in commits `751ee5e`, `1e0f527`, `fdb6a38`. Full TDD detail is in those 
 **Files:** delete `apps/mobile/app/village/[villageId]/admin/` (`_layout.tsx`, `index.tsx`, `places.tsx`, `barrios.tsx`, `organizations.tsx`, `community.tsx`, `censo.tsx`, plus the now-outdated `requests.tsx` and `invite-tokens.tsx` — coordinate with the out-of-scope join/invite plans before removing those two). Remove the "open admin" / settings entry points that pointed here. Update any deep links / navigation.
 
 **Tasks:**
-- [ ] **8.1** Remove the admin routes superseded by Phases 2–6 and their entry points; ensure no dangling `router.push('/.../admin...')`. `pnpm app:test` + `pnpm shared:typecheck` green. Commit.
-- [ ] **8.2** Reconcile `requests.tsx` / `invite-tokens.tsx` with the join/invite plans (delete only if those plans have removed the need). Commit.
+- [x] **8.1** Remove the admin routes superseded by Phases 2–6 and their entry points; ensure no dangling `router.push('/.../admin...')`. `pnpm app:test` + `pnpm shared:typecheck` green. Commit.
+- [x] **8.2** Reconcile `requests.tsx` / `invite-tokens.tsx` with the join/invite plans (delete only if those plans have removed the need). Commit.
 
 ---
 
