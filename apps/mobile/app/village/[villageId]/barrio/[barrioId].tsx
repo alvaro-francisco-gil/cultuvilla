@@ -26,13 +26,18 @@ export default function BarrioDetailScreen() {
   useEffect(() => {
     if (!villageId || !barrioId) return;
     void (async () => {
-      const [b, people] = await Promise.all([
-        getBarrio(villageId, barrioId),
-        getPersonsByBarrio(villageId, barrioId),
-      ]);
-      setBarrio(b);
-      setResidents(people);
-      setLoading(false);
+      try {
+        const [b, people] = await Promise.all([
+          getBarrio(villageId, barrioId),
+          getPersonsByBarrio(villageId, barrioId),
+        ]);
+        setBarrio(b);
+        setResidents(people);
+      } finally {
+        // On failure `barrio` stays null, so the not-found view renders
+        // instead of an indefinite spinner.
+        setLoading(false);
+      }
     })();
   }, [villageId, barrioId]);
 

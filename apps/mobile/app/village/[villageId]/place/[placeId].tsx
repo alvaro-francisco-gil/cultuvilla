@@ -26,12 +26,17 @@ export default function PlaceDetailScreen() {
   useEffect(() => {
     if (!villageId || !placeId) return;
     void (async () => {
-      const p = await getPlace(villageId, placeId);
-      setPlace(p);
-      if (p?.kind === 'cemetery') {
-        setBuried(await getPersonsByBurialPlace(placeId));
+      try {
+        const p = await getPlace(villageId, placeId);
+        setPlace(p);
+        if (p?.kind === 'cemetery') {
+          setBuried(await getPersonsByBurialPlace(placeId));
+        }
+      } finally {
+        // On failure `place` stays null, so the not-found view renders
+        // instead of an indefinite spinner.
+        setLoading(false);
       }
-      setLoading(false);
     })();
   }, [villageId, placeId]);
 
