@@ -17,7 +17,7 @@ export function StatsRow({ stats }: { stats: StatItem[] }) {
     <HStack className="items-stretch justify-center w-full">
       {stats.map((s, i) => (
         <View key={s.label} className="flex-row flex-1 items-center justify-center">
-          {i > 0 ? <View className="w-px bg-subtle mx-2 self-stretch" /> : null}
+          {i > 0 ? <View className="w-px h-8 bg-subtle mx-2" /> : null}
           <VStack gap={1} className="items-center flex-1">
             <Text variant="h2" className="font-bold">
               {s.value === null ? '—' : String(s.value)}
