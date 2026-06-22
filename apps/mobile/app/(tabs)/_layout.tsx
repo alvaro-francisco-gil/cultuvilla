@@ -1,8 +1,9 @@
-import { Redirect, Tabs } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../lib/auth/useAuth';
 import { webSpread } from '../../lib/platform';
 import { useT } from '../../lib/i18n';
+import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 
 // Web-only tab-bar metrics: RN-Web's text line-height clips labels with the
 // react-navigation defaults. On native, the defaults correctly account for
@@ -19,9 +20,9 @@ const webTabBarOverrides = webSpread({
 export default function TabsLayout() {
   const { user, loading } = useAuth();
   const { t } = useT();
+  const gate = useRegisterGate();
 
   if (loading) return null;
-  if (!user) return <Redirect href="/login" />;
 
   return (
     <Tabs
@@ -52,6 +53,11 @@ export default function TabsLayout() {
             <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={color} />
           ),
         }}
+        listeners={{
+          tabPress: (e) => {
+            if (!user) { e.preventDefault(); gate.requireAuth('/(tabs)/village', t('guest.village')); }
+          },
+        }}
       />
       <Tabs.Screen
         name="profile"
@@ -60,6 +66,11 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
           ),
+        }}
+        listeners={{
+          tabPress: (e) => {
+            if (!user) { e.preventDefault(); gate.requireAuth('/(tabs)/profile', t('guest.profile')); }
+          },
         }}
       />
     </Tabs>
