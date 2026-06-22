@@ -53,7 +53,7 @@ Rewritten URL prefixes: `/event/*`, `/news/*`, `/village/*`, `/o/*`. Order in `f
 |------------------------------|----------------|------------------------------------------|-----------------------------------------------------------|
 | `/event/<id>`                | `event.title`  | first ~200 chars of `event.description`  | `event.imageURL` ?? `event.municipalityCoverImage`        |
 | `/news/<id>`                 | `post.title`   | first ~200 chars of `post.body`          | admin signed URL of `post.images[0].storagePath` (7d)     |
-| `/village/<id>`              | `municipality.name` | first ~200 chars of `community.description` | `community.coverImages[0]` ?? `escudoManualUrl` ?? `escudoUrl` |
+| `/village/<id>`              | `municipality.name` | first ~200 chars of `community.description` | `escudoManualUrl` ?? `escudoUrl` |
 | `/village/<id>/join`         | same as `/village/<id>`                                                                                 |
 | `/o/<id>`                    | `org.name`     | first ~200 chars of `org.description`    | `org.imageURL`                                            |
 | `/o/<id>/join`               | same as `/o/<id>`                                                                                       |

@@ -16,7 +16,7 @@
 //   network) from images.manifest.mjs and committed. A path with a slash is
 //   treated repo-relative instead (e.g. a shared asset), with no copy.
 //
-//   Image-capable entities: user/persona photo, village coverImages, event
+//   Image-capable entities: user/persona photo, village escudo, event
 //   imageURL, news images[]. Orgs, places and barrios have no image field.
 
 export default {
@@ -69,7 +69,6 @@ export default {
       coordinates: { lat: 40.0319, lng: -3.6033 },
       description:
         'Real Sitio de Aranjuez — jardines históricos, el Tajo y una intensa vida festiva. Eventos del Ayuntamiento, peñas y asociaciones vecinales.',
-      coverImages: ['aranjuez-cover-1.jpg', 'aranjuez-cover-2.jpg'],
       adminUserRef: 'admin',
 
       barrios: [
@@ -182,7 +181,6 @@ export default {
       coordinates: { lat: 40.1378, lng: -3.4253 },
       description:
         'Pueblo medieval con Plaza Mayor porticada. Fiestas patronales, anís, ajo y un teatro vivo en la plaza.',
-      coverImages: ['chinchon-cover-1.jpg', 'chinchon-cover-2.jpg'],
       adminUserRef: 'admin',
 
       barrios: [

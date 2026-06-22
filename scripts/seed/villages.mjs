@@ -2,7 +2,7 @@
 /**
  * Seed villages: activates a community on `municipalities/{id}` (the doc IS the
  * municipality + community overlay), creates the admin `members/{uid}` subdoc,
- * uploads cover images (+ optional escudo) and wires their URLs in.
+ * uploads optional escudo and wires its URL in.
  *
  *   DATASET=demo_1 pnpm seed:dev:villages
  *   DATASET=demo_1 pnpm seed:dev:villages:wipe
@@ -25,10 +25,6 @@ import { runAsMain } from './lib/run.mjs';
 export async function seedVillage(v, adminUid) {
   const docId = villageDocId(v.id);
 
-  const coverUrls = [];
-  for (const file of v.coverImages ?? []) {
-    coverUrls.push(await uploadImage(file, `villages/${docId}/images`));
-  }
   let escudoUrl = null;
   if (v.escudo) escudoUrl = await uploadImage(v.escudo, `villages/${docId}/escudo`);
 
@@ -45,7 +41,6 @@ export async function seedVillage(v, adminUid) {
   const community = buildVillageCommunity({
     description: v.description,
     adminUserId: adminUid,
-    coverImages: coverUrls,
   });
   await db
     .collection('municipalities')
@@ -57,9 +52,7 @@ export async function seedVillage(v, adminUid) {
     .collection('members')
     .doc(adminUid)
     .set(tag(buildVillageMemberData({ userId: adminUid, role: 'admin' })), { merge: true });
-  console.log(
-    `[seed] village ${docId} ✓ (${coverUrls.length} cover${escudoUrl ? ' + escudo' : ''})`,
-  );
+  console.log(`[seed] village ${docId} ✓${escudoUrl ? ' (escudo)' : ''}`);
 }
 
 export async function seedVillages(dataset) {

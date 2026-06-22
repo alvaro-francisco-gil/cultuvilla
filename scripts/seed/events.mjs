@@ -27,7 +27,7 @@ export async function seedEvents(dataset) {
 
     // Denormalized village fields come off the seeded municipality doc.
     const muni = (await db.collection('municipalities').doc(vDocId).get()).data();
-    const villageCover = muni?.community?.coverImages?.[0] ?? null;
+    const villageCover = muni?.escudoManualUrl ?? muni?.escudoUrl ?? null;
     const coords = muni?.coordinates ?? (v.coordinates ? new GeoPoint(v.coordinates.lat, v.coordinates.lng) : null);
 
     for (const org of v.organizations) {

@@ -15,7 +15,7 @@
 // reflects the real production flow.
 //
 // To run this scenario:
-//   DATASET=real_villages_1 pnpm seed:villages          # activate the community (covers)
+//   DATASET=real_villages_1 pnpm seed:villages          # activate the community
 //   DATASET=real_villages_1 pnpm seed:dev:orgs          # then fill content (orgs/places/...)
 //   DATASET=real_villages_1 pnpm seed:dev:places
 //   DATASET=real_villages_1 pnpm seed:dev:events
@@ -31,7 +31,7 @@
 //   Bare filename = dataset-local (scripts/data/seed-fixtures/real_villages_1/
 //   images/), path-with-slash = repo-relative. Fetch them once with
 //   `DATASET=real_villages_1 pnpm seed:images` (reads images.manifest.mjs).
-//   Image-capable here: village coverImages, event imageURL, news images[].
+//   Image-capable here: village escudo, event imageURL, news images[].
 
 export default {
   name: 'real_villages_1',
@@ -55,10 +55,9 @@ export default {
         'Soy vecino de Matabuena y quiero organizar la comunidad del pueblo en Cultuvilla.',
 
       // Optional post-activation patch: simulates the new organizer filling in
-      // the village's description + covers after their request is approved.
+      // the village's description after their request is approved.
       description:
         'Matabuena — pueblo de la sierra de Guadarrama (Segovia, Castilla y León). Naturaleza, tradición y vecinos.',
-      coverImages: ['matabuena-cover-1.jpg', 'matabuena-cover-2.jpg'],
 
       barrios: [
         { id: 'pueblo', name: 'El Pueblo', image: 'matabuena-barrio-pueblo.jpg' },

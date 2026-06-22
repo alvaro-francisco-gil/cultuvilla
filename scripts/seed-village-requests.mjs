@@ -17,8 +17,8 @@
  *   4. Insert `organizerRequests/{requestId}` with status=pending.
  *   5. In a transaction: flip status to approved + activate community + create
  *      member at `municipalities/{id}/members/{requesterUid}`.
- *   6. Optionally patch community.description / community.coverImages (sim of
- *      the new organizer filling in the village info post-activation).
+ *   6. Optionally patch community.description (sim of the new organizer filling
+ *      in the village info post-activation).
  *
  * USAGE
  *   DATASET=real_villages_1 pnpm seed:villages         # default DATASET
@@ -29,7 +29,7 @@
  *   `pnpm seed:municipalities` (so the target municipality exists).
  *
  * AUTHENTICATION
- *   Requires GOOGLE_APPLICATION_CREDENTIALS (Storage uploads for coverImages
+ *   Requires GOOGLE_APPLICATION_CREDENTIALS (Storage uploads for escudo images
  *   need a signed-URL-capable identity; everything else also works with ADC).
  *
  * SAFETY
@@ -207,23 +207,16 @@ async function seedOne(v) {
     );
   }
 
-  // The request now carries the village data (description + cover images), and
-  // approval copies it into the community — so upload covers and resolve the
-  // description up front, before the request exists.
+  // The request now carries the village data (description), and approval copies
+  // it into the community — resolve the description up front, before the request exists.
   const description = typeof v.description === 'string' ? v.description : '';
-  const coverImages = [];
-  if (Array.isArray(v.coverImages)) {
-    for (const ref of v.coverImages) {
-      coverImages.push(await uploadImage(ref, `villages/${muniId}/images`));
-    }
-  }
 
   // Step 1: create the pending request (mirrors requestOrganizeVillage callable).
   let reqRef;
   const pending = existing.docs.find((d) => d.data().status === 'pending');
   if (pending) {
     reqRef = pending.ref;
-    await reqRef.update({ description, coverImages });
+    await reqRef.update({ description });
     console.log(`[seed-villages]   reusing pending request ${reqRef.id}`);
   } else {
     reqRef = db.collection('organizerRequests').doc();
@@ -232,7 +225,6 @@ async function seedOne(v) {
         userId: requesterUid,
         municipalityId: muniId,
         description,
-        coverImages,
         motivation: v.motivation ?? null,
       }),
       seedBatch: SEED_BATCH,
@@ -261,7 +253,6 @@ async function seedOne(v) {
       communityActive: true,
       community: {
         description: fresh.get('description') ?? '',
-        coverImages: fresh.get('coverImages') ?? [],
         adminUserId: requesterUid,
         profileForm: null,
         activatedAt: FieldValue.serverTimestamp(),
