@@ -87,7 +87,7 @@ export const respondToOrganizerRequest = onCall<
 
       if (decision === 'approved') {
         // Set the organizer on the existing community (dotted path preserves the
-        // description/coverImages/profileForm/activatedAt seeded at start time).
+        // description/profileForm/activatedAt seeded at start time).
         tx.update(muniRef, { 'community.adminUserId': requesterUid });
         if (memberSnap.exists) {
           // Already a member (joined or started the village) → promote to admin.
