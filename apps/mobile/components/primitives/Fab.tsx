@@ -35,10 +35,11 @@ export function Fab({ onPress, label, testID }: FabProps) {
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
-          height: 52,
-          paddingHorizontal: 24,
-          borderRadius: 26,
-          backgroundColor: '#FB6514',
+          paddingVertical: 10,
+          paddingHorizontal: 22,
+          borderRadius: 999,
+          // accent (terracotta) — matches the AppHeader bg-accent token
+          backgroundColor: '#bb5d3a',
           elevation: 6,
           shadowColor: '#000',
           shadowOpacity: 0.25,
@@ -46,8 +47,8 @@ export function Fab({ onPress, label, testID }: FabProps) {
           shadowOffset: { width: 0, height: 3 },
         }}
       >
-        <Text style={{ color: '#fff', fontSize: 24, lineHeight: 26, marginRight: 8 }}>+</Text>
-        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>{label}</Text>
+        <Text style={{ color: '#f9f0e8', fontSize: 22, lineHeight: 24, marginRight: 8 }}>+</Text>
+        <Text style={{ color: '#f9f0e8', fontSize: 16, fontWeight: '700' }}>{label}</Text>
       </Pressable>
     </View>
   );
