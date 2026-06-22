@@ -468,9 +468,11 @@
   "discover": {
     "title": "Buscar pueblo",
     "search": "Busca tu pueblo",
-    "empty": "No hay pueblos activos todavía",
-    "notSeeing": "¿No ves tu pueblo? Cargar todos",
-    "inactive": "Sin comunidad activa"
+    "empty": "No se encontraron pueblos",
+    "inactive": "Sin comunidad",
+    "activeGroup": "Municipios activos",
+    "allGroup": "Todos",
+    "activeBadge": "Activo"
   },
   "requests": {
     "organizer": {

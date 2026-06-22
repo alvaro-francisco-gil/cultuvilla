@@ -1,59 +1,109 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, ActivityIndicator, View } from 'react-native';
 import { router, type Href } from 'expo-router';
-import { VStack, HStack, Text, Input, Button, Escudo, Pressable } from '../primitives';
+import type { QueryDocumentSnapshot } from 'firebase/firestore';
+import { VStack, HStack, Text, Input, Escudo, Pressable } from '../primitives';
 import { useT } from '../../lib/i18n';
 import {
   getActiveCommunities,
-  searchMunicipalities,
+  listMunicipalitiesPage,
 } from '@cultuvilla/shared/services/municipalityService';
 import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality';
 
 type Muni = MunicipalityData & { id: string };
+const PAGE_SIZE = 20;
+const ACCENT = '#bb5d3a';
 
-const PAGE_SIZE = 50;
+// One FlatList renders two labelled sections: a fixed "Municipios activos" group
+// (client-filtered) followed by the cursor-paginated "Todos" group. The groups
+// intentionally overlap — "activos" is a shortcut, "Todos" is exhaustive.
+type Row =
+  | { kind: 'header'; key: string; label: string }
+  | { kind: 'muni'; key: string; muni: Muni };
 
 export function VillageDiscovery() {
   const { t } = useT();
   const [search, setSearch] = useState('');
   const [active, setActive] = useState<Muni[] | null>(null);
-  const [allResults, setAllResults] = useState<Muni[]>([]);
-  const [showAll, setShowAll] = useState(false);
+  const [all, setAll] = useState<Muni[]>([]);
+  const [cursor, setCursor] = useState<QueryDocumentSnapshot | null>(null);
+  const [exhausted, setExhausted] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  // Bumped on every new search so a slow in-flight page can't clobber a newer one.
+  const reqId = useRef(0);
 
   useEffect(() => {
     void getActiveCommunities()
-      .then((rs) => setActive(rs))
-      .catch((e) => console.log('[VillageDiscovery] getActiveCommunities ERR', e?.code, e?.message));
+      .then(setActive)
+      .catch((e) =>
+        console.log('[VillageDiscovery] getActiveCommunities ERR', e?.code, e?.message),
+      );
   }, []);
 
-  // Paged server-side search when user opens the "show all" view.
+  // (Re)seed the "Todos" list whenever the search term changes (debounced).
   useEffect(() => {
-    if (!showAll) return;
-    let cancelled = false;
-    const handle = setTimeout(async () => {
-      const list = await searchMunicipalities(search, PAGE_SIZE);
-      if (!cancelled) setAllResults(list);
+    const myReq = ++reqId.current;
+    const handle = setTimeout(() => {
+      void (async () => {
+        const page = await listMunicipalitiesPage({ search, limit: PAGE_SIZE });
+        if (reqId.current !== myReq) return; // a newer search superseded this one
+        setAll(page.items);
+        setCursor(page.nextCursor);
+        setExhausted(page.nextCursor === null);
+      })();
     }, 200);
-    return () => { cancelled = true; clearTimeout(handle); };
-  }, [showAll, search]);
+    return () => clearTimeout(handle);
+  }, [search]);
 
-  // When NOT in showAll mode, client-side filter the small active list.
-  const data = useMemo(() => {
-    if (showAll) return allResults;
+  const loadMore = useCallback(async () => {
+    if (loadingMore || exhausted || !cursor) return;
+    setLoadingMore(true);
+    const myReq = reqId.current;
+    try {
+      const page = await listMunicipalitiesPage({ search, cursor, limit: PAGE_SIZE });
+      if (reqId.current !== myReq) return;
+      setAll((prev) => [...prev, ...page.items]);
+      setCursor(page.nextCursor);
+      setExhausted(page.nextCursor === null);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, exhausted, cursor, search]);
+
+  const activeFiltered = useMemo(() => {
     if (!active) return [];
-    if (!search.trim()) return active;
-    const q = search.toLowerCase();
-    return active.filter((m) => m.name.toLowerCase().includes(q));
-  }, [showAll, allResults, active, search]);
+    const q = search.trim().toLowerCase();
+    return q ? active.filter((m) => m.name.toLowerCase().includes(q)) : active;
+  }, [active, search]);
 
-  if (!showAll && active === null) {
+  const rows: Row[] = useMemo(() => {
+    const out: Row[] = [];
+    if (activeFiltered.length > 0) {
+      out.push({ kind: 'header', key: 'h-active', label: t('discover.activeGroup') });
+      activeFiltered.forEach((m) => out.push({ kind: 'muni', key: `active-${m.id}`, muni: m }));
+    }
+    out.push({ kind: 'header', key: 'h-all', label: t('discover.allGroup') });
+    all.forEach((m) => out.push({ kind: 'muni', key: `all-${m.id}`, muni: m }));
+    return out;
+  }, [activeFiltered, all, t]);
+
+  if (active === null) {
     return (
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator />
       </View>
     );
   }
+
+  const openMuni = (m: Muni) => {
+    // Active villages → the rich village home (self-join lives there).
+    // Dormant municipalities → the "start this village" flow.
+    const target: Href = m.communityActive
+      ? { pathname: '/village/[villageId]', params: { villageId: m.id } }
+      : { pathname: '/discover/start/[municipalityId]', params: { municipalityId: m.id } };
+    router.push(target);
+  };
 
   return (
     <View className="flex-1">
@@ -66,47 +116,50 @@ export function VillageDiscovery() {
         />
       </View>
       <FlatList
-        data={data}
-        keyExtractor={(m) => m.id}
+        data={rows}
+        keyExtractor={(r) => r.key}
         contentContainerClassName="px-4 pb-8 gap-3"
+        onEndReached={() => void loadMore()}
+        onEndReachedThreshold={0.5}
         ListEmptyComponent={<Text tone="muted">{t('discover.empty')}</Text>}
         ListFooterComponent={
-          !showAll ? (
-            <View className="pt-2">
-              <Button variant="ghost" onPress={() => setShowAll(true)}>
-                <Text>{t('discover.notSeeing')}</Text>
-              </Button>
+          loadingMore ? (
+            <View className="py-3">
+              <ActivityIndicator />
             </View>
           ) : null
         }
         renderItem={({ item }) => {
-          const isActive = item.communityActive;
-          const villageTarget: Href = {
-            pathname: '/village/[villageId]',
-            params: { villageId: item.id },
-          };
-          const startTarget: Href = {
-            pathname: '/discover/start/[municipalityId]',
-            params: { municipalityId: item.id },
-          };
-          const onPress = () => {
-            // Active villages → open the village (self-join lives there).
-            // Dormant villages → the "start this village" flow.
-            router.push(isActive ? villageTarget : startTarget);
-          };
+          if (item.kind === 'header') {
+            return (
+              <Text variant="h3" className="pt-2" style={{ color: ACCENT }}>
+                {item.label}
+              </Text>
+            );
+          }
+          const m = item.muni;
           return (
             <Pressable
-              onPress={onPress}
-              className="w-full rounded-md border border-accent bg-surface px-4 py-3"
+              onPress={() => openMuni(m)}
+              className={`w-full rounded-md border bg-surface px-4 py-3 ${
+                m.communityActive ? 'border-accent' : 'border-subtle'
+              }`}
             >
               <HStack gap={3} className="items-center">
-                <Escudo url={escudoThumbDisplayUrl(item)} size={40} fallbackInitial={item.name} />
-                <VStack gap={1}>
-                  <Text>{item.name}</Text>
+                <Escudo url={escudoThumbDisplayUrl(m)} size={40} fallbackInitial={m.name} />
+                <VStack gap={1} className="flex-1">
+                  <Text>{m.name}</Text>
                   <Text tone="muted" variant="bodySm">
-                    {item.province}
+                    {m.province}
                   </Text>
                 </VStack>
+                <Text
+                  variant="bodySm"
+                  tone={m.communityActive ? undefined : 'muted'}
+                  style={m.communityActive ? { color: ACCENT } : undefined}
+                >
+                  {m.communityActive ? t('discover.activeBadge') : t('discover.inactive')}
+                </Text>
               </HStack>
             </Pressable>
           );
