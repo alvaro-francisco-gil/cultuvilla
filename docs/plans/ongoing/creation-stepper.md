@@ -19,6 +19,20 @@ single shared form.
 **Tech Stack:** Expo Router, React Native, NativeWind (`className`), jest +
 `@testing-library/react-native` (NOT vitest — that is `packages/shared` only).
 
+## Status
+
+- **Updated:** 2026-06-22
+- **Stage:** Task 1 (i18n strings) — starting subagent-driven execution
+- **Branch:** `feat/creation-stepper` (worktree `.claude/worktrees/creation-stepper`)
+- **Done:** Plan written + promoted; worktree + branch set up; baseline run.
+- **Next:** Implement Task 1 (i18n strings), then Tasks 2–7 in order.
+- **Blockers:** none
+- **Handoff:** Baseline has ONE pre-existing failure unrelated to this work —
+  `apps/mobile/app/person/__tests__/personId.test.tsx` ("Unable to find node on
+  an unmounted component"), reproduced on `main`. It mocks `PersonForm`, so
+  Task 4's job is "don't make it worse," not "make it pass." Run tests with
+  `pnpm --filter cultuvilla-mobile test`. Worktree branched fresh; deps installed.
+
 ## Context
 
 ordago-apps has a well-liked creation wizard, but it is not a single shared
