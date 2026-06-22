@@ -12,7 +12,7 @@ import {
   assertFails,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -84,6 +84,14 @@ describe('firestore.rules — /persons/{personId}', () => {
       await assertFails(
         setDoc(doc(ownerDb, `persons/${PERSON_ID}`), personData({ createdBy: OTHER })),
       );
+    });
+  });
+
+  describe('read', () => {
+    it('an unauthenticated user can read a person', async () => {
+      await seedPerson();
+      const guestDb = env.unauthenticatedContext().firestore();
+      await assertSucceeds(getDoc(doc(guestDb, `persons/${PERSON_ID}`)));
     });
   });
 

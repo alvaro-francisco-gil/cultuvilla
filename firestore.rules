@@ -635,7 +635,10 @@ service cloud.firestore {
 
     // persons — canonical people registry
     match /persons/{personId} {
-      allow read: if isAuthenticated();
+      // Public read: person profiles are shareable links viewable by guests
+      // (parity with events/orgs/users, all already world-readable). Writes
+      // stay authed + ownership-gated below.
+      allow read: if true;
       allow create: if isAuthenticated()
         && isValidPersonCreate(request.resource.data)
         && request.resource.data.createdBy == request.auth.uid;
