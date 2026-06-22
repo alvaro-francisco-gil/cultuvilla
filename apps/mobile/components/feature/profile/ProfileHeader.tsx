@@ -1,11 +1,13 @@
 import { View } from 'react-native';
-import { Avatar, HStack, Text, VStack } from '../../primitives';
+import { Avatar, HStack, ScreenTitle, Text, VStack } from '../../primitives';
 import { buildDisplayName, buildShortName } from '@cultuvilla/shared/models/person';
 import type { PersonData } from '@cultuvilla/shared/models/person';
 
 export interface ProfileHeaderProps {
   person: (PersonData & { id: string }) | null;
   fallbackName: string;
+  /** Active village name, shown under the name (mirrors the village tab's province line). */
+  subtitle?: string | null;
   uploading?: boolean;
   onPressAvatar?: () => void;
 }
@@ -13,6 +15,7 @@ export interface ProfileHeaderProps {
 export function ProfileHeader({
   person,
   fallbackName,
+  subtitle,
   uploading,
   onPressAvatar,
 }: ProfileHeaderProps) {
@@ -35,8 +38,13 @@ export function ProfileHeader({
           </View>
         ) : null}
       </View>
-      <VStack gap={1} className="flex-1">
-        <Text variant="h2" className="font-bold">{displayName}</Text>
+      <VStack gap={0} className="flex-1">
+        <ScreenTitle>{displayName}</ScreenTitle>
+        {subtitle ? (
+          <Text tone="muted" variant="bodySm" numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
       </VStack>
     </HStack>
   );

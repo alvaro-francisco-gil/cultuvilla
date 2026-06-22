@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Platform, Alert, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Text, VStack, HStack, Pressable, Escudo, Button } from '../primitives';
+import { Text, VStack, HStack, Pressable, Escudo, Button, ScreenTitle } from '../primitives';
 import { VillageInfoModal } from './VillageInfoModal';
 import { ACCENT, Section, EntityCard } from './VillageSections';
 import { StatsRow } from './StatsRow';
@@ -163,7 +163,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
             </View>
             <VStack gap={0} className="flex-1">
               <HStack gap={2} className="items-center">
-                <Text variant="h2" className="font-bold">{village.name}</Text>
+                <ScreenTitle className="flex-1">{village.name}</ScreenTitle>
                 <Pressable
                   onPress={() => setInfoOpen(true)}
                   accessibilityLabel={t('village.info.title')}

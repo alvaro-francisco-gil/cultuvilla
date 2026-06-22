@@ -2,6 +2,7 @@ export * from './Screen';
 export * from './HStack';
 export * from './VStack';
 export * from './Text';
+export { ScreenTitle } from './ScreenTitle';
 export * from './Pressable';
 export * from './Button';
 export * from './Card';

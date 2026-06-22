@@ -170,6 +170,8 @@ export default function ProfileScreen() {
 
   const otherPersonas = allPersonas.filter((p) => p.userId !== user.uid);
   const fallbackName = profile?.displayName ?? user.email ?? '';
+  const activeVillageName =
+    villages.find((v) => v.municipalityId === activeMunicipalityId)?.name ?? null;
 
   return (
     <Screen padded={false} topInset={false} bottomInset={false}>
@@ -178,6 +180,7 @@ export default function ProfileScreen() {
         <ProfileHeader
           person={selfPerson}
           fallbackName={fallbackName}
+          subtitle={activeVillageName}
           uploading={uploading}
           onPressAvatar={onChangePhoto}
         />
