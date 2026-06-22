@@ -35,7 +35,8 @@ service cloud.firestore {
     function isEventOrganizer(eventId) {
       return isAuthenticated() && (
         isAppAdmin()
-        || isOrgMember(get(/databases/$(database)/documents/events/$(eventId)).data.organizationId)
+        || (get(/databases/$(database)/documents/events/$(eventId)).data.organizationId != null
+            && isOrgMember(get(/databases/$(database)/documents/events/$(eventId)).data.organizationId))
         || isVillageAdmin(get(/databases/$(database)/documents/events/$(eventId)).data.municipalityId)
       );
     }
@@ -360,8 +361,8 @@ service cloud.firestore {
           && isNumberOrNull(d.maxAttendees)
           && isBool(d.telephoneRequired)
           && d.status in ['published', 'cancelled', 'completed']
-          && isString(d.organizationId)
-          && isString(d.organizationName)
+          && isStringOrNull(d.organizationId)
+          && isStringOrNull(d.organizationName)
           && isString(d.createdBy)
           && isTimestamp(d.createdAt)
           && isTimestamp(d.updatedAt)
@@ -592,13 +593,19 @@ service cloud.firestore {
     match /events/{eventId} {
       allow read: if true;
       allow create: if isAuthenticated()
-        && isOrgMember(request.resource.data.organizationId)
         && isValidEventCreate(request.resource.data)
-        && request.resource.data.municipalityId is string;
-      allow update: if isOrgMember(resource.data.organizationId)
+        && request.resource.data.municipalityId is string
+        && (
+          request.resource.data.organizationId == null
+            ? isVillageMember(request.resource.data.municipalityId)
+            : isOrgMember(request.resource.data.organizationId)
+        );
+      allow update: if isOwner(resource.data.createdBy)
+        || (resource.data.organizationId != null && isOrgMember(resource.data.organizationId))
         || isVillageAdmin(resource.data.municipalityId)
         || isAppAdmin();
-      allow delete: if isOrgMember(resource.data.organizationId)
+      allow delete: if isOwner(resource.data.createdBy)
+        || (resource.data.organizationId != null && isOrgMember(resource.data.organizationId))
         || isVillageAdmin(resource.data.municipalityId)
         || isAppAdmin();
 
