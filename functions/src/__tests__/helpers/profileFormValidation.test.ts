@@ -198,3 +198,28 @@ describe('validateTransition', () => {
     expect(() => { validateTransition(prev, next, noUsage); }).not.toThrow();
   });
 });
+
+const base = { source: 'custom' as const, key: 'k', label: 'L', required: false };
+
+describe('ensureValidFieldShape optionsSource', () => {
+  it('accepts select with optionsSource and no static options', () => {
+    expect(() => ensureValidFieldShape({ ...base, type: 'select', optionsSource: 'barrios' })).not.toThrow();
+  });
+  it('rejects select with neither options nor optionsSource', () => {
+    expect(() => ensureValidFieldShape({ ...base, type: 'select' })).toThrow();
+  });
+  it('rejects select with both', () => {
+    expect(() => ensureValidFieldShape({ ...base, type: 'select', options: ['a'], optionsSource: 'places' })).toThrow();
+  });
+  it('rejects optionsSource on text', () => {
+    expect(() => ensureValidFieldShape({ ...base, type: 'text', optionsSource: 'barrios' })).toThrow();
+  });
+});
+
+describe('validateTransition dynamic source', () => {
+  it('skips option-removal for dynamic fields', () => {
+    const prev = [{ source: 'custom' as const, key: 'k', type: 'select' as const, optionsSource: 'barrios' as const }];
+    const next = [{ ...base, type: 'select' as const, optionsSource: 'barrios' as const }];
+    expect(() => validateTransition(prev, next, { k: new Set(['gone-id']) })).not.toThrow();
+  });
+});

@@ -25,6 +25,7 @@ export interface CustomField {
   label: string;
   type: FieldType;
   options?: string[];
+  optionsSource?: 'barrios' | 'places' | 'organizations';
   required: boolean;
 }
 
@@ -35,6 +36,7 @@ export interface PrevField {
   key: string;
   type?: FieldType;
   options?: string[];
+  optionsSource?: 'barrios' | 'places' | 'organizations';
 }
 
 export interface UsedValuesByKey {
@@ -49,6 +51,8 @@ export const PREDEFINED_KEYS = new Set([
   'arrivalYear',
   'originVillage',
 ]);
+
+const VALID_OPTION_SOURCES = new Set(['barrios', 'places', 'organizations']);
 
 const VALID_FIELD_TYPES = new Set<FieldType>([
   'text',
@@ -90,11 +94,22 @@ export function ensureValidFieldShape(f: unknown): asserts f is ProfileFormField
   if (!CUSTOM_KEY_RE.test(c.key as string)) {
     throw new HttpsError('invalid-argument', `Clave personalizada inválida: ${String(c.key)}`);
   }
-  if (
-    (c.type === 'select' || c.type === 'multiselect') &&
-    (!Array.isArray(c.options) || c.options.length === 0)
-  ) {
-    throw new HttpsError('invalid-argument', `El campo ${String(c.key)} requiere opciones.`);
+  const isChoice = c.type === 'select' || c.type === 'multiselect';
+  const hasStatic = Array.isArray(c.options) && c.options.length > 0;
+  const hasSource = c.optionsSource !== undefined;
+  if (hasSource && !VALID_OPTION_SOURCES.has(c.optionsSource as string)) {
+    throw new HttpsError('invalid-argument', `optionsSource inválido: ${String(c.optionsSource)}`);
+  }
+  if (hasSource && !isChoice) {
+    throw new HttpsError('invalid-argument', `optionsSource solo válido en select/multiselect.`);
+  }
+  if (isChoice) {
+    if (hasStatic && hasSource) {
+      throw new HttpsError('invalid-argument', `El campo ${String(c.key)} no puede tener opciones y optionsSource a la vez.`);
+    }
+    if (!hasStatic && !hasSource) {
+      throw new HttpsError('invalid-argument', `El campo ${String(c.key)} requiere opciones.`);
+    }
   }
 }
 
@@ -140,16 +155,18 @@ export function validateTransition(
           `No se puede cambiar el tipo del campo "${prevField.key}".`,
         );
       }
-      const prevOpts = new Set(prevField.options ?? []);
-      const nextOpts = new Set(nextField.options ?? []);
-      const removed = [...prevOpts].filter((o) => !nextOpts.has(o));
-      const usedValues = used[prevField.key] ?? new Set();
-      for (const r of removed) {
-        if (usedValues.has(r)) {
-          throw new HttpsError(
-            'failed-precondition',
-            `No se puede eliminar la opción "${r}" del campo "${prevField.key}" porque ya está en uso.`,
-          );
+      if (nextField.optionsSource === undefined && (prevField as CustomField).optionsSource === undefined) {
+        const prevOpts = new Set(prevField.options ?? []);
+        const nextOpts = new Set(nextField.options ?? []);
+        const removed = [...prevOpts].filter((o) => !nextOpts.has(o));
+        const usedValues = used[prevField.key] ?? new Set();
+        for (const r of removed) {
+          if (usedValues.has(r)) {
+            throw new HttpsError(
+              'failed-precondition',
+              `No se puede eliminar la opción "${r}" del campo "${prevField.key}" porque ya está en uso.`,
+            );
+          }
         }
       }
     }
