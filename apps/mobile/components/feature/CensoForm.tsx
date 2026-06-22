@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import { VStack } from '../primitives/VStack';
-import { Input } from '../primitives/Input';
 import { Button } from '../primitives/Button';
 import { Text } from '../primitives/Text';
 import { useT } from '../../lib/i18n';
 import { saveProfileAnswers } from '@cultuvilla/shared/services/membershipProfileService';
 import { missingRequiredAnswers } from '@cultuvilla/shared/services/censoService';
-import type { ProfileFormField, ProfileAnswers } from '@cultuvilla/shared/models/municipality/CensoTypes';
+import type { ProfileFormField, ProfileAnswers, ProfileAnswerValue } from '@cultuvilla/shared/models/municipality/CensoTypes';
+import { CensoFieldInput } from './censo/CensoFieldInput';
+import type { ChoiceOption } from './censo/ChoiceList';
 
 export type CensoFormProps = {
   villageId: string;
   userId: string;
   schema: ProfileFormField[];
   initialAnswers?: ProfileAnswers;
+  entityOptionsByField?: Record<string, ChoiceOption[]>;
 };
 
 /**
@@ -21,15 +23,19 @@ export type CensoFormProps = {
  * boolean, etc.) are v2. Shows missing required fields as a warning before
  * submit but does not block saving — the server validates.
  */
-export function CensoForm({ villageId, userId, schema, initialAnswers }: CensoFormProps) {
+export function CensoForm({ villageId, userId, schema, initialAnswers, entityOptionsByField }: CensoFormProps) {
   const { t } = useT();
   const [answers, setAnswers] = useState<ProfileAnswers>(initialAnswers ?? {});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function setAnswer(key: string, value: string) {
-    setAnswers((prev) => ({ ...prev, [key]: value }));
+  function setAnswer(key: string, value: ProfileAnswerValue | undefined) {
+    setAnswers((prev) => {
+      const next = { ...prev };
+      if (value === undefined) delete next[key]; else next[key] = value;
+      return next;
+    });
     setSaved(false);
   }
 
@@ -57,18 +63,15 @@ export function CensoForm({ villageId, userId, schema, initialAnswers }: CensoFo
 
   return (
     <VStack gap={4}>
-      {schema.map((field) => {
-        const label = field.source === 'custom' ? field.label : field.key;
-        const value = String(answers[field.key] ?? '');
-        return (
-          <Input
-            key={field.key}
-            label={label}
-            value={value}
-            onChangeText={(v) => setAnswer(field.key, v)}
-          />
-        );
-      })}
+      {schema.map((field) => (
+        <CensoFieldInput
+          key={field.key}
+          field={field}
+          value={answers[field.key]}
+          onChange={(v) => setAnswer(field.key, v)}
+          entityOptions={entityOptionsByField?.[field.key]}
+        />
+      ))}
 
       {missingKeys.length > 0 && (
         <Text tone="danger">

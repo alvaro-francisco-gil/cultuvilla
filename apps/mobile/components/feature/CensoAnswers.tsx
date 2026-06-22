@@ -5,6 +5,7 @@ import { CensoForm } from './CensoForm';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { getVillageMember } from '@cultuvilla/shared/services/villageMemberService';
 import type { ProfileFormField, ProfileAnswers } from '@cultuvilla/shared/models/municipality/CensoTypes';
+import { useEntityOptions } from './censo/useEntityOptions';
 
 /**
  * Villager census: answer the schema and edit your own answers. Content-only
@@ -15,6 +16,7 @@ export function CensoAnswers({ villageId, userId }: { villageId: string; userId:
   const [initialAnswers, setInitialAnswers] = useState<ProfileAnswers>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { optionsByField } = useEntityOptions(villageId, schema ?? []);
 
   useEffect(() => {
     async function load() {
@@ -51,7 +53,7 @@ export function CensoAnswers({ villageId, userId }: { villageId: string; userId:
   }
   return (
     <VStack gap={4} className="p-4">
-      <CensoForm villageId={villageId} userId={userId} schema={schema ?? []} initialAnswers={initialAnswers} />
+      <CensoForm villageId={villageId} userId={userId} schema={schema ?? []} initialAnswers={initialAnswers} entityOptionsByField={optionsByField} />
     </VStack>
   );
 }
