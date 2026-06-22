@@ -57,7 +57,7 @@ describe('buildEventData', () => {
       municipalityId: 'm', municipalityName: 'M',
       municipalityCoordinates: { lat: 1, lng: 2 },
     });
-    expect(built.status).toBe('draft');
+    expect(built.status).toBe('published');
     expect(built.telephoneRequired).toBe(false);
     expect(built.endDate).toBeNull();
     expect(() => EventDataSchema.parse(built)).not.toThrow();

@@ -33,10 +33,10 @@ export const addWalkInRegistration = onCall<AddWalkInData, Promise<AddWalkInResu
     const auth = request.auth;
     if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
-    const eventId = typeof request.data?.eventId === 'string' ? request.data.eventId.trim() : '';
-    const name = typeof request.data?.name === 'string' ? request.data.name.trim() : '';
+    const eventId = typeof request.data.eventId === 'string' ? request.data.eventId.trim() : '';
+    const name = typeof request.data.name === 'string' ? request.data.name.trim() : '';
     const phone =
-      typeof request.data?.phone === 'string' && request.data.phone.trim()
+      typeof request.data.phone === 'string' && request.data.phone.trim()
         ? request.data.phone.trim()
         : undefined;
     if (!eventId) throw new HttpsError('invalid-argument', 'eventId requerido.');
