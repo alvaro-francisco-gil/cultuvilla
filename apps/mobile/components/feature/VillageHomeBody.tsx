@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Image, Platform, Alert, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Platform, Alert, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, VStack, HStack, Pressable, Escudo, Button } from '../primitives';
@@ -109,7 +109,6 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
   // Wiki phase: active but no organizer granted yet (community.adminUserId null).
   const noOrganizer = village.community?.adminUserId == null;
   const villageBase = `/village/${village.id}` as const;
-  const cover = village.community?.coverImages?.[0] ?? null;
 
   const caps = { canManage, uid: user?.uid ?? null };
   const visibleBarrios = barrios.filter((b) => isProposalVisible(b.status, b.proposedBy, caps));
@@ -148,10 +147,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
   return (
     <>
       <ScrollView contentContainerClassName="pb-10">
-        {/* ── Hero ─────────────────────────────────────────────── */}
-        {cover ? (
-          <Image source={{ uri: cover }} className="w-full h-40" resizeMode="cover" />
-        ) : null}
+        {/* ── Header (escudo + name) ───────────────────────────── */}
         <VStack gap={2} className="px-4 pt-4">
           <HStack gap={3} className="items-center">
             <View

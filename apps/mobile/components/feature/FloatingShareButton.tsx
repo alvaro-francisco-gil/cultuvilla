@@ -1,8 +1,13 @@
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from '../primitives/Pressable';
 import { useT } from '../../lib/i18n';
+
+// Each platform has its own share glyph: Android/Material uses the three-node
+// graph (`share-social`), iOS uses the box-with-up-arrow (`share`). Web follows
+// the iOS-style icon. Matching the platform keeps the affordance familiar.
+const SHARE_ICON = Platform.OS === 'android' ? 'share-social-outline' : 'share-outline';
 
 /**
  * Circular share affordance that floats over the top-right of a detail-screen
@@ -31,7 +36,7 @@ export function FloatingShareButton({ onPress }: { onPress: () => void }) {
         accessibilityLabel={t('deeplink.shareViewLabel')}
         className="flex-1 items-center justify-center"
       >
-        <Ionicons name="share-outline" size={22} color="#fff" />
+        <Ionicons name={SHARE_ICON} size={22} color="#fff" />
       </Pressable>
     </View>
   );
