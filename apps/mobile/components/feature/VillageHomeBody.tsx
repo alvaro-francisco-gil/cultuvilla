@@ -389,7 +389,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
             variant="secondary"
             onPress={() => router.push(`/village/${village.id}/censo` as never)}
           >
-            {t('village.censo.link')}
+            {canManage ? t('village.censo.configure') : t('village.censo.link')}
           </Button>
         </View>
       </ScrollView>

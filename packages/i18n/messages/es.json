@@ -273,7 +273,8 @@
     },
     "generateInvite": "Generar invitación",
     "censo": {
-      "link": "Completar mi censo"
+      "link": "Completar mi censo",
+      "configure": "Configurar censo"
     },
     "escudo": {
       "add": "Añadir escudo",
@@ -581,7 +582,9 @@
       "organization": {
         "view": "Mira {name} en Cultuvilla: {url}",
         "invite": "Te invito a unirte a {name} en Cultuvilla: {url}"
-      }
+      },
+      "place": { "view": "Mira «{name}» en Cultuvilla: {url}" },
+      "barrio": { "view": "Mira {name} en Cultuvilla: {url}" }
     },
     "shareViewLabel": "Compartir",
     "shareInviteLabel": "Invitar a unirse"
