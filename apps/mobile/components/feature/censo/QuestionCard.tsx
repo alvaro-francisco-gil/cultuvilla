@@ -77,7 +77,7 @@ export function QuestionCard({
     return (
       <Pressable
         onPress={onActivate}
-        className="bg-surface border border-subtle rounded-xl p-4"
+        className="bg-surface-elevated border border-subtle rounded-xl p-4 shadow-sm"
       >
         <HStack gap={2} align="center">
           <Text tone="muted">{index + 1}.</Text>
@@ -94,7 +94,7 @@ export function QuestionCard({
   // ── Expanded: full editor with an accent left edge ────────────────────
   return (
     <View
-      className="bg-surface border border-subtle rounded-xl p-4"
+      className="bg-surface-elevated border border-subtle rounded-xl p-4 shadow-sm"
       style={{ borderLeftColor: ACCENT, borderLeftWidth: 4 }}
     >
       <VStack gap={3}>

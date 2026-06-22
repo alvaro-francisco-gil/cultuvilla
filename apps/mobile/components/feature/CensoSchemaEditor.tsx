@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, ScrollView, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { VStack, HStack, Text, Button, Pressable } from '../primitives';
 import { useT } from '../../lib/i18n';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
@@ -7,16 +8,16 @@ import { updateCensoSchema } from '@cultuvilla/shared/services/censoService';
 import { collectUsedValues } from '@cultuvilla/shared/services/membershipProfileService';
 import { getVillageMembers } from '@cultuvilla/shared/services/villageMemberService';
 import { listPredefinedFields } from '@cultuvilla/shared/models/municipality/profileFieldRegistry';
-import type { FieldType } from '@cultuvilla/shared/models/municipality/CensoTypes';
 import { censoEditorReducer, fieldErrors, type EditorAction } from './censo/censoEditorReducer';
 import { QuestionCard } from './censo/QuestionCard';
-import { QuestionTypePicker } from './censo/QuestionTypePicker';
+import { QuestionTypeSheet, type BuilderTypeChoice } from './censo/QuestionTypeSheet';
+import { ACCENT } from './VillageSections';
 
 /**
- * Organizer-only census authoring: add/remove/reorder fields and save the schema.
- * Fields already answered by members are "locked" (cannot be removed).
- * Content-only (no Screen/Header) so it can be embedded in the shared censo
- * screen behind a role check.
+ * Organizer-only census authoring, styled after a forms builder: a stack of
+ * question cards on a canvas, one expanded at a time. Fields already answered
+ * by members are "locked" (cannot be removed or retyped). Content-only (no
+ * Screen/Header) so it embeds in the shared censo screen behind a role check.
  */
 export function CensoSchemaEditor({ villageId }: { villageId: string }) {
   const { t } = useT();
@@ -25,6 +26,9 @@ export function CensoSchemaEditor({ villageId }: { villageId: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Index of the expanded card; null = all collapsed (overview).
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [addSheetOpen, setAddSheetOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,8 +40,7 @@ export function CensoSchemaEditor({ villageId }: { villageId: string }) {
       const used = collectUsedValues(members);
       if (cancelled) return;
       setLocked(new Set(Object.entries(used).filter(([, v]) => v.size > 0).map(([k]) => k)));
-      const initial = mun?.community?.profileForm?.fields ?? [];
-      dispatch({ kind: 'reset', fields: initial });
+      dispatch({ kind: 'reset', fields: mun?.community?.profileForm?.fields ?? [] });
       setLoading(false);
     })();
     return () => {
@@ -48,6 +51,23 @@ export function CensoSchemaEditor({ villageId }: { villageId: string }) {
   const errors = fieldErrors(fields);
   const present = new Set(fields.map((f) => f.key));
   const available = listPredefinedFields().filter((d) => !present.has(d.key));
+
+  function addQuestion(choice: BuilderTypeChoice) {
+    const newIndex = fields.length;
+    if (choice === 'entity') {
+      dispatch({ kind: 'addCustom', type: 'select' });
+      dispatch({ kind: 'setSource', index: newIndex, source: 'barrios' });
+    } else {
+      dispatch({ kind: 'addCustom', type: choice });
+    }
+    setActiveIndex(newIndex);
+  }
+
+  function addPredefined(key: string) {
+    const newIndex = fields.length;
+    dispatch({ kind: 'addPredefined', key });
+    setActiveIndex(newIndex);
+  }
 
   async function save() {
     setSaveError(null);
@@ -66,43 +86,77 @@ export function CensoSchemaEditor({ villageId }: { villageId: string }) {
   if (loading) return <Text className="p-4">{t('common.loading')}</Text>;
 
   return (
-    <VStack gap={3} className="p-4">
-      {fields.map((f, i) => (
-        <QuestionCard
-          key={f.key}
-          field={f}
-          index={i}
-          dispatch={dispatch as (a: EditorAction) => void}
-          locked={locked.has(f.key)}
-          error={errors[i]}
-        />
-      ))}
+    <ScrollView contentContainerClassName="p-4 pb-12">
+      <VStack gap={3}>
+        {/* Header card */}
+        <View className="bg-surface-elevated border border-subtle rounded-xl p-4 shadow-sm" style={{ borderTopColor: ACCENT, borderTopWidth: 4 }}>
+          <Text variant="h2">{t('censo.title')}</Text>
+          <Text tone="muted" variant="bodySm">{t('censo.builder.headerDescription')}</Text>
+        </View>
 
-      <Text variant="bodySm" tone="muted">{t('censo.builder.addQuestion')}</Text>
-      <QuestionTypePicker onPick={(type: FieldType) => dispatch({ kind: 'addCustom', type })} />
+        {fields.map((f, i) => (
+          <QuestionCard
+            key={i}
+            field={f}
+            index={i}
+            dispatch={dispatch as (a: EditorAction) => void}
+            locked={locked.has(f.key)}
+            error={errors[i]}
+            active={activeIndex === i}
+            onActivate={() => setActiveIndex(i)}
+            onMove={(dir) => {
+              dispatch({ kind: 'move', index: i, dir });
+              const j = i + dir;
+              if (j >= 0 && j < fields.length) setActiveIndex(j);
+            }}
+            onRemove={() => {
+              dispatch({ kind: 'remove', index: i });
+              setActiveIndex(null);
+            }}
+          />
+        ))}
 
-      {available.length > 0 && (
-        <>
-          <Text variant="bodySm" tone="muted">{t('censo.builder.addPredefined')}</Text>
-          <HStack gap={2} className="flex-wrap">
-            {available.map((d) => (
-              <Pressable
-                key={d.key}
-                onPress={() => dispatch({ kind: 'addPredefined', key: d.key })}
-                className="px-3 py-2 rounded-full border border-subtle bg-surface"
-              >
-                <Text>{d.defaultLabel}</Text>
-              </Pressable>
-            ))}
+        {/* Add a new question */}
+        <Pressable
+          onPress={() => setAddSheetOpen(true)}
+          className="border border-dashed border-subtle rounded-xl p-4"
+        >
+          <HStack gap={2} align="center" justify="center">
+            <Ionicons name="add-circle-outline" size={22} color={ACCENT} />
+            <Text style={{ color: ACCENT }} className="font-medium">{t('censo.builder.addQuestion')}</Text>
           </HStack>
-        </>
-      )}
+        </Pressable>
 
-      {saveError !== null && <Text tone="danger">{saveError}</Text>}
+        {/* Predefined quick-adds */}
+        {available.length > 0 && (
+          <VStack gap={2}>
+            <Text variant="bodySm" tone="muted">{t('censo.builder.addPredefined')}</Text>
+            <HStack gap={2} className="flex-wrap">
+              {available.map((d) => (
+                <Pressable
+                  key={d.key}
+                  onPress={() => addPredefined(d.key)}
+                  className="px-3 py-2 rounded-full border border-subtle bg-surface-elevated"
+                >
+                  <Text>{d.defaultLabel}</Text>
+                </Pressable>
+              ))}
+            </HStack>
+          </VStack>
+        )}
 
-      <Button onPress={save} loading={saving} disabled={Object.keys(errors).length > 0}>
-        {t('common.save')}
-      </Button>
-    </VStack>
+        {saveError !== null && <Text tone="danger">{saveError}</Text>}
+
+        <Button onPress={save} loading={saving} disabled={Object.keys(errors).length > 0}>
+          {t('common.save')}
+        </Button>
+      </VStack>
+
+      <QuestionTypeSheet
+        visible={addSheetOpen}
+        onPick={addQuestion}
+        onClose={() => setAddSheetOpen(false)}
+      />
+    </ScrollView>
   );
 }
