@@ -182,7 +182,7 @@ export default function ProfileScreen() {
           onPressAvatar={onChangePhoto}
         />
 
-        <View className="px-4">
+        <View className="px-4 pt-4 pb-1">
           <ProfileStatsRow
             stats={[
               { label: t('profile.stats.eventsCreated'), value: eventsCreated },
@@ -193,7 +193,7 @@ export default function ProfileScreen() {
         </View>
 
         {selfPerson ? (
-          <HStack gap={3} className="px-4 pt-2 pb-1">
+          <HStack gap={3} className="px-4 pt-2 pb-2">
             <Pressable
               onPress={() => router.push(`/person/${selfPerson.id}`)}
               accessibilityLabel={t('profile.actions.edit')}

@@ -4,7 +4,8 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, VStack, HStack, Pressable, Escudo, Button } from '../primitives';
 import { VillageInfoModal } from './VillageInfoModal';
-import { ACCENT, Stat, StatSeparator, Section, EntityCard } from './VillageSections';
+import { ACCENT, Section, EntityCard } from './VillageSections';
+import { StatsRow } from './StatsRow';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
@@ -149,7 +150,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
       <ScrollView contentContainerClassName="pb-10">
         {/* ── Header (escudo + name) ───────────────────────────── */}
         <VStack gap={2} className="px-4 pt-4">
-          <HStack gap={3} className="items-center">
+          <HStack gap={4} className="items-center">
             <View
               className={`bg-surface rounded-full overflow-hidden ${hasManualEscudo(village) ? '' : 'p-2'}`}
             >
@@ -162,7 +163,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
             </View>
             <VStack gap={0} className="flex-1">
               <HStack gap={2} className="items-center">
-                <Text variant="h1">{village.name}</Text>
+                <Text variant="h2" className="font-bold">{village.name}</Text>
                 <Pressable
                   onPress={() => setInfoOpen(true)}
                   accessibilityLabel={t('village.info.title')}
@@ -233,16 +234,18 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
         ) : null}
 
         {/* ── Stats ────────────────────────────────────────────── */}
-        <HStack className="items-center justify-center py-5">
-          <Stat value={peopleCount} label={t('village.admin.overview.people')} />
-          <StatSeparator />
-          <Stat value={penas.length} label={t('village.hub.penas')} />
-          <StatSeparator />
-          <Stat value={places.length} label={t('village.admin.hub.places')} />
-        </HStack>
+        <View className="px-4 pt-4 pb-1">
+          <StatsRow
+            stats={[
+              { label: t('village.admin.overview.people'), value: peopleCount },
+              { label: t('village.hub.penas'), value: penas.length },
+              { label: t('village.admin.hub.places'), value: places.length },
+            ]}
+          />
+        </View>
 
         {/* ── Invitar / Compartir (everyone) ───────────────────── */}
-        <HStack gap={3} className="px-4 pb-2">
+        <HStack gap={3} className="px-4 pt-2 pb-2">
           <Pressable
             onPress={() => void share(getVillageInviteLink(village.id), village.name)}
             accessibilityLabel={t('village.invite.title')}

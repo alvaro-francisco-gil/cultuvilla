@@ -57,7 +57,6 @@ export function VillagesScroll({
           sub={secondaryFor(item)}
           icon="map-outline"
           imageUri={item.escudoThumbUrl}
-          accent={item.municipalityId === activeId}
           onPress={() => onPressVillage(item.municipalityId)}
         />
       )}

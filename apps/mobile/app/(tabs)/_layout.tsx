@@ -27,6 +27,9 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        // Crossfade between tabs so the shared header/stats/buttons appear to
+        // stay put while only the content swaps (village ↔ profile share a layout).
+        animation: 'fade',
         tabBarActiveTintColor: '#bb5d3a',
         tabBarInactiveTintColor: '#a6a897',
         ...webTabBarOverrides,

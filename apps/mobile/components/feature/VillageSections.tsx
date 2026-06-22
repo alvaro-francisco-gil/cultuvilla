@@ -13,21 +13,6 @@ import { useT } from '../../lib/i18n';
 
 export const ACCENT = '#bb5d3a';
 
-export function Stat({ value, label }: { value: number; label: string }) {
-  return (
-    <VStack className="items-center px-5">
-      <Text variant="h2">{value}</Text>
-      <Text tone="muted" variant="bodySm">
-        {label}
-      </Text>
-    </VStack>
-  );
-}
-
-export function StatSeparator() {
-  return <View className="w-px h-8 bg-subtle" />;
-}
-
 export function Section({
   title,
   onManage,
