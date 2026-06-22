@@ -1,40 +1,54 @@
-import { Pressable, Text } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 export type FabProps = {
   onPress: () => void;
-  label?: string;
+  /** Text shown inside the pill (e.g. "Crear evento" / "Crear noticia"). */
+  label: string;
   testID?: string;
 };
 
 /**
- * Bottom-right floating action button. Positioning/visual styles live on
- * `style` (never `className`) so the button renders on the RN-Web build.
+ * Orange, horizontally-centered floating action button (ordago-style "create"
+ * pill). Pinned just above the bottom; the outer wrapper is `box-none` so it
+ * never blocks taps on the feed behind it. All visual styles live on `style`
+ * (never `className`) so the button renders on the RN-Web build.
  */
-export function Fab({ onPress, label = '+', testID }: FabProps) {
+export function Fab({ onPress, label, testID }: FabProps) {
   return (
-    <Pressable
-      onPress={onPress}
-      testID={testID}
-      accessibilityRole="button"
+    <View
+      pointerEvents="box-none"
       style={{
         position: 'absolute',
-        right: 20,
+        left: 0,
+        right: 0,
         bottom: 24,
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: '#1f6feb',
         alignItems: 'center',
-        justifyContent: 'center',
-        elevation: 4,
-        shadowColor: '#000',
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        shadowOffset: { width: 0, height: 2 },
         zIndex: 20,
       }}
     >
-      <Text style={{ color: '#fff', fontSize: 28, lineHeight: 30 }}>{label}</Text>
-    </Pressable>
+      <Pressable
+        onPress={onPress}
+        testID={testID}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: 52,
+          paddingHorizontal: 24,
+          borderRadius: 26,
+          backgroundColor: '#FB6514',
+          elevation: 6,
+          shadowColor: '#000',
+          shadowOpacity: 0.25,
+          shadowRadius: 6,
+          shadowOffset: { width: 0, height: 3 },
+        }}
+      >
+        <Text style={{ color: '#fff', fontSize: 24, lineHeight: 26, marginRight: 8 }}>+</Text>
+        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>{label}</Text>
+      </Pressable>
+    </View>
   );
 }
