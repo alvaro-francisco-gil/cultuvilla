@@ -20,7 +20,15 @@
   "hosting": {
     "public": "apps/mobile/dist",
     "ignore": ["firebase.json", "**/.DS_Store", "**/.gitkeep"],
-    "rewrites": [{ "source": "**", "destination": "/index.html" }],
+    "rewrites": [
+      { "source": "/event/*", "function": { "functionId": "ogRenderer", "region": "europe-west1" } },
+      { "source": "/news/*", "function": { "functionId": "ogRenderer", "region": "europe-west1" } },
+      { "source": "/village/*", "function": { "functionId": "ogRenderer", "region": "europe-west1" } },
+      { "source": "/village/*/join", "function": { "functionId": "ogRenderer", "region": "europe-west1" } },
+      { "source": "/o/*", "function": { "functionId": "ogRenderer", "region": "europe-west1" } },
+      { "source": "/o/*/join", "function": { "functionId": "ogRenderer", "region": "europe-west1" } },
+      { "source": "**", "destination": "/index.html" }
+    ],
     "headers": [
       {
         "source": "**",
