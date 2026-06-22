@@ -9,10 +9,10 @@ export interface StaticMapParams {
 
 function assertCoords(lat: number, lng: number): void {
   if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
-    throw new RangeError(`lat out of range: ${lat}`);
+    throw new RangeError(`lat out of range: ${String(lat)}`);
   }
   if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
-    throw new RangeError(`lng out of range: ${lng}`);
+    throw new RangeError(`lng out of range: ${String(lng)}`);
   }
 }
 
@@ -23,11 +23,11 @@ export function buildStaticMapUrl(p: StaticMapParams, apiKey: string): string {
   const w = p.w ?? 600;
   const h = p.h ?? 400;
   const scale = p.scale ?? 2;
-  const center = `${p.lat},${p.lng}`;
+  const center = `${String(p.lat)},${String(p.lng)}`;
   const q = new URLSearchParams({
     center,
     zoom: String(zoom),
-    size: `${w}x${h}`,
+    size: `${String(w)}x${String(h)}`,
     scale: String(scale),
     markers: `color:red|${center}`,
     key: apiKey,
@@ -38,7 +38,7 @@ export function buildStaticMapUrl(p: StaticMapParams, apiKey: string): string {
 function num(v: unknown): number | undefined {
   if (v === undefined || v === null || v === '') return undefined;
   const n = Number(v);
-  return Number.isNaN(n) ? Number.NaN : n;
+  return n;
 }
 
 /** Parses & validates raw query params. Throws RangeError if lat/lng missing or invalid. */

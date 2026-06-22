@@ -16,7 +16,8 @@ export function staticMapUrl(
   lng: number,
   opts: { zoom?: number; w?: number; h?: number; scale?: number } = {},
 ): string {
-  const projectId = getFirebaseApp().options.projectId ?? '';
+  const projectId = getFirebaseApp().options.projectId;
+  if (!projectId) throw new Error('staticMapUrl: Firebase projectId is not set');
   const base = `https://${STATIC_MAP_REGION}-${projectId}.cloudfunctions.net/staticMap`;
   const q = new URLSearchParams({ lat: String(lat), lng: String(lng) });
   if (opts.zoom !== undefined) q.set('zoom', String(opts.zoom));

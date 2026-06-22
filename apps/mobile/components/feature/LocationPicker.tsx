@@ -52,7 +52,7 @@ export function LocationPicker({ value, onChange }: { value: LatLng | null; onCh
       const pos = await Location.getCurrentPositionAsync({});
       dispatch({ type: 'gpsResult', coords: { lat: pos.coords.latitude, lng: pos.coords.longitude } });
     } catch {
-      showAlert(t('village.admin.community.locationSearchFailed'));
+      showAlert(t('village.admin.community.locationGpsFailed'));
     }
   }
 

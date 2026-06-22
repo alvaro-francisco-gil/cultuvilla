@@ -31,4 +31,12 @@ describe('parseStaticMapQuery', () => {
   it('throws RangeError when lat is missing', () => {
     expect(() => parseStaticMapQuery({ lng: '-3.7' })).toThrow(RangeError);
   });
+
+  it('throws RangeError when lng is missing', () => {
+    expect(() => parseStaticMapQuery({ lat: '40.4' })).toThrow(RangeError);
+  });
+
+  it('throws RangeError for out-of-range numeric value', () => {
+    expect(() => parseStaticMapQuery({ lat: '200', lng: '0' })).toThrow(RangeError);
+  });
 });
