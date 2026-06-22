@@ -6,7 +6,6 @@ import { Screen } from '../../components/primitives/Screen';
 import { VStack } from '../../components/primitives/VStack';
 import { HStack } from '../../components/primitives/HStack';
 import { Text } from '../../components/primitives/Text';
-import { Button } from '../../components/primitives/Button';
 import { Input } from '../../components/primitives/Input';
 import { LiveAvatar } from '../../components/feature/LiveAvatar';
 import { RegisterButton } from '../../components/feature/RegisterButton';
@@ -14,6 +13,7 @@ import { useEventOrganizer } from '../../lib/events/useEventOrganizer';
 import { DetailHeroImage } from '../../components/feature/DetailHeroImage';
 import { FloatingBackButton } from '../../components/feature/FloatingBackButton';
 import { FloatingShareButton } from '../../components/feature/FloatingShareButton';
+import { FloatingEditButton } from '../../components/feature/FloatingEditButton';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { getEvent } from '@cultuvilla/shared/services/eventService';
@@ -80,6 +80,12 @@ export default function EventDetailScreen() {
       />
       <FloatingBackButton />
       <FloatingShareButton onPress={() => void share(getEventLink(event.id), event.title)} />
+      {canOrganize && (
+        <FloatingEditButton
+          accessibilityLabel={t('event.editEvent')}
+          onPress={() => router.push(`/event/${event.id}/organize` as never)}
+        />
+      )}
       <VStack gap={4} className="p-4">
         <Text variant="h1">{event.title}</Text>
         <HStack gap={2} className="items-center">
@@ -93,12 +99,6 @@ export default function EventDetailScreen() {
         </HStack>
         <Text>{formatDate(event.startDate, 'long')}</Text>
         {event.description ? <Text>{event.description}</Text> : null}
-
-        {canOrganize && (
-          <Button variant="secondary" onPress={() => router.push(`/event/${event.id}/organize` as never)}>
-            {t('event.editEvent')}
-          </Button>
-        )}
 
         {person && !registered && event.telephoneRequired && (
           <Input
