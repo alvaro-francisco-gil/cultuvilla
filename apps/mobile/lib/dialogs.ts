@@ -16,6 +16,7 @@ export function showAlert(message: string, title?: string): void {
   if (title) {
     Alert.alert(title, message);
   } else {
+    // mobile-web-compat: native-only — web returns above via window.alert.
     Alert.alert(message);
   }
 }
