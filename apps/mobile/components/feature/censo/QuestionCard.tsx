@@ -3,8 +3,7 @@ import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Input, Toggle, Pressable, Text, VStack, HStack } from '../../primitives';
 import { OptionsEditor } from './OptionsEditor';
-import { EntitySourcePicker } from './EntitySourcePicker';
-import { QuestionTypeSheet, type BuilderTypeChoice } from './QuestionTypeSheet';
+import { QuestionTypeSheet, type SheetPick } from './QuestionTypeSheet';
 import { resolveFieldDisplay } from '@cultuvilla/shared/services/censoFieldResolver';
 import type { EditorAction } from './censoEditorReducer';
 import type { OptionsSource, ProfileFormField } from '@cultuvilla/shared/models/municipality/CensoTypes';
@@ -47,26 +46,26 @@ export function QuestionCard({
   const optionCount = field.source === 'custom' ? field.options?.length ?? 0 : 0;
 
   const title = r.label.trim() || t('censo.builder.untitledQuestion');
-  const typeLabel = isEntity ? t('censo.types.entity') : t(`censo.types.${r.type}`);
+  const typeLabel = isEntity
+    ? t(SOURCE_LABEL[r.optionsSource as OptionsSource])
+    : t(`censo.types.${r.type}`);
   const subline = isEntity
-    ? `${typeLabel} · ${t(SOURCE_LABEL[r.optionsSource as OptionsSource])}`
+    ? typeLabel
     : isChoice
       ? `${typeLabel} · ${t('censo.builder.optionsCount', { count: optionCount })}`
       : typeLabel;
 
-  // Translate a type-sheet pick into reducer actions. Picking a manual choice
-  // (select/multiselect) forces static options via setOptions (which clears any
-  // optionsSource); picking "entity" sets a village source; everything else is
-  // a plain type change.
-  function applyTypeChoice(choice: BuilderTypeChoice) {
-    if (choice === 'entity') {
+  // Translate a sheet pick into reducer actions. A generic choice type forces
+  // static options via setOptions (which clears any optionsSource); an entity
+  // pick ensures a choice type then sets the village source.
+  function applyPick(pick: SheetPick) {
+    if (pick.kind === 'entity') {
       if (!isChoice) dispatch({ kind: 'changeType', index, type: 'select' });
-      const current = field.source === 'custom' ? field.optionsSource : undefined;
-      dispatch({ kind: 'setSource', index, source: current ?? 'barrios' });
+      dispatch({ kind: 'setSource', index, source: pick.source });
       return;
     }
-    dispatch({ kind: 'changeType', index, type: choice });
-    if (choice === 'select' || choice === 'multiselect') {
+    dispatch({ kind: 'changeType', index, type: pick.type });
+    if (pick.type === 'select' || pick.type === 'multiselect') {
       const existing = field.source === 'custom' && field.optionsSource === undefined ? field.options ?? [] : [];
       dispatch({ kind: 'setOptions', index, options: existing });
     }
@@ -83,7 +82,11 @@ export function QuestionCard({
           <Text tone="muted">{index + 1}.</Text>
           <View className="flex-1">
             <Text variant="body" numberOfLines={1}>{title}</Text>
-            <Text variant="bodySm" tone="muted" numberOfLines={1}>{subline}</Text>
+            {error ? (
+              <Text variant="bodySm" tone="danger" numberOfLines={1}>{t(`censo.builder.${error}`)}</Text>
+            ) : (
+              <Text variant="bodySm" tone="muted" numberOfLines={1}>{subline}</Text>
+            )}
           </View>
           {r.required ? <Text style={{ color: ACCENT }}>*</Text> : null}
         </HStack>
@@ -126,34 +129,25 @@ export function QuestionCard({
 
         {/* Choice configuration */}
         {isCustom && isChoice && (
-          <VStack gap={2}>
-            {isEntity ? (
-              <>
-                <Text variant="bodySm" tone="muted">{t('censo.builder.source')}</Text>
-                <EntitySourcePicker
-                  value={field.source === 'custom' ? field.optionsSource : undefined}
-                  onPick={(s) => dispatch({ kind: 'setSource', index, source: s })}
-                />
-                {!locked && (
-                  <Toggle
-                    label={t('censo.builder.allowMultiple')}
-                    value={r.type === 'multiselect'}
-                    onValueChange={(multi) =>
-                      dispatch({ kind: 'changeType', index, type: multi ? 'multiselect' : 'select' })
-                    }
-                  />
-                )}
-              </>
-            ) : (
-              field.source === 'custom' && (
-                <OptionsEditor
-                  options={field.options ?? []}
-                  mode={r.type === 'multiselect' ? 'multi' : 'single'}
-                  onChange={(opts) => dispatch({ kind: 'setOptions', index, options: opts })}
-                />
-              )
-            )}
-          </VStack>
+          isEntity ? (
+            !locked && (
+              <Toggle
+                label={t('censo.builder.allowMultiple')}
+                value={r.type === 'multiselect'}
+                onValueChange={(multi) =>
+                  dispatch({ kind: 'changeType', index, type: multi ? 'multiselect' : 'select' })
+                }
+              />
+            )
+          ) : (
+            field.source === 'custom' && (
+              <OptionsEditor
+                options={field.options ?? []}
+                mode={r.type === 'multiselect' ? 'multi' : 'single'}
+                onChange={(opts) => dispatch({ kind: 'setOptions', index, options: opts })}
+              />
+            )
+          )
         )}
 
         {error ? <Text tone="danger">{t(`censo.builder.${error}`)}</Text> : null}
@@ -199,8 +193,8 @@ export function QuestionCard({
 
       <QuestionTypeSheet
         visible={sheetOpen}
-        current={isEntity ? 'entity' : r.type}
-        onPick={applyTypeChoice}
+        current={isEntity ? { kind: 'entity', source: r.optionsSource as OptionsSource } : { kind: 'type', type: r.type }}
+        onSelect={applyPick}
         onClose={() => setSheetOpen(false)}
       />
     </View>

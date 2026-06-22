@@ -7,10 +7,9 @@ import { getMunicipality } from '@cultuvilla/shared/services/municipalityService
 import { updateCensoSchema } from '@cultuvilla/shared/services/censoService';
 import { collectUsedValues } from '@cultuvilla/shared/services/membershipProfileService';
 import { getVillageMembers } from '@cultuvilla/shared/services/villageMemberService';
-import { listPredefinedFields } from '@cultuvilla/shared/models/municipality/profileFieldRegistry';
 import { censoEditorReducer, fieldErrors, type EditorAction } from './censo/censoEditorReducer';
 import { QuestionCard } from './censo/QuestionCard';
-import { QuestionTypeSheet, type BuilderTypeChoice } from './censo/QuestionTypeSheet';
+import { QuestionTypeSheet, type SheetPick } from './censo/QuestionTypeSheet';
 import { ACCENT } from './VillageSections';
 
 /**
@@ -49,23 +48,15 @@ export function CensoSchemaEditor({ villageId }: { villageId: string }) {
   }, [villageId]);
 
   const errors = fieldErrors(fields);
-  const present = new Set(fields.map((f) => f.key));
-  const available = listPredefinedFields().filter((d) => !present.has(d.key));
 
-  function addQuestion(choice: BuilderTypeChoice) {
+  function addQuestion(pick: SheetPick) {
     const newIndex = fields.length;
-    if (choice === 'entity') {
+    if (pick.kind === 'entity') {
       dispatch({ kind: 'addCustom', type: 'select' });
-      dispatch({ kind: 'setSource', index: newIndex, source: 'barrios' });
+      dispatch({ kind: 'setSource', index: newIndex, source: pick.source });
     } else {
-      dispatch({ kind: 'addCustom', type: choice });
+      dispatch({ kind: 'addCustom', type: pick.type });
     }
-    setActiveIndex(newIndex);
-  }
-
-  function addPredefined(key: string) {
-    const newIndex = fields.length;
-    dispatch({ kind: 'addPredefined', key });
     setActiveIndex(newIndex);
   }
 
@@ -126,24 +117,6 @@ export function CensoSchemaEditor({ villageId }: { villageId: string }) {
           </HStack>
         </Pressable>
 
-        {/* Predefined quick-adds */}
-        {available.length > 0 && (
-          <VStack gap={2}>
-            <Text variant="bodySm" tone="muted">{t('censo.builder.addPredefined')}</Text>
-            <HStack gap={2} className="flex-wrap">
-              {available.map((d) => (
-                <Pressable
-                  key={d.key}
-                  onPress={() => addPredefined(d.key)}
-                  className="px-3 py-2 rounded-full border border-subtle bg-surface-elevated"
-                >
-                  <Text>{d.defaultLabel}</Text>
-                </Pressable>
-              ))}
-            </HStack>
-          </VStack>
-        )}
-
         {saveError !== null && <Text tone="danger">{saveError}</Text>}
 
         <Button onPress={save} loading={saving} disabled={Object.keys(errors).length > 0}>
@@ -153,7 +126,7 @@ export function CensoSchemaEditor({ villageId }: { villageId: string }) {
 
       <QuestionTypeSheet
         visible={addSheetOpen}
-        onPick={addQuestion}
+        onSelect={addQuestion}
         onClose={() => setAddSheetOpen(false)}
       />
     </ScrollView>

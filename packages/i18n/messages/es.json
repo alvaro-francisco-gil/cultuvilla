@@ -244,7 +244,8 @@
           "church": "Iglesia",
           "hermitage": "Ermita",
           "plaza": "Plaza",
-          "town_hall": "Ayuntamiento"
+          "town_hall": "Ayuntamiento",
+          "otros": "Otros"
         }
       },
       "organizations": {
@@ -369,7 +370,8 @@
       "headerDescription": "Crea el cuestionario que responderán los vecinos.",
       "optionsManual": "Opciones manuales",
       "allowMultiple": "Permitir varias respuestas",
-      "optionsCount": "{count, plural, one {# opción} other {# opciones}}"
+      "optionsCount": "{count, plural, one {# opción} other {# opciones}}",
+      "elementsHeading": "Elementos del pueblo"
     }
   },
   "event": {
@@ -428,6 +430,7 @@
     "ayuntamiento": "Ayuntamiento",
     "peña": "Peña",
     "asociación": "Asociación",
+    "otros": "Otros",
     "requestOrg": "Solicitar organización",
     "pending": "Pendiente",
     "approved": "Aprobada",
