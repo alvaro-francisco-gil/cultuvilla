@@ -25,7 +25,7 @@ beforeEach(() => mockPush.mockClear());
 it('opens an active village detail on tap', async () => {
   const { getAllByText } = render(<VillageDiscovery />);
   await waitFor(() => expect(getAllByText('Anaya').length).toBeGreaterThan(0));
-  fireEvent.press(getAllByText('Anaya')[0]);
+  fireEvent.press(getAllByText('Anaya')[0]!);
   expect(mockPush).toHaveBeenCalledWith(
     expect.objectContaining({ pathname: '/village/[villageId]', params: { villageId: 'm1' } }),
   );
