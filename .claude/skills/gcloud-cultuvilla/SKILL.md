@@ -42,13 +42,58 @@ For beta/prod, add `--project=cultuvilla-beta` or `--project=cultuvilla-prod` ex
 - Dev deploys are fine ad-hoc — use the `firestore-deploy` skill.
 - Beta/prod deploys: defer to CI when it's wired up, or require explicit user confirmation. Don't run them silently.
 
+## Secret Manager
+
+Cultuvilla uses Secret Manager (enabled on `villa-events`). Cloud Functions read
+secrets via `defineSecret` from `firebase-functions/params`.
+
+### Secrets that exist
+
+| Secret | Env | Consumed by | Notes |
+|---|---|---|---|
+| `GOOGLE_MAPS_API_KEY` | dev (`villa-events`) | `staticMap`, `geocodeSearch` (`functions/src/maps/`) | A **restricted** Google Maps Platform key: API-target-restricted to Maps Static API + Geocoding API only. Server-side only — never shipped to clients. **Not yet created on beta/prod** — must be created per-project before those functions deploy there. |
+
+### How functions read it
+
+`functions/src/maps/secret.ts` declares `export const GOOGLE_MAPS_API_KEY = defineSecret('GOOGLE_MAPS_API_KEY')`. Each consuming function binds it in its options (`secrets: [GOOGLE_MAPS_API_KEY]`) and reads it at runtime with `GOOGLE_MAPS_API_KEY.value()`. On `firebase deploy`, the CLI auto-grants `roles/secretmanager.secretAccessor` on the secret to the functions runtime SA (`<project-number>-compute@developer.gserviceaccount.com`) — no manual IAM step.
+
+### Creating a Maps key + secret (the flow used for dev)
+
+API restriction (not app/referrer restriction) is the right protection here: the key lives only in Secret Manager and is used server-to-server by Cloud Functions, whose egress IPs are dynamic.
+
+```bash
+gcloud config configurations activate cultuvilla   # dev = villa-events
+gcloud services enable static-maps-backend.googleapis.com geocoding-backend.googleapis.com apikeys.googleapis.com --project=villa-events
+# Mint a key restricted to the two Maps APIs; capture ONLY the keyString to a 0600 temp file.
+TMP=$(mktemp); chmod 600 "$TMP"
+gcloud services api-keys create \
+  --display-name="cultuvilla maps dev (staticMap+geocode proxy)" \
+  --api-target=service=static-maps-backend.googleapis.com \
+  --api-target=service=geocoding-backend.googleapis.com \
+  --project=villa-events --format="value(response.keyString)" > "$TMP"
+# Store as the firebase-managed secret (value never echoed), then shred the file.
+bash scripts/firebase.sh functions:secrets:set GOOGLE_MAPS_API_KEY --data-file "$TMP" --project dev
+shred -u "$TMP"
+```
+
+For **beta/prod**, repeat with `--project=cultuvilla-beta` / `--project=cultuvilla-prod` and `--project beta` / `--project prod` on the firebase call. CI deploys the function code, but the secret must already exist in that project or the deploy fails.
+
+### Rotate
+
+```bash
+# add a new version (old versions stay until disabled/destroyed); functions pick up the latest on next deploy/cold-start
+printf '%s' "$NEW_KEY" | gcloud secrets versions add GOOGLE_MAPS_API_KEY --data-file=- --project=villa-events
+```
+
+Prefer `firebase functions:secrets:set GOOGLE_MAPS_API_KEY --data-file <file>` when rotating a firebase-managed secret, so the CLI re-binds versions on deploy.
+
+### Rules
+
+- **Never** `gcloud secrets versions access` (or otherwise print) a secret value — it pollutes shell history and logs. Read length / metadata only when verifying.
+- When piping a key into a secret, write it to a `chmod 600` temp file and `shred -u` it; never pass the value as a command-line argument.
+
 ## TODO — fill in when the matching infrastructure lands
 
-- [ ] **Secret Manager.** Cultuvilla does not currently use Secret Manager. When secrets are introduced (e.g. for the future mobile app, Stripe, or first-party observability), add a section here covering:
-  - Which secrets exist in which env.
-  - How Cloud Functions read them via `defineSecret`.
-  - The rotate command (`gcloud secrets versions add <name> --data-file=- --project=<project>`).
-  - The "never `secrets versions access` the value" rule (don't pollute shell history).
 - [ ] **Observability salt.** If/when an observability event pipeline is added, document the per-env `OBSERVABILITY_USER_ID_SALT` (or equivalent) and the rotation policy — see the analogous ordago section as a template.
 - [ ] **IAM grants for service accounts.** No bespoke service accounts beyond default Firebase ones today. When custom ones are introduced, list the role grants and the `gcloud projects add-iam-policy-binding` invocation per env.
 - [ ] **BigQuery dataset(s) for analytics.** None today; document if added.
