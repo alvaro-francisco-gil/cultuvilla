@@ -15,7 +15,7 @@ import { useT } from '../../lib/i18n';
 export function FloatingBackButton({ onBack }: { onBack?: () => void }) {
   const insets = useSafeAreaInsets();
   const { t } = useT();
-  const handleBack = onBack ?? (() => router.back());
+  const handleBack = onBack ?? (() => (router.canGoBack() ? router.back() : router.replace('/(tabs)')));
   return (
     <View
       style={{
