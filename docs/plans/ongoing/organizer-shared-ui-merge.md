@@ -11,7 +11,8 @@
 ## Status
 
 - **Updated:** 2026-06-22
-- **Stage:** ALL 8 phases implemented on the branch. Not yet deployed to dev or merged. Rules for places/barrios + events still need `firestore-deploy` to dev; the two event callables (`addWalkInRegistration`, plus the extended `registerToEvent`) need a functions deploy.
+- **Stage:** ALL 8 phases implemented and **MERGED to `main`** (`86c0c2e`), after reconciling two rounds of main divergence (~35 commits incl. the pueblo-tab redesign, join-flow retirement, and barrio/place detail screens). **NOT yet deployed to dev** — `pnpm deploy:rules:dev` / `deploy:functions:dev` are blocked in this environment (no `.firebase-account`; `firebase login:add` is interactive). The operator must run the deploys (see below). Reconciliation decisions: card-tap → main's detail screens; the section "+ Proponer"/"Gestionar" affordances → the shared propose/manage screens; kept main's `getOrgMemberCount` (getCountFromServer), `getBarrio`/`getPlace` getters, and redesigned village tab/tests.
+- **Deploy (operator action required):** `echo '<dev-account-email>' > .firebase-account && firebase login:add` (once), then `pnpm deploy:rules:dev` and `pnpm deploy:functions:dev`. Rules add place/barrio proposal gating, `isEventOrganizer`, and the `registrationContacts` subcollection; functions add `addWalkInRegistration` + the extended `registerToEvent`.
 - **Final verification (all green):** shared unit 385, mobile 114, rules e2e 149, functions 81; shared/functions/mobile/i18n typecheck clean; `pnpm lint` clean.
 - **Events decisions (per user):** built everything at once — no v1/v2 defer. Phones live in an organizer-only `events/{id}/registrationContacts/{regId}` subcollection (written by callables, read-gated by `isEventOrganizer`). Walk-ins are organizer-created registrations with empty `userId`/`personId` via the `addWalkInRegistration` callable. `draft` status dropped (legacy coerces to `published` on read via `z.preprocess`).
 - **Phase 3 note:** `OrganizationsManager` added (villager proposes peña/asociación → pending; organizer auto-approves via `requestOrganization`+`approveOrganization`). Org rules forbid member edit/withdraw, so proposers get no such affordance. Member-level `/village/[id]/organizations` now the shared manager; `/admin/organizations` is a wrapper. Tab routes everyone to the shared screen. **Pending-visibility (final, unified across all propose-pending domains):** approved items are public; a pending item is visible only to its **proposer** and to **organizers**; rejected items are hidden from lists. Implemented as one shared UI filter `apps/mobile/lib/proposals.ts#isProposalVisible(status, ownerId, {canManage, uid})`, applied in `PlacesManager`/`BarriosManager`/`OrganizationsManager` and the village tab. This is UI filtering only — data isn't sensitive (rules allow public reads); the point is not to flood the community with unreviewed content while letting proposers track their own.
@@ -26,14 +27,14 @@
 
 | # | Phase | Code | Tests | Rules→dev | Merged |
 |---|---|---|---|---|---|
-| 1 | Places & Barrios — backend (model/rules/service) | ✅ | ✅ | ⬜ | ⬜ |
-| 2 | Capability hook + propose-pending UI + merge Places/Barrios screens | ✅ | ✅ | — | ⬜ |
-| 3 | Organizations adopt the shared primitives | ✅ | ✅ | — | ⬜ |
-| 4 | Census role-mode merge (author vs answer) | ✅ | ✅ | — | ⬜ |
-| 5 | Community-header role-mode merge (edit vs view) | ✅ | ✅ | — | ⬜ |
-| 6 | Events v1 — shared detail + organize console (edit/cancel/roster/delete) | ✅ | ✅ | ⬜ | ⬜ |
-| 7 | Events v2 — check-in, walk-in, organizer-gated phones | ✅ | ✅ | ⬜ | ⬜ |
-| 8 | Delete the village `/admin/` route group | ✅ | ✅ | — | ⬜ |
+| 1 | Places & Barrios — backend (model/rules/service) | ✅ | ✅ | ⬜ | ✅ |
+| 2 | Capability hook + propose-pending UI + merge Places/Barrios screens | ✅ | ✅ | — | ✅ |
+| 3 | Organizations adopt the shared primitives | ✅ | ✅ | — | ✅ |
+| 4 | Census role-mode merge (author vs answer) | ✅ | ✅ | — | ✅ |
+| 5 | Community-header role-mode merge (edit vs view) | ✅ | ✅ | — | ✅ |
+| 6 | Events v1 — shared detail + organize console (edit/cancel/roster/delete) | ✅ | ✅ | ⬜ | ✅ |
+| 7 | Events v2 — check-in, walk-in, organizer-gated phones | ✅ | ✅ | ⬜ | ✅ |
+| 8 | Delete the village `/admin/` route group | ✅ | ✅ | — | ✅ |
 
 Legend: ⬜ pending · ✅ done · — n/a
 
