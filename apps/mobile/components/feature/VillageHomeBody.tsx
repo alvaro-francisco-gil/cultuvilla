@@ -234,7 +234,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
         ) : null}
 
         {/* ── Stats ────────────────────────────────────────────── */}
-        <View className="px-4 pt-4 pb-1">
+        <View className="px-4 pt-4 pb-4">
           <StatsRow
             stats={[
               { label: t('village.admin.overview.people'), value: peopleCount },

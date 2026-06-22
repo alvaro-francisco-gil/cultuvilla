@@ -191,7 +191,7 @@ export default function ProfileScreen() {
           onPressAvatar={onChangePhoto}
         />
 
-        <View className="px-4 pt-4 pb-1">
+        <View className="px-4 pt-4 pb-4">
           <ProfileStatsRow
             stats={[
               { label: t('profile.stats.eventsCreated'), value: eventsCreated },
