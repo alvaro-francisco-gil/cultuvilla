@@ -178,6 +178,11 @@ vi.mock('firebase/firestore', () => {
     return { docs };
   }
 
+  async function getCountFromServer(q: { _col: string; _constraints: unknown[] }) {
+    const { docs } = await getDocs(q);
+    return { data: () => ({ count: docs.length }) };
+  }
+
   return {
     collection,
     doc,
@@ -187,6 +192,7 @@ vi.mock('firebase/firestore', () => {
     deleteDoc,
     query,
     getDocs,
+    getCountFromServer,
     where,
     orderBy,
     limit,
@@ -201,6 +207,7 @@ import {
   createNewsPost,
   getNewsPost,
   getNewsPostsByMunicipality,
+  getNewsCountByCreator,
   updateNewsPost,
   reactToPost,
   removeReaction,
@@ -298,6 +305,16 @@ describe('newsService — Task 4: CRUD', () => {
     const approved = await getNewsPostsByMunicipality('m1', { status: 'approved' });
     expect(approved.length).toBe(1);
     expect(approved[0].id).toBe(id);
+  });
+
+  it('getNewsCountByCreator counts only the given author\'s posts', async () => {
+    await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'A', body: 'B', category: 'fiesta' });
+    await createNewsPost({ municipalityId: 'm2', authorUserId: 'u1', title: 'C', body: 'D', category: 'otro' });
+    await createNewsPost({ municipalityId: 'm1', authorUserId: 'u2', title: 'E', body: 'F', category: 'historia' });
+
+    expect(await getNewsCountByCreator('u1')).toBe(2);
+    expect(await getNewsCountByCreator('u2')).toBe(1);
+    expect(await getNewsCountByCreator('nobody')).toBe(0);
   });
 
   it('updateNewsPost updates allowed fields', async () => {

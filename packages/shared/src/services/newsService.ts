@@ -2,6 +2,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  getCountFromServer,
   setDoc,
   updateDoc,
   deleteDoc,
@@ -115,6 +116,12 @@ export async function getNewsPostsByMunicipality(
   const q = query(newsCollection(getDb()), ...constraints);
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export async function getNewsCountByCreator(userId: string): Promise<number> {
+  const q = query(newsCollection(getDb()), where('createdBy', '==', userId));
+  const snap = await getCountFromServer(q);
+  return snap.data().count;
 }
 
 export async function updateNewsPost(id: string, patch: UpdateNewsPostInput): Promise<void> {

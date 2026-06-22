@@ -22,6 +22,7 @@ import {
 } from '@cultuvilla/shared/services/personService';
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
 import { getEventsByCreator } from '@cultuvilla/shared/services/eventService';
+import { getNewsCountByCreator } from '@cultuvilla/shared/services/newsService';
 import { getPersonViewLink } from '@cultuvilla/shared/services/deepLinkService';
 import { buildDisplayName } from '@cultuvilla/shared/models/person';
 import {
@@ -50,6 +51,7 @@ export default function ProfileScreen() {
   const [eventsCreated, setEventsCreated] = useState<number | null>(null);
   const [managedEvents, setManagedEvents] = useState<ManagedEvent[]>([]);
   const [participations, setParticipations] = useState<number | null>(null);
+  const [newsCount, setNewsCount] = useState<number | null>(null);
   const [orgs, setOrgs] = useState<OrgListItem[]>([]);
   const [villages, setVillages] = useState<VillageRow[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -68,18 +70,22 @@ export default function ProfileScreen() {
       setSelfPerson(self);
       setAllPersonas(mine);
 
-      const [myEvents, regs] = await Promise.all([
+      const [myEvents, regs, news] = await Promise.all([
         withFirestoreErrorLog('profile:getEventsByCreator', () =>
           getEventsByCreator(user.uid),
         ),
         withFirestoreErrorLog('profile:getUserRegistrationsAcrossEvents', () =>
           getUserRegistrationsAcrossEvents(user.uid),
         ),
+        withFirestoreErrorLog('profile:getNewsCountByCreator', () =>
+          getNewsCountByCreator(user.uid),
+        ),
       ]);
       setManagedEvents(myEvents);
       setEventsCreated(myEvents.length);
       const distinctEvents = new Set(regs.map((r) => r.eventPath));
       setParticipations(distinctEvents.size);
+      setNewsCount(news);
 
       const villageMemberships = await withFirestoreErrorLog('profile:getUserMemberships', () =>
         getUserMemberships(user.uid),
@@ -190,7 +196,7 @@ export default function ProfileScreen() {
             stats={[
               { label: t('profile.stats.eventsCreated'), value: eventsCreated },
               { label: t('profile.stats.participations'), value: participations },
-              { label: t('profile.stats.personas'), value: allPersonas.length },
+              { label: t('profile.stats.news'), value: newsCount },
             ]}
           />
         </View>

@@ -425,7 +425,8 @@
     "stats": {
       "eventsCreated": "Eventos",
       "participations": "Participación",
-      "personas": "Personas"
+      "personas": "Personas",
+      "news": "Noticias"
     },
     "actions": {
       "edit": "Editar perfil",

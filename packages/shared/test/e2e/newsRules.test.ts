@@ -262,6 +262,14 @@ describe('firestore.rules — /news read', () => {
     const alice = env.authenticatedContext('alice').firestore();
     await assertSucceeds(getDoc(doc(alice, 'news/p1')));
   });
+
+  it('R5: author can read own pending post even without village membership', async () => {
+    // Powers the profile-screen news count (getNewsCountByCreator), which lists
+    // the author's own posts regardless of status/membership.
+    await seedPost('p1', 'm1', 'alice', { status: 'pending' });
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(getDoc(doc(alice, 'news/p1')));
+  });
 });
 
 // ── newsComments rules ────────────────────────────────────────────────────────

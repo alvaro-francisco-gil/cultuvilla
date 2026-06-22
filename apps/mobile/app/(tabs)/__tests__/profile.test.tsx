@@ -34,6 +34,9 @@ jest.mock('@cultuvilla/shared/services/imageService', () => ({
 jest.mock('@cultuvilla/shared/services/eventService', () => ({
   getEventsByCreator: jest.fn().mockResolvedValue([]),
 }));
+jest.mock('@cultuvilla/shared/services/newsService', () => ({
+  getNewsCountByCreator: jest.fn().mockResolvedValue(0),
+}));
 jest.mock('@cultuvilla/shared/services/registrationService', () => ({
   getUserRegistrationsAcrossEvents: jest.fn().mockResolvedValue([]),
 }));
