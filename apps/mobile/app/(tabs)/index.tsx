@@ -17,6 +17,7 @@ import { Screen } from '../../components/primitives/Screen';
 import { Text } from '../../components/primitives/Text';
 import { Button } from '../../components/primitives/Button';
 import { Pressable } from '../../components/primitives/Pressable';
+import { Fab } from '../../components/primitives/Fab';
 import { EventCard } from '../../components/feature/EventCard';
 import { NewsCard } from '../../components/feature/NewsCard';
 import { SegmentedToggle } from '../../components/feature/SegmentedToggle';
@@ -550,6 +551,11 @@ export default function FeedScreen() {
         onSelect={(v) => setSortByProximity(v === 'proximity')}
         onClose={() => setActiveSheet(null)}
         allLabel={t('feed.filter.sortDate')}
+      />
+
+      <Fab
+        testID="create-fab"
+        onPress={() => router.push(activeTab === 'noticias' ? '/news/new' : '/event/new')}
       />
     </Screen>
   );
