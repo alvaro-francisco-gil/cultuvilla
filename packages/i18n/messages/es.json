@@ -114,6 +114,16 @@
       "create": "Crear evento"
     }
   },
+  "guest": {
+    "title": "Únete a Cultuvilla",
+    "village": "Regístrate para ver tu pueblo.",
+    "profile": "Regístrate para crear tu perfil.",
+    "event": "Regístrate para apuntarte a este evento.",
+    "org": "Regístrate para unirte a esta organización.",
+    "eventCta": "Apuntarme",
+    "register": "Registrarse",
+    "dismiss": "Ahora no"
+  },
   "header": {
     "noVillage": "Cultuvilla",
     "brand": "Cultuvilla",
