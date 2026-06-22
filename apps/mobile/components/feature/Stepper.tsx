@@ -1,0 +1,81 @@
+// apps/mobile/components/feature/Stepper.tsx
+import { useState, type ReactNode } from 'react';
+import { View } from 'react-native';
+import { Button, HStack, Text } from '../primitives';
+import { useT } from '../../lib/i18n';
+import { StepIndicator } from './StepIndicator';
+
+export interface StepConfig {
+  key: string;
+  title: string;
+  render: () => ReactNode;
+  validate?: () => string[];
+}
+
+export interface StepperProps {
+  steps: StepConfig[];
+  onComplete: () => void | Promise<void>;
+  submitLabel: string;
+  loading?: boolean;
+  submitError?: string | null;
+}
+
+export function Stepper({ steps, onComplete, submitLabel, loading = false, submitError }: StepperProps) {
+  const { t } = useT();
+  const [current, setCurrent] = useState(0);
+  const [highestReached, setHighestReached] = useState(0);
+
+  const step = steps[current];
+  const isLast = current === steps.length - 1;
+  const stepValid = (step.validate?.() ?? []).length === 0;
+
+  function goTo(index: number) {
+    if (index <= current) {
+      setCurrent(index); // back nav never validates
+      return;
+    }
+    if (index <= highestReached && stepValid) setCurrent(index);
+  }
+
+  function handleNext() {
+    if (!stepValid) return;
+    const next = current + 1;
+    setCurrent(next);
+    setHighestReached((h) => Math.max(h, next));
+  }
+
+  return (
+    <View className="flex-1">
+      <StepIndicator
+        count={steps.length}
+        current={current}
+        highestReached={highestReached}
+        onStepPress={goTo}
+      />
+      <View className="flex-1">
+        <Text variant="h3" className="px-4 pb-2">{step.title}</Text>
+        {step.render()}
+      </View>
+      {submitError ? <Text tone="danger" className="px-4 pb-2">{submitError}</Text> : null}
+      <HStack gap={3} className="px-4 py-3">
+        <View className="flex-1">
+          {current > 0 ? (
+            <Button variant="ghost" onPress={() => setCurrent(current - 1)} disabled={loading} fullWidth>
+              {t('common.stepper.back')}
+            </Button>
+          ) : null}
+        </View>
+        <View className="flex-1">
+          <Button
+            onPress={() => { if (isLast) void onComplete(); else handleNext(); }}
+            loading={loading}
+            disabled={!stepValid}
+            fullWidth
+          >
+            {isLast ? submitLabel : t('common.stepper.next')}
+          </Button>
+        </View>
+      </HStack>
+    </View>
+  );
+}
