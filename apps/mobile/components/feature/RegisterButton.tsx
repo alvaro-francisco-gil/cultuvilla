@@ -8,6 +8,10 @@ export interface RegisterButtonProps {
   eventId: string;
   personId: string;
   name: string;
+  /** Passed through when the event requires a phone; stored organizer-only. */
+  phone?: string;
+  /** Block registration until a required phone is provided. */
+  disabled?: boolean;
   onRegistered: () => void;
 }
 
@@ -19,14 +23,14 @@ export interface RegisterButtonProps {
  * registerToEvent(eventId, registrants) — `registrants` is RegisterInput[]:
  *   { personId: string; name: string }
  */
-export function RegisterButton({ eventId, personId, name, onRegistered }: RegisterButtonProps) {
+export function RegisterButton({ eventId, personId, name, phone, disabled, onRegistered }: RegisterButtonProps) {
   const { t } = useT();
   const [loading, setLoading] = useState(false);
 
   async function handlePress() {
     setLoading(true);
     try {
-      await registerToEvent(eventId, [{ personId, name }]);
+      await registerToEvent(eventId, [{ personId, name, ...(phone ? { phone } : {}) }]);
       onRegistered();
     } catch (e) {
       // mobile-web-compat: native-only — TODO: convert to web-aware showAlert when web users can register
@@ -37,7 +41,7 @@ export function RegisterButton({ eventId, personId, name, onRegistered }: Regist
   }
 
   return (
-    <Button onPress={handlePress} loading={loading} fullWidth>
+    <Button onPress={handlePress} loading={loading} disabled={disabled} fullWidth>
       {t('event.register.cta')}
     </Button>
   );

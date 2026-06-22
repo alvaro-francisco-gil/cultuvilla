@@ -125,7 +125,7 @@ export default function NewEventScreen() {
         location: buildLocationData({ type: 'text', text: locationText.trim() || null }),
         maxAttendees: maxAttendees.trim() ? Number(maxAttendees) : null,
         telephoneRequired,
-        status: 'draft',
+        status: 'published',
         organizationId: selectedOrg.id,
         organizationName: selectedOrg.name,
         createdBy: user.uid,
