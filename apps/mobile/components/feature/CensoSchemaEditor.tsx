@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useState } from 'react';
-import { Alert, ScrollView, View } from 'react-native';
+import { Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { VStack, HStack, Text, Button, Pressable } from '../primitives';
 import { useT } from '../../lib/i18n';
@@ -88,11 +88,10 @@ export function CensoSchemaEditor({ villageId }: { villageId: string }) {
   return (
     <ScrollView contentContainerClassName="p-4 pb-12">
       <VStack gap={3}>
-        {/* Header card */}
-        <View className="bg-surface-elevated border border-subtle rounded-xl p-4 shadow-sm" style={{ borderTopColor: ACCENT, borderTopWidth: 4 }}>
-          <Text variant="h2">{t('censo.title')}</Text>
-          <Text tone="muted" variant="bodySm">{t('censo.builder.headerDescription')}</Text>
-        </View>
+        {/* Intro line above the first card */}
+        <Text tone="muted" variant="bodySm" className="px-1">
+          {t('censo.builder.headerDescription')}
+        </Text>
 
         {fields.map((f, i) => (
           <QuestionCard
