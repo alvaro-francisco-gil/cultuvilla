@@ -18,8 +18,8 @@ export const EventDataSchema = z.object({
   // Migrate legacy `draft` → `published` on read; genuinely invalid values
   // still fail enum validation (preprocess only rewrites the dropped value).
   status: z.preprocess((v) => (v === 'draft' ? 'published' : v), EventStatusSchema),
-  organizationId: z.string(),
-  organizationName: z.string(),
+  organizationId: z.string().nullable(),
+  organizationName: z.string().nullable(),
   createdBy: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -42,8 +42,8 @@ export interface EventDataInput {
   maxAttendees?: number | null;
   telephoneRequired?: boolean;
   status?: EventStatus;
-  organizationId: string;
-  organizationName: string;
+  organizationId: string | null;
+  organizationName: string | null;
   createdBy: string;
   createdAt?: Date;
   updatedAt?: Date;

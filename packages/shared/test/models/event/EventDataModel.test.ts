@@ -6,6 +6,32 @@ import {
   isEventSignupOpen,
   isEventOngoing,
 } from '../../../src/models/event/EventDataModel';
+import { buildLocationData } from '../../../src/models/core/LocationDataModel';
+
+describe('EventDataModel — org-less events', () => {
+  const base = {
+    title: 'Fiesta', description: 'desc', startDate: new Date('2026-07-01'),
+    location: buildLocationData({ type: 'text', text: null }),
+    createdBy: 'u1', municipalityId: 'm1', municipalityName: 'Villa',
+    municipalityCoordinates: null,
+  };
+
+  it('buildEventData keeps a null organizationId/Name', () => {
+    const e = buildEventData({ ...base, organizationId: null, organizationName: null });
+    expect(e.organizationId).toBeNull();
+    expect(e.organizationName).toBeNull();
+  });
+
+  it('EventDataSchema accepts null org fields', () => {
+    const e = buildEventData({ ...base, organizationId: null, organizationName: null });
+    expect(() => EventDataSchema.parse(e)).not.toThrow();
+  });
+
+  it('EventDataSchema still accepts a string organizationId', () => {
+    const e = buildEventData({ ...base, organizationId: 'org1', organizationName: 'Peña' });
+    expect(EventDataSchema.parse(e).organizationId).toBe('org1');
+  });
+});
 
 const validEvent = {
   title: 'Fiesta',
