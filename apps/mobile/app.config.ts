@@ -106,6 +106,10 @@ const config: ExpoConfig = {
     bundleIdentifier: bundleIdPerEnv[env],
     supportsTablet: true,
     associatedDomains: [`applinks:${deepLinkHostPerEnv[env]}`],
+    infoPlist: {
+      NSLocationWhenInUseUsageDescription:
+        'Cultuvilla usa tu ubicación para fijar la del pueblo en el mapa.',
+    },
   },
   android: {
     package: bundleIdPerEnv[env],
@@ -160,6 +164,13 @@ const config: ExpoConfig = {
         ]
       : []),
     '@react-native-community/datetimepicker',
+    [
+      'expo-location',
+      {
+        locationWhenInUsePermission:
+          'Cultuvilla usa tu ubicación para fijar la del pueblo en el mapa.',
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,

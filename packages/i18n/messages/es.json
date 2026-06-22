@@ -193,7 +193,8 @@
       "empty": "No hay eventos próximos"
     },
     "info": {
-      "title": "Información sobre el pueblo"
+      "title": "Información sobre el pueblo",
+      "directions": "Cómo llegar"
     },
     "organizations": "Organizaciones",
     "members": "Miembros",
@@ -255,11 +256,14 @@
         "images": "Imágenes",
         "addImage": "Añadir imagen",
         "escudo": "Escudo",
-        "coordinates": "Coordenadas",
-        "latitude": "Latitud",
-        "longitude": "Longitud",
-        "invalidCoordinates": "Coordenadas no válidas",
-        "saved": "Guardado"
+        "saved": "Guardado",
+        "location": "Ubicación",
+        "locationSearchPlaceholder": "Busca el pueblo o una dirección",
+        "useMyLocation": "Usar mi ubicación actual",
+        "removeLocation": "Quitar ubicación",
+        "locationPermissionDenied": "Necesitamos permiso de ubicación para usar el GPS.",
+        "locationSearchFailed": "No se pudo buscar la ubicación. Inténtalo de nuevo.",
+        "locationGpsFailed": "No se pudo obtener tu ubicación. Inténtalo de nuevo."
       },
       "overview": {
         "manage": "Gestionar",
