@@ -19,12 +19,16 @@ export const PredefinedProfileFormFieldSchema = z.object({
 });
 export type PredefinedProfileFormField = z.infer<typeof PredefinedProfileFormFieldSchema>;
 
+export const OptionsSourceSchema = z.enum(['barrios', 'places', 'organizations']);
+export type OptionsSource = z.infer<typeof OptionsSourceSchema>;
+
 export const CustomProfileFormFieldSchema = z.object({
   source: z.literal('custom'),
   key: z.string(),
   label: z.string(),
   type: FieldTypeSchema,
   options: z.array(z.string()).optional(),
+  optionsSource: OptionsSourceSchema.optional(),
   required: z.boolean(),
 });
 export type CustomProfileFormField = z.infer<typeof CustomProfileFormFieldSchema>;
