@@ -1,5 +1,14 @@
 import { useMemo } from 'react';
-import { getDb, useFirestoreDoc } from '@cultuvilla/shared';
+// Import from the same subpaths the rest of the app uses, NOT the bare
+// `@cultuvilla/shared` entry. `.` is the only subpath in the package's
+// `exports` map, so Metro resolves it via package-exports while every other
+// import resolves via legacy fallback — and the two strategies don't dedupe the
+// shared `firebaseApp` module. Importing `getDb` from `.` would hand back a
+// second, uninitialised Firebase singleton (state === null) even though
+// bootstrapFirebase() initialised the legacy-resolved one. See
+// docs/architecture/live-references.md.
+import { getDb } from '@cultuvilla/shared/firebase';
+import { useFirestoreDoc } from '@cultuvilla/shared/hooks';
 import { userDoc, personDoc, organizationDoc } from '@cultuvilla/shared/firebase/refs/client';
 import { buildDisplayName } from '@cultuvilla/shared/models/person/PersonDataModel';
 

@@ -1,10 +1,12 @@
 import { render } from '@testing-library/react-native';
 import { LiveAvatar } from '../LiveAvatar';
-import { useFirestoreDoc } from '@cultuvilla/shared';
+import { useFirestoreDoc } from '@cultuvilla/shared/hooks';
 import { userDoc, personDoc, organizationDoc } from '@cultuvilla/shared/firebase/refs/client';
 
-jest.mock('@cultuvilla/shared', () => ({
+jest.mock('@cultuvilla/shared/firebase', () => ({
   getDb: jest.fn(() => ({})),
+}));
+jest.mock('@cultuvilla/shared/hooks', () => ({
   useFirestoreDoc: jest.fn(),
 }));
 jest.mock('@cultuvilla/shared/firebase/refs/client', () => ({
