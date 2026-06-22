@@ -14,6 +14,7 @@ import {
   SettingsLink,
 } from '../../components/feature/VillageSections';
 import { useAuth } from '../../lib/auth/useAuth';
+import { isProposalVisible } from '../../lib/proposals';
 import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { useT } from '../../lib/i18n';
@@ -115,14 +116,12 @@ export default function VillageTabScreen() {
 
       const canManageNow = isAppAdmin || isAdmin;
 
-      // Admins see every organization (incl. pending moderation); villagers
-      // only see approved ones. Pending join requests are admin-only per rules.
+      // Load all org statuses; isProposalVisible() filters the display so a
+      // villager sees approved orgs + their own pending, organizers see all.
+      // Pending join requests remain admin-only per rules.
       const [orgs, requests] = await Promise.all([
         withFirestoreErrorLog('village:getOrganizations', () =>
-          getOrganizationsByMunicipality(
-            activeMunicipalityId,
-            canManageNow ? undefined : 'approved',
-          ),
+          getOrganizationsByMunicipality(activeMunicipalityId),
         ),
         canManageNow && user
           ? withFirestoreErrorLog('village:getJoinRequests', () =>
@@ -286,9 +285,16 @@ export default function VillageTabScreen() {
   const cover = village.community?.coverImages?.[0] ?? null;
   const description = village.community?.description?.trim();
 
+  // Propose-pending visibility: villagers see approved items + their own
+  // pending ones; organizers see all. Applied to barrios, places, and orgs.
+  const caps = { canManage, uid: user?.uid ?? null };
+  const visibleBarrios = barrios.filter((b) => isProposalVisible(b.status, b.proposedBy, caps));
+  const visiblePlaces = places.filter((p) => isProposalVisible(p.status, p.proposedBy, caps));
+  const visibleOrgs = organizations.filter((o) => isProposalVisible(o.status, o.requestedBy, caps));
+
   // "Agrupaciones" groups ayuntamiento + asociación; peñas get their own scroll.
-  const penas = organizations.filter((o) => o.type === 'peña');
-  const agrupaciones = organizations.filter((o) => o.type !== 'peña');
+  const penas = visibleOrgs.filter((o) => o.type === 'peña');
+  const agrupaciones = visibleOrgs.filter((o) => o.type !== 'peña');
 
   return (
     <Screen padded={false} topInset={false} bottomInset={false}>
@@ -429,12 +435,12 @@ export default function VillageTabScreen() {
         <Section
           title={t('village.admin.hub.barrios')}
           onManage={() => router.push(`${villageBase}/barrios` as never)}
-          isEmpty={barrios.length === 0}
+          isEmpty={visibleBarrios.length === 0}
           emptyLabel={t('village.admin.barrios.empty')}
           addLabel={canManage ? t('village.admin.barrios.add') : t('village.proposals.propose')}
           onAdd={() => router.push(`${villageBase}/barrios` as never)}
         >
-          {barrios.map((b) => (
+          {visibleBarrios.map((b) => (
             <EntityCard
               key={b.id}
               label={b.name}
@@ -450,12 +456,12 @@ export default function VillageTabScreen() {
         <Section
           title={t('village.admin.hub.places')}
           onManage={() => router.push(`${villageBase}/places` as never)}
-          isEmpty={places.length === 0}
+          isEmpty={visiblePlaces.length === 0}
           emptyLabel={t('village.admin.places.empty')}
           addLabel={canManage ? t('village.admin.places.add') : t('village.proposals.propose')}
           onAdd={() => router.push(`${villageBase}/places` as never)}
         >
-          {places.map((p) => (
+          {visiblePlaces.map((p) => (
             <EntityCard
               key={p.id}
               label={p.name}

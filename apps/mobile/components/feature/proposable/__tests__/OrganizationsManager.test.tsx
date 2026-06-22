@@ -48,15 +48,16 @@ describe('<OrganizationsManager>', () => {
     await waitFor(() => expect(approveOrganization).toHaveBeenCalledWith('new-org', 'boss'));
   });
 
-  it('a villager loads only approved orgs (pending is organizer-only)', async () => {
-    render(<OrganizationsManager villageId="m1" />);
-    await waitFor(() => expect(mockGet).toHaveBeenCalledWith('m1', 'approved'));
-  });
-
-  it('an organizer loads all statuses (to approve pending)', async () => {
-    mockCaps.mockReturnValue({ canManage: true, canApprove: true, uid: 'boss', loading: false });
-    render(<OrganizationsManager villageId="m1" />);
-    await waitFor(() => expect(mockGet).toHaveBeenCalledWith('m1', undefined));
+  it('a villager sees approved orgs + their own pending, not others’ pending', async () => {
+    mockGet.mockResolvedValue([
+      { id: 'a', name: 'Aprobada', description: null, imageURL: null, type: 'peña', status: 'approved', municipalityId: 'm1', requestedBy: 'x', approvedBy: 'b', decidedAt: null },
+      { id: 'mine', name: 'MiPropuesta', description: null, imageURL: null, type: 'peña', status: 'pending', municipalityId: 'm1', requestedBy: 'alice', approvedBy: null, decidedAt: null },
+      { id: 'other', name: 'OtraPendiente', description: null, imageURL: null, type: 'peña', status: 'pending', municipalityId: 'm1', requestedBy: 'bob', approvedBy: null, decidedAt: null },
+    ]);
+    const { findByText, queryByText } = render(<OrganizationsManager villageId="m1" />);
+    expect(await findByText('Aprobada')).toBeTruthy();
+    expect(await findByText('MiPropuesta')).toBeTruthy();
+    expect(queryByText('OtraPendiente')).toBeNull();
   });
 
   it('an organizer can approve a pending row', async () => {

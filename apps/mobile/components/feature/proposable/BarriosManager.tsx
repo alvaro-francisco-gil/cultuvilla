@@ -10,6 +10,7 @@ import { VStack, HStack, Text, Button, Input, Pressable, Avatar } from '../../pr
 import { useT } from '../../../lib/i18n';
 import { pickImageAsBlob } from '../../../lib/images';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
+import { isProposalVisible } from '../../../lib/proposals';
 import { ProposableListItem } from './ProposableListItem';
 
 type Row = BarrioData & { id: string };
@@ -99,7 +100,7 @@ export function BarriosManager({ villageId }: { villageId: string }) {
       </HStack>
       {image ? <Text tone="muted" variant="bodySm">{t('village.admin.barrios.imageSelected')}</Text> : null}
       <FlatList
-        data={rows ?? []}
+        data={(rows ?? []).filter((r) => isProposalVisible(r.status, r.proposedBy, { canManage, uid }))}
         keyExtractor={(r) => r.id}
         renderItem={({ item }) =>
           editingId === item.id ? (

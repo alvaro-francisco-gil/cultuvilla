@@ -7,6 +7,7 @@ import type { OrganizationData, OrganizationType } from '@cultuvilla/shared/mode
 import { VStack, HStack, Text, Button, Input, Pressable } from '../../primitives';
 import { useT } from '../../../lib/i18n';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
+import { isProposalVisible } from '../../../lib/proposals';
 import { ProposableListItem } from './ProposableListItem';
 
 type Row = OrganizationData & { id: string };
@@ -30,13 +31,12 @@ export function OrganizationsManager({ villageId }: { villageId: string }) {
   const [type, setType] = useState<OrganizationType>('peña');
   const [saving, setSaving] = useState(false);
 
-  // Pending organizations are organizer-only: a villager sees a peña/asociación
-  // only once it's approved (they still propose via the form, then wait).
-  // Organizers load all statuses so they can approve/reject.
+  // Load all statuses; the list is filtered in the UI (isProposalVisible) so a
+  // villager sees approved orgs + their own pending, an organizer sees all.
   const load = useCallback(async () => {
     if (!villageId) return;
-    setRows(await getOrganizationsByMunicipality(villageId, canManage ? undefined : 'approved'));
-  }, [villageId, canManage]);
+    setRows(await getOrganizationsByMunicipality(villageId));
+  }, [villageId]);
 
   useEffect(() => {
     void load();
@@ -93,7 +93,7 @@ export function OrganizationsManager({ villageId }: { villageId: string }) {
         </Button>
       </VStack>
       <FlatList
-        data={rows ?? []}
+        data={(rows ?? []).filter((r) => isProposalVisible(r.status, r.requestedBy, { canManage, uid }))}
         keyExtractor={(r) => r.id}
         renderItem={({ item }) => (
           <ProposableListItem
