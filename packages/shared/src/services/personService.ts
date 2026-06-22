@@ -65,7 +65,12 @@ export async function getPersonsByBarrio(
     .sort((a, b) => buildDisplayName(a).localeCompare(buildDisplayName(b)));
 }
 
-/** People buried in a given place (cemetery), via `burialPlace.placeId`. */
+/**
+ * People buried in a given place (cemetery), via `burialPlace.placeId`.
+ * Intentionally not scoped by municipality: `placeId` is a Firestore
+ * auto-id from `/municipalities/{id}/places/`, so it is globally unique
+ * and a bare `placeId` match cannot collide across villages.
+ */
 export async function getPersonsByBurialPlace(
   placeId: string,
 ): Promise<(PersonData & { id: string })[]> {
