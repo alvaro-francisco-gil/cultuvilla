@@ -239,6 +239,7 @@
       "organizations": {
         "title": "Organizaciones",
         "add": "Añadir organización",
+        "addPena": "Añadir peña",
         "empty": "Sin solicitudes pendientes",
         "approve": "Aprobar",
         "reject": "Rechazar"
@@ -353,7 +354,13 @@
       "locked": "En uso",
       "deletedEntity": "(eliminado)",
       "emptyLabel": "Escribe el texto de la pregunta",
-      "needsOptions": "Añade al menos una opción"
+      "needsOptions": "Añade al menos una opción",
+      "untitledQuestion": "Pregunta sin título",
+      "typeSheetTitle": "Tipo de pregunta",
+      "headerDescription": "Crea el cuestionario que responderán los vecinos.",
+      "optionsManual": "Opciones manuales",
+      "allowMultiple": "Permitir varias respuestas",
+      "optionsCount": "{count, plural, one {# opción} other {# opciones}}"
     }
   },
   "event": {

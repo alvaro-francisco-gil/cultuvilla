@@ -343,7 +343,6 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
         {/* ── Agrupaciones (ayuntamiento + asociación) ─────────── */}
         <Section
           title={t('village.hub.organizations')}
-          onManage={() => router.push(`${villageBase}/organizations` as never)}
           isEmpty={agrupaciones.length === 0}
           emptyLabel={t('village.organizationsList.empty')}
           addLabel={canManage ? t('village.admin.organizations.add') : t('village.proposals.propose')}
@@ -364,10 +363,9 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
         {/* ── Peñas ────────────────────────────────────────────── */}
         <Section
           title={t('village.hub.penas')}
-          onManage={() => router.push(`${villageBase}/organizations` as never)}
           isEmpty={penas.length === 0}
           emptyLabel={t('village.organizationsList.penasEmpty')}
-          addLabel={canManage ? t('village.admin.organizations.add') : t('village.proposals.propose')}
+          addLabel={canManage ? t('village.admin.organizations.addPena') : t('village.proposals.propose')}
           onAdd={() => router.push(`${villageBase}/organizations` as never)}
         >
           {penas.map((o) => (
