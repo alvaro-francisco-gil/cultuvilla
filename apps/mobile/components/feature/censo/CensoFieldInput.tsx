@@ -43,7 +43,9 @@ export function CensoFieldInput({ field, value, onChange, entityOptions }: Censo
         </VStack>
       );
     case 'date': {
-      const d = typeof value === 'string' && value ? new Date(value) : null;
+      // Parse YYYY-MM-DD as local midnight (T00:00:00) to match toISODate's local-time getters,
+      // preventing round-trip day shifts in negative-UTC timezones.
+      const d = typeof value === 'string' && value ? new Date(value + 'T00:00:00') : null;
       return <DateField label={label} value={d} onChange={(nd) => onChange(nd ? toISODate(nd) : undefined)} />;
     }
     case 'select':

@@ -23,13 +23,17 @@ it('renders a numeric input and emits a number', () => {
 });
 
 it('appends a deleted-entity option for a stored id not in current options', () => {
+  const onChange = jest.fn();
   const { getByText } = render(
     <CensoFieldInput
       field={{ source: 'custom', key: 'b', label: 'Barrio', type: 'select', optionsSource: 'barrios', required: false }}
       value="gone-id"
-      onChange={() => {}}
+      onChange={onChange}
       entityOptions={[{ value: 'x', label: 'Centro' }]}
     />,
   );
   expect(getByText('(eliminado)')).toBeTruthy();
+  // Verify the ghost chip is non-interactive (disabled)
+  fireEvent.press(getByText('(eliminado)'));
+  expect(onChange).not.toHaveBeenCalled();
 });
