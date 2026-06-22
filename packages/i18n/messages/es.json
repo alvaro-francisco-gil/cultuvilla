@@ -322,7 +322,35 @@
     "saved": "Censo guardado",
     "error": "No pudimos guardar",
     "noFields": "Este pueblo no tiene censo configurado",
-    "missingRequired": "Campos obligatorios sin rellenar"
+    "missingRequired": "Campos obligatorios sin rellenar",
+    "types": {
+      "text": "Texto corto",
+      "textarea": "Párrafo",
+      "select": "Elección única",
+      "multiselect": "Elección múltiple",
+      "number": "Número",
+      "boolean": "Sí/No",
+      "date": "Fecha",
+      "entity": "Elemento del pueblo"
+    },
+    "builder": {
+      "addQuestion": "Añadir pregunta",
+      "addPredefined": "Añadir campo predefinido",
+      "questionLabel": "Pregunta",
+      "required": "Obligatoria",
+      "addOption": "Añadir opción",
+      "optionPlaceholder": "Opción",
+      "source": "Origen",
+      "sourceBarrios": "Barrios",
+      "sourcePlaces": "Lugares",
+      "sourceOrganizations": "Peñas",
+      "moveUp": "Subir",
+      "moveDown": "Bajar",
+      "locked": "En uso",
+      "deletedEntity": "(eliminado)",
+      "emptyLabel": "Escribe el texto de la pregunta",
+      "needsOptions": "Añade al menos una opción"
+    }
   },
   "event": {
     "title": "Título",
