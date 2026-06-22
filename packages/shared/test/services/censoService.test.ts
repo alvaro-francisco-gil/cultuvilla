@@ -236,4 +236,10 @@ describe('validateSchemaTransition optionsSource', () => {
     const used = { k: new Set(['some-deleted-id']) };
     expect(validateSchemaTransition([prev], [next], used).ok).toBe(true);
   });
+  it('skips option-removal when a static field switches to a dynamic source', () => {
+    const prev = sel({ options: ['a', 'b'], optionsSource: undefined });
+    const next = sel({ options: undefined, optionsSource: 'barrios' });
+    const used = { k: new Set(['a']) }; // old static value 'a' is in use
+    expect(validateSchemaTransition([prev], [next], used).ok).toBe(true);
+  });
 });
