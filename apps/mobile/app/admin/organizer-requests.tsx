@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, View, ActivityIndicator, Image } from 'react-native';
+import { FlatList, View, ActivityIndicator } from 'react-native';
 import { Screen, VStack, HStack, Text, Button } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
@@ -65,17 +65,6 @@ export default function OrganizerRequestsScreen() {
               <Text className="text-muted text-sm">{item.municipalityId}</Text>
               {item.description.trim().length > 0 && (
                 <Text>{item.description}</Text>
-              )}
-              {item.coverImages.length > 0 && (
-                <HStack gap={2} className="flex-wrap">
-                  {item.coverImages.map((url) => (
-                    <Image
-                      key={url}
-                      source={{ uri: url }}
-                      style={{ width: 72, height: 72, borderRadius: 8 }}
-                    />
-                  ))}
-                </HStack>
               )}
               {item.motivation && item.motivation.trim().length > 0 && (
                 <Text className="text-muted text-sm italic">“{item.motivation}”</Text>
