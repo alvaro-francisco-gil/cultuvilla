@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any,
                   @typescript-eslint/no-unsafe-assignment,
-                  @typescript-eslint/no-unsafe-member-access,
-                  @typescript-eslint/no-unsafe-return,
                   @typescript-eslint/require-await */
 // vi.mock-driven Firestore fake that records the query parts it was handed so
 // we can assert cursor + prefix behaviour without a real backend.
@@ -71,7 +69,7 @@ describe('listMunicipalitiesPage', () => {
   it('applies prefix where-clauses when search is non-empty', async () => {
     nextDocs = [];
     await listMunicipalitiesPage({ search: 'avi', limit: 5 });
-    const fields = calls.where.map((w) => `${w.field} ${w.op}`);
+    const fields = calls.where.map((w: { field: string; op: string }) => `${w.field} ${w.op}`);
     expect(fields).toContain('nameLower >=');
     expect(fields).toContain('nameLower <');
   });
