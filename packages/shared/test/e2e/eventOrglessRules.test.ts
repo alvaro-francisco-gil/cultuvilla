@@ -2,10 +2,9 @@ import { describe, it, beforeAll, afterAll, beforeEach } from 'vitest';
 import {
   initializeTestEnvironment, assertSucceeds, assertFails, type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { serverTimestamp } from 'firebase/firestore';
 
 let env: RulesTestEnvironment;
 const M = 'm1';
@@ -52,6 +51,11 @@ describe('firestore.rules — org-less events', () => {
   it('a non-member cannot create an org-less event', async () => {
     const s = env.authenticatedContext('stranger').firestore();
     await assertFails(setDoc(doc(s, `events/new2`), orglessEvent('stranger')));
+  });
+
+  it('a village member who is not in the org cannot create an org event', async () => {
+    const m = env.authenticatedContext('member').firestore();
+    await assertFails(setDoc(doc(m, `events/orgnew`), { ...orglessEvent('member'), organizationId: 'org1', organizationName: 'Peña' }));
   });
 
   it('the creator can update their own org-less event', async () => {
