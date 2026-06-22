@@ -33,7 +33,7 @@ async function seedMunicipality(
       escudoThumbUrl: null,
       communityActive,
       community: communityActive
-        ? { description: '', coverImages: [], adminUserId, profileForm: null, activatedAt: now }
+        ? { description: '', adminUserId, profileForm: null, activatedAt: now }
         : null,
     });
 }
@@ -54,7 +54,6 @@ async function seedOrganizerRequest(opts: {
     status: opts.status,
     requestedAt: new Date(),
     description: '',
-    coverImages: [],
     motivation: null,
     reviewedAt: null,
     reviewedBy: null,

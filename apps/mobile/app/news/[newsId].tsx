@@ -14,7 +14,6 @@ import { useT } from '../../lib/i18n';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { getNewsLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getNewsPost } from '@cultuvilla/shared/services/newsService';
-import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
 import { formatDate } from '@cultuvilla/shared/utils';
 import type { NewsPostData } from '@cultuvilla/shared/models/news/NewsPostDataModel';
@@ -27,7 +26,6 @@ export default function NewsDetailScreen() {
   const share = useShareDeepLink();
   const [post, setPost] = useState<Post | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [villageCover, setVillageCover] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,26 +57,6 @@ export default function NewsDetailScreen() {
     };
   }, [firstImagePath]);
 
-  // Fetch the village cover photo as a fallback when the post has no image.
-  const municipalityId = post?.municipalityId ?? null;
-  useEffect(() => {
-    let cancelled = false;
-    if (!municipalityId) {
-      setVillageCover(null);
-      return;
-    }
-    getMunicipality(municipalityId)
-      .then((m) => {
-        if (!cancelled) setVillageCover(m?.community?.coverImages?.[0] ?? null);
-      })
-      .catch(() => {
-        if (!cancelled) setVillageCover(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [municipalityId]);
-
   const date = post ? (post.publishedAt ?? post.submittedAt) : null;
 
   return (
@@ -108,7 +86,7 @@ export default function NewsDetailScreen() {
           <>
             <DetailHeroImage
               imageUri={imageUrl}
-              fallbackImageUri={villageCover}
+              fallbackImageUri={null}
               fallbackIcon="newspaper-outline"
             />
             <VStack gap={3} className="p-4">

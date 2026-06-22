@@ -13,7 +13,6 @@ const db = getFirestore();
 interface RequestOrganizeVillageData {
   municipalityId?: string;
   description?: string;
-  coverImages?: string[];
   motivation?: string | null;
 }
 
@@ -32,15 +31,14 @@ export const requestOrganizeVillage = onCall<
     const auth = request.auth;
     if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
-    const { municipalityId, description, coverImages, motivation } = request.data;
+    const { municipalityId, description, motivation } = request.data;
     if (!municipalityId) {
       throw new HttpsError('invalid-argument', 'municipalityId requerido.');
     }
     // Activation is decoupled from organizing: the village must already be
-    // started (active). Description/cover images now come from the start flow
-    // and the wiki phase, so they are optional here (motivation is the payload).
+    // started (active). The description now comes from the start flow and the
+    // wiki phase, so it is optional here (motivation is the payload).
     const trimmedDescription = (description ?? '').trim();
-    const coverImageUrls = Array.isArray(coverImages) ? coverImages : [];
 
     const uid = auth.uid;
     const muniSnap = await municipalityDoc(db, municipalityId).get();
@@ -74,7 +72,6 @@ export const requestOrganizeVillage = onCall<
       requestedAt: new Date(),
       status: 'pending',
       description: trimmedDescription,
-      coverImages: coverImageUrls,
       motivation: motivation ?? null,
       reviewedAt: null,
       reviewedBy: null,

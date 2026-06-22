@@ -51,7 +51,6 @@ type Village = {
   id: string;
   name: string;
   coordinates: LatLng | null;
-  coverImage: string | null;
 };
 
 /** True when `d` falls inside the upcoming window named by `preset`. */
@@ -134,7 +133,6 @@ export default function FeedScreen() {
             id: c.id,
             name: c.name,
             coordinates: c.coordinates,
-            coverImage: c.community?.coverImages?.[0] ?? null,
           })),
         ),
       )
@@ -151,12 +149,6 @@ export default function FeedScreen() {
   const referenceCoords = useMemo<LatLng | null>(
     () => villages.find((v) => v.id === activeMunicipalityId)?.coordinates ?? null,
     [villages, activeMunicipalityId],
-  );
-
-  // municipalityId → village cover photo, used as a feed-card image fallback.
-  const villageCoverById = useMemo(
-    () => new Map(villages.map((v) => [v.id, v.coverImage])),
-    [villages],
   );
 
   const query = search.trim().toLowerCase();
@@ -408,8 +400,7 @@ export default function FeedScreen() {
               startDate: item.startDate,
               organizationName: item.organizationName,
               imageURL: item.imageURL,
-              municipalityCoverImage:
-                item.municipalityCoverImage ?? villageCoverById.get(item.municipalityId) ?? null,
+              municipalityCoverImage: item.municipalityCoverImage ?? null,
             }}
             onPress={(id) => router.push(`/event/${id}`)}
           />

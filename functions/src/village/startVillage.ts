@@ -9,7 +9,6 @@ const db = getFirestore();
 interface StartVillageData {
   municipalityId?: string;
   description?: string;
-  coverImages?: string[];
 }
 
 interface StartVillageResult {
@@ -30,7 +29,7 @@ export const startVillage = onCall<StartVillageData, Promise<StartVillageResult>
     const auth = request.auth;
     if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
-    const { municipalityId, description, coverImages } = request.data;
+    const { municipalityId, description } = request.data;
     if (!municipalityId) {
       throw new HttpsError('invalid-argument', 'municipalityId requerido.');
     }
@@ -53,7 +52,6 @@ export const startVillage = onCall<StartVillageData, Promise<StartVillageResult>
         communityActive: true,
         community: {
           description: (description ?? '').trim(),
-          coverImages: Array.isArray(coverImages) ? coverImages : [],
           adminUserId: null,
           profileForm: null,
           activatedAt: FieldValue.serverTimestamp(),

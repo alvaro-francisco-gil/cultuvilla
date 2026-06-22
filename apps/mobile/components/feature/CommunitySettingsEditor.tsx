@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { VStack, Text, Button, Input, Pressable, Escudo } from '../primitives';
 import { LocationPicker } from './LocationPicker';
@@ -22,18 +22,16 @@ import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 const ACCENT = '#bb5d3a';
 
 /**
- * Organizer-only community editor (escudo, cover images, description,
- * coordinates). Content-only so it embeds in the shared community screen
+ * Organizer-only community editor (escudo, description, coordinates).
+ * Content-only so it embeds in the shared community screen
  * behind a role gate, and in the legacy /admin/community wrapper.
  */
 export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
   const { t } = useT();
   const [village, setVillage] = useState<MunicipalityData | null>(null);
   const [description, setDescription] = useState<string | null>(null);
-  const [images, setImages] = useState<string[]>([]);
   const [coords, setCoords] = useState<LatLng | null>(null);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [uploadingEscudo, setUploadingEscudo] = useState(false);
 
   const load = useCallback(async () => {
@@ -41,7 +39,6 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
     const m = await getMunicipality(villageId);
     setVillage(m);
     setDescription(m?.community?.description ?? '');
-    setImages(m?.community?.coverImages ?? []);
     setCoords(m?.coordinates ?? null);
   }, [villageId]);
 
@@ -65,30 +62,11 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
     }
   }
 
-  async function addImage() {
-    if (!villageId) return;
-    const picked = await pickImageAsBlob();
-    if (!picked) return;
-    setUploading(true);
-    try {
-      const url = await uploadMunicipalityImage(villageId, picked);
-      setImages((prev) => [...prev, url]);
-    } catch (e) {
-      showAlert(e instanceof Error ? e.message : String(e));
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  function removeImage(url: string) {
-    setImages((prev) => prev.filter((u) => u !== url));
-  }
-
   async function save() {
     if (!villageId || description === null) return;
     setSaving(true);
     try {
-      await updateCommunity(villageId, { description, coverImages: images });
+      await updateCommunity(villageId, { description });
       await updateMunicipality(villageId, { coordinates: coords });
       showAlert(t('village.admin.community.saved'));
     } finally {
@@ -126,36 +104,12 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
           ) : null}
         </Pressable>
 
-        <Text variant="h3" className="mt-2">{t('village.admin.community.images')}</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-3">
-          {images.map((url) => (
-            <View key={url} className="relative">
-              <Image source={{ uri: url }} className="w-40 h-28 rounded-xl" resizeMode="cover" />
-              <Pressable
-                onPress={() => removeImage(url)}
-                accessibilityLabel={t('common.delete')}
-                className="absolute top-1 right-1 bg-black/60 rounded-full p-1"
-              >
-                <Ionicons name="close" size={16} color="#fff" />
-              </Pressable>
-            </View>
-          ))}
-          <Pressable
-            onPress={addImage}
-            accessibilityLabel={t('village.admin.community.addImage')}
-            className="w-40 h-28 border border-dashed border-subtle rounded-xl items-center justify-center"
-          >
-            <Ionicons name={uploading ? 'cloud-upload-outline' : 'add'} size={28} color={ACCENT} />
-            <Text variant="bodySm" className="mt-1 font-medium">{t('village.admin.community.addImage')}</Text>
-          </Pressable>
-        </ScrollView>
-
         <Text variant="h3" className="mt-2">{t('village.admin.community.description')}</Text>
         <Input value={description ?? ''} onChangeText={setDescription} multiline placeholder={t('village.admin.community.description')} />
 
         <LocationPicker value={coords} onChange={setCoords} />
 
-        <Button onPress={save} loading={saving} disabled={uploading || uploadingEscudo}>
+        <Button onPress={save} loading={saving} disabled={uploadingEscudo}>
           {t('common.save')}
         </Button>
       </VStack>

@@ -2,6 +2,16 @@
 
 **Goal:** Let users join an active village directly from the Buscar pueblo (discover) list via a per-card action, and hide "Cambiar de pueblo" for users who belong to only one village.
 
+## Status
+
+- **Updated:** 2026-06-22
+- **Stage:** Task 1 (i18n keys) — starting
+- **Branch:** `main` (direct-to-main per repo policy)
+- **Done:** none (plan just promoted from ready)
+- **Next:** Task 1 — add discover a11y i18n keys
+- **Blockers:** none
+- **Handoff:** No mobile component-test harness; verification is `pnpm check` + manual AVD. `addVillageMember`/`getUserMemberships` already exist in `packages/shared`.
+
 ## Context
 
 Today "Unirse a otro pueblo" (profile) and "Cambiar de pueblo" / "Buscar pueblo" (user menu) all funnel to either `/me/villages` (the switcher) or `/discover`. Two problems:

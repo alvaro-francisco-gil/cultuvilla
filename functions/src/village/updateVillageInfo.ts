@@ -12,7 +12,6 @@ const db = getFirestore();
 interface UpdateVillageInfoData {
   municipalityId?: string;
   description?: string;
-  coverImages?: string[];
 }
 
 interface UpdateVillageInfoResult {
@@ -20,7 +19,7 @@ interface UpdateVillageInfoResult {
 }
 
 /**
- * Edit a village's basic info (description / cover images). Authorization:
+ * Edit a village's basic info (description). Authorization:
  * - While the community has **no organizer** (`community.adminUserId === null`),
  *   ANY member may edit — the wiki phase.
  * - Once an organizer exists, only village admins (or app admins) may edit.
@@ -34,7 +33,7 @@ export const updateVillageInfo = onCall<UpdateVillageInfoData, Promise<UpdateVil
     const auth = request.auth;
     if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
-    const { municipalityId, description, coverImages } = request.data;
+    const { municipalityId, description } = request.data;
     if (!municipalityId) {
       throw new HttpsError('invalid-argument', 'municipalityId requerido.');
     }
@@ -67,11 +66,8 @@ export const updateVillageInfo = onCall<UpdateVillageInfoData, Promise<UpdateVil
       const allowed = isAppAdmin || isAdmin || (!hasOrganizer && isMember);
       if (!allowed) throw new HttpsError('permission-denied', 'No autorizado.');
 
-      const updates: Record<string, string | string[]> = {};
+      const updates: Record<string, string> = {};
       if (description !== undefined) updates['community.description'] = description.trim();
-      if (coverImages !== undefined) {
-        updates['community.coverImages'] = Array.isArray(coverImages) ? coverImages : [];
-      }
       if (Object.keys(updates).length === 0) {
         throw new HttpsError('invalid-argument', 'Nada que actualizar.');
       }

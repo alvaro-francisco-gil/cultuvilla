@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, View, ScrollView, Image, Animated, Dimensions, StyleSheet } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Modal, View, ScrollView, Animated, Dimensions, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -24,81 +24,11 @@ export type VillageInfoModalProps = {
   canManage: boolean;
 };
 
-/**
- * Pinterest-style two-column masonry. Each image keeps its natural aspect ratio
- * (resolved lazily via Image.getSize); images are greedily packed into whichever
- * column is currently shorter so the two columns stay roughly balanced.
- */
-function MasonryGallery({ uris, columnWidth }: { uris: string[]; columnWidth: number }) {
-  const [ratios, setRatios] = useState<Record<string, number>>({});
-
-  useEffect(() => {
-    let cancelled = false;
-    uris.forEach((uri) => {
-      Image.getSize(
-        uri,
-        (w, h) => {
-          if (!cancelled && h > 0) setRatios((prev) => ({ ...prev, [uri]: w / h }));
-        },
-        () => {
-          // Unknown size → fall back to a square so it still lays out.
-          if (!cancelled) setRatios((prev) => ({ ...prev, [uri]: prev[uri] ?? 1 }));
-        },
-      );
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [uris]);
-
-  const { left, right } = useMemo(() => {
-    const cols = {
-      left: [] as { uri: string; height: number }[],
-      right: [] as { uri: string; height: number }[],
-    };
-    let leftH = 0;
-    let rightH = 0;
-    for (const uri of uris) {
-      const ratio = ratios[uri] ?? 1;
-      const height = columnWidth / ratio;
-      if (leftH <= rightH) {
-        cols.left.push({ uri, height });
-        leftH += height;
-      } else {
-        cols.right.push({ uri, height });
-        rightH += height;
-      }
-    }
-    return cols;
-  }, [uris, ratios, columnWidth]);
-
-  const renderColumn = (items: { uri: string; height: number }[]) => (
-    <View style={{ width: columnWidth, gap: 8 }}>
-      {items.map((it, i) => (
-        <Image
-          key={`${it.uri}-${i}`}
-          source={{ uri: it.uri }}
-          style={{ width: columnWidth, height: it.height, borderRadius: 16 }}
-          resizeMode="cover"
-        />
-      ))}
-    </View>
-  );
-
-  return (
-    <View className="flex-row" style={{ gap: 8 }}>
-      {renderColumn(left)}
-      {renderColumn(right)}
-    </View>
-  );
-}
-
 export function VillageInfoModal({ visible, onClose, village, canManage }: VillageInfoModalProps) {
   const { t } = useT();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const { width: screenWidth } = Dimensions.get('window');
 
   useEffect(() => {
     if (visible) {
@@ -122,10 +52,7 @@ export function VillageInfoModal({ visible, onClose, village, canManage }: Villa
     });
   }
 
-  const images = village.community?.coverImages ?? [];
   const description = village.community?.description?.trim();
-  // 16px outer padding each side, 8px gutter between the two columns.
-  const columnWidth = (screenWidth - 16 * 2 - 8) / 2;
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={() => close()}>
@@ -214,10 +141,6 @@ export function VillageInfoModal({ visible, onClose, village, canManage }: Villa
               <Text tone="muted" variant="bodySm">
                 {t('village.admin.overview.noDescription')}
               </Text>
-            ) : null}
-
-            {images.length > 0 ? (
-              <MasonryGallery uris={images} columnWidth={columnWidth} />
             ) : null}
           </ScrollView>
         </Animated.View>

@@ -31,7 +31,7 @@ async function seedMunicipality(communityActive: boolean): Promise<void> {
       escudoThumbUrl: null,
       communityActive,
       community: communityActive
-        ? { description: 'ya', coverImages: [], adminUserId: 'someone', profileForm: null, activatedAt: now }
+        ? { description: 'ya', adminUserId: 'someone', profileForm: null, activatedAt: now }
         : null,
     });
 }
@@ -94,7 +94,6 @@ describe('startVillage (callable)', () => {
       data: {
         municipalityId: MUNICIPALITY_ID,
         description: '  Mi pueblo  ',
-        coverImages: ['https://example.com/c.jpg'],
       },
     });
     expect(result.ok).toBe(true);
@@ -103,7 +102,6 @@ describe('startVillage (callable)', () => {
     expect(muniDoc.data()?.communityActive).toBe(true);
     expect(muniDoc.data()?.community?.adminUserId).toBeNull();
     expect(muniDoc.data()?.community?.description).toBe('Mi pueblo');
-    expect(muniDoc.data()?.community?.coverImages).toEqual(['https://example.com/c.jpg']);
 
     const memberDoc = await admin
       .firestore()

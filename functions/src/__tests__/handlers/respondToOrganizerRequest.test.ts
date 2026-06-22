@@ -38,7 +38,6 @@ async function seedMunicipality(opts: {
         ? {
             adminUserId: opts.adminUserId ?? null,
             description: 'Mi pueblo',
-            coverImages: [],
             profileForm: null,
             activatedAt: now,
           }
@@ -66,7 +65,6 @@ async function seedOrganizerRequest(opts: {
   municipalityId: string;
   status: 'pending' | 'approved' | 'rejected';
   description?: string;
-  coverImages?: string[];
 }): Promise<string> {
   const ref = admin.firestore().collection('organizerRequests').doc();
   await ref.set({
@@ -75,7 +73,6 @@ async function seedOrganizerRequest(opts: {
     status: opts.status,
     requestedAt: new Date(),
     description: opts.description ?? '',
-    coverImages: opts.coverImages ?? [],
     motivation: null,
     reviewedAt: null,
     reviewedBy: null,
