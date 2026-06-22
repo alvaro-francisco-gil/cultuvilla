@@ -5,12 +5,14 @@ import { VillageDiscovery } from '../../components/feature/VillageDiscovery';
 import { VillageHomeBody } from '../../components/feature/VillageHomeBody';
 import { useVillageHome } from '../../lib/useVillageHome';
 import { useAuth } from '../../lib/auth/useAuth';
+import { useT } from '../../lib/i18n';
 
 // The middle tab swaps between the active-village home and discovery based on
 // the user's activeMunicipalityId. Both the home here and the pushed
 // /village/[villageId] detail render the same <VillageHomeBody>.
 export default function VillageTabScreen() {
   const { profile, profileChecked } = useAuth();
+  const { t } = useT();
   const activeMunicipalityId = profile?.activeMunicipalityId ?? null;
   const home = useVillageHome(activeMunicipalityId);
 
@@ -37,7 +39,7 @@ export default function VillageTabScreen() {
 
   return (
     <Screen padded={false} topInset={false} bottomInset={false}>
-      <AppHeader centerLabel={home.village?.name} />
+      <AppHeader centerLabel={t('tabs.village')} />
       <VillageHomeBody data={home} reload={home.reload} />
     </Screen>
   );
