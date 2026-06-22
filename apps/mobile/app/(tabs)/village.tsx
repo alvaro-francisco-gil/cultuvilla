@@ -382,7 +382,7 @@ export default function VillageTabScreen() {
               sub={b.status === 'pending' ? t('village.proposals.pending') : undefined}
               icon="map-outline"
               imageUri={b.imageURL}
-              onPress={() => router.push(`${villageBase}/barrios` as never)}
+              onPress={() => router.push(`/village/${village.id}/barrio/${b.id}` as never)}
             />
           ))}
         </Section>
@@ -403,7 +403,7 @@ export default function VillageTabScreen() {
               sub={p.status === 'pending' ? t('village.proposals.pending') : undefined}
               icon="location-outline"
               imageUri={p.imageURL}
-              onPress={() => router.push(`${villageBase}/places` as never)}
+              onPress={() => router.push(`/village/${village.id}/place/${p.id}` as never)}
             />
           ))}
         </Section>
@@ -424,7 +424,7 @@ export default function VillageTabScreen() {
               sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
               icon="business-outline"
               imageUri={o.imageURL}
-              onPress={() => router.push(`${villageBase}/organizations` as never)}
+              onPress={() => router.push(`/o/${o.id}` as never)}
             />
           ))}
         </Section>
@@ -445,7 +445,7 @@ export default function VillageTabScreen() {
               sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
               icon="people-circle-outline"
               imageUri={o.imageURL}
-              onPress={() => router.push(`${villageBase}/organizations` as never)}
+              onPress={() => router.push(`/o/${o.id}` as never)}
             />
           ))}
         </Section>

@@ -263,6 +263,15 @@ export async function rejectBarrio(municipalityId: string, barrioId: string): Pr
   });
 }
 
+/** Fetch a single barrio document, or `null` if it does not exist. */
+export async function getBarrio(
+  municipalityId: string,
+  barrioId: string,
+): Promise<(BarrioData & { id: string }) | null> {
+  const snap = await getDoc(municipalityBarrioDoc(getDb(), municipalityId, barrioId));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+
 // ── Places (cemeteries, churches, …) ───────────────────────────────────────
 
 // Returns all places for a municipality ordered by name. Pass `kind` to filter
@@ -326,6 +335,15 @@ export async function rejectPlace(municipalityId: string, placeId: string): Prom
     approvedBy: null,
     decidedAt: serverTimestamp(),
   });
+}
+
+/** Fetch a single place document, or `null` if it does not exist. */
+export async function getPlace(
+  municipalityId: string,
+  placeId: string,
+): Promise<(PlaceData & { id: string }) | null> {
+  const snap = await getDoc(municipalityPlaceDoc(getDb(), municipalityId, placeId));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
 // keep export so other code can call setDoc directly for seed-style work
