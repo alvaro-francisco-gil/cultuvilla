@@ -95,7 +95,7 @@ export default function NewEventScreen() {
         setMunicipalityName(mun?.name ?? '');
         setMunicipalityCoordinates(mun?.coordinates ?? null);
         setMemberOrgs(mine);
-        setSelectedOrgId(mine[0]?.id ?? null);
+        setSelectedOrgId(null);
         setLoadError(null);
       } catch (e) {
         if (!cancelled) setLoadError(e instanceof Error ? e.message : String(e));
@@ -111,12 +111,12 @@ export default function NewEventScreen() {
 
   const selectedOrg = memberOrgs.find((o) => o.id === selectedOrgId) ?? null;
   const canSubmit =
-    !!municipalityId && !!user && !!selectedOrg && title.trim().length > 0 &&
+    !!municipalityId && !!user && title.trim().length > 0 &&
     description.trim().length > 0 && !!startDate;
 
   const { fire: submit, isPending } = useCallable({
     callable: async () => {
-      if (!municipalityId || !user || !selectedOrg || !startDate) return;
+      if (!municipalityId || !user || !startDate) return;
       const eventId = await createEvent({
         title: title.trim(),
         description: description.trim(),
@@ -126,8 +126,8 @@ export default function NewEventScreen() {
         maxAttendees: maxAttendees.trim() ? Number(maxAttendees) : null,
         telephoneRequired,
         status: 'published',
-        organizationId: selectedOrg.id,
-        organizationName: selectedOrg.name,
+        organizationId: selectedOrg?.id ?? null,
+        organizationName: selectedOrg?.name ?? null,
         createdBy: user.uid,
         municipalityId,
         municipalityName,
@@ -185,33 +185,6 @@ export default function NewEventScreen() {
     );
   }
 
-  // ── Not a member of any organization → eligibility prompt ─────────────────
-  if (memberOrgs.length === 0) {
-    return (
-      <Screen padded={false}>
-        <ScreenHeader title={t('event.createEvent')} />
-        <View className="flex-1 items-center justify-center px-8">
-          <VStack gap={4} className="items-center">
-            <Text className="text-center">{t('event.eligibility.body')}</Text>
-            <Button
-              fullWidth
-              onPress={() => router.push(`/discover/organize/${municipalityId}` as never)}
-            >
-              {t('event.eligibility.requestOrganizer')}
-            </Button>
-            <Button
-              variant="secondary"
-              fullWidth
-              onPress={() => router.push(`/village/${municipalityId}/organizations` as never)}
-            >
-              {t('event.eligibility.browseOrgs')}
-            </Button>
-          </VStack>
-        </View>
-      </Screen>
-    );
-  }
-
   // ── Create form ───────────────────────────────────────────────────────────
   // bottomInset={false}: the ScrollView below applies insets.bottom itself.
   return (
@@ -226,21 +199,31 @@ export default function NewEventScreen() {
           contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: insets.bottom + 80 }}
           keyboardShouldPersistTaps="handled"
         >
-          {memberOrgs.length > 1 && (
-            <>
-              <Text tone="muted">{t('event.organizationLabel')}</Text>
-              <VStack gap={2}>
-                {memberOrgs.map((o) => (
-                  <Button
-                    key={o.id}
-                    variant={selectedOrgId === o.id ? 'primary' : 'secondary'}
-                    onPress={() => setSelectedOrgId(o.id)}
-                  >
-                    {o.name}
-                  </Button>
-                ))}
-              </VStack>
-            </>
+          <Text tone="muted">{t('event.organizationLabel')}</Text>
+          <VStack gap={2}>
+            <Button
+              variant={selectedOrgId === null ? 'primary' : 'secondary'}
+              onPress={() => setSelectedOrgId(null)}
+            >
+              {t('event.noOrganization')}
+            </Button>
+            {memberOrgs.map((o) => (
+              <Button
+                key={o.id}
+                variant={selectedOrgId === o.id ? 'primary' : 'secondary'}
+                onPress={() => setSelectedOrgId(o.id)}
+              >
+                {o.name}
+              </Button>
+            ))}
+          </VStack>
+          {memberOrgs.length === 0 && (
+            <Button
+              variant="secondary"
+              onPress={() => router.push(`/discover/organize/${municipalityId}` as never)}
+            >
+              {t('event.eligibility.requestOrganizer')}
+            </Button>
           )}
           <Input label={t('event.title')} value={title} onChangeText={setTitle} />
           <Input

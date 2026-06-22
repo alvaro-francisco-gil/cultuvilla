@@ -53,13 +53,15 @@ export const addWalkInRegistration = onCall<AddWalkInData, Promise<AddWalkInResu
       if (!eventData) throw new HttpsError('not-found', 'El evento no existe.');
 
       // Authorize: event-org member OR village admin OR app admin.
-      const [orgMemberSnap, villageMemberSnap, appAdminSnap] = await Promise.all([
-        tx.get(organizationMemberDoc(db, eventData.organizationId, uid)),
+      const [orgMemberSnapMaybe, villageMemberSnap, appAdminSnap] = await Promise.all([
+        eventData.organizationId
+          ? tx.get(organizationMemberDoc(db, eventData.organizationId, uid))
+          : Promise.resolve(null),
         tx.get(municipalityMemberDoc(db, eventData.municipalityId, uid)),
         tx.get(adminDoc(db, uid)),
       ]);
       const isOrganizer =
-        orgMemberSnap.exists ||
+        (orgMemberSnapMaybe?.exists ?? false) ||
         appAdminSnap.exists ||
         (villageMemberSnap.exists && villageMemberSnap.data()?.role === 'admin');
       if (!isOrganizer) {
