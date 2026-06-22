@@ -12,7 +12,10 @@ export interface SchemaTransitionViolation {
     | 'key_changed'
     | 'field_removed_with_answers'
     | 'option_removed_with_answers'
-    | 'source_changed';
+    | 'source_changed'
+    | 'missing_options'
+    | 'options_source_conflict'
+    | 'options_source_invalid_type';
   fieldKey: string;
   detail?: string;
 }
@@ -45,6 +48,21 @@ export function validateSchemaTransition(
     if (f.source === 'custom' && !/^[a-z0-9_]{1,40}$/.test(f.key)) {
       violations.push({ code: 'invalid_custom_key', fieldKey: f.key });
     }
+    if (f.source === 'custom') {
+      const isChoice = f.type === 'select' || f.type === 'multiselect';
+      const hasStatic = Array.isArray(f.options) && f.options.length > 0;
+      const hasSource = f.optionsSource !== undefined;
+      if (f.optionsSource !== undefined && !isChoice) {
+        violations.push({ code: 'options_source_invalid_type', fieldKey: f.key });
+      }
+      if (isChoice) {
+        if (hasStatic && hasSource) {
+          violations.push({ code: 'options_source_conflict', fieldKey: f.key });
+        } else if (!hasStatic && !hasSource) {
+          violations.push({ code: 'missing_options', fieldKey: f.key });
+        }
+      }
+    }
   }
 
   const prevByKey = new Map(prev.map((f) => [f.key, f]));
@@ -70,17 +88,19 @@ export function validateSchemaTransition(
       if (prevField.type !== nextField.type) {
         violations.push({ code: 'type_changed', fieldKey: key });
       }
-      const prevOpts = new Set(prevField.options ?? []);
-      const nextOpts = new Set(nextField.options ?? []);
-      const removed = [...prevOpts].filter((o) => !nextOpts.has(o));
-      const used = usedValuesByKey[key] ?? new Set();
-      for (const r of removed) {
-        if (used.has(r)) {
-          violations.push({
-            code: 'option_removed_with_answers',
-            fieldKey: key,
-            detail: r,
-          });
+      if (nextField.optionsSource === undefined && prevField.optionsSource === undefined) {
+        const prevOpts = new Set(prevField.options ?? []);
+        const nextOpts = new Set(nextField.options ?? []);
+        const removed = [...prevOpts].filter((o) => !nextOpts.has(o));
+        const used = usedValuesByKey[key] ?? new Set();
+        for (const r of removed) {
+          if (used.has(r)) {
+            violations.push({
+              code: 'option_removed_with_answers',
+              fieldKey: key,
+              detail: r,
+            });
+          }
         }
       }
     }
