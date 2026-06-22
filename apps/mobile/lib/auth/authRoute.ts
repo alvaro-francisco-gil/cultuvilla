@@ -39,3 +39,26 @@ export function resolveAuthRoute({
   }
   return null;
 }
+
+export interface IntentResumeInput {
+  user: boolean;
+  profileChecked: boolean;
+  hasPersonId: boolean;
+  pendingIntent: string | null;
+}
+
+/**
+ * After a guest registers from a gated action, they resume their original
+ * intent (the screen/tab they were trying to reach) instead of the default
+ * /(tabs) landing — but only once auth AND onboarding have fully settled.
+ * Kept pure so the precedence over resolveAuthRoute is unit-testable.
+ */
+export function resolveIntentResume({
+  user,
+  profileChecked,
+  hasPersonId,
+  pendingIntent,
+}: IntentResumeInput): string | null {
+  if (user && profileChecked && hasPersonId && pendingIntent) return pendingIntent;
+  return null;
+}
