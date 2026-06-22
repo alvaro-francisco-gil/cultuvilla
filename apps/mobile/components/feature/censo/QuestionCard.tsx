@@ -1,4 +1,4 @@
-import { Input, Toggle, Button, Pressable, Text, VStack, HStack } from '../../primitives';
+import { Input, Toggle, Pressable, Text, VStack, HStack } from '../../primitives';
 import { QuestionTypePicker } from './QuestionTypePicker';
 import { OptionsEditor } from './OptionsEditor';
 import { EntitySourcePicker } from './EntitySourcePicker';
