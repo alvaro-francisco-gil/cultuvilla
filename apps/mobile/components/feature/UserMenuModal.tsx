@@ -20,6 +20,7 @@ import { useAuth } from '../../lib/auth/useAuth';
 import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
 import { useT } from '../../lib/i18n';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
+import { getUserMemberships } from '@cultuvilla/shared/services/villageMemberService';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -48,6 +49,7 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [photoURL, setPhotoURL] = useState<string | null>(null);
+  const [villageCount, setVillageCount] = useState(0);
 
   useEffect(() => {
     if (!visible || !user) return;
@@ -55,6 +57,13 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
     getPersonByUserId(user.uid).then((p) => {
       if (!cancelled) setPhotoURL(p?.photoURL ?? null);
     });
+    getUserMemberships(user.uid)
+      .then((ms) => {
+        if (!cancelled) setVillageCount(ms.length);
+      })
+      .catch(() => {
+        /* best-effort; leave count at 0 → item stays hidden */
+      });
     return () => {
       cancelled = true;
     };
@@ -106,11 +115,15 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
     {
       title: t('menu.section.villages'),
       items: [
-        {
-          icon: 'swap-horizontal-outline',
-          label: t('menu.switchVillage'),
-          onPress: () => close(() => router.push('/me/villages' as Href)),
-        },
+        ...((villageCount > 1
+          ? [
+              {
+                icon: 'swap-horizontal-outline',
+                label: t('menu.switchVillage'),
+                onPress: () => close(() => router.push('/me/villages' as Href)),
+              },
+            ]
+          : []) as MenuItem[]),
         {
           icon: 'search-outline',
           label: t('menu.findVillage'),
