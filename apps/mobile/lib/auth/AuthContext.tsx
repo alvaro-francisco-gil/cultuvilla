@@ -25,6 +25,7 @@ import {
   statusCodes,
   isSuccessResponse,
 } from '@react-native-google-signin/google-signin';
+import { clearPendingIntent } from './pendingIntent';
 
 interface GoogleSignInExtra {
   webClientId: string;
@@ -226,6 +227,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Ignore — user may not have signed in with Google this session.
       }
     }
+    await clearPendingIntent();
     await fbSignOut(getAuth());
   };
 
