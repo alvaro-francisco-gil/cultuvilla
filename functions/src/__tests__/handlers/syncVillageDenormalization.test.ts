@@ -125,14 +125,16 @@ describe('syncVillageDenormalization', () => {
   });
 
   it('does not write when name, coords, and escudo are all unchanged', async () => {
-    await seedEvent('https://x/stable.png');
+    // Seed a sentinel value that does NOT match the escudo URL — a spurious
+    // write would overwrite this with the escudo URL and the assertion would fail.
+    await seedEvent('SENTINEL-should-not-be-touched');
 
     const same = municipality({ escudoManualUrl: 'https://x/stable.png', escudoUrl: null, name: 'Villarriba' });
 
     await fireTrigger(same, same);
 
-    // Event doc should not be updated — municipalityCoverImage stays as-is.
+    // Handler must have returned early (no-op): the sentinel must be untouched.
     const eventDoc = await admin.firestore().doc(`events/${EVENT_ID}`).get();
-    expect(eventDoc.get('municipalityCoverImage')).toBe('https://x/stable.png');
+    expect(eventDoc.get('municipalityCoverImage')).toBe('SENTINEL-should-not-be-touched');
   });
 });

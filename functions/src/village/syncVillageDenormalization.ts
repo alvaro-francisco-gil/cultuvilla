@@ -26,14 +26,15 @@ export const syncVillageDenormalization = onDocumentUpdated(
       JSON.stringify(before['coordinates'] ?? null) !==
       JSON.stringify(after['coordinates'] ?? null);
 
-    const beforeCover =
-      (before['escudoManualUrl'] as string | null | undefined) ??
-      (before['escudoUrl'] as string | null | undefined) ??
-      null;
-    const afterCover =
-      (after['escudoManualUrl'] as string | null | undefined) ??
-      (after['escudoUrl'] as string | null | undefined) ??
-      null;
+    /** Returns the first non-empty string from escudoManualUrl then escudoUrl, or null. */
+    const escudoCover = (doc: Record<string, unknown>): string | null => {
+      const s = (v: unknown): string | null =>
+        typeof v === 'string' && v.length > 0 ? v : null;
+      return s(doc['escudoManualUrl']) ?? s(doc['escudoUrl']);
+    };
+
+    const beforeCover = escudoCover(before);
+    const afterCover = escudoCover(after);
     const coverChanged = beforeCover !== afterCover;
 
     if (!nameChanged && !coverChanged && !coordsChanged) return;
