@@ -348,126 +348,9 @@ export default function VillageTabScreen() {
           <Stat value={places.length} label={t('village.admin.hub.places')} />
         </HStack>
 
-        {/* ── Próximos eventos (upcoming published events, everyone) ─ */}
-        <Section
-          title={t('village.upcomingEvents.title')}
-          isEmpty={events.length === 0}
-          emptyLabel={t('village.upcomingEvents.empty')}
-        >
-          {events.map((e) => (
-            <EntityCard
-              key={e.id}
-              label={e.title}
-              sub={formatDate(e.startDate, 'short')}
-              icon="calendar-outline"
-              imageUri={e.imageURL ?? e.municipalityCoverImage}
-              onPress={() => router.push(`/event/${e.id}` as never)}
-            />
-          ))}
-        </Section>
-
-        {/* ── Barrios ──────────────────────────────────────────── */}
-        <Section
-          title={t('village.admin.hub.barrios')}
-          onManage={() => router.push(`${villageBase}/barrios` as never)}
-          isEmpty={visibleBarrios.length === 0}
-          emptyLabel={t('village.admin.barrios.empty')}
-          addLabel={canManage ? t('village.admin.barrios.add') : t('village.proposals.propose')}
-          onAdd={() => router.push(`${villageBase}/barrios` as never)}
-        >
-          {visibleBarrios.map((b) => (
-            <EntityCard
-              key={b.id}
-              label={b.name}
-              sub={b.status === 'pending' ? t('village.proposals.pending') : undefined}
-              icon="map-outline"
-              imageUri={b.imageURL}
-              onPress={() => router.push(`/village/${village.id}/barrio/${b.id}` as never)}
-            />
-          ))}
-        </Section>
-
-        {/* ── Lugares ──────────────────────────────────────────── */}
-        <Section
-          title={t('village.admin.hub.places')}
-          onManage={() => router.push(`${villageBase}/places` as never)}
-          isEmpty={visiblePlaces.length === 0}
-          emptyLabel={t('village.admin.places.empty')}
-          addLabel={canManage ? t('village.admin.places.add') : t('village.proposals.propose')}
-          onAdd={() => router.push(`${villageBase}/places` as never)}
-        >
-          {visiblePlaces.map((p) => (
-            <EntityCard
-              key={p.id}
-              label={p.name}
-              sub={p.status === 'pending' ? t('village.proposals.pending') : undefined}
-              icon="location-outline"
-              imageUri={p.imageURL}
-              onPress={() => router.push(`/village/${village.id}/place/${p.id}` as never)}
-            />
-          ))}
-        </Section>
-
-        {/* ── Agrupaciones (ayuntamiento + asociación) ─────────── */}
-        <Section
-          title={t('village.hub.organizations')}
-          onManage={() => router.push(`${villageBase}/organizations` as never)}
-          isEmpty={agrupaciones.length === 0}
-          emptyLabel={t('village.organizationsList.empty')}
-          addLabel={canManage ? t('village.admin.organizations.add') : t('village.proposals.propose')}
-          onAdd={() => router.push(`${villageBase}/organizations` as never)}
-        >
-          {agrupaciones.map((o) => (
-            <EntityCard
-              key={o.id}
-              label={o.name}
-              sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
-              icon="business-outline"
-              imageUri={o.imageURL}
-              onPress={() => router.push(`/o/${o.id}` as never)}
-            />
-          ))}
-        </Section>
-
-        {/* ── Peñas ────────────────────────────────────────────── */}
-        <Section
-          title={t('village.hub.penas')}
-          onManage={() => router.push(`${villageBase}/organizations` as never)}
-          isEmpty={penas.length === 0}
-          emptyLabel={t('village.organizationsList.penasEmpty')}
-          addLabel={canManage ? t('village.admin.organizations.add') : t('village.proposals.propose')}
-          onAdd={() => router.push(`${villageBase}/organizations` as never)}
-        >
-          {penas.map((o) => (
-            <EntityCard
-              key={o.id}
-              label={o.name}
-              sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
-              icon="people-circle-outline"
-              imageUri={o.imageURL}
-              onPress={() => router.push(`/o/${o.id}` as never)}
-            />
-          ))}
-        </Section>
-
-        {/* ── More settings (admins only) ──────────────────────── */}
-        {canManage ? (
-          null
-        ) : null}
-
-        {/* ── Censo (everyone) ─────────────────────────────────── */}
-        <View className="px-4 pt-6">
-          <Button
-            variant="secondary"
-            onPress={() => router.push(`/village/${village.id}/censo` as never)}
-          >
-            {t('village.censo.link')}
-          </Button>
-        </View>
-
         {/* ── Compartir / Invitar (everyone) ───────────────────── */}
         {activeMunicipalityId ? (
-          <HStack gap={3} className="px-4 pt-3">
+          <HStack gap={3} className="px-4 pb-2">
             <Pressable
               onPress={() => void share(getVillageViewLink(activeMunicipalityId), village.name)}
               accessibilityLabel={t('village.share.title')}
@@ -504,6 +387,119 @@ export default function VillageTabScreen() {
             </Pressable>
           </HStack>
         ) : null}
+
+        {/* ── Próximos eventos (upcoming published events, everyone) ─ */}
+        <Section
+          title={t('village.upcomingEvents.title')}
+          isEmpty={events.length === 0}
+          emptyLabel={t('village.upcomingEvents.empty')}
+        >
+          {events.map((e) => (
+            <EntityCard
+              key={e.id}
+              label={e.title}
+              sub={formatDate(e.startDate, 'short')}
+              icon="calendar-outline"
+              imageUri={e.imageURL ?? e.municipalityCoverImage}
+              onPress={() => router.push(`/event/${e.id}` as never)}
+            />
+          ))}
+        </Section>
+
+        {/* ── Barrios ──────────────────────────────────────────── */}
+        <Section
+          title={t('village.admin.hub.barrios')}
+          isEmpty={visibleBarrios.length === 0}
+          emptyLabel={t('village.admin.barrios.empty')}
+          addLabel={canManage ? t('village.admin.barrios.add') : t('village.proposals.propose')}
+          onAdd={() => router.push(`${villageBase}/barrios` as never)}
+        >
+          {visibleBarrios.map((b) => (
+            <EntityCard
+              key={b.id}
+              label={b.name}
+              sub={b.status === 'pending' ? t('village.proposals.pending') : undefined}
+              icon="map-outline"
+              imageUri={b.imageURL}
+              onPress={() => router.push(`/village/${village.id}/barrio/${b.id}` as never)}
+            />
+          ))}
+        </Section>
+
+        {/* ── Lugares ──────────────────────────────────────────── */}
+        <Section
+          title={t('village.admin.hub.places')}
+          isEmpty={visiblePlaces.length === 0}
+          emptyLabel={t('village.admin.places.empty')}
+          addLabel={canManage ? t('village.admin.places.add') : t('village.proposals.propose')}
+          onAdd={() => router.push(`${villageBase}/places` as never)}
+        >
+          {visiblePlaces.map((p) => (
+            <EntityCard
+              key={p.id}
+              label={p.name}
+              sub={p.status === 'pending' ? t('village.proposals.pending') : undefined}
+              icon="location-outline"
+              imageUri={p.imageURL}
+              onPress={() => router.push(`/village/${village.id}/place/${p.id}` as never)}
+            />
+          ))}
+        </Section>
+
+        {/* ── Agrupaciones (ayuntamiento + asociación) ─────────── */}
+        <Section
+          title={t('village.hub.organizations')}
+          isEmpty={agrupaciones.length === 0}
+          emptyLabel={t('village.organizationsList.empty')}
+          addLabel={canManage ? t('village.admin.organizations.add') : t('village.proposals.propose')}
+          onAdd={() => router.push(`${villageBase}/organizations` as never)}
+        >
+          {agrupaciones.map((o) => (
+            <EntityCard
+              key={o.id}
+              label={o.name}
+              sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
+              icon="business-outline"
+              imageUri={o.imageURL}
+              onPress={() => router.push(`/o/${o.id}` as never)}
+            />
+          ))}
+        </Section>
+
+        {/* ── Peñas ────────────────────────────────────────────── */}
+        <Section
+          title={t('village.hub.penas')}
+          isEmpty={penas.length === 0}
+          emptyLabel={t('village.organizationsList.penasEmpty')}
+          addLabel={canManage ? t('village.admin.organizations.add') : t('village.proposals.propose')}
+          onAdd={() => router.push(`${villageBase}/organizations` as never)}
+        >
+          {penas.map((o) => (
+            <EntityCard
+              key={o.id}
+              label={o.name}
+              sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
+              icon="people-circle-outline"
+              imageUri={o.imageURL}
+              onPress={() => router.push(`/o/${o.id}` as never)}
+            />
+          ))}
+        </Section>
+
+        {/* ── More settings (admins only) ──────────────────────── */}
+        {canManage ? (
+          null
+        ) : null}
+
+        {/* ── Censo (everyone) ─────────────────────────────────── */}
+        <View className="px-4 pt-6">
+          <Button
+            variant="secondary"
+            onPress={() => router.push(`/village/${village.id}/censo` as never)}
+          >
+            {t('village.censo.link')}
+          </Button>
+        </View>
       </ScrollView>
 
       <VillageInfoModal

@@ -51,7 +51,8 @@ export function Section({
   return (
     <VStack gap={3} className="pt-4">
       <HStack className="items-center justify-between px-4">
-        <Text variant="h2" style={{ color: ACCENT }}>
+        {/* 1px larger than the card title (body = 16px), kept bold + accent. */}
+        <Text variant="h2" style={{ color: ACCENT, fontSize: 17 }}>
           {title}
         </Text>
         {onManage ? (
