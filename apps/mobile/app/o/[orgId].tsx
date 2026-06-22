@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { AppHeader } from '../../components/layout/AppHeader';
 import { Screen } from '../../components/primitives/Screen';
-import { HStack } from '../../components/primitives/HStack';
 import { Text } from '../../components/primitives/Text';
 import { VStack } from '../../components/primitives/VStack';
-import { Avatar } from '../../components/primitives/Avatar';
+import { Button } from '../../components/primitives/Button';
+import { DetailHeroImage } from '../../components/feature/DetailHeroImage';
+import { FloatingBackButton } from '../../components/feature/FloatingBackButton';
+import { FloatingShareButton } from '../../components/feature/FloatingShareButton';
 import { useT } from '../../lib/i18n';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
@@ -25,7 +26,7 @@ import type { OrganizationData } from '@cultuvilla/shared/models/organization/Or
 
 type Org = OrganizationData & { id: string };
 
-export default function OrgDetailStub() {
+export default function OrgDetailScreen() {
   const { orgId, intent } = useLocalSearchParams<{ orgId: string; intent?: string }>();
   const arrivedViaInvite = intent === 'join';
   const { t } = useT();
@@ -65,64 +66,52 @@ export default function OrgDetailStub() {
     }
   }, [user, orgId, refresh]);
 
-  const headerSlot = (
-    <HStack gap={2}>
-      <Pressable
-        onPress={() => org && void share(getOrgViewLink(org.id), org.name)}
-        accessibilityLabel={t('deeplink.shareViewLabel')}
-        className="p-1"
-      >
-        <Ionicons name="share-outline" size={22} color="#0f172a" />
-      </Pressable>
-      <Pressable
-        onPress={() => org && void share(getOrgInviteLink(org.id), org.name)}
-        accessibilityLabel={t('deeplink.shareInviteLabel')}
-        className="p-1"
-      >
-        <Ionicons name="person-add-outline" size={22} color="#0f172a" />
-      </Pressable>
-    </HStack>
-  );
+  if (loading || !org) {
+    return (
+      <Screen padded={false} topInset={false}>
+        <StatusBar style="light" />
+        <View className="flex-1 items-center justify-center">
+          {loading ? <ActivityIndicator /> : <Text>{t('common.notFound')}</Text>}
+        </View>
+        <FloatingBackButton />
+      </Screen>
+    );
+  }
 
   return (
-    <Screen>
-      <AppHeader centerLabel={org?.name ?? t('organization.title')} extraRightSlot={headerSlot} />
-      <VStack className="p-4 gap-3">
-        {loading ? <ActivityIndicator /> : null}
-        {!loading && !org ? <Text>{t('common.notFound')}</Text> : null}
-        {org ? (
-          <>
-            {org.imageURL ? (
-              <VStack className="items-center pb-1">
-                <Avatar uri={org.imageURL} size={96} />
-              </VStack>
-            ) : null}
-            {org.description ? <Text>{org.description}</Text> : null}
-            <Text tone="muted">
-              {t('organization.membersCount', { count: membersCount ?? 0 })}
-            </Text>
-            {!isMember ? (
-              <VStack gap={1}>
-                {arrivedViaInvite ? (
-                  <Text tone="muted" variant="bodySm" className="text-center">
-                    {t('organization.invitedBanner')}
-                  </Text>
-                ) : null}
-                <Pressable
-                  onPress={onJoin}
-                  disabled={joining}
-                  className="bg-primary rounded-lg p-3 items-center"
-                  accessibilityLabel={t('organization.join')}
-                >
-                  <Text tone="onAccent">
-                    {user ? t('organization.join') : t('organization.signInToJoin')}
-                  </Text>
-                </Pressable>
-              </VStack>
-            ) : null}
-          </>
-        ) : null}
-      </VStack>
+    <Screen padded={false} topInset={false}>
+      <StatusBar style="light" />
+      <ScrollView contentContainerClassName="pb-10">
+        <DetailHeroImage imageUri={org.imageURL} fallbackIcon="people-outline" />
+        <FloatingBackButton />
+        <FloatingShareButton onPress={() => void share(getOrgViewLink(org.id), org.name)} />
+        <VStack gap={3} className="p-4">
+          <Text variant="h1">{org.name}</Text>
+          {org.description ? <Text>{org.description}</Text> : null}
+          <Text tone="muted">
+            {t('organization.membersCount', { count: membersCount ?? 0 })}
+          </Text>
+          <Button
+            variant="secondary"
+            fullWidth
+            onPress={() => void share(getOrgInviteLink(org.id), org.name)}
+          >
+            {t('deeplink.shareInviteLabel')}
+          </Button>
+          {!isMember ? (
+            <VStack gap={1}>
+              {arrivedViaInvite ? (
+                <Text tone="muted" variant="bodySm" className="text-center">
+                  {t('organization.invitedBanner')}
+                </Text>
+              ) : null}
+              <Button variant="primary" fullWidth loading={joining} onPress={onJoin}>
+                {user ? t('organization.join') : t('organization.signInToJoin')}
+              </Button>
+            </VStack>
+          ) : null}
+        </VStack>
+      </ScrollView>
     </Screen>
   );
 }

@@ -59,6 +59,26 @@ describe('useDeepLinkRouter', () => {
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/village/mun_9'));
   });
 
+  it('routes a nested place URL to its village-scoped route', async () => {
+    mockGetInitialURL.mockResolvedValueOnce(
+      'https://example.test.app/village/mun_1/place/place_2',
+    );
+    render(<Probe />);
+    await waitFor(() =>
+      expect(mockReplace).toHaveBeenCalledWith('/village/mun_1/place/place_2'),
+    );
+  });
+
+  it('routes a nested barrio URL to its village-scoped route', async () => {
+    mockGetInitialURL.mockResolvedValueOnce(
+      'https://example.test.app/village/mun_1/barrio/barrio_2',
+    );
+    render(<Probe />);
+    await waitFor(() =>
+      expect(mockReplace).toHaveBeenCalledWith('/village/mun_1/barrio/barrio_2'),
+    );
+  });
+
   it('ignores unknown URLs', async () => {
     mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/unknown/x');
     render(<Probe />);

@@ -108,10 +108,10 @@ function BigCard({
 }) {
   const body = (
     <View
-      className="w-48 rounded-2xl overflow-hidden bg-surface-elevated border border-subtle"
+      className="w-[150px] rounded-2xl overflow-hidden bg-surface-elevated border border-subtle"
       style={accent ? { borderColor: ACCENT } : undefined}
     >
-      <View className="h-32 w-full items-center justify-center bg-subtle">
+      <View className="h-[150px] w-full items-center justify-center bg-subtle">
         {imageUri ? (
           <Image source={{ uri: imageUri }} className="w-full h-full" resizeMode="cover" />
         ) : (
@@ -147,11 +147,15 @@ export function PersonCard({
   name,
   photoURL,
   badge,
+  subtitle,
   onPress,
 }: {
   name: string;
   photoURL: string | null;
+  /** Accent-tinted secondary line (e.g. a request badge). Takes precedence over `subtitle`. */
   badge?: string;
+  /** Plain (muted) secondary line shown when there's no `badge`. */
+  subtitle?: string;
   onPress?: () => void;
 }) {
   const initials = name.slice(0, 1).toUpperCase();
@@ -164,7 +168,7 @@ export function PersonCard({
           {initials}
         </Text>
       }
-      secondary={badge}
+      secondary={badge ?? subtitle}
       accent={Boolean(badge)}
       onPress={onPress}
     />
@@ -199,15 +203,15 @@ export function EntityCard({
 }
 
 export function AddCard({ label, onPress }: { label: string; onPress: () => void }) {
-  // Matches BigCard's footprint (w-48 + h-32 image area) so it lines up with the
-  // image-forward cards it sits beside in the horizontal scroll.
+  // Matches BigCard's footprint (w-[150px] + square h-[150px] image area) so it
+  // lines up with the image-forward cards it sits beside in the horizontal scroll.
   return (
     <Pressable
       onPress={onPress}
       accessibilityLabel={label}
-      className="w-48 rounded-2xl overflow-hidden border border-dashed border-subtle"
+      className="w-[150px] rounded-2xl overflow-hidden border border-dashed border-subtle"
     >
-      <View className="h-32 w-full items-center justify-center">
+      <View className="h-[150px] w-full items-center justify-center">
         <Ionicons name="add" size={44} color={ACCENT} />
       </View>
       <View className="px-3 py-2">

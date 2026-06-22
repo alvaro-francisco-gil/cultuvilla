@@ -1,13 +1,21 @@
 import Constants from 'expo-constants';
 
 export type LinkKind = 'content' | 'invite';
-export type DeepLinkResource = 'event' | 'news' | 'village' | 'organization';
+export type DeepLinkResource =
+  | 'event'
+  | 'news'
+  | 'village'
+  | 'organization'
+  | 'place'
+  | 'barrio';
 
 export interface DeepLink {
   url: string;
   kind: LinkKind;
   resource: DeepLinkResource;
   id: string;
+  /** Parent id for resources nested under a village (place, barrio). */
+  parentId?: string;
 }
 
 const RESOURCE_TO_PATH: Record<DeepLinkResource, string> = {
@@ -15,6 +23,9 @@ const RESOURCE_TO_PATH: Record<DeepLinkResource, string> = {
   news: 'news',
   village: 'village',
   organization: 'o',
+  // Nested resources live under /village/<villageId>/...; see buildNestedLink.
+  place: 'village',
+  barrio: 'village',
 };
 
 const SUPPORTS_INVITE: Record<DeepLinkResource, boolean> = {
@@ -22,7 +33,22 @@ const SUPPORTS_INVITE: Record<DeepLinkResource, boolean> = {
   news: false,
   village: true,
   organization: true,
+  place: false,
+  barrio: false,
 };
+
+/**
+ * Resources nested under a village. The URL is
+ * /village/<villageId>/<childPath>/<id> and the parsed link carries the village
+ * id in `parentId`.
+ */
+const NESTED_CHILD_PATH = {
+  place: 'place',
+  barrio: 'barrio',
+} as const;
+
+type NestedResource = keyof typeof NESTED_CHILD_PATH;
+const NESTED_PARENT_PATH = 'village';
 
 const INVITE_SUFFIX = 'join';
 
@@ -66,11 +92,37 @@ export const getOrgViewLink = (orgId: string): DeepLink =>
 export const getOrgInviteLink = (orgId: string): DeepLink =>
   buildLink('organization', orgId, 'invite');
 
+function buildNestedLink(resource: NestedResource, villageId: string, id: string): DeepLink {
+  if (!villageId) throw new Error(`deepLinkService: villageId is required for ${resource}`);
+  if (!id) throw new Error(`deepLinkService: id is required for ${resource}`);
+  const host = getDeepLinkHost();
+  const childPath = NESTED_CHILD_PATH[resource];
+  return {
+    url: `https://${host}/${NESTED_PARENT_PATH}/${villageId}/${childPath}/${id}`,
+    kind: 'content',
+    resource,
+    id,
+    parentId: villageId,
+  };
+}
+
+export const getPlaceViewLink = (villageId: string, placeId: string): DeepLink =>
+  buildNestedLink('place', villageId, placeId);
+export const getBarrioViewLink = (villageId: string, barrioId: string): DeepLink =>
+  buildNestedLink('barrio', villageId, barrioId);
+
 export interface ParsedDeepLink {
   kind: LinkKind;
   resource: DeepLinkResource;
   id: string;
+  /** Parent id for resources nested under a village (place, barrio). */
+  parentId?: string;
 }
+
+const CHILD_PATH_TO_RESOURCE: { readonly [path: string]: NestedResource | undefined } = {
+  place: 'place',
+  barrio: 'barrio',
+};
 
 const PATH_TO_RESOURCE: { readonly [path: string]: DeepLinkResource | undefined } = {
   event: 'event',
@@ -94,6 +146,18 @@ function interpret(segments: string[]): ParsedDeepLink | null {
     const resource = PATH_TO_RESOURCE[pathSegment];
     if (!resource || !SUPPORTS_INVITE[resource]) return null;
     return { kind: 'invite', resource, id };
+  }
+  if (segments.length === 4) {
+    const [parentSegment, parentId, childSegment, id] = segments as [
+      string,
+      string,
+      string,
+      string,
+    ];
+    if (parentSegment !== NESTED_PARENT_PATH) return null;
+    const resource = CHILD_PATH_TO_RESOURCE[childSegment];
+    if (!resource) return null;
+    return { kind: 'content', resource, id, parentId };
   }
   return null;
 }

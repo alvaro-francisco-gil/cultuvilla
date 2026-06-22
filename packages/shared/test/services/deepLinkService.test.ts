@@ -11,6 +11,8 @@ import {
   getVillageInviteLink,
   getOrgViewLink,
   getOrgInviteLink,
+  getPlaceViewLink,
+  getBarrioViewLink,
   parseLink,
   buildShareMessage,
 } from '../../src/services/deepLinkService';
@@ -70,8 +72,33 @@ describe('deepLinkService builders', () => {
     });
   });
 
+  it('builds a place view link nested under its village', () => {
+    expect(getPlaceViewLink('mun_abc', 'place_1')).toEqual({
+      url: 'https://example.test.app/village/mun_abc/place/place_1',
+      kind: 'content',
+      resource: 'place',
+      id: 'place_1',
+      parentId: 'mun_abc',
+    });
+  });
+
+  it('builds a barrio view link nested under its village', () => {
+    expect(getBarrioViewLink('mun_abc', 'barrio_1')).toEqual({
+      url: 'https://example.test.app/village/mun_abc/barrio/barrio_1',
+      kind: 'content',
+      resource: 'barrio',
+      id: 'barrio_1',
+      parentId: 'mun_abc',
+    });
+  });
+
   it('throws on empty id', () => {
     expect(() => getEventLink('')).toThrow(/id/i);
+  });
+
+  it('throws when a nested link is missing its village id', () => {
+    expect(() => getPlaceViewLink('', 'place_1')).toThrow(/village/i);
+    expect(() => getBarrioViewLink('', 'barrio_1')).toThrow(/village/i);
   });
 });
 
@@ -162,6 +189,61 @@ describe('deepLinkService.parseLink', () => {
       id: 'mun_round',
     });
   });
+
+  it('parses a nested place URL', () => {
+    expect(parseLink('https://example.test.app/village/mun_abc/place/place_1')).toEqual({
+      kind: 'content',
+      resource: 'place',
+      id: 'place_1',
+      parentId: 'mun_abc',
+    });
+  });
+
+  it('parses a nested barrio URL', () => {
+    expect(parseLink('https://example.test.app/village/mun_abc/barrio/barrio_1')).toEqual({
+      kind: 'content',
+      resource: 'barrio',
+      id: 'barrio_1',
+      parentId: 'mun_abc',
+    });
+  });
+
+  it('parses a nested place cultuvilla:// URL', () => {
+    expect(parseLink('cultuvilla://village/mun_abc/place/place_1')).toEqual({
+      kind: 'content',
+      resource: 'place',
+      id: 'place_1',
+      parentId: 'mun_abc',
+    });
+  });
+
+  it('rejects an unknown nested child segment', () => {
+    expect(parseLink('https://example.test.app/village/mun_abc/banana/x')).toBeNull();
+  });
+
+  it('rejects a nested path whose parent is not a village', () => {
+    expect(parseLink('https://example.test.app/o/org_1/place/place_1')).toBeNull();
+  });
+
+  it('round-trips a place view link', () => {
+    const link = getPlaceViewLink('mun_round', 'place_round');
+    expect(parseLink(link.url)).toEqual({
+      kind: 'content',
+      resource: 'place',
+      id: 'place_round',
+      parentId: 'mun_round',
+    });
+  });
+
+  it('round-trips a barrio view link', () => {
+    const link = getBarrioViewLink('mun_round', 'barrio_round');
+    expect(parseLink(link.url)).toEqual({
+      kind: 'content',
+      resource: 'barrio',
+      id: 'barrio_round',
+      parentId: 'mun_round',
+    });
+  });
 });
 
 describe('deepLinkService.buildShareMessage', () => {
@@ -173,6 +255,8 @@ describe('deepLinkService.buildShareMessage', () => {
       'deeplink.share.village.invite': 'Te invito a unirte a {name}: {url}',
       'deeplink.share.organization.view': 'Mira {name}: {url}',
       'deeplink.share.organization.invite': 'Te invito a unirte a {name}: {url}',
+      'deeplink.share.place.view': 'Mira «{name}»: {url}',
+      'deeplink.share.barrio.view': 'Mira {name}: {url}',
     };
     let out: string = map[key] ?? key;
     if (!vars) return out;
@@ -206,5 +290,17 @@ describe('deepLinkService.buildShareMessage', () => {
     expect(buildShareMessage(link, t, 'Peña El Roble')).toBe(
       `Te invito a unirte a Peña El Roble: ${link.url}`,
     );
+  });
+
+  it('interpolates the place name into the view message', () => {
+    const link = getPlaceViewLink('mun_1', 'place_1');
+    expect(buildShareMessage(link, t, 'Ermita de San Roque')).toBe(
+      `Mira «Ermita de San Roque»: ${link.url}`,
+    );
+  });
+
+  it('interpolates the barrio name into the view message', () => {
+    const link = getBarrioViewLink('mun_1', 'barrio_1');
+    expect(buildShareMessage(link, t, 'El Arrabal')).toBe(`Mira El Arrabal: ${link.url}`);
   });
 });

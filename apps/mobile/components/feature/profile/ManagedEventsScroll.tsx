@@ -1,6 +1,7 @@
 import { FlatList, View } from 'react-native';
 import { Text } from '../../primitives';
-import { EventCard } from '../EventCard';
+import { EntityCard } from '../VillageSections';
+import { formatDate } from '@cultuvilla/shared/utils';
 import {
   isEventOngoing,
   type EventData,
@@ -47,15 +48,19 @@ export function ManagedEventsScroll({
       data={ordered}
       keyExtractor={(e) => e.id}
       contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-      renderItem={({ item }) => (
-        <View style={{ width: 280 }}>
-          <EventCard
-            event={item}
-            badge={ongoingIds.has(item.id) ? ongoingLabel : null}
-            onPress={onPressEvent}
+      renderItem={({ item }) => {
+        const isOngoing = ongoingIds.has(item.id);
+        return (
+          <EntityCard
+            label={item.title}
+            sub={isOngoing ? ongoingLabel : formatDate(item.startDate, 'short')}
+            icon="calendar-outline"
+            imageUri={item.imageURL ?? item.municipalityCoverImage}
+            accent={isOngoing}
+            onPress={() => onPressEvent(item.id)}
           />
-        </View>
-      )}
+        );
+      }}
     />
   );
 }
