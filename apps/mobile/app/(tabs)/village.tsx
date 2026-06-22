@@ -346,7 +346,7 @@ export default function VillageTabScreen() {
           ) : null}
           {canManage ? (
             <Pressable
-              onPress={() => router.push(`${base}/community` as never)}
+              onPress={() => router.push(`${villageBase}/community` as never)}
               accessibilityLabel={t('village.admin.overview.edit')}
               className="flex-row items-center"
             >

@@ -1,0 +1,38 @@
+import { render } from '@testing-library/react-native';
+import CommunityScreen from '../community';
+import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+
+jest.mock('expo-router', () => ({
+  useLocalSearchParams: () => ({ villageId: 'm1' }),
+  Redirect: ({ href }: { href: string }) => {
+    const { Text } = require('react-native');
+    return <Text>REDIRECT:{href}</Text>;
+  },
+}));
+jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({ useEntityCapabilities: jest.fn() }));
+jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('../../../../components/feature/CommunitySettingsEditor', () => ({
+  CommunitySettingsEditor: () => {
+    const { Text } = require('react-native');
+    return <Text>COMMUNITY_EDITOR</Text>;
+  },
+}));
+
+const mockCaps = useEntityCapabilities as jest.Mock;
+
+beforeEach(() => jest.clearAllMocks());
+
+describe('CommunityScreen (role-gated)', () => {
+  it('an organizer sees the editor', () => {
+    mockCaps.mockReturnValue({ canManage: true, canApprove: true, uid: 'u1', loading: false });
+    const { getByText } = render(<CommunityScreen />);
+    expect(getByText('COMMUNITY_EDITOR')).toBeTruthy();
+  });
+
+  it('a villager is redirected back to the village', () => {
+    mockCaps.mockReturnValue({ canManage: false, canApprove: false, uid: 'u1', loading: false });
+    const { getByText, queryByText } = render(<CommunityScreen />);
+    expect(getByText('REDIRECT:/village/m1')).toBeTruthy();
+    expect(queryByText('COMMUNITY_EDITOR')).toBeNull();
+  });
+});
