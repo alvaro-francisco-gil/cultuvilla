@@ -208,7 +208,7 @@ describe('validateSchemaTransition', () => {
 describe('validateSchemaTransition optionsSource', () => {
   const sel = (over: Partial<ProfileFormField> = {}): ProfileFormField => ({
     source: 'custom', key: 'k', label: 'L', type: 'select', options: ['a'], required: false, ...over,
-  } as ProfileFormField);
+  });
 
   it('accepts a select backed by optionsSource and no static options', () => {
     const f = sel({ options: undefined, optionsSource: 'barrios' });
