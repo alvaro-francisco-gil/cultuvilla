@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -14,6 +14,7 @@ import {
 } from '../primitives';
 import { useT } from '../../lib/i18n';
 import type { PersonData, Sex } from '@cultuvilla/shared/models/person';
+import { Stepper, type StepConfig } from './Stepper';
 
 export interface PersonFormValues {
   givenName: string;
@@ -40,6 +41,7 @@ export interface PersonFormProps {
   submitLabel: string;
   loading?: boolean;
   error?: string | null;
+  requireFullName?: boolean;
   onSubmit: (values: PersonFormValues, photo: PersonFormPhoto | null) => Promise<void> | void;
 }
 
@@ -69,6 +71,7 @@ export function PersonForm({
   submitLabel,
   loading,
   error,
+  requireFullName = false,
   onSubmit,
 }: PersonFormProps) {
   const { t } = useT();
@@ -114,97 +117,137 @@ export function PersonForm({
     );
   }
 
+  function stepBody(children: ReactNode) {
+    return (
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: insets.bottom + 16 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <VStack gap={3}>{children}</VStack>
+      </ScrollView>
+    );
+  }
+
+  const steps: StepConfig[] = [
+    {
+      key: 'identity',
+      title: t('profile.personForm.stepIdentity'),
+      validate: () => {
+        const errs: string[] = [];
+        if (!givenName.trim()) errs.push('givenName');
+        if (requireFullName && !firstSurname.trim()) errs.push('firstSurname');
+        if (requireFullName && !secondSurname.trim()) errs.push('secondSurname');
+        return errs;
+      },
+      render: () =>
+        stepBody(
+          <>
+            <View className="items-center">
+              <Avatar
+                uri={photo?.uri ?? initial?.photoURL ?? undefined}
+                size={96}
+                onPress={async () => {
+                  const next = await pickImage();
+                  if (next) setPhoto(next);
+                }}
+              />
+            </View>
+            <Input
+              label={t('onboarding.completeProfile.givenName')}
+              value={givenName}
+              onChangeText={setGivenName}
+            />
+            <Input
+              label={t('onboarding.completeProfile.firstSurname')}
+              value={firstSurname}
+              onChangeText={setFirstSurname}
+            />
+            <Input
+              label={t('onboarding.completeProfile.secondSurname')}
+              value={secondSurname}
+              onChangeText={setSecondSurname}
+            />
+            <Input
+              label={t('onboarding.completeProfile.nickname')}
+              value={nickname}
+              onChangeText={setNickname}
+            />
+            <Text tone="muted">{t('onboarding.completeProfile.sex')}</Text>
+            <VStack gap={2}>
+              {(['female', 'male', 'other'] as const).map((opt) => (
+                <Button
+                  key={opt}
+                  variant={sex === opt ? 'primary' : 'secondary'}
+                  onPress={() => setSex(sex === opt ? null : opt)}
+                >
+                  {t(`onboarding.completeProfile.sex_${opt}`)}
+                </Button>
+              ))}
+            </VStack>
+          </>,
+        ),
+    },
+    {
+      key: 'residence',
+      title: t('profile.personForm.stepResidence'),
+      validate: () => (requireFullName && !birthday ? ['birthday'] : []),
+      render: () =>
+        stepBody(
+          <>
+            <DateField
+              label={t('onboarding.completeProfile.birthday')}
+              value={birthday}
+              onChange={setBirthday}
+              minimumDate={new Date(1900, 0, 1)}
+              maximumDate={new Date()}
+              testID="birthday"
+            />
+            <VillagePicker
+              label={t('onboarding.completeProfile.birthPlace')}
+              value={birthPlace}
+              onChange={setBirthPlace}
+            />
+            <VillagePicker
+              label={t('profile.personForm.village')}
+              value={municipalityId}
+              onChange={handleVillageChange}
+            />
+            <BarrioPicker
+              label={t('profile.personForm.barrio')}
+              municipalityId={municipalityId}
+              value={barrioId}
+              onChange={setBarrioId}
+              wholeVillageLabel={t('profile.personForm.wholeVillage')}
+            />
+          </>,
+        ),
+    },
+    {
+      key: 'about',
+      title: t('profile.personForm.stepAbout'),
+      render: () =>
+        stepBody(
+          <Input
+            label={t('onboarding.completeProfile.biography')}
+            value={biography}
+            onChangeText={setBiography}
+            multiline
+            numberOfLines={4}
+          />,
+        ),
+    },
+  ];
+
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-    <ScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: insets.bottom + 80 }}
-      keyboardShouldPersistTaps="handled"
-    >
-      <VStack gap={3}>
-        <View className="items-center">
-          <Avatar
-            uri={photo?.uri ?? initial?.photoURL ?? undefined}
-            size={96}
-            onPress={async () => {
-              const next = await pickImage();
-              if (next) setPhoto(next);
-            }}
-          />
-        </View>
-        <Input
-          label={t('onboarding.completeProfile.givenName')}
-          value={givenName}
-          onChangeText={setGivenName}
-        />
-        <Input
-          label={t('onboarding.completeProfile.firstSurname')}
-          value={firstSurname}
-          onChangeText={setFirstSurname}
-        />
-        <Input
-          label={t('onboarding.completeProfile.secondSurname')}
-          value={secondSurname}
-          onChangeText={setSecondSurname}
-        />
-        <Input
-          label={t('onboarding.completeProfile.nickname')}
-          value={nickname}
-          onChangeText={setNickname}
-        />
-        <Text tone="muted">{t('onboarding.completeProfile.sex')}</Text>
-        <VStack gap={2}>
-          {(['female', 'male', 'other'] as const).map((opt) => (
-            <Button
-              key={opt}
-              variant={sex === opt ? 'primary' : 'secondary'}
-              onPress={() => setSex(sex === opt ? null : opt)}
-            >
-              {t(`onboarding.completeProfile.sex_${opt}`)}
-            </Button>
-          ))}
-        </VStack>
-        <DateField
-          label={t('onboarding.completeProfile.birthday')}
-          value={birthday}
-          onChange={setBirthday}
-          minimumDate={new Date(1900, 0, 1)}
-          maximumDate={new Date()}
-          testID="birthday"
-        />
-        <VillagePicker
-          label={t('onboarding.completeProfile.birthPlace')}
-          value={birthPlace}
-          onChange={setBirthPlace}
-        />
-        <VillagePicker
-          label={t('profile.personForm.village')}
-          value={municipalityId}
-          onChange={handleVillageChange}
-        />
-        <BarrioPicker
-          label={t('profile.personForm.barrio')}
-          municipalityId={municipalityId}
-          value={barrioId}
-          onChange={setBarrioId}
-          wholeVillageLabel={t('profile.personForm.wholeVillage')}
-        />
-        <Input
-          label={t('onboarding.completeProfile.biography')}
-          value={biography}
-          onChangeText={setBiography}
-          multiline
-          numberOfLines={4}
-        />
-      </VStack>
-      {error ? <Text tone="danger">{error}</Text> : null}
-      <Button onPress={handleSubmit} loading={loading} fullWidth>
-        {submitLabel}
-      </Button>
-    </ScrollView>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <Stepper
+        steps={steps}
+        onComplete={handleSubmit}
+        submitLabel={submitLabel}
+        loading={loading}
+        submitError={error}
+      />
     </KeyboardAvoidingView>
   );
 }
