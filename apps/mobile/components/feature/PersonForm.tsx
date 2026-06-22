@@ -13,7 +13,7 @@ import {
   VillagePicker,
 } from '../primitives';
 import { useT } from '../../lib/i18n';
-import type { PersonData, Sex } from '@cultuvilla/shared/models/person';
+import type { Sex } from '@cultuvilla/shared/models/person';
 import { Stepper, type StepConfig } from './Stepper';
 
 export interface PersonFormValues {
@@ -43,11 +43,6 @@ export interface PersonFormProps {
   error?: string | null;
   requireFullName?: boolean;
   onSubmit: (values: PersonFormValues, photo: PersonFormPhoto | null) => Promise<void> | void;
-}
-
-function fromPartialDate(d: PersonData['birthday']): Date | null {
-  if (!d || d.year === null) return null;
-  return new Date(d.year, (d.month ?? 1) - 1, d.day ?? 1);
 }
 
 async function pickImage(): Promise<PersonFormPhoto | null> {
@@ -251,5 +246,3 @@ export function PersonForm({
     </KeyboardAvoidingView>
   );
 }
-
-PersonForm.fromPartialDate = fromPartialDate;
