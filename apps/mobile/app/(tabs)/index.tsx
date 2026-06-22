@@ -556,6 +556,8 @@ export default function FeedScreen() {
       <Fab
         testID="create-fab"
         label={activeTab === 'noticias' ? t('feed.news.create') : t('feed.events.create')}
+        opacity={filterOpacity}
+        interactive={filterInteractive}
         onPress={() => router.push(activeTab === 'noticias' ? '/news/new' : '/event/new')}
       />
     </Screen>

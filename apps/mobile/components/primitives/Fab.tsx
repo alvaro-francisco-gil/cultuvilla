@@ -1,10 +1,21 @@
-import { Pressable, Text, View } from 'react-native';
+import { Animated, Pressable, Text } from 'react-native';
 
 export type FabProps = {
   onPress: () => void;
   /** Text shown inside the pill (e.g. "Crear evento" / "Crear noticia"). */
   label: string;
   testID?: string;
+  /**
+   * Optional animated (or static) opacity, e.g. to fade the pill out on
+   * scroll-down and back in on scroll-up. Defaults to fully shown.
+   */
+  opacity?: Animated.AnimatedInterpolation<number> | number;
+  /**
+   * When false the pill ignores touches — pair with a faded-out `opacity` so
+   * the invisible button doesn't intercept taps meant for the feed behind it.
+   * Defaults to interactive.
+   */
+  interactive?: boolean;
 };
 
 /**
@@ -13,10 +24,10 @@ export type FabProps = {
  * never blocks taps on the feed behind it. All visual styles live on `style`
  * (never `className`) so the button renders on the RN-Web build.
  */
-export function Fab({ onPress, label, testID }: FabProps) {
+export function Fab({ onPress, label, testID, opacity = 1, interactive = true }: FabProps) {
   return (
-    <View
-      pointerEvents="box-none"
+    <Animated.View
+      pointerEvents={interactive ? 'box-none' : 'none'}
       style={{
         position: 'absolute',
         left: 0,
@@ -24,6 +35,7 @@ export function Fab({ onPress, label, testID }: FabProps) {
         bottom: 24,
         alignItems: 'center',
         zIndex: 20,
+        opacity,
       }}
     >
       <Pressable
@@ -50,6 +62,6 @@ export function Fab({ onPress, label, testID }: FabProps) {
         <Text style={{ color: '#f9f0e8', fontSize: 22, lineHeight: 24, marginRight: 8 }}>+</Text>
         <Text style={{ color: '#f9f0e8', fontSize: 16, fontWeight: '700' }}>{label}</Text>
       </Pressable>
-    </View>
+    </Animated.View>
   );
 }
