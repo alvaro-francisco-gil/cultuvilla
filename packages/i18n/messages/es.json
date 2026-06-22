@@ -195,6 +195,7 @@
     },
     "share": { "title": "Compartir pueblo" },
     "invite": { "title": "Invitar vecino" },
+    "edit": { "title": "Editar pueblo" },
     "events": {
       "label": "Eventos",
       "empty": "No hay eventos en este pueblo"
@@ -204,7 +205,6 @@
       "empty": "No hay eventos próximos"
     },
     "info": {
-      "title": "Información sobre el pueblo",
       "directions": "Cómo llegar"
     },
     "organizations": "Organizaciones",

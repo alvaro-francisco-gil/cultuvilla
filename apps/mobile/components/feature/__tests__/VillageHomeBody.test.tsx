@@ -1,5 +1,6 @@
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
+import { router } from 'expo-router';
 import { VillageHomeBody } from '../VillageHomeBody';
 import type { VillageHomeState } from '../../../lib/useVillageHome';
 
@@ -13,7 +14,8 @@ jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn() } }));
+jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn(), replace: jest.fn() } }));
+jest.mock('@cultuvilla/shared/services/mapsService', () => ({ staticMapUrl: jest.fn().mockReturnValue('https://maps.example.test/static') }));
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({
   getVillageViewLink: jest.fn().mockReturnValue('https://example.test'),
   getVillageInviteLink: jest.fn().mockReturnValue('https://example.test'),
@@ -93,5 +95,27 @@ describe('VillageHomeBody', () => {
     };
     const { getByText } = render(<VillageHomeBody data={dormant} reload={jest.fn()} />);
     expect(getByText('Iniciar este pueblo')).toBeTruthy();
+  });
+
+  it('non-admin member sees "Compartir pueblo" as the second button', () => {
+    const { getByText, queryByText } = render(<VillageHomeBody data={base} reload={jest.fn()} />);
+    expect(getByText('Compartir pueblo')).toBeTruthy();
+    expect(queryByText('Editar pueblo')).toBeNull();
+  });
+
+  it('admin sees "Editar pueblo" instead of "Compartir pueblo"', () => {
+    const { getByText, queryByText } = render(
+      <VillageHomeBody data={{ ...base, villageAdmin: true }} reload={jest.fn()} />,
+    );
+    expect(getByText('Editar pueblo')).toBeTruthy();
+    expect(queryByText('Compartir pueblo')).toBeNull();
+  });
+
+  it('pressing "Editar pueblo" routes to the community settings screen', () => {
+    const { getByText } = render(
+      <VillageHomeBody data={{ ...base, villageAdmin: true }} reload={jest.fn()} />,
+    );
+    fireEvent.press(getByText('Editar pueblo'));
+    expect(router.push).toHaveBeenCalledWith('/village/m1/community');
   });
 });

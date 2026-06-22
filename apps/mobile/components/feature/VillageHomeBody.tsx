@@ -3,7 +3,6 @@ import { ActivityIndicator, Platform, Alert, ScrollView, View, Image, Linking } 
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, VStack, HStack, Pressable, Escudo, Button, ScreenTitle } from '../primitives';
-import { VillageInfoModal } from './VillageInfoModal';
 import { ACCENT, Section, EntityCard } from './VillageSections';
 import { StatsRow } from './StatsRow';
 import { useAuth } from '../../lib/auth/useAuth';
@@ -42,7 +41,6 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
   const { isAppAdmin } = useIsAppAdmin();
   const share = useShareDeepLink();
   const { t } = useT();
-  const [infoOpen, setInfoOpen] = useState(false);
   const [joining, setJoining] = useState(false);
 
   const { loading, loadError, village } = data;
@@ -173,16 +171,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
               />
             </View>
             <VStack gap={0} className="flex-1">
-              <HStack gap={2} className="items-center">
-                <ScreenTitle className="flex-1">{village.name}</ScreenTitle>
-                <Pressable
-                  onPress={() => setInfoOpen(true)}
-                  accessibilityLabel={t('village.info.title')}
-                  className="p-1"
-                >
-                  <Ionicons name="information-circle-outline" size={24} color={ACCENT} />
-                </Pressable>
-              </HStack>
+              <ScreenTitle>{village.name}</ScreenTitle>
               <Text tone="muted" variant="bodySm">
                 {village.province}
               </Text>
@@ -274,23 +263,43 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
               {t('village.invite.title')}
             </Text>
           </Pressable>
-          <Pressable
-            onPress={() => void share(getVillageViewLink(village.id), village.name)}
-            accessibilityLabel={t('village.share.title')}
-            className="flex-1 flex-row items-center justify-center bg-surface"
-            style={{
-              paddingVertical: 5,
-              paddingHorizontal: 12,
-              borderRadius: 24,
-              borderWidth: 1.5,
-              borderColor: ACCENT,
-              minHeight: 32,
-            }}
-          >
-            <Text style={{ color: ACCENT }} className="font-semibold">
-              {t('village.share.title')}
-            </Text>
-          </Pressable>
+          {canManage ? (
+            <Pressable
+              onPress={() => router.push(`/village/${village.id}/community` as never)}
+              accessibilityLabel={t('village.edit.title')}
+              className="flex-1 flex-row items-center justify-center bg-surface"
+              style={{
+                paddingVertical: 5,
+                paddingHorizontal: 12,
+                borderRadius: 24,
+                borderWidth: 1.5,
+                borderColor: ACCENT,
+                minHeight: 32,
+              }}
+            >
+              <Text style={{ color: ACCENT }} className="font-semibold">
+                {t('village.edit.title')}
+              </Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={() => void share(getVillageViewLink(village.id), village.name)}
+              accessibilityLabel={t('village.share.title')}
+              className="flex-1 flex-row items-center justify-center bg-surface"
+              style={{
+                paddingVertical: 5,
+                paddingHorizontal: 12,
+                borderRadius: 24,
+                borderWidth: 1.5,
+                borderColor: ACCENT,
+                minHeight: 32,
+              }}
+            >
+              <Text style={{ color: ACCENT }} className="font-semibold">
+                {t('village.share.title')}
+              </Text>
+            </Pressable>
+          )}
         </HStack>
 
         {/* ── Ubicación (map rectangle, when coordinates are set) ── */}
@@ -437,13 +446,6 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           </Button>
         </View>
       </ScrollView>
-
-      <VillageInfoModal
-        visible={infoOpen}
-        onClose={() => setInfoOpen(false)}
-        village={village}
-        canManage={canManage}
-      />
     </>
   );
 }
