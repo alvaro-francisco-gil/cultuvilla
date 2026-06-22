@@ -30,10 +30,13 @@ export function OrganizationsManager({ villageId }: { villageId: string }) {
   const [type, setType] = useState<OrganizationType>('peña');
   const [saving, setSaving] = useState(false);
 
+  // Pending organizations are organizer-only: a villager sees a peña/asociación
+  // only once it's approved (they still propose via the form, then wait).
+  // Organizers load all statuses so they can approve/reject.
   const load = useCallback(async () => {
     if (!villageId) return;
-    setRows(await getOrganizationsByMunicipality(villageId));
-  }, [villageId]);
+    setRows(await getOrganizationsByMunicipality(villageId, canManage ? undefined : 'approved'));
+  }, [villageId, canManage]);
 
   useEffect(() => {
     void load();

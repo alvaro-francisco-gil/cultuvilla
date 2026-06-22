@@ -48,6 +48,17 @@ describe('<OrganizationsManager>', () => {
     await waitFor(() => expect(approveOrganization).toHaveBeenCalledWith('new-org', 'boss'));
   });
 
+  it('a villager loads only approved orgs (pending is organizer-only)', async () => {
+    render(<OrganizationsManager villageId="m1" />);
+    await waitFor(() => expect(mockGet).toHaveBeenCalledWith('m1', 'approved'));
+  });
+
+  it('an organizer loads all statuses (to approve pending)', async () => {
+    mockCaps.mockReturnValue({ canManage: true, canApprove: true, uid: 'boss', loading: false });
+    render(<OrganizationsManager villageId="m1" />);
+    await waitFor(() => expect(mockGet).toHaveBeenCalledWith('m1', undefined));
+  });
+
   it('an organizer can approve a pending row', async () => {
     mockCaps.mockReturnValue({ canManage: true, canApprove: true, uid: 'boss', loading: false });
     mockGet.mockResolvedValue([
