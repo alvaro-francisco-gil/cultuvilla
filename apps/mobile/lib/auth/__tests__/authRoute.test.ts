@@ -1,4 +1,4 @@
-import { resolveAuthRoute } from '../authRoute';
+import { resolveAuthRoute, resolveIntentResume } from '../authRoute';
 
 describe('resolveAuthRoute', () => {
   it('redirects an authenticated user without a personId into onboarding', () => {
@@ -58,5 +58,29 @@ describe('resolveAuthRoute', () => {
         topSegment: '(tabs)',
       }),
     ).toBeNull();
+  });
+});
+
+describe('resolveIntentResume', () => {
+  const base = { user: true, profileChecked: true, hasPersonId: true, pendingIntent: '/event/e1' };
+
+  it('returns the pending intent once the user is authed and onboarded', () => {
+    expect(resolveIntentResume(base)).toBe('/event/e1');
+  });
+
+  it('returns null while onboarding is incomplete', () => {
+    expect(resolveIntentResume({ ...base, hasPersonId: false })).toBeNull();
+  });
+
+  it('returns null before the profile fetch settles', () => {
+    expect(resolveIntentResume({ ...base, profileChecked: false })).toBeNull();
+  });
+
+  it('returns null for a guest', () => {
+    expect(resolveIntentResume({ ...base, user: false })).toBeNull();
+  });
+
+  it('returns null when there is no pending intent', () => {
+    expect(resolveIntentResume({ ...base, pendingIntent: null })).toBeNull();
   });
 });
