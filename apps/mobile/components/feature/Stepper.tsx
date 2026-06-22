@@ -25,7 +25,9 @@ export function Stepper({ steps, onComplete, submitLabel, loading = false, submi
   const [current, setCurrent] = useState(0);
   const [highestReached, setHighestReached] = useState(0);
 
-  const step = steps[current];
+  // `current` is always a valid index (0..steps.length-1); the non-null assert
+  // satisfies tsc's noUncheckedIndexedAccess without a runtime guard.
+  const step = steps[current]!;
   const isLast = current === steps.length - 1;
   const stepValid = (step.validate?.() ?? []).length === 0;
 
