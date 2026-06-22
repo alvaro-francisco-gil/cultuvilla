@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, View, ScrollView, Image, Animated, Dimensions, StyleSheet, Linking } from 'react-native';
+import { Modal, View, ScrollView, Image, Animated, Dimensions, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -12,7 +12,6 @@ import {
   escudoFullUrl,
   hasManualEscudo,
 } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
-import { staticMapUrl } from '@cultuvilla/shared/services/mapsService';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -112,15 +111,6 @@ export function VillageInfoModal({ visible, onClose, village, canManage }: Villa
       fadeAnim.setValue(0);
     }
   }, [visible, slideAnim, fadeAnim]);
-
-  function openDirections() {
-    const c = village.coordinates;
-    if (!c) return;
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`;
-    void Linking.openURL(url).catch(() => {
-      /* best-effort, mirrors UserMenuModal */
-    });
-  }
 
   function close(after?: () => void) {
     Animated.parallel([
@@ -224,29 +214,6 @@ export function VillageInfoModal({ visible, onClose, village, canManage }: Villa
               <Text tone="muted" variant="bodySm">
                 {t('village.admin.overview.noDescription')}
               </Text>
-            ) : null}
-
-            {village.coordinates ? (
-              <View className="gap-2">
-                <Pressable onPress={openDirections} accessibilityLabel={t('village.info.directions')}>
-                  <Image
-                    source={{ uri: staticMapUrl(village.coordinates.lat, village.coordinates.lng) }}
-                    style={{ width: '100%', aspectRatio: 3 / 2, borderRadius: 16 }}
-                    resizeMode="cover"
-                  />
-                </Pressable>
-                <Pressable
-                  onPress={openDirections}
-                  accessibilityLabel={t('village.info.directions')}
-                  className="flex-row items-center justify-center bg-surface"
-                  style={{ paddingVertical: 10, borderRadius: 24, borderWidth: 1.5, borderColor: ACCENT }}
-                >
-                  <Ionicons name="navigate-outline" size={18} color={ACCENT} />
-                  <Text style={{ color: ACCENT }} className="font-semibold ml-1.5">
-                    {t('village.info.directions')}
-                  </Text>
-                </Pressable>
-              </View>
             ) : null}
 
             {images.length > 0 ? (

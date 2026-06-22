@@ -12,9 +12,6 @@ export const OrganizerRequestDataSchema = z.object({
    * `.default('')` keeps requests written before this field existed readable through
    * the strict converter (missing key → ''). */
   description: z.string().default(''),
-  /** Cover image download URLs the requester uploads; copied to community.coverImages on approval.
-   * `.default([])` keeps pre-field requests readable through the strict converter (missing key → []). */
-  coverImages: z.array(z.string()).default([]),
   motivation: z.string().nullable(),
   reviewedAt: z.date().nullable(),
   reviewedBy: z.string().nullable(),
@@ -25,7 +22,6 @@ export interface OrganizerRequestDataInput {
   userId: string;
   municipalityId: string;
   description?: string;
-  coverImages?: string[];
   motivation?: string | null;
 }
 
@@ -36,7 +32,6 @@ export function buildOrganizerRequestData(input: OrganizerRequestDataInput): Org
     requestedAt: new Date(),
     status: 'pending',
     description: input.description ?? '',
-    coverImages: input.coverImages ?? [],
     motivation: input.motivation ?? null,
     reviewedAt: null,
     reviewedBy: null,

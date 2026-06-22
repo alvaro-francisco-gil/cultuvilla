@@ -28,7 +28,6 @@ export const VillageFormSchema = z.object({
   municipalityId: z.string().min(1, 'Selecciona un municipio'),
   description: trimmedRequired('La descripción es obligatoria'),
   adminUserId: z.string().min(1, 'Selecciona el coordinador'),
-  coverImages: z.array(z.string()).default([]),
   location: VillageLocationSchema.nullable(),
 });
 

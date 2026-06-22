@@ -5,7 +5,6 @@ const validBase = {
   municipalityId: 'mun-1',
   description: 'Pueblo de la sierra',
   adminUserId: 'user-1',
-  coverImages: [],
   location: { lat: 40.7, lng: -3.9, displayName: 'Madrid' },
 };
 
@@ -16,7 +15,6 @@ describe('VillageFormSchema', () => {
     if (!result.success) return;
     expect(result.data.municipalityId).toBe('mun-1');
     expect(result.data.description).toBe('Pueblo de la sierra');
-    expect(result.data.coverImages).toEqual([]);
   });
 
   it('rejects an empty municipalityId', () => {
@@ -55,22 +53,4 @@ describe('VillageFormSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('defaults coverImages to []', () => {
-    const { coverImages: _omit, ...withoutImages } = validBase;
-    void _omit;
-    const result = VillageFormSchema.safeParse(withoutImages);
-    expect(result.success).toBe(true);
-    if (!result.success) return;
-    expect(result.data.coverImages).toEqual([]);
-  });
-
-  it('preserves provided cover images', () => {
-    const result = VillageFormSchema.safeParse({
-      ...validBase,
-      coverImages: ['https://x/a.jpg', 'https://x/b.jpg'],
-    });
-    expect(result.success).toBe(true);
-    if (!result.success) return;
-    expect(result.data.coverImages).toEqual(['https://x/a.jpg', 'https://x/b.jpg']);
-  });
 });

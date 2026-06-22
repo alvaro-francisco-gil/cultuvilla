@@ -55,10 +55,15 @@ export function censoEditorReducer(fields: ProfileFormField[], action: EditorAct
     case 'changeType': {
       const f = next[action.index];
       if (f === undefined || f.source !== 'custom') return next;
+      // Choice→choice (e.g. an entity-backed select toggled to multiselect)
+      // preserves the dynamic optionsSource; only then are static options
+      // irrelevant. Otherwise reset to a static choice or a non-choice field.
+      const nowChoice = isChoice(action.type);
+      const keepSource = nowChoice && f.optionsSource !== undefined;
       next[action.index] = {
         ...f, type: action.type,
-        options: isChoice(action.type) ? (f.options ?? []) : undefined,
-        optionsSource: undefined,
+        optionsSource: keepSource ? f.optionsSource : undefined,
+        options: nowChoice ? (keepSource ? undefined : (f.options ?? [])) : undefined,
       };
       return next;
     }

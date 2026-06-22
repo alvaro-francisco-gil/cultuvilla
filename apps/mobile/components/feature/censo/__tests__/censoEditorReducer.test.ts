@@ -51,6 +51,23 @@ describe('censoEditorReducer', () => {
     expect((r[0] as { options?: unknown }).options).toBeUndefined();
   });
 
+  it('changeType between choice types preserves an entity optionsSource and drops static options', () => {
+    const r = censoEditorReducer(
+      [cf({ type: 'select', options: undefined, optionsSource: 'barrios' })],
+      { kind: 'changeType', index: 0, type: 'multiselect' },
+    );
+    expect(r[0]).toMatchObject({ type: 'multiselect', optionsSource: 'barrios' });
+    expect((r[0] as { options?: unknown }).options).toBeUndefined();
+  });
+
+  it('changeType from a choice to a non-choice clears optionsSource', () => {
+    const r = censoEditorReducer(
+      [cf({ type: 'select', options: undefined, optionsSource: 'places' })],
+      { kind: 'changeType', index: 0, type: 'text' },
+    );
+    expect((r[0] as { optionsSource?: unknown }).optionsSource).toBeUndefined();
+  });
+
   it('addCustom of a non-choice type has no options property', () => {
     const r = censoEditorReducer([], { kind: 'addCustom', type: 'text' });
     expect('options' in r[0]!).toBe(false);

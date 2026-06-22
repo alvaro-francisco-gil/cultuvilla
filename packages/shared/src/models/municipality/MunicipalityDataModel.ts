@@ -14,7 +14,6 @@ import { VillageProfileFormSchema } from './CensoTypes';
 
 export const VillageCommunitySchema = z.object({
   description: z.string(),
-  coverImages: z.array(z.string()),
   /** The village organizer (founding admin). `null` while the community has been
    * "started" by a villager but nobody has been granted the organizer role yet —
    * during that window any member can edit the basic info (wiki phase). */
@@ -127,7 +126,6 @@ export function buildMunicipalityData(input: MunicipalityDataInput): Municipalit
 
 export interface ActivateCommunityInput {
   description: string;
-  coverImages?: string[];
   adminUserId?: string | null;
   coordinates?: LatLng | null;
 }
@@ -135,7 +133,6 @@ export interface ActivateCommunityInput {
 export function buildVillageCommunity(input: ActivateCommunityInput): VillageCommunity {
   return {
     description: input.description,
-    coverImages: input.coverImages ?? [],
     adminUserId: input.adminUserId ?? null,
     profileForm: null,
     activatedAt: new Date(),

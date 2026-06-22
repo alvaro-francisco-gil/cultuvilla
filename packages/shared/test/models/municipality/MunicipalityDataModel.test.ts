@@ -39,7 +39,6 @@ describe('MunicipalityDataSchema', () => {
         ...validMunicipality,
         community: {
           description: 'Hola',
-          coverImages: [],
           adminUserId: 'u1',
           profileForm: null,
           activatedAt: new Date('2026-01-02T00:00:00Z'),
@@ -69,7 +68,6 @@ describe('VillageCommunitySchema', () => {
     expect(() =>
       VillageCommunitySchema.parse({
         description: '',
-        coverImages: [],
         adminUserId: 'u',
         profileForm: {
           fields: [{ source: 'predefined', key: 'barrio', required: true }],
@@ -134,9 +132,8 @@ describe('escudo resolution helpers', () => {
 });
 
 describe('buildVillageCommunity', () => {
-  it('defaults coverImages to [] and profileForm to null', () => {
+  it('defaults profileForm to null', () => {
     const c = buildVillageCommunity({ description: 'p', adminUserId: 'a' });
-    expect(c.coverImages).toEqual([]);
     expect(c.profileForm).toBeNull();
     expect(() => VillageCommunitySchema.parse(c)).not.toThrow();
   });
@@ -152,7 +149,6 @@ describe('buildVillageCommunity', () => {
     expect(() =>
       VillageCommunitySchema.parse({
         description: '',
-        coverImages: [],
         adminUserId: null,
         profileForm: null,
         activatedAt: new Date(),

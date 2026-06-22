@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Platform, Alert, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Platform, Alert, ScrollView, View, Image, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, VStack, HStack, Pressable, Escudo, Button, ScreenTitle } from '../primitives';
@@ -16,6 +16,7 @@ import {
   getVillageViewLink,
   getVillageInviteLink,
 } from '@cultuvilla/shared/services/deepLinkService';
+import { staticMapUrl } from '@cultuvilla/shared/services/mapsService';
 import { formatDate } from '@cultuvilla/shared/utils';
 import {
   escudoFullUrl,
@@ -117,6 +118,16 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
   const visibleOrgs = organizations.filter((o) => isProposalVisible(o.status, o.requestedBy, caps));
   const penas = visibleOrgs.filter((o) => o.type === 'peña');
   const agrupaciones = visibleOrgs.filter((o) => o.type !== 'peña');
+
+  const openDirections = () => {
+    const c = village.coordinates;
+    if (!c) return;
+    void Linking.openURL(
+      `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`,
+    ).catch(() => {
+      /* best-effort */
+    });
+  };
 
   const onJoin = () => {
     if (!user) {
@@ -281,6 +292,42 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
             </Text>
           </Pressable>
         </HStack>
+
+        {/* ── Ubicación (map rectangle, when coordinates are set) ── */}
+        {village.coordinates ? (
+          <View className="px-4 pt-2">
+            <Pressable
+              onPress={openDirections}
+              accessibilityLabel={t('village.info.directions')}
+            >
+              <Image
+                source={{
+                  uri: staticMapUrl(village.coordinates.lat, village.coordinates.lng, {
+                    w: 640,
+                    h: 360,
+                  }),
+                }}
+                style={{ width: '100%', aspectRatio: 16 / 9, borderRadius: 16 }}
+                resizeMode="cover"
+              />
+              <View
+                className="absolute bottom-2 right-2 flex-row items-center bg-surface"
+                style={{
+                  paddingVertical: 5,
+                  paddingHorizontal: 12,
+                  borderRadius: 24,
+                  borderWidth: 1.5,
+                  borderColor: ACCENT,
+                }}
+              >
+                <Ionicons name="navigate-outline" size={16} color={ACCENT} />
+                <Text style={{ color: ACCENT }} className="font-semibold ml-1">
+                  {t('village.info.directions')}
+                </Text>
+              </View>
+            </Pressable>
+          </View>
+        ) : null}
 
         {/* ── Próximos eventos ─────────────────────────────────── */}
         <Section

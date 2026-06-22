@@ -202,7 +202,6 @@ export async function deleteMunicipality(id: string): Promise<void> {
 interface StartVillagePayload {
   municipalityId: string;
   description?: string;
-  coverImages?: string[];
 }
 
 /** Activate a dormant municipality's community and join it as the first member. */
@@ -217,7 +216,6 @@ export async function startVillage(payload: StartVillagePayload): Promise<void> 
 interface UpdateVillageInfoPayload {
   municipalityId: string;
   description?: string;
-  coverImages?: string[];
 }
 
 /** Edit a village's basic info. Allowed for any member during the wiki phase
@@ -232,11 +230,10 @@ export async function updateVillageInfo(payload: UpdateVillageInfoPayload): Prom
 
 export async function updateCommunity(
   municipalityId: string,
-  data: Partial<Pick<VillageCommunity, 'description' | 'coverImages' | 'adminUserId'>>,
+  data: Partial<Pick<VillageCommunity, 'description' | 'adminUserId'>>,
 ): Promise<void> {
   const updates: UpdateData<DocumentData> = {};
   if (data.description !== undefined) updates['community.description'] = data.description;
-  if (data.coverImages !== undefined) updates['community.coverImages'] = data.coverImages;
   if (data.adminUserId !== undefined) updates['community.adminUserId'] = data.adminUserId;
   await updateDoc(doc(getDb(), 'municipalities', municipalityId), updates);
 }
