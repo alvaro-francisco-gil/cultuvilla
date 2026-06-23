@@ -16,7 +16,8 @@
     "noResults": "Sin resultados",
     "notFound": "No encontrado",
     "stepper": { "back": "Anterior", "next": "Siguiente" },
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "photo": "Foto"
   },
   "auth": {
     "signIn": "Iniciar sesión",
@@ -129,8 +130,8 @@
     "dismiss": "Ahora no"
   },
   "header": {
-    "noVillage": "Cultuvilla",
-    "brand": "Cultuvilla",
+    "noVillage": "CulTuVilla",
+    "brand": "CulTuVilla",
     "profile": "Perfil",
     "openMenu": "Abrir menú",
     "openNotifications": "Abrir notificaciones",
@@ -510,8 +511,7 @@
       "wholeVillage": "Todo el pueblo",
       "stepIdentity": "Identidad",
       "stepResidence": "Origen y residencia",
-      "stepAbout": "Sobre ti",
-      "photo": "Foto"
+      "stepAbout": "Sobre ti"
     },
     "personDetailTitle": "Persona",
     "personEdit": "Editar",
