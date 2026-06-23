@@ -23,4 +23,26 @@ describe('createI18n', () => {
     const i18n = createI18n(messages, 'es');
     expect(i18n.t('greet', { name: 'Alvaro' })).toBe('Hola Alvaro');
   });
+
+  it('selects the "one" ICU plural form and substitutes #', () => {
+    const messages = { es: { n: '{count, plural, one {# opción} other {# opciones}}' } };
+    const i18n = createI18n(messages, 'es');
+    expect(i18n.t('n', { count: 1 })).toBe('1 opción');
+  });
+
+  it('selects the "other" ICU plural form for n != 1', () => {
+    const messages = { es: { n: '{count, plural, one {# opción} other {# opciones}}' } };
+    const i18n = createI18n(messages, 'es');
+    expect(i18n.t('n', { count: 3 })).toBe('3 opciones');
+    expect(i18n.t('n', { count: 0 })).toBe('0 opciones');
+  });
+
+  it('handles an ICU plural block followed by trailing text', () => {
+    const messages = {
+      es: { b: '{count, plural, one {# vecino ha respondido} other {# vecinos han respondido}} esta pregunta.' },
+    };
+    const i18n = createI18n(messages, 'es');
+    expect(i18n.t('b', { count: 1 })).toBe('1 vecino ha respondido esta pregunta.');
+    expect(i18n.t('b', { count: 2 })).toBe('2 vecinos han respondido esta pregunta.');
+  });
 });

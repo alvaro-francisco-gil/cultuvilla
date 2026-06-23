@@ -11,6 +11,20 @@ export type I18n = {
   t: (key: string, vars?: Record<string, string | number>) => string;
 };
 
+// Minimal ICU plural support: `{name, plural, one {…} other {…}}`. Spanish (and
+// our only locale) uses `one` for n===1, `other` otherwise. Sub-messages here
+// never nest braces, so a single regex pass is enough; `#` is replaced with n.
+const PLURAL_RE =
+  /\{(\w+),\s*plural,\s*one\s*\{([^{}]*)\}\s*other\s*\{([^{}]*)\}\s*\}/g;
+
+function applyPlurals(tpl: string, vars: Record<string, string | number>): string {
+  return tpl.replace(PLURAL_RE, (_match, name: string, one: string, other: string) => {
+    const n = Number(vars[name]);
+    if (Number.isNaN(n)) return `{${name}}`;
+    return (n === 1 ? one : other).replace(/#/g, String(n));
+  });
+}
+
 /** Walk a nested object using a dot-separated key path. */
 function getNestedValue(obj: Record<string, unknown>, key: string): string | undefined {
   const segments = key.split('.');
@@ -41,7 +55,7 @@ export function createI18n(
       const tpl = resolve(key);
       if (tpl === undefined) return key;
       if (!vars) return tpl;
-      return tpl.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? `{${k}}`));
+      return applyPlurals(tpl, vars).replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? `{${k}}`));
     },
   };
 }
