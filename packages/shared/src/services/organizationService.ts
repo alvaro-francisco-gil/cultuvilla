@@ -19,6 +19,7 @@ import {
   organizationsCollection,
   organizationDoc,
 } from '../firebase/refs/client';
+import { addOrgMember } from './orgMemberService';
 import type {
   OrganizationData,
   OrganizationDataInput,
@@ -85,13 +86,20 @@ export async function requestOrganization(input: OrganizationDataInput): Promise
   return newRef.id;
 }
 
-export async function approveOrganization(orgId: string, approvedBy: string): Promise<void> {
+export async function approveOrganization(
+  orgId: string,
+  approvedBy: string,
+  creatorUserId: string,
+): Promise<void> {
   // updateDoc bypasses the converter, so serverTimestamp() is fine here.
   await updateDoc(doc(getDb(), 'organizations', orgId), {
     status: 'approved',
     approvedBy,
     decidedAt: serverTimestamp(),
   });
+  // Seed the requester as the founding admin. Non-atomic with the status flip;
+  // acceptable — re-running approve is idempotent (setDoc overwrites).
+  await addOrgMember(orgId, creatorUserId, 'admin');
 }
 
 export async function rejectOrganization(orgId: string): Promise<void> {
