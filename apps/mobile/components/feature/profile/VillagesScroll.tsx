@@ -5,6 +5,7 @@ import { EntityCard, AddCard } from '../VillageSections';
 export interface VillageRow {
   municipalityId: string;
   name: string;
+  comunidadAutonoma: string;
   escudoThumbUrl: string | null;
   role: 'admin' | 'user';
 }
@@ -14,7 +15,6 @@ export interface VillagesScrollProps {
   activeId: string | null;
   joinLabel: string;
   emptyLabel: string;
-  badges: { active: string; admin: string; member: string };
   onPressVillage: (municipalityId: string) => void;
   onPressJoin: () => void;
 }
@@ -24,15 +24,9 @@ export function VillagesScroll({
   activeId,
   joinLabel,
   emptyLabel,
-  badges,
   onPressVillage,
   onPressJoin,
 }: VillagesScrollProps) {
-  function secondaryFor(row: VillageRow): string {
-    if (row.municipalityId === activeId) return badges.active;
-    return row.role === 'admin' ? badges.admin : badges.member;
-  }
-
   if (villages.length === 0) {
     return (
       <View className="flex-row items-center px-4">
@@ -54,9 +48,10 @@ export function VillagesScroll({
       renderItem={({ item }) => (
         <EntityCard
           label={item.name}
-          sub={secondaryFor(item)}
+          sub={item.comunidadAutonoma}
           icon="map-outline"
           imageUri={item.escudoThumbUrl}
+          accent={item.municipalityId === activeId}
           onPress={() => onPressVillage(item.municipalityId)}
         />
       )}

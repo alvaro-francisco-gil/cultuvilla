@@ -5,12 +5,10 @@ jest.mock('../../../../lib/i18n', () => ({
   useT: () => ({ locale: 'es', t: (key: string) => key }),
 }));
 
-const BADGES = { active: 'Activo', admin: 'Administrador', member: 'Miembro' };
-
 const ROWS: VillageRow[] = [
-  { municipalityId: 'm1', name: 'Pueblo Uno', escudoThumbUrl: null, role: 'user' },
-  { municipalityId: 'm2', name: 'Pueblo Dos', escudoThumbUrl: null, role: 'admin' },
-  { municipalityId: 'm3', name: 'Pueblo Tres', escudoThumbUrl: null, role: 'user' },
+  { municipalityId: 'm1', name: 'Pueblo Uno', comunidadAutonoma: 'Andalucía', escudoThumbUrl: null, role: 'user' },
+  { municipalityId: 'm2', name: 'Pueblo Dos', comunidadAutonoma: 'Aragón', escudoThumbUrl: null, role: 'admin' },
+  { municipalityId: 'm3', name: 'Pueblo Tres', comunidadAutonoma: 'Galicia', escudoThumbUrl: null, role: 'user' },
 ];
 
 function setup(overrides: Partial<React.ComponentProps<typeof VillagesScroll>> = {}) {
@@ -22,7 +20,6 @@ function setup(overrides: Partial<React.ComponentProps<typeof VillagesScroll>> =
       activeId="m1"
       joinLabel="Unirse a otro pueblo"
       emptyLabel="Aún no perteneces a ningún pueblo"
-      badges={BADGES}
       onPressVillage={onPressVillage}
       onPressJoin={onPressJoin}
       {...overrides}
@@ -38,11 +35,11 @@ describe('VillagesScroll', () => {
     expect(getByText('Pueblo Dos')).toBeTruthy();
   });
 
-  it('shows the active badge on the active village and the role badge otherwise', () => {
+  it('shows the comunidad autónoma below each pueblo name', () => {
     const { getByText } = setup();
-    expect(getByText('Activo')).toBeTruthy(); // m1 is active
-    expect(getByText('Administrador')).toBeTruthy(); // m2 is admin, not active
-    expect(getByText('Miembro')).toBeTruthy(); // m3 is user, not active
+    expect(getByText('Andalucía')).toBeTruthy(); // m1
+    expect(getByText('Aragón')).toBeTruthy(); // m2
+    expect(getByText('Galicia')).toBeTruthy(); // m3
   });
 
   it('renders the join card and fires onPressJoin when pressed', () => {

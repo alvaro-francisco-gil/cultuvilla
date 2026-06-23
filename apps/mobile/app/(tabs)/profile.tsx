@@ -98,6 +98,7 @@ export default function ProfileScreen() {
           return {
             municipalityId: m.municipalityId,
             name: muni?.name ?? m.municipalityId,
+            comunidadAutonoma: muni?.comunidadAutonoma ?? '',
             escudoThumbUrl: muni ? escudoThumbDisplayUrl(muni) : null,
             role: m.role,
           } satisfies VillageRow;
@@ -289,11 +290,6 @@ export default function ProfileScreen() {
           activeId={activeMunicipalityId}
           joinLabel={t('profile.villagesSection.join')}
           emptyLabel={t('me.villages.empty')}
-          badges={{
-            active: t('me.villages.activeBadge'),
-            admin: t('me.villages.adminBadge'),
-            member: t('me.villages.memberBadge'),
-          }}
           onPressVillage={(id) => void selectVillage(id)}
           onPressJoin={() => router.push('/discover')}
         />

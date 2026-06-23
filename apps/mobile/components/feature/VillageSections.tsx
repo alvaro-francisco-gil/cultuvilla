@@ -93,10 +93,8 @@ function BigCard({
 }) {
   const body = (
     <View
-      className={`w-[150px] rounded-2xl overflow-hidden bg-surface-elevated${
-        accent ? ' border' : ''
-      }`}
-      style={accent ? { borderColor: ACCENT } : undefined}
+      className="w-[150px] rounded-2xl overflow-hidden bg-surface-elevated"
+      style={accent ? { borderWidth: 1, borderColor: ACCENT } : undefined}
     >
       <View className="h-[150px] w-full items-center justify-center bg-subtle">
         {imageUri ? (
