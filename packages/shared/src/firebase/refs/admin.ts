@@ -20,6 +20,7 @@ import { newsReportConverterAdmin } from '../converters/newsReportConverter.admi
 import { occupationConverterAdmin } from '../converters/occupationConverter.admin';
 import { occupationProposalConverterAdmin } from '../converters/occupationProposalConverter.admin';
 import { adminConverterAdmin } from '../converters/adminConverter.admin';
+import { organizationJoinRequestConverterAdmin } from '../converters/organizationJoinRequestConverter.admin';
 
 export const eventsCollection = (db: Firestore) =>
   db.collection('events').withConverter(eventConverterAdmin);
@@ -154,6 +155,14 @@ export const occupationProposalsCollection = (db: Firestore) =>
 
 export const occupationProposalDoc = (db: Firestore, proposalId: string) =>
   db.collection('occupationProposals').doc(proposalId).withConverter(occupationProposalConverterAdmin);
+
+// ── Organization join requests ───────────────────────────────────────────
+
+export const organizationJoinRequestsCollection = (db: Firestore) =>
+  db.collection('organizationJoinRequests').withConverter(organizationJoinRequestConverterAdmin);
+
+export const organizationJoinRequestDoc = (db: Firestore, id: string) =>
+  db.collection('organizationJoinRequests').doc(id).withConverter(organizationJoinRequestConverterAdmin);
 
 // ── Admin domain ─────────────────────────────────────────────────────────
 
