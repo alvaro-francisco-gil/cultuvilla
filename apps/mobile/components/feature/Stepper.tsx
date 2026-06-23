@@ -53,7 +53,7 @@ export function Stepper({ steps, onComplete, submitLabel, loading = false, submi
   return (
     <View className="flex-1">
       {/* Step band — distinct background, icon-only, no section name. */}
-      <View className="bg-surface-elevated border-b border-subtle">
+      <View className="bg-surface-elevated">
         <StepIndicator
           count={steps.length}
           current={current}
@@ -66,7 +66,7 @@ export function Stepper({ steps, onComplete, submitLabel, loading = false, submi
       {/* Content section. */}
       <View className="flex-1">{step.render()}</View>
       {submitError ? <Text tone="danger" className="px-4 pb-2">{submitError}</Text> : null}
-      <HStack gap={3} className="px-4 py-3 border-t border-subtle bg-surface-elevated">
+      <HStack gap={3} className="px-4 py-3 bg-surface-elevated">
         <View className="flex-1">
           {current > 0 ? (
             <Button variant="ghost" onPress={() => setCurrent(current - 1)} disabled={loading} fullWidth>

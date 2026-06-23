@@ -534,7 +534,7 @@
       "secondSurname": "Segundo apellido",
       "photo": "Foto de perfil (opcional)",
       "nickname": "Apodo (opcional)",
-      "sex": "Sexo (opcional)",
+      "sex": "Sexo",
       "sex_female": "Mujer",
       "sex_male": "Hombre",
       "sex_other": "Otro",

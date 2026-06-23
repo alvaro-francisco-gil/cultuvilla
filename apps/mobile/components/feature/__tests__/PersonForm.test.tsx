@@ -27,6 +27,7 @@ describe('<PersonForm> stepper', () => {
       <PersonForm submitLabel="Guardar" onSubmit={jest.fn()} />,
     );
     fireEvent.changeText(getByLabelText('onboarding.completeProfile.givenName'), 'Ana');
+    fireEvent.press(getByText('onboarding.completeProfile.sex_female')); // sex required
     fireEvent.press(getByText('common.stepper.next'));
     // Residence step now rendered — its birthday DateField is present.
     expect(getByTestId('birthday')).toBeTruthy();

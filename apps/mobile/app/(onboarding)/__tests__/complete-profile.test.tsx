@@ -96,6 +96,7 @@ describe('CompleteProfileScreen', () => {
     fireEvent.changeText(getByLabelText('Nombre'), 'Ana');
     fireEvent.changeText(getByLabelText('Primer apellido'), 'García');
     fireEvent.changeText(getByLabelText('Segundo apellido'), 'López');
+    fireEvent.press(getByText('Mujer')); // sex is required to advance
     fireEvent.press(getByText('Siguiente'));
 
     // Step 2: fill birthday (required when requireFullName=true).

@@ -6,7 +6,9 @@ import {
   BarrioPicker,
   Button,
   DateField,
+  HStack,
   Input,
+  Pressable,
   Text,
   VStack,
   VillagePicker,
@@ -118,6 +120,7 @@ export function PersonForm({
         if (!givenName.trim()) errs.push('givenName');
         if (requireFullName && !firstSurname.trim()) errs.push('firstSurname');
         if (requireFullName && !secondSurname.trim()) errs.push('secondSurname');
+        if (!sex) errs.push('sex');
         return errs;
       },
       render: () =>
@@ -143,17 +146,29 @@ export function PersonForm({
               value={nickname}
               onChangeText={setNickname}
             />
-            <Text tone="muted">{t('onboarding.completeProfile.sex')}</Text>
-            <VStack gap={2}>
-              {(['female', 'male', 'other'] as const).map((opt) => (
-                <Button
-                  key={opt}
-                  variant={sex === opt ? 'primary' : 'secondary'}
-                  onPress={() => setSex(sex === opt ? null : opt)}
-                >
-                  {t(`onboarding.completeProfile.sex_${opt}`)}
-                </Button>
-              ))}
+            <VStack gap={1}>
+              <Text variant="bodySm" tone="muted">
+                {t('onboarding.completeProfile.sex')}
+              </Text>
+              <HStack gap={2}>
+                {(['female', 'male', 'other'] as const).map((opt) => {
+                  const active = sex === opt;
+                  return (
+                    <Pressable
+                      key={opt}
+                      onPress={() => setSex(opt)}
+                      accessibilityLabel={t(`onboarding.completeProfile.sex_${opt}`)}
+                      className={`flex-1 py-2.5 rounded-md border items-center justify-center ${
+                        active ? 'bg-accent border-accent' : 'bg-surface border-subtle'
+                      }`}
+                    >
+                      <Text variant="bodySm" tone={active ? 'onAccent' : 'primary'}>
+                        {t(`onboarding.completeProfile.sex_${opt}`)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </HStack>
             </VStack>
           </>,
         ),
