@@ -55,7 +55,7 @@ export function CensoAnswers({ villageId, userId }: { villageId: string; userId:
   }
   return (
     <ScrollView contentContainerClassName="p-4 pb-12">
-      <Text tone="muted" variant="bodySm" className="px-1 mb-3">
+      <Text variant="h3" style={{ color: '#566047' }} className="px-1 mb-3">
         {t('censo.fillIntro')}
       </Text>
       <CensoForm villageId={villageId} userId={userId} schema={schema ?? []} initialAnswers={initialAnswers} entityOptionsByField={optionsByField} />

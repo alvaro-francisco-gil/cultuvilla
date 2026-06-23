@@ -80,7 +80,7 @@ export function CensoSchemaEditor({ villageId }: { villageId: string }) {
     <ScrollView contentContainerClassName="p-4 pb-12">
       <VStack gap={3}>
         {/* Intro line above the first card */}
-        <Text tone="muted" variant="bodySm" className="px-1">
+        <Text variant="h3" style={{ color: '#566047' }} className="px-1">
           {t('censo.builder.headerDescription')}
         </Text>
 
