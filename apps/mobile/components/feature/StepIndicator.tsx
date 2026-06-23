@@ -57,10 +57,10 @@ export function StepIndicator({
               accessibilityLabel={labels?.[i]}
               disabled={!reached}
               onPress={() => onStepPress(i)}
-              className="w-9 h-9 rounded-full border-2 items-center justify-center"
+              className="w-12 h-12 rounded-full border-2 items-center justify-center"
               style={{ borderColor: marked ? ACCENT : IDLE_BORDER }}
             >
-              <Ionicons name={glyph} size={18} color={marked ? ACCENT : IDLE_ICON} />
+              <Ionicons name={glyph} size={26} color={marked ? ACCENT : IDLE_ICON} />
             </Pressable>
             {i < count - 1 && (
               <View className="w-12 h-0.5 mx-2" style={{ backgroundColor: IDLE_BORDER }} />
