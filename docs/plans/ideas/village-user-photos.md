@@ -4,7 +4,7 @@
 
 ## Context
 
-When the `coverImages` gallery was removed (see `village-tab-cleanup-escudo-images.md`), the village's only image became its escudo. That removal was deliberate: the old `coverImages` was an admin-only, free-form gallery that didn't have a clear purpose. This idea replaces it with a clearer, community-driven concept.
+When the `coverImages` gallery was removed (see `docs/decisions/village-escudo-only-images.md`), the village's only image became its escudo. That removal was deliberate: the old `coverImages` was an admin-only, free-form gallery that didn't have a clear purpose. This idea replaces it with a clearer, community-driven concept.
 
 The intent: villages feel alive when residents contribute. A photo stream — "this is our plaza in fiestas", "first snow this year" — is a low-effort way for any member to add to the village page, distinct from the official escudo.
 
