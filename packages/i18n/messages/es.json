@@ -568,7 +568,20 @@
     "tab": {
       "organizer": "Organizador",
       "org": "Organizaciones",
-      "join": "Unirse"
+      "join": "Unirse",
+      "inbox": "Recibidas",
+      "outbox": "Enviadas"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "approved": "Aprobada",
+      "rejected": "Rechazada"
+    },
+    "outbox": {
+      "empty": "No has enviado solicitudes",
+      "organizer": "Organizar {municipality}",
+      "org": "Crear {org}",
+      "join": "Unirse a {org}"
     },
     "approve": "Aprobar",
     "reject": "Rechazar",

@@ -2,7 +2,7 @@ import { renderHook, waitFor } from '@testing-library/react-native';
 import { useApproverStatus } from '../useApproverStatus';
 
 const mockIsAppAdmin = jest.fn();
-const mockGetVillageMember = jest.fn();
+const mockGetUserMemberships = jest.fn();
 const mockGetOrgMembershipsByUserInMunicipality = jest.fn();
 const mockGetOrganizationsByMunicipality = jest.fn();
 
@@ -10,8 +10,7 @@ jest.mock('@cultuvilla/shared/services/adminService', () => ({
   isAppAdmin: (uid: string) => mockIsAppAdmin(uid),
 }));
 jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
-  getVillageMember: (municipalityId: string, uid: string) =>
-    mockGetVillageMember(municipalityId, uid),
+  getUserMemberships: (uid: string) => mockGetUserMemberships(uid),
 }));
 jest.mock('@cultuvilla/shared/services/orgMemberService', () => ({
   getOrgMembershipsByUserInMunicipality: (
@@ -30,52 +29,56 @@ jest.mock('../useAuth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-const MUNICIPALITY_ID = 'mun1';
-
 beforeEach(() => {
   jest.clearAllMocks();
-  // Sensible defaults: regular user, no admin anywhere.
-  mockUseAuth.mockReturnValue({
-    user: { uid: 'u1' },
-    profile: { activeMunicipalityId: MUNICIPALITY_ID },
-  });
+  // Sensible defaults: regular user, member of mun1, no admin anywhere.
+  mockUseAuth.mockReturnValue({ user: { uid: 'u1' } });
   mockIsAppAdmin.mockResolvedValue(false);
-  mockGetVillageMember.mockResolvedValue({ id: 'u1', role: 'user' });
+  mockGetUserMemberships.mockResolvedValue([
+    { municipalityId: 'mun1', role: 'user', joinedAt: new Date(), profileCompletedAt: null },
+  ]);
   mockGetOrganizationsByMunicipality.mockResolvedValue([]);
   mockGetOrgMembershipsByUserInMunicipality.mockResolvedValue([]);
 });
 
 describe('useApproverStatus', () => {
-  it('not logged in: returns all false, not loading', async () => {
-    mockUseAuth.mockReturnValue({ user: null, profile: null });
+  it('not logged in: returns all false/empty, not loading', async () => {
+    mockUseAuth.mockReturnValue({ user: null });
     const { result } = renderHook(() => useApproverStatus());
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current).toEqual({
       loading: false,
       isSuperAdmin: false,
-      isVillageAdmin: false,
+      adminVillageIds: [],
       adminOrgIds: [],
       canApprove: false,
     });
   });
 
-  it('super admin: canApprove true, isSuperAdmin true', async () => {
+  it('super admin: canApprove true, isSuperAdmin true (even with no memberships)', async () => {
     mockIsAppAdmin.mockResolvedValue(true);
+    mockGetUserMemberships.mockResolvedValue([]);
     const { result } = renderHook(() => useApproverStatus());
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.isSuperAdmin).toBe(true);
     expect(result.current.canApprove).toBe(true);
   });
 
-  it('village admin: canApprove true, isVillageAdmin true', async () => {
-    mockGetVillageMember.mockResolvedValue({ id: 'u1', role: 'admin' });
+  it('admin in a non-active village: adminVillageIds contains that village, canApprove true', async () => {
+    // The regression target: user is admin in 'mun-other', not necessarily their active village.
+    mockGetUserMemberships.mockResolvedValue([
+      { municipalityId: 'mun-other', role: 'admin', joinedAt: new Date(), profileCompletedAt: null },
+    ]);
     const { result } = renderHook(() => useApproverStatus());
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.isVillageAdmin).toBe(true);
+    expect(result.current.adminVillageIds).toContain('mun-other');
     expect(result.current.canApprove).toBe(true);
   });
 
-  it('org admin: canApprove true via adminOrgIds', async () => {
+  it('org admin: canApprove true via adminOrgIds, adminVillageIds empty', async () => {
+    mockGetUserMemberships.mockResolvedValue([
+      { municipalityId: 'mun1', role: 'user', joinedAt: new Date(), profileCompletedAt: null },
+    ]);
     mockGetOrganizationsByMunicipality.mockResolvedValue([{ id: 'org1' }, { id: 'org2' }]);
     mockGetOrgMembershipsByUserInMunicipality.mockResolvedValue([
       { orgId: 'org1', role: 'admin' },
@@ -84,21 +87,24 @@ describe('useApproverStatus', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.adminOrgIds).toEqual(['org1']);
     expect(result.current.canApprove).toBe(true);
-    expect(result.current.isVillageAdmin).toBe(false);
+    expect(result.current.adminVillageIds).toEqual([]);
     expect(result.current.isSuperAdmin).toBe(false);
   });
 
-  it('plain member: canApprove false', async () => {
+  it('plain member: canApprove false, empty arrays', async () => {
     const { result } = renderHook(() => useApproverStatus());
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.canApprove).toBe(false);
+    expect(result.current.adminVillageIds).toEqual([]);
     expect(result.current.adminOrgIds).toEqual([]);
   });
 
-  it('fetch failure: treats as not-an-approver', async () => {
+  it('fetch failure: treats as not-an-approver (fail-closed)', async () => {
     mockIsAppAdmin.mockRejectedValue(new Error('network error'));
     const { result } = renderHook(() => useApproverStatus());
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.canApprove).toBe(false);
+    expect(result.current.adminVillageIds).toEqual([]);
+    expect(result.current.adminOrgIds).toEqual([]);
   });
 });

@@ -1,24 +1,28 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { router } from 'expo-router';
+import { ActivityIndicator, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { Screen, VStack, HStack, Text, Button } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { SegmentedToggle } from '../../components/feature/SegmentedToggle';
 import { useT } from '../../lib/i18n';
 import { useApproverStatus } from '../../lib/auth/useApproverStatus';
 import { useAuth } from '../../lib/auth/useAuth';
 import {
   getPendingOrganizerRequests,
+  getMyOrganizerRequests,
   respondToOrganizerRequest,
 } from '@cultuvilla/shared/services/organizerRequestService';
 import {
   getPendingOrganizations,
   getOrganizationsByMunicipality,
+  getMyOrganizations,
+  getOrganization,
   approveOrganization,
   rejectOrganization,
 } from '@cultuvilla/shared/services/organizationService';
 import {
   getAllPendingJoinRequests,
   getPendingJoinRequestsForOrgs,
+  getMyJoinRequests,
   respondToJoinRequest,
 } from '@cultuvilla/shared/services/organizationJoinRequestService';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
@@ -32,17 +36,26 @@ type JoinRow = OrganizationJoinRequestData & { id: string };
 
 export default function SolicitudesScreen() {
   const { t } = useT();
-  const { user, profile } = useAuth();
-  const { loading, isSuperAdmin, isVillageAdmin, adminOrgIds, canApprove } = useApproverStatus();
-  const activeMunicipalityId = profile?.activeMunicipalityId ?? null;
+  const { user } = useAuth();
+  const { loading, isSuperAdmin, adminVillageIds, adminOrgIds, canApprove } = useApproverStatus();
 
+  // Tab state
+  const [tab, setTab] = useState<'inbox' | 'outbox'>('inbox');
+
+  // Inbox state
   const [organizerRows, setOrganizerRows] = useState<OrganizerRow[]>([]);
   const [orgRows, setOrgRows] = useState<OrgRow[]>([]);
   const [joinRows, setJoinRows] = useState<JoinRow[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
-  // Map municipalityId -> name for display
+
+  // Outbox state
+  const [outboxOrganizer, setOutboxOrganizer] = useState<OrganizerRow[]>([]);
+  const [outboxOrgs, setOutboxOrgs] = useState<OrgRow[]>([]);
+  const [outboxJoins, setOutboxJoins] = useState<JoinRow[]>([]);
+  const [outboxLoading, setOutboxLoading] = useState(false);
+
+  // Shared name maps (shared between inbox and outbox)
   const [municipalityNames, setMunicipalityNames] = useState<Record<string, string>>({});
-  // Map orgId -> org name for join rows
   const [orgNames, setOrgNames] = useState<Record<string, string>>({});
 
   // Busy state keyed by `${type}-${id}`
@@ -51,15 +64,10 @@ export default function SolicitudesScreen() {
   // Error modal state
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Guard: redirect if not an approver
-  useEffect(() => {
-    if (!loading && !canApprove) {
-      router.replace('/');
-    }
-  }, [loading, canApprove]);
-
+  // ─── Inbox load ────────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
-    if (loading || !canApprove) return;
+    if (loading) return;
+    if (!canApprove) return; // non-approver inbox is always empty
 
     setDataLoading(true);
     try {
@@ -78,7 +86,6 @@ export default function SolicitudesScreen() {
             rows.forEach((r) => newMunicipalityIds.add(r.municipalityId));
           }),
         );
-        // Super-admin org-creation: cross-village query across all villages.
         promises.push(
           getPendingOrganizations().then((rows) => {
             fetchedOrgRows = rows;
@@ -92,11 +99,13 @@ export default function SolicitudesScreen() {
           }),
         );
       } else {
-        if (isVillageAdmin && activeMunicipalityId) {
+        if (adminVillageIds.length > 0) {
           promises.push(
-            getOrganizationsByMunicipality(activeMunicipalityId, 'pending').then((rows) => {
-              fetchedOrgRows = rows;
-              rows.forEach((r) => newMunicipalityIds.add(r.municipalityId));
+            Promise.all(
+              adminVillageIds.map((vid) => getOrganizationsByMunicipality(vid, 'pending')),
+            ).then((perVillage) => {
+              fetchedOrgRows = perVillage.flat();
+              fetchedOrgRows.forEach((r) => newMunicipalityIds.add(r.municipalityId));
             }),
           );
         }
@@ -131,21 +140,16 @@ export default function SolicitudesScreen() {
         setMunicipalityNames((prev) => ({ ...prev, ...newNames }));
       }
 
-      // Resolve org names for join rows (orgs are already in fetchedOrgRows or need fetch)
+      // Resolve org names for join rows
       const knownOrgNames: Record<string, string> = {};
       for (const org of fetchedOrgRows) {
         knownOrgNames[org.id] = org.name;
       }
       const missingOrgIds = [...newOrgIds].filter((id) => !knownOrgNames[id]);
       if (missingOrgIds.length > 0) {
-        // We don't have a batch-fetch by IDs; resolve each individually via the
-        // already-fetched org rows or fall back to the org ID as a placeholder.
-        // In practice join rows reference approved orgs, so their names aren't
-        // in fetchedOrgRows (which are pending). We use the orgId as a fallback.
         const orgNameFetches = missingOrgIds.map(async (id) => {
-          // Check if orgId matches any fetched org row
-          const found = fetchedOrgRows.find((o) => o.id === id);
-          return [id, found?.name ?? id] as const;
+          const org = await getOrganization(id);
+          return [id, org?.name ?? id] as const;
         });
         const resolvedOrgNames = await Promise.all(orgNameFetches);
         for (const [id, name] of resolvedOrgNames) {
@@ -160,12 +164,85 @@ export default function SolicitudesScreen() {
     } finally {
       setDataLoading(false);
     }
-  }, [loading, canApprove, isSuperAdmin, isVillageAdmin, adminOrgIds, activeMunicipalityId]);
+  }, [loading, canApprove, isSuperAdmin, adminVillageIds, adminOrgIds]);
 
   useEffect(() => {
     void loadData();
   }, [loadData]);
 
+  // ─── Outbox load ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+
+    let cancelled = false;
+    setOutboxLoading(true);
+
+    void (async () => {
+      try {
+        const [myOrganizerReqs, myOrgs, myJoins] = await Promise.all([
+          getMyOrganizerRequests(user.uid),
+          getMyOrganizations(user.uid),
+          getMyJoinRequests(user.uid),
+        ]);
+
+        if (cancelled) return;
+
+        setOutboxOrganizer(myOrganizerReqs);
+        setOutboxOrgs(myOrgs);
+        setOutboxJoins(myJoins);
+
+        if (cancelled) return;
+
+        // Resolve municipality names for organizer outbox rows
+        const newMunicipalityIds = new Set<string>();
+        myOrganizerReqs.forEach((r) => newMunicipalityIds.add(r.municipalityId));
+        const municipalityFetches = [...newMunicipalityIds].map(async (mid) => {
+          const m = await getMunicipality(mid);
+          return [mid, m?.name ?? mid] as const;
+        });
+        const resolvedMunicipalities = await Promise.all(municipalityFetches);
+        if (!cancelled) {
+          const newNames: Record<string, string> = {};
+          for (const [mid, name] of resolvedMunicipalities) {
+            newNames[mid] = name;
+          }
+          if (Object.keys(newNames).length > 0) {
+            setMunicipalityNames((prev) => ({ ...prev, ...newNames }));
+          }
+        }
+
+        // Resolve org names for join outbox rows
+        const newOrgIds = new Set<string>();
+        myJoins.forEach((r) => newOrgIds.add(r.orgId));
+        const orgFetches = [...newOrgIds].map(async (id) => {
+          const org = await getOrganization(id);
+          return [id, org?.name ?? id] as const;
+        });
+        const resolvedOrgs = await Promise.all(orgFetches);
+        if (!cancelled) {
+          const newOrgNames: Record<string, string> = {};
+          for (const [id, name] of resolvedOrgs) {
+            newOrgNames[id] = name;
+          }
+          if (Object.keys(newOrgNames).length > 0) {
+            setOrgNames((prev) => ({ ...prev, ...newOrgNames }));
+          }
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setErrorMessage(err instanceof Error ? err.message : String(err));
+        }
+      } finally {
+        if (!cancelled) setOutboxLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  // ─── Inbox action handlers ─────────────────────────────────────────────────
   async function handleOrganizerDecide(row: OrganizerRow, decision: 'approved' | 'rejected') {
     const key = `organizer-${row.id}`;
     setBusyKey(key);
@@ -210,6 +287,244 @@ export default function SolicitudesScreen() {
     }
   }
 
+  // ─── Render helpers ────────────────────────────────────────────────────────
+  function renderInbox() {
+    if (dataLoading) {
+      return (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator />
+        </View>
+      );
+    }
+
+    const hasAny = organizerRows.length > 0 || orgRows.length > 0 || joinRows.length > 0;
+    if (!hasAny) {
+      return (
+        <View className="p-4">
+          <Text tone="muted">{t('solicitudes.empty')}</Text>
+        </View>
+      );
+    }
+
+    return (
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+        {/* Organizer requests section */}
+        {isSuperAdmin && organizerRows.length > 0 && (
+          <VStack gap={2}>
+            <Text variant="h3">{t('solicitudes.tab.organizer')}</Text>
+            {organizerRows.map((row) => {
+              const key = `organizer-${row.id}`;
+              const municipalityName = municipalityNames[row.municipalityId] ?? row.municipalityId;
+              return (
+                <VStack
+                  key={row.id}
+                  gap={2}
+                  className="bg-surface border border-subtle rounded-xl p-3"
+                >
+                  <Text>
+                    {t('solicitudes.organizerRow', {
+                      user: row.userId,
+                      municipality: municipalityName,
+                    })}
+                  </Text>
+                  {row.motivation && row.motivation.trim().length > 0 && (
+                    <VStack gap={0}>
+                      <Text tone="muted" variant="caption">
+                        {t('solicitudes.motivation')}
+                      </Text>
+                      <Text className="italic text-sm">"{row.motivation}"</Text>
+                    </VStack>
+                  )}
+                  <HStack gap={2}>
+                    <Button
+                      onPress={() => handleOrganizerDecide(row, 'approved')}
+                      loading={busyKey === key}
+                    >
+                      {t('solicitudes.approve')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onPress={() => handleOrganizerDecide(row, 'rejected')}
+                      loading={busyKey === key}
+                    >
+                      {t('solicitudes.reject')}
+                    </Button>
+                  </HStack>
+                </VStack>
+              );
+            })}
+          </VStack>
+        )}
+
+        {/* Org-creation section */}
+        {orgRows.length > 0 && (
+          <VStack gap={2}>
+            <Text variant="h3">{t('solicitudes.tab.org')}</Text>
+            {orgRows.map((row) => {
+              const key = `org-${row.id}`;
+              const municipalityName = municipalityNames[row.municipalityId] ?? row.municipalityId;
+              return (
+                <VStack
+                  key={row.id}
+                  gap={2}
+                  className="bg-surface border border-subtle rounded-xl p-3"
+                >
+                  <Text>
+                    {t('solicitudes.orgRow', { org: row.name, type: row.type })}
+                  </Text>
+                  <Text tone="muted" variant="caption">
+                    {municipalityName}
+                  </Text>
+                  <HStack gap={2}>
+                    <Button
+                      onPress={() => handleOrgDecide(row, 'approved')}
+                      loading={busyKey === key}
+                    >
+                      {t('solicitudes.approve')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onPress={() => handleOrgDecide(row, 'rejected')}
+                      loading={busyKey === key}
+                    >
+                      {t('solicitudes.reject')}
+                    </Button>
+                  </HStack>
+                </VStack>
+              );
+            })}
+          </VStack>
+        )}
+
+        {/* Join-request section */}
+        {joinRows.length > 0 && (
+          <VStack gap={2}>
+            <Text variant="h3">{t('solicitudes.tab.join')}</Text>
+            {joinRows.map((row) => {
+              const key = `join-${row.id}`;
+              const orgName = orgNames[row.orgId] ?? row.orgId;
+              return (
+                <VStack
+                  key={row.id}
+                  gap={2}
+                  className="bg-surface border border-subtle rounded-xl p-3"
+                >
+                  <Text>
+                    {t('solicitudes.joinRow', { user: row.userId, org: orgName })}
+                  </Text>
+                  <HStack gap={2}>
+                    <Button
+                      onPress={() => handleJoinDecide(row, 'approved')}
+                      loading={busyKey === key}
+                    >
+                      {t('solicitudes.approve')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onPress={() => handleJoinDecide(row, 'rejected')}
+                      loading={busyKey === key}
+                    >
+                      {t('solicitudes.reject')}
+                    </Button>
+                  </HStack>
+                </VStack>
+              );
+            })}
+          </VStack>
+        )}
+      </ScrollView>
+    );
+  }
+
+  function renderOutbox() {
+    if (outboxLoading) {
+      return (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator />
+        </View>
+      );
+    }
+
+    const hasAny = outboxOrganizer.length > 0 || outboxOrgs.length > 0 || outboxJoins.length > 0;
+    if (!hasAny) {
+      return (
+        <View className="p-4">
+          <Text tone="muted">{t('solicitudes.outbox.empty')}</Text>
+        </View>
+      );
+    }
+
+    return (
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+        {/* Outbox organizer requests */}
+        {outboxOrganizer.length > 0 && (
+          <VStack gap={2}>
+            <Text variant="h3">{t('solicitudes.tab.organizer')}</Text>
+            {outboxOrganizer.map((r) => (
+              <VStack
+                key={r.id}
+                gap={1}
+                className="bg-surface border border-subtle rounded-xl p-3"
+              >
+                <Text>
+                  {t('solicitudes.outbox.organizer', {
+                    municipality: municipalityNames[r.municipalityId] ?? r.municipalityId,
+                  })}
+                </Text>
+                <Text variant="caption" tone="muted">
+                  {t(`solicitudes.status.${r.status}`)}
+                </Text>
+              </VStack>
+            ))}
+          </VStack>
+        )}
+
+        {/* Outbox org-creation requests */}
+        {outboxOrgs.length > 0 && (
+          <VStack gap={2}>
+            <Text variant="h3">{t('solicitudes.tab.org')}</Text>
+            {outboxOrgs.map((r) => (
+              <VStack
+                key={r.id}
+                gap={1}
+                className="bg-surface border border-subtle rounded-xl p-3"
+              >
+                <Text>
+                  {t('solicitudes.outbox.org', { org: r.name })}
+                </Text>
+                <Text variant="caption" tone="muted">
+                  {t(`solicitudes.status.${r.status}`)}
+                </Text>
+              </VStack>
+            ))}
+          </VStack>
+        )}
+
+        {/* Outbox join requests */}
+        {outboxJoins.length > 0 && (
+          <VStack gap={2}>
+            <Text variant="h3">{t('solicitudes.tab.join')}</Text>
+            {outboxJoins.map((r) => (
+              <VStack
+                key={r.id}
+                gap={1}
+                className="bg-surface border border-subtle rounded-xl p-3"
+              >
+                <Text>
+                  {t('solicitudes.outbox.join', { org: orgNames[r.orgId] ?? r.orgId })}
+                </Text>
+                <Text variant="caption" tone="muted">
+                  {t(`solicitudes.status.${r.status}`)}
+                </Text>
+              </VStack>
+            ))}
+          </VStack>
+        )}
+      </ScrollView>
+    );
+  }
+
+  // ─── Full-screen loading (approver status loading) ─────────────────────────
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-surface">
@@ -218,11 +533,21 @@ export default function SolicitudesScreen() {
     );
   }
 
-  const hasAny = organizerRows.length > 0 || orgRows.length > 0 || joinRows.length > 0;
-
   return (
     <Screen padded={false}>
       <ScreenHeader title={t('solicitudes.title')} />
+
+      {/* Inbox / Outbox toggle */}
+      <View className="px-4 pt-3">
+        <SegmentedToggle
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: 'inbox', label: t('solicitudes.tab.inbox') },
+            { value: 'outbox', label: t('solicitudes.tab.outbox') },
+          ] as const}
+        />
+      </View>
 
       {/* Error modal — using Modal instead of native alert (no-op on RN-Web) */}
       <Modal
@@ -241,142 +566,7 @@ export default function SolicitudesScreen() {
         </View>
       </Modal>
 
-      {dataLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
-      ) : !hasAny ? (
-        <View className="p-4">
-          <Text tone="muted">{t('solicitudes.empty')}</Text>
-        </View>
-      ) : (
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-          {/* Organizer requests section */}
-          {isSuperAdmin && organizerRows.length > 0 && (
-            <VStack gap={2}>
-              <Text variant="h3">{t('solicitudes.tab.organizer')}</Text>
-              {organizerRows.map((row) => {
-                const key = `organizer-${row.id}`;
-                const municipalityName = municipalityNames[row.municipalityId] ?? row.municipalityId;
-                return (
-                  <VStack
-                    key={row.id}
-                    gap={2}
-                    className="bg-surface border border-subtle rounded-xl p-3"
-                  >
-                    <Text>
-                      {t('solicitudes.organizerRow', {
-                        user: row.userId,
-                        municipality: municipalityName,
-                      })}
-                    </Text>
-                    {row.motivation && row.motivation.trim().length > 0 && (
-                      <VStack gap={0}>
-                        <Text tone="muted" variant="caption">
-                          {t('solicitudes.motivation')}
-                        </Text>
-                        <Text className="italic text-sm">"{row.motivation}"</Text>
-                      </VStack>
-                    )}
-                    <HStack gap={2}>
-                      <Button
-                        onPress={() => handleOrganizerDecide(row, 'approved')}
-                        loading={busyKey === key}
-                      >
-                        {t('solicitudes.approve')}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        onPress={() => handleOrganizerDecide(row, 'rejected')}
-                        loading={busyKey === key}
-                      >
-                        {t('solicitudes.reject')}
-                      </Button>
-                    </HStack>
-                  </VStack>
-                );
-              })}
-            </VStack>
-          )}
-
-          {/* Org-creation section */}
-          {orgRows.length > 0 && (
-            <VStack gap={2}>
-              <Text variant="h3">{t('solicitudes.tab.org')}</Text>
-              {orgRows.map((row) => {
-                const key = `org-${row.id}`;
-                const municipalityName = municipalityNames[row.municipalityId] ?? row.municipalityId;
-                return (
-                  <VStack
-                    key={row.id}
-                    gap={2}
-                    className="bg-surface border border-subtle rounded-xl p-3"
-                  >
-                    <Text>
-                      {t('solicitudes.orgRow', { org: row.name, type: row.type })}
-                    </Text>
-                    <Text tone="muted" variant="caption">
-                      {municipalityName}
-                    </Text>
-                    <HStack gap={2}>
-                      <Button
-                        onPress={() => handleOrgDecide(row, 'approved')}
-                        loading={busyKey === key}
-                      >
-                        {t('solicitudes.approve')}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        onPress={() => handleOrgDecide(row, 'rejected')}
-                        loading={busyKey === key}
-                      >
-                        {t('solicitudes.reject')}
-                      </Button>
-                    </HStack>
-                  </VStack>
-                );
-              })}
-            </VStack>
-          )}
-
-          {/* Join-request section */}
-          {joinRows.length > 0 && (
-            <VStack gap={2}>
-              <Text variant="h3">{t('solicitudes.tab.join')}</Text>
-              {joinRows.map((row) => {
-                const key = `join-${row.id}`;
-                const orgName = orgNames[row.orgId] ?? row.orgId;
-                return (
-                  <VStack
-                    key={row.id}
-                    gap={2}
-                    className="bg-surface border border-subtle rounded-xl p-3"
-                  >
-                    <Text>
-                      {t('solicitudes.joinRow', { user: row.userId, org: orgName })}
-                    </Text>
-                    <HStack gap={2}>
-                      <Button
-                        onPress={() => handleJoinDecide(row, 'approved')}
-                        loading={busyKey === key}
-                      >
-                        {t('solicitudes.approve')}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        onPress={() => handleJoinDecide(row, 'rejected')}
-                        loading={busyKey === key}
-                      >
-                        {t('solicitudes.reject')}
-                      </Button>
-                    </HStack>
-                  </VStack>
-                );
-              })}
-            </VStack>
-          )}
-        </ScrollView>
-      )}
+      {tab === 'inbox' ? renderInbox() : renderOutbox()}
     </Screen>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { isAppAdmin as isAppAdminService } from '@cultuvilla/shared/services/adminService';
-import { getVillageMember } from '@cultuvilla/shared/services/villageMemberService';
+import { getUserMemberships } from '@cultuvilla/shared/services/villageMemberService';
 import {
   getOrgMembershipsByUserInMunicipality,
 } from '@cultuvilla/shared/services/orgMemberService';
@@ -10,7 +10,7 @@ import { useAuth } from './useAuth';
 export interface ApproverStatus {
   loading: boolean;
   isSuperAdmin: boolean;
-  isVillageAdmin: boolean;
+  adminVillageIds: string[];
   adminOrgIds: string[];
   canApprove: boolean;
 }
@@ -18,14 +18,13 @@ export interface ApproverStatus {
 const NOT_APPROVER: ApproverStatus = {
   loading: false,
   isSuperAdmin: false,
-  isVillageAdmin: false,
+  adminVillageIds: [],
   adminOrgIds: [],
   canApprove: false,
 };
 
 export function useApproverStatus(): ApproverStatus {
-  const { user, profile } = useAuth();
-  const municipalityId = profile?.activeMunicipalityId ?? null;
+  const { user } = useAuth();
 
   const [state, setState] = useState<ApproverStatus>({ ...NOT_APPROVER, loading: true });
 
@@ -41,35 +40,42 @@ export function useApproverStatus(): ApproverStatus {
 
     void (async () => {
       try {
-        const [superAdmin, vMember, orgs] = await Promise.all([
+        const [isSuperAdmin, memberships] = await Promise.all([
           isAppAdminService(user.uid),
-          municipalityId ? getVillageMember(municipalityId, user.uid) : Promise.resolve(null),
-          municipalityId
-            ? getOrganizationsByMunicipality(municipalityId, 'approved')
-            : Promise.resolve([]),
+          getUserMemberships(user.uid),
         ]);
 
         if (cancelled) return;
 
-        const villageAdmin = vMember?.role === 'admin';
+        const adminVillageIds = memberships
+          .filter((m) => m.role === 'admin')
+          .map((m) => m.municipalityId);
 
-        const orgIds = orgs.map((o) => o.id);
-        const orgMemberships = municipalityId
-          ? await getOrgMembershipsByUserInMunicipality(user.uid, municipalityId, orgIds)
-          : [];
+        // For each village the user belongs to, fetch approved orgs and check org membership.
+        const perVillageOrgAdminIds = await Promise.all(
+          memberships.map(async (m) => {
+            const orgs = await getOrganizationsByMunicipality(m.municipalityId, 'approved');
+            const orgIds = orgs.map((o) => o.id);
+            if (orgIds.length === 0) return [];
+            const orgMemberships = await getOrgMembershipsByUserInMunicipality(
+              user.uid,
+              m.municipalityId,
+              orgIds,
+            );
+            return orgMemberships.filter((om) => om.role === 'admin').map((om) => om.orgId);
+          }),
+        );
 
         if (cancelled) return;
 
-        const adminOrgIds = orgMemberships
-          .filter((m) => m.role === 'admin')
-          .map((m) => m.orgId);
+        const adminOrgIds = [...new Set(perVillageOrgAdminIds.flat())];
 
         const next: ApproverStatus = {
           loading: false,
-          isSuperAdmin: superAdmin,
-          isVillageAdmin: villageAdmin,
+          isSuperAdmin,
+          adminVillageIds,
           adminOrgIds,
-          canApprove: superAdmin || villageAdmin || adminOrgIds.length > 0,
+          canApprove: isSuperAdmin || adminVillageIds.length > 0 || adminOrgIds.length > 0,
         };
         setState(next);
       } catch {
@@ -81,7 +87,7 @@ export function useApproverStatus(): ApproverStatus {
     return () => {
       cancelled = true;
     };
-  }, [user, municipalityId]);
+  }, [user]);
 
   return state;
 }
