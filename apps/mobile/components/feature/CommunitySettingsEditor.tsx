@@ -116,7 +116,7 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
         {/* Render only once loaded, so the picker seeds its state (and preview)
             from the saved coordinates instead of the pre-load null. */}
         {village ? (
-          <LocationPicker value={coords} onChange={setCoords} zoom={zoom} onZoomChange={setZoom} />
+          <LocationPicker value={coords} onChange={setCoords} zoom={zoom} onZoomChange={setZoom} showUseMyLocation={false} />
         ) : null}
 
         <Button onPress={save} loading={saving} disabled={uploadingEscudo}>
