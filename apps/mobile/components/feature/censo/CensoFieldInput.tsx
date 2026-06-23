@@ -25,7 +25,7 @@ export function CensoFieldInput({ field, value, onChange, entityOptions, showLab
 
   switch (r.type) {
     case 'textarea':
-      return <Input label={label} value={String(value ?? '')} onChangeText={(v) => onChange(v)} multiline numberOfLines={4} />;
+      return <Input label={label} value={String(value ?? '')} onChangeText={(v) => onChange(v)} multiline numberOfLines={3} />;
     case 'number':
       return (
         <Input
