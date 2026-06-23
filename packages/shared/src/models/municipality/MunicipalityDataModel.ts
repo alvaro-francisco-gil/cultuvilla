@@ -45,6 +45,10 @@ export const MunicipalityDataSchema = z.object({
   comunidadAutonoma: z.string(),
   codigoINE: z.string(),
   coordinates: LatLngSchema.nullable(),
+  /** Organizer-chosen zoom level for the village location map (Google Static
+   *  Maps zoom). Nullish so legacy docs without it still parse; readers fall
+   *  back to a default. */
+  mapZoom: z.number().nullish(),
   createdAt: z.date(),
 
   // ── Escudo (coat of arms, sourced from Wikidata P94 → Cloud Storage) ──
@@ -77,6 +81,7 @@ export interface MunicipalityDataInput {
   comunidadAutonoma: string;
   codigoINE: string;
   coordinates?: LatLng | null;
+  mapZoom?: number | null;
   escudoUrl?: string | null;
   escudoThumbUrl?: string | null;
   escudoManualUrl?: string | null;
@@ -115,6 +120,7 @@ export function buildMunicipalityData(input: MunicipalityDataInput): Municipalit
     comunidadAutonoma: input.comunidadAutonoma,
     codigoINE: input.codigoINE,
     coordinates: input.coordinates ?? null,
+    mapZoom: input.mapZoom ?? null,
     createdAt: new Date(),
     escudoUrl: input.escudoUrl ?? null,
     escudoThumbUrl: input.escudoThumbUrl ?? null,
@@ -203,6 +209,7 @@ export const PlaceKindSchema = z.enum([
   'hermitage', // ermita — standalone chapel/shrine, often on the outskirts
   'plaza', // plaza — main square (an open area, not a building)
   'town_hall', // ayuntamiento — civic seat
+  'otros', // otros — any notable place that doesn't fit the categories above
 ]);
 export type PlaceKind = z.infer<typeof PlaceKindSchema>;
 

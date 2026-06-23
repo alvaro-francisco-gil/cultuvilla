@@ -10,6 +10,17 @@ export interface GeocodePlace {
 // staticMap is deployed to europe-west1 (see functions/src/maps/staticMap.ts).
 const STATIC_MAP_REGION = 'europe-west1';
 
+/** Village location-map zoom bounds + default (Google Static Maps zoom levels). */
+export const MAP_ZOOM_MIN = 10;
+export const MAP_ZOOM_MAX = 18;
+export const MAP_ZOOM_DEFAULT = 13;
+
+/** Clamp a zoom value into the allowed range, falling back to the default for non-finite input. */
+export function clampMapZoom(zoom: number): number {
+  if (!Number.isFinite(zoom)) return MAP_ZOOM_DEFAULT;
+  return Math.min(MAP_ZOOM_MAX, Math.max(MAP_ZOOM_MIN, Math.round(zoom)));
+}
+
 // Cache-buster: the staticMap responses carry a long Cache-Control, and the URL
 // is otherwise identical for a given coordinate. Bump this whenever the map's
 // server-side rendering changes (markers, style, size) so clients fetch the new

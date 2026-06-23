@@ -209,7 +209,10 @@
     },
     "location": {
       "openMapsTitle": "¿Abrir Google Maps?",
-      "open": "Abrir"
+      "open": "Abrir",
+      "zoomLabel": "Zoom del mapa",
+      "zoomIn": "Acercar",
+      "zoomOut": "Alejar"
     },
     "organizations": "Organizaciones",
     "members": "Miembros",

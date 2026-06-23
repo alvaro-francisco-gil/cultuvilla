@@ -16,7 +16,7 @@ import {
   getVillageViewLink,
   getVillageInviteLink,
 } from '@cultuvilla/shared/services/deepLinkService';
-import { staticMapUrl } from '@cultuvilla/shared/services/mapsService';
+import { staticMapUrl, MAP_ZOOM_DEFAULT } from '@cultuvilla/shared/services/mapsService';
 import { formatDate } from '@cultuvilla/shared/utils';
 import {
   escudoFullUrl,
@@ -320,7 +320,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
               <Image
                 source={{
                   uri: staticMapUrl(village.coordinates.lat, village.coordinates.lng, {
-                    zoom: 13,
+                    zoom: village.mapZoom ?? MAP_ZOOM_DEFAULT,
                     w: 640,
                     h: 256,
                   }),

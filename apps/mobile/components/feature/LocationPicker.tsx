@@ -3,16 +3,32 @@ import { useEffect, useReducer } from 'react';
 import { ActivityIndicator, Image, View } from 'react-native';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
-import { VStack, Text, Input, Button, Pressable } from '../primitives';
+import { VStack, HStack, Text, Input, Button, Pressable } from '../primitives';
 import { useT } from '../../lib/i18n';
 import { showAlert } from '../../lib/dialogs';
-import { geocodeSearch, staticMapUrl } from '@cultuvilla/shared/services/mapsService';
+import {
+  geocodeSearch,
+  staticMapUrl,
+  clampMapZoom,
+  MAP_ZOOM_MIN,
+  MAP_ZOOM_MAX,
+} from '@cultuvilla/shared/services/mapsService';
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 import { initialLocationState, locationReducer } from './locationPickerState';
 
 const ACCENT = '#bb5d3a';
 
-export function LocationPicker({ value, onChange }: { value: LatLng | null; onChange: (c: LatLng | null) => void }) {
+export function LocationPicker({
+  value,
+  onChange,
+  zoom,
+  onZoomChange,
+}: {
+  value: LatLng | null;
+  onChange: (c: LatLng | null) => void;
+  zoom: number;
+  onZoomChange: (z: number) => void;
+}) {
   const { t } = useT();
   const [state, dispatch] = useReducer(locationReducer, value, initialLocationState);
 
@@ -81,11 +97,42 @@ export function LocationPicker({ value, onChange }: { value: LatLng | null; onCh
       <Button onPress={useMyLocation}>{t('village.admin.community.useMyLocation')}</Button>
       {state.coords ? (
         <View className="gap-2">
+          {/* Live preview — same framing (zoom + aspect) as the village screen. */}
           <Image
-            source={{ uri: staticMapUrl(state.coords.lat, state.coords.lng) }}
-            style={{ width: '100%', aspectRatio: 3 / 2, borderRadius: 16 }}
+            source={{ uri: staticMapUrl(state.coords.lat, state.coords.lng, { zoom, w: 640, h: 256 }) }}
+            style={{ width: '100%', aspectRatio: 2.5, borderRadius: 16 }}
             resizeMode="cover"
           />
+          <HStack className="items-center justify-between">
+            <Text variant="body">{t('village.location.zoomLabel')}</Text>
+            <HStack gap={3} className="items-center">
+              <Pressable
+                onPress={() => onZoomChange(clampMapZoom(zoom - 1))}
+                disabled={zoom <= MAP_ZOOM_MIN}
+                accessibilityLabel={t('village.location.zoomOut')}
+              >
+                <Ionicons
+                  name="remove-circle-outline"
+                  size={28}
+                  color={zoom <= MAP_ZOOM_MIN ? '#cbd5e1' : ACCENT}
+                />
+              </Pressable>
+              <Text variant="body" className="font-semibold" style={{ minWidth: 24, textAlign: 'center' }}>
+                {zoom}
+              </Text>
+              <Pressable
+                onPress={() => onZoomChange(clampMapZoom(zoom + 1))}
+                disabled={zoom >= MAP_ZOOM_MAX}
+                accessibilityLabel={t('village.location.zoomIn')}
+              >
+                <Ionicons
+                  name="add-circle-outline"
+                  size={28}
+                  color={zoom >= MAP_ZOOM_MAX ? '#cbd5e1' : ACCENT}
+                />
+              </Pressable>
+            </HStack>
+          </HStack>
           <Pressable onPress={() => dispatch({ type: 'clear' })} className="self-start flex-row items-center gap-1">
             <Ionicons name="close-circle-outline" size={16} color={ACCENT} />
             <Text style={{ color: ACCENT }} className="font-semibold">{t('village.admin.community.removeLocation')}</Text>

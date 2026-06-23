@@ -12,6 +12,7 @@ import {
   updateMunicipality,
 } from '@cultuvilla/shared/services/municipalityService';
 import { uploadMunicipalityImage } from '@cultuvilla/shared/services/imageService';
+import { MAP_ZOOM_DEFAULT } from '@cultuvilla/shared/services/mapsService';
 import {
   escudoFullUrl,
   hasManualEscudo,
@@ -31,6 +32,7 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
   const [village, setVillage] = useState<MunicipalityData | null>(null);
   const [description, setDescription] = useState<string | null>(null);
   const [coords, setCoords] = useState<LatLng | null>(null);
+  const [zoom, setZoom] = useState<number>(MAP_ZOOM_DEFAULT);
   const [saving, setSaving] = useState(false);
   const [uploadingEscudo, setUploadingEscudo] = useState(false);
 
@@ -40,6 +42,7 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
     setVillage(m);
     setDescription(m?.community?.description ?? '');
     setCoords(m?.coordinates ?? null);
+    setZoom(m?.mapZoom ?? MAP_ZOOM_DEFAULT);
   }, [villageId]);
 
   useEffect(() => {
@@ -67,7 +70,10 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
     setSaving(true);
     try {
       await updateCommunity(villageId, { description });
-      await updateMunicipality(villageId, { coordinates: coords });
+      await updateMunicipality(villageId, {
+        coordinates: coords,
+        mapZoom: coords ? zoom : null,
+      });
       showAlert(t('village.admin.community.saved'));
     } finally {
       setSaving(false);
@@ -107,7 +113,7 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
         <Text variant="h3" className="mt-2">{t('village.admin.community.description')}</Text>
         <Input value={description ?? ''} onChangeText={setDescription} multiline placeholder={t('village.admin.community.description')} />
 
-        <LocationPicker value={coords} onChange={setCoords} />
+        <LocationPicker value={coords} onChange={setCoords} zoom={zoom} onZoomChange={setZoom} />
 
         <Button onPress={save} loading={saving} disabled={uploadingEscudo}>
           {t('common.save')}
