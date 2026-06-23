@@ -14,9 +14,11 @@ export type ScreenHeaderProps = {
   hideBack?: boolean;
   /** Optional content rendered on the right (icon buttons, etc.). */
   rightSlot?: ReactNode;
+  /** Override the title color (defaults to theme primary). */
+  titleColor?: string;
 };
 
-export function ScreenHeader({ title, onBack, hideBack = false, rightSlot }: ScreenHeaderProps) {
+export function ScreenHeader({ title, onBack, hideBack = false, rightSlot, titleColor }: ScreenHeaderProps) {
   const { t } = useT();
   const handleBack = onBack ?? (() => router.back());
 
@@ -36,7 +38,7 @@ export function ScreenHeader({ title, onBack, hideBack = false, rightSlot }: Scr
         </View>
         <View className="flex-1 items-center">
           {title ? (
-            <Text variant="h3" numberOfLines={1}>
+            <Text variant="h3" numberOfLines={1} style={titleColor ? { color: titleColor } : undefined}>
               {title}
             </Text>
           ) : null}

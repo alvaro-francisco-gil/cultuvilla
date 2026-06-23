@@ -36,7 +36,7 @@ export default function CensoScreen() {
 
   return (
     <Screen padded={false}>
-      <ScreenHeader title={title} />
+      <ScreenHeader title={title} titleColor="#bb5d3a" />
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
