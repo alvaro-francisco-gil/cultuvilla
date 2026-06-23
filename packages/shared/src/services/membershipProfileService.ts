@@ -57,6 +57,24 @@ export function collectUsedValues(
 }
 
 /**
+ * Counts, per field key, how many members hold a non-empty answer. Empty
+ * strings and empty arrays do not count. Used to warn the admin how many
+ * answers a question deletion will erase.
+ */
+export function answeredCountByKey(
+  members: { profileAnswers: ProfileAnswers }[],
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const m of members) {
+    for (const [k, v] of Object.entries(m.profileAnswers)) {
+      const has = Array.isArray(v) ? v.length > 0 : v !== '' && v !== undefined && v !== null;
+      if (has) out[k] = (out[k] ?? 0) + 1;
+    }
+  }
+  return out;
+}
+
+/**
  * Marks profileCompletedAt by converting the Firestore Timestamp on read.
  * Helper for callers that need a Date.
  */
