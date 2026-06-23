@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  getOrganizationsByMunicipality, requestOrganization, approveOrganization, rejectOrganization, deleteOrganization,
+  getOrganizationsByMunicipality, requestOrganization, newOrganizationId, approveOrganization, rejectOrganization, deleteOrganization,
 } from '@cultuvilla/shared/services/organizationService';
+import { uploadOrganizationImage } from '@cultuvilla/shared/services/imageService';
+import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 import {
   PROPOSABLE_ORGANIZATION_TYPES,
   type OrganizationData,
@@ -41,6 +43,7 @@ export function OrganizationsManager({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<OrganizationType>('peña');
+  const [image, setImage] = useState<UploadableImage | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Load all statuses; the list is filtered in the UI (isProposalVisible) so a
@@ -58,9 +61,16 @@ export function OrganizationsManager({
     if (!villageId || !name.trim() || !uid) return;
     setSaving(true);
     try {
-      const id = await requestOrganization({
+      // Mint the id first so the image can be uploaded to the org's storage
+      // path and its URL written in the create payload — proposers can't update
+      // the doc afterwards (org update is admin-only).
+      const id = newOrganizationId();
+      const imageURL = image ? await uploadOrganizationImage(id, image) : null;
+      await requestOrganization({
+        id,
         name: name.trim(),
         description: description.trim() || null,
+        imageURL,
         type,
         municipalityId: villageId,
         requestedBy: uid,
@@ -72,6 +82,7 @@ export function OrganizationsManager({
       setName('');
       setDescription('');
       setType('peña');
+      setImage(null);
       onCreated?.();
     } finally {
       setSaving(false);
@@ -84,6 +95,12 @@ export function OrganizationsManager({
     return (
       <VStack gap={3} className="p-4">
         <ProposableForm
+          image={image}
+          onImageChange={setImage}
+          imageLabels={{
+            add: t('organization.addImage'),
+            selected: t('organization.imageSelected'),
+          }}
           name={name}
           onChangeName={setName}
           nameLabel={t('organization.name')}

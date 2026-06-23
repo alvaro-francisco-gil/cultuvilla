@@ -446,6 +446,8 @@
     "invitedBanner": "Te han invitado a unirte a esta organización",
     "name": "Nombre",
     "type": "Tipo",
+    "addImage": "Añadir imagen",
+    "imageSelected": "Imagen seleccionada",
     "ayuntamiento": "Ayuntamiento",
     "peña": "Peña",
     "asociación": "Asociación",

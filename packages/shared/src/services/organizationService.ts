@@ -62,6 +62,12 @@ export async function getOrganizationsByMunicipality(
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+/** Mint an organization doc id up front, so an image can be uploaded to its
+ * storage path before `requestOrganization` writes the doc (with imageURL). */
+export function newOrganizationId(): string {
+  return doc(organizationsCollection(getDb())).id;
+}
+
 export async function requestOrganization(input: OrganizationDataInput): Promise<string> {
   // ayuntamiento is a singleton per village; the cap can only be enforced
   // server-side (rules can't query for an existing one), so it goes through the
@@ -79,7 +85,12 @@ export async function requestOrganization(input: OrganizationDataInput): Promise
     return res.data.orgId;
   }
 
-  const newRef = doc(organizationsCollection(getDb()));
+  // Use a caller-provided id when present, so an image can be uploaded to the
+  // org's storage path *before* the doc is created (the create payload carries
+  // imageURL — no post-create update, which proposers aren't allowed).
+  const newRef = input.id
+    ? doc(organizationsCollection(getDb()), input.id)
+    : doc(organizationsCollection(getDb()));
   const data: OrganizationData = {
     name: input.name,
     description: input.description ?? null,

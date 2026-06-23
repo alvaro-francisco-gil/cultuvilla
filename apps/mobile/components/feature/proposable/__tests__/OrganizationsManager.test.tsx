@@ -8,10 +8,12 @@ import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilitie
 jest.mock('@cultuvilla/shared/services/organizationService', () => ({
   getOrganizationsByMunicipality: jest.fn(),
   requestOrganization: jest.fn().mockResolvedValue('new-org'),
+  newOrganizationId: jest.fn(() => 'new-org'),
   approveOrganization: jest.fn().mockResolvedValue(undefined),
   rejectOrganization: jest.fn().mockResolvedValue(undefined),
   deleteOrganization: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock('@cultuvilla/shared/services/imageService', () => ({ uploadOrganizationImage: jest.fn() }));
 jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({ useEntityCapabilities: jest.fn() }));
 

@@ -35,6 +35,9 @@ export const OrganizationDataSchema = z.object({
 export type OrganizationData = z.infer<typeof OrganizationDataSchema>;
 
 export interface OrganizationDataInput {
+  /** Optional caller-minted doc id (see newOrganizationId) — lets an image be
+   * uploaded to the org's storage path before the doc is created. */
+  id?: string;
   name: string;
   description?: string | null;
   imageURL?: string | null;
