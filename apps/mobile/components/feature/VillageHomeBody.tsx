@@ -437,13 +437,24 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
         </Section>
 
         {/* ── Censo (everyone) ─────────────────────────────────── */}
-        <View className="px-4 pt-6">
-          <Button
-            variant="secondary"
+        <View className="px-4 pt-8">
+          <Pressable
             onPress={() => router.push(`/village/${village.id}/censo` as never)}
+            accessibilityLabel={canManage ? t('village.censo.configure') : t('village.censo.link')}
+            className="flex-row items-center justify-center bg-surface self-stretch"
+            style={{
+              paddingVertical: 5,
+              paddingHorizontal: 12,
+              borderRadius: 24,
+              borderWidth: 1.5,
+              borderColor: ACCENT,
+              minHeight: 32,
+            }}
           >
-            {canManage ? t('village.censo.configure') : t('village.censo.link')}
-          </Button>
+            <Text style={{ color: ACCENT }} className="font-semibold">
+              {canManage ? t('village.censo.configure') : t('village.censo.link')}
+            </Text>
+          </Pressable>
         </View>
       </ScrollView>
     </>
