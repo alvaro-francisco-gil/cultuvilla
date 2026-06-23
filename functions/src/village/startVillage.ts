@@ -1,6 +1,11 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import {
+  getFirestore,
+  FieldValue,
+  type DocumentData,
+  type UpdateData,
+} from 'firebase-admin/firestore';
 import { municipalityDoc, municipalityMemberDoc } from '@cultuvilla/shared/firebase/refs/admin';
 import type { VillageMemberData } from '@cultuvilla/shared';
 
@@ -16,6 +21,10 @@ interface StartVillageData {
    * applied when the village has no escudo yet.
    */
   escudoManualUrl?: string;
+  /** Location set by the starter; written server-side during activation
+   *  (the muni doc is admin-only on the client). */
+  coordinates?: { lat: number; lng: number } | null;
+  mapZoom?: number | null;
 }
 
 interface StartVillageResult {
@@ -36,7 +45,7 @@ export const startVillage = onCall<StartVillageData, Promise<StartVillageResult>
     const auth = request.auth;
     if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
-    const { municipalityId, description, escudoManualUrl } = request.data;
+    const { municipalityId, description, escudoManualUrl, coordinates, mapZoom } = request.data;
     if (!municipalityId) {
       throw new HttpsError('invalid-argument', 'municipalityId requerido.');
     }
@@ -60,7 +69,9 @@ export const startVillage = onCall<StartVillageData, Promise<StartVillageResult>
       const setEscudo = Boolean(trimmedEscudo) && muniData?.escudoManualUrl == null;
 
       // tx.update bypasses the converter — FieldValue.serverTimestamp() is fine.
-      tx.update(muniRef, {
+      // Untyped doc ref → use the loose UpdateData<DocumentData> so a top-level
+      // `coordinates: null` (cleared location) typechecks, mirroring the client.
+      const update: UpdateData<DocumentData> = {
         communityActive: true,
         community: {
           description: (description ?? '').trim(),
@@ -68,8 +79,11 @@ export const startVillage = onCall<StartVillageData, Promise<StartVillageResult>
           profileForm: null,
           activatedAt: FieldValue.serverTimestamp(),
         },
-        ...(setEscudo ? { escudoManualUrl: trimmedEscudo } : {}),
-      });
+      };
+      if (setEscudo) update.escudoManualUrl = trimmedEscudo;
+      if (coordinates !== undefined) update.coordinates = coordinates;
+      if (mapZoom !== undefined) update.mapZoom = mapZoom;
+      tx.update(muniRef, update);
 
       // Converter rejects FieldValue sentinels on set; joinedAt is a plain Date.
       const newMember: VillageMemberData = {

@@ -126,6 +126,23 @@ describe('startVillage (callable)', () => {
     expect(muniDoc.data()?.escudoManualUrl).toBe('https://example.com/escudo.webp');
   });
 
+  it('stores the location set during activation', async () => {
+    await seedMunicipality(false);
+
+    await callStart({
+      uid: STARTER_ID,
+      data: {
+        municipalityId: MUNICIPALITY_ID,
+        coordinates: { lat: 40.4, lng: -3.7 },
+        mapZoom: 14,
+      },
+    });
+
+    const muniDoc = await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}`).get();
+    expect(muniDoc.data()?.coordinates).toEqual({ lat: 40.4, lng: -3.7 });
+    expect(muniDoc.data()?.mapZoom).toBe(14);
+  });
+
   it('ignores escudoManualUrl when the village already has a manual escudo', async () => {
     const now = new Date();
     await admin

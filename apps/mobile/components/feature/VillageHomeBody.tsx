@@ -219,28 +219,6 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           </VStack>
         ) : null}
 
-        {/* ── No organizer yet (wiki phase) ─────────────────────── */}
-        {noOrganizer ? (
-          <View className="mx-4 mt-3 p-3 rounded-lg border border-subtle bg-surface">
-            <Text variant="bodySm">{t('village.noOrganizer.body')}</Text>
-            {pendingOrganizerRequest ? (
-              <Text tone="muted" variant="bodySm" className="mt-1">
-                {t('village.noOrganizer.pending')}
-              </Text>
-            ) : (
-              <Pressable
-                onPress={() => router.push(`/discover/organize/${village.id}` as never)}
-                className="mt-2 flex-row items-center"
-              >
-                <Ionicons name="ribbon-outline" size={16} color={ACCENT} />
-                <Text variant="bodySm" style={{ color: ACCENT }} className="ml-1 font-medium">
-                  {t('village.noOrganizer.cta')}
-                </Text>
-              </Pressable>
-            )}
-          </View>
-        ) : null}
-
         {/* ── Stats ────────────────────────────────────────────── */}
         <View className="px-4 pt-4 pb-4">
           <StatsRow
@@ -309,6 +287,38 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
             </Pressable>
           )}
         </HStack>
+
+        {/* ── No organizer yet (wiki phase) ─────────────────────── */}
+        {noOrganizer ? (
+          <VStack gap={2} className="px-4 pt-2">
+            <Text variant="bodySm" className="text-center">
+              {t('village.noOrganizer.body')}
+            </Text>
+            {pendingOrganizerRequest ? (
+              <Text tone="muted" variant="bodySm" className="text-center">
+                {t('village.noOrganizer.pending')}
+              </Text>
+            ) : (
+              <Pressable
+                onPress={() => router.push(`/discover/organize/${village.id}` as never)}
+                accessibilityLabel={t('village.noOrganizer.cta')}
+                className="flex-row items-center justify-center bg-surface"
+                style={{
+                  paddingVertical: 5,
+                  paddingHorizontal: 12,
+                  borderRadius: 24,
+                  borderWidth: 1.5,
+                  borderColor: ACCENT,
+                  minHeight: 32,
+                }}
+              >
+                <Text style={{ color: ACCENT }} className="font-semibold">
+                  {t('village.noOrganizer.cta')}
+                </Text>
+              </Pressable>
+            )}
+          </VStack>
+        ) : null}
 
         {/* ── Ubicación (map rectangle, when coordinates are set) ── */}
         {village.coordinates ? (
