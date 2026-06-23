@@ -16,7 +16,13 @@ function assertCoords(lat: number, lng: number): void {
   }
 }
 
-/** Builds a Google Static Maps URL with a red pin at the coordinate. Throws RangeError on bad coords. */
+/**
+ * Builds a Google Static Maps URL centered on the coordinate. No marker pin,
+ * and POI/transit features hidden so the map shows no place pins or labels
+ * (restaurants, hostels, stations…) — just a clean basemap. Throws RangeError
+ * on bad coords. (The Google attribution watermark is required by the Maps
+ * Platform Terms and cannot be removed.)
+ */
 export function buildStaticMapUrl(p: StaticMapParams, apiKey: string): string {
   assertCoords(p.lat, p.lng);
   const zoom = p.zoom ?? 14;
@@ -29,9 +35,11 @@ export function buildStaticMapUrl(p: StaticMapParams, apiKey: string): string {
     zoom: String(zoom),
     size: `${String(w)}x${String(h)}`,
     scale: String(scale),
-    markers: `color:red|${center}`,
     key: apiKey,
   });
+  // Hide points of interest and transit (icons + labels) for a clutter-free map.
+  q.append('style', 'feature:poi|visibility:off');
+  q.append('style', 'feature:transit|visibility:off');
   return `https://maps.googleapis.com/maps/api/staticmap?${q.toString()}`;
 }
 
