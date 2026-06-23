@@ -1,5 +1,5 @@
 // Pure validators for the village censo profile form.
-// No Firestore access — collectUsedValues stays in updateCenso.ts.
+// No Firestore access — scanMembers stays in updateCenso.ts.
 
 import { HttpsError } from 'firebase-functions/v2/https';
 

@@ -48,9 +48,7 @@ async function scanMembers(municipalityId: string): Promise<MemberScan> {
         bucket.add(v as string | number | boolean);
       }
       if (hasValue) {
-        const ids = memberIdsByKey[k] ?? [];
-        if (ids.length === 0) memberIdsByKey[k] = ids;
-        ids.push(m.id);
+        (memberIdsByKey[k] ??= []).push(m.id);
       }
     }
   }
@@ -99,7 +97,7 @@ export const updateCenso = onCall<UpdateCensoData, Promise<UpdateCensoResult>>(
     const nextKeys = new Set(fields.map((f) => f.key));
     const removedAnsweredKeys = prevFields
       .map((f) => f.key)
-      .filter((k) => !nextKeys.has(k) && (used[k]?.size ?? 0) > 0);
+      .filter((k) => !nextKeys.has(k) && (memberIdsByKey[k]?.length ?? 0) > 0);
 
     const batch = db.batch();
     // .update(ref, fieldPath, value) form: serverTimestamp on the nested
@@ -113,6 +111,8 @@ export const updateCenso = onCall<UpdateCensoData, Promise<UpdateCensoResult>>(
         batch.update(municipalityMemberDoc(db, municipalityId, uid), `profileAnswers.${key}`, FieldValue.delete());
       }
     }
+    // Single batch: 1 schema write + one delete per (removed-answered-key × member).
+    // Village member counts stay well under Firestore's 500-op batch limit (see spec).
     await batch.commit();
 
     return { ok: true, fieldCount: fields.length };
