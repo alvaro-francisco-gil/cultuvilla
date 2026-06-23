@@ -148,8 +148,8 @@ export default function SolicitudesScreen() {
       const missingOrgIds = [...newOrgIds].filter((id) => !knownOrgNames[id]);
       if (missingOrgIds.length > 0) {
         const orgNameFetches = missingOrgIds.map(async (id) => {
-          const found = fetchedOrgRows.find((o) => o.id === id);
-          return [id, found?.name ?? id] as const;
+          const org = await getOrganization(id);
+          return [id, org?.name ?? id] as const;
         });
         const resolvedOrgNames = await Promise.all(orgNameFetches);
         for (const [id, name] of resolvedOrgNames) {
@@ -190,6 +190,8 @@ export default function SolicitudesScreen() {
         setOutboxOrganizer(myOrganizerReqs);
         setOutboxOrgs(myOrgs);
         setOutboxJoins(myJoins);
+
+        if (cancelled) return;
 
         // Resolve municipality names for organizer outbox rows
         const newMunicipalityIds = new Set<string>();
