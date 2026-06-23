@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, ActivityIndicator, View, Modal } from 'react-native';
+import { FlatList, ActivityIndicator, View, Modal, TextInput } from 'react-native';
 import { router, type Href } from 'expo-router';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
-import { VStack, HStack, Text, Input, Escudo, Pressable, Button } from '../primitives';
+import { VStack, HStack, Text, Escudo, Pressable, Button } from '../primitives';
 import { useT } from '../../lib/i18n';
 import {
   getActiveCommunities,
@@ -157,13 +157,14 @@ export function VillageDiscovery() {
 
   return (
     <View className="flex-1">
-      <View className="px-4 py-2 border-b border-subtle">
-        <Input
+      <View className="px-4 py-2">
+        <TextInput
           placeholder={t('discover.search')}
           accessibilityLabel={t('discover.search')}
           value={search}
           onChangeText={setSearch}
           autoCapitalize="none"
+          className="border border-subtle rounded-md px-3 py-1 bg-surface text-primary text-body"
         />
       </View>
       <FlatList
