@@ -14,7 +14,8 @@
     "search": "Buscar",
     "noResults": "Sin resultados",
     "notFound": "No encontrado",
-    "stepper": { "back": "Anterior", "next": "Siguiente" }
+    "stepper": { "back": "Anterior", "next": "Siguiente" },
+    "close": "Cerrar"
   },
   "auth": {
     "signIn": "Iniciar sesión",

@@ -11,6 +11,7 @@ import {
   respondToOrganizerRequest,
 } from '@cultuvilla/shared/services/organizerRequestService';
 import {
+  getPendingOrganizations,
   getOrganizationsByMunicipality,
   approveOrganization,
   rejectOrganization,
@@ -77,17 +78,13 @@ export default function SolicitudesScreen() {
             rows.forEach((r) => newMunicipalityIds.add(r.municipalityId));
           }),
         );
-        // Super-admin org-creation: note — this uses the per-active-village call
-        // (village-scoped). A true cross-village listing would need a collectionGroup
-        // query not yet exposed as a service function. See task-13-report.md.
-        if (activeMunicipalityId) {
-          promises.push(
-            getOrganizationsByMunicipality(activeMunicipalityId, 'pending').then((rows) => {
-              fetchedOrgRows = rows;
-              rows.forEach((r) => newMunicipalityIds.add(r.municipalityId));
-            }),
-          );
-        }
+        // Super-admin org-creation: cross-village query across all villages.
+        promises.push(
+          getPendingOrganizations().then((rows) => {
+            fetchedOrgRows = rows;
+            rows.forEach((r) => newMunicipalityIds.add(r.municipalityId));
+          }),
+        );
         promises.push(
           getAllPendingJoinRequests().then((rows) => {
             fetchedJoinRows = rows;
@@ -227,7 +224,7 @@ export default function SolicitudesScreen() {
     <Screen padded={false}>
       <ScreenHeader title={t('solicitudes.title')} />
 
-      {/* Error modal — no Alert.alert (no-op on RN-Web) */}
+      {/* Error modal — using Modal instead of native alert (no-op on RN-Web) */}
       <Modal
         visible={errorMessage !== null}
         transparent
@@ -238,7 +235,7 @@ export default function SolicitudesScreen() {
           <View style={styles.errorBox}>
             <Text variant="body">{errorMessage ?? ''}</Text>
             <View style={styles.errorButtonRow}>
-              <Button onPress={() => setErrorMessage(null)}>{t('common.close') || 'Cerrar'}</Button>
+              <Button onPress={() => setErrorMessage(null)}>{t('common.close')}</Button>
             </View>
           </View>
         </View>

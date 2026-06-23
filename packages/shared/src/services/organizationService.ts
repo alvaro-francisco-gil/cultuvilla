@@ -26,6 +26,16 @@ import type {
   OrganizationStatus,
 } from '../models/organization/OrganizationDataModel';
 
+export async function getPendingOrganizations(): Promise<(OrganizationData & { id: string })[]> {
+  const q = query(
+    organizationsCollection(getDb()),
+    where('status', '==', 'pending'),
+    orderBy('createdAt', 'desc'),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
 export async function getOrganization(orgId: string): Promise<(OrganizationData & { id: string }) | null> {
   const snap = await getDoc(organizationDoc(getDb(), orgId));
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
