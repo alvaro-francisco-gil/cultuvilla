@@ -12,6 +12,7 @@ import { useT } from '../../lib/i18n';
 import { showConfirm } from '../../lib/dialogs';
 import { isProposalVisible } from '../../lib/proposals';
 import { addVillageMember } from '@cultuvilla/shared/services/villageMemberService';
+import { deletePlace, deleteBarrio } from '@cultuvilla/shared/services/municipalityService';
 import {
   getVillageViewLink,
   getVillageInviteLink,
@@ -117,6 +118,24 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
   const visibleOrgs = organizations.filter((o) => isProposalVisible(o.status, o.requestedBy, caps));
   const penas = visibleOrgs.filter((o) => o.type === 'peña');
   const agrupaciones = visibleOrgs.filter((o) => o.type !== 'peña');
+
+  // A proposer's own still-pending barrio/place. They reach withdraw from the
+  // pueblo-tab card (the create screen no longer lists items); moderation for
+  // organizers lives in the community ("Editar") screen.
+  const isOwnPending = (status: string, proposedBy?: string | null) =>
+    !canManage && status === 'pending' && proposedBy === (user?.uid ?? null);
+
+  const confirmWithdraw = (kind: 'place' | 'barrio', id: string) => {
+    showConfirm(
+      t('village.proposals.pendingTitle'),
+      t('village.proposals.pendingInfo'),
+      () => {
+        const op = kind === 'place' ? deletePlace(village.id, id) : deleteBarrio(village.id, id);
+        void op.then(() => reload());
+      },
+      { confirmText: t('village.proposals.withdraw') },
+    );
+  };
 
   const openDirections = () => {
     const c = village.coordinates;
@@ -375,7 +394,11 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
               sub={b.status === 'pending' ? t('village.proposals.pending') : undefined}
               icon="map-outline"
               imageUri={b.imageURL}
-              onPress={() => router.push(`/village/${village.id}/barrio/${b.id}` as never)}
+              onPress={() =>
+                isOwnPending(b.status, b.proposedBy)
+                  ? confirmWithdraw('barrio', b.id)
+                  : router.push(`/village/${village.id}/barrio/${b.id}` as never)
+              }
             />
           ))}
         </Section>
@@ -395,7 +418,11 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
               sub={p.status === 'pending' ? t('village.proposals.pending') : undefined}
               icon="location-outline"
               imageUri={p.imageURL}
-              onPress={() => router.push(`/village/${village.id}/place/${p.id}` as never)}
+              onPress={() =>
+                isOwnPending(p.status, p.proposedBy)
+                  ? confirmWithdraw('place', p.id)
+                  : router.push(`/village/${village.id}/place/${p.id}` as never)
+              }
             />
           ))}
         </Section>

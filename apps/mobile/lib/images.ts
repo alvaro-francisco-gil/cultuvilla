@@ -35,5 +35,5 @@ export async function pickImageAsBlob(
   const blob = await res.blob();
   const filename = asset.fileName ?? `upload-${Date.now()}.jpg`;
   const contentType = asset.mimeType ?? 'image/jpeg';
-  return { blob, filename, contentType };
+  return { blob, filename, contentType, previewUri: asset.uri };
 }

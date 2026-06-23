@@ -1,18 +1,21 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { Screen } from '../../../components/primitives';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { useT } from '../../../lib/i18n';
 import { PlacesManager } from '../../../components/feature/proposable/PlacesManager';
 
-// Shared Lugares surface: any member can propose; organizers manage. Replaces
-// the organizer-only /admin/places screen (kept as a wrapper until Phase 8).
+// Create-only Lugares surface: any member proposes; organizers create directly.
+// After submit we return to the pueblo tab, where the new (or pending) item
+// shows as a card. Editing/moderation lives in the community ("Editar") screen.
 export default function PlacesScreen() {
   const { villageId } = useLocalSearchParams<{ villageId: string }>();
   const { t } = useT();
   return (
     <Screen padded={false}>
-      <ScreenHeader title={t('village.admin.places.title')} />
-      {villageId ? <PlacesManager villageId={villageId} /> : null}
+      <ScreenHeader title={t('village.admin.places.add')} />
+      {villageId ? (
+        <PlacesManager villageId={villageId} mode="create" onCreated={() => router.back()} />
+      ) : null}
     </Screen>
   );
 }

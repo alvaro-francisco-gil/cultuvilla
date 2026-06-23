@@ -1,26 +1,37 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { View } from 'react-native';
 import {
   getBarrios, createBarrio, proposeBarrio, approveBarrio, rejectBarrio, updateBarrio, deleteBarrio,
 } from '@cultuvilla/shared/services/municipalityService';
 import { uploadBarrioImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 import type { BarrioData } from '@cultuvilla/shared/models/municipality';
-import { VStack, HStack, Text, Button, Input, Pressable, Avatar } from '../../primitives';
+import { VStack, HStack, Text, Button, Input } from '../../primitives';
 import { useT } from '../../../lib/i18n';
-import { pickImageAsBlob } from '../../../lib/images';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { isProposalVisible } from '../../../lib/proposals';
 import { ProposableListItem } from './ProposableListItem';
+import { ProposableForm } from './ProposableForm';
+import type { ManagerMode } from './types';
 
 type Row = BarrioData & { id: string };
 
 /**
- * Shared Barrios surface. A villager proposes (pending); an organizer
- * (village/app admin) creates directly, approves/rejects, and deletes.
- * A proposer can edit/withdraw their own still-pending barrio.
+ * Shared Barrios surface, split by `mode`:
+ * - `create` (default): just the "Añadir barrio" form. A villager proposes
+ *   (pending); an organizer creates directly. Calls `onCreated` after submit.
+ * - `manage`: the moderation list (approve/reject/edit/delete), behind the
+ *   admin-only community screen.
  */
-export function BarriosManager({ villageId }: { villageId: string }) {
+export function BarriosManager({
+  villageId,
+  mode = 'create',
+  onCreated,
+}: {
+  villageId: string;
+  mode?: ManagerMode;
+  onCreated?: () => void;
+}) {
   const { t } = useT();
   const { canManage, uid } = useEntityCapabilities(villageId);
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -36,8 +47,8 @@ export function BarriosManager({ villageId }: { villageId: string }) {
   }, [villageId]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (mode === 'manage') void load();
+  }, [mode, load]);
 
   async function submit() {
     if (!villageId || !name.trim() || !uid) return;
@@ -52,7 +63,7 @@ export function BarriosManager({ villageId }: { villageId: string }) {
       }
       setName('');
       setImage(null);
-      await load();
+      onCreated?.();
     } finally {
       setSaving(false);
     }
@@ -79,55 +90,64 @@ export function BarriosManager({ villageId }: { villageId: string }) {
     await load();
   }
 
-  return (
-    <VStack gap={3} className="p-4">
-      <HStack gap={2} align="center">
-        <Pressable
-          onPress={async () => {
-            const picked = await pickImageAsBlob();
-            if (picked) setImage(picked);
+  if (mode === 'create') {
+    return (
+      <VStack gap={3} className="p-4">
+        <ProposableForm
+          title={t('village.admin.barrios.add')}
+          image={image}
+          onImageChange={setImage}
+          imageLabels={{
+            add: t('village.admin.barrios.addImage'),
+            selected: t('village.admin.barrios.imageSelected'),
           }}
-          accessibilityLabel={image ? t('village.admin.barrios.changeImage') : t('village.admin.barrios.addImage')}
-        >
-          <Avatar size={48} initials={image ? '✓' : '+'} />
-        </Pressable>
-        <View className="flex-1">
-          <Input testID="barrio-name-input" value={name} onChangeText={setName} placeholder={t('village.admin.barrios.name')} />
-        </View>
-        <Button testID="barrio-submit" onPress={submit} loading={saving} disabled={!name.trim()}>
-          {canManage ? t('village.admin.barrios.add') : t('village.proposals.propose')}
-        </Button>
-      </HStack>
-      {image ? <Text tone="muted" variant="bodySm">{t('village.admin.barrios.imageSelected')}</Text> : null}
-      <FlatList
-        data={(rows ?? []).filter((r) => isProposalVisible(r.status, r.proposedBy, { canManage, uid }))}
-        keyExtractor={(r) => r.id}
-        renderItem={({ item }) =>
-          editingId === item.id ? (
-            <HStack gap={2} className="py-3">
-              <View className="flex-1">
-                <Input value={editName} onChangeText={setEditName} />
-              </View>
-              <Button onPress={saveEdit} loading={saving}>{t('common.save')}</Button>
-              <Button variant="ghost" onPress={() => setEditingId(null)}>{t('common.cancel')}</Button>
-            </HStack>
-          ) : (
-            <ProposableListItem
-              name={item.name}
-              imageURL={item.imageURL}
-              status={item.status}
-              canManage={canManage}
-              isOwnPending={!canManage && item.status === 'pending' && item.proposedBy === uid}
-              onApprove={uid ? () => void approveBarrio(villageId, item.id, uid).then(load) : undefined}
-              onReject={() => void rejectBarrio(villageId, item.id).then(load)}
-              onEdit={() => { setEditingId(item.id); setEditName(item.name); }}
-              onWithdraw={() => void remove(item.id)}
-              onDelete={() => void remove(item.id)}
-            />
-          )
-        }
-        ListEmptyComponent={rows && rows.length === 0 ? <Text className="text-muted">{t('village.admin.barrios.empty')}</Text> : null}
-      />
+          name={name}
+          onChangeName={setName}
+          namePlaceholder={t('village.admin.barrios.name')}
+          nameTestID="barrio-name-input"
+          submitLabel={canManage ? t('village.admin.barrios.add') : t('village.proposals.propose')}
+          submitTestID="barrio-submit"
+          onSubmit={submit}
+          saving={saving}
+          disabled={!name.trim()}
+        />
+      </VStack>
+    );
+  }
+
+  // mode === 'manage': moderation list (mapped, not FlatList, so it nests in the
+  // community screen's ScrollView).
+  const visible = (rows ?? []).filter((r) => isProposalVisible(r.status, r.proposedBy, { canManage, uid }));
+  return (
+    <VStack gap={0} className="px-4">
+      {rows && visible.length === 0 ? (
+        <Text className="text-muted">{t('village.admin.barrios.empty')}</Text>
+      ) : null}
+      {visible.map((item) =>
+        editingId === item.id ? (
+          <HStack key={item.id} gap={2} className="py-3">
+            <View className="flex-1">
+              <Input value={editName} onChangeText={setEditName} />
+            </View>
+            <Button onPress={saveEdit} loading={saving}>{t('common.save')}</Button>
+            <Button variant="ghost" onPress={() => setEditingId(null)}>{t('common.cancel')}</Button>
+          </HStack>
+        ) : (
+          <ProposableListItem
+            key={item.id}
+            name={item.name}
+            imageURL={item.imageURL}
+            status={item.status}
+            canManage={canManage}
+            isOwnPending={!canManage && item.status === 'pending' && item.proposedBy === uid}
+            onApprove={uid ? () => void approveBarrio(villageId, item.id, uid).then(load) : undefined}
+            onReject={() => void rejectBarrio(villageId, item.id).then(load)}
+            onEdit={() => { setEditingId(item.id); setEditName(item.name); }}
+            onWithdraw={() => void remove(item.id)}
+            onDelete={() => void remove(item.id)}
+          />
+        ),
+      )}
     </VStack>
   );
 }

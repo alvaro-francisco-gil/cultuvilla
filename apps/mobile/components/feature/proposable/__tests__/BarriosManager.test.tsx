@@ -57,7 +57,7 @@ describe('<BarriosManager>', () => {
     mockGet.mockResolvedValue([
       { id: 'b1', name: 'Sur', municipalityId: 'm1', imageURL: null, status: 'pending', proposedBy: 'alice', approvedBy: null, decidedAt: null },
     ]);
-    const { findByTestId } = render(<BarriosManager villageId="m1" />);
+    const { findByTestId } = render(<BarriosManager villageId="m1" mode="manage" />);
     fireEvent.press(await findByTestId('action-approve'));
     await waitFor(() => expect(approveBarrio).toHaveBeenCalledWith('m1', 'b1', 'boss'));
   });

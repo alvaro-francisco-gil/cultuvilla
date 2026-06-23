@@ -269,7 +269,7 @@ service cloud.firestore {
           && isString(d.name)
           && isStringOrNull(d.description)
           && isStringOrNull(d.imageURL)
-          && d.type in ['ayuntamiento', 'peña', 'asociación']
+          && d.type in ['ayuntamiento', 'peña', 'asociación', 'otros']
           && d.status in ['pending', 'approved', 'rejected']
           && isString(d.municipalityId)
           && isString(d.requestedBy)
@@ -306,7 +306,7 @@ service cloud.firestore {
               'createdAt', 'status', 'proposedBy', 'approvedBy', 'decidedAt',
             ])
           && isString(d.name)
-          && d.kind in ['cemetery', 'church', 'hermitage', 'plaza', 'town_hall']
+          && d.kind in ['cemetery', 'church', 'hermitage', 'plaza', 'town_hall', 'otros']
           && isStringOrNull(d.description)
           && isString(d.municipalityId)
           && isStringOrNull(d.imageURL)

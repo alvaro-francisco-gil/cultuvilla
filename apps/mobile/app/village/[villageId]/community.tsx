@@ -3,6 +3,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { Screen } from '../../../components/primitives';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { CommunitySettingsEditor } from '../../../components/feature/CommunitySettingsEditor';
+import { VillageContentManager } from '../../../components/feature/proposable/VillageContentManager';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { useT } from '../../../lib/i18n';
 
@@ -30,7 +31,10 @@ export default function CommunityScreen() {
   return (
     <Screen padded={false}>
       <ScreenHeader title={t('village.admin.community.title')} />
-      <CommunitySettingsEditor villageId={villageId} />
+      <CommunitySettingsEditor
+        villageId={villageId}
+        footer={<VillageContentManager villageId={villageId} />}
+      />
     </Screen>
   );
 }

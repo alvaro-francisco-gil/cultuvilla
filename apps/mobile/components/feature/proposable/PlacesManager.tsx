@@ -1,27 +1,37 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, View } from 'react-native';
 import {
   getPlaces, createPlace, proposePlace, approvePlace, rejectPlace, updatePlace, deletePlace,
 } from '@cultuvilla/shared/services/municipalityService';
 import { uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
-import type { PlaceData, PlaceKind } from '@cultuvilla/shared/models/municipality';
-import { VStack, HStack, Text, Button, Input, Pressable, Avatar } from '../../primitives';
+import { PLACE_KINDS, type PlaceData, type PlaceKind } from '@cultuvilla/shared/models/municipality';
+import { VStack, HStack, Text, Button, Input, Pressable } from '../../primitives';
 import { useT } from '../../../lib/i18n';
-import { pickImageAsBlob } from '../../../lib/images';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { isProposalVisible } from '../../../lib/proposals';
 import { ProposableListItem } from './ProposableListItem';
+import { ProposableForm } from './ProposableForm';
+import type { ManagerMode } from './types';
 
 type Row = PlaceData & { id: string };
-const KINDS: PlaceKind[] = ['cemetery', 'church', 'hermitage', 'plaza', 'town_hall'];
 
 /**
- * Shared Lugares (places) surface. A villager proposes (pending); an organizer
- * creates directly, approves/rejects, and deletes. A proposer can edit/withdraw
- * their own still-pending place.
+ * Shared Lugares (places) surface, split by `mode`:
+ * - `create` (default): just the "Añadir lugar" form. A villager proposes
+ *   (pending); an organizer creates directly. Calls `onCreated` after submit.
+ * - `manage`: the moderation list (approve/reject/edit/delete). Lives behind the
+ *   admin-only community screen. A proposer can edit/withdraw their own pending
+ *   place here too, but the pueblo-tab card is their usual entry point.
  */
-export function PlacesManager({ villageId }: { villageId: string }) {
+export function PlacesManager({
+  villageId,
+  mode = 'create',
+  onCreated,
+}: {
+  villageId: string;
+  mode?: ManagerMode;
+  onCreated?: () => void;
+}) {
   const { t } = useT();
   const { canManage, uid } = useEntityCapabilities(villageId);
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -43,8 +53,8 @@ export function PlacesManager({ villageId }: { villageId: string }) {
   }, [villageId]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (mode === 'manage') void load();
+  }, [mode, load]);
 
   async function submit() {
     if (!villageId || !name.trim() || !uid) return;
@@ -62,7 +72,7 @@ export function PlacesManager({ villageId }: { villageId: string }) {
       setDescription('');
       setKind('cemetery');
       setImage(null);
-      await load();
+      onCreated?.();
     } finally {
       setSaving(false);
     }
@@ -94,80 +104,92 @@ export function PlacesManager({ villageId }: { villageId: string }) {
     <VStack gap={1}>
       <Text className="text-muted text-sm">{t('village.admin.places.kindLabel')}</Text>
       <HStack gap={2} className="flex-wrap">
-        {KINDS.map((k) => (
+        {PLACE_KINDS.map((k) => (
           <Pressable
             key={k}
             onPress={() => onChange(k)}
-            className={`px-3 py-1 rounded-full border ${value === k ? 'bg-blue-600 border-blue-600' : 'border-subtle'}`}
+            className={`px-3 py-1 rounded-full border ${value === k ? 'bg-[#f3a64b] border-[#f3a64b]' : 'border-subtle'}`}
           >
-            <Text className={value === k ? 'text-white' : undefined}>{kindLabel(k)}</Text>
+            <Text className={value === k ? 'text-primary' : undefined}>{kindLabel(k)}</Text>
           </Pressable>
         ))}
       </HStack>
     </VStack>
   );
 
-  return (
-    <VStack gap={3} className="p-4">
-      <VStack gap={2}>
-        <Input testID="place-name-input" value={name} onChangeText={setName} placeholder={t('village.admin.places.name')} />
-        <Input value={description} onChangeText={setDescription} placeholder={t('village.admin.places.description')} multiline />
-        <KindPicker value={kind} onChange={setKind} />
-        <HStack gap={2} align="center">
-          <Pressable
-            onPress={async () => {
-              const picked = await pickImageAsBlob();
-              if (picked) setImage(picked);
-            }}
-            accessibilityLabel={image ? t('village.admin.places.changeImage') : t('village.admin.places.addImage')}
-          >
-            <Avatar size={48} initials={image ? '✓' : '+'} />
-          </Pressable>
-          <Text tone="muted" variant="bodySm">
-            {image ? t('village.admin.places.imageSelected') : t('village.admin.places.addImage')}
-          </Text>
-        </HStack>
-        <Button testID="place-submit" onPress={submit} loading={saving} disabled={!name.trim()}>
-          {canManage ? t('village.admin.places.add') : t('village.proposals.propose')}
-        </Button>
+  if (mode === 'create') {
+    return (
+      <VStack gap={3} className="p-4">
+        <ProposableForm
+          title={t('village.admin.places.add')}
+          image={image}
+          onImageChange={setImage}
+          imageLabels={{
+            add: t('village.admin.places.addImage'),
+            selected: t('village.admin.places.imageSelected'),
+          }}
+          name={name}
+          onChangeName={setName}
+          namePlaceholder={t('village.admin.places.name')}
+          nameTestID="place-name-input"
+          description={description}
+          onChangeDescription={setDescription}
+          descriptionPlaceholder={t('village.admin.places.description')}
+          typeLabel={t('village.admin.places.kindLabel')}
+          typeOptions={PLACE_KINDS.map((k) => ({ value: k, label: kindLabel(k) }))}
+          typeValue={kind}
+          onChangeType={(v) => setKind(v as PlaceKind)}
+          submitLabel={canManage ? t('village.admin.places.add') : t('village.proposals.propose')}
+          submitTestID="place-submit"
+          onSubmit={submit}
+          saving={saving}
+          disabled={!name.trim()}
+        />
       </VStack>
-      <FlatList
-        data={(rows ?? []).filter((r) => isProposalVisible(r.status, r.proposedBy, { canManage, uid }))}
-        keyExtractor={(r) => r.id}
-        renderItem={({ item }) =>
-          editingId === item.id ? (
-            <VStack gap={2} className="py-3">
-              <Input value={editName} onChangeText={setEditName} />
-              <Input value={editDescription} onChangeText={setEditDescription} multiline />
-              <KindPicker value={editKind} onChange={setEditKind} />
-              <HStack gap={2}>
-                <Button onPress={saveEdit} loading={saving}>{t('common.save')}</Button>
-                <Button variant="ghost" onPress={() => setEditingId(null)}>{t('common.cancel')}</Button>
-              </HStack>
-            </VStack>
-          ) : (
-            <ProposableListItem
-              name={item.name}
-              imageURL={item.imageURL}
-              subtitle={kindLabel(item.kind)}
-              status={item.status}
-              canManage={canManage}
-              isOwnPending={!canManage && item.status === 'pending' && item.proposedBy === uid}
-              onApprove={uid ? () => void approvePlace(villageId, item.id, uid).then(load) : undefined}
-              onReject={() => void rejectPlace(villageId, item.id).then(load)}
-              onEdit={() => {
-                setEditingId(item.id);
-                setEditName(item.name);
-                setEditDescription(item.description ?? '');
-                setEditKind(item.kind);
-              }}
-              onWithdraw={() => void remove(item.id)}
-              onDelete={() => void remove(item.id)}
-            />
-          )
-        }
-        ListEmptyComponent={rows && rows.length === 0 ? <Text className="text-muted">{t('village.admin.places.empty')}</Text> : null}
-      />
+    );
+  }
+
+  // mode === 'manage': moderation list (no FlatList, so it nests in the
+  // community screen's ScrollView without a nested-VirtualizedList warning).
+  const visible = (rows ?? []).filter((r) => isProposalVisible(r.status, r.proposedBy, { canManage, uid }));
+  return (
+    <VStack gap={0} className="px-4">
+      {rows && visible.length === 0 ? (
+        <Text className="text-muted">{t('village.admin.places.empty')}</Text>
+      ) : null}
+      {visible.map((item) =>
+        editingId === item.id ? (
+          <VStack key={item.id} gap={2} className="py-3">
+            <Input value={editName} onChangeText={setEditName} />
+            <Input value={editDescription} onChangeText={setEditDescription} multiline />
+            <KindPicker value={editKind} onChange={setEditKind} />
+            <HStack gap={2}>
+              <Button onPress={saveEdit} loading={saving}>{t('common.save')}</Button>
+              <Button variant="ghost" onPress={() => setEditingId(null)}>{t('common.cancel')}</Button>
+            </HStack>
+          </VStack>
+        ) : (
+          <ProposableListItem
+            key={item.id}
+            name={item.name}
+            imageURL={item.imageURL}
+            subtitle={kindLabel(item.kind)}
+            status={item.status}
+            canManage={canManage}
+            isOwnPending={!canManage && item.status === 'pending' && item.proposedBy === uid}
+            onApprove={uid ? () => void approvePlace(villageId, item.id, uid).then(load) : undefined}
+            onReject={() => void rejectPlace(villageId, item.id).then(load)}
+            onEdit={() => {
+              setEditingId(item.id);
+              setEditName(item.name);
+              setEditDescription(item.description ?? '');
+              setEditKind(item.kind);
+            }}
+            onWithdraw={() => void remove(item.id)}
+            onDelete={() => void remove(item.id)}
+          />
+        ),
+      )}
     </VStack>
   );
 }

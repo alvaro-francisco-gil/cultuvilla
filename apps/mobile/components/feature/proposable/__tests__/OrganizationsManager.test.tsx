@@ -54,7 +54,7 @@ describe('<OrganizationsManager>', () => {
       { id: 'mine', name: 'MiPropuesta', description: null, imageURL: null, type: 'peña', status: 'pending', municipalityId: 'm1', requestedBy: 'alice', approvedBy: null, decidedAt: null },
       { id: 'other', name: 'OtraPendiente', description: null, imageURL: null, type: 'peña', status: 'pending', municipalityId: 'm1', requestedBy: 'bob', approvedBy: null, decidedAt: null },
     ]);
-    const { findByText, queryByText } = render(<OrganizationsManager villageId="m1" />);
+    const { findByText, queryByText } = render(<OrganizationsManager villageId="m1" mode="manage" />);
     expect(await findByText('Aprobada')).toBeTruthy();
     expect(await findByText('MiPropuesta')).toBeTruthy();
     expect(queryByText('OtraPendiente')).toBeNull();
@@ -65,7 +65,7 @@ describe('<OrganizationsManager>', () => {
     mockGet.mockResolvedValue([
       { id: 'o1', name: 'Peña Vieja', description: null, imageURL: null, type: 'peña', status: 'pending', municipalityId: 'm1', requestedBy: 'alice', approvedBy: null, decidedAt: null },
     ]);
-    const { findByTestId } = render(<OrganizationsManager villageId="m1" />);
+    const { findByTestId } = render(<OrganizationsManager villageId="m1" mode="manage" />);
     fireEvent.press(await findByTestId('action-approve'));
     await waitFor(() => expect(approveOrganization).toHaveBeenCalledWith('o1', 'boss'));
   });

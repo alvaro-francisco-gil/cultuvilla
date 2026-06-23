@@ -59,7 +59,7 @@ describe('<PlacesManager>', () => {
     mockGet.mockResolvedValue([
       { id: 'p1', name: 'Ermita', kind: 'hermitage', description: null, municipalityId: 'm1', imageURL: null, status: 'pending', proposedBy: 'alice', approvedBy: null, decidedAt: null },
     ]);
-    const { findByTestId } = render(<PlacesManager villageId="m1" />);
+    const { findByTestId } = render(<PlacesManager villageId="m1" mode="manage" />);
     fireEvent.press(await findByTestId('action-approve'));
     await waitFor(() => expect(approvePlace).toHaveBeenCalledWith('m1', 'p1', 'boss'));
   });

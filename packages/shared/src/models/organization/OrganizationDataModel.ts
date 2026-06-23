@@ -1,7 +1,18 @@
 import { z } from 'zod';
 
-export const OrganizationTypeSchema = z.enum(['ayuntamiento', 'peña', 'asociación']);
+export const OrganizationTypeSchema = z.enum(['ayuntamiento', 'peña', 'asociación', 'otros']);
 export type OrganizationType = z.infer<typeof OrganizationTypeSchema>;
+
+/**
+ * Organization types a client may propose, in display order. `ayuntamiento`
+ * is a singleton created via the requestAyuntamiento callable (handled
+ * elsewhere), so it is excluded from the inline propose form.
+ */
+export const PROPOSABLE_ORGANIZATION_TYPES: readonly OrganizationType[] = [
+  'peña',
+  'asociación',
+  'otros',
+] as const;
 
 export const OrganizationStatusSchema = z.enum(['pending', 'approved', 'rejected']);
 export type OrganizationStatus = z.infer<typeof OrganizationStatusSchema>;

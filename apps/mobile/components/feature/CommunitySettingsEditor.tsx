@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { VStack, Text, Button, Input, Pressable, Escudo } from '../primitives';
@@ -26,8 +26,18 @@ const ACCENT = '#bb5d3a';
  * Organizer-only community editor (escudo, description, coordinates).
  * Content-only so it embeds in the shared community screen
  * behind a role gate, and in the legacy /admin/community wrapper.
+ *
+ * `footer` renders inside the same ScrollView below the Save button — the
+ * community screen passes the content moderation surface there so settings and
+ * place/barrio/org management scroll together.
  */
-export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
+export function CommunitySettingsEditor({
+  villageId,
+  footer,
+}: {
+  villageId: string;
+  footer?: ReactNode;
+}) {
   const { t } = useT();
   const [village, setVillage] = useState<MunicipalityData | null>(null);
   const [description, setDescription] = useState<string | null>(null);
@@ -122,6 +132,7 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
         <Button onPress={save} loading={saving} disabled={uploadingEscudo}>
           {t('common.save')}
         </Button>
+        {footer}
       </VStack>
     </ScrollView>
   );

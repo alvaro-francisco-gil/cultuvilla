@@ -1,28 +1,40 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList } from 'react-native';
 import {
   getOrganizationsByMunicipality, requestOrganization, approveOrganization, rejectOrganization, deleteOrganization,
 } from '@cultuvilla/shared/services/organizationService';
-import type { OrganizationData, OrganizationType } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
-import { VStack, HStack, Text, Button, Input, Pressable } from '../../primitives';
+import {
+  PROPOSABLE_ORGANIZATION_TYPES,
+  type OrganizationData,
+  type OrganizationType,
+} from '@cultuvilla/shared/models/organization/OrganizationDataModel';
+import { VStack, Text } from '../../primitives';
 import { useT } from '../../../lib/i18n';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { isProposalVisible } from '../../../lib/proposals';
 import { ProposableListItem } from './ProposableListItem';
+import { ProposableForm } from './ProposableForm';
+import type { ManagerMode } from './types';
 
 type Row = OrganizationData & { id: string };
 
-// The inline propose form covers the client-creatable types. Ayuntamiento is a
-// singleton created via the requestAyuntamiento callable, handled elsewhere.
-const TYPES: OrganizationType[] = ['peña', 'asociación'];
-
 /**
- * Shared Organizations surface. A villager proposes a peña/asociación (pending,
- * visible to all); an organizer proposes-then-auto-approves, and approves/rejects/
- * deletes others. Org rules forbid member edit/withdraw, so proposers get no
- * edit/withdraw affordance here.
+ * Shared Organizations (agrupaciones) surface, split by `mode`:
+ * - `create` (default): just the "Añadir agrupación" form. A villager proposes
+ *   a peña/asociación/otros (pending); an organizer proposes-then-auto-approves.
+ *   Calls `onCreated` after submit.
+ * - `manage`: the moderation list (approve/reject/delete), behind the admin-only
+ *   community screen. Org rules forbid member edit/withdraw, so proposers get no
+ *   edit/withdraw affordance.
  */
-export function OrganizationsManager({ villageId }: { villageId: string }) {
+export function OrganizationsManager({
+  villageId,
+  mode = 'create',
+  onCreated,
+}: {
+  villageId: string;
+  mode?: ManagerMode;
+  onCreated?: () => void;
+}) {
   const { t } = useT();
   const { canManage, uid } = useEntityCapabilities(villageId);
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -39,8 +51,8 @@ export function OrganizationsManager({ villageId }: { villageId: string }) {
   }, [villageId]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (mode === 'manage') void load();
+  }, [mode, load]);
 
   async function submit() {
     if (!villageId || !name.trim() || !uid) return;
@@ -60,7 +72,7 @@ export function OrganizationsManager({ villageId }: { villageId: string }) {
       setName('');
       setDescription('');
       setType('peña');
-      await load();
+      onCreated?.();
     } finally {
       setSaving(false);
     }
@@ -68,48 +80,54 @@ export function OrganizationsManager({ villageId }: { villageId: string }) {
 
   const typeLabel = (ty: OrganizationType) => t(`organization.${ty}`);
 
-  const TypePicker = () => (
-    <HStack gap={2} className="flex-wrap">
-      {TYPES.map((ty) => (
-        <Pressable
-          key={ty}
-          onPress={() => setType(ty)}
-          className={`px-3 py-1 rounded-full border ${type === ty ? 'bg-blue-600 border-blue-600' : 'border-subtle'}`}
-        >
-          <Text className={type === ty ? 'text-white' : undefined}>{typeLabel(ty)}</Text>
-        </Pressable>
-      ))}
-    </HStack>
-  );
-
-  return (
-    <VStack gap={3} className="p-4">
-      <VStack gap={2}>
-        <Input testID="org-name-input" value={name} onChangeText={setName} placeholder={t('organization.name')} />
-        <Input value={description} onChangeText={setDescription} placeholder={t('organization.description')} multiline />
-        <TypePicker />
-        <Button testID="org-submit" onPress={submit} loading={saving} disabled={!name.trim()}>
-          {canManage ? t('village.admin.organizations.add') : t('village.proposals.propose')}
-        </Button>
+  if (mode === 'create') {
+    return (
+      <VStack gap={3} className="p-4">
+        <ProposableForm
+          title={t('village.admin.organizations.add')}
+          name={name}
+          onChangeName={setName}
+          namePlaceholder={t('organization.name')}
+          nameTestID="org-name-input"
+          description={description}
+          onChangeDescription={setDescription}
+          descriptionPlaceholder={t('organization.description')}
+          typeLabel={t('organization.type')}
+          typeOptions={PROPOSABLE_ORGANIZATION_TYPES.map((ty) => ({ value: ty, label: typeLabel(ty) }))}
+          typeValue={type}
+          onChangeType={(v) => setType(v as OrganizationType)}
+          submitLabel={canManage ? t('village.admin.organizations.add') : t('village.proposals.propose')}
+          submitTestID="org-submit"
+          onSubmit={submit}
+          saving={saving}
+          disabled={!name.trim()}
+        />
       </VStack>
-      <FlatList
-        data={(rows ?? []).filter((r) => isProposalVisible(r.status, r.requestedBy, { canManage, uid }))}
-        keyExtractor={(r) => r.id}
-        renderItem={({ item }) => (
-          <ProposableListItem
-            name={item.name}
-            imageURL={item.imageURL}
-            subtitle={typeLabel(item.type)}
-            status={item.status}
-            canManage={canManage}
-            isOwnPending={false}
-            onApprove={uid ? () => void approveOrganization(item.id, uid).then(load) : undefined}
-            onReject={() => void rejectOrganization(item.id).then(load)}
-            onDelete={() => void deleteOrganization(item.id).then(load)}
-          />
-        )}
-        ListEmptyComponent={rows && rows.length === 0 ? <Text className="text-muted">{t('village.organizationsList.empty')}</Text> : null}
-      />
+    );
+  }
+
+  // mode === 'manage': moderation list (mapped, not FlatList, so it nests in the
+  // community screen's ScrollView).
+  const visible = (rows ?? []).filter((r) => isProposalVisible(r.status, r.requestedBy, { canManage, uid }));
+  return (
+    <VStack gap={0} className="px-4">
+      {rows && visible.length === 0 ? (
+        <Text className="text-muted">{t('village.organizationsList.empty')}</Text>
+      ) : null}
+      {visible.map((item) => (
+        <ProposableListItem
+          key={item.id}
+          name={item.name}
+          imageURL={item.imageURL}
+          subtitle={typeLabel(item.type)}
+          status={item.status}
+          canManage={canManage}
+          isOwnPending={false}
+          onApprove={uid ? () => void approveOrganization(item.id, uid).then(load) : undefined}
+          onReject={() => void rejectOrganization(item.id).then(load)}
+          onDelete={() => void deleteOrganization(item.id).then(load)}
+        />
+      ))}
     </VStack>
   );
 }

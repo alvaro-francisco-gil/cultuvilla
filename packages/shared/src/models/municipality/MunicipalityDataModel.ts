@@ -213,6 +213,12 @@ export const PlaceKindSchema = z.enum([
 ]);
 export type PlaceKind = z.infer<typeof PlaceKindSchema>;
 
+/**
+ * Every place kind, in schema (display) order. Drives the client kind picker;
+ * derived from the schema so the two can't drift apart.
+ */
+export const PLACE_KINDS: readonly PlaceKind[] = PlaceKindSchema.options;
+
 export const PlaceDataSchema = z.object({
   name: z.string(),
   kind: PlaceKindSchema,

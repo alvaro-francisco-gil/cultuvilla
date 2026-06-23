@@ -25,7 +25,7 @@ export interface ProposableListItemProps {
 function Action({ testID, label, tone, onPress }: { testID: string; label: string; tone?: string; onPress: () => void }) {
   return (
     <Pressable testID={testID} onPress={onPress}>
-      <Text className={tone ?? 'text-blue-600'}>{label}</Text>
+      <Text className={tone ?? 'text-secondary'}>{label}</Text>
     </Pressable>
   );
 }

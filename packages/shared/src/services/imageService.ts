@@ -7,6 +7,10 @@ export interface UploadableImage {
   blob: Blob;
   filename: string;
   contentType?: string;
+  /** Local device URI of the picked asset, for rendering a preview before
+   * upload. Ignored by the upload path (only blob/filename/contentType are
+   * sent). `undefined` when the image didn't originate from a device picker. */
+  previewUri?: string;
 }
 
 export function validateUploadableImage(image: UploadableImage): void {
