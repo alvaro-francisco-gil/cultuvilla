@@ -207,6 +207,10 @@
     "info": {
       "directions": "Cómo llegar"
     },
+    "location": {
+      "openMapsTitle": "¿Abrir Google Maps?",
+      "open": "Abrir"
+    },
     "organizations": "Organizaciones",
     "members": "Miembros",
     "admin": {
