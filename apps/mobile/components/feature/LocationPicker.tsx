@@ -12,6 +12,7 @@ import {
   clampMapZoom,
   MAP_ZOOM_MIN,
   MAP_ZOOM_MAX,
+  MAP_ZOOM_STEP,
 } from '@cultuvilla/shared/services/mapsService';
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 import { initialLocationState, locationReducer } from './locationPickerState';
@@ -107,7 +108,7 @@ export function LocationPicker({
             <Text variant="body">{t('village.location.zoomLabel')}</Text>
             <HStack gap={3} className="items-center">
               <Pressable
-                onPress={() => onZoomChange(clampMapZoom(zoom - 1))}
+                onPress={() => onZoomChange(clampMapZoom(zoom - MAP_ZOOM_STEP))}
                 disabled={zoom <= MAP_ZOOM_MIN}
                 accessibilityLabel={t('village.location.zoomOut')}
               >
@@ -117,11 +118,11 @@ export function LocationPicker({
                   color={zoom <= MAP_ZOOM_MIN ? '#cbd5e1' : ACCENT}
                 />
               </Pressable>
-              <Text variant="body" className="font-semibold" style={{ minWidth: 24, textAlign: 'center' }}>
+              <Text variant="body" className="font-semibold" style={{ minWidth: 36, textAlign: 'center' }}>
                 {zoom}
               </Text>
               <Pressable
-                onPress={() => onZoomChange(clampMapZoom(zoom + 1))}
+                onPress={() => onZoomChange(clampMapZoom(zoom + MAP_ZOOM_STEP))}
                 disabled={zoom >= MAP_ZOOM_MAX}
                 accessibilityLabel={t('village.location.zoomIn')}
               >

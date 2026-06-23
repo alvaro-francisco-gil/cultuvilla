@@ -10,15 +10,22 @@ export interface GeocodePlace {
 // staticMap is deployed to europe-west1 (see functions/src/maps/staticMap.ts).
 const STATIC_MAP_REGION = 'europe-west1';
 
-/** Village location-map zoom bounds + default (Google Static Maps zoom levels). */
-export const MAP_ZOOM_MIN = 10;
-export const MAP_ZOOM_MAX = 18;
+/** Village location-map zoom bounds, default, and step (Google Static Maps zoom). */
+export const MAP_ZOOM_MIN = 11;
+export const MAP_ZOOM_MAX = 16;
 export const MAP_ZOOM_DEFAULT = 13;
+/** Finest step Google Static Maps visibly honors — it collapses anything finer than 0.5. */
+export const MAP_ZOOM_STEP = 0.5;
 
-/** Clamp a zoom value into the allowed range, falling back to the default for non-finite input. */
+/**
+ * Clamp a zoom into the allowed range and snap it to the 0.5 grid (the finest
+ * granularity Google Static Maps renders distinctly). Non-finite input falls
+ * back to the default.
+ */
 export function clampMapZoom(zoom: number): number {
   if (!Number.isFinite(zoom)) return MAP_ZOOM_DEFAULT;
-  return Math.min(MAP_ZOOM_MAX, Math.max(MAP_ZOOM_MIN, Math.round(zoom)));
+  const snapped = Math.round(zoom * 2) / 2;
+  return Math.min(MAP_ZOOM_MAX, Math.max(MAP_ZOOM_MIN, snapped));
 }
 
 // Cache-buster: the staticMap responses carry a long Cache-Control, and the URL

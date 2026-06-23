@@ -12,7 +12,7 @@ import {
   updateMunicipality,
 } from '@cultuvilla/shared/services/municipalityService';
 import { uploadMunicipalityImage } from '@cultuvilla/shared/services/imageService';
-import { MAP_ZOOM_DEFAULT } from '@cultuvilla/shared/services/mapsService';
+import { MAP_ZOOM_DEFAULT, clampMapZoom } from '@cultuvilla/shared/services/mapsService';
 import {
   escudoFullUrl,
   hasManualEscudo,
@@ -42,7 +42,7 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
     setVillage(m);
     setDescription(m?.community?.description ?? '');
     setCoords(m?.coordinates ?? null);
-    setZoom(m?.mapZoom ?? MAP_ZOOM_DEFAULT);
+    setZoom(clampMapZoom(m?.mapZoom ?? MAP_ZOOM_DEFAULT));
   }, [villageId]);
 
   useEffect(() => {
@@ -113,7 +113,11 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
         <Text variant="h3" className="mt-2">{t('village.admin.community.description')}</Text>
         <Input value={description ?? ''} onChangeText={setDescription} multiline placeholder={t('village.admin.community.description')} />
 
-        <LocationPicker value={coords} onChange={setCoords} zoom={zoom} onZoomChange={setZoom} />
+        {/* Render only once loaded, so the picker seeds its state (and preview)
+            from the saved coordinates instead of the pre-load null. */}
+        {village ? (
+          <LocationPicker value={coords} onChange={setCoords} zoom={zoom} onZoomChange={setZoom} />
+        ) : null}
 
         <Button onPress={save} loading={saving} disabled={uploadingEscudo}>
           {t('common.save')}

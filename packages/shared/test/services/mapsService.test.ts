@@ -19,8 +19,10 @@ describe('clampMapZoom', () => {
     expect(clampMapZoom(MAP_ZOOM_MAX + 5)).toBe(MAP_ZOOM_MAX);
   });
 
-  it('rounds fractional zooms', () => {
-    expect(clampMapZoom(12.6)).toBe(13);
+  it('snaps to the 0.5 grid', () => {
+    expect(clampMapZoom(12.6)).toBe(12.5);
+    expect(clampMapZoom(13.25)).toBe(13.5);
+    expect(clampMapZoom(13.5)).toBe(13.5);
   });
 
   it('falls back to default for non-finite input', () => {
