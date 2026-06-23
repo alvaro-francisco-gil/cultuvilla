@@ -40,13 +40,16 @@ jest.mock('@cultuvilla/shared/services/imageService', () => ({
 
 describe('NewEventScreen stepper', () => {
   it('renders the first step and gates Next until title + description are set', async () => {
-    const { getByText, getByLabelText, queryByText } = render(<NewEventScreen />);
-    await waitFor(() => expect(getByText('event.stepBasics')).toBeTruthy());
+    const { getByText, getByLabelText, getByTestId, queryByTestId } = render(<NewEventScreen />);
+    // Icon-only indicator: detect steps by their fields. Step 1 (Lo básico)
+    // shows the title input; step 2 (Cuándo y dónde) owns the startDate
+    // DateField (testID "startDate").
+    await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
     fireEvent.press(getByText('common.stepper.next'));
-    expect(queryByText('event.stepWhen')).toBeNull(); // blocked: empty title/description
+    expect(queryByTestId('startDate')).toBeNull(); // blocked: empty title/description
     fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
     fireEvent.changeText(getByLabelText('event.description'), 'Desc');
     fireEvent.press(getByText('common.stepper.next'));
-    expect(getByText('event.stepWhen')).toBeTruthy();
+    expect(getByTestId('startDate')).toBeTruthy();
   });
 });

@@ -1,13 +1,17 @@
 // apps/mobile/components/feature/Stepper.tsx
 import { useState, type ReactNode } from 'react';
 import { View } from 'react-native';
+import type { Ionicons } from '@expo/vector-icons';
 import { Button, HStack, Text } from '../primitives';
 import { useT } from '../../lib/i18n';
 import { StepIndicator } from './StepIndicator';
 
 export interface StepConfig {
   key: string;
+  /** Used as the step indicator's accessibility label (dots show no text). */
   title: string;
+  /** Ionicons glyph shown in the step indicator. */
+  icon?: keyof typeof Ionicons.glyphMap;
   render: () => ReactNode;
   validate?: () => string[];
 }
@@ -48,18 +52,21 @@ export function Stepper({ steps, onComplete, submitLabel, loading = false, submi
 
   return (
     <View className="flex-1">
-      <StepIndicator
-        count={steps.length}
-        current={current}
-        highestReached={highestReached}
-        onStepPress={goTo}
-      />
-      <View className="flex-1">
-        <Text variant="h3" className="px-4 pb-2">{step.title}</Text>
-        {step.render()}
+      {/* Step band — distinct background, icon-only, no section name. */}
+      <View className="bg-surface-elevated border-b border-subtle">
+        <StepIndicator
+          count={steps.length}
+          current={current}
+          highestReached={highestReached}
+          onStepPress={goTo}
+          icons={steps.map((s) => s.icon)}
+          labels={steps.map((s) => s.title)}
+        />
       </View>
+      {/* Content section. */}
+      <View className="flex-1">{step.render()}</View>
       {submitError ? <Text tone="danger" className="px-4 pb-2">{submitError}</Text> : null}
-      <HStack gap={3} className="px-4 py-3">
+      <HStack gap={3} className="px-4 py-3 border-t border-subtle bg-surface-elevated">
         <View className="flex-1">
           {current > 0 ? (
             <Button variant="ghost" onPress={() => setCurrent(current - 1)} disabled={loading} fullWidth>

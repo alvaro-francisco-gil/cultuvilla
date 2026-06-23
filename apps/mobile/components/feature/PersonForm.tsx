@@ -128,6 +128,7 @@ export function PersonForm({
     {
       key: 'identity',
       title: t('profile.personForm.stepIdentity'),
+      icon: 'person-outline',
       validate: () => {
         const errs: string[] = [];
         if (!givenName.trim()) errs.push('givenName');
@@ -186,6 +187,7 @@ export function PersonForm({
     {
       key: 'residence',
       title: t('profile.personForm.stepResidence'),
+      icon: 'location-outline',
       validate: () => (requireFullName && !birthday ? ['birthday'] : []),
       render: () =>
         stepBody(
@@ -221,6 +223,7 @@ export function PersonForm({
     {
       key: 'about',
       title: t('profile.personForm.stepAbout'),
+      icon: 'document-text-outline',
       render: () =>
         stepBody(
           <Input

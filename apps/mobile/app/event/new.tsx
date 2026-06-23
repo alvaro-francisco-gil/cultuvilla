@@ -200,6 +200,7 @@ export default function NewEventScreen() {
     {
       key: 'basics',
       title: t('event.stepBasics'),
+      icon: 'create-outline',
       validate: () => {
         const e: string[] = [];
         if (!title.trim()) e.push('title');
@@ -240,6 +241,7 @@ export default function NewEventScreen() {
     {
       key: 'when',
       title: t('event.stepWhen'),
+      icon: 'calendar-outline',
       validate: () => (startDate ? [] : ['startDate']),
       render: () => stepBody(
         <>
@@ -263,6 +265,7 @@ export default function NewEventScreen() {
     {
       key: 'details',
       title: t('event.stepDetails'),
+      icon: 'options-outline',
       render: () => stepBody(
         <>
           <Text tone="muted">{t('event.organizationLabel')}</Text>

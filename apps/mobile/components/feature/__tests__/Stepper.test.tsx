@@ -16,11 +16,12 @@ function makeSteps(overrides: Partial<StepConfig>[] = []): StepConfig[] {
 }
 
 describe('<Stepper>', () => {
-  it('renders the first step and its title', () => {
+  it('renders the first step content', () => {
     const { getByText } = render(
       <Stepper steps={makeSteps()} submitLabel="Crear" onComplete={() => {}} />,
     );
-    expect(getByText('Step A')).toBeTruthy();
+    // Step titles are no longer shown as text (icon-only indicator); the
+    // current step's content is what renders.
     expect(getByText('content-a')).toBeTruthy();
   });
 

@@ -13,7 +13,7 @@
     "search": "Buscar",
     "noResults": "Sin resultados",
     "notFound": "No encontrado",
-    "stepper": { "back": "Atrás", "next": "Siguiente" }
+    "stepper": { "back": "Anterior", "next": "Siguiente" }
   },
   "auth": {
     "signIn": "Iniciar sesión",
@@ -565,8 +565,9 @@
     "explainer": "Iniciar el pueblo lo activa para que cualquier vecino pueda unirse. Serás su primer miembro y podrás añadir su información. No te convierte en organizador.",
     "descriptionLabel": "Descripción del pueblo (opcional)",
     "descriptionPlaceholder": "Cuenta algo sobre tu pueblo…",
+    "organizeIntro": "Si además quieres supervisar la creación de elementos representativos de tu pueblo, como asociaciones, lugares o barrios, solicita ser organizador.",
     "organizeToggle": "Quiero organizar este pueblo",
-    "organizeHint": "Enviaremos una solicitud para que te concedan el rol de organizador (requiere aprobación).",
+    "phoneLabel": "Teléfono de contacto",
     "submit": "Iniciar pueblo"
   },
   "organize": {

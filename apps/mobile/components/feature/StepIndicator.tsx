@@ -1,34 +1,53 @@
 // apps/mobile/components/feature/StepIndicator.tsx
 import { Fragment } from 'react';
 import { View } from 'react-native';
-import { Pressable, Text } from '../primitives';
+import { Ionicons } from '@expo/vector-icons';
+import { Pressable } from '../primitives';
+import { colors } from '@cultuvilla/shared/design-system';
+
+type Glyph = keyof typeof Ionicons.glyphMap;
 
 export interface StepIndicatorProps {
   count: number;
   current: number;
   highestReached: number;
   onStepPress: (index: number) => void;
+  /** Ionicons glyph per step; falls back to a neutral dot when absent. */
+  icons?: (Glyph | undefined)[];
+  /** Accessibility label per step (the step title), since dots show no text. */
+  labels?: (string | undefined)[];
 }
 
-export function StepIndicator({ count, current, highestReached, onStepPress }: StepIndicatorProps) {
+// Ionicons take a color value, not a NativeWind class — source it from the
+// semantic tokens so the accent stays in one place.
+const ACCENT = colors.light.fg.accent;
+const MUTED = colors.light.fg.muted;
+
+export function StepIndicator({
+  count,
+  current,
+  highestReached,
+  onStepPress,
+  icons,
+  labels,
+}: StepIndicatorProps) {
   return (
-    <View className="flex-row items-center px-5 py-4">
+    <View className="flex-row items-center px-5 py-3">
       {Array.from({ length: count }, (_, i) => {
         const reached = i <= highestReached;
-        const active = i <= current;
+        const glyph: Glyph = icons?.[i] ?? 'ellipse';
         return (
           <Fragment key={i}>
             <Pressable
               testID={`step-dot-${i}`}
+              accessibilityLabel={labels?.[i]}
               disabled={!reached}
               onPress={() => onStepPress(i)}
-              className={`w-8 h-8 rounded-full border items-center justify-center ${
-                active ? 'bg-accent border-accent' : 'bg-subtle border-subtle'
+              className={`w-10 h-10 rounded-full border bg-surface-elevated items-center justify-center ${
+                reached ? 'border-accent' : 'border-subtle'
               }`}
             >
-              <Text variant="bodySm" tone={active ? 'onAccent' : 'muted'}>
-                {String(i + 1)}
-              </Text>
+              <Ionicons name={glyph} size={20} color={reached ? ACCENT : MUTED} />
             </Pressable>
             {i < count - 1 && (
               <View className={`flex-1 h-0.5 mx-2 ${i < current ? 'bg-accent' : 'bg-subtle'}`} />

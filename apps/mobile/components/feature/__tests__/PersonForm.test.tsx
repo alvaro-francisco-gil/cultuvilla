@@ -11,22 +11,24 @@ jest.mock('react-native-safe-area-context', () => ({
 describe('<PersonForm> stepper', () => {
   it('shows the identity step first and blocks Next without a given name', () => {
     const onSubmit = jest.fn();
-    const { getByText, queryByText } = render(
+    const { getByText, getByLabelText, queryByTestId } = render(
       <PersonForm submitLabel="Guardar" onSubmit={onSubmit} />,
     );
-    // Identity step title is visible; about-step content is not yet.
-    expect(getByText('profile.personForm.stepIdentity')).toBeTruthy();
+    // Step indicator is icon-only, so detect the current step by its fields:
+    // the identity step shows the given-name input; the residence step (which
+    // owns the birthday DateField, testID "birthday") is not rendered yet.
+    expect(getByLabelText('onboarding.completeProfile.givenName')).toBeTruthy();
     fireEvent.press(getByText('common.stepper.next'));
-    // Still on step 1 — residence step title not shown.
-    expect(queryByText('profile.personForm.stepResidence')).toBeNull();
+    expect(queryByTestId('birthday')).toBeNull();
   });
 
   it('advances once a given name is entered', () => {
-    const { getByText, getByLabelText } = render(
+    const { getByText, getByLabelText, getByTestId } = render(
       <PersonForm submitLabel="Guardar" onSubmit={jest.fn()} />,
     );
     fireEvent.changeText(getByLabelText('onboarding.completeProfile.givenName'), 'Ana');
     fireEvent.press(getByText('common.stepper.next'));
-    expect(getByText('profile.personForm.stepResidence')).toBeTruthy();
+    // Residence step now rendered — its birthday DateField is present.
+    expect(getByTestId('birthday')).toBeTruthy();
   });
 });
