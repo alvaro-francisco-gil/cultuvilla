@@ -12,6 +12,9 @@ import { useT } from '../../lib/i18n';
  */
 
 export const ACCENT = '#bb5d3a';
+const PLACEHOLDER_BG = '#dcab93'; // palette.peach — keeps the white scrim text legible over the fallback
+const CARD_W = 175;
+const CARD_H = 175; // square — same width and height
 
 export function Section({
   title,
@@ -68,10 +71,12 @@ export function Section({
 
 /**
  * The shared image-forward card used for every entry in the village overview
- * (inspired by ordago's frequent-partners scroll): a full-width image fills the
- * top, label + an optional secondary line sit in the body below. `PersonCard`
- * and `EntityCard` are thin adapters over this one card so people, barrios,
- * places, organizations and peñas all share a single "big picture" style.
+ * (inspired by ordago's frequent-partners scroll). A fully rectangular,
+ * full-bleed image fills the whole card; the label + an optional secondary line
+ * sit over a dark scrim pinned to the bottom (the same treatment as the news
+ * `FeedCard`) so the picture stays as large as possible. `PersonCard` and
+ * `EntityCard` are thin adapters over this one card so people, barrios, places,
+ * organizations and peñas all share a single "big picture" style.
  */
 function BigCard({
   label,
@@ -87,32 +92,51 @@ function BigCard({
   fallback: ReactNode;
   /** Optional second line under the label (a badge or a subtitle). */
   secondary?: string;
-  /** Tint the border + secondary line with ACCENT (used for the request badge). */
+  /** Tint the border with ACCENT (used for the request badge). */
   accent?: boolean;
   onPress?: () => void;
 }) {
   const body = (
     <View
-      className="w-[150px] rounded-2xl overflow-hidden bg-surface-elevated"
-      style={accent ? { borderWidth: 1, borderColor: ACCENT } : undefined}
+      className="rounded-2xl overflow-hidden"
+      style={{
+        width: CARD_W,
+        height: CARD_H,
+        backgroundColor: PLACEHOLDER_BG,
+        ...(accent ? { borderWidth: 1, borderColor: ACCENT } : {}),
+      }}
     >
-      <View className="h-[150px] w-full items-center justify-center bg-subtle">
-        {imageUri ? (
-          <Image source={{ uri: imageUri }} className="w-full h-full" resizeMode="cover" />
-        ) : (
-          fallback
-        )}
-      </View>
-      <View className="px-3 py-2 gap-0.5">
-        <Text variant="body" className="font-medium" numberOfLines={1}>
+      {imageUri ? (
+        <Image
+          source={{ uri: imageUri }}
+          style={{ width: '100%', height: '100%' }}
+          resizeMode="cover"
+        />
+      ) : (
+        <View className="w-full h-full items-center justify-center">{fallback}</View>
+      )}
+
+      {/* Bottom scrim keeps the overlaid text legible against any photo. */}
+      <View
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          paddingHorizontal: 12,
+          paddingTop: 10,
+          paddingBottom: 10,
+          backgroundColor: 'rgba(0,0,0,0.45)',
+        }}
+      >
+        <Text variant="body" className="font-medium" numberOfLines={2} style={{ color: '#ffffff' }}>
           {label}
         </Text>
         {secondary ? (
           <Text
             variant="bodySm"
-            tone={accent ? undefined : 'muted'}
-            style={accent ? { color: ACCENT } : undefined}
             numberOfLines={1}
+            style={{ color: 'rgba(255,255,255,0.85)', marginTop: 2 }}
           >
             {secondary}
           </Text>
@@ -188,22 +212,19 @@ export function EntityCard({
 }
 
 export function AddCard({ label, onPress }: { label: string; onPress: () => void }) {
-  // Matches BigCard's footprint (w-[150px] + square h-[150px] image area) so it
-  // lines up with the image-forward cards it sits beside in the horizontal scroll.
+  // Matches BigCard's rectangular footprint (CARD_W × CARD_H) so it lines up
+  // with the image-forward cards it sits beside in the horizontal scroll.
   return (
     <Pressable
       onPress={onPress}
       accessibilityLabel={label}
-      className="w-[150px] rounded-2xl overflow-hidden border border-dashed border-subtle"
+      className="rounded-2xl overflow-hidden border border-dashed border-subtle items-center justify-center gap-2"
+      style={{ width: CARD_W, height: CARD_H }}
     >
-      <View className="h-[150px] w-full items-center justify-center">
-        <Ionicons name="add" size={44} color={ACCENT} />
-      </View>
-      <View className="px-3 py-2">
-        <Text variant="bodySm" className="font-medium text-center" numberOfLines={2}>
-          {label}
-        </Text>
-      </View>
+      <Ionicons name="add" size={44} color={ACCENT} />
+      <Text variant="bodySm" className="font-medium text-center px-3" numberOfLines={2}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
