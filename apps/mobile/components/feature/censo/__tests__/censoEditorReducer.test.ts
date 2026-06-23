@@ -11,6 +11,26 @@ describe('censoEditorReducer', () => {
     expect(r).toHaveLength(1);
     expect(r[0]).toMatchObject({ source: 'custom', type: 'select', label: '' });
   });
+
+  // Regression: adding a "village element" question (e.g. Peñas) is the
+  // orchestrator's addCustom('select') + setSource(source) sequence followed
+  // by the user typing a label. The result must be a valid entity-backed
+  // field — optionsSource set, no static options — so it does not trip the
+  // "requiere opciones" rule on save.
+  it('add-entity flow yields a valid optionsSource field with no static options', () => {
+    let state = censoEditorReducer([], { kind: 'addCustom', type: 'select' });
+    state = censoEditorReducer(state, { kind: 'setSource', index: 0, source: 'organizations' });
+    state = censoEditorReducer(state, { kind: 'setLabel', index: 0, label: '¿Cuál es tu peña?' });
+    expect(state[0]).toMatchObject({
+      source: 'custom',
+      type: 'select',
+      optionsSource: 'organizations',
+      key: 'cual_es_tu_pena',
+    });
+    expect((state[0] as { options?: unknown }).options).toBeUndefined();
+    // A labelled entity field is error-free (no emptyLabel, no needsOptions).
+    expect(fieldErrors(state)[0]).toBeUndefined();
+  });
   it('setLabel regenerates the key from the label', () => {
     const r = censoEditorReducer([cf({ label: '', key: '' })], { kind: 'setLabel', index: 0, label: 'Año de llegada' });
     expect(r[0]!.label).toBe('Año de llegada');
