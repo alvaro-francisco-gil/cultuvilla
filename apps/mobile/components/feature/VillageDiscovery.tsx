@@ -157,9 +157,10 @@ export function VillageDiscovery() {
 
   return (
     <View className="flex-1">
-      <View className="p-4">
+      <View className="px-4 py-2 border-b border-subtle">
         <Input
-          label={t('discover.search')}
+          placeholder={t('discover.search')}
+          accessibilityLabel={t('discover.search')}
           value={search}
           onChangeText={setSearch}
           autoCapitalize="none"
@@ -168,7 +169,7 @@ export function VillageDiscovery() {
       <FlatList
         data={rows}
         keyExtractor={(r) => r.key}
-        contentContainerClassName="px-4 pb-8 gap-3"
+        contentContainerClassName="px-4 pt-3 pb-8 gap-3"
         onEndReached={() => void loadMore()}
         onEndReachedThreshold={0.5}
         ListEmptyComponent={<Text tone="muted">{t('discover.empty')}</Text>}
