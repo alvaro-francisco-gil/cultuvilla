@@ -26,6 +26,11 @@ service cloud.firestore {
       return isAuthenticated() &&
         exists(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid));
     }
+    function isOrgAdmin(orgId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid)).data.role == 'admin';
+    }
     function orgMunicipalityId(orgId) {
       return get(/databases/$(database)/documents/organizations/$(orgId)).data.municipalityId;
     }
@@ -255,6 +260,13 @@ service cloud.firestore {
           && isStringOrNull(d.userId)
           && isString(d.createdBy)
           && isTimestamp(d.createdAt);
+    }
+
+    function isValidOrgMemberCreate(d) {
+      return d.keys().hasOnly(['joinedAt', 'role'])
+          && d.keys().hasAll(['joinedAt', 'role'])
+          && isTimestamp(d.joinedAt)
+          && d.role in ['admin', 'member'];
     }
 
     function isValidOrganizationCreate(d) {
@@ -581,11 +593,21 @@ service cloud.firestore {
 
       match /members/{userId} {
         allow read: if true;
-        allow create: if isOrgMember(orgId)
-          || isVillageAdmin(orgMunicipalityId(orgId))
-          || isAppAdmin();
-        allow update: if false;
+        // org admin / village admin / app admin may add anyone (incl. seeding an admin);
+        // a plain member may only add others as 'member'.
+        allow create: if isValidOrgMemberCreate(request.resource.data)
+          && (
+               isOrgAdmin(orgId)
+               || isVillageAdmin(orgMunicipalityId(orgId))
+               || isAppAdmin()
+               || (isOrgMember(orgId) && request.resource.data.role == 'member')
+             );
+        // only the role may change, and only an org admin / backstop may change it.
+        allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
+          && request.resource.data.role in ['admin', 'member']
+          && (isOrgAdmin(orgId) || isVillageAdmin(orgMunicipalityId(orgId)) || isAppAdmin());
         allow delete: if isOwner(userId)
+          || isOrgAdmin(orgId)
           || isVillageAdmin(orgMunicipalityId(orgId))
           || isAppAdmin();
       }
