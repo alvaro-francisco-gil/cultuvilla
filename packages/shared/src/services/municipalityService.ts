@@ -203,6 +203,9 @@ export async function deleteMunicipality(id: string): Promise<void> {
 interface StartVillagePayload {
   municipalityId: string;
   description?: string;
+  /** URL of an escudo uploaded during activation; set server-side only when
+   *  the village has no escudo yet (admin-only field on the client). */
+  escudoManualUrl?: string;
 }
 
 /** Activate a dormant municipality's community and join it as the first member. */

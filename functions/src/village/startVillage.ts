@@ -9,6 +9,13 @@ const db = getFirestore();
 interface StartVillageData {
   municipalityId?: string;
   description?: string;
+  /**
+   * URL of an escudo the starter uploaded to Storage during activation. The
+   * client can't write `escudoManualUrl` to the muni doc itself (admin-only
+   * rule), so it's set here, server-side, in the activation transaction. Only
+   * applied when the village has no escudo yet.
+   */
+  escudoManualUrl?: string;
 }
 
 interface StartVillageResult {
@@ -29,7 +36,7 @@ export const startVillage = onCall<StartVillageData, Promise<StartVillageResult>
     const auth = request.auth;
     if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
-    const { municipalityId, description } = request.data;
+    const { municipalityId, description, escudoManualUrl } = request.data;
     if (!municipalityId) {
       throw new HttpsError('invalid-argument', 'municipalityId requerido.');
     }
@@ -47,6 +54,11 @@ export const startVillage = onCall<StartVillageData, Promise<StartVillageResult>
         throw new HttpsError('failed-precondition', 'La comunidad ya está activa.');
       }
 
+      // Only set the manual escudo when the village has none yet, so the
+      // starter's optional upload can't clobber an existing crest.
+      const trimmedEscudo = escudoManualUrl?.trim();
+      const setEscudo = Boolean(trimmedEscudo) && muniData?.escudoManualUrl == null;
+
       // tx.update bypasses the converter — FieldValue.serverTimestamp() is fine.
       tx.update(muniRef, {
         communityActive: true,
@@ -56,6 +68,7 @@ export const startVillage = onCall<StartVillageData, Promise<StartVillageResult>
           profileForm: null,
           activatedAt: FieldValue.serverTimestamp(),
         },
+        ...(setEscudo ? { escudoManualUrl: trimmedEscudo } : {}),
       });
 
       // Converter rejects FieldValue sentinels on set; joinedAt is a plain Date.

@@ -110,4 +110,51 @@ describe('startVillage (callable)', () => {
     expect(memberDoc.exists).toBe(true);
     expect(memberDoc.data()?.role).toBe('user');
   });
+
+  it('stores the uploaded escudoManualUrl when the village has none', async () => {
+    await seedMunicipality(false);
+
+    await callStart({
+      uid: STARTER_ID,
+      data: {
+        municipalityId: MUNICIPALITY_ID,
+        escudoManualUrl: '  https://example.com/escudo.webp  ',
+      },
+    });
+
+    const muniDoc = await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}`).get();
+    expect(muniDoc.data()?.escudoManualUrl).toBe('https://example.com/escudo.webp');
+  });
+
+  it('ignores escudoManualUrl when the village already has a manual escudo', async () => {
+    const now = new Date();
+    await admin
+      .firestore()
+      .doc(`municipalities/${MUNICIPALITY_ID}`)
+      .set({
+        name: 'Villarriba',
+        nameLower: 'villarriba',
+        province: 'Madrid',
+        comunidadAutonoma: 'Madrid',
+        codigoINE: '28000',
+        coordinates: null,
+        createdAt: now,
+        escudoUrl: null,
+        escudoThumbUrl: null,
+        escudoManualUrl: 'https://example.com/existing.webp',
+        communityActive: false,
+        community: null,
+      });
+
+    await callStart({
+      uid: STARTER_ID,
+      data: {
+        municipalityId: MUNICIPALITY_ID,
+        escudoManualUrl: 'https://example.com/new.webp',
+      },
+    });
+
+    const muniDoc = await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}`).get();
+    expect(muniDoc.data()?.escudoManualUrl).toBe('https://example.com/existing.webp');
+  });
 });
