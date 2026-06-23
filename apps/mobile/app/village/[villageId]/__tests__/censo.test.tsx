@@ -4,6 +4,11 @@ import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilitie
 
 let mockParams: Record<string, string> = { villageId: 'm1' };
 jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams }));
+// ScreenHeader reads safe-area insets; provide them without a SafeAreaProvider.
+jest.mock('react-native-safe-area-context', () => ({
+  ...jest.requireActual('react-native-safe-area-context'),
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getMunicipality: jest.fn(() => Promise.resolve({ name: 'Matabuena' })),
 }));
