@@ -33,7 +33,7 @@ export function StepIndicator({
   labels,
 }: StepIndicatorProps) {
   return (
-    <View className="flex-row items-center px-5 py-3">
+    <View className="flex-row items-center justify-center px-5 py-3">
       {Array.from({ length: count }, (_, i) => {
         const reached = i <= highestReached;
         const glyph: Glyph = icons?.[i] ?? 'ellipse';
@@ -51,7 +51,7 @@ export function StepIndicator({
               <Ionicons name={glyph} size={20} color={reached ? ACCENT : LOCKED} />
             </Pressable>
             {i < count - 1 && (
-              <View className={`flex-1 h-0.5 mx-2 ${i < current ? 'bg-accent' : 'bg-subtle'}`} />
+              <View className={`w-12 h-0.5 mx-2 ${i < current ? 'bg-accent' : 'bg-subtle'}`} />
             )}
           </Fragment>
         );

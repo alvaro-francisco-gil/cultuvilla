@@ -1,9 +1,13 @@
+import { useRef, useState } from 'react';
 import { useLocalSearchParams, Redirect, router } from 'expo-router';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, View } from 'react-native';
 import { Screen } from '../../../components/primitives';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { Stepper, type StepConfig } from '../../../components/feature/Stepper';
-import { CommunitySettingsEditor } from '../../../components/feature/CommunitySettingsEditor';
+import {
+  CommunitySettingsEditor,
+  type CommunitySettingsEditorHandle,
+} from '../../../components/feature/CommunitySettingsEditor';
 import { VillageContentManager } from '../../../components/feature/proposable/VillageContentManager';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { useT } from '../../../lib/i18n';
@@ -17,12 +21,14 @@ export default function CommunityScreen() {
   const { villageId } = useLocalSearchParams<{ villageId: string }>();
   const { canManage, loading } = useEntityCapabilities(villageId);
   const { t } = useT();
+  const editorRef = useRef<CommunitySettingsEditorHandle>(null);
+  const [saving, setSaving] = useState(false);
 
   if (!villageId) return null;
   if (loading) {
     return (
-      <Screen padded={false}>
-        <ScreenHeader title={t('village.edit.title')} />
+      <Screen padded={false} topInset={false}>
+        <ScreenHeader accent title={t('village.edit.title')} />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
         </View>
@@ -31,12 +37,24 @@ export default function CommunityScreen() {
   }
   if (!canManage) return <Redirect href={`/village/${villageId}`} />;
 
+  // The final "Listo" button persists the Detalles step (escudo saves itself on
+  // pick) and closes the editor.
+  async function finish() {
+    setSaving(true);
+    try {
+      await editorRef.current?.save();
+    } finally {
+      setSaving(false);
+    }
+    router.back();
+  }
+
   const steps: StepConfig[] = [
     {
       key: 'details',
       title: t('village.edit.tabDetails'),
       icon: 'create-outline',
-      render: () => <CommunitySettingsEditor villageId={villageId} />,
+      render: () => <CommunitySettingsEditor ref={editorRef} villageId={villageId} />,
     },
     {
       key: 'content',
@@ -47,17 +65,13 @@ export default function CommunityScreen() {
   ];
 
   return (
-    <Screen padded={false}>
-      <ScreenHeader title={t('village.edit.title')} />
+    <Screen padded={false} topInset={false}>
+      <ScreenHeader accent title={t('village.edit.title')} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <Stepper
-          steps={steps}
-          onComplete={() => router.back()}
-          submitLabel={t('common.done')}
-        />
+        <Stepper steps={steps} onComplete={finish} submitLabel={t('common.done')} loading={saving} />
       </KeyboardAvoidingView>
     </Screen>
   );
