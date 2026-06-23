@@ -329,6 +329,15 @@ service cloud.firestore {
           && isTimestampOrNull(d.decidedAt);
     }
 
+    function isValidJoinRequestCreate(d) {
+      return d.keys().hasOnly(['userId', 'orgId', 'municipalityId', 'status', 'requestedAt', 'reviewedAt', 'reviewedBy'])
+          && d.keys().hasAll(['userId', 'orgId', 'municipalityId', 'status', 'requestedAt', 'reviewedAt', 'reviewedBy'])
+          && isString(d.userId) && isString(d.orgId) && isString(d.municipalityId)
+          && d.status == 'pending'
+          && isTimestamp(d.requestedAt)
+          && d.reviewedAt == null && d.reviewedBy == null;
+    }
+
     function isValidBarrioProposalCreate(d) {
       return d.keys().hasOnly([
               'name', 'municipalityId', 'imageURL', 'createdAt',
@@ -576,6 +585,16 @@ service cloud.firestore {
         && (resource.data.userId == request.auth.uid || isAppAdmin());
       // Cloud Functions (admin SDK) own create/update/delete.
       allow create, update, delete: if false;
+    }
+
+    match /organizationJoinRequests/{requestId} {
+      allow read: if isOwner(resource.data.userId)
+        || isOrgAdmin(resource.data.orgId)
+        || isAppAdmin();
+      allow create: if isOwner(request.resource.data.userId)
+        && isValidJoinRequestCreate(request.resource.data);
+      // status transitions only via respondToJoinRequest (admin SDK).
+      allow update, delete: if false;
     }
 
     match /organizations/{orgId} {
