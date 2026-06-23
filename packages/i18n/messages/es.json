@@ -333,6 +333,7 @@
   },
   "censo": {
     "title": "Tu censo",
+    "titleNamed": "Censo de {village}",
     "save": "Guardar",
     "saved": "Censo guardado",
     "error": "No pudimos guardar",
