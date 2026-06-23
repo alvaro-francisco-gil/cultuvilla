@@ -8,6 +8,32 @@ import {
   validateSchemaTransition,
 } from '../../src/services/censoService';
 import type { ProfileFormField } from '../../src/models/municipality/CensoTypes';
+import { ProfileFormFieldSchema } from '../../src/models/municipality/CensoTypes';
+
+// Regression: the Firebase callable serializer turns `undefined` values into
+// `null` on the wire, so an entity field saved with `options: undefined` is
+// stored as `options: null` (and a manual field's `optionsSource: undefined`
+// as `optionsSource: null`). The read schema must treat null as "absent" or
+// every municipality read throws and the pueblo screen crashes.
+describe('ProfileFormFieldSchema tolerates null optional fields', () => {
+  it('accepts an entity field with options: null', () => {
+    const parsed = ProfileFormFieldSchema.parse({
+      source: 'custom', key: 'yaya', label: 'yaya', type: 'select',
+      options: null, optionsSource: 'organizations', required: true,
+    });
+    expect(parsed).toMatchObject({ key: 'yaya', optionsSource: 'organizations' });
+    expect((parsed as { options?: unknown }).options).toBeUndefined();
+  });
+
+  it('accepts a manual choice field with optionsSource: null', () => {
+    const parsed = ProfileFormFieldSchema.parse({
+      source: 'custom', key: 'q', label: 'q', type: 'select',
+      options: ['a', 'b'], optionsSource: null, required: false,
+    });
+    expect((parsed as { optionsSource?: unknown }).optionsSource).toBeUndefined();
+    expect(parsed).toMatchObject({ options: ['a', 'b'] });
+  });
+});
 
 describe('missingRequiredAnswers', () => {
   const fields: ProfileFormField[] = [

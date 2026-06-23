@@ -22,13 +22,21 @@ export type PredefinedProfileFormField = z.infer<typeof PredefinedProfileFormFie
 export const OptionsSourceSchema = z.enum(['barrios', 'places', 'organizations']);
 export type OptionsSource = z.infer<typeof OptionsSourceSchema>;
 
+// The Firebase callable serializer encodes `undefined` object values as
+// `null`, so an entity field saved with `options: undefined` lands in
+// Firestore as `options: null` (and a manual field's `optionsSource:
+// undefined` as `optionsSource: null`). Treat null as "absent" on read so a
+// single field never crashes the whole municipality parse. `z.preprocess`
+// keeps the inferred type `string[] | undefined` / `OptionsSource | undefined`.
+const nullToUndefined = (v: unknown) => (v === null ? undefined : v);
+
 export const CustomProfileFormFieldSchema = z.object({
   source: z.literal('custom'),
   key: z.string(),
   label: z.string(),
   type: FieldTypeSchema,
-  options: z.array(z.string()).optional(),
-  optionsSource: OptionsSourceSchema.optional(),
+  options: z.preprocess(nullToUndefined, z.array(z.string()).optional()),
+  optionsSource: z.preprocess(nullToUndefined, OptionsSourceSchema.optional()),
   required: z.boolean(),
 });
 export type CustomProfileFormField = z.infer<typeof CustomProfileFormFieldSchema>;

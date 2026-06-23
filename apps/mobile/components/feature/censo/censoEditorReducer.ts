@@ -55,28 +55,40 @@ export function censoEditorReducer(fields: ProfileFormField[], action: EditorAct
     case 'changeType': {
       const f = next[action.index];
       if (f === undefined || f.source !== 'custom') return next;
-      // Choice→choice (e.g. an entity-backed select toggled to multiselect)
-      // preserves the dynamic optionsSource; only then are static options
-      // irrelevant. Otherwise reset to a static choice or a non-choice field.
+      // Rebuild the field from scratch rather than spreading `undefined` onto
+      // options/optionsSource: the Firebase callable encodes `undefined` as
+      // `null`, which then fails the read schema. Omit the key instead.
+      // Choice→choice (e.g. an entity select toggled to multiselect) keeps the
+      // dynamic source; otherwise it becomes a static choice or non-choice.
       const nowChoice = isChoice(action.type);
-      const keepSource = nowChoice && f.optionsSource !== undefined;
-      next[action.index] = {
-        ...f, type: action.type,
-        optionsSource: keepSource ? f.optionsSource : undefined,
-        options: nowChoice ? (keepSource ? undefined : (f.options ?? [])) : undefined,
-      };
+      const base = { source: 'custom' as const, key: f.key, label: f.label, type: action.type, required: f.required };
+      if (nowChoice && f.optionsSource !== undefined) {
+        next[action.index] = { ...base, optionsSource: f.optionsSource };
+      } else if (nowChoice) {
+        next[action.index] = { ...base, options: f.options ?? [] };
+      } else {
+        next[action.index] = base;
+      }
       return next;
     }
     case 'setOptions': {
       const f = next[action.index];
       if (f === undefined || f.source !== 'custom') return next;
-      next[action.index] = { ...f, options: action.options, optionsSource: undefined };
+      // Static options ⇒ no optionsSource. Omit the key (don't set undefined).
+      next[action.index] = {
+        source: 'custom', key: f.key, label: f.label, type: f.type,
+        required: f.required, options: action.options,
+      };
       return next;
     }
     case 'setSource': {
       const f = next[action.index];
       if (f === undefined || f.source !== 'custom') return next;
-      next[action.index] = { ...f, optionsSource: action.source, options: undefined };
+      // Dynamic source ⇒ no static options. Omit the key (don't set undefined).
+      next[action.index] = {
+        source: 'custom', key: f.key, label: f.label, type: f.type,
+        required: f.required, optionsSource: action.source,
+      };
       return next;
     }
     case 'move': {
