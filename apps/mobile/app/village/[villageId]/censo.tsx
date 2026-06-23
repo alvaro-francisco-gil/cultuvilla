@@ -13,7 +13,7 @@ import { getMunicipality } from '@cultuvilla/shared/services/municipalityService
 // Role-mode censo: one shared screen. An organizer authors the schema; a
 // villager answers (and edits their own answers). No proposals.
 export default function CensoScreen() {
-  const { villageId } = useLocalSearchParams<{ villageId: string }>();
+  const { villageId, mode } = useLocalSearchParams<{ villageId: string; mode?: string }>();
   const { user } = useAuth();
   const { t } = useT();
   const { canManage, loading } = useEntityCapabilities(villageId);
@@ -41,7 +41,9 @@ export default function CensoScreen() {
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
         </View>
-      ) : canManage ? (
+      ) : canManage && mode !== 'fill' ? (
+        // Admins author the schema by default; `mode=fill` lets them answer it
+        // like any villager. Non-admins always answer.
         <CensoSchemaEditor villageId={villageId} />
       ) : (
         <CensoAnswers villageId={villageId} userId={user.uid} />

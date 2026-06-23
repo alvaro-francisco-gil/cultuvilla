@@ -293,6 +293,7 @@
     "generateInvite": "Generar invitación",
     "censo": {
       "link": "Completar mi censo",
+      "fill": "Rellenar censo",
       "configure": "Configurar censo"
     },
     "escudo": {

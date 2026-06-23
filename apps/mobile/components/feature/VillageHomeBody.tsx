@@ -429,12 +429,12 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           ))}
         </Section>
 
-        {/* ── Censo (everyone) ─────────────────────────────────── */}
-        <View className="px-4 pt-8">
+        {/* ── Censo: everyone fills; admins also configure ─────── */}
+        <HStack gap={3} className="px-4 pt-8">
           <Pressable
-            onPress={() => router.push(`/village/${village.id}/censo` as never)}
-            accessibilityLabel={canManage ? t('village.censo.configure') : t('village.censo.link')}
-            className="flex-row items-center justify-center bg-surface self-stretch"
+            onPress={() => router.push(`/village/${village.id}/censo?mode=fill` as never)}
+            accessibilityLabel={t('village.censo.fill')}
+            className="flex-1 flex-row items-center justify-center bg-surface"
             style={{
               paddingVertical: 5,
               paddingHorizontal: 12,
@@ -445,10 +445,29 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
             }}
           >
             <Text style={{ color: ACCENT }} className="font-semibold">
-              {canManage ? t('village.censo.configure') : t('village.censo.link')}
+              {t('village.censo.fill')}
             </Text>
           </Pressable>
-        </View>
+          {canManage ? (
+            <Pressable
+              onPress={() => router.push(`/village/${village.id}/censo?mode=configure` as never)}
+              accessibilityLabel={t('village.censo.configure')}
+              className="flex-1 flex-row items-center justify-center bg-surface"
+              style={{
+                paddingVertical: 5,
+                paddingHorizontal: 12,
+                borderRadius: 24,
+                borderWidth: 1.5,
+                borderColor: ACCENT,
+                minHeight: 32,
+              }}
+            >
+              <Text style={{ color: ACCENT }} className="font-semibold">
+                {t('village.censo.configure')}
+              </Text>
+            </Pressable>
+          ) : null}
+        </HStack>
       </ScrollView>
     </>
   );
