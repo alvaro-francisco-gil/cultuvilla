@@ -68,7 +68,7 @@ export async function getOrgMembershipsByUserInMunicipality(
     orgIdsCandidate.map(async (orgId) => {
       const snap = await getDoc(organizationMemberDoc(getDb(), orgId, userId));
       if (!snap.exists()) return null;
-      const data = snap.data() as OrgMemberData;
+      const data = snap.data();
       return { orgId, role: data.role };
     }),
   );

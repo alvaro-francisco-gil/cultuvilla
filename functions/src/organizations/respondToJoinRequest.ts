@@ -48,7 +48,8 @@ export const respondToJoinRequest = onCall<
       // ── ALL reads first ────────────────────────────────────────────────
       const reqSnap = await tx.get(reqRef);
       if (!reqSnap.exists) throw new HttpsError('not-found', 'Request not found.');
-      const reqData = reqSnap.data()!;
+      const reqData = reqSnap.data();
+      if (!reqData) throw new HttpsError('not-found', 'Request not found.');
       if (reqData.status !== 'pending') {
         throw new HttpsError('failed-precondition', 'Already resolved.');
       }

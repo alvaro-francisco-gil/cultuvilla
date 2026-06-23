@@ -53,16 +53,16 @@ describe('orgMemberService roles', () => {
   it('addOrgMember writes role member by default', async () => {
     vi.mocked(setDoc).mockResolvedValue(undefined);
     await addOrgMember('org1', 'u1');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const arg = (setDoc as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1] as any;
+     
+    const arg = (setDoc as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1];
     expect(arg).toMatchObject({ role: 'member' });
   });
 
   it('addOrgMember can seed an admin', async () => {
     vi.mocked(setDoc).mockResolvedValue(undefined);
     await addOrgMember('org1', 'creator', 'admin');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const arg = (setDoc as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1] as any;
+     
+    const arg = (setDoc as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1];
     expect(arg).toMatchObject({ role: 'admin' });
   });
 

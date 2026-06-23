@@ -23,7 +23,8 @@ export const requestJoinOrganization = onCall<Data, Promise<Result>>(
 
     const orgSnap = await organizationDoc(db, orgId).get();
     if (!orgSnap.exists) throw new HttpsError('not-found', 'Organization not found.');
-    const org = orgSnap.data()!;
+    const org = orgSnap.data();
+    if (!org) throw new HttpsError('not-found', 'Organization not found.');
     if (org.status !== 'approved') throw new HttpsError('failed-precondition', 'Organization not approved.');
 
     const memberSnap = await organizationMemberDoc(db, orgId, uid).get();
