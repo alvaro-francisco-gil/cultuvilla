@@ -126,9 +126,6 @@ export function LocationPicker({
                   color={zoom <= MAP_ZOOM_MIN ? '#cbd5e1' : ACCENT}
                 />
               </Pressable>
-              <Text variant="body" className="font-semibold" style={{ minWidth: 36, textAlign: 'center' }}>
-                {zoom}
-              </Text>
               <Pressable
                 onPress={() => onZoomChange(clampMapZoom(zoom + MAP_ZOOM_STEP))}
                 disabled={zoom >= MAP_ZOOM_MAX}
