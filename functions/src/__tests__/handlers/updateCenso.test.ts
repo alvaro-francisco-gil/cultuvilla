@@ -29,9 +29,11 @@ async function seedMember(uid: string, role: 'user' | 'admin', profileAnswers: R
   });
 }
 
-async function call(uid: string, fields: unknown[]): Promise<unknown> {
+function call(uid: string, fields: unknown[]): Promise<unknown> {
   const wrapped = ft.wrap(updateCenso as unknown as Parameters<typeof ft.wrap>[0]);
-  return wrapped({ data: { municipalityId: MID, fields }, auth: { uid } } as unknown as Parameters<typeof wrapped>[0]);
+  return Promise.resolve(
+    wrapped({ data: { municipalityId: MID, fields }, auth: { uid } } as unknown as Parameters<typeof wrapped>[0]),
+  );
 }
 
 describe('updateCenso — removing an answered question', () => {

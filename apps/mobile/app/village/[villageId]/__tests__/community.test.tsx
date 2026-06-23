@@ -2,6 +2,11 @@ import { render } from '@testing-library/react-native';
 import CommunityScreen from '../community';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 
+// ScreenHeader reads safe-area insets; provide them without a SafeAreaProvider.
+jest.mock('react-native-safe-area-context', () => ({
+  ...jest.requireActual('react-native-safe-area-context'),
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ villageId: 'm1' }),
   Redirect: ({ href }: { href: string }) => {

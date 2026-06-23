@@ -36,7 +36,7 @@ async function scanMembers(municipalityId: string): Promise<MemberScan> {
   const memberIdsByKey: Record<string, string[]> = {};
   const membersSnap = await municipalityMembersCollection(db, municipalityId).get();
   for (const m of membersSnap.docs) {
-    const answers = m.data().profileAnswers ?? {};
+    const answers = m.data().profileAnswers;
     for (const [k, v] of Object.entries(answers)) {
       const existing = used[k] as Set<string | number | boolean> | undefined;
       const bucket = existing ?? new Set<string | number | boolean>();
@@ -45,7 +45,7 @@ async function scanMembers(municipalityId: string): Promise<MemberScan> {
       if (Array.isArray(v)) {
         for (const item of v) if (typeof item === 'string') bucket.add(item);
       } else if (v !== '') {
-        bucket.add(v as string | number | boolean);
+        bucket.add(v);
       }
       if (hasValue) {
         (memberIdsByKey[k] ??= []).push(m.id);
@@ -97,7 +97,7 @@ export const updateCenso = onCall<UpdateCensoData, Promise<UpdateCensoResult>>(
     const nextKeys = new Set(fields.map((f) => f.key));
     const removedAnsweredKeys = prevFields
       .map((f) => f.key)
-      .filter((k) => !nextKeys.has(k) && (memberIdsByKey[k]?.length ?? 0) > 0);
+      .filter((k) => !nextKeys.has(k) && k in memberIdsByKey);
 
     const batch = db.batch();
     // .update(ref, fieldPath, value) form: serverTimestamp on the nested
