@@ -2,7 +2,11 @@ import { render } from '@testing-library/react-native';
 import CensoScreen from '../censo';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 
-jest.mock('expo-router', () => ({ useLocalSearchParams: () => ({ villageId: 'm1' }) }));
+let mockParams: Record<string, string> = { villageId: 'm1' };
+jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams }));
+jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
+  getMunicipality: jest.fn(() => Promise.resolve({ name: 'Matabuena' })),
+}));
 jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({ useEntityCapabilities: jest.fn() }));
 jest.mock('../../../../lib/auth/useAuth', () => ({ useAuth: () => ({ user: { uid: 'u1' } }) }));
 jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
@@ -21,7 +25,10 @@ jest.mock('../../../../components/feature/CensoAnswers', () => ({
 
 const mockCaps = useEntityCapabilities as jest.Mock;
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockParams = { villageId: 'm1' };
+});
 
 describe('CensoScreen (role-mode)', () => {
   it('an organizer lands in the schema editor', () => {
@@ -33,6 +40,14 @@ describe('CensoScreen (role-mode)', () => {
 
   it('a villager lands in the answer form', () => {
     mockCaps.mockReturnValue({ canManage: false, canApprove: false, uid: 'u1', loading: false });
+    const { getByText, queryByText } = render(<CensoScreen />);
+    expect(getByText('ANSWER_FORM')).toBeTruthy();
+    expect(queryByText('SCHEMA_EDITOR')).toBeNull();
+  });
+
+  it('an organizer with mode=fill lands in the answer form', () => {
+    mockParams = { villageId: 'm1', mode: 'fill' };
+    mockCaps.mockReturnValue({ canManage: true, canApprove: true, uid: 'u1', loading: false });
     const { getByText, queryByText } = render(<CensoScreen />);
     expect(getByText('ANSWER_FORM')).toBeTruthy();
     expect(queryByText('SCHEMA_EDITOR')).toBeNull();

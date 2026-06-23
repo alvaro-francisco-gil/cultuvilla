@@ -9,16 +9,19 @@ export interface CensoFieldInputProps {
   value: ProfileAnswerValue | undefined;
   onChange: (next: ProfileAnswerValue | undefined) => void;
   entityOptions?: ChoiceOption[];
+  /** Render the field's own label. Off when a surrounding card supplies the question title. */
+  showLabel?: boolean;
 }
 
 function toISODate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export function CensoFieldInput({ field, value, onChange, entityOptions }: CensoFieldInputProps) {
+export function CensoFieldInput({ field, value, onChange, entityOptions, showLabel = true }: CensoFieldInputProps) {
   const { t } = useT();
   const r = resolveFieldDisplay(field);
-  const label = r.label + (r.required ? ' *' : '');
+  const fullLabel = r.label + (r.required ? ' *' : '');
+  const label = showLabel ? fullLabel : undefined;
 
   switch (r.type) {
     case 'textarea':
@@ -38,7 +41,7 @@ export function CensoFieldInput({ field, value, onChange, entityOptions }: Censo
     case 'boolean':
       return (
         <VStack gap={1}>
-          <Text variant="bodySm" tone="muted">{label}</Text>
+          {showLabel && <Text variant="bodySm" tone="muted">{fullLabel}</Text>}
           <Toggle value={value === true} onValueChange={(b) => onChange(b)} />
         </VStack>
       );
@@ -46,7 +49,7 @@ export function CensoFieldInput({ field, value, onChange, entityOptions }: Censo
       // Parse YYYY-MM-DD as local midnight (T00:00:00) to match toISODate's local-time getters,
       // preventing round-trip day shifts in negative-UTC timezones.
       const d = typeof value === 'string' && value ? new Date(value + 'T00:00:00') : null;
-      return <DateField label={label} value={d} onChange={(nd) => onChange(nd ? toISODate(nd) : undefined)} />;
+      return <DateField label={label ?? ''} value={d} onChange={(nd) => onChange(nd ? toISODate(nd) : undefined)} />;
     }
     case 'select':
     case 'multiselect': {
@@ -61,7 +64,7 @@ export function CensoFieldInput({ field, value, onChange, entityOptions }: Censo
         .map((sv) => ({ value: sv, label: t('censo.builder.deletedEntity'), disabled: true }));
       return (
         <VStack gap={1}>
-          <Text variant="bodySm" tone="muted">{label}</Text>
+          {showLabel && <Text variant="bodySm" tone="muted">{fullLabel}</Text>}
           <ChoiceList
             options={[...baseOptions, ...ghosts]}
             mode={r.type === 'multiselect' ? 'multi' : 'single'}

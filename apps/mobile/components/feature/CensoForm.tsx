@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { View } from 'react-native';
 import { VStack } from '../primitives/VStack';
 import { Button } from '../primitives/Button';
 import { Text } from '../primitives/Text';
 import { useT } from '../../lib/i18n';
 import { saveProfileAnswers } from '@cultuvilla/shared/services/membershipProfileService';
 import { missingRequiredAnswers } from '@cultuvilla/shared/services/censoService';
+import { resolveFieldDisplay } from '@cultuvilla/shared/services/censoFieldResolver';
 import type { ProfileFormField, ProfileAnswers, ProfileAnswerValue } from '@cultuvilla/shared/models/municipality/CensoTypes';
 import { CensoFieldInput } from './censo/CensoFieldInput';
 import type { ChoiceOption } from './censo/ChoiceList';
@@ -18,10 +20,10 @@ export type CensoFormProps = {
 };
 
 /**
- * V1 censo form: renders a plain text Input for every field in the schema,
- * regardless of field type. Proper type-based widgets (select, multiselect,
- * boolean, etc.) are v2. Shows missing required fields as a warning before
- * submit but does not block saving — the server validates.
+ * Villager census responder, styled after a forms "respond" view: one card per
+ * question (label as title, type-aware control below), then a save button.
+ * Shows missing required fields as a warning before submit but does not block
+ * saving — the server validates.
  */
 export function CensoForm({ villageId, userId, schema, initialAnswers, entityOptionsByField }: CensoFormProps) {
   const { t } = useT();
@@ -56,27 +58,35 @@ export function CensoForm({ villageId, userId, schema, initialAnswers, entityOpt
   }
 
   if (schema.length === 0) {
-    return (
-      <Text tone="muted">{t('censo.noFields')}</Text>
-    );
+    return <Text tone="muted">{t('censo.noFields')}</Text>;
   }
 
   return (
-    <VStack gap={4}>
-      {schema.map((field) => (
-        <CensoFieldInput
-          key={field.key}
-          field={field}
-          value={answers[field.key]}
-          onChange={(v) => setAnswer(field.key, v)}
-          entityOptions={entityOptionsByField?.[field.key]}
-        />
-      ))}
+    <VStack gap={3}>
+      {schema.map((field) => {
+        const r = resolveFieldDisplay(field);
+        return (
+          <View
+            key={field.key}
+            className="bg-surface-elevated border border-subtle rounded-xl p-4 shadow-sm"
+          >
+            <Text className="font-semibold mb-3">
+              {r.label}
+              {r.required ? <Text tone="danger"> *</Text> : null}
+            </Text>
+            <CensoFieldInput
+              field={field}
+              value={answers[field.key]}
+              onChange={(v) => setAnswer(field.key, v)}
+              entityOptions={entityOptionsByField?.[field.key]}
+              showLabel={false}
+            />
+          </View>
+        );
+      })}
 
       {missingKeys.length > 0 && (
-        <Text tone="danger">
-          {t('censo.missingRequired')}: {missingKeys.join(', ')}
-        </Text>
+        <Text tone="danger">{t('censo.missingRequired')}</Text>
       )}
 
       {saved && <Text tone="success">{t('censo.saved')}</Text>}

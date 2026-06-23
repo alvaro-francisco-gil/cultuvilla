@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
-import { VStack, Text } from '../primitives';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { Text } from '../primitives';
+import { useT } from '../../lib/i18n';
 import { CensoForm } from './CensoForm';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { getVillageMember } from '@cultuvilla/shared/services/villageMemberService';
@@ -12,6 +13,7 @@ import { useEntityOptions } from './censo/useEntityOptions';
  * so it embeds in the shared censo screen behind a role check.
  */
 export function CensoAnswers({ villageId, userId }: { villageId: string; userId: string }) {
+  const { t } = useT();
   const [schema, setSchema] = useState<ProfileFormField[] | null>(null);
   const [initialAnswers, setInitialAnswers] = useState<ProfileAnswers>({});
   const [loading, setLoading] = useState(true);
@@ -52,8 +54,11 @@ export function CensoAnswers({ villageId, userId }: { villageId: string; userId:
     );
   }
   return (
-    <VStack gap={4} className="p-4">
+    <ScrollView contentContainerClassName="p-4 pb-12">
+      <Text tone="muted" variant="bodySm" className="px-1 mb-3">
+        {t('censo.fillIntro')}
+      </Text>
       <CensoForm villageId={villageId} userId={userId} schema={schema ?? []} initialAnswers={initialAnswers} entityOptionsByField={optionsByField} />
-    </VStack>
+    </ScrollView>
   );
 }

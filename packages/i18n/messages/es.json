@@ -343,6 +343,7 @@
     "saved": "Censo guardado",
     "error": "No pudimos guardar",
     "noFields": "Este pueblo no tiene censo configurado",
+    "fillIntro": "Responde el cuestionario de tu pueblo.",
     "missingRequired": "Campos obligatorios sin rellenar",
     "types": {
       "text": "Texto corto",
