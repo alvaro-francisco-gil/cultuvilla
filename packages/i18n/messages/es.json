@@ -87,7 +87,7 @@
     "empty": "No hay eventos próximos",
     "tab": {
       "events": "Eventos",
-      "news": "Noticias"
+      "news": "Artículos"
     },
     "filter": {
       "all": "Todos",
@@ -111,9 +111,9 @@
       "sortProximity": "Por cercanía"
     },
     "news": {
-      "comingSoonBody": "Las noticias de tu pueblo llegarán pronto.",
-      "empty": "Aún no hay noticias en tu pueblo.",
-      "create": "Crear noticia"
+      "comingSoonBody": "Los artículos de tu pueblo llegarán pronto.",
+      "empty": "Aún no hay artículos en tu pueblo.",
+      "create": "Crear artículo"
     },
     "events": {
       "create": "Crear evento"
@@ -219,8 +219,8 @@
       "empty": "No hay eventos próximos"
     },
     "newsFeed": {
-      "title": "Noticias",
-      "empty": "Aún no hay noticias en este pueblo"
+      "title": "Artículos",
+      "empty": "Aún no hay artículos en este pueblo"
     },
     "info": {
       "directions": "Cómo llegar"
@@ -485,7 +485,7 @@
       "eventsCreated": "Eventos",
       "participations": "Participación",
       "personas": "Personas",
-      "news": "Noticias"
+      "news": "Artículos"
     },
     "actions": {
       "edit": "Editar perfil",
@@ -513,6 +513,10 @@
       "title": "Eventos gestionados",
       "empty": "Aún no gestionas ningún evento",
       "ongoing": "En curso"
+    },
+    "createdNewsSection": {
+      "title": "Artículos creados",
+      "empty": "Aún no has creado ningún artículo"
     },
     "born": "Nacido en {place}",
     "bornYear": "{year}",
@@ -624,7 +628,7 @@
   },
   "organize": {
     "title": "Organizar este pueblo",
-    "explainer": "El organizador gestiona el censo, modera las noticias, administra lugares y agrupaciones, y edita o cancela eventos del pueblo. La solicitud requiere aprobación.",
+    "explainer": "El organizador gestiona el censo, modera los artículos, administra lugares y agrupaciones, y edita o cancela eventos del pueblo. La solicitud requiere aprobación.",
     "submit": "Enviar solicitud"
   },
   "editInfo": {
@@ -637,15 +641,15 @@
   },
   "news": {
     "feed": {
-      "title": "Noticias",
+      "title": "Artículos",
       "tab": {
         "home": "Mi pueblo",
         "others": "Otros pueblos"
       },
-      "empty": "Aún no hay noticias."
+      "empty": "Aún no hay artículos."
     },
     "compose": {
-      "title": "Nueva noticia",
+      "title": "Nuevo artículo",
       "titleLabel": "Título",
       "bodyLabel": "Contenido",
       "categoryLabel": "Categoría",
@@ -661,12 +665,12 @@
       "submit": "Enviar",
       "submitTrusted": "Publicar",
       "postAsOrg": "Publicar como…",
-      "successPending": "Tu noticia se ha enviado y está pendiente de aprobación.",
-      "needsMembership": "Únete a este pueblo para publicar noticias."
+      "successPending": "Tu artículo se ha enviado y está pendiente de aprobación.",
+      "needsMembership": "Únete a este pueblo para publicar artículos."
     },
     "status": {
       "pending": "Pendiente de aprobación",
-      "rejected": "Rechazada",
+      "rejected": "Rechazado",
       "rejectedReason": "Motivo: {reason}"
     },
     "reactions": {
@@ -683,7 +687,7 @@
       "reportSent": "Reporte enviado."
     },
     "moderation": {
-      "queueTitle": "Noticias pendientes",
+      "queueTitle": "Artículos pendientes",
       "approve": "Aprobar",
       "reject": "Rechazar",
       "rejectReasonPrompt": "Motivo del rechazo",

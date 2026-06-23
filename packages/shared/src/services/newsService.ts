@@ -124,6 +124,21 @@ export async function getNewsCountByCreator(userId: string): Promise<number> {
   return snap.data().count;
 }
 
+// All posts authored by a user, any status (incl. pending/rejected) — for the
+// profile "Artículos creados" scroll. Sorted by submittedAt desc in memory so
+// the createdBy equality query needs no composite index; a single user's
+// article count is small.
+export async function getNewsPostsByCreator(
+  userId: string,
+  options: { limit?: number } = {},
+): Promise<(NewsPostData & { id: string })[]> {
+  const q = query(newsCollection(getDb()), where('createdBy', '==', userId));
+  const snap = await getDocs(q);
+  const posts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  posts.sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
+  return options.limit ? posts.slice(0, options.limit) : posts;
+}
+
 export async function updateNewsPost(id: string, patch: UpdateNewsPostInput): Promise<void> {
   for (const k of Object.keys(patch)) {
     if (FORBIDDEN_UPDATE_KEYS.has(k)) {

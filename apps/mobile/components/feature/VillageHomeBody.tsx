@@ -378,7 +378,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           ))}
         </Section>
 
-        {/* ── Noticias ─────────────────────────────────────────── */}
+        {/* ── Artículos ────────────────────────────────────────── */}
         <Section
           title={t('village.newsFeed.title')}
           isEmpty={news.length === 0}

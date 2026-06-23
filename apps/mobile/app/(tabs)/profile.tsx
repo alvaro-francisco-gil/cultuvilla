@@ -22,7 +22,7 @@ import {
 } from '@cultuvilla/shared/services/personService';
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
 import { getEventsByCreator } from '@cultuvilla/shared/services/eventService';
-import { getNewsCountByCreator } from '@cultuvilla/shared/services/newsService';
+import { getNewsPostsByCreator } from '@cultuvilla/shared/services/newsService';
 import { getPersonViewLink } from '@cultuvilla/shared/services/deepLinkService';
 import { buildDisplayName } from '@cultuvilla/shared/models/person';
 import {
@@ -37,6 +37,10 @@ import { getMunicipality } from '@cultuvilla/shared/services/municipalityService
 import { setActiveMunicipality } from '@cultuvilla/shared/services/userService';
 import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
 import { VillagesScroll, type VillageRow } from '../../components/feature/profile/VillagesScroll';
+import {
+  CreatedNewsScroll,
+  type CreatedNews,
+} from '../../components/feature/profile/CreatedNewsScroll';
 import type { PersonData } from '@cultuvilla/shared/models/person';
 
 type PersonDoc = PersonData & { id: string };
@@ -52,6 +56,7 @@ export default function ProfileScreen() {
   const [managedEvents, setManagedEvents] = useState<ManagedEvent[]>([]);
   const [participations, setParticipations] = useState<number | null>(null);
   const [newsCount, setNewsCount] = useState<number | null>(null);
+  const [createdNews, setCreatedNews] = useState<CreatedNews[]>([]);
   const [orgs, setOrgs] = useState<OrgListItem[]>([]);
   const [villages, setVillages] = useState<VillageRow[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -77,15 +82,16 @@ export default function ProfileScreen() {
         withFirestoreErrorLog('profile:getUserRegistrationsAcrossEvents', () =>
           getUserRegistrationsAcrossEvents(user.uid),
         ),
-        withFirestoreErrorLog('profile:getNewsCountByCreator', () =>
-          getNewsCountByCreator(user.uid),
+        withFirestoreErrorLog('profile:getNewsPostsByCreator', () =>
+          getNewsPostsByCreator(user.uid),
         ),
       ]);
       setManagedEvents(myEvents);
       setEventsCreated(myEvents.length);
       const distinctEvents = new Set(regs.map((r) => r.eventPath));
       setParticipations(distinctEvents.size);
-      setNewsCount(news);
+      setCreatedNews(news);
+      setNewsCount(news.length);
 
       const villageMemberships = await withFirestoreErrorLog('profile:getUserMemberships', () =>
         getUserMemberships(user.uid),
@@ -195,8 +201,8 @@ export default function ProfileScreen() {
         <View className="px-4 pt-4 pb-4">
           <ProfileStatsRow
             stats={[
-              { label: t('profile.stats.eventsCreated'), value: eventsCreated },
               { label: t('profile.stats.participations'), value: participations },
+              { label: t('profile.stats.eventsCreated'), value: eventsCreated },
               { label: t('profile.stats.news'), value: newsCount },
             ]}
           />
@@ -271,6 +277,13 @@ export default function ProfileScreen() {
           ongoingLabel={t('profile.managedEventsSection.ongoing')}
           emptyLabel={t('profile.managedEventsSection.empty')}
           onPressEvent={(id) => router.push(`/event/${id}` as never)}
+        />
+
+        <ProfileSectionHeader title={t('profile.createdNewsSection.title')} />
+        <CreatedNewsScroll
+          news={createdNews}
+          emptyLabel={t('profile.createdNewsSection.empty')}
+          onPressNews={(id) => router.push(`/news/${id}` as never)}
         />
 
         {orgs.length > 0 ? (

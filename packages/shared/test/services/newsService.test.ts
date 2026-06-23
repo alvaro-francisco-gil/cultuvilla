@@ -208,6 +208,7 @@ import {
   getNewsPost,
   getNewsPostsByMunicipality,
   getNewsCountByCreator,
+  getNewsPostsByCreator,
   updateNewsPost,
   reactToPost,
   removeReaction,
@@ -315,6 +316,25 @@ describe('newsService — Task 4: CRUD', () => {
     expect(await getNewsCountByCreator('u1')).toBe(2);
     expect(await getNewsCountByCreator('u2')).toBe(1);
     expect(await getNewsCountByCreator('nobody')).toBe(0);
+  });
+
+  it('getNewsPostsByCreator returns only the author\'s posts, any status', async () => {
+    await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'A', body: 'B', category: 'fiesta' });
+    await createNewsPost({ municipalityId: 'm2', authorUserId: 'u1', title: 'C', body: 'D', category: 'otro' });
+    await createNewsPost({ municipalityId: 'm1', authorUserId: 'u2', title: 'E', body: 'F', category: 'historia' });
+
+    const mine = await getNewsPostsByCreator('u1');
+    expect(mine.length).toBe(2);
+    expect(mine.every((p) => p.createdBy === 'u1')).toBe(true);
+    expect(await getNewsPostsByCreator('nobody')).toEqual([]);
+  });
+
+  it('getNewsPostsByCreator respects the limit option', async () => {
+    await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'A', body: 'B', category: 'fiesta' });
+    await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'C', body: 'D', category: 'otro' });
+    await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'E', body: 'F', category: 'historia' });
+
+    expect((await getNewsPostsByCreator('u1', { limit: 2 })).length).toBe(2);
   });
 
   it('updateNewsPost updates allowed fields', async () => {
