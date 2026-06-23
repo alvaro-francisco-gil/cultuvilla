@@ -18,7 +18,6 @@ import { Pressable } from '../primitives/Pressable';
 import { Text } from '../primitives/Text';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
-import { useApproverStatus } from '../../lib/auth/useApproverStatus';
 import { useT } from '../../lib/i18n';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 import { getUserMemberships } from '@cultuvilla/shared/services/villageMemberService';
@@ -45,7 +44,6 @@ type MenuSection = {
 export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
   const { user, profile, signOut } = useAuth();
   const { isAppAdmin } = useIsAppAdmin();
-  const { canApprove } = useApproverStatus();
   const { t } = useT();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
@@ -183,20 +181,16 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
           },
         ]
       : []),
-    ...(canApprove
-      ? [
-          {
-            title: t('solicitudes.title'),
-            items: [
-              {
-                icon: 'mail-unread-outline' as const,
-                label: t('menu.solicitudes'),
-                onPress: () => close(() => router.push('/solicitudes')),
-              },
-            ],
-          },
-        ]
-      : []),
+    {
+      title: t('solicitudes.title'),
+      items: [
+        {
+          icon: 'mail-unread-outline',
+          label: t('menu.solicitudes'),
+          onPress: () => close(() => router.push('/solicitudes')),
+        },
+      ],
+    },
     {
       title: t('menu.section.app'),
       items: [
