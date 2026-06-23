@@ -19,6 +19,7 @@ import type { MunicipalityData } from '@cultuvilla/shared/models/municipality/Mu
 import type { BarrioData, PlaceData } from '@cultuvilla/shared/models/municipality';
 import type { OrganizationData } from '@cultuvilla/shared/models/organization';
 import type { EventData } from '@cultuvilla/shared/models/event';
+import type { ProfileAnswers } from '@cultuvilla/shared/models/municipality/CensoTypes';
 
 export interface VillageHomeState {
   loading: boolean;
@@ -33,6 +34,8 @@ export interface VillageHomeState {
   events: (EventData & { id: string })[];
   peopleCount: number;
   pendingOrganizerRequest: boolean;
+  /** The current user's censo answers (empty if not a member / none yet). */
+  myCensoAnswers: ProfileAnswers;
 }
 
 const EMPTY: VillageHomeState = {
@@ -48,6 +51,7 @@ const EMPTY: VillageHomeState = {
   events: [],
   peopleCount: 0,
   pendingOrganizerRequest: false,
+  myCensoAnswers: {},
 };
 
 /**
@@ -124,6 +128,8 @@ export function useVillageHome(municipalityId: string | null) {
         pendingOrganizerRequest: myReqs.some(
           (r) => r.municipalityId === municipalityId && r.status === 'pending',
         ),
+        myCensoAnswers:
+          (uid != null ? members.find((m) => m.userId === uid)?.profileAnswers : undefined) ?? {},
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

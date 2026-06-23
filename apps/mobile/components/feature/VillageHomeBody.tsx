@@ -119,6 +119,16 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
   const penas = visibleOrgs.filter((o) => o.type === 'peña');
   const agrupaciones = visibleOrgs.filter((o) => o.type !== 'peña');
 
+  // Censo CTA label: "Editar censo" once every current question has a non-empty
+  // answer; "Rellenar censo" otherwise. A newly-added (still-unanswered)
+  // question therefore flips the label back to "Rellenar".
+  const censoFields = village.community?.profileForm?.fields ?? [];
+  const isAnswered = (v: unknown): boolean =>
+    Array.isArray(v) ? v.length > 0 : v !== undefined && v !== null && v !== '';
+  const censoFilled =
+    censoFields.length > 0 && censoFields.every((f) => isAnswered(data.myCensoAnswers[f.key]));
+  const censoFillLabel = censoFilled ? t('village.censo.edit') : t('village.censo.fill');
+
   // A proposer's own still-pending barrio/place. They reach withdraw from the
   // pueblo-tab card (the create screen no longer lists items); moderation for
   // organizers lives in the community ("Editar") screen.
@@ -471,7 +481,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
         <HStack gap={3} className="px-4 pt-8">
           <Pressable
             onPress={() => router.push(`/village/${village.id}/censo?mode=fill` as never)}
-            accessibilityLabel={t('village.censo.fill')}
+            accessibilityLabel={censoFillLabel}
             className="flex-1 flex-row items-center justify-center bg-surface"
             style={{
               paddingVertical: 5,
@@ -483,7 +493,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
             }}
           >
             <Text style={{ color: ACCENT }} className="font-semibold">
-              {t('village.censo.fill')}
+              {censoFillLabel}
             </Text>
           </Pressable>
           {canManage ? (

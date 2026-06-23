@@ -300,6 +300,7 @@
     "censo": {
       "link": "Completar mi censo",
       "fill": "Rellenar censo",
+      "edit": "Editar censo",
       "configure": "Configurar censo"
     },
     "escudo": {

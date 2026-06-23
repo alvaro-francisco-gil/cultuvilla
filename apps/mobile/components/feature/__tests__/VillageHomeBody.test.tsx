@@ -63,6 +63,7 @@ const base: VillageHomeState = {
   events: [],
   peopleCount: 3,
   pendingOrganizerRequest: false,
+  myCensoAnswers: {},
 };
 
 beforeEach(() => mockAddVillageMember.mockClear());
