@@ -561,7 +561,7 @@
     }
   },
   "start": {
-    "title": "Iniciar este pueblo",
+    "title": "Iniciar pueblo",
     "explainer": "Iniciar el pueblo lo activa para que cualquier vecino pueda unirse. Serás su primer miembro y podrás añadir su información. No te convierte en organizador.",
     "escudoAdd": "Añadir escudo (opcional)",
     "escudoSelected": "Escudo seleccionado",
