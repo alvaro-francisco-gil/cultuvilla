@@ -14,17 +14,21 @@ const STATIC_MAP_REGION = 'europe-west1';
 export const MAP_ZOOM_MIN = 11;
 export const MAP_ZOOM_MAX = 16;
 export const MAP_ZOOM_DEFAULT = 13;
-/** Finest step Google Static Maps visibly honors — it collapses anything finer than 0.5. */
-export const MAP_ZOOM_STEP = 0.5;
+/**
+ * Zoom step. Google Static Maps only renders integer zoom levels — a fractional
+ * `zoom` (e.g. 13.5) is rejected and falls back to a zoomed-out world map, so
+ * the scale is integers only.
+ */
+export const MAP_ZOOM_STEP = 1;
 
 /**
- * Clamp a zoom into the allowed range and snap it to the 0.5 grid (the finest
- * granularity Google Static Maps renders distinctly). Non-finite input falls
- * back to the default.
+ * Clamp a zoom into the allowed range and round it to an integer (Google Static
+ * Maps only honors integer zoom levels). Non-finite input falls back to the
+ * default.
  */
 export function clampMapZoom(zoom: number): number {
   if (!Number.isFinite(zoom)) return MAP_ZOOM_DEFAULT;
-  const snapped = Math.round(zoom * 2) / 2;
+  const snapped = Math.round(zoom);
   return Math.min(MAP_ZOOM_MAX, Math.max(MAP_ZOOM_MIN, snapped));
 }
 
