@@ -97,7 +97,9 @@ export default function FeedScreen() {
   const filterAnim = useRef(new Animated.Value(0)).current;
   const filterHiddenRef = useRef(false);
   const lastScrollY = useRef(0);
-  const [barHeight, setBarHeight] = useState(FILTER_PILL_HEIGHT + 12);
+  // Measured height of the floating overlay (toggle + filter bar). Seeded with
+  // a rough estimate; corrected on first onLayout.
+  const [overlayHeight, setOverlayHeight] = useState(FILTER_PILL_HEIGHT + 12 + 56);
   // Mirrors the hidden state so the faded-out (but still positioned) pills stop
   // intercepting taps meant for the feed behind them.
   const [filterInteractive, setFilterInteractive] = useState(true);
@@ -243,11 +245,16 @@ export default function FeedScreen() {
     [setFilterHidden],
   );
 
-  const feedPaddingTop = villages.length > 0 ? barHeight + FEED_TOP_GAP : 0;
+  // Both the toggle and the filter bar float above the feed now, so the feed
+  // must clear the full overlay height (toggle + filter bar) regardless of
+  // whether villages — hence filter pills — are present.
+  const feedPaddingTop = overlayHeight + FEED_TOP_GAP;
   const filterOpacity = filterAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
 
+  // Transparent container so the feed flows behind the opaque toggle pill; the
+  // pt-3 gap is where content peeks through "between the header and the toggle".
   const toggle = (
-    <View className="px-4 pt-3 pb-2 bg-surface">
+    <View className="px-4 pt-3 pb-2">
       <SegmentedToggle<FeedTab>
         value={activeTab}
         onChange={goToTab}
@@ -470,7 +477,6 @@ export default function FeedScreen() {
   return (
     <Screen padded={false} topInset={false} bottomInset={false}>
       <AppHeader centerLabel={t('header.brand')} />
-      {toggle}
       <View style={{ flex: 1 }}>
         <ScrollView
           ref={pagerRef}
@@ -485,24 +491,25 @@ export default function FeedScreen() {
           <View style={{ width }}>{newsPage}</View>
         </ScrollView>
 
-        {/* Floating filter bar — overlays the feed (which flows behind it) and
-            fades out in place on scroll-down, back in on scroll-up. */}
-        {filterBar ? (
-          <Animated.View
-            onLayout={(e) => setBarHeight(e.nativeEvent.layout.height)}
-            pointerEvents={filterInteractive ? 'box-none' : 'none'}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              zIndex: 10,
-              opacity: filterOpacity,
-            }}
-          >
-            {filterBar}
-          </Animated.View>
-        ) : null}
+        {/* Floating overlay — the toggle and filter bar both sit above the feed
+            (which flows behind them) and fade out in place on scroll-down, back
+            in on scroll-up, together. box-none lets taps fall through the
+            transparent areas to the feed. */}
+        <Animated.View
+          onLayout={(e) => setOverlayHeight(e.nativeEvent.layout.height)}
+          pointerEvents={filterInteractive ? 'box-none' : 'none'}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 10,
+            opacity: filterOpacity,
+          }}
+        >
+          {toggle}
+          {filterBar}
+        </Animated.View>
       </View>
 
       <FilterSheet

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Animated } from 'react-native';
+import { View, Animated, Easing } from 'react-native';
 import { Pressable } from '../primitives/Pressable';
 import { Text } from '../primitives/Text';
 
@@ -40,11 +40,12 @@ export function SegmentedToggle<T extends string>({
   const indicatorAnim = useRef(new Animated.Value(activeIndex)).current;
 
   useEffect(() => {
-    Animated.spring(indicatorAnim, {
+    // Plain eased slide — no spring overshoot/bounce.
+    Animated.timing(indicatorAnim, {
       toValue: activeIndex,
       useNativeDriver: false,
-      friction: 8,
-      tension: 80,
+      duration: 200,
+      easing: Easing.out(Easing.cubic),
     }).start();
   }, [activeIndex, indicatorAnim]);
 
