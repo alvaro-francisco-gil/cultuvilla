@@ -9,6 +9,7 @@ import type { EditorAction } from './censoEditorReducer';
 import type { OptionsSource, ProfileFormField } from '@cultuvilla/shared/models/municipality/CensoTypes';
 import { useT } from '../../../lib/i18n';
 import { ACCENT } from '../VillageSections';
+import { showConfirm } from '../../../lib/dialogs';
 
 const SOURCE_LABEL: Record<OptionsSource, string> = {
   barrios: 'censo.builder.sourceBarrios',
@@ -21,6 +22,7 @@ export function QuestionCard({
   index,
   dispatch,
   locked,
+  answeredCount,
   error,
   active,
   onActivate,
@@ -31,6 +33,7 @@ export function QuestionCard({
   index: number;
   dispatch: (a: EditorAction) => void;
   locked: boolean;
+  answeredCount: number;
   error?: string;
   active: boolean;
   onActivate: () => void;
@@ -54,6 +57,19 @@ export function QuestionCard({
     : isChoice
       ? `${typeLabel} · ${t('censo.builder.optionsCount', { count: optionCount })}`
       : typeLabel;
+
+  function handleRemove() {
+    if (answeredCount > 0) {
+      showConfirm(
+        t('censo.builder.deleteAnsweredTitle'),
+        t('censo.builder.deleteAnsweredBody', { count: answeredCount }),
+        onRemove,
+        { confirmText: t('common.delete') },
+      );
+      return;
+    }
+    onRemove();
+  }
 
   // Translate a sheet pick into reducer actions. A generic choice type forces
   // static options via setOptions (which clears any optionsSource); an entity
@@ -177,15 +193,14 @@ export function QuestionCard({
               </Pressable>
               {locked ? (
                 <Text variant="bodySm" className="text-orange-600">{t('censo.builder.locked')}</Text>
-              ) : (
-                <Pressable
-                  onPress={onRemove}
-                  accessibilityLabel={t('common.delete')}
-                  className="p-1"
-                >
-                  <Ionicons name="trash-outline" size={20} color="#dc2626" />
-                </Pressable>
-              )}
+              ) : null}
+              <Pressable
+                onPress={handleRemove}
+                accessibilityLabel={t('common.delete')}
+                className="p-1"
+              >
+                <Ionicons name="trash-outline" size={20} color="#dc2626" />
+              </Pressable>
             </HStack>
           </HStack>
         </View>

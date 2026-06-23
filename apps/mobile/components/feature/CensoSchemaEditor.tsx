@@ -5,7 +5,7 @@ import { VStack, HStack, Text, Button, Pressable } from '../primitives';
 import { useT } from '../../lib/i18n';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { updateCensoSchema } from '@cultuvilla/shared/services/censoService';
-import { collectUsedValues } from '@cultuvilla/shared/services/membershipProfileService';
+import { collectUsedValues, answeredCountByKey } from '@cultuvilla/shared/services/membershipProfileService';
 import { getVillageMembers } from '@cultuvilla/shared/services/villageMemberService';
 import { censoEditorReducer, fieldErrors, type EditorAction } from './censo/censoEditorReducer';
 import { QuestionCard } from './censo/QuestionCard';
@@ -28,6 +28,7 @@ export function CensoSchemaEditor({ villageId }: { villageId: string }) {
   // Index of the expanded card; null = all collapsed (overview).
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
+  const [answeredCounts, setAnsweredCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -39,6 +40,7 @@ export function CensoSchemaEditor({ villageId }: { villageId: string }) {
       const used = collectUsedValues(members);
       if (cancelled) return;
       setLocked(new Set(Object.entries(used).filter(([, v]) => v.size > 0).map(([k]) => k)));
+      setAnsweredCounts(answeredCountByKey(members));
       dispatch({ kind: 'reset', fields: mun?.community?.profileForm?.fields ?? [] });
       setLoading(false);
     })();
@@ -91,6 +93,7 @@ export function CensoSchemaEditor({ villageId }: { villageId: string }) {
             index={i}
             dispatch={dispatch as (a: EditorAction) => void}
             locked={locked.has(f.key)}
+            answeredCount={answeredCounts[f.key] ?? 0}
             error={errors[i]}
             active={activeIndex === i}
             onActivate={() => setActiveIndex(i)}
