@@ -499,7 +499,8 @@
       "wholeVillage": "Todo el pueblo",
       "stepIdentity": "Identidad",
       "stepResidence": "Origen y residencia",
-      "stepAbout": "Sobre ti"
+      "stepAbout": "Sobre ti",
+      "photo": "Foto"
     },
     "personDetailTitle": "Persona",
     "personEdit": "Editar",

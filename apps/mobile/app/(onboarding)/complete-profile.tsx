@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Screen, Text } from '../../components/primitives';
+import { Screen } from '../../components/primitives';
+import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { PersonForm } from '../../components/feature/PersonForm';
 import type { PersonFormPhoto, PersonFormValues } from '../../components/feature/PersonForm';
 import { useAuth } from '../../lib/auth/useAuth';
@@ -88,8 +89,8 @@ export default function CompleteProfileScreen() {
   }
 
   return (
-    <Screen padded={false} bottomInset={false}>
-      <Text variant="h2" className="px-4 pt-4">{t('onboarding.completeProfile.title')}</Text>
+    <Screen padded={false} bottomInset={false} topInset={false}>
+      <ScreenHeader accent hideBack title={t('onboarding.completeProfile.title')} />
       <PersonForm
         requireFullName
         initial={{ municipalityId: profile?.activeMunicipalityId ?? null }}

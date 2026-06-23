@@ -139,8 +139,8 @@ export default function PersonDetailScreen() {
       { municipalityId: profile?.activeMunicipalityId ?? null };
 
   return (
-    <Screen padded={false}>
-      <ScreenHeader title={t('profile.personDetailTitle')} />
+    <Screen padded={false} topInset={false}>
+      <ScreenHeader accent title={t('profile.personDetailTitle')} />
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />

@@ -3,7 +3,7 @@ import { Fragment } from 'react';
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from '../primitives';
-import { colors } from '@cultuvilla/shared/design-system';
+import { colors, palette } from '@cultuvilla/shared/design-system';
 
 type Glyph = keyof typeof Ionicons.glyphMap;
 
@@ -19,9 +19,10 @@ export interface StepIndicatorProps {
 }
 
 // Ionicons take a color value, not a NativeWind class — source it from the
-// semantic tokens so the accent stays in one place.
+// tokens. Both reached and locked icons stay in the orange family (locked is a
+// lighter clay), so no step icon ever reads as green.
 const ACCENT = colors.light.fg.accent;
-const MUTED = colors.light.fg.muted;
+const LOCKED = palette.clay;
 
 export function StepIndicator({
   count,
@@ -47,7 +48,7 @@ export function StepIndicator({
                 reached ? 'border-accent' : 'border-subtle'
               }`}
             >
-              <Ionicons name={glyph} size={20} color={reached ? ACCENT : MUTED} />
+              <Ionicons name={glyph} size={20} color={reached ? ACCENT : LOCKED} />
             </Pressable>
             {i < count - 1 && (
               <View className={`flex-1 h-0.5 mx-2 ${i < current ? 'bg-accent' : 'bg-subtle'}`} />

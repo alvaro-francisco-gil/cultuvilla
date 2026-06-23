@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
 import {
   Avatar,
   BarrioPicker,
@@ -13,7 +12,9 @@ import {
   VillagePicker,
 } from '../primitives';
 import { useT } from '../../lib/i18n';
+import { pickImageAsBlob } from '../../lib/images';
 import type { Sex } from '@cultuvilla/shared/models/person';
+import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 import { Stepper, type StepConfig } from './Stepper';
 
 export interface PersonFormValues {
@@ -31,10 +32,9 @@ export interface PersonFormValues {
   biography: string;
 }
 
-export interface PersonFormPhoto {
-  uri: string;
-  blob: Blob;
-}
+/** Avatar photo picked in the form. Aliases the shared UploadableImage so the
+ * form and the proposable surfaces share one image-input path (pickImageAsBlob). */
+export type PersonFormPhoto = UploadableImage;
 
 export interface PersonFormProps {
   initial?: Partial<PersonFormValues> & { photoURL?: string | null };
@@ -43,22 +43,6 @@ export interface PersonFormProps {
   error?: string | null;
   requireFullName?: boolean;
   onSubmit: (values: PersonFormValues, photo: PersonFormPhoto | null) => Promise<void> | void;
-}
-
-async function pickImage(): Promise<PersonFormPhoto | null> {
-  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!perm.granted) return null;
-  const res = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    quality: 0.8,
-    allowsEditing: true,
-    aspect: [1, 1],
-  });
-  if (res.canceled || !res.assets[0]) return null;
-  const asset = res.assets[0];
-  const response = await fetch(asset.uri);
-  const blob = await response.blob();
-  return { uri: asset.uri, blob };
 }
 
 export function PersonForm({
@@ -139,16 +123,6 @@ export function PersonForm({
       render: () =>
         stepBody(
           <>
-            <View className="items-center">
-              <Avatar
-                uri={photo?.uri ?? initial?.photoURL ?? undefined}
-                size={96}
-                onPress={async () => {
-                  const next = await pickImage();
-                  if (next) setPhoto(next);
-                }}
-              />
-            </View>
             <Input
               label={t('onboarding.completeProfile.givenName')}
               value={givenName}
@@ -226,13 +200,26 @@ export function PersonForm({
       icon: 'document-text-outline',
       render: () =>
         stepBody(
-          <Input
-            label={t('onboarding.completeProfile.biography')}
-            value={biography}
-            onChangeText={setBiography}
-            multiline
-            numberOfLines={4}
-          />,
+          <>
+            <Input
+              label={t('onboarding.completeProfile.biography')}
+              value={biography}
+              onChangeText={setBiography}
+              multiline
+              numberOfLines={4}
+            />
+            <Text tone="muted">{t('profile.personForm.photo')}</Text>
+            <View className="items-center">
+              <Avatar
+                uri={photo?.previewUri ?? initial?.photoURL ?? undefined}
+                size={96}
+                onPress={async () => {
+                  const next = await pickImageAsBlob({ square: true });
+                  if (next) setPhoto(next);
+                }}
+              />
+            </View>
+          </>,
         ),
     },
   ];

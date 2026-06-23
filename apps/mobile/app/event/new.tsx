@@ -162,8 +162,8 @@ export default function NewEventScreen() {
   // ── No active village ───────────────────────────────────────────────────
   if (!municipalityId) {
     return (
-      <Screen padded={false}>
-        <ScreenHeader title={t('event.createEvent')} />
+      <Screen padded={false} topInset={false}>
+        <ScreenHeader accent title={t('event.createEvent')} />
         <View className="flex-1 items-center justify-center px-8">
           <Text tone="muted" className="text-center">
             {t('event.eligibility.body')}
@@ -175,8 +175,8 @@ export default function NewEventScreen() {
 
   if (loading) {
     return (
-      <Screen padded={false}>
-        <ScreenHeader title={t('event.createEvent')} />
+      <Screen padded={false} topInset={false}>
+        <ScreenHeader accent title={t('event.createEvent')} />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
         </View>
@@ -186,8 +186,8 @@ export default function NewEventScreen() {
 
   if (loadError) {
     return (
-      <Screen padded={false}>
-        <ScreenHeader title={t('event.createEvent')} />
+      <Screen padded={false} topInset={false}>
+        <ScreenHeader accent title={t('event.createEvent')} />
         <View className="flex-1 items-center justify-center px-8">
           <Text tone="danger">{loadError}</Text>
         </View>
@@ -312,8 +312,8 @@ export default function NewEventScreen() {
 
   // bottomInset={false}: the ScrollView inside each step applies insets.bottom itself.
   return (
-    <Screen padded={false} bottomInset={false}>
-      <ScreenHeader title={t('event.createEvent')} />
+    <Screen padded={false} bottomInset={false} topInset={false}>
+      <ScreenHeader accent title={t('event.createEvent')} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Stepper steps={steps} onComplete={() => void submit()} submitLabel={t('event.createEvent')} loading={isPending} />
       </KeyboardAvoidingView>
