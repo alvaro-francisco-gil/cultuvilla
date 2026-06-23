@@ -26,31 +26,35 @@ interface UpdateCensoResult {
   fieldCount: number;
 }
 
-async function collectUsedValues(municipalityId: string): Promise<UsedValuesByKey> {
-  const out: UsedValuesByKey = {};
-  // Typed members collection: snap.data() returns VillageMemberData.
+interface MemberScan {
+  used: UsedValuesByKey;
+  memberIdsByKey: Record<string, string[]>;
+}
+
+async function scanMembers(municipalityId: string): Promise<MemberScan> {
+  const used: UsedValuesByKey = {};
+  const memberIdsByKey: Record<string, string[]> = {};
   const membersSnap = await municipalityMembersCollection(db, municipalityId).get();
   for (const m of membersSnap.docs) {
-    const answers = m.data().profileAnswers;
+    const answers = m.data().profileAnswers ?? {};
     for (const [k, v] of Object.entries(answers)) {
-      // out[k] is typed as Set<...> by UsedValuesByKey's index signature,
-      // but runtime returns undefined for first-seen keys (no
-      // noUncheckedIndexedAccess in functions/tsconfig.json). Materialize
-      // the bucket through a local variable so TypeScript stops complaining
-      // about an "unnecessary" undefined check.
-      const existing = out[k] as Set<string | number | boolean> | undefined;
+      const existing = used[k] as Set<string | number | boolean> | undefined;
       const bucket = existing ?? new Set<string | number | boolean>();
-      if (!existing) out[k] = bucket;
+      if (!existing) used[k] = bucket;
+      const hasValue = Array.isArray(v) ? v.length > 0 : v !== '';
       if (Array.isArray(v)) {
-        for (const item of v) {
-          if (typeof item === 'string') bucket.add(item);
-        }
+        for (const item of v) if (typeof item === 'string') bucket.add(item);
       } else if (v !== '') {
-        bucket.add(v);
+        bucket.add(v as string | number | boolean);
+      }
+      if (hasValue) {
+        const ids = memberIdsByKey[k] ?? [];
+        if (ids.length === 0) memberIdsByKey[k] = ids;
+        ids.push(m.id);
       }
     }
   }
-  return out;
+  return { used, memberIdsByKey };
 }
 
 export const updateCenso = onCall<UpdateCensoData, Promise<UpdateCensoResult>>(
@@ -89,18 +93,27 @@ export const updateCenso = onCall<UpdateCensoData, Promise<UpdateCensoResult>>(
     const community = municipalitySnap.data()?.community;
     const prevFields: PrevField[] = community?.profileForm?.fields ?? [];
 
-    const used = await collectUsedValues(municipalityId);
+    const { used, memberIdsByKey } = await scanMembers(municipalityId);
     validateTransition(prevFields, fields, used);
 
-    // .update() bypasses the converter, so FieldValue.serverTimestamp() is
-    // fine on the nested updatedAt. The typed-ref overload of update() is
-    // resolved through the field/value form here because the MunicipalityData
-    // UpdateData<> shape rejects the nullable-field index signature when
-    // passing a dotted-path partial as a single arg.
-    await municipalityRef.update('community.profileForm', {
+    const nextKeys = new Set(fields.map((f) => f.key));
+    const removedAnsweredKeys = prevFields
+      .map((f) => f.key)
+      .filter((k) => !nextKeys.has(k) && (used[k]?.size ?? 0) > 0);
+
+    const batch = db.batch();
+    // .update(ref, fieldPath, value) form: serverTimestamp on the nested
+    // updatedAt is fine because batch.update bypasses the converter.
+    batch.update(municipalityRef, 'community.profileForm', {
       fields,
       updatedAt: FieldValue.serverTimestamp(),
     });
+    for (const key of removedAnsweredKeys) {
+      for (const uid of memberIdsByKey[key] ?? []) {
+        batch.update(municipalityMemberDoc(db, municipalityId, uid), `profileAnswers.${key}`, FieldValue.delete());
+      }
+    }
+    await batch.commit();
 
     return { ok: true, fieldCount: fields.length };
   },
