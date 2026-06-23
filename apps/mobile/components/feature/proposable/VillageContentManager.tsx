@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ScrollView } from 'react-native';
 import { VStack, HStack, Text, Pressable } from '../../primitives';
 import { useT } from '../../../lib/i18n';
 import { PlacesManager } from './PlacesManager';
@@ -8,10 +9,10 @@ import { OrganizationsManager } from './OrganizationsManager';
 type Filter = 'all' | 'places' | 'barrios' | 'organizations';
 
 /**
- * Admin content moderation, mounted inside the community ("Editar pueblo")
- * screen. A filter chip row picks which entity's manage list shows — "Todos"
- * stacks all three inline. The create forms live on their own screens; this is
- * purely the approve/reject/edit/delete surface.
+ * Admin content moderation, mounted as the "Contenido" tab of the community
+ * ("Editar pueblo") screen. A filter chip row picks which entity's manage list
+ * shows — "Todos" stacks all three. The create forms live on their own screens;
+ * this is purely the approve/reject/edit/delete surface.
  */
 export function VillageContentManager({ villageId }: { villageId: string }) {
   const { t } = useT();
@@ -27,9 +28,8 @@ export function VillageContentManager({ villageId }: { villageId: string }) {
   const show = (f: Filter) => filter === 'all' || filter === f;
 
   return (
-    <VStack gap={3} className="pt-2">
-      <Text variant="h3">{t('village.admin.overview.manage')}</Text>
-
+    <ScrollView contentContainerClassName="pb-10">
+      <VStack gap={3} className="pt-3">
       <HStack gap={2} className="flex-wrap px-4">
         {FILTERS.map((f) => {
           const selected = filter === f.value;
@@ -67,6 +67,7 @@ export function VillageContentManager({ villageId }: { villageId: string }) {
           <OrganizationsManager villageId={villageId} mode="manage" />
         </VStack>
       ) : null}
-    </VStack>
+      </VStack>
+    </ScrollView>
   );
 }
