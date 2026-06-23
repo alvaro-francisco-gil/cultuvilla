@@ -320,6 +320,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
               <Image
                 source={{
                   uri: staticMapUrl(village.coordinates.lat, village.coordinates.lng, {
+                    zoom: 13,
                     w: 640,
                     h: 256,
                   }),
