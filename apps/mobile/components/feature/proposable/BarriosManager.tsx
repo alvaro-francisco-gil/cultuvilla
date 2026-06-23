@@ -94,7 +94,6 @@ export function BarriosManager({
     return (
       <VStack gap={3} className="p-4">
         <ProposableForm
-          title={t('village.admin.barrios.add')}
           image={image}
           onImageChange={setImage}
           imageLabels={{
@@ -103,7 +102,7 @@ export function BarriosManager({
           }}
           name={name}
           onChangeName={setName}
-          namePlaceholder={t('village.admin.barrios.name')}
+          nameLabel={t('village.admin.barrios.name')}
           nameTestID="barrio-name-input"
           submitLabel={canManage ? t('village.admin.barrios.add') : t('village.proposals.propose')}
           submitTestID="barrio-submit"

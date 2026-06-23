@@ -84,14 +84,13 @@ export function OrganizationsManager({
     return (
       <VStack gap={3} className="p-4">
         <ProposableForm
-          title={t('village.admin.organizations.add')}
           name={name}
           onChangeName={setName}
-          namePlaceholder={t('organization.name')}
+          nameLabel={t('organization.name')}
           nameTestID="org-name-input"
           description={description}
           onChangeDescription={setDescription}
-          descriptionPlaceholder={t('organization.description')}
+          descriptionLabel={t('organization.description')}
           typeLabel={t('organization.type')}
           typeOptions={PROPOSABLE_ORGANIZATION_TYPES.map((ty) => ({ value: ty, label: typeLabel(ty) }))}
           typeValue={type}

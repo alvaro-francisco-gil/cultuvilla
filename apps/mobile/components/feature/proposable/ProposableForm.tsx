@@ -1,4 +1,4 @@
-import { VStack, HStack, Text, Button, Input, Pressable, Avatar } from '../../primitives';
+import { VStack, HStack, Text, Button, Input, Pressable, Avatar, FieldLabel } from '../../primitives';
 import { pickImageAsBlob } from '../../../lib/images';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 
@@ -8,8 +8,6 @@ export interface ProposableTypeOption {
 }
 
 export interface ProposableFormProps {
-  /** "Añadir X" header shown at the top of the form. */
-  title: string;
   /** Currently-picked image, or null. Its `previewUri` renders the thumbnail.
    * Leave `onImageChange` unset to hide the image picker entirely (e.g.
    * agrupaciones, which have no client image-upload path). */
@@ -19,13 +17,13 @@ export interface ProposableFormProps {
 
   name: string;
   onChangeName: (value: string) => void;
-  namePlaceholder: string;
+  nameLabel: string;
   nameTestID?: string;
 
   /** Omit description entirely (e.g. barrios) by leaving onChangeDescription unset. */
   description?: string;
   onChangeDescription?: (value: string) => void;
-  descriptionPlaceholder?: string;
+  descriptionLabel?: string;
 
   /** Chip type-picker. Omit (leave options unset) for entities without a type. */
   typeLabel?: string;
@@ -42,26 +40,27 @@ export interface ProposableFormProps {
 
 /**
  * Standardized "Añadir X" form shared by the Lugares, Barrios and Agrupaciones
- * proposable surfaces. Layout, top-to-bottom: title → prominent image picker
- * (first, so the photo leads) → name → optional description → optional type
- * chips → submit. The selected type chip uses a light-orange fill.
+ * proposable surfaces. Layout, top-to-bottom: prominent image picker (first, so
+ * the photo leads) → name → optional description → optional type chips →
+ * submit. The "Añadir X" title is the screen header, so it is not repeated
+ * inside the form. Each field shows its name as a top label (matching
+ * PersonForm). The selected type chip uses a light-orange fill.
  *
  * The form owns image picking (via pickImageAsBlob) so the three managers no
  * longer duplicate that logic; it hands the picked image back through
  * onImageChange. Selection-chip and field styling live here only.
  */
 export function ProposableForm({
-  title,
   image,
   onImageChange,
   imageLabels,
   name,
   onChangeName,
-  namePlaceholder,
+  nameLabel,
   nameTestID,
   description,
   onChangeDescription,
-  descriptionPlaceholder,
+  descriptionLabel,
   typeLabel,
   typeOptions,
   typeValue,
@@ -78,8 +77,6 @@ export function ProposableForm({
 
   return (
     <VStack gap={3}>
-      <Text variant="h3">{title}</Text>
-
       {showImage ? (
         <VStack gap={1} align="center">
           <Pressable
@@ -101,21 +98,21 @@ export function ProposableForm({
         testID={nameTestID}
         value={name}
         onChangeText={onChangeName}
-        placeholder={namePlaceholder}
+        label={nameLabel}
       />
 
       {showDescription ? (
         <Input
           value={description ?? ''}
           onChangeText={onChangeDescription}
-          placeholder={descriptionPlaceholder}
+          label={descriptionLabel}
           multiline
         />
       ) : null}
 
       {showTypes ? (
         <VStack gap={1}>
-          {typeLabel ? <Text className="text-muted text-sm">{typeLabel}</Text> : null}
+          {typeLabel ? <FieldLabel>{typeLabel}</FieldLabel> : null}
           <HStack gap={2} className="flex-wrap">
             {typeOptions!.map((opt) => {
               const selected = opt.value === typeValue;

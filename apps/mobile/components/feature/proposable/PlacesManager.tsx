@@ -5,7 +5,7 @@ import {
 import { uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 import { PLACE_KINDS, type PlaceData, type PlaceKind } from '@cultuvilla/shared/models/municipality';
-import { VStack, HStack, Text, Button, Input, Pressable } from '../../primitives';
+import { VStack, HStack, Text, Button, Input, Pressable, FieldLabel } from '../../primitives';
 import { useT } from '../../../lib/i18n';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { isProposalVisible } from '../../../lib/proposals';
@@ -102,7 +102,7 @@ export function PlacesManager({
   // Chip-row selector — avoids Modal/Picker for mobile-web-compat.
   const KindPicker = ({ value, onChange }: { value: PlaceKind; onChange: (k: PlaceKind) => void }) => (
     <VStack gap={1}>
-      <Text className="text-muted text-sm">{t('village.admin.places.kindLabel')}</Text>
+      <FieldLabel>{t('village.admin.places.kindLabel')}</FieldLabel>
       <HStack gap={2} className="flex-wrap">
         {PLACE_KINDS.map((k) => (
           <Pressable
@@ -121,7 +121,6 @@ export function PlacesManager({
     return (
       <VStack gap={3} className="p-4">
         <ProposableForm
-          title={t('village.admin.places.add')}
           image={image}
           onImageChange={setImage}
           imageLabels={{
@@ -130,11 +129,11 @@ export function PlacesManager({
           }}
           name={name}
           onChangeName={setName}
-          namePlaceholder={t('village.admin.places.name')}
+          nameLabel={t('village.admin.places.name')}
           nameTestID="place-name-input"
           description={description}
           onChangeDescription={setDescription}
-          descriptionPlaceholder={t('village.admin.places.description')}
+          descriptionLabel={t('village.admin.places.description')}
           typeLabel={t('village.admin.places.kindLabel')}
           typeOptions={PLACE_KINDS.map((k) => ({ value: k, label: kindLabel(k) }))}
           typeValue={kind}

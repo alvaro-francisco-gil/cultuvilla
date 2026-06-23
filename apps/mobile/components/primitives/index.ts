@@ -7,6 +7,8 @@ export * from './Pressable';
 export * from './Button';
 export * from './Card';
 export * from './Input';
+export { FieldLabel } from './FieldLabel';
+export type { FieldLabelProps } from './FieldLabel';
 export { Avatar } from './Avatar';
 export type { AvatarProps } from './Avatar';
 export { NaturalImage } from './NaturalImage';
