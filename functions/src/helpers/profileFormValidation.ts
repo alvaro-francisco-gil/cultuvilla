@@ -130,16 +130,8 @@ export function validateTransition(
   for (const prevField of prev) {
     const nextField = nextByKey.get(prevField.key);
     if (!nextField) {
-      // Index signature returns Set<...> (no `| undefined`) under current
-      // tsconfig (noUncheckedIndexedAccess=false), so the key may be missing
-      // at runtime even though TS doesn't admit it. Guard with `in`.
-      const hasAnswers = prevField.key in used && used[prevField.key].size > 0;
-      if (hasAnswers) {
-        throw new HttpsError(
-          'failed-precondition',
-          `No se puede eliminar el campo "${prevField.key}" porque ya hay miembros que han respondido.`,
-        );
-      }
+      // Removal is always allowed. If the field had answers, updateCenso
+      // erases them from member docs in the same batch (see updateCenso.ts).
       continue;
     }
     if (prevField.source !== nextField.source) {

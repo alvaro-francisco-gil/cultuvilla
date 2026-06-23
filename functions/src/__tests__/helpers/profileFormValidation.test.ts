@@ -131,17 +131,11 @@ describe('validateTransition', () => {
     expect(() => { validateTransition(prev, [], noUsage); }).not.toThrow();
   });
 
-  it('rejects removing a field that members have already answered', () => {
+  it('allows removing a field even when members have already answered it', () => {
     const prev: PrevField[] = [{ source: 'predefined', key: 'barrio' }];
-    const used = { barrio: new Set(['Centro']) };
-    let caught: unknown;
-    try {
-      validateTransition(prev, [], used);
-    } catch (e) {
-      caught = e;
-    }
-    expect(code(caught)).toBe('failed-precondition');
-    expect((caught as HttpsError).message).toMatch(/eliminar el campo "barrio"/);
+    const used: UsedValuesByKey = { barrio: new Set(['centro']) };
+    // Removal is now permitted; updateCenso erases the orphaned answers.
+    expect(() => { validateTransition(prev, [], used); }).not.toThrow();
   });
 
   it('rejects changing the source of an existing field', () => {
