@@ -229,11 +229,7 @@ export function VillageDiscovery() {
                       </Pressable>
                     )}
                   </HStack>
-                ) : (
-                  <Text tone="muted" variant="bodySm">
-                    {t('discover.inactive')}
-                  </Text>
-                )}
+                ) : null}
               </HStack>
             </Pressable>
           );
