@@ -10,12 +10,14 @@ export type InputProps = Omit<TextInputProps, 'style' | 'value' | 'onChangeText'
   error?: string;
   /** Node rendered inside the bordered area on the right, vertically centered. */
   rightAdornment?: ReactNode;
+  /** Tighter vertical padding (e.g. dense forms). */
+  dense?: boolean;
 };
 
 // Controlled text input. `onChangeText` (vs `onChange`) keeps the API aligned
 // with apps/web/components/primitives/Input.tsx — and with React Native
 // convention. Label and error are rendered inline.
-export function Input({ label, value, onChangeText, error, rightAdornment, ...rest }: InputProps) {
+export function Input({ label, value, onChangeText, error, rightAdornment, dense = false, ...rest }: InputProps) {
   return (
     <VStack gap={1}>
       {label && (
@@ -24,7 +26,7 @@ export function Input({ label, value, onChangeText, error, rightAdornment, ...re
         </Text>
       )}
       <View
-        className={`flex-row items-center border rounded-md px-3 py-2 bg-surface ${
+        className={`flex-row items-center border rounded-md px-3 ${dense ? 'py-1' : 'py-2'} bg-surface ${
           error ? 'border-danger' : 'border-subtle'
         }`}
       >

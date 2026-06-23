@@ -25,11 +25,12 @@ export function CensoFieldInput({ field, value, onChange, entityOptions, showLab
 
   switch (r.type) {
     case 'textarea':
-      return <Input label={label} value={String(value ?? '')} onChangeText={(v) => onChange(v)} multiline numberOfLines={3} />;
+      return <Input label={label} value={String(value ?? '')} onChangeText={(v) => onChange(v)} multiline numberOfLines={2} dense />;
     case 'number':
       return (
         <Input
           label={label}
+          dense
           keyboardType="numeric"
           value={value === undefined || value === null ? '' : String(value)}
           onChangeText={(v) => {
@@ -76,6 +77,6 @@ export function CensoFieldInput({ field, value, onChange, entityOptions, showLab
     }
     case 'text':
     default:
-      return <Input label={label} value={String(value ?? '')} onChangeText={(v) => onChange(v)} />;
+      return <Input label={label} value={String(value ?? '')} onChangeText={(v) => onChange(v)} dense />;
   }
 }
