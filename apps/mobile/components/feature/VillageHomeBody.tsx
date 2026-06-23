@@ -321,10 +321,10 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
                 source={{
                   uri: staticMapUrl(village.coordinates.lat, village.coordinates.lng, {
                     w: 640,
-                    h: 320,
+                    h: 256,
                   }),
                 }}
-                style={{ width: '100%', aspectRatio: 2, borderRadius: 16 }}
+                style={{ width: '100%', aspectRatio: 2.5, borderRadius: 16 }}
                 resizeMode="cover"
               />
             </Pressable>
