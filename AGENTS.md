@@ -39,6 +39,22 @@ This is the result of the migration recorded in [docs/decisions/open-feed-archit
 
 > **See also:** the `add-firestore-collection` skill for the multi-file checklist when adding a new collection.
 
+### Request types (solicitudes)
+
+Three user-initiated requests exist. Approvers see them in the Solicitudes inbox
+(mobile, admin-only). Non-admins create requests from in-context screens; outcomes
+arrive as notifications.
+
+| Request | Collection | Created by | Approved by |
+|---|---|---|---|
+| Organizer (be the pueblo's organizer) | `organizerRequests/` | any user | super admin (`respondToOrganizerRequest` callable) |
+| Organization (create peña/asociación/ayuntamiento) | `organizations/` (status `pending`) | village member | village admin (own village) or super admin (`approveOrganization`/`rejectOrganization`) |
+| Join org (join a peña/asociación) | `organizationJoinRequests/` | any authed non-member | org admin or super admin (`respondToJoinRequest` callable) |
+
+Org membership has a `role: 'admin' | 'member'`. Org admins approve join requests,
+remove members, and promote/demote; the `requestedBy` creator is seeded as admin on
+org approval. Village/app admins are the backstop.
+
 ### 4. Denormalized read models for high fan-out
 
 When a query would require N reads or live across collection boundaries, write a denormalized read model and keep it in sync via a Cloud Function trigger. See [docs/architecture/denormalized-read-models.md](docs/architecture/denormalized-read-models.md) for the pattern; [functions/src/syncVillageDenormalization.ts](functions/src/syncVillageDenormalization.ts) is the canonical example.

@@ -1,11 +1,12 @@
 // packages/shared/src/services/orgMemberService.ts
-import { getCountFromServer, getDoc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
+import { getCountFromServer, getDoc, getDocs, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { getDb } from '../firebase';
 import {
   organizationMembersCollection,
   organizationMemberDoc,
 } from '../firebase/refs/client';
 import type { OrgMemberData } from '../models/organization/OrgMemberDataModel';
+import { buildOrgMemberData, type OrgMemberRole } from '../models/organization/OrgMemberDataModel';
 
 export async function getOrgMembers(orgId: string): Promise<(OrgMemberData & { id: string })[]> {
   const snap = await getDocs(organizationMembersCollection(getDb(), orgId));
@@ -18,10 +19,25 @@ export async function getOrgMemberCount(orgId: string): Promise<number> {
   return snap.data().count;
 }
 
-export async function addOrgMember(orgId: string, userId: string): Promise<void> {
-  await setDoc(organizationMemberDoc(getDb(), orgId, userId), {
-    joinedAt: new Date(),
-  });
+export async function addOrgMember(
+  orgId: string,
+  userId: string,
+  role: OrgMemberRole = 'member',
+): Promise<void> {
+  await setDoc(organizationMemberDoc(getDb(), orgId, userId), buildOrgMemberData({ role }));
+}
+
+export async function setOrgMemberRole(
+  orgId: string,
+  userId: string,
+  role: OrgMemberRole,
+): Promise<void> {
+  await updateDoc(organizationMemberDoc(getDb(), orgId, userId), { role });
+}
+
+export async function getOrgAdminIds(orgId: string): Promise<string[]> {
+  const members = await getOrgMembers(orgId);
+  return members.filter((m) => m.role === 'admin').map((m) => m.id);
 }
 
 export async function removeOrgMember(orgId: string, userId: string): Promise<void> {
@@ -35,6 +51,7 @@ export async function isOrgMember(orgId: string, userId: string): Promise<boolea
 
 export interface UserOrgMembership {
   orgId: string;
+  role: OrgMemberRole;
 }
 
 /**
@@ -50,7 +67,9 @@ export async function getOrgMembershipsByUserInMunicipality(
   const checks = await Promise.all(
     orgIdsCandidate.map(async (orgId) => {
       const snap = await getDoc(organizationMemberDoc(getDb(), orgId, userId));
-      return snap.exists() ? { orgId } : null;
+      if (!snap.exists()) return null;
+      const data = snap.data();
+      return { orgId, role: data.role };
     }),
   );
   // The municipality argument is currently passed through for symmetry with

@@ -45,7 +45,7 @@ describe('<OrganizationsManager>', () => {
     fireEvent.changeText(getByTestId('org-name-input'), 'Peña Nueva');
     fireEvent.press(getByTestId('org-submit'));
     await waitFor(() => expect(requestOrganization).toHaveBeenCalled());
-    await waitFor(() => expect(approveOrganization).toHaveBeenCalledWith('new-org', 'boss'));
+    await waitFor(() => expect(approveOrganization).toHaveBeenCalledWith('new-org', 'boss', 'boss'));
   });
 
   it('a villager sees approved orgs + their own pending, not others’ pending', async () => {
@@ -67,6 +67,6 @@ describe('<OrganizationsManager>', () => {
     ]);
     const { findByTestId } = render(<OrganizationsManager villageId="m1" mode="manage" />);
     fireEvent.press(await findByTestId('action-approve'));
-    await waitFor(() => expect(approveOrganization).toHaveBeenCalledWith('o1', 'boss'));
+    await waitFor(() => expect(approveOrganization).toHaveBeenCalledWith('o1', 'boss', 'alice'));
   });
 });

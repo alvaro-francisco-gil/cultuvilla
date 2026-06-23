@@ -5,6 +5,7 @@ import {
   validateTransition,
   type ProfileFormField,
   type PrevField,
+  type UsedValuesByKey,
 } from '../../helpers/profileFormValidation';
 
 const predefined = (key: string, required = true): ProfileFormField => ({

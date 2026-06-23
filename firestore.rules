@@ -26,6 +26,11 @@ service cloud.firestore {
       return isAuthenticated() &&
         exists(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid));
     }
+    function isOrgAdmin(orgId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid)).data.role == 'admin';
+    }
     function orgMunicipalityId(orgId) {
       return get(/databases/$(database)/documents/organizations/$(orgId)).data.municipalityId;
     }
@@ -257,6 +262,13 @@ service cloud.firestore {
           && isTimestamp(d.createdAt);
     }
 
+    function isValidOrgMemberCreate(d) {
+      return d.keys().hasOnly(['joinedAt', 'role'])
+          && d.keys().hasAll(['joinedAt', 'role'])
+          && isTimestamp(d.joinedAt)
+          && d.role in ['admin', 'member'];
+    }
+
     function isValidOrganizationCreate(d) {
       return d.keys().hasOnly([
               'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
@@ -315,6 +327,15 @@ service cloud.firestore {
           && isStringOrNull(d.proposedBy)
           && isStringOrNull(d.approvedBy)
           && isTimestampOrNull(d.decidedAt);
+    }
+
+    function isValidJoinRequestCreate(d) {
+      return d.keys().hasOnly(['userId', 'orgId', 'municipalityId', 'status', 'requestedAt', 'reviewedAt', 'reviewedBy'])
+          && d.keys().hasAll(['userId', 'orgId', 'municipalityId', 'status', 'requestedAt', 'reviewedAt', 'reviewedBy'])
+          && isString(d.userId) && isString(d.orgId) && isString(d.municipalityId)
+          && d.status == 'pending'
+          && isTimestamp(d.requestedAt)
+          && d.reviewedAt == null && d.reviewedBy == null;
     }
 
     function isValidBarrioProposalCreate(d) {
@@ -566,6 +587,16 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    match /organizationJoinRequests/{requestId} {
+      allow read: if isOwner(resource.data.userId)
+        || isOrgAdmin(resource.data.orgId)
+        || isAppAdmin();
+      allow create: if isOwner(request.resource.data.userId)
+        && isValidJoinRequestCreate(request.resource.data);
+      // status transitions only via respondToJoinRequest (admin SDK).
+      allow update, delete: if false;
+    }
+
     match /organizations/{orgId} {
       allow read: if true;
       // ayuntamiento is a singleton per village — created only via the
@@ -581,11 +612,21 @@ service cloud.firestore {
 
       match /members/{userId} {
         allow read: if true;
-        allow create: if isOrgMember(orgId)
-          || isVillageAdmin(orgMunicipalityId(orgId))
-          || isAppAdmin();
-        allow update: if false;
+        // org admin / village admin / app admin may add anyone (incl. seeding an admin);
+        // a plain member may only add others as 'member'.
+        allow create: if isValidOrgMemberCreate(request.resource.data)
+          && (
+               isOrgAdmin(orgId)
+               || isVillageAdmin(orgMunicipalityId(orgId))
+               || isAppAdmin()
+               || (isOrgMember(orgId) && request.resource.data.role == 'member')
+             );
+        // only the role may change, and only an org admin / backstop may change it.
+        allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
+          && request.resource.data.role in ['admin', 'member']
+          && (isOrgAdmin(orgId) || isVillageAdmin(orgMunicipalityId(orgId)) || isAppAdmin());
         allow delete: if isOwner(userId)
+          || isOrgAdmin(orgId)
           || isVillageAdmin(orgMunicipalityId(orgId))
           || isAppAdmin();
       }
