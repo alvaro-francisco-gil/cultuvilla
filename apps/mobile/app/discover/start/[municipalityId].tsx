@@ -163,10 +163,14 @@ export default function StartVillageScreen() {
 
           {/* Location — seeded from existing coordinates once the muni loads. */}
           {muni ? (
-            <VStack gap={2}>
-              <Text variant="h3">{t('village.admin.community.location')}</Text>
-              <LocationPicker value={coords} onChange={setCoords} zoom={zoom} onZoomChange={setZoom} />
-            </VStack>
+            <LocationPicker
+              value={coords}
+              onChange={setCoords}
+              zoom={zoom}
+              onZoomChange={setZoom}
+              label={t('start.locationLabel')}
+              showUseMyLocation={false}
+            />
           ) : null}
 
           <VStack gap={2}>

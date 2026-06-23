@@ -24,11 +24,17 @@ export function LocationPicker({
   onChange,
   zoom,
   onZoomChange,
+  label,
+  showUseMyLocation = true,
 }: {
   value: LatLng | null;
   onChange: (c: LatLng | null) => void;
   zoom: number;
   onZoomChange: (z: number) => void;
+  /** Heading shown above the search field. Defaults to the generic "Ubicación". */
+  label?: string;
+  /** Show the "use my current location" GPS button. Defaults to true. */
+  showUseMyLocation?: boolean;
 }) {
   const { t } = useT();
   const [state, dispatch] = useReducer(locationReducer, value, initialLocationState);
@@ -75,7 +81,7 @@ export function LocationPicker({
 
   return (
     <VStack gap={2}>
-      <Text variant="h3">{t('village.admin.community.location')}</Text>
+      <Text variant="h3">{label ?? t('village.admin.community.location')}</Text>
       <Input
         value={state.query}
         onChangeText={(query) => dispatch({ type: 'setQuery', query })}
@@ -95,7 +101,9 @@ export function LocationPicker({
           <Text variant="body" className="flex-1">{place.label}</Text>
         </Pressable>
       ))}
-      <Button onPress={useMyLocation}>{t('village.admin.community.useMyLocation')}</Button>
+      {showUseMyLocation ? (
+        <Button onPress={useMyLocation}>{t('village.admin.community.useMyLocation')}</Button>
+      ) : null}
       {state.coords ? (
         <View className="gap-2">
           {/* Live preview — same framing (zoom + aspect) as the village screen. */}

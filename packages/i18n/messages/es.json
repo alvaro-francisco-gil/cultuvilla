@@ -1,6 +1,7 @@
 {
   "common": {
     "loading": "Cargando...",
+    "all": "Todos",
     "save": "Guardar",
     "cancel": "Cancelar",
     "delete": "Eliminar",
@@ -182,7 +183,9 @@
     "proposals": {
       "pending": "Pendiente",
       "withdraw": "Retirar",
-      "propose": "Proponer"
+      "propose": "Proponer",
+      "pendingTitle": "Propuesta pendiente",
+      "pendingInfo": "Los datos se podrán cambiar una vez que se acepte la propuesta. ¿Quieres retirarla?"
     },
     "join": "Unirme a este pueblo",
     "signInToJoin": "Inicia sesión para unirte",
@@ -381,7 +384,9 @@
       "optionsManual": "Opciones manuales",
       "allowMultiple": "Permitir varias respuestas",
       "optionsCount": "{count, plural, one {# opción} other {# opciones}}",
-      "elementsHeading": "Elementos del pueblo"
+      "elementsHeading": "Elementos del pueblo",
+      "deleteAnsweredTitle": "Eliminar pregunta",
+      "deleteAnsweredBody": "{count, plural, one {# vecino ha respondido} other {# vecinos han respondido}} esta pregunta. Si la eliminas, se borrarán sus respuestas."
     }
   },
   "event": {
@@ -566,6 +571,7 @@
     "explainer": "Iniciar el pueblo lo activa para que cualquier vecino pueda unirse. Serás su primer miembro y podrás añadir su información. No te convierte en organizador.",
     "escudoAdd": "Añadir escudo (opcional)",
     "escudoSelected": "Escudo seleccionado",
+    "locationLabel": "Añadir ubicación del pueblo",
     "organizeIntro": "Si además quieres supervisar la creación de elementos representativos de tu pueblo, como asociaciones, lugares o barrios, solicita ser organizador.",
     "organizeToggle": "Quiero organizar este pueblo",
     "phoneLabel": "Teléfono de contacto",
