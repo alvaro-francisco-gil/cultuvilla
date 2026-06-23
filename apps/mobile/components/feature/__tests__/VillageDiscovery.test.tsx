@@ -17,6 +17,7 @@ jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
 jest.mock('../../../lib/i18n', () => ({
   useT: () => ({ locale: 'es', t: (k: string) => k }),
 }));
+jest.mock('../../../lib/auth/useAuth', () => ({ useAuth: () => ({ user: null }) }));
 
 import { VillageDiscovery } from '../VillageDiscovery';
 

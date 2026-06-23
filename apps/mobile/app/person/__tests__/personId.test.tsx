@@ -19,6 +19,7 @@ const EXISTING_PERSON = {
   sex: null,
   birthday: null,
   birthPlace: null,
+  municipalityLinks: [],
   biography: null,
   photoURL: null,
 };
@@ -80,14 +81,17 @@ describe('PersonDetailScreen — edit existing photo', () => {
     const imageService = require('@cultuvilla/shared/services/imageService');
     (personService.getPerson as jest.Mock).mockResolvedValue(EXISTING_PERSON);
 
-    const { getByTestId } = render(<PersonDetailScreen />);
+    const { findByTestId } = render(<PersonDetailScreen />);
 
     await waitFor(() => {
       expect(personService.getPerson).toHaveBeenCalledWith('p-existing');
     });
 
+    // Wait for `loading` to clear so the form (and its submit) is mounted
+    // before pressing — querying eagerly raced the getPerson resolution.
+    const submit = await findByTestId('submit');
     await act(async () => {
-      fireEvent.press(getByTestId('submit'));
+      fireEvent.press(submit);
     });
 
     await waitFor(() => {

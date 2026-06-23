@@ -67,7 +67,7 @@ export function answeredCountByKey(
   const out: Record<string, number> = {};
   for (const m of members) {
     for (const [k, v] of Object.entries(m.profileAnswers)) {
-      const has = Array.isArray(v) ? v.length > 0 : v !== '' && v !== undefined && v !== null;
+      const has = Array.isArray(v) ? v.length > 0 : v !== '';
       if (has) out[k] = (out[k] ?? 0) + 1;
     }
   }
