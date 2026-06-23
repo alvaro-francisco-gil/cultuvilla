@@ -46,10 +46,10 @@ export function LocationPicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.coords]);
 
-  // Debounced geocoding whenever the query is non-empty.
+  // Debounced geocoding whenever the user is typing a (non-committed) query.
   useEffect(() => {
     const q = state.query.trim();
-    if (q === '') return;
+    if (q === '' || state.selected) return;
     let cancelled = false;
     const handle = setTimeout(async () => {
       try {
@@ -63,7 +63,7 @@ export function LocationPicker({
       cancelled = true;
       clearTimeout(handle);
     };
-  }, [state.query]);
+  }, [state.query, state.selected]);
 
   async function useMyLocation() {
     try {
@@ -86,6 +86,17 @@ export function LocationPicker({
         value={state.query}
         onChangeText={(query) => dispatch({ type: 'setQuery', query })}
         placeholder={t('village.admin.community.locationSearchPlaceholder')}
+        rightAdornment={
+          state.coords || state.query !== '' ? (
+            <Pressable
+              onPress={() => dispatch({ type: 'clear' })}
+              accessibilityLabel={t('village.admin.community.removeLocation')}
+              hitSlop={8}
+            >
+              <Ionicons name="close-circle" size={20} color={ACCENT} />
+            </Pressable>
+          ) : null
+        }
       />
       {state.status === 'searching' ? <ActivityIndicator color={ACCENT} /> : null}
       {state.status === 'error' ? (
@@ -139,10 +150,6 @@ export function LocationPicker({
               </Pressable>
             </HStack>
           </HStack>
-          <Pressable onPress={() => dispatch({ type: 'clear' })} className="self-start flex-row items-center gap-1">
-            <Ionicons name="close-circle-outline" size={16} color={ACCENT} />
-            <Text style={{ color: ACCENT }} className="font-semibold">{t('village.admin.community.removeLocation')}</Text>
-          </Pressable>
         </View>
       ) : null}
     </VStack>
