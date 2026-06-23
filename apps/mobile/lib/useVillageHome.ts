@@ -15,10 +15,12 @@ import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/orga
 import { getOrgMemberCount } from '@cultuvilla/shared/services/orgMemberService';
 import { getMyOrganizerRequests } from '@cultuvilla/shared/services/organizerRequestService';
 import { getEventsByMunicipality } from '@cultuvilla/shared/services/eventService';
+import { getHomeFeed } from '@cultuvilla/shared/services/newsService';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { BarrioData, PlaceData } from '@cultuvilla/shared/models/municipality';
 import type { OrganizationData } from '@cultuvilla/shared/models/organization';
 import type { EventData } from '@cultuvilla/shared/models/event';
+import type { NewsPostData } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 import type { ProfileAnswers } from '@cultuvilla/shared/models/municipality/CensoTypes';
 
 export interface VillageHomeState {
@@ -32,6 +34,7 @@ export interface VillageHomeState {
   organizations: (OrganizationData & { id: string })[];
   orgMemberCounts: Record<string, number>;
   events: (EventData & { id: string })[];
+  news: (NewsPostData & { id: string })[];
   peopleCount: number;
   pendingOrganizerRequest: boolean;
   /** The current user's censo answers (empty if not a member / none yet). */
@@ -49,6 +52,7 @@ const EMPTY: VillageHomeState = {
   organizations: [],
   orgMemberCounts: {},
   events: [],
+  news: [],
   peopleCount: 0,
   pendingOrganizerRequest: false,
   myCensoAnswers: {},
@@ -74,7 +78,7 @@ export function useVillageHome(municipalityId: string | null) {
     }
     setState((s) => ({ ...s, loading: true }));
     try {
-      const [mun, isAdmin, myReqs, bar, plc, members, evts] = await Promise.all([
+      const [mun, isAdmin, myReqs, bar, plc, members, evts, nws] = await Promise.all([
         withFirestoreErrorLog('villageHome:getMunicipality', () => getMunicipality(municipalityId)),
         uid
           ? withFirestoreErrorLog('villageHome:isVillageAdmin', () =>
@@ -93,6 +97,9 @@ export function useVillageHome(municipalityId: string | null) {
         ),
         withFirestoreErrorLog('villageHome:getEvents', () =>
           getEventsByMunicipality(municipalityId, 'published'),
+        ),
+        withFirestoreErrorLog('villageHome:getNews', () =>
+          getHomeFeed(municipalityId, { limit: 10 }),
         ),
       ]);
 
@@ -124,6 +131,7 @@ export function useVillageHome(municipalityId: string | null) {
         organizations: orgs,
         orgMemberCounts: countByOrg,
         events: upcoming,
+        news: nws,
         peopleCount: members.length,
         pendingOrganizerRequest: myReqs.some(
           (r) => r.municipalityId === municipalityId && r.status === 'pending',

@@ -1,5 +1,6 @@
-import { VStack, HStack, Text, Button, Input, Pressable, Avatar, FieldLabel } from '../../primitives';
+import { VStack, HStack, Text, Button, Input, Pressable, FieldLabel, ImagePickerField } from '../../primitives';
 import { pickImageAsBlob } from '../../../lib/images';
+import { useT } from '../../../lib/i18n';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 
 export interface ProposableTypeOption {
@@ -71,6 +72,7 @@ export function ProposableForm({
   saving,
   disabled,
 }: ProposableFormProps) {
+  const { t } = useT();
   const showImage = onImageChange !== undefined;
   const showDescription = onChangeDescription !== undefined;
   const showTypes = !!typeOptions && typeOptions.length > 0 && onChangeType !== undefined;
@@ -78,19 +80,16 @@ export function ProposableForm({
   return (
     <VStack gap={3}>
       {showImage ? (
-        <VStack gap={1} align="center">
-          <Pressable
+        <VStack gap={1} align="start">
+          <FieldLabel>{t('common.photo')}</FieldLabel>
+          <ImagePickerField
+            uri={image?.previewUri ?? null}
             onPress={async () => {
               const picked = await pickImageAsBlob();
               if (picked) onImageChange!(picked);
             }}
-            accessibilityLabel={image ? imageLabels?.selected : imageLabels?.add}
-          >
-            <Avatar size={72} uri={image?.previewUri ?? null} initials="+" />
-          </Pressable>
-          <Text tone="muted" variant="bodySm">
-            {image ? imageLabels?.selected : imageLabels?.add}
-          </Text>
+            label={(image ? imageLabels?.selected : imageLabels?.add) ?? ''}
+          />
         </VStack>
       ) : null}
 

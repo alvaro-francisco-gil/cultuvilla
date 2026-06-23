@@ -61,6 +61,7 @@ const base: VillageHomeState = {
   organizations: [],
   orgMemberCounts: {},
   events: [],
+  news: [],
   peopleCount: 3,
   pendingOrganizerRequest: false,
   myCensoAnswers: {},

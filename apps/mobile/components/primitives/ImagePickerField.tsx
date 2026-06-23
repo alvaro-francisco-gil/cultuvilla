@@ -1,0 +1,39 @@
+import { Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { colors } from '@cultuvilla/shared/design-system';
+import { Pressable } from './Pressable';
+
+const ACCENT = colors.light.fg.accent;
+
+export interface ImagePickerFieldProps {
+  /** Preview URI of the picked/existing image, or null/undefined for the empty state. */
+  uri?: string | null;
+  onPress: () => void;
+  /** Accessibility label (e.g. "Añadir imagen"). */
+  label: string;
+  /** Square side in px. */
+  size?: number;
+}
+
+// Image input that reuses the dashed "add" card affordance from the pueblo tab
+// (VillageSections.AddCard): an empty state shows a `+` on a dashed rounded
+// square; once an image is picked it fills the same square. Replaces the old
+// filled-circle Avatar picker so every image input reads as the same "add" card.
+export function ImagePickerField({ uri, onPress, label, size = 120 }: ImagePickerFieldProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityLabel={label}
+      className={`rounded-2xl overflow-hidden border items-center justify-center ${
+        uri ? 'border-subtle' : 'border-dashed border-subtle'
+      }`}
+      style={{ width: size, height: size }}
+    >
+      {uri ? (
+        <Image source={{ uri }} style={{ width: size, height: size }} resizeMode="cover" />
+      ) : (
+        <Ionicons name="add" size={44} color={ACCENT} />
+      )}
+    </Pressable>
+  );
+}

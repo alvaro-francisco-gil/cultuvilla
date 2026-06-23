@@ -1,13 +1,13 @@
 import { useState, type ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  Avatar,
   BarrioPicker,
   Button,
   DateField,
   FieldLabel,
   HStack,
+  ImagePickerField,
   Input,
   Pressable,
   Text,
@@ -218,17 +218,15 @@ export function PersonForm({
       render: () =>
         stepBody(
           <>
-            <FieldLabel>{t('profile.personForm.photo')}</FieldLabel>
-            <View className="items-center">
-              <Avatar
-                uri={photo?.previewUri ?? initial?.photoURL ?? undefined}
-                size={96}
-                onPress={async () => {
-                  const next = await pickImageAsBlob({ square: true });
-                  if (next) setPhoto(next);
-                }}
-              />
-            </View>
+            <FieldLabel>{t('common.photo')}</FieldLabel>
+            <ImagePickerField
+              uri={photo?.previewUri ?? initial?.photoURL ?? null}
+              onPress={async () => {
+                const next = await pickImageAsBlob({ square: true });
+                if (next) setPhoto(next);
+              }}
+              label={t('common.photo')}
+            />
             <Input
               label={t('onboarding.completeProfile.biography')}
               value={biography}

@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, Alert, ScrollView, View, Image, Linking } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { Text, VStack, HStack, Pressable, Escudo, Button, ScreenTitle } from '../primitives';
 import { ACCENT, Section, EntityCard } from './VillageSections';
 import { StatsRow } from './StatsRow';
@@ -18,6 +17,8 @@ import {
   getVillageInviteLink,
 } from '@cultuvilla/shared/services/deepLinkService';
 import { staticMapUrl, MAP_ZOOM_DEFAULT } from '@cultuvilla/shared/services/mapsService';
+import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
+import type { NewsPostData } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 import { formatDate } from '@cultuvilla/shared/utils';
 import {
   escudoFullUrl,
@@ -104,6 +105,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
     organizations,
     orgMemberCounts,
     events,
+    news,
     peopleCount,
     pendingOrganizerRequest,
   } = data;
@@ -214,19 +216,6 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
               </Text>
             </VStack>
           </HStack>
-          {/* Wiki phase: a plain member gets a direct entry to edit basic info. */}
-          {noOrganizer && isMember && !canManage ? (
-            <Pressable
-              onPress={() => router.push(`/village/${village.id}/edit-info` as never)}
-              accessibilityLabel={t('village.admin.overview.edit')}
-              className="flex-row items-center"
-            >
-              <Ionicons name="create-outline" size={16} color={ACCENT} />
-              <Text variant="bodySm" style={{ color: ACCENT }} className="ml-1 font-medium">
-                {t('village.admin.overview.edit')}
-              </Text>
-            </Pressable>
-          ) : null}
         </VStack>
 
         {/* ── Self-join CTA (non-members only) ──────────────────── */}
@@ -320,9 +309,6 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
         {/* ── No organizer yet (wiki phase) ─────────────────────── */}
         {noOrganizer ? (
           <VStack gap={2} className="px-4 pt-2">
-            <Text variant="bodySm" className="text-center">
-              {t('village.noOrganizer.body')}
-            </Text>
             {pendingOrganizerRequest ? (
               <Text tone="muted" variant="bodySm" className="text-center">
                 {t('village.noOrganizer.pending')}
@@ -346,6 +332,9 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
                 </Text>
               </Pressable>
             )}
+            <Text variant="bodySm" className="text-center">
+              {t('village.noOrganizer.body')}
+            </Text>
           </VStack>
         ) : null}
 
@@ -385,6 +374,21 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
               icon="calendar-outline"
               imageUri={e.imageURL ?? e.municipalityCoverImage}
               onPress={() => router.push(`/event/${e.id}` as never)}
+            />
+          ))}
+        </Section>
+
+        {/* ── Noticias ─────────────────────────────────────────── */}
+        <Section
+          title={t('village.newsFeed.title')}
+          isEmpty={news.length === 0}
+          emptyLabel={t('village.newsFeed.empty')}
+        >
+          {news.map((n) => (
+            <NewsEntityCard
+              key={n.id}
+              post={n}
+              onPress={() => router.push(`/news/${n.id}` as never)}
             />
           ))}
         </Section>
@@ -518,5 +522,49 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
         </HStack>
       </ScrollView>
     </>
+  );
+}
+
+/**
+ * News card for the village-home horizontal scroll. News images are Storage
+ * paths (not plain URLs like events), so resolve the first one asynchronously
+ * before handing it to <EntityCard>; falls back to the newspaper icon.
+ */
+function NewsEntityCard({
+  post,
+  onPress,
+}: {
+  post: NewsPostData & { id: string };
+  onPress: () => void;
+}) {
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const firstImagePath = post.images[0]?.storagePath ?? null;
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!firstImagePath) {
+      setImageUri(null);
+      return;
+    }
+    newsImageDownloadURL(firstImagePath)
+      .then((url) => {
+        if (!cancelled) setImageUri(url);
+      })
+      .catch(() => {
+        if (!cancelled) setImageUri(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [firstImagePath]);
+
+  return (
+    <EntityCard
+      label={post.title}
+      sub={formatDate(post.publishedAt ?? post.submittedAt, 'short')}
+      icon="newspaper-outline"
+      imageUri={imageUri}
+      onPress={onPress}
+    />
   );
 }

@@ -9,6 +9,7 @@ import {
   type CommunitySettingsEditorHandle,
 } from '../../../components/feature/CommunitySettingsEditor';
 import { VillageContentManager } from '../../../components/feature/proposable/VillageContentManager';
+import { MembersList } from '../../../components/feature/MembersList';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { useT } from '../../../lib/i18n';
 
@@ -61,6 +62,12 @@ export default function CommunityScreen() {
       title: t('village.edit.tabContent'),
       icon: 'list-outline',
       render: () => <VillageContentManager villageId={villageId} />,
+    },
+    {
+      key: 'members',
+      title: t('village.edit.tabMembers'),
+      icon: 'people-outline',
+      render: () => <MembersList villageId={villageId} />,
     },
   ];
 

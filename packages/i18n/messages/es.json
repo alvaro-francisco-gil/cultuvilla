@@ -202,7 +202,14 @@
     },
     "share": { "title": "Compartir pueblo" },
     "invite": { "title": "Invitar vecino" },
-    "edit": { "title": "Editar pueblo", "tabDetails": "Detalles", "tabContent": "Contenido" },
+    "edit": { "title": "Editar pueblo", "tabDetails": "Detalles", "tabContent": "Contenido", "tabMembers": "Miembros" },
+    "membersList": {
+      "roleAdmin": "Administrador",
+      "roleUser": "Miembro",
+      "censoComplete": "Censo completo",
+      "censoPending": "Censo pendiente",
+      "empty": "Aún no hay miembros."
+    },
     "events": {
       "label": "Eventos",
       "empty": "No hay eventos en este pueblo"
@@ -210,6 +217,10 @@
     "upcomingEvents": {
       "title": "Próximos eventos",
       "empty": "No hay eventos próximos"
+    },
+    "newsFeed": {
+      "title": "Noticias",
+      "empty": "Aún no hay noticias en este pueblo"
     },
     "info": {
       "directions": "Cómo llegar"
