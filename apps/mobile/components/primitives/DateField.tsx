@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from './Pressable';
 import { Text } from './Text';
+import { FieldLabel } from './FieldLabel';
 import { Button } from './Button';
 
 export interface DateFieldProps {
@@ -93,7 +94,7 @@ export function DateField({
 
   return (
     <View testID={testID}>
-      <Text tone="muted">{label}</Text>
+      <FieldLabel>{label}</FieldLabel>
       <View style={styles.row}>
         <SegmentButton text={yearLabel} onPress={() => setOpen('year')} testID={testID ? `${testID}-year` : undefined} />
         <SegmentButton text={monthLabel} onPress={() => setOpen('month')} testID={testID ? `${testID}-month` : undefined} />

@@ -60,4 +60,21 @@ describe('<Stepper>', () => {
     fireEvent.press(getByText('Crear'));
     expect(onComplete).toHaveBeenCalled();
   });
+
+  it('lets you jump directly to any step in edit mode (allStepsReachable)', () => {
+    const { getByText, getByTestId } = render(
+      <Stepper steps={makeSteps()} submitLabel="Crear" onComplete={() => {}} allStepsReachable />,
+    );
+    // Tap the second step's dot without pressing Next — it navigates directly.
+    fireEvent.press(getByTestId('step-dot-1'));
+    expect(getByText('content-b')).toBeTruthy();
+  });
+
+  it('blocks tapping a not-yet-reached step in create mode', () => {
+    const { getByTestId, queryByText } = render(
+      <Stepper steps={makeSteps()} submitLabel="Crear" onComplete={() => {}} />,
+    );
+    fireEvent.press(getByTestId('step-dot-1'));
+    expect(queryByText('content-b')).toBeNull();
+  });
 });

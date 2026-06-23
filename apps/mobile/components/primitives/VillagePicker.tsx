@@ -9,6 +9,7 @@ import {
 import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
 import { Pressable } from './Pressable';
 import { Text } from './Text';
+import { FieldLabel } from './FieldLabel';
 import { Button } from './Button';
 import { Escudo } from './Escudo';
 
@@ -83,7 +84,7 @@ export function VillagePicker({ label, value, onChange, placeholder = 'Sin puebl
 
   return (
     <View>
-      <Text tone="muted">{label}</Text>
+      <FieldLabel>{label}</FieldLabel>
       <Pressable onPress={() => setOpen(true)} accessibilityRole="button" style={styles.trigger}>
         <View style={styles.triggerInner}>
           {selected && (

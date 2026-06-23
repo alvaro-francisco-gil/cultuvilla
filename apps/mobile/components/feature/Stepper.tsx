@@ -22,12 +22,25 @@ export interface StepperProps {
   submitLabel: string;
   loading?: boolean;
   submitError?: string | null;
+  /**
+   * Edit mode: the record already exists, so every step is reachable and
+   * directly clickable from the start (no forward-validation gate). Defaults
+   * to false for create-from-scratch flows.
+   */
+  allStepsReachable?: boolean;
 }
 
-export function Stepper({ steps, onComplete, submitLabel, loading = false, submitError }: StepperProps) {
+export function Stepper({
+  steps,
+  onComplete,
+  submitLabel,
+  loading = false,
+  submitError,
+  allStepsReachable = false,
+}: StepperProps) {
   const { t } = useT();
   const [current, setCurrent] = useState(0);
-  const [highestReached, setHighestReached] = useState(0);
+  const [highestReached, setHighestReached] = useState(allStepsReachable ? steps.length - 1 : 0);
 
   // `current` is always a valid index (0..steps.length-1); the non-null assert
   // satisfies tsc's noUncheckedIndexedAccess without a runtime guard.
@@ -36,8 +49,10 @@ export function Stepper({ steps, onComplete, submitLabel, loading = false, submi
   const stepValid = (step.validate?.() ?? []).length === 0;
 
   function goTo(index: number) {
-    if (index <= current) {
-      setCurrent(index); // back nav never validates
+    // Edit mode: jump anywhere freely. Otherwise back nav is free, forward nav
+    // is gated by progress + current-step validity.
+    if (allStepsReachable || index <= current) {
+      setCurrent(index);
       return;
     }
     if (index <= highestReached && stepValid) setCurrent(index);
@@ -61,6 +76,8 @@ export function Stepper({ steps, onComplete, submitLabel, loading = false, submi
           onStepPress={goTo}
           icons={steps.map((s) => s.icon)}
           labels={steps.map((s) => s.title)}
+          complete={steps.map((s) => (s.validate?.() ?? []).length === 0)}
+          allReachable={allStepsReachable}
         />
       </View>
       {/* Content section. */}

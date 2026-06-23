@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { getBarrios } from '@cultuvilla/shared/services/municipalityService';
 import { Pressable } from './Pressable';
 import { Text } from './Text';
+import { FieldLabel } from './FieldLabel';
 import { Button } from './Button';
 
 interface Option {
@@ -68,7 +69,7 @@ export function BarrioPicker({
 
   return (
     <View>
-      <Text tone="muted">{label}</Text>
+      <FieldLabel>{label}</FieldLabel>
       <Pressable
         onPress={() => !disabled && setOpen(true)}
         accessibilityRole="button"

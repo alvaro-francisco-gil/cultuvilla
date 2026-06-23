@@ -6,6 +6,7 @@ import {
   BarrioPicker,
   Button,
   DateField,
+  FieldLabel,
   HStack,
   Input,
   Pressable,
@@ -44,6 +45,8 @@ export interface PersonFormProps {
   loading?: boolean;
   error?: string | null;
   requireFullName?: boolean;
+  /** Editing an existing person → every step is directly clickable. */
+  editing?: boolean;
   onSubmit: (values: PersonFormValues, photo: PersonFormPhoto | null) => Promise<void> | void;
 }
 
@@ -53,6 +56,7 @@ export function PersonForm({
   loading,
   error,
   requireFullName = false,
+  editing = false,
   onSubmit,
 }: PersonFormProps) {
   const { t } = useT();
@@ -147,9 +151,7 @@ export function PersonForm({
               onChangeText={setNickname}
             />
             <VStack gap={1}>
-              <Text variant="bodySm" tone="muted">
-                {t('onboarding.completeProfile.sex')}
-              </Text>
+              <FieldLabel>{t('onboarding.completeProfile.sex')}</FieldLabel>
               <HStack gap={2}>
                 {(['female', 'male', 'other'] as const).map((opt) => {
                   const active = sex === opt;
@@ -216,14 +218,7 @@ export function PersonForm({
       render: () =>
         stepBody(
           <>
-            <Input
-              label={t('onboarding.completeProfile.biography')}
-              value={biography}
-              onChangeText={setBiography}
-              multiline
-              numberOfLines={4}
-            />
-            <Text tone="muted">{t('profile.personForm.photo')}</Text>
+            <FieldLabel>{t('profile.personForm.photo')}</FieldLabel>
             <View className="items-center">
               <Avatar
                 uri={photo?.previewUri ?? initial?.photoURL ?? undefined}
@@ -234,6 +229,13 @@ export function PersonForm({
                 }}
               />
             </View>
+            <Input
+              label={t('onboarding.completeProfile.biography')}
+              value={biography}
+              onChangeText={setBiography}
+              multiline
+              numberOfLines={4}
+            />
           </>,
         ),
     },
@@ -247,6 +249,7 @@ export function PersonForm({
         submitLabel={submitLabel}
         loading={loading}
         submitError={error}
+        allStepsReachable={editing}
       />
     </KeyboardAvoidingView>
   );

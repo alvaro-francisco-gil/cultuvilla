@@ -37,3 +37,6 @@ scripts/data/escudos-webp-thumb/
 # apps/mobile/scripts/copy-well-known.mjs (per env), never committed.
 apps/mobile/public/.well-known/apple-app-site-association
 apps/mobile/public/.well-known/assetlinks.json
+
+# Tooling worktrees
+.claire/

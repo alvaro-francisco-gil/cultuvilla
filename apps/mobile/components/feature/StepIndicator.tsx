@@ -3,7 +3,7 @@ import { Fragment } from 'react';
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from '../primitives';
-import { colors, palette } from '@cultuvilla/shared/design-system';
+import { colors } from '@cultuvilla/shared/design-system';
 
 type Glyph = keyof typeof Ionicons.glyphMap;
 
@@ -16,13 +16,17 @@ export interface StepIndicatorProps {
   icons?: (Glyph | undefined)[];
   /** Accessibility label per step (the step title), since dots show no text. */
   labels?: (string | undefined)[];
+  /** Whether each step already has its info filled in (marks the circle). */
+  complete?: boolean[];
+  /** Edit mode: every step is reachable/clickable regardless of progress. */
+  allReachable?: boolean;
 }
 
-// Ionicons take a color value, not a NativeWind class — source it from the
-// tokens. Both reached and locked icons stay in the orange family (locked is a
-// lighter clay), so no step icon ever reads as green.
+// A step is "marked" by an accent circumference + icon once it has its info;
+// the circle is never filled. Not-yet-filled steps use neutral greys.
 const ACCENT = colors.light.fg.accent;
-const LOCKED = palette.clay;
+const IDLE_BORDER = '#cbd5e1';
+const IDLE_ICON = '#94a3b8';
 
 export function StepIndicator({
   count,
@@ -31,12 +35,21 @@ export function StepIndicator({
   onStepPress,
   icons,
   labels,
+  complete,
+  allReachable = false,
 }: StepIndicatorProps) {
   return (
     <View className="flex-row items-center justify-center px-5 py-3">
       {Array.from({ length: count }, (_, i) => {
-        const reached = i <= highestReached;
-        const glyph: Glyph = icons?.[i] ?? 'ellipse';
+        const reached = allReachable || i <= highestReached;
+        // Marked only once the step has been reached AND has its info.
+        const marked = reached && (complete?.[i] ?? false);
+        const baseGlyph: Glyph = icons?.[i] ?? 'ellipse';
+        // The step you're on shows the filled icon variant; others stay outline.
+        // Ionicons names filled variants without the `-outline` suffix; guard
+        // against glyphs that have no filled counterpart.
+        const filled = baseGlyph.replace(/-outline$/, '') as Glyph;
+        const glyph: Glyph = i === current && filled in Ionicons.glyphMap ? filled : baseGlyph;
         return (
           <Fragment key={i}>
             <Pressable
@@ -44,14 +57,13 @@ export function StepIndicator({
               accessibilityLabel={labels?.[i]}
               disabled={!reached}
               onPress={() => onStepPress(i)}
-              className={`w-10 h-10 rounded-full border bg-surface-elevated items-center justify-center ${
-                reached ? 'border-accent' : 'border-subtle'
-              }`}
+              className="w-9 h-9 rounded-full border-2 items-center justify-center"
+              style={{ borderColor: marked ? ACCENT : IDLE_BORDER }}
             >
-              <Ionicons name={glyph} size={20} color={reached ? ACCENT : LOCKED} />
+              <Ionicons name={glyph} size={18} color={marked ? ACCENT : IDLE_ICON} />
             </Pressable>
             {i < count - 1 && (
-              <View className={`w-12 h-0.5 mx-2 ${i < current ? 'bg-accent' : 'bg-subtle'}`} />
+              <View className="w-12 h-0.5 mx-2" style={{ backgroundColor: IDLE_BORDER }} />
             )}
           </Fragment>
         );

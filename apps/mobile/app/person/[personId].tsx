@@ -155,6 +155,7 @@ export default function PersonDetailScreen() {
           submitLabel={isNew ? t('profile.personasSection.add') : t('profile.personEdit')}
           loading={saving}
           error={error}
+          editing={!isNew}
           onSubmit={onSubmit}
         />
       )}
