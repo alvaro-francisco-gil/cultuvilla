@@ -44,7 +44,7 @@ async function seedBarrio(barrioId: string, status: 'approved' | 'pending'): Pro
 
 async function personLinks(): Promise<unknown[]> {
   const snap = await admin.firestore().doc(`persons/${PERSON}`).get();
-  return (snap.get('municipalityLinks') as unknown[]) ?? [];
+  return (snap.get('municipalityLinks') as unknown[] | undefined) ?? [];
 }
 
 /** Fire the trigger. Pass `null` for before/after to simulate create/delete. */

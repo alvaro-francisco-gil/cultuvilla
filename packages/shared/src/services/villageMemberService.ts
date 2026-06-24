@@ -68,10 +68,7 @@ export async function updateVillageMemberBarrio(
 ): Promise<void> {
   // Plain (converter-less) ref: a partial single-field update bypasses the
   // converter's full-document parse, matching how other services patch one key.
-  await updateDoc(
-    doc(getDb(), 'municipalities', municipalityId, 'members', userId),
-    { barrioId },
-  );
+  await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'members', userId), { barrioId });
 }
 
 export async function removeVillageMember(

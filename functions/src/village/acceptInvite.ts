@@ -142,6 +142,7 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
         profileAnswers: {},
         profileCompletedAt: null,
         trustedNewsAuthor: false,
+        barrioId: null,
       };
       tx.set(memberRef, newMember);
       // tx.update bypasses the converter, so FieldValue.increment is fine.
