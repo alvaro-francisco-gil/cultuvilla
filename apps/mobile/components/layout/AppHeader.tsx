@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from '../primitives/Pressable';
 import { Text } from '../primitives/Text';
 import { useAuth } from '../../lib/auth/useAuth';
+import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useT } from '../../lib/i18n';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { UserMenuModal } from '../feature/UserMenuModal';
@@ -19,7 +20,8 @@ export type AppHeaderProps = {
 
 export function AppHeader({ centerLabel, extraRightSlot }: AppHeaderProps) {
   const insets = useSafeAreaInsets();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
+  const gate = useRegisterGate();
   const { t } = useT();
   const [municipalityName, setMunicipalityName] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -72,7 +74,12 @@ export function AppHeader({ centerLabel, extraRightSlot }: AppHeaderProps) {
               <Ionicons name="notifications" size={28} color="#f9f0e8" />
             </Pressable>
             <Pressable
-              onPress={() => setMenuOpen(true)}
+              onPress={() => {
+                // The menu is entirely auth-only (profile, sign-out, my
+                // signups); guests get the RegisterSheet instead.
+                if (user) setMenuOpen(true);
+                else gate.requireAuth('/(tabs)/profile', t('guest.menu'));
+              }}
               accessibilityLabel={t('header.openMenu')}
               className="p-1 -mr-1"
             >

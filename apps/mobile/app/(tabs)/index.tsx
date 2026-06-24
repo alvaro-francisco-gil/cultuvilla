@@ -25,6 +25,7 @@ import { FilterPill, FILTER_PILL_HEIGHT } from '../../components/feature/FilterP
 import { FilterSheet, type FilterSheetOption } from '../../components/feature/FilterSheet';
 import { AppHeader } from '../../components/layout/AppHeader';
 import { useAuth } from '../../lib/auth/useAuth';
+import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useT } from '../../lib/i18n';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
 import { getUpcomingFeed, haversineKm } from '@cultuvilla/shared/services/feedService';
@@ -67,7 +68,18 @@ const TABS: FeedTab[] = ['eventos', 'noticias'];
 export default function FeedScreen() {
   const { t } = useT();
   const { profile } = useAuth();
+  const gate = useRegisterGate();
   const activeMunicipalityId = profile?.activeMunicipalityId ?? null;
+
+  // Guests can browse the feed, but creating an event/article requires auth.
+  // requireAuth returns true only when signed in; otherwise it opens the
+  // RegisterSheet and we skip navigation.
+  const createEvent = useCallback(() => {
+    if (gate.requireAuth('/event/new', t('guest.createEvent'))) router.push('/event/new');
+  }, [gate, t]);
+  const createNews = useCallback(() => {
+    if (gate.requireAuth('/news/new', t('guest.createNews'))) router.push('/news/new');
+  }, [gate, t]);
   const { width } = useWindowDimensions();
   const pagerRef = useRef<ScrollView>(null);
 
@@ -396,7 +408,7 @@ export default function FeedScreen() {
             <Text tone="muted" className="mt-3 mb-4 text-center">
               {t('feed.empty')}
             </Text>
-            <Button onPress={() => router.push('/event/new')}>{t('feed.events.create')}</Button>
+            <Button onPress={createEvent}>{t('feed.events.create')}</Button>
           </View>
         }
         renderItem={({ item }) => (
@@ -451,7 +463,7 @@ export default function FeedScreen() {
             <Text tone="muted" className="mt-3 mb-4 text-center">
               {t('feed.news.empty')}
             </Text>
-            <Button onPress={() => router.push('/news/new')}>{t('feed.news.create')}</Button>
+            <Button onPress={createNews}>{t('feed.news.create')}</Button>
           </View>
         }
         renderItem={({ item }) => (
@@ -556,7 +568,7 @@ export default function FeedScreen() {
         label={activeTab === 'noticias' ? t('feed.news.create') : t('feed.events.create')}
         opacity={filterOpacity}
         interactive={filterInteractive}
-        onPress={() => router.push(activeTab === 'noticias' ? '/news/new' : '/event/new')}
+        onPress={() => (activeTab === 'noticias' ? createNews() : createEvent())}
       />
     </Screen>
   );

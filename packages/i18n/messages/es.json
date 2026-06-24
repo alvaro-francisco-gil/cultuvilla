@@ -119,6 +119,9 @@
     "profile": "Regístrate para crear tu perfil.",
     "event": "Regístrate para apuntarte a este evento.",
     "org": "Regístrate para unirte a esta organización.",
+    "menu": "Regístrate para acceder al menú.",
+    "createEvent": "Regístrate para crear un evento.",
+    "createNews": "Regístrate para crear un artículo.",
     "eventCta": "Apuntarme",
     "register": "Registrarse",
     "dismiss": "Ahora no"
