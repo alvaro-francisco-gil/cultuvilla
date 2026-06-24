@@ -5,6 +5,8 @@ import { Screen, Text } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { PersonForm } from '../../components/feature/PersonForm';
 import type { PersonFormPhoto, PersonFormValues } from '../../components/feature/PersonForm';
+import { MembershipBarrioList } from '../../components/feature/MembershipBarrioList';
+import { ResidenceLinksEditor } from '../../components/feature/ResidenceLinksEditor';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 import {
@@ -13,7 +15,6 @@ import {
   updatePerson,
 } from '@cultuvilla/shared/services/personService';
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
-import { buildResidenceLinks } from '@cultuvilla/shared/models/person';
 import type { MunicipalityLink, PartialDate, PersonData } from '@cultuvilla/shared/models/person';
 
 type PersonDoc = PersonData & { id: string };
@@ -39,6 +40,21 @@ export default function PersonDetailScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Whether this is the caller editing their own persona. Own personas are
+  // account-holders, so residence (village + barrio) is membership-driven and
+  // edited via MembershipBarrioList (immediate per-row writes); the trigger
+  // owns their municipalityLinks. Everyone else (new + non-account persons) gets
+  // the direct multi-village links editor.
+  const isOwnPersona = !isNew && person?.userId != null && person.userId === user?.uid;
+
+  // Residence links for the non-account (links-mode) editor. Seeded from the
+  // person's existing links, or the caller's active village for a new person.
+  const [links, setLinks] = useState<MunicipalityLink[]>(
+    profile?.activeMunicipalityId
+      ? [{ municipalityId: profile.activeMunicipalityId, barrioId: null }]
+      : [],
+  );
+
   useEffect(() => {
     if (isNew || !personId) {
       setLoading(false);
@@ -47,7 +63,9 @@ export default function PersonDetailScreen() {
     let cancelled = false;
     getPerson(personId)
       .then((p) => {
-        if (!cancelled) setPerson(p);
+        if (cancelled) return;
+        setPerson(p);
+        if (p) setLinks(p.municipalityLinks);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -69,7 +87,10 @@ export default function PersonDetailScreen() {
       const birthPlaceLink: MunicipalityLink | null = values.birthPlaceMunicipalityId
         ? { municipalityId: values.birthPlaceMunicipalityId, barrioId: null }
         : null;
-      const municipalityLinks = buildResidenceLinks(values.municipalityId, values.barrioId);
+      // Links-mode persons own municipalityLinks directly (drop unfilled rows).
+      // Own personas omit it entirely — the membership trigger is the source of
+      // truth and would otherwise be clobbered by a stale form snapshot.
+      const cleanedLinks = links.filter((l) => l.municipalityId);
 
       let pid: string;
       if (isNew) {
@@ -81,7 +102,7 @@ export default function PersonDetailScreen() {
           sex: values.sex,
           birthday: toPartialDate(values.birthday),
           birthPlace: birthPlaceLink,
-          municipalityLinks,
+          municipalityLinks: cleanedLinks,
           biography: values.biography.trim() || null,
           createdBy: user.uid,
         });
@@ -96,8 +117,9 @@ export default function PersonDetailScreen() {
           sex: values.sex,
           birthday: toPartialDate(values.birthday),
           birthPlace: birthPlaceLink,
-          municipalityLinks,
           biography: values.biography.trim() || null,
+          // Own persona: leave municipalityLinks to the membership trigger.
+          ...(isOwnPersona ? {} : { municipalityLinks: cleanedLinks }),
         });
       }
 
@@ -130,13 +152,10 @@ export default function PersonDetailScreen() {
         sex: person.sex,
         birthday: partialDateToDate(person.birthday),
         birthPlaceMunicipalityId: person.birthPlace?.municipalityId ?? null,
-        municipalityId: person.municipalityLinks[0]?.municipalityId ?? null,
-        barrioId: person.municipalityLinks[0]?.barrioId ?? null,
         biography: person.biography ?? '',
         photoURL: person.photoURL,
       }
-    : // New person: default residence to the user's currently selected village.
-      { municipalityId: profile?.activeMunicipalityId ?? null };
+    : undefined;
 
   return (
     <Screen padded={false} topInset={false}>
@@ -156,6 +175,13 @@ export default function PersonDetailScreen() {
           loading={saving}
           error={error}
           editing={!isNew}
+          renderResidence={() =>
+            isOwnPersona && user ? (
+              <MembershipBarrioList userId={user.uid} />
+            ) : (
+              <ResidenceLinksEditor value={links} onChange={setLinks} />
+            )
+          }
           onSubmit={onSubmit}
         />
       )}

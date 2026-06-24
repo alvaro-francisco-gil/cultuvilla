@@ -527,7 +527,12 @@
       "wholeVillage": "Todo el pueblo",
       "stepIdentity": "Identidad",
       "stepResidence": "Origen y residencia",
-      "stepAbout": "Sobre ti"
+      "stepAbout": "Sobre ti",
+      "myVillagesHeading": "Tus pueblos y barrios",
+      "noVillages": "Aún no perteneces a ningún pueblo. Únete a uno para elegir tu barrio.",
+      "residenceHeading": "Pueblos de residencia",
+      "addVillage": "Añadir pueblo",
+      "removeVillage": "Quitar"
     },
     "personDetailTitle": "Persona",
     "personEdit": "Editar",

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Screen } from '../../components/primitives';
+import { Screen, VillagePicker, BarrioPicker } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { PersonForm } from '../../components/feature/PersonForm';
 import type { PersonFormPhoto, PersonFormValues } from '../../components/feature/PersonForm';
@@ -14,6 +14,7 @@ import {
   createUserProfile,
   patchUserProfile,
 } from '@cultuvilla/shared/services/userService';
+import { updateVillageMemberBarrio } from '@cultuvilla/shared/services/villageMemberService';
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
 import { buildResidenceLinks } from '@cultuvilla/shared/models/person';
 import type { MunicipalityLink, PartialDate } from '@cultuvilla/shared/models/person';
@@ -29,6 +30,18 @@ export default function CompleteProfileScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Onboarding residence: a single village (defaulting to the one just joined)
+  // plus its barrio. The village is rarely changed here but stays editable.
+  const [municipalityId, setMunicipalityId] = useState<string | null>(
+    profile?.activeMunicipalityId ?? null,
+  );
+  const [barrioId, setBarrioId] = useState<string | null>(null);
+
+  function handleVillageChange(id: string | null) {
+    setMunicipalityId(id);
+    setBarrioId(null);
+  }
+
   async function onSubmit(values: PersonFormValues, photo: PersonFormPhoto | null) {
     if (!user) return;
     setError(null);
@@ -37,7 +50,7 @@ export default function CompleteProfileScreen() {
       const birthPlaceLink: MunicipalityLink | null = values.birthPlaceMunicipalityId
         ? { municipalityId: values.birthPlaceMunicipalityId, barrioId: null }
         : null;
-      const municipalityLinks = buildResidenceLinks(values.municipalityId, values.barrioId);
+      const municipalityLinks = buildResidenceLinks(municipalityId, barrioId);
 
       let personId: string;
       if (profile?.personId) {
@@ -61,6 +74,17 @@ export default function CompleteProfileScreen() {
             });
       }
 
+      // Record the barrio on the membership too (the editable source of truth).
+      // Best-effort: a user without a membership for this village just keeps the
+      // link written above; the sync trigger reconciles to the same value.
+      if (municipalityId) {
+        try {
+          await updateVillageMemberBarrio(municipalityId, user.uid, barrioId);
+        } catch {
+          /* no membership yet — the link above already covers residence */
+        }
+      }
+
       if (photo) {
         const url = await uploadUserPhoto(user.uid, {
           blob: photo.blob,
@@ -71,7 +95,7 @@ export default function CompleteProfileScreen() {
       }
 
       const profilePatch = {
-        activeMunicipalityId: values.municipalityId,
+        activeMunicipalityId: municipalityId,
         personId,
       };
       if (profile) {
@@ -93,10 +117,25 @@ export default function CompleteProfileScreen() {
       <ScreenHeader accent hideBack title={t('onboarding.completeProfile.title')} />
       <PersonForm
         requireFullName
-        initial={{ municipalityId: profile?.activeMunicipalityId ?? null }}
         submitLabel={t('onboarding.completeProfile.submit')}
         loading={loading}
         error={error}
+        renderResidence={() => (
+          <>
+            <VillagePicker
+              label={t('profile.personForm.village')}
+              value={municipalityId}
+              onChange={handleVillageChange}
+            />
+            <BarrioPicker
+              label={t('profile.personForm.barrio')}
+              municipalityId={municipalityId}
+              value={barrioId}
+              onChange={setBarrioId}
+              wholeVillageLabel={t('profile.personForm.wholeVillage')}
+            />
+          </>
+        )}
         onSubmit={onSubmit}
       />
     </Screen>
