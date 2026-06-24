@@ -101,6 +101,7 @@ export const respondToOrganizerRequest = onCall<
             profileAnswers: {},
             profileCompletedAt: null,
             trustedNewsAuthor: false,
+            barrioId: null,
           };
           tx.set(memberRef, newMember);
         }

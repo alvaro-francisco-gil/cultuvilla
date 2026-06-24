@@ -15,6 +15,7 @@ import {
   getDoc,
   getDocs,
   setDoc,
+  updateDoc,
   query,
   collectionGroup,
   where,
@@ -168,6 +169,62 @@ describe('firestore.rules — self-join membership create', () => {
     const db = env.unauthenticatedContext().firestore();
     await assertFails(
       setDoc(doc(db, 'municipalities/mActive/members/alice'), memberDocData()),
+    );
+  });
+
+  it('owner can self-join with a barrioId set', async () => {
+    await seedActiveMunicipality();
+    const db = env.authenticatedContext(ALICE).firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'municipalities/mActive/members/alice'), {
+        ...memberDocData(),
+        barrioId: 'centro',
+      }),
+    );
+  });
+});
+
+describe('firestore.rules — member barrioId self-update', () => {
+  async function seedAliceMember() {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'municipalities/mActive'), { name: 'Activo', communityActive: true });
+      await setDoc(doc(db, 'municipalities/mActive/members/alice'), memberDocData());
+    });
+  }
+
+  it('owner can update their own barrioId', async () => {
+    await seedAliceMember();
+    const db = env.authenticatedContext(ALICE).firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'municipalities/mActive/members/alice'), { barrioId: 'centro' }),
+    );
+  });
+
+  it('owner can clear their barrioId back to null', async () => {
+    await seedAliceMember();
+    const db = env.authenticatedContext(ALICE).firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'municipalities/mActive/members/alice'), { barrioId: null }),
+    );
+  });
+
+  it('owner cannot change role while updating barrioId', async () => {
+    await seedAliceMember();
+    const db = env.authenticatedContext(ALICE).firestore();
+    await assertFails(
+      updateDoc(doc(db, 'municipalities/mActive/members/alice'), {
+        barrioId: 'centro',
+        role: 'admin',
+      }),
+    );
+  });
+
+  it('a different user cannot update alice barrioId', async () => {
+    await seedAliceMember();
+    const db = env.authenticatedContext('mallory').firestore();
+    await assertFails(
+      updateDoc(doc(db, 'municipalities/mActive/members/alice'), { barrioId: 'centro' }),
     );
   });
 });

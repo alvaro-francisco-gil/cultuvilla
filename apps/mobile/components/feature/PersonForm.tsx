@@ -2,7 +2,6 @@ import { useState, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  BarrioPicker,
   Button,
   DateField,
   FieldLabel,
@@ -28,10 +27,6 @@ export interface PersonFormValues {
   sex: Sex | null;
   birthday: Date | null;
   birthPlaceMunicipalityId: string | null;
-  /** Residence village → stored as the person's municipalityLinks. */
-  municipalityId: string | null;
-  /** Residence barrio within `municipalityId`; null = whole village. */
-  barrioId: string | null;
   biography: string;
 }
 
@@ -47,6 +42,14 @@ export interface PersonFormProps {
   requireFullName?: boolean;
   /** Editing an existing person → every step is directly clickable. */
   editing?: boolean;
+  /**
+   * Residence editor injected into the Residence step, below birthplace. The
+   * parent owns the residence model — membership-driven barrio pickers for the
+   * caller's own persona, a multi-village links editor for non-account persons,
+   * or a single village+barrio at onboarding — so PersonForm stays agnostic to
+   * how residence is stored.
+   */
+  renderResidence?: () => ReactNode;
   onSubmit: (values: PersonFormValues, photo: PersonFormPhoto | null) => Promise<void> | void;
 }
 
@@ -57,6 +60,7 @@ export function PersonForm({
   error,
   requireFullName = false,
   editing = false,
+  renderResidence,
   onSubmit,
 }: PersonFormProps) {
   const { t } = useT();
@@ -71,18 +75,7 @@ export function PersonForm({
   const [birthPlace, setBirthPlace] = useState<string | null>(
     initial?.birthPlaceMunicipalityId ?? null
   );
-  const [municipalityId, setMunicipalityId] = useState<string | null>(
-    initial?.municipalityId ?? null
-  );
-  const [barrioId, setBarrioId] = useState<string | null>(initial?.barrioId ?? null);
   const [biography, setBiography] = useState(initial?.biography ?? '');
-
-  // A barrio only makes sense within its village, so changing the village
-  // clears any previously selected barrio.
-  function handleVillageChange(id: string | null) {
-    setMunicipalityId(id);
-    setBarrioId(null);
-  }
 
   async function handleSubmit() {
     await onSubmit(
@@ -94,8 +87,6 @@ export function PersonForm({
         sex,
         birthday,
         birthPlaceMunicipalityId: birthPlace,
-        municipalityId,
-        barrioId,
         biography,
       },
       photo
@@ -196,18 +187,7 @@ export function PersonForm({
               value={birthPlace}
               onChange={setBirthPlace}
             />
-            <VillagePicker
-              label={t('profile.personForm.village')}
-              value={municipalityId}
-              onChange={handleVillageChange}
-            />
-            <BarrioPicker
-              label={t('profile.personForm.barrio')}
-              municipalityId={municipalityId}
-              value={barrioId}
-              onChange={setBarrioId}
-              wholeVillageLabel={t('profile.personForm.wholeVillage')}
-            />
+            {renderResidence?.()}
           </>,
         ),
     },

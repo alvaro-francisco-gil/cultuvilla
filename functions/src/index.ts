@@ -16,6 +16,7 @@ export { updateVillageInfo } from './village/updateVillageInfo';
 export { requestOrganizeVillage } from './village/requestOrganizeVillage';
 export { respondToOrganizerRequest } from './village/respondToOrganizerRequest';
 export { syncVillageDenormalization } from './village/syncVillageDenormalization';
+export { syncMemberBarrioToResidence } from './village/syncMemberBarrioToResidence';
 
 // Organizations (ayuntamiento singleton enforcement)
 export { requestAyuntamiento } from './organizations/requestAyuntamiento';

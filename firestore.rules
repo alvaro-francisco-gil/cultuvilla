@@ -566,7 +566,7 @@ service cloud.firestore {
                        )
                        || (isOwner(userId)
                            && request.resource.data.diff(resource.data).affectedKeys()
-                              .hasOnly(['profileAnswers', 'profileCompletedAt']));
+                              .hasOnly(['profileAnswers', 'profileCompletedAt', 'barrioId']));
         allow delete: if isVillageAdmin(municipalityId) || isAppAdmin() || isOwner(userId);
       }
 

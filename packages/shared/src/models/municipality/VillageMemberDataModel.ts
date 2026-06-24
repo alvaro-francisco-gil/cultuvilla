@@ -17,6 +17,13 @@ export const VillageMemberDataSchema = z.object({
   profileAnswers: ProfileAnswersSchema,
   profileCompletedAt: z.date().nullable(),
   trustedNewsAuthor: z.boolean(),
+  // Residence barrio within this municipality. null = "Todo el pueblo" (whole
+  // village). Source of truth for an account-holder's barrio; a Cloud Function
+  // trigger (syncMemberBarrioToResidence) projects it into the linked person's
+  // `municipalityLinks` entry so `getPersonsByBarrio` keeps working. Defaults
+  // to null so member docs written before this field existed still parse on
+  // read (the converter strict-parses) — no backfill race.
+  barrioId: z.string().nullable().default(null),
 });
 export type VillageMemberData = z.infer<typeof VillageMemberDataSchema>;
 
@@ -27,6 +34,7 @@ export interface VillageMemberDataInput {
   profileAnswers?: z.infer<typeof ProfileAnswersSchema>;
   profileCompletedAt?: Date | null;
   trustedNewsAuthor?: boolean;
+  barrioId?: string | null;
 }
 
 export function buildVillageMemberData(input: VillageMemberDataInput): VillageMemberData {
@@ -37,5 +45,6 @@ export function buildVillageMemberData(input: VillageMemberDataInput): VillageMe
     profileAnswers: input.profileAnswers ?? {},
     profileCompletedAt: input.profileCompletedAt ?? null,
     trustedNewsAuthor: input.trustedNewsAuthor ?? false,
+    barrioId: input.barrioId ?? null,
   };
 }

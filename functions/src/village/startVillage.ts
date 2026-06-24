@@ -93,6 +93,7 @@ export const startVillage = onCall<StartVillageData, Promise<StartVillageResult>
         profileAnswers: {},
         profileCompletedAt: null,
         trustedNewsAuthor: false,
+        barrioId: null,
       };
       tx.set(memberRef, newMember);
     });

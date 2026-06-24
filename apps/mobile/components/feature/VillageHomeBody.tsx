@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, Alert, ScrollView, View, Image, Linking } from 'react-native';
+import { ActivityIndicator, ScrollView, View, Image, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { Text, VStack, HStack, Pressable, Escudo, Button, ScreenTitle } from '../primitives';
 import { ACCENT, Section, EntityCard } from './VillageSections';
+import { JoinVillageModal } from './JoinVillageModal';
 import { StatsRow } from './StatsRow';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
@@ -45,6 +46,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
   const share = useShareDeepLink();
   const { t } = useT();
   const [joining, setJoining] = useState(false);
+  const [pendingJoin, setPendingJoin] = useState(false);
 
   const { loading, loadError, village } = data;
 
@@ -171,26 +173,22 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
       router.push('/(auth)/login' as never);
       return;
     }
-    const title = t('village.joinConfirm.title');
-    const body = t('village.joinConfirm.body');
-    const doJoin = async () => {
-      setJoining(true);
-      try {
-        await addVillageMember(village.id, user.uid);
-        await reload();
-      } finally {
-        setJoining(false);
-      }
-    };
-    // react-native-web 0.21 ships Alert.alert as a no-op; use window.confirm on web.
-    if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined' && window.confirm(`${title}\n\n${body}`)) void doJoin();
-      return;
+    // Open the shared modal (escudo + name + barrio picker). Replaces the old
+    // Alert.alert / window.confirm path, which is a no-op on web and could not
+    // host the barrio picker.
+    setPendingJoin(true);
+  };
+
+  const doJoin = async (barrioId: string | null) => {
+    if (!user) return;
+    setJoining(true);
+    try {
+      await addVillageMember(village.id, user.uid, 'user', barrioId);
+      setPendingJoin(false);
+      await reload();
+    } finally {
+      setJoining(false);
     }
-    Alert.alert(title, body, [
-      { text: t('village.joinConfirm.cancel'), style: 'cancel' },
-      { text: t('village.joinConfirm.confirm'), onPress: () => void doJoin() },
-    ]);
   };
 
   return (
@@ -521,6 +519,21 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           ) : null}
         </HStack>
       </ScrollView>
+      <JoinVillageModal
+        municipality={
+          pendingJoin
+            ? {
+                id: village.id,
+                name: village.name,
+                escudoUrl: escudoFullUrl(village),
+                escudoFill: hasManualEscudo(village),
+              }
+            : null
+        }
+        busy={joining}
+        onCancel={() => setPendingJoin(false)}
+        onConfirm={(barrioId) => void doJoin(barrioId)}
+      />
     </>
   );
 }

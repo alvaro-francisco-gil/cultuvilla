@@ -1,8 +1,10 @@
 import {
   collectionGroup,
+  doc,
   getDoc,
   getDocs,
   setDoc,
+  updateDoc,
   deleteDoc,
   where,
   query,
@@ -37,6 +39,7 @@ export async function addVillageMember(
   municipalityId: string,
   userId: string,
   role: VillageMemberRole = 'user',
+  barrioId: string | null = null,
 ): Promise<void> {
   const ref = municipalityMemberDoc(getDb(), municipalityId, userId);
   await setDoc(ref, {
@@ -46,7 +49,26 @@ export async function addVillageMember(
     profileAnswers: {},
     profileCompletedAt: null,
     trustedNewsAuthor: false,
+    barrioId,
   });
+}
+
+/**
+ * Set the caller's residence barrio within a village they already belong to.
+ * `null` means "Todo el pueblo" (whole village). The
+ * `syncMemberBarrioToResidence` trigger projects this into the linked person's
+ * `municipalityLinks` so the barrio residents list stays consistent. An invalid
+ * barrioId (not an approved barrio of this municipality) is normalized to null
+ * by that trigger — the picker prevents it on the honest path.
+ */
+export async function updateVillageMemberBarrio(
+  municipalityId: string,
+  userId: string,
+  barrioId: string | null,
+): Promise<void> {
+  // Plain (converter-less) ref: a partial single-field update bypasses the
+  // converter's full-document parse, matching how other services patch one key.
+  await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'members', userId), { barrioId });
 }
 
 export async function removeVillageMember(
@@ -78,6 +100,7 @@ export interface UserMembership {
   role: VillageMemberRole;
   joinedAt: Date;
   profileCompletedAt: Date | null;
+  barrioId: string | null;
 }
 
 export async function getUserMemberships(userId: string): Promise<UserMembership[]> {
@@ -96,6 +119,7 @@ export async function getUserMemberships(userId: string): Promise<UserMembership
         role: data.role,
         joinedAt: data.joinedAt,
         profileCompletedAt: data.profileCompletedAt,
+        barrioId: data.barrioId,
       };
     });
 }

@@ -1,5 +1,4 @@
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { VillageHomeBody } from '../VillageHomeBody';
 import type { VillageHomeState } from '../../../lib/useVillageHome';
@@ -23,6 +22,13 @@ jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({
 const mockAddVillageMember = jest.fn(async (..._a: unknown[]) => undefined);
 jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
   addVillageMember: (...a: unknown[]) => mockAddVillageMember(...a),
+}));
+// JoinVillageModal's barrio picker fetches approved barrios; none here, so the
+// picker hides itself and the modal shows only escudo + name + confirm.
+jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
+  getBarrios: jest.fn().mockResolvedValue([]),
+  deletePlace: jest.fn(),
+  deleteBarrio: jest.fn(),
 }));
 // Real Spanish catalog so we can assert on the visible strings.
 jest.mock('../../../lib/i18n', () => {
@@ -76,18 +82,18 @@ describe('VillageHomeBody', () => {
   });
 
   it('shows the join CTA for a non-member and joins on confirm', async () => {
-    // Native path: Alert.alert is used; auto-press the confirm button.
-    const spy = jest.spyOn(Alert, 'alert').mockImplementation((_t, _b, btns) => {
-      btns?.find((x) => x.text !== 'Cancelar')?.onPress?.();
-    });
     const reload = jest.fn();
     const { getByText } = render(
       <VillageHomeBody data={{ ...base, isMember: false }} reload={reload} />,
     );
+    // Press the CTA → the shared JoinVillageModal opens (escudo + name + confirm).
     fireEvent.press(getByText('Unirme a este pueblo'));
-    await waitFor(() => expect(mockAddVillageMember).toHaveBeenCalledWith('m1', 'u1'));
+    // Confirm inside the modal → joins with the chosen barrio (null = whole village).
+    fireEvent.press(await waitFor(() => getByText('Unirme')));
+    await waitFor(() =>
+      expect(mockAddVillageMember).toHaveBeenCalledWith('m1', 'u1', 'user', null),
+    );
     expect(reload).toHaveBeenCalled();
-    spy.mockRestore();
   });
 
   it('renders the start-village notice when the community is dormant', () => {
