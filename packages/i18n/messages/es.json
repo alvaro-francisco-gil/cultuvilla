@@ -43,14 +43,8 @@
       "invalid": "Este enlace ha caducado o no es válido. Pide uno nuevo."
     },
     "login": {
-      "title": "Iniciar sesión",
-      "submit": "Enviar enlace",
-      "toSignup": "¿No tienes cuenta? Crear una"
-    },
-    "signup": {
-      "title": "Crear cuenta",
-      "submit": "Enviar enlace",
-      "toLogin": "¿Ya tienes cuenta? Iniciar sesión"
+      "title": "Correo electrónico",
+      "submit": "Enviar enlace"
     },
     "error": {
       "unknown": "Algo salió mal"

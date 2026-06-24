@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'expo-router';
 import { Button, Input, Text, VStack } from '../../components/primitives';
 import {
   AuthCard,
@@ -50,7 +49,6 @@ export default function LoginScreen() {
       <AuthHeader title={t('auth.login.title')} />
       <VStack gap={3}>
         <Input
-          label={t('auth.email')}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -71,11 +69,6 @@ export default function LoginScreen() {
         </Button>
         <OrDivider />
         <GoogleButton onPress={onGoogle} loading={googleLoading} testID="login-google-button" />
-        <Link href="/signup">
-          <Text tone="muted" className="text-center">
-            {t('auth.login.toSignup')}
-          </Text>
-        </Link>
       </VStack>
     </AuthCard>
   );
