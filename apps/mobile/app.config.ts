@@ -141,6 +141,19 @@ const config: ExpoConfig = {
     firebaseConfig: firebaseConfigPerEnv[env],
     googleSignIn: googleSignInPerEnv[env],
     deepLinkHost: deepLinkHostPerEnv[env],
+    // Dev-only auto sign-in: when DEV_AUTOLOGIN_EMAIL/PASSWORD are set in a
+    // `dev` build, the app signs straight into that account on launch instead
+    // of the email-link round-trip. Gated to env === 'dev' here AND behind
+    // __DEV__ in AuthContext, so the creds never reach a beta/prod bundle.
+    devAutoLogin:
+      env === 'dev' &&
+      process.env['DEV_AUTOLOGIN_EMAIL'] &&
+      process.env['DEV_AUTOLOGIN_PASSWORD']
+        ? {
+            email: process.env['DEV_AUTOLOGIN_EMAIL'],
+            password: process.env['DEV_AUTOLOGIN_PASSWORD'],
+          }
+        : null,
     eas: {
       projectId: process.env['EAS_PROJECT_ID'] ?? '',
     },

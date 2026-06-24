@@ -14,6 +14,7 @@ import {
   sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink,
+  signInWithEmailAndPassword,
   type ActionCodeSettings,
 } from 'firebase/auth';
 import { getUserProfile, setActiveMunicipality } from '@cultuvilla/shared/services/userService';
@@ -27,9 +28,29 @@ import {
 } from '@react-native-google-signin/google-signin';
 import { clearPendingIntent } from './pendingIntent';
 
+declare const __DEV__: boolean;
+
 interface GoogleSignInExtra {
   webClientId: string;
   iosClientId: string;
+}
+
+interface DevAutoLogin {
+  email: string;
+  password: string;
+}
+
+// Dev-only convenience: skip the email-link round-trip on the emulator by
+// signing straight into a seeded test account. app.config.ts only populates
+// `extra.devAutoLogin` for `dev` builds when DEV_AUTOLOGIN_EMAIL/PASSWORD are
+// set; the __DEV__ guard is a second backstop so this is impossible in a
+// production bundle.
+function getDevAutoLogin(): DevAutoLogin | null {
+  if (!__DEV__) return null;
+  const extra = Constants.expoConfig?.extra as { devAutoLogin?: DevAutoLogin | null } | undefined;
+  const cfg = extra?.devAutoLogin;
+  if (!cfg?.email || !cfg?.password) return null;
+  return cfg;
 }
 
 function getGoogleSignInConfig(): GoogleSignInExtra | null {
@@ -93,6 +114,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!u) setProfileChecked(true);
     });
   }, []);
+
+  // Dev auto sign-in: once the initial auth state has resolved to "signed
+  // out", sign into the configured test account. Attempt-once-per-session so a
+  // manual signOut() lets you exercise the guest flow without being yanked
+  // straight back in — reload the app to re-trigger.
+  const devAutoLoginAttempted = useRef(false);
+  useEffect(() => {
+    if (loading || user || devAutoLoginAttempted.current) return;
+    const cfg = getDevAutoLogin();
+    if (!cfg) return;
+    devAutoLoginAttempted.current = true;
+    void signInWithEmailAndPassword(getAuth(), cfg.email, cfg.password).catch((e) => {
+      console.warn('[dev-autologin] sign-in failed:', e instanceof Error ? e.message : e);
+    });
+  }, [loading, user]);
 
   useEffect(() => {
     if (googleConfigured.current) return;
