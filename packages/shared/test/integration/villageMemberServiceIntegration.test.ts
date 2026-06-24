@@ -53,7 +53,7 @@ describe('villageMemberService — getUserMemberships', () => {
       });
       await setDoc(doc(db, 'municipalities/m2/members/alice'), {
         userId: 'alice', role: 'admin', joinedAt: now, profileAnswers: {},
-        profileCompletedAt: null, trustedNewsAuthor: false,
+        profileCompletedAt: null, trustedNewsAuthor: false, barrioId: 'la-estacion',
       });
       await setDoc(doc(db, 'municipalities/m3/members/bob'), {
         userId: 'bob', role: 'user', joinedAt: now, profileAnswers: {},
@@ -72,6 +72,9 @@ describe('villageMemberService — getUserMemberships', () => {
 
     expect(memberships.map((m) => m.municipalityId).sort()).toEqual(['m1', 'm2']);
     expect(memberships.find((m) => m.municipalityId === 'm2')?.role).toBe('admin');
+    // barrioId flows through; a seed lacking the field reads back as null.
+    expect(memberships.find((m) => m.municipalityId === 'm2')?.barrioId).toBe('la-estacion');
+    expect(memberships.find((m) => m.municipalityId === 'm1')?.barrioId).toBeNull();
 
     vi.restoreAllMocks();
   });

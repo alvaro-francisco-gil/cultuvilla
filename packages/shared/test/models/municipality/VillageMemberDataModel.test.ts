@@ -11,6 +11,7 @@ const validMember = {
   profileAnswers: { barrio: 'Centro', householdSize: 4 },
   profileCompletedAt: null,
   trustedNewsAuthor: false,
+  barrioId: null,
 };
 
 describe('VillageMemberDataSchema', () => {
@@ -28,6 +29,11 @@ describe('VillageMemberDataSchema', () => {
     const { trustedNewsAuthor: _trustedNewsAuthor, ...rest } = validMember;
     expect(() => VillageMemberDataSchema.parse(rest)).toThrow();
   });
+
+  it('defaults a missing barrioId to null (pre-backfill docs still parse)', () => {
+    const { barrioId: _barrioId, ...rest } = validMember;
+    expect(VillageMemberDataSchema.parse(rest).barrioId).toBeNull();
+  });
 });
 
 describe('buildVillageMemberData', () => {
@@ -38,6 +44,13 @@ describe('buildVillageMemberData', () => {
     expect(m.profileAnswers).toEqual({});
     expect(m.profileCompletedAt).toBeNull();
     expect(m.trustedNewsAuthor).toBe(false);
+    expect(m.barrioId).toBeNull();
+    expect(() => VillageMemberDataSchema.parse(m)).not.toThrow();
+  });
+
+  it('preserves a provided barrioId', () => {
+    const m = buildVillageMemberData({ userId: 'u-1', barrioId: 'b-centro' });
+    expect(m.barrioId).toBe('b-centro');
     expect(() => VillageMemberDataSchema.parse(m)).not.toThrow();
   });
 
