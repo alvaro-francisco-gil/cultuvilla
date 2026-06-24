@@ -197,6 +197,7 @@
     "joinConfirm": {
       "title": "Unirte a este pueblo",
       "body": "Unirte significa que consideras este tu pueblo. No verifica que vivas aquí.",
+      "barrioLabel": "Tu barrio (opcional)",
       "confirm": "Unirme",
       "cancel": "Cancelar"
     },

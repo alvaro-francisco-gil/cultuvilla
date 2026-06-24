@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, ActivityIndicator, View, Modal, TextInput } from 'react-native';
+import { FlatList, ActivityIndicator, View, TextInput } from 'react-native';
 import { router, type Href } from 'expo-router';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
-import { VStack, HStack, Text, Escudo, Pressable, Button } from '../primitives';
+import { VStack, HStack, Text, Escudo, Pressable } from '../primitives';
+import { JoinVillageModal } from './JoinVillageModal';
 import { useT } from '../../lib/i18n';
 import {
   getActiveCommunities,
@@ -141,12 +142,12 @@ export function VillageDiscovery() {
     setPendingJoin(m);
   };
 
-  const confirmJoin = async () => {
+  const confirmJoin = async (barrioId: string | null) => {
     if (!user || !pendingJoin) return;
     const id = pendingJoin.id;
     setJoining(true);
     try {
-      await addVillageMember(id, user.uid);
+      await addVillageMember(id, user.uid, 'user', barrioId);
       setJoinedIds((prev) => new Set(prev).add(id));
       setPendingJoin(null);
       router.push({ pathname: '/village/[villageId]', params: { villageId: id } });
@@ -237,41 +238,16 @@ export function VillageDiscovery() {
           );
         }}
       />
-      <Modal
-        visible={pendingJoin !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => {
-          if (!joining) setPendingJoin(null);
-        }}
-      >
-        <Pressable
-          onPress={() => {
-            if (!joining) setPendingJoin(null);
-          }}
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}
-          className="items-center justify-center px-8"
-        >
-          <Pressable
-            onPress={() => {}}
-            className="w-full rounded-lg bg-surface-elevated p-5 border border-subtle"
-          >
-            <VStack gap={3}>
-              <Text variant="h3">{t('village.joinConfirm.title')}</Text>
-              {pendingJoin ? <Text className="font-semibold">{pendingJoin.name}</Text> : null}
-              <Text tone="muted">{t('village.joinConfirm.body')}</Text>
-              <HStack gap={3} className="justify-end items-center">
-                <Button variant="ghost" onPress={() => setPendingJoin(null)} disabled={joining}>
-                  {t('village.joinConfirm.cancel')}
-                </Button>
-                <Button variant="primary" onPress={() => void confirmJoin()} loading={joining}>
-                  {t('village.joinConfirm.confirm')}
-                </Button>
-              </HStack>
-            </VStack>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <JoinVillageModal
+        municipality={
+          pendingJoin
+            ? { id: pendingJoin.id, name: pendingJoin.name, escudoUrl: escudoThumbDisplayUrl(pendingJoin) }
+            : null
+        }
+        busy={joining}
+        onCancel={() => setPendingJoin(null)}
+        onConfirm={(barrioId) => void confirmJoin(barrioId)}
+      />
     </View>
   );
 }
