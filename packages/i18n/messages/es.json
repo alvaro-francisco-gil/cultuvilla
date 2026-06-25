@@ -444,7 +444,14 @@
       "cta": "Apuntarme",
       "done": "¡Apuntado!",
       "error": "No pudimos apuntarte",
-      "needsPerson": "Completa tu perfil para apuntarte"
+      "needsPerson": "Completa tu perfil para apuntarte",
+      "signedUp": "Apuntado",
+      "waitlisted": "En lista de espera",
+      "cancelTitle": "Cancelar inscripción",
+      "cancelBody": "¿Seguro que quieres cancelar tu inscripción a este evento?",
+      "cancelConfirm": "Sí, cancelar",
+      "phoneTitle": "Tu teléfono",
+      "phonePlaceholder": "Número de teléfono"
     }
   },
   "organization": {

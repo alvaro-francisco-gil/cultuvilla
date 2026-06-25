@@ -7,9 +7,8 @@ import { VStack } from '../../components/primitives/VStack';
 import { HStack } from '../../components/primitives/HStack';
 import { Text } from '../../components/primitives/Text';
 import { Button } from '../../components/primitives/Button';
-import { Input } from '../../components/primitives/Input';
 import { LiveAvatar } from '../../components/feature/LiveAvatar';
-import { RegisterButton } from '../../components/feature/RegisterButton';
+import { RegisterFab } from '../../components/feature/RegisterFab';
 import { useEventOrganizer } from '../../lib/events/useEventOrganizer';
 import { DetailHeroImage } from '../../components/feature/DetailHeroImage';
 import { FloatingBackButton } from '../../components/feature/FloatingBackButton';
@@ -38,8 +37,6 @@ export default function EventDetailScreen() {
   const share = useShareDeepLink();
   const [event, setEvent] = useState<EventDoc | null>(null);
   const [person, setPerson] = useState<PersonDoc | null>(null);
-  const [registered, setRegistered] = useState(false);
-  const [phone, setPhone] = useState('');
   const { canOrganize } = useEventOrganizer(event);
 
   useEffect(() => {
@@ -75,7 +72,7 @@ export default function EventDetailScreen() {
   return (
     <Screen padded={false} topInset={false}>
       <StatusBar style="light" />
-      <ScrollView>
+      <ScrollView contentContainerStyle={{ paddingBottom: 96 }}>
       <DetailHeroImage
         imageUri={event.imageURL}
         fallbackImageUri={event.municipalityCoverImage}
@@ -114,32 +111,20 @@ export default function EventDetailScreen() {
             {t('guest.eventCta')}
           </Button>
         )}
-        {person && !registered && event.telephoneRequired && (
-          <Input
-            value={phone}
-            onChangeText={setPhone}
-            placeholder={t('event.telephoneRequired')}
-            keyboardType="phone-pad"
-          />
-        )}
-        {person && !registered && (
-          <RegisterButton
-            eventId={event.id}
-            personId={person.id}
-            name={personName}
-            phone={event.telephoneRequired ? phone.trim() : undefined}
-            disabled={event.telephoneRequired && !phone.trim()}
-            onRegistered={() => setRegistered(true)}
-          />
-        )}
-        {registered && (
-          <Text tone="success">{t('event.register.done')}</Text>
-        )}
         {!person && user && (
           <Text tone="muted">{t('event.register.needsPerson')}</Text>
         )}
       </VStack>
       </ScrollView>
+      {person && user && (
+        <RegisterFab
+          eventId={event.id}
+          userId={user.uid}
+          personId={person.id}
+          name={personName}
+          telephoneRequired={!!event.telephoneRequired}
+        />
+      )}
     </Screen>
   );
 }
