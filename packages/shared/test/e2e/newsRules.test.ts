@@ -228,6 +228,26 @@ describe('firestore.rules — /news/{postId}', () => {
     await assertFails(deleteDoc(doc(alice, 'news/p1')));
   });
 
+  // Regression: getNewsPostsByOrganizer ("mis artículos") was denied because the
+  // read rule only allowed creator / village-member / approved — not organizers.
+  // A named organizer who is NOT the creator and NOT a village member must be able
+  // to read & list their pending co-organized posts.
+  it('9: a named organizer (not creator, not member) can read a pending post', async () => {
+    await seedMember('m1', 'alice');
+    await seedPost('p1', 'm1', 'alice', { organizerUserIds: ['alice', 'carol'] });
+    const carol = env.authenticatedContext('carol').firestore();
+    await assertSucceeds(getDoc(doc(carol, 'news/p1')));
+  });
+
+  it('9b: organizer can list pending posts via organizerUserIds array-contains', async () => {
+    await seedMember('m1', 'alice');
+    await seedPost('p1', 'm1', 'alice', { organizerUserIds: ['alice', 'carol'] });
+    const carol = env.authenticatedContext('carol').firestore();
+    await assertSucceeds(
+      getDocs(query(collection(carol, 'news'), where('organizerUserIds', 'array-contains', 'carol'))),
+    );
+  });
+
   // T6-A: create denied when uid not in organizerUserIds
   it('T6-A: create denied when uid not in organizerUserIds', async () => {
     await seedMember('m1', 'alice');

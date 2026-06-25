@@ -401,7 +401,8 @@ service cloud.firestore {
       // visible only to members of the post's own village (moderation + author).
       allow read: if resource.data.status == 'approved'
                     || isVillageMember(resource.data.municipalityId)
-                    || isOwner(resource.data.createdBy);
+                    || isOwner(resource.data.createdBy)
+                    || (request.auth.uid in resource.data.organizerUserIds);
       allow create: if isVillageMember(request.resource.data.municipalityId)
                       && isValidNewsPostCreate(request.resource.data)
                       && request.resource.data.createdBy == request.auth.uid
