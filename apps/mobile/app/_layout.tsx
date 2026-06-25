@@ -1,5 +1,5 @@
 import './../global.css';
-import { Redirect, Stack, useSegments, router } from 'expo-router';
+import { Redirect, Stack, useSegments, router, type Href } from 'expo-router';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts, Fraunces_700Bold } from '@expo-google-fonts/fraunces';
@@ -55,7 +55,12 @@ function AuthGate() {
   useEffect(() => {
     if (intentTarget) {
       clearPending();
-      router.replace(intentTarget);
+      // Lay down the tabs home as the base BEFORE pushing the resumed target,
+      // so the target screen has somewhere to pop back to. Replacing straight
+      // to a deep screen (e.g. /event/new) leaves an empty stack and the back
+      // button errors with "GO_BACK was not handled by any navigator".
+      router.replace('/(tabs)');
+      router.push(intentTarget as Href);
     }
   }, [intentTarget, clearPending]);
 
