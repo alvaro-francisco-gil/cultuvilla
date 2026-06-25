@@ -6,10 +6,9 @@ import { AppHeader } from '../../components/layout/AppHeader';
 import { ProfileHeader } from '../../components/feature/profile/ProfileHeader';
 import { ProfileStatsRow } from '../../components/feature/profile/ProfileStatsRow';
 import { PersonaScroll } from '../../components/feature/profile/PersonaScroll';
-import { OrgList } from '../../components/feature/profile/OrgList';
-import type { OrgListItem } from '../../components/feature/profile/OrgList';
 import { ProfileSectionHeader } from '../../components/feature/profile/ProfileSectionHeader';
-import { ACCENT } from '../../components/feature/VillageSections';
+import { ACCENT, Section, EntityCard } from '../../components/feature/VillageSections';
+import type { OrganizationType, OrgMemberRole } from '@cultuvilla/shared/models/organization';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { useT } from '../../lib/i18n';
@@ -45,6 +44,15 @@ import type { PersonData } from '@cultuvilla/shared/models/person';
 
 type PersonDoc = PersonData & { id: string };
 
+/** An organization the user belongs to, shaped for the profile card scrolls. */
+type MemberOrg = {
+  id: string;
+  name: string;
+  type: OrganizationType;
+  imageURL: string | null;
+  role: OrgMemberRole;
+};
+
 export default function ProfileScreen() {
   const { user, profile, refreshProfile } = useAuth();
   const { t } = useT();
@@ -57,7 +65,7 @@ export default function ProfileScreen() {
   const [participations, setParticipations] = useState<number | null>(null);
   const [newsCount, setNewsCount] = useState<number | null>(null);
   const [createdNews, setCreatedNews] = useState<CreatedNews[]>([]);
-  const [orgs, setOrgs] = useState<OrgListItem[]>([]);
+  const [orgs, setOrgs] = useState<MemberOrg[]>([]);
   const [villages, setVillages] = useState<VillageRow[]>([]);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -126,11 +134,17 @@ export default function ProfileScreen() {
               munOrgs.map((o) => o.id),
             ),
         );
-        const memberOrgIds = new Set(memberships.map((m) => m.orgId));
+        const roleByOrgId = new Map(memberships.map((m) => [m.orgId, m.role]));
         setOrgs(
           munOrgs
-            .filter((o) => memberOrgIds.has(o.id))
-            .map((o) => ({ id: o.id, name: o.name })),
+            .filter((o) => roleByOrgId.has(o.id))
+            .map((o) => ({
+              id: o.id,
+              name: o.name,
+              type: o.type,
+              imageURL: o.imageURL,
+              role: roleByOrgId.get(o.id) ?? 'member',
+            })),
         );
       } else {
         setOrgs([]);
@@ -182,6 +196,10 @@ export default function ProfileScreen() {
   if (!user) return null;
 
   const otherPersonas = allPersonas.filter((p) => p.userId !== user.uid);
+  // Mirror the village home's org split: everything that isn't a peña falls
+  // under "Grupos" (asociación + ayuntamiento + otros), so no membership is lost.
+  const grupos = orgs.filter((o) => o.type !== 'peña');
+  const penas = orgs.filter((o) => o.type === 'peña');
   const fallbackName = profile?.displayName ?? user.email ?? '';
   const activeVillageName =
     villages.find((v) => v.municipalityId === activeMunicipalityId)?.name ?? null;
@@ -286,16 +304,39 @@ export default function ProfileScreen() {
           onPressNews={(id) => router.push(`/news/${id}` as never)}
         />
 
-        {orgs.length > 0 ? (
-          <>
-            <ProfileSectionHeader title={t('profile.orgsSection.title')} />
-            <OrgList
-              orgs={orgs}
-              emptyLabel={t('profile.orgsSection.empty')}
-              defaultRoleLabel={t('profile.orgsSection.roleMember')}
+        <Section
+          title={t('profile.gruposSection.title')}
+          isEmpty={grupos.length === 0}
+          emptyLabel={t('profile.gruposSection.empty')}
+        >
+          {grupos.map((o) => (
+            <EntityCard
+              key={o.id}
+              label={o.name}
+              sub={t(`profile.orgRole.${o.role}`)}
+              icon="business-outline"
+              imageUri={o.imageURL}
+              onPress={() => router.push(`/o/${o.id}` as never)}
             />
-          </>
-        ) : null}
+          ))}
+        </Section>
+
+        <Section
+          title={t('profile.peñasSection.title')}
+          isEmpty={penas.length === 0}
+          emptyLabel={t('profile.peñasSection.empty')}
+        >
+          {penas.map((o) => (
+            <EntityCard
+              key={o.id}
+              label={o.name}
+              sub={t(`profile.orgRole.${o.role}`)}
+              icon="people-circle-outline"
+              imageUri={o.imageURL}
+              onPress={() => router.push(`/o/${o.id}` as never)}
+            />
+          ))}
+        </Section>
 
         <ProfileSectionHeader title={t('profile.villagesEntry')} />
         <VillagesScroll
