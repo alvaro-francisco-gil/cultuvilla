@@ -55,6 +55,22 @@ export async function addVillageMember(
 }
 
 /**
+ * Join a village as the calling user and make it their active village.
+ * Side effects: creates the member doc AND patches users/{userId}.activeMunicipalityId
+ * so the Pueblo tab immediately surfaces the village just joined. Use this for the
+ * self-service join surfaces; `addVillageMember` alone leaves the active village
+ * unchanged (used by flows that set it separately, e.g. the acceptInvite callable).
+ */
+export async function joinVillage(
+  municipalityId: string,
+  userId: string,
+  barrioId: string | null = null,
+): Promise<void> {
+  await addVillageMember(municipalityId, userId, 'user', barrioId);
+  await setActiveMunicipality(userId, municipalityId);
+}
+
+/**
  * Set the caller's residence barrio within a village they already belong to.
  * `null` means "Todo el pueblo" (whole village). The
  * `syncMemberBarrioToResidence` trigger projects this into the linked person's

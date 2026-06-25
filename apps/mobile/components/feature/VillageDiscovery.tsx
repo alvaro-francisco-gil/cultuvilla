@@ -15,7 +15,7 @@ import type { MunicipalityData } from '@cultuvilla/shared/models/municipality';
 import { useAuth } from '../../lib/auth/useAuth';
 import {
   getUserMemberships,
-  addVillageMember,
+  joinVillage,
 } from '@cultuvilla/shared/services/villageMemberService';
 
 type Muni = MunicipalityData & { id: string };
@@ -147,7 +147,7 @@ export function VillageDiscovery() {
     const id = pendingJoin.id;
     setJoining(true);
     try {
-      await addVillageMember(id, user.uid, 'user', barrioId);
+      await joinVillage(id, user.uid, barrioId);
       setJoinedIds((prev) => new Set(prev).add(id));
       setPendingJoin(null);
       router.push({ pathname: '/village/[villageId]', params: { villageId: id } });

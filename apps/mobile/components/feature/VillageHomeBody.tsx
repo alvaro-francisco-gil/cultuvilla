@@ -11,7 +11,7 @@ import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { useT } from '../../lib/i18n';
 import { showConfirm } from '../../lib/dialogs';
 import { isProposalVisible } from '../../lib/proposals';
-import { addVillageMember } from '@cultuvilla/shared/services/villageMemberService';
+import { joinVillage } from '@cultuvilla/shared/services/villageMemberService';
 import { deletePlace, deleteBarrio } from '@cultuvilla/shared/services/municipalityService';
 import {
   getVillageViewLink,
@@ -185,7 +185,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
     if (!user) return;
     setJoining(true);
     try {
-      await addVillageMember(village.id, user.uid, 'user', barrioId);
+      await joinVillage(village.id, user.uid, barrioId);
       setPendingJoin(false);
       await reload();
     } finally {

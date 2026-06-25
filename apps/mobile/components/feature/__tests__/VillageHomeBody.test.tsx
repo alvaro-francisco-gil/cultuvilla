@@ -19,9 +19,9 @@ jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({
   getVillageViewLink: jest.fn().mockReturnValue('https://example.test'),
   getVillageInviteLink: jest.fn().mockReturnValue('https://example.test'),
 }));
-const mockAddVillageMember = jest.fn(async (..._a: unknown[]) => undefined);
+const mockJoinVillage = jest.fn(async (..._a: unknown[]) => undefined);
 jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
-  addVillageMember: (...a: unknown[]) => mockAddVillageMember(...a),
+  joinVillage: (...a: unknown[]) => mockJoinVillage(...a),
 }));
 // JoinVillageModal's barrio picker fetches approved barrios; none here, so the
 // picker hides itself and the modal shows only escudo + name + confirm.
@@ -73,7 +73,7 @@ const base: VillageHomeState = {
   myCensoAnswers: {},
 };
 
-beforeEach(() => mockAddVillageMember.mockClear());
+beforeEach(() => mockJoinVillage.mockClear());
 
 describe('VillageHomeBody', () => {
   it('hides the join CTA for a member', () => {
@@ -90,8 +90,10 @@ describe('VillageHomeBody', () => {
     fireEvent.press(getByText('Unirme a este pueblo'));
     // Confirm inside the modal → joins with the chosen barrio (null = whole village).
     fireEvent.press(await waitFor(() => getByText('Unirme')));
+    // joinVillage both creates the membership and sets the active village so the
+    // Pueblo tab surfaces it immediately (the bug this guards against).
     await waitFor(() =>
-      expect(mockAddVillageMember).toHaveBeenCalledWith('m1', 'u1', 'user', null),
+      expect(mockJoinVillage).toHaveBeenCalledWith('m1', 'u1', null),
     );
     expect(reload).toHaveBeenCalled();
   });
