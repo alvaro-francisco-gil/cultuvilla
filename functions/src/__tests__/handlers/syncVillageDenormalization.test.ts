@@ -52,6 +52,8 @@ async function seedEvent(municipalityCoverImage: string | null): Promise<void> {
     municipalityName: 'Villarriba',
     municipalityCoverImage,
     municipalityCoordinates: null,
+    confirmedCount: 0,
+    totalCount: 0,
   });
 }
 

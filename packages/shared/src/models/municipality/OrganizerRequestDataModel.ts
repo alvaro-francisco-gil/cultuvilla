@@ -8,10 +8,8 @@ export const OrganizerRequestDataSchema = z.object({
   municipalityId: z.string(),
   requestedAt: z.date(),
   status: OrganizerRequestStatusSchema,
-  /** Village description the requester proposes; copied to community.description on approval.
-   * `.default('')` keeps requests written before this field existed readable through
-   * the strict converter (missing key → ''). */
-  description: z.string().default(''),
+  /** Village description the requester proposes; copied to community.description on approval. */
+  description: z.string(),
   motivation: z.string().nullable(),
   reviewedAt: z.date().nullable(),
   reviewedBy: z.string().nullable(),

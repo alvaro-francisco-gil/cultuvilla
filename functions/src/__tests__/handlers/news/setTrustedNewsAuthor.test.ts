@@ -24,6 +24,7 @@ async function seedMember(uid: string, role: 'admin' | 'user', trusted = false):
       profileAnswers: {},
       profileCompletedAt: null,
       trustedNewsAuthor: trusted,
+      barrioId: null,
     });
 }
 

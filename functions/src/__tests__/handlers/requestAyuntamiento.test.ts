@@ -21,6 +21,7 @@ async function seedMember(userId: string): Promise<void> {
     profileAnswers: {},
     profileCompletedAt: null,
     trustedNewsAuthor: false,
+    barrioId: null,
   });
 }
 
@@ -28,6 +29,7 @@ async function seedAyuntamiento(status: 'pending' | 'approved' | 'rejected'): Pr
   await admin.firestore().collection('organizations').doc(`existing-${status}`).set({
     name: 'Ayuntamiento existente',
     description: null,
+    imageURL: null,
     type: 'ayuntamiento',
     status,
     municipalityId: MUNICIPALITY_ID,

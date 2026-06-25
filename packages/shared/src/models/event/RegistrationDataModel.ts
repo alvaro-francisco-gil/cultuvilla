@@ -13,12 +13,10 @@ export const RegistrationDataSchema = z.object({
   registeredAt: z.date(),
   // Denormalized at write time by the `registerToEvent` Cloud Function so UIs
   // showing village-vs-visitor badges don't need a per-attendee membership
-  // lookup. Optional because pre-callable registrations may lack the field;
-  // treat missing as `false` and rely on a backfill to converge.
-  isMember: z.boolean().optional(),
+  // lookup.
+  isMember: z.boolean(),
   // Set by an organizer when the attendee is checked in. `null` until then.
-  // `.default(null)` keeps pre-check-in docs readable through the converter.
-  checkedInAt: z.date().nullable().default(null),
+  checkedInAt: z.date().nullable(),
 });
 export type RegistrationData = z.infer<typeof RegistrationDataSchema>;
 
@@ -37,6 +35,7 @@ export function buildRegistrationData(input: RegistrationDataInput): Registratio
   return {
     ...input,
     registeredAt: input.registeredAt ?? new Date(),
+    isMember: input.isMember ?? false,
     checkedInAt: input.checkedInAt ?? null,
   };
 }

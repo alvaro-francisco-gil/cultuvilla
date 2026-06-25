@@ -30,9 +30,9 @@ describe('VillageMemberDataSchema', () => {
     expect(() => VillageMemberDataSchema.parse(rest)).toThrow();
   });
 
-  it('defaults a missing barrioId to null (pre-backfill docs still parse)', () => {
+  it('requires barrioId on the persisted shape', () => {
     const { barrioId: _barrioId, ...rest } = validMember;
-    expect(VillageMemberDataSchema.parse(rest).barrioId).toBeNull();
+    expect(() => VillageMemberDataSchema.parse(rest)).toThrow();
   });
 });
 

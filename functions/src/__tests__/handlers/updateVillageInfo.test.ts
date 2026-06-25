@@ -28,9 +28,11 @@ async function seedMunicipality(adminUserId: string | null): Promise<void> {
       comunidadAutonoma: 'Madrid',
       codigoINE: '28000',
       coordinates: null,
+      mapZoom: null,
       createdAt: now,
       escudoUrl: null,
       escudoThumbUrl: null,
+      escudoManualUrl: null,
       communityActive: true,
       community: { description: 'old', adminUserId, profileForm: null, activatedAt: now },
     });
@@ -44,9 +46,11 @@ async function seedInactiveMunicipality(): Promise<void> {
     comunidadAutonoma: 'Madrid',
     codigoINE: '28000',
     coordinates: null,
+    mapZoom: null,
     createdAt: new Date(),
     escudoUrl: null,
     escudoThumbUrl: null,
+    escudoManualUrl: null,
     communityActive: false,
     community: null,
   });
@@ -60,6 +64,7 @@ async function seedMember(uid: string, role: 'user' | 'admin'): Promise<void> {
     profileAnswers: {},
     profileCompletedAt: null,
     trustedNewsAuthor: false,
+    barrioId: null,
   });
 }
 

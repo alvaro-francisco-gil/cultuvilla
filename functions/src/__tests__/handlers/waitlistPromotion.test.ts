@@ -48,6 +48,8 @@ async function seedEvent(opts: { title: string; maxAttendees: number | null }): 
     municipalityName: 'Villarriba',
     municipalityCoverImage: null,
     municipalityCoordinates: null,
+    confirmedCount: 0,
+    totalCount: 0,
   });
 }
 
@@ -70,6 +72,7 @@ async function seedRegistration(reg: SeedReg): Promise<void> {
     name: reg.name,
     position: reg.position ?? 0,
     isMember: false,
+    checkedInAt: null,
     registeredAt: new Date(),
   });
 }

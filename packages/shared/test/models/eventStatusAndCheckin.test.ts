@@ -5,16 +5,15 @@ import { RegistrationDataSchema, buildRegistrationData } from '../../src/models/
 const baseEvent = {
   title: 'Fiesta', description: 'x', startDate: new Date(),
   location: { coordinates: { lat: 40.4, lng: -3.7 }, displayName: 'Plaza' }, imageURL: null, maxAttendees: null,
-  telephoneRequired: false, organizerUserIds: ['u1'], organizerOrgIds: [],
+  telephoneRequired: false, status: 'published', organizerUserIds: ['u1'], organizerOrgIds: [],
   createdBy: 'u1', createdAt: new Date(), updatedAt: new Date(),
   municipalityId: 'm1', municipalityName: 'X', municipalityCoverImage: null,
-  municipalityCoordinates: null,
+  municipalityCoordinates: null, confirmedCount: 0, totalCount: 0,
 };
 
-describe('event status migration + registration check-in', () => {
-  it('legacy draft events coerce to published on read', () => {
-    const parsed = EventDataSchema.parse({ ...baseEvent, status: 'draft' });
-    expect(parsed.status).toBe('published');
+describe('event status + registration check-in', () => {
+  it('rejects the dropped draft status', () => {
+    expect(() => EventDataSchema.parse({ ...baseEvent, status: 'draft' })).toThrow();
   });
 
   it('valid statuses pass through', () => {
@@ -22,12 +21,17 @@ describe('event status migration + registration check-in', () => {
     expect(EventDataSchema.parse({ ...baseEvent, status: 'completed' }).status).toBe('completed');
   });
 
-  it('registrations default checkedInAt to null and legacy docs parse', () => {
+  it('buildRegistrationData defaults checkedInAt to null and isMember to false', () => {
     const built = buildRegistrationData({ userId: 'u', personId: 'p', name: 'N', status: 'confirmed', position: 1 });
     expect(built.checkedInAt).toBeNull();
-    const legacy = RegistrationDataSchema.parse({
-      userId: 'u', personId: 'p', name: 'N', status: 'confirmed', position: 1, registeredAt: new Date(),
-    });
-    expect(legacy.checkedInAt).toBeNull();
+    expect(built.isMember).toBe(false);
+  });
+
+  it('requires isMember and checkedInAt on the persisted shape', () => {
+    expect(() =>
+      RegistrationDataSchema.parse({
+        userId: 'u', personId: 'p', name: 'N', status: 'confirmed', position: 1, registeredAt: new Date(),
+      }),
+    ).toThrow();
   });
 });

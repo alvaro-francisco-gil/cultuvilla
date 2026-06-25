@@ -28,9 +28,11 @@ async function seedMunicipality(
       comunidadAutonoma: 'Madrid',
       codigoINE: '28000',
       coordinates: null,
+      mapZoom: null,
       createdAt: now,
       escudoUrl: null,
       escudoThumbUrl: null,
+      escudoManualUrl: null,
       communityActive,
       community: communityActive
         ? { description: '', adminUserId, profileForm: null, activatedAt: now }

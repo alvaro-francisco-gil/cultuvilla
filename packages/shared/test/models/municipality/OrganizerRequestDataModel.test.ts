@@ -31,12 +31,9 @@ describe('OrganizerRequestDataSchema', () => {
     expect(() => OrganizerRequestDataSchema.parse(rest)).toThrow();
   });
 
-  // Backward compat: requests written before description existed have
-  // no such key. The strict converter must still read them (default → ''), not throw.
-  it('reads a legacy doc without description (defaults to "")', () => {
-    const { description: _d, ...legacy } = validRequest;
-    const parsed = OrganizerRequestDataSchema.parse(legacy);
-    expect(parsed.description).toBe('');
+  it('requires description on the persisted shape', () => {
+    const { description: _d, ...rest } = validRequest;
+    expect(() => OrganizerRequestDataSchema.parse(rest)).toThrow();
   });
 });
 

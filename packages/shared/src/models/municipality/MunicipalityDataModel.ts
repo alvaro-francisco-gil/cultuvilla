@@ -46,9 +46,8 @@ export const MunicipalityDataSchema = z.object({
   codigoINE: z.string(),
   coordinates: LatLngSchema.nullable(),
   /** Organizer-chosen zoom level for the village location map (Google Static
-   *  Maps zoom). Nullish so legacy docs without it still parse; readers fall
-   *  back to a default. */
-  mapZoom: z.number().nullish(),
+   *  Maps zoom). `null` when unset; readers fall back to a default. */
+  mapZoom: z.number().nullable(),
   createdAt: z.date(),
 
   // ── Escudo (coat of arms, sourced from Wikidata P94 → Cloud Storage) ──
@@ -63,9 +62,9 @@ export const MunicipalityDataSchema = z.object({
    * precedence over the Wikidata-sourced `escudoUrl` everywhere (see
    * `escudoFullUrl` / `escudoThumbDisplayUrl`). Clearing it reverts the village
    * to the Wikidata escudo. Its presence IS the "manually uploaded" signal — no
-   * separate flag to keep in sync. Optional so legacy docs/fixtures still parse.
+   * separate flag to keep in sync. `null` when the village uses the Wikidata escudo.
    */
-  escudoManualUrl: z.string().nullish(),
+  escudoManualUrl: z.string().nullable(),
 
   // ── Community overlay ─────────────────────────────────────────────────
   community: VillageCommunitySchema.nullable(),
@@ -149,9 +148,7 @@ export function buildVillageCommunity(input: ActivateCommunityInput): VillageCom
 //
 // Any village member may propose a barrio/place; it lands as `pending` and is
 // visible to everyone. Organizers (village/app admin) create directly and
-// approve/reject. The new fields use `.default(...)` so legacy docs (created
-// before this pattern, with no key) read back as an approved, unowned item —
-// no data migration needed. Enforcement lives in firestore.rules.
+// approve/reject. Enforcement lives in firestore.rules.
 
 export const ProposalStatusSchema = z.enum(['pending', 'approved', 'rejected']);
 export type ProposalStatus = z.infer<typeof ProposalStatusSchema>;
@@ -161,15 +158,13 @@ export type ProposalStatus = z.infer<typeof ProposalStatusSchema>;
 export const BarrioDataSchema = z.object({
   name: z.string(),
   municipalityId: z.string(),
-  /** Public download URL for the barrio's picture. `null` when unset.
-   * `.default(null)` keeps pre-imageURL docs readable through the strict
-   * converter (missing key → null). */
-  imageURL: z.string().nullable().default(null),
+  /** Public download URL for the barrio's picture. `null` when unset. */
+  imageURL: z.string().nullable(),
   createdAt: z.date(),
-  status: ProposalStatusSchema.default('approved'),
-  proposedBy: z.string().nullable().default(null),
-  approvedBy: z.string().nullable().default(null),
-  decidedAt: z.date().nullable().default(null),
+  status: ProposalStatusSchema,
+  proposedBy: z.string().nullable(),
+  approvedBy: z.string().nullable(),
+  decidedAt: z.date().nullable(),
 });
 export type BarrioData = z.infer<typeof BarrioDataSchema>;
 
@@ -224,15 +219,13 @@ export const PlaceDataSchema = z.object({
   kind: PlaceKindSchema,
   description: z.string().nullable(),
   municipalityId: z.string(),
-  /** Public download URL for the place's picture. `null` when unset.
-   * `.default(null)` keeps pre-imageURL docs readable through the strict
-   * converter (missing key → null). */
-  imageURL: z.string().nullable().default(null),
+  /** Public download URL for the place's picture. `null` when unset. */
+  imageURL: z.string().nullable(),
   createdAt: z.date(),
-  status: ProposalStatusSchema.default('approved'),
-  proposedBy: z.string().nullable().default(null),
-  approvedBy: z.string().nullable().default(null),
-  decidedAt: z.date().nullable().default(null),
+  status: ProposalStatusSchema,
+  proposedBy: z.string().nullable(),
+  approvedBy: z.string().nullable(),
+  decidedAt: z.date().nullable(),
 });
 export type PlaceData = z.infer<typeof PlaceDataSchema>;
 

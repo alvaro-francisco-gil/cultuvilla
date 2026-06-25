@@ -31,12 +31,9 @@ describe('OrganizationDataSchema', () => {
     expect(() => OrganizationDataSchema.parse({ ...validOrg, status: 'archived' })).toThrow();
   });
 
-  // Backward compat: docs written before imageURL existed have no such key.
-  // The strict converter must still read them (default → null), not throw.
-  it('reads a legacy doc without imageURL (defaults to null)', () => {
-    const { imageURL: _omit, ...legacy } = validOrg;
-    const parsed = OrganizationDataSchema.parse(legacy);
-    expect(parsed.imageURL).toBeNull();
+  it('requires imageURL on the persisted shape', () => {
+    const { imageURL: _omit, ...rest } = validOrg;
+    expect(() => OrganizationDataSchema.parse(rest)).toThrow();
   });
 });
 

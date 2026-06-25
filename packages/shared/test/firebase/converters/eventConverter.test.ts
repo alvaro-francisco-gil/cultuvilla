@@ -20,6 +20,8 @@ const baseFirestoreShape = {
   municipalityName: 'Villa',
   municipalityCoverImage: null,
   municipalityCoordinates: new GeoPoint(40.4, -3.7),
+  confirmedCount: 0,
+  totalCount: 0,
 };
 
 describe('eventConverterClient', () => {

@@ -12,6 +12,7 @@ describe('NotificationDataSchema', () => {
       body: 'Confirmado.',
       eventId: 'ev1',
       municipalityId: 'mun1',
+      requesterUid: null,
       read: false,
       createdAt: new Date(),
     });

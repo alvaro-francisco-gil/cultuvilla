@@ -39,6 +39,7 @@ import type {
 } from '../models/municipality';
 import {
   municipalitySearchKey,
+  buildMunicipalityData,
   buildBarrioData,
   buildPlaceData,
 } from '../models/municipality/MunicipalityDataModel';
@@ -148,21 +149,7 @@ export async function listMunicipalitiesPage(opts: {
 
 export async function createMunicipality(input: MunicipalityDataInput): Promise<string> {
   const newRef = doc(municipalitiesCollection(getDb()));
-  const now = new Date();
-  const data: MunicipalityData = {
-    name: input.name,
-    nameLower: municipalitySearchKey(input.name),
-    province: input.province,
-    comunidadAutonoma: input.comunidadAutonoma,
-    codigoINE: input.codigoINE,
-    coordinates: input.coordinates ?? null,
-    createdAt: now,
-    escudoUrl: input.escudoUrl ?? null,
-    escudoThumbUrl: input.escudoThumbUrl ?? null,
-    community: null,
-    communityActive: false,
-  };
-  await setDoc(newRef, data);
+  await setDoc(newRef, buildMunicipalityData(input));
   return newRef.id;
 }
 

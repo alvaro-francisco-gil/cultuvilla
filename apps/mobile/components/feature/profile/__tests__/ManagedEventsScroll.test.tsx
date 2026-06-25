@@ -23,6 +23,8 @@ function makeEvent(over: Partial<ManagedEvent> & { id: string }): ManagedEvent {
     municipalityName: 'Villa',
     municipalityCoverImage: null,
     municipalityCoordinates: null,
+    confirmedCount: 0,
+    totalCount: 0,
   } as ManagedEvent;
 }
 

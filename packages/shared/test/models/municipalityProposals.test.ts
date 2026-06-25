@@ -23,22 +23,10 @@ describe('Place/Barrio proposal fields', () => {
     expect(p.proposedBy).toBeNull();
   });
 
-  it('legacy barrio docs (no status/proposedBy keys) parse with safe defaults', () => {
-    const parsed = BarrioDataSchema.parse({
-      name: 'Viejo', municipalityId: 'm1', createdAt: new Date(),
-    });
-    expect(parsed.status).toBe('approved');
-    expect(parsed.proposedBy).toBeNull();
-    expect(parsed.approvedBy).toBeNull();
-    expect(parsed.decidedAt).toBeNull();
-  });
-
-  it('legacy place docs parse with safe defaults', () => {
-    const parsed = PlaceDataSchema.parse({
-      name: 'Plaza', kind: 'plaza', description: null, municipalityId: 'm1', createdAt: new Date(),
-    });
-    expect(parsed.status).toBe('approved');
-    expect(parsed.proposedBy).toBeNull();
+  it('requires the proposal fields on the persisted shape', () => {
+    expect(() =>
+      BarrioDataSchema.parse({ name: 'Viejo', municipalityId: 'm1', createdAt: new Date() }),
+    ).toThrow();
   });
 
   it('rejects an invalid status', () => {

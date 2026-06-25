@@ -21,10 +21,9 @@ export const NotificationDataSchema = z.object({
   body: z.string(),
   eventId: z.string().nullable(),
   municipalityId: z.string().nullable(),
-  // Set on request-flow notifications (join_request_*, organizer_request_*).
-  // Optional/unused on the original 5 types; nullable to support docs that
-  // explicitly write null.
-  requesterUid: z.string().nullable().optional(),
+  // Set on request-flow notifications (join_request_*, organizer_request_*);
+  // null on the event/org notification types that don't carry a requester.
+  requesterUid: z.string().nullable(),
   read: z.boolean(),
   createdAt: z.date(),
 });

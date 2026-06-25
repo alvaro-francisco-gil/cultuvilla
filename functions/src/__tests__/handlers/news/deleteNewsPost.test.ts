@@ -23,6 +23,7 @@ async function seedMember(uid: string, role: 'admin' | 'user'): Promise<void> {
       profileAnswers: {},
       profileCompletedAt: null,
       trustedNewsAuthor: false,
+      barrioId: null,
     });
 }
 

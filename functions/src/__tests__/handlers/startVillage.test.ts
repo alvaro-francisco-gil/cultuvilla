@@ -26,9 +26,11 @@ async function seedMunicipality(communityActive: boolean): Promise<void> {
       comunidadAutonoma: 'Madrid',
       codigoINE: '28000',
       coordinates: null,
+      mapZoom: null,
       createdAt: now,
       escudoUrl: null,
       escudoThumbUrl: null,
+      escudoManualUrl: null,
       communityActive,
       community: communityActive
         ? { description: 'ya', adminUserId: 'someone', profileForm: null, activatedAt: now }
@@ -155,6 +157,7 @@ describe('startVillage (callable)', () => {
         comunidadAutonoma: 'Madrid',
         codigoINE: '28000',
         coordinates: null,
+        mapZoom: null,
         createdAt: now,
         escudoUrl: null,
         escudoThumbUrl: null,

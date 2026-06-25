@@ -16,7 +16,9 @@ async function seedCensoMunicipality(fields: unknown[]): Promise<void> {
   await admin.firestore().doc(`municipalities/${MID}`).set({
     name: 'Villarriba', nameLower: 'villarriba', province: 'Madrid',
     comunidadAutonoma: 'Madrid', codigoINE: '28000', coordinates: null,
-    createdAt: now, escudoUrl: null, escudoThumbUrl: null, communityActive: true,
+    mapZoom: null,
+    createdAt: now, escudoUrl: null, escudoThumbUrl: null, escudoManualUrl: null,
+    communityActive: true,
     community: { adminUserId: ADMIN_ID, description: 'x', activatedAt: now,
       profileForm: { fields, updatedAt: now } },
   });
@@ -25,7 +27,7 @@ async function seedCensoMunicipality(fields: unknown[]): Promise<void> {
 async function seedMember(uid: string, role: 'user' | 'admin', profileAnswers: Record<string, unknown>): Promise<void> {
   await admin.firestore().doc(`municipalities/${MID}/members/${uid}`).set({
     userId: uid, role, joinedAt: new Date(), profileAnswers,
-    profileCompletedAt: null, trustedNewsAuthor: false,
+    profileCompletedAt: null, trustedNewsAuthor: false, barrioId: null,
   });
 }
 

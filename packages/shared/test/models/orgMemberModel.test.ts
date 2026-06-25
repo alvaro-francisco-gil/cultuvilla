@@ -14,9 +14,8 @@ describe('OrgMemberDataModel', () => {
     expect(buildOrgMemberData({ role: 'admin' }).role).toBe('admin');
   });
 
-  it('parses a legacy doc without role as member (default)', () => {
-    const parsed = OrgMemberDataSchema.parse({ joinedAt: new Date() });
-    expect(parsed.role).toBe('member');
+  it('requires role on the persisted shape', () => {
+    expect(() => OrgMemberDataSchema.parse({ joinedAt: new Date() })).toThrow();
   });
 
   it('rejects an unknown role', () => {

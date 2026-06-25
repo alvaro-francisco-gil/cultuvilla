@@ -5,9 +5,7 @@ export type OrgMemberRole = z.infer<typeof OrgMemberRoleSchema>;
 
 export const OrgMemberDataSchema = z.object({
   joinedAt: z.date(),
-  /** `.default('member')` keeps members written before roles existed readable
-   * through the strict converter (missing key → 'member'). */
-  role: OrgMemberRoleSchema.default('member'),
+  role: OrgMemberRoleSchema,
 });
 export type OrgMemberData = z.infer<typeof OrgMemberDataSchema>;
 

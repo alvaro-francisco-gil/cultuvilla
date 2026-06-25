@@ -1,8 +1,7 @@
 import { z } from 'zod';
 import { LocationDataSchema, LatLngSchema, type LatLng } from '../core/LocationDataModel';
 
-// `draft` was dropped — events publish on create. Legacy `draft` docs coerce to
-// `published` on read via the `.catch` on the status field below (no migration).
+// Events publish on create — there is no `draft` state.
 export const EventStatusSchema = z.enum(['published', 'cancelled', 'completed']);
 export type EventStatus = z.infer<typeof EventStatusSchema>;
 
@@ -14,9 +13,7 @@ export const EventDataSchema = z.object({
   imageURL: z.string().nullable(),
   maxAttendees: z.number().int().nullable(),
   telephoneRequired: z.boolean(),
-  // Migrate legacy `draft` → `published` on read; genuinely invalid values
-  // still fail enum validation (preprocess only rewrites the dropped value).
-  status: z.preprocess((v) => (v === 'draft' ? 'published' : v), EventStatusSchema),
+  status: EventStatusSchema,
   organizerUserIds: z.array(z.string()),
   organizerOrgIds: z.array(z.string()),
   createdBy: z.string(),
@@ -26,8 +23,11 @@ export const EventDataSchema = z.object({
   municipalityName: z.string(),
   municipalityCoverImage: z.string().nullable(),
   municipalityCoordinates: LatLngSchema.nullable(),
-  confirmedCount: z.number().int().optional(),
-  totalCount: z.number().int().optional(),
+  // Denormalized attendee counters, maintained server-side by the
+  // registerToEvent / waitlistPromotion functions. Initialized to 0 at create
+  // so every event doc carries them — never absent.
+  confirmedCount: z.number().int(),
+  totalCount: z.number().int(),
 });
 export type EventData = z.infer<typeof EventDataSchema>;
 
@@ -71,6 +71,8 @@ export function buildEventData(input: EventDataInput): EventData {
     municipalityName: input.municipalityName,
     municipalityCoverImage: input.municipalityCoverImage ?? null,
     municipalityCoordinates: input.municipalityCoordinates,
+    confirmedCount: 0,
+    totalCount: 0,
   };
 }
 

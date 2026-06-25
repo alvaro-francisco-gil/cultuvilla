@@ -26,6 +26,8 @@ const validEvent = {
   municipalityName: 'Villa',
   municipalityCoverImage: null,
   municipalityCoordinates: { lat: 40.4, lng: -3.7 },
+  confirmedCount: 0,
+  totalCount: 0,
 };
 
 describe('EventDataSchema', () => {
@@ -33,8 +35,9 @@ describe('EventDataSchema', () => {
     expect(() => EventDataSchema.parse(validEvent)).not.toThrow();
   });
 
-  it('accepts optional confirmedCount and totalCount', () => {
-    expect(() => EventDataSchema.parse({ ...validEvent, confirmedCount: 12, totalCount: 15 })).not.toThrow();
+  it('requires confirmedCount and totalCount', () => {
+    const { confirmedCount: _c, totalCount: _t, ...rest } = validEvent;
+    expect(() => EventDataSchema.parse(rest)).toThrow();
   });
 
   it('rejects a missing required field', () => {
@@ -78,6 +81,7 @@ describe('isEventFull', () => {
     municipalityId: 'm', municipalityName: 'M',
     municipalityCoverImage: null,
     municipalityCoordinates: { lat: 1, lng: 2 },
+    confirmedCount: 0, totalCount: 0,
   });
 
   it('returns false when maxAttendees is null', () => {
@@ -106,6 +110,7 @@ describe('isEventSignupOpen', () => {
     municipalityId: 'm', municipalityName: 'M',
     municipalityCoverImage: null,
     municipalityCoordinates: { lat: 1, lng: 2 },
+    confirmedCount: 0, totalCount: 0,
   });
 
   it('returns true only for status published', () => {

@@ -35,6 +35,8 @@ async function seedEvent(opts: { maxAttendees: number | null }): Promise<void> {
     municipalityName: 'Villarriba',
     municipalityCoverImage: null,
     municipalityCoordinates: null,
+    confirmedCount: 0,
+    totalCount: 0,
   });
 }
 
@@ -46,6 +48,7 @@ async function seedMembership(userId: string): Promise<void> {
     profileAnswers: {},
     profileCompletedAt: null,
     trustedNewsAuthor: false,
+    barrioId: null,
   });
 }
 
@@ -60,6 +63,7 @@ async function seedExistingReg(
     status: opts.status,
     position: opts.position,
     isMember: false,
+    checkedInAt: null,
     registeredAt: new Date(),
   });
 }

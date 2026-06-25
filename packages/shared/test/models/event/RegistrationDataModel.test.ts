@@ -13,6 +13,8 @@ const validRegistration = {
   status: 'confirmed' as const,
   position: 1,
   registeredAt: new Date('2026-06-15T18:00:00Z'),
+  isMember: false,
+  checkedInAt: null,
 };
 
 describe('RegistrationDataSchema', () => {
@@ -20,8 +22,9 @@ describe('RegistrationDataSchema', () => {
     expect(() => RegistrationDataSchema.parse(validRegistration)).not.toThrow();
   });
 
-  it('accepts optional isMember', () => {
-    expect(() => RegistrationDataSchema.parse({ ...validRegistration, isMember: true })).not.toThrow();
+  it('requires isMember', () => {
+    const { isMember: _isMember, ...rest } = validRegistration;
+    expect(() => RegistrationDataSchema.parse(rest)).toThrow();
   });
 
   it('rejects a missing required field', () => {

@@ -7,12 +7,16 @@ import {
 describe('OrgMemberDataSchema', () => {
   it('parses a valid member doc', () => {
     expect(() =>
-      OrgMemberDataSchema.parse({ joinedAt: new Date('2026-03-15T00:00:00Z') }),
+      OrgMemberDataSchema.parse({ joinedAt: new Date('2026-03-15T00:00:00Z'), role: 'member' }),
     ).not.toThrow();
   });
 
+  it('rejects when role is missing', () => {
+    expect(() => OrgMemberDataSchema.parse({ joinedAt: new Date('2026-03-15T00:00:00Z') })).toThrow();
+  });
+
   it('rejects when joinedAt is missing', () => {
-    expect(() => OrgMemberDataSchema.parse({})).toThrow();
+    expect(() => OrgMemberDataSchema.parse({ role: 'member' })).toThrow();
   });
 
   it('rejects when joinedAt is not a Date', () => {

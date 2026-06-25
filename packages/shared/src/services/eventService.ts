@@ -20,10 +20,11 @@ import {
   eventsCollection,
   eventDoc,
 } from '../firebase/refs/client';
-import type {
-  EventData,
-  EventDataInput,
-  EventStatus,
+import {
+  buildEventData,
+  type EventData,
+  type EventDataInput,
+  type EventStatus,
 } from '../models/event/EventDataModel';
 
 export async function getEvent(eventId: string): Promise<(EventData & { id: string }) | null> {
@@ -66,27 +67,7 @@ export async function getEventsByOrganization(
 
 export async function createEvent(input: EventDataInput): Promise<string> {
   const newRef = doc(eventsCollection(getDb()));
-  const now = new Date();
-  const event: EventData = {
-    title: input.title,
-    description: input.description,
-    startDate: input.startDate,
-    location: input.location,
-    imageURL: input.imageURL ?? null,
-    maxAttendees: input.maxAttendees ?? null,
-    telephoneRequired: input.telephoneRequired ?? false,
-    status: input.status ?? 'published',
-    organizerUserIds: input.organizerUserIds,
-    organizerOrgIds: input.organizerOrgIds,
-    createdBy: input.createdBy,
-    createdAt: now,
-    updatedAt: now,
-    municipalityId: input.municipalityId,
-    municipalityName: input.municipalityName,
-    municipalityCoverImage: input.municipalityCoverImage ?? null,
-    municipalityCoordinates: input.municipalityCoordinates,
-  };
-  await setDoc(newRef, event);
+  await setDoc(newRef, buildEventData(input));
   return newRef.id;
 }
 

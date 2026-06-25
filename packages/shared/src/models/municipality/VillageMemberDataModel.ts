@@ -20,10 +20,8 @@ export const VillageMemberDataSchema = z.object({
   // Residence barrio within this municipality. null = "Todo el pueblo" (whole
   // village). Source of truth for an account-holder's barrio; a Cloud Function
   // trigger (syncMemberBarrioToResidence) projects it into the linked person's
-  // `municipalityLinks` entry so `getPersonsByBarrio` keeps working. Defaults
-  // to null so member docs written before this field existed still parse on
-  // read (the converter strict-parses) — no backfill race.
-  barrioId: z.string().nullable().default(null),
+  // `municipalityLinks` entry so `getPersonsByBarrio` keeps working.
+  barrioId: z.string().nullable(),
 });
 export type VillageMemberData = z.infer<typeof VillageMemberDataSchema>;
 

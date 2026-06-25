@@ -28,9 +28,11 @@ async function seedMunicipality(opts: {
       comunidadAutonoma: 'Madrid',
       codigoINE: '28000',
       coordinates: null,
+      mapZoom: null,
       createdAt: now,
       escudoUrl: null,
       escudoThumbUrl: null,
+      escudoManualUrl: null,
       communityActive: opts.communityActive,
       // An active community always has a community object; adminUserId may be
       // null (started, no organizer yet).
@@ -53,6 +55,7 @@ async function seedMember(uid: string, role: 'user' | 'admin'): Promise<void> {
     profileAnswers: {},
     profileCompletedAt: null,
     trustedNewsAuthor: false,
+    barrioId: null,
   });
 }
 
