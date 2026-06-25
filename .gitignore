@@ -40,3 +40,6 @@ apps/mobile/public/.well-known/assetlinks.json
 
 # Tooling worktrees
 .claire/
+
+# Subagent-driven-development scratch ledger
+.superpowers/
