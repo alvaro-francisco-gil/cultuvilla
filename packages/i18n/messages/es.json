@@ -451,7 +451,12 @@
       "cancelBody": "¿Seguro que quieres cancelar tu inscripción a este evento?",
       "cancelConfirm": "Sí, cancelar",
       "phoneTitle": "Tu teléfono",
-      "phonePlaceholder": "Número de teléfono"
+      "phonePlaceholder": "Número de teléfono",
+      "signedUpCount": "{count, plural, one {Apuntado} other {Apuntados (#)}}",
+      "attendeesTitle": "¿A quién quieres apuntar?",
+      "createPersona": "Crear una nueva persona",
+      "confirm": "Confirmar",
+      "cancelManyBody": "Vas a cancelar la inscripción de las personas que has desmarcado. ¿Continuar?"
     }
   },
   "organization": {
