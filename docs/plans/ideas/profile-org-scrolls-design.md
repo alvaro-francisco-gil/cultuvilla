@@ -6,9 +6,12 @@ On the profile tab, surface the organizations the signed-in user belongs to in
 their **active village**, split into two horizontal card scrolls that copy the
 village home UI:
 
-- **Asociaciones** — every membership whose org `type !== 'peña'`
+- **Grupos** — every membership whose org `type !== 'peña'`
   (asociación + ayuntamiento + otros), so no membership ever disappears.
 - **Peñas** — memberships whose org `type === 'peña'`.
+
+This also carries an **app-wide relabel** of the existing village term
+"Agrupaciones" → "Grupos" (see the i18n section).
 
 This replaces today's single, easily-missed combined "Organizaciones" vertical
 list (it only renders when the user belongs to ≥1 org, so a user with no
@@ -59,9 +62,9 @@ const asociaciones = orgs.filter((o) => o.type !== 'peña');
 const penas = orgs.filter((o) => o.type === 'peña');
 
 <Section
-  title={t('profile.asociacionesSection.title')}
+  title={t('profile.gruposSection.title')}
   isEmpty={asociaciones.length === 0}
-  emptyLabel={t('profile.asociacionesSection.empty')}
+  emptyLabel={t('profile.gruposSection.empty')}
 >
   {asociaciones.map((o) => (
     <EntityCard
@@ -105,12 +108,13 @@ Notes:
 
 ### i18n (`packages/i18n/messages/es.json`)
 
-Add under `profile`:
+**New profile-scoped keys** under `profile` (membership-flavoured empty copy, so
+not reusing `village.hub.*`):
 
 ```json
-"asociacionesSection": {
-  "title": "Asociaciones",
-  "empty": "Aún no perteneces a ninguna asociación."
+"gruposSection": {
+  "title": "Grupos",
+  "empty": "Aún no perteneces a ningún grupo."
 },
 "peñasSection": {
   "title": "Peñas",
@@ -118,8 +122,19 @@ Add under `profile`:
 }
 ```
 
-(New profile-scoped keys rather than reusing `village.hub.*`, because the title
-"Asociaciones" differs from the village's "Agrupaciones".)
+**App-wide "Agrupaciones" → "Grupos" relabel.** Exactly four user-facing strings
+carry the old word (the admin add-labels say "organización", so they stay):
+
+| key | old | new |
+| --- | --- | --- |
+| `village.hub.organizations` | Agrupaciones | Grupos |
+| `village.organizationsList.title` | Agrupaciones | Grupos |
+| `village.organizationsList.empty` | Aún no hay agrupaciones | Aún no hay grupos |
+| `village.community.explainer` | …lugares y agrupaciones… | …lugares y grupos… |
+
+Optionally update the internal "agrupaciones/Agrupaciones" code comments
+(VillageHomeBody, OrganizationsManager, organizations.tsx, ProposableForm,
+community.tsx) to "grupos" for accuracy — non-functional.
 
 ### Cleanup
 
@@ -133,7 +148,7 @@ Add under `profile`:
 ### Tests
 
 Update `apps/mobile/app/(tabs)/__tests__/profile.test.tsx`:
-- Assert both section titles render ("Asociaciones", "Peñas").
+- Assert both section titles render ("Grupos", "Peñas").
 - Given a member peña + a member asociación, assert each lands in its section
   and a card press navigates to `/o/${id}`.
 - Empty case: both empty labels render when the user has no memberships.
