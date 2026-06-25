@@ -3,8 +3,14 @@ import { router } from 'expo-router';
 import { VillageHomeBody } from '../VillageHomeBody';
 import type { VillageHomeState } from '../../../lib/useVillageHome';
 
+const mockRefreshProfile = jest.fn(async () => undefined);
 jest.mock('../../../lib/auth/useAuth', () => {
-  const value = { user: { uid: 'u1' }, profile: null, profileChecked: true };
+  const value = {
+    user: { uid: 'u1' },
+    profile: null,
+    profileChecked: true,
+    refreshProfile: () => mockRefreshProfile(),
+  };
   return { useAuth: () => value };
 });
 jest.mock('../../../lib/auth/useIsAppAdmin', () => ({ useIsAppAdmin: () => ({ isAppAdmin: false }) }));
@@ -73,7 +79,10 @@ const base: VillageHomeState = {
   myCensoAnswers: {},
 };
 
-beforeEach(() => mockJoinVillage.mockClear());
+beforeEach(() => {
+  mockJoinVillage.mockClear();
+  mockRefreshProfile.mockClear();
+});
 
 describe('VillageHomeBody', () => {
   it('hides the join CTA for a member', () => {
@@ -96,6 +105,9 @@ describe('VillageHomeBody', () => {
       expect(mockJoinVillage).toHaveBeenCalledWith('m1', 'u1', null),
     );
     expect(reload).toHaveBeenCalled();
+    // Refresh the in-memory auth profile so the Pueblo tab picks up the new
+    // activeMunicipalityId immediately, not only after an app restart.
+    await waitFor(() => expect(mockRefreshProfile).toHaveBeenCalled());
   });
 
   it('renders the start-village notice when the community is dormant', () => {

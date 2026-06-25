@@ -43,7 +43,7 @@ export interface VillageHomeBodyProps {
  * join".
  */
 export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: VillageHomeBodyProps) {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const { isAppAdmin } = useIsAppAdmin();
   const share = useShareDeepLink();
   const { t } = useT();
@@ -187,6 +187,9 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
     try {
       await joinVillage(village.id, user.uid, barrioId);
       setPendingJoin(false);
+      // joinVillage set this village as active; refresh the auth profile so the
+      // Pueblo tab reflects it now, not only after an app restart.
+      await refreshProfile();
       await reload();
     } finally {
       setJoining(false);

@@ -40,7 +40,7 @@ export function VillageDiscovery() {
   // Bumped on every new search so a slow in-flight page can't clobber a newer one.
   const reqId = useRef(0);
 
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
   const [pendingJoin, setPendingJoin] = useState<Muni | null>(null);
   const [joining, setJoining] = useState(false);
@@ -150,6 +150,9 @@ export function VillageDiscovery() {
       await joinVillage(id, user.uid, barrioId);
       setJoinedIds((prev) => new Set(prev).add(id));
       setPendingJoin(null);
+      // joinVillage set this village as active; refresh the auth profile so the
+      // Pueblo tab reflects it now, not only after an app restart.
+      await refreshProfile();
       router.push({ pathname: '/village/[villageId]', params: { villageId: id } });
     } finally {
       setJoining(false);
