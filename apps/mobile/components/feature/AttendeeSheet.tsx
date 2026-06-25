@@ -157,12 +157,27 @@ export function AttendeeSheet({
                     </RNPressable>
                   );
                 })}
+
+                {/* Same rectangle shape as a persona row, but a dashed outline
+                    and a + to read as "add another". */}
+                <RNPressable
+                  onPress={onCreateNew}
+                  testID="attendee-create"
+                  accessibilityRole="button"
+                  accessibilityLabel={t('event.register.createPersona')}
+                  className="flex-row items-center rounded-lg border border-dashed border-subtle p-3"
+                >
+                  <HStack gap={3} className="items-center flex-1">
+                    <Text tone="muted" style={{ fontSize: 18 }}>
+                      ＋
+                    </Text>
+                    <Text tone="muted" className="flex-1">
+                      {t('event.register.createPersona')}
+                    </Text>
+                  </HStack>
+                </RNPressable>
               </VStack>
             </ScrollView>
-
-            <Button variant="ghost" onPress={onCreateNew} testID="attendee-create">
-              {t('event.register.createPersona')}
-            </Button>
 
             {needsPhone ? (
               <Input
