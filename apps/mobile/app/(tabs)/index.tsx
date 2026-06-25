@@ -28,6 +28,7 @@ import { useAuth } from '../../lib/auth/useAuth';
 import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useT } from '../../lib/i18n';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
+import { webSpread } from '../../lib/platform';
 import { getUpcomingFeed, haversineKm } from '@cultuvilla/shared/services/feedService';
 import { getAllVillagesFeed } from '@cultuvilla/shared/services/newsService';
 import { getActiveCommunities } from '@cultuvilla/shared/services/municipalityService';
@@ -498,9 +499,17 @@ export default function FeedScreen() {
           scrollEventThrottle={32}
           onScroll={onPagerScroll}
           style={{ flex: 1 }}
+          // Web-only: RN-Web doesn't stretch a horizontal ScrollView's children
+          // to its cross-axis height the way native does, so the page wrappers
+          // (and the FlatList's flex:1 inside) have no bounded height and the
+          // list grows to content height instead of becoming an internal
+          // scroller — vertical scroll silently dies. Bounding the content
+          // container to one viewport height gives the `height: '100%'` chain
+          // below something to resolve against. No-op on native.
+          contentContainerStyle={webSpread({ height: '100%' as const })}
         >
-          <View style={{ width }}>{eventsPage}</View>
-          <View style={{ width }}>{newsPage}</View>
+          <View style={{ width, ...webSpread({ height: '100%' as const }) }}>{eventsPage}</View>
+          <View style={{ width, ...webSpread({ height: '100%' as const }) }}>{newsPage}</View>
         </ScrollView>
 
         {/* Floating overlay — the toggle and filter bar both sit above the feed
