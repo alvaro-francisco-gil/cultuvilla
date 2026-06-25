@@ -22,9 +22,10 @@ export interface BarrioPickerProps {
   /** Label for the "no specific barrio" choice, e.g. "Todo el pueblo". */
   wholeVillageLabel: string;
   /**
-   * Render nothing once it's known the village has no approved barrios. Used by
-   * the join modal, where there's nothing to choose so the control just adds
-   * noise. Defaults to false (always render, offering only "whole village").
+   * Render nothing once it's known the village has no approved barrios — there
+   * is nothing to choose, so the control would only offer "whole village"
+   * (which is also the null default). Defaults to true; pass false only if a
+   * surface must always show the control.
    */
   hideWhenEmpty?: boolean;
 }
@@ -35,7 +36,7 @@ export function BarrioPicker({
   value,
   onChange,
   wholeVillageLabel,
-  hideWhenEmpty = false,
+  hideWhenEmpty = true,
 }: BarrioPickerProps) {
   const [open, setOpen] = useState(false);
   const [options, setOptions] = useState<Option[]>([]);

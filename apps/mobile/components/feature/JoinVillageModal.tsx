@@ -80,7 +80,6 @@ export function JoinVillageModal({ municipality, busy = false, onCancel, onConfi
                 value={barrioId}
                 onChange={setBarrioId}
                 wholeVillageLabel={t('profile.personForm.wholeVillage')}
-                hideWhenEmpty
               />
               <HStack gap={3} className="justify-end items-center">
                 <Button variant="ghost" onPress={onCancel} disabled={busy}>
