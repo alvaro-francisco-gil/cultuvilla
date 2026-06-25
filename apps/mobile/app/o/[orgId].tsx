@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text as RNText, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams } from 'expo-router';
 import { Screen } from '../../components/primitives/Screen';
 import { Text } from '../../components/primitives/Text';
 import { VStack } from '../../components/primitives/VStack';
-import { Button } from '../../components/primitives/Button';
 import { DetailHeroImage } from '../../components/feature/DetailHeroImage';
 import { FloatingBackButton } from '../../components/feature/FloatingBackButton';
 import { FloatingShareButton } from '../../components/feature/FloatingShareButton';
@@ -19,10 +19,7 @@ import {
   addOrgMember,
   getOrgMembers,
 } from '@cultuvilla/shared/services/orgMemberService';
-import {
-  getOrgViewLink,
-  getOrgInviteLink,
-} from '@cultuvilla/shared/services/deepLinkService';
+import { getOrgViewLink } from '@cultuvilla/shared/services/deepLinkService';
 import type { OrganizationData } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
 
 type Org = OrganizationData & { id: string };
@@ -34,6 +31,7 @@ export default function OrgDetailScreen() {
   const { user } = useAuth();
   const gate = useRegisterGate();
   const share = useShareDeepLink();
+  const insets = useSafeAreaInsets();
   const [org, setOrg] = useState<Org | null>(null);
   const [membersCount, setMembersCount] = useState<number | null>(null);
   const [isMember, setIsMember] = useState<boolean>(false);
@@ -84,7 +82,7 @@ export default function OrgDetailScreen() {
   return (
     <Screen padded={false} topInset={false}>
       <StatusBar style="light" />
-      <ScrollView contentContainerClassName="pb-10">
+      <ScrollView contentContainerClassName="pb-28">
         <DetailHeroImage imageUri={org.imageURL} fallbackIcon="people-outline" />
         <FloatingBackButton />
         <FloatingShareButton onPress={() => void share(getOrgViewLink(org.id), org.name)} />
@@ -94,27 +92,62 @@ export default function OrgDetailScreen() {
           <Text tone="muted">
             {t('organization.membersCount', { count: membersCount ?? 0 })}
           </Text>
-          <Button
-            variant="secondary"
-            fullWidth
-            onPress={() => void share(getOrgInviteLink(org.id), org.name)}
-          >
-            {t('deeplink.shareInviteLabel')}
-          </Button>
-          {!isMember ? (
-            <VStack gap={1}>
-              {arrivedViaInvite ? (
-                <Text tone="muted" variant="bodySm" className="text-center">
-                  {t('organization.invitedBanner')}
-                </Text>
-              ) : null}
-              <Button variant="primary" fullWidth loading={joining} onPress={onJoin}>
-                {user ? t('organization.join') : t('organization.signInToJoin')}
-              </Button>
-            </VStack>
+          {arrivedViaInvite && !isMember ? (
+            <Text tone="muted" variant="bodySm">
+              {t('organization.invitedBanner')}
+            </Text>
           ) : null}
         </VStack>
       </ScrollView>
+
+      {/* Ordago-style floating join pill, mirroring the event detail FAB. Styles
+          live on `style` (never `className`) so the pill renders on RN-Web. */}
+      {!isMember ? (
+        <View
+          pointerEvents="box-none"
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: insets.bottom + 24,
+            alignItems: 'center',
+            zIndex: 20,
+          }}
+        >
+          <Pressable
+            onPress={onJoin}
+            disabled={joining}
+            testID="join-org-fab"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: joining }}
+            accessibilityLabel={user ? t('organization.join') : t('organization.signInToJoin')}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingVertical: 10,
+              paddingHorizontal: 22,
+              borderRadius: 999,
+              backgroundColor: '#bb5d3a',
+              opacity: joining ? 0.7 : 1,
+              elevation: 6,
+              shadowColor: '#000',
+              shadowOpacity: 0.25,
+              shadowRadius: 6,
+              shadowOffset: { width: 0, height: 3 },
+            }}
+          >
+            {joining ? (
+              <ActivityIndicator color="#f9f0e8" style={{ marginRight: 8 }} />
+            ) : (
+              <RNText style={{ color: '#f9f0e8', fontSize: 18, lineHeight: 22, marginRight: 8 }}>+</RNText>
+            )}
+            <RNText style={{ color: '#f9f0e8', fontSize: 16, fontWeight: '700' }}>
+              {user ? t('organization.join') : t('organization.signInToJoin')}
+            </RNText>
+          </Pressable>
+        </View>
+      ) : null}
     </Screen>
   );
 }
