@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View, Image, Linking } from 'react-native';
 import { router } from 'expo-router';
-import { Text, VStack, HStack, Pressable, Escudo, Button, ScreenTitle } from '../primitives';
+import {
+  Text,
+  VStack,
+  HStack,
+  Pressable,
+  Escudo,
+  Button,
+  ScreenTitle,
+  ErrorState,
+} from '../primitives';
 import { ACCENT, Section, EntityCard } from './VillageSections';
 import { JoinVillageModal } from './JoinVillageModal';
 import { StatsRow } from './StatsRow';
@@ -60,11 +69,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
     );
   }
   if (loadError) {
-    return (
-      <View className="flex-1 items-center justify-center px-8">
-        <Text tone="danger">{loadError}</Text>
-      </View>
-    );
+    return <ErrorState onRetry={reload} />;
   }
   if (!village) {
     return (

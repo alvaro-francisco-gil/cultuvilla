@@ -5,6 +5,8 @@ export * from './Text';
 export { ScreenTitle } from './ScreenTitle';
 export * from './Pressable';
 export * from './Button';
+export { ErrorState } from './ErrorState';
+export type { ErrorStateProps } from './ErrorState';
 export * from './Card';
 export * from './Input';
 export { FieldLabel } from './FieldLabel';

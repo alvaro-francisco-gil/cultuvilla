@@ -63,6 +63,7 @@ export default function ProfileScreen() {
   const [managedEvents, setManagedEvents] = useState<ManagedEvent[]>([]);
   const [newsCount, setNewsCount] = useState<number | null>(null);
   const [createdNews, setCreatedNews] = useState<CreatedNews[]>([]);
+  const [newsError, setNewsError] = useState(false);
   const [orgs, setOrgs] = useState<MemberOrg[]>([]);
   const [villages, setVillages] = useState<VillageRow[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -73,6 +74,7 @@ export default function ProfileScreen() {
   const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    setNewsError(false);
     try {
       const [self, mine] = await Promise.all([
         withFirestoreErrorLog('profile:getPersonByUserId', () => getPersonByUserId(user.uid)),
@@ -81,18 +83,28 @@ export default function ProfileScreen() {
       setSelfPerson(self);
       setAllPersonas(mine);
 
-      const [myEvents, news] = await Promise.all([
-        withFirestoreErrorLog('profile:getEventsByOrganizer', () =>
-          getEventsByOrganizer(user.uid),
-        ),
-        withFirestoreErrorLog('profile:getNewsPostsByOrganizer', () =>
-          getNewsPostsByOrganizer(user.uid),
-        ),
-      ]);
+      const myEvents = await withFirestoreErrorLog('profile:getEventsByOrganizer', () =>
+        getEventsByOrganizer(user.uid),
+      );
       setManagedEvents(myEvents);
       setEventsCreated(myEvents.length);
-      setCreatedNews(news);
-      setNewsCount(news.length);
+
+      // The organizer news query is denied by rules when the user is an
+      // organizer but not the post's creator. Isolate it so the denial shows
+      // an error in the news section instead of aborting the whole profile
+      // load (it shares the request batch with villages/orgs below) or
+      // surfacing as an uncaught promise rejection.
+      try {
+        const news = await withFirestoreErrorLog('profile:getNewsPostsByOrganizer', () =>
+          getNewsPostsByOrganizer(user.uid),
+        );
+        setCreatedNews(news);
+        setNewsCount(news.length);
+      } catch {
+        setNewsError(true);
+        setCreatedNews([]);
+        setNewsCount(null);
+      }
 
       const villageMemberships = await withFirestoreErrorLog('profile:getUserMemberships', () =>
         getUserMemberships(user.uid),
@@ -295,7 +307,14 @@ export default function ProfileScreen() {
           </>
         ) : null}
 
-        {createdNews.length > 0 ? (
+        {newsError ? (
+          <>
+            <ProfileSectionHeader title={t('profile.createdNewsSection.title')} />
+            <View className="px-4">
+              <Text tone="danger">{t('profile.createdNewsSection.error')}</Text>
+            </View>
+          </>
+        ) : createdNews.length > 0 ? (
           <>
             <ProfileSectionHeader title={t('profile.createdNewsSection.title')} />
             <CreatedNewsScroll

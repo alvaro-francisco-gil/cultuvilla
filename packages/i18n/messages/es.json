@@ -17,7 +17,12 @@
     "notFound": "No encontrado",
     "stepper": { "back": "Anterior", "next": "Siguiente" },
     "close": "Cerrar",
-    "photo": "Foto"
+    "photo": "Foto",
+    "error": {
+      "title": "No se pudo cargar",
+      "body": "Algo salió mal al cargar el contenido. Inténtalo de nuevo.",
+      "retry": "Reintentar"
+    }
   },
   "auth": {
     "signIn": "Iniciar sesión",
@@ -544,7 +549,8 @@
     },
     "createdNewsSection": {
       "title": "Artículos creados",
-      "empty": "Aún no has creado ningún artículo"
+      "empty": "Aún no has creado ningún artículo",
+      "error": "No se pudieron cargar tus artículos."
     },
     "born": "Nacido en {place}",
     "bornYear": "{year}",
