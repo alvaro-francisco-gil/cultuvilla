@@ -6,22 +6,34 @@ import {
   registerToEvent,
   cancelRegistration,
 } from '@cultuvilla/shared/services/registrationService';
+import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
 
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../lib/dialogs', () => ({
-  // Auto-confirm so the cancel path runs through to cancelRegistration.
   showConfirm: (_t: string, _m: string, onConfirm: () => void) => onConfirm(),
   showAlert: jest.fn(),
 }));
+jest.mock('expo-router', () => {
+  const React = require('react');
+  return {
+    router: { push: jest.fn() },
+    // Run the focus callback once after mount, like a real initial focus.
+    useFocusEffect: (cb: () => void) => React.useEffect(cb, []),
+  };
+});
 jest.mock('@cultuvilla/shared/services/registrationService', () => ({
   getUserRegistrations: jest.fn(),
   registerToEvent: jest.fn(),
   cancelRegistration: jest.fn(),
 }));
+jest.mock('@cultuvilla/shared/services/personService', () => ({
+  getPersonsByCreator: jest.fn(),
+}));
 
 const mockGetUserRegistrations = getUserRegistrations as jest.Mock;
 const mockRegisterToEvent = registerToEvent as jest.Mock;
 const mockCancelRegistration = cancelRegistration as jest.Mock;
+const mockGetPersonsByCreator = getPersonsByCreator as jest.Mock;
 
 const baseProps = {
   eventId: 'e1',
@@ -31,67 +43,73 @@ const baseProps = {
   telephoneRequired: false,
 };
 
+// A dependent persona created by the user (shape used by buildShortName).
+const dep = {
+  id: 'p2',
+  givenName: 'Hijo',
+  nickname: null,
+  firstSurname: 'García',
+  userId: null,
+};
+
 beforeEach(() => {
   jest.clearAllMocks();
   mockGetUserRegistrations.mockResolvedValue([]);
+  mockGetPersonsByCreator.mockResolvedValue([]);
 });
 
 describe('RegisterFab', () => {
-  it('shows the sign-up CTA and registers (no phone) when the user is not signed up', async () => {
-    mockRegisterToEvent.mockResolvedValue([{ id: 'r9', status: 'confirmed', position: 1, isMember: true }]);
+  it('shows the sign-up CTA and opens the attendee sheet on tap', async () => {
     const { getByTestId, getByText } = render(<RegisterFab {...baseProps} />);
-
     await waitFor(() => expect(getByText('event.register.cta')).toBeTruthy());
 
     fireEvent.press(getByTestId('register-fab'));
-
-    await waitFor(() => expect(getByText('event.register.signedUp')).toBeTruthy());
-    expect(mockRegisterToEvent).toHaveBeenCalledWith('e1', [{ personId: 'p1', name: 'Ana' }]);
+    // Sheet opened with the caller's own persona as a row.
+    expect(getByTestId('attendee-row-p1')).toBeTruthy();
   });
 
-  it('shows the confirmed state and cancels (with confirm dialog) when tapped', async () => {
-    mockGetUserRegistrations.mockResolvedValue([{ id: 'r1', status: 'confirmed', position: 1 }]);
-    mockCancelRegistration.mockResolvedValue(undefined);
-    const { getByTestId, getByText } = render(<RegisterFab {...baseProps} />);
-
-    await waitFor(() => expect(getByText('event.register.signedUp')).toBeTruthy());
-
-    fireEvent.press(getByTestId('register-fab'));
-
-    await waitFor(() => expect(getByText('event.register.cta')).toBeTruthy());
-    expect(mockCancelRegistration).toHaveBeenCalledWith('e1', 'r1');
-  });
-
-  it('shows the waitlisted state when the existing registration is waitlisted', async () => {
-    mockGetUserRegistrations.mockResolvedValue([{ id: 'r2', status: 'waitlisted', position: 5 }]);
+  it('shows a group count label when personas are already registered', async () => {
+    mockGetUserRegistrations.mockResolvedValue([{ id: 'rA', personId: 'p1', status: 'confirmed' }]);
     const { getByText } = render(<RegisterFab {...baseProps} />);
-
-    await waitFor(() => expect(getByText('event.register.waitlisted')).toBeTruthy());
+    await waitFor(() => expect(getByText('event.register.signedUpCount')).toBeTruthy());
   });
 
-  it('prompts for a phone before registering on telephoneRequired events', async () => {
-    mockRegisterToEvent.mockResolvedValue([{ id: 'r9', status: 'confirmed', position: 1, isMember: true }]);
-    const { getByTestId, getByText, queryByTestId } = render(
-      <RegisterFab {...baseProps} telephoneRequired />,
-    );
-
+  it('registers newly-selected personas (self + dependent) in one call', async () => {
+    mockGetPersonsByCreator.mockResolvedValue([dep]);
+    mockRegisterToEvent.mockResolvedValue([
+      { id: 'rA', status: 'confirmed', position: 1, isMember: true },
+      { id: 'rB', status: 'confirmed', position: 2, isMember: false },
+    ]);
+    const { getByTestId, getByText } = render(<RegisterFab {...baseProps} />);
     await waitFor(() => expect(getByText('event.register.cta')).toBeTruthy());
 
-    // No phone prompt until the FAB is tapped.
-    expect(queryByTestId('register-fab-phone')).toBeNull();
     fireEvent.press(getByTestId('register-fab'));
-
-    // Tapping opens the phone prompt instead of registering immediately.
-    const phoneInput = getByTestId('register-fab-phone');
-    expect(mockRegisterToEvent).not.toHaveBeenCalled();
-
-    fireEvent.changeText(phoneInput, '600111222');
-    fireEvent.press(getByTestId('register-fab-phone-submit'));
+    fireEvent.press(getByTestId('attendee-row-p1'));
+    fireEvent.press(getByTestId('attendee-row-p2'));
+    fireEvent.press(getByTestId('attendee-confirm'));
 
     await waitFor(() =>
       expect(mockRegisterToEvent).toHaveBeenCalledWith('e1', [
-        { personId: 'p1', name: 'Ana', phone: '600111222' },
+        { personId: 'p1', name: 'Ana' },
+        { personId: 'p2', name: 'Hijo García' },
       ]),
     );
+  });
+
+  it('cancels a deselected registered persona after a single combined confirm', async () => {
+    mockGetUserRegistrations.mockResolvedValue([
+      { id: 'rA', personId: 'p1', status: 'confirmed' },
+      { id: 'rB', personId: 'p2', status: 'confirmed' },
+    ]);
+    mockGetPersonsByCreator.mockResolvedValue([dep]);
+    mockCancelRegistration.mockResolvedValue(undefined);
+    const { getByTestId, getByText } = render(<RegisterFab {...baseProps} />);
+    await waitFor(() => expect(getByText('event.register.signedUpCount')).toBeTruthy());
+
+    fireEvent.press(getByTestId('register-fab'));
+    fireEvent.press(getByTestId('attendee-row-p2')); // untick the dependent
+    fireEvent.press(getByTestId('attendee-confirm'));
+
+    await waitFor(() => expect(mockCancelRegistration).toHaveBeenCalledWith('e1', 'rB'));
   });
 });

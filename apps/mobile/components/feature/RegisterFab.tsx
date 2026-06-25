@@ -1,71 +1,108 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Animated, Modal, Pressable as RNPressable, Text, View } from 'react-native';
-import { Button } from '../primitives/Button';
-import { Input } from '../primitives/Input';
+import { useCallback, useRef, useState } from 'react';
+import { Animated, Pressable as RNPressable, Text } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import { showAlert, showConfirm } from '../../lib/dialogs';
+import { AttendeeSheet, type AttendeeOption } from './AttendeeSheet';
+import { computeRegistrationDiff, type AttendeeDiff, type AttendeeRegistration } from './attendeeDiff';
 import {
   cancelRegistration,
   getUserRegistrations,
   registerToEvent,
 } from '@cultuvilla/shared/services/registrationService';
-import type { RegistrationStatus } from '@cultuvilla/shared/models/event/RegistrationDataModel';
+import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
+import { buildShortName, type PersonData } from '@cultuvilla/shared/models/person';
 import { useT } from '../../lib/i18n';
 
 export interface RegisterFabProps {
   eventId: string;
-  /** Firebase Auth uid — used to look up the caller's own registration. */
+  /** Firebase Auth uid — every registration the user makes is stamped with it. */
   userId: string;
+  /** The caller's own persona id. */
   personId: string;
+  /** The caller's own display name. */
   name: string;
-  /** When true, sign-up first prompts for a phone (stored organizer-only). */
+  /** When true, adding new attendees first requires a shared phone. */
   telephoneRequired: boolean;
 }
 
-/** The caller's current registration on this event, or null when not signed up. */
-type MyRegistration = { id: string; status: RegistrationStatus } | null;
+type PersonDoc = PersonData & { id: string };
 
 /**
- * Ordago-style floating sign-up button for the event detail screen. It reflects
- * the caller's live registration state in three shapes — not signed up,
- * confirmed, waitlisted — and toggles sign-up/cancel on tap (cancel goes through
- * a confirm dialog). For telephoneRequired events the tap opens a phone prompt
- * before registering.
+ * Ordago-style floating sign-up button for the event detail screen. Tapping it
+ * opens an {@link AttendeeSheet} where the caller signs up themselves and any
+ * personas a cargo (or creates a new dependent). The pill reflects how many of
+ * the caller's personas are currently registered, turning amber if any are
+ * waitlisted.
  *
- * All visual styles live on `style` (never `className`) so the pill renders on
- * the RN-Web build, mirroring the Fab primitive.
+ * Styles live on `style` (never `className`) so the pill renders on RN-Web.
  */
 export function RegisterFab({ eventId, userId, personId, name, telephoneRequired }: RegisterFabProps) {
   const { t } = useT();
-  const [registration, setRegistration] = useState<MyRegistration>(null);
+  const [registrations, setRegistrations] = useState<Map<string, AttendeeRegistration>>(new Map());
+  const [dependents, setDependents] = useState<PersonDoc[]>([]);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [phoneVisible, setPhoneVisible] = useState(false);
-  const [phone, setPhone] = useState('');
+  const [autoSelectIds, setAutoSelectIds] = useState<string[]>([]);
+  const knownDepIds = useRef<Set<string>>(new Set());
 
-  // Load the caller's existing registration so the button shows the true state
-  // on a fresh page load, not just after an in-session sign-up.
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const mine = await getUserRegistrations(eventId, userId);
-      if (cancelled) return;
-      const first = mine[0];
-      setRegistration(first ? { id: first.id, status: first.status } : null);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [eventId, userId]);
+  // Load the caller's registrations + personas a cargo. Runs on focus so a
+  // dependent created via /person/new shows up on return.
+  const load = useCallback(async () => {
+    const [regs, deps] = await Promise.all([
+      getUserRegistrations(eventId, userId),
+      getPersonsByCreator(userId),
+    ]);
+    const map = new Map<string, AttendeeRegistration>();
+    regs.forEach((r) => map.set(r.personId, { regId: r.id, status: r.status }));
+    setRegistrations(map);
 
-  async function doRegister(withPhone?: string) {
+    // Drop the caller's own persona (rendered from props) and other account holders.
+    const filtered = deps.filter((d) => d.id !== personId && d.userId !== userId);
+    const known = knownDepIds.current;
+    const fresh = filtered.filter((d) => !known.has(d.id)).map((d) => d.id);
+    if (known.size > 0 && fresh.length > 0) setAutoSelectIds(fresh);
+    knownDepIds.current = new Set(filtered.map((d) => d.id));
+    setDependents(filtered);
+  }, [eventId, userId, personId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
+
+  const attendees: AttendeeOption[] = [
+    { id: personId, name, status: registrations.get(personId)?.status },
+    ...dependents.map((d) => ({
+      id: d.id,
+      name: buildShortName(d),
+      status: registrations.get(d.id)?.status,
+    })),
+  ];
+  const names = new Map(attendees.map((a) => [a.id, a.name]));
+
+  async function applyDiff(diff: AttendeeDiff, phone?: string) {
     setBusy(true);
     try {
-      const [summary] = await registerToEvent(eventId, [
-        { personId, name, ...(withPhone ? { phone: withPhone } : {}) },
-      ]);
-      if (!summary) throw new Error('no-registration-returned');
-      setRegistration({ id: summary.id, status: summary.status });
-      setPhoneVisible(false);
-      setPhone('');
+      const next = new Map(registrations);
+      if (diff.toAdd.length > 0) {
+        const registrants = diff.toAdd.map((a) => ({ ...a, ...(phone ? { phone } : {}) }));
+        const summaries = await registerToEvent(eventId, registrants);
+        summaries.forEach((s, i) => {
+          const pid = diff.toAdd[i]?.personId;
+          if (pid) next.set(pid, { regId: s.id, status: s.status });
+        });
+      }
+      for (const regId of diff.toCancelRegIds) {
+        await cancelRegistration(eventId, regId);
+      }
+      const cancelled = new Set(diff.toCancelRegIds);
+      for (const [pid, reg] of next) {
+        if (cancelled.has(reg.regId)) next.delete(pid);
+      }
+      setRegistrations(next);
+      setAutoSelectIds([]);
+      setSheetOpen(false);
     } catch (e) {
       showAlert(e instanceof Error ? e.message : 'unknown', t('event.register.error'));
     } finally {
@@ -73,39 +110,33 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
     }
   }
 
-  async function doCancel(regId: string) {
-    setBusy(true);
-    try {
-      await cancelRegistration(eventId, regId);
-      setRegistration(null);
-    } catch (e) {
-      showAlert(e instanceof Error ? e.message : 'unknown', t('event.register.error'));
-    } finally {
-      setBusy(false);
+  function handleConfirm(selectedIds: string[], phone?: string) {
+    const diff = computeRegistrationDiff(new Set(selectedIds), registrations, names);
+    if (diff.toAdd.length === 0 && diff.toCancelRegIds.length === 0) {
+      setSheetOpen(false);
+      return;
     }
-  }
-
-  function handlePress() {
-    if (busy) return;
-    if (registration) {
-      showConfirm(t('event.register.cancelTitle'), t('event.register.cancelBody'), () => void doCancel(registration.id), {
+    if (diff.toCancelRegIds.length > 0) {
+      // One combined confirm covers all removals.
+      showConfirm(t('event.register.cancelTitle'), t('event.register.cancelManyBody'), () => void applyDiff(diff, phone), {
         confirmText: t('event.register.cancelConfirm'),
         cancelText: t('common.cancel'),
       });
-      return;
+    } else {
+      void applyDiff(diff, phone);
     }
-    if (telephoneRequired) {
-      setPhoneVisible(true);
-      return;
-    }
-    void doRegister();
   }
 
-  const view = (() => {
-    if (!registration) return { label: t('event.register.cta'), prefix: '+', bg: '#bb5d3a' };
-    if (registration.status === 'waitlisted') return { label: t('event.register.waitlisted'), prefix: '⏳', bg: '#b07a1e' };
-    return { label: t('event.register.signedUp'), prefix: '✓', bg: '#2f7d4f' };
-  })();
+  const count = registrations.size;
+  const anyWaitlisted = [...registrations.values()].some((r) => r.status === 'waitlisted');
+  const view =
+    count === 0
+      ? { label: t('event.register.cta'), prefix: '+', bg: '#bb5d3a' }
+      : {
+          label: t('event.register.signedUpCount', { count }),
+          prefix: anyWaitlisted ? '⏳' : '✓',
+          bg: anyWaitlisted ? '#b07a1e' : '#2f7d4f',
+        };
 
   return (
     <>
@@ -114,11 +145,13 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
         style={{ position: 'absolute', left: 0, right: 0, bottom: 24, alignItems: 'center', zIndex: 20 }}
       >
         <RNPressable
-          onPress={handlePress}
+          onPress={() => {
+            if (!busy) setSheetOpen(true);
+          }}
           disabled={busy}
           testID="register-fab"
           accessibilityRole="button"
-          accessibilityState={{ disabled: busy, selected: registration !== null }}
+          accessibilityState={{ disabled: busy, selected: count > 0 }}
           accessibilityLabel={view.label}
           style={{
             flexDirection: 'row',
@@ -136,55 +169,21 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
             shadowOffset: { width: 0, height: 3 },
           }}
         >
-          {busy ? (
-            <ActivityIndicator color="#f9f0e8" style={{ marginRight: 8 }} />
-          ) : (
-            <Text style={{ color: '#f9f0e8', fontSize: 18, lineHeight: 22, marginRight: 8 }}>{view.prefix}</Text>
-          )}
+          <Text style={{ color: '#f9f0e8', fontSize: 18, lineHeight: 22, marginRight: 8 }}>{view.prefix}</Text>
           <Text style={{ color: '#f9f0e8', fontSize: 16, fontWeight: '700' }}>{view.label}</Text>
         </RNPressable>
       </Animated.View>
 
-      <Modal
-        visible={phoneVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => {
-          if (!busy) setPhoneVisible(false);
-        }}
-      >
-        <RNPressable
-          onPress={() => {
-            if (!busy) setPhoneVisible(false);
-          }}
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}
-          className="items-center justify-center px-8"
-        >
-          {/* Inner catcher: taps inside the card must not dismiss. */}
-          <RNPressable onPress={() => {}} className="w-full rounded-lg bg-surface-elevated p-5 border border-subtle">
-            <View>
-              <Input
-                label={t('event.register.phoneTitle')}
-                value={phone}
-                onChangeText={setPhone}
-                placeholder={t('event.register.phonePlaceholder')}
-                keyboardType="phone-pad"
-                testID="register-fab-phone"
-              />
-              <View style={{ height: 12 }} />
-              <Button
-                onPress={() => void doRegister(phone.trim())}
-                loading={busy}
-                disabled={!phone.trim()}
-                fullWidth
-                testID="register-fab-phone-submit"
-              >
-                {t('event.register.cta')}
-              </Button>
-            </View>
-          </RNPressable>
-        </RNPressable>
-      </Modal>
+      <AttendeeSheet
+        visible={sheetOpen}
+        attendees={attendees}
+        telephoneRequired={telephoneRequired}
+        busy={busy}
+        autoSelectIds={autoSelectIds}
+        onClose={() => setSheetOpen(false)}
+        onCreateNew={() => router.push('/person/new')}
+        onConfirm={handleConfirm}
+      />
     </>
   );
 }
