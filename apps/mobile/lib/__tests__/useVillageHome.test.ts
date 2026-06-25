@@ -38,6 +38,9 @@ jest.mock('@cultuvilla/shared/services/organizerRequestService', () => ({
 jest.mock('@cultuvilla/shared/services/eventService', () => ({
   getEventsByMunicipality: jest.fn(async () => []),
 }));
+jest.mock('@cultuvilla/shared/services/newsService', () => ({
+  getHomeFeed: jest.fn(async () => []),
+}));
 
 describe('useVillageHome', () => {
   it('aggregates village data and derives isMember + peopleCount', async () => {

@@ -9,14 +9,13 @@ function makeEvent(over: Partial<ManagedEvent> & { id: string }): ManagedEvent {
     title: over.title ?? over.id,
     description: '',
     startDate: over.startDate ?? new Date('2026-07-01T18:00:00Z'),
-    endDate: over.endDate ?? null,
-    location: { type: 'text', coordinates: null, text: 'Plaza' },
+    location: { coordinates: { lat: 40.4, lng: -3.7 }, displayName: 'Plaza' },
     imageURL: null,
     maxAttendees: null,
     telephoneRequired: false,
     status: over.status ?? 'published',
-    organizationId: 'org-1',
-    organizationName: 'Org',
+    organizerUserIds: ['uid-1'],
+    organizerOrgIds: [],
     createdBy: 'uid-1',
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
@@ -33,7 +32,6 @@ const ONGOING = makeEvent({
   id: 'ongoing',
   title: 'En marcha',
   startDate: new Date('2026-06-15T18:00:00Z'),
-  endDate: new Date('2026-06-15T22:00:00Z'),
 });
 
 describe('ManagedEventsScroll', () => {

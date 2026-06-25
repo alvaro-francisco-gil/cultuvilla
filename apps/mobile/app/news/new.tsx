@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { Image } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Screen, VStack, Text, Input, Button } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { OrganizerPicker } from '../../components/feature/OrganizerPicker';
 import { uriToBlob } from '../../lib/images';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
@@ -48,6 +49,17 @@ export default function NewNewsScreen() {
   const [category, setCategory] = useState<NewsPostCategory | null>(null);
   const [images, setImages] = useState<PickedImage[]>([]);
   const [submitted, setSubmitted] = useState(false);
+  // Use an effect (not a one-shot initializer) so that if auth resolves after
+  // the first render the creator's uid is still seeded.
+  const [organizerUserIds, setOrganizerUserIds] = useState<string[]>([]);
+  const [organizerOrgIds, setOrganizerOrgIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    setOrganizerUserIds((prev) =>
+      prev.includes(user.uid) ? prev : [user.uid, ...prev],
+    );
+  }, [user]);
 
   const canSubmit =
     !!municipalityId && !!user && title.trim().length > 0 && body.trim().length > 0 && !!category;
@@ -57,7 +69,9 @@ export default function NewNewsScreen() {
       if (!municipalityId || !user || !category) return;
       const postId = await createNewsPost({
         municipalityId,
-        authorUserId: user.uid,
+        createdBy: user.uid,
+        organizerUserIds,
+        organizerOrgIds,
         title: title.trim(),
         body: body.trim(),
         category,
@@ -174,6 +188,16 @@ export default function NewNewsScreen() {
           >
             {t('news.compose.addImage')}
           </Button>
+          {municipalityId && user && (
+            <OrganizerPicker
+              municipalityId={municipalityId}
+              selectedUserIds={organizerUserIds}
+              selectedOrgIds={organizerOrgIds}
+              lockedUserId={user.uid}
+              onChangeUsers={setOrganizerUserIds}
+              onChangeOrgs={setOrganizerOrgIds}
+            />
+          )}
           <Button
             onPress={() => void submit()}
             loading={isPending}

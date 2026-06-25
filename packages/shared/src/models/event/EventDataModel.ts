@@ -10,7 +10,6 @@ export const EventDataSchema = z.object({
   title: z.string(),
   description: z.string(),
   startDate: z.date(),
-  endDate: z.date().nullable(),
   location: LocationDataSchema,
   imageURL: z.string().nullable(),
   maxAttendees: z.number().int().nullable(),
@@ -18,8 +17,8 @@ export const EventDataSchema = z.object({
   // Migrate legacy `draft` → `published` on read; genuinely invalid values
   // still fail enum validation (preprocess only rewrites the dropped value).
   status: z.preprocess((v) => (v === 'draft' ? 'published' : v), EventStatusSchema),
-  organizationId: z.string().nullable(),
-  organizationName: z.string().nullable(),
+  organizerUserIds: z.array(z.string()),
+  organizerOrgIds: z.array(z.string()),
   createdBy: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -36,14 +35,13 @@ export interface EventDataInput {
   title: string;
   description: string;
   startDate: Date;
-  endDate?: Date | null;
   location: z.infer<typeof LocationDataSchema>;
   imageURL?: string | null;
   maxAttendees?: number | null;
   telephoneRequired?: boolean;
   status?: EventStatus;
-  organizationId: string | null;
-  organizationName: string | null;
+  organizerUserIds: string[];
+  organizerOrgIds: string[];
   createdBy: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -59,14 +57,13 @@ export function buildEventData(input: EventDataInput): EventData {
     title: input.title,
     description: input.description,
     startDate: input.startDate,
-    endDate: input.endDate ?? null,
     location: input.location,
     imageURL: input.imageURL ?? null,
     maxAttendees: input.maxAttendees ?? null,
     telephoneRequired: input.telephoneRequired ?? false,
     status: input.status ?? 'published',
-    organizationId: input.organizationId,
-    organizationName: input.organizationName,
+    organizerUserIds: input.organizerUserIds,
+    organizerOrgIds: input.organizerOrgIds,
     createdBy: input.createdBy,
     createdAt: input.createdAt ?? now,
     updatedAt: input.updatedAt ?? now,
@@ -86,17 +83,20 @@ export function isEventSignupOpen(event: EventData): boolean {
   return event.status === 'published';
 }
 
-/**
- * "Ongoing" / en curso is derived, never stored: a published event whose start
- * has passed and whose end (if any) has not. `now` is passed in so callers
- * compute it once and tests stay deterministic.
- */
-export function isEventOngoing(
-  event: Pick<EventData, 'status' | 'startDate' | 'endDate'>,
-  now: Date,
-): boolean {
+const EVENT_TZ = 'Europe/Madrid';
+function madridDayKey(d: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: EVENT_TZ, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(d);
+}
+
+/** True once `now` is a later Europe/Madrid calendar day than `start`. */
+export function isStartDayOver(start: Date, now: Date): boolean {
+  return madridDayKey(now) > madridDayKey(start);
+}
+
+export function isEventOngoing(event: Pick<EventData, 'status' | 'startDate'>, now: Date): boolean {
   if (event.status !== 'published') return false;
   if (event.startDate > now) return false;
-  if (event.endDate !== null && event.endDate < now) return false;
-  return true;
+  return !isStartDayOver(event.startDate, now);
 }

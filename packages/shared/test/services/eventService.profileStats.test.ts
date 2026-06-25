@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument,
                   @typescript-eslint/no-unsafe-assignment,
+                  @typescript-eslint/no-explicit-any,
                   @typescript-eslint/no-extraneous-class,
                   @typescript-eslint/require-await */
 // vi.mock factories legitimately fake the firebase/firestore SDK shape;
@@ -31,25 +32,58 @@ vi.mock('firebase/firestore', async () => {
   };
 });
 
-import { getCountFromServer, where, orderBy } from 'firebase/firestore';
-import { getEventCountByCreator } from '../../src/services/eventService';
+import { getCountFromServer, getDocs, where, orderBy } from 'firebase/firestore';
+import {
+  getEventCountByOrganizer,
+  getEventsByOrganizer,
+  getEventsByOrganization,
+} from '../../src/services/eventService';
 
-describe('getEventCountByCreator', () => {
+describe('getEventCountByOrganizer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('filters events by createdBy and returns the server count', async () => {
+  it('filters events by organizerUserIds array-contains and returns the server count', async () => {
     vi.mocked(getCountFromServer).mockResolvedValue({
       data: () => ({ count: 7 }),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
-    const n = await getEventCountByCreator('uid-1');
+    const n = await getEventCountByOrganizer('uid-1');
 
-    expect(where).toHaveBeenCalledWith('createdBy', '==', 'uid-1');
+    expect(where).toHaveBeenCalledWith('organizerUserIds', 'array-contains', 'uid-1');
     expect(n).toBe(7);
     // No ordering required for a count
     expect(orderBy).not.toHaveBeenCalled();
+  });
+});
+
+describe('getEventsByOrganizer', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('queries organizerUserIds array-contains ordered by createdAt desc', async () => {
+    vi.mocked(getDocs).mockResolvedValue({ docs: [] } as any);
+
+    await getEventsByOrganizer('uid-1');
+
+    expect(where).toHaveBeenCalledWith('organizerUserIds', 'array-contains', 'uid-1');
+    expect(orderBy).toHaveBeenCalledWith('createdAt', 'desc');
+  });
+});
+
+describe('getEventsByOrganization', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('queries organizerOrgIds array-contains ordered by startDate asc', async () => {
+    vi.mocked(getDocs).mockResolvedValue({ docs: [] } as any);
+
+    await getEventsByOrganization('org-1');
+
+    expect(where).toHaveBeenCalledWith('organizerOrgIds', 'array-contains', 'org-1');
+    expect(orderBy).toHaveBeenCalledWith('startDate', 'asc');
   });
 });

@@ -34,8 +34,9 @@ export type NewsReactionCounts = z.infer<typeof NewsReactionCountsSchema>;
  */
 export const NewsPostDataSchema = z.object({
   municipalityId: z.string(),
-  authorUserId: z.string(),
-  authorOrgId: z.string().nullable(),
+  createdBy: z.string(),
+  organizerUserIds: z.array(z.string()),
+  organizerOrgIds: z.array(z.string()),
   title: z.string(),
   body: z.string(),
   category: NewsPostCategorySchema,
@@ -44,7 +45,6 @@ export const NewsPostDataSchema = z.object({
   rejectionReason: z.string().nullable(),
   submittedAt: z.date(),
   publishedAt: z.date().nullable(),
-  createdBy: z.string(),
   updatedAt: z.date(),
   reactionCounts: NewsReactionCountsSchema,
   commentCount: z.number(),
@@ -53,8 +53,9 @@ export type NewsPostData = z.infer<typeof NewsPostDataSchema>;
 
 export interface NewsPostDataInput {
   municipalityId: string;
-  authorUserId: string;
-  authorOrgId?: string | null;
+  createdBy: string;
+  organizerUserIds: string[];
+  organizerOrgIds?: string[];
   title: string;
   body: string;
   category: NewsPostCategory;
@@ -63,7 +64,6 @@ export interface NewsPostDataInput {
   rejectionReason?: string | null;
   submittedAt: Date;
   publishedAt?: Date | null;
-  createdBy: string;
   updatedAt: Date;
   reactionCounts?: NewsReactionCounts;
   commentCount?: number;
@@ -72,8 +72,9 @@ export interface NewsPostDataInput {
 export function buildNewsPostData(input: NewsPostDataInput): NewsPostData {
   return {
     municipalityId: input.municipalityId,
-    authorUserId: input.authorUserId,
-    authorOrgId: input.authorOrgId ?? null,
+    createdBy: input.createdBy,
+    organizerUserIds: input.organizerUserIds,
+    organizerOrgIds: input.organizerOrgIds ?? [],
     title: input.title,
     body: input.body,
     category: input.category,
@@ -82,7 +83,6 @@ export function buildNewsPostData(input: NewsPostDataInput): NewsPostData {
     rejectionReason: input.rejectionReason ?? null,
     submittedAt: input.submittedAt,
     publishedAt: input.publishedAt ?? null,
-    createdBy: input.createdBy,
     updatedAt: input.updatedAt,
     reactionCounts: input.reactionCounts ?? { like: 0, heart: 0 },
     commentCount: input.commentCount ?? 0,

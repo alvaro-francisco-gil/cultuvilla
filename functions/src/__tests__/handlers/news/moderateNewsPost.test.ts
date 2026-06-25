@@ -33,8 +33,9 @@ async function seedPost(postId: string, status: 'pending' | 'approved' | 'reject
     .doc(`news/${postId}`)
     .set({
       municipalityId: MUNICIPALITY_ID,
-      authorUserId: 'author-1',
-      authorOrgId: null,
+      createdBy: 'author-1',
+      organizerUserIds: ['author-1'],
+      organizerOrgIds: [],
       title: 'Fiesta del pueblo',
       body: 'Descripción',
       category: 'fiesta',
@@ -43,7 +44,6 @@ async function seedPost(postId: string, status: 'pending' | 'approved' | 'reject
       rejectionReason: null,
       submittedAt: now,
       publishedAt: null,
-      createdBy: 'author-1',
       updatedAt: now,
       reactionCounts: { like: 0, heart: 0 },
       commentCount: 0,

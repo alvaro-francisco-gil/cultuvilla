@@ -91,12 +91,12 @@ export default function NewsDetailScreen() {
             />
             <VStack gap={3} className="p-4">
               <Text variant="h1">{post.title}</Text>
-              <LiveOwnerChip
-                ownerId={post.authorOrgId ?? post.authorUserId}
-                ownerType={post.authorOrgId ? 'organization' : 'user'}
-                size={28}
-                tone="muted"
-              />
+              {post.organizerOrgIds.map((id) => (
+                <LiveOwnerChip key={id} ownerId={id} ownerType="organization" size={28} tone="muted" />
+              ))}
+              {post.organizerUserIds.map((id) => (
+                <LiveOwnerChip key={id} ownerId={id} ownerType="user" size={28} tone="muted" />
+              ))}
               <HStack gap={2} justify="between">
                 <Text tone="muted">{t(`news.compose.category.${post.category}`)}</Text>
                 {date ? <Text tone="muted">{formatDate(date, 'long')}</Text> : null}

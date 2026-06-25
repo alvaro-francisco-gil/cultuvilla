@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument,
-                  @typescript-eslint/no-explicit-any,
                   @typescript-eslint/require-await */
 // vi.mock factories legitimately fake the firebase/firestore SDK shape;
 // the rule family doesn't add value for these inline mocks.

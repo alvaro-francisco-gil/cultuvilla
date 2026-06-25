@@ -30,8 +30,9 @@ async function seedPost(postId: string): Promise<void> {
   const now = new Date();
   await admin.firestore().doc(`news/${postId}`).set({
     municipalityId: MUNICIPALITY_ID,
-    authorUserId: 'author-1',
-    authorOrgId: null,
+    createdBy: 'author-1',
+    organizerUserIds: ['author-1'],
+    organizerOrgIds: [],
     title: 'Test post',
     body: 'Body',
     category: 'fiesta',
@@ -40,7 +41,6 @@ async function seedPost(postId: string): Promise<void> {
     rejectionReason: null,
     submittedAt: now,
     publishedAt: now,
-    createdBy: 'author-1',
     updatedAt: now,
     reactionCounts: { like: 0, heart: 0 },
     commentCount: 0,

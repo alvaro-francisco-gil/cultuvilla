@@ -9,24 +9,21 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { Screen, Text, Input, Button, DateField, ImagePickerField, FieldLabel } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { LocationPicker } from '../../components/feature/LocationPicker';
+import { OrganizerPicker } from '../../components/feature/OrganizerPicker';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 import { useCallable } from '../../lib/useCallable';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
 import { pickImageAsBlob } from '../../lib/images';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
-import {
-  getOrganizationsByMunicipality,
-} from '@cultuvilla/shared/services/organizationService';
-import { getOrgMembershipsByUserInMunicipality } from '@cultuvilla/shared/services/orgMemberService';
 import { createEvent, updateEvent } from '@cultuvilla/shared/services/eventService';
 import { uploadEventImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 import { buildLocationData } from '@cultuvilla/shared/models/core/LocationDataModel';
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 import { Stepper, type StepConfig } from '../../components/feature/Stepper';
-
-type MemberOrg = { id: string; name: string };
+import { MAP_ZOOM_DEFAULT } from '@cultuvilla/shared/services/mapsService';
 
 function stepBody(children: React.ReactNode) {
   return (
@@ -52,18 +49,30 @@ export default function NewEventScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [municipalityName, setMunicipalityName] = useState('');
   const [municipalityCoordinates, setMunicipalityCoordinates] = useState<LatLng | null>(null);
-  const [memberOrgs, setMemberOrgs] = useState<MemberOrg[]>([]);
-  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
 
   // form fields
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
-  const [locationText, setLocationText] = useState('');
+  const [coords, setCoords] = useState<LatLng | null>(null);
+  const [locationName, setLocationName] = useState('');
+  const [mapZoom, setMapZoom] = useState(MAP_ZOOM_DEFAULT ?? 13);
   const [maxAttendees, setMaxAttendees] = useState('');
   const [telephoneRequired, setTelephoneRequired] = useState(false);
   const [cover, setCover] = useState<UploadableImage | null>(null);
+
+  // organizer state: creator always included.
+  // Use an effect (not a one-shot initializer) so that if auth resolves after
+  // the first render the creator's uid is still seeded.
+  const [organizerUserIds, setOrganizerUserIds] = useState<string[]>([]);
+  const [organizerOrgIds, setOrganizerOrgIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    setOrganizerUserIds((prev) =>
+      prev.includes(user.uid) ? prev : [user.uid, ...prev],
+    );
+  }, [user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,28 +82,15 @@ export default function NewEventScreen() {
         return;
       }
       try {
-        const [mun, orgs] = await Promise.all([
-          withFirestoreErrorLog('event:getMunicipality', () => getMunicipality(municipalityId)),
-          withFirestoreErrorLog('event:getOrganizationsByMunicipality', () =>
-            getOrganizationsByMunicipality(municipalityId),
-          ),
-        ]);
-        const memberships = await withFirestoreErrorLog('event:getOrgMemberships', () =>
-          getOrgMembershipsByUserInMunicipality(
-            user.uid,
-            municipalityId,
-            orgs.map((o) => o.id),
-          ),
+        const mun = await withFirestoreErrorLog('event:getMunicipality', () =>
+          getMunicipality(municipalityId),
         );
         if (cancelled) return;
-        const memberOrgIds = new Set(memberships.map((m) => m.orgId));
-        const mine = orgs
-          .filter((o) => memberOrgIds.has(o.id))
-          .map((o) => ({ id: o.id, name: o.name }));
         setMunicipalityName(mun?.name ?? '');
         setMunicipalityCoordinates(mun?.coordinates ?? null);
-        setMemberOrgs(mine);
-        setSelectedOrgId(null);
+        // Seed location from municipality
+        if (mun?.coordinates) setCoords(mun.coordinates);
+        if (mun?.name) setLocationName(mun.name);
         setLoadError(null);
       } catch (e) {
         if (!cancelled) setLoadError(e instanceof Error ? e.message : String(e));
@@ -108,8 +104,6 @@ export default function NewEventScreen() {
     };
   }, [municipalityId, user]);
 
-  const selectedOrg = memberOrgs.find((o) => o.id === selectedOrgId) ?? null;
-
   const { fire: submit, isPending } = useCallable({
     callable: async () => {
       if (!municipalityId || !user || !startDate) return;
@@ -117,13 +111,17 @@ export default function NewEventScreen() {
         title: title.trim(),
         description: description.trim(),
         startDate,
-        endDate: endDate ?? null,
-        location: buildLocationData({ type: 'text', text: locationText.trim() || null }),
+        location: buildLocationData({
+          // coords is validated non-null before submit() is reachable
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          coordinates: coords!,
+          displayName: locationName.trim() || municipalityName,
+        }),
         maxAttendees: maxAttendees.trim() ? Number(maxAttendees) : null,
         telephoneRequired,
         status: 'published',
-        organizationId: selectedOrg?.id ?? null,
-        organizationName: selectedOrg?.name ?? null,
+        organizerUserIds,
+        organizerOrgIds,
         createdBy: user.uid,
         municipalityId,
         municipalityName,
@@ -221,7 +219,13 @@ export default function NewEventScreen() {
       key: 'when',
       title: t('event.stepWhen'),
       icon: 'calendar-outline',
-      validate: () => (startDate ? [] : ['startDate']),
+      validate: () => {
+        const e: string[] = [];
+        if (!startDate) e.push('startDate');
+        if (!locationName.trim()) e.push('locationName');
+        if (!coords) e.push('coords');
+        return e;
+      },
       render: () => stepBody(
         <>
           <DateField
@@ -230,13 +234,19 @@ export default function NewEventScreen() {
             onChange={setStartDate}
             testID="startDate"
           />
-          <DateField
-            label={t('event.endDate')}
-            value={endDate}
-            onChange={setEndDate}
-            testID="endDate"
+          <LocationPicker
+            value={coords}
+            onChange={setCoords}
+            zoom={mapZoom}
+            onZoomChange={setMapZoom}
+            label={t('event.location')}
           />
-          <Input label={t('event.location')} value={locationText} onChangeText={setLocationText} />
+          <Input
+            label={t('event.locationName')}
+            value={locationName}
+            onChangeText={setLocationName}
+            accessibilityLabel={t('event.locationName')}
+          />
         </>,
       ),
     },
@@ -246,30 +256,17 @@ export default function NewEventScreen() {
       icon: 'options-outline',
       render: () => stepBody(
         <>
-          <FieldLabel>{t('event.organizationLabel')}</FieldLabel>
-          <Button
-            variant={selectedOrgId === null ? 'primary' : 'secondary'}
-            onPress={() => setSelectedOrgId(null)}
-          >
-            {t('event.noOrganization')}
-          </Button>
-          {memberOrgs.map((o) => (
-            <Button
-              key={o.id}
-              variant={selectedOrgId === o.id ? 'primary' : 'secondary'}
-              onPress={() => setSelectedOrgId(o.id)}
-            >
-              {o.name}
-            </Button>
-          ))}
-          {memberOrgs.length === 0 && (
-            <Button
-              variant="secondary"
-              onPress={() => router.push(`/discover/organize/${municipalityId}` as never)}
-            >
-              {t('event.eligibility.requestOrganizer')}
-            </Button>
-          )}
+          <FieldLabel>{t('event.organizersLabel')}</FieldLabel>
+          {municipalityId && user ? (
+            <OrganizerPicker
+              municipalityId={municipalityId}
+              selectedUserIds={organizerUserIds}
+              selectedOrgIds={organizerOrgIds}
+              lockedUserId={user.uid}
+              onChangeUsers={setOrganizerUserIds}
+              onChangeOrgs={setOrganizerOrgIds}
+            />
+          ) : null}
           <Input
             label={t('event.maxAttendees')}
             value={maxAttendees}

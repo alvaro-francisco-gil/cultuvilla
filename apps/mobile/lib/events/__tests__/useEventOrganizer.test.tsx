@@ -1,73 +1,61 @@
 import { renderHook, waitFor } from '@testing-library/react-native';
-import { isOrgMember } from '@cultuvilla/shared/services/orgMemberService';
 import { isVillageAdmin } from '@cultuvilla/shared/services/villageMemberService';
 import { useEventOrganizer } from '../useEventOrganizer';
 import { useAuth } from '../../auth/useAuth';
 import { useIsAppAdmin } from '../../auth/useIsAppAdmin';
 
-jest.mock('@cultuvilla/shared/services/orgMemberService', () => ({ isOrgMember: jest.fn() }));
 jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({ isVillageAdmin: jest.fn() }));
 jest.mock('../../auth/useAuth', () => ({ useAuth: jest.fn() }));
 jest.mock('../../auth/useIsAppAdmin', () => ({ useIsAppAdmin: jest.fn() }));
 
-const ev = { organizationId: 'o1', municipalityId: 'm1' };
+const ev = { organizerUserIds: ['u1'], municipalityId: 'm1' };
 const mockAuth = useAuth as jest.Mock;
 const mockApp = useIsAppAdmin as jest.Mock;
-const mockOrg = isOrgMember as jest.Mock;
 const mockVillage = isVillageAdmin as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockAuth.mockReturnValue({ user: { uid: 'u1' } });
   mockApp.mockReturnValue({ isAppAdmin: false, loading: false });
-  mockOrg.mockResolvedValue(false);
   mockVillage.mockResolvedValue(false);
 });
 
 describe('useEventOrganizer', () => {
-  it('a member of the owning org can organize', async () => {
-    mockOrg.mockResolvedValue(true);
+  it('a user in organizerUserIds can organize', async () => {
     const { result } = renderHook(() => useEventOrganizer(ev));
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.canOrganize).toBe(true);
+  });
+
+  it('a non-listed non-admin cannot organize', async () => {
+    const { result } = renderHook(() =>
+      useEventOrganizer({ organizerUserIds: ['someone-else'], municipalityId: 'm1' }),
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.canOrganize).toBe(false);
   });
 
   it('a village admin can organize', async () => {
     mockVillage.mockResolvedValue(true);
-    const { result } = renderHook(() => useEventOrganizer(ev));
+    const { result } = renderHook(() =>
+      useEventOrganizer({ organizerUserIds: ['someone-else'], municipalityId: 'm1' }),
+    );
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.canOrganize).toBe(true);
   });
 
-  it('an unrelated villager cannot organize', async () => {
-    const { result } = renderHook(() => useEventOrganizer(ev));
+  it('an app admin can organize', async () => {
+    mockApp.mockReturnValue({ isAppAdmin: true, loading: false });
+    const { result } = renderHook(() =>
+      useEventOrganizer({ organizerUserIds: [], municipalityId: 'm1' }),
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.canOrganize).toBe(true);
+  });
+
+  it('null event returns canOrganize false', async () => {
+    const { result } = renderHook(() => useEventOrganizer(null));
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.canOrganize).toBe(false);
-  });
-
-  it('the event creator can organize (org-based event)', async () => {
-    const { result } = renderHook(() =>
-      useEventOrganizer({ organizationId: 'o1', municipalityId: 'm1', createdBy: 'u1' }),
-    );
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.canOrganize).toBe(true);
-  });
-
-  it('the creator of an org-less event can organize without calling isOrgMember', async () => {
-    const { result } = renderHook(() =>
-      useEventOrganizer({ organizationId: null, municipalityId: 'm1', createdBy: 'u1' }),
-    );
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.canOrganize).toBe(true);
-    expect(mockOrg).not.toHaveBeenCalled();
-  });
-
-  it('a non-creator villager cannot organize an org-less event', async () => {
-    const { result } = renderHook(() =>
-      useEventOrganizer({ organizationId: null, municipalityId: 'm1', createdBy: 'someone-else' }),
-    );
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.canOrganize).toBe(false);
-    expect(mockOrg).not.toHaveBeenCalled();
   });
 });

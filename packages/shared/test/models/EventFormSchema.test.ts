@@ -6,8 +6,7 @@ describe('EventFormSchema', () => {
     title: 'Fiesta del pueblo',
     description: 'Una gran fiesta',
     startDate: '2026-08-15T20:00',
-    endDate: '',
-    locationText: '',
+    locationName: 'Plaza Mayor',
     maxAttendees: '',
     telephoneRequired: false,
   };
@@ -18,8 +17,7 @@ describe('EventFormSchema', () => {
     if (!result.success) return;
     expect(result.data.title).toBe('Fiesta del pueblo');
     expect(result.data.startDate).toBeInstanceOf(Date);
-    expect(result.data.endDate).toBeNull();
-    expect(result.data.locationText).toBeNull();
+    expect(result.data.locationName).toBe('Plaza Mayor');
     expect(result.data.maxAttendees).toBeNull();
     expect(result.data.telephoneRequired).toBe(false);
   });
@@ -40,6 +38,27 @@ describe('EventFormSchema', () => {
     expect(err).toBeDefined();
   });
 
+  it('rejects an empty locationName', () => {
+    const result = EventFormSchema.safeParse({ ...validBase, locationName: '   ' });
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    const err = result.error.issues.find((i) => i.path[0] === 'locationName');
+    expect(err?.message).toBe('El nombre del lugar es obligatorio');
+  });
+
+  it('rejects a missing locationName', () => {
+    const { locationName: _omit, ...withoutLocation } = validBase;
+    const result = EventFormSchema.safeParse(withoutLocation);
+    expect(result.success).toBe(false);
+  });
+
+  it('trims locationName whitespace', () => {
+    const result = EventFormSchema.safeParse({ ...validBase, locationName: '  Plaza  ' });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.locationName).toBe('Plaza');
+  });
+
   it('coerces maxAttendees string to integer', () => {
     const result = EventFormSchema.safeParse({ ...validBase, maxAttendees: '50' });
     expect(result.success).toBe(true);
@@ -55,25 +74,5 @@ describe('EventFormSchema', () => {
   it('rejects fractional maxAttendees', () => {
     const result = EventFormSchema.safeParse({ ...validBase, maxAttendees: '3.5' });
     expect(result.success).toBe(false);
-  });
-
-  it('trims and nulls empty locationText', () => {
-    const trimmed = EventFormSchema.safeParse({ ...validBase, locationText: '  Plaza Mayor  ' });
-    expect(trimmed.success).toBe(true);
-    if (trimmed.success) expect(trimmed.data.locationText).toBe('Plaza Mayor');
-
-    const empty = EventFormSchema.safeParse({ ...validBase, locationText: '   ' });
-    expect(empty.success).toBe(true);
-    if (empty.success) expect(empty.data.locationText).toBeNull();
-  });
-
-  it('parses endDate when provided', () => {
-    const result = EventFormSchema.safeParse({
-      ...validBase,
-      endDate: '2026-08-15T23:00',
-    });
-    expect(result.success).toBe(true);
-    if (!result.success) return;
-    expect(result.data.endDate).toBeInstanceOf(Date);
   });
 });

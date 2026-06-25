@@ -34,6 +34,9 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('@cultuvilla/shared/services/eventService', () => ({
   getEventsByMunicipality: jest.fn().mockResolvedValue([]),
 }));
+jest.mock('@cultuvilla/shared/services/newsService', () => ({
+  getHomeFeed: jest.fn().mockResolvedValue([]),
+}));
 jest.mock('@cultuvilla/shared/services/organizerRequestService', () => ({
   getMyOrganizerRequests: jest.fn().mockResolvedValue([]),
 }));

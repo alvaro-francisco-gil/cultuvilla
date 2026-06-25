@@ -14,8 +14,8 @@ const M = 'm1';
 async function seed() {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
-    await setDoc(doc(db, `events/${E}`), { organizationId: ORG, municipalityId: M });
-    await setDoc(doc(db, `organizations/${ORG}/members/boss`), { joinedAt: new Date() });
+    // Event owned by 'boss', with 'boss' in organizerUserIds (new control model)
+    await setDoc(doc(db, `events/${E}`), { organizerUserIds: ['boss'], organizerOrgIds: [ORG], municipalityId: M, createdBy: 'boss' });
     await setDoc(doc(db, `municipalities/${M}/members/villageboss`), { role: 'admin', joinedAt: new Date() });
     await setDoc(doc(db, `events/${E}/registrations/r1`), {
       userId: 'alice', personId: 'p', name: 'Alice', status: 'confirmed', position: 1, registeredAt: new Date(), checkedInAt: null,
@@ -35,7 +35,7 @@ beforeEach(async () => { await env.clearFirestore(); await seed(); });
 afterAll(async () => { await env.cleanup(); });
 
 describe('firestore.rules — event organizer (contacts, check-in, removal)', () => {
-  it('org member can read a registrationContact; a stranger cannot', async () => {
+  it('event organizer (in organizerUserIds) can read a registrationContact; a stranger cannot', async () => {
     const boss = env.authenticatedContext('boss').firestore();
     await assertSucceeds(getDoc(doc(boss, `events/${E}/registrationContacts/r1`)));
     const stranger = env.authenticatedContext('stranger').firestore();

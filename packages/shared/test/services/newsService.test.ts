@@ -166,6 +166,7 @@ vi.mock('firebase/firestore', () => {
           const fieldVal = docData[field];
           if (op === '==') return fieldVal === value;
           if (op === '!=') return fieldVal !== value;
+          if (op === 'array-contains') return Array.isArray(fieldVal) && fieldVal.includes(value);
           return true;
         });
       }
@@ -207,8 +208,8 @@ import {
   createNewsPost,
   getNewsPost,
   getNewsPostsByMunicipality,
-  getNewsCountByCreator,
-  getNewsPostsByCreator,
+  getNewsCountByOrganizer,
+  getNewsPostsByOrganizer,
   updateNewsPost,
   reactToPost,
   removeReaction,
@@ -222,18 +223,20 @@ import {
   getOtherVillagesFeed,
 } from '../../src/services/newsService';
 
-// ─── Task 4: CRUD ─────────────────────────────────────────────────────────────
+// ─── Task 9: CRUD ─────────────────────────────────────────────────────────────
 
-describe('newsService — Task 4: CRUD', () => {
+describe('newsService — Task 9: CRUD', () => {
   beforeEach(() => {
     store = {};
     idCounter = 0;
   });
 
-  it('createNewsPost writes a doc with correct defaults', async () => {
+  it('createNewsPost writes a doc with organizerUserIds/organizerOrgIds', async () => {
     const id = await createNewsPost({
       municipalityId: 'm1',
-      authorUserId: 'u1',
+      createdBy: 'u1',
+      organizerUserIds: ['u1'],
+      organizerOrgIds: [],
       title: 'Fiesta del pueblo',
       body: 'Detalles aquí',
       category: 'fiesta',
@@ -244,33 +247,39 @@ describe('newsService — Task 4: CRUD', () => {
     expect(snap).toBeDefined();
     expect(snap['status']).toBe('pending');
     expect(snap['publishedAt']).toBeNull();
-    expect(snap['authorOrgId']).toBeNull();
+    expect(snap['organizerUserIds']).toEqual(['u1']);
+    expect(snap['organizerOrgIds']).toEqual([]);
     expect(snap['reactionCounts']).toEqual({ like: 0, heart: 0 });
     expect(snap['commentCount']).toBe(0);
     expect(snap['municipalityId']).toBe('m1');
-    expect(snap['authorUserId']).toBe('u1');
     expect(snap['createdBy']).toBe('u1');
     expect(snap['images']).toEqual([]);
     expect(snap['submittedAt']).toBeInstanceOf(Date);
     expect(snap['updatedAt']).toBeInstanceOf(Date);
+    // old fields must be absent
+    expect(snap['authorUserId']).toBeUndefined();
+    expect(snap['authorOrgId']).toBeUndefined();
   });
 
-  it('createNewsPost passes authorOrgId when provided', async () => {
+  it('createNewsPost passes organizerOrgIds when provided', async () => {
     const id = await createNewsPost({
       municipalityId: 'm1',
-      authorUserId: 'u1',
-      authorOrgId: 'org1',
+      createdBy: 'u1',
+      organizerUserIds: ['u1'],
+      organizerOrgIds: ['org1'],
       title: 'T',
       body: 'B',
       category: 'otro',
     });
-    expect(store[`news/${id}`]['authorOrgId']).toBe('org1');
+    expect(store[`news/${id}`]['organizerOrgIds']).toEqual(['org1']);
   });
 
   it('getNewsPost returns mapped doc', async () => {
     const id = await createNewsPost({
       municipalityId: 'm1',
-      authorUserId: 'u1',
+      createdBy: 'u1',
+      organizerUserIds: ['u1'],
+      organizerOrgIds: [],
       title: 'T',
       body: 'B',
       category: 'historia',
@@ -288,8 +297,8 @@ describe('newsService — Task 4: CRUD', () => {
   });
 
   it('getNewsPostsByMunicipality returns posts for that municipality', async () => {
-    await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'A', body: 'B', category: 'fiesta' });
-    await createNewsPost({ municipalityId: 'm2', authorUserId: 'u2', title: 'C', body: 'D', category: 'otro' });
+    await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'A', body: 'B', category: 'fiesta' });
+    await createNewsPost({ municipalityId: 'm2', createdBy: 'u2', organizerUserIds: ['u2'], organizerOrgIds: [], title: 'C', body: 'D', category: 'otro' });
 
     const posts = await getNewsPostsByMunicipality('m1');
     expect(posts.length).toBe(1);
@@ -297,48 +306,48 @@ describe('newsService — Task 4: CRUD', () => {
   });
 
   it('getNewsPostsByMunicipality filters by status', async () => {
-    const id = await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'A', body: 'B', category: 'fiesta' });
+    const id = await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'A', body: 'B', category: 'fiesta' });
     // Manually set status to approved
     store[`news/${id}`]['status'] = 'approved';
 
-    await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'B', body: 'C', category: 'fiesta' });
+    await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'B', body: 'C', category: 'fiesta' });
 
     const approved = await getNewsPostsByMunicipality('m1', { status: 'approved' });
     expect(approved.length).toBe(1);
     expect(approved[0].id).toBe(id);
   });
 
-  it('getNewsCountByCreator counts only the given author\'s posts', async () => {
-    await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'A', body: 'B', category: 'fiesta' });
-    await createNewsPost({ municipalityId: 'm2', authorUserId: 'u1', title: 'C', body: 'D', category: 'otro' });
-    await createNewsPost({ municipalityId: 'm1', authorUserId: 'u2', title: 'E', body: 'F', category: 'historia' });
+  it('getNewsCountByOrganizer counts posts where user is in organizerUserIds', async () => {
+    await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'A', body: 'B', category: 'fiesta' });
+    await createNewsPost({ municipalityId: 'm2', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'C', body: 'D', category: 'otro' });
+    await createNewsPost({ municipalityId: 'm1', createdBy: 'u2', organizerUserIds: ['u2'], organizerOrgIds: [], title: 'E', body: 'F', category: 'historia' });
 
-    expect(await getNewsCountByCreator('u1')).toBe(2);
-    expect(await getNewsCountByCreator('u2')).toBe(1);
-    expect(await getNewsCountByCreator('nobody')).toBe(0);
+    expect(await getNewsCountByOrganizer('u1')).toBe(2);
+    expect(await getNewsCountByOrganizer('u2')).toBe(1);
+    expect(await getNewsCountByOrganizer('nobody')).toBe(0);
   });
 
-  it('getNewsPostsByCreator returns only the author\'s posts, any status', async () => {
-    await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'A', body: 'B', category: 'fiesta' });
-    await createNewsPost({ municipalityId: 'm2', authorUserId: 'u1', title: 'C', body: 'D', category: 'otro' });
-    await createNewsPost({ municipalityId: 'm1', authorUserId: 'u2', title: 'E', body: 'F', category: 'historia' });
+  it('getNewsPostsByOrganizer returns posts where user is in organizerUserIds', async () => {
+    await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'A', body: 'B', category: 'fiesta' });
+    await createNewsPost({ municipalityId: 'm2', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'C', body: 'D', category: 'otro' });
+    await createNewsPost({ municipalityId: 'm1', createdBy: 'u2', organizerUserIds: ['u2'], organizerOrgIds: [], title: 'E', body: 'F', category: 'historia' });
 
-    const mine = await getNewsPostsByCreator('u1');
+    const mine = await getNewsPostsByOrganizer('u1');
     expect(mine.length).toBe(2);
-    expect(mine.every((p) => p.createdBy === 'u1')).toBe(true);
-    expect(await getNewsPostsByCreator('nobody')).toEqual([]);
+    expect(mine.every((p) => p.organizerUserIds.includes('u1'))).toBe(true);
+    expect(await getNewsPostsByOrganizer('nobody')).toEqual([]);
   });
 
-  it('getNewsPostsByCreator respects the limit option', async () => {
-    await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'A', body: 'B', category: 'fiesta' });
-    await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'C', body: 'D', category: 'otro' });
-    await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'E', body: 'F', category: 'historia' });
+  it('getNewsPostsByOrganizer respects the limit option', async () => {
+    await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'A', body: 'B', category: 'fiesta' });
+    await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'C', body: 'D', category: 'otro' });
+    await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'E', body: 'F', category: 'historia' });
 
-    expect((await getNewsPostsByCreator('u1', { limit: 2 })).length).toBe(2);
+    expect((await getNewsPostsByOrganizer('u1', { limit: 2 })).length).toBe(2);
   });
 
   it('updateNewsPost updates allowed fields', async () => {
-    const id = await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'Old', body: 'B', category: 'fiesta' });
+    const id = await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'Old', body: 'B', category: 'fiesta' });
     await updateNewsPost(id, { title: 'New title', body: 'New body' });
     const snap = store[`news/${id}`];
     expect(snap['title']).toBe('New title');
@@ -346,7 +355,7 @@ describe('newsService — Task 4: CRUD', () => {
   });
 
   it('updateNewsPost throws when trying to modify forbidden field "status"', async () => {
-    const id = await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'T', body: 'B', category: 'fiesta' });
+    const id = await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'T', body: 'B', category: 'fiesta' });
     await expect(
       updateNewsPost(id, { title: 'X' })
         .then(() => {
@@ -473,7 +482,7 @@ describe('newsService — Task 7: Feed queries', () => {
   });
 
   async function seedApprovedPost(municipalityId: string, title: string) {
-    const id = await createNewsPost({ municipalityId, authorUserId: 'u1', title, body: 'B', category: 'fiesta' });
+    const id = await createNewsPost({ municipalityId, createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title, body: 'B', category: 'fiesta' });
     store[`news/${id}`]['status'] = 'approved';
     store[`news/${id}`]['publishedAt'] = new Date(2024, 1, 1);
     return id;
@@ -483,7 +492,7 @@ describe('newsService — Task 7: Feed queries', () => {
     const id1 = await seedApprovedPost('m1', 'Home 1');
     const id2 = await seedApprovedPost('m1', 'Home 2');
     // pending post in home
-    await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'Pending', body: 'B', category: 'fiesta' });
+    await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'Pending', body: 'B', category: 'fiesta' });
     // approved post in other municipality
     await seedApprovedPost('m2', 'Other');
 
@@ -499,7 +508,7 @@ describe('newsService — Task 7: Feed queries', () => {
     const id1 = await seedApprovedPost('m1', 'Home');
     const id2 = await seedApprovedPost('m2', 'Other');
     // pending post anywhere should be excluded
-    await createNewsPost({ municipalityId: 'm1', authorUserId: 'u1', title: 'Pending', body: 'B', category: 'fiesta' });
+    await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'Pending', body: 'B', category: 'fiesta' });
 
     const feed = await getAllVillagesFeed();
     const ids = feed.map((p) => p.id);
@@ -513,7 +522,7 @@ describe('newsService — Task 7: Feed queries', () => {
     const id2 = await seedApprovedPost('m2', 'Other 1');
     const id3 = await seedApprovedPost('m3', 'Other 2');
     // pending in m2 should be excluded
-    await createNewsPost({ municipalityId: 'm2', authorUserId: 'u1', title: 'Pending m2', body: 'B', category: 'fiesta' });
+    await createNewsPost({ municipalityId: 'm2', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'Pending m2', body: 'B', category: 'fiesta' });
 
     const feed = await getOtherVillagesFeed('m1');
     const ids = feed.map((p) => p.id);

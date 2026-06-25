@@ -4,22 +4,20 @@ import { EventCard } from '../EventCard';
 /**
  * Fixture uses real EventData field names:
  *   startDate (Date)        — EventData.startDate
- *   organizationName        — EventData.organizationName
- * The plan's fixture used startsAt/villageName — those are corrected here to
- * match the actual shared model.
+ *   locationName            — EventLike.locationName (maps to event.location.displayName)
  */
 const fixture = {
   id: 'e1',
   title: 'Fiesta del pueblo',
   startDate: new Date('2026-06-15T18:00:00Z'),
-  organizationName: 'Sotos',
+  locationName: 'Plaza Mayor',
 };
 
 describe('<EventCard>', () => {
-  it('renders title and organization name', () => {
+  it('renders title and location name', () => {
     const { getByText } = render(<EventCard event={fixture} onPress={() => {}} />);
     expect(getByText('Fiesta del pueblo')).toBeTruthy();
-    expect(getByText(/Sotos/)).toBeTruthy();
+    expect(getByText(/Plaza Mayor/)).toBeTruthy();
   });
 
   it('fires onPress with event id', () => {

@@ -418,7 +418,7 @@ export default function FeedScreen() {
               id: item.id,
               title: item.title,
               startDate: item.startDate,
-              organizationName: item.organizationName,
+              locationName: item.location?.displayName ?? null,
               imageURL: item.imageURL,
               municipalityCoverImage: item.municipalityCoverImage ?? null,
             }}

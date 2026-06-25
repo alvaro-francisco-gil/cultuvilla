@@ -4,15 +4,16 @@ import { formatDate } from '@cultuvilla/shared/utils';
 /**
  * Minimal event shape consumed by this card.
  * Callers using real EventData should map:
- *   startDate  → startDate  (already a Date from mapEventDoc)
- *   organizationName → organizationName
- *   imageURL → imageURL     (cover image, optional)
+ *   startDate       → startDate        (already a Date from mapEventDoc)
+ *   locationName    → location.displayName
+ *   imageURL        → imageURL         (cover image, optional)
  */
 export type EventLike = {
   id: string;
   title: string;
   startDate: Date;
-  organizationName: string | null;
+  /** Display name of the event location (shown as left meta). */
+  locationName?: string | null;
   imageURL?: string | null;
   /** Village cover photo, used as the fallback when the event has no image. */
   municipalityCoverImage?: string | null;
@@ -31,7 +32,7 @@ export function EventCard({ event, onPress, badge, testID }: EventCardProps) {
       imageUri={event.imageURL ?? null}
       fallbackImageUri={event.municipalityCoverImage ?? null}
       title={event.title}
-      metaLeft={event.organizationName}
+      metaLeft={event.locationName ?? null}
       metaRight={formatDate(event.startDate, 'short')}
       fallbackIcon="calendar-outline"
       badge={badge}

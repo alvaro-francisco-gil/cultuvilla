@@ -62,14 +62,14 @@ async function seedMember(
 async function seedPost(
   postId: string,
   municipalityId: string,
-  authorUserId: string,
+  createdBy: string,
   extra: Record<string, unknown> = {}
 ) {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), `news/${postId}`), {
       municipalityId,
-      authorUserId,
-      authorOrgId: null,
+      organizerUserIds: [createdBy],
+      organizerOrgIds: [],
       title: 'Test post',
       body: 'Body text',
       category: 'otro',
@@ -78,7 +78,7 @@ async function seedPost(
       rejectionReason: null,
       submittedAt: new Date(),
       publishedAt: null,
-      createdBy: authorUserId,
+      createdBy,
       updatedAt: new Date(),
       reactionCounts: { like: 0, heart: 0 },
       commentCount: 0,
@@ -96,8 +96,8 @@ describe('firestore.rules — /news/{postId}', () => {
     await assertFails(
       setDoc(doc(stranger, 'news/p1'), {
         municipalityId: 'm1',
-        authorUserId: 'stranger',
-        authorOrgId: null,
+        organizerUserIds: ['stranger'],
+        organizerOrgIds: [],
         title: 'Hi',
         body: 'Hello',
         category: 'otro',
@@ -121,8 +121,8 @@ describe('firestore.rules — /news/{postId}', () => {
     await assertSucceeds(
       setDoc(doc(alice, 'news/p1'), {
         municipalityId: 'm1',
-        authorUserId: 'alice',
-        authorOrgId: null,
+        organizerUserIds: ['alice'],
+        organizerOrgIds: [],
         title: 'Fiesta',
         body: 'Detalles',
         category: 'fiesta',
@@ -146,8 +146,8 @@ describe('firestore.rules — /news/{postId}', () => {
     await assertFails(
       setDoc(doc(alice, 'news/p1'), {
         municipalityId: 'm1',
-        authorUserId: 'alice',
-        authorOrgId: null,
+        organizerUserIds: ['alice'],
+        organizerOrgIds: [],
         title: 'Fiesta',
         body: 'Detalles',
         category: 'fiesta',
@@ -171,8 +171,8 @@ describe('firestore.rules — /news/{postId}', () => {
     await assertSucceeds(
       setDoc(doc(bob, 'news/p1'), {
         municipalityId: 'm1',
-        authorUserId: 'bob',
-        authorOrgId: null,
+        organizerUserIds: ['bob'],
+        organizerOrgIds: [],
         title: 'Historia',
         body: 'Contenido',
         category: 'historia',
@@ -226,6 +226,85 @@ describe('firestore.rules — /news/{postId}', () => {
     await seedPost('p1', 'm1', 'alice');
     const alice = env.authenticatedContext('alice').firestore();
     await assertFails(deleteDoc(doc(alice, 'news/p1')));
+  });
+
+  // T6-A: create denied when uid not in organizerUserIds
+  it('T6-A: create denied when uid not in organizerUserIds', async () => {
+    await seedMember('m1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertFails(
+      setDoc(doc(alice, 'news/p1'), {
+        municipalityId: 'm1',
+        organizerUserIds: ['someoneelse'],
+        organizerOrgIds: [],
+        title: 'Test',
+        body: 'Body',
+        category: 'otro',
+        images: [],
+        status: 'pending',
+        rejectionReason: null,
+        submittedAt: new Date(),
+        publishedAt: null,
+        createdBy: 'alice',
+        updatedAt: new Date(),
+        reactionCounts: { like: 0, heart: 0 },
+        commentCount: 0,
+      })
+    );
+  });
+
+  // T6-B: update allowed for user in organizerUserIds
+  it('T6-B: user in organizerUserIds can update own post', async () => {
+    await seedMember('m1', 'alice');
+    await seedPost('p1', 'm1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(
+      updateDoc(doc(alice, 'news/p1'), { title: 'Updated', updatedAt: new Date() })
+    );
+  });
+
+  // T6-C: update denied for a random village member not in organizerUserIds
+  it('T6-C: village member not in organizerUserIds cannot update', async () => {
+    await seedMember('m1', 'alice');
+    await seedMember('m1', 'bob');
+    await seedPost('p1', 'm1', 'alice');
+    const bob = env.authenticatedContext('bob').firestore();
+    await assertFails(
+      updateDoc(doc(bob, 'news/p1'), { title: 'Hacked', updatedAt: new Date() })
+    );
+  });
+
+  // T6-D: update denied when it tries to change createdBy
+  it('T6-D: update denied when changing createdBy', async () => {
+    await seedMember('m1', 'alice');
+    await seedPost('p1', 'm1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertFails(
+      updateDoc(doc(alice, 'news/p1'), { createdBy: 'hacker' })
+    );
+  });
+
+  // T6-E: update denied when it tries to change municipalityId
+  it('T6-E: update denied when changing municipalityId', async () => {
+    await seedMember('m1', 'alice');
+    await seedMember('m2', 'alice');
+    await seedPost('p1', 'm1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertFails(
+      updateDoc(doc(alice, 'news/p1'), { municipalityId: 'm2' })
+    );
+  });
+
+  // T6-F: org member (not in organizerUserIds) is denied update
+  it('T6-F: org member not in organizerUserIds cannot update', async () => {
+    await seedMember('m1', 'alice');
+    await seedMember('m1', 'carol');
+    // carol is not in organizerUserIds — seeded post only has alice
+    await seedPost('p1', 'm1', 'alice', { organizerOrgIds: ['org1'] });
+    const carol = env.authenticatedContext('carol').firestore();
+    await assertFails(
+      updateDoc(doc(carol, 'news/p1'), { title: 'Org hacked', updatedAt: new Date() })
+    );
   });
 });
 

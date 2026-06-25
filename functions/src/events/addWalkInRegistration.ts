@@ -6,11 +6,11 @@ import {
   eventRegistrationsCollection,
   eventRegistrationContactDoc,
   municipalityMemberDoc,
-  organizationMemberDoc,
   adminDoc,
 } from '@cultuvilla/shared/firebase/refs/admin';
 import type { RegistrationData } from '@cultuvilla/shared';
 import { computeStatuses } from '../helpers/registerToEventValidation';
+import { isWalkInAuthorized } from '../helpers/walkInAuthorization';
 
 const db = getFirestore();
 
@@ -52,19 +52,27 @@ export const addWalkInRegistration = onCall<AddWalkInData, Promise<AddWalkInResu
       const eventData = eventSnap.data();
       if (!eventData) throw new HttpsError('not-found', 'El evento no existe.');
 
-      // Authorize: event-org member OR village admin OR app admin.
-      const [orgMemberSnapMaybe, villageMemberSnap, appAdminSnap] = await Promise.all([
-        eventData.organizationId
-          ? tx.get(organizationMemberDoc(db, eventData.organizationId, uid))
-          : Promise.resolve(null),
+      // Authorize: named organizer (organizerUserIds) OR village admin OR app admin.
+      // Orgs listed in organizerOrgIds grant no implicit control.
+      const organizerUserIds: string[] = Array.isArray(eventData.organizerUserIds)
+        ? eventData.organizerUserIds
+        : [];
+      const [villageMemberSnap, appAdminSnap] = await Promise.all([
         tx.get(municipalityMemberDoc(db, eventData.municipalityId, uid)),
         tx.get(adminDoc(db, uid)),
       ]);
-      const isOrganizer =
-        (orgMemberSnapMaybe?.exists ?? false) ||
-        appAdminSnap.exists ||
-        (villageMemberSnap.exists && villageMemberSnap.data()?.role === 'admin');
-      if (!isOrganizer) {
+      const authorized = isWalkInAuthorized({
+        uid,
+        organizerUserIds,
+        isVillageAdmin: villageMemberSnap.exists && villageMemberSnap.data()?.role === 'admin',
+        isAppAdmin: appAdminSnap.exists,
+      });
+      if (!authorized) {
+        logger.info('Walk-in authorization denied', {
+          handler: 'addWalkInRegistration',
+          eventId,
+          uid,
+        });
         throw new HttpsError('permission-denied', 'Solo un organizador puede añadir asistentes.');
       }
 
