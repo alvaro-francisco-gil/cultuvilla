@@ -28,7 +28,6 @@ import {
   ManagedEventsScroll,
   type ManagedEvent,
 } from '../../components/feature/profile/ManagedEventsScroll';
-import { getUserRegistrationsAcrossEvents } from '@cultuvilla/shared/services/registrationService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 import { getOrgMembershipsByUserInMunicipality } from '@cultuvilla/shared/services/orgMemberService';
 import { getUserMemberships } from '@cultuvilla/shared/services/villageMemberService';
@@ -62,7 +61,6 @@ export default function ProfileScreen() {
   const [allPersonas, setAllPersonas] = useState<PersonDoc[]>([]);
   const [eventsCreated, setEventsCreated] = useState<number | null>(null);
   const [managedEvents, setManagedEvents] = useState<ManagedEvent[]>([]);
-  const [participations, setParticipations] = useState<number | null>(null);
   const [newsCount, setNewsCount] = useState<number | null>(null);
   const [createdNews, setCreatedNews] = useState<CreatedNews[]>([]);
   const [orgs, setOrgs] = useState<MemberOrg[]>([]);
@@ -83,12 +81,9 @@ export default function ProfileScreen() {
       setSelfPerson(self);
       setAllPersonas(mine);
 
-      const [myEvents, regs, news] = await Promise.all([
+      const [myEvents, news] = await Promise.all([
         withFirestoreErrorLog('profile:getEventsByCreator', () =>
           getEventsByCreator(user.uid),
-        ),
-        withFirestoreErrorLog('profile:getUserRegistrationsAcrossEvents', () =>
-          getUserRegistrationsAcrossEvents(user.uid),
         ),
         withFirestoreErrorLog('profile:getNewsPostsByCreator', () =>
           getNewsPostsByCreator(user.uid),
@@ -96,8 +91,6 @@ export default function ProfileScreen() {
       ]);
       setManagedEvents(myEvents);
       setEventsCreated(myEvents.length);
-      const distinctEvents = new Set(regs.map((r) => r.eventPath));
-      setParticipations(distinctEvents.size);
       setCreatedNews(news);
       setNewsCount(news.length);
 
@@ -220,7 +213,7 @@ export default function ProfileScreen() {
         <View className="px-4 pt-4 pb-4">
           <ProfileStatsRow
             stats={[
-              { label: t('profile.stats.participations'), value: participations },
+              { label: t('profile.stats.grupos'), value: grupos.length },
               { label: t('profile.stats.eventsCreated'), value: eventsCreated },
               { label: t('profile.stats.news'), value: newsCount },
             ]}
