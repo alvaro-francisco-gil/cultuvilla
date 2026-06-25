@@ -81,7 +81,24 @@ export const ogRenderer = onRequest(
       const url = new URL(req.originalUrl, origin);
       const route = parsePath(url.pathname);
 
-      const og = route ? await fetchOg(route) : null;
+      // OG is best-effort: a malformed id (e.g. a Firestore-reserved `__x__`
+      // segment) makes the fetch throw. A crawler must still get a valid 200
+      // default preview, not a 500 — so swallow fetch errors down to null and
+      // let injectMeta render the defaults.
+      let og: OgMeta | null = null;
+      if (route) {
+        try {
+          og = await fetchOg(route);
+        } catch (err) {
+          logger.warn('OG fetch failed; rendering default preview', {
+            handler: 'ogRenderer',
+            path: url.pathname,
+            kind: route.kind,
+            id: route.id,
+            err: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
       const shell = await getSpaShell(origin);
       const html = injectMeta(shell, og, url.toString());
 

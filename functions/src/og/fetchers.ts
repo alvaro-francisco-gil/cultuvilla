@@ -43,6 +43,7 @@ interface RawNews {
 interface RawVillage {
   name?: unknown;
   escudoUrl?: unknown;
+  escudoThumbUrl?: unknown;
   escudoManualUrl?: unknown;
   community?: {
     description?: unknown;
@@ -88,7 +89,8 @@ export async function getVillageOg(municipalityId: string): Promise<OgMeta | nul
   return {
     title: asString(v.name) ?? '',
     description: trim(community ? asString(community.description) : ''),
-    imageUrl: asString(v.escudoManualUrl) ?? asString(v.escudoUrl),
+    imageUrl:
+      asString(v.escudoManualUrl) ?? asString(v.escudoUrl) ?? asString(v.escudoThumbUrl),
   };
 }
 

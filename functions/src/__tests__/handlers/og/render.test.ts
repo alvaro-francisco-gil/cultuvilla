@@ -172,6 +172,33 @@ describe('ogRenderer', () => {
     expect(res.body).toContain('property="og:image" content="https://cdn.example/escudo-fallback.png"');
   });
 
+  it('village: falls back to escudoThumbUrl when manual and full escudo are absent', async () => {
+    await admin.firestore().doc('municipalities/mun-1c').set({
+      name: 'Villarriba C',
+      nameLower: 'villarriba c',
+      province: 'Valladolid',
+      provinceLower: 'valladolid',
+      comunidadAutonoma: 'Castilla y León',
+      comunidadAutonomaLower: 'castilla y leon',
+      codigoINE: '47001c',
+      coordinates: null,
+      escudoUrl: null,
+      escudoThumbUrl: 'https://cdn.example/escudo-thumb.png',
+      escudoManualUrl: null,
+      community: {
+        description: 'Comunidad con solo miniatura de escudo',
+        adminUserId: 'admin-1',
+        createdAt: new Date(),
+      },
+      communityActive: true,
+    });
+
+    const res = await invoke('/village/mun-1c');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toContain('property="og:image" content="https://cdn.example/escudo-thumb.png"');
+  });
+
   it('village invite variant uses the same og as the view URL', async () => {
     await admin.firestore().doc('municipalities/mun-2').set({
       name: 'Villabajo',
@@ -260,6 +287,16 @@ describe('ogRenderer', () => {
 
   it('unmatched URL pattern: returns 200 with default og tags', async () => {
     const res = await invoke('/event/nested/deeper/path');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toContain('property="og:title" content="Cultuvilla"');
+  });
+
+  it('invalid Firestore id: returns 200 with default og instead of 500', async () => {
+    // Firestore-reserved ids (__x__) make .doc() throw INVALID_ARGUMENT. A
+    // crawler hitting such a URL must still get a valid 200 default preview,
+    // not a 500 Internal Server Error.
+    const res = await invoke('/event/__reserved__');
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain('property="og:title" content="Cultuvilla"');
