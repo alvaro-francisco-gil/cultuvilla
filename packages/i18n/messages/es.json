@@ -439,9 +439,9 @@
     "stepWhen": "Cuándo y dónde",
     "stepDetails": "Detalles",
     "eligibility": {
-      "body": "Para crear un evento necesitas pertenecer a una organización de este pueblo.",
+      "body": "Para crear un evento necesitas pertenecer a un grupo de este pueblo.",
       "requestOrganizer": "Solicitar administrar este pueblo",
-      "browseOrgs": "Ver organizaciones"
+      "browseOrgs": "Ver grupos"
     },
     "register": {
       "cta": "Apuntarme",
@@ -463,12 +463,12 @@
     }
   },
   "organization": {
-    "title": "Organización",
+    "title": "Grupo",
     "description": "Descripción",
     "membersCount": "{count} miembros",
-    "join": "Unirme a esta organización",
+    "join": "Unirme a este grupo",
     "signInToJoin": "Inicia sesión para unirte",
-    "invitedBanner": "Te han invitado a unirte a esta organización",
+    "invitedBanner": "Te han invitado a unirte a este grupo",
     "name": "Nombre",
     "type": "Tipo",
     "addImage": "Añadir imagen",
@@ -477,7 +477,7 @@
     "peña": "Peña",
     "asociación": "Asociación",
     "otros": "Otros",
-    "requestOrg": "Solicitar organización",
+    "requestOrg": "Solicitar grupo",
     "pending": "Pendiente",
     "approved": "Aprobada",
     "rejected": "Rechazada",
@@ -607,7 +607,7 @@
     "empty": "No hay solicitudes pendientes",
     "tab": {
       "organizer": "Administrador",
-      "org": "Organizaciones",
+      "org": "Grupos",
       "join": "Unirse",
       "inbox": "Recibidas",
       "outbox": "Enviadas"

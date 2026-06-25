@@ -181,13 +181,47 @@ describe('ProfileScreen — Grupos & Peñas', () => {
     );
   }
 
-  it('renders both section titles', async () => {
-    seedActiveMunicipalityWith([], []);
+  it('shows each section title only when the user belongs to that kind of org', async () => {
+    seedActiveMunicipalityWith(
+      [
+        { id: 'org-aso', name: 'Asociación Cultural', type: 'asociación', imageURL: null },
+        { id: 'org-pena', name: 'Peña El Bote', type: 'peña', imageURL: null },
+      ],
+      [
+        { orgId: 'org-aso', role: 'member' },
+        { orgId: 'org-pena', role: 'member' },
+      ],
+    );
     const { getByText } = render(<ProfileScreen />);
     await waitFor(() => {
       expect(getByText('profile.gruposSection.title')).toBeTruthy();
       expect(getByText('profile.peñasSection.title')).toBeTruthy();
     });
+  });
+
+  it('hides both sections when the user belongs to no orgs', async () => {
+    seedActiveMunicipalityWith([], []);
+    const orgMemberService = require('@cultuvilla/shared/services/orgMemberService');
+    const { queryByText } = render(<ProfileScreen />);
+    // Wait for the membership lookup (the last step of load) so the
+    // conditional render has settled before asserting the sections are gone.
+    await waitFor(() => {
+      expect(orgMemberService.getOrgMembershipsByUserInMunicipality).toHaveBeenCalled();
+    });
+    expect(queryByText('profile.gruposSection.title')).toBeNull();
+    expect(queryByText('profile.peñasSection.title')).toBeNull();
+  });
+
+  it('hides the Peñas section when the user only belongs to a non-peña org', async () => {
+    seedActiveMunicipalityWith(
+      [{ id: 'org-aso', name: 'Asociación Cultural', type: 'asociación', imageURL: null }],
+      [{ orgId: 'org-aso', role: 'member' }],
+    );
+    const { getByText, queryByText } = render(<ProfileScreen />);
+    await waitFor(() => {
+      expect(getByText('profile.gruposSection.title')).toBeTruthy();
+    });
+    expect(queryByText('profile.peñasSection.title')).toBeNull();
   });
 
   it('routes a peña membership to the Peñas scroll and a non-peña to Grupos, each linking to /o/:id', async () => {
