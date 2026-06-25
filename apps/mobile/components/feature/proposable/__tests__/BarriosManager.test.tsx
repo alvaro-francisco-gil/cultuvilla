@@ -55,7 +55,7 @@ describe('<BarriosManager>', () => {
   it('an organizer can approve a pending row', async () => {
     mockCaps.mockReturnValue({ canManage: true, canApprove: true, uid: 'boss', loading: false });
     mockGet.mockResolvedValue([
-      { id: 'b1', name: 'Sur', municipalityId: 'm1', imageURL: null, status: 'pending', proposedBy: 'alice', approvedBy: null, decidedAt: null },
+      { id: 'b1', name: 'Sur', municipalityId: 'm1', imageURL: null, status: 'pending', proposedBy: 'alice', reviewedBy: null, reviewedAt: null },
     ]);
     const { findByTestId } = render(<BarriosManager villageId="m1" mode="manage" />);
     fireEvent.press(await findByTestId('action-approve'));

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ReviewStatusSchema, type ReviewStatus } from '../core/ReviewableDataModel';
 
 export const NEWS_POST_CATEGORIES = [
   'fiesta',
@@ -10,8 +11,8 @@ export const NEWS_POST_CATEGORIES = [
 export const NewsPostCategorySchema = z.enum([...NEWS_POST_CATEGORIES]);
 export type NewsPostCategory = z.infer<typeof NewsPostCategorySchema>;
 
-export const NewsPostStatusSchema = z.enum(['pending', 'approved', 'rejected']);
-export type NewsPostStatus = z.infer<typeof NewsPostStatusSchema>;
+export const NewsPostStatusSchema = ReviewStatusSchema;
+export type NewsPostStatus = ReviewStatus;
 
 export const NewsReactionKindSchema = z.enum(['like', 'heart']);
 export type NewsReactionKind = z.infer<typeof NewsReactionKindSchema>;

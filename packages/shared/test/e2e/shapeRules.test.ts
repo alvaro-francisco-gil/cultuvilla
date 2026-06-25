@@ -295,9 +295,9 @@ describe('shape enforcement — /organizations/{orgId}', () => {
     status: 'pending' as const,
     municipalityId: 'm1',
     requestedBy: 'alice',
-    approvedBy: null,
+    reviewedBy: null,
     createdAt: new Date(),
-    decidedAt: null,
+    reviewedAt: null,
   };
 
   it('accepts a valid full-shape payload', async () => {

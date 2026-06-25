@@ -18,7 +18,7 @@ async function seed() {
     await setDoc(doc(db, `organizations/${ORG}`), {
       name: 'Peña', description: null, imageURL: null, type: 'peña',
       status: 'approved', municipalityId: MID, requestedBy: 'creator',
-      approvedBy: 'vadmin', createdAt: new Date(), decidedAt: new Date(),
+      reviewedBy: 'vadmin', createdAt: new Date(), reviewedAt: new Date(),
     });
     await setDoc(doc(db, `organizations/${ORG}/members/creator`), { joinedAt: new Date(), role: 'admin' });
     await setDoc(doc(db, `organizations/${ORG}/members/member1`), { joinedAt: new Date(), role: 'member' });

@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import {
+  ReviewStatusSchema,
+  reviewDecisionFields,
+  type ReviewStatus,
+} from '../core/ReviewableDataModel';
 
 /**
  * A canonical occupation. Stored at /occupations/{occupationId} (top-level).
@@ -19,8 +24,8 @@ export function buildOccupationData(input: OccupationDataInput): OccupationData 
   return { ...input, createdAt: new Date() };
 }
 
-export const OccupationProposalStatusSchema = z.enum(['pending', 'approved', 'rejected']);
-export type OccupationProposalStatus = z.infer<typeof OccupationProposalStatusSchema>;
+export const OccupationProposalStatusSchema = ReviewStatusSchema;
+export type OccupationProposalStatus = ReviewStatus;
 
 /**
  * A user-submitted occupation proposal awaiting moderator review.
@@ -30,10 +35,9 @@ export const OccupationProposalDataSchema = z.object({
   name: z.string(),
   proposedBy: z.string(),
   proposedAt: z.date(),
-  status: OccupationProposalStatusSchema,
-  reviewedBy: z.string().nullable(),
-  reviewedAt: z.date().nullable(),
   approvedOccupationId: z.string().nullable(),
+  // status + reviewedBy + reviewedAt
+  ...reviewDecisionFields,
 });
 export type OccupationProposalData = z.infer<typeof OccupationProposalDataSchema>;
 

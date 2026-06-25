@@ -25,9 +25,9 @@ async function seedOrg(): Promise<void> {
     description: 'Una asociacion de vecinos',
     imageURL: null,
     requestedBy: ORG_ADMIN_ID,
-    approvedBy: APP_ADMIN_ID,
+    reviewedBy: APP_ADMIN_ID,
     createdAt: new Date(),
-    decidedAt: new Date(),
+    reviewedAt: new Date(),
   });
 }
 

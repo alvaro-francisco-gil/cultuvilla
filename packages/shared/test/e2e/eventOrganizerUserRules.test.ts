@@ -62,9 +62,9 @@ async function seed() {
       status: 'approved',
       municipalityId: M,
       requestedBy: 'alice',
-      approvedBy: null,
+      reviewedBy: null,
       createdAt: new Date(),
-      decidedAt: null,
+      reviewedAt: null,
     });
     await setDoc(doc(db, `organizations/${ORG}/members/carol`), { joinedAt: new Date(), role: 'member' });
     // Pre-existing event owned by alice, with bob as co-organizer and org1 as org

@@ -48,8 +48,8 @@ async function seed(path: string, value: Record<string, unknown>) {
     await setDoc(doc(c.firestore() as unknown as Firestore, path), value);
   });
 }
-const pendingPlace = { name: 'Ermita', kind: 'hermitage', description: null, municipalityId: 'm1', imageURL: null, createdAt: new Date(), status: 'pending', proposedBy: 'alice', approvedBy: null, decidedAt: null };
-const pendingBarrio = { name: 'Norte', municipalityId: 'm1', imageURL: null, createdAt: new Date(), status: 'pending', proposedBy: 'alice', approvedBy: null, decidedAt: null };
+const pendingPlace = { name: 'Ermita', kind: 'hermitage', description: null, municipalityId: 'm1', imageURL: null, createdAt: new Date(), status: 'pending', proposedBy: 'alice', reviewedBy: null, reviewedAt: null };
+const pendingBarrio = { name: 'Norte', municipalityId: 'm1', imageURL: null, createdAt: new Date(), status: 'pending', proposedBy: 'alice', reviewedBy: null, reviewedAt: null };
 
 describe('municipalityService — place/barrio proposals', () => {
   it('proposePlace writes a pending place carrying the proposer', async () => {
@@ -60,22 +60,22 @@ describe('municipalityService — place/barrio proposals', () => {
     expect(d?.proposedBy).toBe('alice');
   });
 
-  it('approvePlace flips status to approved and stamps approvedBy', async () => {
+  it('approvePlace flips status to approved and stamps reviewedBy', async () => {
     await seed('municipalities/m1/places/p1', pendingPlace);
     useDbAs('admin');
     await approvePlace('m1', 'p1', 'admin');
     const d = await read('municipalities/m1/places/p1');
     expect(d?.status).toBe('approved');
-    expect(d?.approvedBy).toBe('admin');
+    expect(d?.reviewedBy).toBe('admin');
   });
 
-  it('rejectBarrio flips status to rejected with null approvedBy', async () => {
+  it('rejectBarrio flips status to rejected with null reviewedBy', async () => {
     await seed('municipalities/m1/barrios/b1', pendingBarrio);
     useDbAs('admin');
     await rejectBarrio('m1', 'b1');
     const d = await read('municipalities/m1/barrios/b1');
     expect(d?.status).toBe('rejected');
-    expect(d?.approvedBy).toBeNull();
+    expect(d?.reviewedBy).toBeNull();
   });
 
   it('proposeBarrio + approveBarrio round-trip', async () => {

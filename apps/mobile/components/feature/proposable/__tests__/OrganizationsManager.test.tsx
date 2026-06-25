@@ -52,9 +52,9 @@ describe('<OrganizationsManager>', () => {
 
   it('a villager sees approved orgs + their own pending, not others’ pending', async () => {
     mockGet.mockResolvedValue([
-      { id: 'a', name: 'Aprobada', description: null, imageURL: null, type: 'peña', status: 'approved', municipalityId: 'm1', requestedBy: 'x', approvedBy: 'b', decidedAt: null },
-      { id: 'mine', name: 'MiPropuesta', description: null, imageURL: null, type: 'peña', status: 'pending', municipalityId: 'm1', requestedBy: 'alice', approvedBy: null, decidedAt: null },
-      { id: 'other', name: 'OtraPendiente', description: null, imageURL: null, type: 'peña', status: 'pending', municipalityId: 'm1', requestedBy: 'bob', approvedBy: null, decidedAt: null },
+      { id: 'a', name: 'Aprobada', description: null, imageURL: null, type: 'peña', status: 'approved', municipalityId: 'm1', requestedBy: 'x', reviewedBy: 'b', reviewedAt: null },
+      { id: 'mine', name: 'MiPropuesta', description: null, imageURL: null, type: 'peña', status: 'pending', municipalityId: 'm1', requestedBy: 'alice', reviewedBy: null, reviewedAt: null },
+      { id: 'other', name: 'OtraPendiente', description: null, imageURL: null, type: 'peña', status: 'pending', municipalityId: 'm1', requestedBy: 'bob', reviewedBy: null, reviewedAt: null },
     ]);
     const { findByText, queryByText } = render(<OrganizationsManager villageId="m1" mode="manage" />);
     expect(await findByText('Aprobada')).toBeTruthy();
@@ -65,7 +65,7 @@ describe('<OrganizationsManager>', () => {
   it('an organizer can approve a pending row', async () => {
     mockCaps.mockReturnValue({ canManage: true, canApprove: true, uid: 'boss', loading: false });
     mockGet.mockResolvedValue([
-      { id: 'o1', name: 'Peña Vieja', description: null, imageURL: null, type: 'peña', status: 'pending', municipalityId: 'm1', requestedBy: 'alice', approvedBy: null, decidedAt: null },
+      { id: 'o1', name: 'Peña Vieja', description: null, imageURL: null, type: 'peña', status: 'pending', municipalityId: 'm1', requestedBy: 'alice', reviewedBy: null, reviewedAt: null },
     ]);
     const { findByTestId } = render(<OrganizationsManager villageId="m1" mode="manage" />);
     fireEvent.press(await findByTestId('action-approve'));

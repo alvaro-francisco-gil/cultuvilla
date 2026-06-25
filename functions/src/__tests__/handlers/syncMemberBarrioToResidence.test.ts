@@ -42,8 +42,8 @@ async function seedBarrio(barrioId: string, status: 'approved' | 'pending'): Pro
     imageURL: null,
     createdAt: new Date(),
     proposedBy: null,
-    approvedBy: null,
-    decidedAt: null,
+    reviewedBy: null,
+    reviewedAt: null,
   });
 }
 

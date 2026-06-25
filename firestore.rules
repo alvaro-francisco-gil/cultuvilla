@@ -273,11 +273,11 @@ service cloud.firestore {
     function isValidOrganizationCreate(d) {
       return d.keys().hasOnly([
               'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
-              'requestedBy', 'approvedBy', 'createdAt', 'decidedAt',
+              'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
             ])
           && d.keys().hasAll([
               'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
-              'requestedBy', 'approvedBy', 'createdAt', 'decidedAt',
+              'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
             ])
           && isString(d.name)
           && isStringOrNull(d.description)
@@ -286,9 +286,9 @@ service cloud.firestore {
           && d.status in ['pending', 'approved', 'rejected']
           && isString(d.municipalityId)
           && isString(d.requestedBy)
-          && isStringOrNull(d.approvedBy)
+          && isStringOrNull(d.reviewedBy)
           && isTimestamp(d.createdAt)
-          && isTimestampOrNull(d.decidedAt);
+          && isTimestampOrNull(d.reviewedAt);
     }
 
     function isValidOccupationProposalCreate(d) {
@@ -312,11 +312,11 @@ service cloud.firestore {
     function isValidPlaceProposalCreate(d) {
       return d.keys().hasOnly([
               'name', 'kind', 'description', 'municipalityId', 'imageURL',
-              'createdAt', 'status', 'proposedBy', 'approvedBy', 'decidedAt',
+              'createdAt', 'status', 'proposedBy', 'reviewedBy', 'reviewedAt',
             ])
           && d.keys().hasAll([
               'name', 'kind', 'description', 'municipalityId', 'imageURL',
-              'createdAt', 'status', 'proposedBy', 'approvedBy', 'decidedAt',
+              'createdAt', 'status', 'proposedBy', 'reviewedBy', 'reviewedAt',
             ])
           && isString(d.name)
           && d.kind in ['cemetery', 'church', 'hermitage', 'plaza', 'town_hall', 'otros']
@@ -326,8 +326,8 @@ service cloud.firestore {
           && isTimestamp(d.createdAt)
           && d.status in ['pending', 'approved', 'rejected']
           && isStringOrNull(d.proposedBy)
-          && isStringOrNull(d.approvedBy)
-          && isTimestampOrNull(d.decidedAt);
+          && isStringOrNull(d.reviewedBy)
+          && isTimestampOrNull(d.reviewedAt);
     }
 
     function isValidJoinRequestCreate(d) {
@@ -342,11 +342,11 @@ service cloud.firestore {
     function isValidBarrioProposalCreate(d) {
       return d.keys().hasOnly([
               'name', 'municipalityId', 'imageURL', 'createdAt',
-              'status', 'proposedBy', 'approvedBy', 'decidedAt',
+              'status', 'proposedBy', 'reviewedBy', 'reviewedAt',
             ])
           && d.keys().hasAll([
               'name', 'municipalityId', 'imageURL', 'createdAt',
-              'status', 'proposedBy', 'approvedBy', 'decidedAt',
+              'status', 'proposedBy', 'reviewedBy', 'reviewedAt',
             ])
           && isString(d.name)
           && isString(d.municipalityId)
@@ -354,8 +354,8 @@ service cloud.firestore {
           && isTimestamp(d.createdAt)
           && d.status in ['pending', 'approved', 'rejected']
           && isStringOrNull(d.proposedBy)
-          && isStringOrNull(d.approvedBy)
-          && isTimestampOrNull(d.decidedAt);
+          && isStringOrNull(d.reviewedBy)
+          && isTimestampOrNull(d.reviewedAt);
     }
 
     function isValidEventCreate(d) {

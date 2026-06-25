@@ -34,9 +34,9 @@ async function seedAyuntamiento(status: 'pending' | 'approved' | 'rejected'): Pr
     status,
     municipalityId: MUNICIPALITY_ID,
     requestedBy: 'someone',
-    approvedBy: null,
+    reviewedBy: null,
     createdAt: new Date(),
-    decidedAt: null,
+    reviewedAt: null,
   });
 }
 

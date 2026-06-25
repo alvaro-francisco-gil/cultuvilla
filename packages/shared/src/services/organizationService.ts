@@ -111,9 +111,9 @@ export async function requestOrganization(input: OrganizationDataInput): Promise
     status: 'pending',
     municipalityId: input.municipalityId,
     requestedBy: input.requestedBy,
-    approvedBy: null,
+    reviewedBy: null,
     createdAt: input.createdAt ?? new Date(),
-    decidedAt: null,
+    reviewedAt: null,
   };
   await setDoc(newRef, data);
   return newRef.id;
@@ -121,14 +121,14 @@ export async function requestOrganization(input: OrganizationDataInput): Promise
 
 export async function approveOrganization(
   orgId: string,
-  approvedBy: string,
+  reviewedBy: string,
   creatorUserId: string,
 ): Promise<void> {
   // updateDoc bypasses the converter, so serverTimestamp() is fine here.
   await updateDoc(doc(getDb(), 'organizations', orgId), {
     status: 'approved',
-    approvedBy,
-    decidedAt: serverTimestamp(),
+    reviewedBy,
+    reviewedAt: serverTimestamp(),
   });
   // Seed the requester as the founding admin. Non-atomic with the status flip;
   // acceptable — re-running approve is idempotent (setDoc overwrites).
@@ -138,8 +138,8 @@ export async function approveOrganization(
 export async function rejectOrganization(orgId: string): Promise<void> {
   await updateDoc(doc(getDb(), 'organizations', orgId), {
     status: 'rejected',
-    approvedBy: null,
-    decidedAt: serverTimestamp(),
+    reviewedBy: null,
+    reviewedAt: serverTimestamp(),
   });
 }
 

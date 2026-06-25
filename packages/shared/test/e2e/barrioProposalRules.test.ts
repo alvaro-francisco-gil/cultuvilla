@@ -11,7 +11,7 @@ const M = 'm1';
 function barrioDoc(status: string, proposedBy: string | null) {
   return {
     name: 'Norte', municipalityId: M, imageURL: null, createdAt: new Date(),
-    status, proposedBy, approvedBy: null, decidedAt: null,
+    status, proposedBy, reviewedBy: null, reviewedAt: null,
   };
 }
 async function seedMember(uid: string, role: 'user' | 'admin' = 'user') {
@@ -65,14 +65,14 @@ describe('firestore.rules — /municipalities/{m}/barrios (proposals)', () => {
     await seedMember('boss', 'admin');
     await seedBarrio('b1', 'pending', 'alice');
     const boss = env.authenticatedContext('boss').firestore();
-    await assertSucceeds(updateDoc(doc(boss, `municipalities/${M}/barrios/b1`), { status: 'approved', approvedBy: 'boss' }));
+    await assertSucceeds(updateDoc(doc(boss, `municipalities/${M}/barrios/b1`), { status: 'approved', reviewedBy: 'boss' }));
   });
   it('proposer can edit own pending barrio but not approve it', async () => {
     await seedMember('alice');
     await seedBarrio('b1', 'pending', 'alice');
     const alice = env.authenticatedContext('alice').firestore();
     await assertSucceeds(updateDoc(doc(alice, `municipalities/${M}/barrios/b1`), { name: 'Norte Alto' }));
-    await assertFails(updateDoc(doc(alice, `municipalities/${M}/barrios/b1`), { status: 'approved', approvedBy: 'alice' }));
+    await assertFails(updateDoc(doc(alice, `municipalities/${M}/barrios/b1`), { status: 'approved', reviewedBy: 'alice' }));
   });
   it('proposer can withdraw own pending barrio but not an approved one', async () => {
     await seedMember('alice');

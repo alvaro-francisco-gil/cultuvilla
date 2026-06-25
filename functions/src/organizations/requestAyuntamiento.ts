@@ -79,9 +79,9 @@ export const requestAyuntamiento = onCall<
         status: 'pending',
         municipalityId,
         requestedBy: uid,
-        approvedBy: null,
+        reviewedBy: null,
         createdAt: new Date(),
-        decidedAt: null,
+        reviewedAt: null,
       };
       tx.set(newRef, data);
     });

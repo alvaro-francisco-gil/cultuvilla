@@ -1,5 +1,10 @@
 import { z } from 'zod';
 import { LatLngSchema, type LatLng } from '../core/LocationDataModel';
+import {
+  ReviewStatusSchema,
+  reviewDecisionFields,
+  type ReviewStatus,
+} from '../core/ReviewableDataModel';
 import { VillageProfileFormSchema } from './CensoTypes';
 
 /**
@@ -150,8 +155,8 @@ export function buildVillageCommunity(input: ActivateCommunityInput): VillageCom
 // visible to everyone. Organizers (village/app admin) create directly and
 // approve/reject. Enforcement lives in firestore.rules.
 
-export const ProposalStatusSchema = z.enum(['pending', 'approved', 'rejected']);
-export type ProposalStatus = z.infer<typeof ProposalStatusSchema>;
+export const ProposalStatusSchema = ReviewStatusSchema;
+export type ProposalStatus = ReviewStatus;
 
 // ── Barrios (subcollection: /municipalities/{id}/barrios/{barrioId}) ────
 
@@ -161,10 +166,9 @@ export const BarrioDataSchema = z.object({
   /** Public download URL for the barrio's picture. `null` when unset. */
   imageURL: z.string().nullable(),
   createdAt: z.date(),
-  status: ProposalStatusSchema,
   proposedBy: z.string().nullable(),
-  approvedBy: z.string().nullable(),
-  decidedAt: z.date().nullable(),
+  // status + reviewedBy + reviewedAt
+  ...reviewDecisionFields,
 });
 export type BarrioData = z.infer<typeof BarrioDataSchema>;
 
@@ -174,8 +178,8 @@ export interface BarrioDataInput {
   imageURL?: string | null;
   status?: ProposalStatus;
   proposedBy?: string | null;
-  approvedBy?: string | null;
-  decidedAt?: Date | null;
+  reviewedBy?: string | null;
+  reviewedAt?: Date | null;
 }
 
 export function buildBarrioData(input: BarrioDataInput): BarrioData {
@@ -186,8 +190,8 @@ export function buildBarrioData(input: BarrioDataInput): BarrioData {
     createdAt: new Date(),
     status: input.status ?? 'pending',
     proposedBy: input.proposedBy ?? null,
-    approvedBy: input.approvedBy ?? null,
-    decidedAt: input.decidedAt ?? null,
+    reviewedBy: input.reviewedBy ?? null,
+    reviewedAt: input.reviewedAt ?? null,
   };
 }
 
@@ -222,10 +226,9 @@ export const PlaceDataSchema = z.object({
   /** Public download URL for the place's picture. `null` when unset. */
   imageURL: z.string().nullable(),
   createdAt: z.date(),
-  status: ProposalStatusSchema,
   proposedBy: z.string().nullable(),
-  approvedBy: z.string().nullable(),
-  decidedAt: z.date().nullable(),
+  // status + reviewedBy + reviewedAt
+  ...reviewDecisionFields,
 });
 export type PlaceData = z.infer<typeof PlaceDataSchema>;
 
@@ -237,8 +240,8 @@ export interface PlaceDataInput {
   imageURL?: string | null;
   status?: ProposalStatus;
   proposedBy?: string | null;
-  approvedBy?: string | null;
-  decidedAt?: Date | null;
+  reviewedBy?: string | null;
+  reviewedAt?: Date | null;
 }
 
 export function buildPlaceData(input: PlaceDataInput): PlaceData {
@@ -251,7 +254,7 @@ export function buildPlaceData(input: PlaceDataInput): PlaceData {
     createdAt: new Date(),
     status: input.status ?? 'pending',
     proposedBy: input.proposedBy ?? null,
-    approvedBy: input.approvedBy ?? null,
-    decidedAt: input.decidedAt ?? null,
+    reviewedBy: input.reviewedBy ?? null,
+    reviewedAt: input.reviewedAt ?? null,
   };
 }

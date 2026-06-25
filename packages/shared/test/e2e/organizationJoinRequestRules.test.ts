@@ -13,7 +13,7 @@ const ORG = 'org1', MID = 'mun1', REQUESTER = 'alice', ADMIN = 'creator', OUTSID
 async function seedOrg() {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
-    await setDoc(doc(db, `organizations/${ORG}`), { municipalityId: MID, status: 'approved', requestedBy: ADMIN, name: 'P', description: null, imageURL: null, type: 'peña', approvedBy: 'x', createdAt: new Date(), decidedAt: new Date() });
+    await setDoc(doc(db, `organizations/${ORG}`), { municipalityId: MID, status: 'approved', requestedBy: ADMIN, name: 'P', description: null, imageURL: null, type: 'peña', reviewedBy: 'x', createdAt: new Date(), reviewedAt: new Date() });
     await setDoc(doc(db, `organizations/${ORG}/members/${ADMIN}`), { joinedAt: new Date(), role: 'admin' });
     await setDoc(doc(db, `admins/${APP}`), { createdAt: new Date() });
   });

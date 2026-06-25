@@ -12,9 +12,9 @@ const validOrg = {
   status: 'pending' as const,
   municipalityId: 'm-1',
   requestedBy: 'u-1',
-  approvedBy: null,
+  reviewedBy: null,
   createdAt: new Date('2026-01-01T00:00:00Z'),
-  decidedAt: null,
+  reviewedAt: null,
 };
 
 describe('OrganizationDataSchema', () => {
@@ -50,8 +50,8 @@ describe('buildOrganizationData', () => {
     expect(o.status).toBe('pending');
     expect(o.description).toBeNull();
     expect(o.imageURL).toBeNull();
-    expect(o.approvedBy).toBeNull();
-    expect(o.decidedAt).toBeNull();
+    expect(o.reviewedBy).toBeNull();
+    expect(o.reviewedAt).toBeNull();
     expect(o.createdAt).toBeInstanceOf(Date);
     expect(() => OrganizationDataSchema.parse(o)).not.toThrow();
   });

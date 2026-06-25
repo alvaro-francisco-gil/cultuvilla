@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import {
+  ReviewStatusSchema,
+  reviewDecisionFields,
+  type ReviewStatus,
+} from '../core/ReviewableDataModel';
 
 export const OrganizationTypeSchema = z.enum(['ayuntamiento', 'peña', 'asociación', 'otros']);
 export type OrganizationType = z.infer<typeof OrganizationTypeSchema>;
@@ -14,8 +19,8 @@ export const PROPOSABLE_ORGANIZATION_TYPES: readonly OrganizationType[] = [
   'otros',
 ] as const;
 
-export const OrganizationStatusSchema = z.enum(['pending', 'approved', 'rejected']);
-export type OrganizationStatus = z.infer<typeof OrganizationStatusSchema>;
+export const OrganizationStatusSchema = ReviewStatusSchema;
+export type OrganizationStatus = ReviewStatus;
 
 export const OrganizationDataSchema = z.object({
   name: z.string(),
@@ -23,12 +28,11 @@ export const OrganizationDataSchema = z.object({
   /** Public download URL for the organization's picture. `null` when unset. */
   imageURL: z.string().nullable(),
   type: OrganizationTypeSchema,
-  status: OrganizationStatusSchema,
   municipalityId: z.string(),
   requestedBy: z.string(),
-  approvedBy: z.string().nullable(),
   createdAt: z.date(),
-  decidedAt: z.date().nullable(),
+  // status + reviewedBy + reviewedAt
+  ...reviewDecisionFields,
 });
 export type OrganizationData = z.infer<typeof OrganizationDataSchema>;
 
@@ -43,9 +47,9 @@ export interface OrganizationDataInput {
   status?: OrganizationStatus;
   municipalityId: string;
   requestedBy: string;
-  approvedBy?: string | null;
+  reviewedBy?: string | null;
   createdAt?: Date;
-  decidedAt?: Date | null;
+  reviewedAt?: Date | null;
 }
 
 export function buildOrganizationData(input: OrganizationDataInput): OrganizationData {
@@ -57,8 +61,8 @@ export function buildOrganizationData(input: OrganizationDataInput): Organizatio
     status: input.status ?? 'pending',
     municipalityId: input.municipalityId,
     requestedBy: input.requestedBy,
-    approvedBy: input.approvedBy ?? null,
+    reviewedBy: input.reviewedBy ?? null,
     createdAt: input.createdAt ?? new Date(),
-    decidedAt: input.decidedAt ?? null,
+    reviewedAt: input.reviewedAt ?? null,
   };
 }

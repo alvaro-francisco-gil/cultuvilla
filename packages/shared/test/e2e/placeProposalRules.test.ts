@@ -13,7 +13,7 @@ function placeDoc(status: string, proposedBy: string | null) {
   return {
     name: 'Fuente', kind: 'plaza', description: null, municipalityId: M,
     imageURL: null, createdAt: new Date(), status, proposedBy,
-    approvedBy: null, decidedAt: null,
+    reviewedBy: null, reviewedAt: null,
   };
 }
 async function seedMember(uid: string, role: 'user' | 'admin' = 'user') {
@@ -78,7 +78,7 @@ describe('firestore.rules — /municipalities/{m}/places (proposals)', () => {
     await seedMember('boss', 'admin');
     await seedPlace('p1', 'pending', 'alice');
     const boss = env.authenticatedContext('boss').firestore();
-    await assertSucceeds(updateDoc(doc(boss, `municipalities/${M}/places/p1`), { status: 'approved', approvedBy: 'boss' }));
+    await assertSucceeds(updateDoc(doc(boss, `municipalities/${M}/places/p1`), { status: 'approved', reviewedBy: 'boss' }));
   });
 
   it('proposer can edit their own still-pending proposal', async () => {
@@ -92,7 +92,7 @@ describe('firestore.rules — /municipalities/{m}/places (proposals)', () => {
     await seedMember('alice');
     await seedPlace('p1', 'pending', 'alice');
     const alice = env.authenticatedContext('alice').firestore();
-    await assertFails(updateDoc(doc(alice, `municipalities/${M}/places/p1`), { status: 'approved', approvedBy: 'alice' }));
+    await assertFails(updateDoc(doc(alice, `municipalities/${M}/places/p1`), { status: 'approved', reviewedBy: 'alice' }));
   });
 
   it('proposer can withdraw (delete) their own pending proposal', async () => {

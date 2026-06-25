@@ -57,7 +57,7 @@ describe('<PlacesManager>', () => {
   it('an organizer can approve a pending row', async () => {
     mockCaps.mockReturnValue({ canManage: true, canApprove: true, uid: 'boss', loading: false });
     mockGet.mockResolvedValue([
-      { id: 'p1', name: 'Ermita', kind: 'hermitage', description: null, municipalityId: 'm1', imageURL: null, status: 'pending', proposedBy: 'alice', approvedBy: null, decidedAt: null },
+      { id: 'p1', name: 'Ermita', kind: 'hermitage', description: null, municipalityId: 'm1', imageURL: null, status: 'pending', proposedBy: 'alice', reviewedBy: null, reviewedAt: null },
     ]);
     const { findByTestId } = render(<PlacesManager villageId="m1" mode="manage" />);
     fireEvent.press(await findByTestId('action-approve'));

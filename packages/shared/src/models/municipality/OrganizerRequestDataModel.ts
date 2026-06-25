@@ -1,18 +1,22 @@
 import { z } from 'zod';
+import {
+  ReviewStatusSchema,
+  reviewDecisionFields,
+  type ReviewStatus,
+} from '../core/ReviewableDataModel';
 
-export const OrganizerRequestStatusSchema = z.enum(['pending', 'approved', 'rejected']);
-export type OrganizerRequestStatus = z.infer<typeof OrganizerRequestStatusSchema>;
+export const OrganizerRequestStatusSchema = ReviewStatusSchema;
+export type OrganizerRequestStatus = ReviewStatus;
 
 export const OrganizerRequestDataSchema = z.object({
   userId: z.string(),
   municipalityId: z.string(),
   requestedAt: z.date(),
-  status: OrganizerRequestStatusSchema,
   /** Village description the requester proposes; copied to community.description on approval. */
   description: z.string(),
   motivation: z.string().nullable(),
-  reviewedAt: z.date().nullable(),
-  reviewedBy: z.string().nullable(),
+  // status + reviewedBy + reviewedAt
+  ...reviewDecisionFields,
 });
 export type OrganizerRequestData = z.infer<typeof OrganizerRequestDataSchema>;
 

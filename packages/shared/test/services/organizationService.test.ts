@@ -30,11 +30,11 @@ describe('approveOrganization', () => {
     vi.mocked(orgMember.addOrgMember).mockResolvedValue(undefined);
   });
 
-  it('flips status to approved and records approvedBy', async () => {
+  it('flips status to approved and records reviewedBy', async () => {
     await approveOrganization('org1', 'vadmin', 'creator');
     expect(updateDoc).toHaveBeenCalledTimes(1);
     const patch = vi.mocked(updateDoc).mock.calls[0][1];
-    expect(patch).toMatchObject({ status: 'approved', approvedBy: 'vadmin' });
+    expect(patch).toMatchObject({ status: 'approved', reviewedBy: 'vadmin' });
   });
 
   it('approveOrganization seeds requestedBy as an org admin', async () => {

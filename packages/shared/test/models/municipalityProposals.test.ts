@@ -11,8 +11,8 @@ describe('Place/Barrio proposal fields', () => {
     const b = buildBarrioData({ name: 'Centro', municipalityId: 'm1', proposedBy: 'alice' });
     expect(b.status).toBe('pending');
     expect(b.proposedBy).toBe('alice');
-    expect(b.approvedBy).toBeNull();
-    expect(b.decidedAt).toBeNull();
+    expect(b.reviewedBy).toBeNull();
+    expect(b.reviewedAt).toBeNull();
   });
 
   it('buildPlaceData honours an explicit approved status (organizer direct create)', () => {

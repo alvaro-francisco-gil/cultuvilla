@@ -281,21 +281,21 @@ export async function proposeBarrio(
 export async function approveBarrio(
   municipalityId: string,
   barrioId: string,
-  approvedBy: string,
+  reviewedBy: string,
 ): Promise<void> {
   // updateDoc bypasses the converter, so serverTimestamp() is fine here.
   await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'barrios', barrioId), {
     status: 'approved',
-    approvedBy,
-    decidedAt: serverTimestamp(),
+    reviewedBy,
+    reviewedAt: serverTimestamp(),
   });
 }
 
 export async function rejectBarrio(municipalityId: string, barrioId: string): Promise<void> {
   await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'barrios', barrioId), {
     status: 'rejected',
-    approvedBy: null,
-    decidedAt: serverTimestamp(),
+    reviewedBy: null,
+    reviewedAt: serverTimestamp(),
   });
 }
 
@@ -356,20 +356,20 @@ export async function proposePlace(
 export async function approvePlace(
   municipalityId: string,
   placeId: string,
-  approvedBy: string,
+  reviewedBy: string,
 ): Promise<void> {
   await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'places', placeId), {
     status: 'approved',
-    approvedBy,
-    decidedAt: serverTimestamp(),
+    reviewedBy,
+    reviewedAt: serverTimestamp(),
   });
 }
 
 export async function rejectPlace(municipalityId: string, placeId: string): Promise<void> {
   await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'places', placeId), {
     status: 'rejected',
-    approvedBy: null,
-    decidedAt: serverTimestamp(),
+    reviewedBy: null,
+    reviewedAt: serverTimestamp(),
   });
 }
 
