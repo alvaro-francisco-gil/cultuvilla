@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { Image } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -38,7 +38,10 @@ export default function NewNewsScreen() {
   const { user, profile } = useAuth();
   const { t } = useT();
   const insets = useSafeAreaInsets();
-  const municipalityId = profile?.activeMunicipalityId ?? null;
+  // A `villageId` param (e.g. from a village's "Artículos" add card) targets
+  // that village; otherwise fall back to the user's active one.
+  const { villageId } = useLocalSearchParams<{ villageId?: string }>();
+  const municipalityId = villageId ?? profile?.activeMunicipalityId ?? null;
 
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');

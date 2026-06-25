@@ -15,6 +15,7 @@ import {
   municipalityMemberDoc,
 } from '../firebase/refs/client';
 import { villageMemberConverterClient } from '../firebase/converters/villageMemberConverter.client';
+import { setActiveMunicipality } from './userService';
 import type {
   VillageMemberData,
   VillageMemberRole,

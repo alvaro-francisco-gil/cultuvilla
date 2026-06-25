@@ -11,6 +11,7 @@ jest.mock('../../../lib/firestoreErrorLog', () => ({
 }));
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn() },
+  useLocalSearchParams: () => ({}),
 }));
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),

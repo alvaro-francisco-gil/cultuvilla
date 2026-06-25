@@ -37,8 +37,10 @@ export interface VillageHomeBodyProps {
 /**
  * Presentational village home shared by the pueblo tab and the pushed
  * `/village/[villageId]` detail. Takes data from `useVillageHome`; the host
- * supplies the header chrome (AppHeader vs ScreenHeader). The self-join CTA
- * shows iff `!data.isMember` — the single source of truth for "offer to join".
+ * supplies the header chrome (AppHeader vs ScreenHeader). For non-members the
+ * action row's first button is "Unirme" (join); members see "Invitar vecino"
+ * there instead. `!data.isMember` is the single source of truth for "offer to
+ * join".
  */
 export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: VillageHomeBodyProps) {
   const { user } = useAuth();
@@ -216,22 +218,12 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           </HStack>
         </VStack>
 
-        {/* ── Self-join CTA (non-members only) ──────────────────── */}
-        {!isMember ? (
+        {/* ── "You were invited" banner (non-members via invite) ── */}
+        {!isMember && arrivedViaInvite ? (
           <VStack gap={1} className="px-4 pt-3">
-            {arrivedViaInvite ? (
-              <Text tone="muted" variant="bodySm" className="text-center">
-                {t('village.invitedBanner')}
-              </Text>
-            ) : null}
-            <Pressable
-              onPress={onJoin}
-              disabled={joining}
-              accessibilityLabel={t('village.join')}
-              className="bg-primary rounded-lg p-3 items-center"
-            >
-              <Text tone="onAccent">{user ? t('village.join') : t('village.signInToJoin')}</Text>
-            </Pressable>
+            <Text tone="muted" variant="bodySm" className="text-center">
+              {t('village.invitedBanner')}
+            </Text>
           </VStack>
         ) : null}
 
@@ -246,25 +238,46 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           />
         </View>
 
-        {/* ── Invitar / Compartir (everyone) ───────────────────── */}
+        {/* ── Unirme (non-members) / Invitar (members) + Compartir ─ */}
         <HStack gap={3} className="px-4 pt-2 pb-2">
-          <Pressable
-            onPress={() => void share(getVillageInviteLink(village.id), village.name)}
-            accessibilityLabel={t('village.invite.title')}
-            className="flex-1 flex-row items-center justify-center bg-surface"
-            style={{
-              paddingVertical: 5,
-              paddingHorizontal: 12,
-              borderRadius: 24,
-              borderWidth: 1.5,
-              borderColor: ACCENT,
-              minHeight: 32,
-            }}
-          >
-            <Text style={{ color: ACCENT }} className="font-semibold">
-              {t('village.invite.title')}
-            </Text>
-          </Pressable>
+          {!isMember ? (
+            <Pressable
+              onPress={onJoin}
+              disabled={joining}
+              accessibilityLabel={t('village.join')}
+              className="flex-1 flex-row items-center justify-center bg-surface"
+              style={{
+                paddingVertical: 5,
+                paddingHorizontal: 12,
+                borderRadius: 24,
+                borderWidth: 1.5,
+                borderColor: ACCENT,
+                minHeight: 32,
+              }}
+            >
+              <Text style={{ color: ACCENT }} className="font-semibold">
+                {user ? t('village.join') : t('village.signInToJoin')}
+              </Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={() => void share(getVillageInviteLink(village.id), village.name)}
+              accessibilityLabel={t('village.invite.title')}
+              className="flex-1 flex-row items-center justify-center bg-surface"
+              style={{
+                paddingVertical: 5,
+                paddingHorizontal: 12,
+                borderRadius: 24,
+                borderWidth: 1.5,
+                borderColor: ACCENT,
+                minHeight: 32,
+              }}
+            >
+              <Text style={{ color: ACCENT }} className="font-semibold">
+                {t('village.invite.title')}
+              </Text>
+            </Pressable>
+          )}
           {canManage ? (
             <Pressable
               onPress={() => router.push(`/village/${village.id}/community` as never)}
@@ -363,6 +376,8 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           title={t('village.upcomingEvents.title')}
           isEmpty={events.length === 0}
           emptyLabel={t('village.upcomingEvents.empty')}
+          addLabel={isMember ? t('feed.events.create') : undefined}
+          onAdd={isMember ? () => router.push(`/event/new?villageId=${village.id}` as never) : undefined}
         >
           {events.map((e) => (
             <EntityCard
@@ -381,6 +396,8 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           title={t('village.newsFeed.title')}
           isEmpty={news.length === 0}
           emptyLabel={t('village.newsFeed.empty')}
+          addLabel={isMember ? t('feed.news.create') : undefined}
+          onAdd={isMember ? () => router.push(`/news/new?villageId=${village.id}` as never) : undefined}
         >
           {news.map((n) => (
             <NewsEntityCard

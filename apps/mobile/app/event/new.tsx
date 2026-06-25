@@ -7,7 +7,7 @@ import {
   ScrollView,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Screen, Text, Input, Button, DateField } from '../../components/primitives';
@@ -60,7 +60,10 @@ export default function NewEventScreen() {
   const { user, profile } = useAuth();
   const { t } = useT();
   const insets = useSafeAreaInsets();
-  const municipalityId = profile?.activeMunicipalityId ?? null;
+  // A `villageId` param (e.g. from a village's "Próximos eventos" add card)
+  // targets that village; otherwise fall back to the user's active one.
+  const { villageId } = useLocalSearchParams<{ villageId?: string }>();
+  const municipalityId = villageId ?? profile?.activeMunicipalityId ?? null;
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
