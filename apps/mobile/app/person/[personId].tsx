@@ -171,7 +171,7 @@ export default function PersonDetailScreen() {
       ) : (
         <PersonForm
           initial={initial}
-          submitLabel={isNew ? t('profile.personasSection.add') : t('profile.personEdit')}
+          submitLabel={t('common.save')}
           loading={saving}
           error={error}
           editing={!isNew}
