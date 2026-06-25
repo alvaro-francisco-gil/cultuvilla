@@ -336,7 +336,7 @@
     },
     "hub": {
       "events": "Eventos",
-      "organizations": "Agrupaciones",
+      "organizations": "Grupos",
       "penas": "Peñas",
       "censo": "Censo",
       "news": "Anuncios",
@@ -351,8 +351,8 @@
       "buriedEmpty": "Aún no hay personas registradas en este lugar"
     },
     "organizationsList": {
-      "title": "Agrupaciones",
-      "empty": "Aún no hay agrupaciones",
+      "title": "Grupos",
+      "empty": "Aún no hay grupos",
       "penasEmpty": "Aún no hay peñas"
     }
   },
@@ -513,10 +513,17 @@
       "empty": "No tienes otras personas a tu cargo aún.",
       "add": "Añadir"
     },
-    "orgsSection": {
-      "title": "Organizaciones",
-      "empty": "No perteneces a ninguna organización.",
-      "roleMember": "Miembro"
+    "gruposSection": {
+      "title": "Grupos",
+      "empty": "Aún no perteneces a ningún grupo."
+    },
+    "peñasSection": {
+      "title": "Peñas",
+      "empty": "Aún no perteneces a ninguna peña."
+    },
+    "orgRole": {
+      "admin": "Administrador",
+      "member": "Miembro"
     },
     "villagesEntry": "Mis pueblos",
     "villagesSection": {
@@ -646,7 +653,7 @@
   },
   "organize": {
     "title": "Administrar este pueblo",
-    "explainer": "El administrador gestiona el censo, modera los artículos, mantiene lugares y agrupaciones, y edita o cancela eventos del pueblo. La solicitud requiere aprobación.",
+    "explainer": "El administrador gestiona el censo, modera los artículos, mantiene lugares y grupos, y edita o cancela eventos del pueblo. La solicitud requiere aprobación.",
     "submit": "Enviar solicitud"
   },
   "editInfo": {

@@ -35,7 +35,7 @@ jest.mock('@cultuvilla/shared/services/eventService', () => ({
   getEventsByCreator: jest.fn().mockResolvedValue([]),
 }));
 jest.mock('@cultuvilla/shared/services/newsService', () => ({
-  getNewsCountByCreator: jest.fn().mockResolvedValue(0),
+  getNewsPostsByCreator: jest.fn().mockResolvedValue([]),
 }));
 jest.mock('@cultuvilla/shared/services/registrationService', () => ({
   getUserRegistrationsAcrossEvents: jest.fn().mockResolvedValue([]),
@@ -68,7 +68,7 @@ jest.mock('../../../lib/firestoreErrorLog', () => ({
 // and `activeMunicipalityId`, so returning fresh objects each render would
 // retrigger its effect in an infinite loop.
 const mockUser = { uid: 'uid-1', email: 'a@b.test', displayName: null };
-const mockProfile = { activeMunicipalityId: null };
+const mockProfile: { activeMunicipalityId: string | null } = { activeMunicipalityId: null };
 const mockRefreshProfile = jest.fn().mockResolvedValue(undefined);
 jest.mock('../../../lib/auth/useAuth', () => ({
   useAuth: () => ({ user: mockUser, profile: mockProfile, refreshProfile: mockRefreshProfile }),
@@ -87,7 +87,26 @@ jest.mock('../../../components/feature/profile/ProfileStatsRow', () => ({
 jest.mock('../../../components/feature/profile/PersonaScroll', () => ({
   PersonaScroll: () => null,
 }));
-jest.mock('../../../components/feature/profile/OrgList', () => ({ OrgList: () => null }));
+// Mock the village section primitives the profile reuses for its org scrolls:
+// a Section that renders its title + children, and an EntityCard that exposes
+// its label and onPress so we can assert routing. ACCENT is also consumed.
+jest.mock('../../../components/feature/VillageSections', () => {
+  const { Pressable, Text, View } = require('react-native');
+  return {
+    ACCENT: '#bb5d3a',
+    Section: ({ title, children }: { title: string; children?: unknown }) => (
+      <View>
+        <Text>{title}</Text>
+        {children}
+      </View>
+    ),
+    EntityCard: ({ label, onPress }: { label: string; onPress?: () => void }) => (
+      <Pressable testID={`org-card-${label}`} onPress={onPress}>
+        <Text>{label}</Text>
+      </Pressable>
+    ),
+  };
+});
 jest.mock('../../../components/feature/profile/VillagesScroll', () => ({
   VillagesScroll: () => null,
 }));
@@ -138,6 +157,67 @@ describe('ProfileScreen — eventos gestionados', () => {
     await waitFor(() => {
       expect(eventService.getEventsByCreator).toHaveBeenCalledWith('uid-1');
     });
+  });
+});
+
+describe('ProfileScreen — Grupos & Peñas', () => {
+  beforeEach(() => jest.clearAllMocks());
+  afterEach(() => {
+    mockProfile.activeMunicipalityId = null;
+  });
+
+  function seedActiveMunicipalityWith(
+    orgs: { id: string; name: string; type: string; imageURL: string | null }[],
+    memberships: { orgId: string; role: 'admin' | 'member' }[],
+  ) {
+    mockProfile.activeMunicipalityId = 'mun-1';
+    const personService = require('@cultuvilla/shared/services/personService');
+    const orgService = require('@cultuvilla/shared/services/organizationService');
+    const orgMemberService = require('@cultuvilla/shared/services/orgMemberService');
+    (personService.getPersonByUserId as jest.Mock).mockResolvedValue(null);
+    (orgService.getOrganizationsByMunicipality as jest.Mock).mockResolvedValue(orgs);
+    (orgMemberService.getOrgMembershipsByUserInMunicipality as jest.Mock).mockResolvedValue(
+      memberships,
+    );
+  }
+
+  it('renders both section titles', async () => {
+    seedActiveMunicipalityWith([], []);
+    const { getByText } = render(<ProfileScreen />);
+    await waitFor(() => {
+      expect(getByText('profile.gruposSection.title')).toBeTruthy();
+      expect(getByText('profile.peñasSection.title')).toBeTruthy();
+    });
+  });
+
+  it('routes a peña membership to the Peñas scroll and a non-peña to Grupos, each linking to /o/:id', async () => {
+    seedActiveMunicipalityWith(
+      [
+        { id: 'org-aso', name: 'Asociación Cultural', type: 'asociación', imageURL: null },
+        { id: 'org-pena', name: 'Peña El Bote', type: 'peña', imageURL: null },
+        { id: 'org-other', name: 'No soy miembro', type: 'peña', imageURL: null },
+      ],
+      [
+        { orgId: 'org-aso', role: 'admin' },
+        { orgId: 'org-pena', role: 'member' },
+      ],
+    );
+    const expoRouter = require('expo-router');
+
+    const { getByTestId, queryByTestId } = render(<ProfileScreen />);
+
+    await waitFor(() => {
+      expect(getByTestId('org-card-Asociación Cultural')).toBeTruthy();
+      expect(getByTestId('org-card-Peña El Bote')).toBeTruthy();
+    });
+    // Orgs the user does not belong to never render.
+    expect(queryByTestId('org-card-No soy miembro')).toBeNull();
+
+    fireEvent.press(getByTestId('org-card-Asociación Cultural'));
+    expect(expoRouter.router.push).toHaveBeenCalledWith('/o/org-aso');
+
+    fireEvent.press(getByTestId('org-card-Peña El Bote'));
+    expect(expoRouter.router.push).toHaveBeenCalledWith('/o/org-pena');
   });
 });
 
