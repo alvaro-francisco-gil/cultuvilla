@@ -118,7 +118,7 @@
     "village": "Regístrate para ver tu pueblo.",
     "profile": "Regístrate para crear tu perfil.",
     "event": "Regístrate para apuntarte a este evento.",
-    "org": "Regístrate para unirte a esta organización.",
+    "org": "Regístrate para unirte a este grupo.",
     "menu": "Regístrate para acceder al menú.",
     "createEvent": "Regístrate para crear un evento.",
     "createNews": "Regístrate para crear un artículo.",
@@ -233,7 +233,7 @@
       "zoomIn": "Acercar",
       "zoomOut": "Alejar"
     },
-    "organizations": "Organizaciones",
+    "organizations": "Grupos",
     "members": "Miembros",
     "admin": {
       "open": "Administrar pueblo",
@@ -241,7 +241,7 @@
       "hub": {
         "barrios": "Barrios",
         "places": "Lugares",
-        "organizations": "Organizaciones",
+        "organizations": "Grupos",
         "invites": "Invitaciones",
         "censo": "Censo",
         "community": "Comunidad"
@@ -275,8 +275,8 @@
         }
       },
       "organizations": {
-        "title": "Organizaciones",
-        "add": "Añadir organización",
+        "title": "Grupos",
+        "add": "Añadir grupo",
         "addPena": "Añadir peña",
         "empty": "Sin solicitudes pendientes",
         "approve": "Aprobar",
@@ -309,7 +309,7 @@
         "noDescription": "Añade una descripción de tu pueblo",
         "people": "Personas",
         "noPeople": "Aún no hay vecinos",
-        "organizationsEmpty": "Aún no hay organizaciones"
+        "organizationsEmpty": "Aún no hay grupos"
       }
     },
     "generateInvite": "Generar invitación",
@@ -430,8 +430,8 @@
     "publish": "Publicar",
     "createEvent": "Crear evento",
     "editEvent": "Editar evento",
-    "organizationLabel": "Organización",
-    "noOrganization": "Sin organización",
+    "organizationLabel": "Grupo",
+    "noOrganization": "Sin grupo",
     "imageLabel": "Imagen",
     "addImage": "Añadir imagen",
     "changeImage": "Cambiar imagen",

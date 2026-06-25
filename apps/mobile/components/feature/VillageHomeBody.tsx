@@ -235,7 +235,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           <StatsRow
             stats={[
               { label: t('village.admin.overview.people'), value: peopleCount },
-              { label: t('village.hub.penas'), value: penas.length },
+              { label: t('village.hub.organizations'), value: agrupaciones.length },
               { label: t('village.admin.hub.places'), value: places.length },
             ]}
           />

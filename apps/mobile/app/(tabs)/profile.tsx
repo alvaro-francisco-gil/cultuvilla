@@ -282,65 +282,81 @@ export default function ProfileScreen() {
           />
         )}
 
-        <ProfileSectionHeader title={t('profile.managedEventsSection.title')} />
-        <ManagedEventsScroll
-          events={managedEvents}
-          now={new Date()}
-          ongoingLabel={t('profile.managedEventsSection.ongoing')}
-          emptyLabel={t('profile.managedEventsSection.empty')}
-          onPressEvent={(id) => router.push(`/event/${id}` as never)}
-        />
-
-        <ProfileSectionHeader title={t('profile.createdNewsSection.title')} />
-        <CreatedNewsScroll
-          news={createdNews}
-          emptyLabel={t('profile.createdNewsSection.empty')}
-          onPressNews={(id) => router.push(`/news/${id}` as never)}
-        />
-
-        <Section
-          title={t('profile.gruposSection.title')}
-          isEmpty={grupos.length === 0}
-          emptyLabel={t('profile.gruposSection.empty')}
-        >
-          {grupos.map((o) => (
-            <EntityCard
-              key={o.id}
-              label={o.name}
-              sub={t(`profile.orgRole.${o.role}`)}
-              icon="business-outline"
-              imageUri={o.imageURL}
-              onPress={() => router.push(`/o/${o.id}` as never)}
+        {managedEvents.length > 0 ? (
+          <>
+            <ProfileSectionHeader title={t('profile.managedEventsSection.title')} />
+            <ManagedEventsScroll
+              events={managedEvents}
+              now={new Date()}
+              ongoingLabel={t('profile.managedEventsSection.ongoing')}
+              emptyLabel={t('profile.managedEventsSection.empty')}
+              onPressEvent={(id) => router.push(`/event/${id}` as never)}
             />
-          ))}
-        </Section>
+          </>
+        ) : null}
 
-        <Section
-          title={t('profile.peñasSection.title')}
-          isEmpty={penas.length === 0}
-          emptyLabel={t('profile.peñasSection.empty')}
-        >
-          {penas.map((o) => (
-            <EntityCard
-              key={o.id}
-              label={o.name}
-              sub={t(`profile.orgRole.${o.role}`)}
-              icon="people-circle-outline"
-              imageUri={o.imageURL}
-              onPress={() => router.push(`/o/${o.id}` as never)}
+        {createdNews.length > 0 ? (
+          <>
+            <ProfileSectionHeader title={t('profile.createdNewsSection.title')} />
+            <CreatedNewsScroll
+              news={createdNews}
+              emptyLabel={t('profile.createdNewsSection.empty')}
+              onPressNews={(id) => router.push(`/news/${id}` as never)}
             />
-          ))}
-        </Section>
+          </>
+        ) : null}
 
-        <ProfileSectionHeader title={t('profile.villagesEntry')} />
-        <VillagesScroll
-          villages={villages}
-          activeId={activeMunicipalityId}
-          joinLabel={t('profile.villagesSection.join')}
-          emptyLabel={t('me.villages.empty')}
-          onPressVillage={(id) => void selectVillage(id)}
-          onPressJoin={() => router.push('/discover')}
-        />
+        {grupos.length > 0 ? (
+          <Section
+            title={t('profile.gruposSection.title')}
+            isEmpty={false}
+            emptyLabel={t('profile.gruposSection.empty')}
+          >
+            {grupos.map((o) => (
+              <EntityCard
+                key={o.id}
+                label={o.name}
+                sub={t(`profile.orgRole.${o.role}`)}
+                icon="business-outline"
+                imageUri={o.imageURL}
+                onPress={() => router.push(`/o/${o.id}` as never)}
+              />
+            ))}
+          </Section>
+        ) : null}
+
+        {penas.length > 0 ? (
+          <Section
+            title={t('profile.peñasSection.title')}
+            isEmpty={false}
+            emptyLabel={t('profile.peñasSection.empty')}
+          >
+            {penas.map((o) => (
+              <EntityCard
+                key={o.id}
+                label={o.name}
+                sub={t(`profile.orgRole.${o.role}`)}
+                icon="people-circle-outline"
+                imageUri={o.imageURL}
+                onPress={() => router.push(`/o/${o.id}` as never)}
+              />
+            ))}
+          </Section>
+        ) : null}
+
+        {villages.length > 0 ? (
+          <>
+            <ProfileSectionHeader title={t('profile.villagesEntry')} />
+            <VillagesScroll
+              villages={villages}
+              activeId={activeMunicipalityId}
+              joinLabel={t('profile.villagesSection.join')}
+              emptyLabel={t('me.villages.empty')}
+              onPressVillage={(id) => void selectVillage(id)}
+              onPressJoin={() => router.push('/discover')}
+            />
+          </>
+        ) : null}
 
       </ScrollView>
     </Screen>
