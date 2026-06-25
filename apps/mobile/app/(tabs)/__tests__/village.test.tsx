@@ -79,9 +79,9 @@ jest.mock('../../../lib/i18n', () => ({
         'village.notRegistered.body': 'Este pueblo todavía no está activo en Cultuvilla.',
         'village.notRegistered.cta': '¿Quieres iniciarlo?',
         'village.notRegistered.button': 'Iniciar este pueblo',
-        'village.noOrganizer.body': 'Este pueblo todavía no tiene organizador.',
-        'village.noOrganizer.cta': 'Organizar este pueblo',
-        'village.noOrganizer.pending': 'Tu solicitud de organizador está pendiente de revisión',
+        'village.noOrganizer.body': 'Este pueblo todavía no tiene administrador.',
+        'village.noOrganizer.cta': 'Administrar este pueblo',
+        'village.noOrganizer.pending': 'Tu solicitud de administrador está pendiente de revisión',
         'village.admin.open': 'Administrar pueblo',
       };
       return map[key] ?? key;
@@ -120,7 +120,7 @@ describe('VillageTabScreen', () => {
     // neither the start CTA nor the no-organizer banner must appear.
     expect(await findByText('Sotos de Mayorga', undefined, { timeout: 5000 })).toBeTruthy();
     expect(queryByText('Iniciar este pueblo')).toBeNull();
-    expect(queryByText('Organizar este pueblo')).toBeNull();
+    expect(queryByText('Administrar este pueblo')).toBeNull();
   });
 
   it('shows the "start this village" CTA when the community is inactive', async () => {
@@ -136,7 +136,7 @@ describe('VillageTabScreen', () => {
     (getMunicipality as jest.Mock).mockResolvedValue(activeNoOrganizer);
     (getMyOrganizerRequests as jest.Mock).mockResolvedValue([]);
     const { findByText } = render(<VillageTabScreen />);
-    expect(await findByText('Organizar este pueblo')).toBeTruthy();
+    expect(await findByText('Administrar este pueblo')).toBeTruthy();
   });
 
   it('shows the pending status when an organizer request is already pending', async () => {
@@ -146,9 +146,9 @@ describe('VillageTabScreen', () => {
     ]);
     const { findByText, queryByText } = render(<VillageTabScreen />);
     expect(
-      await findByText('Tu solicitud de organizador está pendiente de revisión'),
+      await findByText('Tu solicitud de administrador está pendiente de revisión'),
     ).toBeTruthy();
-    expect(queryByText('Organizar este pueblo')).toBeNull();
+    expect(queryByText('Administrar este pueblo')).toBeNull();
   });
 
   describe('card navigation (non-admin viewer)', () => {

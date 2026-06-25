@@ -11,6 +11,11 @@ jest.mock('@cultuvilla/shared/services/userService', () => ({
   getUserProfile: (...a: unknown[]) => mockGetUserProfile(...a),
 }));
 
+const mockGetPersonByUserId = jest.fn();
+jest.mock('@cultuvilla/shared/services/personService', () => ({
+  getPersonByUserId: (...a: unknown[]) => mockGetPersonByUserId(...a),
+}));
+
 // Real Spanish catalog so we can assert on the visible strings.
 jest.mock('../../../lib/i18n', () => {
   const { getMessages } = jest.requireActual('@cultuvilla/i18n');
@@ -37,10 +42,12 @@ const profiles: Record<string, { displayName: string; photoURL: string | null }>
 beforeEach(() => {
   mockGetVillageMembers.mockReset();
   mockGetUserProfile.mockReset();
+  mockGetPersonByUserId.mockReset();
   mockGetUserProfile.mockImplementation(async (uid: string) => profiles[uid] ?? null);
+  mockGetPersonByUserId.mockResolvedValue({ photoURL: null });
 });
 
-test('renders each member with name, role badge and censo status', async () => {
+test('renders a table with column headers and a row per member', async () => {
   mockGetVillageMembers.mockResolvedValue([
     { id: 'admin1', userId: 'admin1', role: 'admin', joinedAt: new Date('2026-01-01'), profileCompletedAt: new Date('2026-01-02') },
     { id: 'user1', userId: 'user1', role: 'user', joinedAt: new Date('2026-02-01'), profileCompletedAt: null },
@@ -49,11 +56,15 @@ test('renders each member with name, role badge and censo status', async () => {
   render(<MembersList villageId="m1" />);
 
   await waitFor(() => expect(screen.getByText('Ana Admin')).toBeTruthy());
+  // Column headers.
+  expect(screen.getByText('Nombre')).toBeTruthy();
+  expect(screen.getByText('Censo')).toBeTruthy();
+  expect(screen.getByText('Fecha')).toBeTruthy();
+  // Names.
   expect(screen.getByText('Bruno Vecino')).toBeTruthy();
-  expect(screen.getByText('Administrador')).toBeTruthy();
-  expect(screen.getByText('Miembro')).toBeTruthy();
-  expect(screen.getByText('Censo completo')).toBeTruthy();
-  expect(screen.getByText('Censo pendiente')).toBeTruthy();
+  // Censo cell is a tick for the completed member and a cross for the pending one.
+  expect(screen.getByLabelText('Censo completo')).toBeTruthy();
+  expect(screen.getByLabelText('Censo pendiente')).toBeTruthy();
   expect(mockGetVillageMembers).toHaveBeenCalledWith('m1');
 });
 

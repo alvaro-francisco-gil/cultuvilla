@@ -11,15 +11,28 @@ export interface ImagePickerFieldProps {
   onPress: () => void;
   /** Accessibility label (e.g. "Añadir imagen"). */
   label: string;
-  /** Square side in px. */
+  /** Square side in px. Ignored when `width`/`height` are given. */
   size?: number;
+  /** Explicit width (e.g. `'100%'` for a full-width cover). Overrides `size`. */
+  width?: number | `${number}%`;
+  /** Explicit height in px. Overrides `size`. */
+  height?: number;
 }
 
 // Image input that reuses the dashed "add" card affordance from the pueblo tab
 // (VillageSections.AddCard): an empty state shows a `+` on a dashed rounded
 // square; once an image is picked it fills the same square. Replaces the old
 // filled-circle Avatar picker so every image input reads as the same "add" card.
-export function ImagePickerField({ uri, onPress, label, size = 120 }: ImagePickerFieldProps) {
+export function ImagePickerField({
+  uri,
+  onPress,
+  label,
+  size = 120,
+  width,
+  height,
+}: ImagePickerFieldProps) {
+  const w = width ?? size;
+  const h = height ?? size;
   return (
     <Pressable
       onPress={onPress}
@@ -27,10 +40,10 @@ export function ImagePickerField({ uri, onPress, label, size = 120 }: ImagePicke
       className={`rounded-2xl overflow-hidden border items-center justify-center ${
         uri ? 'border-subtle' : 'border-dashed border-subtle'
       }`}
-      style={{ width: size, height: size }}
+      style={{ width: w, height: h }}
     >
       {uri ? (
-        <Image source={{ uri }} style={{ width: size, height: size }} resizeMode="cover" />
+        <Image source={{ uri }} style={{ width: w, height: h }} resizeMode="cover" />
       ) : (
         <Ionicons name="add" size={44} color={ACCENT} />
       )}

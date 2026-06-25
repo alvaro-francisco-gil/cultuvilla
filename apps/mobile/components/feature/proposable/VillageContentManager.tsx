@@ -6,42 +6,53 @@ import { PlacesManager } from './PlacesManager';
 import { BarriosManager } from './BarriosManager';
 import { OrganizationsManager } from './OrganizationsManager';
 
-type Filter = 'all' | 'places' | 'barrios' | 'organizations';
+type Section = 'places' | 'barrios' | 'organizations';
 
 /**
  * Admin content moderation, mounted as the "Contenido" tab of the community
- * ("Editar pueblo") screen. A filter chip row picks which entity's manage list
- * shows — "Todos" stacks all three. The create forms live on their own screens;
- * this is purely the approve/reject/edit/delete surface.
+ * ("Editar pueblo") screen. A row of toggle chips picks which sections show —
+ * all start selected; unselect a chip to hide that section. The create forms
+ * live on their own screens; this is purely the approve/reject/edit/delete
+ * surface.
  */
 export function VillageContentManager({ villageId }: { villageId: string }) {
   const { t } = useT();
-  const [filter, setFilter] = useState<Filter>('all');
+  const [selected, setSelected] = useState<Set<Section>>(
+    () => new Set<Section>(['places', 'barrios', 'organizations']),
+  );
 
-  const FILTERS: { value: Filter; label: string }[] = [
-    { value: 'all', label: t('common.all') },
+  const SECTIONS: { value: Section; label: string }[] = [
     { value: 'places', label: t('village.admin.hub.places') },
     { value: 'barrios', label: t('village.admin.hub.barrios') },
     { value: 'organizations', label: t('village.hub.organizations') },
   ];
 
-  const show = (f: Filter) => filter === 'all' || filter === f;
+  const toggle = (s: Section) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s);
+      else next.add(s);
+      return next;
+    });
+
+  const show = (s: Section) => selected.has(s);
 
   return (
     <ScrollView contentContainerClassName="pb-10">
       <VStack gap={3} className="pt-3">
       <HStack gap={2} className="flex-wrap px-4">
-        {FILTERS.map((f) => {
-          const selected = filter === f.value;
+        {SECTIONS.map((s) => {
+          const isOn = selected.has(s.value);
           return (
             <Pressable
-              key={f.value}
-              onPress={() => setFilter(f.value)}
+              key={s.value}
+              testID={`filter-chip-${s.value}`}
+              onPress={() => toggle(s.value)}
               className={`px-3 py-1 rounded-full border ${
-                selected ? 'bg-[#f3a64b] border-[#f3a64b]' : 'border-subtle'
+                isOn ? 'bg-[#f3a64b] border-[#f3a64b]' : 'border-subtle'
               }`}
             >
-              <Text className={selected ? 'text-primary' : undefined}>{f.label}</Text>
+              <Text className={isOn ? 'text-primary' : undefined}>{s.label}</Text>
             </Pressable>
           );
         })}

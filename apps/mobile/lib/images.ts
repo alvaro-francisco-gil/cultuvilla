@@ -50,7 +50,7 @@ export async function pickImageAsBlob(
   options: PickImageOptions = {},
 ): Promise<UploadableImage | null> {
   const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    mediaTypes: ['images'],
     quality: 0.8,
     allowsEditing: options.square ?? false,
     aspect: options.square ? [1, 1] : undefined,

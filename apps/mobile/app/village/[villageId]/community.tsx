@@ -72,13 +72,14 @@ export default function CommunityScreen() {
   ];
 
   return (
-    <Screen padded={false} topInset={false}>
+    // bottomInset={false}: the Stepper's own bottom nav bar applies the safe-area inset.
+    <Screen padded={false} bottomInset={false} topInset={false}>
       <ScreenHeader accent title={t('village.edit.title')} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <Stepper steps={steps} onComplete={finish} submitLabel={t('common.done')} loading={saving} />
+        <Stepper steps={steps} onComplete={finish} submitLabel={t('common.done')} loading={saving} allStepsReachable />
       </KeyboardAvoidingView>
     </Screen>
   );

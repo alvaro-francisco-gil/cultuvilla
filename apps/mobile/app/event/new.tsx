@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   View,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import { Screen, Text, Input, Button, DateField } from '../../components/primitives';
+import { Screen, Text, Input, Button, DateField, ImagePickerField, FieldLabel } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
@@ -34,7 +32,7 @@ async function pickImage(): Promise<PickedImage | null> {
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted) return null;
   const res = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    mediaTypes: ['images'],
     quality: 0.8,
   });
   if (res.canceled || !res.assets[0]) return null;
@@ -44,11 +42,11 @@ async function pickImage(): Promise<PickedImage | null> {
   return { uri: asset.uri, blob };
 }
 
-function stepBody(children: React.ReactNode, insets: { bottom: number }) {
+function stepBody(children: React.ReactNode) {
   return (
     <ScrollView
       style={{ flex: 1 }}
-      contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: insets.bottom + 16 }}
+      contentContainerStyle={{ padding: 16, gap: 16 }}
       keyboardShouldPersistTaps="handled"
     >
       {children}
@@ -59,7 +57,6 @@ function stepBody(children: React.ReactNode, insets: { bottom: number }) {
 export default function NewEventScreen() {
   const { user, profile } = useAuth();
   const { t } = useT();
-  const insets = useSafeAreaInsets();
   // A `villageId` param (e.g. from a village's "Próximos eventos" add card)
   // targets that village; otherwise fall back to the user's active one.
   const { villageId } = useLocalSearchParams<{ villageId?: string }>();
@@ -220,25 +217,18 @@ export default function NewEventScreen() {
             multiline
             numberOfLines={5}
           />
-          <Text tone="muted">{t('event.imageLabel')}</Text>
-          {cover && (
-            <Image
-              source={{ uri: cover.uri }}
-              style={{ width: '100%', height: 160, borderRadius: 8 }}
-              accessibilityIgnoresInvertColors
-            />
-          )}
-          <Button
-            variant="secondary"
+          <FieldLabel>{t('event.imageLabel')}</FieldLabel>
+          <ImagePickerField
+            uri={cover?.uri ?? null}
+            width="100%"
+            height={160}
+            label={cover ? t('event.changeImage') : t('event.addImage')}
             onPress={async () => {
               const n = await pickImage();
               if (n) setCover(n);
             }}
-          >
-            {cover ? t('event.changeImage') : t('event.addImage')}
-          </Button>
+          />
         </>,
-        insets,
       ),
     },
     {
@@ -262,7 +252,6 @@ export default function NewEventScreen() {
           />
           <Input label={t('event.location')} value={locationText} onChangeText={setLocationText} />
         </>,
-        insets,
       ),
     },
     {
@@ -271,7 +260,7 @@ export default function NewEventScreen() {
       icon: 'options-outline',
       render: () => stepBody(
         <>
-          <Text tone="muted">{t('event.organizationLabel')}</Text>
+          <FieldLabel>{t('event.organizationLabel')}</FieldLabel>
           <Button
             variant={selectedOrgId === null ? 'primary' : 'secondary'}
             onPress={() => setSelectedOrgId(null)}
@@ -308,12 +297,11 @@ export default function NewEventScreen() {
             {t('event.telephoneRequired')}
           </Button>
         </>,
-        insets,
       ),
     },
   ];
 
-  // bottomInset={false}: the ScrollView inside each step applies insets.bottom itself.
+  // bottomInset={false}: the Stepper's own bottom nav bar applies the safe-area inset.
   return (
     <Screen padded={false} bottomInset={false} topInset={false}>
       <ScreenHeader accent title={t('event.createEvent')} />

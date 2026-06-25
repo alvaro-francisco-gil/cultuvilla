@@ -158,7 +158,8 @@ export default function PersonDetailScreen() {
     : undefined;
 
   return (
-    <Screen padded={false} topInset={false}>
+    // bottomInset={false}: the PersonForm Stepper's bottom nav bar applies the inset.
+    <Screen padded={false} bottomInset={false} topInset={false}>
       <ScreenHeader accent title={t('profile.personDetailTitle')} />
       {loading ? (
         <View className="flex-1 items-center justify-center">
