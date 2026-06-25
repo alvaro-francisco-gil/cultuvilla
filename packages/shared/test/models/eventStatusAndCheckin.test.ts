@@ -3,9 +3,9 @@ import { EventDataSchema } from '../../src/models/event/EventDataModel';
 import { RegistrationDataSchema, buildRegistrationData } from '../../src/models/event/RegistrationDataModel';
 
 const baseEvent = {
-  title: 'Fiesta', description: 'x', startDate: new Date(), endDate: null,
-  location: { type: 'text', coordinates: null, text: 'Plaza' }, imageURL: null, maxAttendees: null,
-  telephoneRequired: false, organizationId: 'o1', organizationName: 'Peña',
+  title: 'Fiesta', description: 'x', startDate: new Date(),
+  location: { coordinates: { lat: 40.4, lng: -3.7 }, displayName: 'Plaza' }, imageURL: null, maxAttendees: null,
+  telephoneRequired: false, organizerUserIds: ['u1'], organizerOrgIds: [],
   createdBy: 'u1', createdAt: new Date(), updatedAt: new Date(),
   municipalityId: 'm1', municipalityName: 'X', municipalityCoverImage: null,
   municipalityCoordinates: null,

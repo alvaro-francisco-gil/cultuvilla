@@ -34,14 +34,15 @@ service cloud.firestore {
     function orgMunicipalityId(orgId) {
       return get(/databases/$(database)/documents/organizations/$(orgId)).data.municipalityId;
     }
-    // Organizer of an event: a member of the event's owning org, a village admin
-    // of the event's municipality, or an app admin. Used to gate the attendee
-    // roster (check-in, remove, organizer-only phone contacts).
+    // Organizer of an event: a user in the event's organizerUserIds, a village
+    // admin of the event's municipality, or an app admin. Used to gate the
+    // attendee roster (check-in, remove, organizer-only phone contacts).
+    // Note: org members listed in organizerOrgIds do NOT get organizer access —
+    // orgs are display-only.
     function isEventOrganizer(eventId) {
       return isAuthenticated() && (
         isAppAdmin()
-        || (get(/databases/$(database)/documents/events/$(eventId)).data.organizationId != null
-            && isOrgMember(get(/databases/$(database)/documents/events/$(eventId)).data.organizationId))
+        || (request.auth.uid in get(/databases/$(database)/documents/events/$(eventId)).data.organizerUserIds)
         || isVillageAdmin(get(/databases/$(database)/documents/events/$(eventId)).data.municipalityId)
       );
     }
@@ -151,20 +152,20 @@ service cloud.firestore {
 
     function isValidNewsPostCreate(d) {
       return d.keys().hasOnly([
-              'municipalityId', 'authorUserId', 'authorOrgId', 'title', 'body',
+              'municipalityId', 'organizerUserIds', 'organizerOrgIds', 'title', 'body',
               'category', 'images', 'status', 'rejectionReason',
               'submittedAt', 'publishedAt', 'createdBy', 'updatedAt',
               'reactionCounts', 'commentCount',
             ])
           && d.keys().hasAll([
-              'municipalityId', 'authorUserId', 'authorOrgId', 'title', 'body',
+              'municipalityId', 'organizerUserIds', 'organizerOrgIds', 'title', 'body',
               'category', 'images', 'status', 'rejectionReason',
               'submittedAt', 'publishedAt', 'createdBy', 'updatedAt',
               'reactionCounts', 'commentCount',
             ])
           && isString(d.municipalityId)
-          && isString(d.authorUserId)
-          && isStringOrNull(d.authorOrgId)
+          && d.organizerUserIds is list
+          && d.organizerOrgIds is list
           && isString(d.title)
           && isString(d.body)
           && d.category in ['fiesta', 'tradicion', 'gastronomia', 'historia', 'otro']
@@ -359,31 +360,30 @@ service cloud.firestore {
 
     function isValidEventCreate(d) {
       return d.keys().hasOnly([
-              'title', 'description', 'startDate', 'endDate', 'location',
+              'title', 'description', 'startDate', 'location',
               'imageURL', 'maxAttendees', 'telephoneRequired',
-              'status', 'organizationId', 'organizationName', 'createdBy',
+              'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'municipalityName',
               'municipalityCoverImage', 'municipalityCoordinates',
               'confirmedCount', 'totalCount',
             ])
           && d.keys().hasAll([
-              'title', 'description', 'startDate', 'endDate', 'location',
+              'title', 'description', 'startDate', 'location',
               'imageURL', 'maxAttendees', 'telephoneRequired',
-              'status', 'organizationId', 'organizationName', 'createdBy',
+              'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'municipalityName',
               'municipalityCoverImage', 'municipalityCoordinates',
             ])
           && isString(d.title)
           && isString(d.description)
           && isTimestamp(d.startDate)
-          && isTimestampOrNull(d.endDate)
           && isMap(d.location)
           && isStringOrNull(d.imageURL)
           && isNumberOrNull(d.maxAttendees)
           && isBool(d.telephoneRequired)
           && d.status in ['published', 'cancelled', 'completed']
-          && isStringOrNull(d.organizationId)
-          && isStringOrNull(d.organizationName)
+          && d.organizerUserIds is list
+          && d.organizerOrgIds is list
           && isString(d.createdBy)
           && isTimestamp(d.createdAt)
           && isTimestamp(d.updatedAt)
@@ -404,8 +404,8 @@ service cloud.firestore {
                     || isOwner(resource.data.createdBy);
       allow create: if isVillageMember(request.resource.data.municipalityId)
                       && isValidNewsPostCreate(request.resource.data)
-                      && request.resource.data.authorUserId == request.auth.uid
                       && request.resource.data.createdBy == request.auth.uid
+                      && (request.auth.uid in request.resource.data.organizerUserIds)
                       && request.resource.data.publishedAt == null
                       && request.resource.data.reactionCounts.like == 0
                       && request.resource.data.reactionCounts.heart == 0
@@ -415,9 +415,12 @@ service cloud.firestore {
                         || (request.resource.data.status == 'approved'
                             && isTrustedNewsAuthor(request.resource.data.municipalityId))
                       );
-      allow update: if isOwner(resource.data.createdBy)
+      allow update: if (
+                        isOwner(resource.data.createdBy)
+                        || (request.auth.uid in resource.data.organizerUserIds)
+                      )
                       && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-                           'status','publishedAt','authorUserId','authorOrgId',
+                           'status','publishedAt','organizerUserIds','organizerOrgIds',
                            'municipalityId','submittedAt','createdBy',
                            'reactionCounts','commentCount'
                          ]);
@@ -637,17 +640,19 @@ service cloud.firestore {
       allow create: if isAuthenticated()
         && isValidEventCreate(request.resource.data)
         && request.resource.data.municipalityId is string
-        && (
-          request.resource.data.organizationId == null
-            ? isVillageMember(request.resource.data.municipalityId)
-            : isOrgMember(request.resource.data.organizationId)
-        );
-      allow update: if isOwner(resource.data.createdBy)
-        || (resource.data.organizationId != null && isOrgMember(resource.data.organizationId))
+        && request.resource.data.createdBy == request.auth.uid
+        && isVillageMember(request.resource.data.municipalityId)
+        && (request.auth.uid in request.resource.data.organizerUserIds);
+      allow update: if (
+           isOwner(resource.data.createdBy)
+        || (request.auth.uid in resource.data.organizerUserIds)
         || isVillageAdmin(resource.data.municipalityId)
-        || isAppAdmin();
+        || isAppAdmin()
+      )
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.municipalityId == resource.data.municipalityId;
       allow delete: if isOwner(resource.data.createdBy)
-        || (resource.data.organizationId != null && isOrgMember(resource.data.organizationId))
+        || (request.auth.uid in resource.data.organizerUserIds)
         || isVillageAdmin(resource.data.municipalityId)
         || isAppAdmin();
 

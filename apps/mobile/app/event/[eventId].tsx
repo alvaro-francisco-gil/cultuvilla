@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Linking, ScrollView, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Screen } from '../../components/primitives/Screen';
 import { VStack } from '../../components/primitives/VStack';
 import { HStack } from '../../components/primitives/HStack';
 import { Text } from '../../components/primitives/Text';
 import { Button } from '../../components/primitives/Button';
-import { LiveAvatar } from '../../components/feature/LiveAvatar';
+import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
 import { RegisterFab } from '../../components/feature/RegisterFab';
 import { useEventOrganizer } from '../../lib/events/useEventOrganizer';
 import { DetailHeroImage } from '../../components/feature/DetailHeroImage';
@@ -69,6 +69,16 @@ export default function EventDetailScreen() {
 
   const personName = person ? buildDisplayName(person) : '';
 
+  const openInMaps = () => {
+    const c = event.location?.coordinates;
+    if (!c) return;
+    void Linking.openURL(
+      `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`,
+    ).catch(() => {
+      /* best-effort */
+    });
+  };
+
   return (
     <Screen padded={false} topInset={false}>
       <StatusBar style="light" />
@@ -88,18 +98,26 @@ export default function EventDetailScreen() {
       )}
       <VStack gap={4} className="p-4">
         <Text variant="h1">{event.title}</Text>
-        {event.organizationId && event.organizationName ? (
+        <Text>{formatDate(event.startDate, 'long')}</Text>
+        {event.location ? (
           <HStack gap={2} className="items-center">
-            <LiveAvatar
-              ownerId={event.organizationId}
-              ownerType="organization"
-              size={28}
-              initials={event.organizationName.slice(0, 1).toUpperCase()}
-            />
-            <Text tone="muted">{event.organizationName}</Text>
+            <Text tone="muted">{event.location.displayName}</Text>
+            <Button variant="ghost" onPress={openInMaps}>
+              {t('event.locationPin')}
+            </Button>
           </HStack>
         ) : null}
-        <Text>{formatDate(event.startDate, 'long')}</Text>
+        {(event.organizerUserIds?.length > 0 || event.organizerOrgIds?.length > 0) && (
+          <VStack gap={2}>
+            <Text tone="muted">{t('event.organizersLabel')}</Text>
+            {event.organizerOrgIds?.map((id) => (
+              <LiveOwnerChip key={id} ownerType="organization" ownerId={id} />
+            ))}
+            {event.organizerUserIds?.map((id) => (
+              <LiveOwnerChip key={id} ownerType="user" ownerId={id} />
+            ))}
+          </VStack>
+        )}
         {event.description ? <Text>{event.description}</Text> : null}
 
         {!user && (

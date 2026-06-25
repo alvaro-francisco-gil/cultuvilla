@@ -9,13 +9,13 @@ import { resolve } from 'node:path';
 let env: RulesTestEnvironment;
 const M = 'm1';
 
-// A full, schema-valid org-less event payload (mirrors isValidEventCreate keys).
+// A full, schema-valid event payload (mirrors isValidEventCreate keys).
 function orglessEvent(createdBy: string) {
   return {
     title: 'Fiesta', description: 'desc', startDate: new Date('2026-07-01'),
-    endDate: null, location: { type: 'text', text: null },
+    location: { coordinates: { lat: 40.0, lng: -3.0 }, displayName: 'Plaza Mayor' },
     imageURL: null, maxAttendees: null, telephoneRequired: false,
-    status: 'published', organizationId: null, organizationName: null,
+    status: 'published', organizerUserIds: [createdBy], organizerOrgIds: [],
     createdBy, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
     municipalityId: M, municipalityName: 'Villa',
     municipalityCoverImage: null, municipalityCoordinates: null,
@@ -27,7 +27,7 @@ async function seed() {
     const db = ctx.firestore();
     await setDoc(doc(db, `municipalities/${M}/members/member`), { role: 'member', joinedAt: new Date() });
     await setDoc(doc(db, `municipalities/${M}/members/villageboss`), { role: 'admin', joinedAt: new Date() });
-    // Pre-existing org-less event owned by `member`, for update/delete checks.
+    // Pre-existing event owned by `member`, for update/delete checks.
     await setDoc(doc(db, `events/owned`), { ...orglessEvent('member'), createdAt: new Date(), updatedAt: new Date(), startDate: new Date('2026-07-01') });
   });
 }
@@ -53,9 +53,9 @@ describe('firestore.rules — org-less events', () => {
     await assertFails(setDoc(doc(s, `events/new2`), orglessEvent('stranger')));
   });
 
-  it('a village member who is not in the org cannot create an org event', async () => {
+  it('rejected: event with unknown legacy organizationId field (field not in schema)', async () => {
     const m = env.authenticatedContext('member').firestore();
-    await assertFails(setDoc(doc(m, `events/orgnew`), { ...orglessEvent('member'), organizationId: 'org1', organizationName: 'Peña' }));
+    await assertFails(setDoc(doc(m, `events/orgnew`), { ...orglessEvent('member'), organizationId: 'org1' }));
   });
 
   it('the creator can update their own org-less event', async () => {

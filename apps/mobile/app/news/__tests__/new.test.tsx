@@ -31,6 +31,14 @@ jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadNewsImage: jest.fn(),
 }));
 jest.mock('../../../lib/images', () => ({ uriToBlob: jest.fn() }));
+jest.mock('../../../components/feature/OrganizerPicker', () => ({
+  OrganizerPicker: ({ municipalityId, lockedUserId }: { municipalityId: string; lockedUserId?: string }) => {
+    const { Text } = jest.requireActual('react-native');
+    return (
+      <Text testID="organizer-picker">{`OrganizerPicker:${municipalityId}:${lockedUserId ?? ''}`}</Text>
+    );
+  },
+}));
 
 describe('NewNewsScreen', () => {
   // Regression: the picker read the asset with an inline `fetch(uri).blob()`,
@@ -47,5 +55,11 @@ describe('NewNewsScreen', () => {
     await waitFor(() => expect(uriToBlob).toHaveBeenCalledWith('file:///tmp/pic.jpg'));
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(ImagePicker.launchImageLibraryAsync).toHaveBeenCalled();
+  });
+
+  it('renders OrganizerPicker with locked creator and correct municipalityId', () => {
+    const { getByTestId } = render(<NewNewsScreen />);
+    const picker = getByTestId('organizer-picker');
+    expect(picker.props.children).toBe('OrganizerPicker:m-1:uid-1');
   });
 });

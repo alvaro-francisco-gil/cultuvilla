@@ -44,8 +44,9 @@ import { buildNewsReportData } from '../models/news/NewsReportDataModel';
 // ────── input types ──────
 export interface CreateNewsPostInput {
   municipalityId: string;
-  authorUserId: string;
-  authorOrgId?: string | null;
+  createdBy: string;
+  organizerUserIds: string[];
+  organizerOrgIds?: string[];
   title: string;
   body: string;
   category: NewsPostCategory;
@@ -59,7 +60,8 @@ export type UpdateNewsPostInput = Partial<
 const FORBIDDEN_UPDATE_KEYS = new Set<string>([
   'status',
   'publishedAt',
-  'authorUserId',
+  'organizerUserIds',
+  'organizerOrgIds',
   'municipalityId',
   'submittedAt',
   'createdBy',
@@ -78,14 +80,14 @@ export async function createNewsPost(input: CreateNewsPostInput): Promise<string
     ref,
     buildNewsPostData({
       municipalityId: input.municipalityId,
-      authorUserId: input.authorUserId,
-      authorOrgId: input.authorOrgId ?? null,
+      createdBy: input.createdBy,
+      organizerUserIds: input.organizerUserIds,
+      organizerOrgIds: input.organizerOrgIds ?? [],
       title: input.title,
       body: input.body,
       category: input.category,
       images: input.images ?? [],
       submittedAt: now,
-      createdBy: input.authorUserId,
       updatedAt: now,
     }),
   );
@@ -118,21 +120,20 @@ export async function getNewsPostsByMunicipality(
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-export async function getNewsCountByCreator(userId: string): Promise<number> {
-  const q = query(newsCollection(getDb()), where('createdBy', '==', userId));
+export async function getNewsCountByOrganizer(userId: string): Promise<number> {
+  const q = query(newsCollection(getDb()), where('organizerUserIds', 'array-contains', userId));
   const snap = await getCountFromServer(q);
   return snap.data().count;
 }
 
-// All posts authored by a user, any status (incl. pending/rejected) — for the
-// profile "Artículos creados" scroll. Sorted by submittedAt desc in memory so
-// the createdBy equality query needs no composite index; a single user's
-// article count is small.
-export async function getNewsPostsByCreator(
+// All posts where the user is a named organizer, any status (incl. pending/rejected)
+// — for the profile "Artículos creados" scroll. Sorted by submittedAt desc in memory;
+// a single user's article count is small.
+export async function getNewsPostsByOrganizer(
   userId: string,
   options: { limit?: number } = {},
 ): Promise<(NewsPostData & { id: string })[]> {
-  const q = query(newsCollection(getDb()), where('createdBy', '==', userId));
+  const q = query(newsCollection(getDb()), where('organizerUserIds', 'array-contains', userId));
   const snap = await getDocs(q);
   const posts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   posts.sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());

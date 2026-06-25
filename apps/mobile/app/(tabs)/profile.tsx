@@ -20,8 +20,8 @@ import {
   updatePerson,
 } from '@cultuvilla/shared/services/personService';
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
-import { getEventsByCreator } from '@cultuvilla/shared/services/eventService';
-import { getNewsPostsByCreator } from '@cultuvilla/shared/services/newsService';
+import { getEventsByOrganizer } from '@cultuvilla/shared/services/eventService';
+import { getNewsPostsByOrganizer } from '@cultuvilla/shared/services/newsService';
 import { getPersonViewLink } from '@cultuvilla/shared/services/deepLinkService';
 import { buildDisplayName } from '@cultuvilla/shared/models/person';
 import {
@@ -82,11 +82,11 @@ export default function ProfileScreen() {
       setAllPersonas(mine);
 
       const [myEvents, news] = await Promise.all([
-        withFirestoreErrorLog('profile:getEventsByCreator', () =>
-          getEventsByCreator(user.uid),
+        withFirestoreErrorLog('profile:getEventsByOrganizer', () =>
+          getEventsByOrganizer(user.uid),
         ),
-        withFirestoreErrorLog('profile:getNewsPostsByCreator', () =>
-          getNewsPostsByCreator(user.uid),
+        withFirestoreErrorLog('profile:getNewsPostsByOrganizer', () =>
+          getNewsPostsByOrganizer(user.uid),
         ),
       ]);
       setManagedEvents(myEvents);

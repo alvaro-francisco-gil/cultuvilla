@@ -55,29 +55,11 @@ async function seedMember(municipalityId: string, userId: string) {
   });
 }
 
-async function seedOrgMember(orgId: string, userId: string, municipalityId: string) {
-  await env.withSecurityRulesDisabled(async (ctx) => {
-    await setDoc(doc(ctx.firestore(), `organizations/${orgId}`), {
-      name: 'Test org',
-      description: null,
-      type: 'asociación',
-      status: 'approved',
-      municipalityId,
-      requestedBy: userId,
-      approvedBy: null,
-      createdAt: new Date(),
-      decidedAt: null,
-    });
-    await setDoc(doc(ctx.firestore(), `organizations/${orgId}/members/${userId}`), {
-      joinedAt: new Date(),
-    });
-  });
-}
 
 const validNewsPayload = {
   municipalityId: 'm1',
-  authorUserId: 'alice',
-  authorOrgId: null,
+  organizerUserIds: ['alice'],
+  organizerOrgIds: [],
   title: 'T',
   body: 'B',
   category: 'otro' as const,
@@ -364,14 +346,13 @@ describe('shape enforcement — /events/{eventId}', () => {
     title: 'Fiesta',
     description: 'Annual',
     startDate: new Date(),
-    endDate: null,
-    location: { type: 'text', coordinates: null, text: 'Plaza' },
+    location: { coordinates: { lat: 40, lng: -3 }, displayName: 'Plaza Mayor' },
     imageURL: null,
     maxAttendees: null,
     telephoneRequired: false,
     status: 'published' as const,
-    organizationId: 'o1',
-    organizationName: 'Peña X',
+    organizerUserIds: ['alice'],
+    organizerOrgIds: [],
     createdBy: 'alice',
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -382,13 +363,13 @@ describe('shape enforcement — /events/{eventId}', () => {
   };
 
   it('accepts a valid full-shape payload', async () => {
-    await seedOrgMember('o1', 'alice', 'm1');
+    await seedMember('m1', 'alice');
     const alice = env.authenticatedContext('alice').firestore();
     await assertSucceeds(setDoc(doc(alice, 'events/e1'), validEvent));
   });
 
   it('rejects an unknown field', async () => {
-    await seedOrgMember('o1', 'alice', 'm1');
+    await seedMember('m1', 'alice');
     const alice = env.authenticatedContext('alice').firestore();
     await assertFails(
       setDoc(doc(alice, 'events/e1'), { ...validEvent, bonus: 'x' }),
@@ -396,7 +377,7 @@ describe('shape enforcement — /events/{eventId}', () => {
   });
 
   it('rejects unknown status enum', async () => {
-    await seedOrgMember('o1', 'alice', 'm1');
+    await seedMember('m1', 'alice');
     const alice = env.authenticatedContext('alice').firestore();
     await assertFails(
       setDoc(doc(alice, 'events/e1'), { ...validEvent, status: 'archived' }),
@@ -404,7 +385,7 @@ describe('shape enforcement — /events/{eventId}', () => {
   });
 
   it('rejects wrong type on telephoneRequired', async () => {
-    await seedOrgMember('o1', 'alice', 'm1');
+    await seedMember('m1', 'alice');
     const alice = env.authenticatedContext('alice').firestore();
     await assertFails(
       setDoc(doc(alice, 'events/e1'), { ...validEvent, telephoneRequired: 'yes' }),

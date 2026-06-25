@@ -57,7 +57,7 @@ export async function getEventsByOrganization(
 ): Promise<(EventData & { id: string })[]> {
   const q = query(
     eventsCollection(getDb()),
-    where('organizationId', '==', organizationId),
+    where('organizerOrgIds', 'array-contains', organizationId),
     orderBy('startDate', 'asc'),
   );
   const snap = await getDocs(q);
@@ -71,14 +71,13 @@ export async function createEvent(input: EventDataInput): Promise<string> {
     title: input.title,
     description: input.description,
     startDate: input.startDate,
-    endDate: input.endDate ?? null,
     location: input.location,
     imageURL: input.imageURL ?? null,
     maxAttendees: input.maxAttendees ?? null,
     telephoneRequired: input.telephoneRequired ?? false,
     status: input.status ?? 'published',
-    organizationId: input.organizationId,
-    organizationName: input.organizationName,
+    organizerUserIds: input.organizerUserIds,
+    organizerOrgIds: input.organizerOrgIds,
     createdBy: input.createdBy,
     createdAt: now,
     updatedAt: now,
@@ -102,11 +101,6 @@ export async function updateEvent(
   if (data.startDate instanceof Date) {
     updates['startDate'] = Timestamp.fromDate(data.startDate);
   }
-  if (data.endDate instanceof Date) {
-    updates['endDate'] = Timestamp.fromDate(data.endDate);
-  } else if (data.endDate === null) {
-    updates['endDate'] = null;
-  }
   await updateDoc(doc(getDb(), 'events', eventId), updates);
 }
 
@@ -121,20 +115,20 @@ export async function deleteEvent(eventId: string): Promise<void> {
   await deleteDoc(eventDoc(getDb(), eventId));
 }
 
-export async function getEventsByCreator(
+export async function getEventsByOrganizer(
   userId: string,
 ): Promise<(EventData & { id: string })[]> {
   const q = query(
     eventsCollection(getDb()),
-    where('createdBy', '==', userId),
+    where('organizerUserIds', 'array-contains', userId),
     orderBy('createdAt', 'desc'),
   );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-export async function getEventCountByCreator(userId: string): Promise<number> {
-  const q = query(eventsCollection(getDb()), where('createdBy', '==', userId));
+export async function getEventCountByOrganizer(userId: string): Promise<number> {
+  const q = query(eventsCollection(getDb()), where('organizerUserIds', 'array-contains', userId));
   const snap = await getCountFromServer(q);
   return snap.data().count;
 }

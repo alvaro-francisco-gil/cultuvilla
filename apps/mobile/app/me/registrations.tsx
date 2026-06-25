@@ -69,7 +69,7 @@ export default function MyRegistrationsScreen() {
                 id: item.id,
                 title: item.title,
                 startDate: item.startDate,
-                organizationName: item.organizationName,
+                locationName: item.location?.displayName ?? null,
               }}
               onPress={(id) => router.push(`/event/${id}`)}
             />

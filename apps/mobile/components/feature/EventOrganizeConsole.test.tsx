@@ -20,7 +20,7 @@ jest.mock('../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string)
 
 const event = {
   id: 'e1', title: 'Fiesta', description: 'd', maxAttendees: 10, status: 'published',
-  organizationId: 'o1', municipalityId: 'm1',
+  organizerUserIds: ['uid-1'], organizerOrgIds: [], municipalityId: 'm1',
 } as never;
 
 const mockGet = getEventRegistrations as jest.Mock;

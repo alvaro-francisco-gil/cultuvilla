@@ -7,12 +7,13 @@ import {
 } from '../../../src/models/news/NewsPostDataModel';
 
 describe('NewsPostDataSchema', () => {
-  it('accepts a fully populated post', () => {
+  it('accepts a post with organizerUserIds + organizerOrgIds', () => {
     const now = new Date();
     const parsed = NewsPostDataSchema.parse({
       municipalityId: 'm1',
-      authorUserId: 'u1',
-      authorOrgId: null,
+      organizerUserIds: ['u'],
+      organizerOrgIds: [],
+      createdBy: 'u',
       title: 'Fiesta',
       body: 'Detalles',
       category: 'fiesta',
@@ -21,13 +22,18 @@ describe('NewsPostDataSchema', () => {
       rejectionReason: null,
       submittedAt: now,
       publishedAt: null,
-      createdBy: 'u1',
       updatedAt: now,
       reactionCounts: { like: 0, heart: 0 },
       commentCount: 0,
     });
+    expect(parsed.organizerUserIds).toEqual(['u']);
+    expect(parsed.organizerOrgIds).toEqual([]);
+    expect(parsed.createdBy).toBe('u');
     expect(parsed.title).toBe('Fiesta');
     expect(parsed.images).toHaveLength(1);
+    // authorUserId and authorOrgId must not be in the parsed shape
+    expect('authorUserId' in parsed).toBe(false);
+    expect('authorOrgId' in parsed).toBe(false);
   });
 
   it('rejects when a required field is missing', () => {
@@ -35,8 +41,9 @@ describe('NewsPostDataSchema', () => {
     expect(() =>
       NewsPostDataSchema.parse({
         // municipalityId missing
-        authorUserId: 'u1',
-        authorOrgId: null,
+        organizerUserIds: ['u1'],
+        organizerOrgIds: [],
+        createdBy: 'u1',
         title: 'Fiesta',
         body: 'Detalles',
         category: 'fiesta',
@@ -45,7 +52,6 @@ describe('NewsPostDataSchema', () => {
         rejectionReason: null,
         submittedAt: now,
         publishedAt: null,
-        createdBy: 'u1',
         updatedAt: now,
         reactionCounts: { like: 0, heart: 0 },
         commentCount: 0,
@@ -58,8 +64,9 @@ describe('NewsPostDataSchema', () => {
     expect(() =>
       NewsPostDataSchema.parse({
         municipalityId: 'm1',
-        authorUserId: 'u1',
-        authorOrgId: null,
+        organizerUserIds: ['u1'],
+        organizerOrgIds: [],
+        createdBy: 'u1',
         title: 'Fiesta',
         body: 'Detalles',
         category: 'not-a-category',
@@ -68,7 +75,6 @@ describe('NewsPostDataSchema', () => {
         rejectionReason: null,
         submittedAt: now,
         publishedAt: null,
-        createdBy: 'u1',
         updatedAt: now,
         reactionCounts: { like: 0, heart: 0 },
         commentCount: 0,
@@ -82,21 +88,23 @@ describe('buildNewsPostData', () => {
     const now = new Date();
     const p = buildNewsPostData({
       municipalityId: 'm1',
-      authorUserId: 'u1',
+      organizerUserIds: ['u1'],
+      organizerOrgIds: [],
+      createdBy: 'u1',
       title: 'Fiesta',
       body: 'Detalles',
       category: 'fiesta',
       submittedAt: now,
-      createdBy: 'u1',
       updatedAt: now,
     });
     expect(p.status).toBe('pending');
     expect(p.publishedAt).toBeNull();
-    expect(p.authorOrgId).toBeNull();
     expect(p.rejectionReason).toBeNull();
     expect(p.images).toEqual([]);
     expect(p.reactionCounts).toEqual({ like: 0, heart: 0 });
     expect(p.commentCount).toBe(0);
+    expect(p.organizerUserIds).toEqual(['u1']);
+    expect(p.organizerOrgIds).toEqual([]);
   });
 
   it('exposes the canonical category list', () => {

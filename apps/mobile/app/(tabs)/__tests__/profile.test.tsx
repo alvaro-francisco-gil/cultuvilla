@@ -32,10 +32,10 @@ jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadPersonImage: jest.fn().mockResolvedValue('https://photo.test/new.jpg'),
 }));
 jest.mock('@cultuvilla/shared/services/eventService', () => ({
-  getEventsByCreator: jest.fn().mockResolvedValue([]),
+  getEventsByOrganizer: jest.fn().mockResolvedValue([]),
 }));
 jest.mock('@cultuvilla/shared/services/newsService', () => ({
-  getNewsPostsByCreator: jest.fn().mockResolvedValue([]),
+  getNewsPostsByOrganizer: jest.fn().mockResolvedValue([]),
 }));
 jest.mock('@cultuvilla/shared/services/registrationService', () => ({
   getUserRegistrationsAcrossEvents: jest.fn().mockResolvedValue([]),
@@ -155,7 +155,7 @@ describe('ProfileScreen — eventos gestionados', () => {
     render(<ProfileScreen />);
 
     await waitFor(() => {
-      expect(eventService.getEventsByCreator).toHaveBeenCalledWith('uid-1');
+      expect(eventService.getEventsByOrganizer).toHaveBeenCalledWith('uid-1');
     });
   });
 });

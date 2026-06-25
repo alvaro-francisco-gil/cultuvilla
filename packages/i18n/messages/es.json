@@ -410,7 +410,6 @@
     "title": "Título",
     "description": "Descripción",
     "startDate": "Fecha de inicio",
-    "endDate": "Fecha de fin",
     "location": "Ubicación",
     "maxAttendees": "Máximo de asistentes",
     "unlimited": "Sin límite",
@@ -430,14 +429,23 @@
     "publish": "Publicar",
     "createEvent": "Crear evento",
     "editEvent": "Editar evento",
-    "organizationLabel": "Grupo",
-    "noOrganization": "Sin grupo",
     "imageLabel": "Imagen",
     "addImage": "Añadir imagen",
     "changeImage": "Cambiar imagen",
     "stepBasics": "Lo básico",
     "stepWhen": "Cuándo y dónde",
     "stepDetails": "Detalles",
+    "locationName": "Lugar",
+    "locationPin": "Ver en el mapa",
+    "organizersLabel": "Organizadores",
+    "addOrganizerUser": "Añadir organizador",
+    "addOrganizerOrg": "Añadir organización organizadora",
+    "organizer": {
+      "addUser": "Añadir persona",
+      "selectUsers": "Seleccionar personas",
+      "locked": "Organizador",
+      "confirm": "Confirmar"
+    },
     "eligibility": {
       "body": "Para crear un evento necesitas pertenecer a un grupo de este pueblo.",
       "requestOrganizer": "Solicitar administrar este pueblo",
@@ -691,7 +699,10 @@
       "submitTrusted": "Publicar",
       "postAsOrg": "Publicar como…",
       "successPending": "Tu artículo se ha enviado y está pendiente de aprobación.",
-      "needsMembership": "Únete a este pueblo para publicar artículos."
+      "needsMembership": "Únete a este pueblo para publicar artículos.",
+      "organizersLabel": "Organizadores",
+      "addOrganizerUser": "Añadir organizador",
+      "addOrganizerOrg": "Añadir organización organizadora"
     },
     "status": {
       "pending": "Pendiente de aprobación",
