@@ -6,9 +6,9 @@ jest.mock('../../../../lib/i18n', () => ({
 }));
 
 const ROWS: VillageRow[] = [
-  { municipalityId: 'm1', name: 'Pueblo Uno', comunidadAutonoma: 'Andalucía', escudoThumbUrl: null, role: 'user' },
-  { municipalityId: 'm2', name: 'Pueblo Dos', comunidadAutonoma: 'Aragón', escudoThumbUrl: null, role: 'admin' },
-  { municipalityId: 'm3', name: 'Pueblo Tres', comunidadAutonoma: 'Galicia', escudoThumbUrl: null, role: 'user' },
+  { municipalityId: 'm1', name: 'Pueblo Uno', comunidadAutonoma: 'Andalucía', escudoUrl: null, manualEscudo: false, role: 'user' },
+  { municipalityId: 'm2', name: 'Pueblo Dos', comunidadAutonoma: 'Aragón', escudoUrl: null, manualEscudo: false, role: 'admin' },
+  { municipalityId: 'm3', name: 'Pueblo Tres', comunidadAutonoma: 'Galicia', escudoUrl: null, manualEscudo: false, role: 'user' },
 ];
 
 function setup(overrides: Partial<React.ComponentProps<typeof VillagesScroll>> = {}) {

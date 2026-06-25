@@ -6,7 +6,9 @@ export interface VillageRow {
   municipalityId: string;
   name: string;
   comunidadAutonoma: string;
-  escudoThumbUrl: string | null;
+  escudoUrl: string | null;
+  /** True when the village admin uploaded their own escudo — keep it full-bleed. */
+  manualEscudo: boolean;
   role: 'admin' | 'user';
 }
 
@@ -50,7 +52,8 @@ export function VillagesScroll({
           label={item.name}
           sub={item.comunidadAutonoma}
           icon="map-outline"
-          imageUri={item.escudoThumbUrl}
+          imageUri={item.escudoUrl}
+          crest={!item.manualEscudo}
           accent={item.municipalityId === activeId}
           onPress={() => onPressVillage(item.municipalityId)}
         />

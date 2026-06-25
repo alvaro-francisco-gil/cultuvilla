@@ -35,7 +35,7 @@ import { getOrgMembershipsByUserInMunicipality } from '@cultuvilla/shared/servic
 import { getUserMemberships } from '@cultuvilla/shared/services/villageMemberService';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { setActiveMunicipality } from '@cultuvilla/shared/services/userService';
-import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
+import { escudoFullUrl, hasManualEscudo } from '@cultuvilla/shared/models/municipality';
 import { VillagesScroll, type VillageRow } from '../../components/feature/profile/VillagesScroll';
 import {
   CreatedNewsScroll,
@@ -105,7 +105,8 @@ export default function ProfileScreen() {
             municipalityId: m.municipalityId,
             name: muni?.name ?? m.municipalityId,
             comunidadAutonoma: muni?.comunidadAutonoma ?? '',
-            escudoThumbUrl: muni ? escudoThumbDisplayUrl(muni) : null,
+            escudoUrl: muni ? escudoFullUrl(muni) : null,
+            manualEscudo: muni ? hasManualEscudo(muni) : false,
             role: m.role,
           } satisfies VillageRow;
         }),

@@ -13,6 +13,7 @@ import { useT } from '../../lib/i18n';
 
 export const ACCENT = '#bb5d3a';
 const PLACEHOLDER_BG = '#dcab93'; // palette.peach — keeps the white scrim text legible over the fallback
+const CREST_BG = '#f9f0e8'; // palette.cream — matches the screen's bg-surface so the crest card reads as an outline
 const CARD_W = 175;
 const CARD_H = 175; // square — same width and height
 
@@ -84,6 +85,7 @@ function BigCard({
   fallback,
   secondary,
   accent,
+  crest,
   onPress,
 }: {
   label: string;
@@ -94,9 +96,60 @@ function BigCard({
   secondary?: string;
   /** Tint the border with ACCENT (used for the request badge). */
   accent?: boolean;
+  /**
+   * Crest treatment: the image (a village escudo) is small + `contain`ed and
+   * centred on the cream screen background, with an ACCENT outline as the only
+   * colour — so a low-res escudo no longer pixelates from being stretched
+   * full-bleed. The label sits as plain dark text below it instead of over a
+   * dark photo scrim.
+   */
+  crest?: boolean;
   onPress?: () => void;
 }) {
-  const body = (
+  const body = crest ? (
+    <View
+      className="rounded-2xl overflow-hidden"
+      style={{
+        width: CARD_W,
+        height: CARD_H,
+        backgroundColor: CREST_BG,
+        borderWidth: accent ? 2 : 1,
+        borderColor: ACCENT,
+      }}
+    >
+      <View
+        style={{
+          flex: 1,
+          alignSelf: 'stretch',
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: 14,
+          paddingTop: 14,
+          paddingBottom: 4,
+        }}
+      >
+        {imageUri ? (
+          <Image
+            source={{ uri: imageUri }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="contain"
+          />
+        ) : (
+          fallback
+        )}
+      </View>
+      <View style={{ alignSelf: 'stretch', paddingHorizontal: 12, paddingBottom: 12 }}>
+        <Text variant="body" className="font-medium" numberOfLines={2}>
+          {label}
+        </Text>
+        {secondary ? (
+          <Text variant="bodySm" tone="muted" numberOfLines={1} style={{ marginTop: 2 }}>
+            {secondary}
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  ) : (
     <View
       className="rounded-2xl overflow-hidden"
       style={{
@@ -190,6 +243,7 @@ export function EntityCard({
   icon,
   imageUri,
   accent,
+  crest,
   onPress,
 }: {
   label: string;
@@ -197,6 +251,8 @@ export function EntityCard({
   icon: keyof typeof Ionicons.glyphMap;
   imageUri?: string | null;
   accent?: boolean;
+  /** Render the image as a small, centred escudo on the cream bg (villages). */
+  crest?: boolean;
   onPress?: () => void;
 }) {
   return (
@@ -206,6 +262,7 @@ export function EntityCard({
       fallback={<Ionicons name={icon} size={44} color={ACCENT} />}
       secondary={sub}
       accent={accent}
+      crest={crest}
       onPress={onPress}
     />
   );
