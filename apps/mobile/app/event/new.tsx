@@ -7,13 +7,13 @@ import {
   View,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 import { Screen, Text, Input, Button, DateField, ImagePickerField, FieldLabel } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 import { useCallable } from '../../lib/useCallable';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
+import { pickImageAsBlob } from '../../lib/images';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import {
   getOrganizationsByMunicipality,
@@ -21,26 +21,12 @@ import {
 import { getOrgMembershipsByUserInMunicipality } from '@cultuvilla/shared/services/orgMemberService';
 import { createEvent, updateEvent } from '@cultuvilla/shared/services/eventService';
 import { uploadEventImage } from '@cultuvilla/shared/services/imageService';
+import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 import { buildLocationData } from '@cultuvilla/shared/models/core/LocationDataModel';
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 import { Stepper, type StepConfig } from '../../components/feature/Stepper';
 
 type MemberOrg = { id: string; name: string };
-type PickedImage = { uri: string; blob: Blob };
-
-async function pickImage(): Promise<PickedImage | null> {
-  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!perm.granted) return null;
-  const res = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ['images'],
-    quality: 0.8,
-  });
-  if (res.canceled || !res.assets[0]) return null;
-  const asset = res.assets[0];
-  const response = await fetch(asset.uri);
-  const blob = await response.blob();
-  return { uri: asset.uri, blob };
-}
 
 function stepBody(children: React.ReactNode) {
   return (
@@ -77,7 +63,7 @@ export default function NewEventScreen() {
   const [locationText, setLocationText] = useState('');
   const [maxAttendees, setMaxAttendees] = useState('');
   const [telephoneRequired, setTelephoneRequired] = useState(false);
-  const [cover, setCover] = useState<PickedImage | null>(null);
+  const [cover, setCover] = useState<UploadableImage | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -147,7 +133,7 @@ export default function NewEventScreen() {
         const url = await uploadEventImage(municipalityId, eventId, {
           blob: cover.blob,
           filename: 'cover.jpg',
-          contentType: cover.blob.type || 'image/jpeg',
+          contentType: cover.contentType,
         });
         await updateEvent(eventId, { imageURL: url });
       }
@@ -219,12 +205,12 @@ export default function NewEventScreen() {
           />
           <FieldLabel>{t('event.imageLabel')}</FieldLabel>
           <ImagePickerField
-            uri={cover?.uri ?? null}
+            uri={cover?.previewUri ?? null}
             width="100%"
             height={160}
             label={cover ? t('event.changeImage') : t('event.addImage')}
             onPress={async () => {
-              const n = await pickImage();
+              const n = await pickImageAsBlob();
               if (n) setCover(n);
             }}
           />

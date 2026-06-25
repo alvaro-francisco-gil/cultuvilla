@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Screen, VStack, Text, Input, Button } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { uriToBlob } from '../../lib/images';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 import { useCallable } from '../../lib/useCallable';
@@ -29,8 +30,7 @@ async function pickImage(): Promise<PickedImage | null> {
   });
   if (res.canceled || !res.assets[0]) return null;
   const asset = res.assets[0];
-  const response = await fetch(asset.uri);
-  const blob = await response.blob();
+  const blob = await uriToBlob(asset.uri);
   return { uri: asset.uri, blob, width: asset.width, height: asset.height };
 }
 

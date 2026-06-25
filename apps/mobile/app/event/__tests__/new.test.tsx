@@ -1,6 +1,7 @@
 // apps/mobile/app/event/__tests__/new.test.tsx
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import NewEventScreen from '../new';
+import { pickImageAsBlob } from '../../../lib/images';
 
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../lib/auth/useAuth', () => ({
@@ -22,6 +23,7 @@ jest.mock('expo-image-picker', () => ({
   launchImageLibraryAsync: jest.fn().mockResolvedValue({ canceled: true }),
   MediaTypeOptions: { Images: 'Images' },
 }));
+jest.mock('../../../lib/images', () => ({ pickImageAsBlob: jest.fn() }));
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getMunicipality: jest.fn().mockResolvedValue({ name: 'Pueblo', coordinates: null }),
 }));
@@ -52,5 +54,25 @@ describe('NewEventScreen stepper', () => {
     fireEvent.changeText(getByLabelText('event.description'), 'Desc');
     fireEvent.press(getByText('common.stepper.next'));
     expect(getByTestId('startDate')).toBeTruthy();
+  });
+
+  // Regression: the cover picker used an inline `fetch(uri).blob()`, but Expo
+  // SDK 56's winter `fetch` builds the Blob from an ArrayBuffer, which RN's
+  // BlobManager rejects ("Creating blobs from 'ArrayBuffer' ... are not
+  // supported"). Picking a cover MUST go through lib/images.pickImageAsBlob,
+  // which reads the URI via XMLHttpRequest (see lib/__tests__/images.test.ts).
+  it('picks the cover image via the shared pickImageAsBlob helper, not the global fetch', async () => {
+    (pickImageAsBlob as jest.Mock).mockResolvedValue({
+      blob: { type: 'image/jpeg' },
+      filename: 'pic.jpg',
+      contentType: 'image/jpeg',
+      previewUri: 'file:///tmp/pic.jpg',
+    });
+    const { getByLabelText } = render(<NewEventScreen />);
+    await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
+
+    fireEvent.press(getByLabelText('event.addImage'));
+
+    await waitFor(() => expect(pickImageAsBlob).toHaveBeenCalled());
   });
 });

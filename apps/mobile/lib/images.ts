@@ -12,7 +12,7 @@ import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
  * XHR with `responseType: 'blob'` yields a native-backed Blob that uploadBytes
  * accepts. On web the real browser `fetch().blob()` works, so we keep it there.
  */
-async function uriToBlob(uri: string): Promise<Blob> {
+export async function uriToBlob(uri: string): Promise<Blob> {
   if (Platform.OS === 'web') {
     const res = await fetch(uri);
     return res.blob();
