@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Modal, Pressable as RNPressable, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../primitives/Button';
 import { Input } from '../primitives/Input';
 import { Text } from '../primitives/Text';
@@ -49,6 +50,7 @@ export function AttendeeSheet({
   onConfirm,
 }: AttendeeSheetProps) {
   const { t } = useT();
+  const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [phone, setPhone] = useState('');
 
@@ -115,10 +117,13 @@ export function AttendeeSheet({
         style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}
         className="justify-end"
       >
-        {/* Inner catcher: taps inside the card must not dismiss. */}
+        {/* Inner catcher: taps inside the card must not dismiss. Pad the bottom
+            by the safe-area inset so the confirm button clears the home
+            indicator / nav bar. */}
         <RNPressable
           onPress={() => {}}
           className="rounded-t-2xl bg-surface-elevated p-5 border-t border-subtle"
+          style={{ paddingBottom: insets.bottom + 20 }}
         >
           <VStack gap={3}>
             <Text variant="h3">{t('event.register.attendeesTitle')}</Text>

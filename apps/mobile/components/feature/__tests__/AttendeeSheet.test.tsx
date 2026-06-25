@@ -2,6 +2,10 @@ import { render, fireEvent } from '@testing-library/react-native';
 import { AttendeeSheet } from '../AttendeeSheet';
 
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('react-native-safe-area-context', () => ({
+  ...jest.requireActual('react-native-safe-area-context'),
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
 
 const baseProps = {
   visible: true,
