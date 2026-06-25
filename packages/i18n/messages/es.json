@@ -107,10 +107,10 @@
     "news": {
       "comingSoonBody": "Los artículos de tu pueblo llegarán pronto.",
       "empty": "Aún no hay artículos en tu pueblo.",
-      "create": "Crear artículo"
+      "create": "Crear Artículo"
     },
     "events": {
-      "create": "Crear evento"
+      "create": "Crear Evento"
     }
   },
   "guest": {
