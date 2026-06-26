@@ -33,7 +33,9 @@ Anything that crosses workspace boundaries — between the mobile app and functi
 
 ### 3. First-class top-level collections, scoped by `municipalityId`
 
-Single Firebase project. Domain entities (`events`, `organizations`, `persons`, `occupations`, news, …) live at the **top level** of Firestore and carry a `municipalityId` field that scopes them to a village/municipality. The only nesting we keep is for data that is genuinely owned by a parent doc (e.g. `municipalities/{id}/members/{userId}`, `organizations/{orgId}/members/{userId}`, `events/{eventId}/registrations/{regId}`, `users/{uid}/notifications/{nid}`).
+Single Firebase project. Domain entities (`events`, `organizations`, `persons`, `occupations`, news, …) live at the **top level** of Firestore and carry a `municipalityId` field that scopes them to a village. The only nesting we keep is for data that is genuinely owned by a parent doc (e.g. `municipalities/{id}/members/{userId}`, `organizations/{orgId}/members/{userId}`, `events/{eventId}/registrations/{regId}`, `users/{uid}/notifications/{nid}`).
+
+**Municipality vs. village** — these are two layers of one entity, not synonyms: `municipality` = the physical INE doc and all identity/foreign-key/storage names (`municipalityId`, `municipalities/{id}/…`); `village` = that municipality once its `community` overlay is activated, and all community-facing display names (`villageName`, `VillageMemberData`, `syncVillageDenormalization`). Read [docs/architecture/municipality-vs-village.md](docs/architecture/municipality-vs-village.md) before adding a field or collection that touches either word.
 
 This is the result of the migration recorded in [docs/decisions/open-feed-architecture.md](docs/decisions/open-feed-architecture.md): top-level keeps cross-village/global queries trivial, leaves the door open to multi-village orgs, and removes most of the collection-group indexing burden. Indexes on `municipalityId + <sortField>` (and similar single-collection composite indexes) are declared in [firestore.indexes.json](firestore.indexes.json) and must be added in the same change as a new query shape.
 
@@ -57,7 +59,7 @@ org approval. Village/app admins are the backstop.
 
 ### 4. Denormalized read models for high fan-out
 
-When a query would require N reads or live across collection boundaries, write a denormalized read model and keep it in sync via a Cloud Function trigger. See [docs/architecture/denormalized-read-models.md](docs/architecture/denormalized-read-models.md) for the pattern; [functions/src/syncVillageDenormalization.ts](functions/src/syncVillageDenormalization.ts) is the canonical example.
+When a query would require N reads or live across collection boundaries, write a denormalized read model and keep it in sync via a Cloud Function trigger. See [docs/architecture/denormalized-read-models.md](docs/architecture/denormalized-read-models.md) for the pattern; [functions/src/village/syncVillageDenormalization.ts](functions/src/village/syncVillageDenormalization.ts) is the canonical example.
 
 > **See also:** the `denormalized-read-model` skill for the step-by-step.
 
