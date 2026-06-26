@@ -45,7 +45,6 @@ import {
   municipalityPlacesCollection,
   municipalityMembersCollection,
   municipalityInviteTokensCollection,
-  municipalityJoinRequestsCollection,
   organizationsCollection,
   organizationMembersCollection,
   organizerRequestsCollection,
@@ -58,6 +57,7 @@ import {
   newsReportsCollection,
   occupationsCollection,
   occupationProposalsCollection,
+  organizationJoinRequestsCollection,
   adminsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
 
@@ -107,7 +107,6 @@ const REGISTRY = [
       { name: 'places', coll: (db, id) => municipalityPlacesCollection(db, id) },
       { name: 'members', coll: (db, id) => municipalityMembersCollection(db, id) },
       { name: 'inviteTokens', coll: (db, id) => municipalityInviteTokensCollection(db, id) },
-      { name: 'joinRequests', coll: (db, id) => municipalityJoinRequestsCollection(db, id) },
     ],
   },
   {
@@ -116,6 +115,7 @@ const REGISTRY = [
     subs: [{ name: 'members', coll: (db, id) => organizationMembersCollection(db, id) }],
   },
   { name: 'organizerRequests', coll: (db) => organizerRequestsCollection(db) },
+  { name: 'organizationJoinRequests', coll: (db) => organizationJoinRequestsCollection(db) },
   { name: 'persons', coll: (db) => personsCollection(db) },
   {
     name: 'users',
