@@ -48,8 +48,8 @@ export async function seedNews(dataset) {
         tag(
           buildNewsPostData({
             municipalityId: vDocId,
-            authorUserId,
-            authorOrgId: post.orgId ? orgDocId(vKey, post.orgId) : null,
+            organizerUserIds: [authorUserId],
+            organizerOrgIds: post.orgId ? [orgDocId(vKey, post.orgId)] : [],
             title: post.title,
             body: post.body,
             category: post.category,

@@ -35,10 +35,6 @@ export async function seedEvents(dataset) {
       for (const ev of org.events ?? []) {
         const eDocId = eventDocId(vKey, org.id, ev.id);
         const startDate = new Date(Date.now() + ev.startOffsetDays * DAY_MS);
-        const endDate =
-          ev.durationHours == null
-            ? null
-            : new Date(startDate.getTime() + ev.durationHours * 60 * 60 * 1000);
 
         let imageURL = null;
         if (ev.image) {
@@ -51,13 +47,16 @@ export async function seedEvents(dataset) {
               title: ev.title,
               description: ev.description,
               startDate,
-              endDate,
-              location: buildLocationData({ type: 'text', text: `Plaza Mayor, ${v.name}` }),
+              location: buildLocationData({
+                coordinates: v.coordinates,
+                displayName: `Plaza Mayor, ${v.name}`,
+              }),
               maxAttendees: ev.maxAttendees ?? null,
               telephoneRequired: false,
               status: ev.status ?? 'published',
-              organizationId: oDocId,
-              organizationName: org.name,
+              // Flexible ownership: the org runs it, attributed to the village admin.
+              organizerUserIds: [adminUid],
+              organizerOrgIds: [oDocId],
               createdBy: adminUid,
               municipalityId: vDocId,
               villageName: v.name,
