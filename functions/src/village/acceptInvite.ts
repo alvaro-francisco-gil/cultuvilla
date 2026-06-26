@@ -96,15 +96,14 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
         // Converter-wrapped ref: createdAt must be a plain Date (sentinels
         // are rejected by the schema). buildUserData defaults createdAt to
         // new Date(), which the converter marshals to a Firestore Timestamp.
+        // The user doc holds account state only — the profile (name, birthday,
+        // photo) is the linked person's, written just below.
         tx.set(
           userRef,
           buildUserData({
             displayName: profile.displayName.trim(),
             email: profile.email,
-            birthday,
-            biography: null,
             telephone: null,
-            photoURL: profile.photoURL ?? null,
             activeMunicipalityId: municipalityId,
           }),
         );
@@ -112,6 +111,7 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
         await personRef.set(
           buildPersonData({
             givenName: profile.displayName.split(' ')[0] ?? profile.displayName,
+            birthday,
             photoURL: profile.photoURL ?? null,
             userId,
             createdBy: userId,

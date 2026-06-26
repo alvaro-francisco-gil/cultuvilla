@@ -51,9 +51,6 @@ export async function createUserProfile(
       telephone: input.telephone ?? null,
       activeMunicipalityId: input.activeMunicipalityId ?? null,
       personId: input.personId ?? null,
-      birthday: input.birthday ?? null,
-      biography: input.biography ?? null,
-      photoURL: input.photoURL ?? null,
       createdAt: serverTimestamp(),
     },
     { merge: true },
@@ -63,17 +60,8 @@ export async function createUserProfile(
 export async function patchUserProfile(
   userId: string,
   // displayName intentionally excluded — denormalized by Cloud Function.
-  data: Partial<
-    Pick<
-      UserData,
-      | 'telephone'
-      | 'activeMunicipalityId'
-      | 'personId'
-      | 'birthday'
-      | 'biography'
-      | 'photoURL'
-    >
-  >,
+  // birthday/biography/photoURL live on the linked person, not here.
+  data: Partial<Pick<UserData, 'telephone' | 'activeMunicipalityId' | 'personId'>>,
 ): Promise<void> {
   // updateDoc bypasses the converter, so partial-update payloads (and any
   // FieldValue sentinels callers might pass through Partial) go on the raw

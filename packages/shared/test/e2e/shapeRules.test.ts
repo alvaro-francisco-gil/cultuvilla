@@ -191,9 +191,6 @@ describe('shape enforcement — /users/{uid}', () => {
     telephone: null,
     activeMunicipalityId: null,
     personId: null,
-    birthday: null,
-    biography: null,
-    photoURL: null,
     createdAt: new Date(),
   };
 
@@ -226,16 +223,6 @@ describe('shape enforcement — /users/{uid}', () => {
     const alice = env.authenticatedContext('alice').firestore();
     await assertFails(
       setDoc(doc(alice, 'users/alice'), { ...validUserCreate, createdAt: 'now' }),
-    );
-  });
-
-  it('rejects an invalid birthday shape (extra key)', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
-    await assertFails(
-      setDoc(doc(alice, 'users/alice'), {
-        ...validUserCreate,
-        birthday: { year: 1990, month: 5, day: 4, hour: 12 },
-      }),
     );
   });
 });

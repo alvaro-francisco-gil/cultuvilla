@@ -55,24 +55,15 @@ describe('createUserProfile', () => {
     expect(payload).toHaveProperty('personId', null);
     expect(payload).toHaveProperty('createdAt', '__SERVER_TIMESTAMP__');
 
-    // birthday/biography/photoURL are part of UserData (denormalized at
-    // acceptInvite/onboarding) and DO go through createUserProfile — they
-    // default to null when callers omit them.
-    expect(payload).toHaveProperty('birthday', null);
-    expect(payload).toHaveProperty('biography', null);
-    expect(payload).toHaveProperty('photoURL', null);
+    // birthday/biography/photoURL are NOT on the user doc — they live on the
+    // linked person (the profile of record). createUserProfile writes account
+    // state only.
+    expect(payload).not.toHaveProperty('birthday');
+    expect(payload).not.toHaveProperty('biography');
+    expect(payload).not.toHaveProperty('photoURL');
 
     expect(Object.keys(payload as object).sort()).toEqual(
-      [
-        'activeMunicipalityId',
-        'biography',
-        'birthday',
-        'createdAt',
-        'email',
-        'personId',
-        'photoURL',
-        'telephone',
-      ],
+      ['activeMunicipalityId', 'createdAt', 'email', 'personId', 'telephone'],
     );
 
     // setDoc must run with { merge: true } so the trigger-written displayName
@@ -139,9 +130,6 @@ describe('getUserProfile', () => {
         telephone: '600',
         activeMunicipalityId: 'muni-1',
         personId: 'person-1',
-        birthday: null,
-        biography: null,
-        photoURL: null,
         createdAt: fakeDate,
       }),
     } as any);
@@ -156,9 +144,6 @@ describe('getUserProfile', () => {
       telephone: '600',
       activeMunicipalityId: 'muni-1',
       personId: 'person-1',
-      birthday: null,
-      biography: null,
-      photoURL: null,
       createdAt: fakeDate,
     });
   });

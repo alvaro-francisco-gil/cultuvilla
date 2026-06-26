@@ -31,9 +31,6 @@ const createUserProfilePayload = () => ({
   telephone: null,
   activeMunicipalityId: null,
   personId: 'p1',
-  birthday: null,
-  biography: null,
-  photoURL: null,
   createdAt: serverTimestamp(),
 });
 

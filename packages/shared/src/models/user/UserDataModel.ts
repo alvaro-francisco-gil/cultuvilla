@@ -1,25 +1,23 @@
 import { z } from 'zod';
-import { PartialDateSchema, type PartialDate } from '../person/PersonDataModel';
 
+/**
+ * The account doc. The linked `persons/{personId}` is the **profile of record**
+ * (name, birthday, biography, photo, places, occupations); the user doc holds
+ * only account state plus a denormalized `displayName` projection so name
+ * rendering doesn't need a persons JOIN. Read birthday/biography/photoURL from
+ * the linked person, never from here. See
+ * docs/architecture/denormalized-read-models.md.
+ */
 export const UserDataSchema = z.object({
   // Denormalized from persons/{personId} — kept in sync by
-  // functions/src/users/syncPersonDenormalization.ts. The persons doc owns
-  // givenName / firstSurname / secondSurname; this field is the
-  // buildDisplayName(person) projection. Clients cannot write this directly
-  // (firestore.rules), so reads can briefly observe "" for users created
-  // before their persona exists.
+  // functions/src/users/syncPersonDenormalization.ts. Clients cannot write this
+  // directly (firestore.rules), so reads can briefly observe "" for users
+  // created before their persona exists.
   displayName: z.string(),
   email: z.string(),
   telephone: z.string().nullable(),
   activeMunicipalityId: z.string().nullable(),
   personId: z.string().nullable(),
-  // Denormalized user-display fields written by acceptInvite and the
-  // onboarding flow. Always present after acceptInvite, hence nullable but
-  // not optional. Old docs lacking these fields will fail strict parse on
-  // read — a one-off backfill is tracked as a follow-up.
-  birthday: PartialDateSchema.nullable(),
-  biography: z.string().nullable(),
-  photoURL: z.string().nullable(),
   createdAt: z.date(),
 });
 export type UserData = z.infer<typeof UserDataSchema>;
@@ -30,9 +28,6 @@ export interface UserDataInput {
   telephone?: string | null;
   activeMunicipalityId?: string | null;
   personId?: string | null;
-  birthday?: PartialDate | null;
-  biography?: string | null;
-  photoURL?: string | null;
   createdAt?: Date;
 }
 
@@ -43,9 +38,6 @@ export function buildUserData(input: UserDataInput): UserData {
     telephone: input.telephone ?? null,
     activeMunicipalityId: input.activeMunicipalityId ?? null,
     personId: input.personId ?? null,
-    birthday: input.birthday ?? null,
-    biography: input.biography ?? null,
-    photoURL: input.photoURL ?? null,
     createdAt: input.createdAt ?? new Date(),
   };
 }

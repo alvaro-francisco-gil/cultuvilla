@@ -5,20 +5,17 @@ import {
 } from '../../../src/models/user/UserDataModel';
 
 describe('UserDataSchema', () => {
-  it('accepts a fully populated user', () => {
+  it('accepts a fully populated user (account state only)', () => {
     const parsed = UserDataSchema.parse({
       displayName: 'María García',
       email: 'maria@example.com',
       telephone: '+34612345678',
       activeMunicipalityId: 'mun1',
       personId: 'person-1',
-      birthday: { year: 1990, month: 5, day: 14 },
-      biography: 'Hola',
-      photoURL: 'https://example.com/avatar.jpg',
       createdAt: new Date(),
     });
     expect(parsed.displayName).toBe('María García');
-    expect(parsed.birthday).toEqual({ year: 1990, month: 5, day: 14 });
+    expect(parsed.personId).toBe('person-1');
   });
 
   it('rejects when displayName is missing', () => {
@@ -29,15 +26,12 @@ describe('UserDataSchema', () => {
         telephone: null,
         activeMunicipalityId: null,
         personId: null,
-        birthday: null,
-        biography: null,
-        photoURL: null,
         createdAt: new Date(),
       }),
     ).toThrow();
   });
 
-  it('rejects when birthday is omitted (nullable not optional)', () => {
+  it('rejects profile fields that belong on the linked person', () => {
     expect(() =>
       UserDataSchema.parse({
         displayName: 'Ana',
@@ -45,12 +39,21 @@ describe('UserDataSchema', () => {
         telephone: null,
         activeMunicipalityId: null,
         personId: null,
-        // birthday omitted
-        biography: null,
-        photoURL: null,
         createdAt: new Date(),
+        // birthday/biography/photoURL are NOT user fields; z.object strips
+        // unknowns, so the doc still parses — assert they don't survive.
       }),
-    ).toThrow();
+    ).not.toThrow();
+    const parsed = UserDataSchema.parse({
+      displayName: 'Ana',
+      email: 'ana@b.com',
+      telephone: null,
+      activeMunicipalityId: null,
+      personId: null,
+      createdAt: new Date(),
+      birthday: { year: 1990, month: 5, day: 14 },
+    });
+    expect(parsed).not.toHaveProperty('birthday');
   });
 });
 
@@ -65,28 +68,21 @@ describe('buildUserData', () => {
     expect(user.telephone).toBeNull();
     expect(user.activeMunicipalityId).toBeNull();
     expect(user.personId).toBeNull();
-    expect(user.birthday).toBeNull();
-    expect(user.biography).toBeNull();
-    expect(user.photoURL).toBeNull();
     expect(user.createdAt).toBeInstanceOf(Date);
+    expect(user).not.toHaveProperty('birthday');
+    expect(user).not.toHaveProperty('photoURL');
   });
 
-  it('preserves all provided fields', () => {
+  it('preserves all provided account fields', () => {
     const user = buildUserData({
       displayName: 'María López',
       email: 'maria@example.com',
       telephone: '+34612345678',
       activeMunicipalityId: 'mun1',
       personId: 'person-1',
-      birthday: { year: 1980, month: 3, day: 22 },
-      biography: 'Bio',
-      photoURL: 'https://example.com/p.jpg',
     });
     expect(user.telephone).toBe('+34612345678');
     expect(user.activeMunicipalityId).toBe('mun1');
     expect(user.personId).toBe('person-1');
-    expect(user.birthday).toEqual({ year: 1980, month: 3, day: 22 });
-    expect(user.biography).toBe('Bio');
-    expect(user.photoURL).toBe('https://example.com/p.jpg');
   });
 });

@@ -107,30 +107,25 @@ service cloud.firestore {
           && isStringOrNull(d.telephone)
           && isStringOrNull(d.activeMunicipalityId)
           && isStringOrNull(d.personId)
-          && isValidPartialDate(d.birthday)
-          && isStringOrNull(d.biography)
-          && isStringOrNull(d.photoURL)
           && isTimestamp(d.createdAt);
     }
 
     function isValidUserCreate(d) {
       return d.keys().hasOnly([
-              'email', 'telephone', 'activeMunicipalityId', 'personId',
-              'birthday', 'biography', 'photoURL', 'createdAt',
+              'email', 'telephone', 'activeMunicipalityId', 'personId', 'createdAt',
             ])
           && d.keys().hasAll([
-              'email', 'telephone', 'activeMunicipalityId', 'personId',
-              'birthday', 'biography', 'photoURL', 'createdAt',
+              'email', 'telephone', 'activeMunicipalityId', 'personId', 'createdAt',
             ])
           && hasValidUserFields(d);
     }
 
     // /users/{userId} on update: same field set as create minus `displayName`
-    // (denormalized by the Cloud Function; clients must never touch it).
+    // (denormalized by the Cloud Function; clients must never touch it). The
+    // profile (birthday/biography/photoURL) lives on the linked person.
     function isValidUserUpdateKeys(affected) {
       return affected.hasOnly([
         'email', 'telephone', 'activeMunicipalityId', 'personId',
-        'birthday', 'biography', 'photoURL',
       ]);
     }
 
@@ -144,8 +139,7 @@ service cloud.firestore {
     function isOnboardingUserMerge(reqData, resData) {
       return !('createdAt' in resData)
           && reqData.diff(resData).affectedKeys().hasOnly([
-               'email', 'telephone', 'activeMunicipalityId', 'personId',
-               'birthday', 'biography', 'photoURL', 'createdAt',
+               'email', 'telephone', 'activeMunicipalityId', 'personId', 'createdAt',
              ])
           && hasValidUserFields(reqData);
     }
