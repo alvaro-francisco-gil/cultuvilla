@@ -85,7 +85,7 @@ export default function EventDetailScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 96 }}>
       <DetailHeroImage
         imageUri={event.imageURL}
-        fallbackImageUri={event.municipalityCoverImage}
+        fallbackImageUri={event.villageCoverImage}
         fallbackIcon="calendar-outline"
       />
       <FloatingBackButton />

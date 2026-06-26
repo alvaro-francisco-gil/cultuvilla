@@ -41,7 +41,7 @@ export const syncVillageDenormalization = onDocumentUpdated(
 
     // Typed events collection ref — converter is wired but the batch.update
     // path below bypasses it (writes a raw partial) so the admin GeoPoint
-    // shape on `municipalityCoordinates` is persisted as-is.
+    // shape on `villageCoordinates` is persisted as-is.
     const eventsSnap = await eventsCollection(db)
       .where('municipalityId', '==', municipalityId)
       .get();
@@ -49,14 +49,14 @@ export const syncVillageDenormalization = onDocumentUpdated(
     if (eventsSnap.empty) return;
 
     // batch.update bypasses the converter, so we write the raw admin shape
-    // (e.g. municipalityCoordinates stays as a GeoPoint here — the read-side
+    // (e.g. villageCoordinates stays as a GeoPoint here — the read-side
     // converter normalizes it back to {lat, lng} when feeds read events).
     // The UpdateData<EventData> cast accommodates that wire-shape mismatch
     // while preserving the converter typing on the ref itself.
     const update: Record<string, unknown> = {};
-    if (nameChanged) update['municipalityName'] = after['name'];
-    if (coverChanged) update['municipalityCoverImage'] = afterCover;
-    if (coordsChanged) update['municipalityCoordinates'] = after['coordinates'];
+    if (nameChanged) update['villageName'] = after['name'];
+    if (coverChanged) update['villageCoverImage'] = afterCover;
+    if (coordsChanged) update['villageCoordinates'] = after['coordinates'];
     const updatePayload = update as UpdateData<EventData>;
 
     const docs = eventsSnap.docs;

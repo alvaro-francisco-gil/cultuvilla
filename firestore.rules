@@ -363,16 +363,16 @@ service cloud.firestore {
               'title', 'description', 'startDate', 'location',
               'imageURL', 'maxAttendees', 'telephoneRequired',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
-              'createdAt', 'updatedAt', 'municipalityId', 'municipalityName',
-              'municipalityCoverImage', 'municipalityCoordinates',
+              'createdAt', 'updatedAt', 'municipalityId', 'villageName',
+              'villageCoverImage', 'villageCoordinates',
               'confirmedCount', 'totalCount',
             ])
           && d.keys().hasAll([
               'title', 'description', 'startDate', 'location',
               'imageURL', 'maxAttendees', 'telephoneRequired',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
-              'createdAt', 'updatedAt', 'municipalityId', 'municipalityName',
-              'municipalityCoverImage', 'municipalityCoordinates',
+              'createdAt', 'updatedAt', 'municipalityId', 'villageName',
+              'villageCoverImage', 'villageCoordinates',
             ])
           && isString(d.title)
           && isString(d.description)
@@ -388,9 +388,9 @@ service cloud.firestore {
           && isTimestamp(d.createdAt)
           && isTimestamp(d.updatedAt)
           && isString(d.municipalityId)
-          && isString(d.municipalityName)
-          && isStringOrNull(d.municipalityCoverImage)
-          && isMapOrNull(d.municipalityCoordinates);
+          && isString(d.villageName)
+          && isStringOrNull(d.villageCoverImage)
+          && isMapOrNull(d.villageCoordinates);
     }
 
     // ── Collections ──────────────────────────────────────────────────────

@@ -5,8 +5,8 @@ describe('storageObjectPathFromDownloadUrl', () => {
   it('extracts and decodes the object path from a Firebase download URL', () => {
     const url =
       'https://firebasestorage.googleapis.com/v0/b/villa-events.firebasestorage.app/o/' +
-      'villages%2Fmun-1%2Fimages%2Fabc-123.jpg?alt=media&token=xyz';
-    expect(storageObjectPathFromDownloadUrl(url)).toBe('villages/mun-1/images/abc-123.jpg');
+      'municipalities%2Fmun-1%2Fimages%2Fabc-123.jpg?alt=media&token=xyz';
+    expect(storageObjectPathFromDownloadUrl(url)).toBe('municipalities/mun-1/images/abc-123.jpg');
   });
 
   it('returns null for a URL without an /o/ segment', () => {
@@ -14,6 +14,6 @@ describe('storageObjectPathFromDownloadUrl', () => {
   });
 
   it('returns null for a non-URL string', () => {
-    expect(storageObjectPathFromDownloadUrl('villages/mun-1/images/abc.jpg')).toBeNull();
+    expect(storageObjectPathFromDownloadUrl('municipalities/mun-1/images/abc.jpg')).toBeNull();
   });
 });

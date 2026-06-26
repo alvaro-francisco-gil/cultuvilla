@@ -393,7 +393,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
               label={e.title}
               sub={formatDate(e.startDate, 'short')}
               icon="calendar-outline"
-              imageUri={e.imageURL ?? e.municipalityCoverImage}
+              imageUri={e.imageURL ?? e.villageCoverImage}
               onPress={() => router.push(`/event/${e.id}` as never)}
             />
           ))}

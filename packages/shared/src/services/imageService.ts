@@ -96,16 +96,16 @@ export async function uploadNewsImage(
 
 /**
  * Upload an event cover image. Returns the **download URL** to persist in
- * `EventData.imageURL`. Uses the existing `villages/{villageId}/events/...`
- * storage path (villageId is the municipalityId).
+ * `EventData.imageURL`. Stored under the event's owning municipality:
+ * `municipalities/{municipalityId}/events/...`.
  */
 export async function uploadEventImage(
-  villageId: string,
+  municipalityId: string,
   eventId: string,
   image: UploadableImage,
 ): Promise<string> {
   return uploadToPath(
-    `villages/${villageId}/events/${eventId}/image/${generateImageId(image.filename)}`,
+    `municipalities/${municipalityId}/events/${eventId}/image/${generateImageId(image.filename)}`,
     image,
   );
 }

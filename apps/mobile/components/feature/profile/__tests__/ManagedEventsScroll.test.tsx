@@ -20,9 +20,9 @@ function makeEvent(over: Partial<ManagedEvent> & { id: string }): ManagedEvent {
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
     municipalityId: 'm-1',
-    municipalityName: 'Villa',
-    municipalityCoverImage: null,
-    municipalityCoordinates: null,
+    villageName: 'Villa',
+    villageCoverImage: null,
+    villageCoordinates: null,
     confirmedCount: 0,
     totalCount: 0,
   } as ManagedEvent;

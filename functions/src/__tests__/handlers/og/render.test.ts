@@ -94,9 +94,9 @@ describe('ogRenderer', () => {
       createdAt: now,
       updatedAt: now,
       municipalityId: 'mun-1',
-      municipalityName: 'Villarriba',
-      municipalityCoverImage: null,
-      municipalityCoordinates: null,
+      villageName: 'Villarriba',
+      villageCoverImage: null,
+      villageCoordinates: null,
     });
 
     const res = await invoke('/event/e1');
@@ -259,7 +259,7 @@ describe('ogRenderer', () => {
       organizerOrgIds: [],
       images: [],
       municipalityId: 'mun-1',
-      municipalityName: 'Villarriba',
+      villageName: 'Villarriba',
       submittedAt: new Date(),
       publishedAt: new Date(),
       status: 'approved',
@@ -313,7 +313,7 @@ describe('ogRenderer', () => {
       organizerOrgIds: [],
       images: [],
       municipalityId: 'mun-1',
-      municipalityName: 'V',
+      villageName: 'V',
       submittedAt: new Date(),
       publishedAt: new Date(),
       status: 'approved',

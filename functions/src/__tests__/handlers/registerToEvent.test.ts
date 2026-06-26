@@ -32,9 +32,9 @@ async function seedEvent(opts: { maxAttendees: number | null }): Promise<void> {
     createdAt: now,
     updatedAt: now,
     municipalityId: MUNICIPALITY_ID,
-    municipalityName: 'Villarriba',
-    municipalityCoverImage: null,
-    municipalityCoordinates: null,
+    villageName: 'Villarriba',
+    villageCoverImage: null,
+    villageCoordinates: null,
     confirmedCount: 0,
     totalCount: 0,
   });

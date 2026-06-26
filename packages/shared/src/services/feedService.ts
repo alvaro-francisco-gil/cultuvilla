@@ -63,12 +63,12 @@ export function haversineKm(a: LatLng, b: LatLng): number {
   return EARTH_RADIUS_KM * c;
 }
 
-export function filterByDistanceKm<T extends { municipalityCoordinates: LatLng | null }>(
+export function filterByDistanceKm<T extends { villageCoordinates: LatLng | null }>(
   events: T[],
   reference: LatLng,
   maxKm: number,
 ): T[] {
   return events.filter(
-    (e) => e.municipalityCoordinates !== null && haversineKm(reference, e.municipalityCoordinates) <= maxKm,
+    (e) => e.villageCoordinates !== null && haversineKm(reference, e.villageCoordinates) <= maxKm,
   );
 }

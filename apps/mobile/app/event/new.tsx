@@ -124,8 +124,8 @@ export default function NewEventScreen() {
         organizerOrgIds,
         createdBy: user.uid,
         municipalityId,
-        municipalityName,
-        municipalityCoordinates,
+        villageName: municipalityName,
+        villageCoordinates: municipalityCoordinates,
       });
       if (cover) {
         const url = await uploadEventImage(municipalityId, eventId, {

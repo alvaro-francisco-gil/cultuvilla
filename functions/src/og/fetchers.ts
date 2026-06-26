@@ -27,7 +27,7 @@ interface RawEvent {
   title?: unknown;
   description?: unknown;
   imageURL?: unknown;
-  municipalityCoverImage?: unknown;
+  villageCoverImage?: unknown;
 }
 
 interface RawNewsImage {
@@ -76,7 +76,7 @@ export async function getEventOg(eventId: string): Promise<OgMeta | null> {
   return {
     title,
     description: trim(asString(e.description)),
-    imageUrl: asString(e.imageURL) ?? asString(e.municipalityCoverImage),
+    imageUrl: asString(e.imageURL) ?? asString(e.villageCoverImage),
   };
 }
 

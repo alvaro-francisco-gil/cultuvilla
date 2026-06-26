@@ -40,9 +40,9 @@ function newEvent(createdBy: string, extraOrganizers: string[] = [], orgIds: str
     createdAt: new Date(),
     updatedAt: new Date(),
     municipalityId: M,
-    municipalityName: 'Villa',
-    municipalityCoverImage: null,
-    municipalityCoordinates: null,
+    villageName: 'Villa',
+    villageCoverImage: null,
+    villageCoordinates: null,
   };
 }
 

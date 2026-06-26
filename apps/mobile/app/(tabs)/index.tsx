@@ -180,8 +180,8 @@ export default function FeedScreen() {
     }
     if (sortByProximity && referenceCoords) {
       const dist = (e: FeedEvent) =>
-        e.municipalityCoordinates
-          ? haversineKm(referenceCoords, e.municipalityCoordinates)
+        e.villageCoordinates
+          ? haversineKm(referenceCoords, e.villageCoordinates)
           : Number.POSITIVE_INFINITY;
       list = [...list].sort((a, b) => dist(a) - dist(b));
     }
@@ -420,7 +420,7 @@ export default function FeedScreen() {
               startDate: item.startDate,
               locationName: item.location?.displayName ?? null,
               imageURL: item.imageURL,
-              municipalityCoverImage: item.municipalityCoverImage ?? null,
+              villageCoverImage: item.villageCoverImage ?? null,
             }}
             onPress={(id) => router.push(`/event/${id}`)}
           />

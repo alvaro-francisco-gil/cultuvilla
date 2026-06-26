@@ -17,8 +17,8 @@ function orglessEvent(createdBy: string) {
     imageURL: null, maxAttendees: null, telephoneRequired: false,
     status: 'published', organizerUserIds: [createdBy], organizerOrgIds: [],
     createdBy, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
-    municipalityId: M, municipalityName: 'Villa',
-    municipalityCoverImage: null, municipalityCoordinates: null,
+    municipalityId: M, villageName: 'Villa',
+    villageCoverImage: null, villageCoordinates: null,
   };
 }
 

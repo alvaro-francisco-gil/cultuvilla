@@ -26,7 +26,7 @@ export async function seedVillage(v, adminUid) {
   const docId = villageDocId(v.id);
 
   let escudoUrl = null;
-  if (v.escudo) escudoUrl = await uploadImage(v.escudo, `villages/${docId}/escudo`);
+  if (v.escudo) escudoUrl = await uploadImage(v.escudo, `municipalities/${docId}/escudo`);
 
   const coords = new GeoPoint(v.coordinates.lat, v.coordinates.lng);
   const baseMunicipality = buildMunicipalityData({
@@ -76,8 +76,8 @@ export async function wipeVillages(dataset) {
     // direct seeder never created. Use `pnpm seed:villages:wipe` for those.
     if (v.organizerEmail) continue;
     const vDocId = villageDocId(v.id);
-    storage += await wipeStorageFolder(`villages/${vDocId}/images/`);
-    storage += await wipeStorageFolder(`villages/${vDocId}/escudo/`);
+    storage += await wipeStorageFolder(`municipalities/${vDocId}/images/`);
+    storage += await wipeStorageFolder(`municipalities/${vDocId}/escudo/`);
     const membersSnap = await db
       .collection('municipalities')
       .doc(vDocId)

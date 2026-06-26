@@ -19,10 +19,14 @@ export const EventDataSchema = z.object({
   createdBy: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
+  // Physical-layer foreign key: which municipality doc this event belongs to.
   municipalityId: z.string(),
-  municipalityName: z.string(),
-  municipalityCoverImage: z.string().nullable(),
-  municipalityCoordinates: LatLngSchema.nullable(),
+  // Community-layer denormalized display fields, copied from the village
+  // (the activated municipality) by syncVillageDenormalization for flat feed
+  // reads. See docs/architecture/municipality-vs-village.md.
+  villageName: z.string(),
+  villageCoverImage: z.string().nullable(),
+  villageCoordinates: LatLngSchema.nullable(),
   // Denormalized attendee counters, maintained server-side by the
   // registerToEvent / waitlistPromotion functions. Initialized to 0 at create
   // so every event doc carries them — never absent.
@@ -46,9 +50,9 @@ export interface EventDataInput {
   createdAt?: Date;
   updatedAt?: Date;
   municipalityId: string;
-  municipalityName: string;
-  municipalityCoverImage?: string | null;
-  municipalityCoordinates: LatLng | null;
+  villageName: string;
+  villageCoverImage?: string | null;
+  villageCoordinates: LatLng | null;
 }
 
 export function buildEventData(input: EventDataInput): EventData {
@@ -68,9 +72,9 @@ export function buildEventData(input: EventDataInput): EventData {
     createdAt: input.createdAt ?? now,
     updatedAt: input.updatedAt ?? now,
     municipalityId: input.municipalityId,
-    municipalityName: input.municipalityName,
-    municipalityCoverImage: input.municipalityCoverImage ?? null,
-    municipalityCoordinates: input.municipalityCoordinates,
+    villageName: input.villageName,
+    villageCoverImage: input.villageCoverImage ?? null,
+    villageCoordinates: input.villageCoordinates,
     confirmedCount: 0,
     totalCount: 0,
   };

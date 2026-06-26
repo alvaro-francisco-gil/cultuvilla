@@ -357,9 +357,9 @@ describe('shape enforcement — /events/{eventId}', () => {
     createdAt: new Date(),
     updatedAt: new Date(),
     municipalityId: 'm1',
-    municipalityName: 'Villa',
-    municipalityCoverImage: null,
-    municipalityCoordinates: { lat: 40, lng: -3 },
+    villageName: 'Villa',
+    villageCoverImage: null,
+    villageCoordinates: { lat: 40, lng: -3 },
   };
 
   it('accepts a valid full-shape payload', async () => {

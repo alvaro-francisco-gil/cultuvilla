@@ -23,9 +23,9 @@ const validEvent = {
   createdAt: new Date('2026-01-01T00:00:00Z'),
   updatedAt: new Date('2026-01-01T00:00:00Z'),
   municipalityId: 'm-1',
-  municipalityName: 'Villa',
-  municipalityCoverImage: null,
-  municipalityCoordinates: { lat: 40.4, lng: -3.7 },
+  villageName: 'Villa',
+  villageCoverImage: null,
+  villageCoordinates: { lat: 40.4, lng: -3.7 },
   confirmedCount: 0,
   totalCount: 0,
 };
@@ -59,8 +59,8 @@ describe('buildEventData', () => {
       organizerUserIds: ['u'],
       organizerOrgIds: [],
       createdBy: 'u',
-      municipalityId: 'm', municipalityName: 'M',
-      municipalityCoordinates: { lat: 1, lng: 2 },
+      municipalityId: 'm', villageName: 'M',
+      villageCoordinates: { lat: 1, lng: 2 },
     });
     expect(built.status).toBe('published');
     expect(built.telephoneRequired).toBe(false);
@@ -78,9 +78,9 @@ describe('isEventFull', () => {
     organizerUserIds: ['u'], organizerOrgIds: [], createdBy: 'u',
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
-    municipalityId: 'm', municipalityName: 'M',
-    municipalityCoverImage: null,
-    municipalityCoordinates: { lat: 1, lng: 2 },
+    municipalityId: 'm', villageName: 'M',
+    villageCoverImage: null,
+    villageCoordinates: { lat: 1, lng: 2 },
     confirmedCount: 0, totalCount: 0,
   });
 
@@ -107,9 +107,9 @@ describe('isEventSignupOpen', () => {
     organizerUserIds: ['u'], organizerOrgIds: [], createdBy: 'u',
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
-    municipalityId: 'm', municipalityName: 'M',
-    municipalityCoverImage: null,
-    municipalityCoordinates: { lat: 1, lng: 2 },
+    municipalityId: 'm', villageName: 'M',
+    villageCoverImage: null,
+    villageCoordinates: { lat: 1, lng: 2 },
     confirmedCount: 0, totalCount: 0,
   });
 

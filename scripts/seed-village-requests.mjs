@@ -308,7 +308,7 @@ async function wipeOne(v) {
         .delete()
         .catch(() => {});
     }
-    await wipeStorageFolder(`villages/${muniId}/`);
+    await wipeStorageFolder(`municipalities/${muniId}/`);
   }
 
   if (requesterUid) {

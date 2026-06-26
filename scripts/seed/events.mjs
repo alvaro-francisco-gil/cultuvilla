@@ -2,7 +2,7 @@
 /**
  * Seed events: one top-level `events/{id}` per org event, with denormalized
  * village fields copied off the (already-seeded) municipality doc. Uploads
- * `image` to `villages/{vid}/events/{eid}/image/` and wires `imageURL`.
+ * `image` to `municipalities/{vid}/events/{eid}/image/` and wires `imageURL`.
  *
  *   DATASET=demo_1 pnpm seed:dev:events
  *   DATASET=demo_1 pnpm seed:dev:events:wipe
@@ -42,7 +42,7 @@ export async function seedEvents(dataset) {
 
         let imageURL = null;
         if (ev.image) {
-          imageURL = await uploadImage(ev.image, `villages/${vDocId}/events/${eDocId}/image`);
+          imageURL = await uploadImage(ev.image, `municipalities/${vDocId}/events/${eDocId}/image`);
         }
 
         await db.collection('events').doc(eDocId).set(
@@ -60,9 +60,9 @@ export async function seedEvents(dataset) {
               organizationName: org.name,
               createdBy: adminUid,
               municipalityId: vDocId,
-              municipalityName: v.name,
-              municipalityCoverImage: villageCover,
-              municipalityCoordinates: coords,
+              villageName: v.name,
+              villageCoverImage: villageCover,
+              villageCoordinates: coords,
               imageURL,
             }),
           ),
@@ -88,7 +88,7 @@ export async function wipeEvents(dataset) {
         docs++;
       }
     }
-    storage += await wipeStorageFolder(`villages/${vDocId}/events/`);
+    storage += await wipeStorageFolder(`municipalities/${vDocId}/events/`);
   }
   console.log(`[wipe] events: ${docs} doc(s) + ${storage} storage file(s) removed.`);
 }

@@ -101,7 +101,7 @@ function migrateLocation(data, municipalityCoords) {
   if (!loc || typeof loc !== 'object' || Array.isArray(loc)) {
     // No location at all — fall back to municipality coords + name
     if (municipalityCoords) {
-      return { coordinates: municipalityCoords, displayName: data.municipalityName ?? '' };
+      return { coordinates: municipalityCoords, displayName: data.villageName ?? '' };
     }
     return null;
   }
@@ -113,14 +113,14 @@ function migrateLocation(data, municipalityCoords) {
   if (type === 'coordinates' || rawCoords) {
     const coords = extractLatLng(rawCoords);
     if (coords) {
-      return { coordinates: coords, displayName: text || data.municipalityName || '' };
+      return { coordinates: coords, displayName: text || data.villageName || '' };
     }
     // coords type but no valid GeoPoint — fall through to text/municipality
   }
 
   // type === 'text' or no valid coords found
   if (municipalityCoords) {
-    return { coordinates: municipalityCoords, displayName: text || data.municipalityName || '' };
+    return { coordinates: municipalityCoords, displayName: text || data.villageName || '' };
   }
   return null;
 }
@@ -148,7 +148,7 @@ for (let i = 0; i < eventsSnap.docs.length; i += 400) {
     const createdBy = typeof data.createdBy === 'string' ? data.createdBy : '';
     const oldOrgId = typeof data.organizationId === 'string' ? data.organizationId : null;
 
-    const municipalityCoords = extractLatLng(data.municipalityCoordinates);
+    const municipalityCoords = extractLatLng(data.villageCoordinates);
     const newLocation = migrateLocation(data, municipalityCoords);
 
     if (!newLocation) {

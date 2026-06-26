@@ -55,7 +55,7 @@ export function ManagedEventsScroll({
             label={item.title}
             sub={isOngoing ? ongoingLabel : formatDate(item.startDate, 'short')}
             icon="calendar-outline"
-            imageUri={item.imageURL ?? item.municipalityCoverImage}
+            imageUri={item.imageURL ?? item.villageCoverImage}
             accent={isOngoing}
             onPress={() => onPressEvent(item.id)}
           />

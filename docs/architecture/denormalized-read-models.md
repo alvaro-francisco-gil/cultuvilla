@@ -16,13 +16,19 @@ None of these survive contact with mobile networks and Firestore quotas.
 
 Pick a small set of fields that callers need at list time. Store a **copy** of those fields directly on the read-target documents at write time, and update the copies whenever the source changes — via a Cloud Function trigger, never the client.
 
-For example, `villages/{villageId}.images[0]` is the source of truth for a village's cover image. Every event inside that village carries a denormalized copy as `villages/{vid}/events/{eid}.villageCoverImage`. The feed query reads events only; it never has to JOIN to villages.
+For example, a municipality's escudo is the source of truth for a village's
+cover image. Every event carries a denormalized copy as
+`events/{eid}.villageCoverImage`. The feed query reads top-level events only; it
+never has to JOIN to municipalities. (On the municipality/village naming, see
+[municipality-vs-village.md](./municipality-vs-village.md): events live in a flat
+top-level `events/` collection keyed by a `municipalityId` foreign key, and carry
+`village*` display copies.)
 
 ```
                    ┌─ source of truth ──────────┐
-                   │   villages/{villageId}     │
+                   │   municipalities/{id}      │
                    │   .name                    │
-                   │   .images[]                │
+                   │   .escudoManualUrl/escudoUrl│
                    │   .coordinates             │
                    └────────────┬───────────────┘
                                 │ onDocumentUpdated
@@ -33,7 +39,7 @@ For example, `villages/{villageId}.images[0]` is the source of truth for a villa
                                 │ batch update
                                 ▼
                    ┌─ read model ───────────────┐
-                   │ villages/{vid}/events/{id} │
+                   │ events/{eid} (top-level)   │
                    │   .villageName             │
                    │   .villageCoverImage       │
                    │   .villageCoordinates      │
@@ -70,12 +76,12 @@ If any of these is false, don't denormalize — query the source instead.
 
 ## The canonical example
 
-[functions/src/syncVillageDenormalization.ts](../../functions/src/syncVillageDenormalization.ts) is the example to copy. It demonstrates:
+[functions/src/village/syncVillageDenormalization.ts](../../functions/src/village/syncVillageDenormalization.ts) is the example to copy. It demonstrates:
 
-- Watching `villages/{villageId}` for updates.
-- Comparing watched fields (`name`, `images`, `coordinates`) between before/after.
+- Watching `municipalities/{municipalityId}` for updates.
+- Comparing watched fields (`name`, escudo, `coordinates`) between before/after.
 - Early return when nothing relevant changed.
-- A collection-group lookup (`events` where `villageId == ...`) for fan-out.
+- A top-level query (`events` where `municipalityId == ...`) for fan-out.
 - Chunked batched updates (500 per commit).
 
 When adding a new denormalization trigger, mirror its structure.

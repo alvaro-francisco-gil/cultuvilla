@@ -16,7 +16,7 @@ export type EventLike = {
   locationName?: string | null;
   imageURL?: string | null;
   /** Village cover photo, used as the fallback when the event has no image. */
-  municipalityCoverImage?: string | null;
+  villageCoverImage?: string | null;
 };
 
 export type EventCardProps = {
@@ -30,7 +30,7 @@ export function EventCard({ event, onPress, badge, testID }: EventCardProps) {
   return (
     <FeedCard
       imageUri={event.imageURL ?? null}
-      fallbackImageUri={event.municipalityCoverImage ?? null}
+      fallbackImageUri={event.villageCoverImage ?? null}
       title={event.title}
       metaLeft={event.locationName ?? null}
       metaRight={formatDate(event.startDate, 'short')}

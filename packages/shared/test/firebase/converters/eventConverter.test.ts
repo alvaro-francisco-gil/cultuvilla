@@ -17,9 +17,9 @@ const baseFirestoreShape = {
   createdAt: Timestamp.fromDate(new Date('2026-01-01T00:00:00Z')),
   updatedAt: Timestamp.fromDate(new Date('2026-01-01T00:00:00Z')),
   municipalityId: 'm-1',
-  municipalityName: 'Villa',
-  municipalityCoverImage: null,
-  municipalityCoordinates: new GeoPoint(40.4, -3.7),
+  villageName: 'Villa',
+  villageCoverImage: null,
+  villageCoordinates: new GeoPoint(40.4, -3.7),
   confirmedCount: 0,
   totalCount: 0,
 };
@@ -29,7 +29,7 @@ describe('eventConverterClient', () => {
     const snap = { data: () => baseFirestoreShape };
     const event = eventConverterClient.fromFirestore(snap);
     expect(event.startDate).toBeInstanceOf(Date);
-    expect(event.municipalityCoordinates).toEqual({ lat: 40.4, lng: -3.7 });
+    expect(event.villageCoordinates).toEqual({ lat: 40.4, lng: -3.7 });
     expect(event.status).toBe('published');
   });
 
@@ -52,7 +52,7 @@ describe('eventConverterClient', () => {
     const out = eventConverterClient.toFirestore(event);
     // Date is passed through unchanged; the SDK converts it to a Timestamp on write.
     expect(out.startDate).toBeInstanceOf(Date);
-    expect(out.municipalityCoordinates).toBeInstanceOf(GeoPoint);
+    expect(out.villageCoordinates).toBeInstanceOf(GeoPoint);
   });
 
   it('fromFirestore throws when a required field is missing', () => {

@@ -32,7 +32,7 @@ function municipality(overrides: Partial<MunicipalityShape> = {}): MunicipalityS
   };
 }
 
-async function seedEvent(municipalityCoverImage: string | null): Promise<void> {
+async function seedEvent(villageCoverImage: string | null): Promise<void> {
   const now = new Date();
   await admin.firestore().doc(`events/${EVENT_ID}`).set({
     title: 'Fiesta Mayor',
@@ -49,9 +49,9 @@ async function seedEvent(municipalityCoverImage: string | null): Promise<void> {
     createdAt: now,
     updatedAt: now,
     municipalityId: MUNICIPALITY_ID,
-    municipalityName: 'Villarriba',
-    municipalityCoverImage,
-    municipalityCoordinates: null,
+    villageName: 'Villarriba',
+    villageCoverImage,
+    villageCoordinates: null,
     confirmedCount: 0,
     totalCount: 0,
   });
@@ -89,7 +89,7 @@ afterAll(() => {
 });
 
 describe('syncVillageDenormalization', () => {
-  it('propagates escudoManualUrl to municipalityCoverImage on events', async () => {
+  it('propagates escudoManualUrl to villageCoverImage on events', async () => {
     await seedEvent(null);
 
     const before = municipality({ escudoManualUrl: null, escudoUrl: null });
@@ -98,7 +98,7 @@ describe('syncVillageDenormalization', () => {
     await fireTrigger(before, after);
 
     const eventDoc = await admin.firestore().doc(`events/${EVENT_ID}`).get();
-    expect(eventDoc.get('municipalityCoverImage')).toBe('https://x/manual.png');
+    expect(eventDoc.get('villageCoverImage')).toBe('https://x/manual.png');
   });
 
   it('falls back to escudoUrl when escudoManualUrl is absent', async () => {
@@ -110,7 +110,7 @@ describe('syncVillageDenormalization', () => {
     await fireTrigger(before, after);
 
     const eventDoc = await admin.firestore().doc(`events/${EVENT_ID}`).get();
-    expect(eventDoc.get('municipalityCoverImage')).toBe('https://cdn.example/escudo-fallback.png');
+    expect(eventDoc.get('villageCoverImage')).toBe('https://cdn.example/escudo-fallback.png');
   });
 
   it('propagates when only escudo changes (name/coords unchanged)', async () => {
@@ -122,7 +122,7 @@ describe('syncVillageDenormalization', () => {
     await fireTrigger(base, after);
 
     const eventDoc = await admin.firestore().doc(`events/${EVENT_ID}`).get();
-    expect(eventDoc.get('municipalityCoverImage')).toBe('https://x/new.png');
+    expect(eventDoc.get('villageCoverImage')).toBe('https://x/new.png');
   });
 
   it('does not write when name, coords, and escudo are all unchanged', async () => {
@@ -136,6 +136,6 @@ describe('syncVillageDenormalization', () => {
 
     // Handler must have returned early (no-op): the sentinel must be untouched.
     const eventDoc = await admin.firestore().doc(`events/${EVENT_ID}`).get();
-    expect(eventDoc.get('municipalityCoverImage')).toBe('SENTINEL-should-not-be-touched');
+    expect(eventDoc.get('villageCoverImage')).toBe('SENTINEL-should-not-be-touched');
   });
 });
