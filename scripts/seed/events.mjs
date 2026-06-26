@@ -29,6 +29,10 @@ export async function seedEvents(dataset) {
     const muni = (await db.collection('municipalities').doc(vDocId).get()).data();
     const villageCover = muni?.escudoManualUrl ?? muni?.escudoUrl ?? null;
     const coords = muni?.coordinates ?? (v.coordinates ? new GeoPoint(v.coordinates.lat, v.coordinates.lng) : null);
+    // Real event location needs {lat,lng}: prefer the dataset's village coords,
+    // else derive from the municipality GeoPoint.
+    const locationCoords =
+      v.coordinates ?? (coords ? { lat: coords.latitude, lng: coords.longitude } : null);
 
     for (const org of v.organizations) {
       const oDocId = orgDocId(vKey, org.id);
@@ -48,7 +52,7 @@ export async function seedEvents(dataset) {
               description: ev.description,
               startDate,
               location: buildLocationData({
-                coordinates: v.coordinates,
+                coordinates: locationCoords,
                 displayName: `Plaza Mayor, ${v.name}`,
               }),
               maxAttendees: ev.maxAttendees ?? null,

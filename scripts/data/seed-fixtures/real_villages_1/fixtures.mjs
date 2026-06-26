@@ -45,6 +45,9 @@ export default {
       // seeders (orgs/places/events/news).
       name: 'Matabuena',
       id: 'matabuena',
+      // Real coordinates — request-flow villages don't carry coords on the INE
+      // doc, but the event seeder needs a real location.coordinates.
+      coordinates: { lat: 41.0628, lng: -3.7619 },
 
       // Who requests the organizer role (must exist in real_user_data_1).
       organizerEmail: 'xxpowervaroxx@gmail.com',
