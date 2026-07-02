@@ -307,7 +307,7 @@ All non-trivial changes follow the same loop. Tiny edits (typo in a doc, a renam
 
 ## Be proactive
 
-You're expected to propose improvements, not just execute tasks. End your response with a one-line suggestion (or an inline diff if the change is under ~10 lines) when you notice:
+Surface these as a one-line suggestion (or an inline diff if the change is under ~10 lines) at the end of your response, when you notice:
 
 - **Repeated manual ops (2+ times)** → script in `scripts/`.
 - **Encodable workflow** (deploy recipe, migration ritual, audit playbook) → skill under `.claude/skills/<name>/SKILL.md`.
@@ -316,5 +316,3 @@ You're expected to propose improvements, not just execute tasks. End your respon
 - **Docs contradicting code** → fix or delete the doc; don't work around it.
 - **Shipped plan still in `docs/plans/ongoing/`** → distil durable rationale into `docs/decisions/<slug>.md`, then delete the plan (code is the source of truth). See the `managing-plans-lifecycle` skill. Don't archive — there is no `docs/archive/`.
 - **Service touched without tests** → propose adding the missing coverage.
-
-Soft proposals are the default — the user accepts or declines. Don't pre-implement large refactors uninvited; surface, then wait.
