@@ -312,7 +312,7 @@ approval gate). All daily work targets `develop`. See
 - Reads in components that should be cached or batched.
 - Spanish strings that escaped the i18n message catalog.
 - Code changes that ship without tests when tests were possible.
-- Work that landed outside a worktree *without the user choosing direct-to-main mode* (see Development workflow step 1) — and so might have polluted main's checkout state.
+- Work that landed outside a worktree *without the user choosing direct-to-develop mode* (see Development workflow step 1) — and so might have polluted the `develop` base checkout state.
 
 ## Be proactive
 
