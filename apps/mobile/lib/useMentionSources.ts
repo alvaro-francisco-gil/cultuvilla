@@ -1,19 +1,26 @@
 import { useEffect, useState } from 'react';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 import { getEventsByMunicipality } from '@cultuvilla/shared/services/eventService';
-import { getPlaces } from '@cultuvilla/shared/services/municipalityService';
+import { getPlaces, getMunicipalities } from '@cultuvilla/shared/services/municipalityService';
+import { getNewsPostsByMunicipality } from '@cultuvilla/shared/services/newsService';
 import { getVillageMembers } from '@cultuvilla/shared/services/villageMemberService';
 import { getUserProfile } from '@cultuvilla/shared/services/userService';
 import type { MentionCandidate } from './mentionText';
 
 /**
- * Load every entity in a village that a news `@`-mention can point at —
- * approved organizations (peñas/asociaciones/…), published-or-any events,
- * approved places, and members (resolved to display names). Loaded once per
- * municipality; a village's directory is small enough to hold in memory and
- * filter client-side as the author types.
+ * Load every entity a news `@`-mention can point at — approved organizations
+ * (peñas/asociaciones/…), events, approved places, members (resolved to display
+ * names), villages, and other approved news posts. Loaded once per municipality;
+ * a village's directory is small enough to hold in memory and filter
+ * client-side as the author types.
+ *
+ * `excludeNewsId` drops the article being edited from the news candidates so a
+ * post can't `@`-mention itself.
  */
-export function useMentionSources(municipalityId: string | null): {
+export function useMentionSources(
+  municipalityId: string | null,
+  excludeNewsId?: string,
+): {
   candidates: MentionCandidate[];
   loading: boolean;
 } {
@@ -28,11 +35,13 @@ export function useMentionSources(municipalityId: string | null): {
     let cancelled = false;
     setLoading(true);
     void (async () => {
-      const [orgs, events, places, members] = await Promise.all([
+      const [orgs, events, places, members, villages, news] = await Promise.all([
         getOrganizationsByMunicipality(municipalityId, 'approved').catch(() => []),
         getEventsByMunicipality(municipalityId).catch(() => []),
         getPlaces(municipalityId).catch(() => []),
         getVillageMembers(municipalityId).catch(() => []),
+        getMunicipalities().catch(() => []),
+        getNewsPostsByMunicipality(municipalityId, { status: 'approved' }).catch(() => []),
       ]);
       const memberCandidates = await Promise.all(
         members.map(async (m): Promise<MentionCandidate> => {
@@ -48,13 +57,17 @@ export function useMentionSources(municipalityId: string | null): {
           .filter((pl) => pl.status === 'approved')
           .map((pl): MentionCandidate => ({ entityType: 'place', entityId: pl.id, label: pl.name })),
         ...memberCandidates,
+        ...villages.map((v): MentionCandidate => ({ entityType: 'village', entityId: v.id, label: v.name })),
+        ...news
+          .filter((n) => n.id !== excludeNewsId)
+          .map((n): MentionCandidate => ({ entityType: 'news', entityId: n.id, label: n.title })),
       ]);
       setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [municipalityId]);
+  }, [municipalityId, excludeNewsId]);
 
   return { candidates, loading };
 }

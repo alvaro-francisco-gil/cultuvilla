@@ -8,6 +8,8 @@ import type { NewsMention } from '@cultuvilla/shared/models/news/NewsPostDataMod
  * - organization → `/o/{id}`
  * - event        → `/event/{id}`
  * - place        → `/village/{municipalityId}/place/{id}`
+ * - village       → `/village/{id}`
+ * - news          → `/news/{id}`
  * - user         → `null` (members have no public profile screen yet, so the
  *   mention renders styled-but-inert rather than dead-linking)
  */
@@ -19,6 +21,10 @@ export function mentionHref(mention: NewsMention, municipalityId: string): strin
       return `/event/${mention.entityId}`;
     case 'place':
       return `/village/${municipalityId}/place/${mention.entityId}`;
+    case 'village':
+      return `/village/${mention.entityId}`;
+    case 'news':
+      return `/news/${mention.entityId}`;
     case 'user':
       return null;
     default:

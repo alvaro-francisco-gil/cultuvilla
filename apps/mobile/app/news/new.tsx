@@ -127,7 +127,7 @@ function CoverField({
     <VStack gap={1}>
       <FieldLabel>{t('news.compose.coverLabel')}</FieldLabel>
       {cover?.uri ? (
-        <Pressable onPress={onPick} accessibilityLabel={t('news.compose.changeCover')}>
+        <Pressable onPress={onPick} accessibilityLabel={t('news.compose.coverLabel')}>
           <View
             className="overflow-hidden rounded-2xl border border-subtle bg-surface"
             style={{ width: '100%', aspectRatio: cover.width > 0 && cover.height > 0 ? cover.width / cover.height : 16 / 9 }}
@@ -139,9 +139,6 @@ function CoverField({
               accessibilityIgnoresInvertColors
             />
           </View>
-          <Text tone="muted" variant="caption" className="mt-1 text-center">
-            {t('news.compose.changeCover')}
-          </Text>
         </Pressable>
       ) : (
         <ImagePickerField uri={null} width="100%" height={160} label={t('news.compose.addCover')} onPress={onPick} />
@@ -173,7 +170,7 @@ export default function NewNewsScreen() {
   const [organizerUserIds, setOrganizerUserIds] = useState<string[]>([]);
   const [organizerOrgIds, setOrganizerOrgIds] = useState<string[]>([]);
 
-  const { candidates } = useMentionSources(municipalityId);
+  const { candidates } = useMentionSources(municipalityId, newsId);
 
   // Auto-seed the creator as an organizer when composing a new article.
   useEffect(() => {
@@ -415,6 +412,9 @@ export default function NewNewsScreen() {
               lockedUserId={user.uid}
               onChangeUsers={setOrganizerUserIds}
               onChangeOrgs={setOrganizerOrgIds}
+              peopleLabel={t('news.compose.writersLabel')}
+              addPersonLabel={t('news.compose.addWriter')}
+              selectPeopleTitle={t('news.compose.selectWriters')}
             />
           ) : (
             <Text tone="muted">{t('news.compose.attributionLocked')}</Text>

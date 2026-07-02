@@ -19,6 +19,8 @@ const ENTITY_ICON: Record<MentionEntityType, keyof typeof Ionicons.glyphMap> = {
   user: 'person-outline',
   event: 'calendar-outline',
   place: 'location-outline',
+  village: 'home-outline',
+  news: 'newspaper-outline',
 };
 
 interface MentionTextInputProps {
