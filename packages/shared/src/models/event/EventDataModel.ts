@@ -12,7 +12,10 @@ export const EventDataSchema = z.object({
   // Optional end of a multi-day event. `null` means single-day: the event runs
   // for the rest of its Europe/Madrid start day (see isEventOngoing). When set,
   // it must be >= startDate (enforced in firestore.rules and the create form).
-  endDate: z.date().nullable(),
+  // `.default(null)`: events created during the single-date era have no endDate
+  // field at all, so reads of those legacy docs normalize the absent field to
+  // null instead of throwing. New docs always carry it (buildEventData + rules).
+  endDate: z.date().nullable().default(null),
   location: LocationDataSchema,
   imageURL: z.string().nullable(),
   maxAttendees: z.number().int().nullable(),
