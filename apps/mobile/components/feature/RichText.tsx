@@ -38,7 +38,7 @@ export function RichText({ text, mentions, municipalityId, ...textProps }: RichT
     parts.push(
       <RNText
         key={`m${i}`}
-        className="text-accent"
+        className="text-accent font-medium underline"
         onPress={href ? () => router.push(href as never) : undefined}
       >
         {label}

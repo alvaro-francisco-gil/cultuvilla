@@ -39,6 +39,12 @@ export interface OrganizerPickerProps {
   lockedUserId?: string;
   onChangeUsers: (ids: string[]) => void;
   onChangeOrgs: (ids: string[]) => void;
+  /** Override the people-section wording (default: event "Organizadores"). News
+   *  passes "Escritores". The groups section ("Grupos involucrados") is
+   *  unaffected. */
+  peopleLabel?: string;
+  addPersonLabel?: string;
+  selectPeopleTitle?: string;
 }
 
 /**
@@ -58,9 +64,15 @@ export function OrganizerPicker({
   lockedUserId,
   onChangeUsers,
   onChangeOrgs,
+  peopleLabel,
+  addPersonLabel,
+  selectPeopleTitle,
 }: OrganizerPickerProps) {
   const { t } = useT();
   const insets = useSafeAreaInsets();
+  const peopleLabelText = peopleLabel ?? t('event.organizersLabel');
+  const addPersonLabelText = addPersonLabel ?? t('event.organizer.addUser');
+  const selectPeopleTitleText = selectPeopleTitle ?? t('event.organizer.selectUsers');
 
   const [orgs, setOrgs] = useState<(OrganizationData & { id: string })[]>([]);
   const [villagers, setVillagers] = useState<VillagerOption[]>([]);
@@ -159,7 +171,7 @@ export function OrganizerPicker({
     <VStack gap={6}>
       {/* People */}
       <VStack gap={2}>
-        <FieldLabel>{t('event.organizersLabel')}</FieldLabel>
+        <FieldLabel>{peopleLabelText}</FieldLabel>
         {selectedUserIds.map((uid) => {
           const locked = uid === lockedUserId;
           return (
@@ -184,7 +196,7 @@ export function OrganizerPicker({
             </HStack>
           );
         })}
-        <AddRow label={t('event.organizer.addUser')} onPress={openUserSheet} testID="add-user-btn" />
+        <AddRow label={addPersonLabelText} onPress={openUserSheet} testID="add-user-btn" />
       </VStack>
 
       {/* Groups */}
@@ -213,7 +225,7 @@ export function OrganizerPicker({
       {/* Villager selection sheet */}
       <SelectSheet
         open={userSheetOpen}
-        title={t('event.organizer.selectUsers')}
+        title={selectPeopleTitleText}
         confirmLabel={t('event.organizer.confirm')}
         emptyLabel={null}
         onClose={() => setUserSheetOpen(false)}

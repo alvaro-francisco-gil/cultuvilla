@@ -746,20 +746,24 @@
       "stepAttribution": "Autoría",
       "coverLabel": "Imagen de portada",
       "addCover": "Añadir portada",
-      "changeCover": "Cambiar portada",
       "contentLabel": "Cuerpo del artículo",
       "attributionLocked": "La autoría no se puede cambiar después de crear el artículo.",
+      "writersLabel": "Escritores",
+      "addWriter": "Añadir escritor",
+      "selectWriters": "Seleccionar escritores",
       "block": {
         "addImage": "Añadir imagen",
         "removeImage": "Quitar imagen",
-        "textPlaceholder": "Escribe aquí… usa @ para mencionar peñas, personas, eventos o lugares",
+        "textPlaceholder": "Escribe aquí… usa @ para mencionar peñas, personas, eventos, lugares, pueblos o artículos",
         "captionPlaceholder": "Pie de foto (opcional)"
       },
       "mentionType": {
         "organization": "Grupo",
         "user": "Persona",
         "event": "Evento",
-        "place": "Lugar"
+        "place": "Lugar",
+        "village": "Pueblo",
+        "news": "Artículo"
       }
     },
     "status": {

@@ -30,7 +30,7 @@ export type NewsPostImage = z.infer<typeof NewsPostImageSchema>;
 // of the text blocks for legacy readers, search, and previews.
 
 /** Entities an `@`-mention can point at. Places already exist as a collection. */
-export const MENTION_ENTITY_TYPES = ['organization', 'user', 'event', 'place'] as const;
+export const MENTION_ENTITY_TYPES = ['organization', 'user', 'event', 'place', 'village', 'news'] as const;
 export const MentionEntityTypeSchema = z.enum([...MENTION_ENTITY_TYPES]);
 export type MentionEntityType = z.infer<typeof MentionEntityTypeSchema>;
 
