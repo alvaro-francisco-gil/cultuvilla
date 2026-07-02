@@ -385,7 +385,7 @@ export default function NewEventScreen() {
       render: () => stepBody(
         <>
           <DateTimeField
-            label={t('event.dateTime')}
+            label={t('event.startDateTime')}
             value={startDate}
             onChange={setStartDate}
             minimumDate={new Date()}
@@ -393,7 +393,7 @@ export default function NewEventScreen() {
             testID="startDate"
           />
           <DateTimeField
-            label={t('event.endDate')}
+            label={t('event.endDateTime')}
             value={endDate}
             onChange={setEndDate}
             minimumDate={startDate ?? new Date()}
