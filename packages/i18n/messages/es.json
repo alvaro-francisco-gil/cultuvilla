@@ -423,7 +423,7 @@
     "startDate": "Fecha de inicio",
     "endDate": "Fecha de fin (opcional)",
     "startDateTime": "Inicio del evento",
-    "endDateTime": "Fin del evento",
+    "endDateTime": "Fin del evento (opcional)",
     "dateRange": "{start} – {end}",
     "location": "Ubicación",
     "maxAttendees": "Máximo de asistentes",
