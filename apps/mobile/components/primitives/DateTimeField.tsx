@@ -1,6 +1,5 @@
-import { useMemo, useState } from 'react';
-import { FlatList, Modal, View, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useState, type ComponentType } from 'react';
+import { FlatList, Modal, Platform, View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@cultuvilla/shared/design-system';
 import { Pressable } from './Pressable';
@@ -16,34 +15,38 @@ export interface DateTimeFieldProps {
   onChange: (date: Date | null) => void;
   minimumDate?: Date;
   maximumDate?: Date;
-  /** Minute granularity for the time wheel. Defaults to 5. */
+  /** Minute granularity for the web time wheel. Defaults to 5. */
   minuteStep?: number;
   placeholder?: string;
   testID?: string;
 }
 
-type Segment = 'year' | 'month' | 'day' | 'hour' | 'minute';
+type Mode = 'date' | 'time';
 
 const MONTHS_ES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
 ];
 const MONTHS_ES_SHORT = [
   'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
   'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
 ];
-
-function daysInMonth(year: number, monthZeroBased: number): number {
-  return new Date(year, monthZeroBased + 1, 0).getDate();
-}
 const pad2 = (n: number) => String(n).padStart(2, '0');
+const daysInMonth = (year: number, monthZeroBased: number) => new Date(year, monthZeroBased + 1, 0).getDate();
+
+function formatLong(d: Date): string {
+  return `${d.getDate()} de ${MONTHS_ES[d.getMonth()]} de ${d.getFullYear()}`;
+}
+function formatTime(d: Date): string {
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
 
 /**
- * Web-safe date + time picker. Mirrors the modal flow of the ordago-apps
- * DateTimePicker (a full-screen sheet with a Confirm action) but is built on
- * plain FlatLists instead of `@react-native-community/datetimepicker`, so it
- * renders identically on the villa-events web build. Colors follow the
- * cultuvilla accent.
+ * Date + time picker mirroring the ordago-apps DateTimePicker: a modal card with
+ * a "Fecha" row and an "Hora" row that open the native calendar / clock. On
+ * iOS/Android it uses `@react-native-community/datetimepicker` (calendar for the
+ * date, clock for the time); on the web build — where that native module isn't
+ * available — it falls back to plain wheel lists. Colors follow the app accent.
  */
 export function DateTimeField({
   label,
@@ -55,76 +58,54 @@ export function DateTimeField({
   placeholder,
   testID,
 }: DateTimeFieldProps) {
-  const today = new Date();
-  const maxYear = (maximumDate ?? new Date(today.getFullYear() + 5, 11, 31)).getFullYear();
-  const minYear = (minimumDate ?? today).getFullYear();
-
   const [open, setOpen] = useState(false);
-  const [segment, setSegment] = useState<Segment | null>(null);
-  // Draft edits live here until the user confirms.
-  const [year, setYear] = useState<number | null>(value ? value.getFullYear() : null);
-  const [month, setMonth] = useState<number | null>(value ? value.getMonth() : null);
-  const [day, setDay] = useState<number | null>(value ? value.getDate() : null);
-  const [hour, setHour] = useState<number | null>(value ? value.getHours() : null);
-  const [minute, setMinute] = useState<number | null>(value ? value.getMinutes() : null);
+  const [mode, setMode] = useState<Mode | null>(null);
+  const [draft, setDraft] = useState<Date>(value ?? defaultDraft(minimumDate));
 
-  const yearOptions = useMemo(() => {
-    const out: number[] = [];
-    for (let y = minYear; y <= maxYear; y += 1) out.push(y);
-    return out;
-  }, [maxYear, minYear]);
-  const monthOptions = useMemo(() => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], []);
-  const dayOptions = useMemo(() => {
-    const cap = year != null && month != null ? daysInMonth(year, month) : 31;
-    return Array.from({ length: cap }, (_, i) => i + 1);
-  }, [year, month]);
-  const hourOptions = useMemo(() => Array.from({ length: 24 }, (_, i) => i), []);
-  const minuteOptions = useMemo(
-    () => Array.from({ length: Math.ceil(60 / minuteStep) }, (_, i) => i * minuteStep),
-    [minuteStep],
-  );
+  // Lazy-require the native module so the web bundle (and jest) never load it.
+  const RNDateTimePicker =
+    Platform.OS !== 'web'
+      ? (require('@react-native-community/datetimepicker').default as ComponentType<{
+          value: Date;
+          mode: Mode;
+          is24Hour?: boolean;
+          display?: string;
+          minimumDate?: Date;
+          maximumDate?: Date;
+          onChange: (event: unknown, date?: Date) => void;
+        }>)
+      : null;
 
   function openModal() {
-    // Seed empty drafts with sensible defaults so the sheet isn't blank.
-    if (year == null) setYear(value?.getFullYear() ?? today.getFullYear());
-    if (month == null) setMonth(value?.getMonth() ?? today.getMonth());
-    if (day == null) setDay(value?.getDate() ?? today.getDate());
-    if (hour == null) setHour(value?.getHours() ?? today.getHours());
-    if (minute == null) {
-      const m = value?.getMinutes() ?? 0;
-      setMinute(Math.round(m / minuteStep) * minuteStep % 60);
-    }
+    setDraft(value ?? defaultDraft(minimumDate));
+    setMode(null);
     setOpen(true);
   }
 
-  const complete = year != null && month != null && day != null && hour != null && minute != null;
+  // Merge a picked value so changing the date keeps the time and vice versa.
+  function applyPicked(picked: Date, which: Mode) {
+    setDraft((prev) => {
+      const merged = new Date(prev);
+      if (which === 'date') merged.setFullYear(picked.getFullYear(), picked.getMonth(), picked.getDate());
+      else merged.setHours(picked.getHours(), picked.getMinutes(), 0, 0);
+      return merged;
+    });
+  }
+
+  function onNativeChange(_event: unknown, picked?: Date) {
+    if (Platform.OS === 'android') setMode(null); // Android shows its own dialog
+    if (picked) applyPicked(picked, mode ?? 'date');
+  }
 
   function confirm() {
-    if (year != null && month != null && day != null && hour != null && minute != null) {
-      const cap = daysInMonth(year, month);
-      onChange(new Date(year, month, Math.min(day, cap), hour, minute));
-    }
-    setSegment(null);
+    onChange(draft);
+    setMode(null);
     setOpen(false);
   }
 
   const triggerText = value
-    ? `${value.getDate()} ${MONTHS_ES_SHORT[value.getMonth()]} ${value.getFullYear()}, ${pad2(value.getHours())}:${pad2(value.getMinutes())}`
+    ? `${formatLong(value)} · ${formatTime(value)}`
     : (placeholder ?? label);
-
-  const segData: Record<Segment, { data: number[]; render: (n: number) => string }> = {
-    year: { data: yearOptions, render: (n) => String(n) },
-    month: { data: monthOptions, render: (n) => MONTHS_ES[n] ?? '' },
-    day: { data: dayOptions, render: (n) => String(n) },
-    hour: { data: hourOptions, render: (n) => pad2(n) },
-    minute: { data: minuteOptions, render: (n) => pad2(n) },
-  };
-  const segSetter: Record<Segment, (n: number) => void> = {
-    year: setYear, month: setMonth, day: setDay, hour: setHour, minute: setMinute,
-  };
-  const segTitle: Record<Segment, string> = {
-    year: 'Año', month: 'Mes', day: 'Día', hour: 'Hora', minute: 'Minuto',
-  };
 
   return (
     <View testID={testID}>
@@ -141,78 +122,172 @@ export function DateTimeField({
         <Ionicons name="calendar-outline" size={18} color={ACCENT} />
       </Pressable>
 
-      <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
-        <SafeAreaView style={styles.modal} edges={['top', 'bottom']}>
-          <View style={styles.modalHeader}>
-            <Text variant="h3">{label}</Text>
-            <Pressable onPress={() => setOpen(false)} accessibilityLabel="Cerrar" hitSlop={8}>
-              <Ionicons name="close" size={24} color="#334155" />
-            </Pressable>
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <View style={styles.overlay}>
+          <View style={styles.card}>
+            <View style={styles.header}>
+              <Text variant="h3">{label}</Text>
+              <Pressable onPress={() => setOpen(false)} accessibilityLabel="Cerrar" hitSlop={8}>
+                <Ionicons name="close" size={24} color="#334155" />
+              </Pressable>
+            </View>
+
+            <SelectionRow
+              icon="calendar-outline"
+              label="Fecha"
+              value={formatLong(draft)}
+              active={mode === 'date'}
+              onPress={() => setMode('date')}
+            />
+            <SelectionRow
+              icon="time-outline"
+              label="Hora"
+              value={formatTime(draft)}
+              active={mode === 'time'}
+              onPress={() => setMode('time')}
+            />
+
+            {/* Picker surface — native calendar/clock, or web wheels. */}
+            {mode && Platform.OS === 'web' ? (
+              <WebWheels
+                mode={mode}
+                value={draft}
+                minuteStep={minuteStep}
+                minYear={(minimumDate ?? new Date()).getFullYear()}
+                maxYear={(maximumDate ?? new Date(draft.getFullYear() + 5, 11, 31)).getFullYear()}
+                onPick={(d) => applyPicked(d, mode)}
+              />
+            ) : null}
+            {mode && RNDateTimePicker ? (
+              <RNDateTimePicker
+                value={draft}
+                mode={mode}
+                is24Hour
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                minimumDate={minimumDate}
+                maximumDate={maximumDate}
+                onChange={onNativeChange}
+              />
+            ) : null}
+
+            <View style={styles.footer}>
+              <Button variant="secondary" onPress={() => setOpen(false)}>Cancelar</Button>
+              <View style={styles.footerConfirm}>
+                <Button onPress={confirm} fullWidth>Confirmar</Button>
+              </View>
+            </View>
           </View>
-
-          <View style={styles.body}>
-            <FieldLabel>Fecha</FieldLabel>
-            <View style={styles.row}>
-              <Seg text={day != null ? String(day) : 'Día'} onPress={() => setSegment('day')} />
-              <Seg text={month != null ? (MONTHS_ES_SHORT[month] ?? 'Mes') : 'Mes'} onPress={() => setSegment('month')} />
-              <Seg text={year != null ? String(year) : 'Año'} onPress={() => setSegment('year')} />
-            </View>
-
-            <FieldLabel>Hora</FieldLabel>
-            <View style={styles.row}>
-              <Seg text={hour != null ? pad2(hour) : 'HH'} onPress={() => setSegment('hour')} />
-              <View style={styles.colon}><Text variant="h3">:</Text></View>
-              <Seg text={minute != null ? pad2(minute) : 'MM'} onPress={() => setSegment('minute')} />
-            </View>
-          </View>
-
-          <View style={styles.footer}>
-            <Button variant="secondary" onPress={() => setOpen(false)}>Cancelar</Button>
-            <View style={styles.footerConfirm}>
-              <Button onPress={confirm} disabled={!complete} fullWidth>Confirmar</Button>
-            </View>
-          </View>
-
-          {/* Per-segment option list, slides over the sheet. */}
-          <Modal visible={segment != null} animationType="slide" transparent onRequestClose={() => setSegment(null)}>
-            <View style={styles.pickerBackdrop}>
-              <SafeAreaView style={styles.pickerSheet} edges={['bottom']}>
-                <View style={styles.modalHeader}>
-                  <Text variant="h3">{segment ? segTitle[segment] : ''}</Text>
-                  <Pressable onPress={() => setSegment(null)} accessibilityLabel="Cerrar" hitSlop={8}>
-                    <Ionicons name="close" size={24} color="#334155" />
-                  </Pressable>
-                </View>
-                {segment && (
-                  <FlatList
-                    data={segData[segment].data}
-                    keyExtractor={(n) => String(n)}
-                    initialNumToRender={30}
-                    renderItem={({ item }) => (
-                      <Pressable
-                        onPress={() => { segSetter[segment](item); setSegment(null); }}
-                        style={styles.option}
-                      >
-                        <Text>{segData[segment].render(item)}</Text>
-                      </Pressable>
-                    )}
-                  />
-                )}
-              </SafeAreaView>
-            </View>
-          </Modal>
-        </SafeAreaView>
+        </View>
       </Modal>
     </View>
   );
 }
 
-function Seg({ text, onPress }: { text: string; onPress: () => void }) {
+function defaultDraft(minimumDate?: Date): Date {
+  const base = minimumDate && minimumDate.getTime() > Date.now() ? new Date(minimumDate) : new Date();
+  base.setSeconds(0, 0);
+  return base;
+}
+
+function SelectionRow({
+  icon,
+  label,
+  value,
+  active,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+  active: boolean;
+  onPress: () => void;
+}) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" style={styles.segment}>
-      <Text numberOfLines={1} ellipsizeMode="tail" style={styles.segmentText}>{text}</Text>
-      <Ionicons name="chevron-down" size={16} color="#64748b" />
+    <Pressable onPress={onPress} style={[styles.selRow, active && styles.selRowActive]}>
+      <Ionicons name={icon} size={22} color={ACCENT} />
+      <View style={styles.selText}>
+        <Text variant="caption" tone="muted">{label}</Text>
+        <Text style={styles.selValue}>{value}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
     </Pressable>
+  );
+}
+
+/** Web-only fallback: simple wheel columns since the native picker has no web build. */
+function WebWheels({
+  mode,
+  value,
+  minuteStep,
+  minYear,
+  maxYear,
+  onPick,
+}: {
+  mode: Mode;
+  value: Date;
+  minuteStep: number;
+  minYear: number;
+  maxYear: number;
+  onPick: (d: Date) => void;
+}) {
+  const cols: { data: number[]; render: (n: number) => string; get: () => number; set: (n: number) => Date }[] =
+    mode === 'date'
+      ? [
+          {
+            data: Array.from({ length: daysInMonth(value.getFullYear(), value.getMonth()) }, (_, i) => i + 1),
+            render: (n) => String(n),
+            get: () => value.getDate(),
+            set: (n) => { const d = new Date(value); d.setDate(n); return d; },
+          },
+          {
+            data: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+            render: (n) => MONTHS_ES_SHORT[n] ?? '',
+            get: () => value.getMonth(),
+            set: (n) => { const d = new Date(value); d.setMonth(n); return d; },
+          },
+          {
+            data: Array.from({ length: maxYear - minYear + 1 }, (_, i) => minYear + i),
+            render: (n) => String(n),
+            get: () => value.getFullYear(),
+            set: (n) => { const d = new Date(value); d.setFullYear(n); return d; },
+          },
+        ]
+      : [
+          {
+            data: Array.from({ length: 24 }, (_, i) => i),
+            render: (n) => pad2(n),
+            get: () => value.getHours(),
+            set: (n) => { const d = new Date(value); d.setHours(n); return d; },
+          },
+          {
+            data: Array.from({ length: Math.ceil(60 / minuteStep) }, (_, i) => i * minuteStep),
+            render: (n) => pad2(n),
+            get: () => value.getMinutes(),
+            set: (n) => { const d = new Date(value); d.setMinutes(n); return d; },
+          },
+        ];
+  return (
+    <View style={styles.wheels}>
+      {cols.map((col, ci) => (
+        <FlatList
+          key={ci}
+          style={styles.wheelCol}
+          data={col.data}
+          keyExtractor={(n) => String(n)}
+          initialNumToRender={20}
+          renderItem={({ item }) => {
+            const isSel = col.get() === item;
+            return (
+              <Pressable onPress={() => onPick(col.set(item))} style={styles.wheelItem}>
+                <Text tone={isSel ? 'primary' : 'muted'} style={isSel ? styles.wheelItemSel : undefined}>
+                  {col.render(item)}
+                </Text>
+              </Pressable>
+            );
+          }}
+        />
+      ))}
+    </View>
   );
 }
 
@@ -230,46 +305,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   triggerText: { flexShrink: 1, marginRight: 8 },
-  modal: { flex: 1, padding: 16 },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e7eb',
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  card: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    gap: 12,
   },
-  body: { flex: 1, paddingTop: 16, gap: 4 },
-  row: { flexDirection: 'row', gap: 8, marginTop: 4, marginBottom: 16, alignItems: 'center' },
-  colon: { paddingHorizontal: 2 },
-  segment: {
-    flex: 1,
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  selRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 12,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    backgroundColor: '#ffffff',
-    minWidth: 0,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    padding: 14,
+    backgroundColor: '#f8fafc',
   },
-  segmentText: { flexShrink: 1, marginRight: 4 },
-  footer: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingTop: 12 },
+  selRowActive: { borderColor: ACCENT },
+  selText: { flex: 1 },
+  selValue: { fontSize: 16, fontWeight: '600', textTransform: 'capitalize' },
+  footer: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingTop: 4 },
   footerConfirm: { flex: 1 },
-  option: {
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e7eb',
-  },
-  pickerBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
-  pickerSheet: {
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    maxHeight: '70%',
-  },
+  wheels: { flexDirection: 'row', gap: 8, height: 180 },
+  wheelCol: { flex: 1, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 8 },
+  wheelItem: { paddingVertical: 10, alignItems: 'center' },
+  wheelItemSel: { fontWeight: '700' },
 });

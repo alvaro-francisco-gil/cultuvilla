@@ -17,6 +17,7 @@ export type LocationAction =
   | { type: 'resultsLoaded'; results: GeocodePlace[] }
   | { type: 'pickResult'; place: GeocodePlace }
   | { type: 'gpsResult'; coords: LatLng }
+  | { type: 'resolvedAddress'; label: string }
   | { type: 'searchFailed' }
   | { type: 'clear' };
 
@@ -64,6 +65,9 @@ export function locationReducer(state: LocationPickerState, action: LocationActi
         selected: true,
         status: 'idle',
       };
+    case 'resolvedAddress':
+      // Reverse-geocoded label for an already-set coordinate (e.g. after GPS).
+      return { ...state, query: action.label, selected: true, status: 'idle' };
     case 'searchFailed':
       return { ...state, status: 'error', results: [] };
     case 'clear':

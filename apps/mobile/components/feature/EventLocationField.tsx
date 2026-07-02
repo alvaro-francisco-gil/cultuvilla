@@ -1,25 +1,42 @@
 import { useEffect, useReducer, useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, TextInput, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Modal, TextInput, View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { colors } from '@cultuvilla/shared/design-system';
-import { geocodeSearch } from '@cultuvilla/shared/services/mapsService';
+import { geocodeSearch, staticMapUrl, MAP_ZOOM_DEFAULT } from '@cultuvilla/shared/services/mapsService';
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 import { VStack, Text, Button, Pressable, FieldLabel } from '../primitives';
 import { useT } from '../../lib/i18n';
 import { showAlert } from '../../lib/dialogs';
-import { initialLocationState, locationReducer } from './locationPickerState';
+import { initialLocationState, locationReducer, coordLabel } from './locationPickerState';
 
 const ACCENT = colors.light.fg.accent;
+const MAP_ZOOM = MAP_ZOOM_DEFAULT ?? 15;
+
+/** Best-effort reverse geocode via the device geocoder (native only). */
+async function reverseGeocode(coords: LatLng): Promise<string> {
+  try {
+    const [a] = await Location.reverseGeocodeAsync({ latitude: coords.lat, longitude: coords.lng });
+    if (a) {
+      const line = [a.street ?? a.name, a.city ?? a.subregion].filter(Boolean).join(', ');
+      if (line) return line;
+    }
+  } catch {
+    /* unsupported (e.g. web) or no match — fall through */
+  }
+  return coordLabel(coords);
+}
 
 /**
  * Trigger + full-screen modal for choosing an event's location. The modal
  * replicates the ordago-apps LocationPicker layout — a search field up top, a
- * "use my location" action, and a bottom confirmation panel — but stays on the
- * cultuvilla web-safe stack: the server-side `geocodeSearch` proxy instead of a
- * client Google key, and no interactive `react-native-maps` surface (which
- * doesn't run on the villa-events web build). Colors follow the app accent.
+ * map preview of the selection, a "use my location" action, and a bottom
+ * confirmation panel — but stays on the cultuvilla web-safe stack: the
+ * server-side `geocodeSearch` proxy + a `staticMap` image (no client Google key
+ * and no interactive `react-native-maps`, which doesn't run on the villa-events
+ * web build). GPS picks are reverse-geocoded to a human address rather than raw
+ * coordinates. Colors follow the app accent.
  */
 export function EventLocationField({
   value,
@@ -67,7 +84,10 @@ export function EventLocationField({
         return;
       }
       const pos = await Location.getCurrentPositionAsync({});
-      dispatch({ type: 'gpsResult', coords: { lat: pos.coords.latitude, lng: pos.coords.longitude } });
+      const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      dispatch({ type: 'gpsResult', coords });
+      const label = await reverseGeocode(coords);
+      dispatch({ type: 'resolvedAddress', label });
     } catch {
       showAlert(t('village.admin.community.locationGpsFailed'));
     } finally {
@@ -122,24 +142,48 @@ export function EventLocationField({
             </View>
           </View>
 
-          {/* Results / status */}
-          <View style={styles.results}>
-            {state.status === 'searching' ? <ActivityIndicator color={ACCENT} style={{ marginTop: 12 }} /> : null}
-            {state.status === 'error' ? (
-              <Text tone="muted" style={styles.pad}>{t('village.admin.community.locationSearchFailed')}</Text>
-            ) : null}
-            <FlatList
-              data={state.results}
-              keyExtractor={(p) => `${p.lat},${p.lng}`}
-              keyboardShouldPersistTaps="handled"
-              renderItem={({ item }) => (
-                <Pressable onPress={() => dispatch({ type: 'pickResult', place: item })} style={styles.resultRow}>
-                  <Ionicons name="location-outline" size={18} color={ACCENT} />
-                  <Text style={styles.resultText}>{item.label}</Text>
-                </Pressable>
+          {/* Results while searching, otherwise the map preview of the pick */}
+          {state.results.length > 0 || state.status !== 'idle' ? (
+            <View style={styles.results}>
+              {state.status === 'searching' ? <ActivityIndicator color={ACCENT} style={{ marginTop: 12 }} /> : null}
+              {state.status === 'error' ? (
+                <Text tone="muted" style={styles.pad}>{t('village.admin.community.locationSearchFailed')}</Text>
+              ) : null}
+              <FlatList
+                data={state.results}
+                keyExtractor={(p) => `${p.lat},${p.lng}`}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item }) => (
+                  <Pressable onPress={() => dispatch({ type: 'pickResult', place: item })} style={styles.resultRow}>
+                    <Ionicons name="location-outline" size={18} color={ACCENT} />
+                    <Text style={styles.resultText}>{item.label}</Text>
+                  </Pressable>
+                )}
+              />
+            </View>
+          ) : (
+            <View style={styles.mapArea}>
+              {state.coords ? (
+                <View style={styles.mapWrap}>
+                  <Image
+                    source={{ uri: staticMapUrl(state.coords.lat, state.coords.lng, { zoom: MAP_ZOOM, w: 640, h: 640 }) }}
+                    style={styles.mapImage}
+                    resizeMode="cover"
+                    accessibilityIgnoresInvertColors
+                  />
+                  {/* Center pin marking the selected coordinate. */}
+                  <View style={styles.mapPin} pointerEvents="none">
+                    <Ionicons name="location" size={40} color={ACCENT} />
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.mapPlaceholder}>
+                  <Ionicons name="map-outline" size={40} color="#cbd5e1" />
+                  <Text tone="muted">{t('event.noLocationYet')}</Text>
+                </View>
               )}
-            />
-          </View>
+            </View>
+          )}
 
           {/* Bottom panel */}
           <View style={styles.bottomPanel}>
@@ -207,6 +251,30 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, paddingVertical: 12, fontSize: 16, color: '#0f172a' },
   results: { flex: 1, paddingHorizontal: 16 },
   pad: { paddingVertical: 12 },
+  mapArea: { flex: 1, padding: 16 },
+  mapWrap: { flex: 1, borderRadius: 16, overflow: 'hidden', backgroundColor: '#eef2f7' },
+  mapImage: { width: '100%', height: '100%' },
+  mapPin: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // The pin's tip sits at the visual center; nudge up by half its height.
+    paddingBottom: 40,
+  },
+  mapPlaceholder: {
+    flex: 1,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
   resultRow: {
     flexDirection: 'row',
     alignItems: 'center',
