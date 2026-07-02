@@ -14,6 +14,7 @@ import { DetailHeroImage } from '../../components/feature/DetailHeroImage';
 import { FloatingBackButton } from '../../components/feature/FloatingBackButton';
 import { FloatingShareButton } from '../../components/feature/FloatingShareButton';
 import { FloatingEditButton } from '../../components/feature/FloatingEditButton';
+import { FloatingManageButton } from '../../components/feature/FloatingManageButton';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
@@ -91,10 +92,16 @@ export default function EventDetailScreen() {
       <FloatingBackButton />
       <FloatingShareButton onPress={() => void share(getEventLink(event.id), event.title)} />
       {canOrganize && (
-        <FloatingEditButton
-          accessibilityLabel={t('event.editEvent')}
-          onPress={() => router.push(`/event/${event.id}/organize` as never)}
-        />
+        <>
+          <FloatingManageButton
+            accessibilityLabel={t('event.manageEvent')}
+            onPress={() => router.push(`/event/${event.id}/organize` as never)}
+          />
+          <FloatingEditButton
+            accessibilityLabel={t('event.editEvent')}
+            onPress={() => router.push(`/event/new?eventId=${event.id}` as never)}
+          />
+        </>
       )}
       <VStack gap={4} className="p-4">
         <Text variant="h1">{event.title}</Text>

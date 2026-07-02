@@ -21,6 +21,8 @@ export { Escudo } from './Escudo';
 export type { EscudoProps } from './Escudo';
 export { DateField } from './DateField';
 export type { DateFieldProps } from './DateField';
+export { DateTimeField } from './DateTimeField';
+export type { DateTimeFieldProps } from './DateTimeField';
 export { PasswordInput } from './PasswordInput';
 export type { PasswordInputProps } from './PasswordInput';
 export { VillagePicker } from './VillagePicker';
