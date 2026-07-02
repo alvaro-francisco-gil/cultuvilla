@@ -64,13 +64,13 @@ export function ProposableListItem({
           {canManage && isPending && onReject ? (
             <Action testID="action-reject" label={t('common.reject')} tone="text-red-600" onPress={onReject} />
           ) : null}
-          {((canManage && !isPending) || isOwnPending) && onEdit ? (
+          {(canManage || isOwnPending) && onEdit ? (
             <Action testID="action-edit" label={t('common.edit')} onPress={onEdit} />
           ) : null}
           {!canManage && isOwnPending && onWithdraw ? (
             <Action testID="action-withdraw" label={t('village.proposals.withdraw')} tone="text-red-600" onPress={onWithdraw} />
           ) : null}
-          {canManage && !isPending && onDelete ? (
+          {canManage && onDelete ? (
             <Action testID="action-delete" label={t('common.delete')} tone="text-red-600" onPress={onDelete} />
           ) : null}
         </HStack>
