@@ -1,0 +1,19 @@
+name: Deploy beta
+
+# Merges to beta deploy backend + hosting to cultuvilla-beta.
+# Skip a deploy by putting [skip-deploy] in the merge commit message.
+on:
+  push:
+    branches: [beta]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    if: ${{ !contains(github.event.head_commit.message, '[skip-deploy]') }}
+    uses: ./.github/workflows/deploy-firebase.yml
+    with:
+      environment: beta
+      firebase_alias: beta

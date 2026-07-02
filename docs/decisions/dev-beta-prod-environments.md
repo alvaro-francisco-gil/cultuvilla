@@ -45,9 +45,33 @@ record captures only the decisions and why.
 - A future `apps/mobile` shares `resolveAppEnv` / `getFirebaseConfig` from
   `@cultuvilla/shared`, driven by `EAS_BUILD_PROFILE` and `EXPO_PUBLIC_*_<ENV>`.
 
+## Amendment: branch → environment CI deploys
+
+CI-driven deploys were added (the "Revisit when" trigger below). The three
+Firebase projects are now driven by a three-tier branch model — `develop` → dev
+(`villa-events`), `beta` → beta (`cultuvilla-beta`), `main` → prod
+(`cultuvilla-prod`). Merging into a branch runs `.github/workflows/deploy-<env>.yml`
+(a thin caller of the reusable `deploy-firebase.yml`), which deploys backend
+(rules → indexes → functions) then hosting to that env.
+
+- **Keyless auth via Workload Identity Federation**, not service-account keys: one
+  WIF pool + OIDC provider per project trusts only this repo, and impersonation of
+  the per-project `gha-deployer` SA is scoped to that env's branch. Chosen so the
+  setup is permanent — no keys to rotate, and it survives an org later disabling
+  SA-key creation.
+- **Prod is gated** by the `production` GitHub Environment (manual approval);
+  `main` forbids direct pushes (merge-from-`beta` only). Dev auto-deploys on every
+  `develop` merge, with a `[skip-deploy]` commit-message escape hatch.
+- Per-env Firebase web config + the WIF provider/SA references live as GitHub
+  **Environment variables** (`dev` / `beta` / `production`), consumed by the
+  reusable workflow. Local deploys still use `scripts/firebase.sh`.
+
+This supersedes the original "dev can auto-deploy on `main`" note: `main` is now
+production, so dev auto-deploys on `develop`.
+
 ## Revisit when
 
 - Beta needs its own deployed web URL → add a second Vercel project/scope with
   `NEXT_PUBLIC_APP_ENV=beta`.
-- CI-driven deploys are added → gate prod behind a protected GitHub Environment
-  with manual approval; dev can auto-deploy on `main`.
+- Mobile store shipping is needed → add EAS build/submit workflows per branch
+  (deliberately out of scope for the CI-deploy work, which is backend + hosting).

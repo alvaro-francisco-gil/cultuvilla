@@ -106,10 +106,39 @@ The only real secret in the stack is `EXPO_TOKEN` (EAS robot access).
 If CI ever drives EAS builds, that goes in **GitHub Actions repo
 secrets**, not in `.env`.
 
-## Deploying
+## Deploying via CI (default)
 
-Every deploy script is explicit per environment. There is no bare
-`firebase deploy` — that prevents accidental prod deploys.
+Deploys are driven by the branch model — you don't run them by hand for shared
+environments. Merging into a branch runs `.github/workflows/deploy-<env>.yml`
+(a thin caller of the reusable `deploy-firebase.yml`), which deploys
+rules → indexes → functions → hosting to that env:
+
+| Merge into | Deploys to | Gate |
+|---|---|---|
+| `develop` | dev (`villa-events`) | auto |
+| `beta` | beta (`cultuvilla-beta`) | auto |
+| `main` | prod (`cultuvilla-prod`) | manual approval (`production` GitHub Environment) |
+
+- **Auth is keyless (Workload Identity Federation).** Each project has a
+  `github-actions` WIF pool + `github` OIDC provider that trusts only this repo,
+  and a `gha-deployer` service account impersonated only by pushes to that env's
+  branch. No service-account keys exist to rotate or leak.
+- **Config lives in GitHub Environment variables** (`dev` / `beta` / `production`):
+  `GCP_WIF_PROVIDER`, `GCP_SERVICE_ACCOUNT`, `APP_ENV`, and the Firebase web config
+  under generic names (`FIREBASE_API_KEY`, …). The workflow maps them to the
+  `FIREBASE_*_<ENV>` names `app.config.ts` reads. Google Sign-In needs
+  `GOOGLE_WEB_CLIENT_ID` set per env (dev has it; beta/prod pending OAuth clients).
+- **Skip a deploy** by putting `[skip-deploy]` in the merge commit message.
+
+To reprovision the GCP side (WIF pools/providers + deployer SAs) from scratch,
+run [scripts/setup-ci-deploy-wif.sh](../scripts/setup-ci-deploy-wif.sh)
+(idempotent). Then set `GCP_WIF_PROVIDER` / `GCP_SERVICE_ACCOUNT` and the
+Firebase web config as GitHub Environment variables.
+
+## Deploying manually (local, per-env)
+
+Still available for one-offs. Every deploy script is explicit per environment.
+There is no bare `firebase deploy` — that prevents accidental prod deploys.
 
 ```bash
 # Hosting (Expo web export → Firebase Hosting)

@@ -159,7 +159,7 @@ chore(scope): ...
 ci(scope): ...
 ```
 
-Header ≤ 100 chars. Direct-to-main is fine (see `feedback_push_main` in user memory) — keep commits small and self-contained.
+Header ≤ 100 chars. Direct-to-`develop` is fine for small self-contained changes; `beta` and `main` advance only via promotion PRs (see the branch model under Development workflow).
 
 ### Delete > deprecate
 
@@ -272,13 +272,20 @@ If you need output from a long-running service to verify a change, ask the user 
 
 All non-trivial changes follow the same loop. Tiny edits (typo in a doc, a renamed string) can skip steps 1 and 4, but any code change goes through every step.
 
+**Branch model (three-tier):** `develop` → `beta` → `main`, each mapped to a Firebase
+environment (dev `villa-events`, beta `cultuvilla-beta`, prod `cultuvilla-prod`).
+Merging into a branch auto-deploys backend + hosting to its env via CI; `main` is
+production and **forbids direct pushes** (merge-from-`beta` only, behind a manual
+approval gate). All daily work targets `develop`. See
+[docs/decisions/dev-beta-prod-environments.md](docs/decisions/dev-beta-prod-environments.md).
+
 1. **Ask which mode to use, then work in it.** Before writing code, ask the user to pick one of two modes:
-   - **Worktree + feature branch (default).** Branch from the latest `main` into a worktree under `.claude/worktrees/<short-name>/` and work there. Never edit the main checkout in this mode. Worktrees isolate dependencies, build outputs, and `.next/` caches so parallel changes don't fight each other, and they make it easy to abandon work that doesn't pan out.
+   - **Worktree + feature branch (default).** Branch from the latest `develop` into a worktree under `.claude/worktrees/<short-name>/` and work there. Never edit the base checkout in this mode. Worktrees isolate dependencies, build outputs, and caches so parallel changes don't fight each other, and they make it easy to abandon work that doesn't pan out.
 
-   **The VSCode checkout must always stay on `main`** — never run `git checkout`/`git switch` to a feature branch in the open editor workspace. A feature branch always lives in its own worktree, created with `git worktree add` and committed to from there, so the VSCode view never leaves `main`.
-   - **Direct to main.** Edit the main checkout and commit to `main`. Only when the user explicitly chooses this for the task.
+   **The VSCode checkout must always stay on `develop`** — never run `git checkout`/`git switch` to a feature branch in the open editor workspace. A feature branch always lives in its own worktree, created with `git worktree add` and committed to from there, so the VSCode view never leaves `develop`.
+   - **Direct to develop.** Edit the base checkout and commit to `develop`. Only when the user explicitly chooses this for the task. (Never commit directly to `beta` or `main` — those advance only by promotion PRs.)
 
-   Worktree is the default — propose it unless the user opts into direct-to-main. Surface the choice up front (during planning); don't assume it.
+   Worktree is the default — propose it unless the user opts into direct-to-develop. Surface the choice up front (during planning); don't assume it.
 2. **Read any in-flight plan** in [docs/plans/](docs/plans/) and the relevant record in [docs/decisions/](docs/decisions/) for the feature area.
 3. **Look at the relevant service** in [packages/shared/src/services/](packages/shared/src/services/) before writing UI code; extend the service if the API you need is missing.
 4. **Add or extend tests whenever possible.** Tests are the contract that survives refactors and AI rewrites. Specifically:
@@ -287,13 +294,13 @@ All non-trivial changes follow the same loop. Tiny edits (typo in a doc, a renam
    - If a change is genuinely untestable today (UI-only, no extractable logic), say so in the PR description and explain why.
 5. **Keep documentation in sync.** If you add a new collection or denormalized field, update [packages/shared/src/services/_services-map.md](packages/shared/src/services/_services-map.md) and [docs/architecture/denormalized-read-models.md](docs/architecture/denormalized-read-models.md) in the same change. Note user-facing changes in [CHANGELOG.md](CHANGELOG.md) under `## [Unreleased]`.
 6. **Run `pnpm check` before pushing.** CI runs the same gate; failing locally is faster than failing in Actions.
-7. **Open a pull request** with `gh pr create`, even though direct-to-main is technically allowed. A PR is a written record of what changed and why, and lets CI gate the change before it touches `main`. The PR description should cover:
+7. **Open a pull request** with `gh pr create` targeting `develop`. A PR is a written record of what changed and why, and lets CI gate the change before it touches `develop` (and, via promotion, beta/prod). The PR description should cover:
    - **What** changed at a level the future reader needs (not a diff restatement).
    - **Why** it was done — the motivating problem or design decision.
    - **Tests** that were added (or an explicit note if none were possible).
    - **Test plan** as a checklist: local check, CI, manual verification steps.
 8. **Wait for the user to confirm the merge.** Once the PR is open and CI is green, summarize the result and stop. Do **not** merge autonomously, even if every check passes — the human is the merge gate.
-9. **Before merging, rebase the branch onto the latest `main`.** `git fetch origin main && git rebase origin/main`, resolve any conflicts, re-run `pnpm check`, then `git push --force-with-lease`. CI must go green again on the rebased commits before the merge. Stale branches cause silent breakage when the merge crosses a refactor that landed on main while the PR was in review.
+9. **Before merging, rebase the branch onto the latest `develop`.** `git fetch origin develop && git rebase origin/develop`, resolve any conflicts, re-run `pnpm check`, then `git push --force-with-lease`. CI must go green again on the rebased commits before the merge. Stale branches cause silent breakage when the merge crosses a refactor that landed on develop while the PR was in review. (Promotion PRs `develop → beta` and `beta → main` follow the same rebase-then-green rule.)
 10. **Merge with a merge commit, not squash or rebase.** Use `gh pr merge <n> --merge`. Squashing would collapse the carefully-scoped commits in the PR (e.g. "feature" + "test for feature") into one, which makes `git bisect` and `git blame` worse. Rebase-merging hides the PR boundary entirely. A merge commit preserves both.
 11. **If you broke a rule in this file deliberately**, update this file in the same PR.
 
@@ -305,7 +312,7 @@ All non-trivial changes follow the same loop. Tiny edits (typo in a doc, a renam
 - Reads in components that should be cached or batched.
 - Spanish strings that escaped the i18n message catalog.
 - Code changes that ship without tests when tests were possible.
-- Work that landed outside a worktree *without the user choosing direct-to-main mode* (see Development workflow step 1) — and so might have polluted main's checkout state.
+- Work that landed outside a worktree *without the user choosing direct-to-develop mode* (see Development workflow step 1) — and so might have polluted the `develop` base checkout state.
 
 ## Be proactive
 
