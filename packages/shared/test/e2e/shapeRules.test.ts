@@ -18,7 +18,7 @@ import {
   assertFails,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, GeoPoint } from 'firebase/firestore';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -64,6 +64,8 @@ const validNewsPayload = {
   body: 'B',
   category: 'otro' as const,
   images: [],
+  content: [],
+  coverImage: null,
   status: 'pending' as const,
   rejectionReason: null,
   submittedAt: new Date(),
@@ -347,7 +349,9 @@ describe('shape enforcement — /events/{eventId}', () => {
     municipalityId: 'm1',
     villageName: 'Villa',
     villageCoverImage: null,
-    villageCoordinates: { lat: 40, lng: -3 },
+    // The converter persists {lat,lng} as a GeoPoint (rules type `latlng`), so
+    // the stored villageCoordinates is a GeoPoint, not a map.
+    villageCoordinates: new GeoPoint(40, -3),
   };
 
   it('accepts a valid full-shape payload', async () => {

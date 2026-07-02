@@ -77,6 +77,8 @@ service cloud.firestore {
     function isList(v) { return v is list; }
     function isMap(v) { return v is map; }
     function isMapOrNull(v) { return v == null || v is map; }
+    // GeoPoint fields (the converter writes {lat,lng} -> GeoPoint, rules type `latlng`).
+    function isLatLngOrNull(v) { return v == null || v is latlng; }
 
     function isValidPartialDate(v) {
       return v == null || (
@@ -147,13 +149,13 @@ service cloud.firestore {
     function isValidNewsPostCreate(d) {
       return d.keys().hasOnly([
               'municipalityId', 'organizerUserIds', 'organizerOrgIds', 'title', 'body',
-              'category', 'images', 'status', 'rejectionReason',
+              'content', 'category', 'images', 'coverImage', 'status', 'rejectionReason',
               'submittedAt', 'publishedAt', 'createdBy', 'updatedAt',
               'reactionCounts', 'commentCount',
             ])
           && d.keys().hasAll([
               'municipalityId', 'organizerUserIds', 'organizerOrgIds', 'title', 'body',
-              'category', 'images', 'status', 'rejectionReason',
+              'content', 'category', 'images', 'coverImage', 'status', 'rejectionReason',
               'submittedAt', 'publishedAt', 'createdBy', 'updatedAt',
               'reactionCounts', 'commentCount',
             ])
@@ -162,8 +164,10 @@ service cloud.firestore {
           && d.organizerOrgIds is list
           && isString(d.title)
           && isString(d.body)
+          && isList(d.content)
           && d.category in ['fiesta', 'tradicion', 'gastronomia', 'historia', 'otro']
           && isList(d.images)
+          && isMapOrNull(d.coverImage)
           && d.status in ['pending', 'approved', 'rejected']
           && isStringOrNull(d.rejectionReason)
           && isTimestamp(d.submittedAt)
@@ -388,7 +392,7 @@ service cloud.firestore {
           && isString(d.municipalityId)
           && isString(d.villageName)
           && isStringOrNull(d.villageCoverImage)
-          && isMapOrNull(d.villageCoordinates);
+          && isLatLngOrNull(d.villageCoordinates);
     }
 
     // ── Collections ──────────────────────────────────────────────────────

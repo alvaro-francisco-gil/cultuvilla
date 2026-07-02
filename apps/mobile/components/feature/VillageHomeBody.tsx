@@ -576,7 +576,7 @@ function NewsEntityCard({
   onPress: () => void;
 }) {
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const firstImagePath = post.images[0]?.storagePath ?? null;
+  const firstImagePath = post.coverImage?.storagePath ?? post.images[0]?.storagePath ?? null;
 
   useEffect(() => {
     let cancelled = false;

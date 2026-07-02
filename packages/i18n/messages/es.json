@@ -740,6 +740,7 @@
       "organizersLabel": "Organizadores",
       "addOrganizerUser": "Añadir organizador",
       "addOrganizerOrg": "Añadir organización organizadora",
+      "categoryPlaceholder": "Elige una categoría…",
       "stepBasics": "Lo básico",
       "stepContent": "Contenido",
       "stepAttribution": "Autoría",
@@ -747,14 +748,11 @@
       "addCover": "Añadir portada",
       "changeCover": "Cambiar portada",
       "contentLabel": "Cuerpo del artículo",
-      "contentHint": "Añade párrafos e imágenes. Escribe @ para mencionar peñas, personas, eventos o lugares.",
       "attributionLocked": "La autoría no se puede cambiar después de crear el artículo.",
       "block": {
-        "text": "Párrafo",
-        "image": "Imagen",
-        "addText": "Añadir párrafo",
         "addImage": "Añadir imagen",
-        "textPlaceholder": "Escribe aquí… usa @ para mencionar",
+        "removeImage": "Quitar imagen",
+        "textPlaceholder": "Escribe aquí… usa @ para mencionar peñas, personas, eventos o lugares",
         "captionPlaceholder": "Pie de foto (opcional)"
       },
       "mentionType": {

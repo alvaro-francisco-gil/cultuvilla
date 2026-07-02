@@ -15,7 +15,7 @@ import {
   assertFails,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc, GeoPoint } from 'firebase/firestore';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -106,6 +106,20 @@ describe('firestore.rules — event organizerUserIds control', () => {
       setDoc(doc(alice, 'events/new2'), {
         ...newEvent('alice'),
         organizerUserIds: [], // alice missing
+      }),
+    );
+  });
+
+  it('a village member can create with a GeoPoint villageCoordinates (converter output)', async () => {
+    // The client converter denormalizes {lat,lng} -> GeoPoint on write, so the
+    // persisted villageCoordinates is a GeoPoint (rules type `latlng`), NOT a
+    // map. The create rule must accept it. Regression: events with real village
+    // coordinates were denied because the rule checked `is map`.
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(
+      setDoc(doc(alice, 'events/geo1'), {
+        ...newEvent('alice'),
+        villageCoordinates: new GeoPoint(40.0, -3.0),
       }),
     );
   });
