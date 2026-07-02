@@ -4,6 +4,43 @@
 each branch automatically deploys the Firebase backend **and hosting** to that
 branch's environment via CI, replacing today's manual laptop deploys.
 
+## Status
+
+- **Updated:** 2026-07-02
+- **Stage:** dev fully live; beta/prod plumbing in place, awaiting their first deploy.
+- **Branch:** repo `develop` (PR #31 merged); `main`/`beta` protected.
+- **Done:** WIF pools/providers + keyless `gha-deployer` SAs on all 3 projects;
+  GitHub Environments dev/beta/production (prod gated on review) with WIF + Firebase
+  web config vars; reusable `deploy-firebase.yml` + 3 callers; CI retargeted;
+  first **dev deploy green** (villa-events.web.app serving HTTP 200); default branch
+  flipped to `develop`; branch protection on `beta`/`main`; AGENTS/ENVIRONMENTS/decision
+  docs + `dev-mode-ask-worktree-or-main` memory updated.
+- **Next:** before the first beta/prod deploy — create the `GOOGLE_MAPS_API_KEY`
+  secret in `cultuvilla-beta`/`cultuvilla-prod`, and (for Google Sign-In) create the
+  web OAuth client per env and set `GOOGLE_WEB_CLIENT_ID` env var. Then dry-run a
+  `develop → beta` promotion PR, then `beta → main`.
+- **Blockers:** none technical; beta/prod deploys will fail at the functions step
+  until their `GOOGLE_MAPS_API_KEY` secret exists.
+- **Handoff:** deploy SAs needed 5 role/API rounds to work — all folded into
+  `scripts/setup-ci-deploy-wif.sh` (idempotent). WIF trusts only this repo, branch-scoped.
+  CI can't push `.github/workflows/*` over the gh HTTPS token (no `workflow` scope) —
+  push those via the SSH remote. `main` uses `enforce_admins=true` (no direct pushes at
+  all); `beta` uses `false`.
+
+## Rollout status
+
+| Step | Dev | Beta | Prod |
+|---|---|---|---|
+| WIF pool/provider + keyless SA | ✅ | ✅ | ✅ |
+| GitHub Environment + WIF/Firebase vars | ✅ | ✅ | ✅ |
+| `GOOGLE_WEB_CLIENT_ID` (Google Sign-In) | ✅ | ⬜ | ⬜ |
+| `GOOGLE_MAPS_API_KEY` secret exists | ✅ | ⬜ | ⬜ |
+| Deploy workflow | ✅ | ✅ | ✅ |
+| First successful deploy | ✅ | ⬜ | ⬜ |
+| Branch protection | n/a (default) | ✅ | ✅ |
+
+Legend: ⬜ pending · ⏳ in progress · ✅ done · ⚠️ blocked
+
 ## Context
 
 The repo already has the *environments* half of a mature multi-env setup (three
