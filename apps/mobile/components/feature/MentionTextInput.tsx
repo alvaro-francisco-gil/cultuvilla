@@ -50,10 +50,12 @@ export function MentionTextInput({
   onSelectionChange,
 }: MentionTextInputProps) {
   const { t } = useT();
+  // Track the caret only to detect an in-progress `@query`. We deliberately do
+  // NOT control the native `selection` prop: on Android a controlled selection
+  // forces the field into NO_SUGGESTIONS mode, which drops the keyboard's
+  // suggestion strip (the "keyboard got smaller" bug). After a mention insert we
+  // let the caret fall to the end of the new value, which is the common case.
   const [selection, setSelection] = useState({ start: 0, end: 0 });
-  // After a programmatic edit (mention insert) we force the caret once, then
-  // release control back to the native field so typing/selection feels normal.
-  const [forcedSelection, setForcedSelection] = useState<{ start: number; end: number } | null>(null);
 
   const active =
     selection.start === selection.end
@@ -77,9 +79,9 @@ export function MentionTextInput({
     if (!active) return;
     const res = insertMention(value, mentions, active, candidate);
     onChange(res.text, res.mentions);
-    const caret = { start: res.cursor, end: res.cursor };
-    setSelection(caret);
-    setForcedSelection(caret);
+    // Predict the caret so the suggestion list closes immediately; the native
+    // onSelectionChange will confirm it on the next frame.
+    setSelection({ start: res.cursor, end: res.cursor });
   }
 
   return (
@@ -94,14 +96,11 @@ export function MentionTextInput({
           className="text-primary text-body"
           textAlignVertical="top"
           style={{ minHeight: 96 }}
-          selection={forcedSelection ?? undefined}
           onFocus={onFocus}
           onSelectionChange={(e) => {
             const sel = e.nativeEvent.selection;
             setSelection(sel);
             onSelectionChange?.(sel.start);
-            // Release forced caret after the native field has applied it.
-            if (forcedSelection) setForcedSelection(null);
           }}
         />
       </View>
