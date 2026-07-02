@@ -177,7 +177,7 @@ export function EventLocationField({
                   autoCapitalize="none"
                 />
                 {state.query !== '' ? (
-                  <Pressable onPress={() => dispatch({ type: 'clear' })} accessibilityLabel={t('village.admin.community.removeLocation')} hitSlop={8}>
+                  <Pressable onPress={() => dispatch({ type: 'clearQuery' })} accessibilityLabel={t('village.admin.community.removeLocation')} hitSlop={8}>
                     <Ionicons name="close-circle" size={18} color={ACCENT} />
                   </Pressable>
                 ) : null}
