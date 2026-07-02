@@ -36,31 +36,42 @@ export const onRegistrationDeleted = onDocumentDeleted(
 
     let promoted = false;
     if (deletedStatus === 'confirmed' && eventData.maxAttendees) {
-      const waitlisted = await regsCol
-        .where('status', '==', 'waitlisted')
-        .orderBy('position', 'asc')
-        .limit(1)
-        .get();
+      // Eventarc delivers at-least-once, so this handler can run twice for the
+      // same deletion. Only promote when the event is genuinely under capacity:
+      // a redelivery (whose freed slot was already refilled) finds
+      // confirmed == cap and promotes no one, so we never over-fill the event.
+      const confirmedNow = await regsCol.where('status', '==', 'confirmed').count().get();
+      if (confirmedNow.data().count < eventData.maxAttendees) {
+        const waitlisted = await regsCol
+          .where('status', '==', 'waitlisted')
+          .orderBy('position', 'asc')
+          .limit(1)
+          .get();
 
-      if (!waitlisted.empty) {
-        const nextInLine = waitlisted.docs[0];
-        // Converter-wrapped: typed RegistrationData.
-        const nextData = nextInLine.data();
-        // update() bypasses the converter, partial shape is accepted.
-        await nextInLine.ref.update({ status: 'confirmed' });
-        promoted = true;
+        if (!waitlisted.empty) {
+          const nextInLine = waitlisted.docs[0];
+          // Converter-wrapped: typed RegistrationData.
+          const nextData = nextInLine.data();
+          // update() bypasses the converter, partial shape is accepted.
+          await nextInLine.ref.update({ status: 'confirmed' });
+          promoted = true;
 
-        // Typed converter ref — .add() marshals through the schema, so
-        // createdAt is a plain Date (sentinels would be rejected).
-        await userNotificationsCollection(db, nextData.userId).add(
-          buildNotificationData({
-            type: 'waitlist_promoted',
-            title: '¡Plaza confirmada!',
-            body: `Se ha liberado una plaza en "${eventData.title}" para ${nextData.name}`,
-            eventId,
-            municipalityId: eventData.municipalityId,
-          }),
-        );
+          // Deterministic notification id (one per user+event) so a redelivered
+          // promotion overwrites rather than appending a duplicate. Typed
+          // converter ref — set() marshals through the schema, so createdAt is a
+          // plain Date (sentinels would be rejected).
+          await userNotificationsCollection(db, nextData.userId)
+            .doc(`waitlist_${eventId}`)
+            .set(
+              buildNotificationData({
+                type: 'waitlist_promoted',
+                title: '¡Plaza confirmada!',
+                body: `Se ha liberado una plaza en "${eventData.title}" para ${nextData.name}`,
+                eventId,
+                municipalityId: eventData.municipalityId,
+              }),
+            );
+        }
       }
     }
 

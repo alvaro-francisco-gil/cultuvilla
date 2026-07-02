@@ -23,6 +23,14 @@ registration *for that village*.
 - Fields are **predefined** (from a code registry,
   `profileFieldRegistry.ts`, with stable cross-village keys) or **custom**
   (coordinador-defined, village-local).
+- **A custom `select`/`multiselect` field sources its options one of two ways,
+  never both:** static `options: string[]` typed by the coordinador, **or**
+  `optionsSource: 'barrios' | 'places' | 'organizations'` — options resolved
+  live from that village's entities at render time (`censoFieldResolver.ts`
+  `resolveFieldDisplay` + `useEntityOptions`). Dynamic options are not
+  snapshotted, so a deleted entity shows as "(eliminado)" for members who had
+  already selected it. `validateCensoUpdate` rejects a field that sets both
+  `options` and `optionsSource`, or `optionsSource` on a non-choice type.
 - **Append-only schema after first answer:** a field can be removed only while
   zero members have answered it; select options can be appended but not removed
   once selected; field `type` and `key` are immutable. Enforced in the builder
@@ -45,6 +53,10 @@ registration *for that village*.
   field re-gates on next registration, by design).
 - Predefined keys are stable; reuse them rather than minting custom equivalents,
   so future cross-village reporting stays possible.
+- The censo readers tolerate `options`/`optionsSource` arriving as `null` (the
+  Firebase callable serializer encodes `undefined` object values as `null`);
+  `CensoTypes.ts` preprocesses `null → undefined` so one field never crashes the
+  whole municipality parse. Don't tighten those fields to reject `null`.
 
 ## Revisit when
 

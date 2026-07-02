@@ -9,7 +9,7 @@ on:
       - 'pnpm-lock.yaml'
       - '.github/workflows/mobile-ci.yml'
   push:
-    branches: [main]
+    branches: [develop, beta, main]
 
 jobs:
   typecheck-and-test:
