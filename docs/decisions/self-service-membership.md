@@ -55,6 +55,11 @@ Three independent layers replace the single "organize" act:
   organizer-gated in the current rules.
 - Predicates rules can't express (member AND no-organizer-yet) live in the
   `updateVillageInfo` callable; the simple self-join guard lives in rules.
+- **This applies to *village* membership only. Joining an organization
+  (peña/asociación) stays approval-gated** — an `organizationJoinRequest` an org
+  admin must approve (see the request taxonomy in `AGENTS.md`). Belonging to your
+  own pueblo needs no permission; joining someone else's association does. Don't
+  generalize self-join to orgs.
 
 ## Layers touched
 

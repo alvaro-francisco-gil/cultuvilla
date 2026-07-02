@@ -43,8 +43,10 @@ This is the result of the migration recorded in [docs/decisions/open-feed-archit
 
 ### Request types (solicitudes)
 
-Three user-initiated requests exist. Approvers see them in the Solicitudes inbox
-(mobile, admin-only). Non-admins create requests from in-context screens; outcomes
+Three user-initiated requests exist. The Solicitudes screen (mobile) is open to
+everyone and has two tabs: **Recibidas** (inbox — items you can approve, scoped to
+what you administer) and **Enviadas** (outbox — requests you've sent). Non-admins
+simply see an empty inbox. Requests are created from in-context screens; outcomes
 arrive as notifications.
 
 | Request | Collection | Created by | Approved by |
