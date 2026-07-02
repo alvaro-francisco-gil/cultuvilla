@@ -124,6 +124,19 @@ describe('firestore.rules — event organizerUserIds control', () => {
     );
   });
 
+  it('create with the EXACT converter output: GeoPoint location.coordinates + GeoPoint villageCoordinates + co-organizer', async () => {
+    // Mirrors the real client write (converter turns every {lat,lng} into a
+    // GeoPoint). Reproduces the reported production create failure.
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(
+      setDoc(doc(alice, 'events/prod1'), {
+        ...newEvent('alice', ['bob']),
+        location: { coordinates: new GeoPoint(41.096, -3.758), displayName: 'Plaza Mayor' },
+        villageCoordinates: new GeoPoint(41.096, -3.758),
+      }),
+    );
+  });
+
   it('denied: create by a non-village-member', async () => {
     const stranger = env.authenticatedContext('stranger').firestore();
     await assertFails(setDoc(doc(stranger, 'events/new3'), newEvent('stranger')));
