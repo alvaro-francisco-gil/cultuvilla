@@ -54,6 +54,8 @@ export default function NewEventScreen() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState<Date | null>(null);
+  // Optional multi-day end; null = single-day event.
+  const [endDate, setEndDate] = useState<Date | null>(null);
   const [coords, setCoords] = useState<LatLng | null>(null);
   const [locationName, setLocationName] = useState('');
   const [mapZoom, setMapZoom] = useState(MAP_ZOOM_DEFAULT ?? 13);
@@ -111,6 +113,7 @@ export default function NewEventScreen() {
         title: title.trim(),
         description: description.trim(),
         startDate,
+        endDate,
         location: buildLocationData({
           // coords is validated non-null before submit() is reachable
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -222,6 +225,8 @@ export default function NewEventScreen() {
       validate: () => {
         const e: string[] = [];
         if (!startDate) e.push('startDate');
+        // endDate is optional, but if set it must not precede startDate.
+        if (endDate && startDate && endDate < startDate) e.push('endDate');
         if (!locationName.trim()) e.push('locationName');
         if (!coords) e.push('coords');
         return e;
@@ -233,6 +238,12 @@ export default function NewEventScreen() {
             value={startDate}
             onChange={setStartDate}
             testID="startDate"
+          />
+          <DateField
+            label={t('event.endDate')}
+            value={endDate}
+            onChange={setEndDate}
+            testID="endDate"
           />
           <LocationPicker
             value={coords}

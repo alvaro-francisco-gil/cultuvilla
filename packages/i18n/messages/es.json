@@ -415,6 +415,8 @@
     "title": "Título",
     "description": "Descripción",
     "startDate": "Fecha de inicio",
+    "endDate": "Fecha de fin (opcional)",
+    "dateRange": "{start} – {end}",
     "location": "Ubicación",
     "maxAttendees": "Máximo de asistentes",
     "unlimited": "Sin límite",

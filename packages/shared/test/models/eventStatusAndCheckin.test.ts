@@ -3,7 +3,7 @@ import { EventDataSchema } from '../../src/models/event/EventDataModel';
 import { RegistrationDataSchema, buildRegistrationData } from '../../src/models/event/RegistrationDataModel';
 
 const baseEvent = {
-  title: 'Fiesta', description: 'x', startDate: new Date(),
+  title: 'Fiesta', description: 'x', startDate: new Date(), endDate: null,
   location: { coordinates: { lat: 40.4, lng: -3.7 }, displayName: 'Plaza' }, imageURL: null, maxAttendees: null,
   telephoneRequired: false, status: 'published', organizerUserIds: ['u1'], organizerOrgIds: [],
   createdBy: 'u1', createdAt: new Date(), updatedAt: new Date(),

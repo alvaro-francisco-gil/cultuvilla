@@ -84,8 +84,9 @@ describe('NewEventScreen stepper', () => {
     fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
     fireEvent.changeText(getByLabelText('event.description'), 'Desc');
     fireEvent.press(getByText('common.stepper.next'));
-    // Now in step 2 (Cuándo y dónde) — endDate must NOT be present
-    expect(queryByTestId('endDate')).toBeNull();
+    // Now in step 2 (Cuándo y dónde) — both date fields are present.
+    // endDate is the optional multi-day end.
+    expect(getByTestId('endDate')).toBeTruthy();
     // startDate DateField must still be present
     expect(getByTestId('startDate')).toBeTruthy();
     // locationName input must be accessible
@@ -93,15 +94,15 @@ describe('NewEventScreen stepper', () => {
   });
 
   it('step 3 renders the OrganizerPicker', async () => {
-    const { getByText, getByLabelText, getByTestId, queryByTestId } = render(<NewEventScreen />);
+    const { getByText, getByLabelText, getByTestId } = render(<NewEventScreen />);
     await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
     // Advance through step 1
     fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
     fireEvent.changeText(getByLabelText('event.description'), 'Desc');
     fireEvent.press(getByText('common.stepper.next'));
-    // Confirm in step 2: no endDate, has startDate
+    // Confirm in step 2: both date fields present (endDate is optional).
     await waitFor(() => expect(getByTestId('startDate')).toBeTruthy());
-    expect(queryByTestId('endDate')).toBeNull();
+    expect(getByTestId('endDate')).toBeTruthy();
     // Set startDate (via mocked DateField) to allow advancing to step 3
     fireEvent.press(getByTestId('startDate'));
     // Wait for locationName to be seeded from the mocked municipality, then advance
@@ -132,15 +133,15 @@ describe('NewEventScreen stepper', () => {
   });
 
   it('renders OrganizerPicker in the details step (navigation regression)', async () => {
-    const { getByText, getByLabelText, getByTestId, queryByTestId } = render(<NewEventScreen />);
+    const { getByText, getByLabelText, getByTestId } = render(<NewEventScreen />);
     await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
     // Fill step 1
     fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
     fireEvent.changeText(getByLabelText('event.description'), 'Desc');
     fireEvent.press(getByText('common.stepper.next'));
-    // Confirm in step 2: no endDate, has startDate
+    // Confirm in step 2: both date fields present (endDate is optional).
     await waitFor(() => expect(getByTestId('startDate')).toBeTruthy());
-    expect(queryByTestId('endDate')).toBeNull();
+    expect(getByTestId('endDate')).toBeTruthy();
     // Set startDate via mocked DateField to unblock step 2 validation
     fireEvent.press(getByTestId('startDate'));
     await waitFor(() => expect(getByLabelText('event.locationName')).toBeTruthy());

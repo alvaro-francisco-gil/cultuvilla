@@ -98,7 +98,14 @@ export default function EventDetailScreen() {
       )}
       <VStack gap={4} className="p-4">
         <Text variant="h1">{event.title}</Text>
-        <Text>{formatDate(event.startDate, 'long')}</Text>
+        <Text>
+          {event.endDate
+            ? t('event.dateRange', {
+                start: formatDate(event.startDate, 'long'),
+                end: formatDate(event.endDate, 'long'),
+              })
+            : formatDate(event.startDate, 'long')}
+        </Text>
         {event.location ? (
           <HStack gap={2} className="items-center">
             <Text tone="muted">{event.location.displayName}</Text>
