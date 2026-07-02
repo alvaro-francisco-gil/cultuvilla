@@ -415,7 +415,6 @@ export default function NewEventScreen() {
               setVillageManuallyPicked(true);
             }}
             disabled={editMode}
-            hint={editMode ? undefined : t('event.villageAutoHint')}
           />
         </>,
       ),
