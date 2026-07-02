@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { FlatList, Modal, View, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
-import { Pressable, Text, FieldLabel, Button, Escudo } from '../primitives';
+import { Pressable, Text, FieldLabel, Escudo } from '../primitives';
 import { useT } from '../../lib/i18n';
 
 export interface VillageOption {
@@ -15,12 +14,12 @@ export interface VillageOption {
 }
 
 /**
- * Village selector limited to the villages the current user has joined — the
- * event's `municipalityId` must be one the creator is a member of (enforced by
- * the Firestore create rule). Auto-selection by proximity to the picked
- * coordinates is done by the parent; this component is the manual override.
- * Rendered read-only in edit mode, since the rules forbid changing an event's
- * municipality after creation.
+ * Inline village dropdown limited to the villages the current user has joined —
+ * the event's `municipalityId` must be one the creator is a member of (enforced
+ * by the Firestore create rule). Auto-selection by proximity to the picked
+ * coordinates is done by the parent; this is the manual override. The list
+ * expands in place (no full-screen modal). Rendered read-only in edit mode,
+ * since the rules forbid changing an event's municipality after creation.
  */
 export function MyVillagePicker({
   label,
@@ -41,15 +40,12 @@ export function MyVillagePicker({
   const [open, setOpen] = useState(false);
   const selected = villages.find((v) => v.id === value) ?? null;
 
-  const trigger = (
-    <View style={[styles.trigger, disabled && styles.triggerDisabled]}>
-      <View style={styles.triggerInner}>
-        {selected && <Escudo url={selected.escudoThumbUrl} size={28} fallbackInitial={selected.name} />}
-        <Text tone={selected ? 'primary' : 'muted'}>
-          {selected ? `${selected.name} (${selected.province})` : t('event.selectLocation')}
-        </Text>
-      </View>
-      {!disabled && <Ionicons name="chevron-down" size={16} color="#64748b" />}
+  const selectedRow = (
+    <View style={styles.triggerInner}>
+      {selected && <Escudo url={selected.escudoThumbUrl} size={28} fallbackInitial={selected.name} />}
+      <Text tone={selected ? 'primary' : 'muted'}>
+        {selected ? `${selected.name} (${selected.province})` : t('event.selectLocation')}
+      </Text>
     </View>
   );
 
@@ -57,45 +53,48 @@ export function MyVillagePicker({
     <View>
       <FieldLabel>{label}</FieldLabel>
       {disabled ? (
-        trigger
+        <View style={[styles.trigger, styles.triggerDisabled]}>{selectedRow}</View>
       ) : (
-        <Pressable onPress={() => setOpen(true)} accessibilityRole="button">
-          {trigger}
+        <Pressable
+          onPress={() => setOpen((o) => !o)}
+          accessibilityRole="button"
+          testID="village-dropdown-trigger"
+          style={styles.trigger}
+        >
+          {selectedRow}
+          <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={16} color="#64748b" />
         </Pressable>
       )}
-      {hint ? <Text variant="caption" tone="muted" style={styles.hint}>{hint}</Text> : null}
 
-      <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
-        <SafeAreaView style={styles.modal} edges={['top', 'bottom']}>
-          <View style={styles.header}>
-            <Text variant="h3">{label}</Text>
-            <Pressable onPress={() => setOpen(false)} accessibilityLabel={t('common.close')} hitSlop={8}>
-              <Ionicons name="close" size={24} color="#334155" />
-            </Pressable>
-          </View>
-          <FlatList
-            data={villages}
-            keyExtractor={(v) => v.id}
-            ListEmptyComponent={<Text tone="muted" style={styles.empty}>{t('event.noVillages')}</Text>}
-            renderItem={({ item }) => (
+      {/* Inline expanded list */}
+      {!disabled && open ? (
+        <View style={styles.list}>
+          {villages.length === 0 ? (
+            <Text tone="muted" style={styles.empty}>{t('event.noVillages')}</Text>
+          ) : (
+            villages.map((v, i) => (
               <Pressable
-                onPress={() => { onChange(item.id); setOpen(false); }}
-                style={styles.row}
+                key={v.id}
+                onPress={() => {
+                  onChange(v.id);
+                  setOpen(false);
+                }}
+                testID={`village-option-${v.id}`}
+                style={[styles.row, i > 0 && styles.rowBorder]}
               >
-                <Escudo url={item.escudoThumbUrl} size={36} fallbackInitial={item.name} />
+                <Escudo url={v.escudoThumbUrl} size={32} fallbackInitial={v.name} />
                 <View style={styles.rowText}>
-                  <Text>{item.name}</Text>
-                  <Text tone="muted" variant="caption">{item.province}</Text>
+                  <Text>{v.name}</Text>
+                  <Text tone="muted" variant="caption">{v.province}</Text>
                 </View>
-                {item.id === value ? <Ionicons name="checkmark" size={20} color="#16a34a" /> : null}
+                {v.id === value ? <Ionicons name="checkmark" size={20} color="#16a34a" /> : null}
               </Pressable>
-            )}
-          />
-          <View style={styles.actions}>
-            <Button variant="secondary" onPress={() => setOpen(false)}>{t('common.close')}</Button>
-          </View>
-        </SafeAreaView>
-      </Modal>
+            ))
+          )}
+        </View>
+      ) : null}
+
+      {hint ? <Text variant="caption" tone="muted" style={styles.hint}>{hint}</Text> : null}
     </View>
   );
 }
@@ -115,25 +114,23 @@ const styles = StyleSheet.create({
   },
   triggerDisabled: { backgroundColor: '#f8fafc' },
   triggerInner: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
-  hint: { marginTop: 4 },
-  modal: { flex: 1, padding: 16, gap: 12 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e7eb',
+  list: {
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#ffffff',
   },
-  empty: { textAlign: 'center', paddingVertical: 24 },
+  empty: { padding: 12 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e7eb',
+    paddingHorizontal: 12,
   },
+  rowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#e5e7eb' },
   rowText: { flex: 1 },
-  actions: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end' },
+  hint: { marginTop: 4 },
 });
