@@ -43,6 +43,15 @@ export async function seedNews(dataset) {
         images.push({ storagePath, width, height });
       }
 
+      // Rich block content: the first image becomes the dedicated card cover;
+      // the body is the lead paragraph and any remaining images are interleaved
+      // as inline blocks so seeded posts exercise the block renderer.
+      const coverImage = images[0] ?? null;
+      const content = [{ type: 'text', text: post.body, mentions: [] }];
+      for (const img of images.slice(1)) {
+        content.push({ type: 'image', storagePath: img.storagePath, width: img.width, height: img.height, caption: null });
+      }
+
       const publishedAt = new Date(Date.now() - (post.publishedOffsetDays ?? 1) * DAY_MS);
       await db.collection('news').doc(id).set(
         tag(
@@ -52,8 +61,10 @@ export async function seedNews(dataset) {
             organizerOrgIds: post.orgId ? [orgDocId(vKey, post.orgId)] : [],
             title: post.title,
             body: post.body,
+            content,
             category: post.category,
             images,
+            coverImage,
             status: post.status ?? 'approved',
             submittedAt: publishedAt,
             publishedAt,

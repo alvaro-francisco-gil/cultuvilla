@@ -62,3 +62,33 @@ export async function pickImageAsBlob(
   const contentType = asset.mimeType ?? 'image/jpeg';
   return { blob, filename, contentType, previewUri: asset.uri };
 }
+
+/** An {@link UploadableImage} that also carries the picked asset's pixel size,
+ *  needed by news image blocks so they render at the right aspect ratio. */
+export interface SizedUploadableImage extends UploadableImage {
+  width: number;
+  height: number;
+}
+
+/**
+ * Like {@link pickImageAsBlob} but also returns the asset's intrinsic
+ * width/height. Used by the news block editor, where each inline image persists
+ * its dimensions so the reader can lay it out without a network round-trip.
+ */
+export async function pickImageWithSize(): Promise<SizedUploadableImage | null> {
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    quality: 0.8,
+  });
+  if (result.canceled || !result.assets[0]) return null;
+  const asset = result.assets[0];
+  const blob = await uriToBlob(asset.uri);
+  return {
+    blob,
+    filename: asset.fileName ?? `upload-${Date.now()}.jpg`,
+    contentType: asset.mimeType ?? 'image/jpeg',
+    previewUri: asset.uri,
+    width: asset.width,
+    height: asset.height,
+  };
+}

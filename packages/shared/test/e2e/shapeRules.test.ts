@@ -64,6 +64,8 @@ const validNewsPayload = {
   body: 'B',
   category: 'otro' as const,
   images: [],
+  content: [],
+  coverImage: null,
   status: 'pending' as const,
   rejectionReason: null,
   submittedAt: new Date(),

@@ -1,105 +1,240 @@
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
-import { Image } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
-import { Screen, VStack, Text, Input, Button } from '../../components/primitives';
+import { Screen, VStack, Text, Input, Button, FieldLabel, ImagePickerField } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { OrganizerPicker } from '../../components/feature/OrganizerPicker';
-import { uriToBlob } from '../../lib/images';
+import { Stepper, type StepConfig } from '../../components/feature/Stepper';
+import {
+  BlockEditor,
+  emptyTextBlock,
+  newBlockId,
+  type EditorBlock,
+} from '../../components/feature/BlockEditor';
+import { pickImageWithSize } from '../../lib/images';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 import { useCallable } from '../../lib/useCallable';
-import { createNewsPost, updateNewsPost } from '@cultuvilla/shared/services/newsService';
-import { uploadNewsImage } from '@cultuvilla/shared/services/imageService';
+import { useMentionSources } from '../../lib/useMentionSources';
+import { createNewsPost, updateNewsPost, getNewsPost } from '@cultuvilla/shared/services/newsService';
+import { uploadNewsImage, newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
 import {
   NEWS_POST_CATEGORIES,
   type NewsPostCategory,
   type NewsPostImage,
+  type NewsBlock,
 } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 
-type PickedImage = { uri: string; blob: Blob; width: number; height: number };
+// The dedicated card cover: either a freshly-picked image (uploaded on submit)
+// or one already in Storage (edit mode), or none.
+type CoverState =
+  | { kind: 'new'; blob: Blob; uri: string; contentType: string; width: number; height: number }
+  | { kind: 'existing'; storagePath: string; uri: string; width: number; height: number }
+  | null;
 
-async function pickImage(): Promise<PickedImage | null> {
-  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!perm.granted) return null;
-  const res = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ['images'],
-    quality: 0.8,
-  });
-  if (res.canceled || !res.assets[0]) return null;
-  const asset = res.assets[0];
-  const blob = await uriToBlob(asset.uri);
-  return { uri: asset.uri, blob, width: asset.width, height: asset.height };
+function stepBody(children: React.ReactNode) {
+  return (
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{ padding: 16, gap: 16 }}
+      keyboardShouldPersistTaps="handled"
+    >
+      {children}
+    </ScrollView>
+  );
+}
+
+/** Flatten the text blocks into the legacy plain-text `body` (search/previews). */
+function flattenBody(blocks: EditorBlock[]): string {
+  return blocks
+    .filter((b): b is Extract<EditorBlock, { type: 'text' }> => b.type === 'text')
+    .map((b) => b.text.trim())
+    .filter(Boolean)
+    .join('\n\n');
 }
 
 export default function NewNewsScreen() {
   const { user, profile } = useAuth();
   const { t } = useT();
-  const insets = useSafeAreaInsets();
-  // A `villageId` param (e.g. from a village's "Artículos" add card) targets
-  // that village; otherwise fall back to the user's active one.
-  const { villageId } = useLocalSearchParams<{ villageId?: string }>();
-  const municipalityId = villageId ?? profile?.activeMunicipalityId ?? null;
+  // A `newsId` param puts this screen in edit mode: it loads that article and
+  // prefills the form, saving via updateNewsPost. Otherwise it composes a new
+  // article. A `villageId` param (e.g. from a village's "Artículos" add card)
+  // targets that village; otherwise fall back to the user's active one.
+  const { villageId, newsId } = useLocalSearchParams<{ villageId?: string; newsId?: string }>();
+  const editMode = !!newsId;
 
   const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
   const [category, setCategory] = useState<NewsPostCategory | null>(null);
-  const [images, setImages] = useState<PickedImage[]>([]);
+  const [cover, setCover] = useState<CoverState>(null);
+  const [blocks, setBlocks] = useState<EditorBlock[]>([emptyTextBlock()]);
   const [submitted, setSubmitted] = useState(false);
-  // Use an effect (not a one-shot initializer) so that if auth resolves after
-  // the first render the creator's uid is still seeded.
+  const [loading, setLoading] = useState(editMode);
+  // In edit mode the municipality comes from the loaded article; organizers are
+  // immutable (the update rules forbid changing them), so the picker is hidden.
+  const [editMunicipalityId, setEditMunicipalityId] = useState<string | null>(null);
+  const municipalityId = editMode ? editMunicipalityId : (villageId ?? profile?.activeMunicipalityId ?? null);
   const [organizerUserIds, setOrganizerUserIds] = useState<string[]>([]);
   const [organizerOrgIds, setOrganizerOrgIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (!user) return;
-    setOrganizerUserIds((prev) =>
-      prev.includes(user.uid) ? prev : [user.uid, ...prev],
-    );
-  }, [user]);
+  const { candidates } = useMentionSources(municipalityId);
 
-  const canSubmit =
-    !!municipalityId && !!user && title.trim().length > 0 && body.trim().length > 0 && !!category;
+  // Auto-seed the creator as an organizer when composing a new article.
+  useEffect(() => {
+    if (!user || editMode) return;
+    setOrganizerUserIds((prev) => (prev.includes(user.uid) ? prev : [user.uid, ...prev]));
+  }, [user, editMode]);
+
+  // ── Edit mode: load the article and prefill the form ──────────────────────
+  useEffect(() => {
+    if (!editMode || !newsId) return;
+    let cancelled = false;
+    void (async () => {
+      const post = await getNewsPost(newsId);
+      if (cancelled || !post) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
+      setTitle(post.title);
+      setCategory(post.category);
+      setEditMunicipalityId(post.municipalityId);
+      setOrganizerUserIds(post.organizerUserIds);
+      setOrganizerOrgIds(post.organizerOrgIds);
+
+      // Cover: dedicated coverImage, else legacy images[0].
+      const coverSrc = post.coverImage ?? post.images[0] ?? null;
+      if (coverSrc) {
+        const uri = await newsImageDownloadURL(coverSrc.storagePath);
+        if (!cancelled) {
+          setCover({ kind: 'existing', storagePath: coverSrc.storagePath, uri, width: coverSrc.width, height: coverSrc.height });
+        }
+      }
+
+      // Blocks from content; fall back to a single text block from legacy body.
+      const editorBlocks: EditorBlock[] = post.content.length
+        ? await Promise.all(
+            post.content.map(async (b): Promise<EditorBlock> => {
+              if (b.type === 'text') {
+                return { id: newBlockId(), type: 'text', text: b.text, mentions: b.mentions };
+              }
+              const uri = await newsImageDownloadURL(b.storagePath);
+              return {
+                id: newBlockId(),
+                type: 'image',
+                storagePath: b.storagePath,
+                blob: null,
+                uri,
+                width: b.width,
+                height: b.height,
+                caption: b.caption ?? '',
+              };
+            }),
+          )
+        : [{ id: newBlockId(), type: 'text', text: post.body, mentions: [] }];
+
+      if (!cancelled) {
+        setBlocks(editorBlocks.length ? editorBlocks : [emptyTextBlock()]);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [editMode, newsId]);
+
+  const hasContent = blocks.some((b) => b.type === 'text' && b.text.trim().length > 0);
 
   const { fire: submit, isPending } = useCallable({
     callable: async () => {
       if (!municipalityId || !user || !category) return;
-      const postId = await createNewsPost({
-        municipalityId,
-        createdBy: user.uid,
-        organizerUserIds,
-        organizerOrgIds,
-        title: title.trim(),
-        body: body.trim(),
-        category,
-      });
-      if (images.length > 0) {
-        const uploaded: NewsPostImage[] = [];
-        for (const [i, img] of images.entries()) {
-          const storagePath = await uploadNewsImage(postId, {
-            blob: img.blob,
-            filename: `news-${i}.jpg`,
-            contentType: img.blob.type || 'image/jpeg',
-          });
-          uploaded.push({ storagePath, width: img.width, height: img.height });
+
+      const body = flattenBody(blocks);
+      const targetId = editMode && newsId ? newsId : null;
+
+      // Create the doc first (image storage paths are keyed by post id), then
+      // upload any new images and patch the assembled content + cover in.
+      const postId =
+        targetId ??
+        (await createNewsPost({
+          municipalityId,
+          createdBy: user.uid,
+          organizerUserIds,
+          organizerOrgIds,
+          title: title.trim(),
+          body,
+          category,
+        }));
+
+      // Upload new inline images and assemble the final content array in order.
+      const content: NewsBlock[] = [];
+      for (const [i, block] of blocks.entries()) {
+        if (block.type === 'text') {
+          if (block.text.trim().length === 0) continue;
+          content.push({ type: 'text', text: block.text, mentions: block.mentions });
+          continue;
         }
-        await updateNewsPost(postId, { images: uploaded });
+        let storagePath = block.storagePath;
+        if (!storagePath && block.blob) {
+          storagePath = await uploadNewsImage(postId, {
+            blob: block.blob,
+            filename: `news-block-${i}.jpg`,
+            contentType: block.blob.type || 'image/jpeg',
+          });
+        }
+        if (storagePath) {
+          content.push({
+            type: 'image',
+            storagePath,
+            width: block.width,
+            height: block.height,
+            caption: block.caption.trim() || null,
+          });
+        }
       }
+
+      // Cover: upload if freshly picked, else reuse the existing storage path.
+      let coverImage: NewsPostImage | null = null;
+      if (cover?.kind === 'new') {
+        const storagePath = await uploadNewsImage(postId, {
+          blob: cover.blob,
+          filename: 'news-cover.jpg',
+          contentType: cover.contentType,
+        });
+        coverImage = { storagePath, width: cover.width, height: cover.height };
+      } else if (cover?.kind === 'existing') {
+        coverImage = { storagePath: cover.storagePath, width: cover.width, height: cover.height };
+      }
+
+      await updateNewsPost(postId, { title: title.trim(), body, content, category, coverImage });
       return postId;
     },
-    onSuccess: () => {
-      setSubmitted(true);
+    onSuccess: (postId) => {
+      if (editMode) {
+        if (postId) router.replace(`/news/${postId}`);
+      } else {
+        setSubmitted(true);
+      }
     },
     swallow: true,
   });
 
+  const headerTitle = editMode ? t('news.compose.editTitle') : t('news.compose.title');
+
+  if (loading) {
+    return (
+      <Screen padded={false}>
+        <ScreenHeader title={headerTitle} />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator />
+        </View>
+      </Screen>
+    );
+  }
+
   if (!municipalityId) {
     return (
       <Screen padded={false}>
-        <ScreenHeader title={t('news.compose.title')} />
+        <ScreenHeader title={headerTitle} />
         <View className="flex-1 items-center justify-center px-8">
           <Text tone="muted" className="text-center">
             {t('news.compose.needsMembership')}
@@ -112,7 +247,7 @@ export default function NewNewsScreen() {
   if (submitted) {
     return (
       <Screen padded={false}>
-        <ScreenHeader title={t('news.compose.title')} />
+        <ScreenHeader title={headerTitle} />
         <View className="flex-1 items-center justify-center px-8">
           <VStack gap={4} className="items-center">
             <Ionicons name="checkmark-circle-outline" size={48} color="#16a34a" />
@@ -124,71 +259,79 @@ export default function NewNewsScreen() {
     );
   }
 
-  // bottomInset={false}: the ScrollView below applies insets.bottom itself.
-  return (
-    <Screen padded={false} bottomInset={false}>
-      <ScreenHeader title={t('news.compose.title')} />
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: insets.bottom + 80 }}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Input
-            label={t('news.compose.titleLabel')}
-            value={title}
-            onChangeText={setTitle}
-          />
-          <Input
-            label={t('news.compose.bodyLabel')}
-            value={body}
-            onChangeText={setBody}
-            multiline
-            numberOfLines={6}
-          />
-          <Text tone="muted">{t('news.compose.categoryLabel')}</Text>
-          <VStack gap={2}>
-            {NEWS_POST_CATEGORIES.map((opt) => (
-              <Button
-                key={opt}
-                variant={category === opt ? 'primary' : 'secondary'}
-                onPress={() => setCategory(category === opt ? null : opt)}
-              >
-                {t(`news.compose.category.${opt}`)}
-              </Button>
-            ))}
-          </VStack>
-          <Text tone="muted">{t('news.compose.imagesLabel')}</Text>
-          {images.length > 0 && (
-            <View className="flex-row flex-wrap gap-2">
-              {images.map((img, i) => (
-                <Pressable
-                  key={img.uri}
-                  onPress={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
-                  accessibilityLabel={`${t('news.compose.imagesLabel')} ${i + 1}`}
+  const steps: StepConfig[] = [
+    {
+      key: 'basics',
+      title: t('news.compose.stepBasics'),
+      icon: 'create-outline',
+      validate: () => {
+        const e: string[] = [];
+        if (!title.trim()) e.push('title');
+        if (!category) e.push('category');
+        return e;
+      },
+      render: () =>
+        stepBody(
+          <>
+            <FieldLabel>{t('news.compose.coverLabel')}</FieldLabel>
+            <ImagePickerField
+              uri={cover?.uri ?? null}
+              width="100%"
+              height={160}
+              label={cover ? t('news.compose.changeCover') : t('news.compose.addCover')}
+              onPress={async () => {
+                const picked = await pickImageWithSize();
+                if (picked) {
+                  setCover({
+                    kind: 'new',
+                    blob: picked.blob,
+                    uri: picked.previewUri ?? '',
+                    contentType: picked.contentType ?? 'image/jpeg',
+                    width: picked.width,
+                    height: picked.height,
+                  });
+                }
+              }}
+            />
+            <Input label={t('news.compose.titleLabel')} value={title} onChangeText={setTitle} />
+            <Text tone="muted">{t('news.compose.categoryLabel')}</Text>
+            <VStack gap={2}>
+              {NEWS_POST_CATEGORIES.map((opt) => (
+                <Button
+                  key={opt}
+                  variant={category === opt ? 'primary' : 'secondary'}
+                  onPress={() => setCategory(category === opt ? null : opt)}
                 >
-                  <Image
-                    source={{ uri: img.uri }}
-                    style={{ width: 80, height: 80, borderRadius: 8 }}
-                    accessibilityIgnoresInvertColors
-                  />
-                </Pressable>
+                  {t(`news.compose.category.${opt}`)}
+                </Button>
               ))}
-            </View>
-          )}
-          <Button
-            variant="secondary"
-            onPress={async () => {
-              const next = await pickImage();
-              if (next) setImages((prev) => [...prev, next]);
-            }}
-          >
-            {t('news.compose.addImage')}
-          </Button>
-          {municipalityId && user && (
+            </VStack>
+          </>,
+        ),
+    },
+    {
+      key: 'content',
+      title: t('news.compose.stepContent'),
+      icon: 'document-text-outline',
+      validate: () => (hasContent ? [] : ['content']),
+      render: () =>
+        stepBody(
+          <>
+            <FieldLabel>{t('news.compose.contentLabel')}</FieldLabel>
+            <Text tone="muted" variant="caption">
+              {t('news.compose.contentHint')}
+            </Text>
+            <BlockEditor blocks={blocks} onChange={setBlocks} candidates={candidates} />
+          </>,
+        ),
+    },
+    {
+      key: 'attribution',
+      title: t('news.compose.stepAttribution'),
+      icon: 'people-outline',
+      render: () =>
+        stepBody(
+          !editMode && municipalityId && user ? (
             <OrganizerPicker
               municipalityId={municipalityId}
               selectedUserIds={organizerUserIds}
@@ -197,16 +340,25 @@ export default function NewNewsScreen() {
               onChangeUsers={setOrganizerUserIds}
               onChangeOrgs={setOrganizerOrgIds}
             />
-          )}
-          <Button
-            onPress={() => void submit()}
-            loading={isPending}
-            disabled={!canSubmit}
-            fullWidth
-          >
-            {t('news.compose.submit')}
-          </Button>
-        </ScrollView>
+          ) : (
+            <Text tone="muted">{t('news.compose.attributionLocked')}</Text>
+          ),
+        ),
+    },
+  ];
+
+  // bottomInset={false}: the Stepper's own bottom nav bar applies the inset.
+  return (
+    <Screen padded={false} bottomInset={false}>
+      <ScreenHeader title={headerTitle} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <Stepper
+          steps={steps}
+          onComplete={() => void submit()}
+          submitLabel={editMode ? t('common.save') : t('news.compose.submit')}
+          loading={isPending}
+          allStepsReachable={editMode}
+        />
       </KeyboardAvoidingView>
     </Screen>
   );

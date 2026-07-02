@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Screen } from '../../components/primitives/Screen';
 import { Text } from '../../components/primitives/Text';
 import { VStack } from '../../components/primitives/VStack';
 import { HStack } from '../../components/primitives/HStack';
 import { DetailHeroImage } from '../../components/feature/DetailHeroImage';
+import { NewsContentRenderer } from '../../components/feature/NewsContentRenderer';
 import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
 import { FloatingBackButton } from '../../components/feature/FloatingBackButton';
 import { FloatingShareButton } from '../../components/feature/FloatingShareButton';
+import { FloatingEditButton } from '../../components/feature/FloatingEditButton';
+import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { getNewsLink } from '@cultuvilla/shared/services/deepLinkService';
@@ -23,6 +26,7 @@ type Post = NewsPostData & { id: string };
 export default function NewsDetailScreen() {
   const { newsId } = useLocalSearchParams<{ newsId: string }>();
   const { t } = useT();
+  const { user } = useAuth();
   const share = useShareDeepLink();
   const [post, setPost] = useState<Post | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -37,8 +41,9 @@ export default function NewsDetailScreen() {
       .finally(() => setLoading(false));
   }, [newsId]);
 
-  // Resolve the first image (if any) to a download URL.
-  const firstImagePath = post?.images[0]?.storagePath ?? null;
+  // Resolve the cover to a download URL. Prefer the dedicated coverImage; fall
+  // back to legacy images[0] for posts authored before covers existed.
+  const firstImagePath = post?.coverImage?.storagePath ?? post?.images[0]?.storagePath ?? null;
   useEffect(() => {
     let cancelled = false;
     if (!firstImagePath) {
@@ -58,6 +63,11 @@ export default function NewsDetailScreen() {
   }, [firstImagePath]);
 
   const date = post ? (post.publishedAt ?? post.submittedAt) : null;
+  // Mirrors the news update rules: the author or a named organizer may edit.
+  const canEdit =
+    !!user &&
+    !!post &&
+    (post.createdBy === user.uid || post.organizerUserIds.includes(user.uid));
 
   return (
     <Screen padded={false} topInset={false}>
@@ -65,6 +75,12 @@ export default function NewsDetailScreen() {
       {!post ? <FloatingBackButton /> : null}
       {post ? (
         <FloatingShareButton onPress={() => void share(getNewsLink(post.id), post.title)} />
+      ) : null}
+      {canEdit && post ? (
+        <FloatingEditButton
+          accessibilityLabel={t('news.compose.editTitle')}
+          onPress={() => router.push(`/news/new?newsId=${post.id}` as never)}
+        />
       ) : null}
       <ScrollView>
         {loading ? (
@@ -101,7 +117,11 @@ export default function NewsDetailScreen() {
                 <Text tone="muted">{t(`news.compose.category.${post.category}`)}</Text>
                 {date ? <Text tone="muted">{formatDate(date, 'long')}</Text> : null}
               </HStack>
-              <Text>{post.body}</Text>
+              <NewsContentRenderer
+                content={post.content}
+                body={post.body}
+                municipalityId={post.municipalityId}
+              />
             </VStack>
           </>
         ) : null}

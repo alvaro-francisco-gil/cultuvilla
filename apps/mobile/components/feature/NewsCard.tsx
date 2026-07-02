@@ -16,6 +16,7 @@ export type NewsLike = {
   publishedAt: Date | null;
   submittedAt: Date;
   images: NewsPostImage[];
+  coverImage?: NewsPostImage | null;
 };
 
 export type NewsCardProps = {
@@ -30,7 +31,7 @@ export function NewsCard({ post, fallbackImageUri = null, onPress, testID }: New
   const { t } = useT();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
-  const firstImagePath = post.images[0]?.storagePath ?? null;
+  const firstImagePath = post.coverImage?.storagePath ?? post.images[0]?.storagePath ?? null;
   useEffect(() => {
     let cancelled = false;
     if (!firstImagePath) {

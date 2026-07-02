@@ -30,6 +30,7 @@ import {
   type NewsPostImage,
   type NewsPostStatus,
   type NewsReactionKind,
+  type NewsBlock,
 } from '../models/news/NewsPostDataModel';
 import {
   buildNewsCommentData,
@@ -49,12 +50,14 @@ export interface CreateNewsPostInput {
   organizerOrgIds?: string[];
   title: string;
   body: string;
+  content?: NewsBlock[];
   category: NewsPostCategory;
   images?: NewsPostImage[];
+  coverImage?: NewsPostImage | null;
 }
 
 export type UpdateNewsPostInput = Partial<
-  Pick<NewsPostData, 'title' | 'body' | 'category' | 'images'>
+  Pick<NewsPostData, 'title' | 'body' | 'content' | 'category' | 'images' | 'coverImage'>
 >;
 
 const FORBIDDEN_UPDATE_KEYS = new Set<string>([
@@ -85,8 +88,10 @@ export async function createNewsPost(input: CreateNewsPostInput): Promise<string
       organizerOrgIds: input.organizerOrgIds ?? [],
       title: input.title,
       body: input.body,
+      content: input.content ?? [],
       category: input.category,
       images: input.images ?? [],
+      coverImage: input.coverImage ?? null,
       submittedAt: now,
       updatedAt: now,
     }),
