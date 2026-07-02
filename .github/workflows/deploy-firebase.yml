@@ -1,0 +1,116 @@
+name: Deploy Firebase (reusable)
+
+# Backend + hosting deploy for one environment. Called by deploy-dev/beta/prod.
+# Auth is keyless via Workload Identity Federation — the caller's GitHub
+# Environment supplies GCP_WIF_PROVIDER / GCP_SERVICE_ACCOUNT and the Firebase
+# web config as environment variables. No service-account keys are stored.
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: GitHub Environment name (dev | beta | production)
+        required: true
+        type: string
+      firebase_alias:
+        description: .firebaserc project alias (dev | beta | prod)
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.firebase_alias }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ${{ inputs.environment }}
+    # Never cancel an in-flight deploy — a half-applied prod deploy is worse
+    # than a queued one.
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write # required for Workload Identity Federation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.24.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install functions dependencies
+        run: npm ci
+        working-directory: functions
+
+      # firebase deploy --only functions runs a predeploy that rebuilds these,
+      # but building up front fails fast on a type error before we touch GCP.
+      - name: Build shared + functions
+        run: |
+          pnpm shared:build
+          pnpm functions:build
+
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools@14
+
+      # app.config.ts reads FIREBASE_*_<SUFFIX> where SUFFIX matches APP_ENV.
+      # The environment stores the config under generic names; map them to the
+      # suffixed names the Expo web export expects.
+      - name: Export Firebase web config for the active env
+        env:
+          APP_ENV: ${{ vars.APP_ENV }}
+          FB_API_KEY: ${{ vars.FIREBASE_API_KEY }}
+          FB_AUTH_DOMAIN: ${{ vars.FIREBASE_AUTH_DOMAIN }}
+          FB_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+          FB_STORAGE_BUCKET: ${{ vars.FIREBASE_STORAGE_BUCKET }}
+          FB_SENDER_ID: ${{ vars.FIREBASE_MESSAGING_SENDER_ID }}
+          FB_APP_ID: ${{ vars.FIREBASE_APP_ID }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+        run: |
+          S=$(echo "$APP_ENV" | tr '[:lower:]' '[:upper:]')
+          {
+            echo "APP_ENV=$APP_ENV"
+            echo "FIREBASE_API_KEY_${S}=$FB_API_KEY"
+            echo "FIREBASE_AUTH_DOMAIN_${S}=$FB_AUTH_DOMAIN"
+            echo "FIREBASE_PROJECT_ID_${S}=$FB_PROJECT_ID"
+            echo "FIREBASE_STORAGE_BUCKET_${S}=$FB_STORAGE_BUCKET"
+            echo "FIREBASE_MESSAGING_SENDER_ID_${S}=$FB_SENDER_ID"
+            echo "FIREBASE_APP_ID_${S}=$FB_APP_ID"
+            echo "GOOGLE_WEB_CLIENT_ID_${S}=$GOOGLE_WEB_CLIENT_ID"
+          } >> "$GITHUB_ENV"
+
+      # Backend first, so schema/permissions land before code that relies on
+      # them and before hosting rewrites resolve the ogRenderer function.
+      - name: Deploy Firestore & Storage rules
+        run: firebase deploy --only firestore:rules,storage --project ${{ inputs.firebase_alias }} --non-interactive
+
+      - name: Deploy Firestore indexes
+        run: firebase deploy --only firestore:indexes --project ${{ inputs.firebase_alias }} --non-interactive
+
+      - name: Deploy Cloud Functions
+        run: firebase deploy --only functions --project ${{ inputs.firebase_alias }} --non-interactive --force
+
+      - name: Build web bundle
+        run: |
+          node apps/mobile/scripts/copy-well-known.mjs ${{ inputs.firebase_alias }}
+          pnpm app:web:build
+
+      - name: Deploy Hosting
+        run: firebase deploy --only hosting --project ${{ inputs.firebase_alias }} --non-interactive
