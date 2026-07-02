@@ -1,5 +1,6 @@
 import { FeedCard } from './FeedCard';
-import { formatDate } from '@cultuvilla/shared/utils';
+import { useT } from '../../lib/i18n';
+import { relativeDayLabel } from '../../lib/relativeDayLabel';
 
 /**
  * Minimal event shape consumed by this card.
@@ -27,13 +28,14 @@ export type EventCardProps = {
 };
 
 export function EventCard({ event, onPress, badge, testID }: EventCardProps) {
+  const { t } = useT();
   return (
     <FeedCard
       imageUri={event.imageURL ?? null}
       fallbackImageUri={event.villageCoverImage ?? null}
       title={event.title}
       metaLeft={event.locationName ?? null}
-      metaRight={formatDate(event.startDate, 'short')}
+      metaRight={relativeDayLabel(event.startDate, t)}
       fallbackIcon="calendar-outline"
       badge={badge}
       onPress={() => onPress(event.id)}

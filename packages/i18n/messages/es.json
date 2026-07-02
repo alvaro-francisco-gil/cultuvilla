@@ -88,6 +88,10 @@
       "events": "Eventos",
       "news": "Artículos"
     },
+    "date": {
+      "today": "Hoy",
+      "tomorrow": "Mañana"
+    },
     "filter": {
       "all": "Todos",
       "village": "Pueblo",
