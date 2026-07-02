@@ -13,6 +13,13 @@ export interface LiveOwnerChipProps {
   tone?: 'primary' | 'muted';
   /** Prefix shown before the name, e.g. "Por " for a news byline. */
   prefix?: string;
+  /**
+   * Explicit image to show instead of the resolved one. Use for `user` owners,
+   * whose avatar lives on the linked person doc (the user doc's `photoURL` is
+   * frequently null). `undefined` keeps the live-resolved image; `null` forces
+   * initials.
+   */
+  imageUri?: string | null;
 }
 
 /**
@@ -28,13 +35,15 @@ export function LiveOwnerChip({
   fallbackName,
   tone = 'primary',
   prefix,
+  imageUri,
 }: LiveOwnerChipProps) {
-  const { name, imageUri } = useOwnerSummary(ownerId, ownerType);
+  const { name, imageUri: resolvedImageUri } = useOwnerSummary(ownerId, ownerType);
   const label = name ?? fallbackName ?? '';
   const initials = label ? label.slice(0, 1).toUpperCase() : undefined;
+  const shownImage = imageUri !== undefined ? imageUri : resolvedImageUri;
   return (
     <HStack gap={2} align="center">
-      <Avatar uri={imageUri} size={size} initials={initials} />
+      <Avatar uri={shownImage} size={size} initials={initials} />
       <Text tone={tone} numberOfLines={1} className="shrink">
         {prefix ? `${prefix}${label}` : label}
       </Text>

@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable as RNPressable, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { getVillageMembers } from '@cultuvilla/shared/services/villageMemberService';
 import { getUserProfile } from '@cultuvilla/shared/services/userService';
+import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 import type { OrganizationData } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
 import { colors } from '@cultuvilla/shared/design-system';
 import { LiveOwnerChip } from './LiveOwnerChip';
+import { Avatar } from '../primitives';
 import { Button } from '../primitives/Button';
 import { Text } from '../primitives/Text';
 import { VStack } from '../primitives/VStack';
@@ -18,9 +20,15 @@ import { useT } from '../../lib/i18n';
 
 const ACCENT = colors.light.fg.accent;
 
+function initialsOf(name: string): string | undefined {
+  return name ? name.slice(0, 1).toUpperCase() : undefined;
+}
+
 interface VillagerOption {
   userId: string;
   displayName: string;
+  /** Avatar from the linked person doc (the user doc's photoURL is often null). */
+  photoURL: string | null;
 }
 
 export interface OrganizerPickerProps {
@@ -74,8 +82,17 @@ export function OrganizerPicker({
 
       const withNames = await Promise.all(
         memberDocs.map(async (m) => {
-          const profile = await getUserProfile(m.userId);
-          return { userId: m.userId, displayName: profile?.displayName ?? m.userId };
+          // Name from the (denormalized) user doc; avatar from the person doc —
+          // the user doc's photoURL is frequently null (see MembersList).
+          const [profile, person] = await Promise.all([
+            getUserProfile(m.userId),
+            getPersonByUserId(m.userId),
+          ]);
+          return {
+            userId: m.userId,
+            displayName: profile?.displayName ?? m.userId,
+            photoURL: person?.photoURL ?? null,
+          };
         }),
       );
       if (!cancelled) setVillagers(withNames);
@@ -84,6 +101,12 @@ export function OrganizerPicker({
       cancelled = true;
     };
   }, [municipalityId]);
+
+  const villagerById = useMemo(() => {
+    const m = new Map<string, VillagerOption>();
+    for (const v of villagers) m.set(v.userId, v);
+    return m;
+  }, [villagers]);
 
   // ---- Villager sheet -------------------------------------------------------
   function openUserSheet() {
@@ -145,7 +168,7 @@ export function OrganizerPicker({
               gap={2}
               className="items-center justify-between rounded-lg border border-subtle p-3"
             >
-              <LiveOwnerChip ownerId={uid} ownerType="user" />
+              <LiveOwnerChip ownerId={uid} ownerType="user" imageUri={villagerById.get(uid)?.photoURL} />
               {locked ? (
                 <Text variant="caption" tone="muted">{t('event.organizer.locked')}</Text>
               ) : (
@@ -206,6 +229,8 @@ export function OrganizerPicker({
               key={v.userId}
               testID={`villager-row-${v.userId}`}
               label={v.displayName}
+              imageUri={v.photoURL}
+              initials={initialsOf(v.displayName)}
               selected={isSelected}
               disabled={isLocked}
               trailing={isLocked ? t('event.organizer.locked') : undefined}
@@ -231,6 +256,8 @@ export function OrganizerPicker({
             key={o.id}
             testID={`org-row-${o.id}`}
             label={o.name}
+            imageUri={o.imageURL ?? null}
+            initials={initialsOf(o.name)}
             selected={orgSheetSelected.has(o.id)}
             onPress={() => toggleOrg(o.id)}
           />
@@ -261,6 +288,8 @@ function SheetRow({
   selected,
   disabled,
   trailing,
+  imageUri,
+  initials,
   onPress,
   testID,
 }: {
@@ -268,6 +297,8 @@ function SheetRow({
   selected: boolean;
   disabled?: boolean;
   trailing?: string;
+  imageUri?: string | null;
+  initials?: string;
   onPress: () => void;
   testID?: string;
 }) {
@@ -286,7 +317,10 @@ function SheetRow({
         .filter(Boolean)
         .join(' ')}
     >
-      <Text className="flex-1">{label}</Text>
+      <HStack gap={2} align="center" className="flex-1">
+        <Avatar uri={imageUri ?? null} size={32} initials={initials} />
+        <Text className="flex-1" numberOfLines={1}>{label}</Text>
+      </HStack>
       {trailing ? (
         <Text variant="caption" tone="muted">{trailing}</Text>
       ) : selected ? (

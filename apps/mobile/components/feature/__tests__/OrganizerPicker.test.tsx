@@ -8,16 +8,21 @@ jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
 jest.mock('@cultuvilla/shared/services/userService', () => ({
   getUserProfile: jest.fn(),
 }));
+jest.mock('@cultuvilla/shared/services/personService', () => ({
+  getPersonByUserId: jest.fn(),
+}));
 jest.mock('@cultuvilla/shared/services/organizationService', () => ({
   getOrganizationsByMunicipality: jest.fn(),
 }));
 
 import { getVillageMembers } from '@cultuvilla/shared/services/villageMemberService';
 import { getUserProfile } from '@cultuvilla/shared/services/userService';
+import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 
 const mockGetVillageMembers = getVillageMembers as jest.Mock;
 const mockGetUserProfile = getUserProfile as jest.Mock;
+const mockGetPersonByUserId = getPersonByUserId as jest.Mock;
 const mockGetOrganizationsByMunicipality = getOrganizationsByMunicipality as jest.Mock;
 
 // --- LiveOwnerChip mock — renders testID so we can find locked creator --------
@@ -53,6 +58,7 @@ function defaultMocks() {
     displayName: uid === CREATOR_ID ? 'Creator Name' : 'Other User',
     photoURL: null,
   }));
+  mockGetPersonByUserId.mockResolvedValue({ photoURL: null });
   mockGetOrganizationsByMunicipality.mockResolvedValue([
     { id: ORG_ID, name: 'Org One', municipalityId: MUNICIPALITY_ID, status: 'approved' },
   ]);
