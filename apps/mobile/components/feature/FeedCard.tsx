@@ -71,28 +71,30 @@ export function FeedCard({
               right: 0,
               bottom: 0,
               paddingHorizontal: 16,
-              paddingTop: 12,
-              paddingBottom: 12,
-              backgroundColor: 'rgba(0,0,0,0.45)',
+              paddingTop: 14,
+              paddingBottom: 14,
+              backgroundColor: 'rgba(0,0,0,0.6)',
             }}
           >
-            <Text variant="h3" numberOfLines={2} style={{ color: '#ffffff' }}>
+            {/* One line only — ellipsise rather than wrap to a second line. */}
+            <Text variant="h1" numberOfLines={1} style={{ color: '#ffffff', fontSize: 22 }}>
               {title}
             </Text>
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                marginTop: 4,
-              }}
-            >
+            {/* Location + date on one row. Location takes the slack and ellipsises
+                when long; the date sits at the right and is never trimmed. */}
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 4 }}>
               <Text
+                variant="body"
                 numberOfLines={1}
                 style={{ color: 'rgba(255,255,255,0.85)', flex: 1, marginRight: 8 }}
               >
                 {metaLeft}
               </Text>
-              <Text numberOfLines={1} style={{ color: 'rgba(255,255,255,0.85)' }}>
+              <Text
+                variant="body"
+                numberOfLines={1}
+                style={{ color: 'rgba(255,255,255,0.85)', flexShrink: 0 }}
+              >
                 {metaRight}
               </Text>
             </View>

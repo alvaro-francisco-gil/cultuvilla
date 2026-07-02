@@ -79,7 +79,7 @@ describe('<OrganizerPicker>', () => {
     expect(getByTestId(`chip-user-${CREATOR_ID}`)).toBeTruthy();
   });
 
-  it('calls onChangeOrgs when toggling an org via ChoiceList', async () => {
+  it('calls onChangeOrgs when picking a group via the "Añadir grupo" sheet', async () => {
     const onChangeOrgs = jest.fn();
     const { getByTestId } = render(
       <OrganizerPicker
@@ -91,11 +91,17 @@ describe('<OrganizerPicker>', () => {
         onChangeOrgs={onChangeOrgs}
       />,
     );
-    // Wait for orgs to load
+    // Open the group picker sheet
     await waitFor(() => {
-      expect(getByTestId(`org-option-${ORG_ID}`)).toBeTruthy();
+      expect(getByTestId('add-org-btn')).toBeTruthy();
     });
-    fireEvent.press(getByTestId(`org-option-${ORG_ID}`));
+    fireEvent.press(getByTestId('add-org-btn'));
+    // Wait for the sheet to show the org row, select it, then confirm
+    await waitFor(() => {
+      expect(getByTestId(`org-row-${ORG_ID}`)).toBeTruthy();
+    });
+    fireEvent.press(getByTestId(`org-row-${ORG_ID}`));
+    fireEvent.press(getByTestId('org-confirm'));
     expect(onChangeOrgs).toHaveBeenCalledWith([ORG_ID]);
   });
 

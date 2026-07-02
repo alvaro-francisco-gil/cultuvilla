@@ -18,106 +18,116 @@ jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('expo-image-picker', () => ({
-  requestMediaLibraryPermissionsAsync: jest.fn().mockResolvedValue({ granted: false }),
-  launchImageLibraryAsync: jest.fn().mockResolvedValue({ canceled: true }),
-  MediaTypeOptions: { Images: 'Images' },
-}));
 jest.mock('../../../lib/images', () => ({ pickImageAsBlob: jest.fn() }));
-jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
-  getMunicipality: jest.fn().mockResolvedValue({ name: 'Pueblo', coordinates: { lat: 1, lng: 2 } }),
-}));
-jest.mock('@cultuvilla/shared/services/organizationService', () => ({
-  getOrganizationsByMunicipality: jest.fn().mockResolvedValue([]),
-}));
-jest.mock('@cultuvilla/shared/services/orgMemberService', () => ({
-  getOrgMembershipsByUserInMunicipality: jest.fn().mockResolvedValue([]),
-}));
+
+// The event's village now comes from the user's joined villages.
 jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
-  getVillageMembers: jest.fn().mockResolvedValue([]),
+  getUserMemberships: jest.fn().mockResolvedValue([
+    { municipalityId: 'm-1', role: 'user', joinedAt: new Date(), profileCompletedAt: null, barrioId: null },
+  ]),
 }));
-jest.mock('@cultuvilla/shared/services/userService', () => ({
-  getUserProfile: jest.fn().mockResolvedValue(null),
+jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
+  getMunicipality: jest.fn().mockResolvedValue({
+    id: 'm-1', name: 'Pueblo', province: 'Prov', coordinates: { lat: 1, lng: 2 },
+  }),
+}));
+jest.mock('@cultuvilla/shared/models/municipality', () => ({
+  escudoThumbDisplayUrl: () => null,
+}));
+jest.mock('@cultuvilla/shared/services/feedService', () => ({
+  haversineKm: () => 0,
 }));
 jest.mock('@cultuvilla/shared/services/eventService', () => ({
   createEvent: jest.fn().mockResolvedValue('e-1'),
   updateEvent: jest.fn(),
+  getEvent: jest.fn(),
 }));
 jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadEventImage: jest.fn(),
 }));
-// Mock OrganizerPicker to keep the test surface-level
+jest.mock('../../../lib/events/useEventOrganizer', () => ({
+  useEventOrganizer: () => ({ canOrganize: true, loading: false }),
+}));
+
+// Surface-level stubs for the composed step components.
 jest.mock('../../../components/feature/OrganizerPicker', () => ({
   OrganizerPicker: () => {
     const { View } = require('react-native');
     return <View testID="organizer-picker" />;
   },
 }));
-// Mock LocationPicker to avoid expo-location complexities in unit tests
-jest.mock('../../../components/feature/LocationPicker', () => ({
-  LocationPicker: () => {
-    const { View } = require('react-native');
-    return <View testID="location-picker" />;
-  },
-}));
-// Mock DateField so we can trigger onChange directly without driving the modal UI
-jest.mock('../../../components/primitives/DateField', () => ({
-  DateField: ({ onChange, testID }: { onChange: (d: Date) => void; testID?: string }) => {
+jest.mock('../../../components/feature/EventLocationField', () => ({
+  EventLocationField: ({ onChange }: { onChange: (c: { lat: number; lng: number }, a: string) => void }) => {
     const { Pressable } = require('react-native');
     return (
-      <Pressable
-        testID={testID}
-        onPress={() => onChange(new Date('2026-08-01'))}
-        accessibilityLabel={testID}
-      />
+      <Pressable testID="location-field" onPress={() => onChange({ lat: 1, lng: 2 }, 'Plaza Mayor')} />
     );
+  },
+}));
+jest.mock('../../../components/feature/MyVillagePicker', () => ({
+  MyVillagePicker: ({ value }: { value: string | null }) => {
+    const { Text } = require('react-native');
+    return <Text testID="village-picker">{value ?? ''}</Text>;
+  },
+}));
+// Drive DateTimeField.onChange directly without the modal UI.
+jest.mock('../../../components/primitives/DateTimeField', () => ({
+  DateTimeField: ({ onChange, testID }: { onChange: (d: Date) => void; testID?: string }) => {
+    const { Pressable } = require('react-native');
+    return <Pressable testID={testID} onPress={() => onChange(new Date('2026-08-01T18:00'))} />;
   },
 }));
 
 describe('NewEventScreen stepper', () => {
-  it('renders the first step and gates Next until title + description are set', async () => {
+  it('gates Next until title + description are set', async () => {
     const { getByText, getByLabelText, getByTestId, queryByTestId } = render(<NewEventScreen />);
-    // Step 1 (Lo básico) shows the title input.
     await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
     fireEvent.press(getByText('common.stepper.next'));
     expect(queryByTestId('startDate')).toBeNull(); // blocked: empty title/description
     fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
     fireEvent.changeText(getByLabelText('event.description'), 'Desc');
     fireEvent.press(getByText('common.stepper.next'));
-    // Now in step 2 (Cuándo y dónde) — both date fields are present.
+    // Now in step 2 (Cuándo y dónde): datetime (+ optional end), location + village present.
+    expect(getByTestId('startDate')).toBeTruthy();
     // endDate is the optional multi-day end.
     expect(getByTestId('endDate')).toBeTruthy();
-    // startDate DateField must still be present
-    expect(getByTestId('startDate')).toBeTruthy();
-    // locationName input must be accessible
-    expect(getByLabelText('event.locationName')).toBeTruthy();
+    expect(getByTestId('location-field')).toBeTruthy();
+    expect(getByTestId('village-picker')).toBeTruthy();
   });
 
-  it('step 3 renders the OrganizerPicker', async () => {
+  it('reaches the details step (OrganizerPicker) once date + location are set', async () => {
     const { getByText, getByLabelText, getByTestId } = render(<NewEventScreen />);
     await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
-    // Advance through step 1
     fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
     fireEvent.changeText(getByLabelText('event.description'), 'Desc');
     fireEvent.press(getByText('common.stepper.next'));
-    // Confirm in step 2: both date fields present (endDate is optional).
+    // Step 2: set date + location; village auto-selected from the joined village.
     await waitFor(() => expect(getByTestId('startDate')).toBeTruthy());
-    expect(getByTestId('endDate')).toBeTruthy();
-    // Set startDate (via mocked DateField) to allow advancing to step 3
     fireEvent.press(getByTestId('startDate'));
-    // Wait for locationName to be seeded from the mocked municipality, then advance
-    await waitFor(() => expect(getByLabelText('event.locationName')).toBeTruthy());
+    fireEvent.press(getByTestId('location-field'));
     fireEvent.press(getByText('common.stepper.next'));
-    // Now in step 3 (Detalles) — OrganizerPicker must be rendered
     await waitFor(() => expect(getByTestId('organizer-picker')).toBeTruthy());
   });
 
-  // Regression: the cover picker used an inline `fetch(uri).blob()`, but Expo
-  // SDK 56's winter `fetch` builds the Blob from an ArrayBuffer, which RN's
-  // BlobManager rejects ("Creating blobs from 'ArrayBuffer' ... are not
-  // supported"). Picking a cover MUST go through lib/images.pickImageAsBlob,
-  // which reads the URI via XMLHttpRequest (see lib/__tests__/images.test.ts).
-  it('picks the cover image via the shared pickImageAsBlob helper, not the global fetch', async () => {
+  it('toggles "teléfono requerido" in the details step', async () => {
+    const { getByText, getByLabelText, getByTestId } = render(<NewEventScreen />);
+    await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
+    fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
+    fireEvent.changeText(getByLabelText('event.description'), 'Desc');
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('startDate')).toBeTruthy());
+    fireEvent.press(getByTestId('startDate'));
+    fireEvent.press(getByTestId('location-field'));
+    fireEvent.press(getByText('common.stepper.next'));
+    const toggle = await waitFor(() => getByTestId('telephone-required'));
+    expect(toggle.props.accessibilityState.checked).toBe(false);
+    fireEvent.press(toggle);
+    expect(toggle.props.accessibilityState.checked).toBe(true);
+  });
+
+  // Regression: the cover picker must go through lib/images.pickImageAsBlob,
+  // which reads the URI via XMLHttpRequest, not the global winter `fetch`.
+  it('picks the cover image via the shared pickImageAsBlob helper', async () => {
     (pickImageAsBlob as jest.Mock).mockResolvedValue({
       blob: { type: 'image/jpeg' },
       filename: 'pic.jpg',
@@ -126,28 +136,7 @@ describe('NewEventScreen stepper', () => {
     });
     const { getByLabelText } = render(<NewEventScreen />);
     await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
-
     fireEvent.press(getByLabelText('event.addImage'));
-
     await waitFor(() => expect(pickImageAsBlob).toHaveBeenCalled());
-  });
-
-  it('renders OrganizerPicker in the details step (navigation regression)', async () => {
-    const { getByText, getByLabelText, getByTestId } = render(<NewEventScreen />);
-    await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
-    // Fill step 1
-    fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
-    fireEvent.changeText(getByLabelText('event.description'), 'Desc');
-    fireEvent.press(getByText('common.stepper.next'));
-    // Confirm in step 2: both date fields present (endDate is optional).
-    await waitFor(() => expect(getByTestId('startDate')).toBeTruthy());
-    expect(getByTestId('endDate')).toBeTruthy();
-    // Set startDate via mocked DateField to unblock step 2 validation
-    fireEvent.press(getByTestId('startDate'));
-    await waitFor(() => expect(getByLabelText('event.locationName')).toBeTruthy());
-    // Advance to step 3
-    fireEvent.press(getByText('common.stepper.next'));
-    // OrganizerPicker must be visible in step 3
-    await waitFor(() => expect(getByTestId('organizer-picker')).toBeTruthy());
   });
 });

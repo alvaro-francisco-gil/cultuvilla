@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { FeedCard } from './FeedCard';
 import { useT } from '../../lib/i18n';
 import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
-import { formatDate } from '@cultuvilla/shared/utils';
+import { relativeDayLabel } from '../../lib/relativeDayLabel';
 import type {
   NewsPostCategory,
   NewsPostImage,
@@ -57,7 +57,7 @@ export function NewsCard({ post, fallbackImageUri = null, onPress, testID }: New
       fallbackImageUri={fallbackImageUri}
       title={post.title}
       metaLeft={t(`news.compose.category.${post.category}`)}
-      metaRight={formatDate(date, 'short')}
+      metaRight={relativeDayLabel(date, t)}
       fallbackIcon="newspaper-outline"
       onPress={() => onPress(post.id)}
       testID={testID}

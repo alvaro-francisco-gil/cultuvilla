@@ -7,7 +7,7 @@
 
 const LOCALE = 'es-ES';
 
-export type DateStyle = 'short' | 'long' | 'time' | 'datetime';
+export type DateStyle = 'short' | 'dayMonth' | 'long' | 'time' | 'datetime';
 
 export function formatDate(date: Date, style: DateStyle = 'short'): string {
   switch (style) {
@@ -17,6 +17,17 @@ export function formatDate(date: Date, style: DateStyle = 'short'): string {
         month: '2-digit',
         year: 'numeric',
       }).format(date);
+    // Day + month name, no year: "2 de Julio". The month is capitalised (Intl
+    // gives lowercase "julio") for the app's display style.
+    case 'dayMonth': {
+      const parts = new Intl.DateTimeFormat(LOCALE, {
+        day: 'numeric',
+        month: 'long',
+      }).formatToParts(date);
+      return parts
+        .map((p) => (p.type === 'month' ? p.value.charAt(0).toUpperCase() + p.value.slice(1) : p.value))
+        .join('');
+    }
     case 'long':
       return new Intl.DateTimeFormat(LOCALE, {
         weekday: 'long',
@@ -38,6 +49,17 @@ export function formatDate(date: Date, style: DateStyle = 'short'): string {
         minute: '2-digit',
       }).format(date);
   }
+}
+
+/**
+ * Whole-calendar-day offset of `date` from `now`: 0 = today, 1 = tomorrow,
+ * -1 = yesterday. Compares calendar days (local time), not 24h spans, so a
+ * time later today is still 0 and any time tomorrow is 1. Callers map the
+ * result to relative labels ("Hoy"/"Mañana").
+ */
+export function calendarDayOffset(date: Date, now: Date = new Date()): number {
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  return Math.round((startOfDay(date) - startOfDay(now)) / 86_400_000);
 }
 
 export function formatPrice(amount: number, currency: string = 'EUR'): string {

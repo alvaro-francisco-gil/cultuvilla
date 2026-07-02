@@ -10,6 +10,8 @@
     "reject": "Rechazar",
     "create": "Crear",
     "confirm": "Confirmar",
+    "yes": "Sí",
+    "no": "No",
     "done": "Listo",
     "back": "Volver",
     "search": "Buscar",
@@ -87,6 +89,10 @@
     "tab": {
       "events": "Eventos",
       "news": "Artículos"
+    },
+    "date": {
+      "today": "Hoy",
+      "tomorrow": "Mañana"
     },
     "filter": {
       "all": "Todos",
@@ -436,6 +442,7 @@
     "publish": "Publicar",
     "createEvent": "Crear evento",
     "editEvent": "Editar evento",
+    "manageEvent": "Gestionar evento",
     "imageLabel": "Imagen",
     "addImage": "Añadir imagen",
     "changeImage": "Cambiar imagen",
@@ -444,14 +451,33 @@
     "stepDetails": "Detalles",
     "locationName": "Lugar",
     "locationPin": "Ver en el mapa",
+    "village": "Pueblo",
+    "villageAutoHint": "Detectado por la ubicación",
+    "noVillages": "Únete a un pueblo para poder crear eventos.",
+    "dateTime": "Fecha y hora",
+    "date": "Fecha",
+    "time": "Hora",
+    "selectDateTime": "Seleccionar fecha y hora",
+    "selectLocation": "Seleccionar ubicación",
+    "selectedLocation": "Ubicación seleccionada",
+    "confirmLocation": "Confirmar ubicación",
+    "searchLocationPlaceholder": "Buscar dirección…",
+    "useMyLocation": "Usar mi ubicación",
+    "locationPickerTitle": "Ubicación del evento",
+    "noLocationYet": "Busca una dirección o usa tu ubicación",
     "organizersLabel": "Organizadores",
+    "groupsLabel": "Grupos involucrados",
     "addOrganizerUser": "Añadir organizador",
     "addOrganizerOrg": "Añadir organización organizadora",
     "organizer": {
       "addUser": "Añadir persona",
+      "addOrg": "Añadir grupo",
       "selectUsers": "Seleccionar personas",
+      "selectOrgs": "Seleccionar grupos",
       "locked": "Organizador",
-      "confirm": "Confirmar"
+      "remove": "Quitar",
+      "confirm": "Confirmar",
+      "noGroups": "No hay grupos en este pueblo."
     },
     "eligibility": {
       "body": "Para crear un evento necesitas pertenecer a un grupo de este pueblo.",
@@ -691,6 +717,7 @@
     },
     "compose": {
       "title": "Nuevo artículo",
+      "editTitle": "Editar artículo",
       "titleLabel": "Título",
       "bodyLabel": "Contenido",
       "categoryLabel": "Categoría",
@@ -710,7 +737,30 @@
       "needsMembership": "Únete a este pueblo para publicar artículos.",
       "organizersLabel": "Organizadores",
       "addOrganizerUser": "Añadir organizador",
-      "addOrganizerOrg": "Añadir organización organizadora"
+      "addOrganizerOrg": "Añadir organización organizadora",
+      "stepBasics": "Lo básico",
+      "stepContent": "Contenido",
+      "stepAttribution": "Autoría",
+      "coverLabel": "Imagen de portada",
+      "addCover": "Añadir portada",
+      "changeCover": "Cambiar portada",
+      "contentLabel": "Cuerpo del artículo",
+      "contentHint": "Añade párrafos e imágenes. Escribe @ para mencionar peñas, personas, eventos o lugares.",
+      "attributionLocked": "La autoría no se puede cambiar después de crear el artículo.",
+      "block": {
+        "text": "Párrafo",
+        "image": "Imagen",
+        "addText": "Añadir párrafo",
+        "addImage": "Añadir imagen",
+        "textPlaceholder": "Escribe aquí… usa @ para mencionar",
+        "captionPlaceholder": "Pie de foto (opcional)"
+      },
+      "mentionType": {
+        "organization": "Grupo",
+        "user": "Persona",
+        "event": "Evento",
+        "place": "Lugar"
+      }
     },
     "status": {
       "pending": "Pendiente de aprobación",

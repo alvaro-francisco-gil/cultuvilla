@@ -26,6 +26,7 @@ export function LocationPicker({
   onZoomChange,
   label,
   showUseMyLocation = true,
+  showPreview = true,
 }: {
   value: LatLng | null;
   onChange: (c: LatLng | null) => void;
@@ -35,6 +36,12 @@ export function LocationPicker({
   label?: string;
   /** Show the "use my current location" GPS button. Defaults to true. */
   showUseMyLocation?: boolean;
+  /**
+   * Show the static-map preview + zoom controls once a location is picked.
+   * Defaults to true. Set false where the map framing isn't stored (e.g. the
+   * event form only keeps the coordinates).
+   */
+  showPreview?: boolean;
 }) {
   const { t } = useT();
   const [state, dispatch] = useReducer(locationReducer, value, initialLocationState);
@@ -115,7 +122,7 @@ export function LocationPicker({
       {showUseMyLocation ? (
         <Button onPress={useMyLocation}>{t('village.admin.community.useMyLocation')}</Button>
       ) : null}
-      {state.coords ? (
+      {showPreview && state.coords ? (
         <View className="gap-2">
           {/* Live preview — same framing (zoom + aspect) as the village screen. */}
           <Image
