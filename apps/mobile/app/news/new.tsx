@@ -397,9 +397,6 @@ export default function NewNewsScreen() {
         stepBody(
           <>
             <FieldLabel>{t('news.compose.contentLabel')}</FieldLabel>
-            <Text tone="muted" variant="caption">
-              {t('news.compose.contentHint')}
-            </Text>
             <BlockEditor blocks={blocks} onChange={setBlocks} candidates={candidates} />
           </>,
         ),

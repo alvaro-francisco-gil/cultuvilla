@@ -1,7 +1,7 @@
 import { Image, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@cultuvilla/shared/design-system';
-import { Button, HStack, Input, Pressable, Text, VStack } from '../primitives';
+import { HStack, Input, Pressable, Text, VStack } from '../primitives';
 import { useT } from '../../lib/i18n';
 import { pickImageWithSize } from '../../lib/images';
 import { MentionTextInput } from './MentionTextInput';
@@ -155,18 +155,36 @@ export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) 
       ))}
 
       <HStack gap={2}>
-        <View className="flex-1">
-          <Button variant="secondary" onPress={addText} fullWidth>
-            {t('news.compose.block.addText')}
-          </Button>
-        </View>
-        <View className="flex-1">
-          <Button variant="secondary" onPress={() => void addImage()} fullWidth>
-            {t('news.compose.block.addImage')}
-          </Button>
-        </View>
+        <AddBlockButton icon="text-outline" label={t('news.compose.block.addText')} onPress={addText} />
+        <AddBlockButton icon="image-outline" label={t('news.compose.block.addImage')} onPress={() => void addImage()} />
       </HStack>
     </VStack>
+  );
+}
+
+/** Dashed "add" affordance mirroring the pueblo tab's AddCard (dashed border,
+ *  accent icon, centered label). */
+function AddBlockButton({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      className="flex-1 items-center justify-center gap-1 rounded-2xl border border-dashed border-subtle py-4"
+    >
+      <Ionicons name={icon} size={26} color={ACCENT} />
+      <Text variant="bodySm" tone="muted" className="text-center">
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 

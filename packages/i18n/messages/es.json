@@ -744,7 +744,6 @@
       "addCover": "Añadir portada",
       "changeCover": "Cambiar portada",
       "contentLabel": "Cuerpo del artículo",
-      "contentHint": "Añade párrafos e imágenes. Escribe @ para mencionar peñas, personas, eventos o lugares.",
       "attributionLocked": "La autoría no se puede cambiar después de crear el artículo.",
       "block": {
         "text": "Párrafo",
