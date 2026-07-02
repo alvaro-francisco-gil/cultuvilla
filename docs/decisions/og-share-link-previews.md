@@ -64,35 +64,19 @@ distinct URL keys, so invite copy can diverge later without a cache collision.
 - **Branch.io / dynamic-link providers.** Third-party dependency and cost for a
   problem solvable with one $0-at-our-scale function.
 
-## Status and follow-ups
+## What this binds
 
-Shipped and **verified on dev** (`villa-events`): function deployed to
-`europe-west1`, Hosting rewrites live, curl against real docs returns populated
-og:* tags, and a **real-phone WhatsApp preview renders** (image + title) — the
-strictest of the three target crawlers. Beta/prod rollout is deferred as a
-**project-wide phase decision**, not og-specific unfinished work: the whole app
-is still in dev, so this feature is not special.
-
-Two items to carry when the app moves past dev:
-
-1. **Beta + prod deploy.** Redeploy `ogRenderer` + hosting to each, then
-   re-validate WhatsApp / Twitter Card Validator / FB Sharing Debugger.
-2. **Prod cache header (unresolved — verify, don't assume).** The global
-   `Cache-Control: no-cache, no-store, must-revalidate` on the `**` header glob
-   in [firebase.json](../../firebase.json) currently clobbers the function's own
-   `public, max-age=600, s-maxage=3600`, so every OG request hits Firestore.
-   Fine for dev (fresh previews while iterating); wasteful in prod. The intended
-   fix is a `hosting.headers` override for `/event/*`, `/news/*`, `/village/*`,
-   `/village/*/join`, `/o/*`, `/o/*/join` matching the function directive —
-   **but Firebase does not document header-precedence when multiple globs match
-   the same path** (first-match is documented only for redirects/rewrites). Do
-   not assume the override wins: after adding it, deploy to a non-prod project
-   and `curl -sI` an OG URL to confirm the response carries `max-age=600,
-   s-maxage=3600` and not `no-store`. If it still shows `no-store`, the `**`
-   entry is winning and the header config needs a different structure.
-
-### Implementation note
-
-Inside Cloud Run the `host` header is the `run.app` URL, not the Hosting domain;
-`render.ts` reads `x-forwarded-host` first so the SPA-shell self-fetch targets
-the CDN (fix in commit `e2258f8`).
+- **Cloud Run sees the `run.app` host, not the Hosting domain.** `render.ts` must
+  read `x-forwarded-host` before `host`, or the SPA-shell self-fetch targets the
+  function's own origin instead of the CDN and returns the wrong shell.
+- **The prod cache header is unverified and will silently disable caching.** The
+  global `Cache-Control: no-cache, no-store, must-revalidate` on the `**` header
+  glob in [firebase.json](../../firebase.json) clobbers the function's own
+  `public, max-age=600, s-maxage=3600`, so every OG request hits Firestore —
+  tolerable in dev, wasteful in prod. Firebase does **not** document
+  header-precedence when multiple globs match the same path (first-match is
+  documented only for redirects/rewrites), so a `hosting.headers` override for
+  `/event/*`, `/news/*`, `/village/*`, `/o/*` (+ `/join` variants) can't be
+  assumed to win: after adding it, `curl -sI` an OG URL on a non-prod project and
+  confirm the response carries `max-age=600, s-maxage=3600`, not `no-store`,
+  before trusting it in prod.
