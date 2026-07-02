@@ -1,6 +1,13 @@
 import { render, fireEvent } from '@testing-library/react-native';
 import { EventCard } from '../EventCard';
 
+// EventCard renders through FeedCard/primitives that (under the full parallel
+// suite) can reach useT; stub i18n so the card never depends on a provider,
+// matching the convention used across the app's component tests.
+jest.mock('../../../lib/i18n', () => ({
+  useT: () => ({ locale: 'es', t: (k: string) => k }),
+}));
+
 /**
  * Fixture uses real EventData field names:
  *   startDate (Date)        — EventData.startDate
