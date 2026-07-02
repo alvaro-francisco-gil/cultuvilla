@@ -58,8 +58,10 @@ describe('NewNewsScreen', () => {
   it('reaches the attribution step and wires OrganizerPicker with the locked creator', async () => {
     const { getByLabelText, getByText, getByPlaceholderText, queryByTestId } = render(<NewNewsScreen />);
 
-    // Step 1 (basics): title + category satisfy the step's validation.
+    // Step 1 (basics): title + category satisfy the step's validation. The
+    // category dropdown must be opened before its options are pressable.
     fireEvent.changeText(getByLabelText('news.compose.titleLabel'), 'Fiestas 2026');
+    fireEvent.press(getByLabelText('news.compose.categoryLabel'));
     fireEvent.press(getByText('news.compose.category.fiesta'));
     expect(queryByTestId('organizer-picker')).toBeNull(); // not on step 1
     fireEvent.press(getByText('common.stepper.next'));

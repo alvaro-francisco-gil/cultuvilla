@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen, VStack, Text, Input, Button, FieldLabel, ImagePickerField } from '../../components/primitives';
+import { colors } from '@cultuvilla/shared/design-system';
+import { Screen, VStack, Text, Input, Button, FieldLabel, ImagePickerField, Pressable } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { OrganizerPicker } from '../../components/feature/OrganizerPicker';
 import { Stepper, type StepConfig } from '../../components/feature/Stepper';
@@ -52,6 +53,101 @@ function flattenBody(blocks: EditorBlock[]): string {
     .map((b) => b.text.trim())
     .filter(Boolean)
     .join('\n\n');
+}
+
+const ACCENT = colors.light.fg.accent;
+
+/**
+ * Category selector as a collapsible inline dropdown — a bordered field showing
+ * the current choice that expands the option list below it. Inline (not a
+ * `Modal`/native `Picker`) to stay safe on the web build (see mobile-web-compat).
+ */
+function CategoryField({
+  value,
+  onChange,
+  t,
+}: {
+  value: NewsPostCategory | null;
+  onChange: (c: NewsPostCategory) => void;
+  t: (key: string) => string;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <VStack gap={1}>
+      <FieldLabel>{t('news.compose.categoryLabel')}</FieldLabel>
+      <Pressable
+        onPress={() => setOpen((o) => !o)}
+        accessibilityRole="button"
+        accessibilityLabel={t('news.compose.categoryLabel')}
+        className="flex-row items-center justify-between border rounded-md px-3 py-3 bg-surface border-subtle"
+      >
+        <Text tone={value ? 'primary' : 'muted'}>
+          {value ? t(`news.compose.category.${value}`) : t('news.compose.categoryPlaceholder')}
+        </Text>
+        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={ACCENT} />
+      </Pressable>
+      {open ? (
+        <VStack gap={0} className="overflow-hidden rounded-md border border-subtle bg-surface-elevated">
+          {NEWS_POST_CATEGORIES.map((opt) => (
+            <Pressable
+              key={opt}
+              onPress={() => {
+                onChange(opt);
+                setOpen(false);
+              }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: value === opt }}
+              className={`flex-row items-center justify-between px-3 py-3 ${value === opt ? 'bg-surface' : ''}`}
+            >
+              <Text>{t(`news.compose.category.${opt}`)}</Text>
+              {value === opt ? <Ionicons name="checkmark" size={18} color={ACCENT} /> : null}
+            </Pressable>
+          ))}
+        </VStack>
+      ) : null}
+    </VStack>
+  );
+}
+
+/**
+ * Cover picker that shows the picked image IN FULL (at its natural aspect ratio,
+ * never cropped) — the box matches the image's ratio so nothing is trimmed.
+ * Empty state falls back to the shared dashed "add" card.
+ */
+function CoverField({
+  cover,
+  onPick,
+  t,
+}: {
+  cover: CoverState;
+  onPick: () => void;
+  t: (key: string) => string;
+}) {
+  return (
+    <VStack gap={1}>
+      <FieldLabel>{t('news.compose.coverLabel')}</FieldLabel>
+      {cover?.uri ? (
+        <Pressable onPress={onPick} accessibilityLabel={t('news.compose.changeCover')}>
+          <View
+            className="overflow-hidden rounded-2xl border border-subtle bg-surface"
+            style={{ width: '100%', aspectRatio: cover.width > 0 && cover.height > 0 ? cover.width / cover.height : 16 / 9 }}
+          >
+            <Image
+              source={{ uri: cover.uri }}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
+              accessibilityIgnoresInvertColors
+            />
+          </View>
+          <Text tone="muted" variant="caption" className="mt-1 text-center">
+            {t('news.compose.changeCover')}
+          </Text>
+        </Pressable>
+      ) : (
+        <ImagePickerField uri={null} width="100%" height={160} label={t('news.compose.addCover')} onPress={onPick} />
+      )}
+    </VStack>
+  );
 }
 
 export default function NewNewsScreen() {
@@ -143,6 +239,19 @@ export default function NewNewsScreen() {
   }, [editMode, newsId]);
 
   const hasContent = blocks.some((b) => b.type === 'text' && b.text.trim().length > 0);
+
+  async function pickCover() {
+    const picked = await pickImageWithSize();
+    if (!picked) return;
+    setCover({
+      kind: 'new',
+      blob: picked.blob,
+      uri: picked.previewUri ?? '',
+      contentType: picked.contentType ?? 'image/jpeg',
+      width: picked.width,
+      height: picked.height,
+    });
+  }
 
   const { fire: submit, isPending } = useCallable({
     callable: async () => {
@@ -273,39 +382,9 @@ export default function NewNewsScreen() {
       render: () =>
         stepBody(
           <>
-            <FieldLabel>{t('news.compose.coverLabel')}</FieldLabel>
-            <ImagePickerField
-              uri={cover?.uri ?? null}
-              width="100%"
-              height={160}
-              label={cover ? t('news.compose.changeCover') : t('news.compose.addCover')}
-              onPress={async () => {
-                const picked = await pickImageWithSize();
-                if (picked) {
-                  setCover({
-                    kind: 'new',
-                    blob: picked.blob,
-                    uri: picked.previewUri ?? '',
-                    contentType: picked.contentType ?? 'image/jpeg',
-                    width: picked.width,
-                    height: picked.height,
-                  });
-                }
-              }}
-            />
             <Input label={t('news.compose.titleLabel')} value={title} onChangeText={setTitle} />
-            <Text tone="muted">{t('news.compose.categoryLabel')}</Text>
-            <VStack gap={2}>
-              {NEWS_POST_CATEGORIES.map((opt) => (
-                <Button
-                  key={opt}
-                  variant={category === opt ? 'primary' : 'secondary'}
-                  onPress={() => setCategory(category === opt ? null : opt)}
-                >
-                  {t(`news.compose.category.${opt}`)}
-                </Button>
-              ))}
-            </VStack>
+            <CategoryField value={category} onChange={setCategory} t={t} />
+            <CoverField cover={cover} onPick={pickCover} t={t} />
           </>,
         ),
     },

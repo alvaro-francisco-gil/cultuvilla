@@ -736,6 +736,7 @@
       "organizersLabel": "Organizadores",
       "addOrganizerUser": "Añadir organizador",
       "addOrganizerOrg": "Añadir organización organizadora",
+      "categoryPlaceholder": "Elige una categoría…",
       "stepBasics": "Lo básico",
       "stepContent": "Contenido",
       "stepAttribution": "Autoría",
