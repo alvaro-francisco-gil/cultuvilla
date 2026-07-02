@@ -153,7 +153,7 @@ export function Stepper({
         <HStack gap={3} className="px-4 py-3">
           <View className="flex-1">
             {current > 0 ? (
-              <Button variant="ghost" onPress={goBack} disabled={loading} fullWidth>
+              <Button variant="secondary" onPress={goBack} disabled={loading} fullWidth>
                 {t('common.stepper.back')}
               </Button>
             ) : null}
