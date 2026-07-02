@@ -12,6 +12,7 @@ const validEvent = {
   title: 'Fiesta',
   description: 'Annual fiesta',
   startDate: new Date('2026-06-15T18:00:00Z'),
+  endDate: null,
   location: { coordinates: { lat: 40.4, lng: -3.7 }, displayName: 'Plaza Mayor' },
   imageURL: null,
   maxAttendees: 100,
@@ -64,6 +65,23 @@ describe('buildEventData', () => {
     });
     expect(built.status).toBe('published');
     expect(built.telephoneRequired).toBe(false);
+    expect(built.endDate).toBeNull();
+    expect(() => EventDataSchema.parse(built)).not.toThrow();
+  });
+
+  it('passes through a multi-day endDate', () => {
+    const built = buildEventData({
+      title: 'X', description: 'Y',
+      startDate: new Date('2026-06-15T18:00:00Z'),
+      endDate: new Date('2026-06-17T18:00:00Z'),
+      location: { coordinates: { lat: 1, lng: 2 }, displayName: 'Plaza' },
+      organizerUserIds: ['u'],
+      organizerOrgIds: [],
+      createdBy: 'u',
+      municipalityId: 'm', villageName: 'M',
+      villageCoordinates: { lat: 1, lng: 2 },
+    });
+    expect(built.endDate).toEqual(new Date('2026-06-17T18:00:00Z'));
     expect(() => EventDataSchema.parse(built)).not.toThrow();
   });
 });
@@ -72,6 +90,7 @@ describe('isEventFull', () => {
   const base = EventDataSchema.parse({
     title: 'X', description: 'Y',
     startDate: new Date('2026-06-15T18:00:00Z'),
+    endDate: null,
     location: { coordinates: { lat: 1, lng: 2 }, displayName: 'Plaza' },
     imageURL: null, maxAttendees: null,
     telephoneRequired: false, status: 'published',
@@ -101,6 +120,7 @@ describe('isEventSignupOpen', () => {
   const base = EventDataSchema.parse({
     title: 'X', description: 'Y',
     startDate: new Date('2026-06-15T18:00:00Z'),
+    endDate: null,
     location: { coordinates: { lat: 1, lng: 2 }, displayName: 'Plaza' },
     imageURL: null, maxAttendees: null,
     telephoneRequired: false, status: 'published',
@@ -123,16 +143,33 @@ describe('isEventSignupOpen', () => {
 describe('isEventOngoing', () => {
   const now = new Date('2026-06-15T21:00:00Z'); // 23:00 Madrid, still the 15th
   it('true: published, started earlier same Madrid day', () => {
-    expect(isEventOngoing({ status: 'published', startDate: new Date('2026-06-15T16:00:00Z') }, now)).toBe(true);
+    expect(isEventOngoing({ status: 'published', startDate: new Date('2026-06-15T16:00:00Z'), endDate: null }, now)).toBe(true);
   });
   it('false: before start', () => {
-    expect(isEventOngoing({ status: 'published', startDate: new Date('2026-06-15T22:00:00Z') }, now)).toBe(false);
+    expect(isEventOngoing({ status: 'published', startDate: new Date('2026-06-15T22:00:00Z'), endDate: null }, now)).toBe(false);
   });
-  it('false: Madrid start-day is over', () => {
-    expect(isEventOngoing({ status: 'published', startDate: new Date('2026-06-14T16:00:00Z') }, now)).toBe(false);
+  it('false: single-day Madrid start-day is over', () => {
+    expect(isEventOngoing({ status: 'published', startDate: new Date('2026-06-14T16:00:00Z'), endDate: null }, now)).toBe(false);
   });
   it('false: not published', () => {
-    expect(isEventOngoing({ status: 'cancelled', startDate: new Date('2026-06-15T16:00:00Z') }, now)).toBe(false);
+    expect(isEventOngoing({ status: 'cancelled', startDate: new Date('2026-06-15T16:00:00Z'), endDate: null }, now)).toBe(false);
+  });
+  it('true: multi-day event still within its endDate Madrid day', () => {
+    // Started two days ago, ends today (the 15th) — still ongoing.
+    expect(
+      isEventOngoing(
+        { status: 'published', startDate: new Date('2026-06-13T10:00:00Z'), endDate: new Date('2026-06-15T10:00:00Z') },
+        now,
+      ),
+    ).toBe(true);
+  });
+  it('false: multi-day event whose endDate Madrid day is over', () => {
+    expect(
+      isEventOngoing(
+        { status: 'published', startDate: new Date('2026-06-13T10:00:00Z'), endDate: new Date('2026-06-14T10:00:00Z') },
+        now,
+      ),
+    ).toBe(false);
   });
 });
 

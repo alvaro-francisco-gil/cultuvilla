@@ -12,7 +12,7 @@ const M = 'm1';
 // A full, schema-valid event payload (mirrors isValidEventCreate keys).
 function orglessEvent(createdBy: string) {
   return {
-    title: 'Fiesta', description: 'desc', startDate: new Date('2026-07-01'),
+    title: 'Fiesta', description: 'desc', startDate: new Date('2026-07-01'), endDate: null,
     location: { coordinates: { lat: 40.0, lng: -3.0 }, displayName: 'Plaza Mayor' },
     imageURL: null, maxAttendees: null, telephoneRequired: false,
     status: 'published', organizerUserIds: [createdBy], organizerOrgIds: [],
