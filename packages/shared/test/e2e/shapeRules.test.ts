@@ -335,6 +335,7 @@ describe('shape enforcement — /events/{eventId}', () => {
     title: 'Fiesta',
     description: 'Annual',
     startDate: new Date(),
+    endDate: null,
     location: { coordinates: { lat: 40, lng: -3 }, displayName: 'Plaza Mayor' },
     imageURL: null,
     maxAttendees: null,
@@ -380,6 +381,34 @@ describe('shape enforcement — /events/{eventId}', () => {
     const alice = env.authenticatedContext('alice').firestore();
     await assertFails(
       setDoc(doc(alice, 'events/e1'), { ...validEvent, telephoneRequired: 'yes' }),
+    );
+  });
+
+  it('accepts a multi-day endDate >= startDate', async () => {
+    await seedMember('m1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    const start = new Date('2026-07-01');
+    const end = new Date('2026-07-03');
+    await assertSucceeds(
+      setDoc(doc(alice, 'events/e1'), { ...validEvent, startDate: start, endDate: end }),
+    );
+  });
+
+  it('rejects an endDate before startDate', async () => {
+    await seedMember('m1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    const start = new Date('2026-07-03');
+    const end = new Date('2026-07-01');
+    await assertFails(
+      setDoc(doc(alice, 'events/e1'), { ...validEvent, startDate: start, endDate: end }),
+    );
+  });
+
+  it('rejects a wrong type on endDate', async () => {
+    await seedMember('m1', 'alice');
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertFails(
+      setDoc(doc(alice, 'events/e1'), { ...validEvent, endDate: 'soon' }),
     );
   });
 });

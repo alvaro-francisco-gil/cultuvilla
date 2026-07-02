@@ -358,7 +358,7 @@ service cloud.firestore {
 
     function isValidEventCreate(d) {
       return d.keys().hasOnly([
-              'title', 'description', 'startDate', 'location',
+              'title', 'description', 'startDate', 'endDate', 'location',
               'imageURL', 'maxAttendees', 'telephoneRequired',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
@@ -366,7 +366,7 @@ service cloud.firestore {
               'confirmedCount', 'totalCount',
             ])
           && d.keys().hasAll([
-              'title', 'description', 'startDate', 'location',
+              'title', 'description', 'startDate', 'endDate', 'location',
               'imageURL', 'maxAttendees', 'telephoneRequired',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
@@ -375,6 +375,10 @@ service cloud.firestore {
           && isString(d.title)
           && isString(d.description)
           && isTimestamp(d.startDate)
+          // endDate is optional-but-present: null for single-day events,
+          // otherwise a Timestamp no earlier than startDate.
+          && isTimestampOrNull(d.endDate)
+          && (d.endDate == null || d.endDate >= d.startDate)
           && isMap(d.location)
           && isStringOrNull(d.imageURL)
           && isNumberOrNull(d.maxAttendees)

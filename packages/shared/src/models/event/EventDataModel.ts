@@ -9,6 +9,13 @@ export const EventDataSchema = z.object({
   title: z.string(),
   description: z.string(),
   startDate: z.date(),
+  // Optional end of a multi-day event. `null` means single-day: the event runs
+  // for the rest of its Europe/Madrid start day (see isEventOngoing). When set,
+  // it must be >= startDate (enforced in firestore.rules and the create form).
+  // `.default(null)`: events created during the single-date era have no endDate
+  // field at all, so reads of those legacy docs normalize the absent field to
+  // null instead of throwing. New docs always carry it (buildEventData + rules).
+  endDate: z.date().nullable().default(null),
   location: LocationDataSchema,
   imageURL: z.string().nullable(),
   maxAttendees: z.number().int().nullable(),
@@ -39,6 +46,7 @@ export interface EventDataInput {
   title: string;
   description: string;
   startDate: Date;
+  endDate?: Date | null;
   location: z.infer<typeof LocationDataSchema>;
   imageURL?: string | null;
   maxAttendees?: number | null;
@@ -61,6 +69,7 @@ export function buildEventData(input: EventDataInput): EventData {
     title: input.title,
     description: input.description,
     startDate: input.startDate,
+    endDate: input.endDate ?? null,
     location: input.location,
     imageURL: input.imageURL ?? null,
     maxAttendees: input.maxAttendees ?? null,
@@ -101,8 +110,20 @@ export function isStartDayOver(start: Date, now: Date): boolean {
   return madridDayKey(now) > madridDayKey(start);
 }
 
-export function isEventOngoing(event: Pick<EventData, 'status' | 'startDate'>, now: Date): boolean {
+/**
+ * The day an event stops being "ongoing": its `endDate` for multi-day events,
+ * or its `startDate` when single-day (`endDate` null). Both `isEventOngoing`
+ * and the completeExpiredEvents scheduler key their day-boundary check off this.
+ */
+export function eventEndBoundary(event: Pick<EventData, 'startDate' | 'endDate'>): Date {
+  return event.endDate ?? event.startDate;
+}
+
+export function isEventOngoing(
+  event: Pick<EventData, 'status' | 'startDate' | 'endDate'>,
+  now: Date,
+): boolean {
   if (event.status !== 'published') return false;
   if (event.startDate > now) return false;
-  return !isStartDayOver(event.startDate, now);
+  return !isStartDayOver(eventEndBoundary(event), now);
 }

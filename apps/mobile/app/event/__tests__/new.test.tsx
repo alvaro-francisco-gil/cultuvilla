@@ -87,8 +87,10 @@ describe('NewEventScreen stepper', () => {
     fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
     fireEvent.changeText(getByLabelText('event.description'), 'Desc');
     fireEvent.press(getByText('common.stepper.next'));
-    // Now in step 2 (Cuándo y dónde): datetime + location + village present.
+    // Now in step 2 (Cuándo y dónde): datetime (+ optional end), location + village present.
     expect(getByTestId('startDate')).toBeTruthy();
+    // endDate is the optional multi-day end.
+    expect(getByTestId('endDate')).toBeTruthy();
     expect(getByTestId('location-field')).toBeTruthy();
     expect(getByTestId('village-picker')).toBeTruthy();
   });

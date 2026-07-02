@@ -9,6 +9,7 @@ function makeEvent(over: Partial<ManagedEvent> & { id: string }): ManagedEvent {
     title: over.title ?? over.id,
     description: '',
     startDate: over.startDate ?? new Date('2026-07-01T18:00:00Z'),
+    endDate: over.endDate ?? null,
     location: { coordinates: { lat: 40.4, lng: -3.7 }, displayName: 'Plaza' },
     imageURL: null,
     maxAttendees: null,

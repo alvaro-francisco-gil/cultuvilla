@@ -82,6 +82,9 @@ export async function updateEvent(
   if (data.startDate instanceof Date) {
     updates['startDate'] = Timestamp.fromDate(data.startDate);
   }
+  if (data.endDate instanceof Date) {
+    updates['endDate'] = Timestamp.fromDate(data.endDate);
+  }
   await updateDoc(doc(getDb(), 'events', eventId), updates);
 }
 

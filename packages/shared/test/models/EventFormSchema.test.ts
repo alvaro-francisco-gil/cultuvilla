@@ -75,4 +75,30 @@ describe('EventFormSchema', () => {
     const result = EventFormSchema.safeParse({ ...validBase, maxAttendees: '3.5' });
     expect(result.success).toBe(false);
   });
+
+  it('defaults endDate to null when omitted (single-day event)', () => {
+    const result = EventFormSchema.safeParse(validBase);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.endDate).toBeNull();
+  });
+
+  it('coerces an empty endDate string to null', () => {
+    const result = EventFormSchema.safeParse({ ...validBase, endDate: '' });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.endDate).toBeNull();
+  });
+
+  it('accepts an endDate on or after startDate', () => {
+    const result = EventFormSchema.safeParse({ ...validBase, endDate: '2026-08-17T20:00' });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.endDate).toBeInstanceOf(Date);
+  });
+
+  it('rejects an endDate before startDate', () => {
+    const result = EventFormSchema.safeParse({ ...validBase, endDate: '2026-08-14T20:00' });
+    expect(result.success).toBe(false);
+  });
 });

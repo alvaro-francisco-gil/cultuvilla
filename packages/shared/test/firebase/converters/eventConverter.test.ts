@@ -6,6 +6,7 @@ const baseFirestoreShape = {
   title: 'Fiesta',
   description: 'Annual fiesta',
   startDate: Timestamp.fromDate(new Date('2026-06-15T18:00:00Z')),
+  endDate: Timestamp.fromDate(new Date('2026-06-17T18:00:00Z')),
   location: { coordinates: new GeoPoint(40.4, -3.7), displayName: 'Plaza Mayor' },
   imageURL: null,
   maxAttendees: 100,
@@ -29,6 +30,7 @@ describe('eventConverterClient', () => {
     const snap = { data: () => baseFirestoreShape };
     const event = eventConverterClient.fromFirestore(snap);
     expect(event.startDate).toBeInstanceOf(Date);
+    expect(event.endDate).toBeInstanceOf(Date);
     expect(event.villageCoordinates).toEqual({ lat: 40.4, lng: -3.7 });
     expect(event.status).toBe('published');
   });

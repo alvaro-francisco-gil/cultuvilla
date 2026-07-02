@@ -29,6 +29,7 @@ function newEvent(createdBy: string, extraOrganizers: string[] = [], orgIds: str
     title: 'Fiesta',
     description: 'desc',
     startDate: new Date('2026-07-01'),
+    endDate: null,
     location: { coordinates: { lat: 40.0, lng: -3.0 }, displayName: 'Plaza Mayor' },
     imageURL: null,
     maxAttendees: null,

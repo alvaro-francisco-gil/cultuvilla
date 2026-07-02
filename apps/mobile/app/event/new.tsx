@@ -94,6 +94,8 @@ export default function NewEventScreen() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState<Date | null>(null);
+  // Optional multi-day end; null = single-day event.
+  const [endDate, setEndDate] = useState<Date | null>(null);
   const [coords, setCoords] = useState<LatLng | null>(null);
   const [locationName, setLocationName] = useState('');
   const [maxAttendees, setMaxAttendees] = useState('');
@@ -150,6 +152,7 @@ export default function NewEventScreen() {
         setTitle(ev.title);
         setDescription(ev.description);
         setStartDate(ev.startDate);
+        setEndDate(ev.endDate ?? null);
         setCoords(ev.location?.coordinates ?? null);
         setLocationName(ev.location?.displayName ?? '');
         setMaxAttendees(ev.maxAttendees != null ? String(ev.maxAttendees) : '');
@@ -232,6 +235,7 @@ export default function NewEventScreen() {
           title: title.trim(),
           description: description.trim(),
           startDate,
+          endDate,
           location,
           maxAttendees: maxAttendeesValue,
           telephoneRequired,
@@ -254,6 +258,7 @@ export default function NewEventScreen() {
         title: title.trim(),
         description: description.trim(),
         startDate,
+        endDate,
         location,
         maxAttendees: maxAttendeesValue,
         telephoneRequired,
@@ -371,6 +376,8 @@ export default function NewEventScreen() {
       validate: () => {
         const e: string[] = [];
         if (!startDate) e.push('startDate');
+        // endDate is optional, but if set it must not precede startDate.
+        if (endDate && startDate && endDate < startDate) e.push('endDate');
         if (!coords) e.push('coords');
         if (!municipalityId) e.push('village');
         return e;
@@ -378,12 +385,20 @@ export default function NewEventScreen() {
       render: () => stepBody(
         <>
           <DateTimeField
-            label={t('event.dateTime')}
+            label={t('event.startDateTime')}
             value={startDate}
             onChange={setStartDate}
             minimumDate={new Date()}
             placeholder={t('event.selectDateTime')}
             testID="startDate"
+          />
+          <DateTimeField
+            label={t('event.endDateTime')}
+            value={endDate}
+            onChange={setEndDate}
+            minimumDate={startDate ?? new Date()}
+            placeholder={t('event.selectDateTime')}
+            testID="endDate"
           />
           <EventLocationField
             value={coords}

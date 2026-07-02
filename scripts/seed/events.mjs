@@ -39,6 +39,9 @@ export async function seedEvents(dataset) {
       for (const ev of org.events ?? []) {
         const eDocId = eventDocId(vKey, org.id, ev.id);
         const startDate = new Date(Date.now() + ev.startOffsetDays * DAY_MS);
+        // Optional multi-day end; omit `endOffsetDays` for a single-day event.
+        const endDate =
+          ev.endOffsetDays != null ? new Date(Date.now() + ev.endOffsetDays * DAY_MS) : null;
 
         let imageURL = null;
         if (ev.image) {
@@ -51,6 +54,7 @@ export async function seedEvents(dataset) {
               title: ev.title,
               description: ev.description,
               startDate,
+              endDate,
               location: buildLocationData({
                 coordinates: locationCoords,
                 displayName: `Plaza Mayor, ${v.name}`,
