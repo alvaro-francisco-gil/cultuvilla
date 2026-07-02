@@ -1,5 +1,13 @@
 # Village join/organizer requests go through Cloud Function callables, deduplicated by uid
 
+> **Superseded in part by [self-service-membership](self-service-membership.md):**
+> the *join* flow described here (`joinRequests`, `requestJoinVillage`,
+> `respondToJoinRequest`, and their screens) is **retired** — joining a village is
+> now an unapproved self-write. What remains durable below is the request pattern
+> for the **organizer grant** (callable-owned writes, rules deny client writes,
+> in-function transactional guardrails, `organizerRequests` dedup) and the
+> profile-forced-post-signup + `activeVillageId`-as-UI-hint decisions.
+
 ## Context
 
 The mobile signup flow assumed a user already belonged to a village: it created
@@ -10,19 +18,18 @@ discover and request access.
 
 ## Decision
 
-- **Two request collections.** `municipalities/{mid}/joinRequests/{userId}` is
-  keyed by uid so duplicate join requests are *structurally impossible* — one doc
-  per user per village. `organizerRequests/{requestId}` is top-level (auto-id)
+- **Request collection.** `organizerRequests/{requestId}` is top-level (auto-id)
   because the target municipality may not yet have an active community to nest
-  under, so dedup is enforced in-function instead (query for an existing pending
-  request before creating).
-- **All writes go through four Cloud Function callables** —
-  `requestJoinVillage`, `respondToJoinRequest`, `requestOrganizeVillage`,
+  under, so dedup is enforced in-function (query for an existing pending request
+  before creating). *(The original `municipalities/{mid}/joinRequests/{userId}`
+  collection — keyed by uid to make duplicate join requests structurally
+  impossible — is retired; see the superseded note above.)*
+- **All writes go through Cloud Function callables** — `requestOrganizeVillage`,
   `respondToOrganizerRequest`. Clients never write these docs directly; the
   services in `@cultuvilla/shared` are thin `httpsCallable` wrappers plus reads.
-- **Firestore rules deny all client writes** to both collections (create/update/
-  delete `if false`) — Cloud Functions (admin SDK) own them. Reads are scoped:
-  requester, village admin of that municipality, or app admin.
+- **Firestore rules deny all client writes** to the request collection (create/
+  update/delete `if false`) — Cloud Functions (admin SDK) own them. Reads are
+  scoped: requester, village admin of that municipality, or app admin.
 - **Guardrails the rules can't express live in the function**, inside a
   transaction: requester not already a member, no prior pending request, target
   community active (join) or inactive (organize). On approval the function
@@ -42,22 +49,15 @@ discover and request access.
 - **Client-side request writes guarded only by rules** — rules can't express
   "not already a member AND no prior pending request" atomically; the callable +
   transaction does.
-- **Auto-approval / open-membership village mode** — deferred to a future
-  per-village `community.joinPolicy` field; admin always approves for now.
 - **Web admin UI for organizer-request review** — out of scope; mobile-only.
 
 ## What this binds
 
-- New mutations on join/organizer requests must be added as Cloud Function
-  callables, not client writes — the rules will reject direct writes.
-- The uid-as-doc-id key on `joinRequests` is the dedup mechanism; do not switch
-  to auto-ids without re-adding an explicit duplicate check.
-- Collection-group queries over `joinRequests` must filter `userId == auth.uid`
-  (the rules' self-list carve-out only covers that shape).
+- New mutations on organizer requests must be added as Cloud Function callables,
+  not client writes — the rules will reject direct writes.
 - The invite-token flow stays untouched as the "skip the queue" path.
 
 ## Revisit when
 
-- A village wants frictionless joins (introduce `community.joinPolicy`).
 - Discovery for users already in a village (beyond the switcher's "buscar otro
   pueblo") warrants promoting discovery back to a dedicated tab.

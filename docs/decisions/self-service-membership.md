@@ -1,13 +1,8 @@
 # Self-service membership: decoupled belong / start / organize
 
-**Status:** Implemented
-**Date:** 2026-06-21
-**Branch:** `worktree-feat+self-service-membership`
-
-> Supersedes the join half of [organizer-request-village-creation](organizer-request-village-creation.md):
-> organizing a village no longer *activates* it. All layers (rules, model, Cloud
-> Functions, client services, mobile UI, i18n, docs) landed with tests;
-> typecheck + lint + full emulator suite + web-compat green.
+Organizing a village no longer *activates* it — activation, membership, and admin
+are three independent acts (see the Decision). This supersedes the earlier model
+in which an organizer request both created the community and appointed its admin.
 
 ## Problem
 
@@ -60,12 +55,3 @@ Three independent layers replace the single "organize" act:
   admin must approve (see the request taxonomy in `AGENTS.md`). Belonging to your
   own pueblo needs no permission; joining someone else's association does. Don't
   generalize self-join to orgs.
-
-## Layers touched
-
-`firestore.rules` (owner self-join; retired `joinRequests`); `packages/shared`
-(nullable `adminUserId`; `startVillage`/`updateVillageInfo` client wrappers;
-retired join-request model/service/converters/refs); `functions/src/village`
-(`startVillage`, `updateVillageInfo`, repurposed organizer request/response;
-retired join callables); `apps/mobile` (join confirmation, start/organize/edit-info
-screens, village-tab banner, discovery routing); `docs/business-rules.md` §2–§3.
