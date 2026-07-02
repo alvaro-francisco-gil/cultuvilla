@@ -8,12 +8,10 @@
 # ONLY this GitHub repo, and a branch-scoped impersonation binding. No SA keys
 # are ever created. Idempotent — safe to re-run.
 #
-# Prerequisites:
+# Prerequisite:
 #   - gcloud authenticated as an Owner/IAM-admin of all three projects:
 #       gcloud auth login cultuvilla.app@gmail.com
-#   - deploy APIs enabled (iam, iamcredentials, sts, cloudfunctions, run,
-#     firebasehosting, firebaserules, firestore, artifactregistry, eventarc,
-#     cloudbuild, pubsub) — see docs/ENVIRONMENTS.md.
+#   (this script enables every required deploy API itself — see DEPLOY_APIS.)
 #
 # After running, set the printed WIF provider + SA email as GitHub Environment
 # variables GCP_WIF_PROVIDER / GCP_SERVICE_ACCOUNT (dev/beta/production).
@@ -33,6 +31,18 @@ TRIPLES=(
   "cultuvilla-prod:34340110439:main"
 )
 
+# Deploy APIs each project needs (functions v2 pulls in run/eventarc/build/
+# artifactregistry; secrets/scheduler/billing are needed by our specific
+# functions and the CLI's Blaze-plan check).
+DEPLOY_APIS=(
+  iam.googleapis.com iamcredentials.googleapis.com sts.googleapis.com
+  cloudresourcemanager.googleapis.com serviceusage.googleapis.com
+  firebasehosting.googleapis.com firebaserules.googleapis.com firestore.googleapis.com
+  cloudfunctions.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
+  run.googleapis.com eventarc.googleapis.com pubsub.googleapis.com
+  secretmanager.googleapis.com cloudscheduler.googleapis.com cloudbilling.googleapis.com
+)
+
 SA_ROLES=(
   roles/firebase.admin
   roles/firebasehosting.admin
@@ -44,6 +54,11 @@ SA_ROLES=(
   roles/eventarc.admin
   roles/cloudbuild.builds.editor
   roles/pubsub.admin
+  # functions read GOOGLE_MAPS_API_KEY from Secret Manager; the CLI grants the
+  # runtime SA access at deploy time (needs setIamPolicy on the secret).
+  roles/secretmanager.admin
+  # scheduled functions (completeExpiredEvents) create/update Cloud Scheduler jobs.
+  roles/cloudscheduler.admin
   roles/iam.serviceAccountUser
   roles/serviceusage.serviceUsageConsumer
 )
@@ -76,6 +91,10 @@ for T in "${TRIPLES[@]}"; do
   echo "############################################################"
   echo "# $PROJECT (num $NUMBER) → branch '$BRANCH'"
   echo "############################################################"
+
+  # 0) enable the deploy APIs (idempotent)
+  g services enable "${DEPLOY_APIS[@]}" --project="$PROJECT" >/dev/null
+  echo "  APIs enabled (${#DEPLOY_APIS[@]})"
 
   # 1) deployer service account (keyless)
   if g iam service-accounts describe "$SA_EMAIL" --project="$PROJECT" >/dev/null 2>&1; then
