@@ -3,6 +3,7 @@ import {
   activeMentionQuery,
   adjustMentions,
   insertMention,
+  splitMentionsAtCaret,
   type MentionCandidate,
 } from '../mentionText';
 import type { NewsMention } from '@cultuvilla/shared/models/news/NewsPostDataModel';
@@ -63,6 +64,23 @@ describe('activeMentionQuery', () => {
     ];
     // cursor right after the committed span + trailing space
     expect(activeMentionQuery(text, 10, committed)).toBeNull();
+  });
+});
+
+describe('splitMentionsAtCaret', () => {
+  it('partitions spans around the caret and rebases the tail', () => {
+    const m = [mention(2, 3), mention(10, 4)]; // one before caret 6, one after
+    const { before, after } = splitMentionsAtCaret(m, 6);
+    expect(before).toHaveLength(1);
+    expect(before[0]!.offset).toBe(2);
+    expect(after).toHaveLength(1);
+    expect(after[0]!.offset).toBe(4); // 10 - 6
+  });
+
+  it('drops a span that straddles the caret', () => {
+    const { before, after } = splitMentionsAtCaret([mention(4, 6)], 6);
+    expect(before).toEqual([]);
+    expect(after).toEqual([]);
   });
 });
 

@@ -27,6 +27,10 @@ interface MentionTextInputProps {
   onChange: (text: string, mentions: NewsMention[]) => void;
   candidates: MentionCandidate[];
   placeholder?: string;
+  /** Fired when this field gains focus — lets the editor track the active block. */
+  onFocus?: () => void;
+  /** Reports the caret position so the editor can split here on image insert. */
+  onSelectionChange?: (caret: number) => void;
 }
 
 /**
@@ -42,6 +46,8 @@ export function MentionTextInput({
   onChange,
   candidates,
   placeholder,
+  onFocus,
+  onSelectionChange,
 }: MentionTextInputProps) {
   const { t } = useT();
   const [selection, setSelection] = useState({ start: 0, end: 0 });
@@ -89,8 +95,11 @@ export function MentionTextInput({
           textAlignVertical="top"
           style={{ minHeight: 96 }}
           selection={forcedSelection ?? undefined}
+          onFocus={onFocus}
           onSelectionChange={(e) => {
-            setSelection(e.nativeEvent.selection);
+            const sel = e.nativeEvent.selection;
+            setSelection(sel);
+            onSelectionChange?.(sel.start);
             // Release forced caret after the native field has applied it.
             if (forcedSelection) setForcedSelection(null);
           }}

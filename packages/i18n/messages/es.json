@@ -746,11 +746,9 @@
       "contentLabel": "Cuerpo del artículo",
       "attributionLocked": "La autoría no se puede cambiar después de crear el artículo.",
       "block": {
-        "text": "Párrafo",
-        "image": "Imagen",
-        "addText": "Añadir párrafo",
         "addImage": "Añadir imagen",
-        "textPlaceholder": "Escribe aquí… usa @ para mencionar",
+        "removeImage": "Quitar imagen",
+        "textPlaceholder": "Escribe aquí… usa @ para mencionar peñas, personas, eventos o lugares",
         "captionPlaceholder": "Pie de foto (opcional)"
       },
       "mentionType": {

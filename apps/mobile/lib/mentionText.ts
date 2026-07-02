@@ -93,6 +93,27 @@ export function activeMentionQuery(
   return null;
 }
 
+/**
+ * Split a text block's mention spans at `caret` (for inserting an image
+ * mid-paragraph). Spans entirely before the caret stay in `before`; spans
+ * entirely after move to `after` with offsets rebased to the split point; a span
+ * straddling the caret is dropped.
+ */
+export function splitMentionsAtCaret(
+  mentions: NewsMention[],
+  caret: number,
+): { before: NewsMention[]; after: NewsMention[] } {
+  const before: NewsMention[] = [];
+  const after: NewsMention[] = [];
+  for (const m of mentions) {
+    const end = m.offset + m.length;
+    if (end <= caret) before.push(m);
+    else if (m.offset >= caret) after.push({ ...m, offset: m.offset - caret });
+    // straddles the caret → dropped
+  }
+  return { before, after };
+}
+
 export interface MentionCandidate {
   entityType: MentionEntityType;
   entityId: string;
