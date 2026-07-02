@@ -19,6 +19,7 @@ export type LocationAction =
   | { type: 'gpsResult'; coords: LatLng }
   | { type: 'resolvedAddress'; label: string }
   | { type: 'searchFailed' }
+  | { type: 'clearQuery' }
   | { type: 'clear' };
 
 /** Human-ish text for a raw coordinate (used when there's no place label). */
@@ -70,6 +71,10 @@ export function locationReducer(state: LocationPickerState, action: LocationActi
       return { ...state, query: action.label, selected: true, status: 'idle' };
     case 'searchFailed':
       return { ...state, status: 'error', results: [] };
+    case 'clearQuery':
+      // Empty the search field + results but KEEP the current coordinate (so the
+      // map preview stays put); it only changes when a new place is picked.
+      return { ...state, query: '', results: [], status: 'idle', selected: state.coords != null };
     case 'clear':
       return { ...state, coords: null, results: [], query: '', selected: false, status: 'idle' };
     default:
