@@ -11,9 +11,10 @@ import { z } from 'zod';
 export const UserDataSchema = z.object({
   // Denormalized from persons/{personId} — kept in sync by
   // functions/src/users/syncPersonDenormalization.ts. Clients cannot write this
-  // directly (firestore.rules), so reads can briefly observe "" for users
-  // created before their persona exists.
-  displayName: z.string(),
+  // directly (firestore.rules), and createUserProfile omits it, so the doc has
+  // no displayName field until that async trigger lands. `.default('')` makes a
+  // read during that window degrade to "" instead of throwing in the converter.
+  displayName: z.string().default(''),
   email: z.string(),
   telephone: z.string().nullable(),
   activeMunicipalityId: z.string().nullable(),
