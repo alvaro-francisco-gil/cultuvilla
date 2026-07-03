@@ -2,11 +2,17 @@ import { useEffect, useState } from 'react';
 import { Modal, Pressable as RNPressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../primitives/Button';
-import { Input } from '../primitives/Input';
 import { Text } from '../primitives/Text';
 import { VStack } from '../primitives/VStack';
 import { HStack } from '../primitives/HStack';
+import { PhoneField } from './PhoneField';
 import type { RegistrationStatus } from '@cultuvilla/shared/models/event/RegistrationDataModel';
+import {
+  DEFAULT_PHONE_COUNTRY,
+  formatPhoneE164,
+  isValidPhoneNumber,
+  type PhoneCountry,
+} from '@cultuvilla/shared/utils';
 import { useT } from '../../lib/i18n';
 
 export interface AttendeeOption {
@@ -53,6 +59,7 @@ export function AttendeeSheet({
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [phone, setPhone] = useState('');
+  const [phoneCountry, setPhoneCountry] = useState<PhoneCountry>(DEFAULT_PHONE_COUNTRY);
 
   const registeredIds = new Set(attendees.filter((a) => a.status).map((a) => a.id));
 
@@ -62,6 +69,7 @@ export function AttendeeSheet({
     if (visible) {
       setSelected(new Set(attendees.filter((a) => a.status).map((a) => a.id)));
       setPhone('');
+      setPhoneCountry(DEFAULT_PHONE_COUNTRY);
     }
     // attendees identity intentionally excluded — re-seed only on open.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,11 +102,14 @@ export function AttendeeSheet({
   const changed =
     selected.size !== registeredIds.size || selectedInOrder.some((id) => !registeredIds.has(id));
   const needsPhone = telephoneRequired && hasNewSelection;
-  const canConfirm = changed && !busy && (!needsPhone || phone.trim().length > 0);
+  const phoneValid = isValidPhoneNumber(phone, phoneCountry.dialCode);
+  const canConfirm = changed && !busy && (!needsPhone || phoneValid);
+  // Only nag once the user has typed something — an empty field isn't an error yet.
+  const phoneError = needsPhone && phone.trim().length > 0 && !phoneValid;
 
   function handleConfirm() {
     if (!canConfirm) return;
-    onConfirm(selectedInOrder, needsPhone ? phone.trim() : undefined);
+    onConfirm(selectedInOrder, needsPhone ? formatPhoneE164(phone, phoneCountry.dialCode) : undefined);
   }
 
   return (
@@ -180,12 +191,14 @@ export function AttendeeSheet({
             </ScrollView>
 
             {needsPhone ? (
-              <Input
+              <PhoneField
                 label={t('event.register.phoneTitle')}
                 value={phone}
                 onChangeText={setPhone}
+                country={phoneCountry}
+                onCountryChange={setPhoneCountry}
                 placeholder={t('event.register.phonePlaceholder')}
-                keyboardType="phone-pad"
+                error={phoneError ? t('event.register.phoneInvalid') : undefined}
                 testID="attendee-phone"
               />
             ) : null}
