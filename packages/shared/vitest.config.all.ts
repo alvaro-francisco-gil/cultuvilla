@@ -41,5 +41,17 @@ export default defineConfig({
     fileParallelism: false,
     maxConcurrency: 1,
     retry: Number.isFinite(RETRY) && RETRY > 0 ? RETRY : 0,
+    // Report-only coverage (docs/plans/ongoing/testing-enhancement.md, D4). This
+    // full-picture config (unit + integration + e2e under emulators) produces the
+    // lcov CI would feed to diff-cover once a patch-coverage gate lands.
+    coverage: {
+      enabled: false,
+      provider: 'v8',
+      reporter: ['text-summary', 'lcov'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.d.ts'],
+      all: true,
+    },
   },
 });

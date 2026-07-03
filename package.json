@@ -9,6 +9,7 @@
     "shared:test": "pnpm --filter @cultuvilla/shared test",
     "shared:typecheck": "pnpm --filter @cultuvilla/shared typecheck",
     "i18n:typecheck": "pnpm --filter @cultuvilla/i18n typecheck",
+    "i18n:test": "pnpm --filter @cultuvilla/i18n test",
     "functions:build": "npm --prefix functions run build",
     "functions:typecheck": "npm --prefix functions run typecheck",
     "functions:test": "npm --prefix functions run test",
@@ -24,6 +25,7 @@
     "app:web:build": "pnpm --filter cultuvilla-mobile web:build",
     "app:test": "pnpm --filter cultuvilla-mobile test",
     "app:test:watch": "pnpm --filter cultuvilla-mobile test:watch",
+    "app:test:coverage": "pnpm --filter cultuvilla-mobile test:coverage",
     "app:typecheck": "pnpm --filter cultuvilla-mobile typecheck",
     "app:check-web-compat": "node scripts/check-mobile-web-compat.mjs",
     "check:no-raw-firestore-refs": "node scripts/check-no-raw-firestore-refs.mjs",
@@ -83,13 +85,15 @@
     "deploy:all:beta": "pnpm functions:build && bash scripts/firebase.sh deploy --project beta",
     "deploy:all:prod": "pnpm functions:build && bash scripts/firebase.sh deploy --project prod",
     "prepare": "husky",
-    "test:unit": "pnpm shared:test && pnpm app:test && pnpm functions:test"
+    "test:unit": "pnpm shared:test && pnpm i18n:test && pnpm app:test && pnpm functions:test",
+    "test:coverage:unit": "pnpm --filter @cultuvilla/shared test:coverage && pnpm --filter @cultuvilla/i18n test:coverage && pnpm app:test:coverage && npm --prefix functions run test:coverage"
   },
   "lint-staged": {
     "*.{json,md,yml,yaml}": []
   },
   "devDependencies": {
     "@commitlint/cli": "^21.0.1",
+    "@vitest/coverage-v8": "4.1.2",
     "@commitlint/config-conventional": "^21.0.1",
     "eslint": "^9.39.4",
     "firebase-admin": "^13.0.0",
