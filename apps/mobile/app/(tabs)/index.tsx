@@ -15,7 +15,6 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../components/primitives/Screen';
 import { Text } from '../../components/primitives/Text';
-import { Button } from '../../components/primitives/Button';
 import { Pressable } from '../../components/primitives/Pressable';
 import { Fab } from '../../components/primitives/Fab';
 import { EventCard } from '../../components/feature/EventCard';
@@ -406,10 +405,9 @@ export default function FeedScreen() {
         ListEmptyComponent={
           <View className="items-center justify-center px-8">
             <Ionicons name="calendar-outline" size={48} color="#64748b" />
-            <Text tone="muted" className="mt-3 mb-4 text-center">
+            <Text tone="muted" className="mt-3 text-center">
               {t('feed.empty')}
             </Text>
-            <Button onPress={createEvent}>{t('feed.events.create')}</Button>
           </View>
         }
         renderItem={({ item }) => (
@@ -461,10 +459,9 @@ export default function FeedScreen() {
         ListEmptyComponent={
           <View className="items-center justify-center px-8">
             <Ionicons name="newspaper-outline" size={48} color="#64748b" />
-            <Text tone="muted" className="mt-3 mb-4 text-center">
+            <Text tone="muted" className="mt-3 text-center">
               {t('feed.news.empty')}
             </Text>
-            <Button onPress={createNews}>{t('feed.news.create')}</Button>
           </View>
         }
         renderItem={({ item }) => (

@@ -7,7 +7,7 @@ branch's environment via CI, replacing today's manual laptop deploys.
 ## Status
 
 - **Updated:** 2026-07-02
-- **Stage:** dev fully live; beta/prod plumbing in place, awaiting their first deploy.
+- **Stage:** all three environments deployed green and serving (dev/beta/prod).
 - **Branch:** repo `develop` (PR #31 merged); `main`/`beta` protected.
 - **Done:** WIF pools/providers + keyless `gha-deployer` SAs on all 3 projects;
   GitHub Environments dev/beta/production (prod gated on review) with WIF + Firebase
@@ -15,10 +15,11 @@ branch's environment via CI, replacing today's manual laptop deploys.
   first **dev deploy green** (villa-events.web.app serving HTTP 200); default branch
   flipped to `develop`; branch protection on `beta`/`main`; AGENTS/ENVIRONMENTS/decision
   docs + `dev-mode-ask-worktree-or-main` memory updated.
-- **Next:** dry-run a `develop → beta` promotion PR (watch beta deploy), then
-  `beta → main` (through the approval gate). For Google Sign-In on beta/prod, create
-  the web OAuth client per env and set the `GOOGLE_WEB_CLIENT_ID` env var (optional —
-  deploys succeed without it, only sign-in is affected).
+- **Next:** pipeline is fully operational (PRs #31/#32/#33 promoted dev→beta→prod, all
+  green; prod approved through the gate). Remaining optional polish: Google Sign-In web
+  OAuth client + `GOOGLE_WEB_CLIENT_ID` var for beta/prod; consider per-env restricted
+  Maps keys (beta/prod currently reuse dev's). Ready to retire this plan to a decision
+  record once that polish is scoped.
 - **Blockers:** none — beta/prod are deploy-ready (Maps secret now set in both).
 - **Handoff:** deploy SAs needed 5 role/API rounds to work — all folded into
   `scripts/setup-ci-deploy-wif.sh` (idempotent). WIF trusts only this repo, branch-scoped.
@@ -35,7 +36,7 @@ branch's environment via CI, replacing today's manual laptop deploys.
 | `GOOGLE_WEB_CLIENT_ID` (Google Sign-In) | ✅ | ⬜ | ⬜ |
 | `GOOGLE_MAPS_API_KEY` secret exists | ✅ | ✅ | ✅ |
 | Deploy workflow | ✅ | ✅ | ✅ |
-| First successful deploy | ✅ | ⬜ | ⬜ |
+| First successful deploy | ✅ | ✅ | ✅ |
 | Branch protection | n/a (default) | ✅ | ✅ |
 
 Legend: ⬜ pending · ⏳ in progress · ✅ done · ⚠️ blocked
