@@ -29,6 +29,7 @@ const validEvent = {
   villageCoordinates: { lat: 40.4, lng: -3.7 },
   confirmedCount: 0,
   totalCount: 0,
+  endBoundary: new Date('2026-06-15T18:00:00Z'),
 };
 
 describe('EventDataSchema', () => {
@@ -66,6 +67,8 @@ describe('buildEventData', () => {
     expect(built.status).toBe('published');
     expect(built.telephoneRequired).toBe(false);
     expect(built.endDate).toBeNull();
+    // Single-day: the feed key falls back to startDate.
+    expect(built.endBoundary).toEqual(new Date('2026-06-15T18:00:00Z'));
     expect(() => EventDataSchema.parse(built)).not.toThrow();
   });
 
@@ -82,6 +85,9 @@ describe('buildEventData', () => {
       villageCoordinates: { lat: 1, lng: 2 },
     });
     expect(built.endDate).toEqual(new Date('2026-06-17T18:00:00Z'));
+    // Multi-day: the feed key tracks endDate, so the event stays visible until
+    // its last day is over.
+    expect(built.endBoundary).toEqual(new Date('2026-06-17T18:00:00Z'));
     expect(() => EventDataSchema.parse(built)).not.toThrow();
   });
 });
@@ -101,6 +107,7 @@ describe('isEventFull', () => {
     villageCoverImage: null,
     villageCoordinates: { lat: 1, lng: 2 },
     confirmedCount: 0, totalCount: 0,
+    endBoundary: new Date('2026-06-15T18:00:00Z'),
   });
 
   it('returns false when maxAttendees is null', () => {
@@ -131,6 +138,7 @@ describe('isEventSignupOpen', () => {
     villageCoverImage: null,
     villageCoordinates: { lat: 1, lng: 2 },
     confirmedCount: 0, totalCount: 0,
+    endBoundary: new Date('2026-06-15T18:00:00Z'),
   });
 
   it('returns true only for status published', () => {

@@ -23,10 +23,18 @@ export async function getUpcomingFeed(
   cursor: QueryDocumentSnapshot<EventData> | null = null,
 ): Promise<FeedPage> {
   const ref = eventsCollection(getDb());
+  // Range on `endBoundary` (endDate ?? startDate), not `startDate`: an event
+  // stays in the feed for the whole of its (last) day, so one that started
+  // earlier today or a multi-day event mid-run still shows. The lower bound is
+  // the start of today, not `now` — completeExpiredEvents flips genuinely-past
+  // events to `completed`, so the status filter drops them. Firestore requires
+  // the first orderBy to match the inequality field, hence orderBy(endBoundary).
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
   const baseConstraints = [
     where('status', '==', 'published'),
-    where('startDate', '>=', Timestamp.now()),
-    orderBy('startDate', 'asc'),
+    where('endBoundary', '>=', Timestamp.fromDate(startOfToday)),
+    orderBy('endBoundary', 'asc'),
     firestoreLimit(pageSize),
   ];
   const q = cursor

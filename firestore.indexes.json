@@ -5,7 +5,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "startDate", "order": "ASCENDING" }
+        { "fieldPath": "endBoundary", "order": "ASCENDING" }
       ]
     },
     {

@@ -19,6 +19,8 @@ function orglessEvent(createdBy: string) {
     createdBy, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
     municipalityId: M, villageName: 'Villa',
     villageCoverImage: null, villageCoordinates: null,
+    // Single-day: endBoundary must equal startDate (rules consistency check).
+    endBoundary: new Date('2026-07-01'),
   };
 }
 
