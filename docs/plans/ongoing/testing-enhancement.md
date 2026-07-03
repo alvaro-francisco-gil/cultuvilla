@@ -8,7 +8,7 @@
 - **Stage:** Stage 1 (foundations) + Stage 2 (emulator-level integration) both authored on `feat-testing-foundations`.
 - **Branch:** `feat-testing-foundations` (worktree `.claude/worktrees/testing-foundations/`) — PR #39 to `develop`.
 - **Done:** Stage 1 — coverage (B5), i18n key-parity (C7), emulator/rules harness + 18-file migration (C6). Stage 2 — A4 runnable builder↔rules shape-contract invariants (12 tests); A2 `organizations` approve/reject update rules e2e test (filled a real gap); A3 `requestJoinOrganization` handler boundary test (filled a real gap).
-- **Next:** Stage 3 checkpoint — E2E substrate (D5 fixtures + D2 fixture-login seam in `AuthContext` + bypass-leak gate + Playwright) needs its own `ready/` plan and product/security decisions before coding. Stopped here deliberately for discussion.
+- **Next:** Stage 3 is now scoped in [../ready/e2e-substrate.md](../ready/e2e-substrate.md) (fixture-login security model, emulator-connect seam, fixtures, Playwright/CI) — awaiting user review before any code, since it touches product/security surfaces and needs servers the agent can't run.
 - **Blockers:** Emulator-backed suites (e2e rules / functions handlers) can't be run by the agent per AGENTS.md "Never start dev servers". A4 is fully runnable and green; the C6 migration, A2, and A3 are **typecheck-validated** and must be **emulator-verified by CI / the user** (`pnpm test:rules`, `pnpm test:functions`) before merge.
 - **Handoff:** All work is in the worktree; base checkout stays on `develop`. Coverage is **report-only** (D4) — no CI gate. Stage 2 scope was narrowed from the plan after scoping revealed the callable boundary is already well-tested and two of the three solicitudes writes are server-only (see the note below the Tasks) — so A2/A3 fill the two genuine gaps rather than duplicating coverage.
 
@@ -124,10 +124,11 @@ Foundations chunk (this branch). Later workstreams (A1 Playwright/Maestro, A2–
 
 > **Scoping note (why A2/A3 are narrow):** the callable boundary was already well-tested (`respondToOrganizerRequest`, `respondToJoinRequest`, `requestOrganizeVillage`, `requestAyuntamiento` all have unauthenticated/permission-denied handler tests), and two of the three solicitudes writes are **server-only** by rule (`allow create,update: if false`) — so there's little client-write surface to contract-test. The high-value runnable contract turned out to be the builder↔rules **shape** agreement (A4), not emulator round-trips. A2/A3 fill the two real gaps rather than duplicating coverage; a broader table-driven rules harness (D6) is deferred until a collection actually needs it.
 
-### Stage 3 — E2E substrate + web flows (own `ready/` plan when scoped) — **checkpoint before coding**
-- [ ] **D5** Deterministic emulator fixtures from prod model builders.
-- [ ] **D2** Fixture-login seam in `AuthContext` + grep-based bypass-leak CI gate (ship together). *Product/security code — needs a design pass.*
-- [ ] **A1 (web)** Playwright flows over the web export; per-PR CI job (D3). *Needs a running web export + browsers the agent can't start.*
+### Stage 3 — E2E substrate + web flows → **now its own plan: [../ready/e2e-substrate.md](../ready/e2e-substrate.md)**
+Scoped and written up (fixture-login security model, emulator-connect seam, deterministic fixtures, Playwright/CI). Awaiting review before coding; product/security-touching, so it left this plan.
+- [ ] **D5** Deterministic emulator fixtures from prod model builders. *(→ e2e-substrate)*
+- [ ] **D2** Fixture-login seam in `AuthContext` + grep-based bypass-leak CI gate. *(→ e2e-substrate)*
+- [ ] **A1 (web)** Playwright flows over the web export; per-PR CI job (D3). *(→ e2e-substrate)*
 
 ### Stage 4 — Native E2E (grows over time — D1)
 - [ ] **A1 (native)** Maestro flows on Android; release-gated CI job (D3). Likely its own plan.
