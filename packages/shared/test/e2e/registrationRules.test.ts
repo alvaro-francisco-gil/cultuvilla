@@ -3,13 +3,8 @@
 // via a collection-group query; they cannot list all registrations unfiltered;
 // anonymous users cannot list at all; and direct per-doc reads continue to work
 // for anyone (regression guard).
-import { describe, it, beforeAll, afterAll, beforeEach } from 'vitest';
-import {
-  initializeTestEnvironment,
-  assertSucceeds,
-  assertFails,
-  type RulesTestEnvironment,
-} from '@firebase/rules-unit-testing';
+import { describe, it } from 'vitest';
+import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import {
   doc,
   getDoc,
@@ -19,16 +14,16 @@ import {
   collectionGroup,
   where,
 } from 'firebase/firestore';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { useRulesTestEnv } from '../helpers/rulesTestEnv';
+import { asUser, asAnon, seed } from '../helpers/roles';
 
-let env: RulesTestEnvironment;
+const getEnv = useRulesTestEnv();
 
 const ALICE = 'alice';
 const NOW = new Date();
 
 async function seedAliceRegistrations() {
-  await env.withSecurityRulesDisabled(async (ctx) => {
+  await seed(getEnv(), async (ctx) => {
     const db = ctx.firestore();
     await setDoc(doc(db, 'events/e1'), { title: 'Feria 1' });
     await setDoc(doc(db, 'events/e1/registrations/r1'), {
@@ -51,26 +46,10 @@ async function seedAliceRegistrations() {
   });
 }
 
-beforeAll(async () => {
-  const rules = readFileSync(resolve(__dirname, '../../../../firestore.rules'), 'utf8');
-  env = await initializeTestEnvironment({
-    projectId: process.env.TEST_PROJECT_ID || 'cultuvilla-rules-test',
-    firestore: { rules },
-  });
-});
-
-beforeEach(async () => {
-  await env.clearFirestore();
-});
-
-afterAll(async () => {
-  await env.cleanup();
-});
-
 describe('firestore.rules — registrations collection-group', () => {
   it('signed-in user can list their own registrations across events', async () => {
     await seedAliceRegistrations();
-    const db = env.authenticatedContext(ALICE).firestore();
+    const db = asUser(getEnv(), ALICE);
     await assertSucceeds(
       getDocs(
         query(
@@ -83,13 +62,13 @@ describe('firestore.rules — registrations collection-group', () => {
 
   it('signed-in user cannot list ALL registrations unfiltered', async () => {
     await seedAliceRegistrations();
-    const db = env.authenticatedContext(ALICE).firestore();
+    const db = asUser(getEnv(), ALICE);
     await assertFails(getDocs(collectionGroup(db, 'registrations')));
   });
 
   it('anonymous user cannot list registrations via collection group', async () => {
     await seedAliceRegistrations();
-    const db = env.unauthenticatedContext().firestore();
+    const db = asAnon(getEnv());
     await assertFails(
       getDocs(
         query(
@@ -102,7 +81,7 @@ describe('firestore.rules — registrations collection-group', () => {
 
   it('regression: direct doc read on /events/{e}/registrations/{r} still works for anyone', async () => {
     await seedAliceRegistrations();
-    const db = env.unauthenticatedContext().firestore();
+    const db = asAnon(getEnv());
     await assertSucceeds(getDoc(doc(db, 'events/e1/registrations/r1')));
   });
 });

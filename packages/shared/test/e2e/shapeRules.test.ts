@@ -11,37 +11,16 @@
 // The rationale for rules-level enforcement (and why the typed converters
 // alone aren't enough) is documented in the rules file header.
 
-import { describe, it, beforeAll, afterAll, beforeEach } from 'vitest';
-import {
-  initializeTestEnvironment,
-  assertSucceeds,
-  assertFails,
-  type RulesTestEnvironment,
-} from '@firebase/rules-unit-testing';
+import { describe, it } from 'vitest';
+import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { doc, setDoc, GeoPoint } from 'firebase/firestore';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { useRulesTestEnv } from '../helpers/rulesTestEnv';
+import { asUser, seed } from '../helpers/roles';
 
-let env: RulesTestEnvironment;
-
-beforeAll(async () => {
-  const rules = readFileSync(resolve(__dirname, '../../../../firestore.rules'), 'utf8');
-  env = await initializeTestEnvironment({
-    projectId: process.env.TEST_PROJECT_ID || 'cultuvilla-rules-test',
-    firestore: { rules },
-  });
-});
-
-beforeEach(async () => {
-  await env.clearFirestore();
-});
-
-afterAll(async () => {
-  await env.cleanup();
-});
+const getEnv = useRulesTestEnv();
 
 async function seedMember(municipalityId: string, userId: string) {
-  await env.withSecurityRulesDisabled(async (ctx) => {
+  await seed(getEnv(), async (ctx) => {
     await setDoc(
       doc(ctx.firestore(), `municipalities/${municipalityId}/members/${userId}`),
       {
@@ -79,13 +58,13 @@ const validNewsPayload = {
 describe('shape enforcement — /news/{postId}', () => {
   it('accepts a valid full-shape payload', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(setDoc(doc(alice, 'news/p1'), validNewsPayload));
   });
 
   it('rejects an unknown field', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'news/p1'), { ...validNewsPayload, hackerField: 'pwn' }),
     );
@@ -93,14 +72,14 @@ describe('shape enforcement — /news/{postId}', () => {
 
   it('rejects a missing required field', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     const { title: _t, ...rest } = validNewsPayload;
     await assertFails(setDoc(doc(alice, 'news/p1'), rest));
   });
 
   it('rejects wrong type on a critical field (title as number)', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'news/p1'), { ...validNewsPayload, title: 42 }),
     );
@@ -108,7 +87,7 @@ describe('shape enforcement — /news/{postId}', () => {
 
   it('rejects an unknown category enum value', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'news/p1'), { ...validNewsPayload, category: 'satire' }),
     );
@@ -127,13 +106,13 @@ const validCommentPayload = {
 describe('shape enforcement — /newsComments/{commentId}', () => {
   it('accepts a valid full-shape payload', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(setDoc(doc(alice, 'newsComments/c1'), validCommentPayload));
   });
 
   it('rejects an unknown field', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'newsComments/c1'), { ...validCommentPayload, extra: 1 }),
     );
@@ -141,14 +120,14 @@ describe('shape enforcement — /newsComments/{commentId}', () => {
 
   it('rejects a missing required field', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     const { body: _b, ...rest } = validCommentPayload;
     await assertFails(setDoc(doc(alice, 'newsComments/c1'), rest));
   });
 
   it('rejects wrong type on hidden', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'newsComments/c1'), { ...validCommentPayload, hidden: 'no' }),
     );
@@ -166,13 +145,13 @@ describe('shape enforcement — /newsReactions/{reactionId}', () => {
 
   it('accepts a valid full-shape payload', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(setDoc(doc(alice, 'newsReactions/p1_alice'), validReaction));
   });
 
   it('rejects an unknown field', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'newsReactions/p1_alice'), { ...validReaction, weight: 99 }),
     );
@@ -180,7 +159,7 @@ describe('shape enforcement — /newsReactions/{reactionId}', () => {
 
   it('rejects an unknown kind enum', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'newsReactions/p1_alice'), { ...validReaction, kind: 'fire' }),
     );
@@ -197,32 +176,32 @@ describe('shape enforcement — /users/{uid}', () => {
   };
 
   it('accepts a valid full-shape create', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(setDoc(doc(alice, 'users/alice'), validUserCreate));
   });
 
   it('rejects creating with displayName (clients must not write it)', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'users/alice'), { ...validUserCreate, displayName: 'spoof' }),
     );
   });
 
   it('rejects an unknown field on create', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'users/alice'), { ...validUserCreate, isAdmin: true }),
     );
   });
 
   it('rejects a missing required field on create', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     const { email: _e, ...rest } = validUserCreate;
     await assertFails(setDoc(doc(alice, 'users/alice'), rest));
   });
 
   it('rejects wrong type on createdAt', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'users/alice'), { ...validUserCreate, createdAt: 'now' }),
     );
@@ -252,25 +231,25 @@ describe('shape enforcement — /persons/{personId}', () => {
   };
 
   it('accepts a valid full-shape payload', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(setDoc(doc(alice, 'persons/p1'), validPerson));
   });
 
   it('rejects an unknown field', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'persons/p1'), { ...validPerson, ssn: '123' }),
     );
   });
 
   it('rejects missing required field (givenName)', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     const { givenName: _g, ...rest } = validPerson;
     await assertFails(setDoc(doc(alice, 'persons/p1'), rest));
   });
 
   it('rejects an invalid sex enum', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(setDoc(doc(alice, 'persons/p1'), { ...validPerson, sex: 'unicorn' }));
   });
 });
@@ -291,13 +270,13 @@ describe('shape enforcement — /organizations/{orgId}', () => {
 
   it('accepts a valid full-shape payload', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(setDoc(doc(alice, 'organizations/o1'), validOrg));
   });
 
   it('accepts an imageURL string', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(
       setDoc(doc(alice, 'organizations/o1'), { ...validOrg, imageURL: 'https://x/o.png' }),
     );
@@ -305,7 +284,7 @@ describe('shape enforcement — /organizations/{orgId}', () => {
 
   it('rejects an unknown field', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'organizations/o1'), { ...validOrg, secret: 'x' }),
     );
@@ -313,7 +292,7 @@ describe('shape enforcement — /organizations/{orgId}', () => {
 
   it('rejects unknown type enum', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'organizations/o1'), { ...validOrg, type: 'corporation' }),
     );
@@ -323,7 +302,7 @@ describe('shape enforcement — /organizations/{orgId}', () => {
   // it goes through the requestAyuntamiento callable, which enforces the cap.
   it('rejects a client-side ayuntamiento create', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'organizations/o-ayto'), { ...validOrg, type: 'ayuntamiento' }),
     );
@@ -359,13 +338,13 @@ describe('shape enforcement — /events/{eventId}', () => {
 
   it('accepts a valid full-shape payload', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(setDoc(doc(alice, 'events/e1'), validEvent));
   });
 
   it('rejects an unknown field', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'events/e1'), { ...validEvent, bonus: 'x' }),
     );
@@ -373,7 +352,7 @@ describe('shape enforcement — /events/{eventId}', () => {
 
   it('rejects unknown status enum', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'events/e1'), { ...validEvent, status: 'archived' }),
     );
@@ -381,7 +360,7 @@ describe('shape enforcement — /events/{eventId}', () => {
 
   it('rejects wrong type on telephoneRequired', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'events/e1'), { ...validEvent, telephoneRequired: 'yes' }),
     );
@@ -389,7 +368,7 @@ describe('shape enforcement — /events/{eventId}', () => {
 
   it('accepts a multi-day endDate >= startDate', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     const start = new Date('2026-07-01');
     const end = new Date('2026-07-03');
     await assertSucceeds(
@@ -399,7 +378,7 @@ describe('shape enforcement — /events/{eventId}', () => {
 
   it('rejects an endDate before startDate', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     const start = new Date('2026-07-03');
     const end = new Date('2026-07-01');
     await assertFails(
@@ -409,7 +388,7 @@ describe('shape enforcement — /events/{eventId}', () => {
 
   it('rejects a wrong type on endDate', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'events/e1'), { ...validEvent, endDate: 'soon' }),
     );
@@ -428,19 +407,19 @@ describe('shape enforcement — /occupationProposals/{id}', () => {
   };
 
   it('accepts a valid full-shape payload', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(setDoc(doc(alice, 'occupationProposals/op1'), validProposal));
   });
 
   it('rejects an unknown field', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'occupationProposals/op1'), { ...validProposal, votes: 5 }),
     );
   });
 
   it('rejects wrong type on name', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'occupationProposals/op1'), { ...validProposal, name: 123 }),
     );
@@ -463,13 +442,13 @@ describe('shape enforcement — /newsReports/{reportId}', () => {
 
   it('accepts a valid full-shape payload', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(setDoc(doc(alice, 'newsReports/r1'), validReport));
   });
 
   it('rejects an unknown field', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'newsReports/r1'), { ...validReport, escalate: true }),
     );
@@ -477,7 +456,7 @@ describe('shape enforcement — /newsReports/{reportId}', () => {
 
   it('rejects unknown targetType', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'newsReports/r1'), { ...validReport, targetType: 'post' }),
     );

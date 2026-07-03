@@ -1,50 +1,41 @@
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import { initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
+import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { doc, getDoc, setDoc, type Firestore } from 'firebase/firestore';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { useRulesTestEnv } from '../helpers/rulesTestEnv';
+import { asUser } from '../helpers/roles';
 import {
   proposePlace, approvePlace,
   proposeBarrio, approveBarrio, rejectBarrio,
 } from '../../src/services/municipalityService';
 import * as firebaseModule from '../../src/firebase';
 
-let env: RulesTestEnvironment;
+const getEnv = useRulesTestEnv();
 
-beforeAll(async () => {
-  const rules = readFileSync(resolve(__dirname, '../../../../firestore.rules'), 'utf8');
-  env = await initializeTestEnvironment({
-    projectId: process.env.TEST_PROJECT_ID || 'cultuvilla-test',
-    firestore: { rules },
-  });
-});
 // alice proposes (must be a member); admin approves/rejects (must be village admin).
 beforeEach(async () => {
-  await env.clearFirestore();
-  await env.withSecurityRulesDisabled(async (c) => {
+  await getEnv().withSecurityRulesDisabled(async (c) => {
     const db = c.firestore() as unknown as Firestore;
     const base = { joinedAt: new Date(), profileAnswers: {}, profileCompletedAt: null, trustedNewsAuthor: false };
     await setDoc(doc(db, 'municipalities/m1/members/alice'), { role: 'user', ...base });
     await setDoc(doc(db, 'municipalities/m1/members/admin'), { role: 'admin', ...base });
   });
 });
-afterAll(async () => { vi.restoreAllMocks(); await env.cleanup(); });
+afterAll(() => { vi.restoreAllMocks(); });
 
 function ctxDb(uid: string): Firestore {
-  return env.authenticatedContext(uid).firestore() as unknown as Firestore;
+  return asUser(getEnv(), uid);
 }
 function useDbAs(uid: string) {
   vi.spyOn(firebaseModule, 'getDb').mockReturnValue(ctxDb(uid));
 }
 async function read(path: string) {
   let data: Record<string, unknown> | undefined;
-  await env.withSecurityRulesDisabled(async (c) => {
+  await getEnv().withSecurityRulesDisabled(async (c) => {
     data = (await getDoc(doc(c.firestore() as unknown as Firestore, path))).data();
   });
   return data;
 }
 async function seed(path: string, value: Record<string, unknown>) {
-  await env.withSecurityRulesDisabled(async (c) => {
+  await getEnv().withSecurityRulesDisabled(async (c) => {
     await setDoc(doc(c.firestore() as unknown as Firestore, path), value);
   });
 }
