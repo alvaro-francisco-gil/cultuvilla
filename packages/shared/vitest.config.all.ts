@@ -29,6 +29,7 @@ export default defineConfig({
       'test/eslint/**/*.test.ts',
       'test/design-system/**/*.test.ts',
       'test/utils/**/*.test.ts',
+      'test/validation/**/*.test.ts',
       'test/integration/**/*.test.ts',
       'test/e2e/**/*.test.ts',
     ],

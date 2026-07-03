@@ -5,12 +5,12 @@
 ## Status
 
 - **Updated:** 2026-07-03
-- **Stage:** Foundations chunk — the supporting scaffolding (workstreams B/C) that unblocks the high-level work (A).
-- **Branch:** `feat-testing-foundations` (worktree `.claude/worktrees/testing-foundations/`)
-- **Done:** Plan promoted to `ongoing`; decisions D1–D6 recorded.
-- **Next:** Land the first foundations chunk — coverage (B5), i18n key-parity (C7), emulator/rules harness extraction (C6).
-- **Blockers:** Emulator-backed suites (integration / e2e rules / functions handlers) cannot be run by the agent per AGENTS.md "Never start dev servers". The C6 harness migration is **typecheck-validated** here and must be **emulator-verified by the user** (`pnpm test:rules`, `pnpm test:integration`) before merge.
-- **Handoff:** All work is in the worktree; the base checkout stays on `develop`. Coverage is **report-only** (D4) — no CI gate wired. After the harness migration, run `pnpm --filter @cultuvilla/shared typecheck`, then the emulator suites locally to confirm the 20 migrated rules/integration tests still pass.
+- **Stage:** Stage 1 (foundations) + Stage 2 (emulator-level integration) both authored on `feat-testing-foundations`.
+- **Branch:** `feat-testing-foundations` (worktree `.claude/worktrees/testing-foundations/`) — PR #39 to `develop`.
+- **Done:** Stage 1 — coverage (B5), i18n key-parity (C7), emulator/rules harness + 18-file migration (C6). Stage 2 — A4 runnable builder↔rules shape-contract invariants (12 tests); A2 `organizations` approve/reject update rules e2e test (filled a real gap); A3 `requestJoinOrganization` handler boundary test (filled a real gap).
+- **Next:** Stage 3 checkpoint — E2E substrate (D5 fixtures + D2 fixture-login seam in `AuthContext` + bypass-leak gate + Playwright) needs its own `ready/` plan and product/security decisions before coding. Stopped here deliberately for discussion.
+- **Blockers:** Emulator-backed suites (e2e rules / functions handlers) can't be run by the agent per AGENTS.md "Never start dev servers". A4 is fully runnable and green; the C6 migration, A2, and A3 are **typecheck-validated** and must be **emulator-verified by CI / the user** (`pnpm test:rules`, `pnpm test:functions`) before merge.
+- **Handoff:** All work is in the worktree; base checkout stays on `develop`. Coverage is **report-only** (D4) — no CI gate. Stage 2 scope was narrowed from the plan after scoping revealed the callable boundary is already well-tested and two of the three solicitudes writes are server-only (see the note below the Tasks) — so A2/A3 fill the two genuine gaps rather than duplicating coverage.
 
 ## Context
 
@@ -110,26 +110,28 @@ Foundations chunk (this branch). Later workstreams (A1 Playwright/Maestro, A2–
 
 ## Tasks
 
-### Stage 1 — Foundations (this branch)
-- [ ] **C6** Create `helpers/rulesTestEnv.ts` + `helpers/roles.ts`; migrate the 20 e2e/integration tests; fix `test/README.md`. (typecheck-validated; emulator-verified by user)
-- [ ] **C7** i18n key-parity + used-keys suites; wire `vitest` into `packages/i18n`; add `i18n:test` to root + `test:unit`.
-- [ ] **B5** Report-only v8 coverage in shared + functions; `test:coverage` scripts; confirm mobile jest coverage runs.
-- [ ] Verify: `pnpm typecheck`, `pnpm --filter @cultuvilla/i18n test`, shared unit `--coverage`; update CHANGELOG; open PR to `develop`.
-- [ ] **User step:** run `pnpm test:rules` + `pnpm test:integration` to emulator-verify the migrated harness.
+### Stage 1 — Foundations (done, on `feat-testing-foundations`)
+- [x] **C6** `helpers/rulesTestEnv.ts` + `helpers/roles.ts`; migrated 18/20 e2e/integration tests (storageRules + emailLinkAuth don't fit); fixed `test/README.md`.
+- [x] **C7** i18n key-parity + used-keys suites; `vitest` wired into `packages/i18n`; `i18n:test` in root + `test:unit`.
+- [x] **B5** Report-only v8 coverage in shared + functions + mobile; `test:coverage` scripts; provider pinned once at root.
+- [x] Verify (`pnpm typecheck`/`lint`, i18n tests, unit coverage); CHANGELOG; PR #39 to `develop`.
+- [ ] **User step:** `pnpm test:rules` + `pnpm test:integration` to emulator-verify the migrated harness (CI's emulator-tests job also covers this).
 
-### Stage 2 — Emulator-level integration (next branch, after Stage 1 merges)
-- [ ] **A4** Data-integrity invariant tests (`test/validation/`).
-- [ ] **A2** Cross-layer contract harness (table-driven, seeded with the solicitudes trio — D6).
-- [ ] **A3** Cloud Function boundary permission tests.
+### Stage 2 — Emulator-level integration (done, same branch)
+- [x] **A4** Data-integrity invariant tests (`test/validation/rulesShapeContract.test.ts`) — 12 tests, fully runnable (no emulator). Locks each of 6 create-gated builders to its `firestore.rules` `isValid*Create` key set + review-lifecycle defaults.
+- [x] **A2** `organizations` approve/reject **update** rules e2e test (`test/e2e/organizationUpdateRules.test.ts`) — filled a genuine gap. (emulator-verified by CI/user)
+- [x] **A3** `requestJoinOrganization` handler boundary test (`functions/src/__tests__/handlers/`) — filled a genuine gap. (emulator-verified by CI/user)
 
-### Stage 3 — E2E substrate + web flows (own `ready/` plan when scoped)
+> **Scoping note (why A2/A3 are narrow):** the callable boundary was already well-tested (`respondToOrganizerRequest`, `respondToJoinRequest`, `requestOrganizeVillage`, `requestAyuntamiento` all have unauthenticated/permission-denied handler tests), and two of the three solicitudes writes are **server-only** by rule (`allow create,update: if false`) — so there's little client-write surface to contract-test. The high-value runnable contract turned out to be the builder↔rules **shape** agreement (A4), not emulator round-trips. A2/A3 fill the two real gaps rather than duplicating coverage; a broader table-driven rules harness (D6) is deferred until a collection actually needs it.
+
+### Stage 3 — E2E substrate + web flows (own `ready/` plan when scoped) — **checkpoint before coding**
 - [ ] **D5** Deterministic emulator fixtures from prod model builders.
-- [ ] **D2** Fixture-login seam in `AuthContext` + grep-based bypass-leak CI gate (ship together).
-- [ ] **A1 (web)** Playwright flows over the web export; per-PR CI job (D3).
+- [ ] **D2** Fixture-login seam in `AuthContext` + grep-based bypass-leak CI gate (ship together). *Product/security code — needs a design pass.*
+- [ ] **A1 (web)** Playwright flows over the web export; per-PR CI job (D3). *Needs a running web export + browsers the agent can't start.*
 
 ### Stage 4 — Native E2E (grows over time — D1)
 - [ ] **A1 (native)** Maestro flows on Android; release-gated CI job (D3). Likely its own plan.
 - [ ] **C8** `dorny/paths-filter` CI cost-gating.
 - [ ] **B5 (gate)** Flip coverage from report-only to a patch-coverage gate via `diff-cover` (D4).
 
-This is workstream-A-driven; B and C are the scaffolding that makes A affordable and honest. Stage 1 is in flight on this branch.
+This is workstream-A-driven; B and C are the scaffolding that makes A affordable and honest. Stages 1–2 are on `feat-testing-foundations`; Stage 3 is the next checkpoint.
