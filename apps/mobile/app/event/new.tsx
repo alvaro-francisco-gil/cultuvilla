@@ -344,7 +344,6 @@ export default function NewEventScreen() {
       validate: () => {
         const e: string[] = [];
         if (!title.trim()) e.push('title');
-        if (!description.trim()) e.push('description');
         return e;
       },
       render: () => stepBody(

@@ -419,7 +419,7 @@
   },
   "event": {
     "title": "Título",
-    "description": "Descripción",
+    "description": "Descripción (opcional)",
     "startDate": "Fecha de inicio",
     "endDate": "Fecha de fin (opcional)",
     "startDateTime": "Inicio del evento",
