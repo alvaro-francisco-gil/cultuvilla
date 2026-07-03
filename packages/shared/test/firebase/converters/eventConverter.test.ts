@@ -23,6 +23,7 @@ const baseFirestoreShape = {
   villageCoordinates: new GeoPoint(40.4, -3.7),
   confirmedCount: 0,
   totalCount: 0,
+  endBoundary: Timestamp.fromDate(new Date('2026-06-17T18:00:00Z')),
 };
 
 describe('eventConverterClient', () => {

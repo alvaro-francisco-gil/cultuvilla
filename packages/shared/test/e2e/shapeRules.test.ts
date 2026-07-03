@@ -331,10 +331,12 @@ describe('shape enforcement — /organizations/{orgId}', () => {
 });
 
 describe('shape enforcement — /events/{eventId}', () => {
+  // Shared instant so endBoundary == startDate exactly (rules consistency check).
+  const eventStart = new Date();
   const validEvent = {
     title: 'Fiesta',
     description: 'Annual',
-    startDate: new Date(),
+    startDate: eventStart,
     endDate: null,
     location: { coordinates: { lat: 40, lng: -3 }, displayName: 'Plaza Mayor' },
     imageURL: null,
@@ -352,6 +354,7 @@ describe('shape enforcement — /events/{eventId}', () => {
     // The converter persists {lat,lng} as a GeoPoint (rules type `latlng`), so
     // the stored villageCoordinates is a GeoPoint, not a map.
     villageCoordinates: new GeoPoint(40, -3),
+    endBoundary: eventStart,
   };
 
   it('accepts a valid full-shape payload', async () => {
@@ -390,7 +393,7 @@ describe('shape enforcement — /events/{eventId}', () => {
     const start = new Date('2026-07-01');
     const end = new Date('2026-07-03');
     await assertSucceeds(
-      setDoc(doc(alice, 'events/e1'), { ...validEvent, startDate: start, endDate: end }),
+      setDoc(doc(alice, 'events/e1'), { ...validEvent, startDate: start, endDate: end, endBoundary: end }),
     );
   });
 
