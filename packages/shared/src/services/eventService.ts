@@ -22,6 +22,7 @@ import {
 } from '../firebase/refs/client';
 import {
   buildEventData,
+  eventEndBoundary,
   type EventData,
   type EventDataInput,
   type EventStatus,
@@ -84,6 +85,13 @@ export async function updateEvent(
   }
   if (data.endDate instanceof Date) {
     updates['endDate'] = Timestamp.fromDate(data.endDate);
+  }
+  // Keep the derived feed key in sync. The edit form always sends startDate and
+  // endDate together, so recompute the boundary whenever startDate is patched;
+  // a stale endBoundary would silently hide (or wrongly surface) the event.
+  if (data.startDate instanceof Date) {
+    const boundary = eventEndBoundary({ startDate: data.startDate, endDate: data.endDate ?? null });
+    updates['endBoundary'] = Timestamp.fromDate(boundary);
   }
   await updateDoc(doc(getDb(), 'events', eventId), updates);
 }
