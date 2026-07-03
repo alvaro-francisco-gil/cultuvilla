@@ -24,6 +24,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 - **Firestore rules**: `events/{eventId}/registrations/{regId}` `allow create: if false` — the callable is the only sanctioned write path.
 - **`useRegistrations`** drops the separate `getConfirmedCount` round-trip and derives `confirmedCount` from the already-loaded registration list. Event detail page reads `reg.isMember` directly, eliminating the O(N) `isVillageMember` fan-out on each view.
 
+### Fixed
+- **Profile creation no longer crashes on the read right after submit.** `UserDataSchema.displayName` is a denormalized projection written only by the async `syncPersonDenormalization` trigger; `createUserProfile` omits it, so a read in the window before the trigger lands (`refreshProfile()` in onboarding) hit a doc with no `displayName` and the strict converter threw `expected string, received undefined`. The schema now uses `z.string().default('')`, so such a read degrades to `""` (matching the field's documented contract) and self-heals once the trigger propagates. Regression covered by a new `userConverter` round-trip test of the exact displayName-less payload.
+
 ### Removed
 - **`apps/web/` (Next.js App Router web app) deleted** in favor of `apps/mobile/` (Expo + React Native, which also serves the web build via React Native Web). The design tokens, primitives, i18n catalog, and config-injected Firebase init that were originally built web-first now live in / are consumed by the mobile app. See [docs/architecture/web-deletion-missing-screens.md](docs/architecture/web-deletion-missing-screens.md) for the screens still to be reimplemented on mobile.
 

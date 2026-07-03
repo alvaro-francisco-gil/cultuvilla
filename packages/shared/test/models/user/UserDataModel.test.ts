@@ -18,17 +18,19 @@ describe('UserDataSchema', () => {
     expect(parsed.personId).toBe('person-1');
   });
 
-  it('rejects when displayName is missing', () => {
-    expect(() =>
-      UserDataSchema.parse({
-        // displayName missing
-        email: 'a@b.com',
-        telephone: null,
-        activeMunicipalityId: null,
-        personId: null,
-        createdAt: new Date(),
-      }),
-    ).toThrow();
+  it('defaults displayName to "" when missing (denormalized projection may lag)', () => {
+    // createUserProfile writes the user doc without displayName; the
+    // syncPersonDenormalization trigger fills it in asynchronously. A read in
+    // that window must degrade to "" rather than throw in the converter.
+    const parsed = UserDataSchema.parse({
+      // displayName missing
+      email: 'a@b.com',
+      telephone: null,
+      activeMunicipalityId: null,
+      personId: null,
+      createdAt: new Date(),
+    });
+    expect(parsed.displayName).toBe('');
   });
 
   it('rejects profile fields that belong on the linked person', () => {
