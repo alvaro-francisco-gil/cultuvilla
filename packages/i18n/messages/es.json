@@ -498,6 +498,7 @@
       "cancelConfirm": "Sí, cancelar",
       "phoneTitle": "Tu teléfono",
       "phonePlaceholder": "Número de teléfono",
+      "phoneInvalid": "Introduce un número de teléfono válido",
       "signedUpCount": "{count, plural, one {Apuntado} other {Apuntados (#)}}",
       "attendeesTitle": "¿A quién quieres apuntar?",
       "createPersona": "Crear una nueva persona",
