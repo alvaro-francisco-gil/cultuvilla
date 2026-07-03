@@ -79,13 +79,13 @@ jest.mock('../../../components/primitives/DateTimeField', () => ({
 }));
 
 describe('NewEventScreen stepper', () => {
-  it('gates Next until title + description are set', async () => {
+  it('gates Next on title only — description is optional', async () => {
     const { getByText, getByLabelText, getByTestId, queryByTestId } = render(<NewEventScreen />);
     await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
     fireEvent.press(getByText('common.stepper.next'));
-    expect(queryByTestId('startDate')).toBeNull(); // blocked: empty title/description
+    expect(queryByTestId('startDate')).toBeNull(); // blocked: empty title
+    // Title alone unblocks; description is left empty on purpose.
     fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
-    fireEvent.changeText(getByLabelText('event.description'), 'Desc');
     fireEvent.press(getByText('common.stepper.next'));
     // Now in step 2 (Cuándo y dónde): datetime (+ optional end), location + village present.
     expect(getByTestId('startDate')).toBeTruthy();
