@@ -42,6 +42,10 @@ export interface PersonFormProps {
   requireFullName?: boolean;
   /** Editing an existing person → every step is directly clickable. */
   editing?: boolean;
+  /** True when the form edits the account owner's own persona (their profile),
+   * vs. a linked persona. Switches the biography field from the neutral
+   * "Biografía (opcional)" to a first-person invitation. */
+  selfProfile?: boolean;
   /**
    * Residence editor injected into the Residence step, below birthplace. The
    * parent owns the residence model — membership-driven barrio pickers for the
@@ -60,6 +64,7 @@ export function PersonForm({
   error,
   requireFullName = false,
   editing = false,
+  selfProfile = false,
   renderResidence,
   onSubmit,
 }: PersonFormProps) {
@@ -208,7 +213,11 @@ export function PersonForm({
               label={t('common.photo')}
             />
             <Input
-              label={t('onboarding.completeProfile.biography')}
+              label={t(
+                selfProfile
+                  ? 'onboarding.completeProfile.biographySelf'
+                  : 'onboarding.completeProfile.biography',
+              )}
               value={biography}
               onChangeText={setBiography}
               multiline

@@ -32,4 +32,38 @@ describe('<PersonForm> stepper', () => {
     // Residence step now rendered — its birthday DateField is present.
     expect(getByTestId('birthday')).toBeTruthy();
   });
+
+  /** Walk the stepper (identity → residence → about) so the biography field on
+   * the last step is rendered. requireFullName defaults false, so identity only
+   * needs a name + sex and residence has no required fields. */
+  function reachAboutStep(props: Parameters<typeof PersonForm>[0]) {
+    const utils = render(<PersonForm {...props} />);
+    fireEvent.changeText(
+      utils.getByLabelText('onboarding.completeProfile.givenName'),
+      'Ana',
+    );
+    fireEvent.press(utils.getByText('onboarding.completeProfile.sex_female'));
+    fireEvent.press(utils.getByText('common.stepper.next')); // → residence
+    fireEvent.press(utils.getByText('common.stepper.next')); // → about
+    return utils;
+  }
+
+  it('uses the first-person biography prompt on the owner’s own profile', () => {
+    const { getByLabelText, queryByLabelText } = reachAboutStep({
+      submitLabel: 'Guardar',
+      selfProfile: true,
+      onSubmit: jest.fn(),
+    });
+    expect(getByLabelText('onboarding.completeProfile.biographySelf')).toBeTruthy();
+    expect(queryByLabelText('onboarding.completeProfile.biography')).toBeNull();
+  });
+
+  it('keeps the neutral biography label for a linked persona (default)', () => {
+    const { getByLabelText, queryByLabelText } = reachAboutStep({
+      submitLabel: 'Guardar',
+      onSubmit: jest.fn(),
+    });
+    expect(getByLabelText('onboarding.completeProfile.biography')).toBeTruthy();
+    expect(queryByLabelText('onboarding.completeProfile.biographySelf')).toBeNull();
+  });
 });

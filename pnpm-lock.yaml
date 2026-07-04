@@ -122,9 +122,15 @@ importers:
       react-dom:
         specifier: 19.2.3
         version: 19.2.3(react@19.2.3)
+      react-easy-crop:
+        specifier: ^6.1.0
+        version: 6.1.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react-native:
         specifier: 0.85.3
         version: 0.85.3(@babel/core@7.29.0)(@react-native/jest-preset@0.85.3(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.2.17)(react@19.2.3)
+      react-native-image-crop-picker:
+        specifier: ^0.51.1
+        version: 0.51.1(react-native@0.85.3(@babel/core@7.29.0)(@react-native/jest-preset@0.85.3(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.2.17)(react@19.2.3))(react@19.2.3)
       react-native-safe-area-context:
         specifier: ~5.7.0
         version: 5.7.0(react-native@0.85.3(@babel/core@7.29.0)(@react-native/jest-preset@0.85.3(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.2.17)(react@19.2.3))(react@19.2.3)
@@ -5962,6 +5968,9 @@ packages:
     resolution: {integrity: sha512-DlL+XwOy3NxAQ8xuC0okPgK46iuVNAK01YN7RueYBqqFeGsBjV9XmCAzAdgt+667bCl5kPh9EqKKDwnaPG1I7A==}
     engines: {node: '>=10'}
 
+  normalize-wheel@1.0.1:
+    resolution: {integrity: sha512-1OnlAPZ3zgrk8B91HyRj+eVv+kS5u+Z0SCsak6Xil/kmgEia50ga7zfkumayonZrImffAxPU/5WcyGhzetHNPA==}
+
   npm-install-checks@6.3.0:
     resolution: {integrity: sha512-W29RiK/xtpCGqn6f3ixfRYGk+zRyr+Ew9F2E20BfXxT5/euLdA/Nm7fO7OeTGuAmTs30cpgInyJ0cYe708YTZw==}
     engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
@@ -6464,6 +6473,12 @@ packages:
     peerDependencies:
       react: ^19.2.3
 
+  react-easy-crop@6.1.0:
+    resolution: {integrity: sha512-zimsbH7DLuajy2hA4UpQpTVoisV8EpeE0/CFmph8tFS3EUbr83iL5TXMVYS0xli990VN6hVepmLNVRZ3SyD05A==}
+    peerDependencies:
+      react: '>=16.4.0'
+      react-dom: '>=16.4.0'
+
   react-fast-compare@3.2.2:
     resolution: {integrity: sha512-nsO+KSNgo1SbJqJEYRE9ERzo7YtYbou/OqjSQKxV7jcKox7+usiUVZOAC+XnDOABXggQTno0Y1CpVnuWEc1boQ==}
 
@@ -6508,6 +6523,12 @@ packages:
 
   react-native-gesture-handler@3.0.2:
     resolution: {integrity: sha512-XBTgmvr2jh/xrMwlHTV2Z1x6IFUl3zfLxyaCAnvj3GSXK5YlY3ZmiIs57hniPmh3I7RtjPFxtGdRr0i+PzyBrg==}
+    peerDependencies:
+      react: '*'
+      react-native: '*'
+
+  react-native-image-crop-picker@0.51.1:
+    resolution: {integrity: sha512-GIFRyXJgv1dPceKd/hraK9q9V38v45rSg2ONR6RiSePcOJemkHpc/PMU86pq6lWPilDYHSxbZmea2pNMk85ayw==}
     peerDependencies:
       react: '*'
       react-native: '*'
@@ -14949,6 +14970,8 @@ snapshots:
 
   normalize-url@6.1.0: {}
 
+  normalize-wheel@1.0.1: {}
+
   npm-install-checks@6.3.0:
     dependencies:
       semver: 7.8.1
@@ -15485,6 +15508,12 @@ snapshots:
       react: 19.2.3
       scheduler: 0.27.0
 
+  react-easy-crop@6.1.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
+    dependencies:
+      normalize-wheel: 1.0.1
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+
   react-fast-compare@3.2.2: {}
 
   react-freeze@1.0.4(react@19.2.3):
@@ -15527,6 +15556,11 @@ snapshots:
     dependencies:
       '@types/react-test-renderer': 19.1.0
       invariant: 2.2.4
+      react: 19.2.3
+      react-native: 0.85.3(@babel/core@7.29.0)(@react-native/jest-preset@0.85.3(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.2.17)(react@19.2.3)
+
+  react-native-image-crop-picker@0.51.1(react-native@0.85.3(@babel/core@7.29.0)(@react-native/jest-preset@0.85.3(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.2.17)(react@19.2.3))(react@19.2.3):
+    dependencies:
       react: 19.2.3
       react-native: 0.85.3(@babel/core@7.29.0)(@react-native/jest-preset@0.85.3(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.2.17)(react@19.2.3)
 
