@@ -181,6 +181,14 @@
       ]
     },
     {
+      "collectionGroup": "news",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "organizerUserIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "newsComments",
       "queryScope": "COLLECTION",
       "fields": [

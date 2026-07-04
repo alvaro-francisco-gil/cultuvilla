@@ -15,10 +15,12 @@ export interface VillageRow {
 export interface VillagesScrollProps {
   villages: VillageRow[];
   activeId: string | null;
-  joinLabel: string;
+  joinLabel?: string;
   emptyLabel: string;
   onPressVillage: (municipalityId: string) => void;
-  onPressJoin: () => void;
+  onPressJoin?: () => void;
+  /** Hides the "join village" tile — used by the 'other' profile variant. Defaults to true. */
+  showJoin?: boolean;
 }
 
 export function VillagesScroll({
@@ -28,11 +30,19 @@ export function VillagesScroll({
   emptyLabel,
   onPressVillage,
   onPressJoin,
+  showJoin = true,
 }: VillagesScrollProps) {
   if (villages.length === 0) {
+    if (!showJoin) {
+      return (
+        <View className="px-4">
+          <Text tone="muted">{emptyLabel}</Text>
+        </View>
+      );
+    }
     return (
       <View className="flex-row items-center px-4">
-        <AddCard label={joinLabel} onPress={onPressJoin} />
+        <AddCard label={joinLabel ?? ''} onPress={() => onPressJoin?.()} />
         <Text tone="muted" className="flex-1 ml-2">
           {emptyLabel}
         </Text>
@@ -58,7 +68,9 @@ export function VillagesScroll({
           onPress={() => onPressVillage(item.municipalityId)}
         />
       )}
-      ListFooterComponent={<AddCard label={joinLabel} onPress={onPressJoin} />}
+      ListFooterComponent={
+        showJoin ? <AddCard label={joinLabel ?? ''} onPress={() => onPressJoin?.()} /> : null
+      }
     />
   );
 }

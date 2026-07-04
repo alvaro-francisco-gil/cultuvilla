@@ -366,6 +366,33 @@ describe('newsService — Task 9: CRUD', () => {
   });
 });
 
+describe('getApprovedNewsPostsByOrganizer', () => {
+  it('returns only approved posts where the user is an organizer, newest first', async () => {
+    store = {};
+    store['news/n1'] = {
+      organizerUserIds: ['u1'], status: 'approved',
+      submittedAt: new Date('2026-01-02'),
+    };
+    store['news/n2'] = {
+      organizerUserIds: ['u1'], status: 'pending',
+      submittedAt: new Date('2026-01-03'),
+    };
+    store['news/n3'] = {
+      organizerUserIds: ['u1'], status: 'approved',
+      submittedAt: new Date('2026-01-01'),
+    };
+    store['news/n4'] = {
+      organizerUserIds: ['other'], status: 'approved',
+      submittedAt: new Date('2026-01-04'),
+    };
+    const { getApprovedNewsPostsByOrganizer } = await import(
+      '../../src/services/newsService'
+    );
+    const res = await getApprovedNewsPostsByOrganizer('u1');
+    expect(res.map((p) => p.id)).toEqual(['n1', 'n3']);
+  });
+});
+
 // ─── Task 5: Reactions ─────────────────────────────────────────────────────────
 
 describe('newsService — Task 5: Reactions', () => {

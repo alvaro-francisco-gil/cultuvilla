@@ -680,6 +680,7 @@
     "approve": "Aprobar",
     "reject": "Rechazar",
     "organizerRow": "{user} quiere administrar {municipality}",
+    "wantsToAdminister": "quiere administrar",
     "motivation": "Motivo",
     "joinRow": "{user} quiere unirse a {org}",
     "orgRow": "{org} ({type})"
@@ -828,5 +829,9 @@
     "blockBody": "Esta versión ya no es compatible. Actualiza para seguir usando Cultuvilla.",
     "nudge": "Hay una versión nueva disponible.",
     "cta": "Actualizar"
+  },
+  "userProfile": {
+    "title": "Perfil",
+    "notFound": "No se encontró el usuario"
   }
 }
