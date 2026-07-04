@@ -1,6 +1,9 @@
 import type { Firestore, Transaction } from 'firebase-admin/firestore';
 import { membershipEventsCollection } from '@cultuvilla/shared/firebase/refs/admin';
-import { buildMembershipEventData, type MembershipEventDataInput } from '@cultuvilla/shared';
+// Import from the /models subpath, NOT the '@cultuvilla/shared' barrel: the
+// barrel transitively pulls react-native into the functions esbuild bundle
+// (Flow syntax esbuild can't parse). Subpath imports keep the bundle clean.
+import { buildMembershipEventData, type MembershipEventDataInput } from '@cultuvilla/shared/models';
 
 /**
  * Append one membership/role audit event inside an existing transaction.
