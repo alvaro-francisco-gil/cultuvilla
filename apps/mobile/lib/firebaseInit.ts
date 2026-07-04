@@ -76,7 +76,12 @@ function connectEmulatorsIfEnabled(): void {
   if (emulatorsConnected) return;
   if (Constants.expoConfig?.extra?.useEmulator !== true) return;
   emulatorsConnected = true;
-  const host = '127.0.0.1';
+  // Web (Playwright) reaches the emulators on loopback. A native dev-client on an
+  // Android AVD can't — `127.0.0.1` there is the device itself, so it must use the
+  // host alias `10.0.2.2`. EXPO_PUBLIC_EMULATOR_HOST (baked in at build time) lets
+  // the native groundwork flow override it; it defaults to loopback so the web
+  // build and the fail-closed guarantee are unchanged.
+  const host = process.env.EXPO_PUBLIC_EMULATOR_HOST ?? '127.0.0.1';
   connectAuthEmulator(getAuth(), `http://${host}:9099`, { disableWarnings: true });
   connectFirestoreEmulator(getDb(), host, 8080);
   connectFunctionsEmulator(getFirebaseFunctions(), host, 5001);
