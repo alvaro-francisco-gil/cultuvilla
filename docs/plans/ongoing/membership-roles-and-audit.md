@@ -5,12 +5,14 @@
 ## Status
 
 - **Updated:** 2026-07-04
-- **Stage:** Phase 0 — rename `adminUserId` → `organizerId`
+- **Stage:** Phase 0 ✅ + Phase 1 ✅ done; Phase 2 (village audited role transitions) next.
 - **Branch:** `feat/membership-roles-audit` (worktree `.claude/worktrees/membership-roles-audit`, based on `origin/develop`)
-- **Done:** Plan written; worktree set up.
-- **Next:** Task 0.1 — flip test expectations to `organizerId` (RED), rename the field in `MunicipalityDataModel.ts` (GREEN).
-- **Blockers:** none
-- **Handoff:** Base checkout is on `main` (from recent promotion PRs) — do NOT switch it; all work is in the worktree on `feat/membership-roles-audit`. Emulator-booting test suites (`pnpm test:functions|rules|integration|emulators`, full `pnpm test`) must be run by the user, not the agent — use per-package vitest (`pnpm --filter @cultuvilla/shared test`) for agent-side verification. Dev backfills are autonomous (villa-events); beta/prod off-limits.
+- **Done:**
+  - Phase 0: `community.adminUserId` → `organizerId` across shared model + functions + mobile + seed scripts; `VillageFormSchema.adminUserId` renamed too. Backfill script `scripts/backfill-organizer-id.mjs` written (NOT yet run — rollout step). Shared vitest (501) + full typecheck + lint + mobile jest (275) green.
+  - Phase 1: `membershipEvents` top-level collection — model, client/admin converters, typed refs, read-only `membershipEventService`, services-map row, rules block (admin read, all client writes denied), composite index (`municipalityId ASC, at DESC`), model unit test, rules e2e test. Shared build/typecheck/tests + no-raw-refs guard green.
+- **Next:** Phase 2 — `functions/src/helpers/membershipAudit.ts` (`writeMembershipEvent`), `changeVillageMemberRole` callable + emulator test, `setVillageMemberRole` client wrapper, emit events at organizer approval, tighten village-member rules so `role` is function-owned (behavior change — see Blockers).
+- **Blockers:** Phase 2.4 tightens `municipalities/{id}/members` rules so `role` can no longer be written client-side (create pinned to `role:'user'`; update forbids `role`). Confirm no mobile flow relies on a client-side admin-role member write before landing (grep found none). Emulator suites (`pnpm test:rules`, `pnpm test:functions`) must be run by the user.
+- **Handoff:** Base checkout is on `main` (from recent promotion PRs) — do NOT switch it; all work is in the worktree on `feat/membership-roles-audit`. Emulator-booting suites are agent-forbidden; use per-package vitest for agent-side verification. Dev backfills autonomous (villa-events); beta/prod off-limits. After any shared-model edit, `pnpm --filter @cultuvilla/shared build` before functions typecheck (functions resolve shared via built `.d.ts`). Functions deps: `npm ci` in `functions/` (separate from root `pnpm install`).
 
 ## Rollout status
 
