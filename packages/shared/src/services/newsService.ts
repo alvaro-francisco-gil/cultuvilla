@@ -145,6 +145,24 @@ export async function getNewsPostsByOrganizer(
   return options.limit ? posts.slice(0, options.limit) : posts;
 }
 
+// Approved-only variant of getNewsPostsByOrganizer — safe to run against
+// ANOTHER user's uid, since the news read rule allows non-members to read
+// only approved posts. Used by the read-only user profile ("other" variant).
+export async function getApprovedNewsPostsByOrganizer(
+  userId: string,
+  options: { limit?: number } = {},
+): Promise<(NewsPostData & { id: string })[]> {
+  const q = query(
+    newsCollection(getDb()),
+    where('organizerUserIds', 'array-contains', userId),
+    where('status', '==', 'approved'),
+  );
+  const snap = await getDocs(q);
+  const posts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  posts.sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
+  return options.limit ? posts.slice(0, options.limit) : posts;
+}
+
 export async function updateNewsPost(id: string, patch: UpdateNewsPostInput): Promise<void> {
   for (const k of Object.keys(patch)) {
     if (FORBIDDEN_UPDATE_KEYS.has(k)) {
