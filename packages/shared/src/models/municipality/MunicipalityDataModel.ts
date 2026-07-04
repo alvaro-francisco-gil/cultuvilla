@@ -22,7 +22,7 @@ export const VillageCommunitySchema = z.object({
   /** The village organizer (founding admin). `null` while the community has been
    * "started" by a villager but nobody has been granted the organizer role yet —
    * during that window any member can edit the basic info (wiki phase). */
-  adminUserId: z.string().nullable(),
+  organizerId: z.string().nullable(),
   profileForm: VillageProfileFormSchema.nullable(),
   activatedAt: z.date(),
 });
@@ -136,14 +136,14 @@ export function buildMunicipalityData(input: MunicipalityDataInput): Municipalit
 
 export interface ActivateCommunityInput {
   description: string;
-  adminUserId?: string | null;
+  organizerId?: string | null;
   coordinates?: LatLng | null;
 }
 
 export function buildVillageCommunity(input: ActivateCommunityInput): VillageCommunity {
   return {
     description: input.description,
-    adminUserId: input.adminUserId ?? null,
+    organizerId: input.organizerId ?? null,
     profileForm: null,
     activatedAt: new Date(),
   };

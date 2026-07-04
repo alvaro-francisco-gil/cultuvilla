@@ -37,10 +37,10 @@ describe('municipality roundtrip (emulator)', () => {
 
       const snap = await getDoc(doc(db, 'municipalities', ref.id));
       const data = snap.data() as
-        | { communityActive?: boolean; community?: { adminUserId?: string } }
+        | { communityActive?: boolean; community?: { organizerId?: string } }
         | undefined;
       expect(data?.communityActive).toBe(true);
-      expect(data?.community?.adminUserId).toBe('test-admin');
+      expect(data?.community?.organizerId).toBe('test-admin');
     });
   });
 });
