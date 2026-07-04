@@ -680,6 +680,7 @@
     "approve": "Aprobar",
     "reject": "Rechazar",
     "organizerRow": "{user} quiere administrar {municipality}",
+    "wantsToAdminister": "quiere administrar",
     "motivation": "Motivo",
     "joinRow": "{user} quiere unirse a {org}",
     "orgRow": "{org} ({type})"
