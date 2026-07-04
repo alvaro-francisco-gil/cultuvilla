@@ -3,13 +3,8 @@
 // municipalities via a collection-group query; they cannot list all memberships
 // unfiltered; anonymous users cannot list at all; and direct per-doc reads
 // continue to work for anyone (regression guard).
-import { describe, it, beforeAll, afterAll, beforeEach } from 'vitest';
-import {
-  initializeTestEnvironment,
-  assertSucceeds,
-  assertFails,
-  type RulesTestEnvironment,
-} from '@firebase/rules-unit-testing';
+import { describe, it } from 'vitest';
+import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import {
   doc,
   getDoc,
@@ -20,23 +15,23 @@ import {
   collectionGroup,
   where,
 } from 'firebase/firestore';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { useRulesTestEnv } from '../helpers/rulesTestEnv';
+import { asUser, asAnon, seed } from '../helpers/roles';
 
-let env: RulesTestEnvironment;
+const getEnv = useRulesTestEnv();
 
 const ALICE = 'alice';
 const NOW = new Date();
 
 async function seedActiveMunicipality(id = 'mActive') {
-  await env.withSecurityRulesDisabled(async (ctx) => {
+  await seed(getEnv(), async (ctx) => {
     const db = ctx.firestore();
     await setDoc(doc(db, `municipalities/${id}`), { name: 'Activo', communityActive: true });
   });
 }
 
 async function seedInactiveMunicipality(id = 'mInactive') {
-  await env.withSecurityRulesDisabled(async (ctx) => {
+  await seed(getEnv(), async (ctx) => {
     const db = ctx.firestore();
     await setDoc(doc(db, `municipalities/${id}`), { name: 'Inactivo', communityActive: false });
   });
@@ -54,7 +49,7 @@ function memberDocData() {
 }
 
 async function seedAliceMemberships() {
-  await env.withSecurityRulesDisabled(async (ctx) => {
+  await seed(getEnv(), async (ctx) => {
     const db = ctx.firestore();
     await setDoc(doc(db, 'municipalities/m1'), { name: 'Salamanca' });
     await setDoc(doc(db, 'municipalities/m1/members/alice'), {
@@ -71,26 +66,10 @@ async function seedAliceMemberships() {
   });
 }
 
-beforeAll(async () => {
-  const rules = readFileSync(resolve(__dirname, '../../../../firestore.rules'), 'utf8');
-  env = await initializeTestEnvironment({
-    projectId: process.env.TEST_PROJECT_ID || 'cultuvilla-rules-test',
-    firestore: { rules },
-  });
-});
-
-beforeEach(async () => {
-  await env.clearFirestore();
-});
-
-afterAll(async () => {
-  await env.cleanup();
-});
-
 describe('firestore.rules — members collection-group', () => {
   it('signed-in user can list their own memberships via collection group', async () => {
     await seedAliceMemberships();
-    const db = env.authenticatedContext(ALICE).firestore();
+    const db = asUser(getEnv(), ALICE);
     await assertSucceeds(
       getDocs(query(collectionGroup(db, 'members'), where('userId', '==', ALICE))),
     );
@@ -98,13 +77,13 @@ describe('firestore.rules — members collection-group', () => {
 
   it('signed-in user cannot list ALL memberships unfiltered', async () => {
     await seedAliceMemberships();
-    const db = env.authenticatedContext(ALICE).firestore();
+    const db = asUser(getEnv(), ALICE);
     await assertFails(getDocs(collectionGroup(db, 'members')));
   });
 
   it('anonymous user cannot list memberships via collection group', async () => {
     await seedAliceMemberships();
-    const db = env.unauthenticatedContext().firestore();
+    const db = asAnon(getEnv());
     await assertFails(
       getDocs(query(collectionGroup(db, 'members'), where('userId', '==', ALICE))),
     );
@@ -112,7 +91,7 @@ describe('firestore.rules — members collection-group', () => {
 
   it('regression: direct doc read on /municipalities/{m}/members/{uid} still works for anyone', async () => {
     await seedAliceMemberships();
-    const db = env.unauthenticatedContext().firestore();
+    const db = asAnon(getEnv());
     await assertSucceeds(getDoc(doc(db, 'municipalities/m1/members/alice')));
   });
 });
@@ -120,7 +99,7 @@ describe('firestore.rules — members collection-group', () => {
 describe('firestore.rules — self-join membership create', () => {
   it('owner can self-join an active village as role user', async () => {
     await seedActiveMunicipality();
-    const db = env.authenticatedContext(ALICE).firestore();
+    const db = asUser(getEnv(), ALICE);
     await assertSucceeds(
       setDoc(doc(db, 'municipalities/mActive/members/alice'), memberDocData()),
     );
@@ -128,7 +107,7 @@ describe('firestore.rules — self-join membership create', () => {
 
   it('owner cannot self-join an inactive village', async () => {
     await seedInactiveMunicipality();
-    const db = env.authenticatedContext(ALICE).firestore();
+    const db = asUser(getEnv(), ALICE);
     await assertFails(
       setDoc(doc(db, 'municipalities/mInactive/members/alice'), memberDocData()),
     );
@@ -136,7 +115,7 @@ describe('firestore.rules — self-join membership create', () => {
 
   it('owner cannot self-join as role admin', async () => {
     await seedActiveMunicipality();
-    const db = env.authenticatedContext(ALICE).firestore();
+    const db = asUser(getEnv(), ALICE);
     await assertFails(
       setDoc(doc(db, 'municipalities/mActive/members/alice'), {
         ...memberDocData(),
@@ -147,7 +126,7 @@ describe('firestore.rules — self-join membership create', () => {
 
   it('owner cannot self-grant trustedNewsAuthor on join', async () => {
     await seedActiveMunicipality();
-    const db = env.authenticatedContext(ALICE).firestore();
+    const db = asUser(getEnv(), ALICE);
     await assertFails(
       setDoc(doc(db, 'municipalities/mActive/members/alice'), {
         ...memberDocData(),
@@ -158,7 +137,7 @@ describe('firestore.rules — self-join membership create', () => {
 
   it('user cannot create a membership doc for someone else', async () => {
     await seedActiveMunicipality();
-    const db = env.authenticatedContext('mallory').firestore();
+    const db = asUser(getEnv(), 'mallory');
     await assertFails(
       setDoc(doc(db, 'municipalities/mActive/members/alice'), memberDocData()),
     );
@@ -166,7 +145,7 @@ describe('firestore.rules — self-join membership create', () => {
 
   it('anonymous user cannot self-join', async () => {
     await seedActiveMunicipality();
-    const db = env.unauthenticatedContext().firestore();
+    const db = asAnon(getEnv());
     await assertFails(
       setDoc(doc(db, 'municipalities/mActive/members/alice'), memberDocData()),
     );
@@ -174,7 +153,7 @@ describe('firestore.rules — self-join membership create', () => {
 
   it('owner can self-join with a barrioId set', async () => {
     await seedActiveMunicipality();
-    const db = env.authenticatedContext(ALICE).firestore();
+    const db = asUser(getEnv(), ALICE);
     await assertSucceeds(
       setDoc(doc(db, 'municipalities/mActive/members/alice'), {
         ...memberDocData(),
@@ -186,7 +165,7 @@ describe('firestore.rules — self-join membership create', () => {
 
 describe('firestore.rules — member barrioId self-update', () => {
   async function seedAliceMember() {
-    await env.withSecurityRulesDisabled(async (ctx) => {
+    await seed(getEnv(), async (ctx) => {
       const db = ctx.firestore();
       await setDoc(doc(db, 'municipalities/mActive'), { name: 'Activo', communityActive: true });
       await setDoc(doc(db, 'municipalities/mActive/members/alice'), memberDocData());
@@ -195,7 +174,7 @@ describe('firestore.rules — member barrioId self-update', () => {
 
   it('owner can update their own barrioId', async () => {
     await seedAliceMember();
-    const db = env.authenticatedContext(ALICE).firestore();
+    const db = asUser(getEnv(), ALICE);
     await assertSucceeds(
       updateDoc(doc(db, 'municipalities/mActive/members/alice'), { barrioId: 'centro' }),
     );
@@ -203,7 +182,7 @@ describe('firestore.rules — member barrioId self-update', () => {
 
   it('owner can clear their barrioId back to null', async () => {
     await seedAliceMember();
-    const db = env.authenticatedContext(ALICE).firestore();
+    const db = asUser(getEnv(), ALICE);
     await assertSucceeds(
       updateDoc(doc(db, 'municipalities/mActive/members/alice'), { barrioId: null }),
     );
@@ -211,7 +190,7 @@ describe('firestore.rules — member barrioId self-update', () => {
 
   it('owner cannot change role while updating barrioId', async () => {
     await seedAliceMember();
-    const db = env.authenticatedContext(ALICE).firestore();
+    const db = asUser(getEnv(), ALICE);
     await assertFails(
       updateDoc(doc(db, 'municipalities/mActive/members/alice'), {
         barrioId: 'centro',
@@ -222,7 +201,7 @@ describe('firestore.rules — member barrioId self-update', () => {
 
   it('a different user cannot update alice barrioId', async () => {
     await seedAliceMember();
-    const db = env.authenticatedContext('mallory').firestore();
+    const db = asUser(getEnv(), 'mallory');
     await assertFails(
       updateDoc(doc(db, 'municipalities/mActive/members/alice'), { barrioId: 'centro' }),
     );

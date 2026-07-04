@@ -1,13 +1,8 @@
 // Firestore Rules e2e tests for news, newsComments, newsReactions, newsReports.
 // Also covers the tightened municipalities/{id}/members/{uid} update rule
 // that prevents clients from setting trustedNewsAuthor directly.
-import { describe, it, beforeAll, afterAll, beforeEach } from 'vitest';
-import {
-  initializeTestEnvironment,
-  assertSucceeds,
-  assertFails,
-  type RulesTestEnvironment,
-} from '@firebase/rules-unit-testing';
+import { describe, it } from 'vitest';
+import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import {
   doc,
   setDoc,
@@ -19,26 +14,10 @@ import {
   query,
   where,
 } from 'firebase/firestore';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { useRulesTestEnv } from '../helpers/rulesTestEnv';
+import { asUser, seed } from '../helpers/roles';
 
-let env: RulesTestEnvironment;
-
-beforeAll(async () => {
-  const rules = readFileSync(resolve(__dirname, '../../../../firestore.rules'), 'utf8');
-  env = await initializeTestEnvironment({
-    projectId: process.env.TEST_PROJECT_ID || 'cultuvilla-rules-test',
-    firestore: { rules },
-  });
-});
-
-beforeEach(async () => {
-  await env.clearFirestore();
-});
-
-afterAll(async () => {
-  await env.cleanup();
-});
+const getEnv = useRulesTestEnv();
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -47,7 +26,7 @@ async function seedMember(
   userId: string,
   extra: Record<string, unknown> = {}
 ) {
-  await env.withSecurityRulesDisabled(async (ctx) => {
+  await seed(getEnv(), async (ctx) => {
     await setDoc(doc(ctx.firestore(), `municipalities/${municipalityId}/members/${userId}`), {
       role: 'user',
       joinedAt: new Date(),
@@ -65,7 +44,7 @@ async function seedPost(
   createdBy: string,
   extra: Record<string, unknown> = {}
 ) {
-  await env.withSecurityRulesDisabled(async (ctx) => {
+  await seed(getEnv(), async (ctx) => {
     await setDoc(doc(ctx.firestore(), `news/${postId}`), {
       municipalityId,
       organizerUserIds: [createdBy],
@@ -92,7 +71,7 @@ async function seedPost(
 describe('firestore.rules — /news/{postId}', () => {
   // 1. non-member tries to create a news doc → DENY
   it('1: non-member cannot create a news post', async () => {
-    const stranger = env.authenticatedContext('stranger').firestore();
+    const stranger = asUser(getEnv(), 'stranger');
     await assertFails(
       setDoc(doc(stranger, 'news/p1'), {
         municipalityId: 'm1',
@@ -119,7 +98,7 @@ describe('firestore.rules — /news/{postId}', () => {
   // 2. member with trustedNewsAuthor=false creates with status='pending' → ALLOW
   it('2: regular member can create a pending news post', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(
       setDoc(doc(alice, 'news/p1'), {
         municipalityId: 'm1',
@@ -146,7 +125,7 @@ describe('firestore.rules — /news/{postId}', () => {
   // 3. member with trustedNewsAuthor=false creates with status='approved' → DENY
   it('3: regular member cannot create an approved news post', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'news/p1'), {
         municipalityId: 'm1',
@@ -173,7 +152,7 @@ describe('firestore.rules — /news/{postId}', () => {
   // 4. member with trustedNewsAuthor=true creates with status='approved' → ALLOW
   it('4: trusted author can create an approved news post', async () => {
     await seedMember('m1', 'bob', { trustedNewsAuthor: true });
-    const bob = env.authenticatedContext('bob').firestore();
+    const bob = asUser(getEnv(), 'bob');
     await assertSucceeds(
       setDoc(doc(bob, 'news/p1'), {
         municipalityId: 'm1',
@@ -201,7 +180,7 @@ describe('firestore.rules — /news/{postId}', () => {
   it('5: author can update own post title and body', async () => {
     await seedMember('m1', 'alice');
     await seedPost('p1', 'm1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(
       updateDoc(doc(alice, 'news/p1'), { title: 'Updated title', body: 'Updated body', updatedAt: new Date() })
     );
@@ -211,7 +190,7 @@ describe('firestore.rules — /news/{postId}', () => {
   it('6: author cannot update post status to approved', async () => {
     await seedMember('m1', 'alice');
     await seedPost('p1', 'm1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       updateDoc(doc(alice, 'news/p1'), { status: 'approved' })
     );
@@ -222,7 +201,7 @@ describe('firestore.rules — /news/{postId}', () => {
     await seedMember('m1', 'alice');
     await seedMember('m1', 'bob');
     await seedPost('p1', 'm1', 'alice');
-    const bob = env.authenticatedContext('bob').firestore();
+    const bob = asUser(getEnv(), 'bob');
     await assertFails(
       updateDoc(doc(bob, 'news/p1'), { title: 'Hacked' })
     );
@@ -232,7 +211,7 @@ describe('firestore.rules — /news/{postId}', () => {
   it('8: client cannot delete a news post directly', async () => {
     await seedMember('m1', 'alice');
     await seedPost('p1', 'm1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(deleteDoc(doc(alice, 'news/p1')));
   });
 
@@ -243,14 +222,14 @@ describe('firestore.rules — /news/{postId}', () => {
   it('9: a named organizer (not creator, not member) can read a pending post', async () => {
     await seedMember('m1', 'alice');
     await seedPost('p1', 'm1', 'alice', { organizerUserIds: ['alice', 'carol'] });
-    const carol = env.authenticatedContext('carol').firestore();
+    const carol = asUser(getEnv(), 'carol');
     await assertSucceeds(getDoc(doc(carol, 'news/p1')));
   });
 
   it('9b: organizer can list pending posts via organizerUserIds array-contains', async () => {
     await seedMember('m1', 'alice');
     await seedPost('p1', 'm1', 'alice', { organizerUserIds: ['alice', 'carol'] });
-    const carol = env.authenticatedContext('carol').firestore();
+    const carol = asUser(getEnv(), 'carol');
     await assertSucceeds(
       getDocs(query(collection(carol, 'news'), where('organizerUserIds', 'array-contains', 'carol'))),
     );
@@ -259,7 +238,7 @@ describe('firestore.rules — /news/{postId}', () => {
   // T6-A: create denied when uid not in organizerUserIds
   it('T6-A: create denied when uid not in organizerUserIds', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'news/p1'), {
         municipalityId: 'm1',
@@ -287,7 +266,7 @@ describe('firestore.rules — /news/{postId}', () => {
   it('T6-B: user in organizerUserIds can update own post', async () => {
     await seedMember('m1', 'alice');
     await seedPost('p1', 'm1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(
       updateDoc(doc(alice, 'news/p1'), { title: 'Updated', updatedAt: new Date() })
     );
@@ -298,7 +277,7 @@ describe('firestore.rules — /news/{postId}', () => {
     await seedMember('m1', 'alice');
     await seedMember('m1', 'bob');
     await seedPost('p1', 'm1', 'alice');
-    const bob = env.authenticatedContext('bob').firestore();
+    const bob = asUser(getEnv(), 'bob');
     await assertFails(
       updateDoc(doc(bob, 'news/p1'), { title: 'Hacked', updatedAt: new Date() })
     );
@@ -308,7 +287,7 @@ describe('firestore.rules — /news/{postId}', () => {
   it('T6-D: update denied when changing createdBy', async () => {
     await seedMember('m1', 'alice');
     await seedPost('p1', 'm1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       updateDoc(doc(alice, 'news/p1'), { createdBy: 'hacker' })
     );
@@ -319,7 +298,7 @@ describe('firestore.rules — /news/{postId}', () => {
     await seedMember('m1', 'alice');
     await seedMember('m2', 'alice');
     await seedPost('p1', 'm1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       updateDoc(doc(alice, 'news/p1'), { municipalityId: 'm2' })
     );
@@ -331,7 +310,7 @@ describe('firestore.rules — /news/{postId}', () => {
     await seedMember('m1', 'carol');
     // carol is not in organizerUserIds — seeded post only has alice
     await seedPost('p1', 'm1', 'alice', { organizerOrgIds: ['org1'] });
-    const carol = env.authenticatedContext('carol').firestore();
+    const carol = asUser(getEnv(), 'carol');
     await assertFails(
       updateDoc(doc(carol, 'news/p1'), { title: 'Org hacked', updatedAt: new Date() })
     );
@@ -346,14 +325,14 @@ describe('firestore.rules — /news read', () => {
   it('R1: approved post is readable by a non-member (cross-village feed)', async () => {
     await seedPost('p1', 'm1', 'alice', { status: 'approved', publishedAt: new Date() });
     // bob is not a member of m1 — mirrors a user browsing another village.
-    const bob = env.authenticatedContext('bob').firestore();
+    const bob = asUser(getEnv(), 'bob');
     await assertSucceeds(getDoc(doc(bob, 'news/p1')));
   });
 
   it('R2: cross-village approved list query succeeds for a non-member', async () => {
     await seedPost('p1', 'm1', 'alice', { status: 'approved', publishedAt: new Date() });
     await seedPost('p2', 'm2', 'carol', { status: 'approved', publishedAt: new Date() });
-    const bob = env.authenticatedContext('bob').firestore();
+    const bob = asUser(getEnv(), 'bob');
     await assertSucceeds(
       getDocs(query(collection(bob, 'news'), where('status', '==', 'approved'))),
     );
@@ -361,14 +340,14 @@ describe('firestore.rules — /news read', () => {
 
   it('R3: pending post stays hidden from non-members', async () => {
     await seedPost('p1', 'm1', 'alice', { status: 'pending' });
-    const bob = env.authenticatedContext('bob').firestore();
+    const bob = asUser(getEnv(), 'bob');
     await assertFails(getDoc(doc(bob, 'news/p1')));
   });
 
   it('R4: member can still read a pending post in their own village', async () => {
     await seedMember('m1', 'alice');
     await seedPost('p1', 'm1', 'alice', { status: 'pending' });
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(getDoc(doc(alice, 'news/p1')));
   });
 
@@ -376,7 +355,7 @@ describe('firestore.rules — /news read', () => {
     // Powers the profile-screen news count (getNewsCountByCreator), which lists
     // the author's own posts regardless of status/membership.
     await seedPost('p1', 'm1', 'alice', { status: 'pending' });
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(getDoc(doc(alice, 'news/p1')));
   });
 });
@@ -387,7 +366,7 @@ describe('firestore.rules — /newsComments/{commentId}', () => {
   // 9. member adds a comment with hidden=false → ALLOW
   it('9: member can create a visible comment', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(
       setDoc(doc(alice, 'newsComments/c1'), {
         postId: 'p1',
@@ -403,7 +382,7 @@ describe('firestore.rules — /newsComments/{commentId}', () => {
   // 10. member tries to set hidden=true on a new comment → DENY
   it('10: member cannot create a hidden comment', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'newsComments/c1'), {
         postId: 'p1',
@@ -419,7 +398,7 @@ describe('firestore.rules — /newsComments/{commentId}', () => {
   // 11. member tries to update an existing comment → DENY
   it('11: member cannot update a comment', async () => {
     await seedMember('m1', 'alice');
-    await env.withSecurityRulesDisabled(async (ctx) => {
+    await seed(getEnv(), async (ctx) => {
       await setDoc(doc(ctx.firestore(), 'newsComments/c1'), {
         postId: 'p1',
         municipalityId: 'm1',
@@ -429,13 +408,13 @@ describe('firestore.rules — /newsComments/{commentId}', () => {
         hidden: false,
       });
     });
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(updateDoc(doc(alice, 'newsComments/c1'), { body: 'Edited' }));
   });
 
   // 12. comment author deletes their own comment → ALLOW
   it('12: comment author can delete their own comment', async () => {
-    await env.withSecurityRulesDisabled(async (ctx) => {
+    await seed(getEnv(), async (ctx) => {
       await setDoc(doc(ctx.firestore(), 'newsComments/c1'), {
         postId: 'p1',
         municipalityId: 'm1',
@@ -445,7 +424,7 @@ describe('firestore.rules — /newsComments/{commentId}', () => {
         hidden: false,
       });
     });
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(deleteDoc(doc(alice, 'newsComments/c1')));
   });
 });
@@ -456,7 +435,7 @@ describe('firestore.rules — /newsReactions/{reactionId}', () => {
   // 13. member creates a reaction at id `${postId}_${myUid}` → ALLOW
   it('13: member can create own reaction with correct doc id', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(
       setDoc(doc(alice, 'newsReactions/p1_alice'), {
         postId: 'p1',
@@ -471,7 +450,7 @@ describe('firestore.rules — /newsReactions/{reactionId}', () => {
   // 14. member tries to create a reaction at id `${postId}_${otherUid}` → DENY
   it('14: member cannot create a reaction spoofing another user', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'newsReactions/p1_bob'), {
         postId: 'p1',
@@ -490,7 +469,7 @@ describe('firestore.rules — /newsReports/{reportId}', () => {
   // 15. member submits a report with status='open' and reporterUserId=myUid → ALLOW
   it('15: member can create a report about themselves with status open', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(
       setDoc(doc(alice, 'newsReports/r1'), {
         targetType: 'comment',
@@ -509,7 +488,7 @@ describe('firestore.rules — /newsReports/{reportId}', () => {
 
   // 16. client tries to update a report directly → DENY
   it('16: client cannot update a report directly', async () => {
-    await env.withSecurityRulesDisabled(async (ctx) => {
+    await seed(getEnv(), async (ctx) => {
       await setDoc(doc(ctx.firestore(), 'newsReports/r1'), {
         targetType: 'comment',
         targetId: 'c1',
@@ -524,7 +503,7 @@ describe('firestore.rules — /newsReports/{reportId}', () => {
       });
     });
     await seedMember('m1', 'alice', { role: 'admin' });
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(updateDoc(doc(alice, 'newsReports/r1'), { status: 'dismissed' }));
   });
 });
@@ -535,7 +514,7 @@ describe('firestore.rules — members trustedNewsAuthor lock', () => {
   // 17. client tries to write trustedNewsAuthor=true on their own member doc → DENY
   it('17: member cannot set trustedNewsAuthor on their own member doc', async () => {
     await seedMember('m1', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       updateDoc(doc(alice, 'municipalities/m1/members/alice'), {
         trustedNewsAuthor: true,

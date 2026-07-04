@@ -5,18 +5,13 @@
 // Uses @firebase/rules-unit-testing to mount the live firestore.rules file
 // against the firestore emulator and execute requests under different auth
 // contexts.
-import { describe, it, beforeAll, afterAll, beforeEach } from 'vitest';
-import {
-  initializeTestEnvironment,
-  assertSucceeds,
-  assertFails,
-  type RulesTestEnvironment,
-} from '@firebase/rules-unit-testing';
+import { describe, it } from 'vitest';
+import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { useRulesTestEnv } from '../helpers/rulesTestEnv';
+import { asUser, asAnon, seed } from '../helpers/roles';
 
-let env: RulesTestEnvironment;
+const getEnv = useRulesTestEnv();
 
 const OWNER = 'uid-1';
 const OTHER = 'uid-2';
@@ -46,7 +41,7 @@ const personData = (
 });
 
 async function seedPerson(overrides: Partial<{ createdBy: string; userId: string | null }> = {}) {
-  await env.withSecurityRulesDisabled(async (ctx) => {
+  await seed(getEnv(), async (ctx) => {
     await setDoc(doc(ctx.firestore(), `persons/${PERSON_ID}`), {
       ...personData(overrides),
       createdAt: new Date(),
@@ -54,33 +49,17 @@ async function seedPerson(overrides: Partial<{ createdBy: string; userId: string
   });
 }
 
-beforeAll(async () => {
-  const rules = readFileSync(resolve(__dirname, '../../../../firestore.rules'), 'utf8');
-  env = await initializeTestEnvironment({
-    projectId: process.env.TEST_PROJECT_ID || 'cultuvilla-rules-test',
-    firestore: { rules },
-  });
-});
-
-beforeEach(async () => {
-  await env.clearFirestore();
-});
-
-afterAll(async () => {
-  await env.cleanup();
-});
-
 describe('firestore.rules — /persons/{personId}', () => {
   describe('create', () => {
     it('owner can create their own persona', async () => {
-      const ownerDb = env.authenticatedContext(OWNER).firestore();
+      const ownerDb = asUser(getEnv(), OWNER);
       await assertSucceeds(
         setDoc(doc(ownerDb, `persons/${PERSON_ID}`), personData({ createdBy: OWNER })),
       );
     });
 
     it('create is rejected when createdBy != auth.uid', async () => {
-      const ownerDb = env.authenticatedContext(OWNER).firestore();
+      const ownerDb = asUser(getEnv(), OWNER);
       await assertFails(
         setDoc(doc(ownerDb, `persons/${PERSON_ID}`), personData({ createdBy: OTHER })),
       );
@@ -90,7 +69,7 @@ describe('firestore.rules — /persons/{personId}', () => {
   describe('read', () => {
     it('an unauthenticated user can read a person', async () => {
       await seedPerson();
-      const guestDb = env.unauthenticatedContext().firestore();
+      const guestDb = asAnon(getEnv());
       await assertSucceeds(getDoc(doc(guestDb, `persons/${PERSON_ID}`)));
     });
   });
@@ -98,7 +77,7 @@ describe('firestore.rules — /persons/{personId}', () => {
   describe('update', () => {
     it('owner can update photoURL after create', async () => {
       await seedPerson({ createdBy: OWNER, userId: OWNER });
-      const ownerDb = env.authenticatedContext(OWNER).firestore();
+      const ownerDb = asUser(getEnv(), OWNER);
       await assertSucceeds(
         updateDoc(doc(ownerDb, `persons/${PERSON_ID}`), { photoURL: 'https://example.com/photo.jpg' }),
       );
@@ -106,7 +85,7 @@ describe('firestore.rules — /persons/{personId}', () => {
 
     it('update is rejected for a different user', async () => {
       await seedPerson({ createdBy: OWNER, userId: OWNER });
-      const otherDb = env.authenticatedContext(OTHER).firestore();
+      const otherDb = asUser(getEnv(), OTHER);
       await assertFails(
         updateDoc(doc(otherDb, `persons/${PERSON_ID}`), { photoURL: 'https://example.com/photo.jpg' }),
       );

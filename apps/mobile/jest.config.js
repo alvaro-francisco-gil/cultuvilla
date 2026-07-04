@@ -22,5 +22,11 @@ module.exports = {
     '^@cultuvilla/i18n$': '<rootDir>/../../packages/i18n/index',
     '^@cultuvilla/i18n/(.*)$': '<rootDir>/../../packages/i18n/$1',
   },
+  // Report-only coverage (docs/plans/ongoing/testing-enhancement.md, D4): only
+  // collected with `pnpm app:test:coverage` (jest --coverage); no gate yet.
+  // v8 + lcov keeps the output format aligned with the vitest packages so a
+  // future diff-cover step can merge one lcov set across the monorepo.
+  coverageProvider: 'v8',
+  coverageReporters: ['text-summary', 'lcov'],
   collectCoverageFrom: ['lib/**/*.ts', 'components/**/*.{ts,tsx}'],
 };

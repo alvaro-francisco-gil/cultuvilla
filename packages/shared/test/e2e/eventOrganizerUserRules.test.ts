@@ -8,18 +8,13 @@
 //
 // These tests are the safety net for the Phase B rules change.
 
-import { describe, it, beforeAll, afterAll, beforeEach } from 'vitest';
-import {
-  initializeTestEnvironment,
-  assertSucceeds,
-  assertFails,
-  type RulesTestEnvironment,
-} from '@firebase/rules-unit-testing';
+import { describe, it, beforeEach } from 'vitest';
+import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { doc, setDoc, updateDoc, deleteDoc, GeoPoint } from 'firebase/firestore';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { useRulesTestEnv } from '../helpers/rulesTestEnv';
+import { asUser } from '../helpers/roles';
 
-let env: RulesTestEnvironment;
+const getEnv = useRulesTestEnv();
 const M = 'm1';
 const ORG = 'org1';
 
@@ -50,7 +45,7 @@ function newEvent(createdBy: string, extraOrganizers: string[] = [], orgIds: str
 }
 
 async function seed() {
-  await env.withSecurityRulesDisabled(async (ctx) => {
+  await getEnv().withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
     // Village members
     await setDoc(doc(db, `municipalities/${M}/members/alice`), { role: 'user', joinedAt: new Date() });
@@ -77,33 +72,20 @@ async function seed() {
   });
 }
 
-beforeAll(async () => {
-  const rules = readFileSync(resolve(__dirname, '../../../../firestore.rules'), 'utf8');
-  env = await initializeTestEnvironment({
-    projectId: process.env.TEST_PROJECT_ID || 'cultuvilla-rules-test',
-    firestore: { rules },
-  });
-});
-
 beforeEach(async () => {
-  await env.clearFirestore();
   await seed();
-});
-
-afterAll(async () => {
-  await env.cleanup();
 });
 
 describe('firestore.rules — event organizerUserIds control', () => {
   // ── create ────────────────────────────────────────────────────────────────
 
   it('a village member can create when createdBy == uid AND uid in organizerUserIds', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(setDoc(doc(alice, 'events/new1'), newEvent('alice')));
   });
 
   it('denied: create with uid NOT in organizerUserIds', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'events/new2'), {
         ...newEvent('alice'),
@@ -117,7 +99,7 @@ describe('firestore.rules — event organizerUserIds control', () => {
     // persisted villageCoordinates is a GeoPoint (rules type `latlng`), NOT a
     // map. The create rule must accept it. Regression: events with real village
     // coordinates were denied because the rule checked `is map`.
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(
       setDoc(doc(alice, 'events/geo1'), {
         ...newEvent('alice'),
@@ -129,7 +111,7 @@ describe('firestore.rules — event organizerUserIds control', () => {
   it('create with the EXACT converter output: GeoPoint location.coordinates + GeoPoint villageCoordinates + co-organizer', async () => {
     // Mirrors the real client write (converter turns every {lat,lng} into a
     // GeoPoint). Reproduces the reported production create failure.
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(
       setDoc(doc(alice, 'events/prod1'), {
         ...newEvent('alice', ['bob']),
@@ -140,12 +122,12 @@ describe('firestore.rules — event organizerUserIds control', () => {
   });
 
   it('denied: create by a non-village-member', async () => {
-    const stranger = env.authenticatedContext('stranger').firestore();
+    const stranger = asUser(getEnv(), 'stranger');
     await assertFails(setDoc(doc(stranger, 'events/new3'), newEvent('stranger')));
   });
 
   it('denied: create when createdBy != uid', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'events/new4'), {
         ...newEvent('alice'),
@@ -157,60 +139,60 @@ describe('firestore.rules — event organizerUserIds control', () => {
   // ── update ────────────────────────────────────────────────────────────────
 
   it('a user in organizerUserIds can update the event', async () => {
-    const bob = env.authenticatedContext('bob').firestore();
+    const bob = asUser(getEnv(), 'bob');
     await assertSucceeds(updateDoc(doc(bob, 'events/owned'), { title: 'Feria' }));
   });
 
   it('the creator (in organizerUserIds) can update the event', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(updateDoc(doc(alice, 'events/owned'), { title: 'Feria' }));
   });
 
   it('a random village member NOT in organizerUserIds is denied update', async () => {
-    const charlie = env.authenticatedContext('charlie').firestore();
+    const charlie = asUser(getEnv(), 'charlie');
     await assertFails(updateDoc(doc(charlie, 'events/owned'), { title: 'Feria' }));
   });
 
   it('a village admin can update the event', async () => {
-    const vb = env.authenticatedContext('villageboss').firestore();
+    const vb = asUser(getEnv(), 'villageboss');
     await assertSucceeds(updateDoc(doc(vb, 'events/owned'), { title: 'Feria' }));
   });
 
   it('denied: update that changes createdBy', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(updateDoc(doc(alice, 'events/owned'), { createdBy: 'bob' }));
   });
 
   it('denied: update that changes municipalityId', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertFails(updateDoc(doc(alice, 'events/owned'), { municipalityId: 'm2' }));
   });
 
   it('an org member in organizerOrgIds but NOT in organizerUserIds is denied update', async () => {
     // carol is in org1 (which is in organizerOrgIds) but NOT in organizerUserIds
-    const carol = env.authenticatedContext('carol').firestore();
+    const carol = asUser(getEnv(), 'carol');
     await assertFails(updateDoc(doc(carol, 'events/owned'), { title: 'Feria' }));
   });
 
   // ── delete ────────────────────────────────────────────────────────────────
 
   it('a user in organizerUserIds can delete the event', async () => {
-    const alice = env.authenticatedContext('alice').firestore();
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(deleteDoc(doc(alice, 'events/owned')));
   });
 
   it('a village admin can delete the event', async () => {
-    const vb = env.authenticatedContext('villageboss').firestore();
+    const vb = asUser(getEnv(), 'villageboss');
     await assertSucceeds(deleteDoc(doc(vb, 'events/owned')));
   });
 
   it('a stranger cannot delete the event', async () => {
-    const stranger = env.authenticatedContext('stranger').firestore();
+    const stranger = asUser(getEnv(), 'stranger');
     await assertFails(deleteDoc(doc(stranger, 'events/owned')));
   });
 
   it('a random village member NOT in organizerUserIds cannot delete', async () => {
-    const charlie = env.authenticatedContext('charlie').firestore();
+    const charlie = asUser(getEnv(), 'charlie');
     await assertFails(deleteDoc(doc(charlie, 'events/owned')));
   });
 });
