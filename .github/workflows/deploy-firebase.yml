@@ -124,5 +124,12 @@ jobs:
           node apps/mobile/scripts/copy-well-known.mjs ${{ inputs.firebase_alias }}
           pnpm app:web:build
 
+      # Reject the deploy if a native-only module leaked into the web bundle
+      # (calls TurboModuleRegistry.getEnforcing -> crashes the app on load).
+      # Runs before hosting deploy so a broken bundle never reaches Firebase.
+      # See .agents/skills/mobile-web-compat/SKILL.md.
+      - name: Check web export
+        run: pnpm app:check-web-export
+
       - name: Deploy Hosting
         run: firebase deploy --only hosting --project ${{ inputs.firebase_alias }} --non-interactive
