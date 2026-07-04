@@ -1,8 +1,10 @@
 // Firestore Rules e2e test for collection-group queries on 'members'.
 // Verifies: a signed-in user can list their own membership rows across all
-// municipalities via a collection-group query; they cannot list all memberships
-// unfiltered; anonymous users cannot list at all; and direct per-doc reads
-// continue to work for anyone (regression guard).
+// municipalities via a collection-group query, and can also list another
+// user's memberships (member docs are individually public, so this is an
+// intentional relaxation for public profile screens); anonymous users
+// cannot list at all; and direct per-doc reads continue to work for anyone
+// (regression guard).
 import { describe, it } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import {
@@ -21,6 +23,7 @@ import { asUser, asAnon, seed } from '../helpers/roles';
 const getEnv = useRulesTestEnv();
 
 const ALICE = 'alice';
+const BOB = 'bob';
 const NOW = new Date();
 
 async function seedActiveMunicipality(id = 'mActive') {
@@ -75,10 +78,12 @@ describe('firestore.rules — members collection-group', () => {
     );
   });
 
-  it('signed-in user cannot list ALL memberships unfiltered', async () => {
+  it('signed-in user can list ANOTHER user\'s memberships via collection group', async () => {
     await seedAliceMemberships();
-    const db = asUser(getEnv(), ALICE);
-    await assertFails(getDocs(collectionGroup(db, 'members')));
+    const db = asUser(getEnv(), BOB);
+    await assertSucceeds(
+      getDocs(query(collectionGroup(db, 'members'), where('userId', '==', ALICE))),
+    );
   });
 
   it('anonymous user cannot list memberships via collection group', async () => {

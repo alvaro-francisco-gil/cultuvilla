@@ -737,16 +737,24 @@ service cloud.firestore {
         );
     }
 
-    // Collection-group queries: allow authenticated users to list only their
-    // own rows. These rules are evaluated for CG list operations on the named
-    // sub-collection regardless of which parent collection they live under.
-    // "allow read: if true" on nested paths allows single-doc gets but does
-    // NOT satisfy list operations on a collection-group in Firestore Rules v2.
+    // Collection-group queries: these rules are evaluated for CG list
+    // operations on the named sub-collection regardless of which parent
+    // collection they live under. "allow read: if true" on nested paths
+    // allows single-doc gets but does NOT satisfy list operations on a
+    // collection-group in Firestore Rules v2.
 
+    // Member docs are individually public (allow read: if true), so any
+    // authenticated user may also list member rows across collection groups
+    // (e.g. to show another user's villages on their profile). Firestore
+    // rules cannot express "filtered to a single userId", so this also
+    // permits an unfiltered dump of all member rows to any signed-in caller
+    // — an accepted tradeoff since the underlying docs are already public.
     match /{path=**}/members/{userId} {
-      allow list: if isAuthenticated()
-        && resource.data.userId == request.auth.uid;
+      allow list: if isAuthenticated();
     }
+
+    // Registrations remain restricted to the caller's own rows (unlike
+    // members, registration docs are not individually public).
 
     match /{path=**}/registrations/{regId} {
       allow list: if isAuthenticated()
