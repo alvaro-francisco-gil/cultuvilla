@@ -9,7 +9,17 @@ import { Platform } from 'react-native';
 import { initializeAuth, getReactNativePersistence } from '@firebase/auth';
 import type { FirebaseOptions } from 'firebase/app';
 import Constants from 'expo-constants';
-import { initFirebase } from '@cultuvilla/shared/firebase';
+import { connectAuthEmulator } from 'firebase/auth';
+import { connectFirestoreEmulator } from 'firebase/firestore';
+import { connectFunctionsEmulator } from 'firebase/functions';
+import { connectStorageEmulator } from 'firebase/storage';
+import {
+  initFirebase,
+  getAuth,
+  getDb,
+  getFirebaseFunctions,
+  getFirebaseStorage,
+} from '@cultuvilla/shared/firebase';
 import { FirebaseError } from '@firebase/util';
 import { initMobileAppCheck } from './appCheck';
 
@@ -50,6 +60,30 @@ function getFirebaseOptions(): FirebaseOptions {
 }
 
 /**
+ * E2E only — point the client SDK at the local Firebase emulators.
+ *
+ * Gated by the build-time `USE_FIREBASE_EMULATOR` flag (surfaced as
+ * `extra.useEmulator`), which is set ONLY in the web-e2e CI job and never in a
+ * deploy workflow. This is one half of the fail-closed fixture-login design:
+ * the SAME flag also enables the test-login seam in AuthContext, so a fixture
+ * session can only be minted while the app talks to `127.0.0.1` emulators. A
+ * deployed build (real Firebase, no local emulator) cannot complete the flow
+ * even if the flag leaked — it fails closed. The `check:no-test-login-leak`
+ * grep gate keeps these symbols confined to their allowlisted files.
+ */
+let emulatorsConnected = false;
+function connectEmulatorsIfEnabled(): void {
+  if (emulatorsConnected) return;
+  if (Constants.expoConfig?.extra?.useEmulator !== true) return;
+  emulatorsConnected = true;
+  const host = '127.0.0.1';
+  connectAuthEmulator(getAuth(), `http://${host}:9099`, { disableWarnings: true });
+  connectFirestoreEmulator(getDb(), host, 8080);
+  connectFunctionsEmulator(getFirebaseFunctions(), host, 5001);
+  connectStorageEmulator(getFirebaseStorage(), host, 9199);
+}
+
+/**
  * Initialise Firebase with React Native AsyncStorage persistence.
  *
  * Idempotent — `initFirebase` returns early if already initialised, and the
@@ -68,6 +102,9 @@ export function bootstrapFirebase(): void {
         }),
     });
   }
+  // Must run before any service issues a read/write; connect*Emulator throws
+  // once the SDK has been used against production hosts.
+  connectEmulatorsIfEnabled();
   initMobileAppCheck();
   installUnhandledFirestoreDenyHook();
 }
