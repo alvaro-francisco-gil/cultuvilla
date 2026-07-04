@@ -5,7 +5,10 @@
 ## Status
 
 - **Updated:** 2026-07-04
-- **Stage:** Phase 0 ✅ + Phase 1 ✅ done; Phase 2 (village audited role transitions) next.
+- **Stage:** All phases (0–4) implemented + committed. Remaining: run emulator suites, deploy to dev, run the organizerId backfill (coordinated), then merge.
+- **Agent-verified green:** shared vitest (500), full typecheck (shared/functions/i18n/mobile), lint, mobile jest (275), no-raw-firestore-refs guard.
+- **User-run before merge (agent-forbidden):** `pnpm test:functions` (changeVillageMemberRole, changeOrgMemberRole, approveOrganization, updated respondToOrganizerRequest/respondToJoinRequest) and `pnpm test:rules` (membershipEvent, updated villageMember/orgMember/organizationUpdate). Then deploy rules+indexes+functions to dev (CI on develop merge, or `firestore-deploy`) and run `node scripts/backfill-organizer-id.mjs` right after the deploy.
+- _(previous stage line, for history:)_ Phase 0 ✅ + Phase 1 ✅ done; Phase 2 (village audited role transitions) next.
 - **Branch:** `feat/membership-roles-audit` (worktree `.claude/worktrees/membership-roles-audit`, based on `origin/develop`)
 - **Done:**
   - Phase 0: `community.adminUserId` → `organizerId` across shared model + functions + mobile + seed scripts; `VillageFormSchema.adminUserId` renamed too. Backfill script `scripts/backfill-organizer-id.mjs` written (NOT yet run — rollout step). Shared vitest (501) + full typecheck + lint + mobile jest (275) green.
