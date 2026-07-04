@@ -78,7 +78,15 @@ jest.mock('expo-router', () => ({
   useFocusEffect: jest.fn(),
 }));
 jest.mock('../../../lib/i18n', () => ({
-  useT: () => ({ locale: 'es', t: (key: string) => key }),
+  useT: () => ({
+    locale: 'es',
+    t: (key: string, vars?: Record<string, string | number>) =>
+      vars ? `${key} ${Object.values(vars).join(' ')}` : key,
+  }),
+}));
+jest.mock('../../../lib/appVersion', () => ({
+  getRunningVersion: () => '1.4.0',
+  getRunningBuild: () => '42',
 }));
 jest.mock('../../../components/layout/AppHeader', () => ({ AppHeader: () => null }));
 jest.mock('../../../components/feature/profile/ProfileStatsRow', () => ({
@@ -252,6 +260,21 @@ describe('ProfileScreen — Grupos & Peñas', () => {
 
     fireEvent.press(getByTestId('org-card-Peña El Bote'));
     expect(expoRouter.router.push).toHaveBeenCalledWith('/o/org-pena');
+  });
+});
+
+describe('ProfileScreen — app version', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('shows the app version', async () => {
+    const personService = require('@cultuvilla/shared/services/personService');
+    (personService.getPersonByUserId as jest.Mock).mockResolvedValue(null);
+
+    const { getByText } = render(<ProfileScreen />);
+
+    await waitFor(() => {
+      expect(getByText(/1\.4\.0/)).toBeTruthy();
+    });
   });
 });
 
