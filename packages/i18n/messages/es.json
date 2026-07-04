@@ -572,6 +572,7 @@
       "admin": "Administrador",
       "member": "Miembro"
     },
+    "version": "Versión {version} ({build})",
     "villagesEntry": "Mis pueblos",
     "villagesSection": {
       "join": "Unirse a otro pueblo"
@@ -821,5 +822,11 @@
     },
     "shareViewLabel": "Compartir",
     "shareInviteLabel": "Invitar a unirse"
+  },
+  "appUpdate": {
+    "blockTitle": "Actualización necesaria",
+    "blockBody": "Esta versión ya no es compatible. Actualiza para seguir usando Cultuvilla.",
+    "nudge": "Hay una versión nueva disponible.",
+    "cta": "Actualizar"
   }
 }

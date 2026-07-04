@@ -14,3 +14,5 @@ export {
   parsePhoneE164,
   type PhoneCountry,
 } from './phone';
+export { compareVersions } from './semver';
+export { resolveVersionGate, type GateDecision } from './versionGate';
