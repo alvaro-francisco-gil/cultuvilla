@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View, Image, Linking } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import {
   Text,
@@ -357,7 +358,9 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           </VStack>
         ) : null}
 
-        {/* ── Ubicación (map rectangle, when coordinates are set) ── */}
+        {/* ── Ubicación: the map rectangle when coordinates are set; for admins,
+            a dashed "add location" placeholder in the same footprint when it's
+            missing (location is edited in the community "Detalles" step). ── */}
         {village.coordinates ? (
           <View className="px-4 pt-2">
             <Pressable
@@ -375,6 +378,22 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
                 style={{ width: '100%', aspectRatio: 2.5, borderRadius: 16 }}
                 resizeMode="cover"
               />
+            </Pressable>
+          </View>
+        ) : canManage ? (
+          <View className="px-4 pt-2">
+            <Pressable
+              onPress={() => router.push(`/village/${village.id}/community` as never)}
+              accessibilityLabel={t('village.location.add')}
+              className="items-center justify-center gap-2 rounded-2xl border border-dashed border-subtle"
+              style={{ width: '100%', aspectRatio: 2.5 }}
+            >
+              {/* icon size mirrors VillageSections' AddCard so this reads as the
+                  same dashed "add" affordance, just in the map's footprint. */}
+              <Ionicons name="location-outline" size={44} color={ACCENT} />
+              <Text variant="bodySm" className="font-medium">
+                {t('village.location.add')}
+              </Text>
             </Pressable>
           </View>
         ) : null}

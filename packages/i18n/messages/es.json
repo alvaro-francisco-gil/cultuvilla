@@ -238,6 +238,7 @@
       "directions": "Cómo llegar"
     },
     "location": {
+      "add": "Añadir ubicación",
       "openMapsTitle": "¿Abrir Google Maps?",
       "open": "Abrir",
       "zoomLabel": "Zoom del mapa",
@@ -692,7 +693,6 @@
     "explainer": "Iniciar el pueblo lo activa para que cualquier vecino pueda unirse. Serás su primer miembro y podrás añadir su información. No te convierte en administrador.",
     "escudoAdd": "Añadir escudo (opcional)",
     "escudoSelected": "Escudo seleccionado",
-    "locationLabel": "Añadir ubicación del pueblo",
     "organizeIntro": "Si además quieres supervisar la creación de elementos representativos de tu pueblo, como asociaciones, lugares o barrios, solicita ser administrador.",
     "organizeToggle": "Quiero administrar este pueblo",
     "phoneLabel": "Teléfono de contacto",

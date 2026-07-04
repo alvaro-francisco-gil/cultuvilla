@@ -193,9 +193,6 @@ interface StartVillagePayload {
   /** URL of an escudo uploaded during activation; set server-side only when
    *  the village has no escudo yet (admin-only field on the client). */
   escudoManualUrl?: string;
-  /** Location set during activation; written server-side (admin-only field). */
-  coordinates?: { lat: number; lng: number } | null;
-  mapZoom?: number | null;
 }
 
 /** Activate a dormant municipality's community and join it as the first member. */
