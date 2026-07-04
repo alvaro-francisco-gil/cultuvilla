@@ -161,6 +161,14 @@ ci(scope): ...
 
 Header ≤ 100 chars. Direct-to-`develop` is fine for small self-contained changes; `beta` and `main` advance only via promotion PRs (see the branch model under Development workflow).
 
+### Versioning & releases
+
+- **Marketing version** (`app.config.ts` `version`, semver `MAJOR.MINOR.PATCH`) is the single source of truth; `apps/mobile/package.json` mirrors it. MAJOR = redesign/breaking migration, MINOR = new feature, PATCH = fixes.
+- **Set the version in the `develop → beta` promotion PR** (beta = release candidate); it rides unchanged into `main`. Build numbers auto-increment (EAS `appVersionSource: remote`).
+- **Tag `vX.Y.Z` on the `main` merge commit** and push it.
+- **CHANGELOG:** on a cut release, stamp the version into the section heading (`## vX.Y.Z — YYYY-MM-DD`).
+- **Force-update gate:** clients read `config/appVersion` on launch (`appConfigService`) and block/nudge via `resolveVersionGate`. When you ship a client-breaking backend change (see *No retrocompat shims*), bump that doc's `minSupported` to the version carrying the client fix, at release time.
+
 ### Delete > deprecate
 
 If something is unused, delete it. Don't leave dead code, "removed: …" comments, or shim re-exports. Git keeps history; the codebase should reflect the present.
@@ -172,6 +180,7 @@ When changing the shape of data already in Firestore, surface the migration expl
 - Note the affected docs and field(s) in the commit body and the PR description.
 - Add a backfill script under `scripts/` when the change can't be expressed as a Cloud Function trigger.
 - Don't leave dual-read code, shim re-exports, or `// removed: …` comments. Pairs with the `### Delete > deprecate` rule above.
+- If the change breaks older store clients, raise `config/appVersion.minSupported` to the fixed version at release time (see *Versioning & releases*).
 
 Only add a compatibility layer when the user explicitly asks for one (e.g. when an in-flight client release would break without it).
 
