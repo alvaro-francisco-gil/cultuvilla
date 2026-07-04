@@ -89,6 +89,8 @@ Add a `web-e2e` job: checkout → pnpm → Node 22 → **`actions/setup-java@v4`
 - `dorny/paths-filter` CI cost-gating — Stage 4 (C8).
 
 ## Notes for the implementing agent
+- **Resume context:** Stages 1–2 live on branch `feat-testing-foundations` (worktree `.claude/worktrees/testing-foundations/`, PR #39 → `develop`); the decision is to **keep stacking Stage 3 on that same branch**. Do all work in the worktree; the base checkout stays on `develop`. See the parent plan's Status → Handoff for the full resume state.
+- **Gate before Stage 3b:** the fixture-login **security model** above (one `USE_FIREBASE_EMULATOR` flag, fail-closed, grep gate) needs explicit **user sign-off** before writing the auth-boundary change. Stage **3a** (emulator-connect seam, emulator-mode seeding, bypass-leak gate) is safe to start without it — no real-build behaviour change.
 - Emulator-backed and running-app work can't be executed by the agent (AGENTS.md "never start dev servers"); Stage 3 is authored + typecheck/lint-validated, and **verified by the user / CI** (the `web-e2e` job is the real gate).
 - The `mobile-web-compat` gotchas apply to any new screen paths a flow touches (`Alert.alert` no-op on web, NativeWind on `Animated.*`); flows should assert on web-visible outcomes.
 - Keep the fixture-login to the single `signInWithEmailAndPassword` primitive; do not broaden the auth surface.
