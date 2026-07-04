@@ -17,4 +17,10 @@ config.resolver.nodeModulesPaths = [
 ];
 config.resolver.disableHierarchicalLookup = true;
 
+// Expo SDK 56's getDefaultConfig omits 'web' from resolver.platforms, so `.web.tsx`
+// overrides silently don't resolve — the web bundle falls through to the native
+// file (e.g. imageCrop.ts -> react-native-image-crop-picker) and crashes on load
+// with `TurboModuleRegistry.getEnforcing`. Registering 'web' makes `.web.*` win.
+config.resolver.platforms = [...config.resolver.platforms, 'web'];
+
 module.exports = withNativeWind(config, { input: './global.css' });
