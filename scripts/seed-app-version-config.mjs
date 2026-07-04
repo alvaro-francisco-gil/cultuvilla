@@ -32,8 +32,11 @@ async function main() {
   const ref = db.collection('config').doc('appVersion');
   await ref.set(
     {
-      ios: { minSupported: '1.0.0', latest: '1.0.0' },
-      android: { minSupported: '1.0.0', latest: '1.0.0' },
+      // Pre-release: minSupported 0.0.0 never blocks; latest tracks the current
+      // app.config.ts version. Bump these (and raise minSupported) only once the
+      // app is actually published. See "Versioning & releases" in AGENTS.md.
+      ios: { minSupported: '0.0.0', latest: '0.1.0' },
+      android: { minSupported: '0.0.0', latest: '0.1.0' },
       storeUrl: {
         ios: 'https://apps.apple.com/app/id000000000',
         android: 'https://play.google.com/store/apps/details?id=com.cultuvilla.app',
