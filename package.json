@@ -26,6 +26,7 @@
     "app:test": "pnpm --filter cultuvilla-mobile test",
     "app:test:watch": "pnpm --filter cultuvilla-mobile test:watch",
     "app:test:coverage": "pnpm --filter cultuvilla-mobile test:coverage",
+    "app:e2e": "pnpm --filter cultuvilla-mobile e2e",
     "app:typecheck": "pnpm --filter cultuvilla-mobile typecheck",
     "app:check-web-compat": "node scripts/check-mobile-web-compat.mjs",
     "check:no-raw-firestore-refs": "node scripts/check-no-raw-firestore-refs.mjs",

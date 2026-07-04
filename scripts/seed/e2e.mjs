@@ -13,6 +13,7 @@
 import { db, auth, GeoPoint, EMULATOR } from './lib/context.mjs';
 import {
   buildUserData,
+  buildPersonData,
   buildMunicipalityData,
   buildVillageCommunity,
   buildVillageMemberData,
@@ -48,13 +49,29 @@ async function upsertUser({ uid, email, displayName }) {
 }
 
 async function run() {
-  // Auth accounts + users/{uid} profile docs
+  // Auth accounts + persons/{id} + users/{uid} profile docs. The person is
+  // linked via personId so the app treats the user as onboarded (otherwise the
+  // register FAB never renders — it diverts to complete-profile).
   for (const u of [users.admin, users.attendee]) {
     await upsertUser(u);
     await db
+      .collection('persons')
+      .doc(u.personId)
+      .set(
+        buildPersonData({
+          givenName: u.givenName,
+          firstSurname: u.firstSurname,
+          createdBy: u.uid,
+          userId: u.uid,
+        }),
+        { merge: true },
+      );
+    await db
       .collection('users')
       .doc(u.uid)
-      .set(buildUserData({ displayName: u.displayName, email: u.email }), { merge: true });
+      .set(buildUserData({ displayName: u.displayName, email: u.email, personId: u.personId }), {
+        merge: true,
+      });
   }
 
   // Activated village = municipality doc + community overlay + members

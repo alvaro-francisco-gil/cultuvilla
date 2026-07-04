@@ -1,6 +1,9 @@
 module.exports = {
   preset: 'jest-expo',
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
+  // Playwright specs under e2e/ use @playwright/test's runner, not jest — jest
+  // must not try to execute them (it would fail parsing test.describe/expect).
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/e2e/'],
   // jest-expo render suites are heavy (~12-15s each) and run in parallel; the
   // default 5000ms per-test limit is too tight under CI contention and flakes
   // (e.g. complete-profile timing out). 15s gives headroom without hiding hangs.

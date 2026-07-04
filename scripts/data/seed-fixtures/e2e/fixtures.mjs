@@ -12,9 +12,26 @@
 
 export const E2E_PASSWORD = 'e2e-cultuvilla-pw';
 
+// personId links the profile to a persons/{id} doc. Without it the app treats
+// the user as not-yet-onboarded and diverts to complete-profile, so the event
+// register FAB never renders — seed the person so login → sign-up is one hop.
 export const users = {
-  admin: { uid: 'e2e-admin', email: 'e2e-admin@cultuvilla.test', displayName: 'E2E Admin' },
-  attendee: { uid: 'e2e-user', email: 'e2e-user@cultuvilla.test', displayName: 'E2E User' },
+  admin: {
+    uid: 'e2e-admin',
+    email: 'e2e-admin@cultuvilla.test',
+    displayName: 'E2E Admin',
+    personId: 'e2e-person-admin',
+    givenName: 'Admin',
+    firstSurname: 'E2E',
+  },
+  attendee: {
+    uid: 'e2e-user',
+    email: 'e2e-user@cultuvilla.test',
+    displayName: 'E2E User',
+    personId: 'e2e-person-user',
+    givenName: 'Usuario',
+    firstSurname: 'E2E',
+  },
 };
 
 export const village = {
