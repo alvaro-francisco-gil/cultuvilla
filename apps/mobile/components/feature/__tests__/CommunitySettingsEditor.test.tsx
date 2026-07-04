@@ -25,7 +25,7 @@ const mockVillage = {
   coordinates: null,
   mapZoom: null,
   communityActive: true,
-  community: { description: 'hola', adminUserId: 'u1', profileForm: null, activatedAt: new Date() },
+  community: { description: 'hola', organizerId: 'u1', profileForm: null, activatedAt: new Date() },
 };
 
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
