@@ -179,7 +179,7 @@ Header ≤ 100 chars. Direct-to-`develop` is fine for small self-contained chang
 
 - **Marketing version** (`app.config.ts` `version`, semver `MAJOR.MINOR.PATCH`) is the single source of truth; `apps/mobile/package.json` mirrors it. MAJOR = redesign/breaking migration, MINOR = new feature, PATCH = fixes.
 - **Pre-release (now): stay on `0.x`.** Until the app is actually published to the stores, the MAJOR stays `0` — do **not** jump to `1.0.0`. Bump the **MINOR** on every `develop → beta` promotion (`0.1.0 → 0.2.0 → …`) as a running counter to track what's on beta. The `1.0.0` bump happens once, at the first real store release.
-- **Set the version in the `develop → beta` promotion PR** (beta = release candidate); it rides unchanged into `main`. Build numbers auto-increment (EAS `appVersionSource: remote`).
+- **Set the version in the `develop → beta` promotion PR** (beta = release candidate); it rides unchanged into `main`. Build numbers auto-increment (EAS `appVersionSource: remote`). **CI enforces this**: `.github/workflows/version-gate.yml` fails any PR targeting `beta` whose `app.config.ts` `version` isn't strictly greater than beta's, so the bump can't be forgotten. Use the `prepare-release` skill to do it.
 - **Force-update gate is dormant pre-release.** `config/appVersion.minSupported` is `0.0.0` (never blocks) while unreleased; keep `latest` in step with the current `app.config.ts` version. Only raise `minSupported` above `0.0.0` once real store clients exist.
 - **Tag `vX.Y.Z` on the `main` merge commit** and push it.
 - **CHANGELOG:** on a cut release, stamp the version into the section heading (`## vX.Y.Z — YYYY-MM-DD`).
