@@ -828,5 +828,9 @@
     "blockBody": "Esta versión ya no es compatible. Actualiza para seguir usando Cultuvilla.",
     "nudge": "Hay una versión nueva disponible.",
     "cta": "Actualizar"
+  },
+  "userProfile": {
+    "title": "Perfil",
+    "notFound": "No se encontró el usuario"
   }
 }
