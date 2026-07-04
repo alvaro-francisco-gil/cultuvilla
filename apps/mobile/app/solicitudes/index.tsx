@@ -133,6 +133,7 @@ export default function SolicitudesScreen() {
 
       // Resolve organizer-request requesters (name + photo)
       const requesterFetches = fetchedOrganizerRows.map(async (r) => {
+        if (requesterByUid[r.userId]) return;
         const p = await getPersonByUserId(r.userId);
         return [
           r.userId,
@@ -143,10 +144,14 @@ export default function SolicitudesScreen() {
         ] as const;
       });
       const resolvedRequesters = await Promise.all(requesterFetches);
-      if (resolvedRequesters.length > 0) {
+      const newRequesters = resolvedRequesters.filter(
+        (pair): pair is readonly [string, { name: string; photoURL: string | null }] =>
+          pair !== undefined,
+      );
+      if (newRequesters.length > 0) {
         setRequesterByUid((prev) => {
           const next = { ...prev };
-          for (const [id, v] of resolvedRequesters) next[id] = v;
+          for (const [id, v] of newRequesters) next[id] = v;
           return next;
         });
       }
@@ -361,18 +366,24 @@ export default function SolicitudesScreen() {
                           <Text tone="muted" variant="caption">
                             {t('solicitudes.wantsToAdminister')}
                           </Text>
-                          <Pressable
-                            onPress={() =>
-                              router.push({
-                                pathname: '/village/[villageId]',
-                                params: { villageId: row.municipalityId },
-                              } as never)
-                            }
-                          >
-                            <Text variant="caption" style={{ textDecorationLine: 'underline' }}>
-                              {municipalityName}
-                            </Text>
-                          </Pressable>
+                          {/* onStartShouldSetResponder claims the responder chain so
+                              react-native-web stops the click from bubbling to the
+                              outer card Pressable (RN's native responder system
+                              already isolates this; the web DOM does not). */}
+                          <View onStartShouldSetResponder={() => true}>
+                            <Pressable
+                              onPress={() =>
+                                router.push({
+                                  pathname: '/village/[villageId]',
+                                  params: { villageId: row.municipalityId },
+                                } as never)
+                              }
+                            >
+                              <Text variant="caption" style={{ textDecorationLine: 'underline' }}>
+                                {municipalityName}
+                              </Text>
+                            </Pressable>
+                          </View>
                         </HStack>
                       </VStack>
                     </HStack>
@@ -384,21 +395,23 @@ export default function SolicitudesScreen() {
                         <Text className="italic text-sm">"{row.motivation}"</Text>
                       </VStack>
                     )}
-                    <HStack gap={2}>
-                      <Button
-                        onPress={() => handleOrganizerDecide(row, 'approved')}
-                        loading={busyKey === key}
-                      >
-                        {t('solicitudes.approve')}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        onPress={() => handleOrganizerDecide(row, 'rejected')}
-                        loading={busyKey === key}
-                      >
-                        {t('solicitudes.reject')}
-                      </Button>
-                    </HStack>
+                    <View onStartShouldSetResponder={() => true}>
+                      <HStack gap={2}>
+                        <Button
+                          onPress={() => handleOrganizerDecide(row, 'approved')}
+                          loading={busyKey === key}
+                        >
+                          {t('solicitudes.approve')}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onPress={() => handleOrganizerDecide(row, 'rejected')}
+                          loading={busyKey === key}
+                        >
+                          {t('solicitudes.reject')}
+                        </Button>
+                      </HStack>
+                    </View>
                   </VStack>
                 </Pressable>
               );
