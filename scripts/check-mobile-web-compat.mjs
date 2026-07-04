@@ -143,6 +143,25 @@ for (const path of listSourceFiles()) {
   }
 }
 
+// 4) metro.config.js must register 'web' in resolver.platforms. Expo SDK 56's
+// getDefaultConfig omits it, so `.web.tsx` platform overrides silently don't
+// resolve on web and native-only modules leak into the web bundle (crash on
+// TurboModuleRegistry.getEnforcing). See the "resolver.platforms" section of
+// the skill and commit beefc28.
+{
+  const metroConfigPath = join(mobileRoot, 'metro.config.js');
+  const metroSource = await readFile(metroConfigPath, 'utf8');
+  if (!/resolver\.platforms\b[\s\S]*['"]web['"]/.test(metroSource)) {
+    violations.push({
+      path: 'apps/mobile/metro.config.js',
+      line: 1,
+      rule: "resolver.platforms missing 'web'",
+      excerpt: "config.resolver.platforms does not include 'web'",
+      hint: "Expo SDK 56's getDefaultConfig omits 'web' from resolver.platforms, so `.web.tsx` overrides don't resolve and native-only modules leak into the web bundle. Add `config.resolver.platforms = [...config.resolver.platforms, 'web'];`.",
+    });
+  }
+}
+
 if (violations.length === 0) {
   console.log('mobile-web-compat: OK (no violations)');
   process.exit(0);
