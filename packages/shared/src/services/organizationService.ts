@@ -19,7 +19,6 @@ import {
   organizationsCollection,
   organizationDoc,
 } from '../firebase/refs/client';
-import { addOrgMember } from './orgMemberService';
 import type {
   OrganizationData,
   OrganizationDataInput,
@@ -119,20 +118,19 @@ export async function requestOrganization(input: OrganizationDataInput): Promise
   return newRef.id;
 }
 
-export async function approveOrganization(
-  orgId: string,
-  reviewedBy: string,
-  creatorUserId: string,
-): Promise<void> {
-  // updateDoc bypasses the converter, so serverTimestamp() is fine here.
-  await updateDoc(doc(getDb(), 'organizations', orgId), {
-    status: 'approved',
-    reviewedBy,
-    reviewedAt: serverTimestamp(),
-  });
-  // Seed the requester as the founding admin. Non-atomic with the status flip;
-  // acceptable — re-running approve is idempotent (setDoc overwrites).
-  await addOrgMember(orgId, creatorUserId, 'admin');
+/**
+ * Approve a pending organization. Thin wrapper over the `approveOrganization`
+ * callable, which flips the status AND seeds the requester as founding admin in
+ * one audited transaction (the reviewer is the authenticated caller; the
+ * requester is read from the org's `requestedBy`). Approval is function-owned —
+ * firestore.rules forbids a client from setting `status: 'approved'`.
+ */
+export async function approveOrganization(orgId: string): Promise<void> {
+  const fn = httpsCallable<{ orgId: string }, { ok: true }>(
+    getFirebaseFunctions(),
+    'approveOrganization',
+  );
+  await fn({ orgId });
 }
 
 export async function rejectOrganization(orgId: string): Promise<void> {

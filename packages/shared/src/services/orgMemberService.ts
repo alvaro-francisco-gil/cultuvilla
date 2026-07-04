@@ -1,6 +1,7 @@
 // packages/shared/src/services/orgMemberService.ts
-import { getCountFromServer, getDoc, getDocs, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
-import { getDb } from '../firebase';
+import { getCountFromServer, getDoc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { getDb, getFirebaseFunctions } from '../firebase';
 import {
   organizationMembersCollection,
   organizationMemberDoc,
@@ -27,12 +28,22 @@ export async function addOrgMember(
   await setDoc(organizationMemberDoc(getDb(), orgId, userId), buildOrgMemberData({ role }));
 }
 
+/**
+ * Promote/demote an org member — the only way to make (or unmake) an org admin.
+ * Thin wrapper over the `changeOrgMemberRole` callable, which checks authority,
+ * updates the role, and writes a `membershipEvents` audit record in one
+ * transaction. Clients can no longer write `role` directly (function-owned).
+ */
 export async function setOrgMemberRole(
   orgId: string,
   userId: string,
   role: OrgMemberRole,
 ): Promise<void> {
-  await updateDoc(organizationMemberDoc(getDb(), orgId, userId), { role });
+  const fn = httpsCallable<{ orgId: string; targetUserId: string; role: OrgMemberRole }, { ok: true }>(
+    getFirebaseFunctions(),
+    'changeOrgMemberRole',
+  );
+  await fn({ orgId, targetUserId: userId, role });
 }
 
 export async function getOrgAdminIds(orgId: string): Promise<string[]> {

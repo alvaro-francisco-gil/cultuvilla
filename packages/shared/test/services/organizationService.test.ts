@@ -1,7 +1,7 @@
  
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../src/firebase', () => ({ getDb: vi.fn() }));
+vi.mock('../../src/firebase', () => ({ getDb: vi.fn(), getFirebaseFunctions: vi.fn(() => ({})) }));
 vi.mock('../../src/firebase/refs/client', () => ({
   organizationsCollection: vi.fn((_db) => ({})),
   organizationDoc: vi.fn(),
@@ -15,32 +15,26 @@ vi.mock('firebase/firestore', () => ({
   orderBy: vi.fn(),
   getDocs: vi.fn(),
 }));
-vi.mock('../../src/services/orgMemberService', () => ({
-  addOrgMember: vi.fn(),
-}));
+vi.mock('firebase/functions', () => ({ httpsCallable: vi.fn() }));
 
-import { updateDoc, query, where, orderBy, getDocs } from 'firebase/firestore';
-import * as orgMember from '../../src/services/orgMemberService';
+import { query, where, orderBy, getDocs } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { approveOrganization, getMyOrganizations } from '../../src/services/organizationService';
 
+// Approval moved server-side (approveOrganization callable): the client service
+// is now a thin wrapper. The status flip + founding-admin seed + audit are
+// covered by the functions handler test, not here.
 describe('approveOrganization', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(updateDoc).mockResolvedValue(undefined);
-    vi.mocked(orgMember.addOrgMember).mockResolvedValue(undefined);
   });
 
-  it('flips status to approved and records reviewedBy', async () => {
-    await approveOrganization('org1', 'vadmin', 'creator');
-    expect(updateDoc).toHaveBeenCalledTimes(1);
-    const patch = vi.mocked(updateDoc).mock.calls[0][1];
-    expect(patch).toMatchObject({ status: 'approved', reviewedBy: 'vadmin' });
-  });
-
-  it('approveOrganization seeds requestedBy as an org admin', async () => {
-    const spy = vi.spyOn(orgMember, 'addOrgMember').mockResolvedValue();
-    await approveOrganization('org1', 'vadmin', 'creator');
-    expect(spy).toHaveBeenCalledWith('org1', 'creator', 'admin');
+  it('invokes the approveOrganization callable with the orgId', async () => {
+    const call = vi.fn().mockResolvedValue({ data: { ok: true } });
+    vi.mocked(httpsCallable).mockReturnValue(call as unknown as ReturnType<typeof httpsCallable>);
+    await approveOrganization('org1');
+    expect(httpsCallable).toHaveBeenCalledWith(expect.anything(), 'approveOrganization');
+    expect(call).toHaveBeenCalledWith({ orgId: 'org1' });
   });
 });
 

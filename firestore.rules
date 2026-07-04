@@ -639,24 +639,31 @@ service cloud.firestore {
         && isValidOrganizationCreate(request.resource.data)
         && request.resource.data.status == 'pending'
         && request.resource.data.type != 'ayuntamiento';
-      allow update: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
+      // Approval (status -> 'approved') is function-owned: the approveOrganization
+      // callable flips the status AND seeds the founding admin + audits it in one
+      // transaction. Clients may edit other fields or reject, never approve.
+      allow update: if (isVillageAdmin(resource.data.municipalityId) || isAppAdmin())
+        && (request.resource.data.status == resource.data.status
+            || request.resource.data.status == 'rejected');
       allow delete: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
 
       match /members/{userId} {
         allow read: if true;
-        // org admin / village admin / app admin may add anyone (incl. seeding an admin);
-        // a plain member may only add others as 'member'.
+        // `role` is function-owned: every client-created member is a plain
+        // 'member'. Admins (org/village/app) may add plain members; the founding
+        // admin is seeded server-side by approveOrganization, and promotions go
+        // through the changeOrgMemberRole callable — both audited via admin SDK.
         allow create: if isValidOrgMemberCreate(request.resource.data)
+          && request.resource.data.role == 'member'
           && (
                isOrgAdmin(orgId)
                || isVillageAdmin(orgMunicipalityId(orgId))
                || isAppAdmin()
-               || (isOrgMember(orgId) && request.resource.data.role == 'member')
+               || isOrgMember(orgId)
              );
-        // only the role may change, and only an org admin / backstop may change it.
-        allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
-          && request.resource.data.role in ['admin', 'member']
-          && (isOrgAdmin(orgId) || isVillageAdmin(orgMunicipalityId(orgId)) || isAppAdmin());
+        // role goes through changeOrgMemberRole (admin SDK); a member doc has no
+        // other client-editable fields.
+        allow update: if false;
         allow delete: if isOwner(userId)
           || isOrgAdmin(orgId)
           || isVillageAdmin(orgMunicipalityId(orgId))

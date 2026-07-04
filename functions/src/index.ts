@@ -23,6 +23,8 @@ export { syncMemberBarrioToResidence } from './village/syncMemberBarrioToResiden
 export { requestAyuntamiento } from './organizations/requestAyuntamiento';
 export { requestJoinOrganization } from './organizations/requestJoinOrganization';
 export { respondToJoinRequest } from './organizations/respondToJoinRequest';
+export { approveOrganization } from './organizations/approveOrganization';
+export { changeOrgMemberRole } from './organizations/changeOrgMemberRole';
 
 // Census (censo + occupation proposals)
 export { updateCenso } from './census/updateCenso';

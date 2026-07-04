@@ -36,9 +36,14 @@ describe('org members — roles', () => {
     await assertFails(setDoc(doc(db, `organizations/${ORG}/members/newadmin`), { joinedAt: new Date(), role: 'admin' }));
   });
 
-  it('an org admin can promote a member (update role)', async () => {
+  it('an org admin CANNOT change a role via client update (function-owned — use changeOrgMemberRole)', async () => {
     const db = asUser(getEnv(), 'creator');
-    await assertSucceeds(updateDoc(doc(db, `organizations/${ORG}/members/member1`), { role: 'admin' }));
+    await assertFails(updateDoc(doc(db, `organizations/${ORG}/members/member1`), { role: 'admin' }));
+  });
+
+  it('an org admin CANNOT create an admin member from the client (role is function-owned)', async () => {
+    const db = asUser(getEnv(), 'creator');
+    await assertFails(setDoc(doc(db, `organizations/${ORG}/members/newadmin`), { joinedAt: new Date(), role: 'admin' }));
   });
 
   it('a plain member cannot change roles', async () => {
