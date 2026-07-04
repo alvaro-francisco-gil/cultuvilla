@@ -2,7 +2,21 @@
 
 **Goal:** Stand up the shared end-to-end substrate (emulator-connect seam, deterministic emulator fixtures, a fail-closed fixture-login) and the first Playwright flows over the web export, so real user journeys are tested against real Firebase behaviour on every PR.
 
-This is **Stage 3** of [../ongoing/testing-enhancement.md](../ongoing/testing-enhancement.md), split into its own plan per that plan's note ("own `ready/` plan when scoped"). It realises decisions **D1** (dual-track, shared substrate), **D2** (fixture-login + bypass-leak gate), **D3** (GitHub-hosted, web E2E per-PR), and **D5** (deterministic emulator fixtures). Native Maestro (Stage 4) stays out of scope here.
+This is **Stage 3** of [testing-enhancement.md](testing-enhancement.md), split into its own plan per that plan's note ("own `ready/` plan when scoped"). It realises decisions **D1** (dual-track, shared substrate), **D2** (fixture-login + bypass-leak gate), **D3** (GitHub-hosted, web E2E per-PR), and **D5** (deterministic emulator fixtures). Native Maestro (Stage 4) stays out of scope here.
+
+## Status
+
+- **Updated:** 2026-07-04
+- **Stage:** 3a (substrate) — building emulator-connect seam, seed emulator mode + e2e fixtures, bypass-leak gate.
+- **Branch:** `feat/e2e-substrate` (worktree `.claude/worktrees/e2e-substrate/`) — one PR to `develop`, scoped as 3a/3b/3c commits.
+- **Done:** none yet (parent Stages 1–2 merged in PR #39).
+- **Next:** 3a → 3b (fixture-login + first flow) → 3c (CI `web-e2e` job + more flows).
+- **Blockers:** none. Security model **signed off 2026-07-04** (Option 1C — see parent plan Handoff). Agent cannot run emulators/Playwright (AGENTS.md); the CI `web-e2e` job is the verification gate.
+- **Handoff:**
+  - **Ships as ONE PR**, 3a/3b/3c as separate commits (not three PRs) — pre-users, deployed artifact is identical regardless of PR count; the fail-closed design is the guardrail, not the PR boundary.
+  - **Security hardening beyond the base plan (Option 1C):** add (a) a runtime assertion that the auth host is a loopback address before the fixture-login fires, and (b) a positive "`USE_FIREBASE_EMULATOR` is unset" assertion in the deploy workflows — belt-and-suspenders on top of the single-flag + fail-closed + grep-gate design below.
+  - **Emulator project id:** dedicated `cultuvilla-test` (already `run-tests-with-emulators.mjs`'s default `TEST_PROJECT_ID`), never `villa-events`.
+  - **e2e seeder:** implemented as a **standalone `scripts/seed/e2e.mjs`** (reuses the production model builders + `scripts/seed/lib` emulator-mode context) rather than threading a new `DATASET` through all six domain seeders — self-contained and isolated from the dev-seed path, while keeping the D5 "fixtures built from prod builders, can't drift" property.
 
 ## Context
 
