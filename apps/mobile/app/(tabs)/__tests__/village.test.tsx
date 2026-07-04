@@ -102,9 +102,9 @@ const activeMuni = {
   ...base,
   id: 'mun1',
   communityActive: true,
-  community: buildVillageCommunity({ description: 'x', adminUserId: 'admin-1' }),
+  community: buildVillageCommunity({ description: 'x', organizerId: 'admin-1' }),
 };
-// Active but "started" — no organizer granted yet (adminUserId === null).
+// Active but "started" — no organizer granted yet (organizerId === null).
 const activeNoOrganizer = {
   ...base,
   id: 'mun1',

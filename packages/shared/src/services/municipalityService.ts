@@ -181,7 +181,7 @@ export async function deleteMunicipality(id: string): Promise<void> {
 // ── Community lifecycle ──────────────────────────────────────────────────
 //
 // A dormant municipality's community is *activated* by the `startVillage`
-// callable (any villager — adminUserId starts null). Basic info is edited via
+// callable (any villager — organizerId starts null). Basic info is edited via
 // the `updateVillageInfo` callable, which enforces the wiki-phase rule
 // server-side. The organizer role is granted separately by
 // respondToOrganizerRequest. The direct-write helpers below only apply once the
@@ -221,11 +221,11 @@ export async function updateVillageInfo(payload: UpdateVillageInfoPayload): Prom
 
 export async function updateCommunity(
   municipalityId: string,
-  data: Partial<Pick<VillageCommunity, 'description' | 'adminUserId'>>,
+  data: Partial<Pick<VillageCommunity, 'description' | 'organizerId'>>,
 ): Promise<void> {
   const updates: UpdateData<DocumentData> = {};
   if (data.description !== undefined) updates['community.description'] = data.description;
-  if (data.adminUserId !== undefined) updates['community.adminUserId'] = data.adminUserId;
+  if (data.organizerId !== undefined) updates['community.organizerId'] = data.organizerId;
   await updateDoc(doc(getDb(), 'municipalities', municipalityId), updates);
 }
 

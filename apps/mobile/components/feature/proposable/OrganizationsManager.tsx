@@ -78,7 +78,7 @@ export function OrganizationsManager({
       });
       // Organizer commit: the create path is always pending; auto-approve so the
       // round-trip is invisible (single rules surface + full audit trail).
-      if (canManage) await approveOrganization(id, uid, uid);
+      if (canManage) await approveOrganization(id);
       setName('');
       setDescription('');
       setType('peña');
@@ -139,7 +139,7 @@ export function OrganizationsManager({
           status={item.status}
           canManage={canManage}
           isOwnPending={false}
-          onApprove={uid ? () => void approveOrganization(item.id, uid, item.requestedBy).then(load) : undefined}
+          onApprove={uid ? () => void approveOrganization(item.id).then(load) : undefined}
           onReject={() => void rejectOrganization(item.id).then(load)}
           onDelete={() => void deleteOrganization(item.id).then(load)}
         />

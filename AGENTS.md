@@ -52,12 +52,26 @@ arrive as notifications.
 | Request | Collection | Created by | Approved by |
 |---|---|---|---|
 | Organizer (be the pueblo's organizer) | `organizerRequests/` | any user | super admin (`respondToOrganizerRequest` callable) |
-| Organization (create peña/asociación/ayuntamiento) | `organizations/` (status `pending`) | village member | village admin (own village) or super admin (`approveOrganization`/`rejectOrganization`) |
+| Organization (create peña/asociación/ayuntamiento) | `organizations/` (status `pending`) | village member | village admin (own village) or super admin (`approveOrganization` callable; `rejectOrganization` stays a client write) |
 | Join org (join a peña/asociación) | `organizationJoinRequests/` | any authed non-member | org admin or super admin (`respondToJoinRequest` callable) |
 
-Org membership has a `role: 'admin' | 'member'`. Org admins approve join requests,
-remove members, and promote/demote; the `requestedBy` creator is seeded as admin on
-org approval. Village/app admins are the backstop.
+**Membership roles & the audit log.** Villages and orgs are the same abstraction —
+a membership group with members that carry a `role` and one *founder*. Authority is
+ALWAYS the role flag, never the founder pointer:
+
+- **Village:** members at `municipalities/{id}/members/{uid}` with `role: 'admin' | 'user'`.
+  `community.organizerId` is the *founding organizer* — a single, nullable pointer
+  (`null` during the wiki phase, where any member may edit basic info). It grants no
+  authority of its own and it is **not** "the admin": a village can have many admins.
+- **Org:** members at `organizations/{orgId}/members/{uid}` with `role: 'admin' | 'member'`;
+  `requestedBy` is the founder, seeded as admin on approval.
+
+`role` is **function-owned** — clients cannot write it. New admins are created (and
+demoted) only through the audited callables **`changeVillageMemberRole` /
+`changeOrgMemberRole`**, which verify authority, mutate the role, and append to the
+append-only **`membershipEvents/`** log (top-level, scoped by `municipalityId`,
+readable by the village/org admins) in one transaction. Organizer approval, org
+approval, and join approval also emit events. Village/app admins are the backstop.
 
 ### 4. Denormalized read models for high fan-out
 

@@ -59,7 +59,7 @@ const village = {
   name: 'Anaya',
   province: 'Segovia',
   communityActive: true,
-  community: { adminUserId: null, description: null },
+  community: { organizerId: null, description: null },
 } as unknown as VillageHomeState['village'];
 
 const base: VillageHomeState = {

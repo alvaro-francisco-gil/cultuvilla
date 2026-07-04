@@ -30,7 +30,7 @@ interface StartVillageResult {
 /**
  * Self-service activation. A villager brings a dormant municipality's community
  * to life WITHOUT becoming its organizer: the community is created with
- * `adminUserId: null` (wiki phase — any member can edit its basic info until an
+ * `organizerId: null` (wiki phase — any member can edit its basic info until an
  * organizer is granted), and the caller is added as a plain member. Becoming the
  * organizer is a separate, superadmin-approved step (requestOrganizeVillage).
  */
@@ -72,7 +72,7 @@ export const startVillage = onCall<StartVillageData, Promise<StartVillageResult>
         communityActive: true,
         community: {
           description: (description ?? '').trim(),
-          adminUserId: null,
+          organizerId: null,
           profileForm: null,
           activatedAt: FieldValue.serverTimestamp(),
         },

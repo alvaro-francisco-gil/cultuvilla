@@ -41,7 +41,7 @@ describe('MunicipalityDataSchema', () => {
         ...validMunicipality,
         community: {
           description: 'Hola',
-          adminUserId: 'u1',
+          organizerId: 'u1',
           profileForm: null,
           activatedAt: new Date('2026-01-02T00:00:00Z'),
         },
@@ -70,7 +70,7 @@ describe('VillageCommunitySchema', () => {
     expect(() =>
       VillageCommunitySchema.parse({
         description: '',
-        adminUserId: 'u',
+        organizerId: 'u',
         profileForm: {
           fields: [{ source: 'predefined', key: 'barrio', required: true }],
           updatedAt: new Date(),
@@ -135,23 +135,23 @@ describe('escudo resolution helpers', () => {
 
 describe('buildVillageCommunity', () => {
   it('defaults profileForm to null', () => {
-    const c = buildVillageCommunity({ description: 'p', adminUserId: 'a' });
+    const c = buildVillageCommunity({ description: 'p', organizerId: 'a' });
     expect(c.profileForm).toBeNull();
     expect(() => VillageCommunitySchema.parse(c)).not.toThrow();
   });
 
-  // A village "started" by a villager has no organizer yet — adminUserId is null.
-  it('defaults adminUserId to null when omitted (no organizer yet)', () => {
+  // A village "started" by a villager has no organizer yet — organizerId is null.
+  it('defaults organizerId to null when omitted (no organizer yet)', () => {
     const c = buildVillageCommunity({ description: 'p' });
-    expect(c.adminUserId).toBeNull();
+    expect(c.organizerId).toBeNull();
     expect(() => VillageCommunitySchema.parse(c)).not.toThrow();
   });
 
-  it('VillageCommunitySchema accepts a null adminUserId', () => {
+  it('VillageCommunitySchema accepts a null organizerId', () => {
     expect(() =>
       VillageCommunitySchema.parse({
         description: '',
-        adminUserId: null,
+        organizerId: null,
         profileForm: null,
         activatedAt: new Date(),
       }),

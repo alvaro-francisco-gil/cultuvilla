@@ -261,8 +261,7 @@ export default function SolicitudesScreen() {
     setBusyKey(key);
     try {
       if (decision === 'approved') {
-        const reviewedBy = user?.uid ?? '';
-        await approveOrganization(row.id, reviewedBy, row.requestedBy);
+        await approveOrganization(row.id);
       } else {
         await rejectOrganization(row.id);
       }

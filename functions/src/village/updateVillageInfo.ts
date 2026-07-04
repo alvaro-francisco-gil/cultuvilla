@@ -20,7 +20,7 @@ interface UpdateVillageInfoResult {
 
 /**
  * Edit a village's basic info (description). Authorization:
- * - While the community has **no organizer** (`community.adminUserId === null`),
+ * - While the community has **no organizer** (`community.organizerId === null`),
  *   ANY member may edit — the wiki phase.
  * - Once an organizer exists, only village admins (or app admins) may edit.
  * The predicate ("is the caller a member AND is there no organizer yet") can't
@@ -56,7 +56,7 @@ export const updateVillageInfo = onCall<UpdateVillageInfoData, Promise<UpdateVil
         throw new HttpsError('failed-precondition', 'La comunidad no está activa.');
       }
 
-      const hasOrganizer = muniData.community?.adminUserId != null;
+      const hasOrganizer = muniData.community?.organizerId != null;
       const memberData = memberSnap.data();
       const isMember = memberSnap.exists;
       const isAdmin = isMember && memberData?.role === 'admin';
@@ -72,7 +72,7 @@ export const updateVillageInfo = onCall<UpdateVillageInfoData, Promise<UpdateVil
         throw new HttpsError('invalid-argument', 'Nada que actualizar.');
       }
       // tx.update with dotted paths bypasses the converter and touches only the
-      // community basic-info fields — never adminUserId or reference data.
+      // community basic-info fields — never organizerId or reference data.
       tx.update(muniRef, updates);
     });
 

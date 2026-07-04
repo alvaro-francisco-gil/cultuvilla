@@ -15,7 +15,7 @@ const APP_ADMIN_B = 'super-2';
 
 async function seedMunicipality(
   communityActive: boolean,
-  adminUserId: string | null = null,
+  organizerId: string | null = null,
 ): Promise<void> {
   const now = new Date();
   await admin
@@ -35,7 +35,7 @@ async function seedMunicipality(
       escudoManualUrl: null,
       communityActive,
       community: communityActive
-        ? { description: '', adminUserId, profileForm: null, activatedAt: now }
+        ? { description: '', organizerId, profileForm: null, activatedAt: now }
         : null,
     });
 }
