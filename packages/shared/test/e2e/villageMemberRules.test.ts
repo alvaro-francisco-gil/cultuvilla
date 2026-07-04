@@ -207,3 +207,59 @@ describe('firestore.rules — member barrioId self-update', () => {
     );
   });
 });
+
+describe('firestore.rules — member role is function-owned (admins go through the callable)', () => {
+  const VADMIN = 'vadmin';
+
+  async function seedVillageWithAdmin() {
+    await seed(getEnv(), async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'municipalities/mActive'), { name: 'Activo', communityActive: true });
+      await setDoc(doc(db, 'municipalities/mActive/members/vadmin'), {
+        ...memberDocData(),
+        userId: VADMIN,
+        role: 'admin',
+      });
+      await setDoc(doc(db, 'municipalities/mActive/members/alice'), memberDocData());
+    });
+  }
+
+  it('a village admin CANNOT create a member with role admin from the client', async () => {
+    await seedVillageWithAdmin();
+    const db = asUser(getEnv(), VADMIN);
+    await assertFails(
+      setDoc(doc(db, 'municipalities/mActive/members/bob'), {
+        ...memberDocData(),
+        userId: 'bob',
+        role: 'admin',
+      }),
+    );
+  });
+
+  it('a village admin CAN add a plain member (role user)', async () => {
+    await seedVillageWithAdmin();
+    const db = asUser(getEnv(), VADMIN);
+    await assertSucceeds(
+      setDoc(doc(db, 'municipalities/mActive/members/bob'), {
+        ...memberDocData(),
+        userId: 'bob',
+      }),
+    );
+  });
+
+  it('a village admin CANNOT promote a member to admin via a client update', async () => {
+    await seedVillageWithAdmin();
+    const db = asUser(getEnv(), VADMIN);
+    await assertFails(
+      updateDoc(doc(db, 'municipalities/mActive/members/alice'), { role: 'admin' }),
+    );
+  });
+
+  it('a village admin CAN still update a member non-role field (barrioId)', async () => {
+    await seedVillageWithAdmin();
+    const db = asUser(getEnv(), VADMIN);
+    await assertSucceeds(
+      updateDoc(doc(db, 'municipalities/mActive/members/alice'), { barrioId: 'centro' }),
+    );
+  });
+});

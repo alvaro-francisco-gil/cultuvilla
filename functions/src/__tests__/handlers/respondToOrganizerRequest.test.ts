@@ -214,6 +214,11 @@ describe('respondToOrganizerRequest (callable)', () => {
       .get();
     expect(notifs.size).toBeGreaterThanOrEqual(1);
     expect(notifs.docs[0].data().type).toBe('organizer_request_approved');
+
+    // Audit: organizer grant + the promotion of the existing member.
+    const events = await admin.firestore().collection('membershipEvents').get();
+    const actions = events.docs.map((d) => d.data().action).sort();
+    expect(actions).toEqual(['organizer_set', 'role_changed']);
   });
 
   it('approves: creates an admin member when the requester was not yet a member', async () => {
@@ -233,6 +238,11 @@ describe('respondToOrganizerRequest (callable)', () => {
       .get();
     expect(memberDoc.exists).toBe(true);
     expect(memberDoc.data()?.role).toBe('admin');
+
+    // Audit: organizer grant + the freshly-added admin member.
+    const events = await admin.firestore().collection('membershipEvents').get();
+    const actions = events.docs.map((d) => d.data().action).sort();
+    expect(actions).toEqual(['added', 'organizer_set']);
   });
 
   it('rejects: sets status to rejected, leaves municipality untouched, notifies requester', async () => {
@@ -267,5 +277,9 @@ describe('respondToOrganizerRequest (callable)', () => {
       .get();
     expect(notifs.size).toBeGreaterThanOrEqual(1);
     expect(notifs.docs[0].data().type).toBe('organizer_request_rejected');
+
+    // No membership events on rejection.
+    const events = await admin.firestore().collection('membershipEvents').get();
+    expect(events.size).toBe(0);
   });
 });

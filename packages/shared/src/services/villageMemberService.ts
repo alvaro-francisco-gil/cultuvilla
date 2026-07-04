@@ -9,7 +9,8 @@ import {
   where,
   query,
 } from 'firebase/firestore';
-import { getDb } from '../firebase';
+import { httpsCallable } from 'firebase/functions';
+import { getDb, getFirebaseFunctions } from '../firebase';
 import {
   municipalityMembersCollection,
   municipalityMemberDoc,
@@ -110,6 +111,26 @@ export async function isVillageAdmin(
   const snap = await getDoc(municipalityMemberDoc(getDb(), municipalityId, userId));
   if (!snap.exists()) return false;
   return snap.data().role === 'admin';
+}
+
+/**
+ * Promote/demote a village member's role. The ONLY way to create (or remove) a
+ * village admin — a thin wrapper over the `changeVillageMemberRole` callable,
+ * which checks caller authority, updates the role, and writes a
+ * `membershipEvents` audit record in one transaction. Clients can no longer
+ * write `role` directly (firestore.rules makes it function-owned), so there is
+ * no non-audited path.
+ */
+export async function setVillageMemberRole(
+  municipalityId: string,
+  userId: string,
+  role: VillageMemberRole,
+): Promise<void> {
+  const fn = httpsCallable<
+    { municipalityId: string; targetUserId: string; role: VillageMemberRole },
+    { ok: true }
+  >(getFirebaseFunctions(), 'changeVillageMemberRole');
+  await fn({ municipalityId, targetUserId: userId, role });
 }
 
 export interface UserMembership {
