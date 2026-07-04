@@ -60,6 +60,10 @@ export function AttendeeSheet({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [phone, setPhone] = useState('');
   const [phoneCountry, setPhoneCountry] = useState<PhoneCountry>(DEFAULT_PHONE_COUNTRY);
+  // Whether the user has pressed Confirmar at least once. The invalid-phone
+  // error stays hidden until then — validating on every keystroke nags before
+  // the user has finished typing.
+  const [confirmAttempted, setConfirmAttempted] = useState(false);
 
   const registeredIds = new Set(attendees.filter((a) => a.status).map((a) => a.id));
 
@@ -70,6 +74,7 @@ export function AttendeeSheet({
       setSelected(new Set(attendees.filter((a) => a.status).map((a) => a.id)));
       setPhone('');
       setPhoneCountry(DEFAULT_PHONE_COUNTRY);
+      setConfirmAttempted(false);
     }
     // attendees identity intentionally excluded — re-seed only on open.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -103,12 +108,18 @@ export function AttendeeSheet({
     selected.size !== registeredIds.size || selectedInOrder.some((id) => !registeredIds.has(id));
   const needsPhone = telephoneRequired && hasNewSelection;
   const phoneValid = isValidPhoneNumber(phone, phoneCountry.dialCode);
-  const canConfirm = changed && !busy && (!needsPhone || phoneValid);
-  // Only nag once the user has typed something — an empty field isn't an error yet.
-  const phoneError = needsPhone && phone.trim().length > 0 && !phoneValid;
+  // The button gates on the selection change, NOT on phone validity — an
+  // invalid phone must still let the press through so it can surface the error.
+  const canConfirm = changed && !busy;
+  // Show the invalid-phone error only after a confirm attempt (not per keystroke).
+  const phoneError = confirmAttempted && needsPhone && !phoneValid;
 
   function handleConfirm() {
     if (!canConfirm) return;
+    if (needsPhone && !phoneValid) {
+      setConfirmAttempted(true);
+      return;
+    }
     onConfirm(selectedInOrder, needsPhone ? formatPhoneE164(phone, phoneCountry.dialCode) : undefined);
   }
 
@@ -198,6 +209,8 @@ export function AttendeeSheet({
                 country={phoneCountry}
                 onCountryChange={setPhoneCountry}
                 placeholder={t('event.register.phonePlaceholder')}
+                searchPlaceholder={t('event.register.phoneSearch')}
+                noResultsLabel={t('event.register.phoneNoResults')}
                 error={phoneError ? t('event.register.phoneInvalid') : undefined}
                 testID="attendee-phone"
               />

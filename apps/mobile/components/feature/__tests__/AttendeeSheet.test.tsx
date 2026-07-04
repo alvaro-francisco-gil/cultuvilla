@@ -83,6 +83,31 @@ describe('AttendeeSheet', () => {
     expect(onConfirm).toHaveBeenCalledWith(['self'], '+34600111222');
   });
 
+  it('shows the invalid-phone error only after Confirmar is pressed, not while typing', () => {
+    const { getByTestId, queryByText, getByText } = render(
+      <AttendeeSheet
+        {...baseProps}
+        telephoneRequired
+        attendees={[{ id: 'self', name: 'Ana' }]}
+      />,
+    );
+    fireEvent.press(getByTestId('attendee-row-self'));
+    const phone = getByTestId('attendee-phone');
+
+    // Typing a still-invalid number must NOT nag — the error is silent until submit.
+    fireEvent.changeText(phone, '123');
+    expect(queryByText('event.register.phoneInvalid')).toBeNull();
+
+    // Pressing Confirmar with an invalid number reveals the error (the button is
+    // reachable — it is not disabled just because the phone is invalid).
+    fireEvent.press(getByTestId('attendee-confirm'));
+    expect(getByText('event.register.phoneInvalid')).toBeTruthy();
+
+    // Correcting the number clears the error again.
+    fireEvent.changeText(phone, '600111222');
+    expect(queryByText('event.register.phoneInvalid')).toBeNull();
+  });
+
   it('validates against the selected country prefix', () => {
     const onConfirm = jest.fn();
     const { getByTestId } = render(

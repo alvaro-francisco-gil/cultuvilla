@@ -60,15 +60,41 @@ describe('formatPhoneE164', () => {
 });
 
 describe('country table', () => {
-  it('defaults to Spain', () => {
+  it('defaults to Spain, pinned first', () => {
     expect(DEFAULT_PHONE_COUNTRY.code).toBe('ES');
     expect(DEFAULT_PHONE_COUNTRY.dialCode).toBe('+34');
     expect(PHONE_COUNTRIES[0]).toBe(DEFAULT_PHONE_COUNTRY);
   });
 
-  it('has unique dial codes and iso codes', () => {
+  it('offers a comprehensive, worldwide country list', () => {
+    // The picker must cover the whole world, not a handful of curated
+    // countries — foreign residents/visitors of any nationality sign up.
+    expect(PHONE_COUNTRIES.length).toBeGreaterThanOrEqual(180);
+    const codes = new Set(PHONE_COUNTRIES.map((c) => c.code));
+    for (const code of ['US', 'CN', 'JP', 'BR', 'IN', 'NG', 'RU', 'MX', 'AR', 'CO']) {
+      expect(codes.has(code)).toBe(true);
+    }
+  });
+
+  it('has unique iso codes (dial codes may repeat, e.g. +1 and +7)', () => {
     expect(new Set(PHONE_COUNTRIES.map((c) => c.code)).size).toBe(PHONE_COUNTRIES.length);
-    expect(new Set(PHONE_COUNTRIES.map((c) => c.dialCode)).size).toBe(PHONE_COUNTRIES.length);
+    // A worldwide list shares dial codes across countries, so dial codes are
+    // deliberately NOT unique — the North American +1 bloc alone repeats.
+    expect(new Set(PHONE_COUNTRIES.map((c) => c.dialCode)).size).toBeLessThan(PHONE_COUNTRIES.length);
+  });
+
+  it('is well-formed: 2-letter ISO code, "+"-prefixed dial code, non-empty name', () => {
+    for (const c of PHONE_COUNTRIES) {
+      expect(c.code).toMatch(/^[A-Z]{2}$/);
+      expect(c.dialCode).toMatch(/^\+\d{1,4}$/);
+      expect(c.name.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('lists countries after Spain in alphabetical order', () => {
+    const rest = PHONE_COUNTRIES.slice(1).map((c) => c.name);
+    const sorted = [...rest].sort((a, b) => a.localeCompare(b));
+    expect(rest).toEqual(sorted);
   });
 
   it('derives a flag emoji from the iso code', () => {
