@@ -15,7 +15,7 @@ const OUTSIDER_ID = 'eve';
 
 async function seedMunicipality(opts: {
   communityActive: boolean;
-  adminUserId?: string | null;
+  organizerId?: string | null;
 }): Promise<void> {
   const now = new Date();
   await admin
@@ -34,11 +34,11 @@ async function seedMunicipality(opts: {
       escudoThumbUrl: null,
       escudoManualUrl: null,
       communityActive: opts.communityActive,
-      // An active community always has a community object; adminUserId may be
+      // An active community always has a community object; organizerId may be
       // null (started, no organizer yet).
       community: opts.communityActive
         ? {
-            adminUserId: opts.adminUserId ?? null,
+            organizerId: opts.organizerId ?? null,
             description: 'Mi pueblo',
             profileForm: null,
             activatedAt: now,
@@ -164,7 +164,7 @@ describe('respondToOrganizerRequest (callable)', () => {
 
   it('throws already-exists when approving but the village already has an organizer', async () => {
     await seedAppAdmin(APP_ADMIN_ID);
-    await seedMunicipality({ communityActive: true, adminUserId: 'someone-else' });
+    await seedMunicipality({ communityActive: true, organizerId: 'someone-else' });
     const requestId = await seedOrganizerRequest({
       userId: REQUESTER_ID,
       municipalityId: MUNICIPALITY_ID,
@@ -177,7 +177,7 @@ describe('respondToOrganizerRequest (callable)', () => {
 
   it('approves: sets the organizer on the active community and promotes the existing member to admin', async () => {
     await seedAppAdmin(APP_ADMIN_ID);
-    await seedMunicipality({ communityActive: true, adminUserId: null });
+    await seedMunicipality({ communityActive: true, organizerId: null });
     await seedMember(REQUESTER_ID, 'user'); // already joined/started the village
     const requestId = await seedOrganizerRequest({
       userId: REQUESTER_ID,
@@ -197,7 +197,7 @@ describe('respondToOrganizerRequest (callable)', () => {
 
     const muniDoc = await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}`).get();
     expect(muniDoc.data()?.communityActive).toBe(true);
-    expect(muniDoc.data()?.community?.adminUserId).toBe(REQUESTER_ID);
+    expect(muniDoc.data()?.community?.organizerId).toBe(REQUESTER_ID);
     // Existing community info is preserved (not overwritten by the grant).
     expect(muniDoc.data()?.community?.description).toBe('Mi pueblo');
 
@@ -214,11 +214,16 @@ describe('respondToOrganizerRequest (callable)', () => {
       .get();
     expect(notifs.size).toBeGreaterThanOrEqual(1);
     expect(notifs.docs[0].data().type).toBe('organizer_request_approved');
+
+    // Audit: organizer grant + the promotion of the existing member.
+    const events = await admin.firestore().collection('membershipEvents').get();
+    const actions = events.docs.map((d) => d.data().action).sort();
+    expect(actions).toEqual(['organizer_set', 'role_changed']);
   });
 
   it('approves: creates an admin member when the requester was not yet a member', async () => {
     await seedAppAdmin(APP_ADMIN_ID);
-    await seedMunicipality({ communityActive: true, adminUserId: null });
+    await seedMunicipality({ communityActive: true, organizerId: null });
     const requestId = await seedOrganizerRequest({
       userId: REQUESTER_ID,
       municipalityId: MUNICIPALITY_ID,
@@ -233,6 +238,11 @@ describe('respondToOrganizerRequest (callable)', () => {
       .get();
     expect(memberDoc.exists).toBe(true);
     expect(memberDoc.data()?.role).toBe('admin');
+
+    // Audit: organizer grant + the freshly-added admin member.
+    const events = await admin.firestore().collection('membershipEvents').get();
+    const actions = events.docs.map((d) => d.data().action).sort();
+    expect(actions).toEqual(['added', 'organizer_set']);
   });
 
   it('rejects: sets status to rejected, leaves municipality untouched, notifies requester', async () => {
@@ -267,5 +277,9 @@ describe('respondToOrganizerRequest (callable)', () => {
       .get();
     expect(notifs.size).toBeGreaterThanOrEqual(1);
     expect(notifs.docs[0].data().type).toBe('organizer_request_rejected');
+
+    // No membership events on rejection.
+    const events = await admin.firestore().collection('membershipEvents').get();
+    expect(events.size).toBe(0);
   });
 });

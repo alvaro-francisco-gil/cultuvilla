@@ -9,6 +9,7 @@ import {
 } from '@cultuvilla/shared/firebase/refs/admin';
 import type { VillageMemberData } from '@cultuvilla/shared';
 import { notifyOrganizerRequestResolved } from '../helpers/notifyRequests';
+import { writeMembershipEvent } from '../helpers/membershipAudit';
 
 const db = getFirestore();
 
@@ -72,7 +73,7 @@ export const respondToOrganizerRequest = onCall<
         if (muniData?.communityActive !== true) {
           throw new HttpsError('failed-precondition', 'El pueblo aún no está iniciado.');
         }
-        if (muniData.community?.adminUserId != null) {
+        if (muniData.community?.organizerId != null) {
           throw new HttpsError('already-exists', 'Este pueblo ya tiene organizador.');
         }
       }
@@ -88,7 +89,8 @@ export const respondToOrganizerRequest = onCall<
       if (decision === 'approved') {
         // Set the organizer on the existing community (dotted path preserves the
         // description/profileForm/activatedAt seeded at start time).
-        tx.update(muniRef, { 'community.adminUserId': requesterUid });
+        tx.update(muniRef, { 'community.organizerId': requesterUid });
+        const priorRole = memberSnap.exists ? (memberSnap.data()?.role ?? null) : null;
         if (memberSnap.exists) {
           // Already a member (joined or started the village) → promote to admin.
           tx.update(memberRef, { role: 'admin' });
@@ -105,6 +107,26 @@ export const respondToOrganizerRequest = onCall<
           };
           tx.set(memberRef, newMember);
         }
+        // Audit: the organizer grant, then the admin membership it establishes
+        // (a promotion if they were already a member, otherwise a fresh add).
+        writeMembershipEvent(tx, db, {
+          scopeType: 'village',
+          scopeId: municipalityId,
+          municipalityId,
+          actorUserId: callerUid,
+          targetUserId: requesterUid,
+          action: 'organizer_set',
+        });
+        writeMembershipEvent(tx, db, {
+          scopeType: 'village',
+          scopeId: municipalityId,
+          municipalityId,
+          actorUserId: callerUid,
+          targetUserId: requesterUid,
+          action: memberSnap.exists ? 'role_changed' : 'added',
+          fromRole: priorRole,
+          toRole: 'admin',
+        });
       }
     });
 

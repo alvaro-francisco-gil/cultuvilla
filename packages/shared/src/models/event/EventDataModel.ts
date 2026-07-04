@@ -39,6 +39,14 @@ export const EventDataSchema = z.object({
   // so every event doc carries them — never absent.
   confirmedCount: z.number().int(),
   totalCount: z.number().int(),
+  // Derived from `endDate ?? startDate` (see eventEndBoundary): the instant an
+  // event stops being current. The Explora feed queries on this — not on
+  // `startDate` — so a same-day event that already started, or a multi-day
+  // event mid-run, still surfaces (it drops out only once completeExpiredEvents
+  // flips its status). Written by buildEventData on create and recomputed in
+  // updateEvent whenever the dates change; kept a stored field (not computed at
+  // read) because Firestore can only range-filter/order on a persisted field.
+  endBoundary: z.date(),
 });
 export type EventData = z.infer<typeof EventDataSchema>;
 
@@ -65,11 +73,12 @@ export interface EventDataInput {
 
 export function buildEventData(input: EventDataInput): EventData {
   const now = new Date();
+  const endDate = input.endDate ?? null;
   return {
     title: input.title,
     description: input.description,
     startDate: input.startDate,
-    endDate: input.endDate ?? null,
+    endDate,
     location: input.location,
     imageURL: input.imageURL ?? null,
     maxAttendees: input.maxAttendees ?? null,
@@ -86,6 +95,7 @@ export function buildEventData(input: EventDataInput): EventData {
     villageCoordinates: input.villageCoordinates,
     confirmedCount: 0,
     totalCount: 0,
+    endBoundary: eventEndBoundary({ startDate: input.startDate, endDate }),
   };
 }
 

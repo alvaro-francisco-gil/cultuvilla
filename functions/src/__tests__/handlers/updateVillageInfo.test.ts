@@ -1,5 +1,5 @@
 // Handler test for the updateVillageInfo callable.
-// While a village has no organizer (community.adminUserId === null), ANY member
+// While a village has no organizer (community.organizerId === null), ANY member
 // can edit its basic info (description / cover images) — the "wiki phase". Once
 // an organizer exists, editing consolidates to admins (+ app admins).
 
@@ -16,7 +16,7 @@ const MEMBER_ID = 'alice';
 const ADMIN_ID = 'bob';
 const OUTSIDER_ID = 'eve';
 
-async function seedMunicipality(adminUserId: string | null): Promise<void> {
+async function seedMunicipality(organizerId: string | null): Promise<void> {
   const now = new Date();
   await admin
     .firestore()
@@ -34,7 +34,7 @@ async function seedMunicipality(adminUserId: string | null): Promise<void> {
       escudoThumbUrl: null,
       escudoManualUrl: null,
       communityActive: true,
-      community: { description: 'old', adminUserId, profileForm: null, activatedAt: now },
+      community: { description: 'old', organizerId, profileForm: null, activatedAt: now },
     });
 }
 

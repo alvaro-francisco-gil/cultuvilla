@@ -51,21 +51,42 @@ function resolveProjectId() {
   return PROJECT_ID;
 }
 
-const projectId = resolveProjectId();
-if (projectId !== PROJECT_ID) {
-  console.error(`[seed] Refusing to run against project "${projectId}". Dev-only (${PROJECT_ID}).`);
-  process.exit(1);
-}
-if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  console.error(
-    '[seed] GOOGLE_APPLICATION_CREDENTIALS not set. Required for Storage uploads.\n' +
-      '       See .claude/skills/firebase-admin-dev/SKILL.md for how to set it.',
-  );
-  process.exit(1);
-}
+// E2E seeding targets the local emulator, never the real dev project.
+// firebase-admin auto-routes all reads/writes to the emulators once
+// FIRESTORE_EMULATOR_HOST / FIREBASE_AUTH_EMULATOR_HOST are set (the web-e2e CI
+// job sets them). In that mode we use the dedicated `cultuvilla-test` project id
+// — NEVER villa-events, so a misconfigured run can't reach real data — and skip
+// the ADC requirement (the emulator needs no credentials). The dev-only guards
+// below apply ONLY to the real-project path.
+export const EMULATOR =
+  !!process.env.FIRESTORE_EMULATOR_HOST || process.env.SEED_TARGET === 'emulator';
 
-if (!admin.apps.length) {
-  admin.initializeApp({ projectId, storageBucket: BUCKET });
+let projectId;
+if (EMULATOR) {
+  projectId = process.env.GCLOUD_PROJECT || process.env.TEST_PROJECT_ID || 'cultuvilla-test';
+  if (projectId === PROJECT_ID) {
+    console.error(`[seed] Refusing to emulator-seed under the real project id "${PROJECT_ID}". Use cultuvilla-test.`);
+    process.exit(1);
+  }
+  if (!admin.apps.length) {
+    admin.initializeApp({ projectId, storageBucket: `${projectId}.appspot.com` });
+  }
+} else {
+  projectId = resolveProjectId();
+  if (projectId !== PROJECT_ID) {
+    console.error(`[seed] Refusing to run against project "${projectId}". Dev-only (${PROJECT_ID}).`);
+    process.exit(1);
+  }
+  if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    console.error(
+      '[seed] GOOGLE_APPLICATION_CREDENTIALS not set. Required for Storage uploads.\n' +
+        '       See .claude/skills/firebase-admin-dev/SKILL.md for how to set it.',
+    );
+    process.exit(1);
+  }
+  if (!admin.apps.length) {
+    admin.initializeApp({ projectId, storageBucket: BUCKET });
+  }
 }
 
 export { projectId };

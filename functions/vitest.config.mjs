@@ -14,5 +14,16 @@ export default defineConfig({
     exclude: ['src/__tests__/handlers/**'],
     testTimeout: 30_000,
     hookTimeout: 30_000,
+    // Report-only coverage (docs/plans/ongoing/testing-enhancement.md, D4):
+    // collected only with --coverage; no threshold gate yet.
+    coverage: {
+      enabled: false,
+      provider: 'v8',
+      reporter: ['text-summary', 'lcov'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.d.ts', 'src/__tests__/**'],
+      all: true,
+    },
   },
 });

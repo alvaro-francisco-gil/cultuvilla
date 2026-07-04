@@ -28,6 +28,7 @@ import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useT } from '../../lib/i18n';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
 import { webSpread } from '../../lib/platform';
+import { useWebScrollTopRefresh } from '../../lib/useWebScrollTopRefresh';
 import { getUpcomingFeed, haversineKm } from '@cultuvilla/shared/services/feedService';
 import { getAllVillagesFeed } from '@cultuvilla/shared/services/newsService';
 import { getActiveCommunities } from '@cultuvilla/shared/services/municipalityService';
@@ -82,6 +83,8 @@ export default function FeedScreen() {
   }, [gate, t]);
   const { width } = useWindowDimensions();
   const pagerRef = useRef<ScrollView>(null);
+  const eventsListRef = useRef<FlatList<FeedEvent>>(null);
+  const newsListRef = useRef<FlatList<FeedNews>>(null);
 
   const [events, setEvents] = useState<FeedEvent[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -158,6 +161,27 @@ export default function FeedScreen() {
     if (activeTab === 'noticias' && news === null) void loadNews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
+
+  // Web-only fallback for RefreshControl, which is inert on react-native-web:
+  // scrolling up at the top of either feed refetches it.
+  useWebScrollTopRefresh(
+    eventsListRef,
+    async () => {
+      setRefreshing(true);
+      await load();
+      setRefreshing(false);
+    },
+    events !== null && !error,
+  );
+  useWebScrollTopRefresh(
+    newsListRef,
+    async () => {
+      setNewsRefreshing(true);
+      await loadNews();
+      setNewsRefreshing(false);
+    },
+    news !== null && !newsError,
+  );
 
   // Reference point for proximity sort: the user's active village coordinates.
   const referenceCoords = useMemo<LatLng | null>(
@@ -393,6 +417,7 @@ export default function FeedScreen() {
       </View>
     ) : (
       <FlatList
+        ref={eventsListRef}
         style={{ flex: 1 }}
         onScroll={onFeedScroll}
         scrollEventThrottle={16}
@@ -447,6 +472,7 @@ export default function FeedScreen() {
       </View>
     ) : (
       <FlatList
+        ref={newsListRef}
         style={{ flex: 1 }}
         onScroll={onFeedScroll}
         scrollEventThrottle={16}

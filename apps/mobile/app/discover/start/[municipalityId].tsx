@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, Switch } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
@@ -12,10 +12,11 @@ import {
   Pressable,
 } from '../../../components/primitives';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
-import { LocationPicker } from '../../../components/feature/LocationPicker';
+import { PhoneField } from '../../../components/feature/PhoneField';
 import { useT } from '../../../lib/i18n';
 import { useAuth } from '../../../lib/auth/useAuth';
 import { useCallable } from '../../../lib/useCallable';
+import { useOrganizerPhone } from '../../../lib/useOrganizerPhone';
 import { pickImageAsBlob } from '../../../lib/images';
 import {
   getMunicipality,
@@ -25,13 +26,11 @@ import { requestOrganizeVillage } from '@cultuvilla/shared/services/organizerReq
 import { patchUserProfile } from '@cultuvilla/shared/services/userService';
 import { uploadMunicipalityImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
-import { MAP_ZOOM_DEFAULT, clampMapZoom } from '@cultuvilla/shared/services/mapsService';
 import {
   escudoFullUrl,
   hasManualEscudo,
   type MunicipalityData,
 } from '@cultuvilla/shared/models/municipality';
-import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 
 type Muni = MunicipalityData & { id: string };
 
@@ -48,13 +47,11 @@ export default function StartVillageScreen() {
   const { municipalityId } = useLocalSearchParams<{ municipalityId: string }>();
   const { t } = useT();
   const { user, profile } = useAuth();
+  const organizerPhone = useOrganizerPhone(profile?.telephone);
   const [muni, setMuni] = useState<Muni | null>(null);
   const [wantOrganize, setWantOrganize] = useState(false);
-  const [phone, setPhone] = useState('');
   const [motivation, setMotivation] = useState('');
   const [escudoImage, setEscudoImage] = useState<UploadableImage | null>(null);
-  const [coords, setCoords] = useState<LatLng | null>(null);
-  const [zoom, setZoom] = useState<number>(MAP_ZOOM_DEFAULT);
 
   useEffect(() => {
     if (!municipalityId) return;
@@ -63,10 +60,6 @@ export default function StartVillageScreen() {
       .then((m) => {
         if (cancelled) return;
         setMuni(m);
-        // Seed the location picker from any existing coordinates so the user
-        // verifies/adjusts rather than starting blank.
-        setCoords(m?.coordinates ?? null);
-        setZoom(clampMapZoom(m?.mapZoom ?? MAP_ZOOM_DEFAULT));
       })
       .catch((e) => console.log('[StartVillage] getMunicipality ERR', e?.code, e?.message));
     return () => {
@@ -74,17 +67,7 @@ export default function StartVillageScreen() {
     };
   }, [municipalityId]);
 
-  // Prefill the phone once from the profile so the user can verify/correct it.
-  const prefilled = useRef(false);
-  useEffect(() => {
-    if (!prefilled.current && profile?.telephone) {
-      setPhone(profile.telephone);
-      prefilled.current = true;
-    }
-  }, [profile?.telephone]);
-
   const existingEscudo = muni ? escudoFullUrl(muni) : null;
-  const phoneMissing = wantOrganize && phone.trim().length === 0;
 
   async function pickEscudo() {
     const picked = await pickImageAsBlob({ square: true });
@@ -102,11 +85,9 @@ export default function StartVillageScreen() {
       await startVillage({
         municipalityId: id,
         escudoManualUrl,
-        coordinates: coords,
-        mapZoom: coords ? zoom : null,
       });
       if (wantOrganize) {
-        if (user) await patchUserProfile(user.uid, { telephone: phone.trim() });
+        if (user) await patchUserProfile(user.uid, { telephone: organizerPhone.e164 });
         await requestOrganizeVillage({ municipalityId: id, motivation: motivation.trim() || null });
       }
     },
@@ -161,18 +142,6 @@ export default function StartVillageScreen() {
             )}
           </VStack>
 
-          {/* Location — seeded from existing coordinates once the muni loads. */}
-          {muni ? (
-            <LocationPicker
-              value={coords}
-              onChange={setCoords}
-              zoom={zoom}
-              onZoomChange={setZoom}
-              label={t('start.locationLabel')}
-              showUseMyLocation={false}
-            />
-          ) : null}
-
           <VStack gap={2}>
             <Text variant="bodySm">{t('start.organizeIntro')}</Text>
             <HStack gap={3} className="items-center justify-between">
@@ -183,13 +152,7 @@ export default function StartVillageScreen() {
 
           {wantOrganize && (
             <>
-              <Input
-                label={t('start.phoneLabel')}
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-                autoComplete="tel"
-              />
+              <PhoneField {...organizerPhone.fieldProps} />
               <Input
                 label={t('requests.organizer.motivationLabel')}
                 value={motivation}
@@ -203,11 +166,13 @@ export default function StartVillageScreen() {
           <Button
             onPress={() => {
               if (!municipalityId) return;
+              if (wantOrganize && !organizerPhone.validateForSubmit()) return;
               void submit();
             }}
             loading={isPending}
-            disabled={!municipalityId || phoneMissing}
+            disabled={!municipalityId}
             fullWidth
+            testID="start-submit"
           >
             <Text tone="onAccent">{t('start.submit')}</Text>
           </Button>

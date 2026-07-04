@@ -21,6 +21,7 @@ import { occupationConverterAdmin } from '../converters/occupationConverter.admi
 import { occupationProposalConverterAdmin } from '../converters/occupationProposalConverter.admin';
 import { adminConverterAdmin } from '../converters/adminConverter.admin';
 import { organizationJoinRequestConverterAdmin } from '../converters/organizationJoinRequestConverter.admin';
+import { membershipEventConverterAdmin } from '../converters/membershipEventConverter.admin';
 
 export const eventsCollection = (db: Firestore) =>
   db.collection('events').withConverter(eventConverterAdmin);
@@ -163,6 +164,16 @@ export const organizationJoinRequestsCollection = (db: Firestore) =>
 
 export const organizationJoinRequestDoc = (db: Firestore, id: string) =>
   db.collection('organizationJoinRequests').doc(id).withConverter(organizationJoinRequestConverterAdmin);
+
+// ── Membership audit log ─────────────────────────────────────────────────
+// Append-only, top-level, scoped by `municipalityId`. Function-owned: clients
+// only read (firestore.rules denies all client writes).
+
+export const membershipEventsCollection = (db: Firestore) =>
+  db.collection('membershipEvents').withConverter(membershipEventConverterAdmin);
+
+export const membershipEventDoc = (db: Firestore, id: string) =>
+  db.collection('membershipEvents').doc(id).withConverter(membershipEventConverterAdmin);
 
 // ── Admin domain ─────────────────────────────────────────────────────────
 

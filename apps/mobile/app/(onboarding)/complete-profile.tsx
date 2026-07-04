@@ -117,6 +117,7 @@ export default function CompleteProfileScreen() {
       <ScreenHeader accent hideBack title={t('onboarding.completeProfile.title')} />
       <PersonForm
         requireFullName
+        selfProfile
         submitLabel={t('onboarding.completeProfile.submit')}
         loading={loading}
         error={error}

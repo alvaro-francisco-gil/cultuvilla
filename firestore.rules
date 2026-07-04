@@ -358,7 +358,7 @@ service cloud.firestore {
 
     function isValidEventCreate(d) {
       return d.keys().hasOnly([
-              'title', 'description', 'startDate', 'endDate', 'location',
+              'title', 'description', 'startDate', 'endDate', 'endBoundary', 'location',
               'imageURL', 'maxAttendees', 'telephoneRequired',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
@@ -366,7 +366,7 @@ service cloud.firestore {
               'confirmedCount', 'totalCount',
             ])
           && d.keys().hasAll([
-              'title', 'description', 'startDate', 'endDate', 'location',
+              'title', 'description', 'startDate', 'endDate', 'endBoundary', 'location',
               'imageURL', 'maxAttendees', 'telephoneRequired',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
@@ -379,6 +379,10 @@ service cloud.firestore {
           // otherwise a Timestamp no earlier than startDate.
           && isTimestampOrNull(d.endDate)
           && (d.endDate == null || d.endDate >= d.startDate)
+          // endBoundary is the derived feed key: it must equal endDate ?? startDate
+          // so the client can't corrupt Explora's ordering (see EventDataModel).
+          && isTimestamp(d.endBoundary)
+          && d.endBoundary == (d.endDate == null ? d.startDate : d.endDate)
           && isMap(d.location)
           && isStringOrNull(d.imageURL)
           && isNumberOrNull(d.maxAttendees)
@@ -552,23 +556,29 @@ service cloud.firestore {
 
       match /members/{userId} {
         allow read: if true;
-        // Self-service join: an authenticated user adds themselves to an active
-        // village as a plain member. Owner-only, role pinned to 'user', cannot
-        // self-grant trustedNewsAuthor. Already-a-member is handled by create
-        // semantics (create fails when the doc exists). Village admin / app
-        // admin retain their direct-create power (e.g. organizer activation).
-        allow create: if isVillageAdmin(municipalityId)
-                       || isAppAdmin()
-                       || (
-                            isOwner(userId)
-                            && isCommunityActive(municipalityId)
-                            && request.resource.data.userId == userId
-                            && request.resource.data.role == 'user'
-                            && request.resource.data.trustedNewsAuthor == false
+        // `role` is function-owned: EVERY client-created member is a plain
+        // 'user'. Admins granting/removing admin (or seeding one on organizer
+        // approval) go through the changeVillageMemberRole callable / admin SDK,
+        // which audits the change. So the create paths are: a village/app admin
+        // adding a plain member, or a self-service join (owner adds themselves,
+        // no self-granted trustedNewsAuthor).
+        allow create: if request.resource.data.role == 'user'
+                       && (
+                            isVillageAdmin(municipalityId)
+                            || isAppAdmin()
+                            || (
+                                 isOwner(userId)
+                                 && isCommunityActive(municipalityId)
+                                 && request.resource.data.userId == userId
+                                 && request.resource.data.trustedNewsAuthor == false
+                               )
                           );
+        // Admins may edit member fields client-side EXCEPT trustedNewsAuthor
+        // (setTrustedNewsAuthor callable) and role (changeVillageMemberRole
+        // callable) — both are function-owned. Owners edit only their profile.
         allow update: if (
                          (isVillageAdmin(municipalityId) || isAppAdmin())
-                         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['trustedNewsAuthor'])
+                         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['trustedNewsAuthor', 'role'])
                        )
                        || (isOwner(userId)
                            && request.resource.data.diff(resource.data).affectedKeys()
@@ -603,6 +613,22 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Append-only membership/role audit log (see docs decision
+    // membership-roles-and-audit). Function-owned: written only by callables /
+    // triggers via the admin SDK, so every client write is denied — and, since
+    // there is no client write path, no shape predicate is needed. Reads are
+    // scoped to the village's admins (by municipalityId); org-scoped events are
+    // additionally readable by that org's admins. app admins see everything.
+    // Note: only the by-municipalityId read is usable as a list query; the org
+    // clause applies to single-doc reads (list queries can't be constrained by
+    // the per-doc scopeId/scopeType).
+    match /membershipEvents/{eventId} {
+      allow read: if isVillageAdmin(resource.data.municipalityId)
+        || (resource.data.scopeType == 'org' && isOrgAdmin(resource.data.scopeId))
+        || isAppAdmin();
+      allow create, update, delete: if false;
+    }
+
     match /organizations/{orgId} {
       allow read: if true;
       // ayuntamiento is a singleton per village — created only via the
@@ -613,24 +639,31 @@ service cloud.firestore {
         && isValidOrganizationCreate(request.resource.data)
         && request.resource.data.status == 'pending'
         && request.resource.data.type != 'ayuntamiento';
-      allow update: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
+      // Approval (status -> 'approved') is function-owned: the approveOrganization
+      // callable flips the status AND seeds the founding admin + audits it in one
+      // transaction. Clients may edit other fields or reject, never approve.
+      allow update: if (isVillageAdmin(resource.data.municipalityId) || isAppAdmin())
+        && (request.resource.data.status == resource.data.status
+            || request.resource.data.status == 'rejected');
       allow delete: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
 
       match /members/{userId} {
         allow read: if true;
-        // org admin / village admin / app admin may add anyone (incl. seeding an admin);
-        // a plain member may only add others as 'member'.
+        // `role` is function-owned: every client-created member is a plain
+        // 'member'. Admins (org/village/app) may add plain members; the founding
+        // admin is seeded server-side by approveOrganization, and promotions go
+        // through the changeOrgMemberRole callable — both audited via admin SDK.
         allow create: if isValidOrgMemberCreate(request.resource.data)
+          && request.resource.data.role == 'member'
           && (
                isOrgAdmin(orgId)
                || isVillageAdmin(orgMunicipalityId(orgId))
                || isAppAdmin()
-               || (isOrgMember(orgId) && request.resource.data.role == 'member')
+               || isOrgMember(orgId)
              );
-        // only the role may change, and only an org admin / backstop may change it.
-        allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
-          && request.resource.data.role in ['admin', 'member']
-          && (isOrgAdmin(orgId) || isVillageAdmin(orgMunicipalityId(orgId)) || isAppAdmin());
+        // role goes through changeOrgMemberRole (admin SDK); a member doc has no
+        // other client-editable fields.
+        allow update: if false;
         allow delete: if isOwner(userId)
           || isOrgAdmin(orgId)
           || isVillageAdmin(orgMunicipalityId(orgId))
@@ -704,20 +737,35 @@ service cloud.firestore {
         );
     }
 
-    // Collection-group queries: allow authenticated users to list only their
-    // own rows. These rules are evaluated for CG list operations on the named
-    // sub-collection regardless of which parent collection they live under.
-    // "allow read: if true" on nested paths allows single-doc gets but does
-    // NOT satisfy list operations on a collection-group in Firestore Rules v2.
+    // Collection-group queries: these rules are evaluated for CG list
+    // operations on the named sub-collection regardless of which parent
+    // collection they live under. "allow read: if true" on nested paths
+    // allows single-doc gets but does NOT satisfy list operations on a
+    // collection-group in Firestore Rules v2.
 
+    // Member docs are individually public (allow read: if true), so any
+    // authenticated user may also list member rows across collection groups
+    // (e.g. to show another user's villages on their profile). Firestore
+    // rules cannot express "filtered to a single userId", so this also
+    // permits an unfiltered dump of all member rows to any signed-in caller
+    // — an accepted tradeoff since the underlying docs are already public.
     match /{path=**}/members/{userId} {
-      allow list: if isAuthenticated()
-        && resource.data.userId == request.auth.uid;
+      allow list: if isAuthenticated();
     }
+
+    // Registrations remain restricted to the caller's own rows (unlike
+    // members, registration docs are not individually public).
 
     match /{path=**}/registrations/{regId} {
       allow list: if isAuthenticated()
         && resource.data.userId == request.auth.uid;
+    }
+
+    // Public read-only app config (force-update gate). Written by admin/seed
+    // script via the admin SDK, never by clients.
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if false;
     }
 
     // occupations — superadmin managed list

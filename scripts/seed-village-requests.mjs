@@ -253,7 +253,7 @@ async function seedOne(v) {
       communityActive: true,
       community: {
         description: fresh.get('description') ?? '',
-        adminUserId: requesterUid,
+        organizerId: requesterUid,
         profileForm: null,
         activatedAt: FieldValue.serverTimestamp(),
       },

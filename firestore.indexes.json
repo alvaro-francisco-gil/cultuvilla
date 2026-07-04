@@ -5,7 +5,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "startDate", "order": "ASCENDING" }
+        { "fieldPath": "endBoundary", "order": "ASCENDING" }
       ]
     },
     {
@@ -181,6 +181,14 @@
       ]
     },
     {
+      "collectionGroup": "news",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "organizerUserIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "newsComments",
       "queryScope": "COLLECTION",
       "fields": [
@@ -228,6 +236,14 @@
       "fields": [
         { "fieldPath": "requestedBy", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "membershipEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "municipalityId", "order": "ASCENDING" },
+        { "fieldPath": "at", "order": "DESCENDING" }
       ]
     }
   ],

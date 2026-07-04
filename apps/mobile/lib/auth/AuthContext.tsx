@@ -142,6 +142,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     googleConfigured.current = true;
   }, []);
 
+  // E2E fixture-login seam (web only). Exposed on `window.__cultuvillaE2E` so the
+  // Playwright suite can sign in as a seeded fixture user without Google OAuth.
+  // Guarded three independent ways so it can NEVER fire in a build a real user
+  // could load:
+  //   1. extra.useEmulator — the build-time USE_FIREBASE_EMULATOR flag, set only
+  //      by the web-e2e CI job (deploy workflows positively assert it is unset).
+  //   2. Platform.OS === 'web' — the only surface Playwright drives.
+  //   3. a runtime assertion that Auth is actually pointed at a loopback emulator
+  //      (getAuth().emulatorConfig.host). Even if the flag leaked, a build talking
+  //      to real Firebase installs nothing — it fails closed by physics.
+  // Uses the single signInWithEmailAndPassword primitive; no new auth method.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    if (Constants.expoConfig?.extra?.useEmulator !== true) return;
+    const auth = getAuth();
+    const host = auth.emulatorConfig?.host;
+    if (host !== '127.0.0.1' && host !== 'localhost' && host !== '::1') return;
+    (globalThis as { __cultuvillaE2E?: unknown }).__cultuvillaE2E = {
+      login: (email: string, password: string) =>
+        signInWithEmailAndPassword(auth, email, password),
+      signOut: () => fbSignOut(auth),
+    };
+  }, []);
+
   const loadProfile = useCallback(async (uid: string) => {
     setProfileLoading(true);
     try {

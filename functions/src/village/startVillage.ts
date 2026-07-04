@@ -21,10 +21,6 @@ interface StartVillageData {
    * applied when the village has no escudo yet.
    */
   escudoManualUrl?: string;
-  /** Location set by the starter; written server-side during activation
-   *  (the muni doc is admin-only on the client). */
-  coordinates?: { lat: number; lng: number } | null;
-  mapZoom?: number | null;
 }
 
 interface StartVillageResult {
@@ -34,7 +30,7 @@ interface StartVillageResult {
 /**
  * Self-service activation. A villager brings a dormant municipality's community
  * to life WITHOUT becoming its organizer: the community is created with
- * `adminUserId: null` (wiki phase — any member can edit its basic info until an
+ * `organizerId: null` (wiki phase — any member can edit its basic info until an
  * organizer is granted), and the caller is added as a plain member. Becoming the
  * organizer is a separate, superadmin-approved step (requestOrganizeVillage).
  */
@@ -45,7 +41,7 @@ export const startVillage = onCall<StartVillageData, Promise<StartVillageResult>
     const auth = request.auth;
     if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
-    const { municipalityId, description, escudoManualUrl, coordinates, mapZoom } = request.data;
+    const { municipalityId, description, escudoManualUrl } = request.data;
     if (!municipalityId) {
       throw new HttpsError('invalid-argument', 'municipalityId requerido.');
     }
@@ -68,21 +64,20 @@ export const startVillage = onCall<StartVillageData, Promise<StartVillageResult>
       const trimmedEscudo = escudoManualUrl?.trim();
       const setEscudo = Boolean(trimmedEscudo) && muniData?.escudoManualUrl == null;
 
-      // tx.update bypasses the converter — FieldValue.serverTimestamp() is fine.
-      // Untyped doc ref → use the loose UpdateData<DocumentData> so a top-level
-      // `coordinates: null` (cleared location) typechecks, mirroring the client.
+      // tx.update bypasses the converter, so the nested community object can
+      // carry a FieldValue.serverTimestamp(); the loose UpdateData<DocumentData>
+      // keeps that mixed shape typecheckable. Activation never touches location —
+      // coordinates/mapZoom are set only via the admin-only edit path.
       const update: UpdateData<DocumentData> = {
         communityActive: true,
         community: {
           description: (description ?? '').trim(),
-          adminUserId: null,
+          organizerId: null,
           profileForm: null,
           activatedAt: FieldValue.serverTimestamp(),
         },
       };
       if (setEscudo) update.escudoManualUrl = trimmedEscudo;
-      if (coordinates !== undefined) update.coordinates = coordinates;
-      if (mapZoom !== undefined) update.mapZoom = mapZoom;
       tx.update(muniRef, update);
 
       // Converter rejects FieldValue sentinels on set; joinedAt is a plain Date.

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, View } from 'react-native';
-import { Screen, VStack, HStack, Text, Button } from '../../components/primitives';
+import { router } from 'expo-router';
+import { Screen, VStack, HStack, Text, Button, Avatar, Pressable } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { SegmentedToggle } from '../../components/feature/SegmentedToggle';
 import { useT } from '../../lib/i18n';
@@ -11,6 +12,8 @@ import {
   getMyOrganizerRequests,
   respondToOrganizerRequest,
 } from '@cultuvilla/shared/services/organizerRequestService';
+import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
+import { buildDisplayName } from '@cultuvilla/shared/models/person';
 import {
   getPendingOrganizations,
   getOrganizationsByMunicipality,
@@ -57,6 +60,9 @@ export default function SolicitudesScreen() {
   // Shared name maps (shared between inbox and outbox)
   const [municipalityNames, setMunicipalityNames] = useState<Record<string, string>>({});
   const [orgNames, setOrgNames] = useState<Record<string, string>>({});
+  const [requesterByUid, setRequesterByUid] = useState<
+    Record<string, { name: string; photoURL: string | null }>
+  >({});
 
   // Busy state keyed by `${type}-${id}`
   const [busyKey, setBusyKey] = useState<string | null>(null);
@@ -124,6 +130,31 @@ export default function SolicitudesScreen() {
       setOrganizerRows(fetchedOrganizerRows);
       setOrgRows(fetchedOrgRows);
       setJoinRows(fetchedJoinRows);
+
+      // Resolve organizer-request requesters (name + photo)
+      const requesterFetches = fetchedOrganizerRows.map(async (r) => {
+        if (requesterByUid[r.userId]) return;
+        const p = await getPersonByUserId(r.userId);
+        return [
+          r.userId,
+          {
+            name: p ? buildDisplayName(p) : r.userId,
+            photoURL: p?.photoURL ?? null,
+          },
+        ] as const;
+      });
+      const resolvedRequesters = await Promise.all(requesterFetches);
+      const newRequesters = resolvedRequesters.filter(
+        (pair): pair is readonly [string, { name: string; photoURL: string | null }] =>
+          pair !== undefined,
+      );
+      if (newRequesters.length > 0) {
+        setRequesterByUid((prev) => {
+          const next = { ...prev };
+          for (const [id, v] of newRequesters) next[id] = v;
+          return next;
+        });
+      }
 
       // Resolve municipality names
       const municipalityFetches = [...newMunicipalityIds].map(async (mid) => {
@@ -261,8 +292,7 @@ export default function SolicitudesScreen() {
     setBusyKey(key);
     try {
       if (decision === 'approved') {
-        const reviewedBy = user?.uid ?? '';
-        await approveOrganization(row.id, reviewedBy, row.requestedBy);
+        await approveOrganization(row.id);
       } else {
         await rejectOrganization(row.id);
       }
@@ -315,42 +345,75 @@ export default function SolicitudesScreen() {
             {organizerRows.map((row) => {
               const key = `organizer-${row.id}`;
               const municipalityName = municipalityNames[row.municipalityId] ?? row.municipalityId;
+              const requester = requesterByUid[row.userId];
+              const name = requester?.name ?? row.userId;
               return (
-                <VStack
+                <Pressable
                   key={row.id}
-                  gap={2}
+                  onPress={() => router.push(`/user/${row.userId}` as never)}
                   className="bg-surface border border-subtle rounded-xl p-3"
                 >
-                  <Text>
-                    {t('solicitudes.organizerRow', {
-                      user: row.userId,
-                      municipality: municipalityName,
-                    })}
-                  </Text>
-                  {row.motivation && row.motivation.trim().length > 0 && (
-                    <VStack gap={0}>
-                      <Text tone="muted" variant="caption">
-                        {t('solicitudes.motivation')}
-                      </Text>
-                      <Text className="italic text-sm">"{row.motivation}"</Text>
-                    </VStack>
-                  )}
-                  <HStack gap={2}>
-                    <Button
-                      onPress={() => handleOrganizerDecide(row, 'approved')}
-                      loading={busyKey === key}
-                    >
-                      {t('solicitudes.approve')}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      onPress={() => handleOrganizerDecide(row, 'rejected')}
-                      loading={busyKey === key}
-                    >
-                      {t('solicitudes.reject')}
-                    </Button>
-                  </HStack>
-                </VStack>
+                  <VStack gap={2}>
+                    <HStack gap={2} className="items-center">
+                      <Avatar
+                        uri={requester?.photoURL ?? undefined}
+                        size={40}
+                        initials={name.charAt(0).toUpperCase()}
+                      />
+                      <VStack gap={0} className="flex-1">
+                        <Text className="font-semibold">{name}</Text>
+                        <HStack gap={1} className="items-center flex-wrap">
+                          <Text tone="muted" variant="caption">
+                            {t('solicitudes.wantsToAdminister')}
+                          </Text>
+                          {/* onStartShouldSetResponder claims the responder chain so
+                              react-native-web stops the click from bubbling to the
+                              outer card Pressable (RN's native responder system
+                              already isolates this; the web DOM does not). */}
+                          <View onStartShouldSetResponder={() => true}>
+                            <Pressable
+                              onPress={() =>
+                                router.push({
+                                  pathname: '/village/[villageId]',
+                                  params: { villageId: row.municipalityId },
+                                } as never)
+                              }
+                            >
+                              <Text variant="caption" style={{ textDecorationLine: 'underline' }}>
+                                {municipalityName}
+                              </Text>
+                            </Pressable>
+                          </View>
+                        </HStack>
+                      </VStack>
+                    </HStack>
+                    {row.motivation && row.motivation.trim().length > 0 && (
+                      <VStack gap={0}>
+                        <Text tone="muted" variant="caption">
+                          {t('solicitudes.motivation')}
+                        </Text>
+                        <Text className="italic text-sm">"{row.motivation}"</Text>
+                      </VStack>
+                    )}
+                    <View onStartShouldSetResponder={() => true}>
+                      <HStack gap={2}>
+                        <Button
+                          onPress={() => handleOrganizerDecide(row, 'approved')}
+                          loading={busyKey === key}
+                        >
+                          {t('solicitudes.approve')}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onPress={() => handleOrganizerDecide(row, 'rejected')}
+                          loading={busyKey === key}
+                        >
+                          {t('solicitudes.reject')}
+                        </Button>
+                      </HStack>
+                    </View>
+                  </VStack>
+                </Pressable>
               );
             })}
           </VStack>

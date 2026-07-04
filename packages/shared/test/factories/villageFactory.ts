@@ -34,7 +34,7 @@ export function makeActiveCommunity(
     ...base,
     community: buildVillageCommunity({
       description: 'Test community',
-      adminUserId: 'test-admin',
+      organizerId: 'test-admin',
     }),
     communityActive: true,
     ...overrides,

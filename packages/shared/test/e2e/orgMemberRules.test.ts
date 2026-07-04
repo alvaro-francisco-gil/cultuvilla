@@ -1,19 +1,16 @@
 // packages/shared/test/e2e/orgMemberRules.test.ts
-import { describe, it, beforeAll, afterAll, beforeEach } from 'vitest';
-import {
-  initializeTestEnvironment, assertSucceeds, assertFails,
-  type RulesTestEnvironment,
-} from '@firebase/rules-unit-testing';
+import { describe, it, beforeEach } from 'vitest';
+import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { useRulesTestEnv } from '../helpers/rulesTestEnv';
+import { asUser } from '../helpers/roles';
 
-let env: RulesTestEnvironment;
+const getEnv = useRulesTestEnv();
 const MID = 'mun1';
 const ORG = 'org1';
 
 async function seed() {
-  await env.withSecurityRulesDisabled(async (ctx) => {
+  await getEnv().withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
     await setDoc(doc(db, `organizations/${ORG}`), {
       name: 'Peña', description: null, imageURL: null, type: 'peña',
@@ -26,46 +23,46 @@ async function seed() {
   });
 }
 
-beforeAll(async () => {
-  const rules = readFileSync(resolve(__dirname, '../../../../firestore.rules'), 'utf8');
-  env = await initializeTestEnvironment({ projectId: 'cultuvilla-rules-test', firestore: { rules } });
-});
-beforeEach(async () => { await env.clearFirestore(); await seed(); });
-afterAll(async () => { await env.cleanup(); });
+beforeEach(async () => { await seed(); });
 
 describe('org members — roles', () => {
   it('an org member can add another member with role member', async () => {
-    const db = env.authenticatedContext('member1').firestore();
+    const db = asUser(getEnv(), 'member1');
     await assertSucceeds(setDoc(doc(db, `organizations/${ORG}/members/newbie`), { joinedAt: new Date(), role: 'member' }));
   });
 
   it('a plain member cannot add an admin', async () => {
-    const db = env.authenticatedContext('member1').firestore();
+    const db = asUser(getEnv(), 'member1');
     await assertFails(setDoc(doc(db, `organizations/${ORG}/members/newadmin`), { joinedAt: new Date(), role: 'admin' }));
   });
 
-  it('an org admin can promote a member (update role)', async () => {
-    const db = env.authenticatedContext('creator').firestore();
-    await assertSucceeds(updateDoc(doc(db, `organizations/${ORG}/members/member1`), { role: 'admin' }));
+  it('an org admin CANNOT change a role via client update (function-owned — use changeOrgMemberRole)', async () => {
+    const db = asUser(getEnv(), 'creator');
+    await assertFails(updateDoc(doc(db, `organizations/${ORG}/members/member1`), { role: 'admin' }));
+  });
+
+  it('an org admin CANNOT create an admin member from the client (role is function-owned)', async () => {
+    const db = asUser(getEnv(), 'creator');
+    await assertFails(setDoc(doc(db, `organizations/${ORG}/members/newadmin`), { joinedAt: new Date(), role: 'admin' }));
   });
 
   it('a plain member cannot change roles', async () => {
-    const db = env.authenticatedContext('member1').firestore();
+    const db = asUser(getEnv(), 'member1');
     await assertFails(updateDoc(doc(db, `organizations/${ORG}/members/creator`), { role: 'member' }));
   });
 
   it('an org admin can remove a member', async () => {
-    const db = env.authenticatedContext('creator').firestore();
+    const db = asUser(getEnv(), 'creator');
     await assertSucceeds(deleteDoc(doc(db, `organizations/${ORG}/members/member1`)));
   });
 
   it('a member can remove themselves', async () => {
-    const db = env.authenticatedContext('member1').firestore();
+    const db = asUser(getEnv(), 'member1');
     await assertSucceeds(deleteDoc(doc(db, `organizations/${ORG}/members/member1`)));
   });
 
   it('a doc with an unknown field is rejected on create', async () => {
-    const db = env.authenticatedContext('member1').firestore();
+    const db = asUser(getEnv(), 'member1');
     await assertFails(setDoc(doc(db, `organizations/${ORG}/members/newbie`), { joinedAt: new Date(), role: 'member', evil: true }));
   });
 });

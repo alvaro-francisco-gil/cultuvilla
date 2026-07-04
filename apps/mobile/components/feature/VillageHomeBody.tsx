@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View, Image, Linking } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import {
   Text,
@@ -119,8 +120,8 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
     pendingOrganizerRequest,
   } = data;
   const canManage = isAppAdmin || villageAdmin;
-  // Wiki phase: active but no organizer granted yet (community.adminUserId null).
-  const noOrganizer = village.community?.adminUserId == null;
+  // Wiki phase: active but no organizer granted yet (community.organizerId null).
+  const noOrganizer = village.community?.organizerId == null;
   const villageBase = `/village/${village.id}` as const;
 
   const caps = { canManage, uid: user?.uid ?? null };
@@ -329,9 +330,26 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
         {noOrganizer ? (
           <VStack gap={2} className="px-4 pt-2">
             {pendingOrganizerRequest ? (
-              <Text tone="muted" variant="bodySm" className="text-center">
-                {t('village.noOrganizer.pending')}
-              </Text>
+              <Pressable
+                disabled
+                onPress={() => {}}
+                accessibilityLabel={t('village.noOrganizer.pending')}
+                accessibilityState={{ disabled: true }}
+                className="flex-row items-center justify-center bg-surface"
+                style={{
+                  paddingVertical: 5,
+                  paddingHorizontal: 12,
+                  borderRadius: 24,
+                  borderWidth: 1.5,
+                  borderColor: ACCENT,
+                  minHeight: 32,
+                  opacity: 0.5,
+                }}
+              >
+                <Text style={{ color: ACCENT }} className="font-semibold">
+                  {t('village.noOrganizer.pending')}
+                </Text>
+              </Pressable>
             ) : (
               <Pressable
                 onPress={() => router.push(`/discover/organize/${village.id}` as never)}
@@ -357,7 +375,9 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           </VStack>
         ) : null}
 
-        {/* ── Ubicación (map rectangle, when coordinates are set) ── */}
+        {/* ── Ubicación: the map rectangle when coordinates are set; for admins,
+            a dashed "add location" placeholder in the same footprint when it's
+            missing (location is edited in the community "Detalles" step). ── */}
         {village.coordinates ? (
           <View className="px-4 pt-2">
             <Pressable
@@ -375,6 +395,22 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
                 style={{ width: '100%', aspectRatio: 2.5, borderRadius: 16 }}
                 resizeMode="cover"
               />
+            </Pressable>
+          </View>
+        ) : canManage ? (
+          <View className="px-4 pt-2">
+            <Pressable
+              onPress={() => router.push(`/village/${village.id}/community` as never)}
+              accessibilityLabel={t('village.location.add')}
+              className="items-center justify-center gap-2 rounded-2xl border border-dashed border-subtle"
+              style={{ width: '100%', aspectRatio: 2.5 }}
+            >
+              {/* icon size mirrors VillageSections' AddCard so this reads as the
+                  same dashed "add" affordance, just in the map's footprint. */}
+              <Ionicons name="location-outline" size={44} color={ACCENT} />
+              <Text variant="bodySm" className="font-medium">
+                {t('village.location.add')}
+              </Text>
             </Pressable>
           </View>
         ) : null}

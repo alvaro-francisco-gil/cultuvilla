@@ -52,12 +52,26 @@ arrive as notifications.
 | Request | Collection | Created by | Approved by |
 |---|---|---|---|
 | Organizer (be the pueblo's organizer) | `organizerRequests/` | any user | super admin (`respondToOrganizerRequest` callable) |
-| Organization (create peña/asociación/ayuntamiento) | `organizations/` (status `pending`) | village member | village admin (own village) or super admin (`approveOrganization`/`rejectOrganization`) |
+| Organization (create peña/asociación/ayuntamiento) | `organizations/` (status `pending`) | village member | village admin (own village) or super admin (`approveOrganization` callable; `rejectOrganization` stays a client write) |
 | Join org (join a peña/asociación) | `organizationJoinRequests/` | any authed non-member | org admin or super admin (`respondToJoinRequest` callable) |
 
-Org membership has a `role: 'admin' | 'member'`. Org admins approve join requests,
-remove members, and promote/demote; the `requestedBy` creator is seeded as admin on
-org approval. Village/app admins are the backstop.
+**Membership roles & the audit log.** Villages and orgs are the same abstraction —
+a membership group with members that carry a `role` and one *founder*. Authority is
+ALWAYS the role flag, never the founder pointer:
+
+- **Village:** members at `municipalities/{id}/members/{uid}` with `role: 'admin' | 'user'`.
+  `community.organizerId` is the *founding organizer* — a single, nullable pointer
+  (`null` during the wiki phase, where any member may edit basic info). It grants no
+  authority of its own and it is **not** "the admin": a village can have many admins.
+- **Org:** members at `organizations/{orgId}/members/{uid}` with `role: 'admin' | 'member'`;
+  `requestedBy` is the founder, seeded as admin on approval.
+
+`role` is **function-owned** — clients cannot write it. New admins are created (and
+demoted) only through the audited callables **`changeVillageMemberRole` /
+`changeOrgMemberRole`**, which verify authority, mutate the role, and append to the
+append-only **`membershipEvents/`** log (top-level, scoped by `municipalityId`,
+readable by the village/org admins) in one transaction. Organizer approval, org
+approval, and join approval also emit events. Village/app admins are the backstop.
 
 ### 4. Denormalized read models for high fan-out
 
@@ -161,6 +175,16 @@ ci(scope): ...
 
 Header ≤ 100 chars. Direct-to-`develop` is fine for small self-contained changes; `beta` and `main` advance only via promotion PRs (see the branch model under Development workflow).
 
+### Versioning & releases
+
+- **Marketing version** (`app.config.ts` `version`, semver `MAJOR.MINOR.PATCH`) is the single source of truth; `apps/mobile/package.json` mirrors it. MAJOR = redesign/breaking migration, MINOR = new feature, PATCH = fixes.
+- **Pre-release (now): stay on `0.x`.** Until the app is actually published to the stores, the MAJOR stays `0` — do **not** jump to `1.0.0`. Bump the **MINOR** on every `develop → beta` promotion (`0.1.0 → 0.2.0 → …`) as a running counter to track what's on beta. The `1.0.0` bump happens once, at the first real store release.
+- **Set the version in the `develop → beta` promotion PR** (beta = release candidate); it rides unchanged into `main`. Build numbers auto-increment (EAS `appVersionSource: remote`). **CI enforces this**: `.github/workflows/version-gate.yml` fails any PR targeting `beta` whose `app.config.ts` `version` isn't strictly greater than beta's, so the bump can't be forgotten. Use the `prepare-release` skill to do it.
+- **Force-update gate is dormant pre-release.** `config/appVersion.minSupported` is `0.0.0` (never blocks) while unreleased; keep `latest` in step with the current `app.config.ts` version. Only raise `minSupported` above `0.0.0` once real store clients exist.
+- **Tag `vX.Y.Z` on the `main` merge commit** and push it.
+- **CHANGELOG:** on a cut release, stamp the version into the section heading (`## vX.Y.Z — YYYY-MM-DD`).
+- **Force-update gate:** clients read `config/appVersion` on launch (`appConfigService`) and block/nudge via `resolveVersionGate`. When you ship a client-breaking backend change (see *No retrocompat shims*), bump that doc's `minSupported` to the version carrying the client fix, at release time.
+
 ### Delete > deprecate
 
 If something is unused, delete it. Don't leave dead code, "removed: …" comments, or shim re-exports. Git keeps history; the codebase should reflect the present.
@@ -172,6 +196,7 @@ When changing the shape of data already in Firestore, surface the migration expl
 - Note the affected docs and field(s) in the commit body and the PR description.
 - Add a backfill script under `scripts/` when the change can't be expressed as a Cloud Function trigger.
 - Don't leave dual-read code, shim re-exports, or `// removed: …` comments. Pairs with the `### Delete > deprecate` rule above.
+- If the change breaks older store clients, raise `config/appVersion.minSupported` to the fixed version at release time (see *Versioning & releases*).
 
 Only add a compatibility layer when the user explicitly asks for one (e.g. when an in-flight client release would break without it).
 

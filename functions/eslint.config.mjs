@@ -44,6 +44,6 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['lib/**', 'dist/**', 'node_modules/**'],
+    ignores: ['lib/**', 'dist/**', 'node_modules/**', 'coverage/**'],
   },
 );

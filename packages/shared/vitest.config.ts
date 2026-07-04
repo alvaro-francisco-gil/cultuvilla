@@ -29,7 +29,20 @@ export default defineConfig({
       'test/eslint/**/*.test.ts',
       'test/design-system/**/*.test.ts',
       'test/utils/**/*.test.ts',
+      'test/validation/**/*.test.ts',
     ],
     retry: Number.isFinite(RETRY) && RETRY > 0 ? RETRY : 0,
+    // Report-only (D4 in docs/plans/ongoing/testing-enhancement.md): coverage is
+    // collected only when --coverage is passed; there is no threshold gate yet.
+    // `all: true` reports untested src files as 0% instead of omitting them.
+    coverage: {
+      enabled: false,
+      provider: 'v8',
+      reporter: ['text-summary', 'lcov'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.d.ts'],
+      all: true,
+    },
   },
 });

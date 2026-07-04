@@ -48,7 +48,7 @@ export const requestOrganizeVillage = onCall<
     if (muniData?.communityActive !== true) {
       throw new HttpsError('failed-precondition', 'Primero hay que iniciar el pueblo.');
     }
-    if (muniData.community?.adminUserId != null) {
+    if (muniData.community?.organizerId != null) {
       throw new HttpsError('already-exists', 'Este pueblo ya tiene organizador.');
     }
 

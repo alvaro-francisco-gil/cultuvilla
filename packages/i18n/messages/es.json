@@ -238,6 +238,7 @@
       "directions": "Cómo llegar"
     },
     "location": {
+      "add": "Añadir ubicación",
       "openMapsTitle": "¿Abrir Google Maps?",
       "open": "Abrir",
       "zoomLabel": "Zoom del mapa",
@@ -343,7 +344,7 @@
     "noOrganizer": {
       "body": "Este pueblo todavía no tiene administrador.",
       "cta": "Administrar este pueblo",
-      "pending": "Tu solicitud de administrador está pendiente de revisión"
+      "pending": "Solicitud pendiente"
     },
     "hub": {
       "events": "Eventos",
@@ -498,6 +499,9 @@
       "cancelConfirm": "Sí, cancelar",
       "phoneTitle": "Tu teléfono",
       "phonePlaceholder": "Número de teléfono",
+      "phoneInvalid": "Introduce un número de teléfono válido",
+      "phoneSearch": "Buscar país",
+      "phoneNoResults": "Sin resultados",
       "signedUpCount": "{count, plural, one {Apuntado} other {Apuntados (#)}}",
       "attendeesTitle": "¿A quién quieres apuntar?",
       "createPersona": "Crear una nueva persona",
@@ -568,6 +572,7 @@
       "admin": "Administrador",
       "member": "Miembro"
     },
+    "version": "Versión {version} ({build})",
     "villagesEntry": "Mis pueblos",
     "villagesSection": {
       "join": "Unirse a otro pueblo"
@@ -631,10 +636,15 @@
       "birthday": "Fecha de nacimiento",
       "birthPlace": "Lugar de nacimiento (opcional)",
       "biography": "Biografía (opcional)",
+      "biographySelf": "Cuenta algo al pueblo sobre ti",
       "submit": "Crear perfil",
       "requiredFields": "Nombre, ambos apellidos y fecha de nacimiento son obligatorios.",
       "error": "No se pudo guardar el perfil"
     }
+  },
+  "imageCrop": {
+    "title": "Ajusta tu foto",
+    "confirm": "Recortar"
   },
   "discover": {
     "title": "Buscar pueblo",
@@ -670,6 +680,7 @@
     "approve": "Aprobar",
     "reject": "Rechazar",
     "organizerRow": "{user} quiere administrar {municipality}",
+    "wantsToAdminister": "quiere administrar",
     "motivation": "Motivo",
     "joinRow": "{user} quiere unirse a {org}",
     "orgRow": "{org} ({type})"
@@ -689,7 +700,6 @@
     "explainer": "Iniciar el pueblo lo activa para que cualquier vecino pueda unirse. Serás su primer miembro y podrás añadir su información. No te convierte en administrador.",
     "escudoAdd": "Añadir escudo (opcional)",
     "escudoSelected": "Escudo seleccionado",
-    "locationLabel": "Añadir ubicación del pueblo",
     "organizeIntro": "Si además quieres supervisar la creación de elementos representativos de tu pueblo, como asociaciones, lugares o barrios, solicita ser administrador.",
     "organizeToggle": "Quiero administrar este pueblo",
     "phoneLabel": "Teléfono de contacto",
@@ -813,5 +823,15 @@
     },
     "shareViewLabel": "Compartir",
     "shareInviteLabel": "Invitar a unirse"
+  },
+  "appUpdate": {
+    "blockTitle": "Actualización necesaria",
+    "blockBody": "Esta versión ya no es compatible. Actualiza para seguir usando Cultuvilla.",
+    "nudge": "Hay una versión nueva disponible.",
+    "cta": "Actualizar"
+  },
+  "userProfile": {
+    "title": "Perfil",
+    "notFound": "No se encontró el usuario"
   }
 }

@@ -15,6 +15,7 @@ export { startVillage } from './village/startVillage';
 export { updateVillageInfo } from './village/updateVillageInfo';
 export { requestOrganizeVillage } from './village/requestOrganizeVillage';
 export { respondToOrganizerRequest } from './village/respondToOrganizerRequest';
+export { changeVillageMemberRole } from './village/changeVillageMemberRole';
 export { syncVillageDenormalization } from './village/syncVillageDenormalization';
 export { syncMemberBarrioToResidence } from './village/syncMemberBarrioToResidence';
 
@@ -22,6 +23,8 @@ export { syncMemberBarrioToResidence } from './village/syncMemberBarrioToResiden
 export { requestAyuntamiento } from './organizations/requestAyuntamiento';
 export { requestJoinOrganization } from './organizations/requestJoinOrganization';
 export { respondToJoinRequest } from './organizations/respondToJoinRequest';
+export { approveOrganization } from './organizations/approveOrganization';
+export { changeOrgMemberRole } from './organizations/changeOrgMemberRole';
 
 // Census (censo + occupation proposals)
 export { updateCenso } from './census/updateCenso';
