@@ -345,7 +345,7 @@ export default function SolicitudesScreen() {
               return (
                 <Pressable
                   key={row.id}
-                  onPress={() => router.push(`/user/${row.userId}`)}
+                  onPress={() => router.push(`/user/${row.userId}` as never)}
                   className="bg-surface border border-subtle rounded-xl p-3"
                 >
                   <VStack gap={2}>
@@ -366,7 +366,7 @@ export default function SolicitudesScreen() {
                               router.push({
                                 pathname: '/village/[villageId]',
                                 params: { villageId: row.municipalityId },
-                              })
+                              } as never)
                             }
                           >
                             <Text variant="caption" style={{ textDecorationLine: 'underline' }}>
