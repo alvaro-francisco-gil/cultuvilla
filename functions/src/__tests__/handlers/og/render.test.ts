@@ -130,7 +130,7 @@ describe('ogRenderer', () => {
       escudoManualUrl: 'https://x/manual.png',
       community: {
         description: 'Comunidad pequeña pero apañada',
-        adminUserId: 'admin-1',
+        organizerId: 'admin-1',
         createdAt: new Date(),
       },
       communityActive: true,
@@ -159,7 +159,7 @@ describe('ogRenderer', () => {
       escudoManualUrl: null,
       community: {
         description: 'Comunidad con escudo genérico',
-        adminUserId: 'admin-1',
+        organizerId: 'admin-1',
         createdAt: new Date(),
       },
       communityActive: true,
@@ -186,7 +186,7 @@ describe('ogRenderer', () => {
       escudoManualUrl: null,
       community: {
         description: 'Comunidad con solo miniatura de escudo',
-        adminUserId: 'admin-1',
+        organizerId: 'admin-1',
         createdAt: new Date(),
       },
       communityActive: true,
@@ -213,7 +213,7 @@ describe('ogRenderer', () => {
       escudoManualUrl: null,
       community: {
         description: 'Pueblo bonito',
-        adminUserId: 'admin-2',
+        organizerId: 'admin-2',
         createdAt: new Date(),
       },
       communityActive: true,

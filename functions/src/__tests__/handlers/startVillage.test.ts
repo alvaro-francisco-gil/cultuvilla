@@ -1,6 +1,6 @@
 // Handler test for the startVillage callable.
 // A villager activates a dormant municipality's community WITHOUT becoming its
-// organizer: the community is created with adminUserId === null, and the caller
+// organizer: the community is created with organizerId === null, and the caller
 // is added as a plain member.
 
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
@@ -33,7 +33,7 @@ async function seedMunicipality(communityActive: boolean): Promise<void> {
       escudoManualUrl: null,
       communityActive,
       community: communityActive
-        ? { description: 'ya', adminUserId: 'someone', profileForm: null, activatedAt: now }
+        ? { description: 'ya', organizerId: 'someone', profileForm: null, activatedAt: now }
         : null,
     });
 }
@@ -102,7 +102,7 @@ describe('startVillage (callable)', () => {
 
     const muniDoc = await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}`).get();
     expect(muniDoc.data()?.communityActive).toBe(true);
-    expect(muniDoc.data()?.community?.adminUserId).toBeNull();
+    expect(muniDoc.data()?.community?.organizerId).toBeNull();
     expect(muniDoc.data()?.community?.description).toBe('Mi pueblo');
 
     const memberDoc = await admin

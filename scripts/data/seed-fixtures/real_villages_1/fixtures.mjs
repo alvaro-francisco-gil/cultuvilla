@@ -8,7 +8,7 @@
 //
 //   1. Writes an `organizerRequests/{id}` doc as the requester (status=pending).
 //   2. Approves it as the app admin (status=approved, reviewedBy=admin).
-//   3. Activates the community on the municipality doc (community.adminUserId
+//   3. Activates the community on the municipality doc (community.organizerId
 //      = requester) and creates the admin membership subdoc.
 //
 // The requester ends up village admin; the audit trail in `organizerRequests`

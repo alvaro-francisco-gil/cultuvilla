@@ -72,7 +72,7 @@ export const respondToOrganizerRequest = onCall<
         if (muniData?.communityActive !== true) {
           throw new HttpsError('failed-precondition', 'El pueblo aún no está iniciado.');
         }
-        if (muniData.community?.adminUserId != null) {
+        if (muniData.community?.organizerId != null) {
           throw new HttpsError('already-exists', 'Este pueblo ya tiene organizador.');
         }
       }
@@ -88,7 +88,7 @@ export const respondToOrganizerRequest = onCall<
       if (decision === 'approved') {
         // Set the organizer on the existing community (dotted path preserves the
         // description/profileForm/activatedAt seeded at start time).
-        tx.update(muniRef, { 'community.adminUserId': requesterUid });
+        tx.update(muniRef, { 'community.organizerId': requesterUid });
         if (memberSnap.exists) {
           // Already a member (joined or started the village) → promote to admin.
           tx.update(memberRef, { role: 'admin' });

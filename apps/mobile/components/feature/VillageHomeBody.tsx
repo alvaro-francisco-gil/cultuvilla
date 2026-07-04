@@ -120,8 +120,8 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
     pendingOrganizerRequest,
   } = data;
   const canManage = isAppAdmin || villageAdmin;
-  // Wiki phase: active but no organizer granted yet (community.adminUserId null).
-  const noOrganizer = village.community?.adminUserId == null;
+  // Wiki phase: active but no organizer granted yet (community.organizerId null).
+  const noOrganizer = village.community?.organizerId == null;
   const villageBase = `/village/${village.id}` as const;
 
   const caps = { canManage, uid: user?.uid ?? null };

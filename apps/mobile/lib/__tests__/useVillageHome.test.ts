@@ -17,7 +17,7 @@ jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
     name: 'Anaya',
     province: 'Segovia',
     communityActive: true,
-    community: { adminUserId: null, description: null },
+    community: { organizerId: null, description: null },
   })),
   getBarrios: jest.fn(async () => [{ id: 'b1', name: 'Centro', status: 'approved' }]),
   getPlaces: jest.fn(async () => []),
