@@ -20,9 +20,10 @@ database-debug.log
 .claude/worktrees/
 
 # Firebase service-account keys — never commit
+# (canonical home is ~/.config/cultuvilla/<env>-sa.json, outside the repo)
 *firebase-adminsdk*.json
 *service-account*.json
-dev-sa.json
+*-sa.json
 
 # Firebase CLI state — records which Google account the CLI is logged in as
 .firebase-account

@@ -7,7 +7,28 @@ description: How to interact with the cultuvilla dev Firebase project (`villa-ev
 
 This skill is for **Node scripts** using `firebase-admin` against the dev project. For Firestore *rule/index/function deploys* see [firestore-deploy](../firestore-deploy/SKILL.md). For Cloud Logging / IAM / Secret Manager see [gcloud-cultuvilla](../gcloud-cultuvilla/SKILL.md).
 
-## Credentials — prefer service account, not user ADC
+## Targeting a named env? Go through the resolver
+
+For any script that must run against a specific env (dev/beta/prod) — grants, backfills, cleanups — initialize through [scripts/lib/env-credentials.mjs](../../../scripts/lib/env-credentials.mjs) rather than wiring credentials by hand:
+
+```js
+import { initAdminForEnv } from '../lib/env-credentials.mjs';
+const { env, projectId, auth } = initAdminForEnv('beta'); // or 'dev' | 'prod' | a project id
+```
+
+It pins `projectId` and resolves the credential in order: `GOOGLE_APPLICATION_CREDENTIALS` override → `~/.config/cultuvilla/<env>-sa.json` (a key) → `~/.config/cultuvilla/adc.json` (stored user ADC) → system default ADC. Canonical consumer: [scripts/grant-app-admin.mjs](../../../scripts/grant-app-admin.mjs); full policy: [docs/ENVIRONMENTS.md](../../../docs/ENVIRONMENTS.md#admin-sdk-credentials-per-env).
+
+**beta/prod block downloaded SA keys** (`iam.disableServiceAccountKeyCreation` org policy, Google secure-by-default), so they authenticate **keylessly** via a captured user ADC. Set it up once, as a project Owner:
+
+```bash
+gcloud auth application-default login
+gcloud auth application-default set-quota-project cultuvilla-beta
+cp ~/.config/gcloud/application_default_credentials.json ~/.config/cultuvilla/adc.json && chmod 600 ~/.config/cultuvilla/adc.json
+```
+
+The copy into `adc.json` isolates cultuvilla from the single global default-ADC file (which every `application-default login`, for any project, overwrites) — so you never re-login. One Owner login covers dev+beta+prod.
+
+## Credentials — service-account key (dev convenience)
 
 The admin SDK resolves credentials in this order:
 
@@ -28,12 +49,9 @@ Service account perms are bound to the key, scoped to the project, and don't dep
    mv ~/Downloads/villa-events-firebase-adminsdk-*.json ~/.config/cultuvilla/dev-sa.json
    chmod 600 ~/.config/cultuvilla/dev-sa.json
    ```
-3. **Persist env var** in `~/.bashrc` / `~/.zshrc`:
-   ```bash
-   export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/cultuvilla/dev-sa.json"
-   ```
+The resolver auto-discovers `~/.config/cultuvilla/dev-sa.json` — **do not** globally `export GOOGLE_APPLICATION_CREDENTIALS` to it, or it becomes an override that hijacks beta/prod runs and trips the project-match guard. Set that env var only for a one-off run against a non-standard key path.
 
-`.gitignore` already blocks `*firebase-adminsdk*.json`, `*service-account*.json`, `dev-sa.json` — never relax those.
+`.gitignore` blocks `*firebase-adminsdk*.json`, `*service-account*.json`, `*-sa.json` — never relax those.
 
 ### `gcloud` config can be anywhere
 
@@ -51,7 +69,7 @@ const auth = admin.auth();
 const { GeoPoint } = admin.firestore;
 ```
 
-Refuse to run against `cultuvilla-beta` / `cultuvilla-prod` from a Node script without explicit user insistence; those are CI-deploy targets, not ad-hoc-script targets. Mirror the guard from [scripts/seed/lib/context.mjs](../../../scripts/seed/lib/context.mjs):
+For **seed/backfill/wipe** scripts, refuse to run against `cultuvilla-beta` / `cultuvilla-prod` without explicit user insistence; those are CI-deploy targets, not ad-hoc-script targets. Mirror the guard from [scripts/seed/lib/context.mjs](../../../scripts/seed/lib/context.mjs):
 
 ```js
 if (projectId !== 'villa-events') {
@@ -59,6 +77,8 @@ if (projectId !== 'villa-events') {
   process.exit(1);
 }
 ```
+
+The sanctioned exception is a **deliberate per-env admin op** (e.g. `grant-app-admin`) run through `env-credentials.mjs`, which requires an explicit `--env` and, for beta/prod, an explicit `--yes`. That is a bootstrap action the user asked for, not a stray dev script pointed at prod by accident.
 
 ## Data shape — reuse the existing builders, never re-declare
 
