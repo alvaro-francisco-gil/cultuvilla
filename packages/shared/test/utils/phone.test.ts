@@ -5,6 +5,7 @@ import {
   flagEmoji,
   formatPhoneE164,
   isValidPhoneNumber,
+  parsePhoneE164,
 } from '../../src/utils/phone';
 
 describe('isValidPhoneNumber (Spain, +34)', () => {
@@ -56,6 +57,37 @@ describe('formatPhoneE164', () => {
   it('prefixes the dial code and strips separators', () => {
     expect(formatPhoneE164('600 123 456', '+34')).toBe('+34600123456');
     expect(formatPhoneE164('123-456', '+33')).toBe('+33123456');
+  });
+});
+
+describe('parsePhoneE164', () => {
+  it('splits a Spanish E.164 number into country + national', () => {
+    const r = parsePhoneE164('+34600123456');
+    expect(r.country.code).toBe('ES');
+    expect(r.national).toBe('600123456');
+  });
+
+  it('picks the country by its dial-code prefix', () => {
+    const r = parsePhoneE164('+33123456789');
+    expect(r.country.dialCode).toBe('+33');
+    expect(r.national).toBe('123456789');
+  });
+
+  it('round-trips with formatPhoneE164', () => {
+    const stored = '+34612345678';
+    const { country, national } = parsePhoneE164(stored);
+    expect(formatPhoneE164(national, country.dialCode)).toBe(stored);
+  });
+
+  it('treats a raw national number (no "+") as the default country', () => {
+    const r = parsePhoneE164('600 123 456');
+    expect(r.country.code).toBe('ES');
+    expect(r.national).toBe('600123456');
+  });
+
+  it('defaults gracefully on empty / unrecognized input', () => {
+    expect(parsePhoneE164('').country.code).toBe('ES');
+    expect(parsePhoneE164('').national).toBe('');
   });
 });
 

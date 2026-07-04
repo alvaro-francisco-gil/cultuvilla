@@ -293,3 +293,28 @@ export function isValidPhoneNumber(national: string, dialCode: string): boolean 
 export function formatPhoneE164(national: string, dialCode: string): string {
   return `${dialCode}${national.replace(/\D/g, '')}`;
 }
+
+/**
+ * Inverse of `formatPhoneE164`: split a stored number into the country it
+ * belongs to and the national part, so a `PhoneField` can be prefilled.
+ *
+ * - `"+34600123456"` → `{ country: España, national: "600123456" }`
+ *   (longest matching dial-code prefix wins; ties resolve to the first country
+ *   with that code — dial codes aren't unique, e.g. the +1 bloc).
+ * - A raw number with no `+` (legacy data written before E.164 storage) →
+ *   `{ country: DEFAULT_PHONE_COUNTRY, national: <digits> }`.
+ */
+export function parsePhoneE164(stored: string): { country: PhoneCountry; national: string } {
+  const trimmed = stored.trim();
+  if (trimmed.startsWith('+')) {
+    const normalized = `+${trimmed.slice(1).replace(/\D/g, '')}`;
+    let match: PhoneCountry | undefined;
+    for (const c of PHONE_COUNTRIES) {
+      if (normalized.startsWith(c.dialCode) && (!match || c.dialCode.length > match.dialCode.length)) {
+        match = c;
+      }
+    }
+    if (match) return { country: match, national: normalized.slice(match.dialCode.length) };
+  }
+  return { country: DEFAULT_PHONE_COUNTRY, national: trimmed.replace(/\D/g, '') };
+}

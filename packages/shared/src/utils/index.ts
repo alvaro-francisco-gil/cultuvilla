@@ -11,5 +11,6 @@ export {
   flagEmoji,
   formatPhoneE164,
   isValidPhoneNumber,
+  parsePhoneE164,
   type PhoneCountry,
 } from './phone';
