@@ -7,10 +7,10 @@ This is **Stage 3** of [testing-enhancement.md](testing-enhancement.md), split i
 ## Status
 
 - **Updated:** 2026-07-04
-- **Stage:** 3a (substrate) — building emulator-connect seam, seed emulator mode + e2e fixtures, bypass-leak gate.
+- **Stage:** 3a + 3b + 3c all **authored** on `feat/e2e-substrate` (commits 3a/3b/3c). Awaiting the CI `web-e2e` job as the verification gate.
 - **Branch:** `feat/e2e-substrate` (worktree `.claude/worktrees/e2e-substrate/`) — one PR to `develop`, scoped as 3a/3b/3c commits.
-- **Done:** none yet (parent Stages 1–2 merged in PR #39).
-- **Next:** 3a → 3b (fixture-login + first flow) → 3c (CI `web-e2e` job + more flows).
+- **Done:** 3a substrate (emulator-connect seam, flag, seed emulator mode + standalone `pnpm seed:e2e`, bypass-leak gate + unit test); 3b fixture-login seam (+ loopback assertion) + Playwright config/lib + two flows (sign-up, deep-link smoke); 3c `web-e2e` CI job + deploy "flag unset" guard + CHANGELOG. Parent Stages 1–2 merged (PR #39).
+- **Next:** Open the PR; let the CI `web-e2e` job run. **Likely needs a round or two of selector/setup iteration** since the flows were authored without running the app — the deterministic Firebase-state assertions are the stable backbone; the UI-driving selectors are the fragile part to tune from CI artifacts. Then add the deferred organizer-request→approval flow.
 - **Blockers:** none. Security model **signed off 2026-07-04** (Option 1C — see parent plan Handoff). Agent cannot run emulators/Playwright (AGENTS.md); the CI `web-e2e` job is the verification gate.
 - **Handoff:**
   - **Ships as ONE PR**, 3a/3b/3c as separate commits (not three PRs) — pre-users, deployed artifact is identical regardless of PR count; the fail-closed design is the guardrail, not the PR boundary.
@@ -83,19 +83,21 @@ Add a `web-e2e` job: checkout → pnpm → Node 22 → **`actions/setup-java@v4`
 
 ## Tasks
 
+Legend: `[x]` authored + agent-runnable-verified · `[~]` authored, verified only by the CI `web-e2e` job (agent can't run emulators/Playwright) · `[ ]` not started.
+
 ### Stage 3a — Substrate (no product-facing behaviour change in real builds)
-- [ ] Emulator-connect seam in `firebaseInit.ts` + `USE_FIREBASE_EMULATOR` in `app.config.ts`.
-- [ ] Emulator mode in `scripts/seed/lib/context.mjs`; `e2e` dataset + `pnpm seed:e2e`; verify it seeds a running emulator.
-- [ ] Bypass-leak gate `check-no-test-login-leak.mjs` + wire into `pnpm check`/`ci.yml`.
+- [x] Emulator-connect seam in `firebaseInit.ts` + `USE_FIREBASE_EMULATOR` in `app.config.ts`.
+- [~] Emulator mode in `scripts/seed/lib/context.mjs`; `e2e` fixtures + `pnpm seed:e2e` (standalone seeder, not a demo dataset — see File Structure note). Seeds a running emulator: CI-verified.
+- [x] Bypass-leak gate `check-no-test-login-leak.mjs` (pure logic unit-tested) + wired into `pnpm check` / `ci.yml`.
 
 ### Stage 3b — Fixture-login + first flow
-- [ ] Activate fixture-login under `useEmulator` in `AuthContext.tsx` (gate + bypass-leak allowlist entry in the same change — D2).
-- [ ] Playwright config + `e2e/lib/` substrate + the auth→feed→sign-up flow, run locally against emulator + served `dist`.
+- [x] Fixture-login seam under `useEmulator` in `AuthContext.tsx` (+ runtime loopback assertion; bypass-leak allowlist entry — D2 / Option 1C).
+- [~] Playwright config + `e2e/lib/` substrate + the anon→feed→login→sign-up flow. Runs against emulator + served `dist`: CI-verified.
 
 ### Stage 3c — CI + more flows
-- [ ] `web-e2e` job in `mobile-ci.yml` (per-PR); browser cache; green on CI.
-- [ ] Organizer-request→approval and deep-link flows.
-- [ ] CHANGELOG; update parent plan Status.
+- [~] `web-e2e` job in `mobile-ci.yml` (per-PR, D3) + deploy-workflow "flag unset" assertion. Green-on-CI: pending first run.
+- [~] Deep-link render smoke flow. **Organizer-request→approval flow deferred** — it drives multi-step admin UI; add as a fast-follow once the substrate is proven green in CI.
+- [x] CHANGELOG; parent plan Status updated.
 
 ## Out of scope (later / separate)
 - **Native Maestro (Stage 4)** — its own plan; reuses this substrate's fixtures + fixture-login + state assertions per D1.
