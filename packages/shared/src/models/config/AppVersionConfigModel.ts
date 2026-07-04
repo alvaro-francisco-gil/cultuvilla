@@ -9,8 +9,8 @@ export const AppVersionConfigSchema = z.object({
   ios: PlatformVersionsSchema,
   android: PlatformVersionsSchema,
   storeUrl: z.object({
-    ios: z.string(),
-    android: z.string(),
+    ios: z.url(),
+    android: z.url(),
   }),
 });
 export type AppVersionConfig = z.infer<typeof AppVersionConfigSchema>;

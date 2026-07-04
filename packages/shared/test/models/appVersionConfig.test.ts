@@ -16,4 +16,9 @@ describe('AppVersionConfigSchema', () => {
     const { android: _drop, ...rest } = valid;
     expect(() => AppVersionConfigSchema.parse(rest)).toThrow();
   });
+
+  it('rejects a config with an invalid storeUrl', () => {
+    const bad = { ...valid, storeUrl: { ...valid.storeUrl, ios: 'not-a-url' } };
+    expect(() => AppVersionConfigSchema.parse(bad)).toThrow();
+  });
 });
