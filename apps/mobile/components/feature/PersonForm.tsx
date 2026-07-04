@@ -130,21 +130,25 @@ export function PersonForm({
               label={t('onboarding.completeProfile.givenName')}
               value={givenName}
               onChangeText={setGivenName}
+              testID="person-given-name"
             />
             <Input
               label={t('onboarding.completeProfile.firstSurname')}
               value={firstSurname}
               onChangeText={setFirstSurname}
+              testID="person-first-surname"
             />
             <Input
               label={t('onboarding.completeProfile.secondSurname')}
               value={secondSurname}
               onChangeText={setSecondSurname}
+              testID="person-second-surname"
             />
             <Input
               label={t('onboarding.completeProfile.nickname')}
               value={nickname}
               onChangeText={setNickname}
+              testID="person-nickname"
             />
             <VStack gap={1}>
               <FieldLabel>{t('onboarding.completeProfile.sex')}</FieldLabel>
@@ -155,6 +159,7 @@ export function PersonForm({
                     <Pressable
                       key={opt}
                       onPress={() => setSex(opt)}
+                      testID={`person-sex-${opt}`}
                       accessibilityLabel={t(`onboarding.completeProfile.sex_${opt}`)}
                       className={`flex-1 py-2.5 rounded-md border items-center justify-center ${
                         active ? 'bg-accent border-accent' : 'bg-surface border-subtle'
@@ -237,6 +242,7 @@ export function PersonForm({
         loading={loading}
         submitError={error}
         allStepsReachable={editing}
+        primaryTestID="person-form-primary"
       />
     </KeyboardAvoidingView>
   );
