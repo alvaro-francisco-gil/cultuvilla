@@ -344,7 +344,7 @@
     "noOrganizer": {
       "body": "Este pueblo todavía no tiene administrador.",
       "cta": "Administrar este pueblo",
-      "pending": "Tu solicitud de administrador está pendiente de revisión"
+      "pending": "Solicitud pendiente"
     },
     "hub": {
       "events": "Eventos",

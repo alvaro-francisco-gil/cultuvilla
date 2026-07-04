@@ -330,9 +330,26 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
         {noOrganizer ? (
           <VStack gap={2} className="px-4 pt-2">
             {pendingOrganizerRequest ? (
-              <Text tone="muted" variant="bodySm" className="text-center">
-                {t('village.noOrganizer.pending')}
-              </Text>
+              <Pressable
+                disabled
+                onPress={() => {}}
+                accessibilityLabel={t('village.noOrganizer.pending')}
+                accessibilityState={{ disabled: true }}
+                className="flex-row items-center justify-center bg-surface"
+                style={{
+                  paddingVertical: 5,
+                  paddingHorizontal: 12,
+                  borderRadius: 24,
+                  borderWidth: 1.5,
+                  borderColor: ACCENT,
+                  minHeight: 32,
+                  opacity: 0.5,
+                }}
+              >
+                <Text style={{ color: ACCENT }} className="font-semibold">
+                  {t('village.noOrganizer.pending')}
+                </Text>
+              </Pressable>
             ) : (
               <Pressable
                 onPress={() => router.push(`/discover/organize/${village.id}` as never)}
