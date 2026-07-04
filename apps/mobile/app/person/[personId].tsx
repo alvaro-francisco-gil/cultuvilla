@@ -176,6 +176,7 @@ export default function PersonDetailScreen() {
           loading={saving}
           error={error}
           editing={!isNew}
+          selfProfile={isOwnPersona}
           renderResidence={() =>
             isOwnPersona && user ? (
               <MembershipBarrioList userId={user.uid} />

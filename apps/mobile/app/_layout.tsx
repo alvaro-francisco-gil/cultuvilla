@@ -11,6 +11,7 @@ import { useAuth } from '../lib/auth/useAuth';
 import { resolveAuthRoute, resolveIntentResume } from '../lib/auth/authRoute';
 import { RegisterGateProvider, useRegisterGate } from '../lib/auth/RegisterGateContext';
 import { useDeepLinkRouter } from '../lib/deeplink/useDeepLinkRouter';
+import { CropperHost } from '../lib/imageCrop';
 import { ActivityIndicator, View } from 'react-native';
 
 bootstrapFirebase();
@@ -31,6 +32,10 @@ export default function RootLayout() {
           <AuthProvider>
             <RegisterGateProvider>
               <AuthGate />
+              {/* Web-only image-crop overlay (no-op on native, which uses its
+                  own native cropper). Rendered above the app so it can cover
+                  any screen when pickImageAsBlob({ square }) opens it. */}
+              <CropperHost />
             </RegisterGateProvider>
           </AuthProvider>
         </CallableErrorProvider>

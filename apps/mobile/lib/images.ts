@@ -1,37 +1,15 @@
-import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
-
-/**
- * Reads a picked-asset URI into a Blob suitable for Firebase `uploadBytes`.
- *
- * On native we MUST use XMLHttpRequest, not `fetch`. Expo SDK 56 overrides the
- * global `fetch` with its winter polyfill, whose `.blob()` reads the body as an
- * ArrayBuffer and then tries to construct a RN Blob from it — and RN's
- * BlobManager throws "Creating blobs from 'ArrayBuffer' ... are not supported".
- * XHR with `responseType: 'blob'` yields a native-backed Blob that uploadBytes
- * accepts. On web the real browser `fetch().blob()` works, so we keep it there.
- */
-export async function uriToBlob(uri: string): Promise<Blob> {
-  if (Platform.OS === 'web') {
-    const res = await fetch(uri);
-    return res.blob();
-  }
-  return new Promise<Blob>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.onload = () => resolve(xhr.response as Blob);
-    xhr.onerror = () => reject(new Error('No se pudo leer la imagen seleccionada'));
-    xhr.responseType = 'blob';
-    xhr.open('GET', uri, true);
-    xhr.send(null);
-  });
-}
+import { uriToBlob } from './uriToBlob';
+import { pickAndCropSquare } from './imageCrop';
 
 export interface PickImageOptions {
   /**
-   * Force a 1:1 crop step in the native editor before returning. Use for
-   * square targets (escudos, avatars) so the stored image fills a square
-   * frame without letterboxing.
+   * Route the pick through the in-app square cropper (avatars, escudos) so the
+   * user pans/zooms to a 1:1 sub-section before upload. See lib/imageCrop.* —
+   * native uses react-native-image-crop-picker, web uses react-easy-crop. This
+   * replaces the OS editor, which can't sub-crop an already-square image on
+   * Android and is a no-op on web.
    */
   square?: boolean;
 }
@@ -41,19 +19,19 @@ export interface PickImageOptions {
  * UploadableImage (blob + filename + contentType) compatible with
  * imageService.uploadPersonImage / uploadMunicipalityImage.
  *
- * With `{ square: true }` the native editor opens with a locked 1:1 aspect
- * ratio, so the user crops to a square before it's uploaded.
+ * With `{ square: true }` the pick is handed to the in-app square cropper
+ * ({@link pickAndCropSquare}); otherwise the full asset is returned as-is.
  *
  * Returns null if the user cancels or no asset is available.
  */
 export async function pickImageAsBlob(
   options: PickImageOptions = {},
 ): Promise<UploadableImage | null> {
+  if (options.square) return pickAndCropSquare();
+
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'],
     quality: 0.8,
-    allowsEditing: options.square ?? false,
-    aspect: options.square ? [1, 1] : undefined,
   });
   if (result.canceled || !result.assets[0]) return null;
   const asset = result.assets[0];
