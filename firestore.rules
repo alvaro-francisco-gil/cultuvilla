@@ -607,6 +607,22 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Append-only membership/role audit log (see docs decision
+    // membership-roles-and-audit). Function-owned: written only by callables /
+    // triggers via the admin SDK, so every client write is denied — and, since
+    // there is no client write path, no shape predicate is needed. Reads are
+    // scoped to the village's admins (by municipalityId); org-scoped events are
+    // additionally readable by that org's admins. app admins see everything.
+    // Note: only the by-municipalityId read is usable as a list query; the org
+    // clause applies to single-doc reads (list queries can't be constrained by
+    // the per-doc scopeId/scopeType).
+    match /membershipEvents/{eventId} {
+      allow read: if isVillageAdmin(resource.data.municipalityId)
+        || (resource.data.scopeType == 'org' && isOrgAdmin(resource.data.scopeId))
+        || isAppAdmin();
+      allow create, update, delete: if false;
+    }
+
     match /organizations/{orgId} {
       allow read: if true;
       // ayuntamiento is a singleton per village — created only via the
