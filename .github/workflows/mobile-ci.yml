@@ -72,6 +72,13 @@ jobs:
           FIREBASE_APP_ID_DEV: ci-placeholder
         run: pnpm app:web:build
 
+      # Fail the PR fast if a native-only module leaked into the web bundle
+      # (getEnforcing crash on load). Cheap static check on the artifact just
+      # built above — the deploy pipeline runs the same gate before hosting,
+      # and the web E2E job below catches it behaviorally.
+      - name: Check web export
+        run: pnpm app:check-web-export
+
   # Per-PR web E2E (D3): drive real user journeys over the Expo web export against
   # the Firebase emulator. This is the verification gate for the E2E substrate —
   # the agent that authored it can't run emulators/Playwright locally.
