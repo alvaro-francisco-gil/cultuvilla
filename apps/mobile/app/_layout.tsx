@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts, Fraunces_700Bold } from '@expo-google-fonts/fraunces';
 import { bootstrapFirebase } from '../lib/firebaseInit';
+import { AppVersionGate } from '../components/AppVersionGate';
 import { AuthProvider } from '../lib/auth/AuthContext';
 import { CallableErrorProvider } from '../lib/callableError';
 import { I18nProvider } from '../lib/i18n';
@@ -28,17 +29,19 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <I18nProvider>
-        <CallableErrorProvider>
-          <AuthProvider>
-            <RegisterGateProvider>
-              <AuthGate />
-              {/* Web-only image-crop overlay (no-op on native, which uses its
-                  own native cropper). Rendered above the app so it can cover
-                  any screen when pickImageAsBlob({ square }) opens it. */}
-              <CropperHost />
-            </RegisterGateProvider>
-          </AuthProvider>
-        </CallableErrorProvider>
+        <AppVersionGate>
+          <CallableErrorProvider>
+            <AuthProvider>
+              <RegisterGateProvider>
+                <AuthGate />
+                {/* Web-only image-crop overlay (no-op on native, which uses its
+                    own native cropper). Rendered above the app so it can cover
+                    any screen when pickImageAsBlob({ square }) opens it. */}
+                <CropperHost />
+              </RegisterGateProvider>
+            </AuthProvider>
+          </CallableErrorProvider>
+        </AppVersionGate>
       </I18nProvider>
     </SafeAreaProvider>
   );

@@ -9,6 +9,7 @@ When you add a service, add it to this file in the same change. When you add a f
 | Service | Owns collection(s) | What it does | Key entry points |
 |---|---|---|---|
 | [adminService](adminService.ts) | `admins/` | Check whether a user is a global superadmin. | `isAppAdmin` |
+| [appConfigService](appConfigService.ts) | `config/appVersion` | Public read-only min/latest app version + store URLs, per platform. Written by admin/seed script only. Read by the mobile force-update gate. | `getAppVersionConfig` |
 | [censoService](censoService.ts) | (callable) | Village censo / profile-schema utilities. Validates schema transitions, marks censo completion, calls the `updateCensoSchema` Cloud Function. | `validateSchemaTransition`, `missingRequiredAnswers`, `isCensoComplete`, `updateCensoSchema` |
 | [eventService](eventService.ts) | `events/` (top-level, `municipalityId` field) | CRUD for events, status transitions, listing by village or organization. | `getEvent`, `getEventsByVillage`, `getEventsByOrganization`, `createEvent`, `updateEvent`, `updateEventStatus`, `deleteEvent` |
 | [feedService](feedService.ts) | `events/` (top-level) | Cross-village upcoming-events feed; ranges/orders on the derived `endBoundary` (`endDate ?? startDate`) so same-day/ongoing events stay visible; haversine-based "nearby" filter. Read-only. | `getUpcomingFeed`, `haversineKm`, `filterByDistanceKm` |

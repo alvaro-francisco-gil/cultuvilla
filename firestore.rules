@@ -724,6 +724,13 @@ service cloud.firestore {
         && resource.data.userId == request.auth.uid;
     }
 
+    // Public read-only app config (force-update gate). Written by admin/seed
+    // script via the admin SDK, never by clients.
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // occupations — superadmin managed list
     match /occupations/{occupationId} {
       allow read: if true;

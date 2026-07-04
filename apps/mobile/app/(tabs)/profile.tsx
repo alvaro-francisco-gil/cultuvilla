@@ -9,6 +9,7 @@ import { PersonaScroll } from '../../components/feature/profile/PersonaScroll';
 import { ProfileSectionHeader } from '../../components/feature/profile/ProfileSectionHeader';
 import { ACCENT, Section, EntityCard } from '../../components/feature/VillageSections';
 import type { OrganizationType, OrgMemberRole } from '@cultuvilla/shared/models/organization';
+import { getRunningBuild, getRunningVersion } from '../../lib/appVersion';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { useT } from '../../lib/i18n';
@@ -377,6 +378,9 @@ export default function ProfileScreen() {
           </>
         ) : null}
 
+        <Text variant="caption" tone="muted" className="text-center pt-4">
+          {t('profile.version', { version: getRunningVersion(), build: getRunningBuild() })}
+        </Text>
       </ScrollView>
     </Screen>
   );
