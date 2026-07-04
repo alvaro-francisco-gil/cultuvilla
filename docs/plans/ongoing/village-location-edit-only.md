@@ -2,6 +2,16 @@
 
 **Goal:** Remove the location/map step from the "Start village" activation flow and surface an admin-only "Añadir ubicación" placeholder on the village home when a village has no coordinates.
 
+## Status
+
+- **Updated:** 2026-07-04
+- **Stage:** implementation complete; PR open, awaiting merge to `develop`.
+- **Branch:** `feat/village-location-edit-only` (worktree `.claude/worktrees/village-location`)
+- **Done:** all four stages implemented — backend params dropped + functions test rewritten; Start screen `LocationPicker` removed; village-home dashed "Añadir ubicación" placeholder added; i18n (`village.location.add` added, `start.locationLabel` removed); CHANGELOG entry. Static gate green: `check:no-raw-firestore-refs`, typecheck (shared/i18n/mobile/functions), lint (shared/functions), build (shared/functions).
+- **Next:** CI green → user confirms merge → retire this plan (`git rm`). No decision doc warranted; rationale lives in CHANGELOG + code comments + the functions test.
+- **Blockers:** emulator-backed `pnpm test` not run locally (repo forbids booting emulators — CI runs the new `startVillage` test). Manual mobile walkthrough still pending (see Tasks stage 4).
+- **Handoff:** worktree deps installed (pnpm + `functions/` npm ci). Before merge: `git fetch origin develop && git rebase origin/develop`, re-run the static gate, `git push --force-with-lease`, wait for CI, then `gh pr merge --merge`. This plan should be deleted on merge.
+
 ## Context
 
 Activating a dormant village currently asks the starter to fill in a location on a map (`LocationPicker` in the Start screen). This is confusing at initiation time — the person starting a village often isn't the eventual organizer and doesn't need to set coordinates to make the village joinable. Location is already fully optional on the model (`coordinates` + `mapZoom` are nullable on the municipality doc) and can already be edited post-activation by an organizer via the community editor's "Detalles" step. So the initiation prompt is redundant.
