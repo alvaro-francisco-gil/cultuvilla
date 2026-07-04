@@ -12,7 +12,6 @@ import {
   Pressable,
 } from '../../../components/primitives';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
-import { LocationPicker } from '../../../components/feature/LocationPicker';
 import { PhoneField } from '../../../components/feature/PhoneField';
 import { useT } from '../../../lib/i18n';
 import { useAuth } from '../../../lib/auth/useAuth';
@@ -27,13 +26,11 @@ import { requestOrganizeVillage } from '@cultuvilla/shared/services/organizerReq
 import { patchUserProfile } from '@cultuvilla/shared/services/userService';
 import { uploadMunicipalityImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
-import { MAP_ZOOM_DEFAULT, clampMapZoom } from '@cultuvilla/shared/services/mapsService';
 import {
   escudoFullUrl,
   hasManualEscudo,
   type MunicipalityData,
 } from '@cultuvilla/shared/models/municipality';
-import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 
 type Muni = MunicipalityData & { id: string };
 
@@ -55,8 +52,6 @@ export default function StartVillageScreen() {
   const [wantOrganize, setWantOrganize] = useState(false);
   const [motivation, setMotivation] = useState('');
   const [escudoImage, setEscudoImage] = useState<UploadableImage | null>(null);
-  const [coords, setCoords] = useState<LatLng | null>(null);
-  const [zoom, setZoom] = useState<number>(MAP_ZOOM_DEFAULT);
 
   useEffect(() => {
     if (!municipalityId) return;
@@ -65,10 +60,6 @@ export default function StartVillageScreen() {
       .then((m) => {
         if (cancelled) return;
         setMuni(m);
-        // Seed the location picker from any existing coordinates so the user
-        // verifies/adjusts rather than starting blank.
-        setCoords(m?.coordinates ?? null);
-        setZoom(clampMapZoom(m?.mapZoom ?? MAP_ZOOM_DEFAULT));
       })
       .catch((e) => console.log('[StartVillage] getMunicipality ERR', e?.code, e?.message));
     return () => {
@@ -94,8 +85,6 @@ export default function StartVillageScreen() {
       await startVillage({
         municipalityId: id,
         escudoManualUrl,
-        coordinates: coords,
-        mapZoom: coords ? zoom : null,
       });
       if (wantOrganize) {
         if (user) await patchUserProfile(user.uid, { telephone: organizerPhone.e164 });
@@ -152,18 +141,6 @@ export default function StartVillageScreen() {
               <ActivityIndicator />
             )}
           </VStack>
-
-          {/* Location — seeded from existing coordinates once the muni loads. */}
-          {muni ? (
-            <LocationPicker
-              value={coords}
-              onChange={setCoords}
-              zoom={zoom}
-              onZoomChange={setZoom}
-              label={t('start.locationLabel')}
-              showUseMyLocation={false}
-            />
-          ) : null}
 
           <VStack gap={2}>
             <Text variant="bodySm">{t('start.organizeIntro')}</Text>
