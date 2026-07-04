@@ -1,13 +1,17 @@
-import ImageCropPicker from 'react-native-image-crop-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { pickAndCropSquare } from '../imageCrop';
 
-// react-native-image-crop-picker is auto-mocked (apps/mobile/__mocks__/), so
-// openPicker is a jest.fn we drive per-case.
-const openPicker = ImageCropPicker.openPicker as jest.Mock;
+jest.mock('expo-image-picker', () => ({
+  MediaTypeOptions: { Images: 'Images' },
+  launchImageLibraryAsync: jest.fn(),
+}));
 
+const launch = ImagePicker.launchImageLibraryAsync as jest.Mock;
+
+const ASSET = { uri: 'file:///tmp/pic.jpg', fileName: 'pic.jpg', mimeType: 'image/jpeg' };
 const FAKE_BLOB = { size: 10, type: 'image/jpeg' } as unknown as Blob;
 
-/** Stub XMLHttpRequest so uriToBlob (native reads the cropped file via XHR, not
+/** Stub XMLHttpRequest so uriToBlob (native reads the picked file via XHR, not
  * fetch — see lib/uriToBlob) resolves to FAKE_BLOB without touching the disk. */
 function stubXhr() {
   const open = jest.fn();
@@ -36,48 +40,29 @@ function stubXhr() {
 describe('pickAndCropSquare (native)', () => {
   afterEach(() => {
     jest.restoreAllMocks();
-    openPicker.mockReset();
+    launch.mockReset();
   });
 
-  it('opens the cropper with a locked 1:1 frame and maps the result', async () => {
-    openPicker.mockResolvedValue({
-      path: 'file:///tmp/cropped.jpg',
-      filename: 'cropped.jpg',
-      mime: 'image/jpeg',
-      width: 1024,
-      height: 1024,
-      size: 10,
-    });
+  it('opens the OS editor with a locked 1:1 aspect and maps the result', async () => {
+    launch.mockResolvedValue({ canceled: false, assets: [ASSET] });
     const { open } = stubXhr();
 
     const result = await pickAndCropSquare();
 
-    expect(openPicker).toHaveBeenCalledWith(
-      expect.objectContaining({
-        mediaType: 'photo',
-        cropping: true,
-        width: 1024,
-        height: 1024,
-      }),
+    expect(launch).toHaveBeenCalledWith(
+      expect.objectContaining({ allowsEditing: true, aspect: [1, 1] }),
     );
-    expect(open).toHaveBeenCalledWith('GET', 'file:///tmp/cropped.jpg', true);
+    expect(open).toHaveBeenCalledWith('GET', ASSET.uri, true);
     expect(result).toEqual({
       blob: FAKE_BLOB,
-      filename: 'cropped.jpg',
+      filename: 'pic.jpg',
       contentType: 'image/jpeg',
-      previewUri: 'file:///tmp/cropped.jpg',
+      previewUri: ASSET.uri,
     });
   });
 
-  it('returns null when the user backs out (E_PICKER_CANCELLED)', async () => {
-    openPicker.mockRejectedValue({ code: 'E_PICKER_CANCELLED', message: 'User cancelled' });
+  it('returns null when the user cancels the picker/crop', async () => {
+    launch.mockResolvedValue({ canceled: true, assets: [] });
     expect(await pickAndCropSquare()).toBeNull();
-  });
-
-  it('rethrows non-cancellation errors', async () => {
-    openPicker.mockRejectedValue({ code: 'E_NO_LIBRARY_PERMISSION', message: 'no access' });
-    await expect(pickAndCropSquare()).rejects.toMatchObject({
-      code: 'E_NO_LIBRARY_PERMISSION',
-    });
   });
 });
