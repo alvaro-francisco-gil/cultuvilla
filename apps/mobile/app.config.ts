@@ -12,8 +12,8 @@ function resolveEnv(): Env {
 const env = resolveEnv();
 
 const namePerEnv: Record<Env, string> = {
-  dev: 'Cultuvilla (Dev)',
-  beta: 'Cultuvilla (Beta)',
+  dev: 'Dev',
+  beta: 'Beta',
   prod: 'Cultuvilla',
 };
 
