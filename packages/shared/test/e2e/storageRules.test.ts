@@ -164,3 +164,38 @@ describe('storage.rules — /persons/{personId}/photos/{imageId}', () => {
     await assertSucceeds(deleteObject(ref(alice, 'persons/p-self/photos/photo.png')));
   });
 });
+
+describe('storage.rules — /news/{postId}/images/{imageId}', () => {
+  // Regression: news posts key their author on `createdBy` (NewsPostDataModel),
+  // but the storage write/delete rule checked a non-existent `authorUserId`
+  // field, so `null == auth.uid` denied every news image upload with a 403.
+  async function seedNews(postId: string, createdBy: string) {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore() as unknown as Firestore;
+      await setDoc(doc(db, `news/${postId}`), { createdBy });
+    });
+  }
+
+  it('the post author can upload a news image', async () => {
+    await seedNews('n1', 'alice');
+    const alice = env.authenticatedContext('alice').storage() as unknown as FirebaseStorage;
+    await assertSucceeds(
+      uploadBytes(ref(alice, 'news/n1/images/pic.png'), PNG, { contentType: 'image/png' }),
+    );
+  });
+
+  it('a non-author cannot upload a news image', async () => {
+    await seedNews('n1', 'alice');
+    const bob = env.authenticatedContext('bob').storage() as unknown as FirebaseStorage;
+    await assertFails(
+      uploadBytes(ref(bob, 'news/n1/images/pic.png'), PNG, { contentType: 'image/png' }),
+    );
+  });
+
+  it('the post author can delete a news image', async () => {
+    await seedNews('n1', 'alice');
+    const alice = env.authenticatedContext('alice').storage() as unknown as FirebaseStorage;
+    await uploadBytes(ref(alice, 'news/n1/images/pic.png'), PNG, { contentType: 'image/png' });
+    await assertSucceeds(deleteObject(ref(alice, 'news/n1/images/pic.png')));
+  });
+});
