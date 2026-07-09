@@ -11,7 +11,6 @@ const validMember = {
   profileAnswers: { barrio: 'Centro', householdSize: 4 },
   profileCompletedAt: null,
   trustedNewsAuthor: false,
-  barrioId: null,
 };
 
 describe('VillageMemberDataSchema', () => {
@@ -30,9 +29,9 @@ describe('VillageMemberDataSchema', () => {
     expect(() => VillageMemberDataSchema.parse(rest)).toThrow();
   });
 
-  it('requires barrioId on the persisted shape', () => {
-    const { barrioId: _barrioId, ...rest } = validMember;
-    expect(() => VillageMemberDataSchema.parse(rest)).toThrow();
+  it('strips a stray barrioId (residence lives on the person, not the member)', () => {
+    const parsed = VillageMemberDataSchema.parse({ ...validMember, barrioId: 'centro' });
+    expect(parsed).not.toHaveProperty('barrioId');
   });
 });
 
@@ -44,13 +43,7 @@ describe('buildVillageMemberData', () => {
     expect(m.profileAnswers).toEqual({});
     expect(m.profileCompletedAt).toBeNull();
     expect(m.trustedNewsAuthor).toBe(false);
-    expect(m.barrioId).toBeNull();
-    expect(() => VillageMemberDataSchema.parse(m)).not.toThrow();
-  });
-
-  it('preserves a provided barrioId', () => {
-    const m = buildVillageMemberData({ userId: 'u-1', barrioId: 'b-centro' });
-    expect(m.barrioId).toBe('b-centro');
+    expect(m).not.toHaveProperty('barrioId');
     expect(() => VillageMemberDataSchema.parse(m)).not.toThrow();
   });
 

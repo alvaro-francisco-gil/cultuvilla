@@ -69,14 +69,18 @@ service firebase.storage {
                     && personOwnsPhoto(personId);
     }
 
+    // News post images. Mirrors the event/org/place image rules: gate on auth +
+    // size + content-type, not a cross-service firestore.get. The news doc is
+    // created milliseconds before its images upload, and a Storage-rules
+    // firestore.get races that just-committed write (sees null -> 403). The
+    // authoring guard lives on the news doc write in firestore.rules; the
+    // storage path is keyed by post id, same as events.
     match /news/{postId}/images/{imageId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null
-                   && firestore.get(/databases/(default)/documents/news/$(postId)).data.authorUserId == request.auth.uid
                    && request.resource.size < 5 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
-      allow delete: if request.auth != null
-                    && firestore.get(/databases/(default)/documents/news/$(postId)).data.authorUserId == request.auth.uid;
+      allow delete: if request.auth != null;
     }
 
     match /organizations/{organizationId}/image/{imageId} {
@@ -94,6 +98,13 @@ service firebase.storage {
     }
 
     match /municipalities/{municipalityId}/barrios/{barrioId}/image/{imageId} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    match /festivalPosters/{municipalityId}/{posterId}/{fileName} {
       allow read: if true;
       allow write: if request.auth != null
                    && request.resource.size < 5 * 1024 * 1024

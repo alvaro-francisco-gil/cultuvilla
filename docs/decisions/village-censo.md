@@ -31,11 +31,14 @@ registration *for that village*.
   snapshotted, so a deleted entity shows as "(eliminado)" for members who had
   already selected it. `validateCensoUpdate` rejects a field that sets both
   `options` and `optionsSource`, or `optionsSource` on a non-choice type.
-- **Append-only schema after first answer:** a field can be removed only while
-  zero members have answered it; select options can be appended but not removed
-  once selected; field `type` and `key` are immutable. Enforced in the builder
-  UI, by a `validateCensoUpdate` Cloud Function (authoritative), and best-effort
-  in rules.
+- **Schema edits after first answer:** a field can **always be removed, even
+  once answered** — `updateCenso` erases that field's `profileAnswers.<key>`
+  for every member in the same batch (explicit, admin-confirmed erasure; we
+  rejected soft-delete/archival and versioned schemas as over-engineering for a
+  village censo). Mutating an answered field stays blocked: `type` and `key` are
+  immutable, and select options can be appended but not removed once selected.
+  Enforced in the builder UI, by a `validateCensoUpdate` Cloud Function
+  (authoritative), and best-effort in rules.
 
 ## Rejected alternatives
 

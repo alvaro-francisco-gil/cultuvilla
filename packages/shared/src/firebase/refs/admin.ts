@@ -22,6 +22,7 @@ import { occupationProposalConverterAdmin } from '../converters/occupationPropos
 import { adminConverterAdmin } from '../converters/adminConverter.admin';
 import { organizationJoinRequestConverterAdmin } from '../converters/organizationJoinRequestConverter.admin';
 import { membershipEventConverterAdmin } from '../converters/membershipEventConverter.admin';
+import { festivalPosterConverterAdmin } from '../converters/festivalPosterConverter.admin';
 
 export const eventsCollection = (db: Firestore) =>
   db.collection('events').withConverter(eventConverterAdmin);
@@ -142,6 +143,12 @@ export const newsReportsCollection = (db: Firestore) =>
 
 export const newsReportDoc = (db: Firestore, reportId: string) =>
   db.collection('newsReports').doc(reportId).withConverter(newsReportConverterAdmin);
+
+export const festivalPostersCollection = (db: Firestore) =>
+  db.collection('festivalPosters').withConverter(festivalPosterConverterAdmin);
+
+export const festivalPosterDoc = (db: Firestore, posterId: string) =>
+  db.collection('festivalPosters').doc(posterId).withConverter(festivalPosterConverterAdmin);
 
 // ── Occupation domain (top-level collections) ────────────────────────────
 

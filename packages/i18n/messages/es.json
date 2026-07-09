@@ -201,7 +201,6 @@
     },
     "join": "Unirme a este pueblo",
     "signInToJoin": "Inicia sesión para unirte",
-    "invitedBanner": "Te han invitado a unirte a este pueblo",
     "joinConfirm": {
       "title": "Unirte a este pueblo",
       "body": "Unirte significa que consideras este tu pueblo. No verifica que vivas aquí.",
@@ -210,7 +209,20 @@
       "cancel": "Cancelar"
     },
     "share": { "title": "Compartir pueblo" },
-    "invite": { "title": "Invitar vecino" },
+    "addContent": {
+      "button": "Añadir contenido",
+      "title": "¿Qué quieres añadir?",
+      "items": {
+        "detalles": "Detalles pueblo",
+        "evento": "Evento",
+        "articulo": "Artículo",
+        "agrupacion": "Grupo",
+        "pena": "Peña",
+        "barrio": "Barrio",
+        "lugar": "Lugar",
+        "cartel": "Cartel de fiestas"
+      }
+    },
     "edit": { "title": "Editar pueblo", "tabDetails": "Detalles", "tabContent": "Contenido", "tabMembers": "Miembros" },
     "membersList": {
       "colName": "Nombre",
@@ -271,6 +283,7 @@
         "editTitle": "Editar barrio",
         "name": "Nombre del barrio",
         "empty": "Aún no hay barrios",
+        "residentCount": "{count} vecinos",
         "addImage": "Añadir imagen",
         "changeImage": "Cambiar imagen",
         "imageSelected": "Imagen seleccionada"
@@ -375,6 +388,21 @@
       "title": "Grupos",
       "empty": "Aún no hay grupos",
       "penasEmpty": "Aún no hay peñas"
+    },
+    "festivalPosters": {
+      "title": "Carteles de fiestas",
+      "empty": "Todavía no hay carteles de fiestas.",
+      "add": "Añadir",
+      "propose": "Proponer",
+      "form": {
+        "year": "Año",
+        "title": "Nombre de las fiestas",
+        "titlePlaceholder": "p. ej. San Roque",
+        "startDate": "Fecha de inicio",
+        "endDate": "Fecha de fin",
+        "image": "Cartel"
+      },
+      "viewer": { "close": "Cerrar" }
     }
   },
   "villages": {
@@ -446,14 +474,16 @@
     "confirmed": "Confirmado",
     "waitlisted": "En lista de espera",
     "attendees": "Asistentes",
+    "attendeesEmpty": "Aún no hay asistentes",
+    "descriptionLabel": "Descripción",
     "draft": "Borrador",
     "published": "Publicado",
     "cancelled": "Cancelado",
-    "completed": "Completado",
+    "cancelTitle": "Cancelar evento",
+    "cancelConfirm": "¿Seguro que quieres cancelar este evento?",
     "publish": "Publicar",
     "createEvent": "Crear evento",
     "editEvent": "Editar evento",
-    "manageEvent": "Gestionar evento",
     "imageLabel": "Imagen",
     "addImage": "Añadir imagen",
     "changeImage": "Cambiar imagen",
@@ -461,12 +491,9 @@
     "stepWhen": "Cuándo y dónde",
     "stepDetails": "Detalles",
     "locationName": "Lugar",
-    "locationPin": "Ver en el mapa",
-    "addToCalendar": "Añadir al calendario",
     "village": "Pueblo",
     "villageAutoHint": "Detectado por la ubicación",
     "noVillages": "Únete a un pueblo para poder crear eventos.",
-    "dateTime": "Fecha y hora",
     "date": "Fecha",
     "time": "Hora",
     "selectDateTime": "Seleccionar fecha y hora",
@@ -818,10 +845,7 @@
     "share": {
       "event": { "view": "Mira «{name}» en Cultuvilla: {url}" },
       "news": { "view": "Mira «{name}» en Cultuvilla: {url}" },
-      "village": {
-        "view": "Mira {name} en Cultuvilla: {url}",
-        "invite": "Te invito a unirte a {name} en Cultuvilla: {url}"
-      },
+      "village": { "view": "Mira {name} en Cultuvilla: {url}" },
       "organization": {
         "view": "Mira {name} en Cultuvilla: {url}",
         "invite": "Te invito a unirte a {name} en Cultuvilla: {url}"
@@ -830,8 +854,7 @@
       "barrio": { "view": "Mira {name} en Cultuvilla: {url}" },
       "person": { "view": "Mira el perfil de {name} en Cultuvilla: {url}" }
     },
-    "shareViewLabel": "Compartir",
-    "shareInviteLabel": "Invitar a unirse"
+    "shareViewLabel": "Compartir"
   },
   "appUpdate": {
     "blockTitle": "Actualización necesaria",

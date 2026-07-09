@@ -11,7 +11,7 @@ import {
   type NativeSyntheticEvent,
   type NativeScrollEvent,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../components/primitives/Screen';
 import { Text } from '../../components/primitives/Text';
@@ -28,7 +28,7 @@ import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useT } from '../../lib/i18n';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
 import { webSpread } from '../../lib/platform';
-import { useWebScrollTopRefresh } from '../../lib/useWebScrollTopRefresh';
+import { useWebPullToRefresh } from '../../lib/useWebPullToRefresh';
 import { getUpcomingFeed, haversineKm } from '@cultuvilla/shared/services/feedService';
 import { getAllVillagesFeed } from '@cultuvilla/shared/services/newsService';
 import { getActiveCommunities } from '@cultuvilla/shared/services/municipalityService';
@@ -65,6 +65,33 @@ function inDatePreset(d: Date, preset: DatePreset): boolean {
 }
 
 const TABS: FeedTab[] = ['eventos', 'noticias'];
+
+// Spinner revealed in the gap that opens above the cards as the feed is pulled
+// down. Rides with the same offset the list wrapper uses, and fades in as the
+// pull approaches the trigger. `style` (not className) — NativeWind drops
+// className on Animated.View.
+function PullSpinner({ pull, top }: { pull: Animated.Value; top: number }) {
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top,
+        left: 0,
+        right: 0,
+        marginTop: -44,
+        alignItems: 'center',
+        zIndex: 5,
+        opacity: pull.interpolate({ inputRange: [0, 40], outputRange: [0, 1], extrapolate: 'clamp' }),
+        transform: [{ translateY: pull }],
+      }}
+    >
+      <View className="rounded-full bg-white p-2 shadow-sm">
+        <ActivityIndicator size="small" color={ACCENT} />
+      </View>
+    </Animated.View>
+  );
+}
 
 export default function FeedScreen() {
   const { t } = useT();
@@ -141,8 +168,8 @@ export default function FeedScreen() {
     }
   }
 
+  // Village list for the filter pills — static enough to fetch once on mount.
   useEffect(() => {
-    void load();
     void getActiveCommunities()
       .then((communities) =>
         setVillages(
@@ -156,30 +183,33 @@ export default function FeedScreen() {
       .catch(() => setVillages([]));
   }, []);
 
+  // Refetch the events feed whenever Explore regains focus (covers first mount
+  // too), so an event just created on another screen shows up on return without
+  // a manual refresh. Mirrors useVillageHome / the detail screens.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
+  );
+
   // Lazily load the news feed the first time the user opens the tab.
   useEffect(() => {
     if (activeTab === 'noticias' && news === null) void loadNews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  // Web-only fallback for RefreshControl, which is inert on react-native-web:
-  // scrolling up at the top of either feed refetches it.
-  useWebScrollTopRefresh(
+  // Web-only pull-to-refresh (RefreshControl is inert on react-native-web). The
+  // hook owns the pull animation + spinner timing; it returns an offset we apply
+  // to the list wrapper so the cards follow the drag. Native uses RefreshControl.
+  const { translateY: eventsPull } = useWebPullToRefresh(
     eventsListRef,
-    async () => {
-      setRefreshing(true);
-      await load();
-      setRefreshing(false);
-    },
+    load,
     events !== null && !error,
   );
-  useWebScrollTopRefresh(
+  const { translateY: newsPull } = useWebPullToRefresh(
     newsListRef,
-    async () => {
-      setNewsRefreshing(true);
-      await loadNews();
-      setNewsRefreshing(false);
-    },
+    loadNews,
     news !== null && !newsError,
   );
 
@@ -193,8 +223,7 @@ export default function FeedScreen() {
 
   const visibleEvents = useMemo(() => {
     let list = events ?? [];
-    // TEMP: pueblo filter disabled — re-enable to scope events by village.
-    // if (villageFilter) list = list.filter((e) => e.municipalityId === villageFilter);
+    if (villageFilter) list = list.filter((e) => e.municipalityId === villageFilter);
     if (dateFilter) list = list.filter((e) => inDatePreset(e.startDate, dateFilter));
     if (query) {
       list = list.filter(
@@ -214,8 +243,7 @@ export default function FeedScreen() {
 
   const visibleNews = useMemo(() => {
     let list = news ?? [];
-    // TEMP: pueblo filter disabled — re-enable to scope news by village.
-    // if (villageFilter) list = list.filter((n) => n.municipalityId === villageFilter);
+    if (villageFilter) list = list.filter((n) => n.municipalityId === villageFilter);
     if (categoryFilter) list = list.filter((n) => n.category === categoryFilter);
     if (query) {
       list = list.filter(
@@ -314,15 +342,6 @@ export default function FeedScreen() {
       style={{ flexGrow: 0 }}
       contentContainerStyle={{ alignItems: 'center', paddingHorizontal: 16 }}
     >
-      {/* TEMP: pueblo filter hidden — re-enable to scope the feed by village.
-      <FilterPill
-        label={selectedVillageName ?? t('feed.filter.village')}
-        active={villageFilter !== null}
-        onPress={() => setActiveSheet('village')}
-        testID="filter-village"
-      />
-      */}
-
       {/* Buscar — inline expandable search. */}
       {searchOpen ? (
         <View
@@ -381,6 +400,13 @@ export default function FeedScreen() {
         />
       )}
 
+      <FilterPill
+        label={selectedVillageName ?? t('feed.filter.village')}
+        active={villageFilter !== null}
+        onPress={() => setActiveSheet('village')}
+        testID="filter-village"
+      />
+
       {activeTab === 'eventos' ? (
         <>
           <FilterPill
@@ -419,6 +445,9 @@ export default function FeedScreen() {
         <Text tone="danger">{error}</Text>
       </View>
     ) : (
+      <View style={{ flex: 1 }}>
+        <PullSpinner pull={eventsPull} top={feedPaddingTop} />
+        <Animated.View style={{ flex: 1, transform: [{ translateY: eventsPull }] }}>
       <FlatList
         ref={eventsListRef}
         style={{ flex: 1 }}
@@ -462,6 +491,8 @@ export default function FeedScreen() {
           />
         }
       />
+        </Animated.View>
+      </View>
     );
 
   const newsPage =
@@ -474,6 +505,9 @@ export default function FeedScreen() {
         <Text tone="danger">{newsError}</Text>
       </View>
     ) : (
+      <View style={{ flex: 1 }}>
+        <PullSpinner pull={newsPull} top={feedPaddingTop} />
+        <Animated.View style={{ flex: 1, transform: [{ translateY: newsPull }] }}>
       <FlatList
         ref={newsListRef}
         style={{ flex: 1 }}
@@ -511,6 +545,8 @@ export default function FeedScreen() {
           />
         }
       />
+        </Animated.View>
+      </View>
     );
 
   return (
@@ -559,7 +595,6 @@ export default function FeedScreen() {
         </Animated.View>
       </View>
 
-      {/* TEMP: pueblo filter hidden — re-enable alongside the village FilterPill above.
       <FilterSheet
         visible={activeSheet === 'village'}
         title={t('feed.filter.villageTitle')}
@@ -571,7 +606,6 @@ export default function FeedScreen() {
         searchable
         searchPlaceholder={t('feed.filter.searchPlaceholder')}
       />
-      */}
       <FilterSheet
         visible={activeSheet === 'date'}
         title={t('feed.filter.dateTitle')}

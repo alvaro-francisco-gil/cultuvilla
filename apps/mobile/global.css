@@ -1,3 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Web only: React Native Web renders TextInput as <input>/<textarea>, which
+ * the browser draws a focus outline (the inset highlighted rectangle) on.
+ * Our fields carry their own bordered wrapper, so the browser ring is
+ * redundant noise. Element selectors never match a native RN component, so
+ * this is a no-op on iOS/Android.
+ */
+input:focus,
+textarea:focus,
+select:focus,
+[contenteditable]:focus {
+  outline: none;
+}

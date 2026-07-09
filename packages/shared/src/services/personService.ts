@@ -1,7 +1,25 @@
-import { doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, limit } from 'firebase/firestore';
+import {
+  doc,
+  getDoc,
+  getDocs,
+  getCountFromServer,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+} from 'firebase/firestore';
 import { getDb } from '../firebase';
 import { personsCollection, personDoc } from '../firebase/refs/client';
-import { buildPersonData, buildDisplayName, type PersonData, type PersonDataInput } from '../models/person';
+import {
+  buildPersonData,
+  buildDisplayName,
+  buildResidenceLinks,
+  type PersonData,
+  type PersonDataInput,
+} from '../models/person';
 
 export async function getPerson(personId: string): Promise<(PersonData & { id: string }) | null> {
   const snap = await getDoc(personDoc(getDb(), personId));
@@ -50,6 +68,28 @@ export async function deletePerson(personId: string): Promise<void> {
   await deleteDoc(personDoc(getDb(), personId));
 }
 
+/**
+ * Set an account-holder's residence barrio within a village. Residence is
+ * single-source-of-truth on the person's `municipalityLinks`, so this upserts
+ * the entry for `municipalityId` directly (the caller owns their person doc).
+ * `barrioId` null = "Todo el pueblo" (whole village). Written via
+ * `buildResidenceLinks`, the single constructor of the exact
+ * `{ municipalityId, barrioId }` shape `getPersonsByBarrio` matches on. No-op
+ * when the user has no linked person.
+ */
+export async function updateResidenceBarrio(
+  userId: string,
+  municipalityId: string,
+  barrioId: string | null,
+): Promise<void> {
+  const person = await getPersonByUserId(userId);
+  if (!person) return;
+  const others = person.municipalityLinks.filter((l) => l.municipalityId !== municipalityId);
+  await updatePerson(person.id, {
+    municipalityLinks: [...others, ...buildResidenceLinks(municipalityId, barrioId)],
+  });
+}
+
 /** People linked to a given barrio (residence link in `municipalityLinks`). */
 export async function getPersonsByBarrio(
   municipalityId: string,
@@ -63,6 +103,24 @@ export async function getPersonsByBarrio(
   return snap.docs
     .map((d) => ({ id: d.id, ...d.data() }))
     .sort((a, b) => buildDisplayName(a).localeCompare(buildDisplayName(b)));
+}
+
+/**
+ * Count of people whose residence is a given barrio. Uses a server-side count
+ * aggregate over the same `array-contains { municipalityId, barrioId }` query as
+ * `getPersonsByBarrio`, so it never ships the person docs. Excludes whole-village
+ * members (`barrioId: null`), who match no specific barrio.
+ */
+export async function getBarrioResidentCount(
+  municipalityId: string,
+  barrioId: string,
+): Promise<number> {
+  const q = query(
+    personsCollection(getDb()),
+    where('municipalityLinks', 'array-contains', { municipalityId, barrioId }),
+  );
+  const snap = await getCountFromServer(q);
+  return snap.data().count;
 }
 
 /**

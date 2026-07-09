@@ -14,14 +14,16 @@ per-env model in [dev-beta-prod-environments](dev-beta-prod-environments.md).
   format** — no scheme-only URLs in user copy, no `/launch/...` interstitial.
   The web export renders every route, so web is the fallback by construction.
 - A **pure shared builder** (`packages/shared/src/services/deepLinkService.ts`)
-  owns URL shape: `getEventLink` / `getNewsLink` / `getVillageInviteLink` /
+  owns URL shape: `getEventLink` / `getNewsLink` / `getVillageViewLink` /
   `getOrgInviteLink` (build), `parseLink` (parse), `buildShareMessage`. No
   `Linking`/`expo-router` — it runs in mobile, web, functions, and vitest.
   Paths mirror expo-router routes one-to-one except `organization` → `/o/<id>`.
-- Two link **families**: content (events, news — idempotent view) and invite
-  (villages, orgs — same URL doubles as a stable, token-less join link).
+- Two link **families**: content (events, news, villages — idempotent view) and
+  invite (orgs — same URL doubles as a stable, token-less join link). Villages
+  dropped their invite variant: joining a village is open self-service, so the
+  invite link granted no capability the plain view link didn't (see CHANGELOG).
   Routing does not branch on family; the destination screen decides view vs.
-  Join vs. sign-in CTA. The `kind` exists only for share copy / future analytics.
+  join vs. sign-in CTA. The `kind` exists only for share copy / future analytics.
 - A **per-env `deepLinkHost`**: `app.config.ts` builds `deepLinkHostPerEnv`
   (`DEEP_LINK_HOST_{DEV,BETA,PROD}` env vars, defaulting to
   `villa-events[-dev|-beta].web.app`) and exposes it via

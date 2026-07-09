@@ -1,5 +1,8 @@
-// Trigger test for syncMemberBarrioToResidence. Drives the handler via
-// firebase-functions-test's wrap()/makeChange() against the Firestore emulator.
+// Trigger test for syncMemberBarrioToResidence — now a delete-only cleanup.
+// Drives the handler via firebase-functions-test's wrap() against the Firestore
+// emulator. The create/upsert projection moved to the client batches and
+// acceptInvite; this trigger only removes the residence link on membership
+// delete (admin-remove path, where the actor can't write the user's person doc).
 
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import * as admin from 'firebase-admin';
@@ -17,11 +20,10 @@ const PERSON = 'person-test';
 interface MemberShape {
   userId: string;
   role: string;
-  barrioId: string | null;
 }
 
 function member(overrides: Partial<MemberShape> = {}): MemberShape {
-  return { userId: USER, role: 'user', barrioId: null, ...overrides };
+  return { userId: USER, role: 'user', ...overrides };
 }
 
 async function seedPerson(municipalityLinks: unknown[]): Promise<void> {
@@ -34,37 +36,20 @@ async function seedPerson(municipalityLinks: unknown[]): Promise<void> {
   });
 }
 
-async function seedBarrio(barrioId: string, status: 'approved' | 'pending'): Promise<void> {
-  await admin.firestore().doc(`municipalities/${MUNI}/barrios/${barrioId}`).set({
-    name: barrioId,
-    status,
-    municipalityId: MUNI,
-    imageURL: null,
-    createdAt: new Date(),
-    proposedBy: null,
-    reviewedBy: null,
-    reviewedAt: null,
-  });
-}
-
 async function personLinks(): Promise<unknown[]> {
   const snap = await admin.firestore().doc(`persons/${PERSON}`).get();
   return (snap.get('municipalityLinks') as unknown[] | undefined) ?? [];
 }
 
-/** Fire the trigger. Pass `null` for before/after to simulate create/delete. */
-async function fire(before: MemberShape | null, after: MemberShape | null): Promise<void> {
+/** Fire the delete trigger for the member doc. */
+async function fireDelete(before: MemberShape): Promise<void> {
   const path = `municipalities/${MUNI}/members/${USER}`;
   const beforeSnap = ft.firestore.makeDocumentSnapshot(
-    (before ?? {}) as unknown as Record<string, unknown>,
-    path,
-  );
-  const afterSnap = ft.firestore.makeDocumentSnapshot(
-    (after ?? {}) as unknown as Record<string, unknown>,
+    before as unknown as Record<string, unknown>,
     path,
   );
   await wrapped({
-    data: ft.makeChange(beforeSnap, afterSnap),
+    data: beforeSnap,
     params: { municipalityId: MUNI, userId: USER },
   } as unknown as Parameters<typeof wrapped>[0]);
 }
@@ -81,80 +66,42 @@ afterAll(() => {
   ft.cleanup();
 });
 
-describe('syncMemberBarrioToResidence', () => {
-  it('appends a residence link when a member joins (create, no barrio)', async () => {
-    await seedPerson([]);
-
-    await fire(null, member({ barrioId: null }));
-
-    expect(await personLinks()).toEqual([{ municipalityId: MUNI, barrioId: null }]);
-  });
-
-  it('upserts the chosen approved barrio into municipalityLinks', async () => {
-    await seedBarrio('centro', 'approved');
-    await seedPerson([{ municipalityId: MUNI, barrioId: null }]);
-
-    await fire(member({ barrioId: null }), member({ barrioId: 'centro' }));
-
-    expect(await personLinks()).toEqual([{ municipalityId: MUNI, barrioId: 'centro' }]);
-  });
-
-  it('normalizes a non-approved (pending) barrio to null', async () => {
-    await seedBarrio('pending-one', 'pending');
-    await seedPerson([{ municipalityId: MUNI, barrioId: null }]);
-
-    await fire(member({ barrioId: null }), member({ barrioId: 'pending-one' }));
-
-    expect(await personLinks()).toEqual([{ municipalityId: MUNI, barrioId: null }]);
-  });
-
-  it('normalizes an unknown/foreign barrio to null', async () => {
-    await seedPerson([{ municipalityId: MUNI, barrioId: null }]);
-
-    await fire(member({ barrioId: null }), member({ barrioId: 'does-not-exist' }));
-
-    expect(await personLinks()).toEqual([{ municipalityId: MUNI, barrioId: null }]);
-  });
-
-  it('removes the residence link when the member leaves (delete)', async () => {
+describe('syncMemberBarrioToResidence (delete-only cleanup)', () => {
+  it('removes the residence link when the member is deleted', async () => {
     await seedPerson([
       { municipalityId: MUNI, barrioId: 'centro' },
       { municipalityId: 'other', barrioId: null },
     ]);
 
-    await fire(member({ barrioId: 'centro' }), null);
+    await fireDelete(member());
 
+    // The link for this municipality is gone; links for other villages remain.
     expect(await personLinks()).toEqual([{ municipalityId: 'other', barrioId: null }]);
   });
 
-  it('preserves links for other villages while upserting this one', async () => {
-    await seedBarrio('centro', 'approved');
-    await seedPerson([{ municipalityId: 'other', barrioId: 'x' }]);
+  it('removes a whole-village (null barrio) link on delete', async () => {
+    await seedPerson([{ municipalityId: MUNI, barrioId: null }]);
 
-    await fire(null, member({ barrioId: 'centro' }));
+    await fireDelete(member());
 
-    const links = await personLinks();
-    expect(links).toContainEqual({ municipalityId: 'other', barrioId: 'x' });
-    expect(links).toContainEqual({ municipalityId: MUNI, barrioId: 'centro' });
-    expect(links).toHaveLength(2);
+    expect(await personLinks()).toEqual([]);
   });
 
-  it('is a no-op when the barrio did not change (idempotent)', async () => {
-    await seedBarrio('centro', 'approved');
-    await seedPerson([{ municipalityId: MUNI, barrioId: 'centro' }]);
-    // Mutate an unrelated field server-side, then fire with unchanged barrioId.
+  it('is a no-op when the link was already removed (self-leave idempotency)', async () => {
+    // A self-leave batch already dropped the link; the delete trigger then fires.
+    await seedPerson([{ municipalityId: 'other', barrioId: null }]);
     await admin.firestore().doc(`persons/${PERSON}`).update({ biography: 'sentinel' });
 
-    await fire(member({ barrioId: 'centro' }), member({ barrioId: 'centro' }));
+    await fireDelete(member());
 
     const snap = await admin.firestore().doc(`persons/${PERSON}`).get();
     // The sentinel survives → the handler returned early without rewriting.
     expect(snap.get('biography')).toBe('sentinel');
-    expect(snap.get('municipalityLinks')).toEqual([{ municipalityId: MUNI, barrioId: 'centro' }]);
+    expect(snap.get('municipalityLinks')).toEqual([{ municipalityId: 'other', barrioId: null }]);
   });
 
   it('skips when no person is linked to the user', async () => {
     // No person seeded → handler must not throw.
-    await expect(fire(null, member({ barrioId: 'centro' }))).resolves.toBeUndefined();
+    await expect(fireDelete(member())).resolves.toBeUndefined();
   });
 });

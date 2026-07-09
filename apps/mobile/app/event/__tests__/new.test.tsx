@@ -23,7 +23,7 @@ jest.mock('../../../lib/images', () => ({ pickImageAsBlob: jest.fn() }));
 // The event's village now comes from the user's joined villages.
 jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
   getUserMemberships: jest.fn().mockResolvedValue([
-    { municipalityId: 'm-1', role: 'user', joinedAt: new Date(), profileCompletedAt: null, barrioId: null },
+    { municipalityId: 'm-1', role: 'user', joinedAt: new Date(), profileCompletedAt: null },
   ]),
 }));
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({

@@ -151,6 +151,18 @@ export async function uploadBarrioImage(
   );
 }
 
+/**
+ * Upload a festival poster image. Returns the **download URL** to persist in
+ * `FestivalPosterData.imageURL`.
+ */
+export async function uploadFestivalPosterImage(
+  municipalityId: string,
+  posterId: string,
+  image: UploadableImage,
+): Promise<string> {
+  return uploadToPath(`festivalPosters/${municipalityId}/${posterId}/poster`, image);
+}
+
 /** Resolve a download URL for a stored news image path. */
 export async function newsImageDownloadURL(storagePath: string): Promise<string> {
   return getDownloadURL(ref(getFirebaseStorage(), storagePath));

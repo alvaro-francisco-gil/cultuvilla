@@ -1,13 +1,12 @@
 # Per-village barrio & the member-vs-resident split
 
 A user can belong to multiple villages and set a distinct barrio in each. The
-non-obvious part is *where* barrio lives and why a Cloud Function keeps two copies
-in sync — this file records that, because neither is inferable from reading a
-single service.
+non-obvious part is *where* barrio lives and why membership and residence are two
+different things — neither is inferable from reading a single service.
 
 ## Problem
 
-Barrio residency has to satisfy two facts that pull in opposite directions:
+Barrio residency has to satisfy two facts:
 
 1. **The residents-by-barrio list must query one collection.** It is a single
    `array-contains` query — `getPersonsByBarrio` →
@@ -18,10 +17,10 @@ Barrio residency has to satisfy two facts that pull in opposite directions:
    have no membership doc, so the query cannot read the members subcollection.
    `persons.municipalityLinks` is therefore the non-negotiable read/query surface.
 
-2. **For account-holders, barrio should be coupled to membership.** Barrio is a
-   property of *belonging* to a village — joining makes you a resident, leaving
-   drops you. That lifecycle lives on `municipalities/{id}/members/{uid}`, not on
-   the person.
+2. **Barrio is tied to the membership lifecycle for account-holders.** Joining a
+   village makes you a resident; leaving drops you. But that coupling does not
+   require a *second copy* of the value — it only requires the residence link to
+   be written and removed alongside the membership.
 
 ## Decision
 
@@ -32,49 +31,60 @@ Two entities, two roles — **member ≠ resident**:
 | **Member** | `members/{uid}` (keyed by Firebase uid) | Account-holders only — a non-account person has no uid, so cannot have a membership doc |
 | **Resident** | a `persons.municipalityLinks` entry | Anyone with a residence link — account or not |
 
-- **Account-holders:** the *editable source of truth* for barrio is
-  `members/{uid}.barrioId` (`null` = "Todo el pueblo"). A Firestore trigger,
-  `syncMemberBarrioToResidence`, **projects** it into that user's
-  `persons.municipalityLinks` so the residents query stays consistent. The trigger
-  also validates the barrio is an *approved* barrio of that municipality
-  (normalizing stale/foreign/tampered values to `null`) and removes the residence
-  link when the membership is deleted.
-- **Non-account persons:** barrio is written **directly** to
-  `persons.municipalityLinks` (via `ResidenceLinksEditor`); there is no membership
-  to drive it, and no validation trigger.
-
 So a deceased great-grandparent is a **resident** of a barrio (appears in
 `getPersonsByBarrio`) but never a **member** (no role, no admin, absent from
-member counts). That distinction is deliberate — "residents of barrio X" is a
-broader set than "members living in barrio X".
+member counts). "Residents of barrio X" is a broader set than "members living in
+barrio X".
+
+**Residence barrio is single-source-of-truth on `persons.municipalityLinks`** —
+for everyone, account or not. There is no `member.barrioId`. Writes:
+
+- **Owner (client), directly on the person doc** — the `persons` update rule
+  allows `userId == request.auth.uid`:
+  - **Join** (`joinVillage`) is an atomic `writeBatch` that creates the member doc
+    AND upserts the residence link — no eventual-consistency window.
+  - **Change barrio** (`personService.updateResidenceBarrio`, used by
+    `MembershipBarrioList`) and **non-account persons** (`ResidenceLinksEditor`)
+    write the person doc directly.
+- **Server-privileged paths** cannot write another user's person doc client-side,
+  so they use the admin SDK:
+  - **Admin removes a member** → the `syncMemberBarrioToResidence` trigger
+    (`onDocumentDeleted`, delete-only) removes the ex-member's residence link.
+  - **Server-side member creation** (`acceptInvite`, `startVillage`,
+    `respondToOrganizerRequest`) projects the whole-village residence link in the
+    same transaction, via the shared `functions/src/village/residenceProjection.ts`
+    helper.
+
+Every residence-link write — client or server — constructs the entry through
+`buildResidenceLinks`, the single constructor of the exact
+`{ municipalityId, barrioId }` shape the `array-contains` query matches on. A
+stray extra key or wrong `null` would silently drop the person from the list.
 
 ## Key points
 
-- `member.barrioId` has **no consumer** other than the edit UI (showing the
-  current value) and the trigger — it is a pure duplicate of the person's link,
-  the price of choosing membership as the source of truth.
-- The trigger's genuinely load-bearing job is the **delete branch**: when a
-  village admin removes a member, the ex-member's `persons.municipalityLinks` must
-  be cleaned, and the admin **cannot** write another user's person doc (rules gate
-  `persons` update to `userId == request.auth.uid`). Only an admin-SDK context
-  can. Self-service join/leave/edit do **not** need the trigger — those docs are
-  all client-writable by the owner.
-- Barrio-approved validation is **already absent** on the non-account path
-  (`ResidenceLinksEditor` writes unvalidated). The trigger only tightens the
-  account path, so the two halves are not equally strict.
-- Firestore rules cannot enforce "every `municipalityLinks` entry maps to a real
-  membership + an approved barrio" — it is an arbitrary-length **array**, and
-  rules cannot iterate an array doing a `get()` per element. Cross-doc validation
-  of residence therefore can only live in a trigger or a callable, never in rules.
+- **No duplicate field, no projection lag.** Barrio lives in exactly one place.
+  The earlier design stored `member.barrioId` and had a trigger project it into
+  the person; that duplication and its eventual-consistency edit path are gone.
+- **The delete trigger is the load-bearing server remainder.** When a village
+  admin removes a member, the ex-member's `persons.municipalityLinks` must be
+  cleaned, and the admin **cannot** write another user's person doc — only an
+  admin-SDK context can. (Self-leave also fires it, harmlessly: the client batch
+  already removed the link, so the idempotency guard skips.)
+- **Residence writes are unvalidated, by design.** The barrio picker only offers
+  *approved* barrios, so the honest path is fine; a malicious client could write a
+  bad/foreign link, but the blast radius is cosmetic pollution of one residents
+  list. This matches the always-unvalidated non-account path — equalizing, not
+  newly weakening.
+- **Rules cannot validate residence.** `municipalityLinks` is an arbitrary-length
+  **array**; rules cannot iterate it doing a `get()` per element. Cross-doc
+  validation can only live in a callable, never in rules.
 
 ## Revisit when
 
-The duplication (`member.barrioId`) and the eventual-consistency edit path exist
-only because membership was chosen as the source of truth. Collapsing to
-`persons.municipalityLinks` as the *single* source — atomic client `writeBatch`
-for join/leave, a minimal trigger (or callable) kept only for admin-initiated
-removal cleanup — would remove both. See
-[docs/plans/ideas/residence-single-source-refactor.md](../plans/ideas/residence-single-source-refactor.md).
-Revisit if the projection ever drifts under load, or if the account/non-account
-edit split (`MembershipBarrioList` vs `ResidenceLinksEditor`) becomes a
-maintenance burden.
+If the censo ever needs to be trustworthy *by construction* (fake residents
+become a real problem), route residence writes through **one shared validating
+callable used by both account and non-account paths** — it checks the barrio is
+approved (and, if wanted, that the writer belongs to the village) before writing
+the person doc. Do **not** re-introduce per-path validation or a projection
+trigger: that only brings back the asymmetry and the duplication this design
+removed.

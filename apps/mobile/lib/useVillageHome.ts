@@ -13,9 +13,14 @@ import {
 } from '@cultuvilla/shared/services/villageMemberService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 import { getOrgMemberCount } from '@cultuvilla/shared/services/orgMemberService';
+import { getBarrioResidentCount } from '@cultuvilla/shared/services/personService';
 import { getMyOrganizerRequests } from '@cultuvilla/shared/services/organizerRequestService';
 import { getEventsByMunicipality } from '@cultuvilla/shared/services/eventService';
 import { getHomeFeed } from '@cultuvilla/shared/services/newsService';
+import {
+  getFestivalPosters,
+  type FestivalPosterWithId,
+} from '@cultuvilla/shared/services/festivalPosterService';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { BarrioData, PlaceData } from '@cultuvilla/shared/models/municipality';
 import type { OrganizationData } from '@cultuvilla/shared/models/organization';
@@ -33,8 +38,11 @@ export interface VillageHomeState {
   places: (PlaceData & { id: string })[];
   organizations: (OrganizationData & { id: string })[];
   orgMemberCounts: Record<string, number>;
+  /** Resident count per barrio id (people who picked that specific barrio). */
+  barrioResidentCounts: Record<string, number>;
   events: (EventData & { id: string })[];
   news: (NewsPostData & { id: string })[];
+  festivalPosters: FestivalPosterWithId[];
   peopleCount: number;
   pendingOrganizerRequest: boolean;
   /** The current user's censo answers (empty if not a member / none yet). */
@@ -51,8 +59,10 @@ const EMPTY: VillageHomeState = {
   places: [],
   organizations: [],
   orgMemberCounts: {},
+  barrioResidentCounts: {},
   events: [],
   news: [],
+  festivalPosters: [],
   peopleCount: 0,
   pendingOrganizerRequest: false,
   myCensoAnswers: {},
@@ -78,7 +88,7 @@ export function useVillageHome(municipalityId: string | null) {
     }
     setState((s) => ({ ...s, loading: true }));
     try {
-      const [mun, isAdmin, myReqs, bar, plc, members, evts, nws] = await Promise.all([
+      const [mun, isAdmin, myReqs, bar, plc, members, evts, nws, posters] = await Promise.all([
         withFirestoreErrorLog('villageHome:getMunicipality', () => getMunicipality(municipalityId)),
         uid
           ? withFirestoreErrorLog('villageHome:isVillageAdmin', () =>
@@ -101,6 +111,9 @@ export function useVillageHome(municipalityId: string | null) {
         withFirestoreErrorLog('villageHome:getNews', () =>
           getHomeFeed(municipalityId, { limit: 10 }),
         ),
+        withFirestoreErrorLog('villageHome:getFestivalPosters', () =>
+          getFestivalPosters(municipalityId, 'approved'),
+        ),
       ]);
 
       const orgs = await withFirestoreErrorLog('villageHome:getOrganizations', () =>
@@ -120,6 +133,18 @@ export function useVillageHome(municipalityId: string | null) {
         countByOrg[o.id] = counts[i] ?? 0;
       });
 
+      const barrioCounts = await Promise.all(
+        bar.map((b) =>
+          withFirestoreErrorLog('villageHome:getBarrioResidentCount', () =>
+            getBarrioResidentCount(municipalityId, b.id),
+          ),
+        ),
+      );
+      const countByBarrio: Record<string, number> = {};
+      bar.forEach((b, i) => {
+        countByBarrio[b.id] = barrioCounts[i] ?? 0;
+      });
+
       setState({
         loading: false,
         loadError: null,
@@ -130,8 +155,10 @@ export function useVillageHome(municipalityId: string | null) {
         places: plc,
         organizations: orgs,
         orgMemberCounts: countByOrg,
+        barrioResidentCounts: countByBarrio,
         events: upcoming,
         news: nws,
+        festivalPosters: posters,
         peopleCount: members.length,
         pendingOrganizerRequest: myReqs.some(
           (r) => r.municipalityId === municipalityId && r.status === 'pending',

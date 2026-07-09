@@ -11,6 +11,8 @@ import {
   buildPlaceData,
 } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import { buildOrganizationData } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
+import { buildFestivalPosterData } from '@cultuvilla/shared/models/festivalPoster/FestivalPosterDataModel';
+import { getFestivalPosters } from '@cultuvilla/shared/services/festivalPosterService';
 
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getMunicipality: jest.fn(),
@@ -27,6 +29,9 @@ jest.mock('@cultuvilla/shared/services/organizationService', () => ({
 jest.mock('@cultuvilla/shared/services/orgMemberService', () => ({
   getOrgMemberCount: jest.fn().mockResolvedValue(0),
 }));
+jest.mock('@cultuvilla/shared/services/personService', () => ({
+  getBarrioResidentCount: jest.fn().mockResolvedValue(0),
+}));
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -37,12 +42,14 @@ jest.mock('@cultuvilla/shared/services/eventService', () => ({
 jest.mock('@cultuvilla/shared/services/newsService', () => ({
   getHomeFeed: jest.fn().mockResolvedValue([]),
 }));
+jest.mock('@cultuvilla/shared/services/festivalPosterService', () => ({
+  getFestivalPosters: jest.fn().mockResolvedValue([]),
+}));
 jest.mock('@cultuvilla/shared/services/organizerRequestService', () => ({
   getMyOrganizerRequests: jest.fn().mockResolvedValue([]),
 }));
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({
   getVillageViewLink: jest.fn().mockReturnValue('https://example.test'),
-  getVillageInviteLink: jest.fn().mockReturnValue('https://example.test'),
 }));
 jest.mock('../../../lib/deeplink/useShareDeepLink', () => ({
   useShareDeepLink: () => jest.fn(),
@@ -86,6 +93,10 @@ jest.mock('../../../lib/i18n', () => ({
         'village.noOrganizer.cta': 'Administrar este pueblo',
         'village.noOrganizer.pending': 'Tu solicitud de administrador está pendiente de revisión',
         'village.admin.open': 'Administrar pueblo',
+        'village.festivalPosters.title': 'Carteles de fiestas',
+        'village.festivalPosters.empty': 'Todavía no hay carteles de fiestas.',
+        'village.festivalPosters.add': 'Añadir',
+        'village.festivalPosters.propose': 'Proponer',
       };
       return map[key] ?? key;
     },
@@ -195,6 +206,43 @@ describe('VillageTabScreen', () => {
       const { findByText } = render(<VillageTabScreen />);
       fireEvent.press(await findByText('Peña La Juerga', undefined, { timeout: 5000 }));
       expect(router.push).toHaveBeenCalledWith('/o/org2');
+    });
+  });
+
+  describe('festival posters section', () => {
+    const poster = {
+      ...buildFestivalPosterData({
+        municipalityId: 'mun1',
+        year: 2024,
+        title: 'San Roque',
+        status: 'approved',
+        createdAt: new Date('2024-01-01'),
+      }),
+      id: 'poster1',
+    };
+
+    beforeEach(() => {
+      (getMunicipality as jest.Mock).mockResolvedValue(activeMuni);
+      (getFestivalPosters as jest.Mock).mockResolvedValue([poster]);
+    });
+
+    it('renders the carteles de fiestas section with the poster year', async () => {
+      const { findByText } = render(<VillageTabScreen />);
+      expect(
+        await findByText('Carteles de fiestas', undefined, { timeout: 5000 }),
+      ).toBeTruthy();
+      expect(await findByText('2024')).toBeTruthy();
+    });
+
+    it('keeps the section (and its add card) visible when there are no posters', async () => {
+      (getFestivalPosters as jest.Mock).mockResolvedValue([]);
+      const { findByText, queryByText } = render(<VillageTabScreen />);
+      expect(
+        await findByText('Carteles de fiestas', undefined, { timeout: 5000 }),
+      ).toBeTruthy();
+      // The add card is always rendered, so the section never falls into the
+      // empty-label branch — regression guard for the disappearing add button.
+      expect(queryByText('Todavía no hay carteles de fiestas.')).toBeNull();
     });
   });
 });

@@ -7,8 +7,9 @@ import {
   personsCollection,
   userDoc,
 } from '@cultuvilla/shared/firebase/refs/admin';
-import { buildPersonData, buildUserData } from '@cultuvilla/shared/models';
+import { buildPersonData, buildUserData, buildResidenceLinks } from '@cultuvilla/shared/models';
 import type { VillageMemberData, PartialDate } from '@cultuvilla/shared';
+import { readResidenceTarget, upsertResidenceLink, type ResidenceTarget } from './residenceProjection';
 
 const db = getFirestore();
 
@@ -70,6 +71,16 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
         throw new HttpsError('failed-precondition', 'El enlace de invitación ha expirado.');
       }
 
+      // An EXISTING user about to become a member needs their residence link
+      // upserted into their (existing) person doc — the create-side projection
+      // the delete-only trigger no longer does. All tx reads must precede tx
+      // writes, so read the person here. New users get the link via
+      // buildPersonData below instead.
+      let residenceTarget: ResidenceTarget | null = null;
+      if (userSnap.exists && !memberSnap.exists) {
+        residenceTarget = await readResidenceTarget(tx, db, userId);
+      }
+
       // Profile handling: create if missing and profile data provided.
       let profileCreated = false;
       if (!userSnap.exists) {
@@ -98,6 +109,14 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
         // new Date(), which the converter marshals to a Firestore Timestamp.
         // The user doc holds account state only — the profile (name, birthday,
         // photo) is the linked person's, written just below.
+        //
+        // Reserve the person id up front and write BOTH docs through the
+        // transaction (person carries its own residence link; user carries the
+        // personId backreference). Doing the writes transactionally — rather
+        // than a direct `await userDoc().update()` inside the callback — avoids a
+        // self-deadlock (that update targets userRef, which this tx already
+        // locked) and is retry-safe (no orphan person on a tx retry).
+        const personRef = personsCollection(db).doc();
         tx.set(
           userRef,
           buildUserData({
@@ -105,22 +124,22 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
             email: profile.email,
             telephone: null,
             activeMunicipalityId: municipalityId,
+            personId: personRef.id,
           }),
         );
-        const personRef = personsCollection(db).doc();
-        await personRef.set(
+        tx.set(
+          personRef,
           buildPersonData({
             givenName: profile.displayName.split(' ')[0] ?? profile.displayName,
             birthday,
             photoURL: profile.photoURL ?? null,
             userId,
             createdBy: userId,
+            // Invited members join at whole-village level; the residence link
+            // makes them appear in getPersonsByBarrio (no create-side trigger).
+            municipalityLinks: buildResidenceLinks(municipalityId, null),
           }),
         );
-        // tx.update bypasses the converter so a partial { personId } update
-        // is fine — but personRef was created outside the tx, so use a
-        // post-tx update via the raw doc ref.
-        await userDoc(db, userId).update({ personId: personRef.id });
         profileCreated = true;
       } else {
         // merge:true requires a partial doc; converter rejects partial sets,
@@ -142,9 +161,13 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
         profileAnswers: {},
         profileCompletedAt: null,
         trustedNewsAuthor: false,
-        barrioId: null,
       };
       tx.set(memberRef, newMember);
+      // Project the residence link for an existing user (new users got it via
+      // buildPersonData above). Invites join at whole-village level.
+      if (residenceTarget) {
+        upsertResidenceLink(tx, residenceTarget, municipalityId, null);
+      }
       // tx.update bypasses the converter, so FieldValue.increment is fine.
       tx.update(tokenRef, {
         usageCount: FieldValue.increment(1),

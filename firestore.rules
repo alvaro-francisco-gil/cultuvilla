@@ -328,6 +328,31 @@ service cloud.firestore {
           && isTimestampOrNull(d.reviewedAt);
     }
 
+    function isValidFestivalPosterProposalCreate(d) {
+      return d.keys().hasOnly([
+              'municipalityId', 'proposedBy', 'year', 'title', 'imageURL',
+              'datePrecision', 'startsAt', 'endsAt', 'createdAt',
+              'status', 'reviewedBy', 'reviewedAt',
+            ])
+          && d.keys().hasAll([
+              'municipalityId', 'proposedBy', 'year', 'title', 'imageURL',
+              'datePrecision', 'startsAt', 'endsAt', 'createdAt',
+              'status', 'reviewedBy', 'reviewedAt',
+            ])
+          && isString(d.municipalityId)
+          && isStringOrNull(d.proposedBy)
+          && d.year is int
+          && isStringOrNull(d.title)
+          && isStringOrNull(d.imageURL)
+          && d.datePrecision in ['year', 'month', 'day']
+          && isTimestampOrNull(d.startsAt)
+          && isTimestampOrNull(d.endsAt)
+          && isTimestamp(d.createdAt)
+          && d.status in ['pending', 'approved', 'rejected']
+          && isStringOrNull(d.reviewedBy)
+          && isTimestampOrNull(d.reviewedAt);
+    }
+
     function isValidJoinRequestCreate(d) {
       return d.keys().hasOnly(['userId', 'orgId', 'municipalityId', 'status', 'requestedAt', 'reviewedAt', 'reviewedBy'])
           && d.keys().hasAll(['userId', 'orgId', 'municipalityId', 'status', 'requestedAt', 'reviewedAt', 'reviewedBy'])
@@ -582,7 +607,7 @@ service cloud.firestore {
                        )
                        || (isOwner(userId)
                            && request.resource.data.diff(resource.data).affectedKeys()
-                              .hasOnly(['profileAnswers', 'profileCompletedAt', 'barrioId']));
+                              .hasOnly(['profileAnswers', 'profileCompletedAt']));
         allow delete: if isVillageAdmin(municipalityId) || isAppAdmin() || isOwner(userId);
       }
 
@@ -738,6 +763,29 @@ service cloud.firestore {
           (resource.data.createdBy == request.auth.uid && resource.data.userId == null)
           || isAppAdmin()
         );
+    }
+
+    // festivalPosters — top-level, scoped by municipalityId field (mirrors
+    // the /places proposal pattern: members propose, admins/app-admins
+    // approve/reject and may act directly).
+    match /festivalPosters/{posterId} {
+      allow read: if true;
+      allow create: if isAppAdmin()
+        || isVillageAdmin(request.resource.data.municipalityId)
+        || (
+             isVillageMember(request.resource.data.municipalityId)
+             && isValidFestivalPosterProposalCreate(request.resource.data)
+             && request.resource.data.status == 'pending'
+             && request.resource.data.proposedBy == request.auth.uid
+           );
+      allow update: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin()
+        || (
+             isOwner(resource.data.proposedBy)
+             && resource.data.status == 'pending'
+             && request.resource.data.status == 'pending'
+           );
+      allow delete: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin()
+        || (isOwner(resource.data.proposedBy) && resource.data.status == 'pending');
     }
 
     // Collection-group queries: these rules are evaluated for CG list
