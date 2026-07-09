@@ -166,34 +166,33 @@ describe('storage.rules — /persons/{personId}/photos/{imageId}', () => {
 });
 
 describe('storage.rules — /news/{postId}/images/{imageId}', () => {
-  // Regression: news posts key their author on `createdBy` (NewsPostDataModel),
-  // but the storage write/delete rule checked a non-existent `authorUserId`
-  // field, so `null == auth.uid` denied every news image upload with a 403.
-  async function seedNews(postId: string, createdBy: string) {
-    await env.withSecurityRulesDisabled(async (ctx) => {
-      const db = ctx.firestore() as unknown as Firestore;
-      await setDoc(doc(db, `news/${postId}`), { createdBy });
-    });
-  }
-
-  it('the post author can upload a news image', async () => {
-    await seedNews('n1', 'alice');
+  // The news doc is created milliseconds before its images upload, so a
+  // cross-service firestore.get in the storage rule races the just-committed
+  // write and denies with a 403. Mirror the event/org/place image rules: gate
+  // on auth + size + content-type only (path keyed by post id); the authoring
+  // guard lives on the news doc write in firestore.rules. No doc seed needed.
+  it('an authenticated user can upload a news image', async () => {
     const alice = env.authenticatedContext('alice').storage() as unknown as FirebaseStorage;
     await assertSucceeds(
       uploadBytes(ref(alice, 'news/n1/images/pic.png'), PNG, { contentType: 'image/png' }),
     );
   });
 
-  it('a non-author cannot upload a news image', async () => {
-    await seedNews('n1', 'alice');
-    const bob = env.authenticatedContext('bob').storage() as unknown as FirebaseStorage;
+  it('an unauthenticated user cannot upload a news image', async () => {
+    const anon = env.unauthenticatedContext().storage() as unknown as FirebaseStorage;
     await assertFails(
-      uploadBytes(ref(bob, 'news/n1/images/pic.png'), PNG, { contentType: 'image/png' }),
+      uploadBytes(ref(anon, 'news/n1/images/pic.png'), PNG, { contentType: 'image/png' }),
     );
   });
 
-  it('the post author can delete a news image', async () => {
-    await seedNews('n1', 'alice');
+  it('a non-image news upload is rejected', async () => {
+    const alice = env.authenticatedContext('alice').storage() as unknown as FirebaseStorage;
+    await assertFails(
+      uploadBytes(ref(alice, 'news/n1/images/notes.txt'), PNG, { contentType: 'text/plain' }),
+    );
+  });
+
+  it('an authenticated user can delete a news image', async () => {
     const alice = env.authenticatedContext('alice').storage() as unknown as FirebaseStorage;
     await uploadBytes(ref(alice, 'news/n1/images/pic.png'), PNG, { contentType: 'image/png' });
     await assertSucceeds(deleteObject(ref(alice, 'news/n1/images/pic.png')));
