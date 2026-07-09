@@ -10,11 +10,11 @@ projection trigger to the one branch that genuinely needs server privilege.
 ## Status
 
 - **Updated:** 2026-07-09
-- **Stage:** Stage 2 — shared single source + atomic join
+- **Stage:** Stage 3 — mobile edit surfaces + batched join
 - **Branch:** `refactor/residence-single-source` (worktree `.claude/worktrees/residence-single-source`)
-- **Done:** Stage 1 — acceptInvite projects the residence link (new + existing user); trigger reduced to delete-only (`onDocumentDeleted`); trigger test rewritten; new acceptInvite test added. Functions typecheck + lint green.
-- **Next:** drop `barrioId` from `VillageMemberData` + `UserMembership`; make `joinVillage` an atomic batch via `buildResidenceLinks`; remove `updateVillageMemberBarrio`, add change-barrio person-write path; vitest.
-- **Blockers:** `pnpm test:functions` must be run by the user (agent can't boot emulators). Validation decision resolved (accept unvalidated; shared callable is the named upgrade path).
+- **Done:** Stage 1 (delete-only trigger + acceptInvite projection). Stage 2 — `barrioId` dropped from `VillageMemberData`/`UserMembership`/`getUserMemberships`; `joinVillage` is now an atomic writeBatch (member + person link via `buildResidenceLinks`); `updateVillageMemberBarrio`/`addVillageMember` removed; new `personService.updateResidenceBarrio` (change-barrio path). Shared typecheck+lint+vitest (7) green; functions typecheck+lint green. **Scope expansion:** the create-side gap was broader than the plan said — `startVillage` and `respondToOrganizerRequest` also seed memberships server-side and needed the residence projection; added a shared `functions/src/village/residenceProjection.ts` helper (read-in-tx + upsert) used by all three server paths.
+- **Next:** mobile — `MembershipBarrioList` → `updateResidenceBarrio`; join surfaces consume batched `joinVillage`; drop `updateVillageMemberBarrio` from `complete-profile.tsx`; app typecheck + jest.
+- **Blockers:** `pnpm test:functions` + emulator e2e rules must be run by the user (agent can't boot emulators). Validation decision resolved (accept unvalidated; shared callable is the named upgrade path).
 - **Handoff:** Work happens in the worktree — session cwd is the primary checkout, so use absolute worktree paths. `pnpm test`/emulator suites are off-limits to the agent; rely on `pnpm typecheck` + non-emulator vitest, and hand emulator/functions test runs to the user. Every residence-link write MUST go through `buildResidenceLinks` (exact `{municipalityId,barrioId}` shape for the array-contains query).
 
 ## Context
@@ -205,14 +205,18 @@ only re-introduces the asymmetry this refactor removes.
       agent is not permitted to boot emulators). Typecheck + lint pass.
 
 ### Stage 2 — Shared: single source + atomic join
-- [ ] Route every residence-link write through `buildResidenceLinks` (audit call
-      sites).
-- [ ] Make `joinVillage` an atomic `writeBatch` { member create, person link upsert };
-      drop `barrioId` from `addVillageMember` / `joinVillage`.
-- [ ] Remove `updateVillageMemberBarrio`; add the change-barrio person-write path.
-- [ ] Drop `barrioId` from `VillageMemberData` (schema/Input/builder), `UserMembership`,
+- [x] Route every residence-link write through `buildResidenceLinks` (client
+      `joinVillage`/`updateResidenceBarrio`; server `residenceProjection` helper).
+- [x] Make `joinVillage` an atomic `writeBatch` { member create, person link upsert };
+      drop `barrioId`. `addVillageMember` removed (only caller was `joinVillage`).
+- [x] Remove `updateVillageMemberBarrio`; add `personService.updateResidenceBarrio`.
+- [x] Drop `barrioId` from `VillageMemberData` (schema/Input/builder), `UserMembership`,
       and `getUserMemberships`.
-- [ ] Vitest: join-batches-both-writes + no-`barrioId`-on-membership.
+- [x] Vitest: join-batches-both-writes + no-`barrioId`-on-membership +
+      `updateResidenceBarrio` upsert/clear/no-op (7 tests, green).
+- [x] **(added)** `startVillage` + `respondToOrganizerRequest` project the residence
+      link via the shared `residenceProjection` helper (create-side paths the plan
+      missed); stale `barrioId: null` member seeds removed from functions tests.
 
 ### Stage 3 — Mobile: unify the edit surfaces
 - [ ] `MembershipBarrioList` writes the person doc (change-barrio path), not the member.

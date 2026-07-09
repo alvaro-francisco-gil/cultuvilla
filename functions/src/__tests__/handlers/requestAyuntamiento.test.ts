@@ -21,7 +21,6 @@ async function seedMember(userId: string): Promise<void> {
     profileAnswers: {},
     profileCompletedAt: null,
     trustedNewsAuthor: false,
-    barrioId: null,
   });
 }
 

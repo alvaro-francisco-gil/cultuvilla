@@ -40,7 +40,6 @@ async function seedVillageAdmin(uid: string): Promise<void> {
     trustedNewsAuthor: false,
     // Required-nullable in VillageMemberDataSchema; the callable reads this doc
     // through the converter, which throws if it's missing.
-    barrioId: null,
   });
 }
 

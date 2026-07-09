@@ -7,6 +7,10 @@ export type VillageMemberRole = z.infer<typeof VillageMemberRoleSchema>;
 /**
  * A member of the community living on a municipality.
  * Stored at /municipalities/{municipalityId}/members/{userId}.
+ *
+ * Residence barrio is NOT here — it lives solely on the linked person's
+ * `persons.municipalityLinks` (the query surface for `getPersonsByBarrio`),
+ * written directly by the owner. See docs/decisions/per-village-barrio-membership.md.
  */
 export const VillageMemberDataSchema = z.object({
   // Denormalized so collection-group reverse lookups can filter by user.
@@ -17,11 +21,6 @@ export const VillageMemberDataSchema = z.object({
   profileAnswers: ProfileAnswersSchema,
   profileCompletedAt: z.date().nullable(),
   trustedNewsAuthor: z.boolean(),
-  // Residence barrio within this municipality. null = "Todo el pueblo" (whole
-  // village). Source of truth for an account-holder's barrio; a Cloud Function
-  // trigger (syncMemberBarrioToResidence) projects it into the linked person's
-  // `municipalityLinks` entry so `getPersonsByBarrio` keeps working.
-  barrioId: z.string().nullable(),
 });
 export type VillageMemberData = z.infer<typeof VillageMemberDataSchema>;
 
@@ -32,7 +31,6 @@ export interface VillageMemberDataInput {
   profileAnswers?: z.infer<typeof ProfileAnswersSchema>;
   profileCompletedAt?: Date | null;
   trustedNewsAuthor?: boolean;
-  barrioId?: string | null;
 }
 
 export function buildVillageMemberData(input: VillageMemberDataInput): VillageMemberData {
@@ -43,6 +41,5 @@ export function buildVillageMemberData(input: VillageMemberDataInput): VillageMe
     profileAnswers: input.profileAnswers ?? {},
     profileCompletedAt: input.profileCompletedAt ?? null,
     trustedNewsAuthor: input.trustedNewsAuthor ?? false,
-    barrioId: input.barrioId ?? null,
   };
 }
