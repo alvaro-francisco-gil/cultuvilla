@@ -11,7 +11,7 @@ import {
   type NativeSyntheticEvent,
   type NativeScrollEvent,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../components/primitives/Screen';
 import { Text } from '../../components/primitives/Text';
@@ -141,8 +141,8 @@ export default function FeedScreen() {
     }
   }
 
+  // Village list for the filter pills — static enough to fetch once on mount.
   useEffect(() => {
-    void load();
     void getActiveCommunities()
       .then((communities) =>
         setVillages(
@@ -155,6 +155,16 @@ export default function FeedScreen() {
       )
       .catch(() => setVillages([]));
   }, []);
+
+  // Refetch the events feed whenever Explore regains focus (covers first mount
+  // too), so an event just created on another screen shows up on return without
+  // a manual refresh. Mirrors useVillageHome / the detail screens.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
+  );
 
   // Lazily load the news feed the first time the user opens the tab.
   useEffect(() => {
