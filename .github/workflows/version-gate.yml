@@ -25,5 +25,10 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          # This job installs no deps (it runs a dependency-free node script), so
+          # skip setup-node@v5's default package-manager cache — it auto-detects
+          # the pnpm `packageManager` field and fails with "Unable to locate
+          # executable file: pnpm" since pnpm isn't set up in this job.
+          package-manager-cache: false
       - name: Require a version bump
         run: node scripts/check-beta-version-bump.mjs apps/mobile/app.config.ts "$RUNNER_TEMP/beta.app.config.ts"
