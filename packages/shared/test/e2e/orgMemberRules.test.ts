@@ -26,14 +26,24 @@ async function seed() {
 beforeEach(async () => { await seed(); });
 
 describe('org members — roles', () => {
-  it('an org member can add another member with role member', async () => {
+  it('a user can self-join an approved org as a plain member', async () => {
+    const db = asUser(getEnv(), 'joiner');
+    await assertSucceeds(setDoc(doc(db, `organizations/${ORG}/members/joiner`), { joinedAt: new Date(), role: 'member' }));
+  });
+
+  it('a plain member cannot add a DIFFERENT user (no member-adds-member)', async () => {
     const db = asUser(getEnv(), 'member1');
+    await assertFails(setDoc(doc(db, `organizations/${ORG}/members/newbie`), { joinedAt: new Date(), role: 'member' }));
+  });
+
+  it('an org admin can add another user as a plain member', async () => {
+    const db = asUser(getEnv(), 'creator');
     await assertSucceeds(setDoc(doc(db, `organizations/${ORG}/members/newbie`), { joinedAt: new Date(), role: 'member' }));
   });
 
-  it('a plain member cannot add an admin', async () => {
-    const db = asUser(getEnv(), 'member1');
-    await assertFails(setDoc(doc(db, `organizations/${ORG}/members/newadmin`), { joinedAt: new Date(), role: 'admin' }));
+  it('a user cannot self-join as an admin (role is function-owned)', async () => {
+    const db = asUser(getEnv(), 'joiner');
+    await assertFails(setDoc(doc(db, `organizations/${ORG}/members/joiner`), { joinedAt: new Date(), role: 'admin' }));
   });
 
   it('an org admin CANNOT change a role via client update (function-owned — use changeOrgMemberRole)', async () => {
@@ -62,7 +72,7 @@ describe('org members — roles', () => {
   });
 
   it('a doc with an unknown field is rejected on create', async () => {
-    const db = asUser(getEnv(), 'member1');
-    await assertFails(setDoc(doc(db, `organizations/${ORG}/members/newbie`), { joinedAt: new Date(), role: 'member', evil: true }));
+    const db = asUser(getEnv(), 'joiner');
+    await assertFails(setDoc(doc(db, `organizations/${ORG}/members/joiner`), { joinedAt: new Date(), role: 'member', evil: true }));
   });
 });

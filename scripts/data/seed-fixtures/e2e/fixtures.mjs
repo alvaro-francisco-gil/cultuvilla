@@ -31,6 +31,38 @@ export const users = {
     personId: 'e2e-person-user',
     givenName: 'Usuario',
     firstSurname: 'E2E',
+    // A stored phone so the organizer-request screen (which validates a phone on
+    // submit) prefills it — the flow doesn't have to drive the phone field.
+    telephone: '+34600000000',
+  },
+  // App super-admin: presence of an admins/{uid} doc is what isAppAdmin() tests.
+  // Approves organizer requests in the organizer-request-approval flow.
+  superAdmin: {
+    uid: 'e2e-superadmin',
+    email: 'e2e-superadmin@cultuvilla.test',
+    displayName: 'E2E Superadmin',
+    personId: 'e2e-person-superadmin',
+    givenName: 'Super',
+    firstSurname: 'Admin',
+    appAdmin: true,
+  },
+  // Onboarded villager who is NOT a member of any org — requests to join a peña
+  // in the org-create-approve-join flow.
+  joiner: {
+    uid: 'e2e-joiner',
+    email: 'e2e-joiner@cultuvilla.test',
+    displayName: 'E2E Joiner',
+    personId: 'e2e-person-joiner',
+    givenName: 'Vecino',
+    firstSurname: 'Nuevo',
+  },
+  // Auth account ONLY — no persons/{id}, no users/{uid} profile. Signing in
+  // diverts to complete-profile, which is exactly what the onboarding flow drives.
+  fresh: {
+    uid: 'e2e-fresh',
+    email: 'e2e-fresh@cultuvilla.test',
+    displayName: 'E2E Fresh',
+    authOnly: true,
   },
 };
 
@@ -42,6 +74,21 @@ export const village = {
   codigoINE: '46999',
   description: 'Pueblo de prueba para los tests E2E.',
   coordinates: { lat: 39.4699, lng: -0.3763 },
+};
+
+// An ACTIVE village that has been started but has no organizer yet (community
+// present, organizerId null — the "wiki phase"). The organizer-request-approval
+// flow requests to organize THIS pueblo; on approval the super-admin sets its
+// organizerId and promotes the requester to admin. Kept separate from the main
+// `village` so approving it never mutates state other flows rely on.
+export const organizerlessVillage = {
+  docId: 'e2e-village-solana',
+  name: 'Solana de Prueba',
+  province: 'Valencia',
+  comunidadAutonoma: 'Comunitat Valenciana',
+  codigoINE: '46998',
+  description: 'Pueblo iniciado sin organizador, para el flujo de solicitud.',
+  coordinates: { lat: 39.5, lng: -0.4 },
 };
 
 export const org = {

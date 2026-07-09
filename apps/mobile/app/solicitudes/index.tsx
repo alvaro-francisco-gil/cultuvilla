@@ -400,6 +400,7 @@ export default function SolicitudesScreen() {
                         <Button
                           onPress={() => handleOrganizerDecide(row, 'approved')}
                           loading={busyKey === key}
+                          testID={`approve-organizer-${row.id}`}
                         >
                           {t('solicitudes.approve')}
                         </Button>
@@ -442,6 +443,7 @@ export default function SolicitudesScreen() {
                     <Button
                       onPress={() => handleOrgDecide(row, 'approved')}
                       loading={busyKey === key}
+                      testID={`approve-org-${row.id}`}
                     >
                       {t('solicitudes.approve')}
                     </Button>
@@ -479,6 +481,7 @@ export default function SolicitudesScreen() {
                     <Button
                       onPress={() => handleJoinDecide(row, 'approved')}
                       loading={busyKey === key}
+                      testID={`approve-join-${row.id}`}
                     >
                       {t('solicitudes.approve')}
                     </Button>

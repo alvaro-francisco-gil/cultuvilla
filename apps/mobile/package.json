@@ -15,7 +15,8 @@
     "test:coverage": "jest --coverage",
     "typecheck": "tsc --noEmit",
     "e2e": "playwright test --config e2e/playwright.config.ts",
-    "e2e:ui": "playwright test --config e2e/playwright.config.ts --ui"
+    "e2e:ui": "playwright test --config e2e/playwright.config.ts --ui",
+    "e2e:native": "maestro test e2e/native/flows"
   },
   "dependencies": {
     "@cultuvilla/i18n": "workspace:*",

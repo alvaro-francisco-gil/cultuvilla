@@ -43,7 +43,7 @@ This is the result of the migration recorded in [docs/decisions/open-feed-archit
 
 ### Request types (solicitudes)
 
-Three user-initiated requests exist. The Solicitudes screen (mobile) is open to
+Two user-initiated requests exist. The Solicitudes screen (mobile) is open to
 everyone and has two tabs: **Recibidas** (inbox — items you can approve, scoped to
 what you administer) and **Enviadas** (outbox — requests you've sent). Non-admins
 simply see an empty inbox. Requests are created from in-context screens; outcomes
@@ -53,7 +53,13 @@ arrive as notifications.
 |---|---|---|---|
 | Organizer (be the pueblo's organizer) | `organizerRequests/` | any user | super admin (`respondToOrganizerRequest` callable) |
 | Organization (create peña/asociación/ayuntamiento) | `organizations/` (status `pending`) | village member | village admin (own village) or super admin (`approveOrganization` callable; `rejectOrganization` stays a client write) |
-| Join org (join a peña/asociación) | `organizationJoinRequests/` | any authed non-member | org admin or super admin (`respondToJoinRequest` callable) |
+
+**Joining a peña/asociación is not a request — it is instant self-service.** The
+org detail FAB does a direct client write of `organizations/{orgId}/members/{uid}`
+(role `member`, function-owned), gated by Firestore rules: a user may add only
+themselves (`isOwner`), admins may add anyone. This mirrors village join
+(`joinVillage`) — both memberships are direct, approval-free client writes. (The
+legacy `organizationJoinRequests` approve-flow is superseded and slated for removal.)
 
 **Membership roles & the audit log.** Villages and orgs are the same abstraction —
 a membership group with members that carry a `role` and one *founder*. Authority is
@@ -70,8 +76,8 @@ ALWAYS the role flag, never the founder pointer:
 demoted) only through the audited callables **`changeVillageMemberRole` /
 `changeOrgMemberRole`**, which verify authority, mutate the role, and append to the
 append-only **`membershipEvents/`** log (top-level, scoped by `municipalityId`,
-readable by the village/org admins) in one transaction. Organizer approval, org
-approval, and join approval also emit events. Village/app admins are the backstop.
+readable by the village/org admins) in one transaction. Organizer approval and org
+approval also emit events. Village/app admins are the backstop.
 
 ### 4. Denormalized read models for high fan-out
 

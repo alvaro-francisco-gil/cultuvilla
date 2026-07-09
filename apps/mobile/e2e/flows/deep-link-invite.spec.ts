@@ -10,7 +10,9 @@ test('village invite deep link lands on the village with the invited banner', as
   page,
 }) => {
   await page.goto(`/village/${fixtures.village.docId}/join`);
-  await expect(page.getByText(fixtures.village.name)).toBeVisible({ timeout: 30_000 });
+  // The village name renders twice (compact header + hero title), so scope to
+  // the first match — the assertion only needs the name present, not unique.
+  await expect(page.getByText(fixtures.village.name).first()).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText('Te han invitado a unirte a este pueblo')).toBeVisible();
 });
 

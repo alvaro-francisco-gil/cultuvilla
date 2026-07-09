@@ -650,16 +650,19 @@ service cloud.firestore {
       match /members/{userId} {
         allow read: if true;
         // `role` is function-owned: every client-created member is a plain
-        // 'member'. Admins (org/village/app) may add plain members; the founding
-        // admin is seeded server-side by approveOrganization, and promotions go
-        // through the changeOrgMemberRole callable — both audited via admin SDK.
+        // 'member'. Orgs are open self-service join — a user adds only THEMSELVES
+        // (isOwner); admins (org/village/app) may add anyone. Users cannot add
+        // other users (no member-adds-member), so a self-join can't be leveraged
+        // to spam-add third parties. The founding admin is seeded server-side by
+        // approveOrganization, and promotions go through the changeOrgMemberRole
+        // callable — both audited via admin SDK.
         allow create: if isValidOrgMemberCreate(request.resource.data)
           && request.resource.data.role == 'member'
           && (
-               isOrgAdmin(orgId)
+               isOwner(userId)
+               || isOrgAdmin(orgId)
                || isVillageAdmin(orgMunicipalityId(orgId))
                || isAppAdmin()
-               || isOrgMember(orgId)
              );
         // role goes through changeOrgMemberRole (admin SDK); a member doc has no
         // other client-editable fields.

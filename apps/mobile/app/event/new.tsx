@@ -348,7 +348,7 @@ export default function NewEventScreen() {
       },
       render: () => stepBody(
         <>
-          <Input label={t('event.title')} value={title} onChangeText={setTitle} />
+          <Input label={t('event.title')} value={title} onChangeText={setTitle} testID="event-title" />
           <Input
             label={t('event.description')}
             value={description}
@@ -467,6 +467,7 @@ export default function NewEventScreen() {
           submitLabel={editMode ? t('common.save') : t('event.createEvent')}
           loading={isPending}
           allStepsReachable={editMode}
+          primaryTestID="event-form-primary"
         />
       </KeyboardAvoidingView>
     </Screen>
