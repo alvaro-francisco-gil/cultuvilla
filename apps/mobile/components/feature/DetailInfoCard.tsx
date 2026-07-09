@@ -14,26 +14,28 @@ export type DetailInfoCardProps = {
 };
 
 /** A tappable fact card (when / where), styled after ordago's TournamentDetails
- * info cards: an accent icon + uppercase accent label on the top row with a
- * trailing chevron, and the value on a single line below. */
+ * info cards: an accent icon + uppercase accent label above the value on a
+ * single line, with a chevron centred vertically at the right edge. */
 export function DetailInfoCard({ icon, label, value, onPress }: DetailInfoCardProps) {
   return (
     <Pressable onPress={onPress} className="flex-1">
       <Card className="h-full">
-        <VStack gap={1}>
-          <HStack gap={2} align="center">
-            <Ionicons name={icon} size={iconSizes.md} color={colors.light.fg.accent} />
-            <Text
-              variant="caption"
-              className="flex-1 text-accent font-bold"
-              style={{ textTransform: 'uppercase', letterSpacing: 0.8 }}
-            >
-              {label}
-            </Text>
-            <Ionicons name="chevron-forward" size={iconSizes.sm} color={colors.light.fg.muted} />
-          </HStack>
-          <Text variant="h3" numberOfLines={1}>{value}</Text>
-        </VStack>
+        <HStack gap={2} align="center">
+          <VStack gap={1} className="flex-1">
+            <HStack gap={2} align="center">
+              <Ionicons name={icon} size={iconSizes.md} color={colors.light.fg.accent} />
+              <Text
+                variant="caption"
+                className="flex-1 font-bold"
+                style={{ color: colors.light.fg.accent, textTransform: 'uppercase', letterSpacing: 0.8 }}
+              >
+                {label}
+              </Text>
+            </HStack>
+            <Text variant="h3" numberOfLines={1}>{value}</Text>
+          </VStack>
+          <Ionicons name="chevron-forward" size={iconSizes.sm} color={colors.light.fg.muted} />
+        </HStack>
       </Card>
     </Pressable>
   );
