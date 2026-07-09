@@ -19,16 +19,33 @@
  * value — we only fill a MISSING one.
  *
  * USAGE
- *   node scripts/backfill-drop-member-barrio.mjs
+ *   node scripts/backfill-drop-member-barrio.mjs                 # dev (default)
+ *   node scripts/backfill-drop-member-barrio.mjs --env=beta --confirm
+ *
+ * Run ONLY after the new code has deployed to that env — the old converter
+ * requires `barrioId`, so deleting it before the deploy would crash clients.
  *
  * Idempotent: members without `barrioId` are skipped; run again safely. Scoped
- * to municipalities/{}/members (org members are left alone). Dev only.
+ * to municipalities/{}/members (org members are left alone).
  */
 
 import admin from 'firebase-admin';
 
-const PROJECT_ID = 'villa-events';
+// Env-aware: dev is autonomous; beta/prod require --confirm (they mutate a
+// release env — see firebase-admin-dev skill / AGENTS.md). Prod normally has no
+// members to migrate, so this is really dev + beta in practice.
+const PROJECTS = { dev: 'villa-events', beta: 'cultuvilla-beta', prod: 'cultuvilla-prod' };
+const ENV = process.argv.find((a) => a.startsWith('--env='))?.split('=')[1] ?? 'dev';
+const PROJECT_ID = PROJECTS[ENV];
 
+if (!PROJECT_ID) {
+  console.error(`Unknown --env=${ENV}. Use one of: ${Object.keys(PROJECTS).join(', ')}.`);
+  process.exit(1);
+}
+if (ENV !== 'dev' && !process.argv.includes('--confirm')) {
+  console.error(`Refusing to mutate ${ENV} (${PROJECT_ID}) without --confirm.`);
+  process.exit(1);
+}
 if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
   console.error('GOOGLE_APPLICATION_CREDENTIALS is not set. See firebase-admin-dev skill.');
   process.exit(1);
@@ -38,9 +55,10 @@ admin.initializeApp({ projectId: PROJECT_ID });
 const db = admin.firestore();
 
 if (admin.app().options.projectId !== PROJECT_ID) {
-  console.error(`Refusing to run against ${admin.app().options.projectId} — dev only.`);
+  console.error(`Refusing to run against ${admin.app().options.projectId} — expected ${PROJECT_ID}.`);
   process.exit(1);
 }
+console.log(`Running against ${ENV} (${PROJECT_ID}).`);
 
 /** True for docs at municipalities/{id}/members/{uid} (not organizations/{id}/members/{uid}). */
 function isVillageMember(docRef) {
