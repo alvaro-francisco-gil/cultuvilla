@@ -116,11 +116,16 @@ modificaciones de los términos.
 - **Docs:** `packages/shared/src/services/_services-map.md` if the write shape changes,
   CHANGELOG `[Unreleased]`
 
-## Open questions
+## Resolved
 
-- Retention periods to state in the privacy policy (default proposal: data kept while the
-  account is active; deleted or anonymized on account deletion; audit logs per legal
-  minimum). Confirm before publishing.
-- Minimum age: propose 14 (Spanish LOPDGDD digital-consent threshold). Confirm.
-- Whether to gate the whole app on re-acceptance when `termsVersion` bumps, or only
-  new/next-login users — out of scope for v1.0, revisit when the first version bump lands.
+- **Retention:** data kept while the account is active; deleted or anonymized when the
+  user deletes their account; audit/legal logs retained only for the legally-required
+  minimum.
+- **Minimum age:** 14 (Spanish LOPDGDD digital-consent threshold); under-14s require
+  parental/guardian consent.
+
+## Out of scope (v1.0)
+
+- Re-acceptance gate when `termsVersion` bumps (whole-app re-prompt vs next-login only).
+  The versioned record is stored now so this can be built later; revisit when the first
+  version bump lands.
