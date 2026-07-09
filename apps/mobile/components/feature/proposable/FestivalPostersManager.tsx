@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import {
   newFestivalPosterId,
   proposeFestivalPoster,
@@ -14,8 +13,8 @@ import {
 import { uploadFestivalPosterImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 import type { DatePrecision } from '@cultuvilla/shared/models/festivalPoster';
-import { monthShortLabels } from '@cultuvilla/shared/utils';
-import { VStack, HStack, Text, Button, Input, Pressable, FieldLabel, ImagePickerField } from '../../primitives';
+import { formatFestivalPosterDates } from '@cultuvilla/shared/utils';
+import { VStack, HStack, Text, Button, Input, FieldLabel, DateField, ImagePickerField } from '../../primitives';
 import { pickImageAsBlob } from '../../../lib/images';
 import { useT } from '../../../lib/i18n';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
@@ -23,54 +22,29 @@ import { isProposalVisible } from '../../../lib/proposals';
 import { ProposableListItem } from './ProposableListItem';
 import type { ManagerMode } from './types';
 
-// Month chip labels derive from the locale formatter (es-ES month names),
-// not a hardcoded list — see @cultuvilla/shared/utils/format.ts.
-const MONTHS = monthShortLabels();
-const PRECISIONS: DatePrecision[] = ['year', 'month', 'day'];
-
-function precisionLabelKey(p: DatePrecision): 'precisionYear' | 'precisionMonth' | 'precisionDay' {
-  return p === 'year' ? 'precisionYear' : p === 'month' ? 'precisionMonth' : 'precisionDay';
+/** Keep the year field digits-only (max 4) regardless of keyboard/platform. */
+function sanitizeYear(text: string): string {
+  return text.replace(/[^0-9]/g, '').slice(0, 4);
 }
 
-function computeDates(
-  precision: DatePrecision,
-  year: number,
-  monthIndex: number,
-  startDay: number,
-  endDay: number,
-): { startsAt: Date | null; endsAt: Date | null } {
-  if (precision === 'year') return { startsAt: null, endsAt: null };
-  if (precision === 'month') return { startsAt: new Date(year, monthIndex, 1), endsAt: null };
-  return { startsAt: new Date(year, monthIndex, startDay), endsAt: new Date(year, monthIndex, endDay) };
-}
-
-function Stepper({ value, onChange, testID }: { value: number; onChange: (n: number) => void; testID?: string }) {
-  return (
-    <HStack gap={2} align="center">
-      <Pressable
-        testID={testID ? `${testID}-dec` : undefined}
-        onPress={() => onChange(Math.max(1, value - 1))}
-        className="w-8 h-8 rounded-full border border-subtle items-center justify-center"
-      >
-        <Ionicons name="remove" size={18} />
-      </Pressable>
-      <Text testID={testID}>{value}</Text>
-      <Pressable
-        testID={testID ? `${testID}-inc` : undefined}
-        onPress={() => onChange(Math.min(31, value + 1))}
-        className="w-8 h-8 rounded-full border border-subtle items-center justify-center"
-      >
-        <Ionicons name="add" size={18} />
-      </Pressable>
-    </HStack>
-  );
+/**
+ * Fold the two optional date pickers into the model's precision + range:
+ * no start date → 'year' (dates dropped); a start date → 'day' (with an
+ * optional end date). An end date without a start is ignored.
+ */
+function datesToPayload(
+  startsAt: Date | null,
+  endsAt: Date | null,
+): { datePrecision: DatePrecision; startsAt: Date | null; endsAt: Date | null } {
+  if (!startsAt) return { datePrecision: 'year', startsAt: null, endsAt: null };
+  return { datePrecision: 'day', startsAt, endsAt: endsAt ?? null };
 }
 
 /**
  * Carteles de fiestas surface, split by `mode`:
  * - `create` (default): the "Añadir cartel" form — year, optional title,
- *   date precision (solo año / mes / días) and the poster image. A villager
- *   proposes (pending); an organizer creates directly.
+ *   optional start/end dates and the poster image. A villager proposes
+ *   (pending); an organizer creates directly.
  * - `manage`: the moderation list (approve/reject/edit/delete), mirroring
  *   PlacesManager's manage-mode.
  */
@@ -89,20 +63,16 @@ export function FestivalPostersManager({
 
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const [title, setTitle] = useState('');
-  const [precision, setPrecision] = useState<DatePrecision>('year');
-  const [monthIndex, setMonthIndex] = useState(7);
-  const [startDay, setStartDay] = useState(1);
-  const [endDay, setEndDay] = useState(1);
+  const [startsAt, setStartsAt] = useState<Date | null>(null);
+  const [endsAt, setEndsAt] = useState<Date | null>(null);
   const [image, setImage] = useState<UploadableImage | null>(null);
   const [saving, setSaving] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editYear, setEditYear] = useState(String(new Date().getFullYear()));
   const [editTitle, setEditTitle] = useState('');
-  const [editPrecision, setEditPrecision] = useState<DatePrecision>('year');
-  const [editMonthIndex, setEditMonthIndex] = useState(7);
-  const [editStartDay, setEditStartDay] = useState(1);
-  const [editEndDay, setEditEndDay] = useState(1);
+  const [editStartsAt, setEditStartsAt] = useState<Date | null>(null);
+  const [editEndsAt, setEditEndsAt] = useState<Date | null>(null);
 
   const load = useCallback(async () => {
     if (!villageId) return;
@@ -120,25 +90,20 @@ export function FestivalPostersManager({
     try {
       const id = newFestivalPosterId();
       const imageURL = await uploadFestivalPosterImage(villageId, id, image);
-      const { startsAt, endsAt } = computeDates(precision, y, monthIndex, startDay, endDay);
       const payload = {
         municipalityId: villageId,
         year: y,
         title: title.trim() || null,
         imageURL,
-        datePrecision: precision,
-        startsAt,
-        endsAt,
+        ...datesToPayload(startsAt, endsAt),
         createdAt: new Date(),
       };
       if (canManage) await createFestivalPoster(payload, id);
       else await proposeFestivalPoster({ ...payload, proposedBy: uid }, id);
       setYear(String(new Date().getFullYear()));
       setTitle('');
-      setPrecision('year');
-      setMonthIndex(7);
-      setStartDay(1);
-      setEndDay(1);
+      setStartsAt(null);
+      setEndsAt(null);
       setImage(null);
       onCreated?.();
     } finally {
@@ -151,13 +116,10 @@ export function FestivalPostersManager({
     if (!editingId || !Number.isInteger(y)) return;
     setSaving(true);
     try {
-      const { startsAt, endsAt } = computeDates(editPrecision, y, editMonthIndex, editStartDay, editEndDay);
       await updateFestivalPoster(editingId, {
         year: y,
         title: editTitle.trim() || null,
-        datePrecision: editPrecision,
-        startsAt,
-        endsAt,
+        ...datesToPayload(editStartsAt, editEndsAt),
       });
       setEditingId(null);
       await load();
@@ -171,50 +133,6 @@ export function FestivalPostersManager({
     await deleteFestivalPoster(id);
     await load();
   }
-
-  const PrecisionPicker = ({
-    value,
-    onChange,
-  }: {
-    value: DatePrecision;
-    onChange: (p: DatePrecision) => void;
-  }) => (
-    <VStack gap={1}>
-      <FieldLabel>{t('village.festivalPosters.form.precision')}</FieldLabel>
-      <HStack gap={2} className="flex-wrap">
-        {PRECISIONS.map((p) => (
-          <Pressable
-            key={p}
-            testID={`precision-${p}`}
-            onPress={() => onChange(p)}
-            className={`px-3 py-1 rounded-full border ${value === p ? 'bg-[#f3a64b] border-[#f3a64b]' : 'border-subtle'}`}
-          >
-            <Text className={value === p ? 'text-primary' : undefined}>
-              {t(`village.festivalPosters.form.${precisionLabelKey(p)}`)}
-            </Text>
-          </Pressable>
-        ))}
-      </HStack>
-    </VStack>
-  );
-
-  const MonthPicker = ({ value, onChange }: { value: number; onChange: (i: number) => void }) => (
-    <VStack gap={1}>
-      <FieldLabel>{t('village.festivalPosters.form.month')}</FieldLabel>
-      <HStack gap={2} className="flex-wrap">
-        {MONTHS.map((label, i) => (
-          <Pressable
-            key={label}
-            testID={`month-${i}`}
-            onPress={() => onChange(i)}
-            className={`px-3 py-1 rounded-full border ${value === i ? 'bg-[#f3a64b] border-[#f3a64b]' : 'border-subtle'}`}
-          >
-            <Text className={value === i ? 'text-primary' : undefined}>{label}</Text>
-          </Pressable>
-        ))}
-      </HStack>
-    </VStack>
-  );
 
   if (mode === 'create') {
     const y = parseInt(year, 10);
@@ -235,7 +153,7 @@ export function FestivalPostersManager({
         <Input
           testID="poster-year-input"
           value={year}
-          onChangeText={setYear}
+          onChangeText={(txt) => setYear(sanitizeYear(txt))}
           label={t('village.festivalPosters.form.year')}
           keyboardType="number-pad"
         />
@@ -248,22 +166,18 @@ export function FestivalPostersManager({
           placeholder={t('village.festivalPosters.form.titlePlaceholder')}
         />
 
-        <PrecisionPicker value={precision} onChange={setPrecision} />
-
-        {precision !== 'year' ? <MonthPicker value={monthIndex} onChange={setMonthIndex} /> : null}
-
-        {precision === 'day' ? (
-          <HStack gap={4}>
-            <VStack gap={1}>
-              <FieldLabel>{t('village.festivalPosters.form.startDay')}</FieldLabel>
-              <Stepper testID="poster-start-day" value={startDay} onChange={setStartDay} />
-            </VStack>
-            <VStack gap={1}>
-              <FieldLabel>{t('village.festivalPosters.form.endDay')}</FieldLabel>
-              <Stepper testID="poster-end-day" value={endDay} onChange={setEndDay} />
-            </VStack>
-          </HStack>
-        ) : null}
+        <DateField
+          testID="poster-start-date"
+          label={t('village.festivalPosters.form.startDate')}
+          value={startsAt}
+          onChange={setStartsAt}
+        />
+        <DateField
+          testID="poster-end-date"
+          label={t('village.festivalPosters.form.endDate')}
+          value={endsAt}
+          onChange={setEndsAt}
+        />
 
         <Button
           testID="poster-submit"
@@ -290,7 +204,7 @@ export function FestivalPostersManager({
           <VStack key={item.id} gap={2} className="py-3">
             <Input
               value={editYear}
-              onChangeText={setEditYear}
+              onChangeText={(txt) => setEditYear(sanitizeYear(txt))}
               label={t('village.festivalPosters.form.year')}
               keyboardType="number-pad"
             />
@@ -299,14 +213,16 @@ export function FestivalPostersManager({
               onChangeText={setEditTitle}
               label={t('village.festivalPosters.form.title')}
             />
-            <PrecisionPicker value={editPrecision} onChange={setEditPrecision} />
-            {editPrecision !== 'year' ? <MonthPicker value={editMonthIndex} onChange={setEditMonthIndex} /> : null}
-            {editPrecision === 'day' ? (
-              <HStack gap={4}>
-                <Stepper value={editStartDay} onChange={setEditStartDay} />
-                <Stepper value={editEndDay} onChange={setEditEndDay} />
-              </HStack>
-            ) : null}
+            <DateField
+              label={t('village.festivalPosters.form.startDate')}
+              value={editStartsAt}
+              onChange={setEditStartsAt}
+            />
+            <DateField
+              label={t('village.festivalPosters.form.endDate')}
+              value={editEndsAt}
+              onChange={setEditEndsAt}
+            />
             <HStack gap={2}>
               <Button onPress={saveEdit} loading={saving}>{t('common.save')}</Button>
               <Button variant="ghost" onPress={() => setEditingId(null)}>{t('common.cancel')}</Button>
@@ -317,7 +233,7 @@ export function FestivalPostersManager({
             key={item.id}
             name={`${item.year}${item.title ? ` · ${item.title}` : ''}`}
             imageURL={item.imageURL}
-            subtitle={item.datePrecision !== 'year' ? MONTHS[item.startsAt?.getMonth() ?? 0] : null}
+            subtitle={formatFestivalPosterDates(item)}
             status={item.status}
             canManage={canManage}
             isOwnPending={!canManage && item.status === 'pending' && item.proposedBy === uid}
@@ -327,10 +243,8 @@ export function FestivalPostersManager({
               setEditingId(item.id);
               setEditYear(String(item.year));
               setEditTitle(item.title ?? '');
-              setEditPrecision(item.datePrecision);
-              setEditMonthIndex(item.startsAt?.getMonth() ?? 7);
-              setEditStartDay(item.startsAt?.getDate() ?? 1);
-              setEditEndDay(item.endsAt?.getDate() ?? 1);
+              setEditStartsAt(item.startsAt);
+              setEditEndsAt(item.endsAt);
             }}
             onWithdraw={() => void remove(item.id)}
             onDelete={() => void remove(item.id)}

@@ -12,7 +12,7 @@ import {
   ScreenTitle,
   ErrorState,
 } from '../primitives';
-import { ACCENT, Section, EntityCard, PosterCard } from './VillageSections';
+import { ACCENT, Section, EntityCard } from './VillageSections';
 import { FestivalPosterViewer } from './FestivalPosterViewer';
 import { JoinVillageModal } from './JoinVillageModal';
 import { StatsRow } from './StatsRow';
@@ -435,11 +435,11 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
           onAdd={() => router.push(`${villageBase}/festival-posters` as never)}
         >
           {festivalPosters.map((p) => (
-            <PosterCard
+            <EntityCard
               key={p.id}
-              year={p.year}
-              title={p.title}
-              dateLabel={formatFestivalPosterDates(p)}
+              label={String(p.year)}
+              sub={[p.title, formatFestivalPosterDates(p)].filter(Boolean).join(' · ') || undefined}
+              icon="image-outline"
               imageUri={p.imageURL}
               onPress={() => setViewerPoster(p)}
             />

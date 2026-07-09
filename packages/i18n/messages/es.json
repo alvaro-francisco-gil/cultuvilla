@@ -383,13 +383,8 @@
         "year": "Año",
         "title": "Nombre de las fiestas",
         "titlePlaceholder": "p. ej. San Roque",
-        "precision": "Fechas",
-        "precisionYear": "Solo año",
-        "precisionMonth": "Mes",
-        "precisionDay": "Días",
-        "month": "Mes",
-        "startDay": "Día de inicio",
-        "endDay": "Día de fin",
+        "startDate": "Fecha de inicio",
+        "endDate": "Fecha de fin",
         "image": "Cartel"
       },
       "viewer": { "close": "Cerrar" }
