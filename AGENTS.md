@@ -95,6 +95,22 @@ When a query would require N reads or live across collection boundaries, write a
 
 Currently controlled inputs with `useState`. No form library yet. New forms should match the existing style until/unless we adopt `react-hook-form + zod` (see CHANGELOG — this is on the table).
 
+### Entities
+
+An **entity** is a village-scoped domain object that appears in a horizontal
+`Section` scroll (as a `BigCard` / `EntityCard`) and opens a hero-image detail
+screen. The family: **event, festival-poster (cartel), place, barrio,
+organization, news**. `person` and `village` are **not** entities — they open
+into forms (`ScreenHeader`), not hero-detail screens.
+
+Every entity detail screen is a thin consumer of one scaffold,
+[apps/mobile/components/feature/EntityDetailScaffold.tsx](apps/mobile/components/feature/EntityDetailScaffold.tsx):
+a solid static top bar (`EntityDetailHeader` — back + action icons) above a
+full-bleed flyer (`DetailHeroImage`), then title + body. Don't hand-roll a
+detail screen; add a scaffold consumer. The term is also carried by
+`EntityCard` and `useEntityCapabilities`; the per-kind fallback icon lives in
+[apps/mobile/lib/entities/registry.ts](apps/mobile/lib/entities/registry.ts).
+
 ### State and data fetching
 
 React Context for cross-tree state (auth, village). No global store. No query cache today — every component fetches its own data via services. If you add a feature where this hurts (revalidation, optimistic updates, dedup), surface it in the PR rather than rolling your own cache.
