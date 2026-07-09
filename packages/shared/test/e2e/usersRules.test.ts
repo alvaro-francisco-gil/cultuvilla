@@ -59,10 +59,11 @@ describe('firestore.rules — /users/{userId}', () => {
     it('owner can merge createUserProfile payload onto a trigger-created doc', async () => {
       // syncPersonDenormalization wrote { displayName } first.
       await seedTriggerCreatedUserDoc(OWNER);
-      const ownerDb = asUser(getEnv(), OWNER);
       // createUserProfile uses setDoc(merge); because the doc exists this is an
       // UPDATE, and the payload carries `createdAt`. This is the real onboarding
-      // write and must be allowed.
+      // write and must be allowed. The update guard requires the payload's
+      // `email` to match the auth token's verified email.
+      const ownerDb = asUserWithEmail(getEnv(), OWNER, createUserProfilePayload().email);
       await assertSucceeds(
         setDoc(doc(ownerDb, `users/${OWNER}`), createUserProfilePayload(), { merge: true }),
       );
