@@ -1,7 +1,13 @@
 import { doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, limit } from 'firebase/firestore';
 import { getDb } from '../firebase';
 import { personsCollection, personDoc } from '../firebase/refs/client';
-import { buildPersonData, buildDisplayName, type PersonData, type PersonDataInput } from '../models/person';
+import {
+  buildPersonData,
+  buildDisplayName,
+  buildResidenceLinks,
+  type PersonData,
+  type PersonDataInput,
+} from '../models/person';
 
 export async function getPerson(personId: string): Promise<(PersonData & { id: string }) | null> {
   const snap = await getDoc(personDoc(getDb(), personId));
@@ -48,6 +54,28 @@ export async function updatePerson(
 
 export async function deletePerson(personId: string): Promise<void> {
   await deleteDoc(personDoc(getDb(), personId));
+}
+
+/**
+ * Set an account-holder's residence barrio within a village. Residence is
+ * single-source-of-truth on the person's `municipalityLinks`, so this upserts
+ * the entry for `municipalityId` directly (the caller owns their person doc).
+ * `barrioId` null = "Todo el pueblo" (whole village). Written via
+ * `buildResidenceLinks`, the single constructor of the exact
+ * `{ municipalityId, barrioId }` shape `getPersonsByBarrio` matches on. No-op
+ * when the user has no linked person.
+ */
+export async function updateResidenceBarrio(
+  userId: string,
+  municipalityId: string,
+  barrioId: string | null,
+): Promise<void> {
+  const person = await getPersonByUserId(userId);
+  if (!person) return;
+  const others = person.municipalityLinks.filter((l) => l.municipalityId !== municipalityId);
+  await updatePerson(person.id, {
+    municipalityLinks: [...others, ...buildResidenceLinks(municipalityId, barrioId)],
+  });
 }
 
 /** People linked to a given barrio (residence link in `municipalityLinks`). */

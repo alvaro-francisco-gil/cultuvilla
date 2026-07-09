@@ -8,6 +8,7 @@ import {
 } from 'firebase-admin/firestore';
 import { municipalityDoc, municipalityMemberDoc } from '@cultuvilla/shared/firebase/refs/admin';
 import type { VillageMemberData } from '@cultuvilla/shared';
+import { readResidenceTarget, upsertResidenceLink } from './residenceProjection';
 
 const db = getFirestore();
 
@@ -59,6 +60,10 @@ export const startVillage = onCall<StartVillageData, Promise<StartVillageResult>
         throw new HttpsError('failed-precondition', 'La comunidad ya está activa.');
       }
 
+      // Residence link projection (read before any write): the starter becomes a
+      // member, so they must appear in getPersonsByBarrio at whole-village level.
+      const residenceTarget = await readResidenceTarget(tx, db, uid);
+
       // Only set the manual escudo when the village has none yet, so the
       // starter's optional upload can't clobber an existing crest.
       const trimmedEscudo = escudoManualUrl?.trim();
@@ -88,9 +93,9 @@ export const startVillage = onCall<StartVillageData, Promise<StartVillageResult>
         profileAnswers: {},
         profileCompletedAt: null,
         trustedNewsAuthor: false,
-        barrioId: null,
       };
       tx.set(memberRef, newMember);
+      if (residenceTarget) upsertResidenceLink(tx, residenceTarget, municipalityId, null);
     });
 
     logger.info('village started', { handler, uid, municipalityId });

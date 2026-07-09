@@ -10,6 +10,7 @@ import {
 import type { VillageMemberData } from '@cultuvilla/shared';
 import { notifyOrganizerRequestResolved } from '../helpers/notifyRequests';
 import { writeMembershipEvent } from '../helpers/membershipAudit';
+import { readResidenceTarget, upsertResidenceLink, type ResidenceTarget } from './residenceProjection';
 
 const db = getFirestore();
 
@@ -79,6 +80,15 @@ export const respondToOrganizerRequest = onCall<
       }
       municipalityName = muniData?.name ?? municipalityId;
 
+      // Residence link projection for a requester who is NOT yet a member and
+      // will be seeded as admin below. Read before any write (tx requirement);
+      // the upsert happens in the fresh-member branch. Already-members keep the
+      // residence link they got when they joined/started the village.
+      let residenceTarget: ResidenceTarget | null = null;
+      if (decision === 'approved' && !memberSnap.exists) {
+        residenceTarget = await readResidenceTarget(tx, db, requesterUid);
+      }
+
       // tx.update bypasses the converter — FieldValue.serverTimestamp() is fine.
       tx.update(reqRef, {
         status: decision,
@@ -103,9 +113,9 @@ export const respondToOrganizerRequest = onCall<
             profileAnswers: {},
             profileCompletedAt: null,
             trustedNewsAuthor: false,
-            barrioId: null,
           };
           tx.set(memberRef, newMember);
+          if (residenceTarget) upsertResidenceLink(tx, residenceTarget, municipalityId, null);
         }
         // Audit: the organizer grant, then the admin membership it establishes
         // (a promotion if they were already a member, otherwise a fresh add).

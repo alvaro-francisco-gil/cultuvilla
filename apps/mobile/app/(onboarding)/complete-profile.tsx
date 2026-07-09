@@ -9,12 +9,12 @@ import {
   createPerson,
   updatePerson,
   getPersonByUserId,
+  updateResidenceBarrio,
 } from '@cultuvilla/shared/services/personService';
 import {
   createUserProfile,
   patchUserProfile,
 } from '@cultuvilla/shared/services/userService';
-import { updateVillageMemberBarrio } from '@cultuvilla/shared/services/villageMemberService';
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
 import { buildResidenceLinks } from '@cultuvilla/shared/models/person';
 import type { MunicipalityLink, PartialDate } from '@cultuvilla/shared/models/person';
@@ -74,15 +74,11 @@ export default function CompleteProfileScreen() {
             });
       }
 
-      // Record the barrio on the membership too (the editable source of truth).
-      // Best-effort: a user without a membership for this village just keeps the
-      // link written above; the sync trigger reconciles to the same value.
+      // Residence barrio is single-source-of-truth on the person's
+      // municipalityLinks. createPerson (new-person branch) already seeded it;
+      // for an existing person, upsert it here. Idempotent either way.
       if (municipalityId) {
-        try {
-          await updateVillageMemberBarrio(municipalityId, user.uid, barrioId);
-        } catch {
-          /* no membership yet — the link above already covers residence */
-        }
+        await updateResidenceBarrio(user.uid, municipalityId, barrioId);
       }
 
       if (photo) {

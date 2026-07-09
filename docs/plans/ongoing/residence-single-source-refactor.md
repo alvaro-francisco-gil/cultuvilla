@@ -7,6 +7,16 @@ residency for **all** persons (account and non-account alike), eliminating the
 duplicated `member.barrioId` field and shrinking the `syncMemberBarrioToResidence`
 projection trigger to the one branch that genuinely needs server privilege.
 
+## Status
+
+- **Updated:** 2026-07-09
+- **Stage:** Stage 5 — docs + `pnpm check` + PR
+- **Branch:** `refactor/residence-single-source` (worktree `.claude/worktrees/residence-single-source`)
+- **Done:** Stages 1–5 code + docs complete. Runnable CI gates green (static checks, typecheck ×4, lint, build). Docs updated (`_services-map.md`, CHANGELOG, `per-village-barrio-membership.md` decision). PR opening next.
+- **Next:** open PR → user runs full `pnpm test` (emulators) via CI → merge → post-deploy backfill.
+- **Blockers:** Emulator suites must be run by the user (`pnpm test:functions`, `pnpm test:rules` — agent can't boot emulators). The backfill is a **post-deploy** step (old converter requires `barrioId`; deploy new code first). Validation decision resolved (accept unvalidated; shared callable is the named upgrade path).
+- **Handoff:** Work happens in the worktree — session cwd is the primary checkout, so use absolute worktree paths. `pnpm test`/emulator suites are off-limits to the agent; rely on `pnpm typecheck` + non-emulator vitest, and hand emulator/functions test runs to the user. Every residence-link write MUST go through `buildResidenceLinks` (exact `{municipalityId,barrioId}` shape for the array-contains query).
+
 ## Context
 
 Barrio residency shipped with membership as the source of truth for
@@ -184,46 +194,76 @@ only re-introduces the asymmetry this refactor removes.
 ## Tasks
 
 ### Stage 1 — Server: preserve both privileged paths
-- [ ] Add `municipalityLinks` projection (via `buildResidenceLinks(id, null)`) to the
-      `acceptInvite` create transaction.
-- [ ] Update the `acceptInvite` test to assert the residence link is written.
-- [ ] Reduce `syncMemberBarrioToResidence` to the delete branch only.
-- [ ] Rewrite `syncMemberBarrioToResidence.test.ts` for delete-only.
-- [ ] `pnpm test:functions` green.
+- [x] Add `municipalityLinks` projection (via `buildResidenceLinks(id, null)`) to the
+      `acceptInvite` create transaction. (New user: via `buildPersonData`; existing
+      user: read-in-tx + upsert.)
+- [x] Add an `acceptInvite` test asserting the residence link is written (new +
+      existing user, plus already-member no-dupe). New file — none existed before.
+- [x] Reduce `syncMemberBarrioToResidence` to delete-only (`onDocumentDeleted`).
+- [x] Rewrite `syncMemberBarrioToResidence.test.ts` for delete-only.
+- [ ] `pnpm test:functions` green. — **needs the user to run** (emulator suite;
+      agent is not permitted to boot emulators). Typecheck + lint pass.
 
 ### Stage 2 — Shared: single source + atomic join
-- [ ] Route every residence-link write through `buildResidenceLinks` (audit call
-      sites).
-- [ ] Make `joinVillage` an atomic `writeBatch` { member create, person link upsert };
-      drop `barrioId` from `addVillageMember` / `joinVillage`.
-- [ ] Remove `updateVillageMemberBarrio`; add the change-barrio person-write path.
-- [ ] Drop `barrioId` from `VillageMemberData` (schema/Input/builder), `UserMembership`,
+- [x] Route every residence-link write through `buildResidenceLinks` (client
+      `joinVillage`/`updateResidenceBarrio`; server `residenceProjection` helper).
+- [x] Make `joinVillage` an atomic `writeBatch` { member create, person link upsert };
+      drop `barrioId`. `addVillageMember` removed (only caller was `joinVillage`).
+- [x] Remove `updateVillageMemberBarrio`; add `personService.updateResidenceBarrio`.
+- [x] Drop `barrioId` from `VillageMemberData` (schema/Input/builder), `UserMembership`,
       and `getUserMemberships`.
-- [ ] Vitest: join-batches-both-writes + no-`barrioId`-on-membership.
+- [x] Vitest: join-batches-both-writes + no-`barrioId`-on-membership +
+      `updateResidenceBarrio` upsert/clear/no-op (7 tests, green).
+- [x] **(added)** `startVillage` + `respondToOrganizerRequest` project the residence
+      link via the shared `residenceProjection` helper (create-side paths the plan
+      missed); stale `barrioId: null` member seeds removed from functions tests.
 
 ### Stage 3 — Mobile: unify the edit surfaces
-- [ ] `MembershipBarrioList` writes the person doc (change-barrio path), not the member.
-- [ ] `JoinVillageModal` / `VillageDiscovery` / `VillageHomeBody` consume batched join.
-- [ ] Drop `updateVillageMemberBarrio` from `complete-profile.tsx`.
-- [ ] `pnpm app:typecheck` + `pnpm app:test` green.
+- [x] `MembershipBarrioList` reads the barrio from the person's `municipalityLinks`
+      and writes via `updateResidenceBarrio` (person doc), not the member.
+- [x] `JoinVillageModal` / `VillageDiscovery` / `VillageHomeBody` consume batched join
+      — no change needed, `joinVillage`'s signature was preserved (batching is internal).
+- [x] Drop `updateVillageMemberBarrio` from `complete-profile.tsx` → `updateResidenceBarrio`
+      (also fixes the existing-person branch, which previously relied on the trigger).
+- [x] `pnpm app:typecheck` green; jest green (81 tests). Stale `barrioId` member mock
+      removed from `event/new.test.tsx`.
 
 ### Stage 4 — Migration + rules tightening (per env: dev → beta → prod)
-- [ ] Write `scripts/backfill-drop-member-barrio.mjs` (verify-then-delete, idempotent,
-      project-id guard).
-- [ ] Run `pnpm check:dev-conformance` before; run backfill on dev; run conformance
-      after. (Non-strict converter means leftover `barrioId` is stripped on read — no
-      crash window — but delete it per Delete > deprecate.)
-- [ ] Tighten `firestore.rules` members owner-update `hasOnly` to drop `barrioId`;
-      update the rules test.
-- [ ] Deploy rules + functions to dev (see `firestore-deploy` skill). Beta/prod ride
-      CI + explicit backfill at promotion time.
+- [x] Write `scripts/backfill-drop-member-barrio.mjs` (reconcile-then-delete,
+      idempotent, project-id guard). Reconciles a missing person link from
+      `member.barrioId` before deleting the field, so no residence is lost.
+- [x] Tighten `firestore.rules` members owner-update `hasOnly` to drop `barrioId`;
+      rewrite the `villageMemberRules` e2e tests (owner-can't-write-barrioId
+      regression + admin non-role example switched off the dead field).
+- [ ] **Post-deploy (NOT pre-merge):** run `pnpm check:dev-conformance`, then the
+      backfill on dev, then conformance again. **Ordering matters** — the *old*
+      deployed converter requires `barrioId`, so deleting it before the new code
+      ships would crash old dev clients. Deploy first, backfill second.
+- [ ] Deploy rules + functions to dev — CI auto-deploys on merge to `develop`
+      (`firestore-deploy` skill for manual). Beta/prod ride CI + backfill at
+      promotion time.
+
+## Rollout status
+
+| Step | Dev | Beta | Prod |
+|---|---|---|---|
+| Code + rules merged/deployed | ⬜ | ⬜ | ⬜ |
+| `backfill-drop-member-barrio` run (post-deploy) | ⬜ | ⬜ | ⬜ |
+| `check:dev-conformance` clean after backfill | ⬜ | — | — |
+
+Legend: ⬜ pending · ⏳ in progress · ✅ done · ⚠️ blocked. **Deploy before backfill**
+in every env (old converter requires `barrioId`).
 
 ### Stage 5 — Wrap-up
-- [ ] Update `_services-map.md` and CHANGELOG `[Unreleased]`.
-- [ ] `pnpm check` green; open PR targeting `develop`.
-- [ ] On merge: retire this plan; extract the member-vs-resident consolidation into
-      `docs/decisions/` (or fold into the existing
-      `per-village-barrio-membership.md`).
+- [x] Update `_services-map.md` and CHANGELOG `[Unreleased]`; refreshed
+      `docs/decisions/per-village-barrio-membership.md` to the single-source design.
+- [x] Runnable CI gates green: `check:no-raw-firestore-refs`, `check:no-test-login-leak`,
+      `typecheck` (shared/functions/i18n/mobile), `lint` (shared/functions), `build`.
+      **`pnpm test` (emulator suite) pending a user run** — agent can't boot emulators.
+- [ ] Open PR targeting `develop`; wait for CI (full `pnpm test`) + user merge.
+- [ ] On merge: run the backfill (post-deploy, per env) per the Rollout table; then
+      retire this plan (the durable rationale already lives in
+      `docs/decisions/per-village-barrio-membership.md`).
 
 ## Notes for the implementer
 

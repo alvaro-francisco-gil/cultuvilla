@@ -156,19 +156,9 @@ describe('firestore.rules — self-join membership create', () => {
     );
   });
 
-  it('owner can self-join with a barrioId set', async () => {
-    await seedActiveMunicipality();
-    const db = asUser(getEnv(), ALICE);
-    await assertSucceeds(
-      setDoc(doc(db, 'municipalities/mActive/members/alice'), {
-        ...memberDocData(),
-        barrioId: 'centro',
-      }),
-    );
-  });
 });
 
-describe('firestore.rules — member barrioId self-update', () => {
+describe('firestore.rules — member doc no longer carries barrioId', () => {
   async function seedAliceMember() {
     await seed(getEnv(), async (ctx) => {
       const db = ctx.firestore();
@@ -177,38 +167,24 @@ describe('firestore.rules — member barrioId self-update', () => {
     });
   }
 
-  it('owner can update their own barrioId', async () => {
+  it('owner CANNOT write barrioId on their membership (residence lives on the person)', async () => {
+    // Residence barrio is single-source-of-truth on persons.municipalityLinks;
+    // the owner update rule no longer allows barrioId.
     await seedAliceMember();
     const db = asUser(getEnv(), ALICE);
-    await assertSucceeds(
+    await assertFails(
       updateDoc(doc(db, 'municipalities/mActive/members/alice'), { barrioId: 'centro' }),
     );
   });
 
-  it('owner can clear their barrioId back to null', async () => {
+  it('owner CAN still update their censo profile fields', async () => {
     await seedAliceMember();
     const db = asUser(getEnv(), ALICE);
     await assertSucceeds(
-      updateDoc(doc(db, 'municipalities/mActive/members/alice'), { barrioId: null }),
-    );
-  });
-
-  it('owner cannot change role while updating barrioId', async () => {
-    await seedAliceMember();
-    const db = asUser(getEnv(), ALICE);
-    await assertFails(
       updateDoc(doc(db, 'municipalities/mActive/members/alice'), {
-        barrioId: 'centro',
-        role: 'admin',
+        profileAnswers: { q1: 'a' },
+        profileCompletedAt: NOW,
       }),
-    );
-  });
-
-  it('a different user cannot update alice barrioId', async () => {
-    await seedAliceMember();
-    const db = asUser(getEnv(), 'mallory');
-    await assertFails(
-      updateDoc(doc(db, 'municipalities/mActive/members/alice'), { barrioId: 'centro' }),
     );
   });
 });
@@ -260,11 +236,11 @@ describe('firestore.rules — member role is function-owned (admins go through t
     );
   });
 
-  it('a village admin CAN still update a member non-role field (barrioId)', async () => {
+  it('a village admin CAN still update a member non-role field (profileCompletedAt)', async () => {
     await seedVillageWithAdmin();
     const db = asUser(getEnv(), VADMIN);
     await assertSucceeds(
-      updateDoc(doc(db, 'municipalities/mActive/members/alice'), { barrioId: 'centro' }),
+      updateDoc(doc(db, 'municipalities/mActive/members/alice'), { profileCompletedAt: NOW }),
     );
   });
 });

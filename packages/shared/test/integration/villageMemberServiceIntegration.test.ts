@@ -32,15 +32,15 @@ describe('villageMemberService — getUserMemberships', () => {
       const now = new Date();
       await setDoc(doc(db, 'municipalities/m1/members/alice'), {
         userId: 'alice', role: 'user', joinedAt: now, profileAnswers: {},
-        profileCompletedAt: null, trustedNewsAuthor: false, barrioId: null,
+        profileCompletedAt: null, trustedNewsAuthor: false,
       });
       await setDoc(doc(db, 'municipalities/m2/members/alice'), {
         userId: 'alice', role: 'admin', joinedAt: now, profileAnswers: {},
-        profileCompletedAt: null, trustedNewsAuthor: false, barrioId: 'la-estacion',
+        profileCompletedAt: null, trustedNewsAuthor: false,
       });
       await setDoc(doc(db, 'municipalities/m3/members/bob'), {
         userId: 'bob', role: 'user', joinedAt: now, profileAnswers: {},
-        profileCompletedAt: null, trustedNewsAuthor: false, barrioId: null,
+        profileCompletedAt: null, trustedNewsAuthor: false,
       });
     });
 
@@ -55,9 +55,6 @@ describe('villageMemberService — getUserMemberships', () => {
 
     expect(memberships.map((m) => m.municipalityId).sort()).toEqual(['m1', 'm2']);
     expect(memberships.find((m) => m.municipalityId === 'm2')?.role).toBe('admin');
-    // barrioId flows through; a member with no barrio reads back as null.
-    expect(memberships.find((m) => m.municipalityId === 'm2')?.barrioId).toBe('la-estacion');
-    expect(memberships.find((m) => m.municipalityId === 'm1')?.barrioId).toBeNull();
 
     vi.restoreAllMocks();
   });

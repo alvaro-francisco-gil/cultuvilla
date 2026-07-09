@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { VStack, HStack, Text, Escudo, FieldLabel, BarrioPicker } from '../primitives';
 import { useT } from '../../lib/i18n';
+import { getUserMemberships } from '@cultuvilla/shared/services/villageMemberService';
 import {
-  getUserMemberships,
-  updateVillageMemberBarrio,
-} from '@cultuvilla/shared/services/villageMemberService';
+  getPersonByUserId,
+  updateResidenceBarrio,
+} from '@cultuvilla/shared/services/personService';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
 
@@ -23,10 +24,10 @@ export interface MembershipBarrioListProps {
 
 /**
  * Residence editor for the caller's own persona: one row per village they
- * belong to, each with a barrio picker. Changing a barrio writes
- * member.barrioId immediately (per-row) — the syncMemberBarrioToResidence
- * trigger then projects it into the person's municipalityLinks, so this control
- * never writes the person doc directly. Villages are joined/left elsewhere
+ * belong to, each with a barrio picker. Residence barrio is single-source-of-
+ * truth on the person's `municipalityLinks`, so the row value is read from there
+ * and a change writes the person doc directly (`updateResidenceBarrio`) — no
+ * membership write, no projection trigger. Villages are joined/left elsewhere
  * (discovery), so there is no add/remove here.
  */
 export function MembershipBarrioList({ userId }: MembershipBarrioListProps) {
@@ -36,15 +37,20 @@ export function MembershipBarrioList({ userId }: MembershipBarrioListProps) {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const memberships = await getUserMemberships(userId);
+      const [memberships, person] = await Promise.all([
+        getUserMemberships(userId),
+        getPersonByUserId(userId),
+      ]);
+      const links = person?.municipalityLinks ?? [];
       const named = await Promise.all(
         memberships.map(async (m) => {
           const muni = await getMunicipality(m.municipalityId);
+          const link = links.find((l) => l.municipalityId === m.municipalityId);
           return {
             municipalityId: m.municipalityId,
             name: muni?.name ?? m.municipalityId,
             escudoThumbUrl: muni ? escudoThumbDisplayUrl(muni) : null,
-            barrioId: m.barrioId,
+            barrioId: link?.barrioId ?? null,
           };
         }),
       );
@@ -60,7 +66,7 @@ export function MembershipBarrioList({ userId }: MembershipBarrioListProps) {
     setRows((prev) =>
       (prev ?? []).map((r) => (r.municipalityId === municipalityId ? { ...r, barrioId } : r)),
     );
-    await updateVillageMemberBarrio(municipalityId, userId, barrioId);
+    await updateResidenceBarrio(userId, municipalityId, barrioId);
   }
 
   if (rows === null) {
