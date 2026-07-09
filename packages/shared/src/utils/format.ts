@@ -7,7 +7,7 @@
 
 const LOCALE = 'es-ES';
 
-export type DateStyle = 'short' | 'dayMonth' | 'long' | 'time' | 'datetime';
+export type DateStyle = 'short' | 'dayMonth' | 'monthYear' | 'long' | 'time' | 'datetime';
 
 export function formatDate(date: Date, style: DateStyle = 'short'): string {
   switch (style) {
@@ -27,6 +27,16 @@ export function formatDate(date: Date, style: DateStyle = 'short'): string {
       return parts
         .map((p) => (p.type === 'month' ? p.value.charAt(0).toUpperCase() + p.value.slice(1) : p.value))
         .join('');
+    }
+    // Month + year, no "de": "Agosto 2025". Intl's { month: 'long', year:
+    // 'numeric' } inserts a literal " de " between them (es-ES grammar); we
+    // drop literals and join with a single space for the poster's display style.
+    case 'monthYear': {
+      const parts = new Intl.DateTimeFormat(LOCALE, { month: 'long', year: 'numeric' }).formatToParts(date);
+      return parts
+        .filter((p) => p.type !== 'literal')
+        .map((p) => (p.type === 'month' ? p.value.charAt(0).toUpperCase() + p.value.slice(1) : p.value))
+        .join(' ');
     }
     case 'long':
       return new Intl.DateTimeFormat(LOCALE, {
