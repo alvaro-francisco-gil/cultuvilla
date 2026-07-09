@@ -3,6 +3,7 @@ import {
   Animated,
   FlatList,
   ActivityIndicator,
+  Platform,
   RefreshControl,
   ScrollView,
   TextInput,
@@ -567,6 +568,23 @@ export default function FeedScreen() {
           {toggle}
           {filterBar}
         </Animated.View>
+
+        {/* Web-only refresh feedback: RN-Web renders RefreshControl inert, so the
+            pull-down-to-refresh gesture (useWebScrollTopRefresh) has no spinner.
+            This pill gives it one. Native shows the RefreshControl spinner. */}
+        {Platform.OS === 'web' && (activeTab === 'noticias' ? newsRefreshing : refreshing) ? (
+          <View
+            pointerEvents="none"
+            style={{ position: 'absolute', top: 8, left: 0, right: 0, zIndex: 20, alignItems: 'center' }}
+          >
+            <View className="flex-row items-center gap-2 rounded-full bg-white px-3 py-1.5 shadow-sm">
+              <ActivityIndicator size="small" color={ACCENT} />
+              <Text tone="muted" className="text-sm">
+                {t('feed.refreshing')}
+              </Text>
+            </View>
+          </View>
+        ) : null}
       </View>
 
       {/* TEMP: pueblo filter hidden — re-enable alongside the village FilterPill above.

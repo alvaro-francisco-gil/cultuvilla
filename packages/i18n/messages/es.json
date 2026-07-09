@@ -85,6 +85,7 @@
   },
   "feed": {
     "title": "Inicio",
+    "refreshing": "Actualizando…",
     "empty": "No hay eventos próximos",
     "tab": {
       "events": "Eventos",

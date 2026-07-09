@@ -9,15 +9,15 @@ function setOS(os: typeof Platform.OS) {
   (Platform as { OS: typeof Platform.OS }).OS = os;
 }
 
-type WheelHandler = (e: { deltaY: number }) => void;
+type AnyHandler = (e: unknown) => void;
 
-/** A stand-in for the FlatList's scroll DOM node that captures its wheel handler. */
+/** A stand-in for the FlatList's scroll DOM node that captures its listeners. */
 function makeNode() {
-  let handler: WheelHandler | null = null;
+  const handlers: Record<string, AnyHandler | undefined> = {};
   const node = {
     scrollTop: 0,
-    addEventListener: (type: string, h: WheelHandler) => {
-      if (type === 'wheel') handler = h;
+    addEventListener: (type: string, h: AnyHandler) => {
+      handlers[type] = h;
     },
     removeEventListener: jest.fn(),
   };
@@ -26,8 +26,11 @@ function makeNode() {
     setScrollTop: (v: number) => {
       node.scrollTop = v;
     },
-    wheel: (deltaY: number) => handler?.({ deltaY }),
-    hasHandler: () => handler !== null,
+    wheel: (deltaY: number) => handlers.wheel?.({ deltaY }),
+    touchStart: (clientY: number) => handlers.touchstart?.({ touches: [{ clientY }] }),
+    touchMove: (clientY: number) => handlers.touchmove?.({ touches: [{ clientY }] }),
+    touchEnd: () => handlers.touchend?.({}),
+    hasHandler: () => handlers.wheel !== undefined,
   };
 }
 
@@ -100,6 +103,41 @@ describe('useWebScrollTopRefresh', () => {
     render(<Probe node={h.node} onRefresh={onRefresh} enabled />);
 
     h.wheel(-200);
+    expect(onRefresh).not.toHaveBeenCalled();
+  });
+
+  it('refetches when a finger drag at the top pulls down past the threshold', () => {
+    setOS('web');
+    const onRefresh = jest.fn();
+    const h = makeNode();
+    render(<Probe node={h.node} onRefresh={onRefresh} enabled />);
+
+    h.touchStart(100);
+    h.touchMove(190); // pulled down 90px, past the 80px threshold
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not fire for a sub-threshold pull-down', () => {
+    setOS('web');
+    const onRefresh = jest.fn();
+    const h = makeNode();
+    render(<Probe node={h.node} onRefresh={onRefresh} enabled />);
+
+    h.touchStart(100);
+    h.touchMove(150); // only 50px
+    h.touchEnd();
+    expect(onRefresh).not.toHaveBeenCalled();
+  });
+
+  it('never fires for a drag that does not start at the very top', () => {
+    setOS('web');
+    const onRefresh = jest.fn();
+    const h = makeNode();
+    h.setScrollTop(120);
+    render(<Probe node={h.node} onRefresh={onRefresh} enabled />);
+
+    h.touchStart(100);
+    h.touchMove(300); // big pull, but the drag began mid-list
     expect(onRefresh).not.toHaveBeenCalled();
   });
 
