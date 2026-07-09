@@ -56,7 +56,6 @@ Some documents carry denormalized copies of fields owned by other collections so
 |---|---|---|---|
 | `villageName`, `villageCoverImage`, `villageCoordinates` | `events/{eid}` (top-level) | `municipalities/{mid}` | [functions/src/village/syncVillageDenormalization.ts](../../../../functions/src/village/syncVillageDenormalization.ts) |
 | `displayName` | `users/{uid}` | `persons/{pid}` (where `userId == uid`) | [functions/src/users/syncPersonDenormalization.ts](../../../../functions/src/users/syncPersonDenormalization.ts) |
-| `displayName` on occupation usages | `persons/{pid}` (via `occupationIds`) | `occupations/{oid}` | [functions/src/census/onOccupationProposalApproved.ts](../../../../functions/src/census/onOccupationProposalApproved.ts) |
 | `isMember` on each registration | `events/{eid}/registrations/{regId}` | `municipalities/{mid}/members/{userId}` | [functions/src/events/registerToEvent.ts](../../../../functions/src/events/registerToEvent.ts) (written at create time) |
 | `confirmedCount`, `totalCount` on event doc | `events/{eid}` | aggregate over `events/{eid}/registrations/` | [functions/src/events/registerToEvent.ts](../../../../functions/src/events/registerToEvent.ts) + [functions/src/events/waitlistPromotion.ts](../../../../functions/src/events/waitlistPromotion.ts) |
 
@@ -87,7 +86,7 @@ Add to this section as you touch a domain. Incremental beats one big sweep.
 ### Census / occupation
 
 - **`censoService.updateCensoSchema` is a callable wrapper around [functions/src/census/updateCenso.ts](../../../../functions/src/census/updateCenso.ts).** The function validates the schema transition (no forbidden field-type changes) and stamps `censoUpdatedAt` on the municipality doc. Client-side schema mutation would bypass the validation.
-- **`occupations/` is now collected free-text (Task 11), not a moderated taxonomy** — `recordOccupation` upserts `occupations/{slug}` directly from the client; there is no proposal/review step. [functions/src/census/onOccupationProposalApproved.ts](../../../../functions/src/census/onOccupationProposalApproved.ts) still exists and triggers on the now-defunct `occupationProposals/` collection — it is dead code pending deletion in a later task (see Task 14 in the content-moderation-unification plan), tracked as a POSSIBLE ORPHAN. The denormalization row above (`displayName` on occupation usages) is stale for the same reason.
+- **`occupations/` is now collected free-text (Task 11), not a moderated taxonomy** — `recordOccupation` upserts `occupations/{slug}` directly from the client; there is no proposal/review step. The `occupationProposals/` collection and its `onOccupationProposalApproved` trigger were removed (Tasks 11–12); `persons/{pid}.occupations` is now a single free-form string array.
 - **`membershipProfileService.saveProfileAnswers` writes to the village's member doc**, which means the censo-completion state per user lives next to the user's village membership — not in a separate `profiles/` collection. Don't add a parallel collection; extend the member doc.
 
 ### News

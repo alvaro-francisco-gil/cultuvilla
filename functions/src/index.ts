@@ -27,9 +27,8 @@ export { approveOrganization } from './organizations/approveOrganization';
 export { changeOrgMemberRole } from './organizations/changeOrgMemberRole';
 export { onOrganizationUpdated } from './organizations/notificationTriggers';
 
-// Census (censo + occupation proposals)
+// Census (censo)
 export { updateCenso } from './census/updateCenso';
-export { onOccupationProposalApproved } from './census/onOccupationProposalApproved';
 
 // Users (profile + persona denormalization)
 export { syncPersonDenormalization } from './users/syncPersonDenormalization';
