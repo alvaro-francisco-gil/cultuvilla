@@ -31,10 +31,13 @@ type Row = OrganizationData & { id: string };
 export function OrganizationsManager({
   villageId,
   mode = 'create',
+  initialType = 'peña',
   onCreated,
 }: {
   villageId: string;
   mode?: ManagerMode;
+  /** Preselects the type picker when opened from the add-content sheet. */
+  initialType?: OrganizationType;
   onCreated?: () => void;
 }) {
   const { t } = useT();
@@ -42,7 +45,7 @@ export function OrganizationsManager({
   const [rows, setRows] = useState<Row[] | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [type, setType] = useState<OrganizationType>('peña');
+  const [type, setType] = useState<OrganizationType>(initialType);
   const [image, setImage] = useState<UploadableImage | null>(null);
   const [saving, setSaving] = useState(false);
 

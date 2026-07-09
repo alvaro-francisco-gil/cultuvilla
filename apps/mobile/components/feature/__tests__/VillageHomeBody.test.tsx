@@ -119,8 +119,9 @@ describe('VillageHomeBody', () => {
     expect(getByText('Iniciar este pueblo')).toBeTruthy();
   });
 
-  it('non-admin member sees "Compartir pueblo" as the second button', () => {
+  it('non-admin member sees "Añadir contenido" + "Compartir pueblo" (no Editar)', () => {
     const { getByText, queryByText } = render(<VillageHomeBody data={base} reload={jest.fn()} />);
+    expect(getByText('Añadir contenido')).toBeTruthy();
     expect(getByText('Compartir pueblo')).toBeTruthy();
     expect(queryByText('Editar pueblo')).toBeNull();
   });
@@ -130,12 +131,20 @@ describe('VillageHomeBody', () => {
     expect(queryByText('Invitar vecino')).toBeNull();
   });
 
-  it('admin sees "Editar pueblo" instead of "Compartir pueblo"', () => {
+  it('does not offer "Añadir contenido" to non-members (they see the join CTA)', () => {
     const { getByText, queryByText } = render(
+      <VillageHomeBody data={{ ...base, isMember: false }} reload={jest.fn()} />,
+    );
+    expect(queryByText('Añadir contenido')).toBeNull();
+    expect(getByText('Unirme a este pueblo')).toBeTruthy();
+  });
+
+  it('admin sees Editar AND Compartir (Compartir no longer hidden)', () => {
+    const { getByText } = render(
       <VillageHomeBody data={{ ...base, villageAdmin: true }} reload={jest.fn()} />,
     );
     expect(getByText('Editar pueblo')).toBeTruthy();
-    expect(queryByText('Compartir pueblo')).toBeNull();
+    expect(getByText('Compartir pueblo')).toBeTruthy();
   });
 
   it('pressing "Editar pueblo" routes to the community settings screen', () => {
@@ -144,5 +153,24 @@ describe('VillageHomeBody', () => {
     );
     fireEvent.press(getByText('Editar pueblo'));
     expect(router.push).toHaveBeenCalledWith('/village/m1/community');
+  });
+
+  it('opens the add-content sheet listing all seven entities and fans out on tap', () => {
+    const { getByText, queryByText } = render(<VillageHomeBody data={base} reload={jest.fn()} />);
+    expect(queryByText('¿Qué quieres añadir?')).toBeNull();
+    fireEvent.press(getByText('Añadir contenido'));
+    expect(getByText('¿Qué quieres añadir?')).toBeTruthy();
+    ['Evento', 'Artículo', 'Agrupación', 'Peña', 'Barrio', 'Lugar', 'Cartel de fiestas'].forEach(
+      (label) => expect(getByText(label)).toBeTruthy(),
+    );
+    fireEvent.press(getByText('Evento'));
+    expect(router.push).toHaveBeenCalledWith('/event/new?villageId=m1');
+  });
+
+  it('routes peña and agrupación to the org create screen with a preselected type', () => {
+    const { getByText } = render(<VillageHomeBody data={base} reload={jest.fn()} />);
+    fireEvent.press(getByText('Añadir contenido'));
+    fireEvent.press(getByText('Peña'));
+    expect(router.push).toHaveBeenCalledWith('/village/m1/organizations?type=pena');
   });
 });

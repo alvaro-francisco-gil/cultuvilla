@@ -209,6 +209,19 @@
       "cancel": "Cancelar"
     },
     "share": { "title": "Compartir pueblo" },
+    "addContent": {
+      "button": "Añadir contenido",
+      "title": "¿Qué quieres añadir?",
+      "items": {
+        "evento": "Evento",
+        "articulo": "Artículo",
+        "agrupacion": "Agrupación",
+        "pena": "Peña",
+        "barrio": "Barrio",
+        "lugar": "Lugar",
+        "cartel": "Cartel de fiestas"
+      }
+    },
     "edit": { "title": "Editar pueblo", "tabDetails": "Detalles", "tabContent": "Contenido", "tabMembers": "Miembros" },
     "membersList": {
       "colName": "Nombre",
