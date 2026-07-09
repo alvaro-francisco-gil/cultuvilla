@@ -12,8 +12,8 @@ projection trigger to the one branch that genuinely needs server privilege.
 - **Updated:** 2026-07-09
 - **Stage:** Stage 5 — docs + `pnpm check` + PR
 - **Branch:** `refactor/residence-single-source` (worktree `.claude/worktrees/residence-single-source`)
-- **Done:** Stages 1–4 code complete. Stage 4 — `scripts/backfill-drop-member-barrio.mjs` (reconcile-then-delete); `firestore.rules` owner-update `hasOnly` no longer allows `barrioId`; `villageMemberRules` e2e tests rewritten. Shared lint green.
-- **Next:** Stage 5 — update `_services-map.md` + CHANGELOG; run `pnpm check`; open PR.
+- **Done:** Stages 1–5 code + docs complete. Runnable CI gates green (static checks, typecheck ×4, lint, build). Docs updated (`_services-map.md`, CHANGELOG, `per-village-barrio-membership.md` decision). PR opening next.
+- **Next:** open PR → user runs full `pnpm test` (emulators) via CI → merge → post-deploy backfill.
 - **Blockers:** Emulator suites must be run by the user (`pnpm test:functions`, `pnpm test:rules` — agent can't boot emulators). The backfill is a **post-deploy** step (old converter requires `barrioId`; deploy new code first). Validation decision resolved (accept unvalidated; shared callable is the named upgrade path).
 - **Handoff:** Work happens in the worktree — session cwd is the primary checkout, so use absolute worktree paths. `pnpm test`/emulator suites are off-limits to the agent; rely on `pnpm typecheck` + non-emulator vitest, and hand emulator/functions test runs to the user. Every residence-link write MUST go through `buildResidenceLinks` (exact `{municipalityId,barrioId}` shape for the array-contains query).
 
@@ -255,11 +255,15 @@ Legend: ⬜ pending · ⏳ in progress · ✅ done · ⚠️ blocked. **Deploy b
 in every env (old converter requires `barrioId`).
 
 ### Stage 5 — Wrap-up
-- [ ] Update `_services-map.md` and CHANGELOG `[Unreleased]`.
-- [ ] `pnpm check` green; open PR targeting `develop`.
-- [ ] On merge: retire this plan; extract the member-vs-resident consolidation into
-      `docs/decisions/` (or fold into the existing
-      `per-village-barrio-membership.md`).
+- [x] Update `_services-map.md` and CHANGELOG `[Unreleased]`; refreshed
+      `docs/decisions/per-village-barrio-membership.md` to the single-source design.
+- [x] Runnable CI gates green: `check:no-raw-firestore-refs`, `check:no-test-login-leak`,
+      `typecheck` (shared/functions/i18n/mobile), `lint` (shared/functions), `build`.
+      **`pnpm test` (emulator suite) pending a user run** — agent can't boot emulators.
+- [ ] Open PR targeting `develop`; wait for CI (full `pnpm test`) + user merge.
+- [ ] On merge: run the backfill (post-deploy, per env) per the Rollout table; then
+      retire this plan (the durable rationale already lives in
+      `docs/decisions/per-village-barrio-membership.md`).
 
 ## Notes for the implementer
 
