@@ -1,16 +1,14 @@
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NaturalImage } from '../primitives/NaturalImage';
-import { FloatingBackButton } from './FloatingBackButton';
 
 /**
- * Full-bleed hero image shown at the top of detail screens (place, barrio,
- * event, news). Follows the FeedCard image chain: the item's own image → the
- * village cover photo (`fallbackImageUri`) → a tinted placeholder with
- * `fallbackIcon`. When a photo is present it is shown in full at its natural
- * aspect ratio (never cropped); only the placeholder uses the fixed 4:3 box.
- * Renders a floating back button over its top-left corner so the detail screen
- * needs no header bar (set `showBack={false}` to suppress it).
+ * Full-bleed hero image ("flyer") shown directly below the EntityDetailHeader
+ * on every entity detail screen. Follows the FeedCard image chain: the item's
+ * own image → the village cover photo (`fallbackImageUri`) → a tinted
+ * placeholder with `fallbackIcon`. A real photo is shown at its natural aspect
+ * ratio (never cropped); only the placeholder uses the fixed 4:3 box. Back /
+ * share / edit affordances live in the header bar above, not on this image.
  */
 
 // Width:height for the placeholder fallback (matches FeedCard's card image).
@@ -21,18 +19,12 @@ export type DetailHeroImageProps = {
   imageUri: string | null;
   fallbackImageUri?: string | null;
   fallbackIcon: keyof typeof Ionicons.glyphMap;
-  /** Render the floating back button over the image. Defaults to true. */
-  showBack?: boolean;
-  /** Custom back handler (defaults to router.back). */
-  onBack?: () => void;
 };
 
 export function DetailHeroImage({
   imageUri,
   fallbackImageUri = null,
   fallbackIcon,
-  showBack = true,
-  onBack,
 }: DetailHeroImageProps) {
   const displayUri = imageUri ?? fallbackImageUri;
   return (
@@ -47,7 +39,6 @@ export function DetailHeroImage({
           <Ionicons name={fallbackIcon} size={72} color="#ffffff" />
         </View>
       )}
-      {showBack ? <FloatingBackButton onBack={onBack} /> : null}
     </View>
   );
 }
