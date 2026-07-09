@@ -66,11 +66,6 @@ export default function OrgDetailScreen() {
 
   const actions: EntityDetailAction[] = org
     ? [
-        {
-          icon: 'share-outline',
-          accessibilityLabel: t('deeplink.shareViewLabel'),
-          onPress: () => void share(getOrgViewLink(org.id), org.name),
-        },
         ...(canManage
           ? [
               {
@@ -80,6 +75,11 @@ export default function OrgDetailScreen() {
               },
             ]
           : []),
+        {
+          icon: 'share-outline',
+          accessibilityLabel: t('deeplink.shareViewLabel'),
+          onPress: () => void share(getOrgViewLink(org.id), org.name),
+        },
       ]
     : [];
 

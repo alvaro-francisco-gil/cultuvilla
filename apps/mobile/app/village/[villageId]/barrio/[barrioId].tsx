@@ -51,11 +51,6 @@ export default function BarrioDetailScreen() {
 
   const actions: EntityDetailAction[] = barrio
     ? [
-        {
-          icon: 'share-outline',
-          accessibilityLabel: t('deeplink.shareViewLabel'),
-          onPress: () => void share(getBarrioViewLink(villageId, barrio.id), barrio.name),
-        },
         ...(canManage
           ? [
               {
@@ -65,6 +60,11 @@ export default function BarrioDetailScreen() {
               },
             ]
           : []),
+        {
+          icon: 'share-outline',
+          accessibilityLabel: t('deeplink.shareViewLabel'),
+          onPress: () => void share(getBarrioViewLink(villageId, barrio.id), barrio.name),
+        },
       ]
     : [];
 

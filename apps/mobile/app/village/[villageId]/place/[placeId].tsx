@@ -50,11 +50,6 @@ export default function PlaceDetailScreen() {
 
   const actions: EntityDetailAction[] = place
     ? [
-        {
-          icon: 'share-outline',
-          accessibilityLabel: t('deeplink.shareViewLabel'),
-          onPress: () => void share(getPlaceViewLink(villageId, place.id), place.name),
-        },
         ...(canManage
           ? [
               {
@@ -64,6 +59,11 @@ export default function PlaceDetailScreen() {
               },
             ]
           : []),
+        {
+          icon: 'share-outline',
+          accessibilityLabel: t('deeplink.shareViewLabel'),
+          onPress: () => void share(getPlaceViewLink(villageId, place.id), place.name),
+        },
       ]
     : [];
 

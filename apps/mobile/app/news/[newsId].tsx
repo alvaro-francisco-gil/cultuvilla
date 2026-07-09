@@ -63,11 +63,6 @@ export default function NewsDetailScreen() {
 
   const actions: EntityDetailAction[] = post
     ? [
-        {
-          icon: 'share-outline',
-          accessibilityLabel: t('deeplink.shareViewLabel'),
-          onPress: () => void share(getNewsLink(post.id), post.title),
-        },
         ...(canEdit
           ? [
               {
@@ -77,6 +72,11 @@ export default function NewsDetailScreen() {
               },
             ]
           : []),
+        {
+          icon: 'share-outline',
+          accessibilityLabel: t('deeplink.shareViewLabel'),
+          onPress: () => void share(getNewsLink(post.id), post.title),
+        },
       ]
     : [];
 
