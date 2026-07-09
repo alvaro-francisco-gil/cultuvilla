@@ -1,17 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { Screen } from '../../components/primitives/Screen';
 import { Text } from '../../components/primitives/Text';
-import { VStack } from '../../components/primitives/VStack';
 import { HStack } from '../../components/primitives/HStack';
-import { DetailHeroImage } from '../../components/feature/DetailHeroImage';
+import { EntityDetailScaffold } from '../../components/feature/EntityDetailScaffold';
+import type { EntityDetailAction } from '../../components/feature/EntityDetailHeader';
 import { NewsContentRenderer } from '../../components/feature/NewsContentRenderer';
 import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
-import { FloatingBackButton } from '../../components/feature/FloatingBackButton';
-import { FloatingShareButton } from '../../components/feature/FloatingShareButton';
-import { FloatingEditButton } from '../../components/feature/FloatingEditButton';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
@@ -31,13 +25,12 @@ export default function NewsDetailScreen() {
   const [post, setPost] = useState<Post | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!newsId) return;
     getNewsPost(newsId as string)
       .then((p) => setPost(p))
-      .catch((e: Error) => setError(e.message))
+      .catch(() => setPost(null))
       .finally(() => setLoading(false));
   }, [newsId]);
 
@@ -65,67 +58,51 @@ export default function NewsDetailScreen() {
   const date = post ? (post.publishedAt ?? post.submittedAt) : null;
   // Mirrors the news update rules: the author or a named organizer may edit.
   const canEdit =
-    !!user &&
-    !!post &&
-    (post.createdBy === user.uid || post.organizerUserIds.includes(user.uid));
+    !!user && !!post && (post.createdBy === user.uid || post.organizerUserIds.includes(user.uid));
+
+  const actions: EntityDetailAction[] = post
+    ? [
+        {
+          icon: 'share-outline',
+          accessibilityLabel: t('deeplink.shareViewLabel'),
+          onPress: () => void share(getNewsLink(post.id), post.title),
+        },
+        ...(canEdit
+          ? [
+              {
+                icon: 'create-outline' as const,
+                accessibilityLabel: t('news.compose.editTitle'),
+                onPress: () => router.push(`/news/new?newsId=${post.id}` as never),
+              },
+            ]
+          : []),
+      ]
+    : [];
 
   return (
-    <Screen padded={false} topInset={false}>
-      <StatusBar style="light" />
-      {!post ? <FloatingBackButton /> : null}
+    <EntityDetailScaffold
+      loading={loading}
+      notFound={!loading && !post}
+      imageUri={imageUrl}
+      fallbackIcon="newspaper-outline"
+      actions={actions}
+      title={post?.title}
+    >
       {post ? (
-        <FloatingShareButton onPress={() => void share(getNewsLink(post.id), post.title)} />
+        <>
+          {post.organizerOrgIds.map((id) => (
+            <LiveOwnerChip key={id} ownerId={id} ownerType="organization" size={28} tone="muted" />
+          ))}
+          {post.organizerUserIds.map((id) => (
+            <LiveOwnerChip key={id} ownerId={id} ownerType="user" size={28} tone="muted" />
+          ))}
+          <HStack gap={2} justify="between">
+            <Text tone="muted">{t(`news.compose.category.${post.category}`)}</Text>
+            {date ? <Text tone="muted">{formatDate(date, 'long')}</Text> : null}
+          </HStack>
+          <NewsContentRenderer content={post.content} body={post.body} municipalityId={post.municipalityId} />
+        </>
       ) : null}
-      {canEdit && post ? (
-        <FloatingEditButton
-          accessibilityLabel={t('news.compose.editTitle')}
-          onPress={() => router.push(`/news/new?newsId=${post.id}` as never)}
-        />
-      ) : null}
-      <ScrollView>
-        {loading ? (
-          <VStack className="p-4 pt-16">
-            <ActivityIndicator />
-          </VStack>
-        ) : null}
-        {error ? (
-          <VStack className="p-4 pt-16">
-            <Text tone="danger">{error}</Text>
-          </VStack>
-        ) : null}
-        {!loading && !post && !error ? (
-          <VStack className="p-4 pt-16">
-            <Text>No encontrada.</Text>
-          </VStack>
-        ) : null}
-        {post ? (
-          <>
-            <DetailHeroImage
-              imageUri={imageUrl}
-              fallbackImageUri={null}
-              fallbackIcon="newspaper-outline"
-            />
-            <VStack gap={3} className="p-4">
-              <Text variant="h1">{post.title}</Text>
-              {post.organizerOrgIds.map((id) => (
-                <LiveOwnerChip key={id} ownerId={id} ownerType="organization" size={28} tone="muted" />
-              ))}
-              {post.organizerUserIds.map((id) => (
-                <LiveOwnerChip key={id} ownerId={id} ownerType="user" size={28} tone="muted" />
-              ))}
-              <HStack gap={2} justify="between">
-                <Text tone="muted">{t(`news.compose.category.${post.category}`)}</Text>
-                {date ? <Text tone="muted">{formatDate(date, 'long')}</Text> : null}
-              </HStack>
-              <NewsContentRenderer
-                content={post.content}
-                body={post.body}
-                municipalityId={post.municipalityId}
-              />
-            </VStack>
-          </>
-        ) : null}
-      </ScrollView>
-    </Screen>
+    </EntityDetailScaffold>
   );
 }
