@@ -399,36 +399,9 @@ describe('shape enforcement — /events/{eventId}', () => {
   });
 });
 
-describe('shape enforcement — /occupationProposals/{id}', () => {
-  const validProposal = {
-    name: 'Apicultor',
-    proposedBy: 'alice',
-    proposedAt: new Date(),
-    status: 'pending' as const,
-    reviewedBy: null,
-    reviewedAt: null,
-    approvedOccupationId: null,
-  };
-
-  it('accepts a valid full-shape payload', async () => {
-    const alice = asUser(getEnv(), 'alice');
-    await assertSucceeds(setDoc(doc(alice, 'occupationProposals/op1'), validProposal));
-  });
-
-  it('rejects an unknown field', async () => {
-    const alice = asUser(getEnv(), 'alice');
-    await assertFails(
-      setDoc(doc(alice, 'occupationProposals/op1'), { ...validProposal, votes: 5 }),
-    );
-  });
-
-  it('rejects wrong type on name', async () => {
-    const alice = asUser(getEnv(), 'alice');
-    await assertFails(
-      setDoc(doc(alice, 'occupationProposals/op1'), { ...validProposal, name: 123 }),
-    );
-  });
-});
+// occupations/ shape enforcement lives in occupationRules.test.ts — it's no
+// longer a keys().hasOnly() gated collection (Task 11: collected free-text,
+// any authenticated write), so there's nothing to shape-test here.
 
 describe('shape enforcement — /newsReports/{reportId}', () => {
   const validReport = {

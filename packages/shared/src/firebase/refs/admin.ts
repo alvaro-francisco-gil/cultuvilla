@@ -18,7 +18,6 @@ import { newsCommentConverterAdmin } from '../converters/newsCommentConverter.ad
 import { newsReactionConverterAdmin } from '../converters/newsReactionConverter.admin';
 import { newsReportConverterAdmin } from '../converters/newsReportConverter.admin';
 import { occupationConverterAdmin } from '../converters/occupationConverter.admin';
-import { occupationProposalConverterAdmin } from '../converters/occupationProposalConverter.admin';
 import { adminConverterAdmin } from '../converters/adminConverter.admin';
 import { organizationJoinRequestConverterAdmin } from '../converters/organizationJoinRequestConverter.admin';
 import { membershipEventConverterAdmin } from '../converters/membershipEventConverter.admin';
@@ -157,12 +156,6 @@ export const occupationsCollection = (db: Firestore) =>
 
 export const occupationDoc = (db: Firestore, occupationId: string) =>
   db.collection('occupations').doc(occupationId).withConverter(occupationConverterAdmin);
-
-export const occupationProposalsCollection = (db: Firestore) =>
-  db.collection('occupationProposals').withConverter(occupationProposalConverterAdmin);
-
-export const occupationProposalDoc = (db: Firestore, proposalId: string) =>
-  db.collection('occupationProposals').doc(proposalId).withConverter(occupationProposalConverterAdmin);
 
 // ── Organization join requests ───────────────────────────────────────────
 

@@ -19,7 +19,6 @@ import { buildOrganizationData } from '../../src/models/organization/Organizatio
 import { buildOrgMemberData } from '../../src/models/organization/OrgMemberDataModel';
 import { buildOrganizationJoinRequestData } from '../../src/models/organizationJoinRequest/OrganizationJoinRequestDataModel';
 import { buildOrganizerRequestData } from '../../src/models/municipality/OrganizerRequestDataModel';
-import { buildOccupationProposalData } from '../../src/models/occupation/OccupationDataModel';
 import { buildPlaceData, buildBarrioData } from '../../src/models/municipality/MunicipalityDataModel';
 
 interface ShapeContract {
@@ -50,13 +49,6 @@ const SHAPE_CONTRACTS: ShapeContract[] = [
     label: 'organizationJoinRequests — isValidJoinRequestCreate',
     build: () => buildOrganizationJoinRequestData({ userId: 'u1', orgId: 'o1', municipalityId: 'm1' }),
     ruleKeys: ['userId', 'orgId', 'municipalityId', 'status', 'requestedAt', 'reviewedAt', 'reviewedBy'],
-  },
-  {
-    label: 'occupationProposals — isValidOccupationProposalCreate',
-    build: () => buildOccupationProposalData({ name: 'Panadero', proposedBy: 'u1' }),
-    ruleKeys: [
-      'name', 'proposedBy', 'proposedAt', 'status', 'reviewedBy', 'reviewedAt', 'approvedOccupationId',
-    ],
   },
   {
     label: 'places (create) — isValidPlaceCreate',
@@ -93,7 +85,6 @@ describe('review-lifecycle create defaults', () => {
     ['organization', buildOrganizationData({ name: 'x', type: 'peña', municipalityId: 'm', requestedBy: 'u' })],
     ['organizationJoinRequest', buildOrganizationJoinRequestData({ userId: 'u', orgId: 'o', municipalityId: 'm' })],
     ['organizerRequest', buildOrganizerRequestData({ userId: 'u', municipalityId: 'm' })],
-    ['occupationProposal', buildOccupationProposalData({ name: 'x', proposedBy: 'u' })],
   ];
 
   for (const [name, built] of PENDING_BUILDERS) {
