@@ -144,7 +144,7 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
           label: t('menu.suggestions'),
           onPress: async () => {
             try {
-              await Linking.openURL('mailto:hola@cultuvilla.com');
+              await Linking.openURL('mailto:cultuvilla.app@gmail.com');
             } catch {
               // best-effort
             }
