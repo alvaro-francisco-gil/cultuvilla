@@ -193,3 +193,39 @@ export function mentionRuns(text: string, mentions: NewsMention[]): MentionRun[]
   if (cursor < text.length) runs.push({ text: text.slice(cursor) });
   return runs;
 }
+
+export type MentionDeleteDirection = 'backward' | 'forward';
+
+export interface DeleteMentionResult {
+  text: string;
+  mentions: NewsMention[];
+  /** Where the caret should land after the whole span is removed. */
+  cursor: number;
+}
+
+/**
+ * If a collapsed caret sits at the trailing edge of a mention (Backspace /
+ * `backward`) or its leading edge (Delete / `forward`), remove the entire span's
+ * characters and drop its annotation in one edit. Returns `null` when the caret
+ * is not at a mention edge, so the caller lets the native keystroke fall through.
+ */
+export function deleteMentionAt(
+  text: string,
+  mentions: NewsMention[],
+  caret: number,
+  direction: MentionDeleteDirection,
+): DeleteMentionResult | null {
+  const target = mentions.find((m) =>
+    direction === 'backward' ? caret === m.offset + m.length : caret === m.offset,
+  );
+  if (!target) return null;
+
+  const start = target.offset;
+  const end = target.offset + target.length;
+  const newText = text.slice(0, start) + text.slice(end);
+  const remaining = mentions
+    .filter((m) => m !== target)
+    .map((m) => (m.offset >= end ? { ...m, offset: m.offset - target.length } : m));
+
+  return { text: newText, mentions: remaining, cursor: start };
+}

@@ -2,6 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import {
   activeMentionQuery,
   adjustMentions,
+  deleteMentionAt,
   insertMention,
   mentionRuns,
   splitMentionsAtCaret,
@@ -129,5 +130,32 @@ describe('mentionRuns', () => {
       { text: 'aaaa', mention: a },
       { text: 'bbbb' },
     ]);
+  });
+});
+
+describe('deleteMentionAt', () => {
+  // "hola Peña mundo" with "Peña" (offset 5, length 4) a mention
+  const text = 'hola Peña mundo';
+  const m = [mention(5, 4, 'Peña')];
+
+  it('Backspace at the end of a mention removes the whole span', () => {
+    const res = deleteMentionAt(text, m, 9, 'backward');
+    expect(res).toEqual({ text: 'hola  mundo', mentions: [], cursor: 5 });
+  });
+
+  it('Delete at the start of a mention removes the whole span', () => {
+    const res = deleteMentionAt(text, m, 5, 'forward');
+    expect(res).toEqual({ text: 'hola  mundo', mentions: [], cursor: 5 });
+  });
+
+  it('shifts a later mention left after the removed span', () => {
+    const two = [mention(5, 4, 'Peña'), mention(10, 5, 'mundo')];
+    const res = deleteMentionAt(text, two, 9, 'backward')!;
+    expect(res.mentions).toEqual([{ ...two[1], offset: 6 }]); // 10 - 4
+  });
+
+  it('returns null when the caret is not at a mention edge', () => {
+    expect(deleteMentionAt(text, m, 2, 'backward')).toBeNull();
+    expect(deleteMentionAt(text, m, 7, 'backward')).toBeNull(); // inside the span
   });
 });
