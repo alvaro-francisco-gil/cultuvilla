@@ -859,5 +859,42 @@
   "userProfile": {
     "title": "Perfil",
     "notFound": "No se encontró el usuario"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "section": {
+      "account": "Cuenta"
+    },
+    "changeEmail": {
+      "title": "Cambiar correo",
+      "label": "Cambiar correo",
+      "current": "Correo actual",
+      "newEmailPlaceholder": "Nuevo correo electrónico",
+      "submit": "Cambiar correo",
+      "reauthNotice": "Hemos enviado un enlace de confirmación a tu correo actual. Haz clic en él para verificar tu identidad.",
+      "sentToNewEmail": "Hemos enviado un enlace de confirmación a tu nuevo correo. Haz clic en él para completar el cambio.",
+      "googleDisabledHint": "Los usuarios conectados con Google gestionan su correo en su cuenta de Google.",
+      "error": {
+        "invalidEmail": "Introduce un correo electrónico válido",
+        "emailInUse": "Este correo ya está registrado en otra cuenta",
+        "generic": "No pudimos cambiar tu correo. Inténtalo de nuevo."
+      }
+    },
+    "deleteAccount": {
+      "title": "Eliminar cuenta",
+      "label": "Eliminar cuenta",
+      "warning": "Esta acción es irreversible. Tus datos personales se eliminarán permanentemente, aunque tu contenido publicado se mantendrá bajo un usuario anónimo.",
+      "confirmPrompt": "Escribe ELIMINAR para confirmar",
+      "confirmWord": "ELIMINAR",
+      "blockerIntro": "Antes de eliminar tu cuenta, debes ceder los permisos de administrador en:",
+      "blockerVillage": "Pueblo de {name} — eres el único administrador",
+      "blockerOrg": "Grupo de {name} — eres el único administrador",
+      "submit": "Eliminar mi cuenta",
+      "success": "Tu cuenta ha sido eliminada",
+      "error": {
+        "generic": "No pudimos eliminar tu cuenta. Inténtalo de nuevo."
+      }
+    },
+    "deletedUser": "Usuario eliminado"
   }
 }
