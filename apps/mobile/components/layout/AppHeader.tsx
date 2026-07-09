@@ -50,7 +50,8 @@ export function AppHeader({ centerLabel, extraRightSlot }: AppHeaderProps) {
         className="bg-accent"
         style={{ paddingTop: insets.top }}
       >
-        <View className="flex-row items-center px-3 pt-1 pb-3">
+        {/* pb is 2px under the pb-3 token (10px) to balance the perceived gap above vs below the row. */}
+        <View className="flex-row items-center px-3 pt-1" style={{ paddingBottom: 10 }}>
           <View className="flex-1">
             <Text
               variant="h3"

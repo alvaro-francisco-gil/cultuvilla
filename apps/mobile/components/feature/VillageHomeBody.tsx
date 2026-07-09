@@ -13,7 +13,6 @@ import {
   ErrorState,
 } from '../primitives';
 import { ACCENT, Section, EntityCard } from './VillageSections';
-import { FestivalPosterViewer } from './FestivalPosterViewer';
 import { JoinVillageModal } from './JoinVillageModal';
 import { StatsRow } from './StatsRow';
 import { useAuth } from '../../lib/auth/useAuth';
@@ -28,7 +27,6 @@ import { getVillageViewLink } from '@cultuvilla/shared/services/deepLinkService'
 import { staticMapUrl, MAP_ZOOM_DEFAULT } from '@cultuvilla/shared/services/mapsService';
 import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
 import type { NewsPostData } from '@cultuvilla/shared/models/news/NewsPostDataModel';
-import type { FestivalPosterWithId } from '@cultuvilla/shared/services/festivalPosterService';
 import { formatDate, formatFestivalPosterDates } from '@cultuvilla/shared/utils';
 import {
   escudoFullUrl,
@@ -55,7 +53,6 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
   const { t } = useT();
   const [joining, setJoining] = useState(false);
   const [pendingJoin, setPendingJoin] = useState(false);
-  const [viewerPoster, setViewerPoster] = useState<FestivalPosterWithId | null>(null);
 
   const { loading, loadError, village } = data;
 
@@ -441,7 +438,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               sub={[p.title, formatFestivalPosterDates(p)].filter(Boolean).join(' · ') || undefined}
               icon="image-outline"
               imageUri={p.imageURL}
-              onPress={() => setViewerPoster(p)}
+              onPress={() => router.push(`${villageBase}/festival-poster/${p.id}` as never)}
             />
           ))}
         </Section>
@@ -589,13 +586,6 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         onCancel={() => setPendingJoin(false)}
         onConfirm={(barrioId) => void doJoin(barrioId)}
       />
-      {viewerPoster?.imageURL ? (
-        <FestivalPosterViewer
-          imageUri={viewerPoster.imageURL}
-          caption={`${viewerPoster.title ? `${viewerPoster.title} · ` : ''}${String(viewerPoster.year)}`}
-          onClose={() => setViewerPoster(null)}
-        />
-      ) : null}
     </>
   );
 }

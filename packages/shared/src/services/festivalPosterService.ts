@@ -1,6 +1,7 @@
 import {
   doc,
   deleteDoc,
+  getDoc,
   getDocs,
   orderBy,
   query,
@@ -56,6 +57,12 @@ export async function getFestivalPosters(
   constraints.push(orderBy('year', 'desc'));
   const snap = await getDocs(query(festivalPostersCollection(getDb()), ...constraints));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export async function getFestivalPoster(posterId: string): Promise<FestivalPosterWithId | null> {
+  const snap = await getDoc(festivalPosterDoc(getDb(), posterId));
+  const data = snap.data();
+  return data ? { id: snap.id, ...data } : null;
 }
 
 // Partial writes use a raw (converter-less) ref: the SDK auto-converts Date → Timestamp,
