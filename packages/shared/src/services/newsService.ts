@@ -79,7 +79,7 @@ const FORBIDDEN_UPDATE_KEYS = new Set<string>([
   'status',
   'publishedAt',
   'municipalityId',
-  'submittedAt',
+  'createdAt',
   'createdBy',
   'reactionCounts',
   'commentCount',
@@ -90,7 +90,7 @@ export async function createNewsPost(input: CreateNewsPostInput): Promise<string
   // doc() on a typed collection ref yields an auto-id typed doc ref.
   const ref = doc(newsCollection(getDb()));
   const now = new Date();
-  // setDoc routes through the typed converter — submittedAt/updatedAt must be
+  // setDoc routes through the typed converter — createdAt/updatedAt must be
   // plain Dates (serverTimestamp sentinels are rejected by the schema).
   await setDoc(
     ref,
@@ -105,7 +105,7 @@ export async function createNewsPost(input: CreateNewsPostInput): Promise<string
       category: input.category,
       images: input.images ?? [],
       coverImage: input.coverImage ?? null,
-      submittedAt: now,
+      createdAt: now,
       updatedAt: now,
     }),
   );
@@ -144,8 +144,8 @@ export async function getNewsCountByOrganizer(userId: string): Promise<number> {
   return snap.data().count;
 }
 
-// All posts where the user is a named organizer, any status (incl. pending/rejected)
-// — for the profile "Artículos creados" scroll. Sorted by submittedAt desc in memory;
+// All posts where the user is a named organizer, any status (incl. hidden)
+// — for the profile "Artículos creados" scroll. Sorted by createdAt desc in memory;
 // a single user's article count is small.
 export async function getNewsPostsByOrganizer(
   userId: string,
@@ -154,13 +154,13 @@ export async function getNewsPostsByOrganizer(
   const q = query(newsCollection(getDb()), where('organizerUserIds', 'array-contains', userId));
   const snap = await getDocs(q);
   const posts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  posts.sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
+  posts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   return options.limit ? posts.slice(0, options.limit) : posts;
 }
 
-// Approved-only variant of getNewsPostsByOrganizer — safe to run against
+// Active-only variant of getNewsPostsByOrganizer — safe to run against
 // ANOTHER user's uid, since the news read rule allows non-members to read
-// only approved posts. Used by the read-only user profile ("other" variant).
+// only active posts. Used by the read-only user profile ("other" variant).
 export async function getApprovedNewsPostsByOrganizer(
   userId: string,
   options: { limit?: number } = {},
@@ -168,11 +168,11 @@ export async function getApprovedNewsPostsByOrganizer(
   const q = query(
     newsCollection(getDb()),
     where('organizerUserIds', 'array-contains', userId),
-    where('status', '==', 'approved'),
+    where('status', '==', 'active'),
   );
   const snap = await getDocs(q);
   const posts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  posts.sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
+  posts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   return options.limit ? posts.slice(0, options.limit) : posts;
 }
 
@@ -309,7 +309,7 @@ export async function getHomeFeed(
 ): Promise<(NewsPostData & { id: string })[]> {
   const constraints = [
     where('municipalityId', '==', homeMunicipalityId),
-    where('status', '==', 'approved'),
+    where('status', '==', 'active'),
     orderBy('publishedAt', 'desc'),
     ...(options.afterPublishedAt
       ? [startAfter(Timestamp.fromDate(options.afterPublishedAt))]
@@ -320,13 +320,13 @@ export async function getHomeFeed(
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-// Cross-village feed: every approved post regardless of municipality. Backs the
+// Cross-village feed: every active post regardless of municipality. Backs the
 // Explora "all villages" view; callers narrow by village client-side.
 export async function getAllVillagesFeed(
   options: { limit?: number; afterPublishedAt?: Date } = {},
 ): Promise<(NewsPostData & { id: string })[]> {
   const constraints = [
-    where('status', '==', 'approved'),
+    where('status', '==', 'active'),
     orderBy('publishedAt', 'desc'),
     ...(options.afterPublishedAt
       ? [startAfter(Timestamp.fromDate(options.afterPublishedAt))]
@@ -345,7 +345,7 @@ export async function getOtherVillagesFeed(
   // must be on that same field. The compound index (status ASC, municipalityId
   // ASC, publishedAt DESC) declared in firestore.indexes.json supports this.
   const constraints = [
-    where('status', '==', 'approved'),
+    where('status', '==', 'active'),
     where('municipalityId', '!=', homeMunicipalityId),
     orderBy('municipalityId'),
     orderBy('publishedAt', 'desc'),

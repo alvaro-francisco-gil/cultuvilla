@@ -270,6 +270,22 @@
         { "fieldPath": "municipalityId", "order": "ASCENDING" },
         { "fieldPath": "year", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "barrios",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "places",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [
