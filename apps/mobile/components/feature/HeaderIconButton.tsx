@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from '../primitives/Pressable';
-import { iconSizes } from '@cultuvilla/shared/design-system';
+import { colors, iconSizes } from '@cultuvilla/shared/design-system';
 
 export type HeaderIconButtonProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -8,12 +8,12 @@ export type HeaderIconButtonProps = {
   accessibilityLabel: string;
 };
 
-/** A single action affordance in the EntityDetailHeader bar (dark icon on the
+/** A single action affordance in the EntityDetailHeader bar (accent icon on the
  * neutral surface bar). The neutral-bar analogue of the old floating disc. */
 export function HeaderIconButton({ icon, onPress, accessibilityLabel }: HeaderIconButtonProps) {
   return (
     <Pressable onPress={onPress} accessibilityLabel={accessibilityLabel} className="p-1 ml-2">
-      <Ionicons name={icon} size={iconSizes.md} color="#0f172a" />
+      <Ionicons name={icon} size={iconSizes.md} color={colors.light.fg.accent} />
     </Pressable>
   );
 }
