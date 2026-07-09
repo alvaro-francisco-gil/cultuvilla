@@ -247,9 +247,13 @@ only re-introduces the asymmetry this refactor removes.
 
 | Step | Dev | Beta | Prod |
 |---|---|---|---|
-| Code + rules merged/deployed | ✅ | ⬜ | ⬜ |
-| `backfill-drop-member-barrio` run (post-deploy) | ✅ | ⬜ | ⬜ |
+| Code + rules merged/deployed | ✅ | ⏳ | ⬜ |
+| `backfill-drop-member-barrio` run (post-deploy) | ✅ | ⏳ | ✅ n/a |
 | `check:dev-conformance` clean after backfill | ✅ | — | — |
+
+Prod is **empty** (0 members, 0 persons as of the beta promotion) — no backfill
+needed there, ever. Beta has 1 member carrying `barrioId`; run the backfill on
+beta **after** the promotion deploys (old converter still requires the field).
 
 Legend: ⬜ pending · ⏳ in progress · ✅ done · ⚠️ blocked. **Deploy before backfill**
 in every env (old converter requires `barrioId`).
