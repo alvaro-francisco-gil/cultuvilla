@@ -25,7 +25,7 @@ export async function addOrgMember(
   userId: string,
   role: OrgMemberRole = 'member',
 ): Promise<void> {
-  await setDoc(organizationMemberDoc(getDb(), orgId, userId), buildOrgMemberData({ role }));
+  await setDoc(organizationMemberDoc(getDb(), orgId, userId), buildOrgMemberData({ userId, role }));
 }
 
 /**

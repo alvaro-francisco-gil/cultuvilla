@@ -262,8 +262,9 @@ service cloud.firestore {
     }
 
     function isValidOrgMemberCreate(d) {
-      return d.keys().hasOnly(['joinedAt', 'role'])
-          && d.keys().hasAll(['joinedAt', 'role'])
+      return d.keys().hasOnly(['userId', 'joinedAt', 'role'])
+          && d.keys().hasAll(['userId', 'joinedAt', 'role'])
+          && isString(d.userId)
           && isTimestamp(d.joinedAt)
           && d.role in ['admin', 'member'];
     }
@@ -682,6 +683,7 @@ service cloud.firestore {
         // approveOrganization, and promotions go through the changeOrgMemberRole
         // callable — both audited via admin SDK.
         allow create: if isValidOrgMemberCreate(request.resource.data)
+          && request.resource.data.userId == userId
           && request.resource.data.role == 'member'
           && (
                isOwner(userId)
