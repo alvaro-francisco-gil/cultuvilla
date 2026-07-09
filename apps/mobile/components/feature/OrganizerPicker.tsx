@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, Pressable as RNPressable, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -114,12 +114,6 @@ export function OrganizerPicker({
     };
   }, [municipalityId]);
 
-  const villagerById = useMemo(() => {
-    const m = new Map<string, VillagerOption>();
-    for (const v of villagers) m.set(v.userId, v);
-    return m;
-  }, [villagers]);
-
   // ---- Villager sheet -------------------------------------------------------
   function openUserSheet() {
     setUserSheetSelected(new Set(selectedUserIds));
@@ -180,7 +174,7 @@ export function OrganizerPicker({
               gap={2}
               className="items-center justify-between rounded-lg border border-subtle p-3"
             >
-              <LiveOwnerChip ownerId={uid} ownerType="user" imageUri={villagerById.get(uid)?.photoURL} />
+              <LiveOwnerChip ownerId={uid} ownerType="user" />
               {locked ? (
                 <Text variant="caption" tone="muted">{t('event.organizer.locked')}</Text>
               ) : (
