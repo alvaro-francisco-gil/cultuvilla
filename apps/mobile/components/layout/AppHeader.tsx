@@ -1,9 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Pressable } from '../primitives/Pressable';
 import { Text } from '../primitives/Text';
 import { useAuth } from '../../lib/auth/useAuth';
@@ -25,9 +25,15 @@ export function AppHeader({ centerLabel, extraRightSlot }: AppHeaderProps) {
   const { user, profile } = useAuth();
   const gate = useRegisterGate();
   const { t } = useT();
-  const { count: unreadCount } = useUnreadInboxCount();
+  const { count: unreadCount, refresh: refreshUnread } = useUnreadInboxCount();
   const [municipalityName, setMunicipalityName] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshUnread();
+    }, [refreshUnread]),
+  );
 
   useEffect(() => {
     let cancelled = false;
