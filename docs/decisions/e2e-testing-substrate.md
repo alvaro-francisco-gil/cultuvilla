@@ -77,9 +77,13 @@ build (where `__DEV__` is false).
 
 ## Revisit when
 
+The testing-enhancement effort that produced this substrate is otherwise complete;
+three deliberately-deferred items remain, none currently planned:
+
 - Interactive native flows are needed → design the native fixture-login mechanism
-  (deep-link login intent or a testID dev button) and wire a full Maestro suite —
-  the deferred **Stage 4**.
-- CI cost or coverage tightening is wanted → the two Stage-4 leftovers from the
-  parent testing-enhancement plan: flip coverage from report-only to patch-coverage
-  (`diff-cover`, D4) and add `dorny/paths-filter` cost-gating (C8).
+  (deep-link login intent or a testID dev button) and wire a full Maestro suite
+  (the native smoke groundwork under `apps/mobile/e2e/native/` is the starting point).
+- CI minutes hurt → add `dorny/paths-filter` so UI-only PRs skip the emulator job.
+- Coverage should gate, not just report → wire `diff-cover` and gate on **patch/diff
+  coverage only, never absolute total** (a total gate on the existing baseline would
+  be a demoralizing wall; patch coverage ratchets quality up on new code only).
