@@ -3,6 +3,7 @@ export {
   formatDate,
   formatPrice,
   formatRelativeTime,
+  monthShortLabels,
   type DateStyle,
 } from './format';
 export * from './festivalPosterDates';

@@ -87,5 +87,5 @@ export function updateFestivalPoster(
 }
 
 export function deleteFestivalPoster(posterId: string): Promise<void> {
-  return deleteDoc(doc(getDb(), 'festivalPosters', posterId));
+  return deleteDoc(festivalPosterDoc(getDb(), posterId));
 }

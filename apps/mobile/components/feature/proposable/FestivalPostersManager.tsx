@@ -14,6 +14,7 @@ import {
 import { uploadFestivalPosterImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 import type { DatePrecision } from '@cultuvilla/shared/models/festivalPoster';
+import { monthShortLabels } from '@cultuvilla/shared/utils';
 import { VStack, HStack, Text, Button, Input, Pressable, FieldLabel, ImagePickerField } from '../../primitives';
 import { pickImageAsBlob } from '../../../lib/images';
 import { useT } from '../../../lib/i18n';
@@ -22,10 +23,9 @@ import { isProposalVisible } from '../../../lib/proposals';
 import { ProposableListItem } from './ProposableListItem';
 import type { ManagerMode } from './types';
 
-// No i18n entries exist for month names (only the fixed form-field labels do);
-// mirrors the brief's hardcoded chip row rather than growing the catalog for
-// a closed 12-value set.
-const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+// Month chip labels derive from the locale formatter (es-ES month names),
+// not a hardcoded list — see @cultuvilla/shared/utils/format.ts.
+const MONTHS = monthShortLabels();
 const PRECISIONS: DatePrecision[] = ['year', 'month', 'day'];
 
 function precisionLabelKey(p: DatePrecision): 'precisionYear' | 'precisionMonth' | 'precisionDay' {

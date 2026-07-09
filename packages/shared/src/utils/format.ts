@@ -72,6 +72,19 @@ export function calendarDayOffset(date: Date, now: Date = new Date()): number {
   return Math.round((startOfDay(date) - startOfDay(now)) / 86_400_000);
 }
 
+/**
+ * The 12 capitalized es-ES abbreviated month names ("Ene".."Dic"), derived
+ * from Intl rather than hardcoded, so the locale stays the single source
+ * of truth for month labels (month chip pickers, etc.).
+ */
+export function monthShortLabels(): string[] {
+  return Array.from({ length: 12 }, (_, i) => {
+    const raw = new Intl.DateTimeFormat(LOCALE, { month: 'short' }).format(new Date(2000, i, 1));
+    const trimmed = raw.replace(/\.$/, '');
+    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  });
+}
+
 export function formatPrice(amount: number, currency: string = 'EUR'): string {
   return new Intl.NumberFormat(LOCALE, {
     style: 'currency',
