@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.2.0 — 2026-07-09
+
 ### Added
 - **Promote/demote village members from the Miembros tab.** The community ("Editar pueblo") members roster ([apps/mobile/components/feature/MembersList.tsx](apps/mobile/components/feature/MembersList.tsx)) is no longer read-only: village admins and app admins can tap a member row to make them an admin (or a tapped admin back to member), routed through the audited `setVillageMemberRole` callable. Your own row and the founding organizer's demote path are non-actionable (self-lockout / the callable rejects the organizer demote); the backend remains the enforcement backstop. This makes adding a second village admin possible in-app for the first time.
 - **Edit button on organization, place, and barrio detail screens** for users with edit permission (org admins for orgs; village/app admins for all three), reusing the creation form (`ProposableForm`) pre-filled with the entity's current values. New `FloatingEditButton` (top-right hero affordance), a `useOrgCapabilities` hook backed by a new `isOrgAdmin` service helper, and per-entity edit routes (`/o/[orgId]/edit`, `.../place/[placeId]/edit`, `.../barrio/[barrioId]/edit`) that redirect out when the viewer lacks permission.
