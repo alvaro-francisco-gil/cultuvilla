@@ -576,7 +576,8 @@ service cloud.firestore {
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
                'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
              ]);
-        allow delete: if isVillageAdmin(municipalityId) || isAppAdmin() || isOwner(resource.data.proposedBy);
+        allow delete: if isVillageAdmin(municipalityId) || isAppAdmin()
+          || (isOwner(resource.data.proposedBy) && resource.data.status == 'active');
       }
 
       match /places/{placeId} {
@@ -592,7 +593,8 @@ service cloud.firestore {
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
                'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
              ]);
-        allow delete: if isVillageAdmin(municipalityId) || isAppAdmin() || isOwner(resource.data.proposedBy);
+        allow delete: if isVillageAdmin(municipalityId) || isAppAdmin()
+          || (isOwner(resource.data.proposedBy) && resource.data.status == 'active');
       }
 
       match /members/{userId} {
@@ -809,7 +811,8 @@ service cloud.firestore {
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
              'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
            ]);
-      allow delete: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin() || isOwner(resource.data.proposedBy);
+      allow delete: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin()
+        || (isOwner(resource.data.proposedBy) && resource.data.status == 'active');
     }
 
     // Collection-group queries: these rules are evaluated for CG list

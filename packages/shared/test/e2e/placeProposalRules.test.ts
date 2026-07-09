@@ -111,4 +111,18 @@ describe('firestore.rules — /municipalities/{m}/places', () => {
     const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(deleteDoc(doc(alice, `municipalities/${M}/places/p1`)));
   });
+
+  it('proposer CANNOT delete their own place once hidden (moderation bypass)', async () => {
+    await seedMember('alice');
+    await seedPlace('p1', 'alice', { status: 'hidden', hiddenBy: 'boss', hiddenAt: new Date(), hiddenReason: 'spam' });
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(deleteDoc(doc(alice, `municipalities/${M}/places/p1`)));
+  });
+
+  it('village admin can delete a hidden place', async () => {
+    await seedMember('boss', 'admin');
+    await seedPlace('p1', 'alice', { status: 'hidden', hiddenBy: 'boss', hiddenAt: new Date(), hiddenReason: 'spam' });
+    const boss = asUser(getEnv(), 'boss');
+    await assertSucceeds(deleteDoc(doc(boss, `municipalities/${M}/places/p1`)));
+  });
 });

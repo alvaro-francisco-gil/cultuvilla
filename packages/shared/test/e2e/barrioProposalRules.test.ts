@@ -93,4 +93,16 @@ describe('firestore.rules — /municipalities/{m}/barrios', () => {
     const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(deleteDoc(doc(alice, `municipalities/${M}/barrios/b1`)));
   });
+  it('proposer CANNOT delete their own barrio once hidden (moderation bypass)', async () => {
+    await seedMember('alice');
+    await seedBarrio('b1', 'alice', { status: 'hidden', hiddenBy: 'boss', hiddenAt: new Date(), hiddenReason: 'spam' });
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(deleteDoc(doc(alice, `municipalities/${M}/barrios/b1`)));
+  });
+  it('village admin can delete a hidden barrio', async () => {
+    await seedMember('boss', 'admin');
+    await seedBarrio('b1', 'alice', { status: 'hidden', hiddenBy: 'boss', hiddenAt: new Date(), hiddenReason: 'spam' });
+    const boss = asUser(getEnv(), 'boss');
+    await assertSucceeds(deleteDoc(doc(boss, `municipalities/${M}/barrios/b1`)));
+  });
 });
