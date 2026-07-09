@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Linking } from 'react-native';
+import { Alert, Linking, Platform } from 'react-native';
 import { VStack } from '../../components/primitives/VStack';
 import { HStack } from '../../components/primitives/HStack';
 import { Text } from '../../components/primitives/Text';
 import { Button } from '../../components/primitives/Button';
 import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
 import { RegisterFab } from '../../components/feature/RegisterFab';
+import { EventAttendees } from '../../components/feature/EventAttendees';
 import { useEventOrganizer } from '../../lib/events/useEventOrganizer';
 import { EntityDetailScaffold } from '../../components/feature/EntityDetailScaffold';
 import type { EntityDetailAction } from '../../components/feature/EntityDetailHeader';
@@ -15,7 +16,7 @@ import { ENTITY_FALLBACK_ICON } from '../../lib/entities/registry';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
-import { getEvent } from '@cultuvilla/shared/services/eventService';
+import { getEvent, updateEventStatus } from '@cultuvilla/shared/services/eventService';
 import { getEventLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 import { buildDisplayName } from '@cultuvilla/shared/models/person/PersonDataModel';
@@ -74,19 +75,37 @@ export default function EventDetailScreen() {
     ).catch(() => {});
   };
 
+  const cancelEvent = () => {
+    if (!event) return;
+    const doCancel = () => {
+      void updateEventStatus(event.id, 'cancelled').then(() => {
+        if (router.canGoBack()) router.back();
+      });
+    };
+    // Alert.alert is a no-op on RN-Web, so branch to window.confirm there.
+    if (Platform.OS === 'web') {
+      if (window.confirm(t('event.cancelConfirm'))) doCancel();
+      return;
+    }
+    Alert.alert(t('event.cancelTitle'), t('event.cancelConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('event.cancelTitle'), style: 'destructive', onPress: doCancel },
+    ]);
+  };
+
   const actions: EntityDetailAction[] = event
     ? [
         ...(canOrganize
           ? [
               {
-                icon: 'people-outline' as const,
-                accessibilityLabel: t('event.manageEvent'),
-                onPress: () => router.push(`/event/${event.id}/organize` as never),
-              },
-              {
                 icon: 'create-outline' as const,
                 accessibilityLabel: t('event.editEvent'),
                 onPress: () => router.push(`/event/new?eventId=${event.id}` as never),
+              },
+              {
+                icon: 'trash-outline' as const,
+                accessibilityLabel: t('event.cancelTitle'),
+                onPress: cancelEvent,
               },
             ]
           : []),
@@ -149,6 +168,9 @@ export default function EventDetailScreen() {
             </VStack>
           )}
           {event.description ? <Text>{event.description}</Text> : null}
+          {canOrganize ? (
+            <EventAttendees eventId={event.id} telephoneRequired={!!event.telephoneRequired} />
+          ) : null}
           {!user && (
             <Button variant="primary" fullWidth onPress={() => gate.requireAuth(`/event/${event.id}`, t('guest.event'))}>
               {t('guest.eventCta')}
