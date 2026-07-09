@@ -9,12 +9,9 @@ const ORG_NAME = 'Peña E2E Nueva';
 // approves it, and a third user joins. Strong assertions are the Firestore
 // effects at each hop.
 //
-// NOTE (flagged): the join FAB currently calls addOrgMember directly (a client
-// membership write) rather than the documented requestJoinOrganization →
-// respondToJoinRequest round-trip (AGENTS.md "Join org" row). This flow asserts
-// the CURRENT behavior — a member doc appears immediately on join — not the
-// request/approve journey. If the FAB is rewired to use join requests, update
-// the join step here to drive the Solicitudes approve-join control instead.
+// Joining is instant self-service (AGENTS.md): the FAB writes the joiner's own
+// member doc directly, gated by rules (a user may add only themselves). This
+// mirrors village join — no request/approve round-trip.
 test.describe('organization: create → approve → join', () => {
   test('villager proposes peña → admin approves → third user joins', async ({ page }) => {
     const village = fixtures.village.docId;
