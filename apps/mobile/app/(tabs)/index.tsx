@@ -3,7 +3,6 @@ import {
   Animated,
   FlatList,
   ActivityIndicator,
-  Platform,
   RefreshControl,
   ScrollView,
   TextInput,
@@ -29,7 +28,7 @@ import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useT } from '../../lib/i18n';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
 import { webSpread } from '../../lib/platform';
-import { useWebScrollTopRefresh } from '../../lib/useWebScrollTopRefresh';
+import { useWebPullToRefresh } from '../../lib/useWebPullToRefresh';
 import { getUpcomingFeed, haversineKm } from '@cultuvilla/shared/services/feedService';
 import { getAllVillagesFeed } from '@cultuvilla/shared/services/newsService';
 import { getActiveCommunities } from '@cultuvilla/shared/services/municipalityService';
@@ -66,6 +65,33 @@ function inDatePreset(d: Date, preset: DatePreset): boolean {
 }
 
 const TABS: FeedTab[] = ['eventos', 'noticias'];
+
+// Spinner revealed in the gap that opens above the cards as the feed is pulled
+// down. Rides with the same offset the list wrapper uses, and fades in as the
+// pull approaches the trigger. `style` (not className) — NativeWind drops
+// className on Animated.View.
+function PullSpinner({ pull, top }: { pull: Animated.Value; top: number }) {
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top,
+        left: 0,
+        right: 0,
+        marginTop: -44,
+        alignItems: 'center',
+        zIndex: 5,
+        opacity: pull.interpolate({ inputRange: [0, 40], outputRange: [0, 1], extrapolate: 'clamp' }),
+        transform: [{ translateY: pull }],
+      }}
+    >
+      <View className="rounded-full bg-white p-2 shadow-sm">
+        <ActivityIndicator size="small" color={ACCENT} />
+      </View>
+    </Animated.View>
+  );
+}
 
 export default function FeedScreen() {
   const { t } = useT();
@@ -173,24 +199,17 @@ export default function FeedScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  // Web-only fallback for RefreshControl, which is inert on react-native-web:
-  // scrolling up at the top of either feed refetches it.
-  useWebScrollTopRefresh(
+  // Web-only pull-to-refresh (RefreshControl is inert on react-native-web). The
+  // hook owns the pull animation + spinner timing; it returns an offset we apply
+  // to the list wrapper so the cards follow the drag. Native uses RefreshControl.
+  const { translateY: eventsPull } = useWebPullToRefresh(
     eventsListRef,
-    async () => {
-      setRefreshing(true);
-      await load();
-      setRefreshing(false);
-    },
+    load,
     events !== null && !error,
   );
-  useWebScrollTopRefresh(
+  const { translateY: newsPull } = useWebPullToRefresh(
     newsListRef,
-    async () => {
-      setNewsRefreshing(true);
-      await loadNews();
-      setNewsRefreshing(false);
-    },
+    loadNews,
     news !== null && !newsError,
   );
 
@@ -430,6 +449,9 @@ export default function FeedScreen() {
         <Text tone="danger">{error}</Text>
       </View>
     ) : (
+      <View style={{ flex: 1 }}>
+        <PullSpinner pull={eventsPull} top={feedPaddingTop} />
+        <Animated.View style={{ flex: 1, transform: [{ translateY: eventsPull }] }}>
       <FlatList
         ref={eventsListRef}
         style={{ flex: 1 }}
@@ -473,6 +495,8 @@ export default function FeedScreen() {
           />
         }
       />
+        </Animated.View>
+      </View>
     );
 
   const newsPage =
@@ -485,6 +509,9 @@ export default function FeedScreen() {
         <Text tone="danger">{newsError}</Text>
       </View>
     ) : (
+      <View style={{ flex: 1 }}>
+        <PullSpinner pull={newsPull} top={feedPaddingTop} />
+        <Animated.View style={{ flex: 1, transform: [{ translateY: newsPull }] }}>
       <FlatList
         ref={newsListRef}
         style={{ flex: 1 }}
@@ -522,6 +549,8 @@ export default function FeedScreen() {
           />
         }
       />
+        </Animated.View>
+      </View>
     );
 
   return (
@@ -568,23 +597,6 @@ export default function FeedScreen() {
           {toggle}
           {filterBar}
         </Animated.View>
-
-        {/* Web-only refresh feedback: RN-Web renders RefreshControl inert, so the
-            pull-down-to-refresh gesture (useWebScrollTopRefresh) has no spinner.
-            This pill gives it one. Native shows the RefreshControl spinner. */}
-        {Platform.OS === 'web' && (activeTab === 'noticias' ? newsRefreshing : refreshing) ? (
-          <View
-            pointerEvents="none"
-            style={{ position: 'absolute', top: 8, left: 0, right: 0, zIndex: 20, alignItems: 'center' }}
-          >
-            <View className="flex-row items-center gap-2 rounded-full bg-white px-3 py-1.5 shadow-sm">
-              <ActivityIndicator size="small" color={ACCENT} />
-              <Text tone="muted" className="text-sm">
-                {t('feed.refreshing')}
-              </Text>
-            </View>
-          </View>
-        ) : null}
       </View>
 
       {/* TEMP: pueblo filter hidden — re-enable alongside the village FilterPill above.
