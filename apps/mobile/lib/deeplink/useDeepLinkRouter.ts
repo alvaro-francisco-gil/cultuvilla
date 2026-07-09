@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import {
@@ -34,6 +35,13 @@ function route(url: string): void {
 
 export function useDeepLinkRouter(): void {
   useEffect(() => {
+    // Native-only. On web, expo-router already resolves every deep link by file
+    // route (content routes + the village/org `join.tsx` redirect routes), so
+    // this native `Linking`-based hook is redundant there — and its extra
+    // `router.replace` races the route-level redirect during the logged-in
+    // auth/profile load, re-triggering the village screen's focus-load and
+    // leaving it stuck on a spinner. Let expo-router own web routing.
+    if (Platform.OS === 'web') return;
     let cancelled = false;
     void Linking.getInitialURL().then((url) => {
       if (!cancelled && url) route(url);

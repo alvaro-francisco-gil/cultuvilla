@@ -1,4 +1,5 @@
 import { render, waitFor } from '@testing-library/react-native';
+import { Platform } from 'react-native';
 
 const mockGetInitialURL = jest.fn();
 const mockAddEventListener = jest.fn();
@@ -98,6 +99,17 @@ describe('useDeepLinkRouter', () => {
     mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/o/org_5/join');
     render(<Probe />);
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/o/org_5?intent=join'));
+  });
+
+  it('is a no-op on web (expo-router owns web routing)', async () => {
+    const web = jest.replaceProperty(Platform, 'OS', 'web');
+    mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/village/mun_5/join');
+    render(<Probe />);
+    await new Promise((r) => setTimeout(r, 10));
+    expect(mockGetInitialURL).not.toHaveBeenCalled();
+    expect(mockAddEventListener).not.toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
+    web.restore();
   });
 
   it('unsubscribes on unmount', async () => {
