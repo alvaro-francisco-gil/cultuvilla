@@ -10,11 +10,11 @@ projection trigger to the one branch that genuinely needs server privilege.
 ## Status
 
 - **Updated:** 2026-07-09
-- **Stage:** Stage 3 — mobile edit surfaces + batched join
+- **Stage:** Stage 4 — migration script + rules tightening
 - **Branch:** `refactor/residence-single-source` (worktree `.claude/worktrees/residence-single-source`)
 - **Done:** Stage 1 (delete-only trigger + acceptInvite projection). Stage 2 — `barrioId` dropped from `VillageMemberData`/`UserMembership`/`getUserMemberships`; `joinVillage` is now an atomic writeBatch (member + person link via `buildResidenceLinks`); `updateVillageMemberBarrio`/`addVillageMember` removed; new `personService.updateResidenceBarrio` (change-barrio path). Shared typecheck+lint+vitest (7) green; functions typecheck+lint green. **Scope expansion:** the create-side gap was broader than the plan said — `startVillage` and `respondToOrganizerRequest` also seed memberships server-side and needed the residence projection; added a shared `functions/src/village/residenceProjection.ts` helper (read-in-tx + upsert) used by all three server paths.
-- **Next:** mobile — `MembershipBarrioList` → `updateResidenceBarrio`; join surfaces consume batched `joinVillage`; drop `updateVillageMemberBarrio` from `complete-profile.tsx`; app typecheck + jest.
-- **Blockers:** `pnpm test:functions` + emulator e2e rules must be run by the user (agent can't boot emulators). Validation decision resolved (accept unvalidated; shared callable is the named upgrade path).
+- **Next:** Stage 4 — backfill script (verify-then-delete `member.barrioId`); tighten the members owner-update rule to drop `barrioId`; update the `villageMemberRules` e2e tests that still exercise member `barrioId`.
+- **Blockers:** `pnpm test:functions` + emulator e2e rules (incl. the updated `villageMemberRules`) must be run by the user (agent can't boot emulators); dev backfill needs dev credentials. Validation decision resolved (accept unvalidated; shared callable is the named upgrade path).
 - **Handoff:** Work happens in the worktree — session cwd is the primary checkout, so use absolute worktree paths. `pnpm test`/emulator suites are off-limits to the agent; rely on `pnpm typecheck` + non-emulator vitest, and hand emulator/functions test runs to the user. Every residence-link write MUST go through `buildResidenceLinks` (exact `{municipalityId,barrioId}` shape for the array-contains query).
 
 ## Context
@@ -219,10 +219,14 @@ only re-introduces the asymmetry this refactor removes.
       missed); stale `barrioId: null` member seeds removed from functions tests.
 
 ### Stage 3 — Mobile: unify the edit surfaces
-- [ ] `MembershipBarrioList` writes the person doc (change-barrio path), not the member.
-- [ ] `JoinVillageModal` / `VillageDiscovery` / `VillageHomeBody` consume batched join.
-- [ ] Drop `updateVillageMemberBarrio` from `complete-profile.tsx`.
-- [ ] `pnpm app:typecheck` + `pnpm app:test` green.
+- [x] `MembershipBarrioList` reads the barrio from the person's `municipalityLinks`
+      and writes via `updateResidenceBarrio` (person doc), not the member.
+- [x] `JoinVillageModal` / `VillageDiscovery` / `VillageHomeBody` consume batched join
+      — no change needed, `joinVillage`'s signature was preserved (batching is internal).
+- [x] Drop `updateVillageMemberBarrio` from `complete-profile.tsx` → `updateResidenceBarrio`
+      (also fixes the existing-person branch, which previously relied on the trigger).
+- [x] `pnpm app:typecheck` green; jest green (81 tests). Stale `barrioId` member mock
+      removed from `event/new.test.tsx`.
 
 ### Stage 4 — Migration + rules tightening (per env: dev → beta → prod)
 - [ ] Write `scripts/backfill-drop-member-barrio.mjs` (verify-then-delete, idempotent,
