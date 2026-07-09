@@ -278,6 +278,7 @@
       "places": {
         "title": "Lugares",
         "add": "Añadir lugar",
+        "editTitle": "Editar lugar",
         "name": "Nombre",
         "description": "Descripción",
         "empty": "Aún no hay lugares",
