@@ -12,6 +12,9 @@ jest.mock('@cultuvilla/shared/services/registrationService', () => ({
   getRegistrationPhone: jest.fn(),
   cancelRegistration: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock('@cultuvilla/shared/services/personService', () => ({
+  getPerson: jest.fn().mockResolvedValue({ id: 'p1', photoURL: null }),
+}));
 
 const mockGet = getEventRegistrations as jest.Mock;
 const mockPhone = getRegistrationPhone as jest.Mock;
@@ -21,7 +24,7 @@ describe('EventAttendees', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('shows the roster with the phone column when telephone was required', async () => {
-    mockGet.mockResolvedValue([{ id: 'r1', name: 'Ana' }]);
+    mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana' }]);
     mockPhone.mockResolvedValue('600111222');
     const { getByText } = render(<EventAttendees eventId="e1" telephoneRequired />);
     await waitFor(() => getByText('Ana'));
@@ -29,7 +32,7 @@ describe('EventAttendees', () => {
   });
 
   it('hides the phone column when telephone was not required', async () => {
-    mockGet.mockResolvedValue([{ id: 'r1', name: 'Ana' }]);
+    mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana' }]);
     const { getByText, queryByText } = render(<EventAttendees eventId="e1" telephoneRequired={false} />);
     await waitFor(() => getByText('Ana'));
     expect(mockPhone).not.toHaveBeenCalled();
@@ -37,7 +40,7 @@ describe('EventAttendees', () => {
   });
 
   it('removes an attendee then reloads', async () => {
-    mockGet.mockResolvedValue([{ id: 'r1', name: 'Ana' }]);
+    mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana' }]);
     const { getByTestId } = render(<EventAttendees eventId="e1" telephoneRequired={false} />);
     await waitFor(() => getByTestId('remove-attendee-r1'));
     fireEvent.press(getByTestId('remove-attendee-r1'));

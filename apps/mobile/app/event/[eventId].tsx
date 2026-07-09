@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Alert, Linking, Platform } from 'react-native';
+import { Alert, Linking, Platform, View } from 'react-native';
 import { VStack } from '../../components/primitives/VStack';
 import { HStack } from '../../components/primitives/HStack';
 import { Text } from '../../components/primitives/Text';
@@ -160,12 +160,14 @@ export default function EventDetailScreen() {
           {(event.organizerUserIds?.length > 0 || event.organizerOrgIds?.length > 0) && (
             <VStack gap={2}>
               <DetailSectionHeading>{t('event.organizersLabel')}</DetailSectionHeading>
-              {event.organizerOrgIds?.map((id) => (
-                <LiveOwnerChip key={id} ownerType="organization" ownerId={id} />
-              ))}
-              {event.organizerUserIds?.map((id) => (
-                <LiveOwnerChip key={id} ownerType="user" ownerId={id} />
-              ))}
+              <View className="flex-row flex-wrap items-center" style={{ gap: 12 }}>
+                {event.organizerOrgIds?.map((id) => (
+                  <LiveOwnerChip key={id} ownerType="organization" ownerId={id} />
+                ))}
+                {event.organizerUserIds?.map((id) => (
+                  <LiveOwnerChip key={id} ownerType="user" ownerId={id} />
+                ))}
+              </View>
             </VStack>
           )}
           {event.description ? (
