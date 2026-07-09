@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
 import * as Linking from 'expo-linking';
+import { router } from 'expo-router';
 import { Button, Input, Text, VStack } from '../../components/primitives';
 import { AuthCard, AuthHeader } from '../../components/auth';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 
-type Status = 'pending' | 'needs-email' | 'completing' | 'error' | 'done';
+type Status = 'pending' | 'needs-email' | 'completing' | 'error' | 'done' | 'reauth-done';
 
 async function readIncomingUrl(): Promise<string | null> {
   if (Platform.OS === 'web') {
@@ -17,7 +18,16 @@ async function readIncomingUrl(): Promise<string | null> {
 }
 
 export default function FinishScreen() {
-  const { isEmailLink, completeEmailLinkSignIn, readPendingEmail } = useAuth();
+  const {
+    user,
+    loading: authLoading,
+    isEmailLink,
+    completeEmailLinkSignIn,
+    readPendingEmail,
+    completeReauth,
+    readPendingReauth,
+    clearPendingReauth,
+  } = useAuth();
   const { t } = useT();
   const [status, setStatus] = useState<Status>('pending');
   const [error, setError] = useState<string | null>(null);
@@ -26,6 +36,11 @@ export default function FinishScreen() {
   const attempted = useRef(false);
 
   useEffect(() => {
+    // Wait for the initial onAuthStateChanged callback to resolve before
+    // deciding whether a session is present — otherwise a persisted session
+    // that hasn't finished restoring yet would read as "no signed-in user"
+    // and wrongly discard a valid pending-reauth intent.
+    if (authLoading) return;
     if (attempted.current) return;
     attempted.current = true;
     void (async () => {
@@ -36,6 +51,32 @@ export default function FinishScreen() {
         setError(t('auth.emailLink.invalid'));
         return;
       }
+      // A re-auth link (sent to the CURRENT email by changeEmail) and a
+      // sign-in link both satisfy isEmailLink — the pending-reauth intent is
+      // what distinguishes them, so check it first.
+      const pendingReauth = await readPendingReauth();
+      if (pendingReauth) {
+        // The session can lapse between changeEmail() sending this link and
+        // the user tapping it (e.g. signed out on another device, token
+        // expired). completeReauth requires a live session, so retrying it
+        // here would just wedge on 'not-signed-in' forever. Clear the stale
+        // intent and fall through to the normal email-link sign-in path
+        // instead of getting stuck.
+        if (!user) {
+          await clearPendingReauth();
+        } else {
+          setStatus('completing');
+          try {
+            await completeReauth(url);
+            setStatus('reauth-done');
+            router.replace('/settings');
+          } catch (e) {
+            setStatus('error');
+            setError(e instanceof Error ? e.message : t('auth.error.unknown'));
+          }
+          return;
+        }
+      }
       const stored = await readPendingEmail();
       if (stored) {
         await tryComplete(url, stored);
@@ -43,7 +84,16 @@ export default function FinishScreen() {
         setStatus('needs-email');
       }
     })();
-  }, [isEmailLink, readPendingEmail, t]);
+  }, [
+    authLoading,
+    isEmailLink,
+    readPendingEmail,
+    readPendingReauth,
+    completeReauth,
+    clearPendingReauth,
+    user,
+    t,
+  ]);
 
   async function tryComplete(url: string, emailToUse: string) {
     setStatus('completing');
@@ -64,7 +114,7 @@ export default function FinishScreen() {
     await tryComplete(url, email);
   }
 
-  if (status === 'pending' || status === 'completing' || status === 'done') {
+  if (status === 'pending' || status === 'completing' || status === 'done' || status === 'reauth-done') {
     return (
       <AuthCard>
         <View className="items-center pt-8">

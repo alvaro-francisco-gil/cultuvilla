@@ -8,6 +8,7 @@ When you add a service, add it to this file in the same change. When you add a f
 
 | Service | Owns collection(s) | What it does | Key entry points |
 |---|---|---|---|
+| [accountService](accountService.ts) | (callable) | Account-deletion lifecycle: preview sole-admin blockers, then irreversibly erase the account. Both are thin wrappers over Cloud Function callables (`functions/src/account/`) — the server re-runs the blocker check before deleting. | `checkAccountDeletable`, `deleteAccount` |
 | [adminService](adminService.ts) | `admins/` | Check whether a user is a global superadmin. | `isAppAdmin` |
 | [appConfigService](appConfigService.ts) | `config/appVersion` | Public read-only min/latest app version + store URLs, per platform. Written by admin/seed script only. Read by the mobile force-update gate. | `getAppVersionConfig` |
 | [censoService](censoService.ts) | (callable) | Village censo / profile-schema utilities. Validates schema transitions, marks censo completion, calls the `updateCensoSchema` Cloud Function. | `validateSchemaTransition`, `missingRequiredAnswers`, `isCensoComplete`, `updateCensoSchema` |

@@ -12,5 +12,10 @@ process.env.FIREBASE_CONFIG ||= JSON.stringify({ projectId: process.env.GCLOUD_P
 import * as admin from 'firebase-admin';
 
 if (admin.apps.length === 0) {
-  admin.initializeApp({ projectId: process.env.GCLOUD_PROJECT });
+  // `storageBucket` lets handler tests exercise `getStorage().bucket()` against
+  // the Storage emulator (deployed functions get this from FIREBASE_CONFIG).
+  admin.initializeApp({
+    projectId: process.env.GCLOUD_PROJECT,
+    storageBucket: `${process.env.GCLOUD_PROJECT}.appspot.com`,
+  });
 }

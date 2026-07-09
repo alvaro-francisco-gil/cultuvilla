@@ -6,21 +6,35 @@ import {
 
 describe('OrgMemberDataModel', () => {
   it('defaults role to "member"', () => {
-    const m = buildOrgMemberData();
+    const m = buildOrgMemberData({ userId: 'u-1' });
     expect(m.role).toBe('member');
   });
 
   it('accepts an explicit admin role', () => {
-    expect(buildOrgMemberData({ role: 'admin' }).role).toBe('admin');
+    expect(buildOrgMemberData({ userId: 'u-1', role: 'admin' }).role).toBe('admin');
   });
 
   it('requires role on the persisted shape', () => {
-    expect(() => OrgMemberDataSchema.parse({ joinedAt: new Date() })).toThrow();
+    expect(() =>
+      OrgMemberDataSchema.parse({ userId: 'u-1', joinedAt: new Date() }),
+    ).toThrow();
   });
 
   it('rejects an unknown role', () => {
     expect(() =>
-      OrgMemberDataSchema.parse({ joinedAt: new Date(), role: 'owner' }),
+      OrgMemberDataSchema.parse({ userId: 'u-1', joinedAt: new Date(), role: 'owner' }),
     ).toThrow();
+  });
+
+  it('requires userId on the persisted shape', () => {
+    expect(() =>
+      OrgMemberDataSchema.parse({ joinedAt: new Date(), role: 'member' }),
+    ).toThrow();
+  });
+
+  it('sets userId == the member doc id via buildOrgMemberData, round-tripping through the schema', () => {
+    const m = buildOrgMemberData({ userId: 'u-1' });
+    expect(m.userId).toBe('u-1');
+    expect(() => OrgMemberDataSchema.parse(m)).not.toThrow();
   });
 });

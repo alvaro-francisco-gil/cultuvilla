@@ -61,7 +61,7 @@ export async function patchUserProfile(
   userId: string,
   // displayName intentionally excluded — denormalized by Cloud Function.
   // birthday/biography/photoURL live on the linked person, not here.
-  data: Partial<Pick<UserData, 'telephone' | 'activeMunicipalityId' | 'personId'>>,
+  data: Partial<Pick<UserData, 'email' | 'telephone' | 'activeMunicipalityId' | 'personId'>>,
 ): Promise<void> {
   // updateDoc bypasses the converter, so partial-update payloads (and any
   // FieldValue sentinels callers might pass through Partial) go on the raw

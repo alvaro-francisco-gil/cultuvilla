@@ -43,8 +43,8 @@ const SHAPE_CONTRACTS: ShapeContract[] = [
   },
   {
     label: 'organizations/{orgId}/members — org member create validator',
-    build: () => buildOrgMemberData(),
-    ruleKeys: ['joinedAt', 'role'],
+    build: () => buildOrgMemberData({ userId: 'u1' }),
+    ruleKeys: ['userId', 'joinedAt', 'role'],
   },
   {
     label: 'organizationJoinRequests — isValidJoinRequestCreate',

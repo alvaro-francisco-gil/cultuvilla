@@ -13,6 +13,20 @@ export function asUser(env: RulesTestEnvironment, uid: string): Firestore {
   return env.authenticatedContext(uid).firestore() as unknown as Firestore;
 }
 
+/**
+ * Firestore client scoped to an authenticated user `uid` whose auth token
+ * carries `email` as a verified claim (`request.auth.token.email` in rules) —
+ * mirrors the real Firebase Auth ID token shape for testing rules that pin a
+ * write to the caller's own verified email.
+ */
+export function asUserWithEmail(
+  env: RulesTestEnvironment,
+  uid: string,
+  email: string,
+): Firestore {
+  return env.authenticatedContext(uid, { email }).firestore() as unknown as Firestore;
+}
+
 /** Firestore client with no auth (signed-out / anonymous request). */
 export function asAnon(env: RulesTestEnvironment): Firestore {
   return env.unauthenticatedContext().firestore() as unknown as Firestore;

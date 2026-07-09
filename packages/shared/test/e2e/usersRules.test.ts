@@ -10,12 +10,13 @@ import { describe, it } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useRulesTestEnv } from '../helpers/rulesTestEnv';
-import { asUser, seed } from '../helpers/roles';
+import { asUser, asUserWithEmail, seed } from '../helpers/roles';
 
 const getEnv = useRulesTestEnv();
 
 const OWNER = 'uid-1';
 const OTHER = 'uid-2';
+const OWNER_EMAIL = 'ana@example.com';
 
 // Mirrors the merge payload written by createUserProfile() in
 // packages/shared/src/services/userService.ts — note it always includes
@@ -58,10 +59,11 @@ describe('firestore.rules — /users/{userId}', () => {
     it('owner can merge createUserProfile payload onto a trigger-created doc', async () => {
       // syncPersonDenormalization wrote { displayName } first.
       await seedTriggerCreatedUserDoc(OWNER);
-      const ownerDb = asUser(getEnv(), OWNER);
       // createUserProfile uses setDoc(merge); because the doc exists this is an
       // UPDATE, and the payload carries `createdAt`. This is the real onboarding
-      // write and must be allowed.
+      // write and must be allowed. The update guard requires the payload's
+      // `email` to match the auth token's verified email.
+      const ownerDb = asUserWithEmail(getEnv(), OWNER, createUserProfilePayload().email);
       await assertSucceeds(
         setDoc(doc(ownerDb, `users/${OWNER}`), createUserProfilePayload(), { merge: true }),
       );
@@ -87,6 +89,51 @@ describe('firestore.rules — /users/{userId}', () => {
           { ...createUserProfilePayload(), displayName: 'Hacked Name' },
           { merge: true },
         ),
+      );
+    });
+  });
+
+  describe('email update must match the verified auth token', () => {
+    async function seedFullyFormedProfile() {
+      await seed(getEnv(), async (ctx) => {
+        await setDoc(doc(ctx.firestore(), `users/${OWNER}`), {
+          ...createUserProfilePayload(),
+          email: OWNER_EMAIL,
+          displayName: 'Ana',
+          createdAt: new Date(),
+        });
+      });
+    }
+
+    it('denies setting email to a value that does not match the auth token', async () => {
+      await seedFullyFormedProfile();
+      const ownerDb = asUserWithEmail(getEnv(), OWNER, OWNER_EMAIL);
+      await assertFails(
+        setDoc(
+          doc(ownerDb, `users/${OWNER}`),
+          { email: 'spoofed@example.com' },
+          { merge: true },
+        ),
+      );
+    });
+
+    it('allows setting email to a value matching the auth token', async () => {
+      await seedFullyFormedProfile();
+      const ownerDb = asUserWithEmail(getEnv(), OWNER, 'new@example.com');
+      await assertSucceeds(
+        setDoc(
+          doc(ownerDb, `users/${OWNER}`),
+          { email: 'new@example.com' },
+          { merge: true },
+        ),
+      );
+    });
+
+    it('allows a telephone-only update regardless of the auth token email', async () => {
+      await seedFullyFormedProfile();
+      const ownerDb = asUserWithEmail(getEnv(), OWNER, OWNER_EMAIL);
+      await assertSucceeds(
+        setDoc(doc(ownerDb, `users/${OWNER}`), { telephone: '600123456' }, { merge: true }),
       );
     });
   });
