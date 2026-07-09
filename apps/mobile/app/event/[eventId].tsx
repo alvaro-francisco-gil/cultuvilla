@@ -5,6 +5,8 @@ import { VStack } from '../../components/primitives/VStack';
 import { HStack } from '../../components/primitives/HStack';
 import { Text } from '../../components/primitives/Text';
 import { Button } from '../../components/primitives/Button';
+import { Escudo } from '../../components/primitives/Escudo';
+import { Pressable } from '../../components/primitives/Pressable';
 import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
 import { RegisterFab } from '../../components/feature/RegisterFab';
 import { EventAttendees } from '../../components/feature/EventAttendees';
@@ -20,14 +22,18 @@ import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { getEvent, updateEventStatus } from '@cultuvilla/shared/services/eventService';
 import { getEventLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
+import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
+import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
 import { buildDisplayName } from '@cultuvilla/shared/models/person/PersonDataModel';
 import { formatDate, buildGoogleCalendarUrl } from '@cultuvilla/shared/utils';
 import { useT } from '../../lib/i18n';
 import type { EventData } from '@cultuvilla/shared/models/event/EventDataModel';
 import type { PersonData } from '@cultuvilla/shared/models/person/PersonDataModel';
+import type { MunicipalityData } from '@cultuvilla/shared/models/municipality';
 
 type EventDoc = EventData & { id: string };
 type PersonDoc = PersonData & { id: string };
+type VillageDoc = MunicipalityData & { id: string };
 
 export default function EventDetailScreen() {
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
@@ -37,6 +43,7 @@ export default function EventDetailScreen() {
   const share = useShareDeepLink();
   const [event, setEvent] = useState<EventDoc | null>(null);
   const [person, setPerson] = useState<PersonDoc | null>(null);
+  const [village, setVillage] = useState<VillageDoc | null>(null);
   const { canOrganize } = useEventOrganizer(event);
 
   useEffect(() => {
@@ -52,6 +59,16 @@ export default function EventDetailScreen() {
       setPerson(await getPersonByUserId(user.uid));
     })();
   }, [user]);
+
+  // The escudo lives on the municipality doc, not the event; fetch it once the
+  // event (and its municipalityId) is loaded to render the Pueblo section.
+  useEffect(() => {
+    const municipalityId = event?.municipalityId;
+    if (!municipalityId) return;
+    void (async () => {
+      setVillage(await getMunicipality(municipalityId));
+    })();
+  }, [event?.municipalityId]);
 
   const personName = person ? buildDisplayName(person) : '';
 
@@ -170,6 +187,31 @@ export default function EventDetailScreen() {
               </View>
             </VStack>
           )}
+          {event.villageName ? (
+            <VStack gap={2}>
+              <DetailSectionHeading>{t('event.villageLabel')}</DetailSectionHeading>
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: '/village/[villageId]',
+                    params: { villageId: event.municipalityId },
+                  })
+                }
+                className="w-full rounded-md border border-subtle bg-surface px-4 py-3"
+                accessibilityRole="button"
+                accessibilityLabel={event.villageName}
+              >
+                <HStack gap={3} className="items-center">
+                  <Escudo
+                    url={village ? escudoThumbDisplayUrl(village) : null}
+                    size={40}
+                    fallbackInitial={event.villageName}
+                  />
+                  <Text className="flex-1">{event.villageName}</Text>
+                </HStack>
+              </Pressable>
+            </VStack>
+          ) : null}
           {event.description ? (
             <VStack gap={2}>
               <DetailSectionHeading>{t('event.descriptionLabel')}</DetailSectionHeading>
