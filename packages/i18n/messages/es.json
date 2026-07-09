@@ -214,6 +214,7 @@
       "button": "Añadir contenido",
       "title": "¿Qué quieres añadir?",
       "items": {
+        "detalles": "Detalles pueblo",
         "evento": "Evento",
         "articulo": "Artículo",
         "agrupacion": "Agrupación",

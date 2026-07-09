@@ -245,16 +245,11 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               onPress={onJoin}
               disabled={joining}
             />
-          ) : (
+          ) : null}
+          {isMember || canManage ? (
             <ActionPill
               label={t('village.addContent.button')}
               onPress={() => setAddOpen(true)}
-            />
-          )}
-          {canManage ? (
-            <ActionPill
-              label={t('village.edit.title')}
-              onPress={() => router.push(`/village/${village.id}/community` as never)}
             />
           ) : null}
           <ActionPill
@@ -559,6 +554,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         visible={addOpen}
         onClose={() => setAddOpen(false)}
         villageId={village.id}
+        canManage={canManage}
       />
     </>
   );

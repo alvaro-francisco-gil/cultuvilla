@@ -10,6 +10,8 @@ interface AddContentSheetProps {
   visible: boolean;
   onClose: () => void;
   villageId: string;
+  /** When true, prepend the admin-only "Detalles pueblo" row opening the edit stepper. */
+  canManage: boolean;
 }
 
 interface AddOption {
@@ -24,9 +26,13 @@ interface AddOption {
 // route — no create logic lives here. Peña and agrupación share the org create
 // screen; the `type` query preselects its picker (asociación = the non-peña
 // default, since "agrupación" is the whole non-peña bucket).
-function optionsFor(villageId: string): AddOption[] {
+function optionsFor(villageId: string, canManage: boolean): AddOption[] {
   const base = `/village/${villageId}`;
   return [
+    // Admin-only: opens the village edit stepper (was formerly the "Editar pueblo" pill).
+    ...(canManage
+      ? [{ key: 'detalles', icon: 'create-outline' as const, href: `${base}/community` }]
+      : []),
     { key: 'evento', icon: 'calendar-outline', href: `/event/new?villageId=${villageId}` },
     { key: 'articulo', icon: 'newspaper-outline', href: `/news/new?villageId=${villageId}` },
     { key: 'agrupacion', icon: 'business-outline', href: `${base}/organizations?type=asociacion` },
@@ -42,7 +48,7 @@ function optionsFor(villageId: string): AddOption[] {
  * Uses a fade-in Modal + bottom-anchored card (not an Animated translateY) so it
  * behaves on the web build, where RN-Web translateY springs don't move.
  */
-export function AddContentSheet({ visible, onClose, villageId }: AddContentSheetProps) {
+export function AddContentSheet({ visible, onClose, villageId, canManage }: AddContentSheetProps) {
   const { t } = useT();
   const insets = useSafeAreaInsets();
 
@@ -71,7 +77,7 @@ export function AddContentSheet({ visible, onClose, villageId }: AddContentSheet
             {t('village.addContent.title')}
           </Text>
           <ScrollView style={{ maxHeight: 420 }}>
-            {optionsFor(villageId).map((opt) => (
+            {optionsFor(villageId, canManage).map((opt) => (
               <RNPressable
                 key={opt.key}
                 onPress={() => pick(opt.href)}
