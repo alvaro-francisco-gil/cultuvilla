@@ -584,8 +584,7 @@ service cloud.firestore {
         // 'user'. Admins granting/removing admin (or seeding one on organizer
         // approval) go through the changeVillageMemberRole callable / admin SDK,
         // which audits the change. So the create paths are: a village/app admin
-        // adding a plain member, or a self-service join (owner adds themselves,
-        // no self-granted trustedNewsAuthor).
+        // adding a plain member, or a self-service join (owner adds themselves).
         allow create: if request.resource.data.role == 'user'
                        && (
                             isVillageAdmin(municipalityId)
@@ -594,15 +593,14 @@ service cloud.firestore {
                                  isOwner(userId)
                                  && isCommunityActive(municipalityId)
                                  && request.resource.data.userId == userId
-                                 && request.resource.data.trustedNewsAuthor == false
                                )
                           );
-        // Admins may edit member fields client-side EXCEPT trustedNewsAuthor
-        // (setTrustedNewsAuthor callable) and role (changeVillageMemberRole
-        // callable) — both are function-owned. Owners edit only their profile.
+        // Admins may edit member fields client-side EXCEPT role
+        // (changeVillageMemberRole callable) — function-owned. Owners edit
+        // only their profile.
         allow update: if (
                          (isVillageAdmin(municipalityId) || isAppAdmin())
-                         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['trustedNewsAuthor', 'role'])
+                         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])
                        )
                        || (isOwner(userId)
                            && request.resource.data.diff(resource.data).affectedKeys()

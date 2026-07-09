@@ -20,7 +20,6 @@ export const VillageMemberDataSchema = z.object({
   joinedAt: z.date(),
   profileAnswers: ProfileAnswersSchema,
   profileCompletedAt: z.date().nullable(),
-  trustedNewsAuthor: z.boolean(),
 });
 export type VillageMemberData = z.infer<typeof VillageMemberDataSchema>;
 
@@ -30,7 +29,6 @@ export interface VillageMemberDataInput {
   joinedAt?: Date;
   profileAnswers?: z.infer<typeof ProfileAnswersSchema>;
   profileCompletedAt?: Date | null;
-  trustedNewsAuthor?: boolean;
 }
 
 export function buildVillageMemberData(input: VillageMemberDataInput): VillageMemberData {
@@ -40,6 +38,5 @@ export function buildVillageMemberData(input: VillageMemberDataInput): VillageMe
     joinedAt: input.joinedAt ?? new Date(),
     profileAnswers: input.profileAnswers ?? {},
     profileCompletedAt: input.profileCompletedAt ?? null,
-    trustedNewsAuthor: input.trustedNewsAuthor ?? false,
   };
 }

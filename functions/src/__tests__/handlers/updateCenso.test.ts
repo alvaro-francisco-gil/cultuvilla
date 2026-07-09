@@ -27,7 +27,7 @@ async function seedCensoMunicipality(fields: unknown[]): Promise<void> {
 async function seedMember(uid: string, role: 'user' | 'admin', profileAnswers: Record<string, unknown>): Promise<void> {
   await admin.firestore().doc(`municipalities/${MID}/members/${uid}`).set({
     userId: uid, role, joinedAt: new Date(), profileAnswers,
-    profileCompletedAt: null, trustedNewsAuthor: false,
+    profileCompletedAt: null,
   });
 }
 

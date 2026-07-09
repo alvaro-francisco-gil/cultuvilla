@@ -39,7 +39,6 @@ export { deleteAccount } from './account/deleteAccount';
 
 // News (posts, reactions, comments)
 export { deleteNewsPost } from './news/deleteNewsPost';
-export { setTrustedNewsAuthor } from './news/setTrustedNewsAuthor';
 export { resolveNewsReport } from './news/resolveNewsReport';
 export { syncNewsReactionCounts } from './news/syncNewsReactionCounts';
 export { syncNewsCommentCount } from './news/syncNewsCommentCount';

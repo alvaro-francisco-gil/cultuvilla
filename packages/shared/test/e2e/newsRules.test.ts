@@ -1,6 +1,4 @@
 // Firestore Rules e2e tests for news, newsComments, newsReactions, newsReports.
-// Also covers the tightened municipalities/{id}/members/{uid} update rule
-// that prevents clients from setting trustedNewsAuthor directly.
 import { describe, it } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import {
@@ -32,7 +30,6 @@ async function seedMember(
       joinedAt: new Date(),
       profileAnswers: {},
       profileCompletedAt: null,
-      trustedNewsAuthor: false,
       ...extra,
     });
   });
@@ -465,20 +462,5 @@ describe('firestore.rules — /newsReports/{reportId}', () => {
     await seedMember('m1', 'alice', { role: 'admin' });
     const alice = asUser(getEnv(), 'alice');
     await assertFails(updateDoc(doc(alice, 'newsReports/r1'), { status: 'dismissed' }));
-  });
-});
-
-// ── members trustedNewsAuthor tightening ──────────────────────────────────────
-
-describe('firestore.rules — members trustedNewsAuthor lock', () => {
-  // 17. client tries to write trustedNewsAuthor=true on their own member doc → DENY
-  it('17: member cannot set trustedNewsAuthor on their own member doc', async () => {
-    await seedMember('m1', 'alice');
-    const alice = asUser(getEnv(), 'alice');
-    await assertFails(
-      updateDoc(doc(alice, 'municipalities/m1/members/alice'), {
-        trustedNewsAuthor: true,
-      })
-    );
   });
 });

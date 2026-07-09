@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument,
-                  @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment,
+                  @typescript-eslint/no-unsafe-return */
 // vi.mock factories legitimately fake the firebase/firestore SDK shape;
 // the rule family doesn't add value for these inline mocks.
 import { describe, it, expect, vi, beforeEach } from 'vitest';

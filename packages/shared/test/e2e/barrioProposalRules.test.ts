@@ -16,7 +16,7 @@ function barrioDoc(proposedBy: string | null, extra: Record<string, unknown> = {
 async function seedMember(uid: string, role: 'user' | 'admin' = 'user') {
   await seed(getEnv(), async (ctx) => {
     await setDoc(doc(ctx.firestore(), `municipalities/${M}/members/${uid}`), {
-      role, joinedAt: new Date(), profileAnswers: {}, profileCompletedAt: null, trustedNewsAuthor: false,
+      role, joinedAt: new Date(), profileAnswers: {}, profileCompletedAt: null,
     });
   });
 }

@@ -77,8 +77,8 @@ app muestra antes una confirmación que deja claro que unirse es una
 **autodeclaración** («este es mi pueblo») y **no verifica residencia**. La
 membresía se escribe directamente desde el cliente y la salvaguarda se aplica en
 las **reglas de Firestore**: solo el propietario, sobre comunidad activa, con
-`role: user` y sin `trustedNewsAuthor`. Estar ya inscrito lo impide la semántica
-de `create`. **No existe cola de solicitudes de ingreso.**
+`role: user`. Estar ya inscrito lo impide la semántica de `create`. **No existe
+cola de solicitudes de ingreso.**
 
 También: **token de invitación** — un administrador comparte un token; el usuario
 lo canjea. *(Reglas diferidas — ver [§12](#12-diferido-en-otras-ramas).)*
@@ -286,26 +286,26 @@ consulta de membresía por asistente.
 - Viven en **colecciones de nivel superior** con ámbito por `municipalityId`:
   `news/`, `newsComments/`, `newsReactions/`, `newsReports/`.
 - **Autoría:** **cualquier usuario autenticado** puede publicar en las noticias de
-  cualquier pueblo. Las publicaciones se crean como **`pending`** y las **revisan
-  los administradores del pueblo** (+ superadministrador), que aprueban o
-  rechazan. Un miembro marcado como `trustedNewsAuthor` para ese pueblo publica
-  **directamente como `approved`** (la confianza es por pueblo y desaparece con la
-  membresía; se establece solo con el callable `setTrustedNewsAuthor`).
-- **Lectura:** las publicaciones **`approved`** son **públicas** (incluido el
-  anónimo). Las publicaciones `pending`/ocultas solo son visibles para su autor,
-  los administradores del pueblo y los superadministradores.
-- Los **autores** pueden **editar** (no vuelve a moderación) y **eliminar sus
-  propias** publicaciones. Los administradores pueden **eliminar cualquier**
-  publicación (en cascada).
+  cualquier pueblo. Las publicaciones se crean **`active`** y son visibles de
+  inmediato — modelo optimista, no hay cola de aprobación. Un **administrador del
+  pueblo** (+ superadministrador) puede **ocultar** una publicación a posteriori
+  vía el callable `setContentVisibility` (y revertirlo con el mismo callable).
+  `status`/`hiddenBy`/`hiddenAt`/`hiddenReason` son **function-owned** — los
+  clientes no pueden escribirlos.
+- **Lectura:** las publicaciones **`active`** son **públicas** (incluido el
+  anónimo). Las publicaciones ocultas solo son visibles para su autor, los
+  administradores del pueblo y los superadministradores.
+- Los **autores** pueden **editar** y **eliminar sus propias** publicaciones. Los
+  administradores pueden **eliminar cualquier** publicación (en cascada) u
+  **ocultarla** sin eliminarla.
 - **Comentarios y reacciones:** **cualquier usuario autenticado** puede comentar y
   reaccionar. Los comentarios **se publican automáticamente** (sin cola). Una
   reacción por (usuario, publicación) (id determinista `${postId}_${userId}`).
 - **Reportes:** **solo comentarios** en v1. Resolver un reporte **oculta** el
   comentario (no lo elimina).
-- Las escrituras privilegiadas son callables (`moderateNewsPost`,
-  `deleteNewsPost`, `resolveNewsReport`, `setTrustedNewsAuthor`); los contadores
-  están desnormalizados y **no acotados** (pueden desviarse ante un fallo parcial
-  — no asumir exactitud).
+- Las escrituras privilegiadas son callables (`setContentVisibility`,
+  `deleteNewsPost`, `resolveNewsReport`); los contadores están desnormalizados y
+  **no acotados** (pueden desviarse ante un fallo parcial — no asumir exactitud).
 
 Ver [docs/decisions/news-feed.md](decisions/news-feed.md).
 
@@ -313,8 +313,11 @@ Ver [docs/decisions/news-feed.md](decisions/news-feed.md).
 
 ## 10. Datos de referencia
 
-- Los **municipios** y la lista de **oficios** (*occupations*) los **gestiona el
-  superadministrador**.
+- Los **municipios** los **gestiona el superadministrador**. Los **oficios**
+  (*occupations*) se eligen de un **catálogo predefinido** (`OCCUPATION_CATALOG`)
+  o se **escriben libremente** — sin aprobación: `recordOccupation` registra el
+  texto libre en `occupations/{slug}` (id determinista por texto normalizado,
+  contador de uso) para alimentar el autocompletado. No hay cola de propuestas.
 - Los **barrios** y **cementerios** los gestiona **el administrador de cada
   pueblo** (conocimiento local), bajo su municipio.
 - **Propuestas de oficios:** cualquier usuario puede **proponer** un nuevo oficio
@@ -350,7 +353,7 @@ Un usuario puede eliminar su cuenta. El tratamiento es **híbrido**:
 | # | Pregunta | Cómo funciona **hoy** (para el debate) |
 |---|---|---|
 | OQ-1 | ¿Debe un **miembro de organización ser también miembro del pueblo de esa organización**? | No se exige en ningún sentido. Inclinación: al añadir a alguien a una organización se **crea automáticamente** la membresía del pueblo si no la tiene. **Pendiente de debate con los cofundadores.** |
-| OQ-2 | **Oficios (*occupations*) — ¿cuál debería ser la lista predefinida y cuál la política para añadir/aprobar nuevos?** | Existe una lista canónica en el nivel superior `occupations/` (gestionada por el superadministrador: `createOccupation`/`updateOccupation`/`deleteOccupation`). Cualquier usuario puede **proponer** un oficio nuevo (`proposeOccupation` → `occupationProposals/{id}` con `status: 'pending'`); un superadministrador lo revisa (`reviewProposal`), y al aprobarlo la Cloud Function `onOccupationProposalApproved` lo promueve a un documento canónico en `occupations/` y migra las referencias pendientes en las Personas. **Abierto:** qué oficios precargar y quién revisa / con qué criterios. |
+| ~~OQ-2~~ | ~~Oficios (*occupations*) — lista predefinida y política de aprobación.~~ | **Resuelto:** los oficios se eligen de un catálogo hardcodeado (`OCCUPATION_CATALOG`) o se escriben libremente en la ficha de la Persona; sin cola de propuestas ni aprobación. `recordOccupation` hace upsert en `occupations/{slug}` para alimentar sugerencias. |
 | OQ-3 | **Categorías de noticias — ¿qué categorías deberían existir?** | Enum fijo hoy: `fiesta`, `tradicion`, `gastronomia`, `historia`, `otro` (`NEWS_POST_CATEGORIES` en `NewsPostDataModel.ts`, replicado en `firestore.rules`). Cada publicación debe elegir exactamente una. **Abierto:** ¿es el conjunto correcto (añadir/renombrar/eliminar)? |
 | OQ-4 | **Tipos de organización — ¿qué tipos pueden existir en un pueblo?** | Enum fijo hoy: `ayuntamiento` (único), `peña`, `asociación` (`OrganizationTypeSchema`). **Abierto:** ¿son los tipos correctos (p. ej. añadir `cofradía`, `club deportivo`, `comisión de fiestas`…)? Añadir un tipo afecta al enum, al validador de reglas y a cualquier cardinalidad específica del tipo. |
 

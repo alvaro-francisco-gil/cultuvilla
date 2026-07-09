@@ -22,7 +22,6 @@ async function seedMember(uid: string, role: 'admin' | 'user'): Promise<void> {
       joinedAt: new Date(),
       profileAnswers: {},
       profileCompletedAt: null,
-      trustedNewsAuthor: false,
     });
 }
 
@@ -135,12 +134,12 @@ describe('setContentVisibility (callable)', () => {
       .where('docId', '==', 'p1')
       .get();
     expect(eventsSnap.size).toBe(1);
-    const event = eventsSnap.docs[0]?.data();
-    expect(event?.action).toBe('hide');
-    expect(event?.collection).toBe('news');
-    expect(event?.municipalityId).toBe(MUNICIPALITY_ID);
-    expect(event?.actorUserId).toBe(ADMIN_UID);
-    expect(event?.reason).toBe('spam');
+    const event = eventsSnap.docs[0].data();
+    expect(event.action).toBe('hide');
+    expect(event.collection).toBe('news');
+    expect(event.municipalityId).toBe(MUNICIPALITY_ID);
+    expect(event.actorUserId).toBe(ADMIN_UID);
+    expect(event.reason).toBe('spam');
   });
 
   it('admin unhides a hidden news post', async () => {

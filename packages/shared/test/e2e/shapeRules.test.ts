@@ -28,7 +28,6 @@ async function seedMember(municipalityId: string, userId: string) {
         joinedAt: new Date(),
         profileAnswers: {},
         profileCompletedAt: null,
-        trustedNewsAuthor: false,
       },
     );
   });
