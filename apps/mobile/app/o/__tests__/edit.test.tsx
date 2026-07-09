@@ -8,6 +8,7 @@ jest.mock('expo-router', () => ({
   router: { back: jest.fn() },
 }));
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('../../../components/layout/ScreenHeader', () => ({ ScreenHeader: () => null }));
 jest.mock('../../../lib/auth/useOrgCapabilities', () => ({
   useOrgCapabilities: jest.fn(),
 }));
@@ -28,5 +29,16 @@ describe('OrgEditScreen guard', () => {
     (useOrgCapabilities as jest.Mock).mockReturnValue({ canManage: false, uid: 'u1', loading: false });
     render(<OrgEditScreen />);
     await waitFor(() => expect(mockRedirect).toHaveBeenCalledWith({ href: '/o/org1' }));
+  });
+
+  it('does not redirect before the org has finished loading', async () => {
+    const { getOrganization } = jest.requireMock('@cultuvilla/shared/services/organizationService') as {
+      getOrganization: jest.Mock;
+    };
+    getOrganization.mockImplementation(() => new Promise(() => {}));
+    (useOrgCapabilities as jest.Mock).mockReturnValue({ canManage: false, uid: 'u1', loading: false });
+    render(<OrgEditScreen />);
+    await waitFor(() => expect(getOrganization).toHaveBeenCalled());
+    expect(mockRedirect).not.toHaveBeenCalled();
   });
 });

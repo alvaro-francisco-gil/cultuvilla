@@ -48,11 +48,19 @@ export default function OrgEditScreen() {
     })();
   }, [orgId]);
 
-  if (capLoading) {
+  if (capLoading || !loaded) {
     return (
       <Screen padded={false} topInset={false}>
         <ScreenHeader accent title={t('organization.editTitle')} />
         <View className="flex-1 items-center justify-center"><ActivityIndicator /></View>
+      </Screen>
+    );
+  }
+  if (notFound) {
+    return (
+      <Screen padded={false} topInset={false}>
+        <ScreenHeader accent title={t('organization.editTitle')} />
+        <View className="flex-1 items-center justify-center"><Text>{t('common.notFound')}</Text></View>
       </Screen>
     );
   }
@@ -80,39 +88,33 @@ export default function OrgEditScreen() {
   return (
     <Screen padded={false} topInset={false}>
       <ScreenHeader accent title={t('organization.editTitle')} />
-      {!loaded ? (
-        <View className="flex-1 items-center justify-center"><ActivityIndicator /></View>
-      ) : notFound ? (
-        <View className="flex-1 items-center justify-center"><Text>{t('common.notFound')}</Text></View>
-      ) : (
-        <ScrollView contentContainerClassName="p-4">
-          <ProposableForm
-            image={image}
-            onImageChange={setImage}
-            existingImageUri={existingImageUri}
-            imageLabels={{
-              add: t('organization.addImage'),
-              selected: t('organization.imageSelected'),
-            }}
-            name={name}
-            onChangeName={setName}
-            nameLabel={t('organization.name')}
-            nameTestID="org-edit-name-input"
-            description={description}
-            onChangeDescription={setDescription}
-            descriptionLabel={t('organization.description')}
-            typeLabel={t('organization.type')}
-            typeOptions={PROPOSABLE_ORGANIZATION_TYPES.map((ty) => ({ value: ty, label: typeLabel(ty) }))}
-            typeValue={type}
-            onChangeType={(v) => setType(v as OrganizationType)}
-            submitLabel={t('common.save')}
-            submitTestID="org-edit-submit"
-            onSubmit={submit}
-            saving={saving}
-            disabled={!name.trim()}
-          />
-        </ScrollView>
-      )}
+      <ScrollView contentContainerClassName="p-4">
+        <ProposableForm
+          image={image}
+          onImageChange={setImage}
+          existingImageUri={existingImageUri}
+          imageLabels={{
+            add: t('organization.addImage'),
+            selected: t('organization.imageSelected'),
+          }}
+          name={name}
+          onChangeName={setName}
+          nameLabel={t('organization.name')}
+          nameTestID="org-edit-name-input"
+          description={description}
+          onChangeDescription={setDescription}
+          descriptionLabel={t('organization.description')}
+          typeLabel={t('organization.type')}
+          typeOptions={PROPOSABLE_ORGANIZATION_TYPES.map((ty) => ({ value: ty, label: typeLabel(ty) }))}
+          typeValue={type}
+          onChangeType={(v) => setType(v as OrganizationType)}
+          submitLabel={t('common.save')}
+          submitTestID="org-edit-submit"
+          onSubmit={submit}
+          saving={saving}
+          disabled={!name.trim()}
+        />
+      </ScrollView>
     </Screen>
   );
 }
