@@ -3,16 +3,16 @@ import { ActivityIndicator, Pressable, ScrollView, Text as RNText, View } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams } from 'expo-router';
-import { Screen } from '../../components/primitives/Screen';
-import { Text } from '../../components/primitives/Text';
-import { VStack } from '../../components/primitives/VStack';
-import { DetailHeroImage } from '../../components/feature/DetailHeroImage';
-import { FloatingBackButton } from '../../components/feature/FloatingBackButton';
-import { FloatingShareButton } from '../../components/feature/FloatingShareButton';
-import { useT } from '../../lib/i18n';
-import { useAuth } from '../../lib/auth/useAuth';
-import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
-import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
+import { Screen } from '../../../components/primitives/Screen';
+import { Text } from '../../../components/primitives/Text';
+import { VStack } from '../../../components/primitives/VStack';
+import { DetailHeroImage } from '../../../components/feature/DetailHeroImage';
+import { FloatingBackButton } from '../../../components/feature/FloatingBackButton';
+import { FloatingShareButton } from '../../../components/feature/FloatingShareButton';
+import { useT } from '../../../lib/i18n';
+import { useAuth } from '../../../lib/auth/useAuth';
+import { useRegisterGate } from '../../../lib/auth/RegisterGateContext';
+import { useShareDeepLink } from '../../../lib/deeplink/useShareDeepLink';
 import { getOrganization } from '@cultuvilla/shared/services/organizationService';
 import {
   isOrgMember,
