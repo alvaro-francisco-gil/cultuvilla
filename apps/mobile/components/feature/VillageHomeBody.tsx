@@ -426,7 +426,10 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         {/* ── Carteles de fiestas ──────────────────────────────── */}
         <Section
           title={t('village.festivalPosters.title')}
-          isEmpty={festivalPosters.length === 0}
+          // Never empty: the portrait add card is always rendered below (as with
+          // the places/barrios scrolls), so the scroll — and its add button —
+          // stays visible even when the village has no carteles yet.
+          isEmpty={false}
           emptyLabel={t('village.festivalPosters.empty')}
         >
           {festivalPosters.map((p) => (

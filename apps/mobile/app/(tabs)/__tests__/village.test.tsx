@@ -230,5 +230,16 @@ describe('VillageTabScreen', () => {
       ).toBeTruthy();
       expect(await findByText('2024')).toBeTruthy();
     });
+
+    it('keeps the section (and its add card) visible when there are no posters', async () => {
+      (getFestivalPosters as jest.Mock).mockResolvedValue([]);
+      const { findByText, queryByText } = render(<VillageTabScreen />);
+      expect(
+        await findByText('Carteles de fiestas', undefined, { timeout: 5000 }),
+      ).toBeTruthy();
+      // The add card is always rendered, so the section never falls into the
+      // empty-label branch — regression guard for the disappearing add button.
+      expect(queryByText('Todavía no hay carteles de fiestas.')).toBeNull();
+    });
   });
 });
