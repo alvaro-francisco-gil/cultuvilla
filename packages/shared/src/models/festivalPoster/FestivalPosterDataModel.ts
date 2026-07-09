@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { reviewDecisionFields, type ReviewStatus } from '../core/ReviewableDataModel';
+import { visibilityFields, defaultVisibility } from '../core/VisibilityModel';
 
 export const DATE_PRECISIONS = ['year', 'month', 'day'] as const;
 export const DatePrecisionSchema = z.enum([...DATE_PRECISIONS]);
@@ -16,7 +16,7 @@ export const FestivalPosterDataSchema = z.object({
   startsAt: z.date().nullable(),
   endsAt: z.date().nullable(),
   createdAt: z.date(),
-  ...reviewDecisionFields,
+  ...visibilityFields,
 });
 export type FestivalPosterData = z.infer<typeof FestivalPosterDataSchema>;
 
@@ -30,9 +30,6 @@ export interface FestivalPosterDataInput {
   startsAt?: Date | null;
   endsAt?: Date | null;
   createdAt: Date;
-  status?: ReviewStatus;
-  reviewedBy?: string | null;
-  reviewedAt?: Date | null;
 }
 
 export function buildFestivalPosterData(input: FestivalPosterDataInput): FestivalPosterData {
@@ -53,8 +50,6 @@ export function buildFestivalPosterData(input: FestivalPosterDataInput): Festiva
     startsAt,
     endsAt,
     createdAt: input.createdAt,
-    status: input.status ?? 'pending',
-    reviewedBy: input.reviewedBy ?? null,
-    reviewedAt: input.reviewedAt ?? null,
+    ...defaultVisibility(),
   };
 }

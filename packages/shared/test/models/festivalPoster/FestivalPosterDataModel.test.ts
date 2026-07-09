@@ -11,9 +11,12 @@ const base = {
 };
 
 describe('buildFestivalPosterData', () => {
-  it('defaults status to pending and precision to year, nulling dates', () => {
+  it('defaults status to active with no hide metadata, and precision to year, nulling dates', () => {
     const d = buildFestivalPosterData({ ...base, startsAt: new Date(), endsAt: new Date() });
-    expect(d.status).toBe('pending');
+    expect(d.status).toBe('active');
+    expect(d.hiddenBy).toBeNull();
+    expect(d.hiddenAt).toBeNull();
+    expect(d.hiddenReason).toBeNull();
     expect(d.datePrecision).toBe('year');
     expect(d.startsAt).toBeNull();
     expect(d.endsAt).toBeNull();
@@ -21,6 +24,9 @@ describe('buildFestivalPosterData', () => {
     expect(d.title).toBeNull();
     expect(d.imageURL).toBeNull();
     expect(() => FestivalPosterDataSchema.parse(d)).not.toThrow();
+    // fields removed by the review -> visibility migration
+    expect('reviewedBy' in d).toBe(false);
+    expect('reviewedAt' in d).toBe(false);
   });
 
   it('keeps startsAt/endsAt for day precision', () => {
