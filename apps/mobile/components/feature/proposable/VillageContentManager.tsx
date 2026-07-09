@@ -5,8 +5,9 @@ import { useT } from '../../../lib/i18n';
 import { PlacesManager } from './PlacesManager';
 import { BarriosManager } from './BarriosManager';
 import { OrganizationsManager } from './OrganizationsManager';
+import { FestivalPostersManager } from './FestivalPostersManager';
 
-type Section = 'places' | 'barrios' | 'organizations';
+type Section = 'places' | 'barrios' | 'organizations' | 'festivalPosters';
 
 /**
  * Admin content moderation, mounted as the "Contenido" tab of the community
@@ -18,13 +19,14 @@ type Section = 'places' | 'barrios' | 'organizations';
 export function VillageContentManager({ villageId }: { villageId: string }) {
   const { t } = useT();
   const [selected, setSelected] = useState<Set<Section>>(
-    () => new Set<Section>(['places', 'barrios', 'organizations']),
+    () => new Set<Section>(['places', 'barrios', 'organizations', 'festivalPosters']),
   );
 
   const SECTIONS: { value: Section; label: string }[] = [
     { value: 'places', label: t('village.admin.hub.places') },
     { value: 'barrios', label: t('village.admin.hub.barrios') },
     { value: 'organizations', label: t('village.hub.organizations') },
+    { value: 'festivalPosters', label: t('village.festivalPosters.title') },
   ];
 
   const toggle = (s: Section) =>
@@ -76,6 +78,13 @@ export function VillageContentManager({ villageId }: { villageId: string }) {
         <VStack gap={1}>
           <Text variant="h3" className="px-4 font-bold">{t('village.hub.organizations')}</Text>
           <OrganizationsManager villageId={villageId} mode="manage" />
+        </VStack>
+      ) : null}
+
+      {show('festivalPosters') ? (
+        <VStack gap={1}>
+          <Text variant="h3" className="px-4 font-bold">{t('village.festivalPosters.title')}</Text>
+          <FestivalPostersManager villageId={villageId} mode="manage" />
         </VStack>
       ) : null}
       </VStack>
