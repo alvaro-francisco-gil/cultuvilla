@@ -1,0 +1,95 @@
+import { Modal, Pressable as RNPressable, ScrollView, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Text, HStack } from '../primitives';
+import { ACCENT } from './VillageSections';
+import { useT } from '../../lib/i18n';
+
+interface AddContentSheetProps {
+  visible: boolean;
+  onClose: () => void;
+  villageId: string;
+}
+
+interface AddOption {
+  key: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  /** Route to push (already scoped to the village). */
+  href: string;
+}
+
+// The seven entities the village home can add, in the same order the sections
+// appear on the screen. Each row just fans out to the entity's existing create
+// route — no create logic lives here. Peña and agrupación share the org create
+// screen; the `type` query preselects its picker (asociación = the non-peña
+// default, since "agrupación" is the whole non-peña bucket).
+function optionsFor(villageId: string): AddOption[] {
+  const base = `/village/${villageId}`;
+  return [
+    { key: 'evento', icon: 'calendar-outline', href: `/event/new?villageId=${villageId}` },
+    { key: 'articulo', icon: 'newspaper-outline', href: `/news/new?villageId=${villageId}` },
+    { key: 'agrupacion', icon: 'business-outline', href: `${base}/organizations?type=asociacion` },
+    { key: 'pena', icon: 'people-circle-outline', href: `${base}/organizations?type=pena` },
+    { key: 'barrio', icon: 'map-outline', href: `${base}/barrios` },
+    { key: 'lugar', icon: 'location-outline', href: `${base}/places` },
+    { key: 'cartel', icon: 'image-outline', href: `${base}/festival-posters` },
+  ];
+}
+
+/**
+ * Bottom action sheet opened from the village home's "Añadir contenido" button.
+ * Uses a fade-in Modal + bottom-anchored card (not an Animated translateY) so it
+ * behaves on the web build, where RN-Web translateY springs don't move.
+ */
+export function AddContentSheet({ visible, onClose, villageId }: AddContentSheetProps) {
+  const { t } = useT();
+  const insets = useSafeAreaInsets();
+
+  if (!visible) return null;
+
+  const pick = (href: string) => {
+    onClose();
+    router.push(href as never);
+  };
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <RNPressable
+        onPress={onClose}
+        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+      >
+        <RNPressable
+          onPress={() => {}}
+          className="bg-surface-elevated border-t border-subtle"
+          style={{ borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingBottom: insets.bottom + 12 }}
+        >
+          <View className="items-center pt-3 pb-1">
+            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#cbd5e1' }} />
+          </View>
+          <Text variant="h3" className="px-5 pt-2 pb-1">
+            {t('village.addContent.title')}
+          </Text>
+          <ScrollView style={{ maxHeight: 420 }}>
+            {optionsFor(villageId).map((opt) => (
+              <RNPressable
+                key={opt.key}
+                onPress={() => pick(opt.href)}
+                accessibilityLabel={t(`village.addContent.items.${opt.key}`)}
+                className="border-b border-subtle active:opacity-70"
+              >
+                <HStack gap={3} className="items-center px-5 py-4">
+                  <Ionicons name={opt.icon} size={24} color={ACCENT} />
+                  <Text className="flex-1 font-semibold">
+                    {t(`village.addContent.items.${opt.key}`)}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
+                </HStack>
+              </RNPressable>
+            ))}
+          </ScrollView>
+        </RNPressable>
+      </RNPressable>
+    </Modal>
+  );
+}

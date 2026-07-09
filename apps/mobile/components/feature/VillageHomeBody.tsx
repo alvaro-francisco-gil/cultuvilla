@@ -13,6 +13,7 @@ import {
   ErrorState,
 } from '../primitives';
 import { ACCENT, Section, EntityCard } from './VillageSections';
+import { AddContentSheet } from './AddContentSheet';
 import { JoinVillageModal } from './JoinVillageModal';
 import { StatsRow } from './StatsRow';
 import { useAuth } from '../../lib/auth/useAuth';
@@ -42,9 +43,10 @@ export interface VillageHomeBodyProps {
 /**
  * Presentational village home shared by the pueblo tab and the pushed
  * `/village/[villageId]` detail. Takes data from `useVillageHome`; the host
- * supplies the header chrome (AppHeader vs ScreenHeader). For non-members the
- * action row's first button is "Unirme" (join); members have no first button
- * yet. `!data.isMember` is the single source of truth for "offer to join".
+ * supplies the header chrome (AppHeader vs ScreenHeader). The action row's first
+ * button is "Unirme" (join) for non-members and "Añadir contenido" (opens the
+ * add sheet) for members; `!data.isMember` is the single source of truth for
+ * "offer to join". Editar (admins) and Compartir (everyone) follow it.
  */
 export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
   const { user, refreshProfile } = useAuth();
@@ -53,6 +55,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
   const { t } = useT();
   const [joining, setJoining] = useState(false);
   const [pendingJoin, setPendingJoin] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
 
   const { loading, loadError, village } = data;
 
@@ -233,65 +236,31 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
           />
         </View>
 
-        {/* ── Unirme (non-members) + Editar/Compartir ──────────── */}
+        {/* ── slot 1: Unirme (non-members) / Añadir contenido (members)
+            + Editar (admins) + Compartir (everyone) ─────────────── */}
         <HStack gap={3} className="px-4 pt-2 pb-2">
           {!isMember ? (
-            <Pressable
+            <ActionPill
+              label={user ? t('village.join') : t('village.signInToJoin')}
               onPress={onJoin}
               disabled={joining}
-              accessibilityLabel={t('village.join')}
-              className="flex-1 flex-row items-center justify-center bg-surface"
-              style={{
-                paddingVertical: 5,
-                paddingHorizontal: 12,
-                borderRadius: 24,
-                borderWidth: 1.5,
-                borderColor: ACCENT,
-                minHeight: 32,
-              }}
-            >
-              <Text style={{ color: ACCENT }} className="font-semibold">
-                {user ? t('village.join') : t('village.signInToJoin')}
-              </Text>
-            </Pressable>
-          ) : null}
-          {canManage ? (
-            <Pressable
-              onPress={() => router.push(`/village/${village.id}/community` as never)}
-              accessibilityLabel={t('village.edit.title')}
-              className="flex-1 flex-row items-center justify-center bg-surface"
-              style={{
-                paddingVertical: 5,
-                paddingHorizontal: 12,
-                borderRadius: 24,
-                borderWidth: 1.5,
-                borderColor: ACCENT,
-                minHeight: 32,
-              }}
-            >
-              <Text style={{ color: ACCENT }} className="font-semibold">
-                {t('village.edit.title')}
-              </Text>
-            </Pressable>
+            />
           ) : (
-            <Pressable
-              onPress={() => void share(getVillageViewLink(village.id), village.name)}
-              accessibilityLabel={t('village.share.title')}
-              className="flex-1 flex-row items-center justify-center bg-surface"
-              style={{
-                paddingVertical: 5,
-                paddingHorizontal: 12,
-                borderRadius: 24,
-                borderWidth: 1.5,
-                borderColor: ACCENT,
-                minHeight: 32,
-              }}
-            >
-              <Text style={{ color: ACCENT }} className="font-semibold">
-                {t('village.share.title')}
-              </Text>
-            </Pressable>
+            <ActionPill
+              label={t('village.addContent.button')}
+              onPress={() => setAddOpen(true)}
+            />
           )}
+          {canManage ? (
+            <ActionPill
+              label={t('village.edit.title')}
+              onPress={() => router.push(`/village/${village.id}/community` as never)}
+            />
+          ) : null}
+          <ActionPill
+            label={t('village.share.title')}
+            onPress={() => void share(getVillageViewLink(village.id), village.name)}
+          />
         </HStack>
 
         {/* ── No organizer yet (wiki phase) ─────────────────────── */}
@@ -586,7 +555,44 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         onCancel={() => setPendingJoin(false)}
         onConfirm={(barrioId) => void doJoin(barrioId)}
       />
+      <AddContentSheet
+        visible={addOpen}
+        onClose={() => setAddOpen(false)}
+        villageId={village.id}
+      />
     </>
+  );
+}
+
+/** The terracotta-outline pill used across the village-home action row. */
+function ActionPill({
+  label,
+  onPress,
+  disabled = false,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityLabel={label}
+      className="flex-1 flex-row items-center justify-center bg-surface"
+      style={{
+        paddingVertical: 5,
+        paddingHorizontal: 12,
+        borderRadius: 24,
+        borderWidth: 1.5,
+        borderColor: ACCENT,
+        minHeight: 32,
+      }}
+    >
+      <Text style={{ color: ACCENT }} className="font-semibold">
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
