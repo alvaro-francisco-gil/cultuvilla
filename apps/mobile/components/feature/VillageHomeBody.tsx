@@ -12,7 +12,7 @@ import {
   ScreenTitle,
   ErrorState,
 } from '../primitives';
-import { ACCENT, Section, EntityCard, PosterCard, PosterAddCard } from './VillageSections';
+import { ACCENT, Section, EntityCard, PosterCard } from './VillageSections';
 import { FestivalPosterViewer } from './FestivalPosterViewer';
 import { JoinVillageModal } from './JoinVillageModal';
 import { StatsRow } from './StatsRow';
@@ -431,6 +431,8 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
           // stays visible even when the village has no carteles yet.
           isEmpty={false}
           emptyLabel={t('village.festivalPosters.empty')}
+          addLabel={canManage ? t('village.festivalPosters.add') : t('village.festivalPosters.propose')}
+          onAdd={() => router.push(`${villageBase}/festival-posters` as never)}
         >
           {festivalPosters.map((p) => (
             <PosterCard
@@ -442,10 +444,6 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               onPress={() => setViewerPoster(p)}
             />
           ))}
-          <PosterAddCard
-            label={canManage ? t('village.festivalPosters.add') : t('village.festivalPosters.propose')}
-            onPress={() => router.push(`${villageBase}/festival-posters` as never)}
-          />
         </Section>
 
         {/* ── Barrios ──────────────────────────────────────────── */}

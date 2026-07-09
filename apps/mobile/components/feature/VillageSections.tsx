@@ -355,22 +355,6 @@ export function PosterCard({
   );
 }
 
-export function PosterAddCard({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityLabel={label}
-      className="rounded-2xl overflow-hidden border border-dashed border-subtle items-center justify-center gap-2"
-      style={{ width: POSTER_W, height: POSTER_H }}
-    >
-      <Ionicons name="add" size={44} color={ACCENT} />
-      <Text variant="bodySm" className="font-medium text-center px-3" numberOfLines={2}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
 export function SettingsLink({
   icon,
   label,
