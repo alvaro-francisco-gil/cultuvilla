@@ -19,7 +19,6 @@ import { ManagedEventsScroll } from './ManagedEventsScroll';
 import { VillagesScroll } from './VillagesScroll';
 import { CreatedNewsScroll } from './CreatedNewsScroll';
 import { useProfileData } from '../../../lib/profile/useProfileData';
-import { getRunningBuild, getRunningVersion } from '../../../lib/appVersion';
 
 export interface ProfileViewProps {
   uid: string;
@@ -251,12 +250,6 @@ export function ProfileView({
             showJoin={isSelf}
           />
         </>
-      ) : null}
-
-      {isSelf ? (
-        <Text variant="caption" tone="muted" className="text-center pt-4">
-          {t('profile.version', { version: getRunningVersion(), build: getRunningBuild() })}
-        </Text>
       ) : null}
     </ScrollView>
   );

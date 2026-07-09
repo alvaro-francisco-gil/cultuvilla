@@ -579,7 +579,6 @@
       "admin": "Administrador",
       "member": "Miembro"
     },
-    "version": "Versión {version} ({build})",
     "villagesEntry": "Mis pueblos",
     "villagesSection": {
       "join": "Unirse a otro pueblo"
