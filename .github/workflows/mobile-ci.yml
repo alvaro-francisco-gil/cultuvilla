@@ -79,11 +79,16 @@ jobs:
       - name: Check web export
         run: pnpm app:check-web-export
 
-  # Per-PR web E2E (D3): drive real user journeys over the Expo web export against
-  # the Firebase emulator. This is the verification gate for the E2E substrate —
-  # the agent that authored it can't run emulators/Playwright locally.
+  # Web E2E (D3): drive real user journeys over the Expo web export against the
+  # Firebase emulator. Expensive (emulator boot + Playwright), so it's gated to
+  # the release path — it runs only on PRs targeting `beta` (the develop → beta
+  # promotion / release-candidate gate) and pushes to `beta`, NOT on day-to-day
+  # develop PRs. develop still gets the fast `typecheck-and-test` job above.
   web-e2e:
     name: Web E2E (Playwright over the web export)
+    if: >-
+      ${{ (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'beta') ||
+          (github.event_name == 'push' && github.ref == 'refs/heads/beta') }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
