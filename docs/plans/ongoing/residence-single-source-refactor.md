@@ -10,11 +10,11 @@ projection trigger to the one branch that genuinely needs server privilege.
 ## Status
 
 - **Updated:** 2026-07-09
-- **Stage:** Stage 4 — migration script + rules tightening
+- **Stage:** Stage 5 — docs + `pnpm check` + PR
 - **Branch:** `refactor/residence-single-source` (worktree `.claude/worktrees/residence-single-source`)
-- **Done:** Stage 1 (delete-only trigger + acceptInvite projection). Stage 2 — `barrioId` dropped from `VillageMemberData`/`UserMembership`/`getUserMemberships`; `joinVillage` is now an atomic writeBatch (member + person link via `buildResidenceLinks`); `updateVillageMemberBarrio`/`addVillageMember` removed; new `personService.updateResidenceBarrio` (change-barrio path). Shared typecheck+lint+vitest (7) green; functions typecheck+lint green. **Scope expansion:** the create-side gap was broader than the plan said — `startVillage` and `respondToOrganizerRequest` also seed memberships server-side and needed the residence projection; added a shared `functions/src/village/residenceProjection.ts` helper (read-in-tx + upsert) used by all three server paths.
-- **Next:** Stage 4 — backfill script (verify-then-delete `member.barrioId`); tighten the members owner-update rule to drop `barrioId`; update the `villageMemberRules` e2e tests that still exercise member `barrioId`.
-- **Blockers:** `pnpm test:functions` + emulator e2e rules (incl. the updated `villageMemberRules`) must be run by the user (agent can't boot emulators); dev backfill needs dev credentials. Validation decision resolved (accept unvalidated; shared callable is the named upgrade path).
+- **Done:** Stages 1–4 code complete. Stage 4 — `scripts/backfill-drop-member-barrio.mjs` (reconcile-then-delete); `firestore.rules` owner-update `hasOnly` no longer allows `barrioId`; `villageMemberRules` e2e tests rewritten. Shared lint green.
+- **Next:** Stage 5 — update `_services-map.md` + CHANGELOG; run `pnpm check`; open PR.
+- **Blockers:** Emulator suites must be run by the user (`pnpm test:functions`, `pnpm test:rules` — agent can't boot emulators). The backfill is a **post-deploy** step (old converter requires `barrioId`; deploy new code first). Validation decision resolved (accept unvalidated; shared callable is the named upgrade path).
 - **Handoff:** Work happens in the worktree — session cwd is the primary checkout, so use absolute worktree paths. `pnpm test`/emulator suites are off-limits to the agent; rely on `pnpm typecheck` + non-emulator vitest, and hand emulator/functions test runs to the user. Every residence-link write MUST go through `buildResidenceLinks` (exact `{municipalityId,barrioId}` shape for the array-contains query).
 
 ## Context
@@ -229,15 +229,30 @@ only re-introduces the asymmetry this refactor removes.
       removed from `event/new.test.tsx`.
 
 ### Stage 4 — Migration + rules tightening (per env: dev → beta → prod)
-- [ ] Write `scripts/backfill-drop-member-barrio.mjs` (verify-then-delete, idempotent,
-      project-id guard).
-- [ ] Run `pnpm check:dev-conformance` before; run backfill on dev; run conformance
-      after. (Non-strict converter means leftover `barrioId` is stripped on read — no
-      crash window — but delete it per Delete > deprecate.)
-- [ ] Tighten `firestore.rules` members owner-update `hasOnly` to drop `barrioId`;
-      update the rules test.
-- [ ] Deploy rules + functions to dev (see `firestore-deploy` skill). Beta/prod ride
-      CI + explicit backfill at promotion time.
+- [x] Write `scripts/backfill-drop-member-barrio.mjs` (reconcile-then-delete,
+      idempotent, project-id guard). Reconciles a missing person link from
+      `member.barrioId` before deleting the field, so no residence is lost.
+- [x] Tighten `firestore.rules` members owner-update `hasOnly` to drop `barrioId`;
+      rewrite the `villageMemberRules` e2e tests (owner-can't-write-barrioId
+      regression + admin non-role example switched off the dead field).
+- [ ] **Post-deploy (NOT pre-merge):** run `pnpm check:dev-conformance`, then the
+      backfill on dev, then conformance again. **Ordering matters** — the *old*
+      deployed converter requires `barrioId`, so deleting it before the new code
+      ships would crash old dev clients. Deploy first, backfill second.
+- [ ] Deploy rules + functions to dev — CI auto-deploys on merge to `develop`
+      (`firestore-deploy` skill for manual). Beta/prod ride CI + backfill at
+      promotion time.
+
+## Rollout status
+
+| Step | Dev | Beta | Prod |
+|---|---|---|---|
+| Code + rules merged/deployed | ⬜ | ⬜ | ⬜ |
+| `backfill-drop-member-barrio` run (post-deploy) | ⬜ | ⬜ | ⬜ |
+| `check:dev-conformance` clean after backfill | ⬜ | — | — |
+
+Legend: ⬜ pending · ⏳ in progress · ✅ done · ⚠️ blocked. **Deploy before backfill**
+in every env (old converter requires `barrioId`).
 
 ### Stage 5 — Wrap-up
 - [ ] Update `_services-map.md` and CHANGELOG `[Unreleased]`.
