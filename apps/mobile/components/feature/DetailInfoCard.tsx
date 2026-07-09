@@ -10,25 +10,29 @@ export type DetailInfoCardProps = {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value: string;
-  detail?: string;
-  action: string;
   onPress: () => void;
 };
 
-/** A tappable "rectangle" summarising one fact (when / where) with a link out.
- * Promoted from the event detail screen so every entity can share it. */
-export function DetailInfoCard({ icon, label, value, detail, action, onPress }: DetailInfoCardProps) {
+/** A tappable fact card (when / where), styled after ordago's TournamentDetails
+ * info cards: an accent icon + uppercase accent label on the top row with a
+ * trailing chevron, and the value on a single line below. */
+export function DetailInfoCard({ icon, label, value, onPress }: DetailInfoCardProps) {
   return (
     <Pressable onPress={onPress} className="flex-1">
       <Card className="h-full">
         <VStack gap={1}>
           <HStack gap={2} align="center">
             <Ionicons name={icon} size={iconSizes.md} color={colors.light.fg.accent} />
-            <Text variant="caption" tone="muted">{label}</Text>
+            <Text
+              variant="caption"
+              className="flex-1 text-accent font-bold"
+              style={{ textTransform: 'uppercase', letterSpacing: 0.8 }}
+            >
+              {label}
+            </Text>
+            <Ionicons name="chevron-forward" size={iconSizes.sm} color={colors.light.fg.muted} />
           </HStack>
-          <Text variant="h3" numberOfLines={2}>{value}</Text>
-          {detail ? <Text tone="muted">{detail}</Text> : null}
-          <Text variant="caption" className="text-accent">{`${action} →`}</Text>
+          <Text variant="h3" numberOfLines={1}>{value}</Text>
         </VStack>
       </Card>
     </Pressable>

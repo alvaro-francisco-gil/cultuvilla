@@ -124,10 +124,8 @@ export default function EventDetailScreen() {
           <HStack gap={3} align="stretch">
             <DetailInfoCard
               icon="calendar-outline"
-              label={t('event.dateTime')}
-              value={formatDate(event.startDate, 'dayMonth')}
-              detail={formatDate(event.startDate, 'time')}
-              action={t('event.addToCalendar')}
+              label={t('event.date')}
+              value={`${formatDate(event.startDate, 'dayMonth')} · ${formatDate(event.startDate, 'time')}`}
               onPress={addToCalendar}
             />
             {event.location ? (
@@ -135,7 +133,6 @@ export default function EventDetailScreen() {
                 icon="location-outline"
                 label={t('event.location')}
                 value={event.location.displayName}
-                action={t('event.locationPin')}
                 onPress={openInMaps}
               />
             ) : null}
