@@ -239,15 +239,15 @@ service cloud.firestore {
       return d.keys().hasOnly([
               'givenName', 'middleNames', 'firstSurname', 'secondSurname',
               'nickname', 'sex', 'birthday', 'deathDate', 'birthPlace',
-              'burialPlace', 'municipalityLinks', 'occupationIds',
-              'pendingOccupations', 'biography', 'photoURL', 'userId',
+              'burialPlace', 'municipalityLinks', 'occupations',
+              'biography', 'photoURL', 'userId',
               'createdBy', 'createdAt',
             ])
           && d.keys().hasAll([
               'givenName', 'middleNames', 'firstSurname', 'secondSurname',
               'nickname', 'sex', 'birthday', 'deathDate', 'birthPlace',
-              'burialPlace', 'municipalityLinks', 'occupationIds',
-              'pendingOccupations', 'biography', 'photoURL', 'userId',
+              'burialPlace', 'municipalityLinks', 'occupations',
+              'biography', 'photoURL', 'userId',
               'createdBy', 'createdAt',
             ])
           && isString(d.givenName)
@@ -261,8 +261,7 @@ service cloud.firestore {
           && isMapOrNull(d.birthPlace)
           && isMapOrNull(d.burialPlace)
           && isList(d.municipalityLinks)
-          && isList(d.occupationIds)
-          && isList(d.pendingOccupations)
+          && isList(d.occupations)
           && isStringOrNull(d.biography)
           && isStringOrNull(d.photoURL)
           && isStringOrNull(d.userId)

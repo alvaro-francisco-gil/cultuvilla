@@ -67,28 +67,22 @@
     "profileEntry": "Administración",
     "hub": {
       "organizerRequests": "Solicitudes de administrador",
-      "organizerRequestsHint": "Revisar pendientes",
-      "occupations": "Ocupaciones",
-      "occupationsHint": "Aprobadas y propuestas"
+      "organizerRequestsHint": "Revisar pendientes"
     },
     "organizerRequests": {
       "title": "Solicitudes de administrador",
       "empty": "No hay solicitudes pendientes",
       "approve": "Aprobar",
       "reject": "Rechazar"
-    },
-    "occupations": {
-      "title": "Ocupaciones",
-      "catalog": "Catálogo",
-      "proposals": "Propuestas pendientes",
-      "addName": "Nombre",
-      "add": "Añadir ocupación",
-      "approve": "Aprobar",
-      "reject": "Rechazar",
-      "noProposals": "Sin propuestas pendientes"
     }
   },
   "occupations": {
+    "picker": {
+      "label": "Ocupación",
+      "customLabel": "Otra ocupación",
+      "customPlaceholder": "Escribe una ocupación",
+      "add": "Añadir"
+    },
     "catalog": {
       "agricultor": "Agricultor/a",
       "ganadero": "Ganadero/a",

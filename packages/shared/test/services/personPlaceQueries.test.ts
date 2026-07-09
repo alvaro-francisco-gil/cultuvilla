@@ -66,7 +66,7 @@ function person(extra: Record<string, any>) {
   return {
     givenName: 'A', middleNames: [], firstSurname: null, secondSurname: null, nickname: null,
     sex: null, birthday: null, deathDate: null, birthPlace: null, burialPlace: null,
-    municipalityLinks: [], occupationIds: [], pendingOccupations: [], biography: null,
+    municipalityLinks: [], occupations: [], biography: null,
     photoURL: null, userId: null, createdBy: 'u1', ...extra,
   };
 }

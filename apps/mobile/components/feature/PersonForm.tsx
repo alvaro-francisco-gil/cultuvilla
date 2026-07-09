@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Button,
@@ -17,6 +17,11 @@ import { useT } from '../../lib/i18n';
 import { pickImageAsBlob } from '../../lib/images';
 import type { Sex } from '@cultuvilla/shared/models/person';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
+import {
+  OCCUPATION_CATALOG,
+  isCatalogOccupation,
+  occupationI18nKey,
+} from '@cultuvilla/shared/models/occupation';
 import { Stepper, type StepConfig } from './Stepper';
 
 export interface PersonFormValues {
@@ -28,6 +33,10 @@ export interface PersonFormValues {
   birthday: Date | null;
   birthPlaceMunicipalityId: string | null;
   biography: string;
+  /** Catalog keys (OCCUPATION_CATALOG) and/or free-text strings entered via
+   * the "otro" input. Free-text entries are recorded via recordOccupation
+   * by the caller on submit. */
+  occupations: string[];
 }
 
 /** Avatar photo picked in the form. Aliases the shared UploadableImage so the
@@ -94,6 +103,31 @@ export function PersonForm({
     initial?.birthPlaceMunicipalityId ?? null
   );
   const [biography, setBiography] = useState(initial?.biography ?? '');
+  const initialOccupations = initial?.occupations ?? [];
+  const [selectedCatalog, setSelectedCatalog] = useState<string[]>(
+    initialOccupations.filter(isCatalogOccupation),
+  );
+  const [customOccupations, setCustomOccupations] = useState<string[]>(
+    initialOccupations.filter((o) => !isCatalogOccupation(o)),
+  );
+  const [customOccupationInput, setCustomOccupationInput] = useState('');
+
+  function toggleCatalogOccupation(key: string) {
+    setSelectedCatalog((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+    );
+  }
+
+  function addCustomOccupation() {
+    const value = customOccupationInput.trim();
+    if (!value || customOccupations.includes(value)) return;
+    setCustomOccupations((prev) => [...prev, value]);
+    setCustomOccupationInput('');
+  }
+
+  function removeCustomOccupation(value: string) {
+    setCustomOccupations((prev) => prev.filter((o) => o !== value));
+  }
 
   async function handleSubmit() {
     await onSubmit(
@@ -106,6 +140,7 @@ export function PersonForm({
         birthday,
         birthPlaceMunicipalityId: birthPlace,
         biography,
+        occupations: [...selectedCatalog, ...customOccupations],
       },
       photo
     );
@@ -245,6 +280,64 @@ export function PersonForm({
               multiline
               numberOfLines={4}
             />
+            <VStack gap={2}>
+              <FieldLabel>{t('occupations.picker.label')}</FieldLabel>
+              <View className="flex-row flex-wrap gap-2">
+                {OCCUPATION_CATALOG.map((key) => {
+                  const active = selectedCatalog.includes(key);
+                  return (
+                    <Pressable
+                      key={key}
+                      onPress={() => toggleCatalogOccupation(key)}
+                      testID={`occupation-${key}`}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: active }}
+                      className={`px-3 py-1.5 rounded-full border ${
+                        active ? 'bg-accent border-accent' : 'bg-surface border-subtle'
+                      }`}
+                    >
+                      <Text variant="bodySm" tone={active ? 'onAccent' : 'primary'}>
+                        {t(occupationI18nKey(key))}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {customOccupations.length > 0 && (
+                <View className="flex-row flex-wrap gap-2">
+                  {customOccupations.map((value) => (
+                    <Pressable
+                      key={value}
+                      onPress={() => removeCustomOccupation(value)}
+                      className="px-3 py-1.5 rounded-full border bg-accent border-accent"
+                    >
+                      <Text variant="bodySm" tone="onAccent">
+                        {value} ✕
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+              <HStack gap={2}>
+                <View className="flex-1">
+                  <Input
+                    label={t('occupations.picker.customLabel')}
+                    value={customOccupationInput}
+                    onChangeText={setCustomOccupationInput}
+                    placeholder={t('occupations.picker.customPlaceholder')}
+                    testID="occupation-custom-input"
+                  />
+                </View>
+                <Button
+                  variant="secondary"
+                  onPress={addCustomOccupation}
+                  disabled={!customOccupationInput.trim()}
+                  testID="occupation-custom-add"
+                >
+                  {t('occupations.picker.add')}
+                </Button>
+              </HStack>
+            </VStack>
             {renderConsent?.()}
           </>,
         ),

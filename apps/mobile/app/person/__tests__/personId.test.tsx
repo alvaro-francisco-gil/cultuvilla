@@ -62,6 +62,7 @@ jest.mock('../../../components/feature/PersonForm', () => {
               birthday: null,
               birthPlaceMunicipalityId: null,
               biography: '',
+              occupations: [],
             },
             { blob: { type: 'image/jpeg' } },
           )

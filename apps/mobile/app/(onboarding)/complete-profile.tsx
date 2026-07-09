@@ -17,6 +17,8 @@ import {
   patchUserProfile,
 } from '@cultuvilla/shared/services/userService';
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
+import { recordOccupation } from '@cultuvilla/shared/services/occupationService';
+import { isCatalogOccupation } from '@cultuvilla/shared/models/occupation';
 import { buildResidenceLinks } from '@cultuvilla/shared/models/person';
 import type { MunicipalityLink, PartialDate } from '@cultuvilla/shared/models/person';
 import { CURRENT_TERMS_VERSION } from '@cultuvilla/shared/models/user';
@@ -55,6 +57,12 @@ export default function CompleteProfileScreen() {
         : null;
       const municipalityLinks = buildResidenceLinks(municipalityId, barrioId);
 
+      // Free-text (non-catalog) entries are also tallied for suggestions —
+      // fire-and-forget per entry, doesn't block onboarding.
+      await Promise.all(
+        values.occupations.filter((o) => !isCatalogOccupation(o)).map(recordOccupation),
+      );
+
       let personId: string;
       if (profile?.personId) {
         personId = profile.personId;
@@ -72,6 +80,7 @@ export default function CompleteProfileScreen() {
               birthPlace: birthPlaceLink,
               municipalityLinks,
               biography: values.biography.trim() || null,
+              occupations: values.occupations,
               userId: user.uid,
               createdBy: user.uid,
             });
