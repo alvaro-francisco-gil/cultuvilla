@@ -15,6 +15,9 @@ export interface ProposableFormProps {
   image?: UploadableImage | null;
   onImageChange?: (image: UploadableImage) => void;
   imageLabels?: { add: string; selected: string };
+  /** Existing stored image URL to show as the thumbnail before the user picks a
+   * new one (edit mode). Falls back behind a freshly-picked `image`. */
+  existingImageUri?: string | null;
 
   name: string;
   onChangeName: (value: string) => void;
@@ -55,6 +58,7 @@ export function ProposableForm({
   image,
   onImageChange,
   imageLabels,
+  existingImageUri,
   name,
   onChangeName,
   nameLabel,
@@ -83,7 +87,7 @@ export function ProposableForm({
         <VStack gap={1} align="start">
           <FieldLabel>{t('common.photo')}</FieldLabel>
           <ImagePickerField
-            uri={image?.previewUri ?? null}
+            uri={image?.previewUri ?? existingImageUri ?? null}
             onPress={async () => {
               const picked = await pickImageAsBlob();
               if (picked) onImageChange!(picked);
