@@ -10,6 +10,8 @@
     "edit": "Editar",
     "approve": "Aprobar",
     "reject": "Rechazar",
+    "hide": "Ocultar",
+    "unhide": "Restaurar",
     "create": "Crear",
     "confirm": "Confirmar",
     "yes": "Sí",
@@ -197,9 +199,7 @@
     "proposals": {
       "pending": "Pendiente",
       "withdraw": "Retirar",
-      "propose": "Proponer",
-      "pendingTitle": "Propuesta pendiente",
-      "pendingInfo": "Los datos se podrán cambiar una vez que se acepte la propuesta. ¿Quieres retirarla?"
+      "propose": "Proponer"
     },
     "join": "Unirme a este pueblo",
     "signInToJoin": "Inicia sesión para unirte",
@@ -781,9 +781,8 @@
       "imagesLabel": "Imágenes",
       "addImage": "Añadir imagen",
       "submit": "Enviar",
-      "submitTrusted": "Publicar",
       "postAsOrg": "Publicar como…",
-      "successPending": "Tu artículo se ha enviado y está pendiente de aprobación.",
+      "successPublished": "Tu artículo se ha publicado.",
       "needsMembership": "Únete a este pueblo para publicar artículos.",
       "organizersLabel": "Organizadores",
       "addOrganizerUser": "Añadir organizador",
@@ -814,10 +813,12 @@
         "festivalPoster": "Cartel"
       }
     },
-    "status": {
-      "pending": "Pendiente de aprobación",
-      "rejected": "Rechazado",
-      "rejectedReason": "Motivo: {reason}"
+    "moderation": {
+      "hide": "Ocultar artículo",
+      "unhide": "Restaurar artículo",
+      "hideConfirmTitle": "¿Ocultar este artículo?",
+      "hideConfirmBody": "Dejará de aparecer en los artículos del pueblo. Podrás restaurarlo cuando quieras.",
+      "hiddenBadge": "Oculto"
     },
     "reactions": {
       "like": "Me gusta",
@@ -831,16 +832,6 @@
       "report": "Reportar",
       "reportConfirm": "¿Reportar este comentario?",
       "reportSent": "Reporte enviado."
-    },
-    "moderation": {
-      "queueTitle": "Artículos pendientes",
-      "approve": "Aprobar",
-      "reject": "Rechazar",
-      "rejectReasonPrompt": "Motivo del rechazo",
-      "reportsTitle": "Reportes",
-      "dismiss": "Descartar",
-      "remove": "Eliminar comentario",
-      "trustToggle": "Autor de confianza"
     }
   },
   "deeplink": {
