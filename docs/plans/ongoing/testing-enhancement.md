@@ -4,18 +4,15 @@
 
 ## Status
 
-- **Updated:** 2026-07-04
-- **Stage:** Stage 3 (E2E substrate + web flows) in flight — see [e2e-substrate.md](e2e-substrate.md) for the detailed sub-plan. Stages 1–2 shipped.
-- **Branch:** `feat/e2e-substrate` (worktree `.claude/worktrees/e2e-substrate/`) — new PR to `develop`.
-- **Done:** **Stages 1 + 2 merged** (PR #39, merge commit `27b30ee` on `develop`, CI green incl. the `emulator-tests` job). Stage 1 — coverage (B5), i18n key-parity (C7), emulator/rules harness + 18-file migration (C6). Stage 2 — A4 builder↔rules shape-contract invariants (12 tests); A2 `organizations` approve/reject update rules e2e; A3 `requestJoinOrganization` handler boundary test.
-- **Next:** Build Stage 3 per [e2e-substrate.md](e2e-substrate.md): 3a substrate (emulator-connect seam, seed emulator mode + e2e fixtures, bypass-leak gate) → 3b fixture-login + first Playwright flow → 3c CI `web-e2e` job + more flows.
-- **Blockers:** Emulator/running-app/Playwright work can't be executed by the agent (AGENTS.md "Never start dev servers"). Stage 3 is authored + typecheck/lint-validated; the CI `web-e2e` job is the real verification gate.
-- **Handoff (resume here in a fresh session):**
-  - **Security model signed off (2026-07-04).** The user approved the fixture-login design (**Option 1C**): single `USE_FIREBASE_EMULATOR` flag gating both emulator-connect and fixture-login, fail-closed by physics, grep gate — **plus** a runtime loopback-host assertion before the seam fires and a positive "flag is unset" assertion in the deploy workflows. Stage 3b is unblocked.
-  - **Ships as ONE PR, scoped as 3a/3b/3c commits** (decided 2026-07-04). Rationale: we're pre-users and the deployed artifact is identical regardless of PR count (the fail-closed design, not the PR boundary, is the guardrail); 3a alone has no consumer until a flow exercises it, so splitting would ship dead machinery. Per-commit scope preserves bisect/blame; the auth-bypass change stays its own reviewable commit.
-  - **Emulator project id:** dedicated `cultuvilla-test` (already the default `TEST_PROJECT_ID` in `scripts/run-tests-with-emulators.mjs`), **never** the real `villa-events` — keeps the safety boundary the seed-guard relaxation loosens.
-  - **Agent can't run emulators/Playwright** (AGENTS.md). Stage 3 verification is the **CI `web-e2e` job's / user's** job.
-  - Coverage stays **report-only** (D4) — the gate flip and `dorny/paths-filter` (C8) are Stage 4, landed opportunistically.
+- **Updated:** 2026-07-09
+- **Stage:** Stages 1–3 + the fast-follow web flows all **shipped**. Only **Stage 4** (native Maestro suite + CI cost/coverage gating) remains.
+- **Branch:** n/a — remaining Stage 4 work not started.
+- **Done:**
+  - Stages 1–2 merged (PR #39): coverage report (B5), i18n key-parity (C7), emulator/rules harness + migration (C6); shape-contract invariants (A4), org approve/reject rules e2e (A2), join-request handler boundary (A3).
+  - Stage 3 substrate + first flows merged: emulator-connect seam, fail-closed fixture-login + bypass-leak grep gate, `seed:e2e` deterministic fixtures, `web-e2e` CI job, Playwright substrate. Durable design → [e2e-testing-substrate decision](../../decisions/e2e-testing-substrate.md).
+  - Fast-follow (PR #57): four more web flows (organizer-request-approval, org-create-approve-join, create-publish-event, onboarding-profile) + native Maestro groundwork (`apps/mobile/e2e/native/`, one anonymous smoke, opt-in).
+- **Next:** Stage 4 only — see below.
+- **Blockers:** none. Stage 4 needs an AVD in CI (not yet wired); emulator/Playwright/AVD runs are user/CI-verified (AGENTS.md).
 
 ## Context
 
@@ -129,11 +126,10 @@ Foundations chunk (this branch). Later workstreams (A1 Playwright/Maestro, A2–
 
 > **Scoping note (why A2/A3 are narrow):** the callable boundary was already well-tested (`respondToOrganizerRequest`, `respondToJoinRequest`, `requestOrganizeVillage`, `requestAyuntamiento` all have unauthenticated/permission-denied handler tests), and two of the three solicitudes writes are **server-only** by rule (`allow create,update: if false`) — so there's little client-write surface to contract-test. The high-value runnable contract turned out to be the builder↔rules **shape** agreement (A4), not emulator round-trips. A2/A3 fill the two real gaps rather than duplicating coverage; a broader table-driven rules harness (D6) is deferred until a collection actually needs it.
 
-### Stage 3 — E2E substrate + web flows → **now its own plan: [e2e-substrate.md](e2e-substrate.md)** (in flight)
-Scoped and written up (fixture-login security model, emulator-connect seam, deterministic fixtures, Playwright/CI). Awaiting review before coding; product/security-touching, so it left this plan.
-- [ ] **D5** Deterministic emulator fixtures from prod model builders. *(→ e2e-substrate)*
-- [ ] **D2** Fixture-login seam in `AuthContext` + grep-based bypass-leak CI gate. *(→ e2e-substrate)*
-- [ ] **A1 (web)** Playwright flows over the web export; per-PR CI job (D3). *(→ e2e-substrate)*
+### Stage 3 — E2E substrate + web flows → **shipped** (design → [e2e-testing-substrate decision](../../decisions/e2e-testing-substrate.md))
+- [x] **D5** Deterministic emulator fixtures from prod model builders (`seed:e2e`).
+- [x] **D2** Fixture-login seam in `AuthContext` + grep-based bypass-leak CI gate.
+- [x] **A1 (web)** Playwright flows over the web export + `web-e2e` CI job (now gated to the beta release path, not per-PR).
 
 ### Stage 4 — Native E2E (grows over time — D1)
 - [ ] **A1 (native)** Maestro flows on Android; release-gated CI job (D3). Likely its own plan.
