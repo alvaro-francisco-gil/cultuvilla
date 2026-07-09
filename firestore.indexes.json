@@ -254,6 +254,14 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "year", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "festivalPosters",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "municipalityId", "order": "ASCENDING" },
+        { "fieldPath": "year", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [

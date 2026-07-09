@@ -392,8 +392,7 @@
         "month": "Mes",
         "startDay": "Día de inicio",
         "endDay": "Día de fin",
-        "image": "Cartel",
-        "submit": "Guardar"
+        "image": "Cartel"
       },
       "viewer": { "close": "Cerrar" }
     }
