@@ -4,6 +4,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Fixed
+- **"Invitar vecino" (and other share buttons) rendered the link twice in one message.** `useShareDeepLink` passed both `message` (which already embeds the URL via `buildShareMessage`) and a separate `url` to `Share.share`, so the Web Share API and iOS emitted the link twice. Now only `message` is passed — one link on every platform (Android already ignored the separate `url`). Regression covered by a new jest test.
+
 ### Added
 - **When/where cards on event detail (ordago-apps style).** The event detail screen ([apps/mobile/app/event/[eventId].tsx](apps/mobile/app/event/%5BeventId%5D.tsx)) now shows the date/time and location as two tappable "rectangles" instead of a plain date line + inline map button: the date card adds the event to the user's calendar, the location card opens directions in Maps. Calendar uses a Google Calendar `TEMPLATE` link opened via `Linking` (`buildGoogleCalendarUrl` in [packages/shared/src/utils/calendar.ts](packages/shared/src/utils/calendar.ts), vitest-covered) — no native module, works on the web build.
 

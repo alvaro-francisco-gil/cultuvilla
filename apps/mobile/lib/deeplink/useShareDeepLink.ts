@@ -17,7 +17,11 @@ export function useShareDeepLink(): (link: DeepLink, name: string) => Promise<vo
     async (link: DeepLink, name: string) => {
       const message = buildShareMessage(link, t, name);
       try {
-        await Share.share({ message, url: link.url });
+        // `message` already embeds the URL (buildShareMessage interpolates it).
+        // Passing a separate `url` too makes the Web Share API + iOS render the
+        // link twice ("two links in one message"); Android only ever used
+        // `message`, so message-only is one link on every platform.
+        await Share.share({ message });
       } catch {
         // No-op: user dismissed, or Web Share API unavailable.
       }
