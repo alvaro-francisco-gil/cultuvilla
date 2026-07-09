@@ -8,6 +8,7 @@ import { Button } from '../../components/primitives/Button';
 import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
 import { RegisterFab } from '../../components/feature/RegisterFab';
 import { EventAttendees } from '../../components/feature/EventAttendees';
+import { DetailSectionHeading } from '../../components/feature/DetailSectionHeading';
 import { useEventOrganizer } from '../../lib/events/useEventOrganizer';
 import { EntityDetailScaffold } from '../../components/feature/EntityDetailScaffold';
 import type { EntityDetailAction } from '../../components/feature/EntityDetailHeader';
@@ -158,7 +159,7 @@ export default function EventDetailScreen() {
           </HStack>
           {(event.organizerUserIds?.length > 0 || event.organizerOrgIds?.length > 0) && (
             <VStack gap={2}>
-              <Text tone="muted">{t('event.organizersLabel')}</Text>
+              <DetailSectionHeading>{t('event.organizersLabel')}</DetailSectionHeading>
               {event.organizerOrgIds?.map((id) => (
                 <LiveOwnerChip key={id} ownerType="organization" ownerId={id} />
               ))}
@@ -167,7 +168,12 @@ export default function EventDetailScreen() {
               ))}
             </VStack>
           )}
-          {event.description ? <Text>{event.description}</Text> : null}
+          {event.description ? (
+            <VStack gap={2}>
+              <DetailSectionHeading>{t('event.descriptionLabel')}</DetailSectionHeading>
+              <Text>{event.description}</Text>
+            </VStack>
+          ) : null}
           {canOrganize ? (
             <EventAttendees eventId={event.id} telephoneRequired={!!event.telephoneRequired} />
           ) : null}

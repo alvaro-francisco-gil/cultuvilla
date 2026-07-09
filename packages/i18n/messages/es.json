@@ -283,6 +283,7 @@
         "editTitle": "Editar barrio",
         "name": "Nombre del barrio",
         "empty": "Aún no hay barrios",
+        "residentCount": "{count} vecinos",
         "addImage": "Añadir imagen",
         "changeImage": "Cambiar imagen",
         "imageSelected": "Imagen seleccionada"
@@ -474,6 +475,7 @@
     "waitlisted": "En lista de espera",
     "attendees": "Asistentes",
     "attendeesEmpty": "Aún no hay asistentes",
+    "descriptionLabel": "Descripción",
     "draft": "Borrador",
     "published": "Publicado",
     "cancelled": "Cancelado",

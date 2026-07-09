@@ -5,6 +5,7 @@ import { VStack } from '../primitives/VStack';
 import { HStack } from '../primitives/HStack';
 import { Text } from '../primitives/Text';
 import { Pressable } from '../primitives/Pressable';
+import { DetailSectionHeading } from './DetailSectionHeading';
 import {
   getEventRegistrations,
   getRegistrationPhone,
@@ -50,17 +51,14 @@ export function EventAttendees({
 
   return (
     <VStack gap={2}>
-      <Text variant="h2">
-        {t('event.attendees')}
-        {rows ? ` (${rows.length})` : ''}
-      </Text>
+      <DetailSectionHeading>{t('event.attendees')}</DetailSectionHeading>
       {rows && rows.length === 0 ? (
         <Text tone="muted" variant="bodySm">
           {t('event.attendeesEmpty')}
         </Text>
       ) : (
         (rows ?? []).map((r) => (
-          <HStack key={r.id} gap={2} align="center" className="py-2 border-b border-subtle">
+          <HStack key={r.id} gap={2} align="center" className="py-2">
             <View className="flex-1">
               <Text>{r.name}</Text>
               {telephoneRequired && phones[r.id] ? (
