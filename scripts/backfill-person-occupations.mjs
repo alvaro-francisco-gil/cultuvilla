@@ -122,16 +122,6 @@ function makeBatcher(label, limit = 400) {
   };
 }
 
-/** Mirrors occupationService.slugifyOccupation (kept in sync manually). */
-function slugifyOccupation(name) {
-  return name
-    .trim()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/\s+/g, '-');
-}
-
 async function loadOldOccupationNameMap() {
   const snap = await db.collection('occupations').get();
   const map = new Map();
@@ -153,6 +143,7 @@ async function migratePersons(oldNameById) {
   let skippedMissingName = 0;
   let catalogMatches = 0;
   let freeTextEntries = 0;
+  const droppedOccupationIds = [];
   const batcher = makeBatcher('persons');
 
   for (const docSnap of snap.docs) {
@@ -173,6 +164,7 @@ async function migratePersons(oldNameById) {
       const name = oldNameById.get(id);
       if (name === undefined) {
         skippedMissingName++;
+        droppedOccupationIds.push({ personId: docSnap.id, occupationId: id });
         continue;
       }
       // Old occupation names that match a catalog key are already stored as
@@ -207,7 +199,16 @@ async function migratePersons(oldNameById) {
     `persons: already correct ${alreadyDone}, patched ${patched}, occupationIds with no matching old doc ${skippedMissingName} ` +
       `(resolved occupationIds: ${catalogMatches} catalog-key matches, ${freeTextEntries} free-text).`,
   );
-  return { alreadyDone, patched, skippedMissingName, catalogMatches, freeTextEntries };
+  if (droppedOccupationIds.length > 0) {
+    console.warn(
+      `persons: dropped ${droppedOccupationIds.length} occupationId(s) with no matching old occupations doc ` +
+        '(occupations/ is wiped this run — recording for post-hoc investigation):',
+    );
+    for (const { personId, occupationId } of droppedOccupationIds) {
+      console.warn(`  - personId=${personId} occupationId=${occupationId}`);
+    }
+  }
+  return { alreadyDone, patched, skippedMissingName, catalogMatches, freeTextEntries, droppedOccupationIds };
 }
 
 async function wipeOldOccupationsCollection(oldSnap) {
