@@ -182,16 +182,6 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
         ]
       : []),
     {
-      title: t('solicitudes.title'),
-      items: [
-        {
-          icon: 'mail-unread-outline',
-          label: t('menu.solicitudes'),
-          onPress: () => close(() => router.push('/solicitudes')),
-        },
-      ],
-    },
-    {
       title: t('menu.section.app'),
       items: [
         {
