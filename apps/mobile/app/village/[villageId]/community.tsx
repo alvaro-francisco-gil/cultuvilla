@@ -16,7 +16,7 @@ import { useT } from '../../../lib/i18n';
 // own edits as they happen, so the final "Listo" button just closes the editor.
 export default function CommunityScreen() {
   const { villageId } = useLocalSearchParams<{ villageId: string }>();
-  const { canManage, loading } = useEntityCapabilities(villageId);
+  const { canManage, uid, loading } = useEntityCapabilities(villageId);
   const { t } = useT();
 
   if (!villageId) return null;
@@ -49,7 +49,7 @@ export default function CommunityScreen() {
       key: 'members',
       title: t('village.edit.tabMembers'),
       icon: 'people-outline',
-      render: () => <MembersList villageId={villageId} />,
+      render: () => <MembersList villageId={villageId} canManage={canManage} currentUserId={uid} />,
     },
   ];
 
