@@ -4,6 +4,12 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+- **Unified "Buzón" inbox, reached from the header bell.** The old "Solicitudes" screen is gone; the bell now opens a single feed at `/inbox` that pins actionable items (organizer/organization requests you can approve or reject) on top, with read-only activity — notifications and your own still-pending sent requests — below. The bell shows an unread badge (pending-actionable count plus unread notifications) and marks everything read on open. New `inboxService` (shared) combines the two sources; no new collection.
+
+### Fixed
+- **Org creators weren't notified when their organization was approved or rejected.** A new `onOrganizationUpdated` trigger emits `org_approved`/`org_rejected` to the requester on the `pending → approved|rejected` transition (both the approve callable and the client-write reject path), so this now shows up in the requester's Buzón like every other outcome. The redundant approver-side "request created" notifications (for organizer and org-join requests, which duplicated what the live request list already showed) were dropped.
+
 ## v0.3.0 — 2026-07-09
 
 ### Removed
