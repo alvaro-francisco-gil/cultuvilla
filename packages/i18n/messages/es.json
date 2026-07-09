@@ -375,6 +375,27 @@
       "title": "Grupos",
       "empty": "Aún no hay grupos",
       "penasEmpty": "Aún no hay peñas"
+    },
+    "festivalPosters": {
+      "title": "Carteles de fiestas",
+      "empty": "Todavía no hay carteles de fiestas.",
+      "add": "Añadir",
+      "propose": "Proponer",
+      "form": {
+        "year": "Año",
+        "title": "Nombre de las fiestas",
+        "titlePlaceholder": "p. ej. San Roque",
+        "precision": "Fechas",
+        "precisionYear": "Solo año",
+        "precisionMonth": "Mes",
+        "precisionDay": "Días",
+        "month": "Mes",
+        "startDay": "Día de inicio",
+        "endDay": "Día de fin",
+        "image": "Cartel",
+        "submit": "Guardar"
+      },
+      "viewer": { "close": "Cerrar" }
     }
   },
   "villages": {
