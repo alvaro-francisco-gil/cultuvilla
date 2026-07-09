@@ -33,7 +33,7 @@ const RESOURCE_TO_PATH: Record<DeepLinkResource, string> = {
 const SUPPORTS_INVITE: Record<DeepLinkResource, boolean> = {
   event: false,
   news: false,
-  village: true,
+  village: false,
   organization: true,
   place: false,
   barrio: false,
@@ -87,8 +87,6 @@ export const getNewsLink = (newsId: string): DeepLink => buildLink('news', newsI
 
 export const getVillageViewLink = (villageId: string): DeepLink =>
   buildLink('village', villageId, 'content');
-export const getVillageInviteLink = (villageId: string): DeepLink =>
-  buildLink('village', villageId, 'invite');
 
 export const getPersonViewLink = (personId: string): DeepLink =>
   buildLink('person', personId, 'content');

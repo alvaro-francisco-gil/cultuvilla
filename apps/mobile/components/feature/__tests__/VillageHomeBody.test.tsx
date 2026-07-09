@@ -23,7 +23,6 @@ jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn(), re
 jest.mock('@cultuvilla/shared/services/mapsService', () => ({ staticMapUrl: jest.fn().mockReturnValue('https://maps.example.test/static') }));
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({
   getVillageViewLink: jest.fn().mockReturnValue('https://example.test'),
-  getVillageInviteLink: jest.fn().mockReturnValue('https://example.test'),
 }));
 const mockJoinVillage = jest.fn(async (..._a: unknown[]) => undefined);
 jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
@@ -124,6 +123,11 @@ describe('VillageHomeBody', () => {
     const { getByText, queryByText } = render(<VillageHomeBody data={base} reload={jest.fn()} />);
     expect(getByText('Compartir pueblo')).toBeTruthy();
     expect(queryByText('Editar pueblo')).toBeNull();
+  });
+
+  it('no longer offers a separate invite action to members', () => {
+    const { queryByText } = render(<VillageHomeBody data={base} reload={jest.fn()} />);
+    expect(queryByText('Invitar vecino')).toBeNull();
   });
 
   it('admin sees "Editar pueblo" instead of "Compartir pueblo"', () => {

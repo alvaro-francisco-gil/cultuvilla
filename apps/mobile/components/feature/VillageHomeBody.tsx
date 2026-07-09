@@ -24,10 +24,7 @@ import { showConfirm } from '../../lib/dialogs';
 import { isProposalVisible } from '../../lib/proposals';
 import { joinVillage } from '@cultuvilla/shared/services/villageMemberService';
 import { deletePlace, deleteBarrio } from '@cultuvilla/shared/services/municipalityService';
-import {
-  getVillageViewLink,
-  getVillageInviteLink,
-} from '@cultuvilla/shared/services/deepLinkService';
+import { getVillageViewLink } from '@cultuvilla/shared/services/deepLinkService';
 import { staticMapUrl, MAP_ZOOM_DEFAULT } from '@cultuvilla/shared/services/mapsService';
 import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
 import type { NewsPostData } from '@cultuvilla/shared/models/news/NewsPostDataModel';
@@ -42,19 +39,16 @@ import type { VillageHomeState } from '../../lib/useVillageHome';
 export interface VillageHomeBodyProps {
   data: VillageHomeState;
   reload: () => Promise<void> | void;
-  /** Pushed-detail invite deep-link: show the "you were invited" line above join. */
-  arrivedViaInvite?: boolean;
 }
 
 /**
  * Presentational village home shared by the pueblo tab and the pushed
  * `/village/[villageId]` detail. Takes data from `useVillageHome`; the host
  * supplies the header chrome (AppHeader vs ScreenHeader). For non-members the
- * action row's first button is "Unirme" (join); members see "Invitar vecino"
- * there instead. `!data.isMember` is the single source of truth for "offer to
- * join".
+ * action row's first button is "Unirme" (join); members have no first button
+ * yet. `!data.isMember` is the single source of truth for "offer to join".
  */
-export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: VillageHomeBodyProps) {
+export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
   const { user, refreshProfile } = useAuth();
   const { isAppAdmin } = useIsAppAdmin();
   const share = useShareDeepLink();
@@ -231,15 +225,6 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           </HStack>
         </VStack>
 
-        {/* ── "You were invited" banner (non-members via invite) ── */}
-        {!isMember && arrivedViaInvite ? (
-          <VStack gap={1} className="px-4 pt-3">
-            <Text tone="muted" variant="bodySm" className="text-center">
-              {t('village.invitedBanner')}
-            </Text>
-          </VStack>
-        ) : null}
-
         {/* ── Stats ────────────────────────────────────────────── */}
         <View className="px-4 pt-4 pb-4">
           <StatsRow
@@ -251,7 +236,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           />
         </View>
 
-        {/* ── Unirme (non-members) / Invitar (members) + Compartir ─ */}
+        {/* ── Unirme (non-members) + Editar/Compartir ──────────── */}
         <HStack gap={3} className="px-4 pt-2 pb-2">
           {!isMember ? (
             <Pressable
@@ -272,25 +257,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
                 {user ? t('village.join') : t('village.signInToJoin')}
               </Text>
             </Pressable>
-          ) : (
-            <Pressable
-              onPress={() => void share(getVillageInviteLink(village.id), village.name)}
-              accessibilityLabel={t('village.invite.title')}
-              className="flex-1 flex-row items-center justify-center bg-surface"
-              style={{
-                paddingVertical: 5,
-                paddingHorizontal: 12,
-                borderRadius: 24,
-                borderWidth: 1.5,
-                borderColor: ACCENT,
-                minHeight: 32,
-              }}
-            >
-              <Text style={{ color: ACCENT }} className="font-semibold">
-                {t('village.invite.title')}
-              </Text>
-            </Pressable>
-          )}
+          ) : null}
           {canManage ? (
             <Pressable
               onPress={() => router.push(`/village/${village.id}/community` as never)}
