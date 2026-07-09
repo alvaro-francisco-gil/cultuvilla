@@ -109,6 +109,14 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
         // new Date(), which the converter marshals to a Firestore Timestamp.
         // The user doc holds account state only — the profile (name, birthday,
         // photo) is the linked person's, written just below.
+        //
+        // Reserve the person id up front and write BOTH docs through the
+        // transaction (person carries its own residence link; user carries the
+        // personId backreference). Doing the writes transactionally — rather
+        // than a direct `await userDoc().update()` inside the callback — avoids a
+        // self-deadlock (that update targets userRef, which this tx already
+        // locked) and is retry-safe (no orphan person on a tx retry).
+        const personRef = personsCollection(db).doc();
         tx.set(
           userRef,
           buildUserData({
@@ -116,10 +124,11 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
             email: profile.email,
             telephone: null,
             activeMunicipalityId: municipalityId,
+            personId: personRef.id,
           }),
         );
-        const personRef = personsCollection(db).doc();
-        await personRef.set(
+        tx.set(
+          personRef,
           buildPersonData({
             givenName: profile.displayName.split(' ')[0] ?? profile.displayName,
             birthday,
@@ -131,10 +140,6 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
             municipalityLinks: buildResidenceLinks(municipalityId, null),
           }),
         );
-        // tx.update bypasses the converter so a partial { personId } update
-        // is fine — but personRef was created outside the tx, so use a
-        // post-tx update via the raw doc ref.
-        await userDoc(db, userId).update({ personId: personRef.id });
         profileCreated = true;
       } else {
         // merge:true requires a partial doc; converter rejects partial sets,

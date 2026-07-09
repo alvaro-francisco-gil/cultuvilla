@@ -1,56 +1,99 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument,
+/* eslint-disable @typescript-eslint/no-explicit-any,
+                  @typescript-eslint/no-unsafe-assignment,
+                  @typescript-eslint/no-unsafe-member-access,
+                  @typescript-eslint/no-unsafe-return,
                   @typescript-eslint/require-await */
-// vi.mock factories legitimately fake the firebase/firestore SDK shape;
-// the rule family doesn't add value for these inline mocks.
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+// joinVillage is an atomic writeBatch: create the member doc AND upsert the
+// residence link on the caller's person, in one commit (no eventual-consistency
+// window). This asserts both writes land, the member doc carries NO barrioId
+// (single source of truth is the person), and the residence link is the exact
+// { municipalityId, barrioId } shape via buildResidenceLinks.
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-vi.mock('../../src/firebase', () => ({ getDb: vi.fn() }));
-vi.mock('firebase/firestore', async () => {
-  const makeRef = (..._args: unknown[]) => {
-    const ref: { _path: unknown[]; withConverter: ReturnType<typeof vi.fn> } = {
-      _path: _args,
-      withConverter: vi.fn(),
-    };
-    ref.withConverter.mockReturnValue(ref);
+// vi.hoisted: mock factories are hoisted above top-level declarations, so shared
+// mock state must be created here to be referenceable inside the factories.
+const h = vi.hoisted(() => ({
+  setActiveMunicipality: vi.fn(async () => undefined),
+  ops: [] as { op: 'set' | 'update'; id: string; data: any }[],
+  state: { person: null as any },
+}));
+
+vi.mock('../../src/firebase', () => ({ getDb: () => ({}) }));
+vi.mock('../../src/services/userService', () => ({
+  setActiveMunicipality: h.setActiveMunicipality,
+}));
+vi.mock('../../src/services/personService', () => ({
+  getPersonByUserId: async () => h.state.person,
+}));
+vi.mock('firebase/firestore', () => ({
+  doc: (_db: unknown, ...p: string[]) => {
+    const ref: any = { _id: p.join('/') };
+    ref.withConverter = () => ref;
     return ref;
-  };
-  return {
-    collection: vi.fn((..._args) => makeRef(..._args)),
-    collectionGroup: vi.fn((..._args) => makeRef(..._args)),
-    doc: vi.fn((..._args) => makeRef(..._args)),
-    getDoc: vi.fn(),
-    getDocs: vi.fn(),
-    setDoc: vi.fn(),
-    updateDoc: vi.fn(),
-    deleteDoc: vi.fn(),
-    serverTimestamp: () => '__SERVER_TIMESTAMP__',
-    where: vi.fn(),
-    query: vi.fn(),
-  };
-});
+  },
+  collection: (_db: unknown, ...p: string[]) => {
+    const ref: any = { _id: p.join('/') };
+    ref.withConverter = () => ref;
+    return ref;
+  },
+  collectionGroup: () => ({ withConverter: () => ({}) }),
+  query: () => ({}),
+  where: () => ({}),
+  getDoc: async () => ({ exists: () => false }),
+  getDocs: async () => ({ docs: [] }),
+  deleteDoc: async () => undefined,
+  writeBatch: () => ({
+    set: (ref: any, data: any) => h.ops.push({ op: 'set', id: ref._id, data }),
+    update: (ref: any, data: any) => h.ops.push({ op: 'update', id: ref._id, data }),
+    commit: async () => undefined,
+  }),
+}));
 
-import { setDoc, updateDoc } from 'firebase/firestore';
 import { joinVillage } from '../../src/services/villageMemberService';
 
+beforeEach(() => {
+  h.ops.length = 0;
+  h.state.person = null;
+  h.setActiveMunicipality.mockClear();
+});
+
 describe('joinVillage', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  it('batches member-create + residence-link upsert; member carries no barrioId', async () => {
+    h.state.person = { id: 'p1', municipalityLinks: [{ municipalityId: 'm2', barrioId: 'y' }] };
+
+    await joinVillage('m1', 'alice', 'centro');
+
+    const memberOp = h.ops.find((o) => o.id === 'municipalities/m1/members/alice');
+    const personOp = h.ops.find((o) => o.id === 'persons/p1');
+    expect(memberOp?.op).toBe('set');
+    expect(memberOp?.data).not.toHaveProperty('barrioId');
+    expect(memberOp?.data.userId).toBe('alice');
+    expect(memberOp?.data.role).toBe('user');
+
+    expect(personOp?.op).toBe('update');
+    expect(personOp?.data.municipalityLinks).toEqual([
+      { municipalityId: 'm2', barrioId: 'y' },
+      { municipalityId: 'm1', barrioId: 'centro' },
+    ]);
+
+    expect(h.setActiveMunicipality).toHaveBeenCalledWith('alice', 'm1');
   });
 
-  it('creates the membership AND sets the joined village as the active village', async () => {
-    vi.mocked(setDoc).mockResolvedValue(undefined);
-    vi.mocked(updateDoc).mockResolvedValue(undefined);
+  it('joins whole-village (null barrio) by default', async () => {
+    h.state.person = { id: 'p1', municipalityLinks: [] };
 
-    await joinVillage('muni-1', 'uid-1', 'barrio-1');
+    await joinVillage('m1', 'alice');
 
-    // member doc created
-    expect(setDoc).toHaveBeenCalledTimes(1);
-    const [, memberPayload] = vi.mocked(setDoc).mock.calls[0];
-    expect(memberPayload).toMatchObject({ userId: 'uid-1', role: 'user', barrioId: 'barrio-1' });
+    const personOp = h.ops.find((o) => o.id === 'persons/p1');
+    expect(personOp?.data.municipalityLinks).toEqual([{ municipalityId: 'm1', barrioId: null }]);
+  });
 
-    // joined village becomes the active village (the bug: this was never set)
-    expect(updateDoc).toHaveBeenCalledTimes(1);
-    const [, userPayload] = vi.mocked(updateDoc).mock.calls[0];
-    expect(userPayload).toEqual({ activeMunicipalityId: 'muni-1' });
+  it('still creates the membership when the caller has no person doc', async () => {
+    h.state.person = null;
+
+    await joinVillage('m1', 'alice', 'centro');
+
+    expect(h.ops.map((o) => o.id)).toEqual(['municipalities/m1/members/alice']);
+    expect(h.setActiveMunicipality).toHaveBeenCalledWith('alice', 'm1');
   });
 });
