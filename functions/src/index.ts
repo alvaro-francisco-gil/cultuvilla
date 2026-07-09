@@ -36,6 +36,7 @@ export { syncPersonDenormalization } from './users/syncPersonDenormalization';
 
 // Account (deletion lifecycle)
 export { checkAccountDeletable } from './account/checkAccountDeletable';
+export { deleteAccount } from './account/deleteAccount';
 
 // News (posts, moderation, reactions, comments)
 export { moderateNewsPost } from './news/moderateNewsPost';
