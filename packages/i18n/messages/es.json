@@ -201,7 +201,6 @@
     },
     "join": "Unirme a este pueblo",
     "signInToJoin": "Inicia sesión para unirte",
-    "invitedBanner": "Te han invitado a unirte a este pueblo",
     "joinConfirm": {
       "title": "Unirte a este pueblo",
       "body": "Unirte significa que consideras este tu pueblo. No verifica que vivas aquí.",
@@ -210,7 +209,6 @@
       "cancel": "Cancelar"
     },
     "share": { "title": "Compartir pueblo" },
-    "invite": { "title": "Invitar vecino" },
     "edit": { "title": "Editar pueblo", "tabDetails": "Detalles", "tabContent": "Contenido", "tabMembers": "Miembros" },
     "membersList": {
       "colName": "Nombre",
@@ -838,10 +836,7 @@
     "share": {
       "event": { "view": "Mira «{name}» en Cultuvilla: {url}" },
       "news": { "view": "Mira «{name}» en Cultuvilla: {url}" },
-      "village": {
-        "view": "Mira {name} en Cultuvilla: {url}",
-        "invite": "Te invito a unirte a {name} en Cultuvilla: {url}"
-      },
+      "village": { "view": "Mira {name} en Cultuvilla: {url}" },
       "organization": {
         "view": "Mira {name} en Cultuvilla: {url}",
         "invite": "Te invito a unirte a {name} en Cultuvilla: {url}"
@@ -850,8 +845,7 @@
       "barrio": { "view": "Mira {name} en Cultuvilla: {url}" },
       "person": { "view": "Mira el perfil de {name} en Cultuvilla: {url}" }
     },
-    "shareViewLabel": "Compartir",
-    "shareInviteLabel": "Invitar a unirse"
+    "shareViewLabel": "Compartir"
   },
   "appUpdate": {
     "blockTitle": "Actualización necesaria",

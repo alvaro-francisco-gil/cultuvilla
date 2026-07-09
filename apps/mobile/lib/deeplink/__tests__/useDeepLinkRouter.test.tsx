@@ -87,14 +87,6 @@ describe('useDeepLinkRouter', () => {
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
-  it('routes village invite URL with intent=join query', async () => {
-    mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/village/mun_5/join');
-    render(<Probe />);
-    await waitFor(() =>
-      expect(mockReplace).toHaveBeenCalledWith('/village/mun_5?intent=join'),
-    );
-  });
-
   it('routes org invite URL with intent=join query', async () => {
     mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/o/org_5/join');
     render(<Probe />);
@@ -103,7 +95,7 @@ describe('useDeepLinkRouter', () => {
 
   it('is a no-op on web (expo-router owns web routing)', async () => {
     const web = jest.replaceProperty(Platform, 'OS', 'web');
-    mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/village/mun_5/join');
+    mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/o/org_5/join');
     render(<Probe />);
     await new Promise((r) => setTimeout(r, 10));
     expect(mockGetInitialURL).not.toHaveBeenCalled();

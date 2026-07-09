@@ -47,7 +47,6 @@ jest.mock('@cultuvilla/shared/services/organizerRequestService', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({
   getVillageViewLink: jest.fn().mockReturnValue('https://example.test'),
-  getVillageInviteLink: jest.fn().mockReturnValue('https://example.test'),
 }));
 jest.mock('../../../lib/deeplink/useShareDeepLink', () => ({
   useShareDeepLink: () => jest.fn(),
