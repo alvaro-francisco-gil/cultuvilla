@@ -74,6 +74,7 @@ const base: VillageHomeState = {
   orgMemberCounts: {},
   events: [],
   news: [],
+  festivalPosters: [],
   peopleCount: 3,
   pendingOrganizerRequest: false,
   myCensoAnswers: {},

@@ -41,6 +41,9 @@ jest.mock('@cultuvilla/shared/services/eventService', () => ({
 jest.mock('@cultuvilla/shared/services/newsService', () => ({
   getHomeFeed: jest.fn(async () => []),
 }));
+jest.mock('@cultuvilla/shared/services/festivalPosterService', () => ({
+  getFestivalPosters: jest.fn(async () => [{ id: 'p1', year: 2024, status: 'approved' }]),
+}));
 
 describe('useVillageHome', () => {
   it('aggregates village data and derives isMember + peopleCount', async () => {
@@ -50,6 +53,7 @@ describe('useVillageHome', () => {
     expect(result.current.isMember).toBe(true); // u1 is in members
     expect(result.current.peopleCount).toBe(2);
     expect(result.current.barrios).toHaveLength(1);
+    expect(result.current.festivalPosters).toHaveLength(1);
   });
 
   it('returns empty state for a null municipalityId', async () => {
