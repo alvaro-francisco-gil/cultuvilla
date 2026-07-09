@@ -1,12 +1,16 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import { getAuth } from 'firebase-admin/auth';
+import { getStorage } from 'firebase-admin/storage';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import type { CollectionReference, DocumentReference } from 'firebase-admin/firestore';
 import {
   eventsCollection,
   municipalitiesCollection,
   newsCollection,
+  newsCommentsCollection,
+  newsReactionsCollection,
+  newsReportsCollection,
   organizerRequestsCollection,
   personsCollection,
   userDoc,
@@ -37,10 +41,14 @@ interface DeleteAccountResult {
  *     never trusted. Any blocker aborts BEFORE anything is deleted.
  *  3. Anonymize authored content that is KEPT (news + events): swap `createdBy`
  *     to the DELETED_USER_UID sentinel and pull the uid from `organizerUserIds`.
- *  4. Delete personal data: persons (self + dependents), memberships (with a
+ *  4. Hard-delete free-text/PII interactions the user authored: news comments,
+ *     reactions, and reports. Unlike posts these carry no editorial value once
+ *     the author is gone.
+ *  5. Delete personal data: persons (self + dependents), memberships (with a
  *     `removed` audit event each), registrations, notifications, organizer
- *     requests, dangling organizer pointers, and the user profile doc.
- *  5. Delete the Firebase Auth user last — once the data is gone the auth
+ *     requests, dangling organizer pointers, Cloud Storage photos, and the user
+ *     profile doc.
+ *  6. Delete the Firebase Auth user last — once the data is gone the auth
  *     record has nothing left to protect, and doing it last means a mid-way
  *     failure leaves the account still sign-in-able for a retry.
  */
@@ -63,12 +71,17 @@ export const deleteAccount = onCall<undefined, Promise<DeleteAccountResult>>(
     const anonymizedNews = await anonymizeAuthoredContent(newsCollection(db), uid);
     const anonymizedEvents = await anonymizeAuthoredContent(eventsCollection(db), uid);
 
+    const newsCommentsDeleted = await deleteNewsComments(uid);
+    const newsReactionsDeleted = await deleteNewsReactions(uid);
+    const newsReportsDeleted = await deleteNewsReports(uid);
+
     const membershipsRemoved = await removeMemberships(uid);
-    const personsDeleted = await deletePersons(uid);
+    const personIds = await deletePersons(uid);
     const registrationsDeleted = await deleteRegistrations(uid);
     const notificationsDeleted = await deleteNotifications(uid);
     const organizerRequestsDeleted = await deleteOrganizerRequests(uid);
     const organizerPointersNulled = await nullOrganizerPointers(uid);
+    await deleteStoragePhotos(uid, personIds);
     await userDoc(db, uid).delete();
 
     await getAuth().deleteUser(uid);
@@ -78,8 +91,11 @@ export const deleteAccount = onCall<undefined, Promise<DeleteAccountResult>>(
       uid,
       anonymizedNews,
       anonymizedEvents,
+      newsCommentsDeleted,
+      newsReactionsDeleted,
+      newsReportsDeleted,
       membershipsRemoved,
-      personsDeleted,
+      personsDeleted: personIds.length,
       registrationsDeleted,
       notificationsDeleted,
       organizerRequestsDeleted,
@@ -218,8 +234,11 @@ async function removeMemberships(uid: string): Promise<number> {
  * the user created that belongs to a DIFFERENT account (`userId` set to someone
  * else). Their registrations are cleaned up by `deleteRegistrations` (every
  * dependent's registration was booked by this uid).
+ *
+ * Returns the deleted persons' doc IDs so their Cloud Storage photos can be
+ * purged by prefix.
  */
-async function deletePersons(uid: string): Promise<number> {
+async function deletePersons(uid: string): Promise<string[]> {
   const persons = raw(personsCollection(db));
   const [selfSnap, createdSnap] = await Promise.all([
     persons.where('userId', '==', uid).get(),
@@ -232,7 +251,60 @@ async function deletePersons(uid: string): Promise<number> {
     if (doc.data().userId === null) refs.set(doc.ref.path, doc.ref);
   }
 
-  return deleteRefsInChunks([...refs.values()]);
+  const values = [...refs.values()];
+  await deleteRefsInChunks(values);
+  return values.map((ref) => ref.id);
+}
+
+/**
+ * Hard-delete every news comment the user authored — free-text PII with no
+ * value once the author is erased. `newsComments` is a top-level collection;
+ * the single equality on `authorUserId` is served by the automatic
+ * single-field index.
+ */
+async function deleteNewsComments(uid: string): Promise<number> {
+  const snap = await raw(newsCommentsCollection(db)).where('authorUserId', '==', uid).get();
+  return deleteRefsInChunks(snap.docs.map((doc) => doc.ref));
+}
+
+async function deleteNewsReactions(uid: string): Promise<number> {
+  const snap = await raw(newsReactionsCollection(db)).where('userId', '==', uid).get();
+  return deleteRefsInChunks(snap.docs.map((doc) => doc.ref));
+}
+
+async function deleteNewsReports(uid: string): Promise<number> {
+  const snap = await raw(newsReportsCollection(db)).where('reporterUserId', '==', uid).get();
+  return deleteRefsInChunks(snap.docs.map((doc) => doc.ref));
+}
+
+/**
+ * Delete the departing user's uploaded photos from Cloud Storage: their account
+ * avatar and every persona photo they uploaded. Both onboarding and the person
+ * editor write to `users/{uid}/photo/...` (via `uploadUserPhoto`), so that
+ * prefix covers self + dependents; `persons/{personId}/...` covers the legacy
+ * `uploadPersonImage` path. The `photoURL` stored on the doc is a download URL,
+ * not a storage path, so we delete by the derivable prefix rather than parsing
+ * the URL.
+ *
+ * Best-effort: a storage failure is logged but must NOT abort the erasure —
+ * that would leave the account's Firestore data half-deleted. `deleteFiles` is
+ * idempotent, so the callable can be re-invoked to retry.
+ */
+async function deleteStoragePhotos(uid: string, personIds: string[]): Promise<void> {
+  const bucket = getStorage().bucket();
+  const prefixes = [`users/${uid}/`, ...personIds.map((id) => `persons/${id}/`)];
+  for (const prefix of prefixes) {
+    try {
+      await bucket.deleteFiles({ prefix });
+    } catch (err) {
+      logger.warn('failed to delete storage photos', {
+        handler: 'deleteAccount',
+        uid,
+        prefix,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
 }
 
 async function deleteRegistrations(uid: string): Promise<number> {
