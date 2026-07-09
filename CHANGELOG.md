@@ -5,6 +5,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 ## [Unreleased]
 
 ### Fixed
+- **Invite link left a logged-in member stuck on a loading spinner on the web build.** `useDeepLinkRouter` (a native `Linking`-based hook) also ran on web, where expo-router already resolves every deep link by file route — so its `router.replace` raced the `join.tsx` route redirect during the auth/profile load and kept re-triggering the village screen's focus-load, hanging on a spinner. The hook is now native-only (`Platform.OS !== 'web'`); web routing is owned entirely by expo-router (content routes + the invite `join.tsx` redirects). A member tapping the invite now simply lands on the village. Covered by a jest web-no-op test and a logged-in-member Playwright flow.
 - **"Invitar vecino" (and other share buttons) rendered the link twice in one message.** `useShareDeepLink` passed both `message` (which already embeds the URL via `buildShareMessage`) and a separate `url` to `Share.share`, so the Web Share API and iOS emitted the link twice. Now only `message` is passed — one link on every platform (Android already ignored the separate `url`). Regression covered by a new jest test.
 
 ### Added

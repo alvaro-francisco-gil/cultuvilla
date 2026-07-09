@@ -1,5 +1,6 @@
 import { test, expect } from '../lib/test';
 import { fixtures } from '../lib/fixtures';
+import { fixtureLogin, fixtureSignOut } from '../lib/fixtureLogin';
 
 // Invite deep links (/village/<id>/join, /o/<id>/join) have no 1:1 route file
 // under app/ — unlike content links (/event/<id>). On web, expo-router resolves
@@ -21,4 +22,19 @@ test('org invite deep link lands on the org with the invited banner', async ({ p
   await expect(page.getByText('Te han invitado a unirte a este grupo')).toBeVisible({
     timeout: 30_000,
   });
+});
+
+// Regression: a logged-in member tapping the invite link used to get stuck on a
+// spinner because useDeepLinkRouter's web navigation raced the join-route
+// redirect during the auth/profile load. It must simply land on the village
+// (no invited banner — they're already a member).
+test('village invite deep link lands an existing member on the village (no spinner)', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await fixtureLogin(page, fixtures.attendee.email);
+  await page.goto(`/village/${fixtures.village.docId}/join`);
+  await expect(page.getByText(fixtures.village.name).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('Te han invitado a unirte a este pueblo')).toBeHidden();
+  await fixtureSignOut(page);
 });
