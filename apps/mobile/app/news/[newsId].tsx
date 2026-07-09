@@ -4,6 +4,7 @@ import { Text } from '../../components/primitives/Text';
 import { HStack } from '../../components/primitives/HStack';
 import { EntityDetailScaffold } from '../../components/feature/EntityDetailScaffold';
 import type { EntityDetailAction } from '../../components/feature/EntityDetailHeader';
+import { ENTITY_FALLBACK_ICON } from '../../lib/entities/registry';
 import { NewsContentRenderer } from '../../components/feature/NewsContentRenderer';
 import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
 import { useAuth } from '../../lib/auth/useAuth';
@@ -84,7 +85,7 @@ export default function NewsDetailScreen() {
       loading={loading}
       notFound={!loading && !post}
       imageUri={imageUrl}
-      fallbackIcon="newspaper-outline"
+      fallbackIcon={ENTITY_FALLBACK_ICON.news}
       actions={actions}
       title={post?.title}
     >

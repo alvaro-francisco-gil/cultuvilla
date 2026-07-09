@@ -5,6 +5,7 @@ import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Text } from '../../../components/primitives/Text';
 import { EntityDetailScaffold } from '../../../components/feature/EntityDetailScaffold';
 import type { EntityDetailAction } from '../../../components/feature/EntityDetailHeader';
+import { ENTITY_FALLBACK_ICON } from '../../../lib/entities/registry';
 import { useT } from '../../../lib/i18n';
 import { useAuth } from '../../../lib/auth/useAuth';
 import { useRegisterGate } from '../../../lib/auth/RegisterGateContext';
@@ -87,7 +88,7 @@ export default function OrgDetailScreen() {
       loading={loading}
       notFound={!loading && !org}
       imageUri={org?.imageURL ?? null}
-      fallbackIcon="people-outline"
+      fallbackIcon={ENTITY_FALLBACK_ICON.organization}
       actions={actions}
       title={org?.name}
       scrollContentClassName="pb-28"

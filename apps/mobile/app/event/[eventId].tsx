@@ -11,6 +11,7 @@ import { useEventOrganizer } from '../../lib/events/useEventOrganizer';
 import { EntityDetailScaffold } from '../../components/feature/EntityDetailScaffold';
 import type { EntityDetailAction } from '../../components/feature/EntityDetailHeader';
 import { DetailInfoCard } from '../../components/feature/DetailInfoCard';
+import { ENTITY_FALLBACK_ICON } from '../../lib/entities/registry';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
@@ -102,7 +103,7 @@ export default function EventDetailScreen() {
       loading={!event}
       imageUri={event?.imageURL ?? null}
       fallbackImageUri={event?.villageCoverImage ?? null}
-      fallbackIcon="calendar-outline"
+      fallbackIcon={ENTITY_FALLBACK_ICON.event}
       actions={actions}
       title={event?.title}
       scrollContentClassName="pb-24"

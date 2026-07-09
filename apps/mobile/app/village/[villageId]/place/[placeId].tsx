@@ -5,6 +5,7 @@ import { Text } from '../../../../components/primitives/Text';
 import { VStack } from '../../../../components/primitives/VStack';
 import { EntityDetailScaffold } from '../../../../components/feature/EntityDetailScaffold';
 import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
+import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
 import { PersonCard } from '../../../../components/feature/VillageSections';
 import { useT } from '../../../../lib/i18n';
 import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
@@ -71,7 +72,7 @@ export default function PlaceDetailScreen() {
       loading={loading}
       notFound={!loading && !place}
       imageUri={place?.imageURL ?? null}
-      fallbackIcon="location-outline"
+      fallbackIcon={ENTITY_FALLBACK_ICON.place}
       actions={actions}
       title={place?.name}
     >
