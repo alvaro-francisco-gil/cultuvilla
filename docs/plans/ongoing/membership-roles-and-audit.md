@@ -21,11 +21,16 @@
 
 | Step | Dev | Beta | Prod |
 |---|---|---|---|
-| Phase 0 rename code | ⬜ | ⬜ | ⬜ |
-| Phase 0 organizerId backfill | ⬜ | ⬜ | ⬜ |
-| Phase 1 membershipEvents rules+index deployed | ⬜ | ⬜ | ⬜ |
-| Phase 2 changeVillageMemberRole deployed | ⬜ | ⬜ | ⬜ |
-| Phase 3 org migration deployed | ⬜ | ⬜ | ⬜ |
+| Phase 0 rename code | ✅ | ✅ | ⬜ |
+| Phase 0 organizerId backfill | ✅ | ✅ | ⬜ |
+| Phase 1 membershipEvents rules+index deployed | ✅ | ✅ | ⬜ |
+| Phase 2 changeVillageMemberRole deployed | ✅ | ✅ | ⬜ |
+| Phase 3 org migration deployed | ✅ | ✅ | ⬜ |
+
+Dev deployed via PR #48 merge; beta via promotion PR #52. Backfill run per env
+right after each deploy (`scripts/backfill-organizer-id.mjs`, env-capable):
+dev 9 villages patched, beta 1 village patched; both verified conformant.
+Prod: pending a future `beta → main` promotion + `--env prod --yes` backfill.
 
 Legend: ⬜ pending · ⏳ in progress · ✅ done · ⚠️ blocked (note inline)
 
