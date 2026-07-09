@@ -678,6 +678,15 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Append-only content-moderation audit log (hide/unhide of news,
+    // festivalPosters, barrios, places). Function-owned: written only by the
+    // setContentVisibility callable via the admin SDK. Reads scoped to the
+    // village's admins by municipalityId; app admins see everything.
+    match /moderationEvents/{eventId} {
+      allow read: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
+      allow write: if false;
+    }
+
     match /organizations/{orgId} {
       allow read: if true;
       // ayuntamiento is a singleton per village — created only via the

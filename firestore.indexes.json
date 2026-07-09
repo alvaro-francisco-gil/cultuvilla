@@ -247,6 +247,14 @@
       ]
     },
     {
+      "collectionGroup": "moderationEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "municipalityId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "festivalPosters",
       "queryScope": "COLLECTION",
       "fields": [
