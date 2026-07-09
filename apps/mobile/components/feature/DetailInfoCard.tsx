@@ -26,7 +26,7 @@ export function DetailInfoCard({ icon, label, value, onPress }: DetailInfoCardPr
               <Ionicons name={icon} size={iconSizes.md} color={colors.light.fg.accent} />
               <Text
                 variant="caption"
-                className="flex-1 font-bold"
+                className="flex-1"
                 style={{ color: colors.light.fg.accent, textTransform: 'uppercase', letterSpacing: 0.8 }}
               >
                 {label}
