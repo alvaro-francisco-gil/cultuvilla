@@ -108,7 +108,7 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
         {
           icon: 'settings-outline',
           label: t('menu.settings'),
-          comingSoon: true,
+          onPress: () => close(() => router.push('/settings' as Href)),
         },
       ],
     },
