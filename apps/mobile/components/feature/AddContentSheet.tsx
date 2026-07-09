@@ -1,4 +1,4 @@
-import { Modal, Pressable as RNPressable, ScrollView, View } from 'react-native';
+import { Modal, Pressable as RNPressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -61,19 +61,26 @@ export function AddContentSheet({ visible, onClose, villageId, canManage }: AddC
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      {/* absoluteFillObject (not flex-1): RN-Web collapses a flex-1 Modal child to
+          zero height, leaving no tappable backdrop to dismiss the sheet. */}
       <RNPressable
         onPress={onClose}
-        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+        style={[
+          StyleSheet.absoluteFill,
+          { backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+        ]}
       >
         <RNPressable
           onPress={() => {}}
           className="bg-surface-elevated border-t border-subtle"
           style={{ borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingBottom: insets.bottom + 12 }}
         >
-          <View className="items-center pt-3 pb-1">
+          {/* Tapping the grab handle also dismisses — the primary close affordance
+              on web, where there's no swipe-down gesture. */}
+          <RNPressable onPress={onClose} className="items-center pt-3 pb-1 active:opacity-60">
             <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#cbd5e1' }} />
-          </View>
-          <Text variant="h3" className="px-5 pt-2 pb-1">
+          </RNPressable>
+          <Text variant="h2" tone="success" className="px-5 pt-2 pb-1">
             {t('village.addContent.title')}
           </Text>
           <ScrollView style={{ maxHeight: 420 }}>

@@ -41,7 +41,7 @@ export function Section({
     <VStack gap={3} className="pt-4">
       <HStack className="items-center justify-between px-4">
         {/* Based on the profile section header (h3, bold), bumped +2px for the village overview. */}
-        <Text variant="h3" className="font-bold" style={{ fontSize: 22, lineHeight: 30 }}>
+        <Text variant="h3" className="font-bold" style={{ fontSize: 22, lineHeight: 30, marginTop: 1 }}>
           {title}
         </Text>
         {onManage ? (
