@@ -104,6 +104,16 @@ describe('patchUserProfile', () => {
       personId: null,
     });
   });
+
+  it('calls updateDoc once with { email } when patching email', async () => {
+    vi.mocked(updateDoc).mockResolvedValue(undefined);
+
+    await patchUserProfile('uid-1', { email: 'new@example.com' });
+
+    expect(updateDoc).toHaveBeenCalledTimes(1);
+    const [, payload] = vi.mocked(updateDoc).mock.calls[0];
+    expect(payload).toEqual({ email: 'new@example.com' });
+  });
 });
 
 describe('getUserProfile', () => {
