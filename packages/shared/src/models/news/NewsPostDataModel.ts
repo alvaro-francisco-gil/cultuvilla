@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ReviewStatusSchema, type ReviewStatus } from '../core/ReviewableDataModel';
+import { visibilityFields, defaultVisibility, VisibilityStatusSchema } from '../core/VisibilityModel';
 
 export const NEWS_POST_CATEGORIES = [
   'fiesta',
@@ -11,8 +11,8 @@ export const NEWS_POST_CATEGORIES = [
 export const NewsPostCategorySchema = z.enum([...NEWS_POST_CATEGORIES]);
 export type NewsPostCategory = z.infer<typeof NewsPostCategorySchema>;
 
-export const NewsPostStatusSchema = ReviewStatusSchema;
-export type NewsPostStatus = ReviewStatus;
+export const NewsPostStatusSchema = VisibilityStatusSchema;
+export type NewsPostStatus = z.infer<typeof NewsPostStatusSchema>;
 
 export const NewsReactionKindSchema = z.enum(['like', 'heart']);
 export type NewsReactionKind = z.infer<typeof NewsReactionKindSchema>;
@@ -113,9 +113,8 @@ export const NewsPostDataSchema = z.object({
   /** Dedicated card cover. Supersedes images[0] for the feed. `.default(null)`
       for legacy-doc back-compat (see `content`). */
   coverImage: NewsPostImageSchema.nullable().default(null),
-  status: NewsPostStatusSchema,
-  rejectionReason: z.string().nullable(),
-  submittedAt: z.date(),
+  ...visibilityFields,
+  createdAt: z.date(),
   publishedAt: z.date().nullable(),
   updatedAt: z.date(),
   reactionCounts: NewsReactionCountsSchema,
@@ -134,9 +133,7 @@ export interface NewsPostDataInput {
   category: NewsPostCategory;
   images?: NewsPostImage[];
   coverImage?: NewsPostImage | null;
-  status?: NewsPostStatus;
-  rejectionReason?: string | null;
-  submittedAt: Date;
+  createdAt: Date;
   publishedAt?: Date | null;
   updatedAt: Date;
   reactionCounts?: NewsReactionCounts;
@@ -155,10 +152,9 @@ export function buildNewsPostData(input: NewsPostDataInput): NewsPostData {
     category: input.category,
     images: input.images ?? [],
     coverImage: input.coverImage ?? null,
-    status: input.status ?? 'pending',
-    rejectionReason: input.rejectionReason ?? null,
-    submittedAt: input.submittedAt,
-    publishedAt: input.publishedAt ?? null,
+    ...defaultVisibility(),
+    createdAt: input.createdAt,
+    publishedAt: input.publishedAt ?? input.createdAt,
     updatedAt: input.updatedAt,
     reactionCounts: input.reactionCounts ?? { like: 0, heart: 0 },
     commentCount: input.commentCount ?? 0,
