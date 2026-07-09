@@ -173,7 +173,13 @@ export function DateTimeField({
             <View style={styles.footer}>
               <Button variant="secondary" onPress={() => setOpen(false)}>Cancelar</Button>
               <View style={styles.footerConfirm}>
-                <Button onPress={confirm} fullWidth>Confirmar</Button>
+                <Button
+                  onPress={confirm}
+                  fullWidth
+                  testID={testID ? `${testID}-confirm` : undefined}
+                >
+                  Confirmar
+                </Button>
               </View>
             </View>
           </View>

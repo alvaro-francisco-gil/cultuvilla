@@ -101,7 +101,7 @@ const firebaseConfigPerEnv: Record<Env, FirebaseOptions> = {
 const config: ExpoConfig = {
   name: namePerEnv[env],
   slug: 'cultuvilla',
-  version: '0.1.0',
+  version: '0.2.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   scheme: 'cultuvilla',
@@ -113,8 +113,8 @@ const config: ExpoConfig = {
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
         'Cultuvilla usa tu ubicación para fijar la del pueblo en el mapa.',
-      // react-native-image-crop-picker reads the photo library to pick + crop
-      // avatars/escudos; iOS crashes without this usage string.
+      // expo-image-picker reads the photo library to pick + crop avatars/escudos;
+      // iOS requires this usage string.
       NSPhotoLibraryUsageDescription:
         'Cultuvilla necesita acceso a tus fotos para elegir y recortar tu imagen de perfil.',
     },

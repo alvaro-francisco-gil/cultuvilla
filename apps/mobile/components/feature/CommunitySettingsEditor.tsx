@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { VStack, Text, Input, Pressable, Escudo } from '../primitives';
+import { ScrollView } from 'react-native';
+import { VStack, Text, Input, ImagePickerField } from '../primitives';
 import { LocationPicker } from './LocationPicker';
 import { useT } from '../../lib/i18n';
 import { showAlert } from '../../lib/dialogs';
@@ -19,8 +18,6 @@ import {
 } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
-
-const ACCENT = '#bb5d3a';
 
 /**
  * Organizer-only community editor (escudo, location, description). Content-only
@@ -97,29 +94,13 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
     <ScrollView contentContainerClassName="p-4">
       <VStack gap={3}>
         <Text variant="h3">{t('village.admin.community.escudo')}</Text>
-        <Pressable
-          onPress={changeEscudo}
-          disabled={uploadingEscudo}
-          accessibilityLabel={hasEscudo ? t('village.escudo.change') : t('village.escudo.add')}
-          className={`relative self-start bg-surface rounded-2xl shadow-sm ${
-            village && hasManualEscudo(village) ? '' : 'p-2'
-          }`}
-        >
-          <Escudo
-            url={village ? escudoFullUrl(village) : null}
-            size={88}
-            fill={village ? hasManualEscudo(village) : false}
-            fallbackInitial={village?.name}
-          />
-          <View className="absolute bottom-0 right-0 bg-surface rounded-full p-1 shadow-sm">
-            <Ionicons name={hasEscudo ? 'camera' : 'add'} size={14} color={ACCENT} />
-          </View>
-          {uploadingEscudo ? (
-            <View className="absolute inset-0 items-center justify-center rounded-2xl bg-black/30">
-              <ActivityIndicator color="#fff" />
-            </View>
-          ) : null}
-        </Pressable>
+        <ImagePickerField
+          uri={village ? escudoFullUrl(village) : null}
+          onPress={() => void changeEscudo()}
+          label={hasEscudo ? t('village.escudo.change') : t('village.escudo.add')}
+          resizeMode={village && hasManualEscudo(village) ? 'cover' : 'contain'}
+          loading={uploadingEscudo}
+        />
 
         {/* Render only once loaded, so the picker seeds its state (and preview)
             from the saved coordinates instead of the pre-load null. */}

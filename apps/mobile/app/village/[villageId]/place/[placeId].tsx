@@ -1,16 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Screen } from '../../../../components/primitives/Screen';
 import { VStack } from '../../../../components/primitives/VStack';
 import { Text } from '../../../../components/primitives/Text';
 import { DetailHeroImage } from '../../../../components/feature/DetailHeroImage';
 import { FloatingBackButton } from '../../../../components/feature/FloatingBackButton';
 import { FloatingShareButton } from '../../../../components/feature/FloatingShareButton';
+import { FloatingEditButton } from '../../../../components/feature/FloatingEditButton';
 import { PersonCard } from '../../../../components/feature/VillageSections';
 import { useT } from '../../../../lib/i18n';
 import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
+import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 import { getPlace } from '@cultuvilla/shared/services/municipalityService';
 import { getPlaceViewLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getPersonsByBurialPlace } from '@cultuvilla/shared/services/personService';
@@ -28,23 +30,28 @@ export default function PlaceDetailScreen() {
   const [place, setPlace] = useState<Place | null>(null);
   const [buried, setBuried] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
+  const { canManage } = useEntityCapabilities(villageId);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!villageId || !placeId) return;
-    void (async () => {
-      try {
-        const p = await getPlace(villageId, placeId);
-        setPlace(p);
-        if (p?.kind === 'cemetery') {
-          setBuried(await getPersonsByBurialPlace(placeId));
-        }
-      } finally {
-        // On failure `place` stays null, so the not-found view renders
-        // instead of an indefinite spinner.
-        setLoading(false);
+    try {
+      const p = await getPlace(villageId, placeId);
+      setPlace(p);
+      if (p?.kind === 'cemetery') {
+        setBuried(await getPersonsByBurialPlace(placeId));
       }
-    })();
+    } finally {
+      // On failure `place` stays null, so the not-found view renders
+      // instead of an indefinite spinner.
+      setLoading(false);
+    }
   }, [villageId, placeId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   if (loading || !place) {
     return (
@@ -67,6 +74,11 @@ export default function PlaceDetailScreen() {
         <FloatingShareButton
           onPress={() => void share(getPlaceViewLink(villageId, place.id), place.name)}
         />
+        {canManage ? (
+          <FloatingEditButton
+            onPress={() => router.push(`/village/${villageId}/place/${place.id}/edit` as never)}
+          />
+        ) : null}
         <VStack gap={3} className="p-4">
           <Text variant="h1">{place.name}</Text>
           <Text tone="muted" variant="bodySm">

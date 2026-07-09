@@ -193,7 +193,8 @@ export default function FeedScreen() {
 
   const visibleEvents = useMemo(() => {
     let list = events ?? [];
-    if (villageFilter) list = list.filter((e) => e.municipalityId === villageFilter);
+    // TEMP: pueblo filter disabled — re-enable to scope events by village.
+    // if (villageFilter) list = list.filter((e) => e.municipalityId === villageFilter);
     if (dateFilter) list = list.filter((e) => inDatePreset(e.startDate, dateFilter));
     if (query) {
       list = list.filter(
@@ -213,7 +214,8 @@ export default function FeedScreen() {
 
   const visibleNews = useMemo(() => {
     let list = news ?? [];
-    if (villageFilter) list = list.filter((n) => n.municipalityId === villageFilter);
+    // TEMP: pueblo filter disabled — re-enable to scope news by village.
+    // if (villageFilter) list = list.filter((n) => n.municipalityId === villageFilter);
     if (categoryFilter) list = list.filter((n) => n.category === categoryFilter);
     if (query) {
       list = list.filter(
@@ -312,13 +314,14 @@ export default function FeedScreen() {
       style={{ flexGrow: 0 }}
       contentContainerStyle={{ alignItems: 'center', paddingHorizontal: 16 }}
     >
-      {/* Pueblo — the primary filter, always first. */}
+      {/* TEMP: pueblo filter hidden — re-enable to scope the feed by village.
       <FilterPill
         label={selectedVillageName ?? t('feed.filter.village')}
         active={villageFilter !== null}
         onPress={() => setActiveSheet('village')}
         testID="filter-village"
       />
+      */}
 
       {/* Buscar — inline expandable search. */}
       {searchOpen ? (
@@ -556,6 +559,7 @@ export default function FeedScreen() {
         </Animated.View>
       </View>
 
+      {/* TEMP: pueblo filter hidden — re-enable alongside the village FilterPill above.
       <FilterSheet
         visible={activeSheet === 'village'}
         title={t('feed.filter.villageTitle')}
@@ -567,6 +571,7 @@ export default function FeedScreen() {
         searchable
         searchPlaceholder={t('feed.filter.searchPlaceholder')}
       />
+      */}
       <FilterSheet
         visible={activeSheet === 'date'}
         title={t('feed.filter.dateTitle')}

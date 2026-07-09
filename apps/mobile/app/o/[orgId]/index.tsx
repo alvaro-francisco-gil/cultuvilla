@@ -1,18 +1,20 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text as RNText, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { useLocalSearchParams } from 'expo-router';
-import { Screen } from '../../components/primitives/Screen';
-import { Text } from '../../components/primitives/Text';
-import { VStack } from '../../components/primitives/VStack';
-import { DetailHeroImage } from '../../components/feature/DetailHeroImage';
-import { FloatingBackButton } from '../../components/feature/FloatingBackButton';
-import { FloatingShareButton } from '../../components/feature/FloatingShareButton';
-import { useT } from '../../lib/i18n';
-import { useAuth } from '../../lib/auth/useAuth';
-import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
-import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
+import { Screen } from '../../../components/primitives/Screen';
+import { Text } from '../../../components/primitives/Text';
+import { VStack } from '../../../components/primitives/VStack';
+import { DetailHeroImage } from '../../../components/feature/DetailHeroImage';
+import { FloatingBackButton } from '../../../components/feature/FloatingBackButton';
+import { FloatingShareButton } from '../../../components/feature/FloatingShareButton';
+import { FloatingEditButton } from '../../../components/feature/FloatingEditButton';
+import { useT } from '../../../lib/i18n';
+import { useAuth } from '../../../lib/auth/useAuth';
+import { useRegisterGate } from '../../../lib/auth/RegisterGateContext';
+import { useOrgCapabilities } from '../../../lib/auth/useOrgCapabilities';
+import { useShareDeepLink } from '../../../lib/deeplink/useShareDeepLink';
 import { getOrganization } from '@cultuvilla/shared/services/organizationService';
 import {
   isOrgMember,
@@ -37,6 +39,7 @@ export default function OrgDetailScreen() {
   const [isMember, setIsMember] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
+  const { canManage } = useOrgCapabilities(orgId as string, org?.municipalityId);
 
   const refresh = useCallback(async () => {
     if (!orgId) return;
@@ -48,9 +51,11 @@ export default function OrgDetailScreen() {
     setLoading(false);
   }, [orgId, user]);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
 
   const onJoin = useCallback(async () => {
     if (!user) {
@@ -86,6 +91,9 @@ export default function OrgDetailScreen() {
         <DetailHeroImage imageUri={org.imageURL} fallbackIcon="people-outline" />
         <FloatingBackButton />
         <FloatingShareButton onPress={() => void share(getOrgViewLink(org.id), org.name)} />
+        {canManage ? (
+          <FloatingEditButton onPress={() => router.push(`/o/${org.id}/edit` as never)} />
+        ) : null}
         <VStack gap={3} className="p-4">
           <Text variant="h1">{org.name}</Text>
           {org.description ? <Text>{org.description}</Text> : null}

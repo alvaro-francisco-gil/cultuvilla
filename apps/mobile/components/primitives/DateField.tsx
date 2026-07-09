@@ -114,7 +114,11 @@ export function DateField({
               keyExtractor={(y) => String(y)}
               initialNumToRender={40}
               renderItem={({ item }) => (
-                <Pressable onPress={() => pickYear(item)} style={styles.option}>
+                <Pressable
+                  onPress={() => pickYear(item)}
+                  style={styles.option}
+                  testID={testID ? `${testID}-year-option-${item}` : undefined}
+                >
                   <Text>{String(item)}</Text>
                 </Pressable>
               )}
@@ -125,7 +129,11 @@ export function DateField({
               data={monthOptions}
               keyExtractor={(m) => String(m)}
               renderItem={({ item }) => (
-                <Pressable onPress={() => pickMonth(item)} style={styles.option}>
+                <Pressable
+                  onPress={() => pickMonth(item)}
+                  style={styles.option}
+                  testID={testID ? `${testID}-month-option-${item}` : undefined}
+                >
                   <Text>{MONTHS_ES[item] ?? ''}</Text>
                 </Pressable>
               )}
@@ -136,7 +144,11 @@ export function DateField({
               data={dayOptions}
               keyExtractor={(d) => String(d)}
               renderItem={({ item }) => (
-                <Pressable onPress={() => pickDay(item)} style={styles.option}>
+                <Pressable
+                  onPress={() => pickDay(item)}
+                  style={styles.option}
+                  testID={testID ? `${testID}-day-option-${item}` : undefined}
+                >
                   <Text>{String(item)}</Text>
                 </Pressable>
               )}

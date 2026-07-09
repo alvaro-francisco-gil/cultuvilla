@@ -5,11 +5,9 @@ import { pickAndCropSquare } from './imageCrop';
 
 export interface PickImageOptions {
   /**
-   * Route the pick through the in-app square cropper (avatars, escudos) so the
-   * user pans/zooms to a 1:1 sub-section before upload. See lib/imageCrop.* —
-   * native uses react-native-image-crop-picker, web uses react-easy-crop. This
-   * replaces the OS editor, which can't sub-crop an already-square image on
-   * Android and is a no-op on web.
+   * Crop the pick to a 1:1 square before upload (avatars, escudos). See
+   * lib/imageCrop.* — native uses expo-image-picker's OS crop editor, web uses a
+   * react-easy-crop overlay (since `allowsEditing` is a no-op on web).
    */
   square?: boolean;
 }

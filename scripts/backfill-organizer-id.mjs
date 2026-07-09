@@ -8,37 +8,61 @@
  * copied verbatim, then the old key is deleted.
  *
  * USAGE
- *   node scripts/backfill-organizer-id.mjs
+ *   node scripts/backfill-organizer-id.mjs [--env <dev|beta|prod>] [--yes]
+ *
+ *   node scripts/backfill-organizer-id.mjs                 # dev (villa-events)
+ *   node scripts/backfill-organizer-id.mjs --env beta --yes
+ *
+ * CREDENTIALS
+ *   Resolved per env via scripts/lib/env-credentials.mjs (dev = key at
+ *   ~/.config/cultuvilla/dev-sa.json; beta/prod = keyless ADC at
+ *   ~/.config/cultuvilla/adc.json). See docs/ENVIRONMENTS.md.
  *
  * ROLLOUT ORDERING (important): the strict Zod converter now expects
  * `community.organizerId`, so this MUST run together with the deploy of the
  * renamed code to the target env — never before the new code is live (the old
  * deployed code reads `adminUserId`) and never long after (the new code reads
- * `organizerId`). On dev, run it right after the develop deploy.
+ * `organizerId`). Run it right after the env's deploy completes.
+ *
+ * SAFETY
+ *   - Defaults to dev; beta/prod refuse to run without an explicit `--yes`.
+ *   - projectId is pinned per env by the resolver.
  *
  * Idempotent: patches only docs that still carry the old key or lack the new
  * one; docs already migrated are skipped.
  */
 
 import admin from 'firebase-admin';
+import { initAdminForEnv } from './lib/env-credentials.mjs';
 
-const PROJECT_ID = 'villa-events';
+function argValue(flag) {
+  const i = process.argv.indexOf(flag);
+  return i !== -1 && i + 1 < process.argv.length ? process.argv[i + 1] : undefined;
+}
 
-if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  console.error('GOOGLE_APPLICATION_CREDENTIALS is not set.');
+const envArg = argValue('--env') ?? 'dev';
+const yes = process.argv.includes('--yes');
+
+let ctx;
+try {
+  ctx = initAdminForEnv(envArg);
+} catch (err) {
+  console.error(`[backfill-organizer-id] ${err.message}`);
   process.exit(1);
 }
 
-admin.initializeApp({ projectId: PROJECT_ID });
+if (ctx.env !== 'dev' && !yes) {
+  console.error(
+    `[backfill-organizer-id] Refusing to run against ${ctx.projectId} (${ctx.env}) without --yes.`,
+  );
+  process.exit(1);
+}
+
 const db = admin.firestore();
 const { FieldValue } = admin.firestore;
 
-if (admin.app().options.projectId !== PROJECT_ID) {
-  console.error(`Refusing to run against ${admin.app().options.projectId} — dev only.`);
-  process.exit(1);
-}
-
 async function main() {
+  console.log(`[backfill-organizer-id] env=${ctx.env} project=${ctx.projectId} auth=${ctx.auth}`);
   const snap = await db.collection('municipalities').get();
   console.log(`Loaded ${snap.size} municipality docs.`);
 

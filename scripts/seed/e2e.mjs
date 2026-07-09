@@ -14,6 +14,7 @@ import { db, auth, GeoPoint, EMULATOR } from './lib/context.mjs';
 import {
   buildUserData,
   buildPersonData,
+  buildAdminData,
   buildMunicipalityData,
   buildVillageCommunity,
   buildVillageMemberData,
@@ -22,7 +23,14 @@ import {
   buildEventData,
   buildLocationData,
 } from '@cultuvilla/shared/models';
-import { E2E_PASSWORD, users, village, org, event } from '../data/seed-fixtures/e2e/fixtures.mjs';
+import {
+  E2E_PASSWORD,
+  users,
+  village,
+  organizerlessVillage,
+  org,
+  event,
+} from '../data/seed-fixtures/e2e/fixtures.mjs';
 
 if (!EMULATOR) {
   console.error(
@@ -52,7 +60,7 @@ async function run() {
   // Auth accounts + persons/{id} + users/{uid} profile docs. The person is
   // linked via personId so the app treats the user as onboarded (otherwise the
   // register FAB never renders — it diverts to complete-profile).
-  for (const u of [users.admin, users.attendee]) {
+  for (const u of [users.admin, users.attendee, users.superAdmin, users.joiner]) {
     await upsertUser(u);
     await db
       .collection('persons')
@@ -69,10 +77,24 @@ async function run() {
     await db
       .collection('users')
       .doc(u.uid)
-      .set(buildUserData({ displayName: u.displayName, email: u.email, personId: u.personId }), {
-        merge: true,
-      });
+      .set(
+        buildUserData({
+          displayName: u.displayName,
+          email: u.email,
+          personId: u.personId,
+          telephone: u.telephone,
+        }),
+        { merge: true },
+      );
   }
+
+  // The "fresh" user is Auth-only: no persons/{id}, no users/{uid} profile. The
+  // onboarding-profile flow signs it in and drives complete-profile from scratch.
+  await upsertUser(users.fresh);
+
+  // App super-admin grant. Presence of admins/{uid} is what isAppAdmin() tests;
+  // it authorizes respondToOrganizerRequest in the organizer-request flow.
+  await db.collection('admins').doc(users.superAdmin.uid).set(buildAdminData(), { merge: true });
 
   // Activated village = municipality doc + community overlay + members
   const coords = new GeoPoint(village.coordinates.lat, village.coordinates.lng);
@@ -103,6 +125,34 @@ async function run() {
   await members
     .doc(users.attendee.uid)
     .set(buildVillageMemberData({ userId: users.attendee.uid, role: 'user' }), { merge: true });
+  await members
+    .doc(users.joiner.uid)
+    .set(buildVillageMemberData({ userId: users.joiner.uid, role: 'user' }), { merge: true });
+
+  // Active village, started but organizer-less (community.organizerId === null).
+  // The organizer-request flow requests to organize it; approval sets the
+  // organizerId and promotes the requester to admin.
+  const solanaCoords = new GeoPoint(
+    organizerlessVillage.coordinates.lat,
+    organizerlessVillage.coordinates.lng,
+  );
+  await db
+    .collection('municipalities')
+    .doc(organizerlessVillage.docId)
+    .set(
+      {
+        ...buildMunicipalityData({
+          name: organizerlessVillage.name,
+          province: organizerlessVillage.province,
+          comunidadAutonoma: organizerlessVillage.comunidadAutonoma,
+          codigoINE: organizerlessVillage.codigoINE,
+          coordinates: solanaCoords,
+        }),
+        community: buildVillageCommunity({ description: organizerlessVillage.description }),
+        communityActive: true,
+      },
+      { merge: true },
+    );
 
   // Approved organization + founding admin member. approveOrganization writes
   // the member in prod; the demo org seeder omits it, so seed it here directly.
@@ -157,8 +207,10 @@ async function run() {
     );
 
   console.log(
-    `[seed:e2e] seeded emulator (users=${users.admin.uid},${users.attendee.uid} ` +
-      `village=${village.docId} org=${org.docId} event=${event.docId})`,
+    `[seed:e2e] seeded emulator (users=${users.admin.uid},${users.attendee.uid},` +
+      `${users.superAdmin.uid},${users.joiner.uid},${users.fresh.uid} ` +
+      `village=${village.docId} organizerless=${organizerlessVillage.docId} ` +
+      `org=${org.docId} event=${event.docId})`,
   );
 }
 

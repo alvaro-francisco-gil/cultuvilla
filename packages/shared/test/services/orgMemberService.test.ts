@@ -96,3 +96,45 @@ describe('getOrgAdminIds', () => {
     expect(adminIds).toEqual(['u1', 'u3']);
   });
 });
+
+describe('isOrgAdmin', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns true when the membership doc has role admin', async () => {
+    const { getDoc } = await import('firebase/firestore');
+    const { isOrgAdmin } = await import('../../src/services/orgMemberService');
+    vi.mocked(getDoc).mockResolvedValue({
+      exists: () => true,
+      data: () => ({ joinedAt: new Date(), role: 'admin' }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+
+    expect(await isOrgAdmin('org1', 'u1')).toBe(true);
+  });
+
+  it('returns false when the member has role member', async () => {
+    const { getDoc } = await import('firebase/firestore');
+    const { isOrgAdmin } = await import('../../src/services/orgMemberService');
+    vi.mocked(getDoc).mockResolvedValue({
+      exists: () => true,
+      data: () => ({ joinedAt: new Date(), role: 'member' }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+
+    expect(await isOrgAdmin('org1', 'u1')).toBe(false);
+  });
+
+  it('returns false when no membership doc exists', async () => {
+    const { getDoc } = await import('firebase/firestore');
+    const { isOrgAdmin } = await import('../../src/services/orgMemberService');
+    vi.mocked(getDoc).mockResolvedValue({
+      exists: () => false,
+      data: () => undefined,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+
+    expect(await isOrgAdmin('org1', 'u1')).toBe(false);
+  });
+});

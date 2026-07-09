@@ -100,6 +100,7 @@ Legend: `[x]` authored + agent-runnable-verified · `[~]` authored, verified onl
 - [x] CHANGELOG; parent plan Status updated.
 
 ## Out of scope (later / separate)
+- **Deferred organizer-request→approval flow + three more web flows + native Maestro groundwork** — picked up in the fast-follow [e2e-flows-and-native-groundwork.md](e2e-flows-and-native-groundwork.md).
 - **Native Maestro (Stage 4)** — its own plan; reuses this substrate's fixtures + fixture-login + state assertions per D1.
 - **Coverage gate flip** (report-only → patch-coverage `diff-cover`) — Stage 4 (D4).
 - `dorny/paths-filter` CI cost-gating — Stage 4 (C8).

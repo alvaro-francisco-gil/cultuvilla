@@ -60,6 +60,16 @@ export async function isOrgMember(orgId: string, userId: string): Promise<boolea
   return snap.exists();
 }
 
+/**
+ * True iff `userId` is an admin of the org. Authority is the role flag, never
+ * the founder pointer (AGENTS.md §Membership roles) — the founder is seeded as
+ * admin on approval, so this covers "a group I created" without special-casing.
+ */
+export async function isOrgAdmin(orgId: string, userId: string): Promise<boolean> {
+  const snap = await getDoc(organizationMemberDoc(getDb(), orgId, userId));
+  return snap.exists() && snap.data().role === 'admin';
+}
+
 export interface UserOrgMembership {
   orgId: string;
   role: OrgMemberRole;

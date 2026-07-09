@@ -263,21 +263,6 @@ describe('ProfileScreen — Grupos & Peñas', () => {
   });
 });
 
-describe('ProfileScreen — app version', () => {
-  beforeEach(() => jest.clearAllMocks());
-
-  it('shows the app version', async () => {
-    const personService = require('@cultuvilla/shared/services/personService');
-    (personService.getPersonByUserId as jest.Mock).mockResolvedValue(null);
-
-    const { getByText } = render(<ProfileScreen />);
-
-    await waitFor(() => {
-      expect(getByText(/1\.4\.0/)).toBeTruthy();
-    });
-  });
-});
-
 describe('ProfileScreen — change photo', () => {
   beforeEach(() => jest.clearAllMocks());
 

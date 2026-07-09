@@ -126,7 +126,8 @@ export function EventLocationField({
   return (
     <View>
       <FieldLabel>{label ?? t('event.location')}</FieldLabel>
-      <Pressable onPress={() => setOpen(true)} accessibilityRole="button" style={styles.trigger}>
+      <Pressable onPress={() => setOpen(true)} accessibilityRole="button" style={styles.trigger} testID="event-location">
+
         <View style={styles.triggerInner}>
           <Ionicons name="location-outline" size={18} color={ACCENT} />
           <Text numberOfLines={1} tone={displayName ? 'primary' : 'muted'} style={styles.triggerText}>
@@ -213,6 +214,7 @@ export function EventLocationField({
               onPress={() => void locate(false)}
               accessibilityLabel={t('event.useMyLocation')}
               style={styles.locateBtn}
+              testID="location-use-mine"
             >
               {locating ? <ActivityIndicator color={ACCENT} /> : <Ionicons name="locate" size={22} color={ACCENT} />}
             </Pressable>
@@ -221,7 +223,7 @@ export function EventLocationField({
             <View style={styles.bottomPanel}>
               <Text variant="caption" tone="muted" style={styles.panelLabel}>{t('event.selectedLocation')}</Text>
               <Text numberOfLines={2} style={styles.panelAddress}>{addressText}</Text>
-              <Button onPress={confirm} disabled={!state.coords} fullWidth>
+              <Button onPress={confirm} disabled={!state.coords} fullWidth testID="location-confirm">
                 {t('event.confirmLocation')}
               </Button>
             </View>

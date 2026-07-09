@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Image, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { VStack, HStack, Text, Pressable } from '../primitives';
+import { VStack, HStack, Text, Pressable, TopCropImage } from '../primitives';
 import { useT } from '../../lib/i18n';
 
 /**
@@ -160,11 +160,7 @@ function BigCard({
       }}
     >
       {imageUri ? (
-        <Image
-          source={{ uri: imageUri }}
-          style={{ width: '100%', height: '100%' }}
-          resizeMode="cover"
-        />
+        <TopCropImage uri={imageUri} />
       ) : (
         <View className="w-full h-full items-center justify-center">{fallback}</View>
       )}

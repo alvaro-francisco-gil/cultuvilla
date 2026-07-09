@@ -1,4 +1,4 @@
-import { Image } from 'react-native';
+import { ActivityIndicator, Image, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@cultuvilla/shared/design-system';
 import { Pressable } from './Pressable';
@@ -17,6 +17,10 @@ export interface ImagePickerFieldProps {
   width?: number | `${number}%`;
   /** Explicit height in px. Overrides `size`. */
   height?: number;
+  /** How the image fills the card. `contain` keeps un-cropped art (e.g. Wikidata shields). */
+  resizeMode?: 'cover' | 'contain';
+  /** Shows a spinner overlay + disables the press while an upload is in flight. */
+  loading?: boolean;
 }
 
 // Image input that reuses the dashed "add" card affordance from the pueblo tab
@@ -30,23 +34,31 @@ export function ImagePickerField({
   size = 120,
   width,
   height,
+  resizeMode = 'cover',
+  loading = false,
 }: ImagePickerFieldProps) {
   const w = width ?? size;
   const h = height ?? size;
   return (
     <Pressable
       onPress={onPress}
+      disabled={loading}
       accessibilityLabel={label}
-      className={`rounded-2xl overflow-hidden border items-center justify-center ${
+      className={`relative rounded-2xl overflow-hidden border items-center justify-center ${
         uri ? 'border-subtle' : 'border-dashed border-subtle'
       }`}
       style={{ width: w, height: h }}
     >
       {uri ? (
-        <Image source={{ uri }} style={{ width: w, height: h }} resizeMode="cover" />
+        <Image source={{ uri }} style={{ width: w, height: h }} resizeMode={resizeMode} />
       ) : (
         <Ionicons name="add" size={44} color={ACCENT} />
       )}
+      {loading ? (
+        <View className="absolute inset-0 items-center justify-center bg-black/30">
+          <ActivityIndicator color="#fff" />
+        </View>
+      ) : null}
     </Pressable>
   );
 }

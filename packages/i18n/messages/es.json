@@ -220,7 +220,14 @@
       "roleUser": "Miembro",
       "censoComplete": "Censo completo",
       "censoPending": "Censo pendiente",
-      "empty": "Aún no hay miembros."
+      "empty": "Aún no hay miembros.",
+      "promote": "Hacer administrador",
+      "demote": "Quitar administrador",
+      "confirmPromoteTitle": "Hacer administrador",
+      "confirmPromoteBody": "¿Dar permisos de administrador a {name}? Podrá editar el pueblo y gestionar a otros miembros.",
+      "confirmDemoteTitle": "Quitar administrador",
+      "confirmDemoteBody": "¿Retirar los permisos de administrador a {name}?",
+      "roleChangeError": "No se pudo cambiar el rol. Inténtalo de nuevo."
     },
     "events": {
       "label": "Eventos",
@@ -261,6 +268,7 @@
       "barrios": {
         "title": "Barrios",
         "add": "Añadir barrio",
+        "editTitle": "Editar barrio",
         "name": "Nombre del barrio",
         "empty": "Aún no hay barrios",
         "addImage": "Añadir imagen",
@@ -270,6 +278,7 @@
       "places": {
         "title": "Lugares",
         "add": "Añadir lugar",
+        "editTitle": "Editar lugar",
         "name": "Nombre",
         "description": "Descripción",
         "empty": "Aún no hay lugares",
@@ -425,7 +434,6 @@
     "endDate": "Fecha de fin (opcional)",
     "startDateTime": "Inicio del evento",
     "endDateTime": "Fin del evento (opcional)",
-    "dateRange": "{start} – {end}",
     "location": "Ubicación",
     "maxAttendees": "Máximo de asistentes",
     "unlimited": "Sin límite",
@@ -454,6 +462,7 @@
     "stepDetails": "Detalles",
     "locationName": "Lugar",
     "locationPin": "Ver en el mapa",
+    "addToCalendar": "Añadir al calendario",
     "village": "Pueblo",
     "villageAutoHint": "Detectado por la ubicación",
     "noVillages": "Únete a un pueblo para poder crear eventos.",
@@ -511,6 +520,7 @@
   },
   "organization": {
     "title": "Grupo",
+    "editTitle": "Editar grupo",
     "description": "Descripción",
     "membersCount": "{count} miembros",
     "join": "Unirme a este grupo",
@@ -572,7 +582,6 @@
       "admin": "Administrador",
       "member": "Miembro"
     },
-    "version": "Versión {version} ({build})",
     "villagesEntry": "Mis pueblos",
     "villagesSection": {
       "join": "Unirse a otro pueblo"

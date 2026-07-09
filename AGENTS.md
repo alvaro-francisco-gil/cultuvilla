@@ -43,7 +43,7 @@ This is the result of the migration recorded in [docs/decisions/open-feed-archit
 
 ### Request types (solicitudes)
 
-Three user-initiated requests exist. The Solicitudes screen (mobile) is open to
+Two user-initiated requests exist. The Solicitudes screen (mobile) is open to
 everyone and has two tabs: **Recibidas** (inbox — items you can approve, scoped to
 what you administer) and **Enviadas** (outbox — requests you've sent). Non-admins
 simply see an empty inbox. Requests are created from in-context screens; outcomes
@@ -53,7 +53,13 @@ arrive as notifications.
 |---|---|---|---|
 | Organizer (be the pueblo's organizer) | `organizerRequests/` | any user | super admin (`respondToOrganizerRequest` callable) |
 | Organization (create peña/asociación/ayuntamiento) | `organizations/` (status `pending`) | village member | village admin (own village) or super admin (`approveOrganization` callable; `rejectOrganization` stays a client write) |
-| Join org (join a peña/asociación) | `organizationJoinRequests/` | any authed non-member | org admin or super admin (`respondToJoinRequest` callable) |
+
+**Joining a peña/asociación is not a request — it is instant self-service.** The
+org detail FAB does a direct client write of `organizations/{orgId}/members/{uid}`
+(role `member`, function-owned), gated by Firestore rules: a user may add only
+themselves (`isOwner`), admins may add anyone. This mirrors village join
+(`joinVillage`) — both memberships are direct, approval-free client writes. (The
+legacy `organizationJoinRequests` approve-flow is superseded and slated for removal.)
 
 **Membership roles & the audit log.** Villages and orgs are the same abstraction —
 a membership group with members that carry a `role` and one *founder*. Authority is
@@ -70,8 +76,8 @@ ALWAYS the role flag, never the founder pointer:
 demoted) only through the audited callables **`changeVillageMemberRole` /
 `changeOrgMemberRole`**, which verify authority, mutate the role, and append to the
 append-only **`membershipEvents/`** log (top-level, scoped by `municipalityId`,
-readable by the village/org admins) in one transaction. Organizer approval, org
-approval, and join approval also emit events. Village/app admins are the backstop.
+readable by the village/org admins) in one transaction. Organizer approval and org
+approval also emit events. Village/app admins are the backstop.
 
 ### 4. Denormalized read models for high fan-out
 
@@ -177,6 +183,7 @@ Header ≤ 100 chars. Direct-to-`develop` is fine for small self-contained chang
 
 ### Versioning & releases
 
+- **Web-first: the native apps are built but NOT released yet.** The first iteration ships **only the web build** (Expo web export → Firebase Hosting). The iOS/Android apps compile and can be run via EAS/dev-client, but they are not published to the stores. **Consequence for deep links:** native App Link / Universal Link association (`apps/mobile/public/.well-known/{env}/{apple-app-site-association,assetlinks.json}`) still carries `REPLACE_TEAM_ID` / `REPLACE_SHA256_FINGERPRINT_*` placeholders, so tapping an `https://<host>/…` share link on a phone will **not** open a native app — it opens the web build, which is the intended behaviour for now. **Don't treat "the link doesn't open the app" as a bug pre-release.** What must work is that every deep link resolves as a real **web route** (each share URL, including invite `…/join` paths, needs a matching file under `apps/mobile/app/**`). Fill the `.well-known` placeholders with the real Apple Team ID + per-env signing SHA-256s only when the native apps are actually released.
 - **Marketing version** (`app.config.ts` `version`, semver `MAJOR.MINOR.PATCH`) is the single source of truth; `apps/mobile/package.json` mirrors it. MAJOR = redesign/breaking migration, MINOR = new feature, PATCH = fixes.
 - **Pre-release (now): stay on `0.x`.** Until the app is actually published to the stores, the MAJOR stays `0` — do **not** jump to `1.0.0`. Bump the **MINOR** on every `develop → beta` promotion (`0.1.0 → 0.2.0 → …`) as a running counter to track what's on beta. The `1.0.0` bump happens once, at the first real store release.
 - **Set the version in the `develop → beta` promotion PR** (beta = release candidate); it rides unchanged into `main`. Build numbers auto-increment (EAS `appVersionSource: remote`). **CI enforces this**: `.github/workflows/version-gate.yml` fails any PR targeting `beta` whose `app.config.ts` `version` isn't strictly greater than beta's, so the bump can't be forgotten. Use the `prepare-release` skill to do it.

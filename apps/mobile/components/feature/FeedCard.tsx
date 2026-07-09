@@ -1,7 +1,8 @@
-import { Image, View } from 'react-native';
+import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from '../primitives/Pressable';
 import { Text } from '../primitives/Text';
+import { TopCropImage } from '../primitives/TopCropImage';
 
 /**
  * Image-forward feed card shared by EventCard and NewsCard. The image fills
@@ -48,12 +49,7 @@ export function FeedCard({
       <View className="rounded-lg overflow-hidden bg-surface border border-subtle">
         <View style={{ width: '100%', aspectRatio: ASPECT_RATIO }}>
           {displayUri ? (
-            <Image
-              source={{ uri: displayUri }}
-              style={{ width: '100%', height: '100%' }}
-              resizeMode="cover"
-              accessibilityIgnoresInvertColors
-            />
+            <TopCropImage uri={displayUri} />
           ) : (
             <View
               className="items-center justify-center"
