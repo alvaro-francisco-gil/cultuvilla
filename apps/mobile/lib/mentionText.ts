@@ -11,9 +11,10 @@ export interface MentionRun {
  * Pure helpers backing the `@`-mention behaviour of a plain-text `TextInput`.
  *
  * A text block stores its prose in `text` and annotates mention ranges in
- * `mentions` (offset/length into `text`, the span including the leading `@`).
- * RN gives us only a raw string + selection, so these functions keep the
- * `mentions` array consistent as the user edits:
+ * `mentions` (offset/length into `text`, the span covering the mention's display
+ * label—the `@` trigger is consumed on insert). RN gives us only a raw string +
+ * selection, so these functions keep the `mentions` array consistent as the user
+ * edits:
  *
  * - {@link adjustMentions} shifts/drops spans after an arbitrary edit.
  * - {@link activeMentionQuery} detects an in-progress `@query` at the cursor.
@@ -135,8 +136,10 @@ export interface InsertMentionResult {
 }
 
 /**
- * Replace the active `@query` with `@{label} ` and record the mention span.
- * Existing spans after the insertion point are shifted by the length change.
+ * Replace the active `@query` with the bare label + a trailing space and record
+ * the mention span. The span covers the mention's display label (the `@` trigger
+ * is consumed on insert). Existing spans after the insertion point are shifted by
+ * the length change.
  */
 export function insertMention(
   text: string,
@@ -144,12 +147,12 @@ export function insertMention(
   active: ActiveMentionQuery,
   candidate: MentionCandidate,
 ): InsertMentionResult {
-  const labelText = `@${candidate.label}`;
+  const labelText = candidate.label; // no leading '@': the picked reference reads as its bare name
   const before = text.slice(0, active.startIndex);
   const after = text.slice(active.startIndex + 1 + active.query.length);
   const newText = `${before}${labelText} ${after}`;
 
-  const consumedLen = 1 + active.query.length; // '@' + query
+  const consumedLen = 1 + active.query.length; // '@' + query, still consumed from the input
   const insertedLen = labelText.length + 1; // label + trailing space
   const shift = insertedLen - consumedLen;
   const afterPoint = active.startIndex + consumedLen;

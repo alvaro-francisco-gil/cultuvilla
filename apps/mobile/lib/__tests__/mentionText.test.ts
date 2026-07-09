@@ -86,24 +86,22 @@ describe('splitMentionsAtCaret', () => {
 });
 
 describe('insertMention', () => {
-  it('replaces the @query with @label and records the span', () => {
+  it('replaces the @query with the bare label and records the span', () => {
     const text = 'hola @Peñ';
     const active = activeMentionQuery(text, text.length, [])!;
     const res = insertMention(text, [], active, peña);
-    expect(res.text).toBe('hola @Peña El Barrio ');
+    expect(res.text).toBe('hola Peña El Barrio ');
     expect(res.mentions).toHaveLength(1);
-    expect(res.mentions[0]).toMatchObject({ entityId: 'org1', offset: 5, length: '@Peña El Barrio'.length });
+    expect(res.mentions[0]).toMatchObject({ entityId: 'org1', offset: 5, length: 'Peña El Barrio'.length });
     // caret lands just after the inserted label + trailing space
-    expect(res.cursor).toBe(5 + '@Peña El Barrio'.length + 1);
+    expect(res.cursor).toBe(5 + 'Peña El Barrio'.length + 1);
   });
 
   it('shifts a later mention when inserting before it', () => {
     const text = '@A end';
     const existing: NewsMention[] = [{ entityType: 'place', entityId: 'p', label: 'end', offset: 3, length: 3 }];
-    // type a new query at the start is awkward; instead insert where query is at 0
     const active = { query: 'A', startIndex: 0 };
     const res = insertMention(text, existing, active, peña);
-    // '@A' (2 chars) -> '@Peña El Barrio ' grows the text; the 'end' span shifts right
     const shifted = res.mentions.find((m) => m.entityId === 'p')!;
     expect(shifted.offset).toBeGreaterThan(3);
   });
