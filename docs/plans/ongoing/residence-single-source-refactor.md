@@ -7,6 +7,16 @@ residency for **all** persons (account and non-account alike), eliminating the
 duplicated `member.barrioId` field and shrinking the `syncMemberBarrioToResidence`
 projection trigger to the one branch that genuinely needs server privilege.
 
+## Status
+
+- **Updated:** 2026-07-09
+- **Stage:** Stage 1 — server privileged paths (acceptInvite projection + delete-only trigger)
+- **Branch:** `refactor/residence-single-source` (worktree `.claude/worktrees/residence-single-source`)
+- **Done:** none yet
+- **Next:** project `municipalityLinks` in `acceptInvite`; reduce trigger to delete-only; rewrite trigger test
+- **Blockers:** none. Validation decision resolved (accept unvalidated; shared callable is the named upgrade path).
+- **Handoff:** Work happens in the worktree — session cwd is the primary checkout, so use absolute worktree paths. `pnpm test`/emulator suites are off-limits to the agent; rely on `pnpm typecheck` + non-emulator vitest, and hand emulator/functions test runs to the user. Every residence-link write MUST go through `buildResidenceLinks` (exact `{municipalityId,barrioId}` shape for the array-contains query).
+
 ## Context
 
 Barrio residency shipped with membership as the source of truth for
