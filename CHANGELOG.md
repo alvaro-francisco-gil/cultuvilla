@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.3.0 — 2026-07-09
+
 ### Removed
 - **"Invitar vecino" button on the village screen.** Joining a village is open self-service — the "Unirme" button, the `joinVillage` service, and the Firestore self-add rule are all available to any authenticated non-member regardless of an invite. The village invite deep link (`/village/<id>/join`) granted no extra capability; it only flipped a cosmetic "Te han invitado…" banner. So the village invite is gone entirely: the members-only invite button, the `getVillageInviteLink` builder, the `/village/[villageId]/join` redirect route, the `arrivedViaInvite` banner, and the `village.invite.title` / `village.invitedBanner` / `deeplink.share.village.invite` strings. Sharing a village is now the single "Compartir pueblo" action. **Organization invites are unaffected** — `getOrgInviteLink` and the `/o/<id>/join` flow still use the shared invite machinery.
 
