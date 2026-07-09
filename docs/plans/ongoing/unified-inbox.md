@@ -8,6 +8,16 @@
 
 **Tech Stack:** Expo SDK 56 / Expo Router / NativeWind v4 / React Native (apps/mobile); Firebase Cloud Functions v2 (functions); Zod-backed models + services (packages/shared); vitest (shared), jest (mobile), functions vitest emulator harness.
 
+## Status
+
+- **Updated:** 2026-07-09
+- **Stage:** Stage A, Task 1 — `onOrganizationUpdated` trigger (about to start)
+- **Branch:** cultuvilla `feat/unified-inbox` (worktree `.claude/worktrees/unified-inbox`, based on `origin/develop` @ 0122a14)
+- **Done:** brainstorm + plan (this doc); worktree set up, deps installed, shared built, baseline typecheck green
+- **Next:** implement Task 1 (Stage A) via subagent-driven-development
+- **Blockers:** none. Note: cannot boot Firebase emulators (AGENTS.md) — emulator-backed test steps must be handed to the user to run.
+- **Handoff:** fresh worktree requires `pnpm --filter @cultuvilla/shared build` before `functions` typecheck passes (functions resolves `@cultuvilla/shared` via `dist/`). Re-run after shared model changes. Do not run `pnpm test`/`test:functions` yourself (boots emulators).
+
 ## Global Constraints
 
 - **Service-layer ownership:** screens/components/hooks must not import `firebase/*`; all Firestore access goes through `packages/shared/src/services/`. (AGENTS.md §1)

@@ -126,7 +126,7 @@ describe('requestOrganizeVillage (callable)', () => {
     ).rejects.toThrow(/pendiente|already-exists/i);
   });
 
-  it('creates a pending organizerRequest and notifies all app admins on happy path', async () => {
+  it('creates a pending organizerRequest and does not notify app admins (the pending request itself is the actionable surface)', async () => {
     await seedMunicipality(true);
     await seedAppAdmin(APP_ADMIN_A);
     await seedAppAdmin(APP_ADMIN_B);
@@ -150,8 +150,7 @@ describe('requestOrganizeVillage (callable)', () => {
 
     const notifsA = await admin.firestore().collection(`users/${APP_ADMIN_A}/notifications`).get();
     const notifsB = await admin.firestore().collection(`users/${APP_ADMIN_B}/notifications`).get();
-    expect(notifsA.size).toBeGreaterThanOrEqual(1);
-    expect(notifsB.size).toBeGreaterThanOrEqual(1);
-    expect(notifsA.docs[0].data().type).toBe('organizer_request_created');
+    expect(notifsA.size).toBe(0);
+    expect(notifsB.size).toBe(0);
   });
 });

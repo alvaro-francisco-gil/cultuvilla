@@ -25,6 +25,7 @@ export { requestJoinOrganization } from './organizations/requestJoinOrganization
 export { respondToJoinRequest } from './organizations/respondToJoinRequest';
 export { approveOrganization } from './organizations/approveOrganization';
 export { changeOrgMemberRole } from './organizations/changeOrgMemberRole';
+export { onOrganizationUpdated } from './organizations/notificationTriggers';
 
 // Census (censo + occupation proposals)
 export { updateCenso } from './census/updateCenso';

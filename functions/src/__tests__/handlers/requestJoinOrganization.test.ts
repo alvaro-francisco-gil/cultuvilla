@@ -127,12 +127,19 @@ describe('requestJoinOrganization (callable)', () => {
     ).rejects.toThrow(/already-exists|already exists/i);
   });
 
-  it('creates a pending join request and returns its id on the happy path', async () => {
+  it('creates a pending join request and does not notify org admins (the pending request itself is the actionable surface)', async () => {
     await seedOrg('approved');
+    await seedOrgMember(ORG_ADMIN_ID, 'admin');
 
     const result = await callRequest({ uid: REQUESTER_ID, data: { orgId: ORG_ID } });
     expect(result.ok).toBe(true);
     expect(result.requestId).toBeTruthy();
+
+    const orgAdminNotifs = await admin
+      .firestore()
+      .collection(`users/${ORG_ADMIN_ID}/notifications`)
+      .get();
+    expect(orgAdminNotifs.size).toBe(0);
 
     const created = await admin.firestore().doc(`organizationJoinRequests/${result.requestId}`).get();
     expect(created.exists).toBe(true);
