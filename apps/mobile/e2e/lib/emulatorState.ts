@@ -7,6 +7,13 @@ const PROJECT = process.env.E2E_FIREBASE_PROJECT ?? 'cultuvilla-test';
 
 const base = `http://${HOST}/v1/projects/${PROJECT}/databases/(default)/documents`;
 
+// These reads assert backend truth, not security rules. The emulator enforces
+// rules on its REST API, so an unauthenticated read of a rule-protected
+// collection (e.g. organizerRequests, members) comes back empty and silently
+// fails the assertion. `Bearer owner` is the emulator's rules-bypass token —
+// it makes every read see ground truth regardless of the doc's read rule.
+const OWNER_HEADERS = { Authorization: 'Bearer owner' } as const;
+
 interface RestValue {
   integerValue?: string;
   stringValue?: string;
@@ -18,14 +25,14 @@ interface RestDoc {
 }
 
 async function getDoc(docPath: string): Promise<RestDoc | null> {
-  const res = await fetch(`${base}/${docPath}`);
+  const res = await fetch(`${base}/${docPath}`, { headers: OWNER_HEADERS });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`emulator GET ${docPath} -> ${res.status}`);
   return (await res.json()) as RestDoc;
 }
 
 async function listDocs(collectionPath: string): Promise<RestDoc[]> {
-  const res = await fetch(`${base}/${collectionPath}`);
+  const res = await fetch(`${base}/${collectionPath}`, { headers: OWNER_HEADERS });
   if (!res.ok) return [];
   const json = (await res.json()) as { documents?: RestDoc[] };
   return json.documents ?? [];
