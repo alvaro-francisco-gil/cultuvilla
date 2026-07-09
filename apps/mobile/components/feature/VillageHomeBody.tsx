@@ -111,6 +111,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
     places,
     organizations,
     orgMemberCounts,
+    barrioResidentCounts,
     events,
     news,
     festivalPosters,
@@ -419,7 +420,13 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
             <EntityCard
               key={b.id}
               label={b.name}
-              sub={b.status === 'pending' ? t('village.proposals.pending') : undefined}
+              sub={
+                b.status === 'pending'
+                  ? t('village.proposals.pending')
+                  : t('village.admin.barrios.residentCount', {
+                      count: barrioResidentCounts[b.id] ?? 0,
+                    })
+              }
               icon="map-outline"
               imageUri={b.imageURL}
               onPress={() =>

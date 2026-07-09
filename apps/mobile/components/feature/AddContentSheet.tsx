@@ -80,7 +80,9 @@ export function AddContentSheet({ visible, onClose, villageId, canManage }: AddC
           <RNPressable onPress={onClose} className="items-center pt-3 pb-1 active:opacity-60">
             <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#cbd5e1' }} />
           </RNPressable>
-          <Text variant="h2" tone="success" className="px-5 pt-2 pb-1">
+          {/* Olive (tone primary) to match the village name; 1px larger than the
+              option rows (body = 16), same semibold weight. */}
+          <Text tone="primary" className="px-5 pt-2 pb-1 font-semibold" style={{ fontSize: 17 }}>
             {t('village.addContent.title')}
           </Text>
           <ScrollView style={{ maxHeight: 420 }}>

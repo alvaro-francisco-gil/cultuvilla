@@ -13,6 +13,7 @@ import {
 } from '@cultuvilla/shared/services/villageMemberService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 import { getOrgMemberCount } from '@cultuvilla/shared/services/orgMemberService';
+import { getBarrioResidentCount } from '@cultuvilla/shared/services/personService';
 import { getMyOrganizerRequests } from '@cultuvilla/shared/services/organizerRequestService';
 import { getEventsByMunicipality } from '@cultuvilla/shared/services/eventService';
 import { getHomeFeed } from '@cultuvilla/shared/services/newsService';
@@ -37,6 +38,8 @@ export interface VillageHomeState {
   places: (PlaceData & { id: string })[];
   organizations: (OrganizationData & { id: string })[];
   orgMemberCounts: Record<string, number>;
+  /** Resident count per barrio id (people who picked that specific barrio). */
+  barrioResidentCounts: Record<string, number>;
   events: (EventData & { id: string })[];
   news: (NewsPostData & { id: string })[];
   festivalPosters: FestivalPosterWithId[];
@@ -56,6 +59,7 @@ const EMPTY: VillageHomeState = {
   places: [],
   organizations: [],
   orgMemberCounts: {},
+  barrioResidentCounts: {},
   events: [],
   news: [],
   festivalPosters: [],
@@ -129,6 +133,18 @@ export function useVillageHome(municipalityId: string | null) {
         countByOrg[o.id] = counts[i] ?? 0;
       });
 
+      const barrioCounts = await Promise.all(
+        bar.map((b) =>
+          withFirestoreErrorLog('villageHome:getBarrioResidentCount', () =>
+            getBarrioResidentCount(municipalityId, b.id),
+          ),
+        ),
+      );
+      const countByBarrio: Record<string, number> = {};
+      bar.forEach((b, i) => {
+        countByBarrio[b.id] = barrioCounts[i] ?? 0;
+      });
+
       setState({
         loading: false,
         loadError: null,
@@ -139,6 +155,7 @@ export function useVillageHome(municipalityId: string | null) {
         places: plc,
         organizations: orgs,
         orgMemberCounts: countByOrg,
+        barrioResidentCounts: countByBarrio,
         events: upcoming,
         news: nws,
         festivalPosters: posters,

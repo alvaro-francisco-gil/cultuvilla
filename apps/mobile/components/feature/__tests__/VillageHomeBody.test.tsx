@@ -71,6 +71,7 @@ const base: VillageHomeState = {
   places: [],
   organizations: [],
   orgMemberCounts: {},
+  barrioResidentCounts: {},
   events: [],
   news: [],
   festivalPosters: [],
@@ -139,20 +140,28 @@ describe('VillageHomeBody', () => {
     expect(getByText('Unirme a este pueblo')).toBeTruthy();
   });
 
-  it('admin sees Editar AND Compartir (Compartir no longer hidden)', () => {
-    const { getByText } = render(
+  it('admin sees "Añadir contenido" + "Compartir pueblo" (no standalone Editar pill)', () => {
+    const { getByText, queryByText } = render(
       <VillageHomeBody data={{ ...base, villageAdmin: true }} reload={jest.fn()} />,
     );
-    expect(getByText('Editar pueblo')).toBeTruthy();
+    expect(getByText('Añadir contenido')).toBeTruthy();
     expect(getByText('Compartir pueblo')).toBeTruthy();
+    expect(queryByText('Editar pueblo')).toBeNull();
   });
 
-  it('pressing "Editar pueblo" routes to the community settings screen', () => {
+  it('admin opens the sheet and "Detalles pueblo" routes to the community settings screen', () => {
     const { getByText } = render(
       <VillageHomeBody data={{ ...base, villageAdmin: true }} reload={jest.fn()} />,
     );
-    fireEvent.press(getByText('Editar pueblo'));
+    fireEvent.press(getByText('Añadir contenido'));
+    fireEvent.press(getByText('Detalles pueblo'));
     expect(router.push).toHaveBeenCalledWith('/village/m1/community');
+  });
+
+  it('non-admin members do not see the "Detalles pueblo" option in the sheet', () => {
+    const { getByText, queryByText } = render(<VillageHomeBody data={base} reload={jest.fn()} />);
+    fireEvent.press(getByText('Añadir contenido'));
+    expect(queryByText('Detalles pueblo')).toBeNull();
   });
 
   it('opens the add-content sheet listing all seven entities and fans out on tap', () => {
@@ -160,7 +169,7 @@ describe('VillageHomeBody', () => {
     expect(queryByText('¿Qué quieres añadir?')).toBeNull();
     fireEvent.press(getByText('Añadir contenido'));
     expect(getByText('¿Qué quieres añadir?')).toBeTruthy();
-    ['Evento', 'Artículo', 'Agrupación', 'Peña', 'Barrio', 'Lugar', 'Cartel de fiestas'].forEach(
+    ['Evento', 'Artículo', 'Grupo', 'Peña', 'Barrio', 'Lugar', 'Cartel de fiestas'].forEach(
       (label) => expect(getByText(label)).toBeTruthy(),
     );
     fireEvent.press(getByText('Evento'));
