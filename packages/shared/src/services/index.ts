@@ -1,4 +1,5 @@
 export * from './userService'
+export * from './accountService'
 export * from './adminService'
 export * from './municipalityService'
 export * from './villageMemberService'
