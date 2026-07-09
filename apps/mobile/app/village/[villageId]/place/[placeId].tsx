@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Screen } from '../../../../components/primitives/Screen';
 import { VStack } from '../../../../components/primitives/VStack';
 import { Text } from '../../../../components/primitives/Text';
@@ -32,22 +32,26 @@ export default function PlaceDetailScreen() {
   const [loading, setLoading] = useState(true);
   const { canManage } = useEntityCapabilities(villageId);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!villageId || !placeId) return;
-    void (async () => {
-      try {
-        const p = await getPlace(villageId, placeId);
-        setPlace(p);
-        if (p?.kind === 'cemetery') {
-          setBuried(await getPersonsByBurialPlace(placeId));
-        }
-      } finally {
-        // On failure `place` stays null, so the not-found view renders
-        // instead of an indefinite spinner.
-        setLoading(false);
+    try {
+      const p = await getPlace(villageId, placeId);
+      setPlace(p);
+      if (p?.kind === 'cemetery') {
+        setBuried(await getPersonsByBurialPlace(placeId));
       }
-    })();
+    } finally {
+      // On failure `place` stays null, so the not-found view renders
+      // instead of an indefinite spinner.
+      setLoading(false);
+    }
   }, [villageId, placeId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   if (loading || !place) {
     return (

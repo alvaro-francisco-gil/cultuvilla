@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text as RNText, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Screen } from '../../../components/primitives/Screen';
 import { Text } from '../../../components/primitives/Text';
 import { VStack } from '../../../components/primitives/VStack';
@@ -51,9 +51,11 @@ export default function OrgDetailScreen() {
     setLoading(false);
   }, [orgId, user]);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
 
   const onJoin = useCallback(async () => {
     if (!user) {

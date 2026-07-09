@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Screen } from '../../../../components/primitives/Screen';
 import { VStack } from '../../../../components/primitives/VStack';
 import { Text } from '../../../../components/primitives/Text';
@@ -32,23 +32,27 @@ export default function BarrioDetailScreen() {
   const [residents, setResidents] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!villageId || !barrioId) return;
-    void (async () => {
-      try {
-        const [b, people] = await Promise.all([
-          getBarrio(villageId, barrioId),
-          getPersonsByBarrio(villageId, barrioId),
-        ]);
-        setBarrio(b);
-        setResidents(people);
-      } finally {
-        // On failure `barrio` stays null, so the not-found view renders
-        // instead of an indefinite spinner.
-        setLoading(false);
-      }
-    })();
+    try {
+      const [b, people] = await Promise.all([
+        getBarrio(villageId, barrioId),
+        getPersonsByBarrio(villageId, barrioId),
+      ]);
+      setBarrio(b);
+      setResidents(people);
+    } finally {
+      // On failure `barrio` stays null, so the not-found view renders
+      // instead of an indefinite spinner.
+      setLoading(false);
+    }
   }, [villageId, barrioId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   if (loading || !barrio) {
     return (
