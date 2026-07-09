@@ -11,6 +11,7 @@ import {
   newsCommentsCollection,
   newsReactionsCollection,
   newsReportsCollection,
+  organizationDoc,
   organizerRequestsCollection,
   personsCollection,
   userDoc,
@@ -203,10 +204,8 @@ async function removeMemberships(uid: string): Promise<number> {
     // know theirs — it IS the parent doc id).
     for (const item of items) {
       if (!item.needsMunicipalityLookup) continue;
-      const orgSnap = await tx.get(
-        db.collection('organizations').doc(item.scopeId),
-      );
-      item.municipalityId = (orgSnap.data()?.municipalityId as string | undefined) ?? item.scopeId;
+      const orgSnap = await tx.get(organizationDoc(db, item.scopeId));
+      item.municipalityId = orgSnap.data()?.municipalityId ?? item.scopeId;
     }
     for (const item of items) {
       tx.delete(item.ref);

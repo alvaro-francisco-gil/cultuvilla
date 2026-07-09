@@ -35,7 +35,7 @@ async function seedOrgMember(uid: string, role: 'admin' | 'member'): Promise<voi
   await admin
     .firestore()
     .doc(`organizations/${ORG_ID}/members/${uid}`)
-    .set({ joinedAt: new Date(), role });
+    .set({ userId: uid, joinedAt: new Date(), role });
 }
 
 async function seedAppAdmin(uid: string): Promise<void> {
