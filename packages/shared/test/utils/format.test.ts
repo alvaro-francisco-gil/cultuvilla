@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatPrice, formatRelativeTime } from '../../src/utils/format';
+import { formatDate, formatPrice, formatRelativeTime, monthShortLabels } from '../../src/utils/format';
 
 describe('formatDate', () => {
   const d = new Date('2026-05-19T15:30:00.000Z');
@@ -38,6 +38,19 @@ describe('formatPrice', () => {
 
   it('honors a custom currency', () => {
     expect(formatPrice(10, 'USD')).toMatch(/10,00/);
+  });
+});
+
+describe('monthShortLabels', () => {
+  it('returns 12 capitalized es-ES abbreviations with no trailing period', () => {
+    const labels = monthShortLabels();
+    expect(labels).toHaveLength(12);
+    expect(labels[0]).toBe('Ene');
+    expect(labels[7]).toBe('Ago');
+    for (const label of labels) {
+      expect(label).not.toMatch(/\.$/);
+      expect(label.charAt(0)).toBe(label.charAt(0).toUpperCase());
+    }
   });
 });
 

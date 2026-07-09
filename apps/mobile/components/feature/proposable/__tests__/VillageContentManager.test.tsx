@@ -16,6 +16,10 @@ jest.mock('../OrganizationsManager', () => ({
   OrganizationsManager: () =>
     require('react').createElement(require('react-native').Text, null, 'organizations-manager'),
 }));
+jest.mock('../FestivalPostersManager', () => ({
+  FestivalPostersManager: () =>
+    require('react').createElement(require('react-native').Text, null, 'festival-posters-manager'),
+}));
 
 describe('<VillageContentManager>', () => {
   it('has no "Todos" chip', () => {
@@ -28,6 +32,7 @@ describe('<VillageContentManager>', () => {
     expect(getByText('places-manager')).toBeTruthy();
     expect(getByText('barrios-manager')).toBeTruthy();
     expect(getByText('organizations-manager')).toBeTruthy();
+    expect(getByText('festival-posters-manager')).toBeTruthy();
   });
 
   it('hides a section when its chip is unselected, and restores it when re-selected', () => {

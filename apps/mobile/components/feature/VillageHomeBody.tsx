@@ -12,7 +12,8 @@ import {
   ScreenTitle,
   ErrorState,
 } from '../primitives';
-import { ACCENT, Section, EntityCard } from './VillageSections';
+import { ACCENT, Section, EntityCard, PosterCard, PosterAddCard } from './VillageSections';
+import { FestivalPosterViewer } from './FestivalPosterViewer';
 import { JoinVillageModal } from './JoinVillageModal';
 import { StatsRow } from './StatsRow';
 import { useAuth } from '../../lib/auth/useAuth';
@@ -30,7 +31,8 @@ import {
 import { staticMapUrl, MAP_ZOOM_DEFAULT } from '@cultuvilla/shared/services/mapsService';
 import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
 import type { NewsPostData } from '@cultuvilla/shared/models/news/NewsPostDataModel';
-import { formatDate } from '@cultuvilla/shared/utils';
+import type { FestivalPosterWithId } from '@cultuvilla/shared/services/festivalPosterService';
+import { formatDate, formatFestivalPosterDates } from '@cultuvilla/shared/utils';
 import {
   escudoFullUrl,
   hasManualEscudo,
@@ -59,6 +61,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
   const { t } = useT();
   const [joining, setJoining] = useState(false);
   const [pendingJoin, setPendingJoin] = useState(false);
+  const [viewerPoster, setViewerPoster] = useState<FestivalPosterWithId | null>(null);
 
   const { loading, loadError, village } = data;
 
@@ -116,6 +119,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
     orgMemberCounts,
     events,
     news,
+    festivalPosters,
     peopleCount,
     pendingOrganizerRequest,
   } = data;
@@ -452,6 +456,28 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           ))}
         </Section>
 
+        {/* ── Carteles de fiestas ──────────────────────────────── */}
+        <Section
+          title={t('village.festivalPosters.title')}
+          isEmpty={festivalPosters.length === 0}
+          emptyLabel={t('village.festivalPosters.empty')}
+        >
+          {festivalPosters.map((p) => (
+            <PosterCard
+              key={p.id}
+              year={p.year}
+              title={p.title}
+              dateLabel={formatFestivalPosterDates(p)}
+              imageUri={p.imageURL}
+              onPress={() => setViewerPoster(p)}
+            />
+          ))}
+          <PosterAddCard
+            label={canManage ? t('village.festivalPosters.add') : t('village.festivalPosters.propose')}
+            onPress={() => router.push(`${villageBase}/festival-posters` as never)}
+          />
+        </Section>
+
         {/* ── Barrios ──────────────────────────────────────────── */}
         <Section
           title={t('village.admin.hub.barrios')}
@@ -595,6 +621,13 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
         onCancel={() => setPendingJoin(false)}
         onConfirm={(barrioId) => void doJoin(barrioId)}
       />
+      {viewerPoster?.imageURL ? (
+        <FestivalPosterViewer
+          imageUri={viewerPoster.imageURL}
+          caption={`${viewerPoster.title ? `${viewerPoster.title} · ` : ''}${String(viewerPoster.year)}`}
+          onClose={() => setViewerPoster(null)}
+        />
+      ) : null}
     </>
   );
 }
