@@ -23,13 +23,19 @@ interface OrgShape {
 }
 
 function org(overrides: Partial<OrgShape> = {}): OrgShape {
-  return {
+  const merged: OrgShape = {
     name: 'Peña El Recreo',
     municipalityId: MUNICIPALITY_ID,
     status: 'pending',
     requestedBy: REQUESTED_BY,
     ...overrides,
   };
+  // The emulator cannot encode an explicit `undefined` field value
+  // (makeDocumentSnapshot rejects it), so a `requestedBy: undefined` override
+  // must drop the key entirely to model a doc that never had the field.
+  return Object.fromEntries(
+    Object.entries(merged).filter(([, v]) => v !== undefined),
+  ) as unknown as OrgShape;
 }
 
 async function fireTrigger(before: OrgShape, after: OrgShape): Promise<void> {
