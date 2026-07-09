@@ -18,8 +18,16 @@ async function readIncomingUrl(): Promise<string | null> {
 }
 
 export default function FinishScreen() {
-  const { isEmailLink, completeEmailLinkSignIn, readPendingEmail, completeReauth, readPendingReauth } =
-    useAuth();
+  const {
+    user,
+    loading: authLoading,
+    isEmailLink,
+    completeEmailLinkSignIn,
+    readPendingEmail,
+    completeReauth,
+    readPendingReauth,
+    clearPendingReauth,
+  } = useAuth();
   const { t } = useT();
   const [status, setStatus] = useState<Status>('pending');
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +36,11 @@ export default function FinishScreen() {
   const attempted = useRef(false);
 
   useEffect(() => {
+    // Wait for the initial onAuthStateChanged callback to resolve before
+    // deciding whether a session is present — otherwise a persisted session
+    // that hasn't finished restoring yet would read as "no signed-in user"
+    // and wrongly discard a valid pending-reauth intent.
+    if (authLoading) return;
     if (attempted.current) return;
     attempted.current = true;
     void (async () => {
@@ -43,16 +56,26 @@ export default function FinishScreen() {
       // what distinguishes them, so check it first.
       const pendingReauth = await readPendingReauth();
       if (pendingReauth) {
-        setStatus('completing');
-        try {
-          await completeReauth(url);
-          setStatus('reauth-done');
-          router.replace('/settings');
-        } catch (e) {
-          setStatus('error');
-          setError(e instanceof Error ? e.message : t('auth.error.unknown'));
+        // The session can lapse between changeEmail() sending this link and
+        // the user tapping it (e.g. signed out on another device, token
+        // expired). completeReauth requires a live session, so retrying it
+        // here would just wedge on 'not-signed-in' forever. Clear the stale
+        // intent and fall through to the normal email-link sign-in path
+        // instead of getting stuck.
+        if (!user) {
+          await clearPendingReauth();
+        } else {
+          setStatus('completing');
+          try {
+            await completeReauth(url);
+            setStatus('reauth-done');
+            router.replace('/settings');
+          } catch (e) {
+            setStatus('error');
+            setError(e instanceof Error ? e.message : t('auth.error.unknown'));
+          }
+          return;
         }
-        return;
       }
       const stored = await readPendingEmail();
       if (stored) {
@@ -61,7 +84,16 @@ export default function FinishScreen() {
         setStatus('needs-email');
       }
     })();
-  }, [isEmailLink, readPendingEmail, readPendingReauth, completeReauth, t]);
+  }, [
+    authLoading,
+    isEmailLink,
+    readPendingEmail,
+    readPendingReauth,
+    completeReauth,
+    clearPendingReauth,
+    user,
+    t,
+  ]);
 
   async function tryComplete(url: string, emailToUse: string) {
     setStatus('completing');

@@ -127,6 +127,7 @@ export interface AuthContextValue {
   changeEmail: (newEmail: string) => Promise<void>;
   completeReauth: (url: string) => Promise<void>;
   readPendingReauth: () => Promise<{ purpose: string; newEmail?: string } | null>;
+  clearPendingReauth: () => Promise<void>;
   /** Provider id of the user's primary sign-in method (e.g. 'password', 'google.com'). */
   emailProvider: string | null;
   signOut: () => Promise<void>;
@@ -346,7 +347,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const completeReauth = async (url: string): Promise<void> => {
     const auth = getAuth();
     const currentUser = auth.currentUser;
-    if (!currentUser) throw new Error('not-signed-in');
+    if (!currentUser) {
+      // The session lapsed between changeEmail() sending the re-auth link and
+      // the user tapping it. Clear the stale intent so it can't wedge every
+      // future email-link sign-in — see finish.tsx, which checks
+      // readPendingReauth() before the normal sign-in path.
+      await AsyncStorage.removeItem(PENDING_REAUTH_KEY);
+      throw new Error('not-signed-in');
+    }
     if (!isSignInWithEmailLink(auth, url)) throw new Error('not-an-email-link');
     const currentEmail = currentUser.email;
     if (!currentEmail) throw new Error('email-required');
@@ -368,7 +376,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return JSON.parse(stored) as { purpose: string; newEmail?: string };
   };
 
-  const emailProvider = user?.providerData[0]?.providerId ?? null;
+  const clearPendingReauth = async (): Promise<void> => {
+    await AsyncStorage.removeItem(PENDING_REAUTH_KEY);
+  };
+
+  // Change-email is gated on this value (see settings screen). A Google-linked
+  // account can also have a password/emailLink provider attached (e.g. after
+  // linking); check ALL providers rather than just the first so that case
+  // still allows change-email. Falls back to the first provider (e.g.
+  // 'google.com') when no password/emailLink provider is present, so a
+  // Google-only account is still correctly gated out.
+  const emailProvider =
+    user?.providerData.find((p) => p.providerId === 'password' || p.providerId === 'emailLink')
+      ?.providerId ??
+    user?.providerData[0]?.providerId ??
+    null;
 
   const signOut = async (): Promise<void> => {
     // Tear down every registered Firestore listener BEFORE auth flips closed,
@@ -404,6 +426,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         changeEmail,
         completeReauth,
         readPendingReauth,
+        clearPendingReauth,
         emailProvider,
         signOut,
       }}

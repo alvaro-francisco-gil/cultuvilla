@@ -12,6 +12,8 @@ import { useFirestoreDoc } from '@cultuvilla/shared/hooks';
 import { userDoc, personDoc, organizationDoc } from '@cultuvilla/shared/firebase/refs/client';
 import { buildDisplayName } from '@cultuvilla/shared/models/person/PersonDataModel';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
+import { DELETED_USER_UID } from '@cultuvilla/shared/models/user';
+import { useT } from './i18n';
 
 /**
  * Owners whose document carries a name + image we resolve live. `person` and
@@ -41,8 +43,11 @@ export function useOwnerSummary(
   ownerId: string | null | undefined,
   ownerType: OwnerType,
 ): OwnerSummary {
+  const { t } = useT();
+  const isDeletedUser = ownerType === 'user' && ownerId === DELETED_USER_UID;
+
   const ref = useMemo(() => {
-    if (!ownerId) return null;
+    if (!ownerId || isDeletedUser) return null;
     const db = getDb();
     switch (ownerType) {
       case 'user':
@@ -54,7 +59,7 @@ export function useOwnerSummary(
       default:
         return null;
     }
-  }, [ownerId, ownerType]);
+  }, [ownerId, ownerType, isDeletedUser]);
 
   // The per-collection converters give each ref a distinct DocumentReference<T>,
   // so we erase to the hook's own parameter type and re-type the payload below.
@@ -79,7 +84,7 @@ export function useOwnerSummary(
   // resolve it once per uid and fall back to it when the user doc has no photo.
   const [personPhotoURL, setPersonPhotoURL] = useState<string | null>(null);
   useEffect(() => {
-    if (ownerType !== 'user' || !ownerId) {
+    if (ownerType !== 'user' || !ownerId || isDeletedUser) {
       setPersonPhotoURL(null);
       return;
     }
@@ -95,9 +100,12 @@ export function useOwnerSummary(
     return () => {
       cancelled = true;
     };
-  }, [ownerId, ownerType]);
+  }, [ownerId, ownerType, isDeletedUser]);
 
   return useMemo(() => {
+    if (isDeletedUser) {
+      return { name: t('settings.deletedUser'), imageUri: null, loading: false };
+    }
     if (!data) return { name: null, imageUri: null, loading };
     switch (ownerType) {
       case 'organization':
@@ -123,5 +131,5 @@ export function useOwnerSummary(
           loading,
         };
     }
-  }, [data, ownerType, loading, personPhotoURL]);
+  }, [data, ownerType, loading, personPhotoURL, isDeletedUser, t]);
 }
