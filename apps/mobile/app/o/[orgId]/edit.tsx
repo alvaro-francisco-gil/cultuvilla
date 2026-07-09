@@ -30,6 +30,7 @@ export default function OrgEditScreen() {
   const [saving, setSaving] = useState(false);
 
   const typeLabel = (ty: OrganizationType) => t(`organization.${ty}` as never);
+  const canEditType = PROPOSABLE_ORGANIZATION_TYPES.includes(type);
 
   useEffect(() => {
     if (!orgId) return;
@@ -104,10 +105,17 @@ export default function OrgEditScreen() {
           description={description}
           onChangeDescription={setDescription}
           descriptionLabel={t('organization.description')}
-          typeLabel={t('organization.type')}
-          typeOptions={PROPOSABLE_ORGANIZATION_TYPES.map((ty) => ({ value: ty, label: typeLabel(ty) }))}
-          typeValue={type}
-          onChangeType={(v) => setType(v as OrganizationType)}
+          {...(canEditType
+            ? {
+                typeLabel: t('organization.type'),
+                typeOptions: PROPOSABLE_ORGANIZATION_TYPES.map((ty) => ({
+                  value: ty,
+                  label: typeLabel(ty),
+                })),
+                typeValue: type,
+                onChangeType: (v: string) => setType(v as OrganizationType),
+              }
+            : {})}
           submitLabel={t('common.save')}
           submitTestID="org-edit-submit"
           onSubmit={submit}

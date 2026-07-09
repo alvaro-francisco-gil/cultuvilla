@@ -58,7 +58,7 @@ export default function PlaceEditScreen() {
     setSaving(true);
     try {
       await updatePlace(villageId, placeId, {
-        name: name.trim(), kind, description: description.trim(),
+        name: name.trim(), kind, description: description.trim() || null,
       });
       if (image) {
         const imageURL = await uploadPlaceImage(villageId, placeId, image);

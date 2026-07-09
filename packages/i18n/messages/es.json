@@ -520,7 +520,7 @@
   },
   "organization": {
     "title": "Grupo",
-    "editTitle": "Editar agrupación",
+    "editTitle": "Editar grupo",
     "description": "Descripción",
     "membersCount": "{count} miembros",
     "join": "Unirme a este grupo",
