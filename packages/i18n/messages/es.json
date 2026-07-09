@@ -88,6 +88,43 @@
       "noProposals": "Sin propuestas pendientes"
     }
   },
+  "occupations": {
+    "catalog": {
+      "agricultor": "Agricultor/a",
+      "ganadero": "Ganadero/a",
+      "profesor": "Profesor/a",
+      "medico": "Médico/a",
+      "enfermero": "Enfermero/a",
+      "hosteleria": "Hostelería",
+      "construccion": "Construcción",
+      "comerciante": "Comerciante",
+      "funcionario": "Funcionario/a",
+      "estudiante": "Estudiante",
+      "jubilado": "Jubilado/a",
+      "autonomo": "Autónomo/a",
+      "administrativo": "Administrativo/a",
+      "transportista": "Transportista",
+      "electricista": "Electricista",
+      "fontanero": "Fontanero/a",
+      "mecanico": "Mecánico/a",
+      "panadero": "Panadero/a",
+      "peluquero": "Peluquero/a",
+      "limpieza": "Limpieza",
+      "veterinario": "Veterinario/a",
+      "abogado": "Abogado/a",
+      "arquitecto": "Arquitecto/a",
+      "ingeniero": "Ingeniero/a",
+      "cocinero": "Cocinero/a",
+      "camarero": "Camarero/a",
+      "albanil": "Albañil",
+      "carpintero": "Carpintero/a",
+      "informatico": "Informático/a",
+      "artesano": "Artesano/a",
+      "desempleado": "Desempleado/a",
+      "ama-de-casa": "Amo/a de casa",
+      "otro": "Otro"
+    }
+  },
   "feed": {
     "title": "Inicio",
     "empty": "No hay eventos próximos",
