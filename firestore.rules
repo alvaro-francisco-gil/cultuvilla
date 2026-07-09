@@ -131,6 +131,12 @@ service cloud.firestore {
       ]);
     }
 
+    // A client-writable `email` must equal the caller's verified Auth token
+    // claim — otherwise a user could spoof any email onto their own profile.
+    function isEmailUpdateVerified(reqData, affected) {
+      return !affected.hasAny(['email']) || reqData.email == request.auth.token.email;
+    }
+
     // Onboarding race: createPerson() fires syncPersonDenormalization, which
     // pre-creates users/{uid} carrying only `displayName`. The client's
     // subsequent createUserProfile() setDoc(merge) then lands on the UPDATE
@@ -505,6 +511,10 @@ service cloud.firestore {
                     && !request.resource.data.keys().hasAny(['displayName'])
                     && isValidUserCreate(request.resource.data);
       allow update: if isOwner(userId)
+                    && isEmailUpdateVerified(
+                         request.resource.data,
+                         request.resource.data.diff(resource.data).affectedKeys()
+                       )
                     && (
                          isValidUserUpdateKeys(
                            request.resource.data.diff(resource.data).affectedKeys()
