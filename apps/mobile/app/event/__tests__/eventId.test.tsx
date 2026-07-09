@@ -1,5 +1,7 @@
-import { render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import EventDetailScreen from '../[eventId]';
+
+const mockPush = jest.fn();
 
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
@@ -7,7 +9,12 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ eventId: 'e1' }),
-  router: { back: jest.fn(), push: jest.fn(), canGoBack: () => true, replace: jest.fn() },
+  router: {
+    back: jest.fn(),
+    push: (...args: unknown[]) => mockPush(...args),
+    canGoBack: () => true,
+    replace: jest.fn(),
+  },
 }));
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../lib/auth/useAuth', () => ({ useAuth: () => ({ user: null }) }));
@@ -21,17 +28,37 @@ jest.mock('@cultuvilla/shared/services/eventService', () => ({
     id: 'e1', title: 'Verbena', startDate: new Date('2026-07-12T20:00:00Z'), endDate: null,
     description: 'baile', imageURL: null, villageCoverImage: null, location: null,
     organizerUserIds: [], organizerOrgIds: [], telephoneRequired: false,
+    municipalityId: 'm1', villageName: 'Villapueblo',
   }),
 }));
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({ getEventLink: () => 'https://x' }));
 jest.mock('@cultuvilla/shared/services/personService', () => ({ getPersonByUserId: jest.fn().mockResolvedValue(null) }));
+jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
+  getMunicipality: jest.fn().mockResolvedValue({
+    id: 'm1', name: 'Villapueblo', escudoUrl: null, escudoThumbUrl: null, escudoManualUrl: null,
+  }),
+}));
 jest.mock('@cultuvilla/shared/models/person/PersonDataModel', () => ({ buildDisplayName: () => 'N' }));
 jest.mock('@cultuvilla/shared/utils', () => ({ formatDate: () => '12 jul', buildGoogleCalendarUrl: () => 'https://cal' }));
 
 describe('EventDetailScreen', () => {
+  beforeEach(() => mockPush.mockClear());
+
   it('renders the event title and the guest CTA', async () => {
     const { getByText } = render(<EventDetailScreen />);
     await waitFor(() => getByText('Verbena'));
     getByText('guest.eventCta');
+  });
+
+  it('renders the Pueblo section and navigates to the village on press', async () => {
+    const { getByLabelText, getByText } = render(<EventDetailScreen />);
+    await waitFor(() => getByText('event.villageLabel'));
+    getByText('Villapueblo');
+
+    fireEvent.press(getByLabelText('Villapueblo'));
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/village/[villageId]',
+      params: { villageId: 'm1' },
+    });
   });
 });
