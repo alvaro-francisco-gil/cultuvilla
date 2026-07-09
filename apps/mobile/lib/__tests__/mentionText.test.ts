@@ -3,6 +3,7 @@ import {
   activeMentionQuery,
   adjustMentions,
   insertMention,
+  mentionRuns,
   splitMentionsAtCaret,
   type MentionCandidate,
 } from '../mentionText';
@@ -105,5 +106,30 @@ describe('insertMention', () => {
     // '@A' (2 chars) -> '@Peña El Barrio ' grows the text; the 'end' span shifts right
     const shifted = res.mentions.find((m) => m.entityId === 'p')!;
     expect(shifted.offset).toBeGreaterThan(3);
+  });
+});
+
+describe('mentionRuns', () => {
+  it('splits text into plain and mention runs', () => {
+    const m = [mention(5, 3, 'abc')]; // "abc" in "hola abc!"
+    expect(mentionRuns('hola abc!', m)).toEqual([
+      { text: 'hola ' },
+      { text: 'abc', mention: m[0] },
+      { text: '!' },
+    ]);
+  });
+
+  it('skips an out-of-range span but keeps the prose', () => {
+    const m = [mention(20, 3)];
+    expect(mentionRuns('short', m)).toEqual([{ text: 'short' }]);
+  });
+
+  it('skips a span overlapping an earlier one', () => {
+    const a = mention(0, 4, 'aaaa');
+    const b = mention(2, 4, 'bbbb'); // overlaps a
+    expect(mentionRuns('aaaabbbb', [a, b])).toEqual([
+      { text: 'aaaa', mention: a },
+      { text: 'bbbb' },
+    ]);
   });
 });

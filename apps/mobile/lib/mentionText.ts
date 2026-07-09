@@ -1,5 +1,12 @@
 import type { NewsMention, MentionEntityType } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 
+export interface MentionRun {
+  /** The characters of this run, as they appear in the block text. */
+  text: string;
+  /** Present when this run is a committed mention span. */
+  mention?: NewsMention;
+}
+
 /**
  * Pure helpers backing the `@`-mention behaviour of a plain-text `TextInput`.
  *
@@ -163,4 +170,23 @@ export function insertMention(
     mentions: [...shifted, newMention].sort((a, b) => a.offset - b.offset),
     cursor: active.startIndex + labelText.length + 1,
   };
+}
+
+/**
+ * Split `text` into ordered runs of plain prose and mention spans. Spans that
+ * are out of range, non-positive length, or overlap an earlier span are skipped
+ * (their characters fall back to plain prose) so a malformed block still renders.
+ */
+export function mentionRuns(text: string, mentions: NewsMention[]): MentionRun[] {
+  const sorted = [...mentions].sort((a, b) => a.offset - b.offset);
+  const runs: MentionRun[] = [];
+  let cursor = 0;
+  for (const m of sorted) {
+    if (m.offset < cursor || m.offset + m.length > text.length || m.length <= 0) continue;
+    if (m.offset > cursor) runs.push({ text: text.slice(cursor, m.offset) });
+    runs.push({ text: text.slice(m.offset, m.offset + m.length), mention: m });
+    cursor = m.offset + m.length;
+  }
+  if (cursor < text.length) runs.push({ text: text.slice(cursor) });
+  return runs;
 }
