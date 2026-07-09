@@ -33,10 +33,10 @@ test.describe('organization: create → approve → join', () => {
     );
     const orgId = pending!.id;
 
-    // ── Village admin approves it from the Recibidas inbox. ──
+    // ── Village admin approves it from the Buzón's actionable section. ──
     await fixtureSignOut(page);
     await fixtureLogin(page, fixtures.admin.email);
-    await page.goto('/solicitudes');
+    await page.goto('/inbox');
 
     const approve = page.locator('[data-testid^="approve-org-"]').first();
     await expect(approve).toBeVisible({ timeout: 30_000 });

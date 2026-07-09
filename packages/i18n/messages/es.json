@@ -693,33 +693,30 @@
     "alreadyMember": "Ya eres miembro"
   },
   "solicitudes": {
-    "title": "Solicitudes",
-    "empty": "No hay solicitudes pendientes",
+    "title": "Solicitudes"
+  },
+  "inbox": {
+    "title": "Buzón",
+    "needsAction": "Necesita tu acción",
+    "activity": "Actividad",
+    "empty": "No tienes nada nuevo",
     "tab": {
       "organizer": "Administrador",
       "org": "Grupos",
-      "join": "Unirse",
-      "inbox": "Recibidas",
-      "outbox": "Enviadas"
-    },
-    "status": {
-      "pending": "Pendiente",
-      "approved": "Aprobada",
-      "rejected": "Rechazada"
-    },
-    "outbox": {
-      "empty": "No has enviado solicitudes",
-      "organizer": "Administrar {municipality}",
-      "org": "Crear {org}",
-      "join": "Unirse a {org}"
+      "join": "Unirse"
     },
     "approve": "Aprobar",
     "reject": "Rechazar",
-    "organizerRow": "{user} quiere administrar {municipality}",
     "wantsToAdminister": "quiere administrar",
     "motivation": "Motivo",
     "joinRow": "{user} quiere unirse a {org}",
-    "orgRow": "{org} ({type})"
+    "orgRow": "{org} ({type})",
+    "pendingSent": {
+      "organizer": "Quieres administrar {name}",
+      "org": "Quieres crear {name}",
+      "join": "Quieres unirte a {name}",
+      "waiting": "Esperando aprobación"
+    }
   },
   "requests": {
     "organizer": {
