@@ -7,8 +7,8 @@ import {
   personsCollection,
   userDoc,
 } from '@cultuvilla/shared/firebase/refs/admin';
-import { buildPersonData, buildUserData } from '@cultuvilla/shared/models';
-import type { VillageMemberData, PartialDate } from '@cultuvilla/shared';
+import { buildPersonData, buildUserData, buildResidenceLinks } from '@cultuvilla/shared/models';
+import type { VillageMemberData, PartialDate, MunicipalityLink } from '@cultuvilla/shared';
 
 const db = getFirestore();
 
@@ -70,6 +70,23 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
         throw new HttpsError('failed-precondition', 'El enlace de invitación ha expirado.');
       }
 
+      // An EXISTING user about to become a member needs their residence link
+      // upserted into their (existing) person doc — the create-side projection
+      // the trigger used to do. All tx reads must precede tx writes, so read the
+      // person here. New users get the link via buildPersonData below instead.
+      let existingPersonId: string | null = null;
+      let existingPersonLinks: MunicipalityLink[] = [];
+      if (userSnap.exists && !memberSnap.exists) {
+        const personId = userSnap.data()?.personId ?? null;
+        if (personId) {
+          const personSnap = await tx.get(personsCollection(db).doc(personId));
+          if (personSnap.exists) {
+            existingPersonId = personId;
+            existingPersonLinks = personSnap.data()?.municipalityLinks ?? [];
+          }
+        }
+      }
+
       // Profile handling: create if missing and profile data provided.
       let profileCreated = false;
       if (!userSnap.exists) {
@@ -115,6 +132,9 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
             photoURL: profile.photoURL ?? null,
             userId,
             createdBy: userId,
+            // Invited members join at whole-village level; the residence link
+            // makes them appear in getPersonsByBarrio (no create-side trigger).
+            municipalityLinks: buildResidenceLinks(municipalityId, null),
           }),
         );
         // tx.update bypasses the converter so a partial { personId } update
@@ -145,6 +165,17 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
         barrioId: null,
       };
       tx.set(memberRef, newMember);
+      // Project the residence link for an existing user (new users got it via
+      // buildPersonData above). tx.update bypasses the converter, so a partial
+      // { municipalityLinks } write is fine. buildResidenceLinks is the single
+      // constructor of the exact { municipalityId, barrioId } shape that the
+      // getPersonsByBarrio array-contains query matches on.
+      if (existingPersonId) {
+        const others = existingPersonLinks.filter((l) => l.municipalityId !== municipalityId);
+        tx.update(personsCollection(db).doc(existingPersonId), {
+          municipalityLinks: [...others, ...buildResidenceLinks(municipalityId, null)],
+        });
+      }
       // tx.update bypasses the converter, so FieldValue.increment is fine.
       tx.update(tokenRef, {
         usageCount: FieldValue.increment(1),

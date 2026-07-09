@@ -10,11 +10,11 @@ projection trigger to the one branch that genuinely needs server privilege.
 ## Status
 
 - **Updated:** 2026-07-09
-- **Stage:** Stage 1 — server privileged paths (acceptInvite projection + delete-only trigger)
+- **Stage:** Stage 2 — shared single source + atomic join
 - **Branch:** `refactor/residence-single-source` (worktree `.claude/worktrees/residence-single-source`)
-- **Done:** none yet
-- **Next:** project `municipalityLinks` in `acceptInvite`; reduce trigger to delete-only; rewrite trigger test
-- **Blockers:** none. Validation decision resolved (accept unvalidated; shared callable is the named upgrade path).
+- **Done:** Stage 1 — acceptInvite projects the residence link (new + existing user); trigger reduced to delete-only (`onDocumentDeleted`); trigger test rewritten; new acceptInvite test added. Functions typecheck + lint green.
+- **Next:** drop `barrioId` from `VillageMemberData` + `UserMembership`; make `joinVillage` an atomic batch via `buildResidenceLinks`; remove `updateVillageMemberBarrio`, add change-barrio person-write path; vitest.
+- **Blockers:** `pnpm test:functions` must be run by the user (agent can't boot emulators). Validation decision resolved (accept unvalidated; shared callable is the named upgrade path).
 - **Handoff:** Work happens in the worktree — session cwd is the primary checkout, so use absolute worktree paths. `pnpm test`/emulator suites are off-limits to the agent; rely on `pnpm typecheck` + non-emulator vitest, and hand emulator/functions test runs to the user. Every residence-link write MUST go through `buildResidenceLinks` (exact `{municipalityId,barrioId}` shape for the array-contains query).
 
 ## Context
@@ -194,12 +194,15 @@ only re-introduces the asymmetry this refactor removes.
 ## Tasks
 
 ### Stage 1 — Server: preserve both privileged paths
-- [ ] Add `municipalityLinks` projection (via `buildResidenceLinks(id, null)`) to the
-      `acceptInvite` create transaction.
-- [ ] Update the `acceptInvite` test to assert the residence link is written.
-- [ ] Reduce `syncMemberBarrioToResidence` to the delete branch only.
-- [ ] Rewrite `syncMemberBarrioToResidence.test.ts` for delete-only.
-- [ ] `pnpm test:functions` green.
+- [x] Add `municipalityLinks` projection (via `buildResidenceLinks(id, null)`) to the
+      `acceptInvite` create transaction. (New user: via `buildPersonData`; existing
+      user: read-in-tx + upsert.)
+- [x] Add an `acceptInvite` test asserting the residence link is written (new +
+      existing user, plus already-member no-dupe). New file — none existed before.
+- [x] Reduce `syncMemberBarrioToResidence` to delete-only (`onDocumentDeleted`).
+- [x] Rewrite `syncMemberBarrioToResidence.test.ts` for delete-only.
+- [ ] `pnpm test:functions` green. — **needs the user to run** (emulator suite;
+      agent is not permitted to boot emulators). Typecheck + lint pass.
 
 ### Stage 2 — Shared: single source + atomic join
 - [ ] Route every residence-link write through `buildResidenceLinks` (audit call
