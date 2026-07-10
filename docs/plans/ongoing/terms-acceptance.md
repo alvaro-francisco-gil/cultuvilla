@@ -9,15 +9,23 @@ documents (Spanish, RGPD/LOPDGDD + LSSI-CE compliant) as in-app screens.
 ## Status
 
 - **Updated:** 2026-07-10
-- **Stage:** Task 1 — shared model (consent fields + version constant)
+- **Stage:** implementation complete — awaiting emulator test run + visual QA, then PR
 - **Branch:** `feat/terms-acceptance` (worktree `.claude/worktrees/terms-acceptance`)
-- **Done:** design + legal drafts + implementation plan written and committed
-- **Next:** implement Task 1 (UserDataModel fields, `CURRENT_TERMS_VERSION`, builder + test)
-- **Blockers:** none
-- **Handoff:** Legal text source of truth is `docs/legal/*.md`; the content module (Task 5)
-  transcribes it verbatim. Emulator-backed steps (rules test, dev backfill, app run) are
-  marked "ASK USER TO RUN" — Claude does not run emulators/dev servers here. Confirm
-  `serverTimestamp` is re-exported from `@cultuvilla/shared/firebase` before Task 6.
+- **Done:** Tasks 1–9 all implemented and committed. Model fields + `CURRENT_TERMS_VERSION`;
+  service stamps consent; firestore.rules allowlists updated; `Checkbox` primitive; legal
+  content module + `LegalDocScreen` + `/legal/{terms,privacy}` routes; onboarding consent
+  gate; menu entries wired; dev backfill run (12 users patched, `check:dev-conformance`
+  PASS). Green locally: `pnpm lint`, `pnpm typecheck`, mobile jest (367), shared vitest
+  (565), shared build.
+- **Next:** (1) USER runs emulator suites: `pnpm --filter @cultuvilla/shared test:rules`
+  (usersRules) + `pnpm test:functions`. (2) USER visually QAs onboarding gate + legal
+  screens. (3) Open PR to `develop`; deploy rules to dev via `firestore-deploy` skill.
+- **Blockers:** none code-side; emulator tests + visual QA are the only unrun steps.
+- **Handoff:** The screen does NOT import `serverTimestamp` — `createUserProfile` defaults
+  `termsAcceptedAt` to a server timestamp, so the screen only passes `termsVersion`
+  (keeps the service-layer boundary intact; no shared/firebase re-export needed). Legal
+  text source of truth is `docs/legal/*.md`; the content module transcribes it verbatim —
+  edit both together. Worktree needed `pnpm install` + `npm ci` in `functions/` for lint.
 
 ## Context
 
