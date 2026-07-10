@@ -109,6 +109,39 @@ without joining the persons collection.
   person delete — the user's name is still a useful last-known value; an
   explicit account flow can clear it later if needed.
 
+### `commentCount`, `reactionCounts: {like, heart}` ← `comments/`, `reactions/`
+
+Every entity kind (event, organization, festivalPoster, place, barrio, news)
+carries a running comment count and like/heart reaction counts on its own
+doc, so cards and detail screens can show them without a `getCountFromServer`
+per entity per render.
+
+- **Source of truth:** the generic top-level `comments/` and `reactions/`
+  collections, each doc carrying `entityKind` + `entityId` (+ `municipalityId`
+  for routing to nested parents).
+- **Trigger:** [functions/src/interaction/syncEntityInteractionCounts.ts](../../functions/src/interaction/syncEntityInteractionCounts.ts)
+  — `syncEntityCommentCount` and `syncEntityReactionCounts`, both
+  `onDocumentWritten` on their respective collections. Each routes by
+  `entityKind` to the right parent doc: top-level for `event` /
+  `organization` / `festivalPoster` / `news`, nested
+  (`municipalities/{municipalityId}/places/{id}` or `.../barrios/{id}`) for
+  `place` / `barrio`. Counts are incremented/decremented with
+  `FieldValue.increment`, not recomputed from a full scan — this is a
+  counter, not a projected copy (see "Counters vs. denormalization" below).
+- **Rules:** `firestore.rules` excludes `commentCount` and `reactionCounts`
+  from every entity doc's client-writable update fields; only the trigger
+  (admin SDK) can change them. Create rules require both fields present and
+  zeroed.
+- **Backfill:** [scripts/backfill-entity-comment-counts.mjs](../../scripts/backfill-entity-comment-counts.mjs)
+  reconciles existing entity docs against the actual `comments`/`reactions`
+  data.
+- **Delete behavior:** deleting an entity does not need to zero its own
+  counts (the doc goes away); deleting a `comments`/`reactions` doc via
+  cascade (e.g. `deleteNewsPost`) still fires the trigger per deleted doc, so
+  counts on a *surviving* parent stay correct. A parent deleted out from
+  under a still-in-flight trigger is a no-op (`isNotFound` guard), not a
+  retry loop.
+
 ## Adding a new denormalized field — checklist
 
 1. Add the field to the **read-model document's** data model in `packages/shared/src/models/`.

@@ -37,14 +37,14 @@ export { syncPersonDenormalization } from './users/syncPersonDenormalization';
 export { checkAccountDeletable } from './account/checkAccountDeletable';
 export { deleteAccount } from './account/deleteAccount';
 
-// News (posts, reactions, comments)
+// News (posts)
 export { deleteNewsPost } from './news/deleteNewsPost';
-export { resolveNewsReport } from './news/resolveNewsReport';
-export { syncNewsReactionCounts } from './news/syncNewsReactionCounts';
-export { syncNewsCommentCount } from './news/syncNewsCommentCount';
 
 // Content moderation (hide/unhide across news, festival posters, barrios, places)
 export { setContentVisibility } from './moderation/setContentVisibility';
+
+// Interaction (entity comment/reaction count sync, entityKind-routed)
+export { syncEntityCommentCount, syncEntityReactionCounts } from './interaction/syncEntityInteractionCounts';
 
 // Share-link Open Graph preview renderer (HTTPS function behind a Hosting rewrite).
 export { ogRenderer } from './og/render';

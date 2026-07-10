@@ -29,6 +29,8 @@ async function seedOrg(status: 'pending' | 'approved' | 'rejected'): Promise<voi
     reviewedBy: APP_ADMIN_ID,
     createdAt: new Date(),
     reviewedAt: new Date(),
+    commentCount: 0,
+    reactionCounts: { like: 0, heart: 0 },
   });
 }
 

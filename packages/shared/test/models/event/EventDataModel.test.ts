@@ -29,6 +29,8 @@ const validEvent = {
   villageCoordinates: { lat: 40.4, lng: -3.7 },
   confirmedCount: 0,
   totalCount: 0,
+  commentCount: 0,
+  reactionCounts: { like: 0, heart: 0 },
   endBoundary: new Date('2026-06-15T18:00:00Z'),
 };
 
@@ -107,6 +109,7 @@ describe('isEventFull', () => {
     villageCoverImage: null,
     villageCoordinates: { lat: 1, lng: 2 },
     confirmedCount: 0, totalCount: 0,
+    commentCount: 0, reactionCounts: { like: 0, heart: 0 },
     endBoundary: new Date('2026-06-15T18:00:00Z'),
   });
 
@@ -138,6 +141,7 @@ describe('isEventSignupOpen', () => {
     villageCoverImage: null,
     villageCoordinates: { lat: 1, lng: 2 },
     confirmedCount: 0, totalCount: 0,
+    commentCount: 0, reactionCounts: { like: 0, heart: 0 },
     endBoundary: new Date('2026-06-15T18:00:00Z'),
   });
 

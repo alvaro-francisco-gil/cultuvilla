@@ -187,54 +187,6 @@ service cloud.firestore {
           && d.commentCount is number;
     }
 
-    function isValidNewsCommentCreate(d) {
-      return d.keys().hasOnly([
-              'postId', 'municipalityId', 'authorUserId', 'body', 'createdAt', 'hidden',
-            ])
-          && d.keys().hasAll([
-              'postId', 'municipalityId', 'authorUserId', 'body', 'createdAt', 'hidden',
-            ])
-          && isString(d.postId)
-          && isString(d.municipalityId)
-          && isString(d.authorUserId)
-          && isString(d.body)
-          && isTimestamp(d.createdAt)
-          && isBool(d.hidden);
-    }
-
-    function isValidNewsReactionWrite(d) {
-      return d.keys().hasOnly(['postId', 'municipalityId', 'userId', 'kind', 'createdAt'])
-          && d.keys().hasAll(['postId', 'municipalityId', 'userId', 'kind', 'createdAt'])
-          && isString(d.postId)
-          && isString(d.municipalityId)
-          && isString(d.userId)
-          && d.kind in ['like', 'heart']
-          && isTimestamp(d.createdAt);
-    }
-
-    function isValidNewsReportCreate(d) {
-      return d.keys().hasOnly([
-              'targetType', 'targetId', 'postId', 'municipalityId',
-              'reporterUserId', 'reason', 'createdAt', 'status',
-              'resolvedBy', 'resolvedAt',
-            ])
-          && d.keys().hasAll([
-              'targetType', 'targetId', 'postId', 'municipalityId',
-              'reporterUserId', 'reason', 'createdAt', 'status',
-              'resolvedBy', 'resolvedAt',
-            ])
-          && d.targetType in ['comment']
-          && isString(d.targetId)
-          && isString(d.postId)
-          && isString(d.municipalityId)
-          && isString(d.reporterUserId)
-          && isString(d.reason)
-          && isTimestamp(d.createdAt)
-          && d.status in ['open', 'dismissed', 'actioned']
-          && isStringOrNull(d.resolvedBy)
-          && isTimestampOrNull(d.resolvedAt);
-    }
-
     function isValidPersonCreate(d) {
       return d.keys().hasOnly([
               'givenName', 'middleNames', 'firstSurname', 'secondSurname',
@@ -281,10 +233,12 @@ service cloud.firestore {
       return d.keys().hasOnly([
               'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
               'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
+              'commentCount', 'reactionCounts',
             ])
           && d.keys().hasAll([
               'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
               'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
+              'commentCount', 'reactionCounts',
             ])
           && isString(d.name)
           && isStringOrNull(d.description)
@@ -295,17 +249,22 @@ service cloud.firestore {
           && isString(d.requestedBy)
           && isStringOrNull(d.reviewedBy)
           && isTimestamp(d.createdAt)
-          && isTimestampOrNull(d.reviewedAt);
+          && isTimestampOrNull(d.reviewedAt)
+          && d.commentCount == 0
+          && d.reactionCounts.like == 0
+          && d.reactionCounts.heart == 0;
     }
 
     function isValidPlaceCreate(d) {
       return d.keys().hasOnly([
               'name', 'kind', 'description', 'municipalityId', 'imageURL',
               'createdAt', 'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+              'commentCount', 'reactionCounts',
             ])
           && d.keys().hasAll([
               'name', 'kind', 'description', 'municipalityId', 'imageURL',
               'createdAt', 'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+              'commentCount', 'reactionCounts',
             ])
           && isString(d.name)
           && d.kind in ['cemetery', 'church', 'hermitage', 'plaza', 'town_hall', 'otros']
@@ -317,7 +276,10 @@ service cloud.firestore {
           && isStringOrNull(d.proposedBy)
           && d.hiddenBy == null
           && d.hiddenAt == null
-          && d.hiddenReason == null;
+          && d.hiddenReason == null
+          && d.commentCount == 0
+          && d.reactionCounts.like == 0
+          && d.reactionCounts.heart == 0;
     }
 
     function isValidFestivalPosterCreate(d) {
@@ -325,11 +287,13 @@ service cloud.firestore {
               'municipalityId', 'proposedBy', 'year', 'title', 'imageURL',
               'datePrecision', 'startsAt', 'endsAt', 'createdAt',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+              'commentCount', 'reactionCounts',
             ])
           && d.keys().hasAll([
               'municipalityId', 'proposedBy', 'year', 'title', 'imageURL',
               'datePrecision', 'startsAt', 'endsAt', 'createdAt',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+              'commentCount', 'reactionCounts',
             ])
           && isString(d.municipalityId)
           && isStringOrNull(d.proposedBy)
@@ -343,7 +307,10 @@ service cloud.firestore {
           && d.status == 'active'
           && d.hiddenBy == null
           && d.hiddenAt == null
-          && d.hiddenReason == null;
+          && d.hiddenReason == null
+          && d.commentCount == 0
+          && d.reactionCounts.like == 0
+          && d.reactionCounts.heart == 0;
     }
 
     function isValidJoinRequestCreate(d) {
@@ -359,10 +326,12 @@ service cloud.firestore {
       return d.keys().hasOnly([
               'name', 'municipalityId', 'imageURL', 'createdAt',
               'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+              'commentCount', 'reactionCounts',
             ])
           && d.keys().hasAll([
               'name', 'municipalityId', 'imageURL', 'createdAt',
               'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+              'commentCount', 'reactionCounts',
             ])
           && isString(d.name)
           && isString(d.municipalityId)
@@ -372,7 +341,10 @@ service cloud.firestore {
           && isStringOrNull(d.proposedBy)
           && d.hiddenBy == null
           && d.hiddenAt == null
-          && d.hiddenReason == null;
+          && d.hiddenReason == null
+          && d.commentCount == 0
+          && d.reactionCounts.like == 0
+          && d.reactionCounts.heart == 0;
     }
 
     function isValidEventCreate(d) {
@@ -383,6 +355,7 @@ service cloud.firestore {
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
               'villageCoverImage', 'villageCoordinates',
               'confirmedCount', 'totalCount',
+              'commentCount', 'reactionCounts',
             ])
           && d.keys().hasAll([
               'title', 'description', 'startDate', 'endDate', 'endBoundary', 'location',
@@ -390,6 +363,7 @@ service cloud.firestore {
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
               'villageCoverImage', 'villageCoordinates',
+              'commentCount', 'reactionCounts',
             ])
           && isString(d.title)
           && isString(d.description)
@@ -415,7 +389,36 @@ service cloud.firestore {
           && isString(d.municipalityId)
           && isString(d.villageName)
           && isStringOrNull(d.villageCoverImage)
-          && isLatLngOrNull(d.villageCoordinates);
+          && isLatLngOrNull(d.villageCoordinates)
+          && d.commentCount == 0
+          && d.reactionCounts.like == 0
+          && d.reactionCounts.heart == 0;
+    }
+
+    function isValidEntityKind(v) {
+      return v in ['event', 'festivalPoster', 'place', 'barrio', 'organization', 'news'];
+    }
+
+    function isValidCommentCreate(d) {
+      return d.keys().hasOnly(['entityKind', 'entityId', 'municipalityId', 'authorUserId', 'body', 'createdAt'])
+          && d.keys().hasAll(['entityKind', 'entityId', 'municipalityId', 'authorUserId', 'body', 'createdAt'])
+          && isValidEntityKind(d.entityKind)
+          && isString(d.entityId)
+          && isString(d.municipalityId)
+          && isString(d.authorUserId)
+          && isString(d.body) && d.body.size() > 0 && d.body.size() <= 2000
+          && isTimestamp(d.createdAt);
+    }
+
+    function isValidReactionWrite(d) {
+      return d.keys().hasOnly(['entityKind', 'entityId', 'municipalityId', 'userId', 'kind', 'createdAt'])
+          && d.keys().hasAll(['entityKind', 'entityId', 'municipalityId', 'userId', 'kind', 'createdAt'])
+          && isValidEntityKind(d.entityKind)
+          && isString(d.entityId)
+          && isString(d.municipalityId)
+          && isString(d.userId)
+          && d.kind in ['like', 'heart']
+          && isTimestamp(d.createdAt);
     }
 
     // ── Collections ──────────────────────────────────────────────────────
@@ -455,40 +458,29 @@ service cloud.firestore {
                            'reactionCounts','commentCount'
                          ]);
       // Clients never delete a post directly — the deleteNewsPost callable
-      // cascades comments/reactions/reports with the admin SDK (author or admin).
+      // cascades comments/reactions with the admin SDK (author or admin).
       allow delete: if false;
     }
 
-    match /newsComments/{commentId} {
-      allow read: if isVillageMember(resource.data.municipalityId);
-      allow create: if isVillageMember(request.resource.data.municipalityId)
-                      && isValidNewsCommentCreate(request.resource.data)
-                      && request.resource.data.authorUserId == request.auth.uid
-                      && request.resource.data.hidden == false;
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if isAuthenticated()
+                      && isValidCommentCreate(request.resource.data)
+                      && request.resource.data.authorUserId == request.auth.uid;
       allow update: if false;
-      allow delete: if isOwner(resource.data.authorUserId);
+      allow delete: if isOwner(resource.data.authorUserId)
+                      || isVillageAdmin(resource.data.municipalityId)
+                      || isAppAdmin();
     }
 
-    match /newsReactions/{reactionId} {
-      allow read: if isVillageMember(resource.data.municipalityId);
-      allow create, update: if isVillageMember(request.resource.data.municipalityId)
-                              && isValidNewsReactionWrite(request.resource.data)
+    match /reactions/{reactionId} {
+      allow read: if true;
+      allow create, update: if isAuthenticated()
+                              && isValidReactionWrite(request.resource.data)
                               && request.resource.data.userId == request.auth.uid
-                              && reactionId == request.resource.data.postId + '_' + request.auth.uid;
+                              && reactionId == request.resource.data.entityKind + '_'
+                                   + request.resource.data.entityId + '_' + request.auth.uid;
       allow delete: if isOwner(resource.data.userId);
-    }
-
-    match /newsReports/{reportId} {
-      allow read: if isVillageAdmin(resource.data.municipalityId)
-                    || isOwner(resource.data.reporterUserId)
-                    || isAppAdmin();
-      allow create: if isVillageMember(request.resource.data.municipalityId)
-                      && isValidNewsReportCreate(request.resource.data)
-                      && request.resource.data.reporterUserId == request.auth.uid
-                      && request.resource.data.status == 'open'
-                      && request.resource.data.resolvedBy == null
-                      && request.resource.data.resolvedAt == null;
-      allow update, delete: if false;
     }
 
     match /admins/{userId} {
@@ -556,6 +548,7 @@ service cloud.firestore {
         allow update: if (isVillageAdmin(municipalityId) || isAppAdmin() || isOwner(resource.data.proposedBy))
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
                'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+               'commentCount', 'reactionCounts',
              ]);
         allow delete: if isVillageAdmin(municipalityId) || isAppAdmin()
           || (isOwner(resource.data.proposedBy) && resource.data.status == 'active');
@@ -573,6 +566,7 @@ service cloud.firestore {
         allow update: if (isVillageAdmin(municipalityId) || isAppAdmin() || isOwner(resource.data.proposedBy))
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
                'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+               'commentCount', 'reactionCounts',
              ]);
         allow delete: if isVillageAdmin(municipalityId) || isAppAdmin()
           || (isOwner(resource.data.proposedBy) && resource.data.status == 'active');
@@ -675,7 +669,8 @@ service cloud.firestore {
       // transaction. Clients may edit other fields or reject, never approve.
       allow update: if (isVillageAdmin(resource.data.municipalityId) || isAppAdmin())
         && (request.resource.data.status == resource.data.status
-            || request.resource.data.status == 'rejected');
+            || request.resource.data.status == 'rejected')
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['commentCount', 'reactionCounts']);
       allow delete: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
 
       match /members/{userId} {
@@ -721,7 +716,8 @@ service cloud.firestore {
         || isAppAdmin()
       )
         && request.resource.data.createdBy == resource.data.createdBy
-        && request.resource.data.municipalityId == resource.data.municipalityId;
+        && request.resource.data.municipalityId == resource.data.municipalityId
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['commentCount', 'reactionCounts']);
       allow delete: if isOwner(resource.data.createdBy)
         || (request.auth.uid in resource.data.organizerUserIds)
         || isVillageAdmin(resource.data.municipalityId)
@@ -784,11 +780,13 @@ service cloud.firestore {
              && isValidFestivalPosterCreate(request.resource.data)
              && request.resource.data.proposedBy == request.auth.uid
            );
-      // status/hiddenBy/hiddenAt/hiddenReason are function-owned (see
-      // setContentVisibility) — clients may never touch them here.
+      // status/hiddenBy/hiddenAt/hiddenReason and the interaction counters
+      // (commentCount/reactionCounts) are function-owned (see setContentVisibility
+      // and the interaction count triggers) — clients may never touch them here.
       allow update: if (isVillageAdmin(resource.data.municipalityId) || isAppAdmin() || isOwner(resource.data.proposedBy))
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
              'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+             'commentCount', 'reactionCounts',
            ]);
       allow delete: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin()
         || (isOwner(resource.data.proposedBy) && resource.data.status == 'active');

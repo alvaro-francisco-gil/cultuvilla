@@ -14,9 +14,8 @@ import { personConverterClient } from '../converters/personConverter.client';
 import { userConverterClient } from '../converters/userConverter.client';
 import { notificationConverterClient } from '../converters/notificationConverter.client';
 import { newsPostConverterClient } from '../converters/newsPostConverter.client';
-import { newsCommentConverterClient } from '../converters/newsCommentConverter.client';
-import { newsReactionConverterClient } from '../converters/newsReactionConverter.client';
-import { newsReportConverterClient } from '../converters/newsReportConverter.client';
+import { commentConverterClient } from '../converters/commentConverter.client';
+import { reactionConverterClient } from '../converters/reactionConverter.client';
 import { occupationConverterClient } from '../converters/occupationConverter.client';
 import { adminConverterClient } from '../converters/adminConverter.client';
 import { organizationJoinRequestConverterClient } from '../converters/organizationJoinRequestConverter.client';
@@ -125,23 +124,19 @@ export const newsCollection = (db: Firestore) =>
 export const newsDoc = (db: Firestore, postId: string) =>
   doc(db, 'news', postId).withConverter(newsPostConverterClient);
 
-export const newsCommentsCollection = (db: Firestore) =>
-  collection(db, 'newsComments').withConverter(newsCommentConverterClient);
+// ── Comments + reactions (generic, entity-scoped, top-level) ────────────
 
-export const newsCommentDoc = (db: Firestore, commentId: string) =>
-  doc(db, 'newsComments', commentId).withConverter(newsCommentConverterClient);
+export const commentsCollection = (db: Firestore) =>
+  collection(db, 'comments').withConverter(commentConverterClient);
 
-export const newsReactionsCollection = (db: Firestore) =>
-  collection(db, 'newsReactions').withConverter(newsReactionConverterClient);
+export const commentDoc = (db: Firestore, commentId: string) =>
+  doc(db, 'comments', commentId).withConverter(commentConverterClient);
 
-export const newsReactionDoc = (db: Firestore, reactionId: string) =>
-  doc(db, 'newsReactions', reactionId).withConverter(newsReactionConverterClient);
+export const reactionsCollection = (db: Firestore) =>
+  collection(db, 'reactions').withConverter(reactionConverterClient);
 
-export const newsReportsCollection = (db: Firestore) =>
-  collection(db, 'newsReports').withConverter(newsReportConverterClient);
-
-export const newsReportDoc = (db: Firestore, reportId: string) =>
-  doc(db, 'newsReports', reportId).withConverter(newsReportConverterClient);
+export const reactionDoc = (db: Firestore, reactionId: string) =>
+  doc(db, 'reactions', reactionId).withConverter(reactionConverterClient);
 
 export const festivalPostersCollection = (db: Firestore) =>
   collection(db, 'festivalPosters').withConverter(festivalPosterConverterClient);

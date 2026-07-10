@@ -4,6 +4,7 @@ import {
   reviewDecisionFields,
   type ReviewStatus,
 } from '../core/ReviewableDataModel';
+import { ReactionCountsSchema } from '../interaction/ReactionDataModel';
 
 export const OrganizationTypeSchema = z.enum(['ayuntamiento', 'peña', 'asociación', 'otros']);
 export type OrganizationType = z.infer<typeof OrganizationTypeSchema>;
@@ -31,6 +32,10 @@ export const OrganizationDataSchema = z.object({
   municipalityId: z.string(),
   requestedBy: z.string(),
   createdAt: z.date(),
+  // Denormalized interaction counters, maintained server-side by the comments /
+  // reactions Cloud Function triggers. Initialized to 0 at create.
+  commentCount: z.number().int(),
+  reactionCounts: ReactionCountsSchema,
   // status + reviewedBy + reviewedAt
   ...reviewDecisionFields,
 });
@@ -64,5 +69,7 @@ export function buildOrganizationData(input: OrganizationDataInput): Organizatio
     reviewedBy: input.reviewedBy ?? null,
     createdAt: input.createdAt ?? new Date(),
     reviewedAt: input.reviewedAt ?? null,
+    commentCount: 0,
+    reactionCounts: { like: 0, heart: 0 },
   };
 }

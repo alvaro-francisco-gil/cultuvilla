@@ -367,6 +367,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               sub={[p.title, formatFestivalPosterDates(p)].filter(Boolean).join(' · ') || undefined}
               icon="image-outline"
               imageUri={p.images[0] ?? null}
+              commentCount={p.commentCount}
               onPress={() => router.push(`${villageBase}/festival-poster/${p.id}` as never)}
             />
           ))}
@@ -386,6 +387,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               })}
               icon="map-outline"
               imageUri={b.imageURL}
+              commentCount={b.commentCount}
               onPress={() => router.push(`/village/${village.id}/barrio/${b.id}` as never)}
             />
           ))}
@@ -402,6 +404,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               label={p.name}
               icon="location-outline"
               imageUri={p.imageURL}
+              commentCount={p.commentCount}
               onPress={() => router.push(`/village/${village.id}/place/${p.id}` as never)}
             />
           ))}
@@ -419,6 +422,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
               icon="business-outline"
               imageUri={o.imageURL}
+              commentCount={o.commentCount}
               onPress={() => router.push(`/o/${o.id}` as never)}
             />
           ))}
@@ -436,6 +440,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
               icon="people-circle-outline"
               imageUri={o.imageURL}
+              commentCount={o.commentCount}
               onPress={() => router.push(`/o/${o.id}` as never)}
             />
           ))}

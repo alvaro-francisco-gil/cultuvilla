@@ -13,13 +13,17 @@
 
 import { describe, it } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, setDoc, GeoPoint } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, GeoPoint } from 'firebase/firestore';
 import { useRulesTestEnv } from '../helpers/rulesTestEnv';
 import { asUser, seed } from '../helpers/roles';
 
 const getEnv = useRulesTestEnv();
 
-async function seedMember(municipalityId: string, userId: string) {
+async function seedMember(
+  municipalityId: string,
+  userId: string,
+  extra: Record<string, unknown> = {},
+) {
   await seed(getEnv(), async (ctx) => {
     await setDoc(
       doc(ctx.firestore(), `municipalities/${municipalityId}/members/${userId}`),
@@ -28,6 +32,7 @@ async function seedMember(municipalityId: string, userId: string) {
         joinedAt: new Date(),
         profileAnswers: {},
         profileCompletedAt: null,
+        ...extra,
       },
     );
   });
@@ -91,78 +96,6 @@ describe('shape enforcement — /news/{postId}', () => {
     const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'news/p1'), { ...validNewsPayload, category: 'satire' }),
-    );
-  });
-});
-
-const validCommentPayload = {
-  postId: 'p1',
-  municipalityId: 'm1',
-  authorUserId: 'alice',
-  body: 'hi',
-  createdAt: new Date(),
-  hidden: false,
-};
-
-describe('shape enforcement — /newsComments/{commentId}', () => {
-  it('accepts a valid full-shape payload', async () => {
-    await seedMember('m1', 'alice');
-    const alice = asUser(getEnv(), 'alice');
-    await assertSucceeds(setDoc(doc(alice, 'newsComments/c1'), validCommentPayload));
-  });
-
-  it('rejects an unknown field', async () => {
-    await seedMember('m1', 'alice');
-    const alice = asUser(getEnv(), 'alice');
-    await assertFails(
-      setDoc(doc(alice, 'newsComments/c1'), { ...validCommentPayload, extra: 1 }),
-    );
-  });
-
-  it('rejects a missing required field', async () => {
-    await seedMember('m1', 'alice');
-    const alice = asUser(getEnv(), 'alice');
-    const { body: _b, ...rest } = validCommentPayload;
-    await assertFails(setDoc(doc(alice, 'newsComments/c1'), rest));
-  });
-
-  it('rejects wrong type on hidden', async () => {
-    await seedMember('m1', 'alice');
-    const alice = asUser(getEnv(), 'alice');
-    await assertFails(
-      setDoc(doc(alice, 'newsComments/c1'), { ...validCommentPayload, hidden: 'no' }),
-    );
-  });
-});
-
-describe('shape enforcement — /newsReactions/{reactionId}', () => {
-  const validReaction = {
-    postId: 'p1',
-    municipalityId: 'm1',
-    userId: 'alice',
-    kind: 'like' as const,
-    createdAt: new Date(),
-  };
-
-  it('accepts a valid full-shape payload', async () => {
-    await seedMember('m1', 'alice');
-    const alice = asUser(getEnv(), 'alice');
-    await assertSucceeds(setDoc(doc(alice, 'newsReactions/p1_alice'), validReaction));
-  });
-
-  it('rejects an unknown field', async () => {
-    await seedMember('m1', 'alice');
-    const alice = asUser(getEnv(), 'alice');
-    await assertFails(
-      setDoc(doc(alice, 'newsReactions/p1_alice'), { ...validReaction, weight: 99 }),
-    );
-  });
-
-  it('rejects an unknown kind enum', async () => {
-    await seedMember('m1', 'alice');
-    const alice = asUser(getEnv(), 'alice');
-    await assertFails(
-      setDoc(doc(alice, 'newsReactions/p1_alice'), { ...validReaction, kind: 'fire' }),
     );
   });
 });
@@ -268,6 +201,8 @@ describe('shape enforcement — /organizations/{orgId}', () => {
     reviewedBy: null,
     createdAt: new Date(),
     reviewedAt: null,
+    commentCount: 0,
+    reactionCounts: { like: 0, heart: 0 },
   };
 
   it('accepts a valid full-shape payload', async () => {
@@ -309,6 +244,38 @@ describe('shape enforcement — /organizations/{orgId}', () => {
       setDoc(doc(alice, 'organizations/o-ayto'), { ...validOrg, type: 'ayuntamiento' }),
     );
   });
+
+  // D5 count guards: counts are function-owned (synced by the comments/
+  // reactions triggers), so clients must create at 0 and never touch them
+  // again, even through an otherwise-authorized update.
+  it('rejects a create with a nonzero commentCount', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, 'organizations/o1'), { ...validOrg, commentCount: 5 }),
+    );
+  });
+
+  it('rejects a create with a nonzero reactionCounts', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, 'organizations/o1'), { ...validOrg, reactionCounts: { like: 3, heart: 0 } }),
+    );
+  });
+
+  it('a village admin cannot mutate counts on update, but a normal edit still succeeds', async () => {
+    await seedMember('m1', 'boss', /* extra */ { role: 'admin' });
+    await seed(getEnv(), async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'organizations/o1'), validOrg);
+    });
+    const boss = asUser(getEnv(), 'boss');
+    await assertFails(updateDoc(doc(boss, 'organizations/o1'), { commentCount: 99 }));
+    await assertFails(
+      updateDoc(doc(boss, 'organizations/o1'), { reactionCounts: { like: 9, heart: 9 } }),
+    );
+    await assertSucceeds(updateDoc(doc(boss, 'organizations/o1'), { description: 'Actualizada' }));
+  });
 });
 
 describe('shape enforcement — /events/{eventId}', () => {
@@ -335,6 +302,8 @@ describe('shape enforcement — /events/{eventId}', () => {
     // The converter persists {lat,lng} as a GeoPoint (rules type `latlng`), so
     // the stored villageCoordinates is a GeoPoint, not a map.
     villageCoordinates: new GeoPoint(40, -3),
+    commentCount: 0,
+    reactionCounts: { like: 0, heart: 0 },
     endBoundary: eventStart,
   };
 
@@ -395,45 +364,41 @@ describe('shape enforcement — /events/{eventId}', () => {
       setDoc(doc(alice, 'events/e1'), { ...validEvent, endDate: 'soon' }),
     );
   });
+
+  // D5 count guards: counts are function-owned (synced by the comments/
+  // reactions triggers), so clients must create at 0 and never touch them
+  // again, even through an otherwise-authorized update.
+  it('rejects a create with a nonzero commentCount', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, 'events/e1'), { ...validEvent, commentCount: 5 }),
+    );
+  });
+
+  it('rejects a create with a nonzero reactionCounts', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, 'events/e1'), { ...validEvent, reactionCounts: { like: 3, heart: 0 } }),
+    );
+  });
+
+  it('the event organizer cannot mutate counts on update, but a normal edit still succeeds', async () => {
+    await seedMember('m1', 'alice');
+    await seed(getEnv(), async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'events/e1'), validEvent);
+    });
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(updateDoc(doc(alice, 'events/e1'), { commentCount: 99 }));
+    await assertFails(
+      updateDoc(doc(alice, 'events/e1'), { reactionCounts: { like: 9, heart: 9 } }),
+    );
+    await assertSucceeds(updateDoc(doc(alice, 'events/e1'), { title: 'Fiesta Mayor' }));
+  });
 });
 
 // occupations/ shape enforcement lives in occupationRules.test.ts — it's no
 // longer a keys().hasOnly() gated collection (Task 11: collected free-text,
 // any authenticated write), so there's nothing to shape-test here.
 
-describe('shape enforcement — /newsReports/{reportId}', () => {
-  const validReport = {
-    targetType: 'comment' as const,
-    targetId: 'c1',
-    postId: 'p1',
-    municipalityId: 'm1',
-    reporterUserId: 'alice',
-    reason: 'spam',
-    createdAt: new Date(),
-    status: 'open' as const,
-    resolvedBy: null,
-    resolvedAt: null,
-  };
-
-  it('accepts a valid full-shape payload', async () => {
-    await seedMember('m1', 'alice');
-    const alice = asUser(getEnv(), 'alice');
-    await assertSucceeds(setDoc(doc(alice, 'newsReports/r1'), validReport));
-  });
-
-  it('rejects an unknown field', async () => {
-    await seedMember('m1', 'alice');
-    const alice = asUser(getEnv(), 'alice');
-    await assertFails(
-      setDoc(doc(alice, 'newsReports/r1'), { ...validReport, escalate: true }),
-    );
-  });
-
-  it('rejects unknown targetType', async () => {
-    await seedMember('m1', 'alice');
-    const alice = asUser(getEnv(), 'alice');
-    await assertFails(
-      setDoc(doc(alice, 'newsReports/r1'), { ...validReport, targetType: 'post' }),
-    );
-  });
-});

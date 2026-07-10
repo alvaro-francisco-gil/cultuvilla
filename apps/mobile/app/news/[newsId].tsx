@@ -7,7 +7,9 @@ import type { EntityDetailAction } from '../../components/feature/EntityDetailHe
 import { ENTITY_FALLBACK_ICON } from '../../lib/entities/registry';
 import { NewsContentRenderer } from '../../components/feature/NewsContentRenderer';
 import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
+import { EntityComments } from '../../components/feature/EntityComments';
 import { useAuth } from '../../lib/auth/useAuth';
+import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
 import { useT } from '../../lib/i18n';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { getNewsLink } from '@cultuvilla/shared/services/deepLinkService';
@@ -26,6 +28,7 @@ export default function NewsDetailScreen() {
   const [post, setPost] = useState<Post | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const { canManage } = useEntityCapabilities(post?.municipalityId);
 
   useEffect(() => {
     if (!newsId) return;
@@ -102,6 +105,14 @@ export default function NewsDetailScreen() {
             {date ? <Text tone="muted">{formatDate(date, 'long')}</Text> : null}
           </HStack>
           <NewsContentRenderer content={post.content} body={post.body} municipalityId={post.municipalityId} />
+          <EntityComments
+            key={post.id}
+            entityKind="news"
+            entityId={post.id}
+            municipalityId={post.municipalityId}
+            initialReactionCounts={post.reactionCounts}
+            canModerate={canManage}
+          />
         </>
       ) : null}
     </EntityDetailScaffold>

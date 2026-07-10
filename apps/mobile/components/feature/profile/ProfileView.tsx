@@ -207,6 +207,7 @@ export function ProfileView({
               sub={t(`profile.orgRole.${o.role}`)}
               icon="business-outline"
               imageUri={o.imageURL}
+              commentCount={o.commentCount}
               onPress={() => router.push(`/o/${o.id}` as never)}
             />
           ))}
@@ -225,6 +226,7 @@ export function ProfileView({
               sub={t(`profile.orgRole.${o.role}`)}
               icon="people-circle-outline"
               imageUri={o.imageURL}
+              commentCount={o.commentCount}
               onPress={() => router.push(`/o/${o.id}` as never)}
             />
           ))}

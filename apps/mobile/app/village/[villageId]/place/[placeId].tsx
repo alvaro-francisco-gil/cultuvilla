@@ -7,6 +7,7 @@ import { EntityDetailScaffold } from '../../../../components/feature/EntityDetai
 import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
 import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
 import { PersonCard } from '../../../../components/feature/VillageSections';
+import { EntityComments } from '../../../../components/feature/EntityComments';
 import { useT } from '../../../../lib/i18n';
 import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
@@ -103,6 +104,14 @@ export default function PlaceDetailScreen() {
               )}
             </VStack>
           ) : null}
+          <EntityComments
+            key={place.id}
+            entityKind="place"
+            entityId={place.id}
+            municipalityId={place.municipalityId}
+            initialReactionCounts={place.reactionCounts}
+            canModerate={canManage}
+          />
         </>
       ) : null}
     </EntityDetailScaffold>

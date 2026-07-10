@@ -10,6 +10,7 @@ import { useT } from '../../../lib/i18n';
 import { useAuth } from '../../../lib/auth/useAuth';
 import { useRegisterGate } from '../../../lib/auth/RegisterGateContext';
 import { useOrgCapabilities } from '../../../lib/auth/useOrgCapabilities';
+import { EntityComments } from '../../../components/feature/EntityComments';
 import { useShareDeepLink } from '../../../lib/deeplink/useShareDeepLink';
 import { getOrganization } from '@cultuvilla/shared/services/organizationService';
 import { isOrgMember, addOrgMember, getOrgMembers } from '@cultuvilla/shared/services/orgMemberService';
@@ -143,6 +144,14 @@ export default function OrgDetailScreen() {
               {t('organization.invitedBanner')}
             </Text>
           ) : null}
+          <EntityComments
+            key={org.id}
+            entityKind="organization"
+            entityId={org.id}
+            municipalityId={org.municipalityId}
+            initialReactionCounts={org.reactionCounts}
+            canModerate={canManage}
+          />
         </>
       ) : null}
     </EntityDetailScaffold>

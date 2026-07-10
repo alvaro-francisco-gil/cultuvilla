@@ -15,9 +15,11 @@ import { useEventOrganizer } from '../../lib/events/useEventOrganizer';
 import { EntityDetailScaffold } from '../../components/feature/EntityDetailScaffold';
 import type { EntityDetailAction } from '../../components/feature/EntityDetailHeader';
 import { DetailInfoCard } from '../../components/feature/DetailInfoCard';
+import { EntityComments } from '../../components/feature/EntityComments';
 import { ENTITY_FALLBACK_ICON } from '../../lib/entities/registry';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
+import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { getEvent } from '@cultuvilla/shared/services/eventService';
 import { getEventLink } from '@cultuvilla/shared/services/deepLinkService';
@@ -45,6 +47,7 @@ export default function EventDetailScreen() {
   const [person, setPerson] = useState<PersonDoc | null>(null);
   const [village, setVillage] = useState<VillageDoc | null>(null);
   const { canOrganize } = useEventOrganizer(event);
+  const { canManage } = useEntityCapabilities(event?.municipalityId);
 
   useEffect(() => {
     if (!eventId) return;
@@ -216,6 +219,14 @@ export default function EventDetailScreen() {
             </Button>
           )}
           {!person && user ? <Text tone="muted">{t('event.register.needsPerson')}</Text> : null}
+          <EntityComments
+            key={event.id}
+            entityKind="event"
+            entityId={event.id}
+            municipalityId={event.municipalityId}
+            initialReactionCounts={event.reactionCounts}
+            canModerate={canManage}
+          />
         </>
       ) : null}
     </EntityDetailScaffold>

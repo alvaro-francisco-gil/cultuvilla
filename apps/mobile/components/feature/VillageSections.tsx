@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Image, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { iconSizes } from '@cultuvilla/shared/design-system';
 import { VStack, HStack, Text, Pressable, TopCropImage } from '../primitives';
 import { useT } from '../../lib/i18n';
 
@@ -75,6 +76,7 @@ function BigCard({
   secondary,
   accent,
   crest,
+  commentCount,
   onPress,
 }: {
   label: string;
@@ -93,6 +95,12 @@ function BigCard({
    * dark photo scrim.
    */
   crest?: boolean;
+  /**
+   * Comment count shown as a small pill in the photo's top-right corner, when
+   * > 0. Only meaningful for the (non-crest) photo cards — villages (crest)
+   * aren't a commentable entity.
+   */
+  commentCount?: number;
   onPress?: () => void;
 }) {
   const body = crest ? (
@@ -153,6 +161,32 @@ function BigCard({
       ) : (
         <View className="w-full h-full items-center justify-center">{fallback}</View>
       )}
+
+      {commentCount && commentCount > 0 ? (
+        <View
+          testID="entity-card-comment-count"
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0,0,0,0.45)',
+            borderRadius: 12,
+            paddingHorizontal: 6,
+            paddingVertical: 3,
+          }}
+        >
+          <Ionicons name="chatbubble-outline" size={iconSizes.sm} color="rgba(255,255,255,0.85)" />
+          <Text
+            variant="bodySm"
+            numberOfLines={1}
+            style={{ color: 'rgba(255,255,255,0.85)', marginLeft: 4 }}
+          >
+            {commentCount}
+          </Text>
+        </View>
+      ) : null}
 
       {/* Bottom scrim keeps the overlaid text legible against any photo. */}
       <View
@@ -229,6 +263,7 @@ export function EntityCard({
   imageUri,
   accent,
   crest,
+  commentCount,
   onPress,
 }: {
   label: string;
@@ -238,6 +273,8 @@ export function EntityCard({
   accent?: boolean;
   /** Render the image as a small, centred escudo on the cream bg (villages). */
   crest?: boolean;
+  /** Comment count shown as a pill over the photo, when > 0. */
+  commentCount?: number;
   onPress?: () => void;
 }) {
   return (
@@ -248,6 +285,7 @@ export function EntityCard({
       secondary={sub}
       accent={accent}
       crest={crest}
+      commentCount={commentCount}
       onPress={onPress}
     />
   );

@@ -27,6 +27,7 @@ type MemberOrg = {
   type: OrganizationType;
   imageURL: string | null;
   role: OrgMemberRole;
+  commentCount: number;
 };
 
 type ProfileData = {
@@ -154,6 +155,7 @@ export function useProfileData(
               type: o.type,
               imageURL: o.imageURL,
               role: roleByOrgId.get(o.id) ?? 'member',
+              commentCount: o.commentCount,
             })),
         );
       } else {

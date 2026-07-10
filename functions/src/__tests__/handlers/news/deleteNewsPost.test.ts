@@ -48,43 +48,25 @@ async function seedPost(postId: string): Promise<void> {
   });
 }
 
-async function seedComment(commentId: string, postId: string, hidden = false): Promise<void> {
-  await admin.firestore().doc(`newsComments/${commentId}`).set({
-    postId,
+async function seedComment(commentId: string, postId: string): Promise<void> {
+  await admin.firestore().doc(`comments/${commentId}`).set({
+    entityKind: 'news',
+    entityId: postId,
     municipalityId: MUNICIPALITY_ID,
     authorUserId: 'user-1',
     body: 'A comment',
     createdAt: new Date(),
-    hidden,
   });
 }
 
 async function seedReaction(reactionId: string, postId: string): Promise<void> {
-  await admin.firestore().doc(`newsReactions/${reactionId}`).set({
-    postId,
+  await admin.firestore().doc(`reactions/${reactionId}`).set({
+    entityKind: 'news',
+    entityId: postId,
     municipalityId: MUNICIPALITY_ID,
     userId: 'user-1',
     kind: 'like',
     createdAt: new Date(),
-  });
-}
-
-async function seedReport(
-  reportId: string,
-  postId: string,
-  status: 'open' | 'dismissed' | 'actioned' = 'open',
-): Promise<void> {
-  await admin.firestore().doc(`newsReports/${reportId}`).set({
-    targetType: 'comment',
-    targetId: 'c1',
-    postId,
-    municipalityId: MUNICIPALITY_ID,
-    reporterUserId: 'user-1',
-    reason: 'spam',
-    createdAt: new Date(),
-    status,
-    resolvedBy: null,
-    resolvedAt: null,
   });
 }
 
@@ -139,16 +121,15 @@ describe('deleteNewsPost (callable)', () => {
     const result = await callDelete({ uid: 'author-1', data: { postId: 'p1' } });
     expect(result.ok).toBe(true);
     expect((await admin.firestore().doc('news/p1').get()).exists).toBe(false);
-    expect((await admin.firestore().doc('newsComments/c1').get()).exists).toBe(false);
+    expect((await admin.firestore().doc('comments/c1').get()).exists).toBe(false);
   });
 
-  it('admin deletes post with cascade: comments, reactions removed; open reports actioned', async () => {
+  it('admin deletes post with cascade: comments and reactions removed', async () => {
     await seedMember(ADMIN_UID, 'admin');
     await seedPost('p1');
     await seedComment('c1', 'p1');
     await seedComment('c2', 'p1');
-    await seedReaction('p1_u1', 'p1');
-    await seedReport('r1', 'p1', 'open');
+    await seedReaction('news_p1_u1', 'p1');
 
     const result = await callDelete({ uid: ADMIN_UID, data: { postId: 'p1' } });
     expect(result.ok).toBe(true);
@@ -158,18 +139,13 @@ describe('deleteNewsPost (callable)', () => {
     expect(postSnap.exists).toBe(false);
 
     // Comments should be deleted
-    const c1 = await admin.firestore().doc('newsComments/c1').get();
-    const c2 = await admin.firestore().doc('newsComments/c2').get();
+    const c1 = await admin.firestore().doc('comments/c1').get();
+    const c2 = await admin.firestore().doc('comments/c2').get();
     expect(c1.exists).toBe(false);
     expect(c2.exists).toBe(false);
 
     // Reactions should be deleted
-    const r1 = await admin.firestore().doc('newsReactions/p1_u1').get();
+    const r1 = await admin.firestore().doc('reactions/news_p1_u1').get();
     expect(r1.exists).toBe(false);
-
-    // Open reports should be actioned
-    const rpt = await admin.firestore().doc('newsReports/r1').get();
-    expect(rpt.data()?.status).toBe('actioned');
-    expect(rpt.data()?.resolvedBy).toBe(ADMIN_UID);
   });
 });
