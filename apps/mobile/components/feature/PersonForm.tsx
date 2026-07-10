@@ -49,7 +49,17 @@ export interface PersonFormProps {
   submitLabel: string;
   loading?: boolean;
   error?: string | null;
+  /**
+   * Require given name + both surnames + birthday (self-registration at
+   * onboarding). Implies `requireFirstSurname`.
+   */
   requireFullName?: boolean;
+  /**
+   * Require the first surname alone (given name + first surname + sex), without
+   * forcing the second surname or birthday. Used by the linked-persona create
+   * flow so its identity step gates the same fields its submit already requires.
+   */
+  requireFirstSurname?: boolean;
   /** Editing an existing person → every step is directly clickable. */
   editing?: boolean;
   /** True when the form edits the account owner's own persona (their profile),
@@ -90,6 +100,7 @@ export function PersonForm({
   loading,
   error,
   requireFullName = false,
+  requireFirstSurname = false,
   editing = false,
   selfProfile = false,
   renderResidence,
@@ -189,7 +200,7 @@ export function PersonForm({
       validate: () => {
         const errs: string[] = [];
         if (!givenName.trim()) errs.push('givenName');
-        if (requireFullName && !firstSurname.trim()) errs.push('firstSurname');
+        if ((requireFullName || requireFirstSurname) && !firstSurname.trim()) errs.push('firstSurname');
         if (requireFullName && !secondSurname.trim()) errs.push('secondSurname');
         if (!sex) errs.push('sex');
         return errs;
@@ -293,14 +304,14 @@ export function PersonForm({
       render: () =>
         stepBody(
           <>
-            <FieldLabel>{t('common.photo')}</FieldLabel>
+            <FieldLabel>{t('profile.personForm.photoOptional')}</FieldLabel>
             <ImagePickerField
               uri={photo?.previewUri ?? initial?.photoURL ?? null}
               onPress={async () => {
                 const next = await pickImageAsBlob({ square: true });
                 if (next) setPhoto(next);
               }}
-              label={t('common.photo')}
+              label={t('profile.personForm.photoOptional')}
             />
             <Input
               label={t(

@@ -67,6 +67,40 @@ describe('<PersonForm> stepper', () => {
     expect(queryByLabelText('onboarding.completeProfile.biographySelf')).toBeNull();
   });
 
+  describe('requireFirstSurname gate (linked-persona create)', () => {
+    it('blocks leaving the identity step until the first surname is filled', () => {
+      const { getByText, getByLabelText, queryByTestId } = render(
+        <PersonForm submitLabel="Guardar" requireFirstSurname onSubmit={jest.fn()} />,
+      );
+      fireEvent.changeText(getByLabelText('onboarding.completeProfile.givenName'), 'Ana');
+      fireEvent.press(getByText('onboarding.completeProfile.sex_female'));
+      // Given name + sex are set but the first surname is still empty — Next is gated.
+      fireEvent.press(getByText('common.stepper.next'));
+      expect(queryByTestId('birthday')).toBeNull();
+      // Filling the first surname unlocks the advance.
+      fireEvent.changeText(getByLabelText('onboarding.completeProfile.firstSurname'), 'García');
+      fireEvent.press(getByText('common.stepper.next'));
+      expect(queryByTestId('birthday')).not.toBeNull();
+    });
+
+    it('leaves the second surname and birthday optional (submits without them)', () => {
+      const onSubmit = jest.fn();
+      const { getByText, getByLabelText } = render(
+        <PersonForm submitLabel="Guardar" requireFirstSurname onSubmit={onSubmit} />,
+      );
+      fireEvent.changeText(getByLabelText('onboarding.completeProfile.givenName'), 'Ana');
+      fireEvent.changeText(getByLabelText('onboarding.completeProfile.firstSurname'), 'García');
+      fireEvent.press(getByText('onboarding.completeProfile.sex_female'));
+      fireEvent.press(getByText('common.stepper.next')); // → residence (birthday empty)
+      fireEvent.press(getByText('common.stepper.next')); // → about (residence not gated)
+      fireEvent.press(getByText('Guardar'));
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ firstSurname: 'García', secondSurname: '', birthday: null }),
+        null,
+      );
+    });
+  });
+
   it('reveals the free-text occupation input only after selecting "Otro"', () => {
     const utils = reachAboutStep({ submitLabel: 'Guardar', onSubmit: jest.fn() });
     // Hidden until the user opts into a custom occupation.

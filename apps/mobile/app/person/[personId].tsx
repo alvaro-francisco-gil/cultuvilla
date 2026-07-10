@@ -221,6 +221,7 @@ export default function PersonDetailScreen() {
           loading={saving}
           error={error}
           editing={!isNew}
+          requireFirstSurname
           selfProfile={isOwnPersona}
           renderResidence={() =>
             isOwnPersona && user ? (
