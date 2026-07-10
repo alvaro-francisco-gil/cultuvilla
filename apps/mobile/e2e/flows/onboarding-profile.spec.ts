@@ -28,14 +28,13 @@ test.describe('onboarding: complete profile', () => {
     await page.getByTestId('person-sex-female').click();
     await page.getByTestId('person-form-primary').click();
 
-    // Step 2 — residence: only the birthday is required (requireFullName). Pick a
-    // recent-ish year so it renders within the list's initial window.
-    await page.getByTestId('birthday-year').click();
-    await page.getByTestId('birthday-year-option-1990').click();
-    await page.getByTestId('birthday-month').click();
-    await page.getByTestId('birthday-month-option-5').click();
-    await page.getByTestId('birthday-day').click();
-    await page.getByTestId('birthday-day-option-15').click();
+    // Step 2 — residence: only the birthday is required (requireFullName). Open the
+    // calendar, jump to a past year/month via the tappable title, then pick a day.
+    await page.getByTestId('birthday-trigger').click();
+    await page.getByTestId('birthday-calendar-title').click();
+    await page.getByTestId('birthday-calendar-year-1990').click();
+    await page.getByTestId('birthday-calendar-month-4').click(); // May (0-based)
+    await page.getByTestId('birthday-calendar-day-1990-05-15').click();
     await page.getByTestId('person-form-primary').click();
 
     // Step 3 — about: fields optional, but terms acceptance is required.
