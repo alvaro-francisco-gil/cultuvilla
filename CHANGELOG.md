@@ -4,6 +4,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+- **Los carteles de fiestas admiten ahora varias imágenes (máx. 5).** La primera imagen es la portada que se ve en la tarjeta y como imagen principal del detalle; las demás se muestran en vertical bajo las fechas, desplazándote hacia abajo. Los formularios de crear/editar usan una fila de miniaturas cuadradas con un botón "+" a la derecha para añadir más. **Migración:** el modelo pasa de `imageURL` (una URL) a `images: string[]`; los documentos de dev (`villa-events`) se migran con `scripts/backfill-festivalPoster-images.mjs` (`imageURL` → `[imageURL]`).
+
 ## v0.7.0 — 2026-07-10
 
 ### Changed
