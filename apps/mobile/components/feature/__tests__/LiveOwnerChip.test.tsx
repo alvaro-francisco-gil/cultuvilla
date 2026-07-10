@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import { LiveOwnerChip } from '../LiveOwnerChip';
 import { useOwnerSummary } from '../../../lib/useOwnerSummary';
 
@@ -53,5 +53,27 @@ describe('<LiveOwnerChip>', () => {
     );
 
     expect(getByText('Por Ayuntamiento')).toBeTruthy();
+  });
+
+  it('is non-interactive by default (no onPress)', () => {
+    mockUseOwnerSummary.mockReturnValue({ name: 'Ana García', imageUri: null, loading: false });
+
+    const { queryByRole } = render(<LiveOwnerChip ownerId="u1" ownerType="user" />);
+
+    expect(queryByRole('button')).toBeNull();
+  });
+
+  it('renders a tappable button that fires onPress when provided', () => {
+    mockUseOwnerSummary.mockReturnValue({ name: 'Ana García', imageUri: null, loading: false });
+    const onPress = jest.fn();
+
+    const { getByRole } = render(
+      <LiveOwnerChip ownerId="u1" ownerType="user" onPress={onPress} />,
+    );
+
+    const button = getByRole('button');
+    expect(button.props.accessibilityLabel).toBe('Ana García');
+    fireEvent.press(button);
+    expect(onPress).toHaveBeenCalledTimes(1);
   });
 });
