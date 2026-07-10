@@ -6,8 +6,8 @@ export type ReactionKind = z.infer<typeof ReactionKindSchema>;
 
 /** Denormalized per-kind counters kept on each entity doc. */
 export const ReactionCountsSchema = z.object({
-  like: z.number().int(),
-  heart: z.number().int(),
+  like: z.number().int().nonnegative(),
+  heart: z.number().int().nonnegative(),
 });
 export type ReactionCounts = z.infer<typeof ReactionCountsSchema>;
 
