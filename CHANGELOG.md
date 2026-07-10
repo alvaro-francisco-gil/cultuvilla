@@ -12,6 +12,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Fixed
 - **Occupation form no longer shows the "otra ocupación" free-text field up front.** In the profile/onboarding occupation picker, the custom occupation input now appears only after tapping the "Otro" chip, and hides again when it's deselected. "Otro" is a reveal toggle, so it's no longer stored as an occupation of its own alongside the typed value.
+- **Onboarding now enforces the 14+ self-registration age the Terms require.** The birthday step's date picker is capped at 14 years ago and submit is blocked (with an inline "Debes tener al menos 14 años…" message) if the birthday is under-age — the picker caps by year, so the explicit check also catches a same-year under-age date. This gates only the account owner's own profile; family "personas" still have no age floor (an adult registers them). Age math lives in a shared, unit-tested `maxBirthdayForAge`/`isAtLeastYearsOld`; the floor is `MIN_SELF_REGISTRATION_AGE` (14) in `@cultuvilla/shared`.
 
 ## v0.4.0 — 2026-07-10
 

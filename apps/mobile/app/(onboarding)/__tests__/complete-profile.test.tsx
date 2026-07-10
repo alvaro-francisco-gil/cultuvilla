@@ -166,4 +166,21 @@ describe('CompleteProfileScreen', () => {
 
     expect(userService.createUserProfile).not.toHaveBeenCalled();
   });
+
+  it('does not offer under-14 birth years in the picker (self-registration age gate)', async () => {
+    const { getByText, getByLabelText, getByTestId, queryByTestId } = render(<CompleteProfileScreen />);
+
+    fireEvent.changeText(getByLabelText('Nombre'), 'Ana');
+    fireEvent.changeText(getByLabelText('Primer apellido'), 'García');
+    fireEvent.changeText(getByLabelText('Segundo apellido'), 'López');
+    fireEvent.press(getByText('Mujer'));
+    fireEvent.press(getByText('Siguiente'));
+
+    fireEvent.press(getByTestId('birthday-year'));
+
+    // The current year (age 0) must not be selectable; a comfortably-old year is.
+    const thisYear = new Date().getFullYear();
+    expect(queryByTestId(`birthday-year-option-${thisYear}`)).toBeNull();
+    expect(queryByTestId(`birthday-year-option-${thisYear - 20}`)).not.toBeNull();
+  });
 });

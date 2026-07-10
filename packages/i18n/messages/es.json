@@ -706,7 +706,8 @@
       "requiredFields": "Nombre, ambos apellidos y fecha de nacimiento son obligatorios.",
       "error": "No se pudo guardar el perfil",
       "acceptPrefix": "Acepto los",
-      "acceptRequired": "Debes aceptar los términos para continuar."
+      "acceptRequired": "Debes aceptar los términos para continuar.",
+      "minAge": "Debes tener al menos 14 años para registrarte."
     }
   },
   "imageCrop": {

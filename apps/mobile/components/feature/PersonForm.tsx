@@ -22,6 +22,7 @@ import {
   isCatalogOccupation,
   occupationI18nKey,
 } from '@cultuvilla/shared/models/occupation';
+import { maxBirthdayForAge } from '@cultuvilla/shared/utils';
 import { Stepper, type StepConfig } from './Stepper';
 
 export interface PersonFormValues {
@@ -74,6 +75,12 @@ export interface PersonFormProps {
    * collect consent.
    */
   consentSatisfied?: boolean;
+  /**
+   * Minimum age (years) the birthday must satisfy. Set only for the account
+   * owner's own profile at onboarding (Terms: self-registration is 14+); left
+   * undefined for family personas, which have no age floor.
+   */
+  minAgeYears?: number;
   onSubmit: (values: PersonFormValues, photo: PersonFormPhoto | null) => Promise<void> | void;
 }
 
@@ -88,6 +95,7 @@ export function PersonForm({
   renderResidence,
   renderConsent,
   consentSatisfied,
+  minAgeYears,
   onSubmit,
 }: PersonFormProps) {
   const { t } = useT();
@@ -166,6 +174,13 @@ export function PersonForm({
     );
   }
 
+  // Self-registration age floor (Terms: 14+). The date picker caps by year, so
+  // a same-year birthday can still be under-age — hence the explicit check that
+  // also gates submit. Undefined minAgeYears (family personas) never gates.
+  const birthdayMax = minAgeYears != null ? maxBirthdayForAge(minAgeYears, new Date()) : undefined;
+  const birthdayTooYoung =
+    birthdayMax != null && birthday != null && birthday.getTime() > birthdayMax.getTime();
+
   const steps: StepConfig[] = [
     {
       key: 'identity',
@@ -236,7 +251,12 @@ export function PersonForm({
       key: 'residence',
       title: t('profile.personForm.stepResidence'),
       icon: 'location-outline',
-      validate: () => (requireFullName && !birthday ? ['birthday'] : []),
+      validate: () => {
+        const errs: string[] = [];
+        if (requireFullName && !birthday) errs.push('birthday');
+        if (birthdayTooYoung) errs.push('birthday-min-age');
+        return errs;
+      },
       render: () =>
         stepBody(
           <>
@@ -245,9 +265,14 @@ export function PersonForm({
               value={birthday}
               onChange={setBirthday}
               minimumDate={new Date(1900, 0, 1)}
-              maximumDate={new Date()}
+              maximumDate={birthdayMax ?? new Date()}
               testID="birthday"
             />
+            {birthdayTooYoung ? (
+              <Text tone="danger" variant="bodySm" testID="birthday-min-age-error">
+                {t('onboarding.completeProfile.minAge')}
+              </Text>
+            ) : null}
             <VillagePicker
               label={t('onboarding.completeProfile.birthPlace')}
               value={birthPlace}
