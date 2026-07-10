@@ -122,6 +122,20 @@ describe('RegisterFab', () => {
     expect(queryByTestId('attendee-row-p1')).toBe(getByTestId('attendee-row-p1'));
   });
 
+  // Regression: the two reads are independent, so a failing getUserRegistrations
+  // (e.g. a missing Firestore index) must NOT blank the dependent list. Before
+  // the fix they shared one Promise.all and a rejection hid every dependent.
+  it('still lists dependents when getUserRegistrations rejects', async () => {
+    mockGetUserRegistrations.mockRejectedValue(new Error('FAILED_PRECONDITION: missing index'));
+    mockGetPersonsByCreator.mockResolvedValue([dep]);
+    const { getByTestId, getByText } = render(<RegisterFab {...baseProps} />);
+    await waitFor(() => expect(getByText('event.register.cta')).toBeTruthy());
+
+    fireEvent.press(getByTestId('register-fab'));
+    expect(getByTestId('attendee-row-p1')).toBeTruthy(); // self
+    expect(getByTestId('attendee-row-p2')).toBeTruthy(); // dependent survives the reg failure
+  });
+
   it('cancels a deselected registered persona after a single combined confirm', async () => {
     mockGetUserRegistrations.mockResolvedValue([
       { id: 'rA', personId: 'p1', status: 'confirmed' },
