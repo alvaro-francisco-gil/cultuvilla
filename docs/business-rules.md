@@ -44,7 +44,7 @@ pueblo y también un usuario autenticado.
 
 | Rol | Definido por | Capacidad principal |
 |---|---|---|
-| **Visitante anónimo** | sin sesión iniciada | Explora eventos públicos y noticias aprobadas. Ve **solo recuentos** de asistentes, nunca nombres. |
+| **Visitante anónimo** | sin sesión iniciada | Explora eventos públicos y noticias visibles (`status: 'active'`). Ve **solo recuentos** de asistentes, nunca nombres. |
 | **Usuario autenticado** | con sesión iniciada | Todo lo anterior + inscribirse a **cualquier** evento de **cualquier** pueblo, gestionar su cuenta y Personas, publicar/comentar/reaccionar en noticias. |
 | **Miembro del pueblo** | `municipalities/{id}/members/{uid}` (`role: user`) | Miembro de un pueblo concreto. Ve los **nombres** de asistentes en los eventos de ese pueblo. Sujeto al censo de ese pueblo. |
 | **Administrador del pueblo** | `municipalities/{id}/members/{uid}` (`role: admin`) | Gestiona el pueblo: expulsa miembros, modera noticias, gestiona barrios/cementerios, edita/cancela cualquier evento del pueblo, aprueba solicitudes de creación de organizaciones. *(El ingreso es autoservicio — el administrador ya no lo aprueba.)* |
@@ -318,12 +318,12 @@ Ver [docs/decisions/news-feed.md](decisions/news-feed.md).
   o se **escriben libremente** — sin aprobación: `recordOccupation` registra el
   texto libre en `occupations/{slug}` (id determinista por texto normalizado,
   contador de uso) para alimentar el autocompletado. No hay cola de propuestas.
-- Los **barrios** y **cementerios** los gestiona **el administrador de cada
-  pueblo** (conocimiento local), bajo su municipio.
-- **Propuestas de oficios:** cualquier usuario puede **proponer** un nuevo oficio
-  (almacenado como *pendiente* en su Persona). Un **superadministrador lo
-  aprueba**, lo que lo promueve a oficio canónico y **migra las referencias
-  pendientes** en las Personas.
+- Los **barrios** y **lugares** (cementerios, iglesias, …) los puede **crear
+  cualquier miembro del pueblo** y aparecen de inmediato (modelo optimista, `status:
+  'active'`); el **administrador del pueblo** (+ superadministrador) los edita y, si
+  procede, los **oculta** a posteriori vía `setContentVisibility` — presentado como
+  "Eliminar" en la pantalla de edición de la entidad. `status`/`hiddenBy`/`hiddenAt`/
+  `hiddenReason` son **function-owned**.
 
 ### 10.1 Notificaciones
 
