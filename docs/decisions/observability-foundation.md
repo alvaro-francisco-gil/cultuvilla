@@ -1,0 +1,75 @@
+# Observability foundation
+
+## Context
+
+The app had no client-side observability — no crash/error reporting, no product
+analytics, no client logger — while Cloud Functions already had structured
+Cloud Logging. We wanted a coherent, long-term foundation across all three
+pillars (crash/error, analytics, health), built **web-first** but designed so the
+native apps plug in unchanged when they ship. The sibling `ordago-apps` repo
+provided proven patterns; we adopted its compliance posture and seam discipline
+and deliberately skipped its heavier machinery.
+
+The code is the source of truth for *what* exists (see
+`packages/shared/src/services/observability/`, `apps/mobile/lib/observability/`,
+`functions/src/observability/`, `functions/src/shared/observability.ts`, and the
+`observability-conventions` skill). This record captures only the decisions and
+why.
+
+## Decision
+
+- **Ports & adapters.** A platform-free *port* in
+  `packages/shared/src/services/observability/observabilityService.ts` is the only
+  thing screens call (`trackEvent` / `captureError` / `logger.*` /
+  `setUserContext` / `setConsent` / `startOperation`). It imports no `firebase/*`
+  or platform API. Concrete backends are *adapters* injected at app bootstrap
+  (`configureObservability`) from `apps/mobile/lib/observability/`. This keeps the
+  port unit-testable via a no-op default and makes the web→native transition a
+  one-adapter change, honouring the service-layer-ownership rule.
+
+- **Firebase Analytics for product events** (denied-by-default Consent Mode v2),
+  chosen because its event API is identical on web and native — the cleanest
+  transition — and BigQuery export reaches BI later for free. **No Sentry**; the
+  native crash tool will be Crashlytics behind the same seam.
+
+- **Web crash capture bridges to Cloud Logging.** Crashlytics is native-only, so
+  on web a global handler + error boundary route through the `logClientError`
+  callable into structured Cloud Logging → Cloud Error Reporting, *and* emit an
+  `app_exception` analytics event ("both sinks"). Native later swaps
+  `captureError` to Crashlytics; the analytics half is unchanged.
+
+- **Compliance is structural, not per-call.** The server-side `log.*` chokepoint
+  (`functions/src/shared/observability.ts`) auto-hashes `user.id` (HMAC-SHA256 +
+  `OBSERVABILITY_USER_ID_SALT` from Secret Manager) and PII-scrubs
+  `error.message`/`error.stack` via `transformAttrs`. **Never hash or scrub at the
+  call site.** The raw uid never reaches a telemetry store: `logClientError`
+  stamps the server-authenticated uid, and the client sets the *hashed* uid as the
+  Analytics `user_id` via a `getUserIdHash` callable (cached in `AsyncStorage`).
+  Right-to-erasure collapses to deleting the user doc + rotating the salt.
+
+- **A single client-side PII allowlist.** `filterContext` (`ALLOWED_CONTEXT_KEYS`)
+  drops any key outside `uid, municipalityId, villageId, role, appVersion,
+  platform, route, operation_id` before a payload leaves the port.
+
+- **Consent split.** Analytics is consent-gated (denied-by-default; a minimal
+  `ConsentBar` opt-in). Error/log *diagnosis* flows regardless, on legitimate
+  interest — justified because the app has guest browsing and 14+ minors.
+
+- **Taxonomy as a review gate.** Event names live in `OBSERVABILITY_EVENTS`
+  (`<domain>.<action>.<outcome>`); the `observability-conventions` skill is the
+  naming/PII/debugging gate. Starter funnels: onboarding, village join, event
+  sign-up, org creation.
+
+## Consequences
+
+- **Deliberately not built (YAGNI):** server-side OpenTelemetry, a custom
+  analytics→BigQuery pipeline, dbt marts, a dashboard service, Sentry,
+  distributed tracing, session replay, alerts-as-code.
+- **Per-env secret required before deploy:** `OBSERVABILITY_USER_ID_SALT` must
+  exist in a project before the observability functions deploy there (created on
+  dev; create per-project before beta/prod promotions — see the
+  `gcloud-cultuvilla` skill).
+- **Alerting is manual for now:** enable Cloud Error Reporting + an email
+  notification per env; alerts-as-code is deferred until real traffic.
+- **Native transition** adds a Crashlytics `captureError` adapter and switches
+  Analytics to the native SDK — no port or screen changes.
