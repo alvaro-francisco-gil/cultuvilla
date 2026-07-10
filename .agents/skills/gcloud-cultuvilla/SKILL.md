@@ -52,7 +52,7 @@ secrets via `defineSecret` from `firebase-functions/params`.
 | Secret | Env | Consumed by | Notes |
 |---|---|---|---|
 | `GOOGLE_MAPS_API_KEY` | dev (`villa-events`) | `staticMap`, `geocodeSearch` (`functions/src/maps/`) | A **restricted** Google Maps Platform key: API-target-restricted to Maps Static API + Geocoding API only. Server-side only — never shipped to clients. **Not yet created on beta/prod** — must be created per-project before those functions deploy there. |
-| `OBSERVABILITY_USER_ID_SALT` | dev (`villa-events`) | `logClientError`, `getUserIdHash` (`functions/src/observability/`) | HMAC salt that pseudonymizes uids in telemetry — the server-side `log.*` chokepoint (`functions/src/shared/observability.ts`) hashes `user.id` with it before anything reaches Cloud Logging. Server-side only — never shipped to clients. **Not yet created on beta/prod** — must be created per-project before those functions deploy there. |
+| `OBSERVABILITY_USER_ID_SALT` | none yet | `logClientError`, `getUserIdHash` (`functions/src/observability/`) | HMAC salt that pseudonymizes uids in telemetry — the server-side `log.*` chokepoint (`functions/src/shared/observability.ts`) hashes `user.id` with it before anything reaches Cloud Logging. Server-side only — never shipped to clients. **Not yet created on any env** — create on dev via the recipe below before the observability callables deploy; create per-project on beta/prod before deploy there. |
 
 ### How functions read it
 

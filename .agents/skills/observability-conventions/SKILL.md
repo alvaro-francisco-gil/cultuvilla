@@ -95,9 +95,10 @@ gcloud logging read 'jsonPayload.handler="logClientError" AND jsonPayload."user.
 Because these entries land at `ERROR` severity with a stack-shaped
 `error.stack` field, they auto-group into Cloud Error Reporting issues — check
 there first for "is this a new error or a spike in an existing one" before
-grepping raw logs. An email notification is configured on new/spiking error
-groups (see the `gcloud-cultuvilla` skill's Secret Manager section for the
-setup note); a spike shows up in your inbox before a user reports it.
+grepping raw logs. Configure an email notification on new/spiking error groups
+as a one-time setup step (see the `gcloud-cultuvilla` skill's Secret Manager
+section for the setup note); once set up, a spike shows up in your inbox
+before a user reports it.
 
 For beta/prod, add `--project=cultuvilla-beta` / `--project=cultuvilla-prod`
 explicitly — same dev-default-prod-explicit rule as the rest of the
