@@ -11,12 +11,12 @@ on the card, the rest stack vertically below the dates on the detail screen.
 ## Status
 
 - **Updated:** 2026-07-10
-- **Stage:** Task 1 — model + service migration
+- **Stage:** All 9 tasks complete; awaiting PR/merge decision.
 - **Branch:** repo `feat/festival-poster-multiple-images` (worktree `.claude/worktrees/poster-multi-images`)
-- **Done:** design doc; worktree + deps
-- **Next:** Task 1 (replace `imageURL` with `images: string[]` in model + service)
-- **Blockers:** none
-- **Handoff:** dev backfill (Task 9) needs `GOOGLE_APPLICATION_CREDENTIALS` for `villa-events` (see `firebase-admin-dev` skill); run `pnpm check:dev-conformance` before/after. Storage rules already allow a `{fileName}` wildcard under `festivalPosters/{muni}/{posterId}/`, so per-image ids need **no** rules change.
+- **Done:** Tasks 1–9. Model→`images[]`, per-image storage path, detail hero+stack, i18n, `MultiImagePickerRow`, create+edit forms, card reader, dev backfill (1 doc patched, conformance clean), docs. Lint + typecheck + shared (854) + mobile (400) + functions (156) all green.
+- **Next:** push branch, open PR to `develop`, user merges.
+- **Blockers:** none. (`acceptInvite` residence-link test is flaky on the emulator — unrelated; passes on re-run.)
+- **Handoff:** dev already backfilled. Beta/prod backfill NOT done (out of scope; run `scripts/backfill-festivalPoster-images.mjs` against those envs at promotion time, or old poster docs will crash the strict converter).
 
 ## Global constraints
 
