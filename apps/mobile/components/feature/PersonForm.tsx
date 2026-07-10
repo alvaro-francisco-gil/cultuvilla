@@ -55,9 +55,9 @@ export interface PersonFormProps {
    */
   requireFullName?: boolean;
   /**
-   * Require the first surname alone (given name + first surname + sex), without
-   * forcing the second surname or birthday. Used by the linked-persona create
-   * flow so its identity step gates the same fields its submit already requires.
+   * Require given name + first surname + sex + birthday, without forcing the
+   * second surname. Used by the linked-persona create flow — a lighter gate than
+   * `requireFullName` (no second surname, no age floor).
    */
   requireFirstSurname?: boolean;
   /** Editing an existing person → every step is directly clickable. */
@@ -264,7 +264,7 @@ export function PersonForm({
       icon: 'location-outline',
       validate: () => {
         const errs: string[] = [];
-        if (requireFullName && !birthday) errs.push('birthday');
+        if ((requireFullName || requireFirstSurname) && !birthday) errs.push('birthday');
         if (birthdayTooYoung) errs.push('birthday-min-age');
         return errs;
       },
@@ -304,14 +304,14 @@ export function PersonForm({
       render: () =>
         stepBody(
           <>
-            <FieldLabel>{t('profile.personForm.photoOptional')}</FieldLabel>
+            <FieldLabel>{t('common.photo')}</FieldLabel>
             <ImagePickerField
               uri={photo?.previewUri ?? initial?.photoURL ?? null}
               onPress={async () => {
                 const next = await pickImageAsBlob({ square: true });
                 if (next) setPhoto(next);
               }}
-              label={t('profile.personForm.photoOptional')}
+              label={t('common.photo')}
             />
             <Input
               label={t(

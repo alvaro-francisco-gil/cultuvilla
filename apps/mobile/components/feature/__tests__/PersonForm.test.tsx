@@ -68,6 +68,17 @@ describe('<PersonForm> stepper', () => {
   });
 
   describe('requireFirstSurname gate (linked-persona create)', () => {
+    /** Fill the required birthday via the DateField's per-segment option testIDs
+     * (month is zero-based, so May === 4). Independent of the i18n mock. */
+    function fillBirthday(utils: ReturnType<typeof render>) {
+      fireEvent.press(utils.getByTestId('birthday-year'));
+      fireEvent.press(utils.getByTestId('birthday-year-option-1990'));
+      fireEvent.press(utils.getByTestId('birthday-month'));
+      fireEvent.press(utils.getByTestId('birthday-month-option-4'));
+      fireEvent.press(utils.getByTestId('birthday-day'));
+      fireEvent.press(utils.getByTestId('birthday-day-option-5'));
+    }
+
     it('blocks leaving the identity step until the first surname is filled', () => {
       const { getByText, getByLabelText, queryByTestId } = render(
         <PersonForm submitLabel="Guardar" requireFirstSurname onSubmit={jest.fn()} />,
@@ -83,19 +94,40 @@ describe('<PersonForm> stepper', () => {
       expect(queryByTestId('birthday')).not.toBeNull();
     });
 
-    it('leaves the second surname and birthday optional (submits without them)', () => {
+    it('blocks leaving the residence step until the birthday is filled', () => {
+      const utils = render(
+        <PersonForm submitLabel="Guardar" requireFirstSurname onSubmit={jest.fn()} />,
+      );
+      fireEvent.changeText(utils.getByLabelText('onboarding.completeProfile.givenName'), 'Ana');
+      fireEvent.changeText(utils.getByLabelText('onboarding.completeProfile.firstSurname'), 'García');
+      fireEvent.press(utils.getByText('onboarding.completeProfile.sex_female'));
+      fireEvent.press(utils.getByText('common.stepper.next')); // → residence
+      // Birthday still empty — Next is gated; the about step's occupation picker isn't rendered.
+      fireEvent.press(utils.getByText('common.stepper.next'));
+      expect(utils.queryByTestId('occupation-otro')).toBeNull();
+      fillBirthday(utils);
+      fireEvent.press(utils.getByText('common.stepper.next'));
+      expect(utils.getByTestId('occupation-otro')).toBeTruthy();
+    });
+
+    it('leaves the second surname optional (submits without it, with birthday set)', () => {
       const onSubmit = jest.fn();
-      const { getByText, getByLabelText } = render(
+      const utils = render(
         <PersonForm submitLabel="Guardar" requireFirstSurname onSubmit={onSubmit} />,
       );
-      fireEvent.changeText(getByLabelText('onboarding.completeProfile.givenName'), 'Ana');
-      fireEvent.changeText(getByLabelText('onboarding.completeProfile.firstSurname'), 'García');
-      fireEvent.press(getByText('onboarding.completeProfile.sex_female'));
-      fireEvent.press(getByText('common.stepper.next')); // → residence (birthday empty)
-      fireEvent.press(getByText('common.stepper.next')); // → about (residence not gated)
-      fireEvent.press(getByText('Guardar'));
+      fireEvent.changeText(utils.getByLabelText('onboarding.completeProfile.givenName'), 'Ana');
+      fireEvent.changeText(utils.getByLabelText('onboarding.completeProfile.firstSurname'), 'García');
+      fireEvent.press(utils.getByText('onboarding.completeProfile.sex_female'));
+      fireEvent.press(utils.getByText('common.stepper.next')); // → residence
+      fillBirthday(utils);
+      fireEvent.press(utils.getByText('common.stepper.next')); // → about
+      fireEvent.press(utils.getByText('Guardar'));
       expect(onSubmit).toHaveBeenCalledWith(
-        expect.objectContaining({ firstSurname: 'García', secondSurname: '', birthday: null }),
+        expect.objectContaining({
+          firstSurname: 'García',
+          secondSurname: '',
+          birthday: new Date(1990, 4, 5),
+        }),
         null,
       );
     });
