@@ -116,7 +116,7 @@ export function CalendarDatePicker({
               onPress={() =>
                 onChange(new Date(date.getFullYear(), date.getMonth(), date.getDate()))
               }
-              className={`items-center justify-center rounded-full ${selected ? 'bg-primary' : ''}`}
+              className={`items-center justify-center rounded-full ${selected ? 'bg-accent' : ''}`}
               style={{ width: `${100 / 7}%`, height: 40 }}
             >
               <Text tone={selected ? 'onAccent' : disabled || !inMonth ? 'muted' : 'primary'}>
