@@ -1,14 +1,12 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
 import {
   adminDoc,
   municipalityMemberDoc,
   newsDoc,
-  newsCommentsCollection,
-  newsReactionsCollection,
-  newsReportsCollection,
+  commentsCollection,
+  reactionsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
 
 const db = admin.firestore();
@@ -63,29 +61,15 @@ export const deleteNewsPost = onCall<DeleteNewsPostData, Promise<DeleteNewsPostR
     const authorized = post.createdBy === auth.uid || (await isAdminCaller(auth.uid, municipalityId));
     if (!authorized) throw new HttpsError('permission-denied', 'No autorizado.');
 
-    // Delete newsComments for this post (top-level collection, must be explicit)
-    await batchDeleteQuery(newsCommentsCollection(db).where('postId', '==', postId));
+    // Delete comments for this post (generic top-level collection, entity-scoped)
+    await batchDeleteQuery(
+      commentsCollection(db).where('entityKind', '==', 'news').where('entityId', '==', postId),
+    );
 
-    // Delete newsReactions for this post (top-level collection, must be explicit)
-    await batchDeleteQuery(newsReactionsCollection(db).where('postId', '==', postId));
-
-    // Close open newsReports for this post (mark as actioned, not deleted)
-    const openReports = await newsReportsCollection(db)
-      .where('postId', '==', postId)
-      .where('status', '==', 'open')
-      .get();
-
-    if (!openReports.empty) {
-      const now = FieldValue.serverTimestamp();
-      for (let i = 0; i < openReports.docs.length; i += 500) {
-        const batch = db.batch();
-        openReports.docs.slice(i, i + 500).forEach((d) =>
-          // Partial update; bypass converter via raw doc ref.
-          batch.update(db.doc(d.ref.path), { status: 'actioned', resolvedBy: auth.uid, resolvedAt: now }),
-        );
-        await batch.commit();
-      }
-    }
+    // Delete reactions for this post (generic top-level collection, entity-scoped)
+    await batchDeleteQuery(
+      reactionsCollection(db).where('entityKind', '==', 'news').where('entityId', '==', postId),
+    );
 
     // Delete the post document last
     await postRef.delete();
