@@ -182,9 +182,10 @@ export function EntityComments({
               onChangeText={setBody}
               placeholder={t('comments.placeholder')}
               accessibilityLabel={t('comments.placeholder')}
+              testID="comment-input"
             />
           </View>
-          <Button onPress={onSend} disabled={!body.trim()} loading={sending}>
+          <Button onPress={onSend} disabled={!body.trim()} loading={sending} testID="comment-send">
             {t('comments.send')}
           </Button>
         </HStack>

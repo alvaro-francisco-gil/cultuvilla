@@ -81,6 +81,7 @@ export function ReactionBar({ entityKind, entityId, municipalityId, initialCount
             accessibilityRole="button"
             accessibilityLabel={labels[kind]}
             accessibilityState={{ selected: active }}
+            testID={`reaction-${kind}`}
             className={`flex-row items-center gap-1 px-3 py-1.5 rounded-full border ${
               active ? 'bg-accent border-accent' : 'border-subtle bg-surface'
             }`}
