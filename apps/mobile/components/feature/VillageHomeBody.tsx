@@ -230,7 +230,13 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         <View className="px-4 pt-4 pb-4">
           <StatsRow
             stats={[
-              { label: t('village.admin.overview.people'), value: peopleCount },
+              {
+                label: t('village.admin.overview.people'),
+                value: peopleCount,
+                onPress: isMember
+                  ? () => router.push(`/village/${village.id}/members` as never)
+                  : undefined,
+              },
               { label: t('village.hub.organizations'), value: visibleOrgs.length },
               { label: t('village.admin.hub.places'), value: places.length },
             ]}
