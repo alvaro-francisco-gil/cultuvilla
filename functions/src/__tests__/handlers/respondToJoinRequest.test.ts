@@ -28,6 +28,8 @@ async function seedOrg(): Promise<void> {
     reviewedBy: APP_ADMIN_ID,
     createdAt: new Date(),
     reviewedAt: new Date(),
+    commentCount: 0,
+    reactionCounts: { like: 0, heart: 0 },
   });
 }
 
