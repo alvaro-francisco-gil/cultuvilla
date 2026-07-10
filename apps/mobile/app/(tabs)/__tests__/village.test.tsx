@@ -64,6 +64,9 @@ jest.mock('../../../lib/auth/useAuth', () => ({
 jest.mock('../../../lib/auth/useIsAppAdmin', () => ({
   useIsAppAdmin: () => ({ isAppAdmin: false }),
 }));
+jest.mock('../../../lib/auth/RegisterGateContext', () => ({
+  useRegisterGate: () => ({ requireAuth: jest.fn(() => false), pendingIntent: null, clearPending: jest.fn() }),
+}));
 jest.mock('../../../lib/firestoreErrorLog', () => ({
   withFirestoreErrorLog: (_label: string, fn: () => unknown) => fn(),
 }));

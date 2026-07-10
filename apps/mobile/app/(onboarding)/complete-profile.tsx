@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { Screen, VillagePicker, BarrioPicker, Checkbox, Text } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
@@ -16,12 +16,14 @@ import {
   createUserProfile,
   patchUserProfile,
 } from '@cultuvilla/shared/services/userService';
+import { ensureVillageMembership } from '@cultuvilla/shared/services/villageMemberService';
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
 import { recordOccupation } from '@cultuvilla/shared/services/occupationService';
 import { isCatalogOccupation } from '@cultuvilla/shared/models/occupation';
 import { buildResidenceLinks } from '@cultuvilla/shared/models/person';
 import type { MunicipalityLink, PartialDate } from '@cultuvilla/shared/models/person';
 import { CURRENT_TERMS_VERSION, MIN_SELF_REGISTRATION_AGE } from '@cultuvilla/shared/models/user';
+import { readPendingVillage, clearPendingVillage } from '../../lib/auth/pendingVillage';
 
 function toPartialDate(d: Date | null): PartialDate | null {
   if (!d) return null;
@@ -41,6 +43,19 @@ export default function CompleteProfileScreen() {
   );
   const [barrioId, setBarrioId] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  // A guest who tapped "sign in to join" on a village carried it here via
+  // pendingVillage; pre-select it so they land already pointed at that pueblo.
+  // The functional updater keeps any selection the user has already made, so a
+  // late async resolve never clobbers a manual pick.
+  useEffect(() => {
+    if (profile?.activeMunicipalityId) return;
+    void readPendingVillage().then((id) => {
+      if (id) setMunicipalityId((current) => current ?? id);
+    });
+    // Seed once, on mount, for a fresh profile-less user.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function handleVillageChange(id: string | null) {
     setMunicipalityId(id);
@@ -86,10 +101,16 @@ export default function CompleteProfileScreen() {
             });
       }
 
-      // Residence barrio is single-source-of-truth on the person's
-      // municipalityLinks. createPerson (new-person branch) already seeded it;
-      // for an existing person, upsert it here. Idempotent either way.
+      // Picking a village at registration makes you a villager: create the
+      // members/{uid} doc (activating the community first if it's still dormant)
+      // so the village lands under "your villages" and as the active pueblo.
+      // Runs before the residence upsert so the explicit barrio wins over the
+      // whole-village residence link startVillage seeds on activation.
       if (municipalityId) {
+        await ensureVillageMembership(municipalityId, user.uid, barrioId);
+        // Residence barrio is single-source-of-truth on the person's
+        // municipalityLinks. createPerson (new-person branch) already seeded it;
+        // for an existing person, upsert it here. Idempotent either way.
         await updateResidenceBarrio(user.uid, municipalityId, barrioId);
       }
 
@@ -117,6 +138,7 @@ export default function CompleteProfileScreen() {
           termsVersion: CURRENT_TERMS_VERSION,
         });
       }
+      void clearPendingVillage();
       await refreshProfile();
       // AuthGate (_layout.tsx) owns post-onboarding routing.
     } catch (e) {
