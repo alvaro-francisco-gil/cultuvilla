@@ -5,15 +5,15 @@ describe('buildMonthMatrix', () => {
     const cells = buildMonthMatrix(2026, 6); // July 2026, 1st is a Wednesday
     expect(cells).toHaveLength(42);
     // Monday-first: Jul 1 (Wed) sits at index 2; indices 0-1 are prior-month days.
-    expect(cells[2].date.getDate()).toBe(1);
-    expect(cells[2].inMonth).toBe(true);
-    expect(cells[0].inMonth).toBe(false);
-    expect(cells[1].inMonth).toBe(false);
+    expect(cells[2]!.date.getDate()).toBe(1);
+    expect(cells[2]!.inMonth).toBe(true);
+    expect(cells[0]!.inMonth).toBe(false);
+    expect(cells[1]!.inMonth).toBe(false);
   });
 
   it('flags trailing next-month days out of month', () => {
     const cells = buildMonthMatrix(2026, 6);
-    const last = cells[cells.length - 1];
+    const last = cells[cells.length - 1]!;
     expect(last.inMonth).toBe(false);
   });
 });
