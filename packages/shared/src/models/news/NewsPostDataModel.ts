@@ -61,6 +61,11 @@ export const NewsImageBlockSchema = z.object({
   width: z.number(),
   height: z.number(),
   caption: z.string().nullable(),
+  // Inline `@`-mentions within the caption, indexing into `caption` by
+  // offset/length (same shape as a text block's `mentions`). `.default([])`
+  // keeps image blocks written before captions supported mentions parseable
+  // on read (the converter runs schema.parse on every read).
+  captionMentions: z.array(NewsMentionSchema).default([]),
 });
 export type NewsImageBlock = z.infer<typeof NewsImageBlockSchema>;
 

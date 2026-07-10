@@ -1,10 +1,26 @@
 import { describe, it, expect } from 'vitest';
 import {
   NewsPostDataSchema,
+  NewsImageBlockSchema,
   buildNewsPostData,
   NEWS_POST_CATEGORIES,
   type NewsPostCategory,
 } from '../../../src/models/news/NewsPostDataModel';
+
+describe('NewsImageBlockSchema captionMentions', () => {
+  const base = { type: 'image' as const, storagePath: 'p/1', width: 100, height: 50, caption: 'Foto de Peña El Barrio' };
+
+  it('defaults captionMentions to [] for a legacy image block without the field', () => {
+    const parsed = NewsImageBlockSchema.parse(base);
+    expect(parsed.captionMentions).toEqual([]);
+  });
+
+  it('keeps caption mention spans when present', () => {
+    const mention = { entityType: 'organization' as const, entityId: 'org1', label: 'Peña El Barrio', offset: 9, length: 14 };
+    const parsed = NewsImageBlockSchema.parse({ ...base, captionMentions: [mention] });
+    expect(parsed.captionMentions).toEqual([mention]);
+  });
+});
 
 describe('NewsPostDataSchema', () => {
   it('accepts a post with organizerUserIds + organizerOrgIds', () => {
