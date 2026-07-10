@@ -802,11 +802,12 @@
       },
       "mentionType": {
         "organization": "Grupo",
-        "user": "Persona",
         "event": "Evento",
         "place": "Lugar",
+        "barrio": "Barrio",
         "village": "Pueblo",
-        "news": "Artículo"
+        "news": "Artículo",
+        "festivalPoster": "Cartel"
       }
     },
     "status": {

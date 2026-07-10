@@ -29,8 +29,21 @@ export type NewsPostImage = z.infer<typeof NewsPostImageSchema>;
 // mobile block editor. `body` (above) is kept as a flattened plain-text mirror
 // of the text blocks for legacy readers, search, and previews.
 
-/** Entities an `@`-mention can point at. Places already exist as a collection. */
-export const MENTION_ENTITY_TYPES = ['organization', 'user', 'event', 'place', 'village', 'news'] as const;
+/**
+ * Entities an `@`-mention can point at: the entity family (organization, event,
+ * place, barrio, news, festival poster) plus `village`. People are deliberately
+ * NOT mentionable — members have no public profile screen, so a person mention
+ * only ever rendered styled-but-dead.
+ */
+export const MENTION_ENTITY_TYPES = [
+  'organization',
+  'event',
+  'place',
+  'barrio',
+  'village',
+  'news',
+  'festivalPoster',
+] as const;
 export const MentionEntityTypeSchema = z.enum([...MENTION_ENTITY_TYPES]);
 export type MentionEntityType = z.infer<typeof MentionEntityTypeSchema>;
 

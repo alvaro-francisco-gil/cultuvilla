@@ -2,10 +2,26 @@ import { describe, it, expect } from 'vitest';
 import {
   NewsPostDataSchema,
   NewsImageBlockSchema,
+  MENTION_ENTITY_TYPES,
   buildNewsPostData,
   NEWS_POST_CATEGORIES,
   type NewsPostCategory,
 } from '../../../src/models/news/NewsPostDataModel';
+
+describe('MENTION_ENTITY_TYPES', () => {
+  it('is the entity family plus village, and excludes persons', () => {
+    expect([...MENTION_ENTITY_TYPES]).toEqual([
+      'organization',
+      'event',
+      'place',
+      'barrio',
+      'village',
+      'news',
+      'festivalPoster',
+    ]);
+    expect(MENTION_ENTITY_TYPES as readonly string[]).not.toContain('user');
+  });
+});
 
 describe('NewsImageBlockSchema captionMentions', () => {
   const base = { type: 'image' as const, storagePath: 'p/1', width: 100, height: 50, caption: 'Foto de Peña El Barrio' };

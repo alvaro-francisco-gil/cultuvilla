@@ -25,11 +25,12 @@ const ACCENT = colors.light.fg.accent;
 
 const ENTITY_ICON: Record<MentionEntityType, keyof typeof Ionicons.glyphMap> = {
   organization: 'people-outline',
-  user: 'person-outline',
   event: 'calendar-outline',
   place: 'location-outline',
+  barrio: 'map-outline',
   village: 'home-outline',
   news: 'newspaper-outline',
+  festivalPoster: 'image-outline',
 };
 
 interface MentionTextInputProps {

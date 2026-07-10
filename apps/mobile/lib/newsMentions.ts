@@ -5,13 +5,13 @@ import type { NewsMention } from '@cultuvilla/shared/models/news/NewsPostDataMod
  * no standalone screen. `municipalityId` is needed for place links, which are
  * nested under their village.
  *
- * - organization → `/o/{id}`
- * - event        → `/event/{id}`
- * - place        → `/village/{municipalityId}/place/{id}`
- * - village       → `/village/{id}`
- * - news          → `/news/{id}`
- * - user         → `null` (members have no public profile screen yet, so the
- *   mention renders styled-but-inert rather than dead-linking)
+ * - organization   → `/o/{id}`
+ * - event          → `/event/{id}`
+ * - place          → `/village/{municipalityId}/place/{id}`
+ * - barrio         → `/village/{municipalityId}/barrio/{id}`
+ * - festivalPoster → `/village/{municipalityId}/festival-poster/{id}`
+ * - village        → `/village/{id}`
+ * - news           → `/news/{id}`
  */
 export function mentionHref(mention: NewsMention, municipalityId: string): string | null {
   switch (mention.entityType) {
@@ -21,12 +21,14 @@ export function mentionHref(mention: NewsMention, municipalityId: string): strin
       return `/event/${mention.entityId}`;
     case 'place':
       return `/village/${municipalityId}/place/${mention.entityId}`;
+    case 'barrio':
+      return `/village/${municipalityId}/barrio/${mention.entityId}`;
+    case 'festivalPoster':
+      return `/village/${municipalityId}/festival-poster/${mention.entityId}`;
     case 'village':
       return `/village/${mention.entityId}`;
     case 'news':
       return `/news/${mention.entityId}`;
-    case 'user':
-      return null;
     default:
       return null;
   }
