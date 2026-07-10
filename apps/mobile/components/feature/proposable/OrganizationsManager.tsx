@@ -12,6 +12,7 @@ import { VStack } from '../../primitives';
 import { useT } from '../../../lib/i18n';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { ProposableForm } from './ProposableForm';
+import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 
 /**
  * "Añadir agrupación" form. A villager proposes a peña/asociación/otros
@@ -58,11 +59,15 @@ export function OrganizationsManager({
       // Organizer commit: the create path is always pending; auto-approve so the
       // round-trip is invisible (single rules surface + full audit trail).
       if (canManage) await approveOrganization(id);
+      observability.trackEvent(OBSERVABILITY_EVENTS.ORG_CREATE_SUCCESS, { municipalityId: villageId });
       setName('');
       setDescription('');
       setType('peña');
       setImage(null);
       onCreated?.();
+    } catch (e) {
+      observability.trackEvent(OBSERVABILITY_EVENTS.ORG_CREATE_ERROR, { municipalityId: villageId });
+      throw e;
     } finally {
       setSaving(false);
     }
