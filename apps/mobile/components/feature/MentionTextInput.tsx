@@ -99,16 +99,25 @@ export function MentionTextInput({
     // accepted-risks note.
     (e as unknown as { preventDefault?: () => void }).preventDefault?.();
     onChange(res.text, res.mentions);
-    setSelection({ start: res.cursor, end: res.cursor });
+    moveCaret(res.cursor);
   }
 
   function pick(candidate: MentionCandidate) {
     if (!active) return;
     const res = insertMention(value, mentions, active, candidate);
     onChange(res.text, res.mentions);
-    // Predict the caret so the suggestion list closes immediately; the native
-    // onSelectionChange will confirm it on the next frame.
-    setSelection({ start: res.cursor, end: res.cursor });
+    moveCaret(res.cursor);
+  }
+
+  // A programmatic edit (mention insert / atomic delete) moves the caret without
+  // the native field firing onSelectionChange — on web a scripted value+selection
+  // change doesn't reliably re-emit it. Report the new caret to the parent
+  // ourselves so consumers tracking it (e.g. BlockEditor's image-insert split
+  // point) don't act on a stale offset. Predicting it also closes the suggestion
+  // list immediately; the native onSelectionChange confirms it on the next frame.
+  function moveCaret(cursor: number) {
+    setSelection({ start: cursor, end: cursor });
+    onSelectionChange?.(cursor);
   }
 
   return (
