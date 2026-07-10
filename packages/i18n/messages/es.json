@@ -176,6 +176,7 @@
     "menu": "Regístrate para acceder al menú.",
     "createEvent": "Regístrate para crear un evento.",
     "createNews": "Regístrate para crear un artículo.",
+    "comment": "Regístrate para comentar.",
     "eventCta": "Apuntarme",
     "register": "Registrarse",
     "dismiss": "Ahora no"
@@ -919,5 +920,21 @@
     "message": "Usamos analítica anónima para mejorar la app. ¿Nos das tu consentimiento?",
     "accept": "Aceptar",
     "decline": "Rechazar"
+  },
+  "comments": {
+    "sectionTitle": "Comentarios",
+    "countLabel": "{count, plural, one {# comentario} other {# comentarios}}",
+    "empty": "Sé el primero en comentar",
+    "placeholder": "Escribe un comentario…",
+    "send": "Enviar",
+    "signInToComment": "Inicia sesión para comentar",
+    "delete": "Eliminar",
+    "deleteConfirmTitle": "Eliminar comentario",
+    "deleteConfirmMessage": "¿Eliminar este comentario?",
+    "deleteConfirmCancel": "Cancelar",
+    "deleteConfirmConfirm": "Eliminar",
+    "reactionLike": "Me gusta",
+    "reactionHeart": "Me encanta",
+    "anonymousAuthor": "Usuario"
   }
 }
