@@ -6,9 +6,9 @@ import { useT } from '../../lib/i18n';
 
 /**
  * Presentational building blocks for the village overview on the shared
- * village tab ((tabs)/village.tsx). The management affordances — `onManage`
- * and `onAdd` — route everyone to the shared propose-pending screens; the add
- * label reads "Proponer" for villagers and "Añadir" for organizers.
+ * village tab ((tabs)/village.tsx). Creating content lives on the single
+ * "Añadir contenido" sheet, so a section carries no add affordance of its own
+ * and simply hides itself when it has no entities.
  */
 
 export const ACCENT = '#bb5d3a';
@@ -21,22 +21,18 @@ export function Section({
   title,
   onManage,
   isEmpty,
-  emptyLabel,
-  addLabel,
-  onAdd,
   children,
 }: {
   title: string;
   /** When provided, renders the "Gestionar" link (admins only). */
   onManage?: () => void;
   isEmpty: boolean;
-  emptyLabel: string;
-  /** When provided alongside `addLabel`, renders the trailing add card (admins only). */
-  addLabel?: string;
-  onAdd?: () => void;
   children: ReactNode;
 }) {
   const { t } = useT();
+  // A section with no entities is hidden entirely — content is created from the
+  // single "Añadir contenido" sheet, not from an in-scroll add card.
+  if (isEmpty) return null;
   return (
     <VStack gap={3} className="pt-4">
       <HStack className="items-center justify-between px-4">
@@ -52,20 +48,13 @@ export function Section({
           </Pressable>
         ) : null}
       </HStack>
-      {isEmpty && !onAdd ? (
-        <Text tone="muted" variant="bodySm" className="px-4">
-          {emptyLabel}
-        </Text>
-      ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerClassName="px-4 gap-3"
-        >
-          {children}
-          {onAdd && addLabel ? <AddCard label={addLabel} onPress={onAdd} /> : null}
-        </ScrollView>
-      )}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerClassName="px-4 gap-3"
+      >
+        {children}
+      </ScrollView>
     </VStack>
   );
 }
