@@ -15,11 +15,17 @@ jest.mock('@cultuvilla/shared/services/commentsService', () => ({
 jest.mock('@cultuvilla/shared/services/personService', () => ({
   getPersonByUserId: jest.fn(),
 }));
+let mockUser: { uid: string; email: string; displayName: string | null } | null = {
+  uid: 'uid-1',
+  email: 'a@b.test',
+  displayName: null,
+};
 jest.mock('../../lib/auth/useAuth', () => ({
-  useAuth: () => ({ user: { uid: 'uid-1', email: 'a@b.test', displayName: null } }),
+  useAuth: () => ({ user: mockUser }),
 }));
+const mockRequireAuth = jest.fn();
 jest.mock('../../lib/auth/RegisterGateContext', () => ({
-  useRegisterGate: () => ({ requireAuth: jest.fn(), pendingIntent: null, clearPending: jest.fn() }),
+  useRegisterGate: () => ({ requireAuth: mockRequireAuth, pendingIntent: null, clearPending: jest.fn() }),
 }));
 jest.mock('../../lib/i18n', () => ({
   useT: () => ({
@@ -57,6 +63,7 @@ const BASE_PROPS = {
 describe('<EntityComments>', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUser = { uid: 'uid-1', email: 'a@b.test', displayName: null };
     getPersonByUserIdMock.mockResolvedValue({
       givenName: 'Ana',
       middleNames: [],
@@ -145,5 +152,28 @@ describe('<EntityComments>', () => {
     expect(queryByText('Mi comentario')).toBeNull();
 
     Platform.OS = 'ios';
+  });
+
+  it('shows the sign-in prompt instead of the compose input when signed out', async () => {
+    mockUser = null;
+    getCommentsMock.mockResolvedValue([]);
+    const { findByText, queryByPlaceholderText } = render(<EntityComments {...BASE_PROPS} />);
+
+    expect(await findByText('Inicia sesión para comentar')).toBeTruthy();
+    expect(queryByPlaceholderText('Escribe un comentario…')).toBeNull();
+  });
+
+  it('routes the sign-in prompt through the register gate instead of posting a comment', async () => {
+    mockUser = null;
+    getCommentsMock.mockResolvedValue([]);
+    const { findByText } = render(<EntityComments {...BASE_PROPS} />);
+
+    const signInButton = await findByText('Inicia sesión para comentar');
+    await act(async () => {
+      fireEvent.press(signInButton);
+    });
+
+    expect(mockRequireAuth).toHaveBeenCalledWith('/event/e-1', 'guest.comment');
+    expect(addCommentMock).not.toHaveBeenCalled();
   });
 });

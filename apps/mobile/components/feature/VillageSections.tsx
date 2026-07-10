@@ -164,6 +164,7 @@ function BigCard({
 
       {commentCount && commentCount > 0 ? (
         <View
+          testID="entity-card-comment-count"
           style={{
             position: 'absolute',
             top: 8,

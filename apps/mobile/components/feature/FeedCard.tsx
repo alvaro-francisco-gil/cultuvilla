@@ -98,7 +98,10 @@ export function FeedCard({
                 {metaRight}
               </Text>
               {commentCount && commentCount > 0 ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8, flexShrink: 0 }}>
+                <View
+                  testID="feed-card-comment-count"
+                  style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8, flexShrink: 0 }}
+                >
                   <Ionicons name="chatbubble-outline" size={iconSizes.sm} color="rgba(255,255,255,0.85)" />
                   <Text
                     variant="body"
