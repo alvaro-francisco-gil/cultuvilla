@@ -55,8 +55,11 @@ import {
   newsCommentsCollection,
   newsReactionsCollection,
   newsReportsCollection,
+  festivalPostersCollection,
   occupationsCollection,
   organizationJoinRequestsCollection,
+  membershipEventsCollection,
+  moderationEventsCollection,
   adminsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
 
@@ -125,7 +128,10 @@ const REGISTRY = [
   { name: 'newsComments', coll: (db) => newsCommentsCollection(db) },
   { name: 'newsReactions', coll: (db) => newsReactionsCollection(db) },
   { name: 'newsReports', coll: (db) => newsReportsCollection(db) },
+  { name: 'festivalPosters', coll: (db) => festivalPostersCollection(db) },
   { name: 'occupations', coll: (db) => occupationsCollection(db) },
+  { name: 'membershipEvents', coll: (db) => membershipEventsCollection(db) },
+  { name: 'moderationEvents', coll: (db) => moderationEventsCollection(db) },
   { name: 'admins', coll: (db) => adminsCollection(db) },
 ];
 
