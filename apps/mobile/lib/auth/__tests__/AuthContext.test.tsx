@@ -62,6 +62,7 @@ jest.mock('../../observability/errorBridge', () => ({
 jest.mock('@cultuvilla/shared', () => ({
   observability: {
     setUserContext: jest.fn(),
+    setConsent: jest.fn(),
   },
 }));
 
@@ -117,5 +118,24 @@ describe('AuthProvider', () => {
         expect(arg.uid).not.toBe(FAKE_UID);
       }
     }
+  });
+
+  it('grants analytics consent when the loaded profile has accepted the terms', async () => {
+    const { getUserProfile } = jest.requireMock('@cultuvilla/shared/services/userService');
+    (getUserProfile as jest.Mock).mockResolvedValueOnce({
+      activeMunicipalityId: 'm1',
+      termsAcceptedAt: new Date(),
+    });
+    renderHook(() => useAuth(), { wrapper: AuthProvider });
+
+    await waitFor(() => {
+      expect(observability.setConsent).toHaveBeenCalledWith({ analytics: true });
+    });
+  });
+
+  it('withdraws analytics consent when signed out', () => {
+    mockAuthUser = null;
+    renderHook(() => useAuth(), { wrapper: AuthProvider });
+    expect(observability.setConsent).toHaveBeenCalledWith({ analytics: false });
   });
 });

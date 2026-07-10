@@ -62,9 +62,13 @@ that's the signal you're bypassing the chokepoint — don't.
 ## The consent split
 
 - **`observability.trackEvent` is gated on `setConsent({ analytics })`.** If
-  the user hasn't opted in (default: denied, per the `ConsentBar`), calls are
-  silently dropped — no Firebase Analytics event fires. This is why product
-  funnels can go quiet in dev if you haven't accepted the consent bar.
+  consent isn't granted (default: denied), calls are silently dropped — no
+  Firebase Analytics event fires. **Consent rides Terms acceptance:**
+  `AuthContext` calls `setConsent({ analytics: !!profile.termsAcceptedAt })` on
+  profile load, so a signed-in user who accepted the T&C tickbox is consented
+  (the T&C text discloses the anonymous-analytics consent); guests and
+  signed-out sessions stay denied. There is no separate consent UI. This is why
+  product funnels stay quiet for guests and only fire for registered users.
 - **`observability.captureError` and `observability.logger.*` are NOT
   consent-gated.** Crash/error diagnosis and structured logging are treated as
   legitimate interest (keeping the app working), not marketing analytics, so

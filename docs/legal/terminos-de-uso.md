@@ -9,6 +9,11 @@ declaras haber leído y aceptado estos Términos y la
 [Política de Privacidad](politica-de-privacidad.md). Si no estás de acuerdo, no utilices
 el Servicio.
 
+Al aceptar estos Términos consientes también el tratamiento de estadísticas de uso
+anónimas para mejorar la Aplicación, según se describe en la
+[Política de Privacidad](politica-de-privacidad.md). Puedes retirar este consentimiento
+en cualquier momento escribiendo a cultuvilla.app@gmail.com.
+
 ## 1. Identificación del prestador
 
 En cumplimiento de la Ley 34/2002 de Servicios de la Sociedad de la Información y de

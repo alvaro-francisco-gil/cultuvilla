@@ -147,6 +147,7 @@ const terms: LegalDoc = {
   version: CURRENT_TERMS_VERSION,
   intro: [
     'Los presentes Términos de Uso (los "Términos") regulan el acceso y la utilización de Cultuvilla (la "Aplicación" o el "Servicio"). Al registrarte y utilizar el Servicio declaras haber leído y aceptado estos Términos y la Política de Privacidad. Si no estás de acuerdo, no utilices el Servicio.',
+    'Al aceptar estos Términos consientes también el tratamiento de estadísticas de uso anónimas para mejorar la Aplicación, según se describe en la Política de Privacidad. Puedes retirar este consentimiento en cualquier momento escribiendo a cultuvilla.app@gmail.com.',
   ],
   sections: [
     {

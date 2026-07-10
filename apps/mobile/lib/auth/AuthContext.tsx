@@ -236,6 +236,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const p = await getUserProfile(uid);
       setProfile(p);
       if (p) {
+        // Analytics consent rides the Terms acceptance: a profile carries
+        // `termsAcceptedAt` (stamped when the user accepts the T&C tickbox at
+        // registration), and the T&C text discloses the anonymous-analytics
+        // consent. No separate opt-in surface — accepting the terms is the
+        // consent. Guests (no profile) stay denied by the port's default.
+        observability.setConsent({ analytics: !!p.termsAcceptedAt });
         // Defer setUserContext until the hashed uid resolves — never forward
         // the raw Firebase uid to Analytics. Re-check against the live auth
         // user at apply-time so a mid-fetch sign-out / account switch can't
@@ -265,6 +271,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(null);
       setProfileLoading(false);
       observability.setUserContext(null);
+      // Signing out withdraws analytics consent until the next signed-in,
+      // terms-accepted session re-grants it.
+      observability.setConsent({ analytics: false });
       return;
     }
     setProfileChecked(false);
