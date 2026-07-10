@@ -22,4 +22,14 @@ describe('TimePicker', () => {
     fireEvent.press(getByTestId('t-minute-45'));
     expect((onChange.mock.calls.at(-1)![0] as Date).getMinutes()).toBe(45);
   });
+
+  it('renders every minute row with the default step (last rows not virtualized off-screen)', () => {
+    const onChange = jest.fn();
+    const { getByTestId } = render(
+      <TimePicker value={new Date(2026, 6, 1, 9, 0)} onChange={onChange} testID="t" />,
+    );
+    // Default minuteStep=5 → 12 rows; :55 is the 12th, past RN's default window of 10.
+    fireEvent.press(getByTestId('t-minute-55'));
+    expect((onChange.mock.calls.at(-1)![0] as Date).getMinutes()).toBe(55);
+  });
 });

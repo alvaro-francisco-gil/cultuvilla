@@ -45,6 +45,7 @@ export function TimePicker({ value, onChange, minuteStep = 5, testID }: TimePick
         style={{ flex: 1 }}
         data={minutes}
         keyExtractor={(m) => String(m)}
+        initialNumToRender={minutes.length}
         renderItem={({ item }) => (
           <Pressable testID={testID ? `${testID}-minute-${item}` : undefined} onPress={() => setMinute(item)}>
             <Text tone={value.getMinutes() === item ? 'primary' : 'muted'}>{pad2(item)}</Text>
