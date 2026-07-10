@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Alert, Linking, Platform, View } from 'react-native';
+import { Linking, View } from 'react-native';
 import { VStack } from '../../components/primitives/VStack';
 import { HStack } from '../../components/primitives/HStack';
 import { Text } from '../../components/primitives/Text';
@@ -19,7 +19,7 @@ import { ENTITY_FALLBACK_ICON } from '../../lib/entities/registry';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
-import { getEvent, updateEventStatus } from '@cultuvilla/shared/services/eventService';
+import { getEvent } from '@cultuvilla/shared/services/eventService';
 import { getEventLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
@@ -93,24 +93,6 @@ export default function EventDetailScreen() {
     ).catch(() => {});
   };
 
-  const cancelEvent = () => {
-    if (!event) return;
-    const doCancel = () => {
-      void updateEventStatus(event.id, 'cancelled').then(() => {
-        if (router.canGoBack()) router.back();
-      });
-    };
-    // Alert.alert is a no-op on RN-Web, so branch to window.confirm there.
-    if (Platform.OS === 'web') {
-      if (window.confirm(t('event.cancelConfirm'))) doCancel();
-      return;
-    }
-    Alert.alert(t('event.cancelTitle'), t('event.cancelConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('event.cancelTitle'), style: 'destructive', onPress: doCancel },
-    ]);
-  };
-
   const actions: EntityDetailAction[] = event
     ? [
         ...(canOrganize
@@ -119,11 +101,6 @@ export default function EventDetailScreen() {
                 icon: 'create-outline' as const,
                 accessibilityLabel: t('event.editEvent'),
                 onPress: () => router.push(`/event/new?eventId=${event.id}` as never),
-              },
-              {
-                icon: 'trash-outline' as const,
-                accessibilityLabel: t('event.cancelTitle'),
-                onPress: cancelEvent,
               },
             ]
           : []),
