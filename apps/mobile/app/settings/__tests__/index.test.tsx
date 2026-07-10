@@ -21,7 +21,7 @@ describe('SettingsScreen', () => {
     jest.clearAllMocks();
     mockUseAuth.mockReturnValue({
       profile: { email: 'ana@test.com', displayName: 'Ana Gil' },
-      emailProvider: 'password',
+      canChangeEmail: true,
     });
   });
 
@@ -50,10 +50,10 @@ describe('SettingsScreen', () => {
     expect(mockPush).toHaveBeenCalledWith('/settings/delete-account');
   });
 
-  it('disables the change-email row and shows the hint for Google-only accounts', () => {
+  it('disables the change-email row and shows the hint when the account cannot change email', () => {
     mockUseAuth.mockReturnValue({
       profile: { email: 'ana@test.com', displayName: 'Ana Gil' },
-      emailProvider: 'google.com',
+      canChangeEmail: false,
     });
     const { getByText, queryByText } = render(<SettingsScreen />);
     expect(getByText('settings.changeEmail.googleDisabledHint')).toBeTruthy();

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { router } from 'expo-router';
 import { Screen } from '../../components/primitives/Screen';
 import { Card } from '../../components/primitives/Card';
 import { Input } from '../../components/primitives/Input';
@@ -18,11 +19,20 @@ const ERROR_CODE_KEYS: Record<string, string> = {
 };
 
 export default function ChangeEmailScreen() {
-  const { changeEmail } = useAuth();
+  const { changeEmail, canChangeEmail } = useAuth();
   const { t } = useT();
   const [newEmail, setNewEmail] = useState('');
   const [status, setStatus] = useState<Status>('form');
   const [error, setError] = useState<string | null>(null);
+
+  // The route is directly reachable by URL on the web build, so guard here too
+  // rather than relying only on the (disabled) entry row: a non-email-only
+  // account (e.g. Google) must not reach the change-email form.
+  useEffect(() => {
+    if (!canChangeEmail) router.replace('/settings');
+  }, [canChangeEmail]);
+
+  if (!canChangeEmail) return null;
 
   async function onSubmit() {
     setError(null);

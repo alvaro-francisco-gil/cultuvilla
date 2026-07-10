@@ -12,10 +12,10 @@ import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 
 export default function SettingsScreen() {
-  const { profile, emailProvider } = useAuth();
+  const { profile, canChangeEmail } = useAuth();
   const { t } = useT();
 
-  const isGoogleOnly = emailProvider === 'google.com';
+  const changeEmailDisabled = !canChangeEmail;
   const displayName = profile?.displayName ?? '';
   const email = profile?.email ?? '';
 
@@ -39,18 +39,18 @@ export default function SettingsScreen() {
           <Card variant="flat" className="p-0">
             <Pressable
               onPress={() => router.push('/settings/change-email')}
-              disabled={isGoogleOnly}
+              disabled={changeEmailDisabled}
               className="px-4 py-3 border-b border-subtle"
             >
               <HStack justify="between" align="center">
-                <Text tone={isGoogleOnly ? 'muted' : 'primary'}>
+                <Text tone={changeEmailDisabled ? 'muted' : 'primary'}>
                   {t('settings.changeEmail.label')}
                 </Text>
-                {!isGoogleOnly ? (
+                {!changeEmailDisabled ? (
                   <Ionicons name="chevron-forward" size={iconSizes.sm} color="#cbd5e1" />
                 ) : null}
               </HStack>
-              {isGoogleOnly ? (
+              {changeEmailDisabled ? (
                 <Text variant="caption" tone="muted" className="mt-1">
                   {t('settings.changeEmail.googleDisabledHint')}
                 </Text>

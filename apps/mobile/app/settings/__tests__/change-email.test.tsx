@@ -2,8 +2,9 @@ import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import ChangeEmailScreen from '../change-email';
 import { ReauthRequiredError } from '../../../lib/auth/AuthContext';
 
+const mockReplace = jest.fn();
 jest.mock('expo-router', () => ({
-  router: { push: jest.fn(), back: jest.fn() },
+  router: { push: jest.fn(), back: jest.fn(), replace: (...args: unknown[]) => mockReplace(...args) },
 }));
 jest.mock('../../../lib/i18n', () => ({
   useT: () => ({ locale: 'es', t: (key: string) => key }),
@@ -21,6 +22,7 @@ describe('ChangeEmailScreen', () => {
     jest.clearAllMocks();
     mockUseAuth.mockReturnValue({
       changeEmail: mockChangeEmail,
+      canChangeEmail: true,
     });
   });
 
@@ -62,5 +64,12 @@ describe('ChangeEmailScreen', () => {
     const { getByLabelText, getByText, findByText } = render(<ChangeEmailScreen />);
     fillAndSubmit(getByLabelText, getByText, 'new@example.com');
     expect(await findByText('settings.changeEmail.error.generic')).toBeTruthy();
+  });
+
+  it('redirects to /settings and renders no form when the account cannot change email', async () => {
+    mockUseAuth.mockReturnValue({ changeEmail: mockChangeEmail, canChangeEmail: false });
+    const { queryByText } = render(<ChangeEmailScreen />);
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/settings'));
+    expect(queryByText('settings.changeEmail.submit')).toBeNull();
   });
 });
