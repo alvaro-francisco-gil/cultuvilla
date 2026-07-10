@@ -2,7 +2,10 @@ import { describe, it, expect } from 'vitest';
 import {
   UserDataSchema,
   buildUserData,
+  CURRENT_TERMS_VERSION,
 } from '../../../src/models/user/UserDataModel';
+
+const consent = { termsAcceptedAt: new Date(), termsVersion: '1.0' };
 
 describe('UserDataSchema', () => {
   it('accepts a fully populated user (account state only)', () => {
@@ -13,6 +16,7 @@ describe('UserDataSchema', () => {
       activeMunicipalityId: 'mun1',
       personId: 'person-1',
       createdAt: new Date(),
+      ...consent,
     });
     expect(parsed.displayName).toBe('María García');
     expect(parsed.personId).toBe('person-1');
@@ -29,6 +33,7 @@ describe('UserDataSchema', () => {
       activeMunicipalityId: null,
       personId: null,
       createdAt: new Date(),
+      ...consent,
     });
     expect(parsed.displayName).toBe('');
   });
@@ -42,6 +47,7 @@ describe('UserDataSchema', () => {
         activeMunicipalityId: null,
         personId: null,
         createdAt: new Date(),
+        ...consent,
         // birthday/biography/photoURL are NOT user fields; z.object strips
         // unknowns, so the doc still parses — assert they don't survive.
       }),
@@ -53,9 +59,39 @@ describe('UserDataSchema', () => {
       activeMunicipalityId: null,
       personId: null,
       createdAt: new Date(),
+      ...consent,
       birthday: { year: 1990, month: 5, day: 14 },
     });
     expect(parsed).not.toHaveProperty('birthday');
+  });
+});
+
+describe('UserDataSchema — terms acceptance', () => {
+  const base = {
+    displayName: 'Ana',
+    email: 'ana@b.com',
+    telephone: null,
+    activeMunicipalityId: null,
+    personId: null,
+    createdAt: new Date(),
+  };
+
+  it('accepts a doc carrying termsAcceptedAt + termsVersion', () => {
+    const parsed = UserDataSchema.parse({
+      ...base,
+      termsAcceptedAt: new Date('2026-07-10T00:00:00Z'),
+      termsVersion: '1.0',
+    });
+    expect(parsed.termsVersion).toBe('1.0');
+    expect(parsed.termsAcceptedAt).toBeInstanceOf(Date);
+  });
+
+  it('throws when the consent fields are missing (strict — forces backfill)', () => {
+    expect(() => UserDataSchema.parse(base)).toThrow();
+  });
+
+  it('CURRENT_TERMS_VERSION is the published version', () => {
+    expect(CURRENT_TERMS_VERSION).toBe('1.0');
   });
 });
 
@@ -73,6 +109,12 @@ describe('buildUserData', () => {
     expect(user.createdAt).toBeInstanceOf(Date);
     expect(user).not.toHaveProperty('birthday');
     expect(user).not.toHaveProperty('photoURL');
+  });
+
+  it('stamps the current terms version and an acceptance date by default', () => {
+    const user = buildUserData({ displayName: 'Ana', email: 'ana@b.com' });
+    expect(user.termsVersion).toBe(CURRENT_TERMS_VERSION);
+    expect(user.termsAcceptedAt).toBeInstanceOf(Date);
   });
 
   it('preserves all provided account fields', () => {

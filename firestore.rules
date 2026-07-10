@@ -109,15 +109,19 @@ service cloud.firestore {
           && isStringOrNull(d.telephone)
           && isStringOrNull(d.activeMunicipalityId)
           && isStringOrNull(d.personId)
-          && isTimestamp(d.createdAt);
+          && isTimestamp(d.createdAt)
+          && isTimestamp(d.termsAcceptedAt)
+          && isString(d.termsVersion);
     }
 
     function isValidUserCreate(d) {
       return d.keys().hasOnly([
               'email', 'telephone', 'activeMunicipalityId', 'personId', 'createdAt',
+              'termsAcceptedAt', 'termsVersion',
             ])
           && d.keys().hasAll([
               'email', 'telephone', 'activeMunicipalityId', 'personId', 'createdAt',
+              'termsAcceptedAt', 'termsVersion',
             ])
           && hasValidUserFields(d);
     }
@@ -128,6 +132,7 @@ service cloud.firestore {
     function isValidUserUpdateKeys(affected) {
       return affected.hasOnly([
         'email', 'telephone', 'activeMunicipalityId', 'personId',
+        'termsAcceptedAt', 'termsVersion',
       ]);
     }
 
@@ -148,6 +153,7 @@ service cloud.firestore {
       return !('createdAt' in resData)
           && reqData.diff(resData).affectedKeys().hasOnly([
                'email', 'telephone', 'activeMunicipalityId', 'personId', 'createdAt',
+               'termsAcceptedAt', 'termsVersion',
              ])
           && hasValidUserFields(reqData);
     }
