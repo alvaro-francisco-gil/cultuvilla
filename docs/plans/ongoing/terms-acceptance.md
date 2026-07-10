@@ -6,6 +6,19 @@ Require every new user to accept the Terms of Use and Privacy Policy before thei
 profile is created, persist a versioned acceptance record, and ship the two legal
 documents (Spanish, RGPD/LOPDGDD + LSSI-CE compliant) as in-app screens.
 
+## Status
+
+- **Updated:** 2026-07-10
+- **Stage:** Task 1 — shared model (consent fields + version constant)
+- **Branch:** `feat/terms-acceptance` (worktree `.claude/worktrees/terms-acceptance`)
+- **Done:** design + legal drafts + implementation plan written and committed
+- **Next:** implement Task 1 (UserDataModel fields, `CURRENT_TERMS_VERSION`, builder + test)
+- **Blockers:** none
+- **Handoff:** Legal text source of truth is `docs/legal/*.md`; the content module (Task 5)
+  transcribes it verbatim. Emulator-backed steps (rules test, dev backfill, app run) are
+  marked "ASK USER TO RUN" — Claude does not run emulators/dev servers here. Confirm
+  `serverTimestamp` is re-exported from `@cultuvilla/shared/firebase` before Task 6.
+
 ## Context
 
 Cultuvilla handles personal data (persona profiles: name, sex, birthday, birthplace,
