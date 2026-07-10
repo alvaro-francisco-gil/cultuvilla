@@ -33,6 +33,7 @@ export async function recordOccupation(name: string): Promise<void> {
   const slug = slugifyOccupation(name);
   // setDoc with FieldValue sentinels (increment/serverTimestamp) bypasses the
   // typed converter's strict schema.parse — write through the raw doc ref.
+  // typed-refs: allowed
   const ref = doc(getDb(), 'occupations', slug);
   await setDoc(
     ref,

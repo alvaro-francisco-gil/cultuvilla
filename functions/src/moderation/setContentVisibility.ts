@@ -7,7 +7,7 @@ import {
   ModeratedCollection,
   buildModerationEventData,
 } from '@cultuvilla/shared/models';
-import { adminDoc, municipalityMemberDoc } from '@cultuvilla/shared/firebase/refs/admin';
+import { adminDoc, municipalityMemberDoc, moderationEventsCollection } from '@cultuvilla/shared/firebase/refs/admin';
 
 const db = admin.firestore();
 
@@ -108,7 +108,7 @@ export const setContentVisibility = onCall<
         };
     tx.update(targetRef, patch);
 
-    const eventRef = db.collection('moderationEvents').doc();
+    const eventRef = moderationEventsCollection(db).doc();
     tx.set(
       eventRef,
       buildModerationEventData({
