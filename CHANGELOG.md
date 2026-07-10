@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.6.0 — 2026-07-10
+
 ### Fixed
 - **Registration no longer fails with "Missing or insufficient permissions" when a village is picked.** Completing a profile while selecting a pueblo could abort at the last step: `ensureVillageMembership` → `joinVillage` calls `setActiveMunicipality`, an `updateDoc` on `users/{uid}`, and the account doc didn't exist yet (onboarding created it only *after* the village join, relying on the async `syncPersonDenormalization` trigger to have landed its `displayName` stub). An `updateDoc` against a missing doc makes the `users` update rule dereference a null `resource.data`, which Firestore denies. Onboarding now writes the account doc (`createUserProfile`/`patchUserProfile`) **before** joining the village, so `users/{uid}` always exists first. Regression test added in `complete-profile.test.tsx` (asserts the account write precedes the village join). No rules or data change. (The COOP `window.close` console warning some users saw during Google sign-in is unrelated and benign — it comes from Firebase's popup, not our code.)
 
