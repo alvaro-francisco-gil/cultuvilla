@@ -7,7 +7,12 @@ import {
   cancelRegistration,
 } from '@cultuvilla/shared/services/registrationService';
 import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
+import { observability } from '@cultuvilla/shared';
 
+jest.mock('@cultuvilla/shared', () => ({
+  ...jest.requireActual('@cultuvilla/shared'),
+  observability: { trackEvent: jest.fn() },
+}));
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
@@ -60,6 +65,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockGetUserRegistrations.mockResolvedValue([]);
   mockGetPersonsByCreator.mockResolvedValue([]);
+  (observability.trackEvent as jest.Mock).mockClear();
 });
 
 describe('RegisterFab', () => {
@@ -98,6 +104,7 @@ describe('RegisterFab', () => {
         { personId: 'p2', name: 'Hijo García' },
       ]),
     );
+    expect(observability.trackEvent).toHaveBeenCalledWith('event.signup.success', {});
   });
 
   // Reproduces production data: getPersonsByCreator returns the caller's OWN

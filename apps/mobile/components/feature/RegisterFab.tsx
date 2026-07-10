@@ -13,6 +13,7 @@ import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
 import { buildShortName, type PersonData } from '@cultuvilla/shared/models/person';
 import { useT } from '../../lib/i18n';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
+import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 
 export interface RegisterFabProps {
   eventId: string;
@@ -103,6 +104,7 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
           const pid = diff.toAdd[i]?.personId;
           if (pid) next.set(pid, { regId: s.id, status: s.status });
         });
+        observability.trackEvent(OBSERVABILITY_EVENTS.EVENT_SIGNUP_SUCCESS, {});
       }
       for (const regId of diff.toCancelRegIds) {
         await cancelRegistration(eventId, regId);
@@ -115,6 +117,7 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
       setAutoSelectIds([]);
       setSheetOpen(false);
     } catch (e) {
+      observability.trackEvent(OBSERVABILITY_EVENTS.EVENT_SIGNUP_ERROR, {});
       showAlert(e instanceof Error ? e.message : 'unknown', t('event.register.error'));
     } finally {
       setBusy(false);
