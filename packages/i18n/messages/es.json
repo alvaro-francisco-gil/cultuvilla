@@ -429,7 +429,9 @@
         "titlePlaceholder": "p. ej. San Roque",
         "startDate": "Fecha de inicio",
         "endDate": "Fecha de fin",
-        "image": "Cartel"
+        "image": "Cartel",
+        "addImage": "Añadir imagen",
+        "removeImage": "Quitar imagen"
       },
       "viewer": { "close": "Cerrar" }
     }
