@@ -54,6 +54,17 @@ export interface PersonFormProps {
    * how residence is stored.
    */
   renderResidence?: () => ReactNode;
+  /**
+   * Consent UI (e.g. a terms-acceptance checkbox) rendered at the bottom of the
+   * final step. Onboarding injects it; other consumers omit it.
+   */
+  renderConsent?: () => ReactNode;
+  /**
+   * When defined, gates the final step's submit on consent being satisfied.
+   * `undefined` (the default) leaves the form ungated for consumers that don't
+   * collect consent.
+   */
+  consentSatisfied?: boolean;
   onSubmit: (values: PersonFormValues, photo: PersonFormPhoto | null) => Promise<void> | void;
 }
 
@@ -66,6 +77,8 @@ export function PersonForm({
   editing = false,
   selfProfile = false,
   renderResidence,
+  renderConsent,
+  consentSatisfied,
   onSubmit,
 }: PersonFormProps) {
   const { t } = useT();
@@ -205,6 +218,10 @@ export function PersonForm({
       key: 'about',
       title: t('profile.personForm.stepAbout'),
       icon: 'document-text-outline',
+      // Gate the final step (and thus submit) on consent when the consumer
+      // collects it. `=== false` so consumers that omit the prop are never
+      // gated (undefined leaves the step valid).
+      validate: () => (consentSatisfied === false ? ['consent'] : []),
       render: () =>
         stepBody(
           <>
@@ -228,6 +245,7 @@ export function PersonForm({
               multiline
               numberOfLines={4}
             />
+            {renderConsent?.()}
           </>,
         ),
     },

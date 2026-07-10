@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Screen, VillagePicker, BarrioPicker } from '../../components/primitives';
+import { router } from 'expo-router';
+import { Screen, VillagePicker, BarrioPicker, Checkbox, Text } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { PersonForm } from '../../components/feature/PersonForm';
 import type { PersonFormPhoto, PersonFormValues } from '../../components/feature/PersonForm';
@@ -18,6 +19,7 @@ import {
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
 import { buildResidenceLinks } from '@cultuvilla/shared/models/person';
 import type { MunicipalityLink, PartialDate } from '@cultuvilla/shared/models/person';
+import { CURRENT_TERMS_VERSION } from '@cultuvilla/shared/models/user';
 
 function toPartialDate(d: Date | null): PartialDate | null {
   if (!d) return null;
@@ -36,6 +38,7 @@ export default function CompleteProfileScreen() {
     profile?.activeMunicipalityId ?? null,
   );
   const [barrioId, setBarrioId] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   function handleVillageChange(id: string | null) {
     setMunicipalityId(id);
@@ -97,7 +100,13 @@ export default function CompleteProfileScreen() {
       if (profile) {
         await patchUserProfile(user.uid, profilePatch);
       } else {
-        await createUserProfile(user.uid, { email: user.email ?? '', ...profilePatch });
+        // First-time account creation: record acceptance of the current legal
+        // version. createUserProfile stamps termsAcceptedAt server-side.
+        await createUserProfile(user.uid, {
+          email: user.email ?? '',
+          ...profilePatch,
+          termsVersion: CURRENT_TERMS_VERSION,
+        });
       }
       await refreshProfile();
       // AuthGate (_layout.tsx) owns post-onboarding routing.
@@ -132,6 +141,34 @@ export default function CompleteProfileScreen() {
               wholeVillageLabel={t('profile.personForm.wholeVillage')}
             />
           </>
+        )}
+        consentSatisfied={acceptedTerms}
+        renderConsent={() => (
+          <Checkbox
+            value={acceptedTerms}
+            onValueChange={setAcceptedTerms}
+            testID="accept-terms"
+            label={
+              <Text>
+                {t('onboarding.completeProfile.acceptPrefix')}{' '}
+                <Text
+                  className="text-accent underline"
+                  onPress={() => router.push('/legal/terms')}
+                >
+                  {t('menu.terms')}
+                </Text>
+                {' '}
+                {t('common.and')}
+                {' '}
+                <Text
+                  className="text-accent underline"
+                  onPress={() => router.push('/legal/privacy')}
+                >
+                  {t('menu.privacy')}
+                </Text>
+              </Text>
+            }
+          />
         )}
         onSubmit={onSubmit}
       />

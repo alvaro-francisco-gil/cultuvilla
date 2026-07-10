@@ -22,6 +22,7 @@
     "stepper": { "back": "Anterior", "next": "Siguiente" },
     "close": "Cerrar",
     "photo": "Foto",
+    "and": "y",
     "error": {
       "title": "No se pudo cargar",
       "body": "Algo salió mal al cargar el contenido. Inténtalo de nuevo.",
@@ -679,7 +680,9 @@
       "biographySelf": "Cuenta algo al pueblo sobre ti",
       "submit": "Crear perfil",
       "requiredFields": "Nombre, ambos apellidos y fecha de nacimiento son obligatorios.",
-      "error": "No se pudo guardar el perfil"
+      "error": "No se pudo guardar el perfil",
+      "acceptPrefix": "Acepto los",
+      "acceptRequired": "Debes aceptar los términos para continuar."
     }
   },
   "imageCrop": {

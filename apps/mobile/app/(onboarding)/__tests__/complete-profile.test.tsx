@@ -28,7 +28,7 @@ jest.mock('../../../lib/auth/useAuth', () => ({
   }),
 }));
 jest.mock('expo-router', () => ({
-  router: { replace: jest.fn() },
+  router: { replace: jest.fn(), push: jest.fn() },
 }));
 jest.mock('../../../lib/i18n', () => ({
   useT: () => ({
@@ -109,7 +109,8 @@ describe('CompleteProfileScreen', () => {
     fireEvent.press(dayMatches[dayMatches.length - 1]!);
     fireEvent.press(getByText('Siguiente'));
 
-    // Step 3: submit from the last step.
+    // Step 3: accept the terms (submit is gated on it), then submit.
+    fireEvent.press(getByTestId('accept-terms'));
     await act(async () => {
       fireEvent.press(getByText('Crear perfil'));
     });
@@ -129,11 +130,40 @@ describe('CompleteProfileScreen', () => {
     );
     expect(userService.createUserProfile).toHaveBeenCalledWith(
       'uid-1',
-      expect.objectContaining({ personId: 'person-1' }),
+      expect.objectContaining({ personId: 'person-1', termsVersion: '1.0' }),
     );
     // Client must NOT send displayName — firestore.rules forbid it and the
     // trigger (functions/src/users/syncPersonDenormalization.ts) is the only writer.
     const userArgs = (userService.createUserProfile as jest.Mock).mock.calls[0][1];
     expect(userArgs).not.toHaveProperty('displayName');
+  });
+
+  it('does not create the profile until the terms are accepted', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const userService = require('@cultuvilla/shared/services/userService');
+
+    const { getByText, getByLabelText, getByTestId, getAllByText } = render(<CompleteProfileScreen />);
+
+    fireEvent.changeText(getByLabelText('Nombre'), 'Ana');
+    fireEvent.changeText(getByLabelText('Primer apellido'), 'García');
+    fireEvent.changeText(getByLabelText('Segundo apellido'), 'López');
+    fireEvent.press(getByText('Mujer'));
+    fireEvent.press(getByText('Siguiente'));
+
+    fireEvent.press(getByTestId('birthday-year'));
+    fireEvent.press(getAllByText('1990')[0]!);
+    fireEvent.press(getByTestId('birthday-month'));
+    fireEvent.press(getAllByText('Mayo')[0]!);
+    fireEvent.press(getByTestId('birthday-day'));
+    const dayMatches = getAllByText('5');
+    fireEvent.press(dayMatches[dayMatches.length - 1]!);
+    fireEvent.press(getByText('Siguiente'));
+
+    // Step 3: attempt to submit WITHOUT accepting the terms.
+    await act(async () => {
+      fireEvent.press(getByText('Crear perfil'));
+    });
+
+    expect(userService.createUserProfile).not.toHaveBeenCalled();
   });
 });
