@@ -28,6 +28,8 @@ const createUserProfilePayload = () => ({
   activeMunicipalityId: null,
   personId: 'p1',
   createdAt: serverTimestamp(),
+  termsAcceptedAt: serverTimestamp(),
+  termsVersion: '1.0',
 });
 
 // Simulates syncPersonDenormalization writing users/{uid} first with only
@@ -51,6 +53,31 @@ describe('firestore.rules — /users/{userId}', () => {
       const ownerDb = asUser(getEnv(), OWNER);
       await assertFails(
         setDoc(doc(ownerDb, `users/${OTHER}`), createUserProfilePayload(), { merge: true }),
+      );
+    });
+
+    it('rejects an unknown extra key on create', async () => {
+      const ownerDb = asUser(getEnv(), OWNER);
+      await assertFails(
+        setDoc(
+          doc(ownerDb, `users/${OWNER}`),
+          { ...createUserProfilePayload(), sneaky: true },
+          { merge: true },
+        ),
+      );
+    });
+
+    it('rejects a create missing the consent fields', async () => {
+      const ownerDb = asUser(getEnv(), OWNER);
+      const withoutConsent = {
+        email: 'ana@example.com',
+        telephone: null,
+        activeMunicipalityId: null,
+        personId: 'p1',
+        createdAt: serverTimestamp(),
+      };
+      await assertFails(
+        setDoc(doc(ownerDb, `users/${OWNER}`), withoutConsent, { merge: true }),
       );
     });
   });
