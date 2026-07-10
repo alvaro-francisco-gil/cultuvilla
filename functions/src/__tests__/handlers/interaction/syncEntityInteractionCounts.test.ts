@@ -111,6 +111,20 @@ async function seedBarrio(id: string, extra: Record<string, unknown> = {}): Prom
     .set({ commentCount: 0, reactionCounts: {}, ...extra });
 }
 
+async function seedOrganization(id: string, extra: Record<string, unknown> = {}): Promise<void> {
+  await admin
+    .firestore()
+    .doc(`organizations/${id}`)
+    .set({ commentCount: 0, reactionCounts: {}, ...extra });
+}
+
+async function seedFestivalPoster(id: string, extra: Record<string, unknown> = {}): Promise<void> {
+  await admin
+    .firestore()
+    .doc(`festivalPosters/${id}`)
+    .set({ commentCount: 0, reactionCounts: {}, ...extra });
+}
+
 beforeAll(async () => {
   await resetEmulators();
 });
@@ -168,6 +182,22 @@ describe('syncEntityCommentCount', () => {
 
     const newsDoc = await admin.firestore().doc('news/n1').get();
     expect(newsDoc.get('commentCount')).toBe(1);
+  });
+
+  it('routes organization comments to organizations/{entityId}', async () => {
+    await seedOrganization('o1');
+    await fireCommentTrigger(null, comment({ entityKind: 'organization', entityId: 'o1' }));
+
+    const orgDoc = await admin.firestore().doc('organizations/o1').get();
+    expect(orgDoc.get('commentCount')).toBe(1);
+  });
+
+  it('routes festivalPoster comments to festivalPosters/{entityId}', async () => {
+    await seedFestivalPoster('fp1');
+    await fireCommentTrigger(null, comment({ entityKind: 'festivalPoster', entityId: 'fp1' }));
+
+    const festivalPosterDoc = await admin.firestore().doc('festivalPosters/fp1').get();
+    expect(festivalPosterDoc.get('commentCount')).toBe(1);
   });
 
   it('no-ops without throwing for an unknown entityKind', async () => {
@@ -230,5 +260,65 @@ describe('syncEntityReactionCounts', () => {
       .doc(`municipalities/${MUNICIPALITY_ID}/places/p1`)
       .get();
     expect(placeDoc.get('reactionCounts.like')).toBe(1);
+  });
+
+  it('routes organization reactions to organizations/{entityId}', async () => {
+    await seedOrganization('o1');
+    await fireReactionTrigger(
+      null,
+      reaction({ entityKind: 'organization', entityId: 'o1', kind: 'like' }),
+    );
+
+    const orgDoc = await admin.firestore().doc('organizations/o1').get();
+    expect(orgDoc.get('reactionCounts.like')).toBe(1);
+  });
+
+  it('routes festivalPoster reactions to festivalPosters/{entityId}', async () => {
+    await seedFestivalPoster('fp1');
+    await fireReactionTrigger(
+      null,
+      reaction({ entityKind: 'festivalPoster', entityId: 'fp1', kind: 'like' }),
+    );
+
+    const festivalPosterDoc = await admin.firestore().doc('festivalPosters/fp1').get();
+    expect(festivalPosterDoc.get('reactionCounts.like')).toBe(1);
+  });
+
+  it('routes barrio reactions to municipalities/{municipalityId}/barrios/{entityId}', async () => {
+    await seedBarrio('b1');
+    await fireReactionTrigger(
+      null,
+      reaction({ entityKind: 'barrio', entityId: 'b1', kind: 'like' }),
+    );
+
+    const barrioDoc = await admin
+      .firestore()
+      .doc(`municipalities/${MUNICIPALITY_ID}/barrios/b1`)
+      .get();
+    expect(barrioDoc.get('reactionCounts.like')).toBe(1);
+  });
+
+  it('routes news reactions to news/{entityId}', async () => {
+    await seedNews('n1');
+    await fireReactionTrigger(
+      null,
+      reaction({ entityKind: 'news', entityId: 'n1', kind: 'heart' }),
+    );
+
+    const newsDoc = await admin.firestore().doc('news/n1').get();
+    expect(newsDoc.get('reactionCounts.heart')).toBe(1);
+  });
+
+  it('no-ops without throwing for an unknown entityKind', async () => {
+    await expect(
+      fireReactionTrigger(null, reaction({ entityKind: 'unknownKind', entityId: 'x1' })),
+    ).resolves.not.toThrow();
+  });
+
+  it('swallows NOT_FOUND when the parent entity does not exist', async () => {
+    // No seed for events/does-not-exist.
+    await expect(
+      fireReactionTrigger(null, reaction({ entityKind: 'event', entityId: 'does-not-exist' })),
+    ).resolves.not.toThrow();
   });
 });
