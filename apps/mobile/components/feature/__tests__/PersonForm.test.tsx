@@ -66,4 +66,28 @@ describe('<PersonForm> stepper', () => {
     expect(getByLabelText('onboarding.completeProfile.biography')).toBeTruthy();
     expect(queryByLabelText('onboarding.completeProfile.biographySelf')).toBeNull();
   });
+
+  it('reveals the free-text occupation input only after selecting "Otro"', () => {
+    const utils = reachAboutStep({ submitLabel: 'Guardar', onSubmit: jest.fn() });
+    // Hidden until the user opts into a custom occupation.
+    expect(utils.queryByTestId('occupation-custom-input')).toBeNull();
+    fireEvent.press(utils.getByTestId('occupation-otro'));
+    expect(utils.getByTestId('occupation-custom-input')).toBeTruthy();
+    // Deselecting "Otro" hides it again.
+    fireEvent.press(utils.getByTestId('occupation-otro'));
+    expect(utils.queryByTestId('occupation-custom-input')).toBeNull();
+  });
+
+  it('persists typed custom occupations without the "otro" marker itself', () => {
+    const onSubmit = jest.fn();
+    const utils = reachAboutStep({ submitLabel: 'Guardar', onSubmit });
+    fireEvent.press(utils.getByTestId('occupation-otro'));
+    fireEvent.changeText(utils.getByTestId('occupation-custom-input'), 'malabarista');
+    fireEvent.press(utils.getByTestId('occupation-custom-add'));
+    fireEvent.press(utils.getByText('Guardar'));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ occupations: ['malabarista'] }),
+      null,
+    );
+  });
 });

@@ -104,15 +104,23 @@ export function PersonForm({
   );
   const [biography, setBiography] = useState(initial?.biography ?? '');
   const initialOccupations = initial?.occupations ?? [];
-  const [selectedCatalog, setSelectedCatalog] = useState<string[]>(
-    initialOccupations.filter(isCatalogOccupation),
-  );
-  const [customOccupations, setCustomOccupations] = useState<string[]>(
-    initialOccupations.filter((o) => !isCatalogOccupation(o)),
-  );
+  const initialCustom = initialOccupations.filter((o) => !isCatalogOccupation(o));
+  // 'otro' is a reveal toggle, not a stored occupation. Re-select it when the
+  // person already has free-text entries so the custom UI shows on edit.
+  const [selectedCatalog, setSelectedCatalog] = useState<string[]>(() => {
+    const catalog = initialOccupations.filter(isCatalogOccupation).filter((k) => k !== 'otro');
+    return initialCustom.length > 0 ? [...catalog, 'otro'] : catalog;
+  });
+  const [customOccupations, setCustomOccupations] = useState<string[]>(initialCustom);
   const [customOccupationInput, setCustomOccupationInput] = useState('');
+  const showCustomOccupation = selectedCatalog.includes('otro');
 
   function toggleCatalogOccupation(key: string) {
+    // Deselecting 'otro' discards free-text entries the user can no longer see.
+    if (key === 'otro' && selectedCatalog.includes('otro')) {
+      setCustomOccupations([]);
+      setCustomOccupationInput('');
+    }
     setSelectedCatalog((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     );
@@ -140,7 +148,7 @@ export function PersonForm({
         birthday,
         birthPlaceMunicipalityId: birthPlace,
         biography,
-        occupations: [...selectedCatalog, ...customOccupations],
+        occupations: [...selectedCatalog.filter((k) => k !== 'otro'), ...customOccupations],
       },
       photo
     );
@@ -303,40 +311,44 @@ export function PersonForm({
                   );
                 })}
               </View>
-              {customOccupations.length > 0 && (
-                <View className="flex-row flex-wrap gap-2">
-                  {customOccupations.map((value) => (
-                    <Pressable
-                      key={value}
-                      onPress={() => removeCustomOccupation(value)}
-                      className="px-3 py-1.5 rounded-full border bg-accent border-accent"
+              {showCustomOccupation && (
+                <>
+                  {customOccupations.length > 0 && (
+                    <View className="flex-row flex-wrap gap-2">
+                      {customOccupations.map((value) => (
+                        <Pressable
+                          key={value}
+                          onPress={() => removeCustomOccupation(value)}
+                          className="px-3 py-1.5 rounded-full border bg-accent border-accent"
+                        >
+                          <Text variant="bodySm" tone="onAccent">
+                            {value} ✕
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+                  <HStack gap={2}>
+                    <View className="flex-1">
+                      <Input
+                        label={t('occupations.picker.customLabel')}
+                        value={customOccupationInput}
+                        onChangeText={setCustomOccupationInput}
+                        placeholder={t('occupations.picker.customPlaceholder')}
+                        testID="occupation-custom-input"
+                      />
+                    </View>
+                    <Button
+                      variant="secondary"
+                      onPress={addCustomOccupation}
+                      disabled={!customOccupationInput.trim()}
+                      testID="occupation-custom-add"
                     >
-                      <Text variant="bodySm" tone="onAccent">
-                        {value} ✕
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
+                      {t('occupations.picker.add')}
+                    </Button>
+                  </HStack>
+                </>
               )}
-              <HStack gap={2}>
-                <View className="flex-1">
-                  <Input
-                    label={t('occupations.picker.customLabel')}
-                    value={customOccupationInput}
-                    onChangeText={setCustomOccupationInput}
-                    placeholder={t('occupations.picker.customPlaceholder')}
-                    testID="occupation-custom-input"
-                  />
-                </View>
-                <Button
-                  variant="secondary"
-                  onPress={addCustomOccupation}
-                  disabled={!customOccupationInput.trim()}
-                  testID="occupation-custom-add"
-                >
-                  {t('occupations.picker.add')}
-                </Button>
-              </HStack>
             </VStack>
             {renderConsent?.()}
           </>,
