@@ -17,6 +17,7 @@ import {
   getUserMemberships,
   joinVillage,
 } from '@cultuvilla/shared/services/villageMemberService';
+import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 
 type Muni = MunicipalityData & { id: string };
 const PAGE_SIZE = 20;
@@ -146,14 +147,20 @@ export function VillageDiscovery() {
     if (!user || !pendingJoin) return;
     const id = pendingJoin.id;
     setJoining(true);
+    let succeeded = false;
     try {
       await joinVillage(id, user.uid, barrioId);
+      succeeded = true;
+      observability.trackEvent(OBSERVABILITY_EVENTS.VILLAGE_JOIN_SUCCESS, { villageId: id });
       setJoinedIds((prev) => new Set(prev).add(id));
       setPendingJoin(null);
       // joinVillage set this village as active; refresh the auth profile so the
       // Pueblo tab reflects it now, not only after an app restart.
       await refreshProfile();
       router.push({ pathname: '/village/[villageId]', params: { villageId: id } });
+    } catch (e) {
+      if (!succeeded) observability.trackEvent(OBSERVABILITY_EVENTS.VILLAGE_JOIN_ERROR, { villageId: id });
+      throw e;
     } finally {
       setJoining(false);
     }

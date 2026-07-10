@@ -13,6 +13,7 @@ import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
 import { buildShortName, type PersonData } from '@cultuvilla/shared/models/person';
 import { useT } from '../../lib/i18n';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
+import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 
 export interface RegisterFabProps {
   eventId: string;
@@ -24,6 +25,8 @@ export interface RegisterFabProps {
   name: string;
   /** When true, adding new attendees first requires a shared phone. */
   telephoneRequired: boolean;
+  /** The event's municipality — threaded into signup observability events. */
+  villageId?: string;
 }
 
 type PersonDoc = PersonData & { id: string };
@@ -37,7 +40,7 @@ type PersonDoc = PersonData & { id: string };
  *
  * Styles live on `style` (never `className`) so the pill renders on RN-Web.
  */
-export function RegisterFab({ eventId, userId, personId, name, telephoneRequired }: RegisterFabProps) {
+export function RegisterFab({ eventId, userId, personId, name, telephoneRequired, villageId }: RegisterFabProps) {
   const { t } = useT();
   const [registrations, setRegistrations] = useState<Map<string, AttendeeRegistration>>(new Map());
   const [dependents, setDependents] = useState<PersonDoc[]>([]);
@@ -94,15 +97,18 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
 
   async function applyDiff(diff: AttendeeDiff, phone?: string) {
     setBusy(true);
+    let succeeded = false;
     try {
       const next = new Map(registrations);
       if (diff.toAdd.length > 0) {
         const registrants = diff.toAdd.map((a) => ({ ...a, ...(phone ? { phone } : {}) }));
         const summaries = await registerToEvent(eventId, registrants);
+        succeeded = true;
         summaries.forEach((s, i) => {
           const pid = diff.toAdd[i]?.personId;
           if (pid) next.set(pid, { regId: s.id, status: s.status });
         });
+        observability.trackEvent(OBSERVABILITY_EVENTS.EVENT_SIGNUP_SUCCESS, { villageId });
       }
       for (const regId of diff.toCancelRegIds) {
         await cancelRegistration(eventId, regId);
@@ -115,6 +121,7 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
       setAutoSelectIds([]);
       setSheetOpen(false);
     } catch (e) {
+      if (!succeeded) observability.trackEvent(OBSERVABILITY_EVENTS.EVENT_SIGNUP_ERROR, { villageId });
       showAlert(e instanceof Error ? e.message : 'unknown', t('event.register.error'));
     } finally {
       setBusy(false);
