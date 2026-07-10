@@ -158,12 +158,12 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
         {
           icon: 'document-text-outline',
           label: t('menu.terms'),
-          comingSoon: true,
+          onPress: () => close(() => router.push('/legal/terms' as Href)),
         },
         {
           icon: 'shield-checkmark-outline',
           label: t('menu.privacy'),
-          comingSoon: true,
+          onPress: () => close(() => router.push('/legal/privacy' as Href)),
         },
       ],
     },
