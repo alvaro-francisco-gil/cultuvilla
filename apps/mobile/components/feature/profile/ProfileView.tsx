@@ -199,7 +199,6 @@ export function ProfileView({
         <Section
           title={t('profile.gruposSection.title')}
           isEmpty={false}
-          emptyLabel={t('profile.gruposSection.empty')}
         >
           {grupos.map((o) => (
             <EntityCard
@@ -218,7 +217,6 @@ export function ProfileView({
         <Section
           title={t('profile.peñasSection.title')}
           isEmpty={false}
-          emptyLabel={t('profile.peñasSection.empty')}
         >
           {penas.map((o) => (
             <EntityCard

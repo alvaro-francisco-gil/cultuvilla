@@ -287,18 +287,15 @@
       "empty": "No hay eventos en este pueblo"
     },
     "upcomingEvents": {
-      "title": "Próximos eventos",
-      "empty": "No hay eventos próximos"
+      "title": "Próximos eventos"
     },
     "newsFeed": {
-      "title": "Artículos",
-      "empty": "Aún no hay artículos en este pueblo"
+      "title": "Artículos"
     },
     "info": {
       "directions": "Cómo llegar"
     },
     "location": {
-      "add": "Añadir ubicación",
       "openMapsTitle": "¿Abrir Google Maps?",
       "open": "Abrir",
       "zoomLabel": "Zoom del mapa",
@@ -323,7 +320,6 @@
         "add": "Añadir barrio",
         "editTitle": "Editar barrio",
         "name": "Nombre del barrio",
-        "empty": "Aún no hay barrios",
         "residentCount": "{count} vecinos",
         "addImage": "Añadir imagen",
         "changeImage": "Cambiar imagen",
@@ -335,7 +331,6 @@
         "editTitle": "Editar lugar",
         "name": "Nombre",
         "description": "Descripción",
-        "empty": "Aún no hay lugares",
         "addImage": "Añadir imagen",
         "changeImage": "Cambiar imagen",
         "imageSelected": "Imagen seleccionada",
@@ -352,7 +347,6 @@
       "organizations": {
         "title": "Grupos",
         "add": "Añadir grupo",
-        "addPena": "Añadir peña",
         "empty": "Sin solicitudes pendientes",
         "approve": "Aprobar",
         "reject": "Rechazar"
@@ -425,17 +419,10 @@
       "buried": "Personas enterradas aquí",
       "buriedEmpty": "Aún no hay personas registradas en este lugar"
     },
-    "organizationsList": {
-      "title": "Grupos",
-      "empty": "Aún no hay grupos",
-      "penasEmpty": "Aún no hay peñas"
-    },
     "festivalPosters": {
       "title": "Carteles de fiestas",
       "editTitle": "Editar cartel",
-      "empty": "Todavía no hay carteles de fiestas.",
       "add": "Añadir",
-      "propose": "Proponer",
       "form": {
         "year": "Año",
         "title": "Nombre de las fiestas",
@@ -642,12 +629,10 @@
       "add": "Añadir"
     },
     "gruposSection": {
-      "title": "Grupos",
-      "empty": "Aún no perteneces a ningún grupo."
+      "title": "Grupos"
     },
     "peñasSection": {
-      "title": "Peñas",
-      "empty": "Aún no perteneces a ninguna peña."
+      "title": "Peñas"
     },
     "orgRole": {
       "admin": "Administrador",
