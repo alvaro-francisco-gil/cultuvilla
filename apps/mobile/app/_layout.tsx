@@ -11,6 +11,7 @@ import { I18nProvider } from '../lib/i18n';
 import { useAuth } from '../lib/auth/useAuth';
 import { resolveAuthRoute, resolveIntentResume } from '../lib/auth/authRoute';
 import { RegisterGateProvider, useRegisterGate } from '../lib/auth/RegisterGateContext';
+import { GuestActiveVillageProvider } from '../lib/village/GuestActiveVillageContext';
 import { useDeepLinkRouter } from '../lib/deeplink/useDeepLinkRouter';
 import { CropperHost } from '../lib/imageCrop';
 import { ActivityIndicator, View } from 'react-native';
@@ -32,13 +33,15 @@ export default function RootLayout() {
         <AppVersionGate>
           <CallableErrorProvider>
             <AuthProvider>
-              <RegisterGateProvider>
-                <AuthGate />
-                {/* Web-only image-crop overlay (no-op on native, which uses its
-                    own native cropper). Rendered above the app so it can cover
-                    any screen when pickImageAsBlob({ square }) opens it. */}
-                <CropperHost />
-              </RegisterGateProvider>
+              <GuestActiveVillageProvider>
+                <RegisterGateProvider>
+                  <AuthGate />
+                  {/* Web-only image-crop overlay (no-op on native, which uses its
+                      own native cropper). Rendered above the app so it can cover
+                      any screen when pickImageAsBlob({ square }) opens it. */}
+                  <CropperHost />
+                </RegisterGateProvider>
+              </GuestActiveVillageProvider>
             </AuthProvider>
           </CallableErrorProvider>
         </AppVersionGate>

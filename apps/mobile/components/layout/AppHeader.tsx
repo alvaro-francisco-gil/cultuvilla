@@ -8,6 +8,7 @@ import { Pressable } from '../primitives/Pressable';
 import { Text } from '../primitives/Text';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
+import { useActiveVillageId } from '../../lib/village/useActiveVillageId';
 import { useUnreadInboxCount } from '../../lib/hooks/useUnreadInboxCount';
 import { useT } from '../../lib/i18n';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
@@ -22,7 +23,8 @@ export type AppHeaderProps = {
 
 export function AppHeader({ centerLabel, extraRightSlot }: AppHeaderProps) {
   const insets = useSafeAreaInsets();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const activeMunicipalityId = useActiveVillageId();
   const gate = useRegisterGate();
   const { t } = useT();
   const { count: unreadCount, refresh: refreshUnread } = useUnreadInboxCount();
@@ -37,18 +39,17 @@ export function AppHeader({ centerLabel, extraRightSlot }: AppHeaderProps) {
 
   useEffect(() => {
     let cancelled = false;
-    const id = profile?.activeMunicipalityId;
-    if (!id) {
+    if (!activeMunicipalityId) {
       setMunicipalityName(null);
       return;
     }
-    getMunicipality(id).then((m) => {
+    getMunicipality(activeMunicipalityId).then((m) => {
       if (!cancelled) setMunicipalityName(m?.name ?? null);
     });
     return () => {
       cancelled = true;
     };
-  }, [profile?.activeMunicipalityId]);
+  }, [activeMunicipalityId]);
 
   const label = centerLabel ?? municipalityName ?? t('header.noVillage');
 
