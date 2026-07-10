@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Alert, Linking, Platform, View } from 'react-native';
+import { Linking, View } from 'react-native';
 import { VStack } from '../../components/primitives/VStack';
 import { HStack } from '../../components/primitives/HStack';
 import { Text } from '../../components/primitives/Text';
 import { Button } from '../../components/primitives/Button';
+import { Avatar } from '../../components/primitives/Avatar';
+import { Pressable } from '../../components/primitives/Pressable';
 import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
 import { RegisterFab } from '../../components/feature/RegisterFab';
 import { EventAttendees } from '../../components/feature/EventAttendees';
@@ -17,17 +19,21 @@ import { ENTITY_FALLBACK_ICON } from '../../lib/entities/registry';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
-import { getEvent, updateEventStatus } from '@cultuvilla/shared/services/eventService';
+import { getEvent } from '@cultuvilla/shared/services/eventService';
 import { getEventLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
+import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
+import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
 import { buildDisplayName } from '@cultuvilla/shared/models/person/PersonDataModel';
 import { formatDate, buildGoogleCalendarUrl } from '@cultuvilla/shared/utils';
 import { useT } from '../../lib/i18n';
 import type { EventData } from '@cultuvilla/shared/models/event/EventDataModel';
 import type { PersonData } from '@cultuvilla/shared/models/person/PersonDataModel';
+import type { MunicipalityData } from '@cultuvilla/shared/models/municipality';
 
 type EventDoc = EventData & { id: string };
 type PersonDoc = PersonData & { id: string };
+type VillageDoc = MunicipalityData & { id: string };
 
 export default function EventDetailScreen() {
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
@@ -37,6 +43,7 @@ export default function EventDetailScreen() {
   const share = useShareDeepLink();
   const [event, setEvent] = useState<EventDoc | null>(null);
   const [person, setPerson] = useState<PersonDoc | null>(null);
+  const [village, setVillage] = useState<VillageDoc | null>(null);
   const { canOrganize } = useEventOrganizer(event);
 
   useEffect(() => {
@@ -52,6 +59,16 @@ export default function EventDetailScreen() {
       setPerson(await getPersonByUserId(user.uid));
     })();
   }, [user]);
+
+  // The escudo lives on the municipality doc, not the event; fetch it once the
+  // event (and its municipalityId) is loaded to render the Pueblo section.
+  useEffect(() => {
+    const municipalityId = event?.municipalityId;
+    if (!municipalityId) return;
+    void (async () => {
+      setVillage(await getMunicipality(municipalityId));
+    })();
+  }, [event?.municipalityId]);
 
   const personName = person ? buildDisplayName(person) : '';
 
@@ -76,24 +93,6 @@ export default function EventDetailScreen() {
     ).catch(() => {});
   };
 
-  const cancelEvent = () => {
-    if (!event) return;
-    const doCancel = () => {
-      void updateEventStatus(event.id, 'cancelled').then(() => {
-        if (router.canGoBack()) router.back();
-      });
-    };
-    // Alert.alert is a no-op on RN-Web, so branch to window.confirm there.
-    if (Platform.OS === 'web') {
-      if (window.confirm(t('event.cancelConfirm'))) doCancel();
-      return;
-    }
-    Alert.alert(t('event.cancelTitle'), t('event.cancelConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('event.cancelTitle'), style: 'destructive', onPress: doCancel },
-    ]);
-  };
-
   const actions: EntityDetailAction[] = event
     ? [
         ...(canOrganize
@@ -102,11 +101,6 @@ export default function EventDetailScreen() {
                 icon: 'create-outline' as const,
                 accessibilityLabel: t('event.editEvent'),
                 onPress: () => router.push(`/event/new?eventId=${event.id}` as never),
-              },
-              {
-                icon: 'trash-outline' as const,
-                accessibilityLabel: t('event.cancelTitle'),
-                onPress: cancelEvent,
               },
             ]
           : []),
@@ -162,14 +156,50 @@ export default function EventDetailScreen() {
               <DetailSectionHeading>{t('event.organizersLabel')}</DetailSectionHeading>
               <View className="flex-row flex-wrap items-center" style={{ gap: 12 }}>
                 {event.organizerOrgIds?.map((id) => (
-                  <LiveOwnerChip key={id} ownerType="organization" ownerId={id} />
+                  <LiveOwnerChip
+                    key={id}
+                    ownerType="organization"
+                    ownerId={id}
+                    onPress={() => router.push(`/o/${id}` as never)}
+                  />
                 ))}
                 {event.organizerUserIds?.map((id) => (
-                  <LiveOwnerChip key={id} ownerType="user" ownerId={id} />
+                  <LiveOwnerChip
+                    key={id}
+                    ownerType="user"
+                    ownerId={id}
+                    onPress={() => router.push(`/user/${id}` as never)}
+                  />
                 ))}
               </View>
             </VStack>
           )}
+          {event.villageName ? (
+            <VStack gap={2}>
+              <DetailSectionHeading>{t('event.villageLabel')}</DetailSectionHeading>
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: '/village/[villageId]',
+                    params: { villageId: event.municipalityId },
+                  })
+                }
+                accessibilityRole="button"
+                accessibilityLabel={event.villageName}
+              >
+                <HStack gap={2} align="center">
+                  <Avatar
+                    uri={village ? escudoThumbDisplayUrl(village) : null}
+                    size={36}
+                    initials={event.villageName.slice(0, 1).toUpperCase()}
+                  />
+                  <Text numberOfLines={1} className="shrink">
+                    {event.villageName}
+                  </Text>
+                </HStack>
+              </Pressable>
+            </VStack>
+          ) : null}
           {event.description ? (
             <VStack gap={2}>
               <DetailSectionHeading>{t('event.descriptionLabel')}</DetailSectionHeading>

@@ -11,6 +11,9 @@ jest.mock('expo-router', () => ({
   router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn() },
 }));
 jest.mock('../../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('../../../../../lib/auth/useEntityCapabilities', () => ({
+  useEntityCapabilities: () => ({ canManage: false, canApprove: false, uid: null, loading: false }),
+}));
 jest.mock('@cultuvilla/shared/services/festivalPosterService', () => ({
   getFestivalPoster: jest.fn().mockResolvedValue({ id: 'p1', title: 'Fiestas 2026', year: 2026, imageURL: null, startDate: null, endDate: null }),
 }));

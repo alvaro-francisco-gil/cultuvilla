@@ -2,7 +2,9 @@ import { describe, expect, it } from '@jest/globals';
 import {
   activeMentionQuery,
   adjustMentions,
+  deleteMentionAt,
   insertMention,
+  mentionRuns,
   splitMentionsAtCaret,
   type MentionCandidate,
 } from '../mentionText';
@@ -85,25 +87,94 @@ describe('splitMentionsAtCaret', () => {
 });
 
 describe('insertMention', () => {
-  it('replaces the @query with @label and records the span', () => {
+  it('replaces the @query with the bare label and records the span', () => {
     const text = 'hola @Peñ';
     const active = activeMentionQuery(text, text.length, [])!;
     const res = insertMention(text, [], active, peña);
-    expect(res.text).toBe('hola @Peña El Barrio ');
+    expect(res.text).toBe('hola Peña El Barrio ');
     expect(res.mentions).toHaveLength(1);
-    expect(res.mentions[0]).toMatchObject({ entityId: 'org1', offset: 5, length: '@Peña El Barrio'.length });
+    expect(res.mentions[0]).toMatchObject({ entityId: 'org1', offset: 5, length: 'Peña El Barrio'.length });
     // caret lands just after the inserted label + trailing space
-    expect(res.cursor).toBe(5 + '@Peña El Barrio'.length + 1);
+    expect(res.cursor).toBe(5 + 'Peña El Barrio'.length + 1);
   });
 
   it('shifts a later mention when inserting before it', () => {
     const text = '@A end';
     const existing: NewsMention[] = [{ entityType: 'place', entityId: 'p', label: 'end', offset: 3, length: 3 }];
-    // type a new query at the start is awkward; instead insert where query is at 0
     const active = { query: 'A', startIndex: 0 };
     const res = insertMention(text, existing, active, peña);
-    // '@A' (2 chars) -> '@Peña El Barrio ' grows the text; the 'end' span shifts right
     const shifted = res.mentions.find((m) => m.entityId === 'p')!;
     expect(shifted.offset).toBeGreaterThan(3);
+  });
+});
+
+describe('mentionRuns', () => {
+  it('splits text into plain and mention runs', () => {
+    const m = [mention(5, 3, 'abc')]; // "abc" in "hola abc!"
+    expect(mentionRuns('hola abc!', m)).toEqual([
+      { text: 'hola ' },
+      { text: 'abc', mention: m[0] },
+      { text: '!' },
+    ]);
+  });
+
+  it('skips an out-of-range span but keeps the prose', () => {
+    const m = [mention(20, 3)];
+    expect(mentionRuns('short', m)).toEqual([{ text: 'short' }]);
+  });
+
+  it('skips a span overlapping an earlier one', () => {
+    const a = mention(0, 4, 'aaaa');
+    const b = mention(2, 4, 'bbbb'); // overlaps a
+    expect(mentionRuns('aaaabbbb', [a, b])).toEqual([
+      { text: 'aaaa', mention: a },
+      { text: 'bbbb' },
+    ]);
+  });
+
+  it('emits a mention run with no trailing prose when the mention ends the text', () => {
+    const m = [mention(5, 3, 'abc')]; // "abc" ends "hola abc"
+    expect(mentionRuns('hola abc', m)).toEqual([
+      { text: 'hola ' },
+      { text: 'abc', mention: m[0] },
+    ]);
+  });
+});
+
+describe('deleteMentionAt', () => {
+  // "hola Peña mundo" with "Peña" (offset 5, length 4) a mention
+  const text = 'hola Peña mundo';
+  const m = [mention(5, 4, 'Peña')];
+
+  it('Backspace at the end of a mention removes the whole span', () => {
+    const res = deleteMentionAt(text, m, 9, 'backward');
+    expect(res).toEqual({ text: 'hola  mundo', mentions: [], cursor: 5 });
+  });
+
+  it('Delete at the start of a mention removes the whole span', () => {
+    const res = deleteMentionAt(text, m, 5, 'forward');
+    expect(res).toEqual({ text: 'hola  mundo', mentions: [], cursor: 5 });
+  });
+
+  it('shifts a later mention left after the removed span', () => {
+    const two = [mention(5, 4, 'Peña'), mention(10, 5, 'mundo')];
+    const res = deleteMentionAt(text, two, 9, 'backward')!;
+    expect(res.mentions).toEqual([{ ...two[1], offset: 6 }]); // 10 - 4
+  });
+
+  it('returns null when the caret is not at a mention edge', () => {
+    expect(deleteMentionAt(text, m, 2, 'backward')).toBeNull();
+    expect(deleteMentionAt(text, m, 7, 'backward')).toBeNull(); // inside the span
+  });
+
+  it('removes only the touched mention when two are adjacent', () => {
+    // "ab" (offset 0, len 2) immediately followed by "cd" (offset 2, len 2)
+    const adjacent = [mention(0, 2, 'ab'), mention(2, 2, 'cd')];
+    // Backspace at the shared boundary (caret 2) targets the FIRST mention's end
+    const back = deleteMentionAt('abcd', adjacent, 2, 'backward')!;
+    expect(back).toEqual({ text: 'cd', mentions: [{ ...adjacent[1], offset: 0 }], cursor: 0 });
+    // Delete at the shared boundary (caret 2) targets the SECOND mention's start
+    const fwd = deleteMentionAt('abcd', adjacent, 2, 'forward')!;
+    expect(fwd).toEqual({ text: 'ab', mentions: [adjacent[0]], cursor: 2 });
   });
 });

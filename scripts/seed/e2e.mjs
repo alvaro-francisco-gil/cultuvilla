@@ -177,7 +177,7 @@ async function run() {
     .doc(org.docId)
     .collection('members')
     .doc(users.admin.uid)
-    .set(buildOrgMemberData({ role: 'admin' }), { merge: true });
+    .set(buildOrgMemberData({ userId: users.admin.uid, role: 'admin' }), { merge: true });
 
   // Upcoming published event in the village
   const startDate = new Date(Date.now() + event.startOffsetDays * DAY_MS);

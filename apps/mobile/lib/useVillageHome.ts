@@ -112,7 +112,7 @@ export function useVillageHome(municipalityId: string | null) {
           getHomeFeed(municipalityId, { limit: 10 }),
         ),
         withFirestoreErrorLog('villageHome:getFestivalPosters', () =>
-          getFestivalPosters(municipalityId, 'approved'),
+          getFestivalPosters(municipalityId),
         ),
       ]);
 

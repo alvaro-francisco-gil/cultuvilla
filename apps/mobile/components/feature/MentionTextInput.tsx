@@ -1,5 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import {
+  NativeSyntheticEvent,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  TextInputKeyPressEventData,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@cultuvilla/shared/design-system';
 import { Text, VStack } from '../primitives';
@@ -7,7 +14,9 @@ import { useT } from '../../lib/i18n';
 import {
   activeMentionQuery,
   adjustMentions,
+  deleteMentionAt,
   insertMention,
+  mentionRuns,
   type MentionCandidate,
 } from '../../lib/mentionText';
 import type { NewsMention, MentionEntityType } from '@cultuvilla/shared/models/news/NewsPostDataModel';
@@ -16,11 +25,12 @@ const ACCENT = colors.light.fg.accent;
 
 const ENTITY_ICON: Record<MentionEntityType, keyof typeof Ionicons.glyphMap> = {
   organization: 'people-outline',
-  user: 'person-outline',
   event: 'calendar-outline',
   place: 'location-outline',
+  barrio: 'map-outline',
   village: 'home-outline',
   news: 'newspaper-outline',
+  festivalPoster: 'image-outline',
 };
 
 interface MentionTextInputProps {
@@ -58,6 +68,8 @@ export function MentionTextInput({
   // suggestion strip (the "keyboard got smaller" bug). After a mention insert we
   // let the caret fall to the end of the new value, which is the common case.
   const [selection, setSelection] = useState({ start: 0, end: 0 });
+  const [scrollY, setScrollY] = useState(0);
+  const runs = useMemo(() => mentionRuns(value, mentions), [value, mentions]);
 
   const active =
     selection.start === selection.end
@@ -77,34 +89,81 @@ export function MentionTextInput({
     onChange(next, adjustMentions(value, next, mentions));
   }
 
+  function handleKeyPress(e: NativeSyntheticEvent<TextInputKeyPressEventData>) {
+    const key = e.nativeEvent.key;
+    if (key !== 'Backspace' && key !== 'Delete') return;
+    if (selection.start !== selection.end) return; // a range delete flows through adjustMentions
+    const res = deleteMentionAt(value, mentions, selection.start, key === 'Backspace' ? 'backward' : 'forward');
+    if (!res) return;
+    // preventDefault fires on RN-Web (our primary target); it stops the textarea
+    // from also eating one character. Native has no equivalent — see the plan's
+    // accepted-risks note.
+    (e as unknown as { preventDefault?: () => void }).preventDefault?.();
+    onChange(res.text, res.mentions);
+    moveCaret(res.cursor);
+  }
+
   function pick(candidate: MentionCandidate) {
     if (!active) return;
     const res = insertMention(value, mentions, active, candidate);
     onChange(res.text, res.mentions);
-    // Predict the caret so the suggestion list closes immediately; the native
-    // onSelectionChange will confirm it on the next frame.
-    setSelection({ start: res.cursor, end: res.cursor });
+    moveCaret(res.cursor);
+  }
+
+  // A programmatic edit (mention insert / atomic delete) moves the caret without
+  // the native field firing onSelectionChange — on web a scripted value+selection
+  // change doesn't reliably re-emit it. Report the new caret to the parent
+  // ourselves so consumers tracking it (e.g. BlockEditor's image-insert split
+  // point) don't act on a stale offset. Predicting it also closes the suggestion
+  // list immediately; the native onSelectionChange confirms it on the next frame.
+  function moveCaret(cursor: number) {
+    setSelection({ start: cursor, end: cursor });
+    onSelectionChange?.(cursor);
   }
 
   return (
     <VStack gap={1}>
-      <View className="border rounded-md px-3 py-2 bg-surface border-subtle">
-        <TextInput
-          value={value}
-          onChangeText={handleChangeText}
-          multiline
-          placeholder={placeholder}
-          accessibilityLabel={placeholder}
-          className="text-primary text-body"
-          textAlignVertical="top"
-          style={{ minHeight: 96 }}
-          onFocus={onFocus}
-          onSelectionChange={(e) => {
-            const sel = e.nativeEvent.selection;
-            setSelection(sel);
-            onSelectionChange?.(sel.start);
-          }}
-        />
+      <View className="border rounded-md px-3 py-2 bg-surface border-subtle" style={{ minHeight: 96 }}>
+        <View style={{ position: 'relative', flex: 1 }}>
+          <Text
+            pointerEvents="none"
+            className="text-body"
+            style={[StyleSheet.absoluteFill, { transform: [{ translateY: -scrollY }] }]}
+          >
+            {runs.map((run, i) =>
+              run.mention ? (
+                <Text key={i} className="text-accent underline">
+                  {run.text}
+                </Text>
+              ) : (
+                <Text key={i} className="text-primary">
+                  {run.text}
+                </Text>
+              ),
+            )}
+          </Text>
+          <TextInput
+            value={value}
+            onChangeText={handleChangeText}
+            onKeyPress={handleKeyPress}
+            onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
+            multiline
+            placeholder={placeholder}
+            placeholderTextColor={colors.light.fg.muted}
+            accessibilityLabel={placeholder}
+            className="text-body"
+            textAlignVertical="top"
+            style={{ minHeight: 96, color: 'transparent' }}
+            cursorColor={ACCENT}
+            selectionColor={ACCENT}
+            onFocus={onFocus}
+            onSelectionChange={(e) => {
+              const sel = e.nativeEvent.selection;
+              setSelection(sel);
+              onSelectionChange?.(sel.start);
+            }}
+          />
+        </View>
       </View>
       {active && suggestions.length > 0 ? (
         <VStack gap={1} className="rounded-md border border-subtle bg-surface-elevated p-1">

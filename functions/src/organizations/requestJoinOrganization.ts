@@ -5,7 +5,6 @@ import {
   organizationDoc, organizationMemberDoc, organizationJoinRequestsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
 import { buildOrganizationJoinRequestData } from '@cultuvilla/shared/models';
-import { notifyJoinRequestCreated } from '../helpers/notifyRequests';
 
 const db = admin.firestore();
 const HANDLER = 'requestJoinOrganization';
@@ -38,7 +37,6 @@ export const requestJoinOrganization = onCall<Data, Promise<Result>>(
     await ref.set(buildOrganizationJoinRequestData({ userId: uid, orgId, municipalityId: org.municipalityId }));
 
     logger.info('join request created', { handler: HANDLER, orgId, requesterUid: uid, requestId: ref.id });
-    await notifyJoinRequestCreated({ orgId, orgName: org.name, municipalityId: org.municipalityId, requesterUid: uid });
     return { ok: true, requestId: ref.id };
   },
 );

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Screen, VillagePicker, BarrioPicker } from '../../components/primitives';
+import { router } from 'expo-router';
+import { Screen, VillagePicker, BarrioPicker, Checkbox, Text } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { PersonForm } from '../../components/feature/PersonForm';
 import type { PersonFormPhoto, PersonFormValues } from '../../components/feature/PersonForm';
@@ -16,8 +17,11 @@ import {
   patchUserProfile,
 } from '@cultuvilla/shared/services/userService';
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
+import { recordOccupation } from '@cultuvilla/shared/services/occupationService';
+import { isCatalogOccupation } from '@cultuvilla/shared/models/occupation';
 import { buildResidenceLinks } from '@cultuvilla/shared/models/person';
 import type { MunicipalityLink, PartialDate } from '@cultuvilla/shared/models/person';
+import { CURRENT_TERMS_VERSION } from '@cultuvilla/shared/models/user';
 
 function toPartialDate(d: Date | null): PartialDate | null {
   if (!d) return null;
@@ -36,6 +40,7 @@ export default function CompleteProfileScreen() {
     profile?.activeMunicipalityId ?? null,
   );
   const [barrioId, setBarrioId] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   function handleVillageChange(id: string | null) {
     setMunicipalityId(id);
@@ -51,6 +56,12 @@ export default function CompleteProfileScreen() {
         ? { municipalityId: values.birthPlaceMunicipalityId, barrioId: null }
         : null;
       const municipalityLinks = buildResidenceLinks(municipalityId, barrioId);
+
+      // Free-text (non-catalog) entries are also tallied for suggestions —
+      // fire-and-forget per entry, doesn't block onboarding.
+      await Promise.all(
+        values.occupations.filter((o) => !isCatalogOccupation(o)).map(recordOccupation),
+      );
 
       let personId: string;
       if (profile?.personId) {
@@ -69,6 +80,7 @@ export default function CompleteProfileScreen() {
               birthPlace: birthPlaceLink,
               municipalityLinks,
               biography: values.biography.trim() || null,
+              occupations: values.occupations,
               userId: user.uid,
               createdBy: user.uid,
             });
@@ -97,7 +109,13 @@ export default function CompleteProfileScreen() {
       if (profile) {
         await patchUserProfile(user.uid, profilePatch);
       } else {
-        await createUserProfile(user.uid, { email: user.email ?? '', ...profilePatch });
+        // First-time account creation: record acceptance of the current legal
+        // version. createUserProfile stamps termsAcceptedAt server-side.
+        await createUserProfile(user.uid, {
+          email: user.email ?? '',
+          ...profilePatch,
+          termsVersion: CURRENT_TERMS_VERSION,
+        });
       }
       await refreshProfile();
       // AuthGate (_layout.tsx) owns post-onboarding routing.
@@ -132,6 +150,34 @@ export default function CompleteProfileScreen() {
               wholeVillageLabel={t('profile.personForm.wholeVillage')}
             />
           </>
+        )}
+        consentSatisfied={acceptedTerms}
+        renderConsent={() => (
+          <Checkbox
+            value={acceptedTerms}
+            onValueChange={setAcceptedTerms}
+            testID="accept-terms"
+            label={
+              <Text>
+                {t('onboarding.completeProfile.acceptPrefix')}{' '}
+                <Text
+                  className="text-accent underline"
+                  onPress={() => router.push('/legal/terms')}
+                >
+                  {t('menu.terms')}
+                </Text>
+                {' '}
+                {t('common.and')}
+                {' '}
+                <Text
+                  className="text-accent underline"
+                  onPress={() => router.push('/legal/privacy')}
+                >
+                  {t('menu.privacy')}
+                </Text>
+              </Text>
+            }
+          />
         )}
         onSubmit={onSubmit}
       />

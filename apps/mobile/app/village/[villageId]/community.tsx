@@ -1,23 +1,23 @@
 import { useLocalSearchParams, Redirect, router } from 'expo-router';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, View } from 'react-native';
-import { Screen } from '../../../components/primitives';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Screen, Button } from '../../../components/primitives';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
-import { Stepper, type StepConfig } from '../../../components/feature/Stepper';
 import { CommunitySettingsEditor } from '../../../components/feature/CommunitySettingsEditor';
-import { VillageContentManager } from '../../../components/feature/proposable/VillageContentManager';
-import { MembersList } from '../../../components/feature/MembersList';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { useT } from '../../../lib/i18n';
 
 // Role-mode community editor (organizers only; non-organizers are redirected
-// back to the village, where the header is their read view). Steps: "Detalles"
-// (escudo/description/location — each field saves itself) → "Contenido"
-// (moderate lugares/barrios/agrupaciones) → "Miembros". Every step persists its
-// own edits as they happen, so the final "Listo" button just closes the editor.
+// back to the village, where the header is their read view). Edits the pueblo's
+// details — escudo/description/location — each field saving itself as it
+// changes, so the bottom "Listo" button just closes the editor. The villagers
+// roster lives on its own screen (village/[id]/members), reached from the
+// personas stat.
 export default function CommunityScreen() {
   const { villageId } = useLocalSearchParams<{ villageId: string }>();
-  const { canManage, uid, loading } = useEntityCapabilities(villageId);
+  const { canManage, loading } = useEntityCapabilities(villageId);
   const { t } = useT();
+  const insets = useSafeAreaInsets();
 
   if (!villageId) return null;
   if (loading) {
@@ -32,36 +32,21 @@ export default function CommunityScreen() {
   }
   if (!canManage) return <Redirect href={`/village/${villageId}`} />;
 
-  const steps: StepConfig[] = [
-    {
-      key: 'details',
-      title: t('village.edit.tabDetails'),
-      icon: 'create-outline',
-      render: () => <CommunitySettingsEditor villageId={villageId} />,
-    },
-    {
-      key: 'content',
-      title: t('village.edit.tabContent'),
-      icon: 'list-outline',
-      render: () => <VillageContentManager villageId={villageId} />,
-    },
-    {
-      key: 'members',
-      title: t('village.edit.tabMembers'),
-      icon: 'people-outline',
-      render: () => <MembersList villageId={villageId} canManage={canManage} currentUserId={uid} />,
-    },
-  ];
-
   return (
-    // bottomInset={false}: the Stepper's own bottom nav bar applies the safe-area inset.
     <Screen padded={false} bottomInset={false} topInset={false}>
       <ScreenHeader accent title={t('village.edit.title')} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <Stepper steps={steps} onComplete={() => router.back()} submitLabel={t('common.done')} allStepsReachable />
+        <View className="flex-1">
+          <CommunitySettingsEditor villageId={villageId} />
+        </View>
+        <View className="bg-surface-elevated px-4 pt-2" style={{ paddingBottom: insets.bottom + 8 }}>
+          <Button onPress={() => router.back()} fullWidth>
+            {t('common.done')}
+          </Button>
+        </View>
       </KeyboardAvoidingView>
     </Screen>
   );

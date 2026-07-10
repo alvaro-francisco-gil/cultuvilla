@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Linking, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { VStack } from '../primitives/VStack';
 import { HStack } from '../primitives/HStack';
 import { Text } from '../primitives/Text';
 import { Pressable } from '../primitives/Pressable';
+import { Button } from '../primitives/Button';
 import { Avatar } from '../primitives/Avatar';
 import { DetailSectionHeading } from './DetailSectionHeading';
 import {
@@ -21,9 +22,9 @@ type Row = RegistrationData & { id: string };
 
 /**
  * Organizer-only attendee roster shown inline on the event detail screen: a
- * circular profile photo (from the attendee's person, initials fallback), the
- * name, their phone (only when the event required one), and a per-row remove.
- * Matches the LiveOwnerChip look used for organizers.
+ * circular profile photo (from the attendee's person, initials fallback) and
+ * the name, with per-row call (only when the event required a phone) and
+ * remove actions. Tapping call opens a dialog with the number to dial.
  */
 export function EventAttendees({
   eventId,
@@ -36,6 +37,7 @@ export function EventAttendees({
   const [rows, setRows] = useState<Row[] | null>(null);
   const [phones, setPhones] = useState<Record<string, string | null>>({});
   const [photos, setPhotos] = useState<Record<string, string | null>>({});
+  const [callTarget, setCallTarget] = useState<{ name: string; phone: string } | null>(null);
 
   const load = useCallback(async () => {
     const regs = await getEventRegistrations(eventId);
@@ -70,16 +72,20 @@ export function EventAttendees({
         </Text>
       ) : (
         (rows ?? []).map((r) => (
-          <HStack key={r.id} gap={2} align="center" className="py-2">
+          <HStack key={r.id} gap={3} align="center" className="py-2">
             <Avatar uri={photos[r.id]} size={36} initials={r.name.slice(0, 1).toUpperCase()} />
-            <View className="flex-1">
-              <Text numberOfLines={1}>{r.name}</Text>
-              {telephoneRequired && phones[r.id] ? (
-                <Text tone="muted" variant="bodySm">
-                  {phones[r.id]}
-                </Text>
-              ) : null}
-            </View>
+            <Text numberOfLines={1} className="flex-1">
+              {r.name}
+            </Text>
+            {telephoneRequired && phones[r.id] ? (
+              <Pressable
+                testID={`call-attendee-${r.id}`}
+                accessibilityLabel={t('event.call')}
+                onPress={() => setCallTarget({ name: r.name, phone: phones[r.id] ?? '' })}
+              >
+                <Ionicons name="call-outline" size={iconSizes.md} color={colors.light.fg.accent} />
+              </Pressable>
+            ) : null}
             <Pressable
               testID={`remove-attendee-${r.id}`}
               accessibilityLabel={t('common.delete')}
@@ -90,6 +96,46 @@ export function EventAttendees({
           </HStack>
         ))
       )}
+
+      <Modal
+        visible={callTarget !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCallTarget(null)}
+      >
+        <Pressable
+          onPress={() => setCallTarget(null)}
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}
+          className="items-center justify-center px-8"
+        >
+          {/* Inner press-catcher: taps inside the card must not dismiss. */}
+          <Pressable onPress={() => {}} className="w-full rounded-lg bg-surface-elevated p-5 border border-subtle">
+            {callTarget ? (
+              <VStack gap={3}>
+                <Text variant="h3">{callTarget.name}</Text>
+                <Text variant="h2" style={{ color: colors.light.fg.accent }}>
+                  {callTarget.phone}
+                </Text>
+                <HStack gap={3} className="justify-end items-center">
+                  <Button variant="ghost" onPress={() => setCallTarget(null)}>
+                    {t('common.close')}
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onPress={() => {
+                      const phone = callTarget.phone;
+                      setCallTarget(null);
+                      void Linking.openURL(`tel:${phone}`).catch(() => {});
+                    }}
+                  >
+                    {t('event.call')}
+                  </Button>
+                </HStack>
+              </VStack>
+            ) : null}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </VStack>
   );
 }

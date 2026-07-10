@@ -19,11 +19,15 @@ jest.mock('@cultuvilla/shared/services/newsService', () => ({
   getNewsPost: jest.fn().mockResolvedValue({
     id: 'n1', title: 'Gran noticia', category: 'general', municipalityId: 'm1',
     images: [], coverImage: null, content: null, body: '', organizerOrgIds: [], organizerUserIds: [],
-    createdBy: 'u9', publishedAt: null, submittedAt: null,
+    createdBy: 'u9', publishedAt: null, createdAt: null, status: 'active',
   }),
 }));
 jest.mock('@cultuvilla/shared/services/imageService', () => ({ newsImageDownloadURL: jest.fn() }));
 jest.mock('@cultuvilla/shared/utils', () => ({ formatDate: () => '' }));
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
 
 describe('NewsDetailScreen', () => {
   it('renders the post title once loaded', async () => {

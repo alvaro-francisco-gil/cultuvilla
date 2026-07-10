@@ -1,6 +1,4 @@
 // Firestore Rules e2e tests for news, newsComments, newsReactions, newsReports.
-// Also covers the tightened municipalities/{id}/members/{uid} update rule
-// that prevents clients from setting trustedNewsAuthor directly.
 import { describe, it } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import {
@@ -32,10 +30,35 @@ async function seedMember(
       joinedAt: new Date(),
       profileAnswers: {},
       profileCompletedAt: null,
-      trustedNewsAuthor: false,
       ...extra,
     });
   });
+}
+
+// A fresh, valid create payload matching buildNewsPostData's output shape.
+function newsDoc(municipalityId: string, createdBy: string, extra: Record<string, unknown> = {}) {
+  return {
+    municipalityId,
+    organizerUserIds: [createdBy],
+    organizerOrgIds: [],
+    title: 'Test post',
+    body: 'Body text',
+    category: 'otro',
+    images: [],
+    content: [],
+    coverImage: null,
+    status: 'active',
+    hiddenBy: null,
+    hiddenAt: null,
+    hiddenReason: null,
+    createdAt: new Date(),
+    publishedAt: new Date(),
+    createdBy,
+    updatedAt: new Date(),
+    reactionCounts: { like: 0, heart: 0 },
+    commentCount: 0,
+    ...extra,
+  };
 }
 
 async function seedPost(
@@ -45,24 +68,7 @@ async function seedPost(
   extra: Record<string, unknown> = {}
 ) {
   await seed(getEnv(), async (ctx) => {
-    await setDoc(doc(ctx.firestore(), `news/${postId}`), {
-      municipalityId,
-      organizerUserIds: [createdBy],
-      organizerOrgIds: [],
-      title: 'Test post',
-      body: 'Body text',
-      category: 'otro',
-      images: [],
-      status: 'pending',
-      rejectionReason: null,
-      submittedAt: new Date(),
-      publishedAt: null,
-      createdBy,
-      updatedAt: new Date(),
-      reactionCounts: { like: 0, heart: 0 },
-      commentCount: 0,
-      ...extra,
-    });
+    await setDoc(doc(ctx.firestore(), `news/${postId}`), newsDoc(municipalityId, createdBy, extra));
   });
 }
 
@@ -73,106 +79,40 @@ describe('firestore.rules — /news/{postId}', () => {
   it('1: non-member cannot create a news post', async () => {
     const stranger = asUser(getEnv(), 'stranger');
     await assertFails(
-      setDoc(doc(stranger, 'news/p1'), {
-        municipalityId: 'm1',
-        organizerUserIds: ['stranger'],
-        organizerOrgIds: [],
-        title: 'Hi',
-        body: 'Hello',
-        category: 'otro',
-        images: [],
-        content: [],
-        coverImage: null,
-        status: 'pending',
-        rejectionReason: null,
-        submittedAt: new Date(),
-        publishedAt: null,
-        createdBy: 'stranger',
-        updatedAt: new Date(),
-        reactionCounts: { like: 0, heart: 0 },
-        commentCount: 0,
-      })
+      setDoc(doc(stranger, 'news/p1'), newsDoc('m1', 'stranger', { organizerUserIds: ['stranger'] }))
     );
   });
 
-  // 2. member with trustedNewsAuthor=false creates with status='pending' → ALLOW
-  it('2: regular member can create a pending news post', async () => {
+  // 2. member creates an active news post → ALLOW (no more propose/approve ceremony)
+  it('2: regular member can create an active news post', async () => {
     await seedMember('m1', 'alice');
     const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(
-      setDoc(doc(alice, 'news/p1'), {
-        municipalityId: 'm1',
-        organizerUserIds: ['alice'],
-        organizerOrgIds: [],
-        title: 'Fiesta',
-        body: 'Detalles',
-        category: 'fiesta',
-        images: [],
-        content: [],
-        coverImage: null,
-        status: 'pending',
-        rejectionReason: null,
-        submittedAt: new Date(),
-        publishedAt: null,
-        createdBy: 'alice',
-        updatedAt: new Date(),
-        reactionCounts: { like: 0, heart: 0 },
-        commentCount: 0,
-      })
+      setDoc(doc(alice, 'news/p1'), newsDoc('m1', 'alice', { organizerUserIds: ['alice'], title: 'Fiesta' }))
     );
   });
 
-  // 3. member with trustedNewsAuthor=false creates with status='approved' → DENY
-  it('3: regular member cannot create an approved news post', async () => {
+  // 3. member cannot create a post that is already hidden
+  it('3: member cannot create a hidden news post', async () => {
     await seedMember('m1', 'alice');
     const alice = asUser(getEnv(), 'alice');
     await assertFails(
-      setDoc(doc(alice, 'news/p1'), {
-        municipalityId: 'm1',
-        organizerUserIds: ['alice'],
-        organizerOrgIds: [],
-        title: 'Fiesta',
-        body: 'Detalles',
-        category: 'fiesta',
-        images: [],
-        content: [],
-        coverImage: null,
-        status: 'approved',
-        rejectionReason: null,
-        submittedAt: new Date(),
-        publishedAt: new Date(),
-        createdBy: 'alice',
-        updatedAt: new Date(),
-        reactionCounts: { like: 0, heart: 0 },
-        commentCount: 0,
-      })
+      setDoc(
+        doc(alice, 'news/p1'),
+        newsDoc('m1', 'alice', { organizerUserIds: ['alice'], status: 'hidden' })
+      )
     );
   });
 
-  // 4. member with trustedNewsAuthor=true creates with status='approved' → ALLOW
-  it('4: trusted author can create an approved news post', async () => {
-    await seedMember('m1', 'bob', { trustedNewsAuthor: true });
-    const bob = asUser(getEnv(), 'bob');
-    await assertSucceeds(
-      setDoc(doc(bob, 'news/p1'), {
-        municipalityId: 'm1',
-        organizerUserIds: ['bob'],
-        organizerOrgIds: [],
-        title: 'Historia',
-        body: 'Contenido',
-        category: 'historia',
-        images: [],
-        content: [],
-        coverImage: null,
-        status: 'approved',
-        rejectionReason: null,
-        submittedAt: new Date(),
-        publishedAt: null,
-        createdBy: 'bob',
-        updatedAt: new Date(),
-        reactionCounts: { like: 0, heart: 0 },
-        commentCount: 0,
-      })
+  // 4. member cannot create a post carrying non-null hide metadata
+  it('4: member cannot create a news post with non-null hiddenBy', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(
+        doc(alice, 'news/p1'),
+        newsDoc('m1', 'alice', { organizerUserIds: ['alice'], hiddenBy: 'alice' })
+      )
     );
   });
 
@@ -186,13 +126,23 @@ describe('firestore.rules — /news/{postId}', () => {
     );
   });
 
-  // 6. author tries to update own post's status to 'approved' → DENY
-  it('6: author cannot update post status to approved', async () => {
+  // 6. author tries to update own post's status to 'hidden' → DENY
+  it('6: author cannot update post status to hidden', async () => {
     await seedMember('m1', 'alice');
     await seedPost('p1', 'm1', 'alice');
     const alice = asUser(getEnv(), 'alice');
     await assertFails(
-      updateDoc(doc(alice, 'news/p1'), { status: 'approved' })
+      updateDoc(doc(alice, 'news/p1'), { status: 'hidden' })
+    );
+  });
+
+  // 6b. author tries to set hiddenBy directly → DENY
+  it('6b: author cannot set hiddenBy on own post', async () => {
+    await seedMember('m1', 'alice');
+    await seedPost('p1', 'm1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      updateDoc(doc(alice, 'news/p1'), { hiddenBy: 'alice' })
     );
   });
 
@@ -207,7 +157,8 @@ describe('firestore.rules — /news/{postId}', () => {
     );
   });
 
-  // 8. client tries to delete a news post directly → DENY
+  // 8. client cannot delete a news post directly (author + admin deletes go
+  //    through the deleteNewsPost callable, which cascades comments/reactions).
   it('8: client cannot delete a news post directly', async () => {
     await seedMember('m1', 'alice');
     await seedPost('p1', 'm1', 'alice');
@@ -216,17 +167,17 @@ describe('firestore.rules — /news/{postId}', () => {
   });
 
   // Regression: getNewsPostsByOrganizer ("mis artículos") was denied because the
-  // read rule only allowed creator / village-member / approved — not organizers.
+  // read rule only allowed creator / village-member / active — not organizers.
   // A named organizer who is NOT the creator and NOT a village member must be able
-  // to read & list their pending co-organized posts.
-  it('9: a named organizer (not creator, not member) can read a pending post', async () => {
+  // to read & list their co-organized posts.
+  it('9: a named organizer (not creator, not member) can read a post', async () => {
     await seedMember('m1', 'alice');
     await seedPost('p1', 'm1', 'alice', { organizerUserIds: ['alice', 'carol'] });
     const carol = asUser(getEnv(), 'carol');
     await assertSucceeds(getDoc(doc(carol, 'news/p1')));
   });
 
-  it('9b: organizer can list pending posts via organizerUserIds array-contains', async () => {
+  it('9b: organizer can list posts via organizerUserIds array-contains', async () => {
     await seedMember('m1', 'alice');
     await seedPost('p1', 'm1', 'alice', { organizerUserIds: ['alice', 'carol'] });
     const carol = asUser(getEnv(), 'carol');
@@ -240,25 +191,7 @@ describe('firestore.rules — /news/{postId}', () => {
     await seedMember('m1', 'alice');
     const alice = asUser(getEnv(), 'alice');
     await assertFails(
-      setDoc(doc(alice, 'news/p1'), {
-        municipalityId: 'm1',
-        organizerUserIds: ['someoneelse'],
-        organizerOrgIds: [],
-        title: 'Test',
-        body: 'Body',
-        category: 'otro',
-        images: [],
-        content: [],
-        coverImage: null,
-        status: 'pending',
-        rejectionReason: null,
-        submittedAt: new Date(),
-        publishedAt: null,
-        createdBy: 'alice',
-        updatedAt: new Date(),
-        reactionCounts: { like: 0, heart: 0 },
-        commentCount: 0,
-      })
+      setDoc(doc(alice, 'news/p1'), newsDoc('m1', 'alice', { organizerUserIds: ['someoneelse'] }))
     );
   });
 
@@ -315,46 +248,70 @@ describe('firestore.rules — /news/{postId}', () => {
       updateDoc(doc(carol, 'news/p1'), { title: 'Org hacked', updatedAt: new Date() })
     );
   });
+
+  // T6-G: a current organizer can reassign authorship (add/remove organizers)
+  it('T6-G: organizer can update organizerUserIds/organizerOrgIds', async () => {
+    await seedMember('m1', 'alice');
+    await seedPost('p1', 'm1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertSucceeds(
+      updateDoc(doc(alice, 'news/p1'), {
+        organizerUserIds: ['alice', 'carol'],
+        organizerOrgIds: ['org1'],
+        updatedAt: new Date(),
+      })
+    );
+  });
+
+  // T6-H: authorship cannot be emptied — that would orphan the post
+  it('T6-H: update denied when organizerUserIds becomes empty', async () => {
+    await seedMember('m1', 'alice');
+    await seedPost('p1', 'm1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      updateDoc(doc(alice, 'news/p1'), { organizerUserIds: [], updatedAt: new Date() })
+    );
+  });
 });
 
 // ── news read rules (cross-village Explora feed) ──────────────────────────────
 // Regression: the Explora "all villages" feed (getAllVillagesFeed) lists every
-// approved news post regardless of municipality. The read rule must therefore
-// admit approved posts to non-members; pending posts stay members-only.
+// active news post regardless of municipality. The read rule must therefore
+// admit active posts to non-members; hidden posts stay members-only.
 describe('firestore.rules — /news read', () => {
-  it('R1: approved post is readable by a non-member (cross-village feed)', async () => {
-    await seedPost('p1', 'm1', 'alice', { status: 'approved', publishedAt: new Date() });
+  it('R1: active post is readable by a non-member (cross-village feed)', async () => {
+    await seedPost('p1', 'm1', 'alice');
     // bob is not a member of m1 — mirrors a user browsing another village.
     const bob = asUser(getEnv(), 'bob');
     await assertSucceeds(getDoc(doc(bob, 'news/p1')));
   });
 
-  it('R2: cross-village approved list query succeeds for a non-member', async () => {
-    await seedPost('p1', 'm1', 'alice', { status: 'approved', publishedAt: new Date() });
-    await seedPost('p2', 'm2', 'carol', { status: 'approved', publishedAt: new Date() });
+  it('R2: cross-village active list query succeeds for a non-member', async () => {
+    await seedPost('p1', 'm1', 'alice');
+    await seedPost('p2', 'm2', 'carol');
     const bob = asUser(getEnv(), 'bob');
     await assertSucceeds(
-      getDocs(query(collection(bob, 'news'), where('status', '==', 'approved'))),
+      getDocs(query(collection(bob, 'news'), where('status', '==', 'active'))),
     );
   });
 
-  it('R3: pending post stays hidden from non-members', async () => {
-    await seedPost('p1', 'm1', 'alice', { status: 'pending' });
+  it('R3: hidden post stays hidden from non-members', async () => {
+    await seedPost('p1', 'm1', 'alice', { status: 'hidden', hiddenBy: 'boss', hiddenAt: new Date() });
     const bob = asUser(getEnv(), 'bob');
     await assertFails(getDoc(doc(bob, 'news/p1')));
   });
 
-  it('R4: member can still read a pending post in their own village', async () => {
+  it('R4: member can still read a hidden post in their own village', async () => {
     await seedMember('m1', 'alice');
-    await seedPost('p1', 'm1', 'alice', { status: 'pending' });
+    await seedPost('p1', 'm1', 'alice', { status: 'hidden', hiddenBy: 'boss', hiddenAt: new Date() });
     const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(getDoc(doc(alice, 'news/p1')));
   });
 
-  it('R5: author can read own pending post even without village membership', async () => {
+  it('R5: author can read own hidden post even without village membership', async () => {
     // Powers the profile-screen news count (getNewsCountByCreator), which lists
     // the author's own posts regardless of status/membership.
-    await seedPost('p1', 'm1', 'alice', { status: 'pending' });
+    await seedPost('p1', 'm1', 'alice', { status: 'hidden', hiddenBy: 'boss', hiddenAt: new Date() });
     const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(getDoc(doc(alice, 'news/p1')));
   });
@@ -505,20 +462,5 @@ describe('firestore.rules — /newsReports/{reportId}', () => {
     await seedMember('m1', 'alice', { role: 'admin' });
     const alice = asUser(getEnv(), 'alice');
     await assertFails(updateDoc(doc(alice, 'newsReports/r1'), { status: 'dismissed' }));
-  });
-});
-
-// ── members trustedNewsAuthor tightening ──────────────────────────────────────
-
-describe('firestore.rules — members trustedNewsAuthor lock', () => {
-  // 17. client tries to write trustedNewsAuthor=true on their own member doc → DENY
-  it('17: member cannot set trustedNewsAuthor on their own member doc', async () => {
-    await seedMember('m1', 'alice');
-    const alice = asUser(getEnv(), 'alice');
-    await assertFails(
-      updateDoc(doc(alice, 'municipalities/m1/members/alice'), {
-        trustedNewsAuthor: true,
-      })
-    );
   });
 });

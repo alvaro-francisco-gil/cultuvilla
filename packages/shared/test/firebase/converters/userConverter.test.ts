@@ -22,6 +22,8 @@ describe('userConverterClient — pre-trigger onboarding read', () => {
     activeMunicipalityId: 'mun-1',
     personId: 'person-1',
     createdAt: Timestamp.fromDate(new Date('2026-07-03T00:00:00Z')),
+    termsAcceptedAt: Timestamp.fromDate(new Date('2026-07-03T00:00:00Z')),
+    termsVersion: '1.0',
   };
 
   it('fromFirestore degrades a missing displayName to "" instead of throwing', () => {

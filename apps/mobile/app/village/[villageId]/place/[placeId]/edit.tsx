@@ -5,9 +5,11 @@ import { Screen } from '../../../../../components/primitives/Screen';
 import { Text } from '../../../../../components/primitives/Text';
 import { ScreenHeader } from '../../../../../components/layout/ScreenHeader';
 import { ProposableForm } from '../../../../../components/feature/proposable/ProposableForm';
+import { DeleteHeaderButton } from '../../../../../components/feature/DeleteHeaderButton';
 import { useT } from '../../../../../lib/i18n';
 import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
 import { getPlace, updatePlace } from '@cultuvilla/shared/services/municipalityService';
+import { hideContent } from '@cultuvilla/shared/services/moderationService';
 import { uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 import { PLACE_KINDS, type PlaceKind } from '@cultuvilla/shared/models/municipality';
@@ -72,7 +74,25 @@ export default function PlaceEditScreen() {
 
   return (
     <Screen padded={false} topInset={false}>
-      <ScreenHeader accent title={t('village.admin.places.editTitle')} />
+      <ScreenHeader
+        accent
+        title={t('village.admin.places.editTitle')}
+        rightSlot={
+          <DeleteHeaderButton
+            onAccent
+            onConfirm={() => {
+              if (villageId && placeId)
+                void hideContent({ collection: 'places', docId: placeId, municipalityId: villageId })
+                  .then(() => router.replace(`/village/${villageId}`));
+            }}
+            accessibilityLabel={t('common.delete')}
+            confirmTitle={t('common.deleteConfirmTitle')}
+            confirmMessage={t('common.deleteConfirmMessage')}
+            confirmLabel={t('common.delete')}
+            cancelLabel={t('common.cancel')}
+          />
+        }
+      />
       {!loaded ? (
         <View className="flex-1 items-center justify-center"><ActivityIndicator /></View>
       ) : notFound ? (

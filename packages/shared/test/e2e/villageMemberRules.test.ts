@@ -47,7 +47,6 @@ function memberDocData() {
     joinedAt: NOW,
     profileAnswers: {},
     profileCompletedAt: null,
-    trustedNewsAuthor: false,
   };
 }
 
@@ -125,17 +124,6 @@ describe('firestore.rules — self-join membership create', () => {
       setDoc(doc(db, 'municipalities/mActive/members/alice'), {
         ...memberDocData(),
         role: 'admin',
-      }),
-    );
-  });
-
-  it('owner cannot self-grant trustedNewsAuthor on join', async () => {
-    await seedActiveMunicipality();
-    const db = asUser(getEnv(), ALICE);
-    await assertFails(
-      setDoc(doc(db, 'municipalities/mActive/members/alice'), {
-        ...memberDocData(),
-        trustedNewsAuthor: true,
       }),
     );
   });

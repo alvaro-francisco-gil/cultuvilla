@@ -10,7 +10,6 @@ const validMember = {
   joinedAt: new Date('2026-01-01T00:00:00Z'),
   profileAnswers: { barrio: 'Centro', householdSize: 4 },
   profileCompletedAt: null,
-  trustedNewsAuthor: false,
 };
 
 describe('VillageMemberDataSchema', () => {
@@ -22,11 +21,6 @@ describe('VillageMemberDataSchema', () => {
     expect(() =>
       VillageMemberDataSchema.parse({ ...validMember, role: 'moderator' }),
     ).toThrow();
-  });
-
-  it('rejects missing trustedNewsAuthor', () => {
-    const { trustedNewsAuthor: _trustedNewsAuthor, ...rest } = validMember;
-    expect(() => VillageMemberDataSchema.parse(rest)).toThrow();
   });
 
   it('strips a stray barrioId (residence lives on the person, not the member)', () => {
@@ -42,7 +36,6 @@ describe('buildVillageMemberData', () => {
     expect(m.role).toBe('user');
     expect(m.profileAnswers).toEqual({});
     expect(m.profileCompletedAt).toBeNull();
-    expect(m.trustedNewsAuthor).toBe(false);
     expect(m).not.toHaveProperty('barrioId');
     expect(() => VillageMemberDataSchema.parse(m)).not.toThrow();
   });
@@ -55,10 +48,8 @@ describe('buildVillageMemberData', () => {
       joinedAt: t,
       profileAnswers: { barrio: 'Centro' },
       profileCompletedAt: t,
-      trustedNewsAuthor: true,
     });
     expect(m.role).toBe('admin');
-    expect(m.trustedNewsAuthor).toBe(true);
     expect(() => VillageMemberDataSchema.parse(m)).not.toThrow();
   });
 });

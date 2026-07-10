@@ -56,7 +56,7 @@ export default function NewsDetailScreen() {
     };
   }, [firstImagePath]);
 
-  const date = post ? (post.publishedAt ?? post.submittedAt) : null;
+  const date = post ? (post.publishedAt ?? post.createdAt) : null;
   // Mirrors the news update rules: the author or a named organizer may edit.
   const canEdit =
     !!user && !!post && (post.createdBy === user.uid || post.organizerUserIds.includes(user.uid));

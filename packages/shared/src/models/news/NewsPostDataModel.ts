@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ReviewStatusSchema, type ReviewStatus } from '../core/ReviewableDataModel';
+import { visibilityFields, defaultVisibility, VisibilityStatusSchema } from '../core/VisibilityModel';
 
 export const NEWS_POST_CATEGORIES = [
   'fiesta',
@@ -11,8 +11,8 @@ export const NEWS_POST_CATEGORIES = [
 export const NewsPostCategorySchema = z.enum([...NEWS_POST_CATEGORIES]);
 export type NewsPostCategory = z.infer<typeof NewsPostCategorySchema>;
 
-export const NewsPostStatusSchema = ReviewStatusSchema;
-export type NewsPostStatus = ReviewStatus;
+export const NewsPostStatusSchema = VisibilityStatusSchema;
+export type NewsPostStatus = z.infer<typeof NewsPostStatusSchema>;
 
 export const NewsReactionKindSchema = z.enum(['like', 'heart']);
 export type NewsReactionKind = z.infer<typeof NewsReactionKindSchema>;
@@ -29,8 +29,21 @@ export type NewsPostImage = z.infer<typeof NewsPostImageSchema>;
 // mobile block editor. `body` (above) is kept as a flattened plain-text mirror
 // of the text blocks for legacy readers, search, and previews.
 
-/** Entities an `@`-mention can point at. Places already exist as a collection. */
-export const MENTION_ENTITY_TYPES = ['organization', 'user', 'event', 'place', 'village', 'news'] as const;
+/**
+ * Entities an `@`-mention can point at: the entity family (organization, event,
+ * place, barrio, news, festival poster) plus `village`. People are deliberately
+ * NOT mentionable — members have no public profile screen, so a person mention
+ * only ever rendered styled-but-dead.
+ */
+export const MENTION_ENTITY_TYPES = [
+  'organization',
+  'event',
+  'place',
+  'barrio',
+  'village',
+  'news',
+  'festivalPoster',
+] as const;
 export const MentionEntityTypeSchema = z.enum([...MENTION_ENTITY_TYPES]);
 export type MentionEntityType = z.infer<typeof MentionEntityTypeSchema>;
 
@@ -61,6 +74,11 @@ export const NewsImageBlockSchema = z.object({
   width: z.number(),
   height: z.number(),
   caption: z.string().nullable(),
+  // Inline `@`-mentions within the caption, indexing into `caption` by
+  // offset/length (same shape as a text block's `mentions`). `.default([])`
+  // keeps image blocks written before captions supported mentions parseable
+  // on read (the converter runs schema.parse on every read).
+  captionMentions: z.array(NewsMentionSchema).default([]),
 });
 export type NewsImageBlock = z.infer<typeof NewsImageBlockSchema>;
 
@@ -95,9 +113,8 @@ export const NewsPostDataSchema = z.object({
   /** Dedicated card cover. Supersedes images[0] for the feed. `.default(null)`
       for legacy-doc back-compat (see `content`). */
   coverImage: NewsPostImageSchema.nullable().default(null),
-  status: NewsPostStatusSchema,
-  rejectionReason: z.string().nullable(),
-  submittedAt: z.date(),
+  ...visibilityFields,
+  createdAt: z.date(),
   publishedAt: z.date().nullable(),
   updatedAt: z.date(),
   reactionCounts: NewsReactionCountsSchema,
@@ -116,9 +133,7 @@ export interface NewsPostDataInput {
   category: NewsPostCategory;
   images?: NewsPostImage[];
   coverImage?: NewsPostImage | null;
-  status?: NewsPostStatus;
-  rejectionReason?: string | null;
-  submittedAt: Date;
+  createdAt: Date;
   publishedAt?: Date | null;
   updatedAt: Date;
   reactionCounts?: NewsReactionCounts;
@@ -137,10 +152,9 @@ export function buildNewsPostData(input: NewsPostDataInput): NewsPostData {
     category: input.category,
     images: input.images ?? [],
     coverImage: input.coverImage ?? null,
-    status: input.status ?? 'pending',
-    rejectionReason: input.rejectionReason ?? null,
-    submittedAt: input.submittedAt,
-    publishedAt: input.publishedAt ?? null,
+    ...defaultVisibility(),
+    createdAt: input.createdAt,
+    publishedAt: input.publishedAt ?? input.createdAt,
     updatedAt: input.updatedAt,
     reactionCounts: input.reactionCounts ?? { like: 0, heart: 0 },
     commentCount: input.commentCount ?? 0,

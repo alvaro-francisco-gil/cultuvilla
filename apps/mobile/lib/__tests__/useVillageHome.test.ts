@@ -19,7 +19,7 @@ jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
     communityActive: true,
     community: { organizerId: null, description: null },
   })),
-  getBarrios: jest.fn(async () => [{ id: 'b1', name: 'Centro', status: 'approved' }]),
+  getBarrios: jest.fn(async () => [{ id: 'b1', name: 'Centro', status: 'active' }]),
   getPlaces: jest.fn(async () => []),
 }));
 jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
@@ -45,7 +45,7 @@ jest.mock('@cultuvilla/shared/services/newsService', () => ({
   getHomeFeed: jest.fn(async () => []),
 }));
 jest.mock('@cultuvilla/shared/services/festivalPosterService', () => ({
-  getFestivalPosters: jest.fn(async () => [{ id: 'p1', year: 2024, status: 'approved' }]),
+  getFestivalPosters: jest.fn(async () => [{ id: 'p1', year: 2024, status: 'active' }]),
 }));
 
 describe('useVillageHome', () => {

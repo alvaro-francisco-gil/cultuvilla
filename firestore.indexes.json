@@ -107,14 +107,6 @@
       ]
     },
     {
-      "collectionGroup": "occupationProposals",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "proposedAt", "order": "ASCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "joinRequests",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -247,6 +239,14 @@
       ]
     },
     {
+      "collectionGroup": "moderationEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "municipalityId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "festivalPosters",
       "queryScope": "COLLECTION",
       "fields": [
@@ -261,6 +261,22 @@
       "fields": [
         { "fieldPath": "municipalityId", "order": "ASCENDING" },
         { "fieldPath": "year", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "barrios",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "places",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
       ]
     }
   ],

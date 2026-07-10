@@ -92,7 +92,6 @@ export const startVillage = onCall<StartVillageData, Promise<StartVillageResult>
         joinedAt: new Date(),
         profileAnswers: {},
         profileCompletedAt: null,
-        trustedNewsAuthor: false,
       };
       tx.set(memberRef, newMember);
       if (residenceTarget) upsertResidenceLink(tx, residenceTarget, municipalityId, null);

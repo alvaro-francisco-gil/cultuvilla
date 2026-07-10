@@ -10,10 +10,10 @@ projection trigger to the one branch that genuinely needs server privilege.
 ## Status
 
 - **Updated:** 2026-07-09
-- **Stage:** Merged to `develop`; dev deployed + backfilled. Beta/prod pending promotion.
-- **Branch:** merged via PR #73 (merge commit `dc36986`).
-- **Done:** All code + docs shipped. CI fully green (incl. emulator suite). Merged to `develop`; **dev deployed and migrated** — `backfill-drop-member-barrio.mjs` cleared 16 member `barrioId` (1 person link reconciled, no data lost); `check:dev-conformance` PASS.
-- **Next:** at `develop → beta` and `beta → prod` promotions, run the backfill on that env **after** the deploy lands (see Rollout status). Then retire this plan (rationale already in `docs/decisions/per-village-barrio-membership.md`).
+- **Stage:** dev + beta deployed and migrated. Only the routine `beta → prod` code promotion remains (prod is empty — no backfill).
+- **Branch:** merged to `develop` via PR #73 (`dc36986`); promoted to `beta` via PR #75 v0.3.0 (`a401f30`).
+- **Done:** All code + docs shipped. CI fully green (incl. emulator suite). **Dev** deployed + migrated (16 member `barrioId` cleared; `check:dev-conformance` PASS). **Beta** deployed + migrated 2026-07-09 (1 member cleared, residence verified intact).
+- **Next:** ride the next `beta → prod` promotion (code only; prod empty, no backfill). Then retire this plan (rationale already in `docs/decisions/per-village-barrio-membership.md`).
 - **Blockers:** none. Validation decision resolved (accept unvalidated; shared callable is the named upgrade path).
 - **Handoff:** Work happens in the worktree — session cwd is the primary checkout, so use absolute worktree paths. `pnpm test`/emulator suites are off-limits to the agent; rely on `pnpm typecheck` + non-emulator vitest, and hand emulator/functions test runs to the user. Every residence-link write MUST go through `buildResidenceLinks` (exact `{municipalityId,barrioId}` shape for the array-contains query).
 
@@ -246,14 +246,16 @@ only re-introduces the asymmetry this refactor removes.
 ## Rollout status
 
 | Step | Dev | Beta | Prod |
-|---|---|---|---|
-| Code + rules merged/deployed | ✅ | ⏳ | ⬜ |
-| `backfill-drop-member-barrio` run (post-deploy) | ✅ | ⏳ | ✅ n/a |
+| --- | --- | --- | --- |
+| Code + rules merged/deployed | ✅ | ✅ | ⬜ |
+| `backfill-drop-member-barrio` run (post-deploy) | ✅ | ✅ | ✅ n/a |
 | `check:dev-conformance` clean after backfill | ✅ | — | — |
 
-Prod is **empty** (0 members, 0 persons as of the beta promotion) — no backfill
-needed there, ever. Beta has 1 member carrying `barrioId`; run the backfill on
-beta **after** the promotion deploys (old converter still requires the field).
+Prod is **empty** (0 members, 0 persons) — no backfill needed there, ever. Beta
+migrated 2026-07-09 after the v0.3.0 promotion deployed: 1 village member's
+`barrioId` cleared, 0 person links needed reconciling (the sync trigger had kept
+`municipalityLinks` current), residence verified intact. The only remaining step
+is the routine `beta → prod` code promotion (no migration — prod is empty).
 
 Legend: ⬜ pending · ⏳ in progress · ✅ done · ⚠️ blocked. **Deploy before backfill**
 in every env (old converter requires `barrioId`).

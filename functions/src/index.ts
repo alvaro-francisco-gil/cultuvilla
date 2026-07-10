@@ -25,21 +25,26 @@ export { requestJoinOrganization } from './organizations/requestJoinOrganization
 export { respondToJoinRequest } from './organizations/respondToJoinRequest';
 export { approveOrganization } from './organizations/approveOrganization';
 export { changeOrgMemberRole } from './organizations/changeOrgMemberRole';
+export { onOrganizationUpdated } from './organizations/notificationTriggers';
 
-// Census (censo + occupation proposals)
+// Census (censo)
 export { updateCenso } from './census/updateCenso';
-export { onOccupationProposalApproved } from './census/onOccupationProposalApproved';
 
 // Users (profile + persona denormalization)
 export { syncPersonDenormalization } from './users/syncPersonDenormalization';
 
-// News (posts, moderation, reactions, comments)
-export { moderateNewsPost } from './news/moderateNewsPost';
+// Account (deletion lifecycle)
+export { checkAccountDeletable } from './account/checkAccountDeletable';
+export { deleteAccount } from './account/deleteAccount';
+
+// News (posts, reactions, comments)
 export { deleteNewsPost } from './news/deleteNewsPost';
-export { setTrustedNewsAuthor } from './news/setTrustedNewsAuthor';
 export { resolveNewsReport } from './news/resolveNewsReport';
 export { syncNewsReactionCounts } from './news/syncNewsReactionCounts';
 export { syncNewsCommentCount } from './news/syncNewsCommentCount';
+
+// Content moderation (hide/unhide across news, festival posters, barrios, places)
+export { setContentVisibility } from './moderation/setContentVisibility';
 
 // Share-link Open Graph preview renderer (HTTPS function behind a Hosting rewrite).
 export { ogRenderer } from './og/render';

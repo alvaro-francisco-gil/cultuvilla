@@ -28,7 +28,6 @@ async function seedMember(municipalityId: string, userId: string) {
         joinedAt: new Date(),
         profileAnswers: {},
         profileCompletedAt: null,
-        trustedNewsAuthor: false,
       },
     );
   });
@@ -45,10 +44,12 @@ const validNewsPayload = {
   images: [],
   content: [],
   coverImage: null,
-  status: 'pending' as const,
-  rejectionReason: null,
-  submittedAt: new Date(),
-  publishedAt: null,
+  status: 'active' as const,
+  hiddenBy: null,
+  hiddenAt: null,
+  hiddenReason: null,
+  createdAt: new Date(),
+  publishedAt: new Date(),
   createdBy: 'alice',
   updatedAt: new Date(),
   reactionCounts: { like: 0, heart: 0 },
@@ -173,6 +174,8 @@ describe('shape enforcement — /users/{uid}', () => {
     activeMunicipalityId: null,
     personId: null,
     createdAt: new Date(),
+    termsAcceptedAt: new Date(),
+    termsVersion: '1.0',
   };
 
   it('accepts a valid full-shape create', async () => {
@@ -221,8 +224,7 @@ describe('shape enforcement — /persons/{personId}', () => {
     birthPlace: null,
     burialPlace: null,
     municipalityLinks: [],
-    occupationIds: [],
-    pendingOccupations: [],
+    occupations: [],
     biography: null,
     photoURL: null,
     userId: null,
@@ -395,36 +397,9 @@ describe('shape enforcement — /events/{eventId}', () => {
   });
 });
 
-describe('shape enforcement — /occupationProposals/{id}', () => {
-  const validProposal = {
-    name: 'Apicultor',
-    proposedBy: 'alice',
-    proposedAt: new Date(),
-    status: 'pending' as const,
-    reviewedBy: null,
-    reviewedAt: null,
-    approvedOccupationId: null,
-  };
-
-  it('accepts a valid full-shape payload', async () => {
-    const alice = asUser(getEnv(), 'alice');
-    await assertSucceeds(setDoc(doc(alice, 'occupationProposals/op1'), validProposal));
-  });
-
-  it('rejects an unknown field', async () => {
-    const alice = asUser(getEnv(), 'alice');
-    await assertFails(
-      setDoc(doc(alice, 'occupationProposals/op1'), { ...validProposal, votes: 5 }),
-    );
-  });
-
-  it('rejects wrong type on name', async () => {
-    const alice = asUser(getEnv(), 'alice');
-    await assertFails(
-      setDoc(doc(alice, 'occupationProposals/op1'), { ...validProposal, name: 123 }),
-    );
-  });
-});
+// occupations/ shape enforcement lives in occupationRules.test.ts — it's no
+// longer a keys().hasOnly() gated collection (Task 11: collected free-text,
+// any authenticated write), so there's nothing to shape-test here.
 
 describe('shape enforcement — /newsReports/{reportId}', () => {
   const validReport = {

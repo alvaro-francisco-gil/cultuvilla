@@ -1,12 +1,20 @@
 import type { NewsMention, MentionEntityType } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 
+export interface MentionRun {
+  /** The characters of this run, as they appear in the block text. */
+  text: string;
+  /** Present when this run is a committed mention span. */
+  mention?: NewsMention;
+}
+
 /**
  * Pure helpers backing the `@`-mention behaviour of a plain-text `TextInput`.
  *
  * A text block stores its prose in `text` and annotates mention ranges in
- * `mentions` (offset/length into `text`, the span including the leading `@`).
- * RN gives us only a raw string + selection, so these functions keep the
- * `mentions` array consistent as the user edits:
+ * `mentions` (offset/length into `text`, the span covering the mention's display
+ * label—the `@` trigger is consumed on insert). RN gives us only a raw string +
+ * selection, so these functions keep the `mentions` array consistent as the user
+ * edits:
  *
  * - {@link adjustMentions} shifts/drops spans after an arbitrary edit.
  * - {@link activeMentionQuery} detects an in-progress `@query` at the cursor.
@@ -128,8 +136,10 @@ export interface InsertMentionResult {
 }
 
 /**
- * Replace the active `@query` with `@{label} ` and record the mention span.
- * Existing spans after the insertion point are shifted by the length change.
+ * Replace the active `@query` with the bare label + a trailing space and record
+ * the mention span. The span covers the mention's display label (the `@` trigger
+ * is consumed on insert). Existing spans after the insertion point are shifted by
+ * the length change.
  */
 export function insertMention(
   text: string,
@@ -137,12 +147,12 @@ export function insertMention(
   active: ActiveMentionQuery,
   candidate: MentionCandidate,
 ): InsertMentionResult {
-  const labelText = `@${candidate.label}`;
+  const labelText = candidate.label; // no leading '@': the picked reference reads as its bare name
   const before = text.slice(0, active.startIndex);
   const after = text.slice(active.startIndex + 1 + active.query.length);
   const newText = `${before}${labelText} ${after}`;
 
-  const consumedLen = 1 + active.query.length; // '@' + query
+  const consumedLen = 1 + active.query.length; // '@' + query, still consumed from the input
   const insertedLen = labelText.length + 1; // label + trailing space
   const shift = insertedLen - consumedLen;
   const afterPoint = active.startIndex + consumedLen;
@@ -163,4 +173,59 @@ export function insertMention(
     mentions: [...shifted, newMention].sort((a, b) => a.offset - b.offset),
     cursor: active.startIndex + labelText.length + 1,
   };
+}
+
+/**
+ * Split `text` into ordered runs of plain prose and mention spans. Spans that
+ * are out of range, non-positive length, or overlap an earlier span are skipped
+ * (their characters fall back to plain prose) so a malformed block still renders.
+ */
+export function mentionRuns(text: string, mentions: NewsMention[]): MentionRun[] {
+  const sorted = [...mentions].sort((a, b) => a.offset - b.offset);
+  const runs: MentionRun[] = [];
+  let cursor = 0;
+  for (const m of sorted) {
+    if (m.offset < cursor || m.offset + m.length > text.length || m.length <= 0) continue;
+    if (m.offset > cursor) runs.push({ text: text.slice(cursor, m.offset) });
+    runs.push({ text: text.slice(m.offset, m.offset + m.length), mention: m });
+    cursor = m.offset + m.length;
+  }
+  if (cursor < text.length) runs.push({ text: text.slice(cursor) });
+  return runs;
+}
+
+export type MentionDeleteDirection = 'backward' | 'forward';
+
+export interface DeleteMentionResult {
+  text: string;
+  mentions: NewsMention[];
+  /** Where the caret should land after the whole span is removed. */
+  cursor: number;
+}
+
+/**
+ * If a collapsed caret sits at the trailing edge of a mention (Backspace /
+ * `backward`) or its leading edge (Delete / `forward`), remove the entire span's
+ * characters and drop its annotation in one edit. Returns `null` when the caret
+ * is not at a mention edge, so the caller lets the native keystroke fall through.
+ */
+export function deleteMentionAt(
+  text: string,
+  mentions: NewsMention[],
+  caret: number,
+  direction: MentionDeleteDirection,
+): DeleteMentionResult | null {
+  const target = mentions.find((m) =>
+    direction === 'backward' ? caret === m.offset + m.length : caret === m.offset,
+  );
+  if (!target) return null;
+
+  const start = target.offset;
+  const end = target.offset + target.length;
+  const newText = text.slice(0, start) + text.slice(end);
+  const remaining = mentions
+    .filter((m) => m !== target)
+    .map((m) => (m.offset >= end ? { ...m, offset: m.offset - target.length } : m));
+
+  return { text: newText, mentions: remaining, cursor: start };
 }

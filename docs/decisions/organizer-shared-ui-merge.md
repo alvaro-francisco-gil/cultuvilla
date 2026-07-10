@@ -1,5 +1,12 @@
 # Organizer / villager shared UI — role changes behaviour, not the screen
 
+> **Partly superseded.** The "propose-pending" pattern (#1) and the in-collection
+> `pending | approved | rejected` proposal state below now apply **only to
+> organizations**. Places, barrios and festival posters moved to the optimistic
+> visibility model — created `active`, removed by soft-hide — see
+> [content-moderation-optimistic-visibility](content-moderation-optimistic-visibility.md).
+> The shared-screen / role-changes-behaviour core of this decision still holds.
+
 ## Context
 
 The app had a parallel `/village/[villageId]/admin/` route group: organizers used

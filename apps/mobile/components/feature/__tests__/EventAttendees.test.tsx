@@ -23,20 +23,23 @@ const mockCancel = cancelRegistration as jest.Mock;
 describe('EventAttendees', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('shows the roster with the phone column when telephone was required', async () => {
+  it('shows a call action that reveals the number in a dialog when telephone was required', async () => {
     mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana' }]);
     mockPhone.mockResolvedValue('600111222');
-    const { getByText } = render(<EventAttendees eventId="e1" telephoneRequired />);
-    await waitFor(() => getByText('Ana'));
+    const { getByText, getByTestId, queryByText } = render(<EventAttendees eventId="e1" telephoneRequired />);
+    await waitFor(() => getByTestId('call-attendee-r1'));
+    // Number is not shown inline until the call dialog is opened.
+    expect(queryByText('600111222')).toBeNull();
+    fireEvent.press(getByTestId('call-attendee-r1'));
     getByText('600111222');
   });
 
-  it('hides the phone column when telephone was not required', async () => {
+  it('shows no call action when telephone was not required', async () => {
     mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana' }]);
-    const { getByText, queryByText } = render(<EventAttendees eventId="e1" telephoneRequired={false} />);
+    const { getByText, queryByTestId } = render(<EventAttendees eventId="e1" telephoneRequired={false} />);
     await waitFor(() => getByText('Ana'));
     expect(mockPhone).not.toHaveBeenCalled();
-    expect(queryByText('600111222')).toBeNull();
+    expect(queryByTestId('call-attendee-r1')).toBeNull();
   });
 
   it('removes an attendee then reloads', async () => {

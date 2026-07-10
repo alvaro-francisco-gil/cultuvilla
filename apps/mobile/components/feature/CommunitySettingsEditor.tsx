@@ -21,11 +21,10 @@ import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 
 /**
  * Organizer-only community editor (escudo, location, description). Content-only
- * so it embeds in the community Stepper's "Detalles" step. Every field saves
- * immediately: the Stepper renders one step at a time, so this editor is
- * unmounted before the final "Listo" — a deferred save keyed off the Stepper's
- * completion would silently no-op against a nulled ref (the bug this replaced).
- * Escudo saves on pick, location/zoom on change, description on blur.
+ * so the "Editar pueblo" screen can render it directly. Every field saves
+ * immediately — escudo on pick, location/zoom on change, description on blur —
+ * so the screen's "Listo" button just closes the editor (a deferred save keyed
+ * off unmount would silently no-op against a nulled ref, the bug this replaced).
  */
 export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
   const { t } = useT();

@@ -6,7 +6,6 @@ import {
   organizerRequestsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
 import type { OrganizerRequestData } from '@cultuvilla/shared';
-import { notifyOrganizerRequestCreated } from '../helpers/notifyRequests';
 
 const db = getFirestore();
 
@@ -77,13 +76,6 @@ export const requestOrganizeVillage = onCall<
       reviewedBy: null,
     };
     await ref.set(newRequest);
-
-    const municipalityName = muniData.name;
-    await notifyOrganizerRequestCreated({
-      municipalityId,
-      municipalityName,
-      requesterUid: uid,
-    });
 
     logger.info('organizer request created', { handler, uid, municipalityId, requestId: ref.id });
     return { ok: true, requestId: ref.id };

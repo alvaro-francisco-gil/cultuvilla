@@ -29,10 +29,10 @@ test.describe('organizer request → super-admin approval', () => {
       { timeoutMs: 20_000 },
     );
 
-    // ── Approver: the super-admin sees the request in the Recibidas inbox. ──
+    // ── Approver: the super-admin sees the request in the Buzón's actionable section. ──
     await fixtureSignOut(page);
     await fixtureLogin(page, fixtures.superAdmin.email);
-    await page.goto('/solicitudes');
+    await page.goto('/inbox');
 
     const approve = page.locator('[data-testid^="approve-organizer-"]').first();
     await expect(approve).toBeVisible({ timeout: 30_000 });

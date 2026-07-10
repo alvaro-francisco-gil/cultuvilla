@@ -80,7 +80,7 @@ export const approveOrganization = onCall<
         reviewedAt: FieldValue.serverTimestamp(),
       });
       // Seed the requester as the founding admin.
-      tx.set(organizationMemberDoc(db, orgId, requestedBy), buildOrgMemberData({ role: 'admin' }));
+      tx.set(organizationMemberDoc(db, orgId, requestedBy), buildOrgMemberData({ userId: requestedBy, role: 'admin' }));
       writeMembershipEvent(tx, db, {
         scopeType: 'org',
         scopeId: orgId,

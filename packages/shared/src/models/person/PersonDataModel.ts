@@ -40,9 +40,8 @@ export const PersonDataSchema = z.object({
   burialPlace: BurialPlaceSchema.nullable(),
   municipalityLinks: z.array(MunicipalityLinkSchema),
 
-  // Work — multi-select
-  occupationIds: z.array(z.string()),       // approved occupation IDs
-  pendingOccupations: z.array(z.string()),  // free text while proposals are pending
+  // Work — multi-select; each entry is an occupation-catalog key or free text
+  occupations: z.array(z.string()).default([]),
 
   // Bio
   biography: z.string().nullable(),
@@ -69,8 +68,7 @@ export interface PersonDataInput {
   birthPlace?: MunicipalityLink | null;
   burialPlace?: BurialPlace | null;
   municipalityLinks?: MunicipalityLink[];
-  occupationIds?: string[];
-  pendingOccupations?: string[];
+  occupations?: string[];
   biography?: string | null;
   photoURL?: string | null;
   userId?: string | null;
@@ -90,8 +88,7 @@ export function buildPersonData(input: PersonDataInput): PersonData {
     birthPlace: input.birthPlace ?? null,
     burialPlace: input.burialPlace ?? null,
     municipalityLinks: input.municipalityLinks ?? [],
-    occupationIds: input.occupationIds ?? [],
-    pendingOccupations: input.pendingOccupations ?? [],
+    occupations: input.occupations ?? [],
     biography: input.biography ?? null,
     photoURL: input.photoURL ?? null,
     userId: input.userId ?? null,

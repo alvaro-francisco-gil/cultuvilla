@@ -85,7 +85,7 @@ export const respondToJoinRequest = onCall<
 
       if (decision === 'approved') {
         const memberRef = organizationMemberDoc(db, orgId, requesterUid);
-        tx.set(memberRef, buildOrgMemberData({ role: 'member' }));
+        tx.set(memberRef, buildOrgMemberData({ userId: requesterUid, role: 'member' }));
         writeMembershipEvent(tx, db, {
           scopeType: 'org',
           scopeId: orgId,

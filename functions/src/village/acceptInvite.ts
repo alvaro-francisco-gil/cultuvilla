@@ -153,14 +153,13 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
 
       // Converter rejects FieldValue sentinels on tx.set, so joinedAt is a
       // plain Date (the admin SDK will store it as a Timestamp via the
-      // converter's toFirestore step). Schema requires trustedNewsAuthor.
+      // converter's toFirestore step).
       const newMember: VillageMemberData = {
         userId,
         role: 'user',
         joinedAt: new Date(),
         profileAnswers: {},
         profileCompletedAt: null,
-        trustedNewsAuthor: false,
       };
       tx.set(memberRef, newMember);
       // Project the residence link for an existing user (new users got it via

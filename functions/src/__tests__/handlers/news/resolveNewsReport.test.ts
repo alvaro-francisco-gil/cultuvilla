@@ -22,7 +22,6 @@ async function seedMember(uid: string, role: 'admin' | 'user'): Promise<void> {
       joinedAt: new Date(),
       profileAnswers: {},
       profileCompletedAt: null,
-      trustedNewsAuthor: false,
     });
 }
 

@@ -13,7 +13,10 @@ jest.mock('../../../lib/auth/useAuth', () => {
   };
   return { useAuth: () => value };
 });
-jest.mock('../../../lib/auth/useIsAppAdmin', () => ({ useIsAppAdmin: () => ({ isAppAdmin: false }) }));
+let mockIsAppAdmin = false;
+jest.mock('../../../lib/auth/useIsAppAdmin', () => ({
+  useIsAppAdmin: () => ({ isAppAdmin: mockIsAppAdmin }),
+}));
 jest.mock('../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: () => jest.fn() }));
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
@@ -83,6 +86,7 @@ const base: VillageHomeState = {
 beforeEach(() => {
   mockJoinVillage.mockClear();
   mockRefreshProfile.mockClear();
+  mockIsAppAdmin = false;
 });
 
 describe('VillageHomeBody', () => {
@@ -138,6 +142,17 @@ describe('VillageHomeBody', () => {
     );
     expect(queryByText('Añadir contenido')).toBeNull();
     expect(getByText('Unirme a este pueblo')).toBeTruthy();
+  });
+
+  it('app admin who has not joined sees the join CTA, not "Añadir contenido"', () => {
+    // Adding content requires membership; an app admin who is not yet a member
+    // of this village must join first, so the two CTAs are mutually exclusive.
+    mockIsAppAdmin = true;
+    const { getByText, queryByText } = render(
+      <VillageHomeBody data={{ ...base, isMember: false }} reload={jest.fn()} />,
+    );
+    expect(getByText('Unirme a este pueblo')).toBeTruthy();
+    expect(queryByText('Añadir contenido')).toBeNull();
   });
 
   it('admin sees "Añadir contenido" + "Compartir pueblo" (no standalone Editar pill)', () => {

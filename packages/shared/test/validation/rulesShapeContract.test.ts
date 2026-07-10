@@ -19,7 +19,6 @@ import { buildOrganizationData } from '../../src/models/organization/Organizatio
 import { buildOrgMemberData } from '../../src/models/organization/OrgMemberDataModel';
 import { buildOrganizationJoinRequestData } from '../../src/models/organizationJoinRequest/OrganizationJoinRequestDataModel';
 import { buildOrganizerRequestData } from '../../src/models/municipality/OrganizerRequestDataModel';
-import { buildOccupationProposalData } from '../../src/models/occupation/OccupationDataModel';
 import { buildPlaceData, buildBarrioData } from '../../src/models/municipality/MunicipalityDataModel';
 
 interface ShapeContract {
@@ -43,8 +42,8 @@ const SHAPE_CONTRACTS: ShapeContract[] = [
   },
   {
     label: 'organizations/{orgId}/members — org member create validator',
-    build: () => buildOrgMemberData(),
-    ruleKeys: ['joinedAt', 'role'],
+    build: () => buildOrgMemberData({ userId: 'u1' }),
+    ruleKeys: ['userId', 'joinedAt', 'role'],
   },
   {
     label: 'organizationJoinRequests — isValidJoinRequestCreate',
@@ -52,25 +51,19 @@ const SHAPE_CONTRACTS: ShapeContract[] = [
     ruleKeys: ['userId', 'orgId', 'municipalityId', 'status', 'requestedAt', 'reviewedAt', 'reviewedBy'],
   },
   {
-    label: 'occupationProposals — isValidOccupationProposalCreate',
-    build: () => buildOccupationProposalData({ name: 'Panadero', proposedBy: 'u1' }),
-    ruleKeys: [
-      'name', 'proposedBy', 'proposedAt', 'status', 'reviewedBy', 'reviewedAt', 'approvedOccupationId',
-    ],
-  },
-  {
-    label: 'places (proposal) — isValidPlaceProposalCreate',
+    label: 'places (create) — isValidPlaceCreate',
     build: () => buildPlaceData({ name: 'Cementerio Viejo', kind: 'cemetery', municipalityId: 'm1' }),
     ruleKeys: [
       'name', 'kind', 'description', 'municipalityId', 'imageURL',
-      'createdAt', 'status', 'proposedBy', 'reviewedBy', 'reviewedAt',
+      'createdAt', 'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
     ],
   },
   {
-    label: 'barrios (proposal) — isValidBarrioProposalCreate',
+    label: 'barrios (create) — isValidBarrioCreate',
     build: () => buildBarrioData({ name: 'Centro', municipalityId: 'm1' }),
     ruleKeys: [
-      'name', 'municipalityId', 'imageURL', 'createdAt', 'status', 'proposedBy', 'reviewedBy', 'reviewedAt',
+      'name', 'municipalityId', 'imageURL', 'createdAt', 'status', 'proposedBy',
+      'hiddenBy', 'hiddenAt', 'hiddenReason',
     ],
   },
 ];
@@ -92,9 +85,6 @@ describe('review-lifecycle create defaults', () => {
     ['organization', buildOrganizationData({ name: 'x', type: 'peña', municipalityId: 'm', requestedBy: 'u' })],
     ['organizationJoinRequest', buildOrganizationJoinRequestData({ userId: 'u', orgId: 'o', municipalityId: 'm' })],
     ['organizerRequest', buildOrganizerRequestData({ userId: 'u', municipalityId: 'm' })],
-    ['occupationProposal', buildOccupationProposalData({ name: 'x', proposedBy: 'u' })],
-    ['place', buildPlaceData({ name: 'x', kind: 'cemetery', municipalityId: 'm' })],
-    ['barrio', buildBarrioData({ name: 'x', municipalityId: 'm' })],
   ];
 
   for (const [name, built] of PENDING_BUILDERS) {
@@ -102,6 +92,26 @@ describe('review-lifecycle create defaults', () => {
       expect(built.status).toBe('pending');
       expect(built.reviewedBy).toBeNull();
       expect(built.reviewedAt).toBeNull();
+    });
+  }
+});
+
+describe('visibility-lifecycle create defaults', () => {
+  // Barrios/places are instant self-service creates (no propose/approve
+  // ceremony) — see AGENTS.md and the content-moderation-unification plan.
+  // Every fresh doc must land `active` with no hide stamp; hiding happens
+  // later via the `setContentVisibility` callable.
+  const ACTIVE_BUILDERS: Array<[string, Record<string, unknown>]> = [
+    ['place', buildPlaceData({ name: 'x', kind: 'cemetery', municipalityId: 'm' })],
+    ['barrio', buildBarrioData({ name: 'x', municipalityId: 'm' })],
+  ];
+
+  for (const [name, built] of ACTIVE_BUILDERS) {
+    it(`${name} defaults to active with no hide stamp`, () => {
+      expect(built.status).toBe('active');
+      expect(built.hiddenBy).toBeNull();
+      expect(built.hiddenAt).toBeNull();
+      expect(built.hiddenReason).toBeNull();
     });
   }
 });

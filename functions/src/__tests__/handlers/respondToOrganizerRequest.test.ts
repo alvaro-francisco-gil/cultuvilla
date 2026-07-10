@@ -54,7 +54,6 @@ async function seedMember(uid: string, role: 'user' | 'admin'): Promise<void> {
     joinedAt: new Date(),
     profileAnswers: {},
     profileCompletedAt: null,
-    trustedNewsAuthor: false,
   });
 }
 
