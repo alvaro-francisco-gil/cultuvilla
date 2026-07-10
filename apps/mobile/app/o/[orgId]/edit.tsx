@@ -5,9 +5,10 @@ import { Screen } from '../../../components/primitives/Screen';
 import { Text } from '../../../components/primitives/Text';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { ProposableForm } from '../../../components/feature/proposable/ProposableForm';
+import { DeleteHeaderButton } from '../../../components/feature/DeleteHeaderButton';
 import { useT } from '../../../lib/i18n';
 import { useOrgCapabilities } from '../../../lib/auth/useOrgCapabilities';
-import { getOrganization, updateOrganization } from '@cultuvilla/shared/services/organizationService';
+import { getOrganization, updateOrganization, deleteOrganization } from '@cultuvilla/shared/services/organizationService';
 import { uploadOrganizationImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 import {
@@ -88,7 +89,23 @@ export default function OrgEditScreen() {
 
   return (
     <Screen padded={false} topInset={false}>
-      <ScreenHeader accent title={t('organization.editTitle')} />
+      <ScreenHeader
+        accent
+        title={t('organization.editTitle')}
+        rightSlot={
+          <DeleteHeaderButton
+            onAccent
+            onConfirm={() => {
+              if (orgId) void deleteOrganization(orgId).then(() => router.replace('/(tabs)'));
+            }}
+            accessibilityLabel={t('common.delete')}
+            confirmTitle={t('common.deleteConfirmTitle')}
+            confirmMessage={t('common.deleteConfirmMessage')}
+            confirmLabel={t('common.delete')}
+            cancelLabel={t('common.cancel')}
+          />
+        }
+      />
       <ScrollView contentContainerClassName="p-4">
         <ProposableForm
           image={image}
