@@ -52,7 +52,7 @@
     },
     "googleConnecting": "Conectando con Google…",
     "emailLinkHint": "Te enviaremos un enlace para entrar sin contraseña.",
-    "emailLinkSent": "Enlace enviado a {email}. Revisa tu correo.",
+    "emailLinkSent": "Enlace enviado a {email}. Revisa tu correo, incluida la carpeta de correo no deseado.",
     "emailLink": {
       "completing": "Iniciando sesión…",
       "confirmTitle": "Confirma tu correo",
