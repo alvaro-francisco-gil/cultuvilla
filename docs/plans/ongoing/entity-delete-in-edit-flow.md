@@ -6,12 +6,12 @@ entity's **edit-screen header** — never in the entity **detail** header.
 ## Status
 
 - **Updated:** 2026-07-10
-- **Stage:** Task 1 — `DeleteHeaderButton` component
+- **Stage:** all code tasks (1–7) implemented; Task 8 — final gate + PR
 - **Branch:** repo `feat/delete-in-edit-flow` (worktree `.claude/worktrees/delete-in-edit-flow`)
-- **Done:** spec + full task plan written
-- **Next:** implement Task 1 (component + test)
-- **Blockers:** Task 2 rules e2e + Task 8 `pnpm check` need the user's Firebase emulators running
-- **Handoff:** commit from inside the worktree (`cd` first, verify `git branch --show-current` = `feat/delete-in-edit-flow`); base checkout stays on `develop`. Dev rules deploy (news delete) is a post-merge/PR step via the `firestore-deploy` skill.
+- **Done:** `DeleteHeaderButton` (+test); `deleteNewsPost` callable extended to author + client binding; event/news/place/barrio/org edit-header delete; festival-poster edit screen (+test) + detail edit action; shared FP form helpers; CHANGELOG. Mobile typecheck + jest green; shared + functions typecheck green (after building shared).
+- **Next:** run the emulator-backed tests (`newsRules` e2e + `deleteNewsPost` functions handler) — needs user's emulators — then `pnpm check`, push, open PR.
+- **Blockers:** emulator-backed tests not yet run (agent must not boot emulators). Rules unchanged for news (`delete: if false`), so no dev rules deploy strictly required — but functions changed, so a functions deploy to dev rides the normal CI on merge.
+- **Handoff:** commit from inside the worktree (`cd` first, verify branch). Building `@cultuvilla/shared` (`pnpm --filter @cultuvilla/shared build`) is required before `functions` typechecks in a fresh worktree. The `deleteNewsPost` **callable** (functions) and the **client service** share a name — don't conflate.
 
 ## Context
 
@@ -69,25 +69,22 @@ After a successful delete the screen navigates back to a sane landing spot
 (`router.back()` / `router.replace` to the parent list), never to the now-deleted
 entity's detail.
 
-### News: new `deleteNewsPost` service + rule
+### News: reuse the cascading `deleteNewsPost` callable
 
-- Add `deleteNewsPost(postId)` to `newsService.ts` (plain `deleteDoc(newsDoc(...))`,
-  mirroring the existing `deleteEvent`).
-- Enforce the gate in `firestore.rules`. The current `match /news/{postId}` has
-  `allow delete: if false;` ([firestore.rules:459](firestore.rules#L459)); replace
-  with:
-
-  ```
-  allow delete: if isOwner(resource.data.createdBy)
-                || isVillageAdmin(resource.data.municipalityId)
-                || isAppAdmin();
-  ```
-
-  All three helpers already exist. No callable needed (rule-backed guardrail — the
-  gate is expressible in rules, so this is the correct layer per
-  `guardrail-enforcement`).
-- The rules deploy is dev-only via the `firestore-deploy` skill (user-driven;
-  beta/prod via CI).
+> **Design correction (during implementation).** A plain client `deleteDoc` on
+> `news/{postId}` would **orphan** the top-level `newsComments`/`newsReactions`
+> docs (they're keyed by `postId`, not nested). An admin-only callable
+> `deleteNewsPost` already existed (`functions/src/news/deleteNewsPost.ts`) that
+> cascades comments/reactions and closes reports. So instead of a rule-backed
+> client delete:
+>
+> - **Extend the callable's authorization** to also allow the post *author*
+>   (`post.createdBy === auth.uid`), not just village/app admins.
+> - **`deleteNewsPost(postId)` in `newsService.ts` invokes the callable** via
+>   `httpsCallable` (mirrors `deleteAccount` in `accountService`).
+> - **`firestore.rules` keeps `allow delete: if false`** — clients never delete a
+>   post directly; the callable does it with the admin SDK. Admin-callable
+>   guardrail path (the cascade isn't expressible in rules).
 
 ### Festival-poster edit screen
 
