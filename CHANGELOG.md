@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.7.0 — 2026-07-10
+
 ### Changed
 - **Opening a shared village link while logged out now lands you inside the app shell, not a chrome-less dead-end.** A `…/village/{id}` share link rendered the pushed village detail screen — a bare page with only a back button, no bottom tabs and no header, and nowhere to go. A logged-out visitor is now sent into the tab shell (bottom tabs + `AppHeader`) with the shared village set as their **active village**, so it shows in the Village tab exactly as it would for a member (with the join CTA). The active village is held in a new guest-scoped context/`AsyncStorage` store (`GuestActiveVillageProvider`), unified with a signed-in user's `activeMunicipalityId` via `useActiveVillageId`; the Village tab stays un-gated for a guest while they have one, and signing in clears it so the real profile wins. Signed-in users are unaffected (they still get the back-navigable detail screen).
 
