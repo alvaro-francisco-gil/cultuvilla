@@ -4,6 +4,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Changed
+- **Article authorship is now editable after creation.** The news composer's "Autoría" step used to show a "no se puede cambiar" notice in edit mode; it now shows the same organizer picker as create, so any current organizer can reassign writers/organizations. `organizerUserIds`/`organizerOrgIds` were dropped from the client `updateNewsPost` forbidden-keys guard and the Firestore `news` update rule's immutable-field list — the update rule keeps authority on the *current* organizer set and now also requires `organizerUserIds` to stay non-empty (so a post can't be orphaned). `createdBy` and the lifecycle/counter fields remain immutable. No data migration (existing docs already carry both fields).
+
 ### Added
 - **News image captions support `@`-references too.** The pie de foto is now the same `@`-mention field as the body paragraphs — type `@`, pick a reference, and it renders highlighted and tappable on the reader (the caption editor was a plain input before). Image blocks gained a `captionMentions` span array (`NewsImageBlockSchema`, `.default([])` for legacy blocks; existing dev docs backfilled via `scripts/backfill-news-caption-mentions.mjs`).
 - **"Pueblo" section on the event detail screen, plus tappable organizers.** Below Organizadores, the event now shows the village as a chip — a circular escudo + name matching the organizer chips — that opens the village detail screen. The escudo is fetched on demand from the municipality doc (`getMunicipality`) since it isn't denormalized onto the event. The Organizadores chips are now tappable too: an organization opens `/o/[orgId]` and a user opens `/user/[uid]` (via a new optional `onPress` on `LiveOwnerChip`).

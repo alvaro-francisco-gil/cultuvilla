@@ -58,14 +58,26 @@ export interface CreateNewsPostInput {
 }
 
 export type UpdateNewsPostInput = Partial<
-  Pick<NewsPostData, 'title' | 'body' | 'content' | 'category' | 'images' | 'coverImage'>
+  Pick<
+    NewsPostData,
+    | 'title'
+    | 'body'
+    | 'content'
+    | 'category'
+    | 'images'
+    | 'coverImage'
+    | 'organizerUserIds'
+    | 'organizerOrgIds'
+  >
 >;
 
+// Authorship (organizerUserIds/organizerOrgIds) is editable post-creation: any
+// current organizer may reattribute the article. It stays out of this set.
+// `createdBy` remains immutable (the audit anchor) and the lifecycle fields
+// (status/publishedAt) stay function-owned.
 const FORBIDDEN_UPDATE_KEYS = new Set<string>([
   'status',
   'publishedAt',
-  'organizerUserIds',
-  'organizerOrgIds',
   'municipalityId',
   'submittedAt',
   'createdBy',

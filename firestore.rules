@@ -454,12 +454,17 @@ service cloud.firestore {
                         || (request.resource.data.status == 'approved'
                             && isTrustedNewsAuthor(request.resource.data.municipalityId))
                       );
+      // Authority is the CURRENT organizer set (resource.data, pre-update), so a
+      // named organizer may reattribute the post. organizerUserIds/OrgIds are
+      // editable but must stay non-empty — an empty set would orphan the article
+      // (only the immutable createdBy owner + admins could then reach it).
       allow update: if (
                         isOwner(resource.data.createdBy)
                         || (request.auth.uid in resource.data.organizerUserIds)
                       )
+                      && request.resource.data.organizerUserIds.size() > 0
                       && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-                           'status','publishedAt','organizerUserIds','organizerOrgIds',
+                           'status','publishedAt',
                            'municipalityId','submittedAt','createdBy',
                            'reactionCounts','commentCount'
                          ]);
