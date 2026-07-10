@@ -1,6 +1,11 @@
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import CompleteProfileScreen from '../complete-profile';
+import { observability } from '@cultuvilla/shared';
 
+jest.mock('@cultuvilla/shared', () => ({
+  ...jest.requireActual('@cultuvilla/shared'),
+  observability: { trackEvent: jest.fn() },
+}));
 jest.mock('@cultuvilla/shared/services/personService', () => ({
   createPerson: jest.fn().mockResolvedValue('person-1'),
   updatePerson: jest.fn().mockResolvedValue(undefined),
@@ -214,6 +219,10 @@ describe('CompleteProfileScreen', () => {
     // The account doc must be written before the village membership.
     expect(order.indexOf('user')).toBeLessThan(order.indexOf('village'));
     expect(order).toEqual(['person', 'user', 'village']);
+    expect(observability.trackEvent).toHaveBeenCalledWith(
+      'onboarding.complete.success',
+      { municipalityId: 'muni-1' },
+    );
   });
 
   it('does not create the profile until the terms are accepted', async () => {
