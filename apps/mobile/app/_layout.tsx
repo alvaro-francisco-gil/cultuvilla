@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts, Fraunces_700Bold } from '@expo-google-fonts/fraunces';
 import { bootstrapFirebase } from '../lib/firebaseInit';
+import { bootstrapObservability } from '../lib/observability/configure';
+import { ObservabilityErrorBoundary } from '../lib/observability/ObservabilityErrorBoundary';
 import { AppVersionGate } from '../components/AppVersionGate';
 import { AuthProvider } from '../lib/auth/AuthContext';
 import { CallableErrorProvider } from '../lib/callableError';
@@ -17,6 +19,7 @@ import { CropperHost } from '../lib/imageCrop';
 import { ActivityIndicator, View } from 'react-native';
 
 bootstrapFirebase();
+bootstrapObservability();
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ Fraunces_700Bold });
@@ -29,23 +32,31 @@ export default function RootLayout() {
   }
   return (
     <SafeAreaProvider>
-      <I18nProvider>
-        <AppVersionGate>
-          <CallableErrorProvider>
-            <AuthProvider>
-              <GuestActiveVillageProvider>
-                <RegisterGateProvider>
-                  <AuthGate />
-                  {/* Web-only image-crop overlay (no-op on native, which uses its
-                      own native cropper). Rendered above the app so it can cover
-                      any screen when pickImageAsBlob({ square }) opens it. */}
-                  <CropperHost />
-                </RegisterGateProvider>
-              </GuestActiveVillageProvider>
-            </AuthProvider>
-          </CallableErrorProvider>
-        </AppVersionGate>
-      </I18nProvider>
+      <ObservabilityErrorBoundary
+        fallback={
+          <View className="flex-1 items-center justify-center bg-surface">
+            <ActivityIndicator />
+          </View>
+        }
+      >
+        <I18nProvider>
+          <AppVersionGate>
+            <CallableErrorProvider>
+              <AuthProvider>
+                <GuestActiveVillageProvider>
+                  <RegisterGateProvider>
+                    <AuthGate />
+                    {/* Web-only image-crop overlay (no-op on native, which uses its
+                        own native cropper). Rendered above the app so it can cover
+                        any screen when pickImageAsBlob({ square }) opens it. */}
+                    <CropperHost />
+                  </RegisterGateProvider>
+                </GuestActiveVillageProvider>
+              </AuthProvider>
+            </CallableErrorProvider>
+          </AppVersionGate>
+        </I18nProvider>
+      </ObservabilityErrorBoundary>
     </SafeAreaProvider>
   );
 }

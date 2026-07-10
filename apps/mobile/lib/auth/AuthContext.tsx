@@ -5,6 +5,7 @@ import Constants from 'expo-constants';
 import type { FirebaseOptions } from 'firebase/app';
 import type { User } from 'firebase/auth';
 import { getAuth } from '@cultuvilla/shared/firebase';
+import { observability } from '@cultuvilla/shared';
 import {
   signOut as fbSignOut,
   onAuthStateChanged,
@@ -34,6 +35,7 @@ import {
   isSuccessResponse,
 } from '@react-native-google-signin/google-signin';
 import { clearPendingIntent } from './pendingIntent';
+import { fetchUserIdHash } from '../observability/errorBridge';
 
 declare const __DEV__: boolean;
 
@@ -233,6 +235,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const p = await getUserProfile(uid);
       setProfile(p);
+      if (p) {
+        observability.setUserContext({ uid, municipalityId: p.activeMunicipalityId ?? undefined });
+        void fetchUserIdHash(uid).then((hash) => {
+          if (hash) observability.setUserContext({ uid: hash, municipalityId: p.activeMunicipalityId ?? undefined });
+        });
+      }
       // Resume-time sync: Firebase Auth's email can change out from under the
       // Firestore profile (e.g. verifyBeforeUpdateEmail completes server-side
       // via the link, or a Google-linked account's email changes at Google).
@@ -251,6 +259,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) {
       setProfile(null);
       setProfileLoading(false);
+      observability.setUserContext(null);
       return;
     }
     setProfileChecked(false);
