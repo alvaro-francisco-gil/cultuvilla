@@ -122,6 +122,19 @@ Consequently **Stage B (D4) only ADDS** the generic `comments`/`reactions` rules
 
 ---
 
+## Promotion checklist & follow-ups (from final whole-branch review)
+
+**BEFORE promoting `develop → beta` and `beta → main`:**
+- **Backfill beta/prod entity docs.** `commentCount` + `reactionCounts` were added as **required** model fields; the strict read converter throws on any pre-existing entity doc missing them. `scripts/backfill-entity-comment-counts.mjs` is dev-pinned (`villa-events`). Before each promotion, run an equivalent backfill against `cultuvilla-beta` / `cultuvilla-prod` (or confirm those envs hold no events/organizations/festivalPosters/places/barrios). Dev is already backfilled. **This is a hard gate — skipping it crashes card feeds + detail screens on the target env.**
+
+**Resolved in-branch:**
+- Reaction-count read schema loosened to `z.number()` (was `.int().nonnegative()`) so unclamped trigger drift can't crash a whole feed page; clamping stays in the UI. Mirrors `NewsReactionCountsSchema`.
+
+**Deferred hardening (follow-up ticket, not blocking pre-release):**
+- Comment/reaction `municipalityId` is client-supplied and keys village-admin moderation authority. A raw-SDK write (not reachable via the app UI) could stamp a wrong `municipalityId`, rendering a comment on entity X's screen while evading X's village admins (only author/app-admin could delete it). It is **moderation-evasion, not privilege-escalation** (no unauthorized deletion of others' content). Harden later by validating `municipalityId` against the parent entity's true municipality (rules `get()` or a create trigger) and/or having `getComments` scope by it.
+
+---
+
 ## Stage A — Shared data layer & service
 
 ### Task A1: `EntityKind` in shared

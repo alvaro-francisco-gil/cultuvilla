@@ -4,10 +4,18 @@ import { EntityKindSchema, type EntityKind } from './EntityKind';
 export const ReactionKindSchema = z.enum(['like', 'heart']);
 export type ReactionKind = z.infer<typeof ReactionKindSchema>;
 
-/** Denormalized per-kind counters kept on each entity doc. */
+/**
+ * Denormalized per-kind counters kept on each entity doc. Kept deliberately
+ * loose (`z.number()`, not `.int().nonnegative()`) because this schema backs
+ * the strict READ converter for five entity types: the count trigger uses
+ * unclamped `FieldValue.increment`, so transient counter drift (e.g. a
+ * delete-before-create trigger race) must NOT make `fromFirestore` throw and
+ * crash the whole feed page. Clamping belongs in the UI (ReactionBar does
+ * `Math.max(0, …)`), not in the read schema. Mirrors NewsReactionCountsSchema.
+ */
 export const ReactionCountsSchema = z.object({
-  like: z.number().int().nonnegative(),
-  heart: z.number().int().nonnegative(),
+  like: z.number(),
+  heart: z.number(),
 });
 export type ReactionCounts = z.infer<typeof ReactionCountsSchema>;
 
