@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { Image, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@cultuvilla/shared/design-system';
-import { Input, Pressable, Text, VStack } from '../primitives';
+import { Pressable, Text, VStack } from '../primitives';
 import { useT } from '../../lib/i18n';
 import { pickImageWithSize } from '../../lib/images';
 import { MentionTextInput } from './MentionTextInput';
@@ -35,6 +35,7 @@ export type EditorImageBlock = {
   width: number;
   height: number;
   caption: string;
+  captionMentions: NewsMention[];
 };
 export type EditorBlock = EditorTextBlock | EditorImageBlock;
 
@@ -106,6 +107,7 @@ export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) 
       width: picked.width,
       height: picked.height,
       caption: '',
+      captionMentions: [],
     };
 
     const i = active.current.id ? blocks.findIndex((b) => b.id === active.current.id) : -1;
@@ -159,9 +161,10 @@ export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) 
           <ImageBlock
             key={block.id}
             block={block}
+            candidates={candidates}
             captionPlaceholder={t('news.compose.block.captionPlaceholder')}
             removeLabel={t('news.compose.block.removeImage')}
-            onCaption={(caption) => updateBlock(block.id, { caption })}
+            onCaption={(caption, captionMentions) => updateBlock(block.id, { caption, captionMentions })}
             onRemove={() => removeImage(block.id)}
           />
         ),
@@ -178,15 +181,17 @@ export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) 
 
 function ImageBlock({
   block,
+  candidates,
   captionPlaceholder,
   removeLabel,
   onCaption,
   onRemove,
 }: {
   block: EditorImageBlock;
+  candidates: MentionCandidate[];
   captionPlaceholder: string;
   removeLabel: string;
-  onCaption: (caption: string) => void;
+  onCaption: (caption: string, captionMentions: NewsMention[]) => void;
   onRemove: () => void;
 }) {
   return (
@@ -213,7 +218,13 @@ function ImageBlock({
           <Ionicons name="close" size={20} color="#ffffff" />
         </Pressable>
       </View>
-      <Input value={block.caption} onChangeText={onCaption} placeholder={captionPlaceholder} dense />
+      <MentionTextInput
+        value={block.caption}
+        mentions={block.captionMentions}
+        candidates={candidates}
+        placeholder={captionPlaceholder}
+        onChange={onCaption}
+      />
     </VStack>
   );
 }

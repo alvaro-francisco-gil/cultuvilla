@@ -221,6 +221,7 @@ export default function NewNewsScreen() {
                 width: b.width,
                 height: b.height,
                 caption: b.caption ?? '',
+                captionMentions: b.captionMentions,
               };
             }),
           )
@@ -295,6 +296,7 @@ export default function NewNewsScreen() {
             width: block.width,
             height: block.height,
             caption: block.caption.trim() || null,
+            captionMentions: block.captionMentions,
           });
         }
       }
