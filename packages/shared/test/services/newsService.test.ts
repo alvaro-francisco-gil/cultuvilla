@@ -221,8 +221,8 @@ describe('newsService — Task 7: Feed queries', () => {
     const id2 = await seedApprovedPost('m1', 'Home 2');
     // hidden post in home
     const hiddenId = await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'Hidden', body: 'B', category: 'fiesta' });
-    store[`news/${hiddenId}`]['status'] = 'hidden';
-    store[`news/${hiddenId}`]['publishedAt'] = new Date(2024, 1, 1);
+    fakeStore()[`news/${hiddenId}`]['status'] = 'hidden';
+    fakeStore()[`news/${hiddenId}`]['publishedAt'] = new Date(2024, 1, 1);
     // active post in other municipality
     await seedApprovedPost('m2', 'Other');
 
@@ -240,7 +240,7 @@ describe('newsService — Task 7: Feed queries', () => {
     const id2 = await seedApprovedPost('m2', 'Other');
     // hidden post anywhere should be excluded
     const hiddenId = await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'Hidden', body: 'B', category: 'fiesta' });
-    store[`news/${hiddenId}`]['status'] = 'hidden';
+    fakeStore()[`news/${hiddenId}`]['status'] = 'hidden';
 
     const feed = await getAllVillagesFeed();
     const ids = feed.map((p) => p.id);
@@ -256,7 +256,7 @@ describe('newsService — Task 7: Feed queries', () => {
     const id3 = await seedApprovedPost('m3', 'Other 2');
     // hidden in m2 should be excluded
     const hiddenId = await createNewsPost({ municipalityId: 'm2', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'Hidden m2', body: 'B', category: 'fiesta' });
-    store[`news/${hiddenId}`]['status'] = 'hidden';
+    fakeStore()[`news/${hiddenId}`]['status'] = 'hidden';
 
     const feed = await getOtherVillagesFeed('m1');
     const ids = feed.map((p) => p.id);
