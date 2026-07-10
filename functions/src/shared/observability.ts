@@ -37,8 +37,9 @@ const getSalt = (override?: string): string => {
     cachedSalt = fromEnv;
     return fromEnv;
   }
-  // Fail closed: a missing secret still logs, but the visible 'unsalted-'
-  // prefix surfaces the misconfiguration instead of silently weakening hashing.
+  // Fails open: hashing continues with a placeholder (rather than dropping the
+  // log) so a missing secret never blocks observability, but the visible
+  // 'unsalted-' prefix plus this warn make the misconfiguration impossible to miss.
   if (!warnedAboutMissingSalt) {
     warnedAboutMissingSalt = true;
     if (process.env.FUNCTIONS_EMULATOR !== 'true' && process.env.NODE_ENV !== 'test') {
@@ -62,6 +63,7 @@ export const transformAttrs = (attrs?: Attrs): Attrs | undefined => {
   const out: Attrs = { ...attrs };
   if (typeof out['user.id'] === 'string') out['user.id'] = hashUserId(out['user.id']);
   if (typeof out['error.message'] === 'string') out['error.message'] = redactPII(out['error.message']);
+  if (typeof out['error.stack'] === 'string') out['error.stack'] = redactPII(out['error.stack']);
   return out;
 };
 

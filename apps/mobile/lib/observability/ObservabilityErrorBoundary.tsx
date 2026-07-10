@@ -16,8 +16,8 @@ export class ObservabilityErrorBoundary extends React.Component<Props, State> {
     return { hasError: true };
   }
 
-  componentDidCatch(error: unknown, info: { componentStack?: string }): void {
-    observability.captureError(error, { route: info.componentStack ? 'boundary' : 'boundary' });
+  componentDidCatch(error: unknown): void {
+    observability.captureError(error, { route: 'boundary' });
   }
 
   render(): React.ReactNode {

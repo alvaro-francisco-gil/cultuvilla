@@ -68,7 +68,7 @@ export function configureObservability(next: ObservabilityAdapter): void {
 
 let opCounter = 0;
 const defaultOpPrefix =
-  typeof globalThis.crypto.randomUUID === 'function' ? globalThis.crypto.randomUUID().slice(0, 8) : 'op';
+  typeof globalThis.crypto?.randomUUID === 'function' ? globalThis.crypto.randomUUID().slice(0, 8) : 'op';
 const defaultIdFactory = (): string => `op-${defaultOpPrefix}-${String(opCounter++)}`;
 
 export const observability = {

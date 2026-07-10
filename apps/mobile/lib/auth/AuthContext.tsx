@@ -236,9 +236,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const p = await getUserProfile(uid);
       setProfile(p);
       if (p) {
-        observability.setUserContext({ uid, municipalityId: p.activeMunicipalityId ?? undefined });
+        // Defer setUserContext until the hashed uid resolves — never forward
+        // the raw Firebase uid to Analytics. Re-check against the live auth
+        // user at apply-time so a mid-fetch sign-out / account switch can't
+        // stamp a stale (or now-wrong) user's hash onto the new session.
         void fetchUserIdHash(uid).then((hash) => {
-          if (hash) observability.setUserContext({ uid: hash, municipalityId: p.activeMunicipalityId ?? undefined });
+          if (hash && getAuth().currentUser?.uid === uid) {
+            observability.setUserContext({ uid: hash, municipalityId: p.activeMunicipalityId ?? undefined });
+          }
         });
       }
       // Resume-time sync: Firebase Auth's email can change out from under the

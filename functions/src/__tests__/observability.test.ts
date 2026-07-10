@@ -47,4 +47,9 @@ describe('transformAttrs', () => {
   it('returns undefined for undefined input', () => {
     expect(transformAttrs(undefined)).toBeUndefined();
   });
+  it('redacts error.stack (its first line embeds the message)', () => {
+    const out = transformAttrs({ 'error.stack': 'Error: ana@example.com not found\n  at x' });
+    expect(String(out?.['error.stack'])).toContain('<email>');
+    expect(String(out?.['error.stack'])).not.toContain('ana@example.com');
+  });
 });
