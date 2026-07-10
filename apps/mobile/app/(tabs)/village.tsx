@@ -5,15 +5,17 @@ import { VillageDiscovery } from '../../components/feature/VillageDiscovery';
 import { VillageHomeBody } from '../../components/feature/VillageHomeBody';
 import { useVillageHome } from '../../lib/useVillageHome';
 import { useAuth } from '../../lib/auth/useAuth';
+import { useActiveVillageId } from '../../lib/village/useActiveVillageId';
 import { useT } from '../../lib/i18n';
 
 // The middle tab swaps between the active-village home and discovery based on
-// the user's activeMunicipalityId. Both the home here and the pushed
-// /village/[villageId] detail render the same <VillageHomeBody>.
+// the active village — a signed-in user's activeMunicipalityId, or the village
+// a logged-out visitor opened via a share link. Both the home here and the
+// pushed /village/[villageId] detail render the same <VillageHomeBody>.
 export default function VillageTabScreen() {
-  const { profile, profileChecked } = useAuth();
+  const { profileChecked } = useAuth();
   const { t } = useT();
-  const activeMunicipalityId = profile?.activeMunicipalityId ?? null;
+  const activeMunicipalityId = useActiveVillageId();
   const home = useVillageHome(activeMunicipalityId);
 
   // AuthGate already waits for `profileChecked`, but guard once more for safety.
