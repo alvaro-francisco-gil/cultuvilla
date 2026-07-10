@@ -305,16 +305,25 @@ pnpm app:typecheck                             # tsc --noEmit for apps/mobile
 - **App Check**: the `initMobileAppCheck` seam is wired in the app bootstrap but is a no-op. Do not remove it — it will be activated when the product opts in. Leave it untouched unless explicitly asked.
 - **Native rebuilds**: after installing a package that ships an Expo config plugin, or after changing the `plugins` array in `apps/mobile/app.config.ts`, run a clean prebuild. See the `expo-native-rebuild` skill.
 
-### Never start dev servers
+### Never start long-lived dev servers
 
-You (Claude) do not start long-running processes — the user owns the iteration loop. Don't run:
+You (Claude) **may** run the emulator-backed test suites yourself — they boot
+*ephemeral* Firebase emulators via `scripts/run-tests-with-emulators.mjs` and tear
+them down when the run ends, so they don't collide with anything. Run them as part
+of verification before pushing or merging:
+
+- `pnpm check` (the full gate), `pnpm test`, `pnpm test:emulators`,
+  `pnpm test:integration`, `pnpm test:rules`, `pnpm test:functions`
+
+Still off-limits — these run indefinitely (the user owns that iteration loop) or
+bypass CI:
 
 - `pnpm app:start` / `expo start` (Expo/Metro dev server)
-- `pnpm test:integration`, `pnpm test:rules`, `pnpm test:functions`, or `pnpm test:emulators` (they boot Firebase emulators that the user wants to keep alive)
-- `firebase emulators:start` directly
+- `firebase emulators:start` directly (standalone long-lived emulator session)
 - Any deploy script (`pnpm deploy:*`) — use the `firestore-deploy` skill instead
 
-If you need output from a long-running service to verify a change, ask the user to run it and paste the relevant lines.
+If you need output from a long-lived server you can't start (Metro, a standalone
+emulator session), ask the user to run it and paste the relevant lines.
 
 ## Development workflow
 
