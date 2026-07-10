@@ -129,6 +129,7 @@ export default function EventDetailScreen() {
             personId={person.id}
             name={personName}
             telephoneRequired={!!event.telephoneRequired}
+            villageId={event.municipalityId}
           />
         ) : null
       }

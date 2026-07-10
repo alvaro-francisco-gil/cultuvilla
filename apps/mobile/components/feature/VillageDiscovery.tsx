@@ -147,8 +147,10 @@ export function VillageDiscovery() {
     if (!user || !pendingJoin) return;
     const id = pendingJoin.id;
     setJoining(true);
+    let succeeded = false;
     try {
       await joinVillage(id, user.uid, barrioId);
+      succeeded = true;
       observability.trackEvent(OBSERVABILITY_EVENTS.VILLAGE_JOIN_SUCCESS, { villageId: id });
       setJoinedIds((prev) => new Set(prev).add(id));
       setPendingJoin(null);
@@ -157,7 +159,7 @@ export function VillageDiscovery() {
       await refreshProfile();
       router.push({ pathname: '/village/[villageId]', params: { villageId: id } });
     } catch (e) {
-      observability.trackEvent(OBSERVABILITY_EVENTS.VILLAGE_JOIN_ERROR, { villageId: id });
+      if (!succeeded) observability.trackEvent(OBSERVABILITY_EVENTS.VILLAGE_JOIN_ERROR, { villageId: id });
       throw e;
     } finally {
       setJoining(false);
