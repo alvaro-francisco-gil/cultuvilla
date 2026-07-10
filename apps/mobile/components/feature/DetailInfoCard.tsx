@@ -27,7 +27,7 @@ export function DetailInfoCard({ icon, label, value, onPress }: DetailInfoCardPr
               <Text
                 variant="caption"
                 className="flex-1"
-                style={{ color: colors.light.fg.accent, textTransform: 'uppercase', letterSpacing: 0.8 }}
+                style={{ color: colors.light.fg.accent, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: '700' }}
               >
                 {label}
               </Text>

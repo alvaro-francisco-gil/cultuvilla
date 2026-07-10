@@ -5,16 +5,29 @@ jest.mock('@cultuvilla/shared/services/personService', () => ({
   createPerson: jest.fn().mockResolvedValue('person-1'),
   updatePerson: jest.fn().mockResolvedValue(undefined),
   getPersonByUserId: jest.fn().mockResolvedValue(null),
+  updateResidenceBarrio: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('@cultuvilla/shared/services/userService', () => ({
   createUserProfile: jest.fn().mockResolvedValue(undefined),
   patchUserProfile: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
+  ensureVillageMembership: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('@cultuvilla/shared/services/occupationService', () => ({
+  recordOccupation: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadUserPhoto: jest.fn(),
 }));
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getMunicipalities: jest.fn().mockResolvedValue([]),
+  getMunicipality: jest.fn().mockResolvedValue(null),
+  getBarrios: jest.fn().mockResolvedValue([]),
+}));
+jest.mock('../../../lib/auth/pendingVillage', () => ({
+  readPendingVillage: jest.fn().mockResolvedValue(null),
+  clearPendingVillage: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
@@ -69,7 +82,14 @@ jest.mock('../../../lib/i18n', () => ({
 }));
 
 describe('CompleteProfileScreen', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // clearAllMocks doesn't reset implementations, so restore the no-village
+    // default each test — otherwise a per-test override leaks forward.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pendingVillage = require('../../../lib/auth/pendingVillage');
+    (pendingVillage.readPendingVillage as jest.Mock).mockResolvedValue(null);
+  });
 
   it('rejects submit when name or surnames are empty (stays on step 1)', async () => {
     const { getByText, queryByText } = render(<CompleteProfileScreen />);
@@ -136,6 +156,64 @@ describe('CompleteProfileScreen', () => {
     // trigger (functions/src/users/syncPersonDenormalization.ts) is the only writer.
     const userArgs = (userService.createUserProfile as jest.Mock).mock.calls[0][1];
     expect(userArgs).not.toHaveProperty('displayName');
+  });
+
+  it('creates the user doc before joining a village (users/{uid} must exist before setActiveMunicipality)', async () => {
+    // Regression: joinVillage -> setActiveMunicipality does an updateDoc on
+    // users/{uid}. If that runs before the profile write creates the doc, the
+    // update rule dereferences a null `resource.data` and Firestore denies it
+    // ("Missing or insufficient permissions"), aborting onboarding. So the
+    // account write MUST precede the village membership write.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const personService = require('@cultuvilla/shared/services/personService');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const userService = require('@cultuvilla/shared/services/userService');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const villageMemberService = require('@cultuvilla/shared/services/villageMemberService');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pendingVillage = require('../../../lib/auth/pendingVillage');
+
+    // A village picked at registration (arrives via the pendingVillage seam) so
+    // ensureVillageMembership runs during submit.
+    (pendingVillage.readPendingVillage as jest.Mock).mockResolvedValue('muni-1');
+
+    const order: string[] = [];
+    (personService.createPerson as jest.Mock).mockImplementation(async () => { order.push('person'); return 'person-1'; });
+    (userService.createUserProfile as jest.Mock).mockImplementation(async () => { order.push('user'); });
+    (villageMemberService.ensureVillageMembership as jest.Mock).mockImplementation(async () => { order.push('village'); });
+
+    const { getByText, getByLabelText, getByTestId, getAllByText } = render(<CompleteProfileScreen />);
+    // Let the mount effect resolve readPendingVillage and commit municipalityId
+    // before we submit, so ensureVillageMembership actually runs.
+    await act(async () => { await Promise.resolve(); });
+
+    fireEvent.changeText(getByLabelText('Nombre'), 'Ana');
+    fireEvent.changeText(getByLabelText('Primer apellido'), 'García');
+    fireEvent.changeText(getByLabelText('Segundo apellido'), 'López');
+    fireEvent.press(getByText('Mujer'));
+    fireEvent.press(getByText('Siguiente'));
+
+    fireEvent.press(getByTestId('birthday-year'));
+    fireEvent.press(getAllByText('1990')[0]!);
+    fireEvent.press(getByTestId('birthday-month'));
+    fireEvent.press(getAllByText('Mayo')[0]!);
+    fireEvent.press(getByTestId('birthday-day'));
+    const dayMatches = getAllByText('5');
+    fireEvent.press(dayMatches[dayMatches.length - 1]!);
+    fireEvent.press(getByText('Siguiente'));
+
+    fireEvent.press(getByTestId('accept-terms'));
+    await act(async () => {
+      fireEvent.press(getByText('Crear perfil'));
+    });
+
+    await waitFor(() => {
+      expect(villageMemberService.ensureVillageMembership).toHaveBeenCalled();
+      expect(userService.createUserProfile).toHaveBeenCalled();
+    });
+    // The account doc must be written before the village membership.
+    expect(order.indexOf('user')).toBeLessThan(order.indexOf('village'));
+    expect(order).toEqual(['person', 'user', 'village']);
   });
 
   it('does not create the profile until the terms are accepted', async () => {
