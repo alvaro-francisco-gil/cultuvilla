@@ -101,6 +101,27 @@ Entity docs gain: `commentCount: number` and `reactionCounts: { like: number, he
 
 ---
 
+## Scope revision (discovered during execution, 2026-07-10)
+
+The original A5 ("delete news comment/reaction/report backend") under-scoped the entanglement. The news-specific backend is referenced well beyond `packages/shared`:
+
+- `functions/src/news/deleteNewsPost.ts` — cascade-deletes `newsComments`/`newsReactions` and actions open `newsReports` for a post.
+- `functions/src/account/deleteAccount.ts` — deletes a user's `newsComments`/`newsReactions`/`newsReports`.
+- `functions/src/news/resolveNewsReport.ts` — report-moderation callable (village/app admin). **Not called by any client** (confirmed — no `apps/mobile`/`apps/web` reference).
+- `functions/src/news/syncNewsCommentCount.ts`, `syncNewsReactionCounts.ts`, and their `functions/src/index.ts` exports.
+- `scripts/check-dev-conformance.mjs` — imports + REGISTRY entries for the three collections.
+- `firestore.rules` (blocks + validators) and `firestore.indexes.json` (`newsComments`, `newsReports` indexes).
+- Tests: `functions/src/__tests__/handlers/deleteAccount.test.ts`, `.../news/deleteNewsPost.test.ts`, `.../news/resolveNewsReport.test.ts`, `.../news/syncNewsCounters.test.ts`; `packages/shared/test/e2e/{newsRules,shapeRules}.test.ts`; `packages/shared/test/models/news/{NewsComment,NewsReaction,NewsReport}DataModel.test.ts`; `packages/shared/test/services/newsService.test.ts`.
+
+**No client UI consumes any of it** — dropping report-moderation removes zero wired features. Revised execution replaces A5 with two dependency-ordered tasks:
+
+- **D2 (shared):** create generic comment/reaction converters + client&admin refs + `commentsService` (+ test); delete the news comment/reaction/report **shared** code (models, converters, refs, `newsService` functions) and delete/trim the shared tests. Gate: `packages/shared` typecheck + test green. `functions/` is intentionally red until D3.
+- **D3 (functions + config + scripts):** repoint `deleteNewsPost` and `deleteAccount` cascades to the generic `comments`/`reactions` collections (filter `entityKind=='news'` / `authorUserId`/`userId`); delete `resolveNewsReport` (+ export + test); delete `syncNewsCommentCount`/`syncNewsReactionCounts` (+ exports; generic triggers arrive in D6/C2); rewrite `deleteNewsPost`/`deleteAccount` tests; remove the news comment/reaction/report **rules blocks + validators** and the `newsComments`/`newsReports` **indexes**; update `check-dev-conformance.mjs`; trim the news comment/reaction/report cases from `newsRules.test.ts` + `shapeRules.test.ts`. Gate: full `pnpm check` + `pnpm test:rules` green.
+
+Consequently **Stage B (D4) only ADDS** the generic `comments`/`reactions` rules + index + e2e test (news-rule removal already done in D3). The generic count trigger (D6/C2) restores news post `commentCount`/`reactionCounts` maintenance (news doc keeps those fields).
+
+---
+
 ## Stage A — Shared data layer & service
 
 ### Task A1: `EntityKind` in shared
