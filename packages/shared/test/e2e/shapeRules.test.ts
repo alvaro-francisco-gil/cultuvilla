@@ -173,6 +173,8 @@ describe('shape enforcement — /users/{uid}', () => {
     activeMunicipalityId: null,
     personId: null,
     createdAt: new Date(),
+    termsAcceptedAt: new Date(),
+    termsVersion: '1.0',
   };
 
   it('accepts a valid full-shape create', async () => {
