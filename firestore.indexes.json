@@ -181,24 +181,6 @@
       ]
     },
     {
-      "collectionGroup": "newsComments",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "postId", "order": "ASCENDING" },
-        { "fieldPath": "hidden", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "newsReports",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "municipalityId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "organizationJoinRequests",
       "queryScope": "COLLECTION",
       "fields": [

@@ -187,54 +187,6 @@ service cloud.firestore {
           && d.commentCount is number;
     }
 
-    function isValidNewsCommentCreate(d) {
-      return d.keys().hasOnly([
-              'postId', 'municipalityId', 'authorUserId', 'body', 'createdAt', 'hidden',
-            ])
-          && d.keys().hasAll([
-              'postId', 'municipalityId', 'authorUserId', 'body', 'createdAt', 'hidden',
-            ])
-          && isString(d.postId)
-          && isString(d.municipalityId)
-          && isString(d.authorUserId)
-          && isString(d.body)
-          && isTimestamp(d.createdAt)
-          && isBool(d.hidden);
-    }
-
-    function isValidNewsReactionWrite(d) {
-      return d.keys().hasOnly(['postId', 'municipalityId', 'userId', 'kind', 'createdAt'])
-          && d.keys().hasAll(['postId', 'municipalityId', 'userId', 'kind', 'createdAt'])
-          && isString(d.postId)
-          && isString(d.municipalityId)
-          && isString(d.userId)
-          && d.kind in ['like', 'heart']
-          && isTimestamp(d.createdAt);
-    }
-
-    function isValidNewsReportCreate(d) {
-      return d.keys().hasOnly([
-              'targetType', 'targetId', 'postId', 'municipalityId',
-              'reporterUserId', 'reason', 'createdAt', 'status',
-              'resolvedBy', 'resolvedAt',
-            ])
-          && d.keys().hasAll([
-              'targetType', 'targetId', 'postId', 'municipalityId',
-              'reporterUserId', 'reason', 'createdAt', 'status',
-              'resolvedBy', 'resolvedAt',
-            ])
-          && d.targetType in ['comment']
-          && isString(d.targetId)
-          && isString(d.postId)
-          && isString(d.municipalityId)
-          && isString(d.reporterUserId)
-          && isString(d.reason)
-          && isTimestamp(d.createdAt)
-          && d.status in ['open', 'dismissed', 'actioned']
-          && isStringOrNull(d.resolvedBy)
-          && isTimestampOrNull(d.resolvedAt);
-    }
-
     function isValidPersonCreate(d) {
       return d.keys().hasOnly([
               'givenName', 'middleNames', 'firstSurname', 'secondSurname',
@@ -455,40 +407,8 @@ service cloud.firestore {
                            'reactionCounts','commentCount'
                          ]);
       // Clients never delete a post directly — the deleteNewsPost callable
-      // cascades comments/reactions/reports with the admin SDK (author or admin).
+      // cascades comments/reactions with the admin SDK (author or admin).
       allow delete: if false;
-    }
-
-    match /newsComments/{commentId} {
-      allow read: if isVillageMember(resource.data.municipalityId);
-      allow create: if isVillageMember(request.resource.data.municipalityId)
-                      && isValidNewsCommentCreate(request.resource.data)
-                      && request.resource.data.authorUserId == request.auth.uid
-                      && request.resource.data.hidden == false;
-      allow update: if false;
-      allow delete: if isOwner(resource.data.authorUserId);
-    }
-
-    match /newsReactions/{reactionId} {
-      allow read: if isVillageMember(resource.data.municipalityId);
-      allow create, update: if isVillageMember(request.resource.data.municipalityId)
-                              && isValidNewsReactionWrite(request.resource.data)
-                              && request.resource.data.userId == request.auth.uid
-                              && reactionId == request.resource.data.postId + '_' + request.auth.uid;
-      allow delete: if isOwner(resource.data.userId);
-    }
-
-    match /newsReports/{reportId} {
-      allow read: if isVillageAdmin(resource.data.municipalityId)
-                    || isOwner(resource.data.reporterUserId)
-                    || isAppAdmin();
-      allow create: if isVillageMember(request.resource.data.municipalityId)
-                      && isValidNewsReportCreate(request.resource.data)
-                      && request.resource.data.reporterUserId == request.auth.uid
-                      && request.resource.data.status == 'open'
-                      && request.resource.data.resolvedBy == null
-                      && request.resource.data.resolvedAt == null;
-      allow update, delete: if false;
     }
 
     match /admins/{userId} {
