@@ -4,16 +4,15 @@ import { Screen } from '../../../components/primitives';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { Stepper, type StepConfig } from '../../../components/feature/Stepper';
 import { CommunitySettingsEditor } from '../../../components/feature/CommunitySettingsEditor';
-import { VillageContentManager } from '../../../components/feature/proposable/VillageContentManager';
 import { MembersList } from '../../../components/feature/MembersList';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { useT } from '../../../lib/i18n';
 
 // Role-mode community editor (organizers only; non-organizers are redirected
 // back to the village, where the header is their read view). Steps: "Detalles"
-// (escudo/description/location — each field saves itself) → "Contenido"
-// (moderate lugares/barrios/agrupaciones) → "Miembros". Every step persists its
-// own edits as they happen, so the final "Listo" button just closes the editor.
+// (escudo/description/location — each field saves itself) → "Miembros". Every
+// step persists its own edits as they happen, so the final "Listo" button just
+// closes the editor.
 export default function CommunityScreen() {
   const { villageId } = useLocalSearchParams<{ villageId: string }>();
   const { canManage, uid, loading } = useEntityCapabilities(villageId);
@@ -38,12 +37,6 @@ export default function CommunityScreen() {
       title: t('village.edit.tabDetails'),
       icon: 'create-outline',
       render: () => <CommunitySettingsEditor villageId={villageId} />,
-    },
-    {
-      key: 'content',
-      title: t('village.edit.tabContent'),
-      icon: 'list-outline',
-      render: () => <VillageContentManager villageId={villageId} />,
     },
     {
       key: 'members',

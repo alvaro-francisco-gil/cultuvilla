@@ -13,9 +13,8 @@ const TYPE_ALIASES: Record<string, OrganizationType> = {
   otros: 'otros',
 };
 
-// Create-only Agrupaciones surface: any member proposes a peña/asociación/otros;
+// Agrupaciones create surface: any member proposes a peña/asociación/otros;
 // organizers create (auto-approved). After submit we return to the pueblo tab.
-// Moderation lives in the community ("Editar") screen.
 export default function VillageOrganizations() {
   const { villageId, type } = useLocalSearchParams<{ villageId: string; type?: string }>();
   const { t } = useT();
@@ -26,7 +25,6 @@ export default function VillageOrganizations() {
       {villageId ? (
         <OrganizationsManager
           villageId={villageId}
-          mode="create"
           initialType={initialType}
           onCreated={() => router.back()}
         />

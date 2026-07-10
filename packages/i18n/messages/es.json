@@ -224,7 +224,7 @@
         "cartel": "Cartel de fiestas"
       }
     },
-    "edit": { "title": "Editar pueblo", "tabDetails": "Detalles", "tabContent": "Contenido", "tabMembers": "Miembros" },
+    "edit": { "title": "Editar pueblo", "tabDetails": "Detalles", "tabMembers": "Miembros" },
     "membersList": {
       "colName": "Nombre",
       "colCenso": "Censo",
