@@ -8,11 +8,12 @@ import type { MentionCandidate } from './mentionText';
 
 /**
  * Load every entity a news `@`-mention can point at — approved organizations
- * (peñas/asociaciones/…), events, approved places, approved barrios, the pueblo
- * (villages), approved festival posters, and other approved news posts. People
- * are deliberately not mentionable (members have no public profile screen).
- * Loaded once per municipality; a village's directory is small enough to hold in
- * memory and filter client-side as the author types.
+ * (peñas/asociaciones/…), events, places, barrios, the pueblo (villages),
+ * festival posters, and other visible news posts. Content entities are filtered
+ * to `status: 'active'` (server-side in their services); people are deliberately
+ * not mentionable (members have no public profile screen). Loaded once per
+ * municipality; a village's directory is small enough to hold in memory and
+ * filter client-side as the author types.
  *
  * `excludeNewsId` drops the article being edited from the news candidates so a
  * post can't `@`-mention itself.
@@ -41,19 +42,16 @@ export function useMentionSources(
         getPlaces(municipalityId).catch(() => []),
         getBarrios(municipalityId).catch(() => []),
         getMunicipalities().catch(() => []),
-        getFestivalPosters(municipalityId, 'approved').catch(() => []),
-        getNewsPostsByMunicipality(municipalityId, { status: 'approved' }).catch(() => []),
+        getFestivalPosters(municipalityId).catch(() => []),
+        getNewsPostsByMunicipality(municipalityId, { status: 'active' }).catch(() => []),
       ]);
       if (cancelled) return;
       setCandidates([
         ...orgs.map((o): MentionCandidate => ({ entityType: 'organization', entityId: o.id, label: o.name })),
         ...events.map((e): MentionCandidate => ({ entityType: 'event', entityId: e.id, label: e.title })),
-        ...places
-          .filter((pl) => pl.status === 'approved')
-          .map((pl): MentionCandidate => ({ entityType: 'place', entityId: pl.id, label: pl.name })),
-        ...barrios
-          .filter((b) => b.status === 'approved')
-          .map((b): MentionCandidate => ({ entityType: 'barrio', entityId: b.id, label: b.name })),
+        // getPlaces/getBarrios already filter to active content server-side.
+        ...places.map((pl): MentionCandidate => ({ entityType: 'place', entityId: pl.id, label: pl.name })),
+        ...barrios.map((b): MentionCandidate => ({ entityType: 'barrio', entityId: b.id, label: b.name })),
         ...villages.map((v): MentionCandidate => ({ entityType: 'village', entityId: v.id, label: v.name })),
         ...posters.map(
           (p): MentionCandidate => ({ entityType: 'festivalPoster', entityId: p.id, label: p.title ?? String(p.year) }),

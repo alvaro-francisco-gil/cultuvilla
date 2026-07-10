@@ -1,13 +1,10 @@
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { PlacesManager } from '../PlacesManager';
-import {
-  createPlace, proposePlace,
-} from '@cultuvilla/shared/services/municipalityService';
+import { createPlace } from '@cultuvilla/shared/services/municipalityService';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   createPlace: jest.fn().mockResolvedValue('new-id'),
-  proposePlace: jest.fn().mockResolvedValue('new-id'),
   updatePlace: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('@cultuvilla/shared/services/imageService', () => ({ uploadPlaceImage: jest.fn() }));
@@ -23,28 +20,26 @@ beforeEach(() => {
 });
 
 describe('<PlacesManager>', () => {
-  it('a villager submitting the form proposes a pending place (default kind)', async () => {
+  it('any member submitting the form creates the place directly (default kind, optimistic)', async () => {
     const { getByTestId } = render(<PlacesManager villageId="m1" />);
     fireEvent.changeText(getByTestId('place-name-input'), 'Fuente');
     fireEvent.press(getByTestId('place-submit'));
     await waitFor(() =>
-      expect(proposePlace).toHaveBeenCalledWith('m1', {
+      expect(createPlace).toHaveBeenCalledWith('m1', {
         name: 'Fuente', kind: 'cemetery', description: '', municipalityId: 'm1', proposedBy: 'alice',
       }),
     );
-    expect(createPlace).not.toHaveBeenCalled();
   });
 
-  it('an organizer submitting the form creates the place directly', async () => {
+  it('an admin creates the place the same way', async () => {
     mockCaps.mockReturnValue({ canManage: true, canApprove: true, uid: 'boss', loading: false });
     const { getByTestId } = render(<PlacesManager villageId="m1" />);
     fireEvent.changeText(getByTestId('place-name-input'), 'Iglesia');
     fireEvent.press(getByTestId('place-submit'));
     await waitFor(() =>
       expect(createPlace).toHaveBeenCalledWith('m1', {
-        name: 'Iglesia', kind: 'cemetery', description: '', municipalityId: 'm1',
+        name: 'Iglesia', kind: 'cemetery', description: '', municipalityId: 'm1', proposedBy: 'boss',
       }),
     );
-    expect(proposePlace).not.toHaveBeenCalled();
   });
 });

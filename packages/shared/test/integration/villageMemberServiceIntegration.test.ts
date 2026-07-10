@@ -32,15 +32,15 @@ describe('villageMemberService — getUserMemberships', () => {
       const now = new Date();
       await setDoc(doc(db, 'municipalities/m1/members/alice'), {
         userId: 'alice', role: 'user', joinedAt: now, profileAnswers: {},
-        profileCompletedAt: null, trustedNewsAuthor: false,
+        profileCompletedAt: null,
       });
       await setDoc(doc(db, 'municipalities/m2/members/alice'), {
         userId: 'alice', role: 'admin', joinedAt: now, profileAnswers: {},
-        profileCompletedAt: null, trustedNewsAuthor: false,
+        profileCompletedAt: null,
       });
       await setDoc(doc(db, 'municipalities/m3/members/bob'), {
         userId: 'bob', role: 'user', joinedAt: now, profileAnswers: {},
-        profileCompletedAt: null, trustedNewsAuthor: false,
+        profileCompletedAt: null,
       });
     });
 

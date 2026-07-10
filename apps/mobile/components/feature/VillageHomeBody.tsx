@@ -23,7 +23,6 @@ import { useT } from '../../lib/i18n';
 import { showConfirm } from '../../lib/dialogs';
 import { isProposalVisible } from '../../lib/proposals';
 import { joinVillage } from '@cultuvilla/shared/services/villageMemberService';
-import { deletePlace, deleteBarrio } from '@cultuvilla/shared/services/municipalityService';
 import { getVillageViewLink } from '@cultuvilla/shared/services/deepLinkService';
 import { staticMapUrl, MAP_ZOOM_DEFAULT } from '@cultuvilla/shared/services/mapsService';
 import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
@@ -124,8 +123,10 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
   const villageBase = `/village/${village.id}` as const;
 
   const caps = { canManage, uid: user?.uid ?? null };
-  const visibleBarrios = barrios.filter((b) => isProposalVisible(b.status, b.proposedBy, caps));
-  const visiblePlaces = places.filter((p) => isProposalVisible(p.status, p.proposedBy, caps));
+  // Barrios/places already come back active-only from useVillageHome (see
+  // getBarrios/getPlaces) — the optimistic-visibility model means there's no
+  // pending state left to filter here. Organizations keep the real
+  // pending/approved/rejected review flow, so they still need the filter.
   const visibleOrgs = organizations.filter((o) => isProposalVisible(o.status, o.requestedBy, caps));
   const penas = visibleOrgs.filter((o) => o.type === 'peña');
   const agrupaciones = visibleOrgs.filter((o) => o.type !== 'peña');
@@ -139,24 +140,6 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
   const censoFilled =
     censoFields.length > 0 && censoFields.every((f) => isAnswered(data.myCensoAnswers[f.key]));
   const censoFillLabel = censoFilled ? t('village.censo.edit') : t('village.censo.fill');
-
-  // A proposer's own still-pending barrio/place. They reach withdraw from the
-  // pueblo-tab card (the create screen no longer lists items); moderation for
-  // organizers lives in the community ("Editar") screen.
-  const isOwnPending = (status: string, proposedBy?: string | null) =>
-    !canManage && status === 'pending' && proposedBy === (user?.uid ?? null);
-
-  const confirmWithdraw = (kind: 'place' | 'barrio', id: string) => {
-    showConfirm(
-      t('village.proposals.pendingTitle'),
-      t('village.proposals.pendingInfo'),
-      () => {
-        const op = kind === 'place' ? deletePlace(village.id, id) : deleteBarrio(village.id, id);
-        void op.then(() => reload());
-      },
-      { confirmText: t('village.proposals.withdraw') },
-    );
-  };
 
   const openDirections = () => {
     const c = village.coordinates;
@@ -399,7 +382,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
           // stays visible even when the village has no carteles yet.
           isEmpty={false}
           emptyLabel={t('village.festivalPosters.empty')}
-          addLabel={canManage ? t('village.festivalPosters.add') : t('village.festivalPosters.propose')}
+          addLabel={t('village.festivalPosters.add')}
           onAdd={() => router.push(`${villageBase}/festival-posters` as never)}
         >
           {festivalPosters.map((p) => (
@@ -417,29 +400,21 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         {/* ── Barrios ──────────────────────────────────────────── */}
         <Section
           title={t('village.admin.hub.barrios')}
-          isEmpty={visibleBarrios.length === 0}
+          isEmpty={barrios.length === 0}
           emptyLabel={t('village.admin.barrios.empty')}
-          addLabel={canManage ? t('village.admin.barrios.add') : t('village.proposals.propose')}
+          addLabel={t('village.admin.barrios.add')}
           onAdd={() => router.push(`${villageBase}/barrios` as never)}
         >
-          {visibleBarrios.map((b) => (
+          {barrios.map((b) => (
             <EntityCard
               key={b.id}
               label={b.name}
-              sub={
-                b.status === 'pending'
-                  ? t('village.proposals.pending')
-                  : t('village.admin.barrios.residentCount', {
-                      count: barrioResidentCounts[b.id] ?? 0,
-                    })
-              }
+              sub={t('village.admin.barrios.residentCount', {
+                count: barrioResidentCounts[b.id] ?? 0,
+              })}
               icon="map-outline"
               imageUri={b.imageURL}
-              onPress={() =>
-                isOwnPending(b.status, b.proposedBy)
-                  ? confirmWithdraw('barrio', b.id)
-                  : router.push(`/village/${village.id}/barrio/${b.id}` as never)
-              }
+              onPress={() => router.push(`/village/${village.id}/barrio/${b.id}` as never)}
             />
           ))}
         </Section>
@@ -447,23 +422,18 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         {/* ── Lugares ──────────────────────────────────────────── */}
         <Section
           title={t('village.admin.hub.places')}
-          isEmpty={visiblePlaces.length === 0}
+          isEmpty={places.length === 0}
           emptyLabel={t('village.admin.places.empty')}
-          addLabel={canManage ? t('village.admin.places.add') : t('village.proposals.propose')}
+          addLabel={t('village.admin.places.add')}
           onAdd={() => router.push(`${villageBase}/places` as never)}
         >
-          {visiblePlaces.map((p) => (
+          {places.map((p) => (
             <EntityCard
               key={p.id}
               label={p.name}
-              sub={p.status === 'pending' ? t('village.proposals.pending') : undefined}
               icon="location-outline"
               imageUri={p.imageURL}
-              onPress={() =>
-                isOwnPending(p.status, p.proposedBy)
-                  ? confirmWithdraw('place', p.id)
-                  : router.push(`/village/${village.id}/place/${p.id}` as never)
-              }
+              onPress={() => router.push(`/village/${village.id}/place/${p.id}` as never)}
             />
           ))}
         </Section>
@@ -641,7 +611,7 @@ function NewsEntityCard({
   return (
     <EntityCard
       label={post.title}
-      sub={formatDate(post.publishedAt ?? post.submittedAt, 'short')}
+      sub={formatDate(post.publishedAt ?? post.createdAt, 'short')}
       icon="newspaper-outline"
       imageUri={imageUri}
       onPress={onPress}

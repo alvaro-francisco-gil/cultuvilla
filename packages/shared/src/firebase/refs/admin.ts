@@ -18,10 +18,10 @@ import { newsCommentConverterAdmin } from '../converters/newsCommentConverter.ad
 import { newsReactionConverterAdmin } from '../converters/newsReactionConverter.admin';
 import { newsReportConverterAdmin } from '../converters/newsReportConverter.admin';
 import { occupationConverterAdmin } from '../converters/occupationConverter.admin';
-import { occupationProposalConverterAdmin } from '../converters/occupationProposalConverter.admin';
 import { adminConverterAdmin } from '../converters/adminConverter.admin';
 import { organizationJoinRequestConverterAdmin } from '../converters/organizationJoinRequestConverter.admin';
 import { membershipEventConverterAdmin } from '../converters/membershipEventConverter.admin';
+import { moderationEventConverterAdmin } from '../converters/moderationEventConverter.admin';
 import { festivalPosterConverterAdmin } from '../converters/festivalPosterConverter.admin';
 
 export const eventsCollection = (db: Firestore) =>
@@ -158,12 +158,6 @@ export const occupationsCollection = (db: Firestore) =>
 export const occupationDoc = (db: Firestore, occupationId: string) =>
   db.collection('occupations').doc(occupationId).withConverter(occupationConverterAdmin);
 
-export const occupationProposalsCollection = (db: Firestore) =>
-  db.collection('occupationProposals').withConverter(occupationProposalConverterAdmin);
-
-export const occupationProposalDoc = (db: Firestore, proposalId: string) =>
-  db.collection('occupationProposals').doc(proposalId).withConverter(occupationProposalConverterAdmin);
-
 // ── Organization join requests ───────────────────────────────────────────
 
 export const organizationJoinRequestsCollection = (db: Firestore) =>
@@ -181,6 +175,17 @@ export const membershipEventsCollection = (db: Firestore) =>
 
 export const membershipEventDoc = (db: Firestore, id: string) =>
   db.collection('membershipEvents').doc(id).withConverter(membershipEventConverterAdmin);
+
+// ── Moderation audit log ─────────────────────────────────────────────────
+// Append-only, top-level, scoped by `municipalityId`. Function-owned: clients
+// only read (firestore.rules denies all client writes). Sibling of
+// `membershipEvents` — one log per concern (roles vs content).
+
+export const moderationEventsCollection = (db: Firestore) =>
+  db.collection('moderationEvents').withConverter(moderationEventConverterAdmin);
+
+export const moderationEventDoc = (db: Firestore, id: string) =>
+  db.collection('moderationEvents').doc(id).withConverter(moderationEventConverterAdmin);
 
 // ── Admin domain ─────────────────────────────────────────────────────────
 

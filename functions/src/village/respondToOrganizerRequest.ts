@@ -112,7 +112,6 @@ export const respondToOrganizerRequest = onCall<
             joinedAt: new Date(),
             profileAnswers: {},
             profileCompletedAt: null,
-            trustedNewsAuthor: false,
           };
           tx.set(memberRef, newMember);
           if (residenceTarget) upsertResidenceLink(tx, residenceTarget, municipalityId, null);

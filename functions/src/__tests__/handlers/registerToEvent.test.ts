@@ -48,7 +48,6 @@ async function seedMembership(userId: string): Promise<void> {
     joinedAt: new Date(),
     profileAnswers: {},
     profileCompletedAt: null,
-    trustedNewsAuthor: false,
   });
 }
 

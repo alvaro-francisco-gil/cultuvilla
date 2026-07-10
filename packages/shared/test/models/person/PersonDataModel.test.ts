@@ -21,8 +21,7 @@ describe('PersonDataSchema', () => {
       birthPlace: { municipalityId: 'mun1', barrioId: 'barrio1' },
       burialPlace: { municipalityId: 'mun1', placeId: 'place1' },
       municipalityLinks: [{ municipalityId: 'mun1', barrioId: null }],
-      occupationIds: ['occ1', 'occ2'],
-      pendingOccupations: ['Molinera'],
+      occupations: ['occ1', 'Molinera'],
       biography: 'Fue agricultora',
       photoURL: 'https://example.com/photo.jpg',
       userId: 'user1',
@@ -47,8 +46,7 @@ describe('PersonDataSchema', () => {
         birthPlace: null,
         burialPlace: null,
         municipalityLinks: [],
-        occupationIds: [],
-        pendingOccupations: [],
+        occupations: [],
         biography: null,
         photoURL: null,
         userId: null,
@@ -72,8 +70,7 @@ describe('PersonDataSchema', () => {
         birthPlace: null,
         burialPlace: null,
         municipalityLinks: [],
-        occupationIds: [],
-        pendingOccupations: [],
+        occupations: [],
         biography: null,
         photoURL: null,
         userId: null,
@@ -98,8 +95,7 @@ describe('buildPersonData', () => {
     expect(result.birthPlace).toBeNull();
     expect(result.burialPlace).toBeNull();
     expect(result.municipalityLinks).toEqual([]);
-    expect(result.occupationIds).toEqual([]);
-    expect(result.pendingOccupations).toEqual([]);
+    expect(result.occupations).toEqual([]);
     expect(result.biography).toBeNull();
     expect(result.photoURL).toBeNull();
     expect(result.userId).toBeNull();
@@ -120,8 +116,7 @@ describe('buildPersonData', () => {
       birthPlace: { municipalityId: 'mun1', barrioId: 'barrio1' },
       burialPlace: { municipalityId: 'mun1', placeId: 'place1' },
       municipalityLinks: [{ municipalityId: 'mun1', barrioId: null }],
-      occupationIds: ['occ1', 'occ2'],
-      pendingOccupations: ['Molinera'],
+      occupations: ['profesor', 'Herrero del pueblo'],
       biography: 'Fue agricultora',
       photoURL: 'https://example.com/photo.jpg',
       userId: 'user1',
@@ -133,8 +128,7 @@ describe('buildPersonData', () => {
     expect(result.birthday).toEqual({ year: 1943, month: 6, day: 15 });
     expect(result.deathDate).toEqual({ year: 2020, month: null, day: null });
     expect(result.burialPlace).toEqual({ municipalityId: 'mun1', placeId: 'place1' });
-    expect(result.occupationIds).toEqual(['occ1', 'occ2']);
-    expect(result.pendingOccupations).toEqual(['Molinera']);
+    expect(result.occupations).toEqual(['profesor', 'Herrero del pueblo']);
   });
 
   it('accepts year-only birthday', () => {

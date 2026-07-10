@@ -14,7 +14,7 @@ export type NewsLike = {
   title: string;
   category: NewsPostCategory;
   publishedAt: Date | null;
-  submittedAt: Date;
+  createdAt: Date;
   images: NewsPostImage[];
   coverImage?: NewsPostImage | null;
 };
@@ -50,7 +50,7 @@ export function NewsCard({ post, fallbackImageUri = null, onPress, testID }: New
     };
   }, [firstImagePath]);
 
-  const date = post.publishedAt ?? post.submittedAt;
+  const date = post.publishedAt ?? post.createdAt;
 
   return (
     <FeedCard

@@ -5,11 +5,9 @@ import {
   getDocs,
   orderBy,
   query,
-  serverTimestamp,
   setDoc,
   updateDoc,
   where,
-  type QueryConstraint,
 } from 'firebase/firestore';
 import { getDb } from '../firebase';
 import { festivalPostersCollection, festivalPosterDoc } from '../firebase/refs/client';
@@ -18,7 +16,6 @@ import {
   type FestivalPosterData,
   type FestivalPosterDataInput,
 } from '../models/festivalPoster/FestivalPosterDataModel';
-import type { ReviewStatus } from '../models/core/ReviewableDataModel';
 
 export type FestivalPosterWithId = FestivalPosterData & { id: string };
 
@@ -32,30 +29,23 @@ async function writePoster(id: string, input: FestivalPosterDataInput): Promise<
   return id;
 }
 
-/** Villager proposal → status 'pending'. */
-export function proposeFestivalPoster(
-  input: Omit<FestivalPosterDataInput, 'status'> & { proposedBy: string },
-  id: string = newFestivalPosterId(),
-): Promise<string> {
-  return writePoster(id, { ...input, status: 'pending' });
-}
-
-/** Admin direct add → status 'approved'. */
+/** Any village member adds a poster; it lands `active` and is visible to everyone
+ *  immediately. Village/app admins can hide it afterward via `moderationService`. */
 export function createFestivalPoster(
-  input: Omit<FestivalPosterDataInput, 'status'>,
+  input: FestivalPosterDataInput,
   id: string = newFestivalPosterId(),
 ): Promise<string> {
-  return writePoster(id, { ...input, status: 'approved' });
+  return writePoster(id, input);
 }
 
-export async function getFestivalPosters(
-  municipalityId: string,
-  status?: ReviewStatus,
-): Promise<FestivalPosterWithId[]> {
-  const constraints: QueryConstraint[] = [where('municipalityId', '==', municipalityId)];
-  if (status) constraints.push(where('status', '==', status));
-  constraints.push(orderBy('year', 'desc'));
-  const snap = await getDocs(query(festivalPostersCollection(getDb()), ...constraints));
+export async function getFestivalPosters(municipalityId: string): Promise<FestivalPosterWithId[]> {
+  const q = query(
+    festivalPostersCollection(getDb()),
+    where('municipalityId', '==', municipalityId),
+    where('status', '==', 'active'),
+    orderBy('year', 'desc'),
+  );
+  const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
@@ -63,25 +53,6 @@ export async function getFestivalPoster(posterId: string): Promise<FestivalPoste
   const snap = await getDoc(festivalPosterDoc(getDb(), posterId));
   const data = snap.data();
   return data ? { id: snap.id, ...data } : null;
-}
-
-// Partial writes use a raw (converter-less) ref: the SDK auto-converts Date → Timestamp,
-// and updateDoc must not run the strict full-object converter. Approval is authorised
-// entirely by firestore.rules (admin's allow-update is unconstrained on status).
-export function approveFestivalPoster(posterId: string, reviewedBy: string): Promise<void> {
-  return updateDoc(doc(getDb(), 'festivalPosters', posterId), {
-    status: 'approved',
-    reviewedBy,
-    reviewedAt: serverTimestamp(),
-  });
-}
-
-export function rejectFestivalPoster(posterId: string, reviewedBy: string): Promise<void> {
-  return updateDoc(doc(getDb(), 'festivalPosters', posterId), {
-    status: 'rejected',
-    reviewedBy,
-    reviewedAt: serverTimestamp(),
-  });
 }
 
 export function updateFestivalPoster(

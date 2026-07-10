@@ -65,25 +65,56 @@
     "profileEntry": "Administración",
     "hub": {
       "organizerRequests": "Solicitudes de administrador",
-      "organizerRequestsHint": "Revisar pendientes",
-      "occupations": "Ocupaciones",
-      "occupationsHint": "Aprobadas y propuestas"
+      "organizerRequestsHint": "Revisar pendientes"
     },
     "organizerRequests": {
       "title": "Solicitudes de administrador",
       "empty": "No hay solicitudes pendientes",
       "approve": "Aprobar",
       "reject": "Rechazar"
+    }
+  },
+  "occupations": {
+    "picker": {
+      "label": "Ocupación",
+      "customLabel": "Otra ocupación",
+      "customPlaceholder": "Escribe una ocupación",
+      "add": "Añadir"
     },
-    "occupations": {
-      "title": "Ocupaciones",
-      "catalog": "Catálogo",
-      "proposals": "Propuestas pendientes",
-      "addName": "Nombre",
-      "add": "Añadir ocupación",
-      "approve": "Aprobar",
-      "reject": "Rechazar",
-      "noProposals": "Sin propuestas pendientes"
+    "catalog": {
+      "agricultor": "Agricultor/a",
+      "ganadero": "Ganadero/a",
+      "profesor": "Profesor/a",
+      "medico": "Médico/a",
+      "enfermero": "Enfermero/a",
+      "hosteleria": "Hostelería",
+      "construccion": "Construcción",
+      "comerciante": "Comerciante",
+      "funcionario": "Funcionario/a",
+      "estudiante": "Estudiante",
+      "jubilado": "Jubilado/a",
+      "autonomo": "Autónomo/a",
+      "administrativo": "Administrativo/a",
+      "transportista": "Transportista",
+      "electricista": "Electricista",
+      "fontanero": "Fontanero/a",
+      "mecanico": "Mecánico/a",
+      "panadero": "Panadero/a",
+      "peluquero": "Peluquero/a",
+      "limpieza": "Limpieza",
+      "veterinario": "Veterinario/a",
+      "abogado": "Abogado/a",
+      "arquitecto": "Arquitecto/a",
+      "ingeniero": "Ingeniero/a",
+      "cocinero": "Cocinero/a",
+      "camarero": "Camarero/a",
+      "albanil": "Albañil",
+      "carpintero": "Carpintero/a",
+      "informatico": "Informático/a",
+      "artesano": "Artesano/a",
+      "desempleado": "Desempleado/a",
+      "ama-de-casa": "Amo/a de casa",
+      "otro": "Otro"
     }
   },
   "feed": {
@@ -197,9 +228,7 @@
     "proposals": {
       "pending": "Pendiente",
       "withdraw": "Retirar",
-      "propose": "Proponer",
-      "pendingTitle": "Propuesta pendiente",
-      "pendingInfo": "Los datos se podrán cambiar una vez que se acepte la propuesta. ¿Quieres retirarla?"
+      "propose": "Proponer"
     },
     "join": "Unirme a este pueblo",
     "signInToJoin": "Inicia sesión para unirte",
@@ -781,9 +810,8 @@
       "imagesLabel": "Imágenes",
       "addImage": "Añadir imagen",
       "submit": "Enviar",
-      "submitTrusted": "Publicar",
       "postAsOrg": "Publicar como…",
-      "successPending": "Tu artículo se ha enviado y está pendiente de aprobación.",
+      "successPublished": "Tu artículo se ha publicado.",
       "needsMembership": "Únete a este pueblo para publicar artículos.",
       "organizersLabel": "Organizadores",
       "addOrganizerUser": "Añadir organizador",
@@ -814,11 +842,6 @@
         "festivalPoster": "Cartel"
       }
     },
-    "status": {
-      "pending": "Pendiente de aprobación",
-      "rejected": "Rechazado",
-      "rejectedReason": "Motivo: {reason}"
-    },
     "reactions": {
       "like": "Me gusta",
       "heart": "Me encanta"
@@ -831,16 +854,6 @@
       "report": "Reportar",
       "reportConfirm": "¿Reportar este comentario?",
       "reportSent": "Reporte enviado."
-    },
-    "moderation": {
-      "queueTitle": "Artículos pendientes",
-      "approve": "Aprobar",
-      "reject": "Rechazar",
-      "rejectReasonPrompt": "Motivo del rechazo",
-      "reportsTitle": "Reportes",
-      "dismiss": "Descartar",
-      "remove": "Eliminar comentario",
-      "trustToggle": "Autor de confianza"
     }
   },
   "deeplink": {

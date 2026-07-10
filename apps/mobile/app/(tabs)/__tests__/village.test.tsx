@@ -166,8 +166,8 @@ describe('VillageTabScreen', () => {
   });
 
   describe('card navigation (non-admin viewer)', () => {
-    const barrio = { ...buildBarrioData({ name: 'El Barrio', municipalityId: 'mun1', status: 'approved' }), id: 'barrio1' };
-    const place = { ...buildPlaceData({ name: 'La Iglesia', kind: 'church', municipalityId: 'mun1', status: 'approved' }), id: 'place1' };
+    const barrio = { ...buildBarrioData({ name: 'El Barrio', municipalityId: 'mun1' }), id: 'barrio1' };
+    const place = { ...buildPlaceData({ name: 'La Iglesia', kind: 'church', municipalityId: 'mun1' }), id: 'place1' };
     const agrupacion = {
       ...buildOrganizationData({ name: 'Ayuntamiento', type: 'ayuntamiento', municipalityId: 'mun1', requestedBy: 'uid-1', status: 'approved' }),
       id: 'org1',
@@ -215,7 +215,6 @@ describe('VillageTabScreen', () => {
         municipalityId: 'mun1',
         year: 2024,
         title: 'San Roque',
-        status: 'approved',
         createdAt: new Date('2024-01-01'),
       }),
       id: 'poster1',

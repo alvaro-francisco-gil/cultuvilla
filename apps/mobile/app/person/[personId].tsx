@@ -15,6 +15,8 @@ import {
   updatePerson,
 } from '@cultuvilla/shared/services/personService';
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
+import { recordOccupation } from '@cultuvilla/shared/services/occupationService';
+import { isCatalogOccupation } from '@cultuvilla/shared/models/occupation';
 import type { MunicipalityLink, PartialDate, PersonData } from '@cultuvilla/shared/models/person';
 
 type PersonDoc = PersonData & { id: string };
@@ -92,6 +94,12 @@ export default function PersonDetailScreen() {
       // truth and would otherwise be clobbered by a stale form snapshot.
       const cleanedLinks = links.filter((l) => l.municipalityId);
 
+      // Free-text (non-catalog) entries are also tallied for suggestions —
+      // fire-and-forget per entry, doesn't block the person save.
+      await Promise.all(
+        values.occupations.filter((o) => !isCatalogOccupation(o)).map(recordOccupation),
+      );
+
       let pid: string;
       if (isNew) {
         pid = await createPerson({
@@ -104,6 +112,7 @@ export default function PersonDetailScreen() {
           birthPlace: birthPlaceLink,
           municipalityLinks: cleanedLinks,
           biography: values.biography.trim() || null,
+          occupations: values.occupations,
           createdBy: user.uid,
         });
       } else {
@@ -118,6 +127,7 @@ export default function PersonDetailScreen() {
           birthday: toPartialDate(values.birthday),
           birthPlace: birthPlaceLink,
           biography: values.biography.trim() || null,
+          occupations: values.occupations,
           // Own persona: leave municipalityLinks to the membership trigger.
           ...(isOwnPersona ? {} : { municipalityLinks: cleanedLinks }),
         });
@@ -153,6 +163,7 @@ export default function PersonDetailScreen() {
         birthday: partialDateToDate(person.birthday),
         birthPlaceMunicipalityId: person.birthPlace?.municipalityId ?? null,
         biography: person.biography ?? '',
+        occupations: person.occupations ?? [],
         photoURL: person.photoURL,
       }
     : undefined;

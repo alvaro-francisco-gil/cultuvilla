@@ -19,7 +19,7 @@ async function seed() {
     });
     await setDoc(doc(db, `organizations/${ORG}/members/creator`), { userId: 'creator', joinedAt: new Date(), role: 'admin' });
     await setDoc(doc(db, `organizations/${ORG}/members/member1`), { userId: 'member1', joinedAt: new Date(), role: 'member' });
-    await setDoc(doc(db, `municipalities/${MID}/members/vadmin`), { userId: 'vadmin', role: 'admin', joinedAt: new Date(), profileAnswers: {}, profileCompletedAt: null, trustedNewsAuthor: false });
+    await setDoc(doc(db, `municipalities/${MID}/members/vadmin`), { userId: 'vadmin', role: 'admin', joinedAt: new Date(), profileAnswers: {}, profileCompletedAt: null });
   });
 }
 

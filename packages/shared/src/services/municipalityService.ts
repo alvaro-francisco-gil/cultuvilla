@@ -11,7 +11,6 @@ import {
   where,
   startAfter,
   limit as firestoreLimit,
-  serverTimestamp,
   type UpdateData,
   type DocumentData,
   type QueryConstraint,
@@ -237,16 +236,24 @@ export async function deactivateCommunity(municipalityId: string): Promise<void>
 }
 
 // ── Barrios ──────────────────────────────────────────────────────────────
+//
+// Any village member may create a barrio; it lands `active` and is visible to
+// everyone immediately. Village/app admins can hide it afterward via
+// `moderationService`. Enforcement lives in firestore.rules.
 
 export async function getBarrios(municipalityId: string): Promise<(BarrioData & { id: string })[]> {
-  const q = query(municipalityBarriosCollection(getDb(), municipalityId), orderBy('name', 'asc'));
+  const q = query(
+    municipalityBarriosCollection(getDb(), municipalityId),
+    where('status', '==', 'active'),
+    orderBy('name', 'asc'),
+  );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 export async function createBarrio(municipalityId: string, input: BarrioDataInput): Promise<string> {
   const newRef = doc(municipalityBarriosCollection(getDb(), municipalityId));
-  await setDoc(newRef, buildBarrioData({ ...input, municipalityId, status: input.status ?? 'approved' }));
+  await setDoc(newRef, buildBarrioData({ ...input, municipalityId }));
   return newRef.id;
 }
 
@@ -263,39 +270,6 @@ export async function deleteBarrio(municipalityId: string, barrioId: string): Pr
   await deleteDoc(municipalityBarrioDoc(getDb(), municipalityId, barrioId));
 }
 
-// A village member proposes a barrio; it lands as `pending` and is visible to
-// all. Organizers approve/reject. To withdraw an own pending proposal, callers
-// use deleteBarrio (rules permit the proposer to delete while pending).
-export async function proposeBarrio(
-  municipalityId: string,
-  input: BarrioDataInput & { proposedBy: string },
-): Promise<string> {
-  const newRef = doc(municipalityBarriosCollection(getDb(), municipalityId));
-  await setDoc(newRef, buildBarrioData({ ...input, municipalityId, status: 'pending' }));
-  return newRef.id;
-}
-
-export async function approveBarrio(
-  municipalityId: string,
-  barrioId: string,
-  reviewedBy: string,
-): Promise<void> {
-  // updateDoc bypasses the converter, so serverTimestamp() is fine here.
-  await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'barrios', barrioId), {
-    status: 'approved',
-    reviewedBy,
-    reviewedAt: serverTimestamp(),
-  });
-}
-
-export async function rejectBarrio(municipalityId: string, barrioId: string): Promise<void> {
-  await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'barrios', barrioId), {
-    status: 'rejected',
-    reviewedBy: null,
-    reviewedAt: serverTimestamp(),
-  });
-}
-
 /** Fetch a single barrio document, or `null` if it does not exist. */
 export async function getBarrio(
   municipalityId: string,
@@ -306,14 +280,22 @@ export async function getBarrio(
 }
 
 // ── Places (cemeteries, churches, …) ───────────────────────────────────────
+//
+// Any village member may create a place; it lands `active` and is visible to
+// everyone immediately. Village/app admins can hide it afterward via
+// `moderationService`. Enforcement lives in firestore.rules.
 
-// Returns all places for a municipality ordered by name. Pass `kind` to filter
-// in memory — a village has few places, so we avoid a composite index.
+// Returns all active places for a municipality ordered by name. Pass `kind` to
+// filter in memory — a village has few places, so we avoid a composite index.
 export async function getPlaces(
   municipalityId: string,
   kind?: PlaceKind,
 ): Promise<(PlaceData & { id: string })[]> {
-  const q = query(municipalityPlacesCollection(getDb(), municipalityId), orderBy('name', 'asc'));
+  const q = query(
+    municipalityPlacesCollection(getDb(), municipalityId),
+    where('status', '==', 'active'),
+    orderBy('name', 'asc'),
+  );
   const snap = await getDocs(q);
   const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   return kind ? rows.filter((r) => r.kind === kind) : rows;
@@ -321,7 +303,7 @@ export async function getPlaces(
 
 export async function createPlace(municipalityId: string, input: PlaceDataInput): Promise<string> {
   const newRef = doc(municipalityPlacesCollection(getDb(), municipalityId));
-  await setDoc(newRef, buildPlaceData({ ...input, municipalityId, status: input.status ?? 'approved' }));
+  await setDoc(newRef, buildPlaceData({ ...input, municipalityId }));
   return newRef.id;
 }
 
@@ -336,38 +318,6 @@ export async function updatePlace(
 
 export async function deletePlace(municipalityId: string, placeId: string): Promise<void> {
   await deleteDoc(municipalityPlaceDoc(getDb(), municipalityId, placeId));
-}
-
-// A village member proposes a place; it lands as `pending` and is visible to
-// all. Organizers approve/reject. To withdraw an own pending proposal, callers
-// use deletePlace (rules permit the proposer to delete while pending).
-export async function proposePlace(
-  municipalityId: string,
-  input: PlaceDataInput & { proposedBy: string },
-): Promise<string> {
-  const newRef = doc(municipalityPlacesCollection(getDb(), municipalityId));
-  await setDoc(newRef, buildPlaceData({ ...input, municipalityId, status: 'pending' }));
-  return newRef.id;
-}
-
-export async function approvePlace(
-  municipalityId: string,
-  placeId: string,
-  reviewedBy: string,
-): Promise<void> {
-  await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'places', placeId), {
-    status: 'approved',
-    reviewedBy,
-    reviewedAt: serverTimestamp(),
-  });
-}
-
-export async function rejectPlace(municipalityId: string, placeId: string): Promise<void> {
-  await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'places', placeId), {
-    status: 'rejected',
-    reviewedBy: null,
-    reviewedAt: serverTimestamp(),
-  });
 }
 
 /** Fetch a single place document, or `null` if it does not exist. */

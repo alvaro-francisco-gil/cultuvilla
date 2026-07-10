@@ -1,8 +1,6 @@
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { FestivalPostersManager } from '../FestivalPostersManager';
-import {
-  createFestivalPoster, proposeFestivalPoster,
-} from '@cultuvilla/shared/services/festivalPosterService';
+import { createFestivalPoster } from '@cultuvilla/shared/services/festivalPosterService';
 import { uploadFestivalPosterImage } from '@cultuvilla/shared/services/imageService';
 import { pickImageAsBlob } from '../../../../lib/images';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
@@ -10,7 +8,6 @@ import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilitie
 jest.mock('@cultuvilla/shared/services/festivalPosterService', () => ({
   newFestivalPosterId: jest.fn().mockReturnValue('new-id'),
   createFestivalPoster: jest.fn().mockResolvedValue('new-id'),
-  proposeFestivalPoster: jest.fn().mockResolvedValue('new-id'),
 }));
 jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadFestivalPosterImage: jest.fn().mockResolvedValue('https://example.com/poster.jpg'),
@@ -31,7 +28,7 @@ beforeEach(() => {
 });
 
 describe('<FestivalPostersManager>', () => {
-  it('a villager submitting the form proposes a pending poster (year precision)', async () => {
+  it('any member submitting the form creates the poster directly (year precision, optimistic)', async () => {
     const { getByTestId, getByLabelText } = render(<FestivalPostersManager villageId="m1" />);
     fireEvent.press(getByLabelText('village.festivalPosters.form.image'));
     await waitFor(() => expect(mockPick).toHaveBeenCalled());
@@ -39,24 +36,23 @@ describe('<FestivalPostersManager>', () => {
     fireEvent.press(getByTestId('poster-submit'));
 
     await waitFor(() =>
-      expect(proposeFestivalPoster).toHaveBeenCalledWith(
+      expect(createFestivalPoster).toHaveBeenCalledWith(
         expect.objectContaining({
           municipalityId: 'm1',
+          proposedBy: 'alice',
           year: 2026,
           datePrecision: 'year',
           startsAt: null,
           endsAt: null,
-          proposedBy: 'alice',
           imageURL: 'https://example.com/poster.jpg',
         }),
         'new-id',
       ),
     );
-    expect(createFestivalPoster).not.toHaveBeenCalled();
     expect(uploadFestivalPosterImage).toHaveBeenCalledWith('m1', 'new-id', stubImage);
   });
 
-  it('an organizer submitting the form creates the poster directly', async () => {
+  it('an admin creates the poster the same way', async () => {
     mockCaps.mockReturnValue({ canManage: true, canApprove: true, uid: 'boss', loading: false });
     const { getByTestId, getByLabelText } = render(<FestivalPostersManager villageId="m1" />);
     fireEvent.press(getByLabelText('village.festivalPosters.form.image'));
@@ -70,6 +66,5 @@ describe('<FestivalPostersManager>', () => {
         'new-id',
       ),
     );
-    expect(proposeFestivalPoster).not.toHaveBeenCalled();
   });
 });

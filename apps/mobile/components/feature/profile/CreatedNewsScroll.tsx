@@ -62,7 +62,7 @@ function NewsScrollCard({ post, onPress }: { post: CreatedNews; onPress: () => v
   return (
     <EntityCard
       label={post.title}
-      sub={formatDate(post.publishedAt ?? post.submittedAt, 'short')}
+      sub={formatDate(post.publishedAt ?? post.createdAt, 'short')}
       icon="newspaper-outline"
       imageUri={imageUri}
       onPress={onPress}

@@ -8,7 +8,8 @@ import { ProposableForm } from '../../../../../components/feature/proposable/Pro
 import { DeleteHeaderButton } from '../../../../../components/feature/DeleteHeaderButton';
 import { useT } from '../../../../../lib/i18n';
 import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
-import { getBarrio, updateBarrio, deleteBarrio } from '@cultuvilla/shared/services/municipalityService';
+import { getBarrio, updateBarrio } from '@cultuvilla/shared/services/municipalityService';
+import { hideContent } from '@cultuvilla/shared/services/moderationService';
 import { uploadBarrioImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 
@@ -72,7 +73,8 @@ export default function BarrioEditScreen() {
             onAccent
             onConfirm={() => {
               if (villageId && barrioId)
-                void deleteBarrio(villageId, barrioId).then(() => router.replace(`/village/${villageId}`));
+                void hideContent({ collection: 'barrios', docId: barrioId, municipalityId: villageId })
+                  .then(() => router.replace(`/village/${villageId}`));
             }}
             accessibilityLabel={t('common.delete')}
             confirmTitle={t('common.deleteConfirmTitle')}

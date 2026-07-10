@@ -56,7 +56,6 @@ async function seedOrgAndMembers() {
       joinedAt: new Date(),
       profileAnswers: {},
       profileCompletedAt: null,
-      trustedNewsAuthor: false,
     });
     // A plain (non-admin) member of the same municipality.
     await setDoc(doc(db, `municipalities/${MID}/members/${VILLAGE_MEMBER}`), {
@@ -65,7 +64,6 @@ async function seedOrgAndMembers() {
       joinedAt: new Date(),
       profileAnswers: {},
       profileCompletedAt: null,
-      trustedNewsAuthor: false,
     });
   });
 }

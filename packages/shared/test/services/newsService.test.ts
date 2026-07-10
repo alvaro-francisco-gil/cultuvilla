@@ -245,8 +245,8 @@ describe('newsService — Task 9: CRUD', () => {
     expect(id).toBeTruthy();
     const snap = store[`news/${id}`];
     expect(snap).toBeDefined();
-    expect(snap['status']).toBe('pending');
-    expect(snap['publishedAt']).toBeNull();
+    expect(snap['status']).toBe('active');
+    expect(snap['publishedAt']).toBeInstanceOf(Date);
     expect(snap['organizerUserIds']).toEqual(['u1']);
     expect(snap['organizerOrgIds']).toEqual([]);
     expect(snap['reactionCounts']).toEqual({ like: 0, heart: 0 });
@@ -254,7 +254,7 @@ describe('newsService — Task 9: CRUD', () => {
     expect(snap['municipalityId']).toBe('m1');
     expect(snap['createdBy']).toBe('u1');
     expect(snap['images']).toEqual([]);
-    expect(snap['submittedAt']).toBeInstanceOf(Date);
+    expect(snap['createdAt']).toBeInstanceOf(Date);
     expect(snap['updatedAt']).toBeInstanceOf(Date);
     // old fields must be absent
     expect(snap['authorUserId']).toBeUndefined();
@@ -288,7 +288,7 @@ describe('newsService — Task 9: CRUD', () => {
     expect(post).not.toBeNull();
     expect(post!.id).toBe(id);
     expect(post!.title).toBe('T');
-    expect(post!.status).toBe('pending');
+    expect(post!.status).toBe('active');
   });
 
   it('getNewsPost returns null for missing doc', async () => {
@@ -307,14 +307,14 @@ describe('newsService — Task 9: CRUD', () => {
 
   it('getNewsPostsByMunicipality filters by status', async () => {
     const id = await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'A', body: 'B', category: 'fiesta' });
-    // Manually set status to approved
-    store[`news/${id}`]['status'] = 'approved';
+    // Manually hide this one
+    store[`news/${id}`]['status'] = 'hidden';
 
     await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'B', body: 'C', category: 'fiesta' });
 
-    const approved = await getNewsPostsByMunicipality('m1', { status: 'approved' });
-    expect(approved.length).toBe(1);
-    expect(approved[0].id).toBe(id);
+    const hidden = await getNewsPostsByMunicipality('m1', { status: 'hidden' });
+    expect(hidden.length).toBe(1);
+    expect(hidden[0].id).toBe(id);
   });
 
   it('getNewsCountByOrganizer counts posts where user is in organizerUserIds', async () => {
@@ -368,30 +368,30 @@ describe('newsService — Task 9: CRUD', () => {
       updateNewsPost(id, { title: 'X' })
         .then(() => {
           // @ts-expect-error intentionally passing forbidden field
-          return updateNewsPost(id, { status: 'approved' });
+          return updateNewsPost(id, { status: 'active' });
         })
     ).rejects.toThrow(/status/);
   });
 });
 
 describe('getApprovedNewsPostsByOrganizer', () => {
-  it('returns only approved posts where the user is an organizer, newest first', async () => {
+  it('returns only active posts where the user is an organizer, newest first', async () => {
     store = {};
     store['news/n1'] = {
-      organizerUserIds: ['u1'], status: 'approved',
-      submittedAt: new Date('2026-01-02'),
+      organizerUserIds: ['u1'], status: 'active',
+      createdAt: new Date('2026-01-02'),
     };
     store['news/n2'] = {
-      organizerUserIds: ['u1'], status: 'pending',
-      submittedAt: new Date('2026-01-03'),
+      organizerUserIds: ['u1'], status: 'hidden',
+      createdAt: new Date('2026-01-03'),
     };
     store['news/n3'] = {
-      organizerUserIds: ['u1'], status: 'approved',
-      submittedAt: new Date('2026-01-01'),
+      organizerUserIds: ['u1'], status: 'active',
+      createdAt: new Date('2026-01-01'),
     };
     store['news/n4'] = {
-      organizerUserIds: ['other'], status: 'approved',
-      submittedAt: new Date('2026-01-04'),
+      organizerUserIds: ['other'], status: 'active',
+      createdAt: new Date('2026-01-04'),
     };
     const { getApprovedNewsPostsByOrganizer } = await import(
       '../../src/services/newsService'
@@ -518,53 +518,59 @@ describe('newsService — Task 7: Feed queries', () => {
 
   async function seedApprovedPost(municipalityId: string, title: string) {
     const id = await createNewsPost({ municipalityId, createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title, body: 'B', category: 'fiesta' });
-    store[`news/${id}`]['status'] = 'approved';
+    store[`news/${id}`]['status'] = 'active';
     store[`news/${id}`]['publishedAt'] = new Date(2024, 1, 1);
     return id;
   }
 
-  it('getHomeFeed returns only approved posts for the home municipality', async () => {
+  it('getHomeFeed returns only active posts for the home municipality', async () => {
     const id1 = await seedApprovedPost('m1', 'Home 1');
     const id2 = await seedApprovedPost('m1', 'Home 2');
-    // pending post in home
-    await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'Pending', body: 'B', category: 'fiesta' });
-    // approved post in other municipality
+    // hidden post in home
+    const hiddenId = await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'Hidden', body: 'B', category: 'fiesta' });
+    store[`news/${hiddenId}`]['status'] = 'hidden';
+    store[`news/${hiddenId}`]['publishedAt'] = new Date(2024, 1, 1);
+    // active post in other municipality
     await seedApprovedPost('m2', 'Other');
 
     const feed = await getHomeFeed('m1');
     const ids = feed.map((p) => p.id);
     expect(ids).toContain(id1);
     expect(ids).toContain(id2);
+    expect(ids).not.toContain(hiddenId);
     expect(feed.every((p) => p.municipalityId === 'm1')).toBe(true);
-    expect(feed.every((p) => p.status === 'approved')).toBe(true);
+    expect(feed.every((p) => p.status === 'active')).toBe(true);
   });
 
-  it('getAllVillagesFeed returns approved posts across every municipality', async () => {
+  it('getAllVillagesFeed returns active posts across every municipality', async () => {
     const id1 = await seedApprovedPost('m1', 'Home');
     const id2 = await seedApprovedPost('m2', 'Other');
-    // pending post anywhere should be excluded
-    await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'Pending', body: 'B', category: 'fiesta' });
+    // hidden post anywhere should be excluded
+    const hiddenId = await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'Hidden', body: 'B', category: 'fiesta' });
+    store[`news/${hiddenId}`]['status'] = 'hidden';
 
     const feed = await getAllVillagesFeed();
     const ids = feed.map((p) => p.id);
     expect(ids).toContain(id1);
     expect(ids).toContain(id2);
-    expect(feed.every((p) => p.status === 'approved')).toBe(true);
+    expect(ids).not.toContain(hiddenId);
+    expect(feed.every((p) => p.status === 'active')).toBe(true);
   });
 
-  it('getOtherVillagesFeed returns approved posts excluding home municipality', async () => {
+  it('getOtherVillagesFeed returns active posts excluding home municipality', async () => {
     await seedApprovedPost('m1', 'Home post');
     const id2 = await seedApprovedPost('m2', 'Other 1');
     const id3 = await seedApprovedPost('m3', 'Other 2');
-    // pending in m2 should be excluded
-    await createNewsPost({ municipalityId: 'm2', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'Pending m2', body: 'B', category: 'fiesta' });
+    // hidden in m2 should be excluded
+    const hiddenId = await createNewsPost({ municipalityId: 'm2', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'Hidden m2', body: 'B', category: 'fiesta' });
+    store[`news/${hiddenId}`]['status'] = 'hidden';
 
     const feed = await getOtherVillagesFeed('m1');
     const ids = feed.map((p) => p.id);
     expect(ids).toContain(id2);
     expect(ids).toContain(id3);
-    expect(ids.every((id) => id !== 'home-post-id')).toBe(true);
+    expect(ids).not.toContain(hiddenId);
     expect(feed.every((p) => p.municipalityId !== 'm1')).toBe(true);
-    expect(feed.every((p) => p.status === 'approved')).toBe(true);
+    expect(feed.every((p) => p.status === 'active')).toBe(true);
   });
 });

@@ -22,7 +22,6 @@ async function seedMember(uid: string, role: 'admin' | 'user'): Promise<void> {
       joinedAt: new Date(),
       profileAnswers: {},
       profileCompletedAt: null,
-      trustedNewsAuthor: false,
     });
 }
 
@@ -37,9 +36,11 @@ async function seedPost(postId: string): Promise<void> {
     body: 'Body',
     category: 'fiesta',
     images: [],
-    status: 'approved',
-    rejectionReason: null,
-    submittedAt: now,
+    status: 'active',
+    hiddenBy: null,
+    hiddenAt: null,
+    hiddenReason: null,
+    createdAt: now,
     publishedAt: now,
     updatedAt: now,
     reactionCounts: { like: 0, heart: 0 },
