@@ -57,10 +57,11 @@ export const deleteNewsPost = onCall<DeleteNewsPostData, Promise<DeleteNewsPostR
     const post = postSnap.data();
     if (!post) throw new HttpsError('not-found', 'Post no encontrado.');
 
-    // Converter-wrapped: typed NewsPostData.
+    // Converter-wrapped: typed NewsPostData. The author may delete their own
+    // post; village/app admins may delete any post in their village.
     const municipalityId = post.municipalityId;
-    const isAdmin = await isAdminCaller(auth.uid, municipalityId);
-    if (!isAdmin) throw new HttpsError('permission-denied', 'No autorizado.');
+    const authorized = post.createdBy === auth.uid || (await isAdminCaller(auth.uid, municipalityId));
+    if (!authorized) throw new HttpsError('permission-denied', 'No autorizado.');
 
     // Delete newsComments for this post (top-level collection, must be explicit)
     await batchDeleteQuery(newsCommentsCollection(db).where('postId', '==', postId));

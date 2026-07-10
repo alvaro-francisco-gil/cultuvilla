@@ -132,6 +132,15 @@ describe('deleteNewsPost (callable)', () => {
     ).rejects.toThrow(/encontrado|not.?found/i);
   });
 
+  it('author can delete their own post (no admin role required)', async () => {
+    await seedPost('p1'); // createdBy: 'author-1'
+    await seedComment('c1', 'p1');
+    const result = await callDelete({ uid: 'author-1', data: { postId: 'p1' } });
+    expect(result.ok).toBe(true);
+    expect((await admin.firestore().doc('news/p1').get()).exists).toBe(false);
+    expect((await admin.firestore().doc('newsComments/c1').get()).exists).toBe(false);
+  });
+
   it('admin deletes post with cascade: comments, reactions removed; open reports actioned', async () => {
     await seedMember(ADMIN_UID, 'admin');
     await seedPost('p1');
