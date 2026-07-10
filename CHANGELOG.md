@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.4.0 — 2026-07-10
+
 ### Changed
 - **Article authorship is now editable after creation.** The news composer's "Autoría" step used to show a "no se puede cambiar" notice in edit mode; it now shows the same organizer picker as create, so any current organizer can reassign writers/organizations. `organizerUserIds`/`organizerOrgIds` were dropped from the client `updateNewsPost` forbidden-keys guard and the Firestore `news` update rule's immutable-field list — the update rule keeps authority on the *current* organizer set and now also requires `organizerUserIds` to stay non-empty (so a post can't be orphaned). `createdBy` and the lifecycle/counter fields remain immutable. No data migration (existing docs already carry both fields).
 - **Article `@`-references now cover every entity, and no longer people.** The mention picker offers the full entity family — organization, event, place, **barrio**, festival **poster (cartel)**, news — plus the pueblo (village); barrio and poster mentions are new and link to their detail screens. **Persons/members are no longer mentionable** (they had no public profile screen, so a person mention only ever rendered styled-but-dead). `MENTION_ENTITY_TYPES` dropped `user` and added `barrio`/`festivalPoster`; `useMentionSources` no longer does an N-read fan-out over village members.
