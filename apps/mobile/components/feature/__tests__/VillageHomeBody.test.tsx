@@ -197,4 +197,26 @@ describe('VillageHomeBody', () => {
     fireEvent.press(getByText('Peña'));
     expect(router.push).toHaveBeenCalledWith('/village/m1/organizations?type=pena');
   });
+
+  it('shows the censo fill CTA to a villager of this village', () => {
+    const { getByText } = render(<VillageHomeBody data={base} reload={jest.fn()} />);
+    expect(getByText('Rellenar censo')).toBeTruthy();
+  });
+
+  it('hides the censo fill CTA from a non-member (registered but not a villager here)', () => {
+    const { queryByText } = render(
+      <VillageHomeBody data={{ ...base, isMember: false }} reload={jest.fn()} />,
+    );
+    expect(queryByText('Rellenar censo')).toBeNull();
+    expect(queryByText('Editar censo')).toBeNull();
+  });
+
+  it('does not show the censo fill CTA to an admin who is not a member of this village', () => {
+    const { queryByText } = render(
+      <VillageHomeBody data={{ ...base, isMember: false, villageAdmin: true }} reload={jest.fn()} />,
+    );
+    // Admins still configure the censo, but filling requires being a villager.
+    expect(queryByText('Rellenar censo')).toBeNull();
+    expect(queryByText('Configurar censo')).toBeTruthy();
+  });
 });

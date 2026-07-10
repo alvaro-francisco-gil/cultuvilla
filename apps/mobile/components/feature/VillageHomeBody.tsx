@@ -478,45 +478,49 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
           ))}
         </Section>
 
-        {/* ── Censo: everyone fills; admins also configure ─────── */}
-        <HStack gap={3} className="px-4 pt-8">
-          <Pressable
-            onPress={() => router.push(`/village/${village.id}/censo?mode=fill` as never)}
-            accessibilityLabel={censoFillLabel}
-            className="flex-1 flex-row items-center justify-center bg-surface"
-            style={{
-              paddingVertical: 5,
-              paddingHorizontal: 12,
-              borderRadius: 24,
-              borderWidth: 1.5,
-              borderColor: ACCENT,
-              minHeight: 32,
-            }}
-          >
-            <Text style={{ color: ACCENT }} className="font-semibold">
-              {censoFillLabel}
-            </Text>
-          </Pressable>
-          {canManage ? (
-            <Pressable
-              onPress={() => router.push(`/village/${village.id}/censo?mode=configure` as never)}
-              accessibilityLabel={t('village.censo.configure')}
-              className="flex-1 flex-row items-center justify-center bg-surface"
-              style={{
-                paddingVertical: 5,
-                paddingHorizontal: 12,
-                borderRadius: 24,
-                borderWidth: 1.5,
-                borderColor: ACCENT,
-                minHeight: 32,
-              }}
-            >
-              <Text style={{ color: ACCENT }} className="font-semibold">
-                {t('village.censo.configure')}
-              </Text>
-            </Pressable>
-          ) : null}
-        </HStack>
+        {/* ── Censo: only villagers of this village fill; admins also configure ─── */}
+        {isMember || canManage ? (
+          <HStack gap={3} className="px-4 pt-8">
+            {isMember ? (
+              <Pressable
+                onPress={() => router.push(`/village/${village.id}/censo?mode=fill` as never)}
+                accessibilityLabel={censoFillLabel}
+                className="flex-1 flex-row items-center justify-center bg-surface"
+                style={{
+                  paddingVertical: 5,
+                  paddingHorizontal: 12,
+                  borderRadius: 24,
+                  borderWidth: 1.5,
+                  borderColor: ACCENT,
+                  minHeight: 32,
+                }}
+              >
+                <Text style={{ color: ACCENT }} className="font-semibold">
+                  {censoFillLabel}
+                </Text>
+              </Pressable>
+            ) : null}
+            {canManage ? (
+              <Pressable
+                onPress={() => router.push(`/village/${village.id}/censo?mode=configure` as never)}
+                accessibilityLabel={t('village.censo.configure')}
+                className="flex-1 flex-row items-center justify-center bg-surface"
+                style={{
+                  paddingVertical: 5,
+                  paddingHorizontal: 12,
+                  borderRadius: 24,
+                  borderWidth: 1.5,
+                  borderColor: ACCENT,
+                  minHeight: 32,
+                }}
+              >
+                <Text style={{ color: ACCENT }} className="font-semibold">
+                  {t('village.censo.configure')}
+                </Text>
+              </Pressable>
+            ) : null}
+          </HStack>
+        ) : null}
       </ScrollView>
       <JoinVillageModal
         municipality={
