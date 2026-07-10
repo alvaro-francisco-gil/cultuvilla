@@ -173,8 +173,8 @@ export async function updateNewsPost(id: string, patch: UpdateNewsPostInput): Pr
 }
 
 /** Hard-delete a news post via the deleteNewsPost callable, which cascades
- * comments/reactions and closes reports with the admin SDK. Authorization
- * (author, village-admin, or app-admin) is verified server-side. */
+ * comments/reactions with the admin SDK. Authorization (author, village-admin,
+ * or app-admin) is verified server-side. */
 export async function deleteNewsPost(postId: string): Promise<void> {
   const fn = httpsCallable<{ postId: string }, { ok: true }>(
     getFirebaseFunctions(),
