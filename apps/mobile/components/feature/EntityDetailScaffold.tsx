@@ -28,6 +28,8 @@ export type EntityDetailScaffoldProps = {
   actions?: EntityDetailAction[];
   title?: string;
   children?: ReactNode;
+  /** Full-bleed content rendered after the padded body (e.g. extra images). */
+  belowContent?: ReactNode;
   /** Absolutely-positioned bottom affordance (register / join). Styles must
    * live on `style`, not `className`, to render on RN-Web. */
   fab?: ReactNode;
@@ -44,6 +46,7 @@ export function EntityDetailScaffold({
   actions = [],
   title,
   children,
+  belowContent,
   fab,
   scrollContentClassName = 'pb-10',
 }: EntityDetailScaffoldProps) {
@@ -72,6 +75,7 @@ export function EntityDetailScaffold({
               {title ? <Text variant="h1">{title}</Text> : null}
               {children}
             </VStack>
+            {belowContent}
           </ScrollView>
           {fab}
         </>
