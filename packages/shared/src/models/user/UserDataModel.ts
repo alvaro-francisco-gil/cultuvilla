@@ -8,6 +8,13 @@ import { z } from 'zod';
 export const CURRENT_TERMS_VERSION = '1.0';
 
 /**
+ * Minimum age to register one's OWN account, per the Terms of Use (Spanish
+ * LOPDGDD art. 7). Family "personas" have no age floor — an adult registers
+ * them — so this gates only the self-profile at onboarding, not PersonForm at large.
+ */
+export const MIN_SELF_REGISTRATION_AGE = 14;
+
+/**
  * The account doc. The linked `persons/{personId}` is the **profile of record**
  * (name, birthday, biography, photo, places, occupations); the user doc holds
  * only account state plus a denormalized `displayName` projection so name
