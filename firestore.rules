@@ -463,6 +463,8 @@ service cloud.firestore {
                            'municipalityId','submittedAt','createdBy',
                            'reactionCounts','commentCount'
                          ]);
+      // Clients never delete a post directly — the deleteNewsPost callable
+      // cascades comments/reactions/reports with the admin SDK (author or admin).
       allow delete: if false;
     }
 

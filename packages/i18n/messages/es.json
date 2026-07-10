@@ -5,6 +5,8 @@
     "save": "Guardar",
     "cancel": "Cancelar",
     "delete": "Eliminar",
+    "deleteConfirmTitle": "Eliminar",
+    "deleteConfirmMessage": "¿Seguro que quieres eliminarlo? Esta acción no se puede deshacer.",
     "edit": "Editar",
     "approve": "Aprobar",
     "reject": "Rechazar",
@@ -390,6 +392,7 @@
     },
     "festivalPosters": {
       "title": "Carteles de fiestas",
+      "editTitle": "Editar cartel",
       "empty": "Todavía no hay carteles de fiestas.",
       "add": "Añadir",
       "propose": "Proponer",

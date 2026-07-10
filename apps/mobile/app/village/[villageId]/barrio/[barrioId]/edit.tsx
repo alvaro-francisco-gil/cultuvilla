@@ -5,9 +5,10 @@ import { Screen } from '../../../../../components/primitives/Screen';
 import { Text } from '../../../../../components/primitives/Text';
 import { ScreenHeader } from '../../../../../components/layout/ScreenHeader';
 import { ProposableForm } from '../../../../../components/feature/proposable/ProposableForm';
+import { DeleteHeaderButton } from '../../../../../components/feature/DeleteHeaderButton';
 import { useT } from '../../../../../lib/i18n';
 import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
-import { getBarrio, updateBarrio } from '@cultuvilla/shared/services/municipalityService';
+import { getBarrio, updateBarrio, deleteBarrio } from '@cultuvilla/shared/services/municipalityService';
 import { uploadBarrioImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 
@@ -63,7 +64,24 @@ export default function BarrioEditScreen() {
 
   return (
     <Screen padded={false} topInset={false}>
-      <ScreenHeader accent title={t('village.admin.barrios.editTitle')} />
+      <ScreenHeader
+        accent
+        title={t('village.admin.barrios.editTitle')}
+        rightSlot={
+          <DeleteHeaderButton
+            onAccent
+            onConfirm={() => {
+              if (villageId && barrioId)
+                void deleteBarrio(villageId, barrioId).then(() => router.replace(`/village/${villageId}`));
+            }}
+            accessibilityLabel={t('common.delete')}
+            confirmTitle={t('common.deleteConfirmTitle')}
+            confirmMessage={t('common.deleteConfirmMessage')}
+            confirmLabel={t('common.delete')}
+            cancelLabel={t('common.cancel')}
+          />
+        }
+      />
       {!loaded ? (
         <View className="flex-1 items-center justify-center"><ActivityIndicator /></View>
       ) : notFound ? (

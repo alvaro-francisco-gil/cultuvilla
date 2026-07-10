@@ -12,7 +12,6 @@ import {
 } from '@cultuvilla/shared/services/festivalPosterService';
 import { uploadFestivalPosterImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
-import type { DatePrecision } from '@cultuvilla/shared/models/festivalPoster';
 import { formatFestivalPosterDates } from '@cultuvilla/shared/utils';
 import { VStack, HStack, Text, Button, Input, FieldLabel, DateField, ImagePickerField } from '../../primitives';
 import { pickImageAsBlob } from '../../../lib/images';
@@ -20,25 +19,8 @@ import { useT } from '../../../lib/i18n';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { isProposalVisible } from '../../../lib/proposals';
 import { ProposableListItem } from './ProposableListItem';
+import { sanitizeYear, datesToPayload } from './festivalPosterForm';
 import type { ManagerMode } from './types';
-
-/** Keep the year field digits-only (max 4) regardless of keyboard/platform. */
-function sanitizeYear(text: string): string {
-  return text.replace(/[^0-9]/g, '').slice(0, 4);
-}
-
-/**
- * Fold the two optional date pickers into the model's precision + range:
- * no start date → 'year' (dates dropped); a start date → 'day' (with an
- * optional end date). An end date without a start is ignored.
- */
-function datesToPayload(
-  startsAt: Date | null,
-  endsAt: Date | null,
-): { datePrecision: DatePrecision; startsAt: Date | null; endsAt: Date | null } {
-  if (!startsAt) return { datePrecision: 'year', startsAt: null, endsAt: null };
-  return { datePrecision: 'day', startsAt, endsAt: endsAt ?? null };
-}
 
 /**
  * Carteles de fiestas surface, split by `mode`:

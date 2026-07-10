@@ -207,7 +207,8 @@ describe('firestore.rules — /news/{postId}', () => {
     );
   });
 
-  // 8. client tries to delete a news post directly → DENY
+  // 8. client cannot delete a news post directly (author + admin deletes go
+  //    through the deleteNewsPost callable, which cascades comments/reactions).
   it('8: client cannot delete a news post directly', async () => {
     await seedMember('m1', 'alice');
     await seedPost('p1', 'm1', 'alice');
