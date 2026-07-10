@@ -21,7 +21,7 @@ import { recordOccupation } from '@cultuvilla/shared/services/occupationService'
 import { isCatalogOccupation } from '@cultuvilla/shared/models/occupation';
 import { buildResidenceLinks } from '@cultuvilla/shared/models/person';
 import type { MunicipalityLink, PartialDate } from '@cultuvilla/shared/models/person';
-import { CURRENT_TERMS_VERSION } from '@cultuvilla/shared/models/user';
+import { CURRENT_TERMS_VERSION, MIN_SELF_REGISTRATION_AGE } from '@cultuvilla/shared/models/user';
 
 function toPartialDate(d: Date | null): PartialDate | null {
   if (!d) return null;
@@ -151,6 +151,7 @@ export default function CompleteProfileScreen() {
             />
           </>
         )}
+        minAgeYears={MIN_SELF_REGISTRATION_AGE}
         consentSatisfied={acceptedTerms}
         renderConsent={() => (
           <Checkbox
