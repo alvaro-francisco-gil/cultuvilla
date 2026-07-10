@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from '../primitives/Pressable';
 import { Text } from '../primitives/Text';
 import { TopCropImage } from '../primitives/TopCropImage';
+import { iconSizes } from '@cultuvilla/shared/design-system';
 
 /**
  * Image-forward feed card shared by EventCard and NewsCard. The image fills
@@ -28,6 +29,8 @@ export type FeedCardProps = {
   fallbackIcon: keyof typeof Ionicons.glyphMap;
   /** Optional pill shown over the top-left of the image (e.g. "En curso"). */
   badge?: string | null;
+  /** Comment count shown alongside `metaRight` in the bottom scrim, when > 0. */
+  commentCount?: number;
   onPress: () => void;
   testID?: string;
 };
@@ -40,6 +43,7 @@ export function FeedCard({
   metaRight,
   fallbackIcon,
   badge = null,
+  commentCount,
   onPress,
   testID,
 }: FeedCardProps) {
@@ -93,6 +97,18 @@ export function FeedCard({
               >
                 {metaRight}
               </Text>
+              {commentCount && commentCount > 0 ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8, flexShrink: 0 }}>
+                  <Ionicons name="chatbubble-outline" size={iconSizes.sm} color="rgba(255,255,255,0.85)" />
+                  <Text
+                    variant="body"
+                    numberOfLines={1}
+                    style={{ color: 'rgba(255,255,255,0.85)', marginLeft: 4 }}
+                  >
+                    {commentCount}
+                  </Text>
+                </View>
+              ) : null}
             </View>
           </View>
 

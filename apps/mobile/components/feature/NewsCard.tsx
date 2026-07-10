@@ -17,6 +17,7 @@ export type NewsLike = {
   createdAt: Date;
   images: NewsPostImage[];
   coverImage?: NewsPostImage | null;
+  commentCount?: number;
 };
 
 export type NewsCardProps = {
@@ -60,6 +61,7 @@ export function NewsCard({ post, fallbackImageUri = null, onPress, testID }: New
       metaLeft={t(`news.compose.category.${post.category}`)}
       metaRight={relativeDayLabel(date, t)}
       fallbackIcon="newspaper-outline"
+      commentCount={post.commentCount}
       onPress={() => onPress(post.id)}
       testID={testID}
     />

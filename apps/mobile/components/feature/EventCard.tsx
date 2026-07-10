@@ -18,6 +18,7 @@ export type EventLike = {
   imageURL?: string | null;
   /** Village cover photo, used as the fallback when the event has no image. */
   villageCoverImage?: string | null;
+  commentCount?: number;
 };
 
 export type EventCardProps = {
@@ -38,6 +39,7 @@ export function EventCard({ event, onPress, badge, testID }: EventCardProps) {
       metaRight={relativeDayLabel(event.startDate, t)}
       fallbackIcon="calendar-outline"
       badge={badge}
+      commentCount={event.commentCount}
       onPress={() => onPress(event.id)}
       testID={testID}
     />

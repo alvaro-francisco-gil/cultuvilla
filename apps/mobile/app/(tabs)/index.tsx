@@ -476,6 +476,7 @@ export default function FeedScreen() {
               locationName: item.location?.displayName ?? null,
               imageURL: item.imageURL,
               villageCoverImage: item.villageCoverImage ?? null,
+              commentCount: item.commentCount,
             }}
             onPress={(id) => router.push(`/event/${id}`)}
           />

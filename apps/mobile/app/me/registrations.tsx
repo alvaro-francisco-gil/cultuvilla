@@ -72,6 +72,7 @@ export default function MyRegistrationsScreen() {
                 locationName: item.location?.displayName ?? null,
                 imageURL: item.imageURL,
                 villageCoverImage: item.villageCoverImage,
+                commentCount: item.commentCount,
               }}
               onPress={(id) => router.push(`/event/${id}`)}
             />
