@@ -67,8 +67,12 @@ export function configureObservability(next: ObservabilityAdapter): void {
 }
 
 let opCounter = 0;
+// `globalThis.crypto` is typed as always-present by the DOM lib, but is genuinely
+// absent on some React Native / Hermes runtimes without a polyfill. Treat it as
+// optional so this top-level const never throws at import time on native.
+const cryptoGlobal = (globalThis as { crypto?: Crypto }).crypto;
 const defaultOpPrefix =
-  typeof globalThis.crypto?.randomUUID === 'function' ? globalThis.crypto.randomUUID().slice(0, 8) : 'op';
+  typeof cryptoGlobal?.randomUUID === 'function' ? cryptoGlobal.randomUUID().slice(0, 8) : 'op';
 const defaultIdFactory = (): string => `op-${defaultOpPrefix}-${String(opCounter++)}`;
 
 export const observability = {
