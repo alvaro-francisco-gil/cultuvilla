@@ -3,6 +3,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Screen, Text } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { DeleteHeaderButton } from '../../components/feature/DeleteHeaderButton';
 import { PersonForm } from '../../components/feature/PersonForm';
 import type { PersonFormPhoto, PersonFormValues } from '../../components/feature/PersonForm';
 import { MembershipBarrioList } from '../../components/feature/MembershipBarrioList';
@@ -13,6 +14,7 @@ import {
   createPerson,
   getPerson,
   updatePerson,
+  deletePerson,
 } from '@cultuvilla/shared/services/personService';
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
 import { recordOccupation } from '@cultuvilla/shared/services/occupationService';
@@ -48,6 +50,17 @@ export default function PersonDetailScreen() {
   // owns their municipalityLinks. Everyone else (new + non-account persons) gets
   // the direct multi-village links editor.
   const isOwnPersona = !isNew && person?.userId != null && person.userId === user?.uid;
+
+  // A dependent persona the caller created (not an account-linked person) can be
+  // hard-deleted here — exactly what the persons delete rule allows
+  // (createdBy == uid && userId == null). Own account-persona deletion belongs to
+  // account deletion, not this screen.
+  const canDelete = !isNew && person != null && person.createdBy === user?.uid && person.userId == null;
+
+  const removePersona = () => {
+    if (!person) return;
+    void deletePerson(person.id).then(() => router.back());
+  };
 
   // Residence links for the non-account (links-mode) editor. Seeded from the
   // person's existing links, or the caller's active village for a new person.
@@ -171,7 +184,23 @@ export default function PersonDetailScreen() {
   return (
     // bottomInset={false}: the PersonForm Stepper's bottom nav bar applies the inset.
     <Screen padded={false} bottomInset={false} topInset={false}>
-      <ScreenHeader accent title={t('profile.personDetailTitle')} />
+      <ScreenHeader
+        accent
+        title={t('profile.personDetailTitle')}
+        rightSlot={
+          canDelete ? (
+            <DeleteHeaderButton
+              onAccent
+              onConfirm={removePersona}
+              accessibilityLabel={t('common.delete')}
+              confirmTitle={t('common.deleteConfirmTitle')}
+              confirmMessage={t('common.deleteConfirmMessage')}
+              confirmLabel={t('common.delete')}
+              cancelLabel={t('common.cancel')}
+            />
+          ) : undefined
+        }
+      />
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />

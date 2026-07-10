@@ -63,7 +63,10 @@
  */
 
 import admin from 'firebase-admin';
-import { isCatalogOccupation } from '@cultuvilla/shared';
+// Import from the './models' subpath, not the '@cultuvilla/shared' root barrel:
+// the root re-exports design-system/services that transitively pull an Expo .ts
+// file Node ESM can't load in a plain script. './models' is pure model code.
+import { isCatalogOccupation } from '@cultuvilla/shared/models';
 
 const PROJECT_ID = 'villa-events';
 

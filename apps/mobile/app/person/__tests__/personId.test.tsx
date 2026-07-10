@@ -28,6 +28,7 @@ jest.mock('@cultuvilla/shared/services/personService', () => ({
   createPerson: jest.fn().mockResolvedValue('p-new'),
   getPerson: jest.fn(),
   updatePerson: jest.fn().mockResolvedValue(undefined),
+  deletePerson: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadUserPhoto: jest.fn().mockResolvedValue('https://photo.test/new.jpg'),

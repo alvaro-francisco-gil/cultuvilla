@@ -80,11 +80,26 @@ export function AddContentSheet({ visible, onClose, villageId, canManage }: AddC
           <RNPressable onPress={onClose} className="items-center pt-3 pb-1 active:opacity-60">
             <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#cbd5e1' }} />
           </RNPressable>
-          {/* Olive (tone primary) to match the village name; 1px larger than the
-              option rows (body = 16), same semibold weight. */}
-          <Text tone="primary" className="px-5 pt-2 pb-1 font-semibold" style={{ fontSize: 17 }}>
-            {t('village.addContent.title')}
-          </Text>
+          {/* Explicit X close button: on web mobile there's no Escape key, no
+              hardware back, and no swipe-to-dismiss (RN-Web translateY springs
+              don't move), so the backdrop tap + hair-thin grab handle were the
+              only ways out — neither discoverable. This is the primary close
+              affordance. Olive title (tone primary) matches the village name;
+              1px larger than option rows (body = 16), same semibold weight. */}
+          <HStack gap={3} className="items-center px-5 pt-2 pb-1">
+            <Text tone="primary" className="flex-1 font-semibold" style={{ fontSize: 17 }}>
+              {t('village.addContent.title')}
+            </Text>
+            <RNPressable
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.close')}
+              hitSlop={12}
+              className="active:opacity-60"
+            >
+              <Ionicons name="close" size={24} color="#94a3b8" />
+            </RNPressable>
+          </HStack>
           <ScrollView style={{ maxHeight: 420 }}>
             {optionsFor(villageId, canManage).map((opt) => (
               <RNPressable

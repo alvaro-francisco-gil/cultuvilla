@@ -295,11 +295,16 @@ export default function NewEventScreen() {
 
   const headerTitle = editMode ? t('event.editEvent') : t('event.createEvent');
 
-  // Framed as delete but soft in practice: cancelling preserves the event doc
-  // and its registrations. Reaching edit mode already implies organizer rights.
+  // Framed as delete but soft in practice: cancelling sets status → 'cancelled',
+  // which the feeds already filter out (they query status == 'published'). Nav
+  // must leave the event — returning to its detail would re-show the (still
+  // existing) cancelled doc and read as "delete didn't work". Reaching edit mode
+  // already implies organizer rights.
   const deleteEvent = () => {
     if (!eventId) return;
-    void updateEventStatus(eventId, 'cancelled').then(() => router.replace(`/event/${eventId}`));
+    void updateEventStatus(eventId, 'cancelled').then(() =>
+      router.replace(municipalityId ? `/village/${municipalityId}` : '/(tabs)'),
+    );
   };
 
   if (loading) {

@@ -56,7 +56,6 @@ import {
   newsReactionsCollection,
   newsReportsCollection,
   occupationsCollection,
-  occupationProposalsCollection,
   organizationJoinRequestsCollection,
   adminsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
@@ -127,7 +126,6 @@ const REGISTRY = [
   { name: 'newsReactions', coll: (db) => newsReactionsCollection(db) },
   { name: 'newsReports', coll: (db) => newsReportsCollection(db) },
   { name: 'occupations', coll: (db) => occupationsCollection(db) },
-  { name: 'occupationProposals', coll: (db) => occupationProposalsCollection(db) },
   { name: 'admins', coll: (db) => adminsCollection(db) },
 ];
 
