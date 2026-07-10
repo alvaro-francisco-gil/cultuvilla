@@ -16,6 +16,7 @@ import { AddContentSheet } from './AddContentSheet';
 import { JoinVillageModal } from './JoinVillageModal';
 import { StatsRow } from './StatsRow';
 import { useAuth } from '../../lib/auth/useAuth';
+import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { useT } from '../../lib/i18n';
@@ -48,6 +49,7 @@ export interface VillageHomeBodyProps {
  */
 export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
   const { user, refreshProfile } = useAuth();
+  const gate = useRegisterGate();
   const { isAppAdmin } = useIsAppAdmin();
   const share = useShareDeepLink();
   const { t } = useT();
@@ -159,7 +161,9 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
 
   const onJoin = () => {
     if (!user) {
-      router.push('/(auth)/login' as never);
+      // Carry this village across auth: after the guest registers, onboarding
+      // pre-selects it and joins them; an already-onboarded user resumes to it.
+      gate.requireAuth(villageBase, t('guest.village'), village.id);
       return;
     }
     // Open the shared modal (escudo + name + barrio picker). Replaces the old

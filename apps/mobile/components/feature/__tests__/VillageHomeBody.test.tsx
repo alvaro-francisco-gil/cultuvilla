@@ -4,15 +4,19 @@ import { VillageHomeBody } from '../VillageHomeBody';
 import type { VillageHomeState } from '../../../lib/useVillageHome';
 
 const mockRefreshProfile = jest.fn(async () => undefined);
-jest.mock('../../../lib/auth/useAuth', () => {
-  const value = {
-    user: { uid: 'u1' },
+let mockUser: { uid: string } | null = { uid: 'u1' };
+jest.mock('../../../lib/auth/useAuth', () => ({
+  useAuth: () => ({
+    user: mockUser,
     profile: null,
     profileChecked: true,
     refreshProfile: () => mockRefreshProfile(),
-  };
-  return { useAuth: () => value };
-});
+  }),
+}));
+const mockRequireAuth = jest.fn(() => false);
+jest.mock('../../../lib/auth/RegisterGateContext', () => ({
+  useRegisterGate: () => ({ requireAuth: mockRequireAuth, pendingIntent: null, clearPending: jest.fn() }),
+}));
 let mockIsAppAdmin = false;
 jest.mock('../../../lib/auth/useIsAppAdmin', () => ({
   useIsAppAdmin: () => ({ isAppAdmin: mockIsAppAdmin }),
@@ -86,6 +90,8 @@ const base: VillageHomeState = {
 beforeEach(() => {
   mockJoinVillage.mockClear();
   mockRefreshProfile.mockClear();
+  mockRequireAuth.mockClear();
+  mockUser = { uid: 'u1' };
   mockIsAppAdmin = false;
 });
 
@@ -113,6 +119,18 @@ describe('VillageHomeBody', () => {
     // Refresh the in-memory auth profile so the Pueblo tab picks up the new
     // activeMunicipalityId immediately, not only after an app restart.
     await waitFor(() => expect(mockRefreshProfile).toHaveBeenCalled());
+  });
+
+  it('logged-out "sign in to join" carries the village across auth', () => {
+    // A guest sees "Inicia sesión para unirte"; tapping it must hand the village
+    // id to the auth gate so onboarding can pre-select and join it afterwards —
+    // the fix for a picked village never landing in the profile.
+    mockUser = null;
+    const { getByText } = render(
+      <VillageHomeBody data={{ ...base, isMember: false }} reload={jest.fn()} />,
+    );
+    fireEvent.press(getByText('Inicia sesión para unirte'));
+    expect(mockRequireAuth).toHaveBeenCalledWith('/village/m1', expect.any(String), 'm1');
   });
 
   it('renders the start-village notice when the community is dormant', () => {

@@ -2,10 +2,16 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { router } from 'expo-router';
 import { useAuth } from './useAuth';
 import { readPendingIntent, setPendingIntent, clearPendingIntent } from './pendingIntent';
+import { setPendingVillage, clearPendingVillage } from './pendingVillage';
 import { RegisterSheet } from '../../components/feature/RegisterSheet';
 
 interface RegisterGateValue {
-  requireAuth: (intentHref: string, reason?: string) => boolean;
+  /**
+   * Gate a guest action behind auth. Returns true when already signed in.
+   * `municipalityId` (optional) is the village to pre-select — and join — once
+   * the guest registers; used by the "sign in to join" village CTA.
+   */
+  requireAuth: (intentHref: string, reason?: string, municipalityId?: string) => boolean;
   pendingIntent: string | null;
   clearPending: () => void;
 }
@@ -17,6 +23,7 @@ export function RegisterGateProvider({ children }: { children: ReactNode }) {
   const [visible, setVisible] = useState(false);
   const [reason, setReason] = useState<string | undefined>(undefined);
   const [intent, setIntent] = useState<string | null>(null);
+  const [intentVillage, setIntentVillage] = useState<string | null>(null);
   const [pendingIntent, setPending] = useState<string | null>(null);
 
   useEffect(() => {
@@ -24,9 +31,10 @@ export function RegisterGateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const requireAuth = useCallback(
-    (intentHref: string, r?: string) => {
+    (intentHref: string, r?: string, municipalityId?: string) => {
       if (user) return true;
       setIntent(intentHref);
+      setIntentVillage(municipalityId ?? null);
       setReason(r);
       setVisible(true);
       return false;
@@ -40,13 +48,15 @@ export function RegisterGateProvider({ children }: { children: ReactNode }) {
       void setPendingIntent(intent);
       setPending(intent);
     }
+    if (intentVillage) void setPendingVillage(intentVillage);
     setVisible(false);
     router.push('/(auth)/login');
-  }, [intent]);
+  }, [intent, intentVillage]);
 
   const clearPending = useCallback(() => {
     setPending(null);
     void clearPendingIntent();
+    void clearPendingVillage();
   }, []);
 
   const value = useMemo<RegisterGateValue>(
