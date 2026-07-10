@@ -10,8 +10,6 @@
     "edit": "Editar",
     "approve": "Aprobar",
     "reject": "Rechazar",
-    "hide": "Ocultar",
-    "unhide": "Restaurar",
     "create": "Crear",
     "confirm": "Confirmar",
     "yes": "Sí",
@@ -843,13 +841,6 @@
         "news": "Artículo",
         "festivalPoster": "Cartel"
       }
-    },
-    "moderation": {
-      "hide": "Ocultar artículo",
-      "unhide": "Restaurar artículo",
-      "hideConfirmTitle": "¿Ocultar este artículo?",
-      "hideConfirmBody": "Dejará de aparecer en los artículos del pueblo. Podrás restaurarlo cuando quieras.",
-      "hiddenBadge": "Oculto"
     },
     "reactions": {
       "like": "Me gusta",

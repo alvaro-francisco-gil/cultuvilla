@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  createPlace, proposePlace, updatePlace,
+  createPlace, updatePlace,
 } from '@cultuvilla/shared/services/municipalityService';
 import { uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
@@ -11,9 +11,10 @@ import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { ProposableForm } from './ProposableForm';
 
 /**
- * "Añadir lugar" form. A villager proposes (pending); an organizer creates
- * directly. Calls `onCreated` after submit. Editing/deleting a place lives on
- * the place's own edit screen, not here.
+ * "Añadir lugar" form. Any member creates directly and the place is visible
+ * immediately (optimistic); admins hide bad content afterwards from the place's
+ * edit screen. Calls `onCreated` after submit. Editing/deleting lives on the
+ * place's own edit screen, not here.
  */
 export function PlacesManager({
   villageId,
@@ -23,7 +24,7 @@ export function PlacesManager({
   onCreated?: () => void;
 }) {
   const { t } = useT();
-  const { canManage, uid } = useEntityCapabilities(villageId);
+  const { uid } = useEntityCapabilities(villageId);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [kind, setKind] = useState<PlaceKind>('cemetery');
@@ -36,10 +37,11 @@ export function PlacesManager({
     if (!villageId || !name.trim() || !uid) return;
     setSaving(true);
     try {
-      const input = { name: name.trim(), kind, description: description.trim(), municipalityId: villageId };
-      const id = canManage
-        ? await createPlace(villageId, input)
-        : await proposePlace(villageId, { ...input, proposedBy: uid });
+      const input = {
+        name: name.trim(), kind, description: description.trim(),
+        municipalityId: villageId, proposedBy: uid,
+      };
+      const id = await createPlace(villageId, input);
       if (image) {
         const imageURL = await uploadPlaceImage(villageId, id, image);
         await updatePlace(villageId, id, { imageURL });
@@ -74,7 +76,7 @@ export function PlacesManager({
         typeOptions={PLACE_KINDS.map((k) => ({ value: k, label: kindLabel(k) }))}
         typeValue={kind}
         onChangeType={(v) => setKind(v as PlaceKind)}
-        submitLabel={canManage ? t('village.admin.places.add') : t('village.proposals.propose')}
+        submitLabel={t('village.admin.places.add')}
         submitTestID="place-submit"
         onSubmit={submit}
         saving={saving}

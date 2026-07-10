@@ -382,7 +382,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
           // stays visible even when the village has no carteles yet.
           isEmpty={false}
           emptyLabel={t('village.festivalPosters.empty')}
-          addLabel={canManage ? t('village.festivalPosters.add') : t('village.festivalPosters.propose')}
+          addLabel={t('village.festivalPosters.add')}
           onAdd={() => router.push(`${villageBase}/festival-posters` as never)}
         >
           {festivalPosters.map((p) => (
@@ -402,7 +402,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
           title={t('village.admin.hub.barrios')}
           isEmpty={barrios.length === 0}
           emptyLabel={t('village.admin.barrios.empty')}
-          addLabel={canManage ? t('village.admin.barrios.add') : t('village.proposals.propose')}
+          addLabel={t('village.admin.barrios.add')}
           onAdd={() => router.push(`${villageBase}/barrios` as never)}
         >
           {barrios.map((b) => (
@@ -424,7 +424,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
           title={t('village.admin.hub.places')}
           isEmpty={places.length === 0}
           emptyLabel={t('village.admin.places.empty')}
-          addLabel={canManage ? t('village.admin.places.add') : t('village.proposals.propose')}
+          addLabel={t('village.admin.places.add')}
           onAdd={() => router.push(`${villageBase}/places` as never)}
         >
           {places.map((p) => (

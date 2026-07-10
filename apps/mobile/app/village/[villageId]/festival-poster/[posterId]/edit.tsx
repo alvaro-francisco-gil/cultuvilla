@@ -18,8 +18,8 @@ import { pickImageAsBlob } from '../../../../../lib/images';
 import {
   getFestivalPoster,
   updateFestivalPoster,
-  deleteFestivalPoster,
 } from '@cultuvilla/shared/services/festivalPosterService';
+import { hideContent } from '@cultuvilla/shared/services/moderationService';
 import { uploadFestivalPosterImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 
@@ -96,7 +96,8 @@ export default function FestivalPosterEditScreen() {
             onAccent
             onConfirm={() => {
               if (posterId)
-                void deleteFestivalPoster(posterId).then(() => router.replace(`/village/${villageId}`));
+                void hideContent({ collection: 'festivalPosters', docId: posterId })
+                  .then(() => router.replace(`/village/${villageId}`));
             }}
             accessibilityLabel={t('common.delete')}
             confirmTitle={t('common.deleteConfirmTitle')}

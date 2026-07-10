@@ -8,7 +8,8 @@ import { ProposableForm } from '../../../../../components/feature/proposable/Pro
 import { DeleteHeaderButton } from '../../../../../components/feature/DeleteHeaderButton';
 import { useT } from '../../../../../lib/i18n';
 import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
-import { getPlace, updatePlace, deletePlace } from '@cultuvilla/shared/services/municipalityService';
+import { getPlace, updatePlace } from '@cultuvilla/shared/services/municipalityService';
+import { hideContent } from '@cultuvilla/shared/services/moderationService';
 import { uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 import { PLACE_KINDS, type PlaceKind } from '@cultuvilla/shared/models/municipality';
@@ -81,7 +82,8 @@ export default function PlaceEditScreen() {
             onAccent
             onConfirm={() => {
               if (villageId && placeId)
-                void deletePlace(villageId, placeId).then(() => router.replace(`/village/${villageId}`));
+                void hideContent({ collection: 'places', docId: placeId, municipalityId: villageId })
+                  .then(() => router.replace(`/village/${villageId}`));
             }}
             accessibilityLabel={t('common.delete')}
             confirmTitle={t('common.deleteConfirmTitle')}

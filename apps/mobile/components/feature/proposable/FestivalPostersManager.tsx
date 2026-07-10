@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   newFestivalPosterId,
-  proposeFestivalPoster,
   createFestivalPoster,
 } from '@cultuvilla/shared/services/festivalPosterService';
 import { uploadFestivalPosterImage } from '@cultuvilla/shared/services/imageService';
@@ -14,8 +13,9 @@ import { sanitizeYear, datesToPayload } from './festivalPosterForm';
 
 /**
  * "Añadir cartel" form — year, optional title, optional start/end dates and the
- * poster image. A villager proposes (pending); an organizer creates directly.
- * Editing/deleting a poster lives on the poster's own edit screen, not here.
+ * poster image. Any member creates directly and the poster is visible
+ * immediately (optimistic); admins hide bad content afterwards from the poster's
+ * edit screen. Editing/deleting lives on the poster's own edit screen, not here.
  */
 export function FestivalPostersManager({
   villageId,
@@ -25,7 +25,7 @@ export function FestivalPostersManager({
   onCreated?: () => void;
 }) {
   const { t } = useT();
-  const { canManage, uid } = useEntityCapabilities(villageId);
+  const { uid } = useEntityCapabilities(villageId);
 
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const [title, setTitle] = useState('');
@@ -43,14 +43,14 @@ export function FestivalPostersManager({
       const imageURL = await uploadFestivalPosterImage(villageId, id, image);
       const payload = {
         municipalityId: villageId,
+        proposedBy: uid,
         year: y,
         title: title.trim() || null,
         imageURL,
         ...datesToPayload(startsAt, endsAt),
         createdAt: new Date(),
       };
-      if (canManage) await createFestivalPoster(payload, id);
-      else await proposeFestivalPoster({ ...payload, proposedBy: uid }, id);
+      await createFestivalPoster(payload, id);
       setYear(String(new Date().getFullYear()));
       setTitle('');
       setStartsAt(null);
@@ -112,7 +112,7 @@ export function FestivalPostersManager({
         loading={saving}
         disabled={!Number.isInteger(y) || !image}
       >
-        {canManage ? t('village.festivalPosters.add') : t('village.festivalPosters.propose')}
+        {t('village.festivalPosters.add')}
       </Button>
     </VStack>
   );
