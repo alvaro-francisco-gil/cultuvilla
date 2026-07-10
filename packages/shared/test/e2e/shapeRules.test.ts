@@ -196,6 +196,8 @@ describe('shape enforcement — /organizations/{orgId}', () => {
     reviewedBy: null,
     createdAt: new Date(),
     reviewedAt: null,
+    commentCount: 0,
+    reactionCounts: { like: 0, heart: 0 },
   };
 
   it('accepts a valid full-shape payload', async () => {
@@ -263,6 +265,8 @@ describe('shape enforcement — /events/{eventId}', () => {
     // The converter persists {lat,lng} as a GeoPoint (rules type `latlng`), so
     // the stored villageCoordinates is a GeoPoint, not a map.
     villageCoordinates: new GeoPoint(40, -3),
+    commentCount: 0,
+    reactionCounts: { like: 0, heart: 0 },
     endBoundary: eventStart,
   };
 

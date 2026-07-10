@@ -12,6 +12,7 @@ function placeDoc(proposedBy: string | null, extra: Record<string, unknown> = {}
     name: 'Fuente', kind: 'plaza', description: null, municipalityId: M,
     imageURL: null, createdAt: new Date(), status: 'active', proposedBy,
     hiddenBy: null, hiddenAt: null, hiddenReason: null,
+    commentCount: 0, reactionCounts: { like: 0, heart: 0 },
     ...extra,
   };
 }

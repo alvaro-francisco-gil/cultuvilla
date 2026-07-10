@@ -12,6 +12,7 @@ function posterDoc(proposedBy: string | null, extra: Record<string, unknown> = {
     municipalityId: M, proposedBy, year: 2025, title: null, imageURL: null,
     datePrecision: 'year', startsAt: null, endsAt: null, createdAt: new Date(),
     status: 'active', hiddenBy: null, hiddenAt: null, hiddenReason: null,
+    commentCount: 0, reactionCounts: { like: 0, heart: 0 },
     ...extra,
   };
 }
