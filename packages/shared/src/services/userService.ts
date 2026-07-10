@@ -11,6 +11,7 @@ import {
 import { getDb } from '../firebase';
 import { usersCollection, userDoc } from '../firebase/refs/client';
 import type { UserData, UserDataInput } from '../models/user';
+import { CURRENT_TERMS_VERSION } from '../models/user';
 
 export async function getUserProfile(
   userId: string,
@@ -52,6 +53,11 @@ export async function createUserProfile(
       activeMunicipalityId: input.activeMunicipalityId ?? null,
       personId: input.personId ?? null,
       createdAt: serverTimestamp(),
+      // Legal acceptance captured at onboarding. The caller passes a
+      // serverTimestamp() sentinel; default to one (plus the current version)
+      // so this write can never land an account doc without consent.
+      termsAcceptedAt: input.termsAcceptedAt ?? serverTimestamp(),
+      termsVersion: input.termsVersion ?? CURRENT_TERMS_VERSION,
     },
     { merge: true },
   );
