@@ -59,10 +59,11 @@ export default function PersonDetailScreen() {
 
   const removePersona = () => {
     if (!person) return;
-    // Replace to Explora rather than router.back(): the persona may have been
-    // reached by deep link (no history), and its detail no longer exists after
-    // deletion — a back would fire the "GO_BACK not handled" navigator warning.
-    void deletePerson(person.id).then(() => router.replace('/(tabs)'));
+    // Replace to the profile (personas live there) rather than router.back():
+    // the persona may have been reached by deep link (no history), and its detail
+    // no longer exists after deletion — a back would fire the "GO_BACK not
+    // handled" navigator warning.
+    void deletePerson(person.id).then(() => router.replace('/(tabs)/profile'));
   };
 
   // Residence links for the non-account (links-mode) editor. Seeded from the
