@@ -354,6 +354,14 @@ describe('newsService — Task 9: CRUD', () => {
     expect(snap['body']).toBe('New body');
   });
 
+  it('updateNewsPost can reassign authorship (organizerUserIds/organizerOrgIds)', async () => {
+    const id = await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'T', body: 'B', category: 'fiesta' });
+    await updateNewsPost(id, { organizerUserIds: ['u1', 'u2'], organizerOrgIds: ['org1'] });
+    const snap = store[`news/${id}`];
+    expect(snap['organizerUserIds']).toEqual(['u1', 'u2']);
+    expect(snap['organizerOrgIds']).toEqual(['org1']);
+  });
+
   it('updateNewsPost throws when trying to modify forbidden field "status"', async () => {
     const id = await createNewsPost({ municipalityId: 'm1', createdBy: 'u1', organizerUserIds: ['u1'], organizerOrgIds: [], title: 'T', body: 'B', category: 'fiesta' });
     await expect(

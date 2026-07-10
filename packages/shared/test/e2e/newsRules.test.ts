@@ -316,6 +316,30 @@ describe('firestore.rules — /news/{postId}', () => {
       updateDoc(doc(carol, 'news/p1'), { title: 'Org hacked', updatedAt: new Date() })
     );
   });
+
+  // T6-G: a current organizer can reassign authorship (add/remove organizers)
+  it('T6-G: organizer can update organizerUserIds/organizerOrgIds', async () => {
+    await seedMember('m1', 'alice');
+    await seedPost('p1', 'm1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertSucceeds(
+      updateDoc(doc(alice, 'news/p1'), {
+        organizerUserIds: ['alice', 'carol'],
+        organizerOrgIds: ['org1'],
+        updatedAt: new Date(),
+      })
+    );
+  });
+
+  // T6-H: authorship cannot be emptied — that would orphan the post
+  it('T6-H: update denied when organizerUserIds becomes empty', async () => {
+    await seedMember('m1', 'alice');
+    await seedPost('p1', 'm1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      updateDoc(doc(alice, 'news/p1'), { organizerUserIds: [], updatedAt: new Date() })
+    );
+  });
 });
 
 // ── news read rules (cross-village Explora feed) ──────────────────────────────
