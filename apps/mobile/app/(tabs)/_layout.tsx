@@ -4,6 +4,7 @@ import { useAuth } from '../../lib/auth/useAuth';
 import { webSpread } from '../../lib/platform';
 import { useT } from '../../lib/i18n';
 import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
+import { useGuestActiveVillage } from '../../lib/village/GuestActiveVillageContext';
 
 // Web-only tab-bar metrics: RN-Web's text line-height clips labels with the
 // react-navigation defaults. On native, the defaults correctly account for
@@ -21,6 +22,7 @@ export default function TabsLayout() {
   const { user, loading } = useAuth();
   const { t } = useT();
   const gate = useRegisterGate();
+  const { guestVillageId } = useGuestActiveVillage();
 
   if (loading) return null;
 
@@ -55,7 +57,12 @@ export default function TabsLayout() {
         }}
         listeners={{
           tabPress: (e) => {
-            if (!user) { e.preventDefault(); gate.requireAuth('/(tabs)/village', t('guest.village')); }
+            // A guest who opened a shared village link keeps a viewable active
+            // village — let them re-open the tab instead of gating it.
+            if (!user && !guestVillageId) {
+              e.preventDefault();
+              gate.requireAuth('/(tabs)/village', t('guest.village'));
+            }
           },
         }}
       />

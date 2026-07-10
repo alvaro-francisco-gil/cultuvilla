@@ -700,7 +700,7 @@
       "sex_other": "Otro",
       "birthday": "Fecha de nacimiento",
       "birthPlace": "Lugar de nacimiento (opcional)",
-      "biography": "Biografía (opcional)",
+      "biography": "Biografía",
       "biographySelf": "Cuenta algo al pueblo sobre ti",
       "submit": "Crear perfil",
       "requiredFields": "Nombre, ambos apellidos y fecha de nacimiento son obligatorios.",

@@ -134,6 +134,52 @@ function suggestedOverride(group: string, field: string): string {
   );
 }
 
+// The mirror-image footgun: declaring a `fieldOverride` for a field REPLACES
+// Firestore's automatic single-field indexing for it *entirely* — including the
+// COLLECTION-scoped index that a plain `where(field, '==', …)` on a specific
+// (sub)collection relies on. So a field that is queried both group-scoped
+// (needing a COLLECTION_GROUP override) and collection-scoped must list BOTH
+// scopes in its override, or the collection-scoped read throws FAILED_PRECONDITION
+// in beta/prod (the emulator ignores indexes, so tests stay green).
+//
+// This bit `registrations.userId`: adding the COLLECTION_GROUP override for
+// `getUserRegistrationsAcrossEvents`/`deleteAccount` silently killed the
+// automatic COLLECTION index that `getUserRegistrations` (events/{id}/
+// registrations where userId == uid) depends on — so the event sign-up sheet
+// loaded no dependents on the live web build.
+//
+// Fields with an override that are ALSO queried collection-scoped. Keep in sync
+// with the services (grep `where('userId'` outside collectionGroup(...)).
+const COLLECTION_SCOPED_OVERRIDDEN_FIELDS: { group: string; field: string }[] = [
+  // getUserRegistrations — packages/shared/src/services/registrationService.ts
+  { group: 'registrations', field: 'userId' },
+];
+
+describe('collection-scoped query survives its field override', () => {
+  it('every overridden field queried at collection scope keeps a COLLECTION index', () => {
+    const indexesFile = JSON.parse(readFileSync(indexesPath, 'utf-8')) as IndexesFile;
+
+    const uncovered: string[] = [];
+    for (const { group, field } of COLLECTION_SCOPED_OVERRIDDEN_FIELDS) {
+      const override = indexesFile.fieldOverrides.find(
+        (fo) => fo.collectionGroup === group && fo.fieldPath === field,
+      );
+      // No override at all → automatic COLLECTION indexing is intact; fine.
+      if (!override) continue;
+      if (override.indexes.some((i) => i.queryScope === 'COLLECTION')) continue;
+      uncovered.push(
+        `${group}.${field}: has a fieldOverride but no COLLECTION-scope index, ` +
+          `so the collection-scoped where('${field}') query throws FAILED_PRECONDITION. ` +
+          `Add { "queryScope": "COLLECTION", "order": "ASCENDING" } to its "indexes".`,
+      );
+    }
+
+    expect(uncovered, ['Collection-scoped queries broken by a field override:', '', ...uncovered].join('\n')).toEqual(
+      [],
+    );
+  });
+});
+
 describe('collection-group query index coverage invariant', () => {
   it('every collectionGroup(...).where(...) has a matching COLLECTION_GROUP index', () => {
     const indexesFile = JSON.parse(readFileSync(indexesPath, 'utf-8')) as IndexesFile;

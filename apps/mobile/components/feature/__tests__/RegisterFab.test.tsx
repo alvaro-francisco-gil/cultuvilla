@@ -100,6 +100,42 @@ describe('RegisterFab', () => {
     );
   });
 
+  // Reproduces production data: getPersonsByCreator returns the caller's OWN
+  // persona (createdBy == uid, userId == uid) alongside the dependents
+  // (createdBy == uid, userId == null). Only the own persona must be dropped;
+  // every dependent must appear as a tickable row.
+  it('lists every dependent when the creator query also returns the own persona', async () => {
+    const self = { id: 'p1', givenName: 'Ana', nickname: null, firstSurname: 'López', userId: 'u1' };
+    const dep1 = { id: 'p2', givenName: 'Jose', nickname: null, firstSurname: 'García', userId: null };
+    const dep2 = { id: 'p3', givenName: 'Jos', nickname: null, firstSurname: 'Ruiz', userId: null };
+    mockGetPersonsByCreator.mockResolvedValue([self, dep1, dep2]);
+    const { getByTestId, getByText, queryByTestId } = render(<RegisterFab {...baseProps} />);
+    await waitFor(() => expect(getByText('event.register.cta')).toBeTruthy());
+
+    fireEvent.press(getByTestId('register-fab'));
+    // Own persona rendered from props (once, not duplicated by the creator query).
+    expect(getByTestId('attendee-row-p1')).toBeTruthy();
+    // Both dependents must be listed.
+    expect(getByTestId('attendee-row-p2')).toBeTruthy();
+    expect(getByTestId('attendee-row-p3')).toBeTruthy();
+    // And no second copy of the own persona.
+    expect(queryByTestId('attendee-row-p1')).toBe(getByTestId('attendee-row-p1'));
+  });
+
+  // Regression: the two reads are independent, so a failing getUserRegistrations
+  // (e.g. a missing Firestore index) must NOT blank the dependent list. Before
+  // the fix they shared one Promise.all and a rejection hid every dependent.
+  it('still lists dependents when getUserRegistrations rejects', async () => {
+    mockGetUserRegistrations.mockRejectedValue(new Error('FAILED_PRECONDITION: missing index'));
+    mockGetPersonsByCreator.mockResolvedValue([dep]);
+    const { getByTestId, getByText } = render(<RegisterFab {...baseProps} />);
+    await waitFor(() => expect(getByText('event.register.cta')).toBeTruthy());
+
+    fireEvent.press(getByTestId('register-fab'));
+    expect(getByTestId('attendee-row-p1')).toBeTruthy(); // self
+    expect(getByTestId('attendee-row-p2')).toBeTruthy(); // dependent survives the reg failure
+  });
+
   it('cancels a deselected registered persona after a single combined confirm', async () => {
     mockGetUserRegistrations.mockResolvedValue([
       { id: 'rA', personId: 'p1', status: 'confirmed' },

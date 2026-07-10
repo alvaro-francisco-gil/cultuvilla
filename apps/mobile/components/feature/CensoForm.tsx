@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
+import { router } from 'expo-router';
 import { VStack } from '../primitives/VStack';
 import { Button } from '../primitives/Button';
 import { Text } from '../primitives/Text';
@@ -42,6 +43,16 @@ export function CensoForm({ villageId, userId, schema, initialAnswers, entityOpt
   }
 
   const missingKeys = missingRequiredAnswers(schema, answers);
+
+  // Show the "Censo guardado" confirmation briefly, then return to the village.
+  useEffect(() => {
+    if (!saved) return;
+    const id = setTimeout(
+      () => router.replace({ pathname: '/village/[villageId]', params: { villageId } }),
+      1000,
+    );
+    return () => clearTimeout(id);
+  }, [saved, villageId]);
 
   async function onSubmit() {
     setSaving(true);

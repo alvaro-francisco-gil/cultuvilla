@@ -12,6 +12,7 @@ import {
 import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
 import { buildShortName, type PersonData } from '@cultuvilla/shared/models/person';
 import { useT } from '../../lib/i18n';
+import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
 
 export interface RegisterFabProps {
   eventId: string;
@@ -48,21 +49,31 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
   // Load the caller's registrations + personas a cargo. Runs on focus so a
   // dependent created via /person/new shows up on return.
   const load = useCallback(async () => {
-    const [regs, deps] = await Promise.all([
-      getUserRegistrations(eventId, userId),
-      getPersonsByCreator(userId),
+    // The two reads are independent — the registered set and the persona list
+    // come from different collections. Fetch them separately (allSettled) so a
+    // failure in one (e.g. a missing index on registrations) never blanks the
+    // other; coupling them in a single Promise.all previously hid every
+    // dependent whenever getUserRegistrations threw.
+    const [regsResult, depsResult] = await Promise.allSettled([
+      withFirestoreErrorLog('event:getUserRegistrations', () => getUserRegistrations(eventId, userId)),
+      withFirestoreErrorLog('event:getPersonsByCreator', () => getPersonsByCreator(userId)),
     ]);
-    const map = new Map<string, AttendeeRegistration>();
-    regs.forEach((r) => map.set(r.personId, { regId: r.id, status: r.status }));
-    setRegistrations(map);
 
-    // Drop the caller's own persona (rendered from props) and other account holders.
-    const filtered = deps.filter((d) => d.id !== personId && d.userId !== userId);
-    const known = knownDepIds.current;
-    const fresh = filtered.filter((d) => !known.has(d.id)).map((d) => d.id);
-    if (known.size > 0 && fresh.length > 0) setAutoSelectIds(fresh);
-    knownDepIds.current = new Set(filtered.map((d) => d.id));
-    setDependents(filtered);
+    if (regsResult.status === 'fulfilled') {
+      const map = new Map<string, AttendeeRegistration>();
+      regsResult.value.forEach((r) => map.set(r.personId, { regId: r.id, status: r.status }));
+      setRegistrations(map);
+    }
+
+    if (depsResult.status === 'fulfilled') {
+      // Drop the caller's own persona (rendered from props) and other account holders.
+      const filtered = depsResult.value.filter((d) => d.id !== personId && d.userId !== userId);
+      const known = knownDepIds.current;
+      const fresh = filtered.filter((d) => !known.has(d.id)).map((d) => d.id);
+      if (known.size > 0 && fresh.length > 0) setAutoSelectIds(fresh);
+      knownDepIds.current = new Set(filtered.map((d) => d.id));
+      setDependents(filtered);
+    }
   }, [eventId, userId, personId]);
 
   useFocusEffect(
