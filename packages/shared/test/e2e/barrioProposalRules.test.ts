@@ -106,4 +106,40 @@ describe('firestore.rules — /municipalities/{m}/barrios', () => {
     const boss = asUser(getEnv(), 'boss');
     await assertSucceeds(deleteDoc(doc(boss, `municipalities/${M}/barrios/b1`)));
   });
+
+  // D5 count guards: counts are function-owned (synced by the comments/
+  // reactions triggers), so clients must create at 0 and never touch them
+  // again, even through an otherwise-authorized update.
+  it('rejects a create with a nonzero commentCount', async () => {
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, `municipalities/${M}/barrios/b1`), {
+        ...barrioDoc('alice'), commentCount: 5,
+      }),
+    );
+  });
+
+  it('rejects a create with a nonzero reactionCounts', async () => {
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, `municipalities/${M}/barrios/b1`), {
+        ...barrioDoc('alice'), reactionCounts: { like: 3, heart: 0 },
+      }),
+    );
+  });
+
+  it('village admin cannot mutate counts on update, but a normal edit still succeeds', async () => {
+    await seedMember('boss', 'admin');
+    await seedBarrio('b1', 'alice');
+    const boss = asUser(getEnv(), 'boss');
+    await assertFails(updateDoc(doc(boss, `municipalities/${M}/barrios/b1`), { commentCount: 99 }));
+    await assertFails(
+      updateDoc(doc(boss, `municipalities/${M}/barrios/b1`), { reactionCounts: { like: 9, heart: 9 } }),
+    );
+    await assertSucceeds(
+      updateDoc(doc(boss, `municipalities/${M}/barrios/b1`), { name: 'Norte Alto' }),
+    );
+  });
 });

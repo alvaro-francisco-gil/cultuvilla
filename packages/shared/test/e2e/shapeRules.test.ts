@@ -13,13 +13,17 @@
 
 import { describe, it } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, setDoc, GeoPoint } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, GeoPoint } from 'firebase/firestore';
 import { useRulesTestEnv } from '../helpers/rulesTestEnv';
 import { asUser, seed } from '../helpers/roles';
 
 const getEnv = useRulesTestEnv();
 
-async function seedMember(municipalityId: string, userId: string) {
+async function seedMember(
+  municipalityId: string,
+  userId: string,
+  extra: Record<string, unknown> = {},
+) {
   await seed(getEnv(), async (ctx) => {
     await setDoc(
       doc(ctx.firestore(), `municipalities/${municipalityId}/members/${userId}`),
@@ -28,6 +32,7 @@ async function seedMember(municipalityId: string, userId: string) {
         joinedAt: new Date(),
         profileAnswers: {},
         profileCompletedAt: null,
+        ...extra,
       },
     );
   });
@@ -239,6 +244,38 @@ describe('shape enforcement — /organizations/{orgId}', () => {
       setDoc(doc(alice, 'organizations/o-ayto'), { ...validOrg, type: 'ayuntamiento' }),
     );
   });
+
+  // D5 count guards: counts are function-owned (synced by the comments/
+  // reactions triggers), so clients must create at 0 and never touch them
+  // again, even through an otherwise-authorized update.
+  it('rejects a create with a nonzero commentCount', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, 'organizations/o1'), { ...validOrg, commentCount: 5 }),
+    );
+  });
+
+  it('rejects a create with a nonzero reactionCounts', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, 'organizations/o1'), { ...validOrg, reactionCounts: { like: 3, heart: 0 } }),
+    );
+  });
+
+  it('a village admin cannot mutate counts on update, but a normal edit still succeeds', async () => {
+    await seedMember('m1', 'boss', /* extra */ { role: 'admin' });
+    await seed(getEnv(), async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'organizations/o1'), validOrg);
+    });
+    const boss = asUser(getEnv(), 'boss');
+    await assertFails(updateDoc(doc(boss, 'organizations/o1'), { commentCount: 99 }));
+    await assertFails(
+      updateDoc(doc(boss, 'organizations/o1'), { reactionCounts: { like: 9, heart: 9 } }),
+    );
+    await assertSucceeds(updateDoc(doc(boss, 'organizations/o1'), { description: 'Actualizada' }));
+  });
 });
 
 describe('shape enforcement — /events/{eventId}', () => {
@@ -326,6 +363,38 @@ describe('shape enforcement — /events/{eventId}', () => {
     await assertFails(
       setDoc(doc(alice, 'events/e1'), { ...validEvent, endDate: 'soon' }),
     );
+  });
+
+  // D5 count guards: counts are function-owned (synced by the comments/
+  // reactions triggers), so clients must create at 0 and never touch them
+  // again, even through an otherwise-authorized update.
+  it('rejects a create with a nonzero commentCount', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, 'events/e1'), { ...validEvent, commentCount: 5 }),
+    );
+  });
+
+  it('rejects a create with a nonzero reactionCounts', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, 'events/e1'), { ...validEvent, reactionCounts: { like: 3, heart: 0 } }),
+    );
+  });
+
+  it('the event organizer cannot mutate counts on update, but a normal edit still succeeds', async () => {
+    await seedMember('m1', 'alice');
+    await seed(getEnv(), async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'events/e1'), validEvent);
+    });
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(updateDoc(doc(alice, 'events/e1'), { commentCount: 99 }));
+    await assertFails(
+      updateDoc(doc(alice, 'events/e1'), { reactionCounts: { like: 9, heart: 9 } }),
+    );
+    await assertSucceeds(updateDoc(doc(alice, 'events/e1'), { title: 'Fiesta Mayor' }));
   });
 });
 

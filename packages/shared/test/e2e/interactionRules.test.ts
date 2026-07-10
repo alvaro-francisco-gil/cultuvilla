@@ -175,4 +175,45 @@ describe('firestore.rules — /reactions/{reactionId}', () => {
     const bob = asUser(getEnv(), 'bob');
     await assertFails(deleteDoc(doc(bob, 'reactions/event_e1_alice')));
   });
+
+  it('create fails when userId does not match the caller uid, even at the caller\'s own doc id', async () => {
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, 'reactions/event_e1_alice'), validReaction({ userId: 'bob' }))
+    );
+  });
+
+  it('create fails when kind is not like/heart', async () => {
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, 'reactions/event_e1_alice'), validReaction({ kind: 'wow' }))
+    );
+  });
+
+  it('create fails when an extra key is present', async () => {
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, 'reactions/event_e1_alice'), validReaction({ extra: 'nope' }))
+    );
+  });
+
+  it('the owner can update their own reaction to change kind at the same doc id', async () => {
+    await seed(getEnv(), async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'reactions/event_e1_alice'), validReaction({ userId: 'alice', kind: 'like' }));
+    });
+    const alice = asUser(getEnv(), 'alice');
+    await assertSucceeds(
+      updateDoc(doc(alice, 'reactions/event_e1_alice'), { kind: 'heart' })
+    );
+  });
+
+  it('a stranger cannot update another user\'s reaction', async () => {
+    await seed(getEnv(), async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'reactions/event_e1_alice'), validReaction({ userId: 'alice', kind: 'like' }));
+    });
+    const bob = asUser(getEnv(), 'bob');
+    await assertFails(
+      updateDoc(doc(bob, 'reactions/event_e1_alice'), { kind: 'heart' })
+    );
+  });
 });
