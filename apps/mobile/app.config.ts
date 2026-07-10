@@ -193,7 +193,6 @@ const config: ExpoConfig = {
           ] as [string, { iosUrlScheme: string }],
         ]
       : []),
-    '@react-native-community/datetimepicker',
     [
       'expo-location',
       {

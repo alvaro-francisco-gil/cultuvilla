@@ -68,15 +68,15 @@ describe('<PersonForm> stepper', () => {
   });
 
   describe('requireFirstSurname gate (linked-persona create)', () => {
-    /** Fill the required birthday via the DateField's per-segment option testIDs
-     * (month is zero-based, so May === 4). Independent of the i18n mock. */
+    /** Fill the required birthday via the CalendarDatePicker: open the trigger,
+     * jump to 1990-05 via the year/month picker (month is zero-based, so
+     * May === 4), then press the day cell. */
     function fillBirthday(utils: ReturnType<typeof render>) {
-      fireEvent.press(utils.getByTestId('birthday-year'));
-      fireEvent.press(utils.getByTestId('birthday-year-option-1990'));
-      fireEvent.press(utils.getByTestId('birthday-month'));
-      fireEvent.press(utils.getByTestId('birthday-month-option-4'));
-      fireEvent.press(utils.getByTestId('birthday-day'));
-      fireEvent.press(utils.getByTestId('birthday-day-option-5'));
+      fireEvent.press(utils.getByTestId('birthday-trigger'));
+      fireEvent.press(utils.getByTestId('birthday-calendar-title'));
+      fireEvent.press(utils.getByTestId('birthday-calendar-year-1990'));
+      fireEvent.press(utils.getByTestId('birthday-calendar-month-4'));
+      fireEvent.press(utils.getByTestId('birthday-calendar-day-1990-05-05'));
     }
 
     it('blocks leaving the identity step until the first surname is filled', () => {
