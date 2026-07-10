@@ -14,9 +14,8 @@ import { personConverterAdmin } from '../converters/personConverter.admin';
 import { userConverterAdmin } from '../converters/userConverter.admin';
 import { notificationConverterAdmin } from '../converters/notificationConverter.admin';
 import { newsPostConverterAdmin } from '../converters/newsPostConverter.admin';
-import { newsCommentConverterAdmin } from '../converters/newsCommentConverter.admin';
-import { newsReactionConverterAdmin } from '../converters/newsReactionConverter.admin';
-import { newsReportConverterAdmin } from '../converters/newsReportConverter.admin';
+import { commentConverterAdmin } from '../converters/commentConverter.admin';
+import { reactionConverterAdmin } from '../converters/reactionConverter.admin';
 import { occupationConverterAdmin } from '../converters/occupationConverter.admin';
 import { adminConverterAdmin } from '../converters/adminConverter.admin';
 import { organizationJoinRequestConverterAdmin } from '../converters/organizationJoinRequestConverter.admin';
@@ -126,23 +125,19 @@ export const newsCollection = (db: Firestore) =>
 export const newsDoc = (db: Firestore, postId: string) =>
   db.collection('news').doc(postId).withConverter(newsPostConverterAdmin);
 
-export const newsCommentsCollection = (db: Firestore) =>
-  db.collection('newsComments').withConverter(newsCommentConverterAdmin);
+// ── Comments + reactions (generic, entity-scoped, top-level) ────────────
 
-export const newsCommentDoc = (db: Firestore, commentId: string) =>
-  db.collection('newsComments').doc(commentId).withConverter(newsCommentConverterAdmin);
+export const commentsCollection = (db: Firestore) =>
+  db.collection('comments').withConverter(commentConverterAdmin);
 
-export const newsReactionsCollection = (db: Firestore) =>
-  db.collection('newsReactions').withConverter(newsReactionConverterAdmin);
+export const commentDoc = (db: Firestore, commentId: string) =>
+  db.collection('comments').doc(commentId).withConverter(commentConverterAdmin);
 
-export const newsReactionDoc = (db: Firestore, reactionId: string) =>
-  db.collection('newsReactions').doc(reactionId).withConverter(newsReactionConverterAdmin);
+export const reactionsCollection = (db: Firestore) =>
+  db.collection('reactions').withConverter(reactionConverterAdmin);
 
-export const newsReportsCollection = (db: Firestore) =>
-  db.collection('newsReports').withConverter(newsReportConverterAdmin);
-
-export const newsReportDoc = (db: Firestore, reportId: string) =>
-  db.collection('newsReports').doc(reportId).withConverter(newsReportConverterAdmin);
+export const reactionDoc = (db: Firestore, reactionId: string) =>
+  db.collection('reactions').doc(reactionId).withConverter(reactionConverterAdmin);
 
 export const festivalPostersCollection = (db: Firestore) =>
   db.collection('festivalPosters').withConverter(festivalPosterConverterAdmin);
