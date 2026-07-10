@@ -101,6 +101,29 @@ export default function CompleteProfileScreen() {
             });
       }
 
+      // Write the account doc BEFORE joining a village. joinVillage's
+      // setActiveMunicipality does an updateDoc on users/{uid}, and an updateDoc
+      // against a not-yet-created doc makes the rules dereference a null
+      // `resource.data`, which Firestore denies ("Missing or insufficient
+      // permissions"). Creating the profile first guarantees the doc exists —
+      // we don't rely on the syncPersonDenormalization trigger having landed
+      // its displayName stub yet.
+      const profilePatch = {
+        activeMunicipalityId: municipalityId,
+        personId,
+      };
+      if (profile) {
+        await patchUserProfile(user.uid, profilePatch);
+      } else {
+        // First-time account creation: record acceptance of the current legal
+        // version. createUserProfile stamps termsAcceptedAt server-side.
+        await createUserProfile(user.uid, {
+          email: user.email ?? '',
+          ...profilePatch,
+          termsVersion: CURRENT_TERMS_VERSION,
+        });
+      }
+
       // Picking a village at registration makes you a villager: create the
       // members/{uid} doc (activating the community first if it's still dormant)
       // so the village lands under "your villages" and as the active pueblo.
@@ -123,21 +146,6 @@ export default function CompleteProfileScreen() {
         await updatePerson(personId, { photoURL: url });
       }
 
-      const profilePatch = {
-        activeMunicipalityId: municipalityId,
-        personId,
-      };
-      if (profile) {
-        await patchUserProfile(user.uid, profilePatch);
-      } else {
-        // First-time account creation: record acceptance of the current legal
-        // version. createUserProfile stamps termsAcceptedAt server-side.
-        await createUserProfile(user.uid, {
-          email: user.email ?? '',
-          ...profilePatch,
-          termsVersion: CURRENT_TERMS_VERSION,
-        });
-      }
       void clearPendingVillage();
       await refreshProfile();
       // AuthGate (_layout.tsx) owns post-onboarding routing.
