@@ -1,28 +1,53 @@
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions/v2';
-import { getFirestore, FieldValue, type DocumentReference } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import {
+  eventDoc,
+  organizationDoc,
+  festivalPosterDoc,
+  newsDoc,
+  municipalityPlaceDoc,
+  municipalityBarrioDoc,
+} from '@cultuvilla/shared/firebase/refs/admin';
 
 const db = getFirestore();
 
-function parentRef(
-  entityKind: string,
-  entityId: string,
-  municipalityId: string,
-): DocumentReference | null {
-  switch (entityKind) {
-    case 'event':          return db.collection('events').doc(entityId);
-    case 'organization':   return db.collection('organizations').doc(entityId);
-    case 'festivalPoster': return db.collection('festivalPosters').doc(entityId);
-    case 'news':           return db.collection('news').doc(entityId);
-    case 'place':          return db.collection('municipalities').doc(municipalityId).collection('places').doc(entityId);
-    case 'barrio':         return db.collection('municipalities').doc(municipalityId).collection('barrios').doc(entityId);
-    default:               return null;
-  }
-}
+type ApplyResult = 'applied' | 'unknown-kind' | 'not-found';
 
 function isNotFound(err: unknown): boolean {
   const code = (err as { code?: number | string } | null)?.code;
   return code === 5 || code === 'NOT_FOUND' || code === 'not-found';
+}
+
+// Routes a field-path update to the parent entity's doc via the typed ref
+// factories. The `.update(field, value, …)` field-path overload is used (not the
+// data overload) so the entity converters aren't invoked for these partial
+// counter writes and dot-path keys like `reactionCounts.<kind>` pass through.
+// Switching and calling `.update` inside each branch keeps every ref a single
+// concrete type — no union-assignment problem.
+async function applyToParent(
+  entityKind: string,
+  entityId: string,
+  municipalityId: string,
+  field: string,
+  value: FieldValue,
+  ...more: (string | FieldValue)[]
+): Promise<ApplyResult> {
+  try {
+    switch (entityKind) {
+      case 'event':          await eventDoc(db, entityId).update(field, value, ...more); break;
+      case 'organization':   await organizationDoc(db, entityId).update(field, value, ...more); break;
+      case 'festivalPoster': await festivalPosterDoc(db, entityId).update(field, value, ...more); break;
+      case 'news':           await newsDoc(db, entityId).update(field, value, ...more); break;
+      case 'place':          await municipalityPlaceDoc(db, municipalityId, entityId).update(field, value, ...more); break;
+      case 'barrio':         await municipalityBarrioDoc(db, municipalityId, entityId).update(field, value, ...more); break;
+      default:               return 'unknown-kind';
+    }
+    return 'applied';
+  } catch (err) {
+    if (isNotFound(err)) return 'not-found'; // parent deleted before trigger ran → no-op (avoid infinite retry)
+    throw err;
+  }
 }
 
 export const syncEntityCommentCount = onDocumentWritten(
@@ -40,22 +65,24 @@ export const syncEntityCommentCount = onDocumentWritten(
     const entityKind = d['entityKind'] as string;
     const entityId = d['entityId'] as string;
     const municipalityId = d['municipalityId'] as string;
-    const ref = parentRef(entityKind, entityId, municipalityId);
-    if (!ref) {
+    const result = await applyToParent(
+      entityKind,
+      entityId,
+      municipalityId,
+      'commentCount',
+      FieldValue.increment(delta),
+    );
+    if (result === 'unknown-kind') {
       logger.warn('unknown entityKind for comment count', {
         handler: 'syncEntityCommentCount', entityKind,
       });
       return;
     }
-    try {
-      await ref.update({ commentCount: FieldValue.increment(delta) });
-    } catch (err) {
-      if (isNotFound(err)) return; // parent deleted before trigger ran → no-op (avoid infinite retry)
-      throw err;
+    if (result === 'applied') {
+      logger.info('comment count updated', {
+        handler: 'syncEntityCommentCount', entityKind, entityId, delta,
+      });
     }
-    logger.info('comment count updated', {
-      handler: 'syncEntityCommentCount', entityKind, entityId, delta,
-    });
   },
 );
 
@@ -70,33 +97,39 @@ export const syncEntityReactionCounts = onDocumentWritten(
     const entityKind = d['entityKind'] as string;
     const entityId = d['entityId'] as string;
     const municipalityId = d['municipalityId'] as string;
-    const ref = parentRef(entityKind, entityId, municipalityId);
-    if (!ref) {
+    let result: ApplyResult;
+    if (!before && after) {
+      result = await applyToParent(
+        entityKind, entityId, municipalityId,
+        `reactionCounts.${after['kind'] as string}`, FieldValue.increment(1),
+      );
+    } else if (before && !after) {
+      result = await applyToParent(
+        entityKind, entityId, municipalityId,
+        `reactionCounts.${before['kind'] as string}`, FieldValue.increment(-1),
+      );
+    } else if (before && after) {
+      const oldKind = before['kind'] as string;
+      const newKind = after['kind'] as string;
+      if (oldKind === newKind) return;
+      result = await applyToParent(
+        entityKind, entityId, municipalityId,
+        `reactionCounts.${oldKind}`, FieldValue.increment(-1),
+        `reactionCounts.${newKind}`, FieldValue.increment(1),
+      );
+    } else {
+      return;
+    }
+    if (result === 'unknown-kind') {
       logger.warn('unknown entityKind for reaction count', {
         handler: 'syncEntityReactionCounts', entityKind,
       });
       return;
     }
-    try {
-      if (!before && after) {
-        await ref.update({ [`reactionCounts.${after['kind'] as string}`]: FieldValue.increment(1) });
-      } else if (before && !after) {
-        await ref.update({ [`reactionCounts.${before['kind'] as string}`]: FieldValue.increment(-1) });
-      } else if (before && after) {
-        const oldKind = before['kind'] as string;
-        const newKind = after['kind'] as string;
-        if (oldKind === newKind) return;
-        await ref.update({
-          [`reactionCounts.${oldKind}`]: FieldValue.increment(-1),
-          [`reactionCounts.${newKind}`]: FieldValue.increment(1),
-        });
-      }
-    } catch (err) {
-      if (isNotFound(err)) return;
-      throw err;
+    if (result === 'applied') {
+      logger.info('reaction counts updated', {
+        handler: 'syncEntityReactionCounts', entityKind, entityId,
+      });
     }
-    logger.info('reaction counts updated', {
-      handler: 'syncEntityReactionCounts', entityKind, entityId,
-    });
   },
 );

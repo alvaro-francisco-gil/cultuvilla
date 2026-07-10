@@ -56,8 +56,8 @@ function reaction(overrides: Partial<ReactionShape> = {}): ReactionShape {
   };
 }
 
-function asRecord<T>(value: T | null): Record<string, unknown> {
-  return value ? (value as unknown as Record<string, unknown>) : {};
+function asRecord(value: unknown): Record<string, unknown> {
+  return value ? (value as Record<string, unknown>) : {};
 }
 
 async function fireCommentTrigger(
