@@ -21,6 +21,7 @@ jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({ getBarrioViewLink: () => 'https://x' }));
 jest.mock('@cultuvilla/shared/services/personService', () => ({ getPersonsByBarrio: jest.fn().mockResolvedValue([]) }));
 jest.mock('@cultuvilla/shared/models/person', () => ({ buildDisplayName: () => 'N' }));
+jest.mock('../../../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
 
 describe('BarrioDetailScreen', () => {
   it('renders the barrio name once loaded', async () => {

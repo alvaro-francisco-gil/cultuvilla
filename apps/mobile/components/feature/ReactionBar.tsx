@@ -39,7 +39,7 @@ export function ReactionBar({ entityKind, entityId, municipalityId, initialCount
     void (async () => {
       setMyReaction(await getMyReaction(entityKind, entityId, user.uid));
     })();
-  }, [entityKind, entityId, user]);
+  }, [entityKind, entityId, user?.uid]);
 
   const onPress = (kind: ReactionKind) => {
     if (!user) {

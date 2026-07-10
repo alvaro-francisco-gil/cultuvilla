@@ -14,6 +14,10 @@ jest.mock('../../../lib/auth/useAuth', () => ({ useAuth: () => ({ user: null }) 
 jest.mock('../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: () => jest.fn() }));
 jest.mock('../../../components/feature/NewsContentRenderer', () => ({ NewsContentRenderer: () => null }));
 jest.mock('../../../components/feature/LiveOwnerChip', () => ({ LiveOwnerChip: () => null }));
+jest.mock('../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
+jest.mock('../../../lib/auth/useEntityCapabilities', () => ({
+  useEntityCapabilities: () => ({ canManage: false, canApprove: false, uid: null, loading: false }),
+}));
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({ getNewsLink: () => 'https://x' }));
 jest.mock('@cultuvilla/shared/services/newsService', () => ({
   getNewsPost: jest.fn().mockResolvedValue({

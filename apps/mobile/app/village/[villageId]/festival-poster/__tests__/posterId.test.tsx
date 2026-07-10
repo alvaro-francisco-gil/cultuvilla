@@ -21,6 +21,7 @@ jest.mock('@cultuvilla/shared/utils', () => ({ formatFestivalPosterDates: () => 
 // NaturalImage reads Image.getSize (unmocked under jest-expo); the screen test
 // only asserts the title, so stub it to a plain view.
 jest.mock('../../../../../components/primitives/NaturalImage', () => ({ NaturalImage: () => null }));
+jest.mock('../../../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
 
 describe('FestivalPosterDetailScreen', () => {
   it('renders the poster title once loaded', async () => {

@@ -7,6 +7,7 @@ import { EntityDetailScaffold } from '../../../../components/feature/EntityDetai
 import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
 import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
 import { PersonCard } from '../../../../components/feature/VillageSections';
+import { EntityComments } from '../../../../components/feature/EntityComments';
 import { useT } from '../../../../lib/i18n';
 import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
@@ -96,6 +97,14 @@ export default function BarrioDetailScreen() {
               ))}
             </ScrollView>
           )}
+          <EntityComments
+            key={barrio.id}
+            entityKind="barrio"
+            entityId={barrio.id}
+            municipalityId={barrio.municipalityId}
+            initialReactionCounts={barrio.reactionCounts}
+            canModerate={canManage}
+          />
         </>
       ) : null}
     </EntityDetailScaffold>

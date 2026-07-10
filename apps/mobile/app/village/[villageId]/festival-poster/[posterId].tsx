@@ -7,6 +7,7 @@ import { EntityDetailScaffold } from '../../../../components/feature/EntityDetai
 import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
 import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+import { EntityComments } from '../../../../components/feature/EntityComments';
 import { useT } from '../../../../lib/i18n';
 import { getFestivalPoster } from '@cultuvilla/shared/services/festivalPosterService';
 import type { FestivalPosterWithId } from '@cultuvilla/shared/services/festivalPosterService';
@@ -70,6 +71,16 @@ export default function FestivalPosterDetailScreen() {
       }
     >
       {subtitle ? <Text tone="muted">{subtitle}</Text> : null}
+      {poster ? (
+        <EntityComments
+          key={poster.id}
+          entityKind="festivalPoster"
+          entityId={poster.id}
+          municipalityId={poster.municipalityId}
+          initialReactionCounts={poster.reactionCounts}
+          canModerate={canManage}
+        />
+      ) : null}
     </EntityDetailScaffold>
   );
 }
