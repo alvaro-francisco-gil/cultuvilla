@@ -366,7 +366,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               label={String(p.year)}
               sub={[p.title, formatFestivalPosterDates(p)].filter(Boolean).join(' · ') || undefined}
               icon="image-outline"
-              imageUri={p.imageURL}
+              imageUri={p.images[0] ?? null}
               onPress={() => router.push(`${villageBase}/festival-poster/${p.id}` as never)}
             />
           ))}

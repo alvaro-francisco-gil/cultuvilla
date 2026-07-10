@@ -30,7 +30,7 @@ beforeEach(() => {
 describe('<FestivalPostersManager>', () => {
   it('any member submitting the form creates the poster directly (year precision, optimistic)', async () => {
     const { getByTestId, getByLabelText } = render(<FestivalPostersManager villageId="m1" />);
-    fireEvent.press(getByLabelText('village.festivalPosters.form.image'));
+    fireEvent.press(getByLabelText('village.festivalPosters.form.addImage'));
     await waitFor(() => expect(mockPick).toHaveBeenCalled());
     fireEvent.changeText(getByTestId('poster-year-input'), '2026');
     fireEvent.press(getByTestId('poster-submit'));
@@ -44,7 +44,7 @@ describe('<FestivalPostersManager>', () => {
           datePrecision: 'year',
           startsAt: null,
           endsAt: null,
-          imageURL: 'https://example.com/poster.jpg',
+          images: ['https://example.com/poster.jpg'],
         }),
         'new-id',
       ),
@@ -55,7 +55,7 @@ describe('<FestivalPostersManager>', () => {
   it('an admin creates the poster the same way', async () => {
     mockCaps.mockReturnValue({ canManage: true, canApprove: true, uid: 'boss', loading: false });
     const { getByTestId, getByLabelText } = render(<FestivalPostersManager villageId="m1" />);
-    fireEvent.press(getByLabelText('village.festivalPosters.form.image'));
+    fireEvent.press(getByLabelText('village.festivalPosters.form.addImage'));
     await waitFor(() => expect(mockPick).toHaveBeenCalled());
     fireEvent.changeText(getByTestId('poster-year-input'), '2027');
     fireEvent.press(getByTestId('poster-submit'));

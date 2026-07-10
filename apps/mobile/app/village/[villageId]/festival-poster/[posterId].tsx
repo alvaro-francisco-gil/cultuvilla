@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
 import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
 import { Text } from '../../../../components/primitives/Text';
+import { VStack } from '../../../../components/primitives/VStack';
+import { NaturalImage } from '../../../../components/primitives/NaturalImage';
 import { EntityDetailScaffold } from '../../../../components/feature/EntityDetailScaffold';
 import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
 import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
@@ -53,10 +55,19 @@ export default function FestivalPosterDetailScreen() {
     <EntityDetailScaffold
       loading={loading}
       notFound={!loading && !poster}
-      imageUri={poster?.imageURL ?? null}
+      imageUri={poster?.images[0] ?? null}
       fallbackIcon={ENTITY_FALLBACK_ICON.festivalPoster}
       actions={actions}
       title={poster ? (poster.title ?? String(poster.year)) : undefined}
+      belowContent={
+        poster && poster.images.length > 1 ? (
+          <VStack gap={2} className="pt-2">
+            {poster.images.slice(1).map((uri) => (
+              <NaturalImage key={uri} uri={uri} />
+            ))}
+          </VStack>
+        ) : undefined
+      }
     >
       {subtitle ? <Text tone="muted">{subtitle}</Text> : null}
     </EntityDetailScaffold>

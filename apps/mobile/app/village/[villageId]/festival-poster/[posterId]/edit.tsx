@@ -8,7 +8,7 @@ import { Input } from '../../../../../components/primitives/Input';
 import { Button } from '../../../../../components/primitives/Button';
 import { FieldLabel } from '../../../../../components/primitives/FieldLabel';
 import { DateField } from '../../../../../components/primitives/DateField';
-import { ImagePickerField } from '../../../../../components/primitives/ImagePickerField';
+import { MultiImagePickerRow } from '../../../../../components/feature/MultiImagePickerRow';
 import { ScreenHeader } from '../../../../../components/layout/ScreenHeader';
 import { DeleteHeaderButton } from '../../../../../components/feature/DeleteHeaderButton';
 import { sanitizeYear, datesToPayload } from '../../../../../components/feature/proposable/festivalPosterForm';
@@ -20,8 +20,10 @@ import {
   updateFestivalPoster,
 } from '@cultuvilla/shared/services/festivalPosterService';
 import { hideContent } from '@cultuvilla/shared/services/moderationService';
-import { uploadFestivalPosterImage } from '@cultuvilla/shared/services/imageService';
-import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
+import {
+  deleteImageByURL,
+  uploadFestivalPosterImage,
+} from '@cultuvilla/shared/services/imageService';
 
 export default function FestivalPosterEditScreen() {
   const { villageId, posterId } = useLocalSearchParams<{ villageId: string; posterId: string }>();
@@ -32,8 +34,8 @@ export default function FestivalPosterEditScreen() {
   const [title, setTitle] = useState('');
   const [startsAt, setStartsAt] = useState<Date | null>(null);
   const [endsAt, setEndsAt] = useState<Date | null>(null);
-  const [existingImageUri, setExistingImageUri] = useState<string | null>(null);
-  const [image, setImage] = useState<UploadableImage | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [addingImage, setAddingImage] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -47,7 +49,7 @@ export default function FestivalPosterEditScreen() {
         setTitle(p.title ?? '');
         setStartsAt(p.startsAt);
         setEndsAt(p.endsAt);
-        setExistingImageUri(p.imageURL ?? null);
+        setImages(p.images);
       } else {
         setNotFound(true);
       }
@@ -67,19 +69,35 @@ export default function FestivalPosterEditScreen() {
 
   const yearNum = parseInt(year, 10);
 
+  async function addImage() {
+    if (!villageId || !posterId) return;
+    const picked = await pickImageAsBlob();
+    if (!picked) return;
+    setAddingImage(true);
+    try {
+      const url = await uploadFestivalPosterImage(villageId, posterId, picked);
+      setImages((prev) => [...prev, url]);
+    } finally {
+      setAddingImage(false);
+    }
+  }
+
+  function removeImage(index: number) {
+    const url = images[index];
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    if (url) void deleteImageByURL(url).catch(() => {}); // best-effort orphan cleanup
+  }
+
   async function submit() {
-    if (!posterId || !villageId || !Number.isInteger(yearNum)) return;
+    if (!posterId || !villageId || !Number.isInteger(yearNum) || images.length === 0) return;
     setSaving(true);
     try {
       await updateFestivalPoster(posterId, {
         year: yearNum,
         title: title.trim() || null,
+        images,
         ...datesToPayload(startsAt, endsAt),
       });
-      if (image) {
-        const imageURL = await uploadFestivalPosterImage(villageId, posterId, image);
-        await updateFestivalPoster(posterId, { imageURL });
-      }
       router.back();
     } finally {
       setSaving(false);
@@ -117,13 +135,13 @@ export default function FestivalPosterEditScreen() {
           <VStack gap={3} align="start">
             <VStack gap={1} align="start">
               <FieldLabel>{t('village.festivalPosters.form.image')}</FieldLabel>
-              <ImagePickerField
-                uri={image?.previewUri ?? existingImageUri}
-                onPress={async () => {
-                  const picked = await pickImageAsBlob();
-                  if (picked) setImage(picked);
-                }}
-                label={t('village.festivalPosters.form.image')}
+              <MultiImagePickerRow
+                uris={images}
+                onAddPress={addImage}
+                onRemove={removeImage}
+                adding={addingImage}
+                addLabel={t('village.festivalPosters.form.addImage')}
+                removeLabel={t('village.festivalPosters.form.removeImage')}
               />
             </VStack>
             <Input
@@ -154,7 +172,7 @@ export default function FestivalPosterEditScreen() {
               testID="poster-edit-submit"
               onPress={submit}
               loading={saving}
-              disabled={!Number.isInteger(yearNum)}
+              disabled={!Number.isInteger(yearNum) || images.length === 0}
               fullWidth
             >
               {t('common.save')}

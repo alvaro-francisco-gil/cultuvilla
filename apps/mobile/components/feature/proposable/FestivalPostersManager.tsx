@@ -3,9 +3,12 @@ import {
   newFestivalPosterId,
   createFestivalPoster,
 } from '@cultuvilla/shared/services/festivalPosterService';
-import { uploadFestivalPosterImage } from '@cultuvilla/shared/services/imageService';
-import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
-import { VStack, Button, Input, FieldLabel, DateField, ImagePickerField } from '../../primitives';
+import {
+  deleteImageByURL,
+  uploadFestivalPosterImage,
+} from '@cultuvilla/shared/services/imageService';
+import { VStack, Button, Input, FieldLabel, DateField } from '../../primitives';
+import { MultiImagePickerRow } from '../MultiImagePickerRow';
 import { pickImageAsBlob } from '../../../lib/images';
 import { useT } from '../../../lib/i18n';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
@@ -27,35 +30,55 @@ export function FestivalPostersManager({
   const { t } = useT();
   const { uid } = useEntityCapabilities(villageId);
 
+  // Mint the id up front so each picked image can upload before the doc write.
+  const [posterId] = useState(newFestivalPosterId);
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const [title, setTitle] = useState('');
   const [startsAt, setStartsAt] = useState<Date | null>(null);
   const [endsAt, setEndsAt] = useState<Date | null>(null);
-  const [image, setImage] = useState<UploadableImage | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [addingImage, setAddingImage] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  async function addImage() {
+    if (!villageId) return;
+    const picked = await pickImageAsBlob();
+    if (!picked) return;
+    setAddingImage(true);
+    try {
+      const url = await uploadFestivalPosterImage(villageId, posterId, picked);
+      setImages((prev) => [...prev, url]);
+    } finally {
+      setAddingImage(false);
+    }
+  }
+
+  function removeImage(index: number) {
+    const url = images[index];
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    if (url) void deleteImageByURL(url).catch(() => {}); // best-effort orphan cleanup
+  }
 
   async function submit() {
     const y = parseInt(year, 10);
-    if (!villageId || !uid || !Number.isInteger(y) || !image) return;
+    if (!villageId || !uid || !Number.isInteger(y) || images.length === 0) return;
     setSaving(true);
     try {
-      const id = newFestivalPosterId();
-      const imageURL = await uploadFestivalPosterImage(villageId, id, image);
       const payload = {
         municipalityId: villageId,
         proposedBy: uid,
         year: y,
         title: title.trim() || null,
-        imageURL,
+        images,
         ...datesToPayload(startsAt, endsAt),
         createdAt: new Date(),
       };
-      await createFestivalPoster(payload, id);
+      await createFestivalPoster(payload, posterId);
       setYear(String(new Date().getFullYear()));
       setTitle('');
       setStartsAt(null);
       setEndsAt(null);
-      setImage(null);
+      setImages([]);
       onCreated?.();
     } finally {
       setSaving(false);
@@ -67,13 +90,13 @@ export function FestivalPostersManager({
     <VStack gap={3} className="p-4">
       <VStack gap={1} align="start">
         <FieldLabel>{t('village.festivalPosters.form.image')}</FieldLabel>
-        <ImagePickerField
-          uri={image?.previewUri ?? null}
-          onPress={async () => {
-            const picked = await pickImageAsBlob();
-            if (picked) setImage(picked);
-          }}
-          label={t('village.festivalPosters.form.image')}
+        <MultiImagePickerRow
+          uris={images}
+          onAddPress={addImage}
+          onRemove={removeImage}
+          adding={addingImage}
+          addLabel={t('village.festivalPosters.form.addImage')}
+          removeLabel={t('village.festivalPosters.form.removeImage')}
         />
       </VStack>
 
@@ -110,7 +133,7 @@ export function FestivalPostersManager({
         testID="poster-submit"
         onPress={submit}
         loading={saving}
-        disabled={!Number.isInteger(y) || !image}
+        disabled={!Number.isInteger(y) || images.length === 0}
       >
         {t('village.festivalPosters.add')}
       </Button>
