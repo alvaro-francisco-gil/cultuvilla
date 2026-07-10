@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useState } from 'react';
-import { Alert, ScrollView } from 'react-native';
+import { ScrollView } from 'react-native';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { VStack, HStack, Text, Button, Pressable } from '../primitives';
 import { useT } from '../../lib/i18n';
@@ -67,8 +68,7 @@ export function CensoSchemaEditor({ villageId }: { villageId: string }) {
     setSaving(true);
     try {
       await updateCensoSchema(villageId, fields);
-      // mobile-web-compat: native-only — Alert is a no-op on web.
-      Alert.alert(t('censo.saved'));
+      router.back();
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : t('censo.error'));
     } finally {
