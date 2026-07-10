@@ -292,6 +292,7 @@
       "collectionGroup": "registrations",
       "fieldPath": "userId",
       "indexes": [
+        { "queryScope": "COLLECTION", "order": "ASCENDING" },
         { "queryScope": "COLLECTION_GROUP", "order": "ASCENDING" }
       ]
     },

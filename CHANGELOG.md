@@ -4,6 +4,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Fixed
+- **Event sign-up sheet again lists the personas linked to your profile.** Opening the register FAB showed only yourself + "create new" — every persona a cargo was missing, even though they render fine on the profile screen. Cause: the FAB's `load()` runs `Promise.all([getUserRegistrations, getPersonsByCreator])`, and `getUserRegistrations` (a **collection-scoped** `events/{id}/registrations` where `userId == uid` query) was throwing `FAILED_PRECONDITION`, so the whole load rejected and `setDependents` never ran. The v0.5.0 account-deletion fix had added a `registrations.userId` `fieldOverride` with **only** a `COLLECTION_GROUP` index; declaring a field override *replaces* Firestore's automatic single-field indexing, which silently removed the `COLLECTION`-scope index the sign-up query needed (the emulator ignores indexes, so tests stayed green). Restored the `COLLECTION`-scope index alongside the `COLLECTION_GROUP` one in `firestore.indexes.json`, plus a static invariant test that fails the build if a field override drops the collection-scoped index a collection-scoped query depends on. **Deploy note:** the index must be deployed per environment (done on dev; beta/prod via promotion) before the fix takes effect there.
+
 ## v0.6.0 — 2026-07-10
 
 ### Fixed
