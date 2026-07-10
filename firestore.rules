@@ -370,6 +370,32 @@ service cloud.firestore {
           && isLatLngOrNull(d.villageCoordinates);
     }
 
+    function isValidEntityKind(v) {
+      return v in ['event', 'festivalPoster', 'place', 'barrio', 'organization', 'news'];
+    }
+
+    function isValidCommentCreate(d) {
+      return d.keys().hasOnly(['entityKind', 'entityId', 'municipalityId', 'authorUserId', 'body', 'createdAt'])
+          && d.keys().hasAll(['entityKind', 'entityId', 'municipalityId', 'authorUserId', 'body', 'createdAt'])
+          && isValidEntityKind(d.entityKind)
+          && isString(d.entityId)
+          && isString(d.municipalityId)
+          && isString(d.authorUserId)
+          && isString(d.body) && d.body.size() > 0 && d.body.size() <= 2000
+          && isTimestamp(d.createdAt);
+    }
+
+    function isValidReactionWrite(d) {
+      return d.keys().hasOnly(['entityKind', 'entityId', 'municipalityId', 'userId', 'kind', 'createdAt'])
+          && d.keys().hasAll(['entityKind', 'entityId', 'municipalityId', 'userId', 'kind', 'createdAt'])
+          && isValidEntityKind(d.entityKind)
+          && isString(d.entityId)
+          && isString(d.municipalityId)
+          && isString(d.userId)
+          && d.kind in ['like', 'heart']
+          && isTimestamp(d.createdAt);
+    }
+
     // ── Collections ──────────────────────────────────────────────────────
 
     match /news/{postId} {
@@ -409,6 +435,27 @@ service cloud.firestore {
       // Clients never delete a post directly — the deleteNewsPost callable
       // cascades comments/reactions with the admin SDK (author or admin).
       allow delete: if false;
+    }
+
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if isAuthenticated()
+                      && isValidCommentCreate(request.resource.data)
+                      && request.resource.data.authorUserId == request.auth.uid;
+      allow update: if false;
+      allow delete: if isOwner(resource.data.authorUserId)
+                      || isVillageAdmin(resource.data.municipalityId)
+                      || isAppAdmin();
+    }
+
+    match /reactions/{reactionId} {
+      allow read: if true;
+      allow create, update: if isAuthenticated()
+                              && isValidReactionWrite(request.resource.data)
+                              && request.resource.data.userId == request.auth.uid
+                              && reactionId == request.resource.data.entityKind + '_'
+                                   + request.resource.data.entityId + '_' + request.auth.uid;
+      allow delete: if isOwner(resource.data.userId);
     }
 
     match /admins/{userId} {
