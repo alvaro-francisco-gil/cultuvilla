@@ -236,7 +236,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               disabled={joining}
             />
           ) : null}
-          {isMember || canManage ? (
+          {isMember ? (
             <ActionPill
               label={t('village.addContent.button')}
               onPress={() => setAddOpen(true)}
