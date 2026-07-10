@@ -7,6 +7,7 @@ import { Screen, VStack, Text, Input, Button, FieldLabel, ImagePickerField, Pres
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { OrganizerPicker } from '../../components/feature/OrganizerPicker';
 import { Stepper, type StepConfig } from '../../components/feature/Stepper';
+import { DeleteHeaderButton } from '../../components/feature/DeleteHeaderButton';
 import {
   BlockEditor,
   emptyTextBlock,
@@ -18,7 +19,7 @@ import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 import { useCallable } from '../../lib/useCallable';
 import { useMentionSources } from '../../lib/useMentionSources';
-import { createNewsPost, updateNewsPost, getNewsPost } from '@cultuvilla/shared/services/newsService';
+import { createNewsPost, updateNewsPost, getNewsPost, deleteNewsPost } from '@cultuvilla/shared/services/newsService';
 import { uploadNewsImage, newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
 import {
   NEWS_POST_CATEGORIES,
@@ -326,6 +327,13 @@ export default function NewNewsScreen() {
 
   const headerTitle = editMode ? t('news.compose.editTitle') : t('news.compose.title');
 
+  // Hard delete via the cascading callable. Reaching edit mode implies the
+  // caller is the author (or a co-organizer / admin who deep-linked here).
+  const remove = () => {
+    if (!newsId) return;
+    void deleteNewsPost(newsId).then(() => router.replace('/(tabs)'));
+  };
+
   if (loading) {
     return (
       <Screen padded={false}>
@@ -426,7 +434,21 @@ export default function NewNewsScreen() {
   // bottomInset={false}: the Stepper's own bottom nav bar applies the inset.
   return (
     <Screen padded={false} bottomInset={false}>
-      <ScreenHeader title={headerTitle} />
+      <ScreenHeader
+        title={headerTitle}
+        rightSlot={
+          editMode ? (
+            <DeleteHeaderButton
+              onConfirm={remove}
+              accessibilityLabel={t('common.delete')}
+              confirmTitle={t('common.deleteConfirmTitle')}
+              confirmMessage={t('common.deleteConfirmMessage')}
+              confirmLabel={t('common.delete')}
+              cancelLabel={t('common.cancel')}
+            />
+          ) : undefined
+        }
+      />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Stepper
           steps={steps}
