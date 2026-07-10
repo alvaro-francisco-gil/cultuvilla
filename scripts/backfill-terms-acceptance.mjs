@@ -10,28 +10,35 @@
  * falling back to a server timestamp when `createdAt` is absent.
  *
  * USAGE
- *   GOOGLE_APPLICATION_CREDENTIALS=<dev key> node scripts/backfill-terms-acceptance.mjs
+ *   node scripts/backfill-terms-acceptance.mjs                       # dev
+ *   env -u GOOGLE_APPLICATION_CREDENTIALS node \
+ *     scripts/backfill-terms-acceptance.mjs --env beta --yes         # beta/prod
  *
  * Idempotent: only patches docs whose `termsVersion` is missing.
  */
 
 import admin from 'firebase-admin';
+import { initAdminForEnv } from './lib/env-credentials.mjs';
 
-const PROJECT_ID = 'villa-events';
 const TERMS_VERSION = '1.0';
 
-if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  console.error('GOOGLE_APPLICATION_CREDENTIALS is not set.');
+// `--env dev|beta|prod` (default dev). Non-dev requires an explicit `--yes`.
+// For --env beta/prod, unset GOOGLE_APPLICATION_CREDENTIALS first so the
+// resolver uses the stored ADC (a dev key would auth to the wrong project).
+function argValue(flag) {
+  const i = process.argv.indexOf(flag);
+  return i !== -1 && i + 1 < process.argv.length ? process.argv[i + 1] : undefined;
+}
+const envArg = argValue('--env') ?? 'dev';
+const yes = process.argv.includes('--yes');
+
+const { env, projectId } = initAdminForEnv(envArg);
+if (env !== 'dev' && !yes) {
+  console.error(`Refusing to run against non-dev env "${env}" (${projectId}) without --yes.`);
   process.exit(1);
 }
-
-admin.initializeApp({ projectId: PROJECT_ID });
+console.log(`Backfill target: ${env} (${projectId})\n`);
 const db = admin.firestore();
-
-if (admin.app().options.projectId !== PROJECT_ID) {
-  console.error(`Refusing to run against ${admin.app().options.projectId} — dev only.`);
-  process.exit(1);
-}
 
 async function main() {
   const snap = await db.collection('users').get();

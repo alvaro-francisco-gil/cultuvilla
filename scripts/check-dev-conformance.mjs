@@ -2,9 +2,10 @@
 /**
  * check-dev-conformance.mjs
  *
- * Read-only conformance check: walks every collection in dev Firestore
- * (`villa-events`) and validates each doc against its current Zod schema —
- * the exact same `schema.parse` the app runs on read (see makeConverter).
+ * Read-only conformance check: walks every collection in the target Firestore
+ * env (default dev `villa-events`; `--env beta|prod` for the others) and
+ * validates each doc against its current Zod schema — the exact same
+ * `schema.parse` the app runs on read (see makeConverter).
  *
  * Why this exists: adding a required field to a model and forgetting to
  * backfill existing dev docs makes the strict converter throw on read, which
@@ -15,6 +16,8 @@
  * USAGE
  *   pnpm shared:build && node scripts/check-dev-conformance.mjs
  *   (or: pnpm check:dev-conformance)
+ *   beta/prod: env -u GOOGLE_APPLICATION_CREDENTIALS node \
+ *     scripts/check-dev-conformance.mjs --env beta
  *
  * Exits non-zero when any doc fails to parse, so it is CI-wireable.
  *
@@ -37,6 +40,7 @@
  */
 
 import admin from 'firebase-admin';
+import { initAdminForEnv } from './lib/env-credentials.mjs';
 import {
   eventsCollection,
   eventRegistrationsCollection,
@@ -63,20 +67,19 @@ import {
   adminsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
 
-const PROJECT_ID = 'villa-events';
-
-if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  console.error('GOOGLE_APPLICATION_CREDENTIALS is not set. See firebase-admin-dev skill.');
-  process.exit(1);
+// `--env dev|beta|prod` (default dev). Read-only check — safe against any env,
+// so no `--yes` gate. For --env beta/prod, unset GOOGLE_APPLICATION_CREDENTIALS
+// first so the resolver uses the stored ADC (a dev key would auth to the wrong
+// project).
+function argValue(flag) {
+  const i = process.argv.indexOf(flag);
+  return i !== -1 && i + 1 < process.argv.length ? process.argv[i + 1] : undefined;
 }
+const envArg = argValue('--env') ?? 'dev';
 
-admin.initializeApp({ projectId: PROJECT_ID });
+const { env, projectId } = initAdminForEnv(envArg);
+console.log(`Conformance target: ${env} (${projectId})\n`);
 const db = admin.firestore();
-
-if (admin.app().options.projectId !== PROJECT_ID) {
-  console.error(`Refusing to run against ${admin.app().options.projectId} — dev only.`);
-  process.exit(1);
-}
 
 /**
  * Path tree mirroring packages/shared/src/firebase/refs/admin.ts.
@@ -172,7 +175,7 @@ function report(label, result) {
 }
 
 async function main() {
-  console.log(`Conformance check against ${PROJECT_ID}\n`);
+  console.log(`Conformance check against ${projectId}\n`);
   let totalBad = 0;
 
   for (const entry of REGISTRY) {
