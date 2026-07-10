@@ -56,7 +56,7 @@ export function FestivalPostersManager({
   function removeImage(index: number) {
     const url = images[index];
     setImages((prev) => prev.filter((_, i) => i !== index));
-    void deleteImageByURL(url).catch(() => {}); // best-effort orphan cleanup
+    if (url) void deleteImageByURL(url).catch(() => {}); // best-effort orphan cleanup
   }
 
   async function submit() {
