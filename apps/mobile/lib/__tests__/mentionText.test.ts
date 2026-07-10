@@ -131,6 +131,14 @@ describe('mentionRuns', () => {
       { text: 'bbbb' },
     ]);
   });
+
+  it('emits a mention run with no trailing prose when the mention ends the text', () => {
+    const m = [mention(5, 3, 'abc')]; // "abc" ends "hola abc"
+    expect(mentionRuns('hola abc', m)).toEqual([
+      { text: 'hola ' },
+      { text: 'abc', mention: m[0] },
+    ]);
+  });
 });
 
 describe('deleteMentionAt', () => {
@@ -157,5 +165,16 @@ describe('deleteMentionAt', () => {
   it('returns null when the caret is not at a mention edge', () => {
     expect(deleteMentionAt(text, m, 2, 'backward')).toBeNull();
     expect(deleteMentionAt(text, m, 7, 'backward')).toBeNull(); // inside the span
+  });
+
+  it('removes only the touched mention when two are adjacent', () => {
+    // "ab" (offset 0, len 2) immediately followed by "cd" (offset 2, len 2)
+    const adjacent = [mention(0, 2, 'ab'), mention(2, 2, 'cd')];
+    // Backspace at the shared boundary (caret 2) targets the FIRST mention's end
+    const back = deleteMentionAt('abcd', adjacent, 2, 'backward')!;
+    expect(back).toEqual({ text: 'cd', mentions: [{ ...adjacent[1], offset: 0 }], cursor: 0 });
+    // Delete at the shared boundary (caret 2) targets the SECOND mention's start
+    const fwd = deleteMentionAt('abcd', adjacent, 2, 'forward')!;
+    expect(fwd).toEqual({ text: 'ab', mentions: [adjacent[0]], cursor: 2 });
   });
 });
