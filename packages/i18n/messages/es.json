@@ -7,6 +7,15 @@
     "delete": "Eliminar",
     "deleteConfirmTitle": "Eliminar",
     "deleteConfirmMessage": "¿Seguro que quieres eliminarlo? Esta acción no se puede deshacer.",
+    "deleting": {
+      "event": "Eliminando evento…",
+      "news": "Eliminando noticia…",
+      "organization": "Eliminando organización…",
+      "person": "Eliminando persona…",
+      "place": "Eliminando lugar…",
+      "barrio": "Eliminando barrio…",
+      "festivalPoster": "Eliminando cartel…"
+    },
     "edit": "Editar",
     "approve": "Aprobar",
     "reject": "Rechazar",

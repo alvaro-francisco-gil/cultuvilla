@@ -343,7 +343,7 @@ export default function NewNewsScreen() {
   // caller is the author (or a co-organizer / admin who deep-linked here).
   const remove = () => {
     if (!newsId) return;
-    void deleteNewsPost(newsId).then(() => router.replace('/(tabs)'));
+    return deleteNewsPost(newsId).then(() => router.replace('/(tabs)'));
   };
 
   if (loading) {
@@ -457,6 +457,7 @@ export default function NewNewsScreen() {
               confirmMessage={t('common.deleteConfirmMessage')}
               confirmLabel={t('common.delete')}
               cancelLabel={t('common.cancel')}
+              deletingLabel={t('common.deleting.news')}
             />
           ) : undefined
         }

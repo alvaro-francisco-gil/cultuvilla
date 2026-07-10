@@ -96,7 +96,7 @@ export default function FestivalPosterEditScreen() {
             onAccent
             onConfirm={() => {
               if (posterId)
-                void hideContent({ collection: 'festivalPosters', docId: posterId })
+                return hideContent({ collection: 'festivalPosters', docId: posterId })
                   .then(() => router.replace(`/village/${villageId}`));
             }}
             accessibilityLabel={t('common.delete')}
@@ -104,6 +104,7 @@ export default function FestivalPosterEditScreen() {
             confirmMessage={t('common.deleteConfirmMessage')}
             confirmLabel={t('common.delete')}
             cancelLabel={t('common.cancel')}
+            deletingLabel={t('common.deleting.festivalPoster')}
           />
         }
       />

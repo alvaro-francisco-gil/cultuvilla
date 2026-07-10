@@ -4,6 +4,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+- **Blocking "please wait" overlay while an entity is being deleted.** Confirming a delete from any edit screen (event, article, place, barrio, organization, festival poster, or persona) now raises a non-dismissible full-screen overlay — a dimmed scrim with a spinner and a per-entity label (e.g. "Eliminando evento…") — so it's obvious the write is in flight and to wait, rather than tapping again or navigating away. The overlay lives in the shared `DeleteHeaderButton` (new reusable `BlockingOverlay` primitive) and clears automatically when the delete navigates away, or on error.
+
 ## v0.4.0 — 2026-07-10
 
 ### Changed

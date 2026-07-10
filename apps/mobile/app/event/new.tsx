@@ -302,7 +302,7 @@ export default function NewEventScreen() {
   // already implies organizer rights.
   const deleteEvent = () => {
     if (!eventId) return;
-    void updateEventStatus(eventId, 'cancelled').then(() => router.replace('/(tabs)'));
+    return updateEventStatus(eventId, 'cancelled').then(() => router.replace('/(tabs)'));
   };
 
   if (loading) {
@@ -483,6 +483,7 @@ export default function NewEventScreen() {
               confirmMessage={t('event.cancelConfirm')}
               confirmLabel={t('common.delete')}
               cancelLabel={t('common.cancel')}
+              deletingLabel={t('common.deleting.event')}
             />
           ) : undefined
         }

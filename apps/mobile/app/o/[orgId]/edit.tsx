@@ -96,13 +96,14 @@ export default function OrgEditScreen() {
           <DeleteHeaderButton
             onAccent
             onConfirm={() => {
-              if (orgId) void deleteOrganization(orgId).then(() => router.replace('/(tabs)'));
+              if (orgId) return deleteOrganization(orgId).then(() => router.replace('/(tabs)'));
             }}
             accessibilityLabel={t('common.delete')}
             confirmTitle={t('common.deleteConfirmTitle')}
             confirmMessage={t('common.deleteConfirmMessage')}
             confirmLabel={t('common.delete')}
             cancelLabel={t('common.cancel')}
+            deletingLabel={t('common.deleting.organization')}
           />
         }
       />

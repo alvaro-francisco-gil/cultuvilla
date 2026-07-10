@@ -73,7 +73,7 @@ export default function BarrioEditScreen() {
             onAccent
             onConfirm={() => {
               if (villageId && barrioId)
-                void hideContent({ collection: 'barrios', docId: barrioId, municipalityId: villageId })
+                return hideContent({ collection: 'barrios', docId: barrioId, municipalityId: villageId })
                   .then(() => router.replace(`/village/${villageId}`));
             }}
             accessibilityLabel={t('common.delete')}
@@ -81,6 +81,7 @@ export default function BarrioEditScreen() {
             confirmMessage={t('common.deleteConfirmMessage')}
             confirmLabel={t('common.delete')}
             cancelLabel={t('common.cancel')}
+            deletingLabel={t('common.deleting.barrio')}
           />
         }
       />
