@@ -63,7 +63,7 @@ export default function PersonDetailScreen() {
     // the persona may have been reached by deep link (no history), and its detail
     // no longer exists after deletion — a back would fire the "GO_BACK not
     // handled" navigator warning.
-    void deletePerson(person.id).then(() => router.replace('/(tabs)/profile'));
+    return deletePerson(person.id).then(() => router.replace('/(tabs)/profile'));
   };
 
   // Residence links for the non-account (links-mode) editor. Seeded from the
@@ -201,6 +201,7 @@ export default function PersonDetailScreen() {
               confirmMessage={t('common.deleteConfirmMessage')}
               confirmLabel={t('common.delete')}
               cancelLabel={t('common.cancel')}
+              deletingLabel={t('common.deleting.person')}
             />
           ) : undefined
         }

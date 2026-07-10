@@ -19,6 +19,7 @@ import { buildVillageMemberData } from '../models/municipality/VillageMemberData
 import { buildResidenceLinks } from '../models/person/PersonDataModel';
 import { setActiveMunicipality } from './userService';
 import { getPersonByUserId } from './personService';
+import { getMunicipality, startVillage } from './municipalityService';
 import type {
   VillageMemberData,
   VillageMemberRole,
@@ -79,6 +80,38 @@ export async function joinVillage(
   }
   await batch.commit();
 
+  await setActiveMunicipality(userId, municipalityId);
+}
+
+/**
+ * Land the caller in a village, activating it first if it is still dormant.
+ *
+ * The single entry point registration and the logged-out "sign in to join" flow
+ * use to become a villager. It closes the gap that let a picked village never
+ * turn into a membership: whichever branch runs, a `members/{uid}` doc ends up
+ * existing — the doc the profile's village list reads.
+ *
+ * - Community already active → a plain self-service {@link joinVillage} (allowed
+ *   by rules because `isCommunityActive`).
+ * - Dormant municipality → {@link startVillage}, which is self-service (any
+ *   authenticated user; organizer stays null) and *itself* seats the caller as
+ *   the first member (role `user`) server-side. Activation doesn't touch
+ *   `activeMunicipalityId`, so we set it here to mirror `joinVillage`.
+ *
+ * A missing municipality is treated as dormant so we attempt activation rather
+ * than fire a self-join that the rules would deny.
+ */
+export async function ensureVillageMembership(
+  municipalityId: string,
+  userId: string,
+  barrioId: string | null = null,
+): Promise<void> {
+  const municipality = await getMunicipality(municipalityId);
+  if (municipality?.communityActive) {
+    await joinVillage(municipalityId, userId, barrioId);
+    return;
+  }
+  await startVillage({ municipalityId });
   await setActiveMunicipality(userId, municipalityId);
 }
 

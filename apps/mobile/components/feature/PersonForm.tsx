@@ -22,6 +22,7 @@ import {
   isCatalogOccupation,
   occupationI18nKey,
 } from '@cultuvilla/shared/models/occupation';
+import { maxBirthdayForAge } from '@cultuvilla/shared/utils';
 import { Stepper, type StepConfig } from './Stepper';
 
 export interface PersonFormValues {
@@ -74,6 +75,12 @@ export interface PersonFormProps {
    * collect consent.
    */
   consentSatisfied?: boolean;
+  /**
+   * Minimum age (years) the birthday must satisfy. Set only for the account
+   * owner's own profile at onboarding (Terms: self-registration is 14+); left
+   * undefined for family personas, which have no age floor.
+   */
+  minAgeYears?: number;
   onSubmit: (values: PersonFormValues, photo: PersonFormPhoto | null) => Promise<void> | void;
 }
 
@@ -88,6 +95,7 @@ export function PersonForm({
   renderResidence,
   renderConsent,
   consentSatisfied,
+  minAgeYears,
   onSubmit,
 }: PersonFormProps) {
   const { t } = useT();
@@ -104,15 +112,23 @@ export function PersonForm({
   );
   const [biography, setBiography] = useState(initial?.biography ?? '');
   const initialOccupations = initial?.occupations ?? [];
-  const [selectedCatalog, setSelectedCatalog] = useState<string[]>(
-    initialOccupations.filter(isCatalogOccupation),
-  );
-  const [customOccupations, setCustomOccupations] = useState<string[]>(
-    initialOccupations.filter((o) => !isCatalogOccupation(o)),
-  );
+  const initialCustom = initialOccupations.filter((o) => !isCatalogOccupation(o));
+  // 'otro' is a reveal toggle, not a stored occupation. Re-select it when the
+  // person already has free-text entries so the custom UI shows on edit.
+  const [selectedCatalog, setSelectedCatalog] = useState<string[]>(() => {
+    const catalog = initialOccupations.filter(isCatalogOccupation).filter((k) => k !== 'otro');
+    return initialCustom.length > 0 ? [...catalog, 'otro'] : catalog;
+  });
+  const [customOccupations, setCustomOccupations] = useState<string[]>(initialCustom);
   const [customOccupationInput, setCustomOccupationInput] = useState('');
+  const showCustomOccupation = selectedCatalog.includes('otro');
 
   function toggleCatalogOccupation(key: string) {
+    // Deselecting 'otro' discards free-text entries the user can no longer see.
+    if (key === 'otro' && selectedCatalog.includes('otro')) {
+      setCustomOccupations([]);
+      setCustomOccupationInput('');
+    }
     setSelectedCatalog((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     );
@@ -140,7 +156,7 @@ export function PersonForm({
         birthday,
         birthPlaceMunicipalityId: birthPlace,
         biography,
-        occupations: [...selectedCatalog, ...customOccupations],
+        occupations: [...selectedCatalog.filter((k) => k !== 'otro'), ...customOccupations],
       },
       photo
     );
@@ -157,6 +173,13 @@ export function PersonForm({
       </ScrollView>
     );
   }
+
+  // Self-registration age floor (Terms: 14+). The date picker caps by year, so
+  // a same-year birthday can still be under-age — hence the explicit check that
+  // also gates submit. Undefined minAgeYears (family personas) never gates.
+  const birthdayMax = minAgeYears != null ? maxBirthdayForAge(minAgeYears, new Date()) : undefined;
+  const birthdayTooYoung =
+    birthdayMax != null && birthday != null && birthday.getTime() > birthdayMax.getTime();
 
   const steps: StepConfig[] = [
     {
@@ -228,7 +251,12 @@ export function PersonForm({
       key: 'residence',
       title: t('profile.personForm.stepResidence'),
       icon: 'location-outline',
-      validate: () => (requireFullName && !birthday ? ['birthday'] : []),
+      validate: () => {
+        const errs: string[] = [];
+        if (requireFullName && !birthday) errs.push('birthday');
+        if (birthdayTooYoung) errs.push('birthday-min-age');
+        return errs;
+      },
       render: () =>
         stepBody(
           <>
@@ -237,9 +265,14 @@ export function PersonForm({
               value={birthday}
               onChange={setBirthday}
               minimumDate={new Date(1900, 0, 1)}
-              maximumDate={new Date()}
+              maximumDate={birthdayMax ?? new Date()}
               testID="birthday"
             />
+            {birthdayTooYoung ? (
+              <Text tone="danger" variant="bodySm" testID="birthday-min-age-error">
+                {t('onboarding.completeProfile.minAge')}
+              </Text>
+            ) : null}
             <VillagePicker
               label={t('onboarding.completeProfile.birthPlace')}
               value={birthPlace}
@@ -303,40 +336,44 @@ export function PersonForm({
                   );
                 })}
               </View>
-              {customOccupations.length > 0 && (
-                <View className="flex-row flex-wrap gap-2">
-                  {customOccupations.map((value) => (
-                    <Pressable
-                      key={value}
-                      onPress={() => removeCustomOccupation(value)}
-                      className="px-3 py-1.5 rounded-full border bg-accent border-accent"
+              {showCustomOccupation && (
+                <>
+                  {customOccupations.length > 0 && (
+                    <View className="flex-row flex-wrap gap-2">
+                      {customOccupations.map((value) => (
+                        <Pressable
+                          key={value}
+                          onPress={() => removeCustomOccupation(value)}
+                          className="px-3 py-1.5 rounded-full border bg-accent border-accent"
+                        >
+                          <Text variant="bodySm" tone="onAccent">
+                            {value} ✕
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+                  <HStack gap={2}>
+                    <View className="flex-1">
+                      <Input
+                        label={t('occupations.picker.customLabel')}
+                        value={customOccupationInput}
+                        onChangeText={setCustomOccupationInput}
+                        placeholder={t('occupations.picker.customPlaceholder')}
+                        testID="occupation-custom-input"
+                      />
+                    </View>
+                    <Button
+                      variant="secondary"
+                      onPress={addCustomOccupation}
+                      disabled={!customOccupationInput.trim()}
+                      testID="occupation-custom-add"
                     >
-                      <Text variant="bodySm" tone="onAccent">
-                        {value} ✕
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
+                      {t('occupations.picker.add')}
+                    </Button>
+                  </HStack>
+                </>
               )}
-              <HStack gap={2}>
-                <View className="flex-1">
-                  <Input
-                    label={t('occupations.picker.customLabel')}
-                    value={customOccupationInput}
-                    onChangeText={setCustomOccupationInput}
-                    placeholder={t('occupations.picker.customPlaceholder')}
-                    testID="occupation-custom-input"
-                  />
-                </View>
-                <Button
-                  variant="secondary"
-                  onPress={addCustomOccupation}
-                  disabled={!customOccupationInput.trim()}
-                  testID="occupation-custom-add"
-                >
-                  {t('occupations.picker.add')}
-                </Button>
-              </HStack>
             </VStack>
             {renderConsent?.()}
           </>,

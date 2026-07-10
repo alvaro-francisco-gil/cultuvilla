@@ -64,6 +64,9 @@ jest.mock('../../../lib/auth/useAuth', () => ({
 jest.mock('../../../lib/auth/useIsAppAdmin', () => ({
   useIsAppAdmin: () => ({ isAppAdmin: false }),
 }));
+jest.mock('../../../lib/auth/RegisterGateContext', () => ({
+  useRegisterGate: () => ({ requireAuth: jest.fn(() => false), pendingIntent: null, clearPending: jest.fn() }),
+}));
 jest.mock('../../../lib/firestoreErrorLog', () => ({
   withFirestoreErrorLog: (_label: string, fn: () => unknown) => fn(),
 }));
@@ -94,9 +97,6 @@ jest.mock('../../../lib/i18n', () => ({
         'village.noOrganizer.pending': 'Tu solicitud de administrador está pendiente de revisión',
         'village.admin.open': 'Administrar pueblo',
         'village.festivalPosters.title': 'Carteles de fiestas',
-        'village.festivalPosters.empty': 'Todavía no hay carteles de fiestas.',
-        'village.festivalPosters.add': 'Añadir',
-        'village.festivalPosters.propose': 'Proponer',
       };
       return map[key] ?? key;
     },
@@ -233,15 +233,14 @@ describe('VillageTabScreen', () => {
       expect(await findByText('2024')).toBeTruthy();
     });
 
-    it('keeps the section (and its add card) visible when there are no posters', async () => {
+    it('hides the section entirely when there are no posters', async () => {
       (getFestivalPosters as jest.Mock).mockResolvedValue([]);
+      // Wait for the page to settle (the escudo/name renders regardless), then
+      // assert the empty section is gone — content is created from the "Añadir
+      // contenido" sheet, so an empty scroll no longer appears.
       const { findByText, queryByText } = render(<VillageTabScreen />);
-      expect(
-        await findByText('Carteles de fiestas', undefined, { timeout: 5000 }),
-      ).toBeTruthy();
-      // The add card is always rendered, so the section never falls into the
-      // empty-label branch — regression guard for the disappearing add button.
-      expect(queryByText('Todavía no hay carteles de fiestas.')).toBeNull();
+      await findByText('Sotos de Mayorga', undefined, { timeout: 5000 });
+      expect(queryByText('Carteles de fiestas')).toBeNull();
     });
   });
 });

@@ -16,14 +16,17 @@
  *   --confirm  REQUIRED for --env=beta or --env=prod (guards against accidental
  *              writes to shared non-dev environments).
  *
- * Credentials: set GOOGLE_APPLICATION_CREDENTIALS to a service-account key with
- * access to the TARGET project. Dev is autonomous; beta/prod are gated — see the
+ * Credentials: resolved by initAdminForEnv (GOOGLE_APPLICATION_CREDENTIALS
+ * override → ~/.config/cultuvilla/<env>-sa.json → stored ADC). For beta/prod,
+ * unset GOOGLE_APPLICATION_CREDENTIALS first so a dev key doesn't hijack the
+ * target project. Dev is autonomous; beta/prod are gated — see the
  * `firebase-admin-dev` skill and the branch model in AGENTS.md. Not idempotent by
  * accident: it fully rewrites the doc (merge:false) so the whole gate config is
  * defined in one place.
  */
 
 import admin from 'firebase-admin';
+import { initAdminForEnv } from './lib/env-credentials.mjs';
 
 // Environment → Firebase project id (see AGENTS.md branch model + eas.json).
 const PROJECTS = {
@@ -51,23 +54,17 @@ function parseArgs(argv) {
 }
 
 const args = parseArgs(process.argv.slice(2));
-const env = typeof args.env === 'string' ? args.env : 'dev';
-const projectId = PROJECTS[env];
+const envArg = typeof args.env === 'string' ? args.env : 'dev';
 
-if (!projectId) {
-  console.error(`Unknown --env "${env}". Use one of: ${Object.keys(PROJECTS).join(', ')}.`);
-  process.exit(1);
-}
-
-if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  console.error('GOOGLE_APPLICATION_CREDENTIALS is not set (needs a key for the TARGET project).');
+if (!PROJECTS[envArg]) {
+  console.error(`Unknown --env "${envArg}". Use one of: ${Object.keys(PROJECTS).join(', ')}.`);
   process.exit(1);
 }
 
 // Beta/prod are shared environments — require an explicit acknowledgement.
-if ((env === 'beta' || env === 'prod') && args.confirm !== true) {
+if ((envArg === 'beta' || envArg === 'prod') && args.confirm !== true) {
   console.error(
-    `Refusing to write ${env} (${projectId}) without --confirm. ` +
+    `Refusing to write ${envArg} (${PROJECTS[envArg]}) without --confirm. ` +
       `Beta/prod are off-limits without explicit intent (see AGENTS.md).`,
   );
   process.exit(1);
@@ -76,13 +73,8 @@ if ((env === 'beta' || env === 'prod') && args.confirm !== true) {
 const min = typeof args.min === 'string' ? args.min : DEFAULT_MIN;
 const latest = typeof args.latest === 'string' ? args.latest : DEFAULT_LATEST;
 
-admin.initializeApp({ projectId });
+const { env, projectId } = initAdminForEnv(envArg);
 const db = admin.firestore();
-
-if (admin.app().options.projectId !== projectId) {
-  console.error(`Init mismatch: expected ${projectId}, got ${admin.app().options.projectId}.`);
-  process.exit(1);
-}
 
 async function main() {
   const payload = {

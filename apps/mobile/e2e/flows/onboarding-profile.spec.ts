@@ -38,7 +38,8 @@ test.describe('onboarding: complete profile', () => {
     await page.getByTestId('birthday-day-option-15').click();
     await page.getByTestId('person-form-primary').click();
 
-    // Step 3 — about: everything optional, submit straight away.
+    // Step 3 — about: fields optional, but terms acceptance is required.
+    await page.getByTestId('accept-terms').click();
     await page.getByTestId('person-form-primary').click();
 
     // Strong assertion: the profile now links a person, and that person exists.

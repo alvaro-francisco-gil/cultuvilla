@@ -82,7 +82,7 @@ export default function PlaceEditScreen() {
             onAccent
             onConfirm={() => {
               if (villageId && placeId)
-                void hideContent({ collection: 'places', docId: placeId, municipalityId: villageId })
+                return hideContent({ collection: 'places', docId: placeId, municipalityId: villageId })
                   .then(() => router.replace(`/village/${villageId}`));
             }}
             accessibilityLabel={t('common.delete')}
@@ -90,6 +90,7 @@ export default function PlaceEditScreen() {
             confirmMessage={t('common.deleteConfirmMessage')}
             confirmLabel={t('common.delete')}
             cancelLabel={t('common.cancel')}
+            deletingLabel={t('common.deleting.place')}
           />
         }
       />

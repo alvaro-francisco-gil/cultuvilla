@@ -8,6 +8,7 @@ const props = {
   confirmMessage: '¿Seguro?',
   confirmLabel: 'Eliminar',
   cancelLabel: 'Cancelar',
+  deletingLabel: 'Eliminando…',
 };
 
 describe('DeleteHeaderButton', () => {

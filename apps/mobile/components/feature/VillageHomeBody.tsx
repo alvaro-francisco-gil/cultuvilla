@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View, Image, Linking } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import {
   Text,
@@ -17,6 +16,7 @@ import { AddContentSheet } from './AddContentSheet';
 import { JoinVillageModal } from './JoinVillageModal';
 import { StatsRow } from './StatsRow';
 import { useAuth } from '../../lib/auth/useAuth';
+import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { useT } from '../../lib/i18n';
@@ -49,6 +49,7 @@ export interface VillageHomeBodyProps {
  */
 export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
   const { user, refreshProfile } = useAuth();
+  const gate = useRegisterGate();
   const { isAppAdmin } = useIsAppAdmin();
   const share = useShareDeepLink();
   const { t } = useT();
@@ -160,7 +161,9 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
 
   const onJoin = () => {
     if (!user) {
-      router.push('/(auth)/login' as never);
+      // Carry this village across auth: after the guest registers, onboarding
+      // pre-selects it and joins them; an already-onboarded user resumes to it.
+      gate.requireAuth(villageBase, t('guest.village'), village.id);
       return;
     }
     // Open the shared modal (escudo + name + barrio picker). Replaces the old
@@ -297,9 +300,9 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
           </VStack>
         ) : null}
 
-        {/* ── Ubicación: the map rectangle when coordinates are set; for admins,
-            a dashed "add location" placeholder in the same footprint when it's
-            missing (location is edited in the community "Detalles" step). ── */}
+        {/* ── Ubicación: the map rectangle when coordinates are set. When
+            missing, the slot is hidden entirely — location is set in the
+            edit-village ("Detalles") step, not from here. ── */}
         {village.coordinates ? (
           <View className="px-4 pt-2">
             <Pressable
@@ -319,31 +322,12 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               />
             </Pressable>
           </View>
-        ) : canManage ? (
-          <View className="px-4 pt-2">
-            <Pressable
-              onPress={() => router.push(`/village/${village.id}/community` as never)}
-              accessibilityLabel={t('village.location.add')}
-              className="items-center justify-center gap-2 rounded-2xl border border-dashed border-subtle"
-              style={{ width: '100%', aspectRatio: 2.5 }}
-            >
-              {/* icon size mirrors VillageSections' AddCard so this reads as the
-                  same dashed "add" affordance, just in the map's footprint. */}
-              <Ionicons name="location-outline" size={44} color={ACCENT} />
-              <Text variant="bodySm" className="font-medium">
-                {t('village.location.add')}
-              </Text>
-            </Pressable>
-          </View>
         ) : null}
 
         {/* ── Próximos eventos ─────────────────────────────────── */}
         <Section
           title={t('village.upcomingEvents.title')}
           isEmpty={events.length === 0}
-          emptyLabel={t('village.upcomingEvents.empty')}
-          addLabel={isMember ? t('feed.events.create') : undefined}
-          onAdd={isMember ? () => router.push(`/event/new?villageId=${village.id}` as never) : undefined}
         >
           {events.map((e) => (
             <EntityCard
@@ -361,9 +345,6 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         <Section
           title={t('village.newsFeed.title')}
           isEmpty={news.length === 0}
-          emptyLabel={t('village.newsFeed.empty')}
-          addLabel={isMember ? t('feed.news.create') : undefined}
-          onAdd={isMember ? () => router.push(`/news/new?villageId=${village.id}` as never) : undefined}
         >
           {news.map((n) => (
             <NewsEntityCard
@@ -377,13 +358,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         {/* ── Carteles de fiestas ──────────────────────────────── */}
         <Section
           title={t('village.festivalPosters.title')}
-          // Never empty: the portrait add card is always rendered below (as with
-          // the places/barrios scrolls), so the scroll — and its add button —
-          // stays visible even when the village has no carteles yet.
-          isEmpty={false}
-          emptyLabel={t('village.festivalPosters.empty')}
-          addLabel={t('village.festivalPosters.add')}
-          onAdd={() => router.push(`${villageBase}/festival-posters` as never)}
+          isEmpty={festivalPosters.length === 0}
         >
           {festivalPosters.map((p) => (
             <EntityCard
@@ -401,9 +376,6 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         <Section
           title={t('village.admin.hub.barrios')}
           isEmpty={barrios.length === 0}
-          emptyLabel={t('village.admin.barrios.empty')}
-          addLabel={t('village.admin.barrios.add')}
-          onAdd={() => router.push(`${villageBase}/barrios` as never)}
         >
           {barrios.map((b) => (
             <EntityCard
@@ -423,9 +395,6 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         <Section
           title={t('village.admin.hub.places')}
           isEmpty={places.length === 0}
-          emptyLabel={t('village.admin.places.empty')}
-          addLabel={t('village.admin.places.add')}
-          onAdd={() => router.push(`${villageBase}/places` as never)}
         >
           {places.map((p) => (
             <EntityCard
@@ -442,9 +411,6 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         <Section
           title={t('village.hub.organizations')}
           isEmpty={agrupaciones.length === 0}
-          emptyLabel={t('village.organizationsList.empty')}
-          addLabel={canManage ? t('village.admin.organizations.add') : t('village.proposals.propose')}
-          onAdd={() => router.push(`${villageBase}/organizations` as never)}
         >
           {agrupaciones.map((o) => (
             <EntityCard
@@ -462,9 +428,6 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         <Section
           title={t('village.hub.penas')}
           isEmpty={penas.length === 0}
-          emptyLabel={t('village.organizationsList.penasEmpty')}
-          addLabel={canManage ? t('village.admin.organizations.addPena') : t('village.proposals.propose')}
-          onAdd={() => router.push(`${villageBase}/organizations` as never)}
         >
           {penas.map((o) => (
             <EntityCard
@@ -478,45 +441,49 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
           ))}
         </Section>
 
-        {/* ── Censo: everyone fills; admins also configure ─────── */}
-        <HStack gap={3} className="px-4 pt-8">
-          <Pressable
-            onPress={() => router.push(`/village/${village.id}/censo?mode=fill` as never)}
-            accessibilityLabel={censoFillLabel}
-            className="flex-1 flex-row items-center justify-center bg-surface"
-            style={{
-              paddingVertical: 5,
-              paddingHorizontal: 12,
-              borderRadius: 24,
-              borderWidth: 1.5,
-              borderColor: ACCENT,
-              minHeight: 32,
-            }}
-          >
-            <Text style={{ color: ACCENT }} className="font-semibold">
-              {censoFillLabel}
-            </Text>
-          </Pressable>
-          {canManage ? (
-            <Pressable
-              onPress={() => router.push(`/village/${village.id}/censo?mode=configure` as never)}
-              accessibilityLabel={t('village.censo.configure')}
-              className="flex-1 flex-row items-center justify-center bg-surface"
-              style={{
-                paddingVertical: 5,
-                paddingHorizontal: 12,
-                borderRadius: 24,
-                borderWidth: 1.5,
-                borderColor: ACCENT,
-                minHeight: 32,
-              }}
-            >
-              <Text style={{ color: ACCENT }} className="font-semibold">
-                {t('village.censo.configure')}
-              </Text>
-            </Pressable>
-          ) : null}
-        </HStack>
+        {/* ── Censo: only villagers of this village fill; admins also configure ─── */}
+        {isMember || canManage ? (
+          <HStack gap={3} className="px-4 pt-8">
+            {isMember ? (
+              <Pressable
+                onPress={() => router.push(`/village/${village.id}/censo?mode=fill` as never)}
+                accessibilityLabel={censoFillLabel}
+                className="flex-1 flex-row items-center justify-center bg-surface"
+                style={{
+                  paddingVertical: 5,
+                  paddingHorizontal: 12,
+                  borderRadius: 24,
+                  borderWidth: 1.5,
+                  borderColor: ACCENT,
+                  minHeight: 32,
+                }}
+              >
+                <Text style={{ color: ACCENT }} className="font-semibold">
+                  {censoFillLabel}
+                </Text>
+              </Pressable>
+            ) : null}
+            {canManage ? (
+              <Pressable
+                onPress={() => router.push(`/village/${village.id}/censo?mode=configure` as never)}
+                accessibilityLabel={t('village.censo.configure')}
+                className="flex-1 flex-row items-center justify-center bg-surface"
+                style={{
+                  paddingVertical: 5,
+                  paddingHorizontal: 12,
+                  borderRadius: 24,
+                  borderWidth: 1.5,
+                  borderColor: ACCENT,
+                  minHeight: 32,
+                }}
+              >
+                <Text style={{ color: ACCENT }} className="font-semibold">
+                  {t('village.censo.configure')}
+                </Text>
+              </Pressable>
+            ) : null}
+          </HStack>
+        ) : null}
       </ScrollView>
       <JoinVillageModal
         municipality={
