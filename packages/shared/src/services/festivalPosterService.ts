@@ -58,7 +58,7 @@ export async function getFestivalPoster(posterId: string): Promise<FestivalPoste
 export function updateFestivalPoster(
   posterId: string,
   patch: Partial<
-    Pick<FestivalPosterData, 'year' | 'title' | 'imageURL' | 'datePrecision' | 'startsAt' | 'endsAt'>
+    Pick<FestivalPosterData, 'year' | 'title' | 'images' | 'datePrecision' | 'startsAt' | 'endsAt'>
   >,
 ): Promise<void> {
   return updateDoc(doc(getDb(), 'festivalPosters', posterId), patch);

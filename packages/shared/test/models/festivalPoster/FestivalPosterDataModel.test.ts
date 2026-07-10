@@ -22,11 +22,24 @@ describe('buildFestivalPosterData', () => {
     expect(d.endsAt).toBeNull();
     expect(d.proposedBy).toBeNull();
     expect(d.title).toBeNull();
-    expect(d.imageURL).toBeNull();
+    expect(d.images).toEqual([]);
     expect(() => FestivalPosterDataSchema.parse(d)).not.toThrow();
     // fields removed by the review -> visibility migration
     expect('reviewedBy' in d).toBe(false);
     expect('reviewedAt' in d).toBe(false);
+  });
+
+  it('defaults images to [] and keeps provided images ordered (cover first)', () => {
+    const d = buildFestivalPosterData({ ...base, images: ['a', 'b', 'c'] });
+    expect(d.images).toEqual(['a', 'b', 'c']);
+    expect(() => FestivalPosterDataSchema.parse(d)).not.toThrow();
+  });
+
+  it('rejects more than 5 images at the schema boundary', () => {
+    const d = buildFestivalPosterData({ ...base });
+    expect(() =>
+      FestivalPosterDataSchema.parse({ ...d, images: ['1', '2', '3', '4', '5', '6'] }),
+    ).toThrow();
   });
 
   it('keeps startsAt/endsAt for day precision', () => {
