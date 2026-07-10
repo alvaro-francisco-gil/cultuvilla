@@ -5,7 +5,6 @@ import {
   getCountFromServer,
   setDoc,
   updateDoc,
-  deleteDoc,
   query,
   orderBy,
   where,
@@ -16,32 +15,15 @@ import {
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { getDb, getFirebaseFunctions } from '../firebase';
-import {
-  newsCollection,
-  newsDoc,
-  newsCommentsCollection,
-  newsCommentDoc,
-  newsReactionDoc,
-  newsReportsCollection,
-} from '../firebase/refs/client';
+import { newsCollection, newsDoc } from '../firebase/refs/client';
 import {
   buildNewsPostData,
   type NewsPostData,
   type NewsPostCategory,
   type NewsPostImage,
   type NewsPostStatus,
-  type NewsReactionKind,
   type NewsBlock,
 } from '../models/news/NewsPostDataModel';
-import {
-  buildNewsCommentData,
-  type NewsCommentData,
-} from '../models/news/NewsCommentDataModel';
-import {
-  buildNewsReactionData,
-  reactionDocId,
-} from '../models/news/NewsReactionDataModel';
-import { buildNewsReportData } from '../models/news/NewsReportDataModel';
 
 // ────── input types ──────
 export interface CreateNewsPostInput {
@@ -199,107 +181,6 @@ export async function deleteNewsPost(postId: string): Promise<void> {
     'deleteNewsPost',
   );
   await fn({ postId });
-}
-
-// ────── reactions ──────
-export async function reactToPost(
-  postId: string,
-  userId: string,
-  municipalityId: string,
-  kind: NewsReactionKind,
-): Promise<void> {
-  const ref = newsReactionDoc(getDb(), reactionDocId(postId, userId));
-  await setDoc(
-    ref,
-    buildNewsReactionData({
-      postId,
-      municipalityId,
-      userId,
-      kind,
-      createdAt: new Date(),
-    }),
-  );
-}
-
-export async function removeReaction(postId: string, userId: string): Promise<void> {
-  await deleteDoc(newsReactionDoc(getDb(), reactionDocId(postId, userId)));
-}
-
-export async function getMyReaction(
-  postId: string,
-  userId: string,
-): Promise<NewsReactionKind | null> {
-  const snap = await getDoc(newsReactionDoc(getDb(), reactionDocId(postId, userId)));
-  if (!snap.exists()) return null;
-  return snap.data().kind;
-}
-
-// ────── comments ──────
-export interface AddCommentInput {
-  postId: string;
-  municipalityId: string;
-  authorUserId: string;
-  body: string;
-}
-
-export async function addComment(input: AddCommentInput): Promise<string> {
-  const ref = doc(newsCommentsCollection(getDb()));
-  await setDoc(
-    ref,
-    buildNewsCommentData({
-      postId: input.postId,
-      municipalityId: input.municipalityId,
-      authorUserId: input.authorUserId,
-      body: input.body,
-      createdAt: new Date(),
-    }),
-  );
-  return ref.id;
-}
-
-export async function deleteOwnComment(commentId: string): Promise<void> {
-  await deleteDoc(newsCommentDoc(getDb(), commentId));
-}
-
-export async function getComments(
-  postId: string,
-  options: { limit?: number } = {},
-): Promise<(NewsCommentData & { id: string })[]> {
-  const constraints = [
-    where('postId', '==', postId),
-    where('hidden', '==', false),
-    orderBy('createdAt', 'asc'),
-    ...(options.limit ? [fsLimit(options.limit)] : []),
-  ];
-  const q = query(newsCommentsCollection(getDb()), ...constraints);
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-}
-
-// ────── reports ──────
-export interface ReportCommentInput {
-  commentId: string;
-  postId: string;
-  municipalityId: string;
-  reporterUserId: string;
-  reason: string;
-}
-
-export async function reportComment(input: ReportCommentInput): Promise<string> {
-  const ref = doc(newsReportsCollection(getDb()));
-  await setDoc(
-    ref,
-    buildNewsReportData({
-      targetType: 'comment',
-      targetId: input.commentId,
-      postId: input.postId,
-      municipalityId: input.municipalityId,
-      reporterUserId: input.reporterUserId,
-      reason: input.reason,
-      createdAt: new Date(),
-    }),
-  );
-  return ref.id;
 }
 
 // ────── feed queries ──────

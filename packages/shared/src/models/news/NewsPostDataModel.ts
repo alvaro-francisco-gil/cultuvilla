@@ -14,9 +14,6 @@ export type NewsPostCategory = z.infer<typeof NewsPostCategorySchema>;
 export const NewsPostStatusSchema = VisibilityStatusSchema;
 export type NewsPostStatus = z.infer<typeof NewsPostStatusSchema>;
 
-export const NewsReactionKindSchema = z.enum(['like', 'heart']);
-export type NewsReactionKind = z.infer<typeof NewsReactionKindSchema>;
-
 export const NewsPostImageSchema = z.object({
   storagePath: z.string(),
   width: z.number(),
