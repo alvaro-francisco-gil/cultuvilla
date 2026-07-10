@@ -10,6 +10,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 ### Removed
 - **Per-section "add" cards and the map "add location" placeholder on the village home.** Creating content is now solely the "Añadir contenido" button (the sheet already routed to every entity's create screen); the dashed add card that trailed each horizontal scroll (events, artículos, carteles, barrios, lugares, agrupaciones, peñas) is gone. **A section with no entities is now hidden entirely** instead of showing an empty-state/add card (`Section` returns null when `isEmpty`). The map slot's dashed "Añadir ubicación" placeholder is likewise removed — when a village has no coordinates the slot renders nothing, and location is set only from the edit-village ("Detalles") flow, which already owns `LocationPicker`. `Section` dropped its `onAdd`/`addLabel`/`emptyLabel` props (`AddCard` stays — profile scrolls use it). Dead i18n keys pruned.
 
+### Fixed
+- **Occupation form no longer shows the "otra ocupación" free-text field up front.** In the profile/onboarding occupation picker, the custom occupation input now appears only after tapping the "Otro" chip, and hides again when it's deselected. "Otro" is a reveal toggle, so it's no longer stored as an occupation of its own alongside the typed value.
+
 ## v0.4.0 — 2026-07-10
 
 ### Changed
