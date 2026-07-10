@@ -5,7 +5,7 @@ import { VStack } from '../../components/primitives/VStack';
 import { HStack } from '../../components/primitives/HStack';
 import { Text } from '../../components/primitives/Text';
 import { Button } from '../../components/primitives/Button';
-import { Escudo } from '../../components/primitives/Escudo';
+import { Avatar } from '../../components/primitives/Avatar';
 import { Pressable } from '../../components/primitives/Pressable';
 import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
 import { RegisterFab } from '../../components/feature/RegisterFab';
@@ -179,10 +179,20 @@ export default function EventDetailScreen() {
               <DetailSectionHeading>{t('event.organizersLabel')}</DetailSectionHeading>
               <View className="flex-row flex-wrap items-center" style={{ gap: 12 }}>
                 {event.organizerOrgIds?.map((id) => (
-                  <LiveOwnerChip key={id} ownerType="organization" ownerId={id} />
+                  <LiveOwnerChip
+                    key={id}
+                    ownerType="organization"
+                    ownerId={id}
+                    onPress={() => router.push(`/o/${id}` as never)}
+                  />
                 ))}
                 {event.organizerUserIds?.map((id) => (
-                  <LiveOwnerChip key={id} ownerType="user" ownerId={id} />
+                  <LiveOwnerChip
+                    key={id}
+                    ownerType="user"
+                    ownerId={id}
+                    onPress={() => router.push(`/user/${id}` as never)}
+                  />
                 ))}
               </View>
             </VStack>
@@ -197,17 +207,18 @@ export default function EventDetailScreen() {
                     params: { villageId: event.municipalityId },
                   })
                 }
-                className="w-full rounded-md border border-subtle bg-surface px-4 py-3"
                 accessibilityRole="button"
                 accessibilityLabel={event.villageName}
               >
-                <HStack gap={3} className="items-center">
-                  <Escudo
-                    url={village ? escudoThumbDisplayUrl(village) : null}
-                    size={40}
-                    fallbackInitial={event.villageName}
+                <HStack gap={2} align="center">
+                  <Avatar
+                    uri={village ? escudoThumbDisplayUrl(village) : null}
+                    size={36}
+                    initials={event.villageName.slice(0, 1).toUpperCase()}
                   />
-                  <Text className="flex-1">{event.villageName}</Text>
+                  <Text numberOfLines={1} className="shrink">
+                    {event.villageName}
+                  </Text>
                 </HStack>
               </Pressable>
             </VStack>
