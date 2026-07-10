@@ -392,6 +392,7 @@
     },
     "festivalPosters": {
       "title": "Carteles de fiestas",
+      "editTitle": "Editar cartel",
       "empty": "Todavía no hay carteles de fiestas.",
       "add": "Añadir",
       "propose": "Proponer",
