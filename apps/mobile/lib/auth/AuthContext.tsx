@@ -97,6 +97,27 @@ export class ReauthRequiredError extends Error {
   }
 }
 
+/**
+ * Thrown by `changeEmail` when the account is not email-only (e.g. it is
+ * Google-linked). Change-email would desync the account from its federated
+ * identity, so it is refused at the action layer as well as hidden in the UI.
+ */
+export class ChangeEmailNotAllowedError extends Error {
+  constructor() {
+    super('change-email-not-allowed');
+    this.name = 'ChangeEmailNotAllowedError';
+  }
+}
+
+/** True iff every sign-in provider is email-based (password / magic-link). */
+function isEmailOnlyAccount(user: User | null): boolean {
+  const providers = user?.providerData ?? [];
+  return (
+    providers.length > 0 &&
+    providers.every((p) => p.providerId === 'password' || p.providerId === 'emailLink')
+  );
+}
+
 function getEmailLinkContinueUrl(): string {
   const cfg = (Constants.expoConfig?.extra as { firebaseConfig?: FirebaseOptions } | undefined)
     ?.firebaseConfig;
@@ -128,8 +149,12 @@ export interface AuthContextValue {
   completeReauth: (url: string) => Promise<void>;
   readPendingReauth: () => Promise<{ purpose: string; newEmail?: string } | null>;
   clearPendingReauth: () => Promise<void>;
-  /** Provider id of the user's primary sign-in method (e.g. 'password', 'google.com'). */
-  emailProvider: string | null;
+  /**
+   * True only when the account's identity IS its email (magic-link / password),
+   * i.e. every sign-in provider is email-based. A Google-linked account's email
+   * is its Google identity, so change-email is disabled for it.
+   */
+  canChangeEmail: boolean;
   signOut: () => Promise<void>;
 }
 
@@ -324,6 +349,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const auth = getAuth();
     const currentUser = auth.currentUser;
     if (!currentUser) throw new Error('not-signed-in');
+    // Defense in depth: the UI hides change-email for non-email-only accounts,
+    // but the screen route is directly reachable on web — refuse here too.
+    if (!isEmailOnlyAccount(currentUser)) throw new ChangeEmailNotAllowedError();
     const trimmed = newEmail.trim();
     if (!trimmed) throw new Error('email-required');
     try {
@@ -380,17 +408,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await AsyncStorage.removeItem(PENDING_REAUTH_KEY);
   };
 
-  // Change-email is gated on this value (see settings screen). A Google-linked
-  // account can also have a password/emailLink provider attached (e.g. after
-  // linking); check ALL providers rather than just the first so that case
-  // still allows change-email. Falls back to the first provider (e.g.
-  // 'google.com') when no password/emailLink provider is present, so a
-  // Google-only account is still correctly gated out.
-  const emailProvider =
-    user?.providerData.find((p) => p.providerId === 'password' || p.providerId === 'emailLink')
-      ?.providerId ??
-    user?.providerData[0]?.providerId ??
-    null;
+  // Change-email is only meaningful when the account's identity IS its email
+  // (magic-link / password). If ANY federated provider (e.g. google.com) is
+  // attached, the email is that identity's — changing it here would desync it —
+  // so change-email is disabled unless every provider is email-based.
+  const canChangeEmail = isEmailOnlyAccount(user);
 
   const signOut = async (): Promise<void> => {
     // Tear down every registered Firestore listener BEFORE auth flips closed,
@@ -427,7 +449,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         completeReauth,
         readPendingReauth,
         clearPendingReauth,
-        emailProvider,
+        canChangeEmail,
         signOut,
       }}
     >
