@@ -57,7 +57,7 @@ describe('NewsPostDataSchema', () => {
       createdAt: now,
       publishedAt: now,
       updatedAt: now,
-      reactionCounts: { like: 0, heart: 0 },
+      readCount: 0,
       commentCount: 0,
     });
     expect(parsed.organizerUserIds).toEqual(['u']);
@@ -89,7 +89,7 @@ describe('NewsPostDataSchema', () => {
         createdAt: now,
         publishedAt: now,
         updatedAt: now,
-        reactionCounts: { like: 0, heart: 0 },
+        readCount: 0,
         commentCount: 0,
       }),
     ).toThrow();
@@ -114,7 +114,7 @@ describe('NewsPostDataSchema', () => {
         createdAt: now,
         publishedAt: now,
         updatedAt: now,
-        reactionCounts: { like: 0, heart: 0 },
+        readCount: 0,
         commentCount: 0,
       }),
     ).toThrow();
@@ -142,8 +142,9 @@ describe('buildNewsPostData', () => {
     expect(p.createdAt).toEqual(now);
     expect(p.publishedAt).toEqual(now);
     expect(p.images).toEqual([]);
-    expect(p.reactionCounts).toEqual({ like: 0, heart: 0 });
+    expect(p.readCount).toBe(0);
     expect(p.commentCount).toBe(0);
+    expect('reactionCounts' in p).toBe(false);
     expect(p.organizerUserIds).toEqual(['u1']);
     expect(p.organizerOrgIds).toEqual([]);
     // fields removed by the review -> visibility migration

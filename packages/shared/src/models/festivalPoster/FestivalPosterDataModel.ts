@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { visibilityFields, defaultVisibility } from '../core/VisibilityModel';
-import { ReactionCountsSchema } from '../interaction/ReactionDataModel';
 
 export const DATE_PRECISIONS = ['year', 'month', 'day'] as const;
 export const DatePrecisionSchema = z.enum([...DATE_PRECISIONS]);
@@ -17,10 +16,11 @@ export const FestivalPosterDataSchema = z.object({
   startsAt: z.date().nullable(),
   endsAt: z.date().nullable(),
   createdAt: z.date(),
-  // Denormalized interaction counters, maintained server-side by the comments /
-  // reactions Cloud Function triggers. Initialized to 0 at create.
+  // Denormalized interaction counters, maintained server-side by the comments
+  // Cloud Function trigger / the detail-screen view tracker. Initialized to 0
+  // at create.
   commentCount: z.number().int(),
-  reactionCounts: ReactionCountsSchema,
+  readCount: z.number().int(),
   ...visibilityFields,
 });
 export type FestivalPosterData = z.infer<typeof FestivalPosterDataSchema>;
@@ -56,7 +56,7 @@ export function buildFestivalPosterData(input: FestivalPosterDataInput): Festiva
     endsAt,
     createdAt: input.createdAt,
     commentCount: 0,
-    reactionCounts: { like: 0, heart: 0 },
+    readCount: 0,
     ...defaultVisibility(),
   };
 }

@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { LocationDataSchema, LatLngSchema, type LatLng } from '../core/LocationDataModel';
-import { ReactionCountsSchema } from '../interaction/ReactionDataModel';
 
 // Events publish on create — there is no `draft` state.
 export const EventStatusSchema = z.enum(['published', 'cancelled', 'completed']);
@@ -40,10 +39,11 @@ export const EventDataSchema = z.object({
   // so every event doc carries them — never absent.
   confirmedCount: z.number().int(),
   totalCount: z.number().int(),
-  // Denormalized interaction counters, maintained server-side by the comments /
-  // reactions Cloud Function triggers. Initialized to 0 at create.
+  // Denormalized interaction counters, maintained server-side by the comments
+  // Cloud Function trigger / the detail-screen view tracker. Initialized to 0
+  // at create.
   commentCount: z.number().int(),
-  reactionCounts: ReactionCountsSchema,
+  readCount: z.number().int(),
   // Derived from `endDate ?? startDate` (see eventEndBoundary): the instant an
   // event stops being current. The Explora feed queries on this — not on
   // `startDate` — so a same-day event that already started, or a multi-day
@@ -101,7 +101,7 @@ export function buildEventData(input: EventDataInput): EventData {
     confirmedCount: 0,
     totalCount: 0,
     commentCount: 0,
-    reactionCounts: { like: 0, heart: 0 },
+    readCount: 0,
     endBoundary: eventEndBoundary({ startDate: input.startDate, endDate }),
   };
 }

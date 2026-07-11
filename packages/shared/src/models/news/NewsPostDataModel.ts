@@ -85,12 +85,6 @@ export const NewsBlockSchema = z.discriminatedUnion('type', [
 ]);
 export type NewsBlock = z.infer<typeof NewsBlockSchema>;
 
-export const NewsReactionCountsSchema = z.object({
-  like: z.number(),
-  heart: z.number(),
-});
-export type NewsReactionCounts = z.infer<typeof NewsReactionCountsSchema>;
-
 /**
  * A village news post. Stored at /news/{postId} (top-level).
  */
@@ -114,7 +108,7 @@ export const NewsPostDataSchema = z.object({
   createdAt: z.date(),
   publishedAt: z.date().nullable(),
   updatedAt: z.date(),
-  reactionCounts: NewsReactionCountsSchema,
+  readCount: z.number(),
   commentCount: z.number(),
 });
 export type NewsPostData = z.infer<typeof NewsPostDataSchema>;
@@ -133,7 +127,7 @@ export interface NewsPostDataInput {
   createdAt: Date;
   publishedAt?: Date | null;
   updatedAt: Date;
-  reactionCounts?: NewsReactionCounts;
+  readCount?: number;
   commentCount?: number;
 }
 
@@ -153,7 +147,7 @@ export function buildNewsPostData(input: NewsPostDataInput): NewsPostData {
     createdAt: input.createdAt,
     publishedAt: input.publishedAt ?? input.createdAt,
     updatedAt: input.updatedAt,
-    reactionCounts: input.reactionCounts ?? { like: 0, heart: 0 },
+    readCount: input.readCount ?? 0,
     commentCount: input.commentCount ?? 0,
   };
 }

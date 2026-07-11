@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { LatLngSchema, type LatLng } from '../core/LocationDataModel';
 import { visibilityFields, defaultVisibility } from '../core/VisibilityModel';
 import { VillageProfileFormSchema } from './CensoTypes';
-import { ReactionCountsSchema } from '../interaction/ReactionDataModel';
 
 /**
  * A municipality is the canonical Spanish administrative unit (INE-coded).
@@ -159,10 +158,11 @@ export const BarrioDataSchema = z.object({
   imageURL: z.string().nullable(),
   createdAt: z.date(),
   proposedBy: z.string().nullable(),
-  // Denormalized interaction counters, maintained server-side by the comments /
-  // reactions Cloud Function triggers. Initialized to 0 at create.
+  // Denormalized interaction counters, maintained server-side by the comments
+  // Cloud Function trigger / the detail-screen view tracker. Initialized to 0
+  // at create.
   commentCount: z.number().int(),
-  reactionCounts: ReactionCountsSchema,
+  readCount: z.number().int(),
   ...visibilityFields,
 });
 export type BarrioData = z.infer<typeof BarrioDataSchema>;
@@ -182,7 +182,7 @@ export function buildBarrioData(input: BarrioDataInput): BarrioData {
     createdAt: new Date(),
     proposedBy: input.proposedBy ?? null,
     commentCount: 0,
-    reactionCounts: { like: 0, heart: 0 },
+    readCount: 0,
     ...defaultVisibility(),
   };
 }
@@ -219,10 +219,11 @@ export const PlaceDataSchema = z.object({
   imageURL: z.string().nullable(),
   createdAt: z.date(),
   proposedBy: z.string().nullable(),
-  // Denormalized interaction counters, maintained server-side by the comments /
-  // reactions Cloud Function triggers. Initialized to 0 at create.
+  // Denormalized interaction counters, maintained server-side by the comments
+  // Cloud Function trigger / the detail-screen view tracker. Initialized to 0
+  // at create.
   commentCount: z.number().int(),
-  reactionCounts: ReactionCountsSchema,
+  readCount: z.number().int(),
   ...visibilityFields,
 });
 export type PlaceData = z.infer<typeof PlaceDataSchema>;
@@ -246,7 +247,7 @@ export function buildPlaceData(input: PlaceDataInput): PlaceData {
     createdAt: new Date(),
     proposedBy: input.proposedBy ?? null,
     commentCount: 0,
-    reactionCounts: { like: 0, heart: 0 },
+    readCount: 0,
     ...defaultVisibility(),
   };
 }
