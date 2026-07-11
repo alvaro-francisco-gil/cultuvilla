@@ -324,22 +324,22 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
           </View>
         ) : null}
 
-        {/* ── Próximos eventos ─────────────────────────────────── */}
+        {/* ── Eventos ──────────────────────────────────────────── */}
         <Section
-          title={t('village.upcomingEvents.title')}
+          title={t('village.events.label')}
           isEmpty={events.length === 0}
-        >
-          {events.map((e) => (
+          data={events}
+          keyExtractor={(e) => e.id}
+          renderItem={({ item: e }) => (
             <EntityCard
-              key={e.id}
               label={e.title}
               sub={formatDate(e.startDate, 'short')}
               icon="calendar-outline"
               imageUri={e.imageURL ?? e.villageCoverImage}
               onPress={() => router.push(`/event/${e.id}` as never)}
             />
-          ))}
-        </Section>
+          )}
+        />
 
         {/* ── Artículos ────────────────────────────────────────── */}
         <Section

@@ -289,9 +289,6 @@
       "label": "Eventos",
       "empty": "No hay eventos en este pueblo"
     },
-    "upcomingEvents": {
-      "title": "Próximos eventos"
-    },
     "newsFeed": {
       "title": "Artículos"
     },
@@ -509,6 +506,9 @@
     "waitlisted": "En lista de espera",
     "attendees": "Asistentes",
     "attendeesEmpty": "Aún no hay asistentes",
+    "removeAttendeeTitle": "Quitar asistente",
+    "removeAttendeeBody": "¿Seguro que quieres quitar a {name} de este evento?",
+    "removeAttendeeConfirm": "Quitar",
     "notFoundTitle": "Evento no encontrado",
     "notFoundBody": "Este evento ya no existe o se ha eliminado.",
     "descriptionLabel": "Descripción",

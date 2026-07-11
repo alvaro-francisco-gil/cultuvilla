@@ -17,6 +17,7 @@ import { getPerson } from '@cultuvilla/shared/services/personService';
 import type { RegistrationData } from '@cultuvilla/shared/models/event/RegistrationDataModel';
 import { colors, iconSizes } from '@cultuvilla/shared/design-system';
 import { useT } from '../../lib/i18n';
+import { showConfirm } from '../../lib/dialogs';
 
 type Row = RegistrationData & { id: string };
 
@@ -89,7 +90,14 @@ export function EventAttendees({
             <Pressable
               testID={`remove-attendee-${r.id}`}
               accessibilityLabel={t('common.delete')}
-              onPress={() => void cancelRegistration(eventId, r.id).then(load)}
+              onPress={() =>
+                showConfirm(
+                  t('event.removeAttendeeTitle'),
+                  t('event.removeAttendeeBody', { name: r.name }),
+                  () => void cancelRegistration(eventId, r.id).then(load),
+                  { confirmText: t('event.removeAttendeeConfirm'), cancelText: t('common.cancel') },
+                )
+              }
             >
               <Ionicons name="trash-outline" size={iconSizes.md} color={colors.light.fg.danger} />
             </Pressable>
