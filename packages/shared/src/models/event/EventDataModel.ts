@@ -20,6 +20,11 @@ export const EventDataSchema = z.object({
   imageURL: z.string().nullable(),
   maxAttendees: z.number().int().nullable(),
   telephoneRequired: z.boolean(),
+  // True when money is collected for the event; the organizer marks who paid
+  // per-attendee via registration.paidAt. `.default(false)` so reads of event
+  // docs created before this field parse instead of throwing the strict
+  // converter (also backfilled in dev; see scripts/backfill-event-requirespayment.mjs).
+  requiresPayment: z.boolean().default(false),
   status: EventStatusSchema,
   organizerUserIds: z.array(z.string()),
   organizerOrgIds: z.array(z.string()),
@@ -64,6 +69,7 @@ export interface EventDataInput {
   imageURL?: string | null;
   maxAttendees?: number | null;
   telephoneRequired?: boolean;
+  requiresPayment?: boolean;
   status?: EventStatus;
   organizerUserIds: string[];
   organizerOrgIds: string[];
@@ -88,6 +94,7 @@ export function buildEventData(input: EventDataInput): EventData {
     imageURL: input.imageURL ?? null,
     maxAttendees: input.maxAttendees ?? null,
     telephoneRequired: input.telephoneRequired ?? false,
+    requiresPayment: input.requiresPayment ?? false,
     status: input.status ?? 'published',
     organizerUserIds: input.organizerUserIds,
     organizerOrgIds: input.organizerOrgIds,
