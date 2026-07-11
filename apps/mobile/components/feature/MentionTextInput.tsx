@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
 import {
   NativeSyntheticEvent,
+  Platform,
   Pressable,
   StyleSheet,
   TextInput,
   TextInputKeyPressEventData,
+  TextStyle,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -169,7 +171,16 @@ export function MentionTextInput({
             accessibilityLabel={placeholder}
             className="text-body"
             textAlignVertical="top"
-            style={[StyleSheet.absoluteFill, { color: 'transparent', padding: 0 }]}
+            // The text layer is transparent (glyphs come from the overlay Text
+            // above). On web the CSS caret-color inherits from `color`, so a
+            // transparent color hides the caret too — force it back to the accent.
+            // Native draws the caret from `cursorColor`, independent of text color.
+            style={[
+              StyleSheet.absoluteFill,
+              { color: 'transparent', padding: 0 },
+              // caretColor is a web-only CSS property not modelled by RN's TextStyle.
+              Platform.OS === 'web' ? ({ caretColor: ACCENT } as unknown as TextStyle) : null,
+            ]}
             cursorColor={ACCENT}
             selectionColor={ACCENT}
             onFocus={onFocus}
