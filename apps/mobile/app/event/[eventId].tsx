@@ -209,7 +209,11 @@ export default function EventDetailScreen() {
             </VStack>
           ) : null}
           {canOrganize ? (
-            <EventAttendees eventId={event.id} telephoneRequired={!!event.telephoneRequired} />
+            <EventAttendees
+              eventId={event.id}
+              telephoneRequired={!!event.telephoneRequired}
+              requiresPayment={!!event.requiresPayment}
+            />
           ) : null}
           {!user && (
             <Button variant="primary" fullWidth onPress={() => gate.requireAuth(`/event/${event.id}`, t('guest.event'))}>
