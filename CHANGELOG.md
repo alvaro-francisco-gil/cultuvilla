@@ -5,6 +5,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 ## [Unreleased]
 
 ### Added
+- **Enlaces externos en los artículos.** Al escribir una noticia puedes **pegar un enlace web** y, en ese momento, darle opcionalmente un texto a mostrar (p. ej. "compra tus entradas" en vez de la URL cruda); si lo omites, la URL queda igualmente pulsable. Cualquier URL `http(s)` escrita o pegada en el cuerpo —y en artículos antiguos— se detecta y se vuelve un enlace pulsable automáticamente. Los enlaces se abren en el navegador del sistema. El modelo de bloques gana un array `links` (y `captionLinks` en las imágenes) que solo persiste los enlaces con texto personalizado; las URLs sueltas se resuelven al renderizar. Guardado tras una comprobación de esquema `http/https` (los `javascript:`/`data:` nunca se abren).
 - **Pull-to-refresh inside every entity detail screen.** Events, news posts, festival posters, places, barrios, and organizations can now be refreshed in place — pull down (or, on desktop web, scroll up at the top) to re-fetch the screen's data. The gesture lives once in the shared `EntityDetailScaffold` (native `RefreshControl` on iOS/Android, the existing web-gesture hook on the Firebase Hosting build), so every detail screen gets it. The feed's `PullSpinner` was promoted to a shared component so the pull affordance looks identical everywhere.
 - Events can be flagged as requiring payment; organizers mark who has paid per attendee.
 
