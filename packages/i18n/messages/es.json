@@ -611,7 +611,7 @@
     "reject": "Rechazar",
     "members": "Miembros",
     "membersPublicLabel": "Mostrar los miembros del grupo",
-    "membersPublicHelp": "Si se desactiva, solo los miembros del grupo verán quién forma parte.",
+    "membersPrivateHint": "Solo los miembros del grupo verán quién forma parte.",
     "membersEmpty": "Este grupo aún no tiene miembros.",
     "adminBadge": "Admin"
   },

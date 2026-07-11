@@ -84,17 +84,6 @@ export function OrganizationsManager({
 
   return (
     <VStack gap={3} className="p-4">
-      <VStack gap={1}>
-        <Toggle
-          value={membersPublic}
-          onValueChange={setMembersPublic}
-          label={t('organization.membersPublicLabel')}
-          testID="org-members-public-toggle"
-        />
-        <Text tone="muted" variant="bodySm">
-          {t('organization.membersPublicHelp')}
-        </Text>
-      </VStack>
       <ProposableForm
         image={image}
         onImageChange={setImage}
@@ -113,6 +102,21 @@ export function OrganizationsManager({
         typeOptions={PROPOSABLE_ORGANIZATION_TYPES.map((ty) => ({ value: ty, label: typeLabel(ty) }))}
         typeValue={type}
         onChangeType={(v) => setType(v as OrganizationType)}
+        footer={
+          <VStack gap={1}>
+            <Toggle
+              value={membersPublic}
+              onValueChange={setMembersPublic}
+              label={t('organization.membersPublicLabel')}
+              testID="org-members-public-toggle"
+            />
+            {!membersPublic ? (
+              <Text tone="muted" variant="bodySm">
+                {t('organization.membersPrivateHint')}
+              </Text>
+            ) : null}
+          </VStack>
+        }
         submitLabel={canManage ? t('village.admin.organizations.add') : t('village.proposals.propose')}
         submitTestID="org-submit"
         onSubmit={submit}

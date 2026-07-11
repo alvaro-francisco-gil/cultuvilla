@@ -113,17 +113,6 @@ export default function OrgEditScreen() {
         }
       />
       <ScrollView contentContainerClassName="p-4">
-        <VStack gap={1} className="mb-4">
-          <Toggle
-            value={membersPublic}
-            onValueChange={setMembersPublic}
-            label={t('organization.membersPublicLabel')}
-            testID="org-edit-members-public-toggle"
-          />
-          <Text tone="muted" variant="bodySm">
-            {t('organization.membersPublicHelp')}
-          </Text>
-        </VStack>
         <ProposableForm
           image={image}
           onImageChange={setImage}
@@ -150,6 +139,21 @@ export default function OrgEditScreen() {
                 onChangeType: (v: string) => setType(v as OrganizationType),
               }
             : {})}
+          footer={
+            <VStack gap={1}>
+              <Toggle
+                value={membersPublic}
+                onValueChange={setMembersPublic}
+                label={t('organization.membersPublicLabel')}
+                testID="org-edit-members-public-toggle"
+              />
+              {!membersPublic ? (
+                <Text tone="muted" variant="bodySm">
+                  {t('organization.membersPrivateHint')}
+                </Text>
+              ) : null}
+            </VStack>
+          }
           submitLabel={t('common.save')}
           submitTestID="org-edit-submit"
           onSubmit={submit}
