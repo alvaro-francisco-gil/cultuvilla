@@ -263,7 +263,7 @@ describe('ogRenderer', () => {
       submittedAt: new Date(),
       publishedAt: new Date(),
       status: 'approved',
-      reactionCounts: { like: 0, heart: 0 },
+      readCount: 0,
       commentCount: 0,
       reportCount: 0,
     });
@@ -317,7 +317,7 @@ describe('ogRenderer', () => {
       submittedAt: new Date(),
       publishedAt: new Date(),
       status: 'approved',
-      reactionCounts: { like: 0, heart: 0 },
+      readCount: 0,
       commentCount: 0,
       reportCount: 0,
     });

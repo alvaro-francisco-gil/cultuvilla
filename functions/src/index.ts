@@ -43,8 +43,9 @@ export { deleteNewsPost } from './news/deleteNewsPost';
 // Content moderation (hide/unhide across news, festival posters, barrios, places)
 export { setContentVisibility } from './moderation/setContentVisibility';
 
-// Interaction (entity comment/reaction count sync, entityKind-routed)
-export { syncEntityCommentCount, syncEntityReactionCounts } from './interaction/syncEntityInteractionCounts';
+// Interaction (entity comment count sync + view count callable, entityKind-routed)
+export { syncEntityCommentCount } from './interaction/syncEntityInteractionCounts';
+export { recordEntityView } from './interaction/recordEntityView';
 
 // Share-link Open Graph preview renderer (HTTPS function behind a Hosting rewrite).
 export { ogRenderer } from './og/render';

@@ -28,7 +28,7 @@ async function seedOrg(status: 'pending' | 'approved' = 'pending'): Promise<void
     createdAt: new Date(),
     reviewedAt: null,
     commentCount: 0,
-    reactionCounts: { like: 0, heart: 0 },
+    readCount: 0,
   });
 }
 

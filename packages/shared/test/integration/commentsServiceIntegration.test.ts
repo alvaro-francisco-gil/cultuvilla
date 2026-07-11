@@ -1,18 +1,18 @@
 // Integration test for commentsService against the real Firestore emulator.
 //
-// Group 1 exercises the service itself (addComment/getComments/deleteComment,
-// reactToEntity/getMyReaction/removeReaction) through the real query/index
-// path — the composite index on comments(entityKind, entityId, createdAt)
-// is declared in firestore.indexes.json but a mocked-Firestore unit test
+// Group 1 exercises the service itself (addComment/getComments/deleteComment)
+// through the real query/index path — the composite index on
+// comments(entityKind, entityId, createdAt) is declared in
+// firestore.indexes.json but a mocked-Firestore unit test
 // (commentsService.test.ts) can never prove it actually satisfies the query.
 //
 // Group 2 is the reason this file boots the full harness (auth + firestore +
 // functions + storage, see scripts/run-tests-with-emulators.mjs): it writes
-// through the real service, lets the deployed syncEntityCommentCount /
-// syncEntityReactionCounts triggers (functions/src/interaction/
-// syncEntityInteractionCounts.ts) react to the Firestore write, and polls the
-// parent entity doc until the denormalized counter settles. This is the only
-// place that proves the trigger round-trip end-to-end.
+// through the real service, lets the deployed syncEntityCommentCount trigger
+// (functions/src/interaction/syncEntityInteractionCounts.ts) react to the
+// Firestore write, and polls the parent entity doc until the denormalized
+// counter settles. This is the only place that proves the trigger round-trip
+// end-to-end.
 import { describe, it, expect, afterEach, afterAll, vi } from 'vitest';
 import { doc, setDoc, getDoc, type Firestore } from 'firebase/firestore';
 import { useRulesTestEnv } from '../helpers/rulesTestEnv';
@@ -21,9 +21,6 @@ import {
   addComment,
   deleteComment,
   getComments,
-  reactToEntity,
-  removeReaction,
-  getMyReaction,
 } from '../../src/services/commentsService';
 import { eventsCollection, eventDoc, municipalityPlacesCollection, municipalityPlaceDoc } from '../../src/firebase/refs/client';
 import { buildEventData } from '../../src/models/event/EventDataModel';
@@ -46,8 +43,8 @@ afterAll(() => {
 /**
  * Polls `read()` until `predicate` is satisfied or `timeoutMs` elapses.
  * Triggers run asynchronously in the emulator, so assertions on
- * function-written fields (commentCount, reactionCounts) can't be made
- * synchronously after the service call that provoked them.
+ * function-written fields (commentCount) can't be made synchronously after
+ * the service call that provoked them.
  */
 async function pollUntil<T>(
   read: () => Promise<T>,
@@ -92,12 +89,12 @@ async function seedEvent(municipalityId: string): Promise<string> {
 }
 
 async function readEventCounters(municipalityId: string, eventId: string) {
-  let data: { commentCount: number; reactionCounts: { like: number; heart: number } } | undefined;
+  let data: { commentCount: number } | undefined;
   await seed(getEnv(), async (ctx) => {
     const db = ctx.firestore() as unknown as Firestore;
     const snap = await getDoc(eventDoc(db, eventId));
     if (!snap.exists()) throw new Error(`event ${eventId} not found (municipality ${municipalityId})`);
-    data = { commentCount: snap.data().commentCount, reactionCounts: snap.data().reactionCounts };
+    data = { commentCount: snap.data().commentCount };
   });
   if (!data) throw new Error('readEventCounters: seed callback did not run');
   return data;
@@ -201,38 +198,6 @@ describe('commentsService — real Firestore (comments)', () => {
   });
 });
 
-describe('commentsService — real Firestore (reactions)', () => {
-  it('reactToEntity then getMyReaction returns the kind', async () => {
-    useDbAs('bob');
-    await reactToEntity({
-      entityKind: 'event', entityId: 'e-react', municipalityId: 'm1', userId: 'bob', kind: 'like',
-    });
-    expect(await getMyReaction('event', 'e-react', 'bob')).toBe('like');
-  });
-
-  it('re-reacting with a different kind overwrites the single reaction doc', async () => {
-    useDbAs('bob');
-    await reactToEntity({
-      entityKind: 'event', entityId: 'e-react-overwrite', municipalityId: 'm1', userId: 'bob', kind: 'like',
-    });
-    await reactToEntity({
-      entityKind: 'event', entityId: 'e-react-overwrite', municipalityId: 'm1', userId: 'bob', kind: 'heart',
-    });
-    expect(await getMyReaction('event', 'e-react-overwrite', 'bob')).toBe('heart');
-  });
-
-  it('removeReaction clears getMyReaction back to null', async () => {
-    useDbAs('bob');
-    await reactToEntity({
-      entityKind: 'event', entityId: 'e-react-remove', municipalityId: 'm1', userId: 'bob', kind: 'heart',
-    });
-    expect(await getMyReaction('event', 'e-react-remove', 'bob')).toBe('heart');
-
-    await removeReaction('event', 'e-react-remove', 'bob');
-    expect(await getMyReaction('event', 'e-react-remove', 'bob')).toBeNull();
-  });
-});
-
 describe('commentsService — real trigger round-trip (event parent)', () => {
   it('addComment/deleteComment bumps and un-bumps events/{id}.commentCount via syncEntityCommentCount', async () => {
     const eventId = await seedEvent('m-trigger');
@@ -255,28 +220,6 @@ describe('commentsService — real trigger round-trip (event parent)', () => {
       (v) => v.commentCount === 0,
     );
     expect(afterDelete.commentCount).toBe(0);
-  });
-
-  it('reactToEntity/removeReaction bumps and un-bumps events/{id}.reactionCounts.like via syncEntityReactionCounts', async () => {
-    const eventId = await seedEvent('m-trigger-reaction');
-    expect((await readEventCounters('m-trigger-reaction', eventId)).reactionCounts.like).toBe(0);
-
-    useDbAs('carol');
-    await reactToEntity({
-      entityKind: 'event', entityId: eventId, municipalityId: 'm-trigger-reaction', userId: 'carol', kind: 'like',
-    });
-    const afterReact = await pollUntil(
-      () => readEventCounters('m-trigger-reaction', eventId),
-      (v) => v.reactionCounts.like === 1,
-    );
-    expect(afterReact.reactionCounts.like).toBe(1);
-
-    await removeReaction('event', eventId, 'carol');
-    const afterRemove = await pollUntil(
-      () => readEventCounters('m-trigger-reaction', eventId),
-      (v) => v.reactionCounts.like === 0,
-    );
-    expect(afterRemove.reactionCounts.like).toBe(0);
   });
 });
 

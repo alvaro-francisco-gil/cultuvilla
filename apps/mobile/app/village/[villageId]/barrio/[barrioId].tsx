@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ScrollView } from 'react-native';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Text } from '../../../../components/primitives/Text';
@@ -12,6 +12,7 @@ import { useT } from '../../../../lib/i18n';
 import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 import { getBarrio } from '@cultuvilla/shared/services/municipalityService';
+import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { getBarrioViewLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getPersonsByBarrio } from '@cultuvilla/shared/services/personService';
 import { buildDisplayName } from '@cultuvilla/shared/models/person';
@@ -49,6 +50,11 @@ export default function BarrioDetailScreen() {
       void load();
     }, [load]),
   );
+
+  useEffect(() => {
+    if (!barrio) return;
+    void recordEntityView({ entityKind: 'barrio', entityId: barrio.id, municipalityId: barrio.municipalityId });
+  }, [barrio?.id]);
 
   const actions: EntityDetailAction[] = barrio
     ? [
@@ -102,7 +108,6 @@ export default function BarrioDetailScreen() {
             entityKind="barrio"
             entityId={barrio.id}
             municipalityId={barrio.municipalityId}
-            initialReactionCounts={barrio.reactionCounts}
             canModerate={canManage}
           />
         </>

@@ -22,6 +22,7 @@ jest.mock('@cultuvilla/shared/utils', () => ({ formatFestivalPosterDates: () => 
 // only asserts the title, so stub it to a plain view.
 jest.mock('../../../../../components/primitives/NaturalImage', () => ({ NaturalImage: () => null }));
 jest.mock('../../../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
+jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 
 describe('FestivalPosterDetailScreen', () => {
   it('renders the poster title once loaded', async () => {

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-/** The six village-scoped entities that support comments + reactions. */
+/** The six village-scoped entities that support comments. */
 export const ENTITY_KINDS = [
   'event',
   'festivalPoster',

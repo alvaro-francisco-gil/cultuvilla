@@ -9,7 +9,6 @@ import { Pressable } from '../primitives/Pressable';
 import { Button } from '../primitives/Button';
 import { Input } from '../primitives/Input';
 import { DetailSectionHeading } from './DetailSectionHeading';
-import { ReactionBar } from './ReactionBar';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useT } from '../../lib/i18n';
@@ -24,7 +23,6 @@ export type EntityCommentsProps = {
   entityKind: EntityKind;
   entityId: string;
   municipalityId: string;
-  initialReactionCounts: { like: number; heart: number };
   /** true if the current user administers this entity's village (village-admin/app-admin) */
   canModerate?: boolean;
 };
@@ -35,7 +33,6 @@ export function EntityComments({
   entityKind,
   entityId,
   municipalityId,
-  initialReactionCounts,
   canModerate = false,
 }: EntityCommentsProps) {
   const { user } = useAuth();
@@ -130,19 +127,11 @@ export function EntityComments({
   return (
     <VStack gap={3}>
       <DetailSectionHeading>{t('comments.sectionTitle')}</DetailSectionHeading>
-      <ReactionBar
-        entityKind={entityKind}
-        entityId={entityId}
-        municipalityId={municipalityId}
-        initialCounts={initialReactionCounts}
-      />
       {loading ? (
         <View className="items-center py-4">
           <ActivityIndicator />
         </View>
-      ) : comments.length === 0 ? (
-        <Text tone="muted">{t('comments.empty')}</Text>
-      ) : (
+      ) : comments.length === 0 ? null : (
         <VStack gap={3}>
           {comments.map((comment) => {
             const canDelete = comment.authorUserId === user?.uid || canModerate;

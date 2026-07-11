@@ -14,6 +14,7 @@ import { useT } from '../../lib/i18n';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { getNewsLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getNewsPost } from '@cultuvilla/shared/services/newsService';
+import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
 import { formatDate } from '@cultuvilla/shared/utils';
 import type { NewsPostData } from '@cultuvilla/shared/models/news/NewsPostDataModel';
@@ -58,6 +59,11 @@ export default function NewsDetailScreen() {
       cancelled = true;
     };
   }, [firstImagePath]);
+
+  useEffect(() => {
+    if (!post) return;
+    void recordEntityView({ entityKind: 'news', entityId: post.id, municipalityId: post.municipalityId });
+  }, [post?.id]);
 
   const date = post ? (post.publishedAt ?? post.createdAt) : null;
   // Mirrors the news update rules: the author or a named organizer may edit.
@@ -110,7 +116,6 @@ export default function NewsDetailScreen() {
             entityKind="news"
             entityId={post.id}
             municipalityId={post.municipalityId}
-            initialReactionCounts={post.reactionCounts}
             canModerate={canManage}
           />
         </>

@@ -852,7 +852,6 @@
     },
     "comments": {
       "title": "Comentarios",
-      "empty": "Sé el primero en comentar.",
       "placeholder": "Escribe un comentario…",
       "send": "Enviar",
       "report": "Reportar",
@@ -930,7 +929,6 @@
   "comments": {
     "sectionTitle": "Comentarios",
     "countLabel": "{count, plural, one {# comentario} other {# comentarios}}",
-    "empty": "Sé el primero en comentar",
     "placeholder": "Escribe un comentario…",
     "send": "Enviar",
     "signInToComment": "Inicia sesión para comentar",
@@ -939,8 +937,6 @@
     "deleteConfirmMessage": "¿Eliminar este comentario?",
     "deleteConfirmCancel": "Cancelar",
     "deleteConfirmConfirm": "Eliminar",
-    "reactionLike": "Me gusta",
-    "reactionHeart": "Me encanta",
     "anonymousAuthor": "Usuario"
   }
 }

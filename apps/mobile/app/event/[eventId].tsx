@@ -22,6 +22,7 @@ import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { getEvent } from '@cultuvilla/shared/services/eventService';
+import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { getEventLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
@@ -72,6 +73,11 @@ export default function EventDetailScreen() {
       setVillage(await getMunicipality(municipalityId));
     })();
   }, [event?.municipalityId]);
+
+  useEffect(() => {
+    if (!event) return;
+    void recordEntityView({ entityKind: 'event', entityId: event.id, municipalityId: event.municipalityId });
+  }, [event?.id]);
 
   const personName = person ? buildDisplayName(person) : '';
 
@@ -224,7 +230,6 @@ export default function EventDetailScreen() {
             entityKind="event"
             entityId={event.id}
             municipalityId={event.municipalityId}
-            initialReactionCounts={event.reactionCounts}
             canModerate={canManage}
           />
         </>

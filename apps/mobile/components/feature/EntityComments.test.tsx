@@ -8,9 +8,6 @@ jest.mock('@cultuvilla/shared/services/commentsService', () => ({
   addComment: jest.fn(),
   deleteComment: jest.fn().mockResolvedValue(undefined),
   getComments: jest.fn(),
-  reactToEntity: jest.fn().mockResolvedValue(undefined),
-  removeReaction: jest.fn().mockResolvedValue(undefined),
-  getMyReaction: jest.fn().mockResolvedValue(null),
 }));
 jest.mock('@cultuvilla/shared/services/personService', () => ({
   getPersonByUserId: jest.fn(),
@@ -33,7 +30,6 @@ jest.mock('../../lib/i18n', () => ({
     t: (key: string) => {
       const table: Record<string, string> = {
         'comments.sectionTitle': 'Comentarios',
-        'comments.empty': 'Sé el primero en comentar',
         'comments.placeholder': 'Escribe un comentario…',
         'comments.send': 'Enviar',
         'comments.signInToComment': 'Inicia sesión para comentar',
@@ -57,7 +53,6 @@ const BASE_PROPS = {
   entityKind: 'event' as const,
   entityId: 'e-1',
   municipalityId: 'm-1',
-  initialReactionCounts: { like: 0, heart: 0 },
 };
 
 describe('<EntityComments>', () => {
@@ -72,10 +67,13 @@ describe('<EntityComments>', () => {
     });
   });
 
-  it('shows the empty state when there are no comments', async () => {
+  it('renders nothing in place of the comment list when there are no comments', async () => {
     getCommentsMock.mockResolvedValue([]);
-    const { findByText } = render(<EntityComments {...BASE_PROPS} />);
-    expect(await findByText('Sé el primero en comentar')).toBeTruthy();
+    const { findByText, queryByTestId } = render(<EntityComments {...BASE_PROPS} />);
+    // Compose input still renders — only the (now-removed) empty-state message is absent.
+    await findByText('Comentarios');
+    expect(queryByTestId('reaction-like')).toBeNull();
+    expect(queryByTestId('reaction-heart')).toBeNull();
   });
 
   it('renders existing comments with the resolved author name', async () => {
@@ -101,8 +99,6 @@ describe('<EntityComments>', () => {
     const { findByPlaceholderText, findByText, getByText } = render(
       <EntityComments {...BASE_PROPS} />,
     );
-    await findByText('Sé el primero en comentar');
-
     const input = await findByPlaceholderText('Escribe un comentario…');
     fireEvent.changeText(input, 'Un comentario nuevo');
     await act(async () => {

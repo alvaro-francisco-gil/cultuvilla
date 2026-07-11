@@ -12,7 +12,6 @@ import {
   organizationDoc,
   organizerRequestsCollection,
   personsCollection,
-  reactionsCollection,
   userDoc,
   userNotificationsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
@@ -41,9 +40,8 @@ interface DeleteAccountResult {
  *     never trusted. Any blocker aborts BEFORE anything is deleted.
  *  3. Anonymize authored content that is KEPT (news + events): swap `createdBy`
  *     to the DELETED_USER_UID sentinel and pull the uid from `organizerUserIds`.
- *  4. Hard-delete free-text/PII interactions the user authored: comments and
- *     reactions. Unlike posts these carry no editorial value once the author is
- *     gone.
+ *  4. Hard-delete free-text/PII interactions the user authored: comments.
+ *     Unlike posts these carry no editorial value once the author is gone.
  *  5. Delete personal data: persons (self + dependents), memberships (with a
  *     `removed` audit event each), registrations, notifications, organizer
  *     requests, dangling organizer pointers, Cloud Storage photos, and the user
@@ -72,7 +70,6 @@ export const deleteAccount = onCall<undefined, Promise<DeleteAccountResult>>(
     const anonymizedEvents = await anonymizeAuthoredContent(eventsCollection(db), uid);
 
     const commentsDeleted = await deleteUserComments(uid);
-    const reactionsDeleted = await deleteUserReactions(uid);
 
     const membershipsRemoved = await removeMemberships(uid);
     const personIds = await deletePersons(uid);
@@ -91,7 +88,6 @@ export const deleteAccount = onCall<undefined, Promise<DeleteAccountResult>>(
       anonymizedNews,
       anonymizedEvents,
       commentsDeleted,
-      reactionsDeleted,
       membershipsRemoved,
       personsDeleted: personIds.length,
       registrationsDeleted,
@@ -259,11 +255,6 @@ async function deletePersons(uid: string): Promise<string[]> {
  */
 async function deleteUserComments(uid: string): Promise<number> {
   const snap = await raw(commentsCollection(db)).where('authorUserId', '==', uid).get();
-  return deleteRefsInChunks(snap.docs.map((doc) => doc.ref));
-}
-
-async function deleteUserReactions(uid: string): Promise<number> {
-  const snap = await raw(reactionsCollection(db)).where('userId', '==', uid).get();
   return deleteRefsInChunks(snap.docs.map((doc) => doc.ref));
 }
 

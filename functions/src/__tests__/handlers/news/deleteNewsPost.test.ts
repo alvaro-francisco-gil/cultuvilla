@@ -43,7 +43,7 @@ async function seedPost(postId: string): Promise<void> {
     createdAt: now,
     publishedAt: now,
     updatedAt: now,
-    reactionCounts: { like: 0, heart: 0 },
+    readCount: 0,
     commentCount: 0,
   });
 }
@@ -55,17 +55,6 @@ async function seedComment(commentId: string, postId: string): Promise<void> {
     municipalityId: MUNICIPALITY_ID,
     authorUserId: 'user-1',
     body: 'A comment',
-    createdAt: new Date(),
-  });
-}
-
-async function seedReaction(reactionId: string, postId: string): Promise<void> {
-  await admin.firestore().doc(`reactions/${reactionId}`).set({
-    entityKind: 'news',
-    entityId: postId,
-    municipalityId: MUNICIPALITY_ID,
-    userId: 'user-1',
-    kind: 'like',
     createdAt: new Date(),
   });
 }
@@ -124,12 +113,11 @@ describe('deleteNewsPost (callable)', () => {
     expect((await admin.firestore().doc('comments/c1').get()).exists).toBe(false);
   });
 
-  it('admin deletes post with cascade: comments and reactions removed', async () => {
+  it('admin deletes post with cascade: comments removed', async () => {
     await seedMember(ADMIN_UID, 'admin');
     await seedPost('p1');
     await seedComment('c1', 'p1');
     await seedComment('c2', 'p1');
-    await seedReaction('news_p1_u1', 'p1');
 
     const result = await callDelete({ uid: ADMIN_UID, data: { postId: 'p1' } });
     expect(result.ok).toBe(true);
@@ -143,9 +131,5 @@ describe('deleteNewsPost (callable)', () => {
     const c2 = await admin.firestore().doc('comments/c2').get();
     expect(c1.exists).toBe(false);
     expect(c2.exists).toBe(false);
-
-    // Reactions should be deleted
-    const r1 = await admin.firestore().doc('reactions/news_p1_u1').get();
-    expect(r1.exists).toBe(false);
   });
 });

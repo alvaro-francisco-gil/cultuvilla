@@ -60,7 +60,7 @@ async function seedOrg(): Promise<void> {
     createdAt: new Date(),
     reviewedAt: new Date(),
     commentCount: 0,
-    reactionCounts: { like: 0, heart: 0 },
+    readCount: 0,
   });
 }
 

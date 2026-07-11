@@ -1,6 +1,5 @@
 import {
   doc,
-  getDoc,
   getDocs,
   setDoc,
   deleteDoc,
@@ -9,10 +8,10 @@ import {
   where,
   limit as fsLimit,
 } from 'firebase/firestore';
-import { getDb } from '../firebase';
-import { commentsCollection, commentDoc, reactionDoc } from '../firebase/refs/client';
+import { httpsCallable } from 'firebase/functions';
+import { getDb, getFirebaseFunctions } from '../firebase';
+import { commentsCollection, commentDoc } from '../firebase/refs/client';
 import { buildCommentData, type CommentData } from '../models/interaction/CommentDataModel';
-import { buildReactionData, reactionDocId, type ReactionKind } from '../models/interaction/ReactionDataModel';
 import type { EntityKind } from '../models/interaction/EntityKind';
 
 export interface AddCommentInput {
@@ -59,39 +58,13 @@ export async function getComments(
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-export interface ReactToEntityInput {
+export interface RecordEntityViewInput {
   entityKind: EntityKind;
   entityId: string;
   municipalityId: string;
-  userId: string;
-  kind: ReactionKind;
 }
 
-export async function reactToEntity(input: ReactToEntityInput): Promise<void> {
-  const ref = reactionDoc(getDb(), reactionDocId(input.entityKind, input.entityId, input.userId));
-  await setDoc(
-    ref,
-    buildReactionData({
-      entityKind: input.entityKind,
-      entityId: input.entityId,
-      municipalityId: input.municipalityId,
-      userId: input.userId,
-      kind: input.kind,
-      createdAt: new Date(),
-    }),
-  );
-}
-
-export async function removeReaction(entityKind: EntityKind, entityId: string, userId: string): Promise<void> {
-  await deleteDoc(reactionDoc(getDb(), reactionDocId(entityKind, entityId, userId)));
-}
-
-export async function getMyReaction(
-  entityKind: EntityKind,
-  entityId: string,
-  userId: string,
-): Promise<ReactionKind | null> {
-  const snap = await getDoc(reactionDoc(getDb(), reactionDocId(entityKind, entityId, userId)));
-  if (!snap.exists()) return null;
-  return snap.data().kind;
+export async function recordEntityView(input: RecordEntityViewInput): Promise<void> {
+  const fn = httpsCallable<RecordEntityViewInput>(getFirebaseFunctions(), 'recordEntityView');
+  await fn(input);
 }
