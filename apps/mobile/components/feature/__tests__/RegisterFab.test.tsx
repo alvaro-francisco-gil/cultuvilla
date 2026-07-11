@@ -84,6 +84,28 @@ describe('RegisterFab', () => {
     await waitFor(() => expect(getByText('event.register.signedUpCount')).toBeTruthy());
   });
 
+  it('shows two pills when the caller has both confirmed and waitlisted personas', async () => {
+    mockGetUserRegistrations.mockResolvedValue([
+      { id: 'rA', personId: 'p1', status: 'confirmed' },
+      { id: 'rB', personId: 'p2', status: 'waitlisted' },
+    ]);
+    const { getByTestId, getByText } = render(<RegisterFab {...baseProps} />);
+    await waitFor(() => expect(getByTestId('register-fab-waitlist')).toBeTruthy());
+    // Confirmed pill (default testID) alongside the waitlist pill, each labelled.
+    expect(getByTestId('register-fab')).toBeTruthy();
+    expect(getByText('event.register.signedUpCount')).toBeTruthy();
+    expect(getByText('event.register.waitlistedCount')).toBeTruthy();
+  });
+
+  it('shows only the waitlist pill when every persona is waitlisted', async () => {
+    mockGetUserRegistrations.mockResolvedValue([{ id: 'rB', personId: 'p1', status: 'waitlisted' }]);
+    const { getByTestId, queryByTestId, getByText } = render(<RegisterFab {...baseProps} />);
+    await waitFor(() => expect(getByText('event.register.waitlistedCount')).toBeTruthy());
+    // The waitlist pill claims the primary testID so the sheet is still openable.
+    expect(getByTestId('register-fab')).toBeTruthy();
+    expect(queryByTestId('register-fab-waitlist')).toBeNull();
+  });
+
   it('registers newly-selected personas (self + dependent) in one call', async () => {
     mockGetPersonsByCreator.mockResolvedValue([dep]);
     mockRegisterToEvent.mockResolvedValue([

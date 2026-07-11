@@ -578,6 +578,7 @@
       "phoneSearch": "Buscar país",
       "phoneNoResults": "Sin resultados",
       "signedUpCount": "{count, plural, one {Apuntado} other {Apuntados (#)}}",
+      "waitlistedCount": "{count, plural, one {En lista de espera} other {En lista de espera (#)}}",
       "attendeesTitle": "¿A quién quieres apuntar?",
       "createPersona": "Crear una nueva persona",
       "confirm": "Confirmar",

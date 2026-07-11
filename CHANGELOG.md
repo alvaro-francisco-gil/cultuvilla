@@ -4,6 +4,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Changed
+- **La lista de espera de un evento ahora se ve, tanto al apuntarte como al gestionar asistentes.** El botón flotante de inscripción (`RegisterFab`) ya no muestra siempre "Apuntados (N)": si estás en lista de espera aparece "En lista de espera (N)", y cuando tienes personas confirmadas *y* en espera se muestran **dos botones** contiguos, cada uno con su recuento (verde ✓ confirmados, ámbar ⏳ en espera). En la vista de organizador (`EventAttendees`), el listado plano se ha dividido en dos secciones con recuento —**Asistentes (N)** y **Lista de espera (N)**—, respetando el orden de cola (`position`) dentro de cada una; la sección de espera solo aparece si hay alguien esperando. La promoción de la lista de espera sigue siendo **automática** (un trigger de Cloud Function asciende al siguiente en cola al liberarse una plaza confirmada); no se añade acción manual de promoción.
+
 ## v0.8.0 — 2026-07-11
 
 ### Added

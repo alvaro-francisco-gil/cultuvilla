@@ -64,46 +64,63 @@ export function EventAttendees({
     void load();
   }, [load]);
 
+  // getEventRegistrations already orders by `position`, so the split keeps each
+  // section's queue order. Waitlist promotion is automatic (a Cloud Function
+  // fires when a confirmed reg is removed) — there is no manual promote action.
+  const confirmed = (rows ?? []).filter((r) => r.status === 'confirmed');
+  const waitlisted = (rows ?? []).filter((r) => r.status === 'waitlisted');
+
+  const renderRow = (r: Row) => (
+    <HStack key={r.id} gap={3} align="center" className="py-2">
+      <Avatar uri={photos[r.id]} size={36} initials={r.name.slice(0, 1).toUpperCase()} />
+      <Text numberOfLines={1} className="flex-1">
+        {r.name}
+      </Text>
+      {telephoneRequired && phones[r.id] ? (
+        <Pressable
+          testID={`call-attendee-${r.id}`}
+          accessibilityLabel={t('event.call')}
+          onPress={() => setCallTarget({ name: r.name, phone: phones[r.id] ?? '' })}
+        >
+          <Ionicons name="call-outline" size={iconSizes.md} color={colors.light.fg.accent} />
+        </Pressable>
+      ) : null}
+      <Pressable
+        testID={`remove-attendee-${r.id}`}
+        accessibilityLabel={t('common.delete')}
+        onPress={() =>
+          showConfirm(
+            t('event.removeAttendeeTitle'),
+            t('event.removeAttendeeBody', { name: r.name }),
+            () => void cancelRegistration(eventId, r.id).then(load),
+            { confirmText: t('event.removeAttendeeConfirm'), cancelText: t('common.cancel') },
+          )
+        }
+      >
+        <Ionicons name="trash-outline" size={iconSizes.md} color={colors.light.fg.danger} />
+      </Pressable>
+    </HStack>
+  );
+
   return (
     <VStack gap={2}>
-      <DetailSectionHeading>{t('event.attendees')}</DetailSectionHeading>
-      {rows && rows.length === 0 ? (
+      <DetailSectionHeading>
+        {confirmed.length > 0 ? `${t('event.attendees')} (${confirmed.length})` : t('event.attendees')}
+      </DetailSectionHeading>
+      {rows && confirmed.length === 0 ? (
         <Text tone="muted" variant="bodySm">
           {t('event.attendeesEmpty')}
         </Text>
       ) : (
-        (rows ?? []).map((r) => (
-          <HStack key={r.id} gap={3} align="center" className="py-2">
-            <Avatar uri={photos[r.id]} size={36} initials={r.name.slice(0, 1).toUpperCase()} />
-            <Text numberOfLines={1} className="flex-1">
-              {r.name}
-            </Text>
-            {telephoneRequired && phones[r.id] ? (
-              <Pressable
-                testID={`call-attendee-${r.id}`}
-                accessibilityLabel={t('event.call')}
-                onPress={() => setCallTarget({ name: r.name, phone: phones[r.id] ?? '' })}
-              >
-                <Ionicons name="call-outline" size={iconSizes.md} color={colors.light.fg.accent} />
-              </Pressable>
-            ) : null}
-            <Pressable
-              testID={`remove-attendee-${r.id}`}
-              accessibilityLabel={t('common.delete')}
-              onPress={() =>
-                showConfirm(
-                  t('event.removeAttendeeTitle'),
-                  t('event.removeAttendeeBody', { name: r.name }),
-                  () => void cancelRegistration(eventId, r.id).then(load),
-                  { confirmText: t('event.removeAttendeeConfirm'), cancelText: t('common.cancel') },
-                )
-              }
-            >
-              <Ionicons name="trash-outline" size={iconSizes.md} color={colors.light.fg.danger} />
-            </Pressable>
-          </HStack>
-        ))
+        confirmed.map(renderRow)
       )}
+
+      {waitlisted.length > 0 ? (
+        <VStack gap={2} className="mt-4">
+          <DetailSectionHeading>{`${t('event.waitlist')} (${waitlisted.length})`}</DetailSectionHeading>
+          {waitlisted.map(renderRow)}
+        </VStack>
+      ) : null}
 
       <Modal
         visible={callTarget !== null}

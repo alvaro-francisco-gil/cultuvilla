@@ -7,6 +7,10 @@ import {
 } from '@cultuvilla/shared/services/registrationService';
 
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('../../../lib/dialogs', () => ({
+  showConfirm: (_t: string, _m: string, onConfirm: () => void) => onConfirm(),
+  showAlert: jest.fn(),
+}));
 jest.mock('@cultuvilla/shared/services/registrationService', () => ({
   getEventRegistrations: jest.fn(),
   getRegistrationPhone: jest.fn(),
@@ -24,7 +28,7 @@ describe('EventAttendees', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('shows a call action that reveals the number in a dialog when telephone was required', async () => {
-    mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana' }]);
+    mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana', status: 'confirmed' }]);
     mockPhone.mockResolvedValue('600111222');
     const { getByText, getByTestId, queryByText } = render(<EventAttendees eventId="e1" telephoneRequired />);
     await waitFor(() => getByTestId('call-attendee-r1'));
@@ -35,7 +39,7 @@ describe('EventAttendees', () => {
   });
 
   it('shows no call action when telephone was not required', async () => {
-    mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana' }]);
+    mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana', status: 'confirmed' }]);
     const { getByText, queryByTestId } = render(<EventAttendees eventId="e1" telephoneRequired={false} />);
     await waitFor(() => getByText('Ana'));
     expect(mockPhone).not.toHaveBeenCalled();
@@ -43,11 +47,34 @@ describe('EventAttendees', () => {
   });
 
   it('removes an attendee then reloads', async () => {
-    mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana' }]);
+    mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana', status: 'confirmed' }]);
     const { getByTestId } = render(<EventAttendees eventId="e1" telephoneRequired={false} />);
     await waitFor(() => getByTestId('remove-attendee-r1'));
     fireEvent.press(getByTestId('remove-attendee-r1'));
     await waitFor(() => expect(mockCancel).toHaveBeenCalledWith('e1', 'r1'));
     expect(mockGet).toHaveBeenCalledTimes(2);
+  });
+
+  it('splits confirmed attendees from a separate waiting-list section', async () => {
+    mockGet.mockResolvedValue([
+      { id: 'r1', personId: 'p1', name: 'Ana', status: 'confirmed' },
+      { id: 'r2', personId: 'p2', name: 'Luis', status: 'waitlisted' },
+    ]);
+    const { getByText, getByTestId } = render(<EventAttendees eventId="e1" telephoneRequired={false} />);
+    // The waitlist heading only appears when someone is waitlisted.
+    await waitFor(() => getByText('event.waitlist (1)'));
+    getByText('event.attendees (1)');
+    getByText('Ana');
+    getByText('Luis');
+    // Both sections expose their own remove action.
+    getByTestId('remove-attendee-r1');
+    getByTestId('remove-attendee-r2');
+  });
+
+  it('hides the waiting-list section when nobody is waitlisted', async () => {
+    mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana', status: 'confirmed' }]);
+    const { getByText, queryByText } = render(<EventAttendees eventId="e1" telephoneRequired={false} />);
+    await waitFor(() => getByText('Ana'));
+    expect(queryByText('event.waitlist (0)')).toBeNull();
   });
 });
