@@ -82,6 +82,7 @@ export default function PlaceDetailScreen() {
       fallbackIcon={ENTITY_FALLBACK_ICON.place}
       actions={actions}
       title={place?.name}
+      onRefresh={load}
     >
       {place ? (
         <>

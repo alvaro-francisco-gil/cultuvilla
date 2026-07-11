@@ -98,6 +98,7 @@ export default function OrgDetailScreen() {
       fallbackIcon={ENTITY_FALLBACK_ICON.organization}
       actions={actions}
       title={org?.name}
+      onRefresh={refresh}
       scrollContentClassName="pb-28"
       fab={
         org && !isMember ? (
