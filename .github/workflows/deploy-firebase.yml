@@ -67,6 +67,22 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
 
+      # Data-conformance gate — beta/prod only. Before shipping any schema
+      # change, walk the TARGET env's live Firestore docs through the Zod
+      # converters in THIS build (the exact `schema.parse` the app runs on
+      # read). A required field added without a backfill makes the strict
+      # converter throw on read and crashes every screen that reads that
+      # collection; this fails the deploy BEFORE anything ships instead of
+      # letting the crash reach users. Runs before the first `firebase deploy`
+      # so a nonconforming env blocks the whole pipeline (rules + functions +
+      # hosting). Dev is exempt (transient drift there is caught manually via
+      # `pnpm check:dev-conformance`). The script reads via the WIF service
+      # account through GOOGLE_APPLICATION_CREDENTIALS — the SA needs Firestore
+      # read (roles/datastore.viewer or broader).
+      - name: Conformance gate — live data matches shipped schema
+        if: ${{ inputs.firebase_alias != 'dev' }}
+        run: node scripts/check-dev-conformance.mjs --env ${{ inputs.firebase_alias }}
+
       - name: Install Firebase CLI
         run: npm install -g firebase-tools@14
 
