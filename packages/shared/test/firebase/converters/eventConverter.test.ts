@@ -24,7 +24,7 @@ const baseFirestoreShape = {
   confirmedCount: 0,
   totalCount: 0,
   commentCount: 0,
-  reactionCounts: { like: 0, heart: 0 },
+  readCount: 0,
   endBoundary: Timestamp.fromDate(new Date('2026-06-17T18:00:00Z')),
 };
 

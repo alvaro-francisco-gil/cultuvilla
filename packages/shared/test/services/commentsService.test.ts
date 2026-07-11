@@ -3,16 +3,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createFakeFirestoreModule, resetFakeFirestore, fakeStore } from '../helpers/fakeFirestore';
 
-vi.mock('../../src/firebase', () => ({ getDb: () => ({}) }));
+vi.mock('../../src/firebase', () => ({ getDb: () => ({}), getFirebaseFunctions: vi.fn(() => ({})) }));
 vi.mock('firebase/firestore', () => createFakeFirestoreModule());
+vi.mock('firebase/functions', () => ({ httpsCallable: vi.fn() }));
 
+import { httpsCallable } from 'firebase/functions';
 import {
   addComment,
   deleteComment,
   getComments,
-  reactToEntity,
-  removeReaction,
-  getMyReaction,
+  recordEntityView,
 } from '../../src/services/commentsService';
 
 describe('commentsService — comments', () => {
@@ -69,46 +69,18 @@ describe('commentsService — comments', () => {
   });
 });
 
-describe('commentsService — reactions', () => {
+describe('commentsService — recordEntityView', () => {
   beforeEach(() => {
-    resetFakeFirestore();
+    vi.clearAllMocks();
   });
 
-  it('reactToEntity writes a deterministic doc id event_e1_u1', async () => {
-    await reactToEntity({
-      entityKind: 'event', entityId: 'e1', municipalityId: 'm1', userId: 'u1', kind: 'like',
-    });
-    expect(fakeStore()['reactions/event_e1_u1']).toBeDefined();
-    expect(fakeStore()['reactions/event_e1_u1']['kind']).toBe('like');
-  });
+  it('recordEntityView calls the recordEntityView callable with entity coords', async () => {
+    const callable = vi.fn().mockResolvedValue({ data: undefined });
+    vi.mocked(httpsCallable).mockReturnValue(callable as never);
 
-  it('re-reacting with a different kind overwrites (still one doc)', async () => {
-    await reactToEntity({
-      entityKind: 'event', entityId: 'e1', municipalityId: 'm1', userId: 'u1', kind: 'like',
-    });
-    await reactToEntity({
-      entityKind: 'event', entityId: 'e1', municipalityId: 'm1', userId: 'u1', kind: 'heart',
-    });
-    expect(fakeStore()['reactions/event_e1_u1']['kind']).toBe('heart');
-    const reactionDocs = Object.keys(fakeStore()).filter((k) => k.startsWith('reactions/'));
-    expect(reactionDocs.length).toBe(1);
-  });
+    await recordEntityView({ entityKind: 'event', entityId: 'e1', municipalityId: 'm1' });
 
-  it('removeReaction deletes the reaction doc', async () => {
-    await reactToEntity({
-      entityKind: 'event', entityId: 'e1', municipalityId: 'm1', userId: 'u1', kind: 'like',
-    });
-    expect(fakeStore()['reactions/event_e1_u1']).toBeDefined();
-    await removeReaction('event', 'e1', 'u1');
-    expect(fakeStore()['reactions/event_e1_u1']).toBeUndefined();
-  });
-
-  it('getMyReaction returns the kind when present, then null after removal', async () => {
-    await reactToEntity({
-      entityKind: 'event', entityId: 'e1', municipalityId: 'm1', userId: 'u1', kind: 'heart',
-    });
-    expect(await getMyReaction('event', 'e1', 'u1')).toBe('heart');
-    await removeReaction('event', 'e1', 'u1');
-    expect(await getMyReaction('event', 'e1', 'u1')).toBeNull();
+    expect(httpsCallable).toHaveBeenCalledWith(expect.anything(), 'recordEntityView');
+    expect(callable).toHaveBeenCalledWith({ entityKind: 'event', entityId: 'e1', municipalityId: 'm1' });
   });
 });

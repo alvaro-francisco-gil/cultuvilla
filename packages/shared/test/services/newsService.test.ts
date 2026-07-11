@@ -49,7 +49,7 @@ describe('newsService — Task 9: CRUD', () => {
     expect(snap['publishedAt']).toBeInstanceOf(Date);
     expect(snap['organizerUserIds']).toEqual(['u1']);
     expect(snap['organizerOrgIds']).toEqual([]);
-    expect(snap['reactionCounts']).toEqual({ like: 0, heart: 0 });
+    expect(snap['readCount']).toBe(0);
     expect(snap['commentCount']).toBe(0);
     expect(snap['municipalityId']).toBe('m1');
     expect(snap['createdBy']).toBe('u1');

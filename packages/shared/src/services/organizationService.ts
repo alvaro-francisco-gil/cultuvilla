@@ -114,7 +114,7 @@ export async function requestOrganization(input: OrganizationDataInput): Promise
     createdAt: input.createdAt ?? new Date(),
     reviewedAt: null,
     commentCount: 0,
-    reactionCounts: { like: 0, heart: 0 },
+    readCount: 0,
   };
   await setDoc(newRef, data);
   return newRef.id;

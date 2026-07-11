@@ -15,7 +15,6 @@ import { userConverterAdmin } from '../converters/userConverter.admin';
 import { notificationConverterAdmin } from '../converters/notificationConverter.admin';
 import { newsPostConverterAdmin } from '../converters/newsPostConverter.admin';
 import { commentConverterAdmin } from '../converters/commentConverter.admin';
-import { reactionConverterAdmin } from '../converters/reactionConverter.admin';
 import { occupationConverterAdmin } from '../converters/occupationConverter.admin';
 import { adminConverterAdmin } from '../converters/adminConverter.admin';
 import { organizationJoinRequestConverterAdmin } from '../converters/organizationJoinRequestConverter.admin';
@@ -125,19 +124,13 @@ export const newsCollection = (db: Firestore) =>
 export const newsDoc = (db: Firestore, postId: string) =>
   db.collection('news').doc(postId).withConverter(newsPostConverterAdmin);
 
-// ── Comments + reactions (generic, entity-scoped, top-level) ────────────
+// ── Comments (generic, entity-scoped, top-level) ────────────────────────
 
 export const commentsCollection = (db: Firestore) =>
   db.collection('comments').withConverter(commentConverterAdmin);
 
 export const commentDoc = (db: Firestore, commentId: string) =>
   db.collection('comments').doc(commentId).withConverter(commentConverterAdmin);
-
-export const reactionsCollection = (db: Firestore) =>
-  db.collection('reactions').withConverter(reactionConverterAdmin);
-
-export const reactionDoc = (db: Firestore, reactionId: string) =>
-  db.collection('reactions').doc(reactionId).withConverter(reactionConverterAdmin);
 
 export const festivalPostersCollection = (db: Firestore) =>
   db.collection('festivalPosters').withConverter(festivalPosterConverterAdmin);

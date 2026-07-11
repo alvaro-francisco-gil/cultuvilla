@@ -63,7 +63,7 @@ const FORBIDDEN_UPDATE_KEYS = new Set<string>([
   'municipalityId',
   'createdAt',
   'createdBy',
-  'reactionCounts',
+  'readCount',
   'commentCount',
 ]);
 
@@ -173,7 +173,7 @@ export async function updateNewsPost(id: string, patch: UpdateNewsPostInput): Pr
 }
 
 /** Hard-delete a news post via the deleteNewsPost callable, which cascades
- * comments/reactions with the admin SDK. Authorization (author, village-admin,
+ * comments with the admin SDK. Authorization (author, village-admin,
  * or app-admin) is verified server-side. */
 export async function deleteNewsPost(postId: string): Promise<void> {
   const fn = httpsCallable<{ postId: string }, { ok: true }>(
