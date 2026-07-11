@@ -8,7 +8,7 @@ import {
   PROPOSABLE_ORGANIZATION_TYPES,
   type OrganizationType,
 } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
-import { VStack } from '../../primitives';
+import { VStack, FieldLabel } from '../../primitives';
 import { Text } from '../../primitives/Text';
 import { Toggle } from '../../primitives/Toggle';
 import { useT } from '../../../lib/i18n';
@@ -104,6 +104,7 @@ export function OrganizationsManager({
         onChangeType={(v) => setType(v as OrganizationType)}
         footer={
           <VStack gap={1}>
+            <FieldLabel>{t('organization.privacy')}</FieldLabel>
             <Toggle
               value={membersPublic}
               onValueChange={setMembersPublic}

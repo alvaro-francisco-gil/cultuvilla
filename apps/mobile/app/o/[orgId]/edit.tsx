@@ -5,6 +5,7 @@ import { Screen } from '../../../components/primitives/Screen';
 import { Text } from '../../../components/primitives/Text';
 import { Toggle } from '../../../components/primitives/Toggle';
 import { VStack } from '../../../components/primitives/VStack';
+import { FieldLabel } from '../../../components/primitives/FieldLabel';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { ProposableForm } from '../../../components/feature/proposable/ProposableForm';
 import { DeleteHeaderButton } from '../../../components/feature/DeleteHeaderButton';
@@ -141,6 +142,7 @@ export default function OrgEditScreen() {
             : {})}
           footer={
             <VStack gap={1}>
+              <FieldLabel>{t('organization.privacy')}</FieldLabel>
               <Toggle
                 value={membersPublic}
                 onValueChange={setMembersPublic}
