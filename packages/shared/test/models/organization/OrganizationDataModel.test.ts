@@ -15,6 +15,8 @@ const validOrg = {
   reviewedBy: null,
   createdAt: new Date('2026-01-01T00:00:00Z'),
   reviewedAt: null,
+  commentCount: 0,
+  readCount: 0,
 };
 
 describe('OrganizationDataSchema', () => {
@@ -53,6 +55,9 @@ describe('buildOrganizationData', () => {
     expect(o.reviewedBy).toBeNull();
     expect(o.reviewedAt).toBeNull();
     expect(o.createdAt).toBeInstanceOf(Date);
+    expect(o.readCount).toBe(0);
+    expect(o.commentCount).toBe(0);
+    expect('reactionCounts' in o).toBe(false);
     expect(() => OrganizationDataSchema.parse(o)).not.toThrow();
   });
 });

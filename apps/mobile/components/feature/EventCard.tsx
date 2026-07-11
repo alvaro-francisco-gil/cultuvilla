@@ -18,6 +18,7 @@ export type EventLike = {
   imageURL?: string | null;
   /** Village cover photo, used as the fallback when the event has no image. */
   villageCoverImage?: string | null;
+  commentCount?: number;
 };
 
 export type EventCardProps = {

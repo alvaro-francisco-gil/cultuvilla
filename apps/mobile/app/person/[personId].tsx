@@ -6,7 +6,7 @@ import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { DeleteHeaderButton } from '../../components/feature/DeleteHeaderButton';
 import { PersonForm } from '../../components/feature/PersonForm';
 import type { PersonFormPhoto, PersonFormValues } from '../../components/feature/PersonForm';
-import { MembershipBarrioList } from '../../components/feature/MembershipBarrioList';
+import { MembershipVillageEditor } from '../../components/feature/MembershipVillageEditor';
 import { ResidenceLinksEditor } from '../../components/feature/ResidenceLinksEditor';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
@@ -46,7 +46,7 @@ export default function PersonDetailScreen() {
 
   // Whether this is the caller editing their own persona. Own personas are
   // account-holders, so residence (village + barrio) is membership-driven and
-  // edited via MembershipBarrioList (immediate per-row writes); the trigger
+  // edited via MembershipVillageEditor (immediate per-row writes); the trigger
   // owns their municipalityLinks. Everyone else (new + non-account persons) gets
   // the direct multi-village links editor.
   const isOwnPersona = !isNew && person?.userId != null && person.userId === user?.uid;
@@ -225,7 +225,7 @@ export default function PersonDetailScreen() {
           selfProfile={isOwnPersona}
           renderResidence={() =>
             isOwnPersona && user ? (
-              <MembershipBarrioList userId={user.uid} />
+              <MembershipVillageEditor userId={user.uid} />
             ) : (
               <ResidenceLinksEditor value={links} onChange={setLinks} />
             )

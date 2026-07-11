@@ -38,6 +38,8 @@ async function seedEvent(opts: { maxAttendees: number | null }): Promise<void> {
     confirmedCount: 0,
     totalCount: 0,
     endBoundary: now,
+    commentCount: 0,
+    readCount: 0,
   });
 }
 

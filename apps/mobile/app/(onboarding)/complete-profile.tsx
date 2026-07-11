@@ -24,6 +24,7 @@ import { buildResidenceLinks } from '@cultuvilla/shared/models/person';
 import type { MunicipalityLink, PartialDate } from '@cultuvilla/shared/models/person';
 import { CURRENT_TERMS_VERSION, MIN_SELF_REGISTRATION_AGE } from '@cultuvilla/shared/models/user';
 import { readPendingVillage, clearPendingVillage } from '../../lib/auth/pendingVillage';
+import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 
 function toPartialDate(d: Date | null): PartialDate | null {
   if (!d) return null;
@@ -148,6 +149,10 @@ export default function CompleteProfileScreen() {
 
       void clearPendingVillage();
       await refreshProfile();
+      observability.trackEvent(
+        OBSERVABILITY_EVENTS.ONBOARDING_COMPLETED,
+        municipalityId ? { municipalityId } : {},
+      );
       // AuthGate (_layout.tsx) owns post-onboarding routing.
     } catch (e) {
       setError(e instanceof Error ? e.message : t('onboarding.completeProfile.error'));

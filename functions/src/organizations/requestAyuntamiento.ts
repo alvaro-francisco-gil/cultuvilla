@@ -6,7 +6,7 @@ import {
   municipalityMemberDoc,
   adminDoc,
 } from '@cultuvilla/shared/firebase/refs/admin';
-import type { OrganizationData } from '@cultuvilla/shared';
+import { buildOrganizationData } from '@cultuvilla/shared/models';
 
 const db = getFirestore();
 
@@ -71,7 +71,7 @@ export const requestAyuntamiento = onCall<
           'Ya existe un ayuntamiento (o una solicitud pendiente) en este pueblo.',
         );
       }
-      const data: OrganizationData = {
+      const data = buildOrganizationData({
         name,
         description,
         imageURL: null,
@@ -79,10 +79,7 @@ export const requestAyuntamiento = onCall<
         status: 'pending',
         municipalityId,
         requestedBy: uid,
-        reviewedBy: null,
-        createdAt: new Date(),
-        reviewedAt: null,
-      };
+      });
       tx.set(newRef, data);
     });
 

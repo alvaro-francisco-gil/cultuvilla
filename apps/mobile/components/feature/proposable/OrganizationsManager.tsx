@@ -12,6 +12,7 @@ import { VStack } from '../../primitives';
 import { useT } from '../../../lib/i18n';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { ProposableForm } from './ProposableForm';
+import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 
 /**
  * "Añadir agrupación" form. A villager proposes a peña/asociación/otros
@@ -39,6 +40,7 @@ export function OrganizationsManager({
   async function submit() {
     if (!villageId || !name.trim() || !uid) return;
     setSaving(true);
+    let succeeded = false;
     try {
       // Mint the id first so the image can be uploaded to the org's storage
       // path and its URL written in the create payload — proposers can't update
@@ -58,11 +60,16 @@ export function OrganizationsManager({
       // Organizer commit: the create path is always pending; auto-approve so the
       // round-trip is invisible (single rules surface + full audit trail).
       if (canManage) await approveOrganization(id);
+      succeeded = true;
+      observability.trackEvent(OBSERVABILITY_EVENTS.ORG_CREATE_SUCCESS, { municipalityId: villageId });
       setName('');
       setDescription('');
       setType('peña');
       setImage(null);
       onCreated?.();
+    } catch (e) {
+      if (!succeeded) observability.trackEvent(OBSERVABILITY_EVENTS.ORG_CREATE_ERROR, { municipalityId: villageId });
+      throw e;
     } finally {
       setSaving(false);
     }

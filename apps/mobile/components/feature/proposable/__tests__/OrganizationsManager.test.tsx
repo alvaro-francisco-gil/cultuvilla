@@ -4,7 +4,12 @@ import {
   requestOrganization, approveOrganization,
 } from '@cultuvilla/shared/services/organizationService';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+import { observability } from '@cultuvilla/shared';
 
+jest.mock('@cultuvilla/shared', () => ({
+  ...jest.requireActual('@cultuvilla/shared'),
+  observability: { trackEvent: jest.fn() },
+}));
 jest.mock('@cultuvilla/shared/services/organizationService', () => ({
   requestOrganization: jest.fn().mockResolvedValue('new-org'),
   newOrganizationId: jest.fn(() => 'new-org'),
@@ -34,6 +39,7 @@ describe('<OrganizationsManager>', () => {
       ),
     );
     expect(approveOrganization).not.toHaveBeenCalled();
+    expect(observability.trackEvent).toHaveBeenCalledWith('org.create.success', { municipalityId: 'm1' });
   });
 
   it('an organizer submitting requests then auto-approves', async () => {

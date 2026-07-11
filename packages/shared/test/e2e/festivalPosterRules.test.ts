@@ -12,6 +12,7 @@ function posterDoc(proposedBy: string | null, extra: Record<string, unknown> = {
     municipalityId: M, proposedBy, year: 2025, title: null, imageURL: null,
     datePrecision: 'year', startsAt: null, endsAt: null, createdAt: new Date(),
     status: 'active', hiddenBy: null, hiddenAt: null, hiddenReason: null,
+    commentCount: 0, readCount: 0,
     ...extra,
   };
 }
@@ -124,5 +125,42 @@ describe('firestore.rules — /festivalPosters', () => {
     await seedPoster('p1', 'alice', { status: 'hidden', hiddenBy: 'boss', hiddenAt: new Date(), hiddenReason: 'spam' });
     const boss = asUser(getEnv(), 'boss');
     await assertSucceeds(deleteDoc(doc(boss, 'festivalPosters/p1')));
+  });
+
+  // D5 count guards: counts are function-owned (commentCount synced by the
+  // comments trigger, readCount synced by recordEntityView), so clients must
+  // create at 0 and never touch them again, even through an otherwise-authorized
+  // update.
+  it('rejects a create with a nonzero commentCount', async () => {
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, 'festivalPosters/p1'), {
+        ...posterDoc('alice'), commentCount: 5,
+      }),
+    );
+  });
+
+  it('rejects a create with a nonzero readCount', async () => {
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, 'festivalPosters/p1'), {
+        ...posterDoc('alice'), readCount: 3,
+      }),
+    );
+  });
+
+  it('village admin cannot mutate counts on update, but a normal edit still succeeds', async () => {
+    await seedMember('boss', 'admin');
+    await seedPoster('p1', 'alice');
+    const boss = asUser(getEnv(), 'boss');
+    await assertFails(updateDoc(doc(boss, 'festivalPosters/p1'), { commentCount: 99 }));
+    await assertFails(
+      updateDoc(doc(boss, 'festivalPosters/p1'), { readCount: 9 }),
+    );
+    await assertSucceeds(
+      updateDoc(doc(boss, 'festivalPosters/p1'), { title: 'Fiestas 2025' }),
+    );
   });
 });

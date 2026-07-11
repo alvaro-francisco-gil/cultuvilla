@@ -12,6 +12,7 @@ function placeDoc(proposedBy: string | null, extra: Record<string, unknown> = {}
     name: 'Fuente', kind: 'plaza', description: null, municipalityId: M,
     imageURL: null, createdAt: new Date(), status: 'active', proposedBy,
     hiddenBy: null, hiddenAt: null, hiddenReason: null,
+    commentCount: 0, readCount: 0,
     ...extra,
   };
 }
@@ -124,5 +125,42 @@ describe('firestore.rules — /municipalities/{m}/places', () => {
     await seedPlace('p1', 'alice', { status: 'hidden', hiddenBy: 'boss', hiddenAt: new Date(), hiddenReason: 'spam' });
     const boss = asUser(getEnv(), 'boss');
     await assertSucceeds(deleteDoc(doc(boss, `municipalities/${M}/places/p1`)));
+  });
+
+  // D5 count guards: counts are function-owned (commentCount synced by the
+  // comments trigger, readCount synced by recordEntityView), so clients must
+  // create at 0 and never touch them again, even through an otherwise-authorized
+  // update.
+  it('rejects a create with a nonzero commentCount', async () => {
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, `municipalities/${M}/places/p1`), {
+        ...placeDoc('alice'), commentCount: 5,
+      }),
+    );
+  });
+
+  it('rejects a create with a nonzero readCount', async () => {
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, `municipalities/${M}/places/p1`), {
+        ...placeDoc('alice'), readCount: 3,
+      }),
+    );
+  });
+
+  it('village admin cannot mutate counts on update, but a normal edit still succeeds', async () => {
+    await seedMember('boss', 'admin');
+    await seedPlace('p1', 'alice');
+    const boss = asUser(getEnv(), 'boss');
+    await assertFails(updateDoc(doc(boss, `municipalities/${M}/places/p1`), { commentCount: 99 }));
+    await assertFails(
+      updateDoc(doc(boss, `municipalities/${M}/places/p1`), { readCount: 9 }),
+    );
+    await assertSucceeds(
+      updateDoc(doc(boss, `municipalities/${M}/places/p1`), { name: 'Fuente Nueva' }),
+    );
   });
 });

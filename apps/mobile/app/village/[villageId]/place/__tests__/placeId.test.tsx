@@ -21,6 +21,8 @@ jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({ getPlaceViewLink: () => 'https://x' }));
 jest.mock('@cultuvilla/shared/services/personService', () => ({ getPersonsByBurialPlace: jest.fn().mockResolvedValue([]) }));
 jest.mock('@cultuvilla/shared/models/person', () => ({ buildDisplayName: () => 'N' }));
+jest.mock('../../../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
+jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 
 describe('PlaceDetailScreen', () => {
   it('renders the place name and a share action', async () => {

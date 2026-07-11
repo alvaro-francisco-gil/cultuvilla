@@ -19,7 +19,7 @@ jest.mock('@cultuvilla/shared/services/festivalPosterService', () => ({
     municipalityId: 'm1',
     year: 2025,
     title: 'Fiestas',
-    imageURL: null,
+    images: [],
     datePrecision: 'year',
     startsAt: null,
     endsAt: null,

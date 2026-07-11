@@ -43,9 +43,10 @@ for everyone, account or not. There is no `member.barrioId`. Writes:
   allows `userId == request.auth.uid`:
   - **Join** (`joinVillage`) is an atomic `writeBatch` that creates the member doc
     AND upserts the residence link — no eventual-consistency window.
-  - **Change barrio** (`personService.updateResidenceBarrio`, used by
-    `MembershipBarrioList`) and **non-account persons** (`ResidenceLinksEditor`)
-    write the person doc directly.
+  - **Change barrio** (`personService.updateResidenceBarrio`, used by the
+    own-profile `MembershipVillageEditor` — which also handles village
+    add/leave) and **non-account persons** (`ResidenceLinksEditor`) write the
+    person doc directly.
 - **Server-privileged paths** cannot write another user's person doc client-side,
   so they use the admin SDK:
   - **Admin removes a member** → the `syncMemberBarrioToResidence` trigger
@@ -78,6 +79,14 @@ stray extra key or wrong `null` would silently drop the person from the list.
 - **Rules cannot validate residence.** `municipalityLinks` is an arbitrary-length
   **array**; rules cannot iterate it doing a `get()` per element. Cross-doc
   validation can only live in a callable, never in rules.
+- **On the own-profile editor, adding a village *is* joining and removing *is*
+  leaving.** `MembershipVillageEditor` performs the membership mutations directly:
+  add → `ensureVillageMembership` (dormant-safe), leave → `leaveVillage` (the
+  atomic self-leave batch). A joined row's village is **fixed** (barrio-only; leave
+  and re-add to change it) so there is no "swap village = leave-old + join-new"
+  path. Leaving the village that is currently `activeMunicipalityId` reassigns it
+  to the first remaining membership (by name), or `null` when none remain — nothing
+  else resets the active pointer on leave.
 
 ## Revisit when
 

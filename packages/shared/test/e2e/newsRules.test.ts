@@ -1,4 +1,4 @@
-// Firestore Rules e2e tests for news, newsComments, newsReactions, newsReports.
+// Firestore Rules e2e tests for news posts (create/update/read).
 import { describe, it } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import {
@@ -55,7 +55,7 @@ function newsDoc(municipalityId: string, createdBy: string, extra: Record<string
     publishedAt: new Date(),
     createdBy,
     updatedAt: new Date(),
-    reactionCounts: { like: 0, heart: 0 },
+    readCount: 0,
     commentCount: 0,
     ...extra,
   };
@@ -158,7 +158,7 @@ describe('firestore.rules — /news/{postId}', () => {
   });
 
   // 8. client cannot delete a news post directly (author + admin deletes go
-  //    through the deleteNewsPost callable, which cascades comments/reactions).
+  //    through the deleteNewsPost callable, which cascades comments).
   it('8: client cannot delete a news post directly', async () => {
     await seedMember('m1', 'alice');
     await seedPost('p1', 'm1', 'alice');
@@ -314,153 +314,5 @@ describe('firestore.rules — /news read', () => {
     await seedPost('p1', 'm1', 'alice', { status: 'hidden', hiddenBy: 'boss', hiddenAt: new Date() });
     const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(getDoc(doc(alice, 'news/p1')));
-  });
-});
-
-// ── newsComments rules ────────────────────────────────────────────────────────
-
-describe('firestore.rules — /newsComments/{commentId}', () => {
-  // 9. member adds a comment with hidden=false → ALLOW
-  it('9: member can create a visible comment', async () => {
-    await seedMember('m1', 'alice');
-    const alice = asUser(getEnv(), 'alice');
-    await assertSucceeds(
-      setDoc(doc(alice, 'newsComments/c1'), {
-        postId: 'p1',
-        municipalityId: 'm1',
-        authorUserId: 'alice',
-        body: 'Great post!',
-        createdAt: new Date(),
-        hidden: false,
-      })
-    );
-  });
-
-  // 10. member tries to set hidden=true on a new comment → DENY
-  it('10: member cannot create a hidden comment', async () => {
-    await seedMember('m1', 'alice');
-    const alice = asUser(getEnv(), 'alice');
-    await assertFails(
-      setDoc(doc(alice, 'newsComments/c1'), {
-        postId: 'p1',
-        municipalityId: 'm1',
-        authorUserId: 'alice',
-        body: 'Sneaky',
-        createdAt: new Date(),
-        hidden: true,
-      })
-    );
-  });
-
-  // 11. member tries to update an existing comment → DENY
-  it('11: member cannot update a comment', async () => {
-    await seedMember('m1', 'alice');
-    await seed(getEnv(), async (ctx) => {
-      await setDoc(doc(ctx.firestore(), 'newsComments/c1'), {
-        postId: 'p1',
-        municipalityId: 'm1',
-        authorUserId: 'alice',
-        body: 'Original',
-        createdAt: new Date(),
-        hidden: false,
-      });
-    });
-    const alice = asUser(getEnv(), 'alice');
-    await assertFails(updateDoc(doc(alice, 'newsComments/c1'), { body: 'Edited' }));
-  });
-
-  // 12. comment author deletes their own comment → ALLOW
-  it('12: comment author can delete their own comment', async () => {
-    await seed(getEnv(), async (ctx) => {
-      await setDoc(doc(ctx.firestore(), 'newsComments/c1'), {
-        postId: 'p1',
-        municipalityId: 'm1',
-        authorUserId: 'alice',
-        body: 'Delete me',
-        createdAt: new Date(),
-        hidden: false,
-      });
-    });
-    const alice = asUser(getEnv(), 'alice');
-    await assertSucceeds(deleteDoc(doc(alice, 'newsComments/c1')));
-  });
-});
-
-// ── newsReactions rules ───────────────────────────────────────────────────────
-
-describe('firestore.rules — /newsReactions/{reactionId}', () => {
-  // 13. member creates a reaction at id `${postId}_${myUid}` → ALLOW
-  it('13: member can create own reaction with correct doc id', async () => {
-    await seedMember('m1', 'alice');
-    const alice = asUser(getEnv(), 'alice');
-    await assertSucceeds(
-      setDoc(doc(alice, 'newsReactions/p1_alice'), {
-        postId: 'p1',
-        municipalityId: 'm1',
-        userId: 'alice',
-        kind: 'like',
-        createdAt: new Date(),
-      })
-    );
-  });
-
-  // 14. member tries to create a reaction at id `${postId}_${otherUid}` → DENY
-  it('14: member cannot create a reaction spoofing another user', async () => {
-    await seedMember('m1', 'alice');
-    const alice = asUser(getEnv(), 'alice');
-    await assertFails(
-      setDoc(doc(alice, 'newsReactions/p1_bob'), {
-        postId: 'p1',
-        municipalityId: 'm1',
-        userId: 'bob',
-        kind: 'like',
-        createdAt: new Date(),
-      })
-    );
-  });
-});
-
-// ── newsReports rules ─────────────────────────────────────────────────────────
-
-describe('firestore.rules — /newsReports/{reportId}', () => {
-  // 15. member submits a report with status='open' and reporterUserId=myUid → ALLOW
-  it('15: member can create a report about themselves with status open', async () => {
-    await seedMember('m1', 'alice');
-    const alice = asUser(getEnv(), 'alice');
-    await assertSucceeds(
-      setDoc(doc(alice, 'newsReports/r1'), {
-        targetType: 'comment',
-        targetId: 'c1',
-        postId: 'p1',
-        municipalityId: 'm1',
-        reporterUserId: 'alice',
-        reason: 'spam',
-        createdAt: new Date(),
-        status: 'open',
-        resolvedBy: null,
-        resolvedAt: null,
-      })
-    );
-  });
-
-  // 16. client tries to update a report directly → DENY
-  it('16: client cannot update a report directly', async () => {
-    await seed(getEnv(), async (ctx) => {
-      await setDoc(doc(ctx.firestore(), 'newsReports/r1'), {
-        targetType: 'comment',
-        targetId: 'c1',
-        postId: 'p1',
-        municipalityId: 'm1',
-        reporterUserId: 'alice',
-        reason: 'spam',
-        createdAt: new Date(),
-        status: 'open',
-        resolvedBy: null,
-        resolvedAt: null,
-      });
-    });
-    await seedMember('m1', 'alice', { role: 'admin' });
-    const alice = asUser(getEnv(), 'alice');
-    await assertFails(updateDoc(doc(alice, 'newsReports/r1'), { status: 'dismissed' }));
   });
 });

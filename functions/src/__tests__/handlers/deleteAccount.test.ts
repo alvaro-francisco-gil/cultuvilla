@@ -113,39 +113,14 @@ async function seedNotification(uid: string): Promise<void> {
   });
 }
 
-async function seedNewsComment(uid: string): Promise<void> {
-  await db().doc('newsComments/comment-1').set({
-    postId: NEWS_ID,
+async function seedComment(uid: string): Promise<void> {
+  await db().doc('comments/comment-1').set({
+    entityKind: 'news',
+    entityId: NEWS_ID,
     municipalityId: MUNICIPALITY_ID,
     authorUserId: uid,
     body: 'Un comentario',
     createdAt: new Date(),
-    hidden: false,
-  });
-}
-
-async function seedNewsReaction(uid: string): Promise<void> {
-  await db().doc(`newsReactions/${NEWS_ID}_${uid}`).set({
-    postId: NEWS_ID,
-    municipalityId: MUNICIPALITY_ID,
-    userId: uid,
-    kind: 'like',
-    createdAt: new Date(),
-  });
-}
-
-async function seedNewsReport(uid: string): Promise<void> {
-  await db().doc('newsReports/report-1').set({
-    targetType: 'comment',
-    targetId: 'comment-1',
-    postId: NEWS_ID,
-    municipalityId: MUNICIPALITY_ID,
-    reporterUserId: uid,
-    reason: 'spam',
-    createdAt: new Date(),
-    status: 'open',
-    resolvedBy: null,
-    resolvedAt: null,
   });
 }
 
@@ -224,9 +199,7 @@ describe('deleteAccount (callable)', () => {
     await seedEvent(USER_ID);
     await seedRegistration(USER_ID, `person-${USER_ID}`);
     await seedRegistration(USER_ID, 'dependent-1');
-    await seedNewsComment(USER_ID);
-    await seedNewsReaction(USER_ID);
-    await seedNewsReport(USER_ID);
+    await seedComment(USER_ID);
     await seedStoragePhoto(USER_ID, `person-${USER_ID}`);
     await seedNotification(USER_ID);
     await seedOrganizerRequest(USER_ID);
@@ -264,10 +237,8 @@ describe('deleteAccount (callable)', () => {
     expect((await db().doc('organizerRequests/req-1').get()).exists).toBe(false);
     expect((await db().doc(`users/${USER_ID}`).get()).exists).toBe(false);
 
-    // News interactions (comment, reaction, report) hard-deleted.
-    expect((await db().doc('newsComments/comment-1').get()).exists).toBe(false);
-    expect((await db().doc(`newsReactions/${NEWS_ID}_${USER_ID}`).get()).exists).toBe(false);
-    expect((await db().doc('newsReports/report-1').get()).exists).toBe(false);
+    // Interactions (comment) hard-deleted.
+    expect((await db().doc('comments/comment-1').get()).exists).toBe(false);
 
     // Storage photos (avatar + persona) purged.
     expect(await storageFileExists(`users/${USER_ID}/photo/avatar.jpg`)).toBe(false);

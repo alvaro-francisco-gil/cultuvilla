@@ -29,6 +29,8 @@ const validEvent = {
   villageCoordinates: { lat: 40.4, lng: -3.7 },
   confirmedCount: 0,
   totalCount: 0,
+  commentCount: 0,
+  readCount: 0,
   endBoundary: new Date('2026-06-15T18:00:00Z'),
 };
 
@@ -69,6 +71,9 @@ describe('buildEventData', () => {
     expect(built.endDate).toBeNull();
     // Single-day: the feed key falls back to startDate.
     expect(built.endBoundary).toEqual(new Date('2026-06-15T18:00:00Z'));
+    expect(built.readCount).toBe(0);
+    expect(built.commentCount).toBe(0);
+    expect('reactionCounts' in built).toBe(false);
     expect(() => EventDataSchema.parse(built)).not.toThrow();
   });
 
@@ -107,6 +112,7 @@ describe('isEventFull', () => {
     villageCoverImage: null,
     villageCoordinates: { lat: 1, lng: 2 },
     confirmedCount: 0, totalCount: 0,
+    commentCount: 0, readCount: 0,
     endBoundary: new Date('2026-06-15T18:00:00Z'),
   });
 
@@ -138,6 +144,7 @@ describe('isEventSignupOpen', () => {
     villageCoverImage: null,
     villageCoordinates: { lat: 1, lng: 2 },
     confirmedCount: 0, totalCount: 0,
+    commentCount: 0, readCount: 0,
     endBoundary: new Date('2026-06-15T18:00:00Z'),
   });
 

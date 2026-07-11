@@ -158,6 +158,11 @@ export const BarrioDataSchema = z.object({
   imageURL: z.string().nullable(),
   createdAt: z.date(),
   proposedBy: z.string().nullable(),
+  // Denormalized interaction counters, maintained server-side by the comments
+  // Cloud Function trigger / the detail-screen view tracker. Initialized to 0
+  // at create.
+  commentCount: z.number().int(),
+  readCount: z.number().int(),
   ...visibilityFields,
 });
 export type BarrioData = z.infer<typeof BarrioDataSchema>;
@@ -176,6 +181,8 @@ export function buildBarrioData(input: BarrioDataInput): BarrioData {
     imageURL: input.imageURL ?? null,
     createdAt: new Date(),
     proposedBy: input.proposedBy ?? null,
+    commentCount: 0,
+    readCount: 0,
     ...defaultVisibility(),
   };
 }
@@ -212,6 +219,11 @@ export const PlaceDataSchema = z.object({
   imageURL: z.string().nullable(),
   createdAt: z.date(),
   proposedBy: z.string().nullable(),
+  // Denormalized interaction counters, maintained server-side by the comments
+  // Cloud Function trigger / the detail-screen view tracker. Initialized to 0
+  // at create.
+  commentCount: z.number().int(),
+  readCount: z.number().int(),
   ...visibilityFields,
 });
 export type PlaceData = z.infer<typeof PlaceDataSchema>;
@@ -234,6 +246,8 @@ export function buildPlaceData(input: PlaceDataInput): PlaceData {
     imageURL: input.imageURL ?? null,
     createdAt: new Date(),
     proposedBy: input.proposedBy ?? null,
+    commentCount: 0,
+    readCount: 0,
     ...defaultVisibility(),
   };
 }

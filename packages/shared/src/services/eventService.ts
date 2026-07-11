@@ -116,7 +116,12 @@ export async function getEventsByOrganizer(
     orderBy('createdAt', 'desc'),
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  // A "deleted" event is soft-cancelled (status -> 'cancelled'); the profile's
+  // managed-events list must not resurface it. Filtered here rather than in the
+  // query to avoid a status+array-contains composite index.
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .filter((e) => e.status !== 'cancelled');
 }
 
 export async function getEventCountByOrganizer(userId: string): Promise<number> {

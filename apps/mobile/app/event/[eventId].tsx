@@ -15,11 +15,14 @@ import { useEventOrganizer } from '../../lib/events/useEventOrganizer';
 import { EntityDetailScaffold } from '../../components/feature/EntityDetailScaffold';
 import type { EntityDetailAction } from '../../components/feature/EntityDetailHeader';
 import { DetailInfoCard } from '../../components/feature/DetailInfoCard';
+import { EntityComments } from '../../components/feature/EntityComments';
 import { ENTITY_FALLBACK_ICON } from '../../lib/entities/registry';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
+import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { getEvent } from '@cultuvilla/shared/services/eventService';
+import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { getEventLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
@@ -45,6 +48,7 @@ export default function EventDetailScreen() {
   const [person, setPerson] = useState<PersonDoc | null>(null);
   const [village, setVillage] = useState<VillageDoc | null>(null);
   const { canOrganize } = useEventOrganizer(event);
+  const { canManage } = useEntityCapabilities(event?.municipalityId);
 
   useEffect(() => {
     if (!eventId) return;
@@ -69,6 +73,11 @@ export default function EventDetailScreen() {
       setVillage(await getMunicipality(municipalityId));
     })();
   }, [event?.municipalityId]);
+
+  useEffect(() => {
+    if (!event) return;
+    void recordEntityView({ entityKind: 'event', entityId: event.id, municipalityId: event.municipalityId });
+  }, [event?.id]);
 
   const personName = person ? buildDisplayName(person) : '';
 
@@ -129,6 +138,7 @@ export default function EventDetailScreen() {
             personId={person.id}
             name={personName}
             telephoneRequired={!!event.telephoneRequired}
+            villageId={event.municipalityId}
           />
         ) : null
       }
@@ -215,6 +225,13 @@ export default function EventDetailScreen() {
             </Button>
           )}
           {!person && user ? <Text tone="muted">{t('event.register.needsPerson')}</Text> : null}
+          <EntityComments
+            key={event.id}
+            entityKind="event"
+            entityId={event.id}
+            municipalityId={event.municipalityId}
+            canModerate={canManage}
+          />
         </>
       ) : null}
     </EntityDetailScaffold>

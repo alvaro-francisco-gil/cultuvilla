@@ -26,6 +26,8 @@ function makeEvent(over: Partial<ManagedEvent> & { id: string }): ManagedEvent {
     villageCoordinates: null,
     confirmedCount: 0,
     totalCount: 0,
+    commentCount: 0,
+    readCount: 0,
     endBoundary: over.endDate ?? over.startDate ?? new Date('2026-07-01T18:00:00Z'),
   } as ManagedEvent;
 }

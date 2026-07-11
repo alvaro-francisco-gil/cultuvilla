@@ -47,4 +47,11 @@ describe('<EventCard>', () => {
     const { queryByText } = render(<EventCard event={fixture} onPress={() => {}} />);
     expect(queryByText('En curso')).toBeNull();
   });
+
+  it('never surfaces a comment count, even when the event has comments', () => {
+    const { queryByTestId } = render(
+      <EventCard event={{ ...fixture, commentCount: 3 }} onPress={() => {}} />,
+    );
+    expect(queryByTestId('feed-card-comment-count')).toBeNull();
+  });
 });

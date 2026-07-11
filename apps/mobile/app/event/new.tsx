@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native';
 import { router, useLocalSearchParams, Redirect } from 'expo-router';
-import { Screen, Text, Input, DateTimeField, FieldLabel, Toggle, HStack } from '../../components/primitives';
+import { Screen, Text, Input, DateTimeField, FieldLabel, Toggle, HStack, ErrorState } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { EventCoverPicker } from '../../components/feature/EventCoverPicker';
 import { EventLocationField } from '../../components/feature/EventLocationField';
@@ -30,6 +30,7 @@ import { buildLocationData } from '@cultuvilla/shared/models/core/LocationDataMo
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 import { Stepper, type StepConfig } from '../../components/feature/Stepper';
 import { DeleteHeaderButton } from '../../components/feature/DeleteHeaderButton';
+import { roundUpToMinuteStep } from '../../lib/date/clockGrid';
 
 /** Nearest joined village to a coordinate (by great-circle distance), or null. */
 function nearestVillage(c: LatLng, villages: VillageOption[]): VillageOption | null {
@@ -94,7 +95,7 @@ export default function NewEventScreen() {
   // form fields
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [startDate, setStartDate] = useState<Date | null>(() => roundUpToMinuteStep(new Date(), 5));
   // Optional multi-day end; null = single-day event.
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [coords, setCoords] = useState<LatLng | null>(null);
@@ -317,12 +318,15 @@ export default function NewEventScreen() {
   }
 
   if (loadError) {
+    const notFound = loadError === 'not-found';
     return (
       <Screen padded={false} topInset={false}>
         <ScreenHeader accent title={headerTitle} />
-        <View className="flex-1 items-center justify-center px-8">
-          <Text tone="danger">{loadError}</Text>
-        </View>
+        <ErrorState
+          error={notFound ? undefined : loadError}
+          title={notFound ? t('event.notFoundTitle') : undefined}
+          message={notFound ? t('event.notFoundBody') : undefined}
+        />
       </Screen>
     );
   }
@@ -399,7 +403,8 @@ export default function NewEventScreen() {
             value={startDate}
             onChange={setStartDate}
             minimumDate={new Date()}
-            placeholder={t('event.selectDateTime')}
+            datePlaceholder={t('event.selectDate')}
+            timePlaceholder={t('event.selectTime')}
             testID="startDate"
           />
           <DateTimeField
@@ -407,7 +412,8 @@ export default function NewEventScreen() {
             value={endDate}
             onChange={setEndDate}
             minimumDate={startDate ?? new Date()}
-            placeholder={t('event.selectDateTime')}
+            datePlaceholder={t('event.selectDate')}
+            timePlaceholder={t('event.selectTime')}
             testID="endDate"
           />
           <EventLocationField

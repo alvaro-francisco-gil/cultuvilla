@@ -10,7 +10,7 @@ import {
   getVillageViewLink,
   getOrgViewLink,
   getOrgInviteLink,
-  getPersonViewLink,
+  getUserViewLink,
   getPlaceViewLink,
   getBarrioViewLink,
   parseLink,
@@ -83,12 +83,12 @@ describe('deepLinkService builders', () => {
     });
   });
 
-  it('builds a person view link using /person/', () => {
-    expect(getPersonViewLink('person_1')).toEqual({
-      url: 'https://example.test.app/person/person_1',
+  it('builds a user profile view link using /user/', () => {
+    expect(getUserViewLink('uid_1')).toEqual({
+      url: 'https://example.test.app/user/uid_1',
       kind: 'content',
-      resource: 'person',
-      id: 'person_1',
+      resource: 'user',
+      id: 'uid_1',
     });
   });
 
@@ -157,25 +157,29 @@ describe('deepLinkService.parseLink', () => {
     expect(parseLink('https://other.host/event/evt_123')).toBeNull();
   });
 
-  it('parses a person view URL', () => {
-    expect(parseLink('https://example.test.app/person/person_1')).toEqual({
+  it('parses a user profile view URL', () => {
+    expect(parseLink('https://example.test.app/user/uid_1')).toEqual({
       kind: 'content',
-      resource: 'person',
-      id: 'person_1',
+      resource: 'user',
+      id: 'uid_1',
     });
   });
 
-  it('round-trips a person view link', () => {
-    const link = getPersonViewLink('person_round');
+  it('round-trips a user profile view link', () => {
+    const link = getUserViewLink('uid_round');
     expect(parseLink(link.url)).toEqual({
       kind: 'content',
-      resource: 'person',
-      id: 'person_round',
+      resource: 'user',
+      id: 'uid_round',
     });
   });
 
   it('returns null for an unknown resource segment', () => {
     expect(parseLink('https://example.test.app/profile/user_1')).toBeNull();
+  });
+
+  it('no longer parses a /person/ URL (person is the editor, not a shareable view)', () => {
+    expect(parseLink('https://example.test.app/person/person_1')).toBeNull();
   });
 
   it('returns null for a malformed URL', () => {
@@ -257,7 +261,7 @@ describe('deepLinkService.buildShareMessage', () => {
       'deeplink.share.organization.invite': 'Te invito a unirte a {name}: {url}',
       'deeplink.share.place.view': 'Mira «{name}»: {url}',
       'deeplink.share.barrio.view': 'Mira {name}: {url}',
-      'deeplink.share.person.view': 'Mira el perfil de {name}: {url}',
+      'deeplink.share.user.view': 'Mira el perfil de {name}: {url}',
     };
     let out: string = map[key] ?? key;
     if (!vars) return out;
@@ -298,8 +302,8 @@ describe('deepLinkService.buildShareMessage', () => {
     expect(buildShareMessage(link, t, 'El Arrabal')).toBe(`Mira El Arrabal: ${link.url}`);
   });
 
-  it('interpolates the person name into the view message', () => {
-    const link = getPersonViewLink('person_1');
+  it('interpolates the user name into the profile view message', () => {
+    const link = getUserViewLink('uid_1');
     expect(buildShareMessage(link, t, 'María García')).toBe(
       `Mira el perfil de María García: ${link.url}`,
     );

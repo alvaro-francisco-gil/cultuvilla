@@ -31,6 +31,11 @@ export const OrganizationDataSchema = z.object({
   municipalityId: z.string(),
   requestedBy: z.string(),
   createdAt: z.date(),
+  // Denormalized interaction counters, maintained server-side by the comments
+  // Cloud Function trigger / the detail-screen view tracker. Initialized to 0
+  // at create.
+  commentCount: z.number().int(),
+  readCount: z.number().int(),
   // status + reviewedBy + reviewedAt
   ...reviewDecisionFields,
 });
@@ -64,5 +69,7 @@ export function buildOrganizationData(input: OrganizationDataInput): Organizatio
     reviewedBy: input.reviewedBy ?? null,
     createdAt: input.createdAt ?? new Date(),
     reviewedAt: input.reviewedAt ?? null,
+    commentCount: 0,
+    readCount: 0,
   };
 }

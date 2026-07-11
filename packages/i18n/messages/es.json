@@ -33,8 +33,10 @@
     "photo": "Foto",
     "and": "y",
     "error": {
-      "title": "No se pudo cargar",
-      "body": "Algo salió mal al cargar el contenido. Inténtalo de nuevo.",
+      "network": "Parece que no hay conexión. Comprueba tu internet.",
+      "data": "No pudimos mostrar este contenido.",
+      "unknown": "Algo salió mal al cargar el contenido.",
+      "retryLater": "Inténtalo de nuevo más tarde.",
       "retry": "Reintentar"
     }
   },
@@ -176,6 +178,7 @@
     "menu": "Regístrate para acceder al menú.",
     "createEvent": "Regístrate para crear un evento.",
     "createNews": "Regístrate para crear un artículo.",
+    "comment": "Regístrate para comentar.",
     "eventCta": "Apuntarme",
     "register": "Registrarse",
     "dismiss": "Ahora no"
@@ -429,7 +432,9 @@
         "titlePlaceholder": "p. ej. San Roque",
         "startDate": "Fecha de inicio",
         "endDate": "Fecha de fin",
-        "image": "Cartel"
+        "image": "Cartel",
+        "addImage": "Añadir imagen",
+        "removeImage": "Quitar imagen"
       },
       "viewer": { "close": "Cerrar" }
     }
@@ -504,6 +509,8 @@
     "waitlisted": "En lista de espera",
     "attendees": "Asistentes",
     "attendeesEmpty": "Aún no hay asistentes",
+    "notFoundTitle": "Evento no encontrado",
+    "notFoundBody": "Este evento ya no existe o se ha eliminado.",
     "descriptionLabel": "Descripción",
     "call": "Llamar",
     "draft": "Borrador",
@@ -526,7 +533,8 @@
     "noVillages": "Únete a un pueblo para poder crear eventos.",
     "date": "Fecha",
     "time": "Hora",
-    "selectDateTime": "Seleccionar fecha y hora",
+    "selectDate": "Seleccionar fecha",
+    "selectTime": "Seleccionar hora",
     "selectLocation": "Seleccionar ubicación",
     "selectedLocation": "Ubicación seleccionada",
     "confirmLocation": "Confirmar ubicación",
@@ -665,7 +673,12 @@
       "noVillages": "Aún no perteneces a ningún pueblo. Únete a uno para elegir tu barrio.",
       "residenceHeading": "Pueblos de residencia",
       "addVillage": "Añadir pueblo",
-      "removeVillage": "Quitar"
+      "removeVillage": "Quitar",
+      "leaveVillageTitle": "Salir del pueblo",
+      "leaveVillageMessage": "Dejarás de ver el contenido de este pueblo y de aparecer en su censo. Puedes volver a unirte cuando quieras.",
+      "leaveVillageConfirm": "Salir",
+      "leaveVillageCancel": "Cancelar",
+      "leavingVillage": "Saliendo del pueblo…"
     },
     "personDetailTitle": "Persona",
     "personEdit": "Editar",
@@ -843,7 +856,6 @@
     },
     "comments": {
       "title": "Comentarios",
-      "empty": "Sé el primero en comentar.",
       "placeholder": "Escribe un comentario…",
       "send": "Enviar",
       "report": "Reportar",
@@ -862,7 +874,7 @@
       },
       "place": { "view": "Mira «{name}» en Cultuvilla: {url}" },
       "barrio": { "view": "Mira {name} en Cultuvilla: {url}" },
-      "person": { "view": "Mira el perfil de {name} en Cultuvilla: {url}" }
+      "user": { "view": "Mira el perfil de {name} en Cultuvilla: {url}" }
     },
     "shareViewLabel": "Compartir"
   },
@@ -912,5 +924,23 @@
       }
     },
     "deletedUser": "Usuario eliminado"
+  },
+  "consent": {
+    "message": "Usamos analítica anónima para mejorar la app. ¿Nos das tu consentimiento?",
+    "accept": "Aceptar",
+    "decline": "Rechazar"
+  },
+  "comments": {
+    "sectionTitle": "Comentarios",
+    "countLabel": "{count, plural, one {# comentario} other {# comentarios}}",
+    "placeholder": "Escribe un comentario…",
+    "send": "Enviar",
+    "signInToComment": "Inicia sesión para comentar",
+    "delete": "Eliminar",
+    "deleteConfirmTitle": "Eliminar comentario",
+    "deleteConfirmMessage": "¿Eliminar este comentario?",
+    "deleteConfirmCancel": "Cancelar",
+    "deleteConfirmConfirm": "Eliminar",
+    "anonymousAuthor": "Usuario"
   }
 }

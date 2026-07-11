@@ -70,11 +70,15 @@ jest.mock('../../../components/feature/MyVillagePicker', () => ({
     return <Text testID="village-picker">{value ?? ''}</Text>;
   },
 }));
-// Drive DateTimeField.onChange directly without the modal UI.
+// Drive DateTimeField.onChange directly; also surface the incoming value for assertions.
 jest.mock('../../../components/primitives/DateTimeField', () => ({
-  DateTimeField: ({ onChange, testID }: { onChange: (d: Date) => void; testID?: string }) => {
-    const { Pressable } = require('react-native');
-    return <Pressable testID={testID} onPress={() => onChange(new Date('2026-08-01T18:00'))} />;
+  DateTimeField: ({ onChange, testID, value }: { onChange: (d: Date) => void; testID?: string; value: Date | null }) => {
+    const { Pressable, Text } = require('react-native');
+    return (
+      <Pressable testID={testID} onPress={() => onChange(new Date('2026-08-01T18:00'))}>
+        <Text testID={`${testID}-value`}>{value ? value.toISOString() : ''}</Text>
+      </Pressable>
+    );
   },
 }));
 
@@ -138,5 +142,16 @@ describe('NewEventScreen stepper', () => {
     await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
     fireEvent.press(getByLabelText('event.addImage'));
     await waitFor(() => expect(pickImageAsBlob).toHaveBeenCalled());
+  });
+
+  it('pre-seeds the event start with a 5-minute-aligned current time', async () => {
+    const { getByText, getByLabelText, getByTestId } = render(<NewEventScreen />);
+    await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
+    fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => getByTestId('startDate-value'));
+    const iso = getByTestId('startDate-value').props.children as string;
+    expect(iso).not.toBe(''); // not the empty placeholder
+    expect(new Date(iso).getMinutes() % 5).toBe(0);
   });
 });

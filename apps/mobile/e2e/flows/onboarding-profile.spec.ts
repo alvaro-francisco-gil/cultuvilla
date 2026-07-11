@@ -21,25 +21,25 @@ test.describe('onboarding: complete profile', () => {
     const givenName = page.getByTestId('person-given-name');
     await expect(givenName).toBeVisible({ timeout: 30_000 });
 
-    // Step 1 — identity.
+    // Step 1 — identity. Terms acceptance lives at the end of this step and
+    // gates it, so accept before advancing.
     await givenName.fill('Nueva');
     await page.getByTestId('person-first-surname').fill('Vecina');
     await page.getByTestId('person-second-surname').fill('DePrueba');
     await page.getByTestId('person-sex-female').click();
-    await page.getByTestId('person-form-primary').click();
-
-    // Step 2 — residence: only the birthday is required (requireFullName). Pick a
-    // recent-ish year so it renders within the list's initial window.
-    await page.getByTestId('birthday-year').click();
-    await page.getByTestId('birthday-year-option-1990').click();
-    await page.getByTestId('birthday-month').click();
-    await page.getByTestId('birthday-month-option-5').click();
-    await page.getByTestId('birthday-day').click();
-    await page.getByTestId('birthday-day-option-15').click();
-    await page.getByTestId('person-form-primary').click();
-
-    // Step 3 — about: fields optional, but terms acceptance is required.
     await page.getByTestId('accept-terms').click();
+    await page.getByTestId('person-form-primary').click();
+
+    // Step 2 — residence: only the birthday is required (requireFullName). Open the
+    // calendar, jump to a past year/month via the tappable title, then pick a day.
+    await page.getByTestId('birthday-trigger').click();
+    await page.getByTestId('birthday-calendar-title').click();
+    await page.getByTestId('birthday-calendar-year-1990').click();
+    await page.getByTestId('birthday-calendar-month-4').click(); // May (0-based)
+    await page.getByTestId('birthday-calendar-day-1990-05-15').click();
+    await page.getByTestId('person-form-primary').click();
+
+    // Step 3 — about: all fields optional, submit directly.
     await page.getByTestId('person-form-primary').click();
 
     // Strong assertion: the profile now links a person, and that person exists.

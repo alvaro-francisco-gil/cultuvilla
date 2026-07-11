@@ -11,11 +11,16 @@ export const FestivalPosterDataSchema = z.object({
   proposedBy: z.string().nullable(),
   year: z.number().int(),
   title: z.string().nullable(),
-  imageURL: z.string().nullable(),
+  images: z.array(z.string()).max(5),
   datePrecision: DatePrecisionSchema,
   startsAt: z.date().nullable(),
   endsAt: z.date().nullable(),
   createdAt: z.date(),
+  // Denormalized interaction counters, maintained server-side by the comments
+  // Cloud Function trigger / the detail-screen view tracker. Initialized to 0
+  // at create.
+  commentCount: z.number().int(),
+  readCount: z.number().int(),
   ...visibilityFields,
 });
 export type FestivalPosterData = z.infer<typeof FestivalPosterDataSchema>;
@@ -25,7 +30,7 @@ export interface FestivalPosterDataInput {
   proposedBy?: string | null;
   year: number;
   title?: string | null;
-  imageURL?: string | null;
+  images?: string[];
   datePrecision?: DatePrecision;
   startsAt?: Date | null;
   endsAt?: Date | null;
@@ -45,11 +50,13 @@ export function buildFestivalPosterData(input: FestivalPosterDataInput): Festiva
     proposedBy: input.proposedBy ?? null,
     year: input.year,
     title: input.title ?? null,
-    imageURL: input.imageURL ?? null,
+    images: input.images ?? [],
     datePrecision,
     startsAt,
     endsAt,
     createdAt: input.createdAt,
+    commentCount: 0,
+    readCount: 0,
     ...defaultVisibility(),
   };
 }

@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from '../primitives/Pressable';
 import { Text } from '../primitives/Text';
 import { TopCropImage } from '../primitives/TopCropImage';
+import { iconSizes } from '@cultuvilla/shared/design-system';
 
 /**
  * Image-forward feed card shared by EventCard and NewsCard. The image fills
@@ -28,6 +29,13 @@ export type FeedCardProps = {
   fallbackIcon: keyof typeof Ionicons.glyphMap;
   /** Optional pill shown over the top-left of the image (e.g. "En curso"). */
   badge?: string | null;
+  /**
+   * When > 0, a chat-icon + count takes the right side of the meta row *in place
+   * of* `metaRight`. Cards that shouldn't surface comments omit it (they keep
+   * `metaRight`); cards that show comments instead of their meta text pass an
+   * empty `metaRight`, so the slot is blank when the count is 0.
+   */
+  commentCount?: number;
   onPress: () => void;
   testID?: string;
 };
@@ -40,6 +48,7 @@ export function FeedCard({
   metaRight,
   fallbackIcon,
   badge = null,
+  commentCount,
   onPress,
   testID,
 }: FeedCardProps) {
@@ -72,13 +81,13 @@ export function FeedCard({
               backgroundColor: 'rgba(0,0,0,0.6)',
             }}
           >
-            {/* One line only — ellipsise rather than wrap to a second line. */}
             <Text variant="h1" numberOfLines={1} style={{ color: '#ffffff', fontSize: 22 }}>
               {title}
             </Text>
-            {/* Location + date on one row. Location takes the slack and ellipsises
-                when long; the date sits at the right and is never trimmed. */}
-            <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 4 }}>
+            {/* Meta row: location takes the slack and ellipsises. The right side is
+                the comment count (chat icon + number) when > 0, otherwise the
+                `metaRight` text (e.g. the date). */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
               <Text
                 variant="body"
                 numberOfLines={1}
@@ -86,13 +95,29 @@ export function FeedCard({
               >
                 {metaLeft}
               </Text>
-              <Text
-                variant="body"
-                numberOfLines={1}
-                style={{ color: 'rgba(255,255,255,0.85)', flexShrink: 0 }}
-              >
-                {metaRight}
-              </Text>
+              {commentCount && commentCount > 0 ? (
+                <View
+                  testID="feed-card-comment-count"
+                  style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 0 }}
+                >
+                  <Ionicons name="chatbubble-outline" size={iconSizes.sm} color="rgba(255,255,255,0.85)" />
+                  <Text
+                    variant="body"
+                    numberOfLines={1}
+                    style={{ color: 'rgba(255,255,255,0.85)', marginLeft: 4 }}
+                  >
+                    {commentCount}
+                  </Text>
+                </View>
+              ) : (
+                <Text
+                  variant="body"
+                  numberOfLines={1}
+                  style={{ color: 'rgba(255,255,255,0.85)', flexShrink: 0 }}
+                >
+                  {metaRight}
+                </Text>
+              )}
             </View>
           </View>
 

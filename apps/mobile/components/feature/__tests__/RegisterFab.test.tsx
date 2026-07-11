@@ -7,7 +7,12 @@ import {
   cancelRegistration,
 } from '@cultuvilla/shared/services/registrationService';
 import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
+import { observability } from '@cultuvilla/shared';
 
+jest.mock('@cultuvilla/shared', () => ({
+  ...jest.requireActual('@cultuvilla/shared'),
+  observability: { trackEvent: jest.fn() },
+}));
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
@@ -60,6 +65,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockGetUserRegistrations.mockResolvedValue([]);
   mockGetPersonsByCreator.mockResolvedValue([]);
+  (observability.trackEvent as jest.Mock).mockClear();
 });
 
 describe('RegisterFab', () => {
@@ -98,6 +104,7 @@ describe('RegisterFab', () => {
         { personId: 'p2', name: 'Hijo García' },
       ]),
     );
+    expect(observability.trackEvent).toHaveBeenCalledWith('event.signup.success', { villageId: undefined });
   });
 
   // Reproduces production data: getPersonsByCreator returns the caller's OWN
@@ -151,5 +158,40 @@ describe('RegisterFab', () => {
     fireEvent.press(getByTestId('attendee-confirm'));
 
     await waitFor(() => expect(mockCancelRegistration).toHaveBeenCalledWith('e1', 'rB'));
+  });
+
+  it('threads the villageId prop into the success event', async () => {
+    mockRegisterToEvent.mockResolvedValue([{ id: 'rA', status: 'confirmed', position: 1, isMember: true }]);
+    const { getByTestId, getByText } = render(<RegisterFab {...baseProps} villageId="m1" />);
+    await waitFor(() => expect(getByText('event.register.cta')).toBeTruthy());
+
+    fireEvent.press(getByTestId('register-fab'));
+    fireEvent.press(getByTestId('attendee-row-p1'));
+    fireEvent.press(getByTestId('attendee-confirm'));
+
+    await waitFor(() =>
+      expect(observability.trackEvent).toHaveBeenCalledWith('event.signup.success', { villageId: 'm1' }),
+    );
+  });
+
+  // Regression: a failure in the post-signup cancel loop must NOT also fire
+  // EVENT_SIGNUP_ERROR once the signup itself already succeeded — that would
+  // record both a success and an error for the same operation.
+  it('does not fire EVENT_SIGNUP_ERROR when signup succeeds but a later cancel fails', async () => {
+    mockGetUserRegistrations.mockResolvedValue([{ id: 'rB', personId: 'p2', status: 'confirmed' }]);
+    mockGetPersonsByCreator.mockResolvedValue([dep]);
+    mockRegisterToEvent.mockResolvedValue([{ id: 'rA', status: 'confirmed', position: 1, isMember: true }]);
+    mockCancelRegistration.mockRejectedValue(new Error('cancel failed'));
+    const { getByTestId, getByText } = render(<RegisterFab {...baseProps} />);
+    await waitFor(() => expect(getByText('event.register.signedUpCount')).toBeTruthy());
+
+    fireEvent.press(getByTestId('register-fab'));
+    fireEvent.press(getByTestId('attendee-row-p1')); // add self
+    fireEvent.press(getByTestId('attendee-row-p2')); // untick the dependent (triggers cancel)
+    fireEvent.press(getByTestId('attendee-confirm'));
+
+    await waitFor(() => expect(mockCancelRegistration).toHaveBeenCalled());
+    expect(observability.trackEvent).toHaveBeenCalledWith('event.signup.success', { villageId: undefined });
+    expect(observability.trackEvent).not.toHaveBeenCalledWith('event.signup.error', expect.anything());
   });
 });

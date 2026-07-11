@@ -31,10 +31,14 @@ test.describe('create & publish an event', () => {
     await title.fill(NEW_EVENT_TITLE);
     await page.getByTestId('event-form-primary').click();
 
-    // Step 2 — when & where. The datetime picker opens on "now" (a valid start),
-    // so opening then confirming is enough.
-    await page.getByTestId('startDate-trigger').click();
-    await page.getByTestId('startDate-confirm').click();
+    // Step 2 — when & where. startDate begins empty; the date calendar anchors on
+    // today, so open it and tap today's cell to set a valid start (time defaults to
+    // the current time, endDate stays optional).
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const todayId = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    await page.getByTestId('startDate-date').click();
+    await page.getByTestId(`startDate-date-calendar-day-${todayId}`).click();
 
     // Location: open, take the granted GPS fix, confirm once coords resolve.
     await page.getByTestId('event-location').click();

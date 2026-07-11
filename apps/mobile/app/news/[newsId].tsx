@@ -7,11 +7,14 @@ import type { EntityDetailAction } from '../../components/feature/EntityDetailHe
 import { ENTITY_FALLBACK_ICON } from '../../lib/entities/registry';
 import { NewsContentRenderer } from '../../components/feature/NewsContentRenderer';
 import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
+import { EntityComments } from '../../components/feature/EntityComments';
 import { useAuth } from '../../lib/auth/useAuth';
+import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
 import { useT } from '../../lib/i18n';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { getNewsLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getNewsPost } from '@cultuvilla/shared/services/newsService';
+import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
 import { formatDate } from '@cultuvilla/shared/utils';
 import type { NewsPostData } from '@cultuvilla/shared/models/news/NewsPostDataModel';
@@ -26,6 +29,7 @@ export default function NewsDetailScreen() {
   const [post, setPost] = useState<Post | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const { canManage } = useEntityCapabilities(post?.municipalityId);
 
   useEffect(() => {
     if (!newsId) return;
@@ -55,6 +59,11 @@ export default function NewsDetailScreen() {
       cancelled = true;
     };
   }, [firstImagePath]);
+
+  useEffect(() => {
+    if (!post) return;
+    void recordEntityView({ entityKind: 'news', entityId: post.id, municipalityId: post.municipalityId });
+  }, [post?.id]);
 
   const date = post ? (post.publishedAt ?? post.createdAt) : null;
   // Mirrors the news update rules: the author or a named organizer may edit.
@@ -102,6 +111,13 @@ export default function NewsDetailScreen() {
             {date ? <Text tone="muted">{formatDate(date, 'long')}</Text> : null}
           </HStack>
           <NewsContentRenderer content={post.content} body={post.body} municipalityId={post.municipalityId} />
+          <EntityComments
+            key={post.id}
+            entityKind="news"
+            entityId={post.id}
+            municipalityId={post.municipalityId}
+            canModerate={canManage}
+          />
         </>
       ) : null}
     </EntityDetailScaffold>

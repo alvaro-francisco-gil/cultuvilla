@@ -100,7 +100,10 @@ export function AddContentSheet({ visible, onClose, villageId, canManage }: AddC
               <Ionicons name="close" size={24} color="#94a3b8" />
             </RNPressable>
           </HStack>
-          <ScrollView style={{ maxHeight: 420 }}>
+          {/* No maxHeight cap: the sheet grows to fit every option so all are
+              visible at a glance without scrolling. ScrollView stays only as a
+              fallback for viewports too short to hold the full list. */}
+          <ScrollView style={{ maxHeight: '100%' }}>
             {optionsFor(villageId, canManage).map((opt) => (
               <RNPressable
                 key={opt.key}

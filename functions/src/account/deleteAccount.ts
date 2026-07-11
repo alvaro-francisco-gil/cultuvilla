@@ -5,12 +5,10 @@ import { getStorage } from 'firebase-admin/storage';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import type { CollectionReference, DocumentReference } from 'firebase-admin/firestore';
 import {
+  commentsCollection,
   eventsCollection,
   municipalitiesCollection,
   newsCollection,
-  newsCommentsCollection,
-  newsReactionsCollection,
-  newsReportsCollection,
   organizationDoc,
   organizerRequestsCollection,
   personsCollection,
@@ -42,9 +40,8 @@ interface DeleteAccountResult {
  *     never trusted. Any blocker aborts BEFORE anything is deleted.
  *  3. Anonymize authored content that is KEPT (news + events): swap `createdBy`
  *     to the DELETED_USER_UID sentinel and pull the uid from `organizerUserIds`.
- *  4. Hard-delete free-text/PII interactions the user authored: news comments,
- *     reactions, and reports. Unlike posts these carry no editorial value once
- *     the author is gone.
+ *  4. Hard-delete free-text/PII interactions the user authored: comments.
+ *     Unlike posts these carry no editorial value once the author is gone.
  *  5. Delete personal data: persons (self + dependents), memberships (with a
  *     `removed` audit event each), registrations, notifications, organizer
  *     requests, dangling organizer pointers, Cloud Storage photos, and the user
@@ -72,9 +69,7 @@ export const deleteAccount = onCall<undefined, Promise<DeleteAccountResult>>(
     const anonymizedNews = await anonymizeAuthoredContent(newsCollection(db), uid);
     const anonymizedEvents = await anonymizeAuthoredContent(eventsCollection(db), uid);
 
-    const newsCommentsDeleted = await deleteNewsComments(uid);
-    const newsReactionsDeleted = await deleteNewsReactions(uid);
-    const newsReportsDeleted = await deleteNewsReports(uid);
+    const commentsDeleted = await deleteUserComments(uid);
 
     const membershipsRemoved = await removeMemberships(uid);
     const personIds = await deletePersons(uid);
@@ -92,9 +87,7 @@ export const deleteAccount = onCall<undefined, Promise<DeleteAccountResult>>(
       uid,
       anonymizedNews,
       anonymizedEvents,
-      newsCommentsDeleted,
-      newsReactionsDeleted,
-      newsReportsDeleted,
+      commentsDeleted,
       membershipsRemoved,
       personsDeleted: personIds.length,
       registrationsDeleted,
@@ -256,23 +249,12 @@ async function deletePersons(uid: string): Promise<string[]> {
 }
 
 /**
- * Hard-delete every news comment the user authored — free-text PII with no
- * value once the author is erased. `newsComments` is a top-level collection;
- * the single equality on `authorUserId` is served by the automatic
- * single-field index.
+ * Hard-delete every comment the user authored — free-text PII with no value
+ * once the author is erased. `comments` is a top-level collection; the single
+ * equality on `authorUserId` is served by the automatic single-field index.
  */
-async function deleteNewsComments(uid: string): Promise<number> {
-  const snap = await raw(newsCommentsCollection(db)).where('authorUserId', '==', uid).get();
-  return deleteRefsInChunks(snap.docs.map((doc) => doc.ref));
-}
-
-async function deleteNewsReactions(uid: string): Promise<number> {
-  const snap = await raw(newsReactionsCollection(db)).where('userId', '==', uid).get();
-  return deleteRefsInChunks(snap.docs.map((doc) => doc.ref));
-}
-
-async function deleteNewsReports(uid: string): Promise<number> {
-  const snap = await raw(newsReportsCollection(db)).where('reporterUserId', '==', uid).get();
+async function deleteUserComments(uid: string): Promise<number> {
+  const snap = await raw(commentsCollection(db)).where('authorUserId', '==', uid).get();
   return deleteRefsInChunks(snap.docs.map((doc) => doc.ref));
 }
 

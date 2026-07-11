@@ -101,7 +101,7 @@ const firebaseConfigPerEnv: Record<Env, FirebaseOptions> = {
 const config: ExpoConfig = {
   name: namePerEnv[env],
   slug: 'cultuvilla',
-  version: '0.7.0',
+  version: '0.8.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   scheme: 'cultuvilla',
@@ -193,7 +193,6 @@ const config: ExpoConfig = {
           ] as [string, { iosUrlScheme: string }],
         ]
       : []),
-    '@react-native-community/datetimepicker',
     [
       'expo-location',
       {

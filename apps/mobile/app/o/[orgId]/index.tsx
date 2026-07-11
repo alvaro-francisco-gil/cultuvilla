@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text as RNText, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
@@ -10,8 +10,10 @@ import { useT } from '../../../lib/i18n';
 import { useAuth } from '../../../lib/auth/useAuth';
 import { useRegisterGate } from '../../../lib/auth/RegisterGateContext';
 import { useOrgCapabilities } from '../../../lib/auth/useOrgCapabilities';
+import { EntityComments } from '../../../components/feature/EntityComments';
 import { useShareDeepLink } from '../../../lib/deeplink/useShareDeepLink';
 import { getOrganization } from '@cultuvilla/shared/services/organizationService';
+import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { isOrgMember, addOrgMember, getOrgMembers } from '@cultuvilla/shared/services/orgMemberService';
 import { getOrgViewLink } from '@cultuvilla/shared/services/deepLinkService';
 import type { OrganizationData } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
@@ -48,6 +50,11 @@ export default function OrgDetailScreen() {
       void refresh();
     }, [refresh]),
   );
+
+  useEffect(() => {
+    if (!org) return;
+    void recordEntityView({ entityKind: 'organization', entityId: org.id, municipalityId: org.municipalityId });
+  }, [org?.id]);
 
   const onJoin = useCallback(async () => {
     if (!user) {
@@ -143,6 +150,13 @@ export default function OrgDetailScreen() {
               {t('organization.invitedBanner')}
             </Text>
           ) : null}
+          <EntityComments
+            key={org.id}
+            entityKind="organization"
+            entityId={org.id}
+            municipalityId={org.municipalityId}
+            canModerate={canManage}
+          />
         </>
       ) : null}
     </EntityDetailScaffold>

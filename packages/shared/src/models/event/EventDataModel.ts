@@ -39,6 +39,11 @@ export const EventDataSchema = z.object({
   // so every event doc carries them — never absent.
   confirmedCount: z.number().int(),
   totalCount: z.number().int(),
+  // Denormalized interaction counters, maintained server-side by the comments
+  // Cloud Function trigger / the detail-screen view tracker. Initialized to 0
+  // at create.
+  commentCount: z.number().int(),
+  readCount: z.number().int(),
   // Derived from `endDate ?? startDate` (see eventEndBoundary): the instant an
   // event stops being current. The Explora feed queries on this — not on
   // `startDate` — so a same-day event that already started, or a multi-day
@@ -95,6 +100,8 @@ export function buildEventData(input: EventDataInput): EventData {
     villageCoordinates: input.villageCoordinates,
     confirmedCount: 0,
     totalCount: 0,
+    commentCount: 0,
+    readCount: 0,
     endBoundary: eventEndBoundary({ startDate: input.startDate, endDate }),
   };
 }

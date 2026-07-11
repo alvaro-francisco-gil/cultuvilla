@@ -109,6 +109,56 @@ without joining the persons collection.
   person delete — the user's name is still a useful last-known value; an
   explicit account flow can clear it later if needed.
 
+### `commentCount` ← `comments/`
+
+Every entity kind (event, organization, festivalPoster, place, barrio, news)
+carries a running comment count on its own doc, so cards and detail screens
+can show it without a `getCountFromServer` per entity per render.
+
+- **Source of truth:** the generic top-level `comments/` collection, each doc
+  carrying `entityKind` + `entityId` (+ `municipalityId` for routing to
+  nested parents).
+- **Trigger:** [functions/src/interaction/syncEntityInteractionCounts.ts](../../functions/src/interaction/syncEntityInteractionCounts.ts)
+  — `syncEntityCommentCount`, an `onDocumentWritten` on `comments/`. Routes by
+  `entityKind` to the right parent doc: top-level for `event` /
+  `organization` / `festivalPoster` / `news`, nested
+  (`municipalities/{municipalityId}/places/{id}` or `.../barrios/{id}`) for
+  `place` / `barrio`. The count is incremented/decremented with
+  `FieldValue.increment`, not recomputed from a full scan — this is a
+  counter, not a projected copy (see "Counters vs. denormalization" below).
+- **Rules:** `firestore.rules` excludes `commentCount` from every entity
+  doc's client-writable update fields; only the trigger (admin SDK) can
+  change it. Create rules require the field present and zeroed.
+- **Backfill:** [scripts/backfill-entity-comment-counts.mjs](../../scripts/backfill-entity-comment-counts.mjs)
+  reconciles existing entity docs against the actual `comments` data.
+- **Delete behavior:** deleting an entity does not need to zero its own
+  count (the doc goes away); deleting a `comments` doc via cascade (e.g.
+  `deleteNewsPost`) still fires the trigger per deleted doc, so counts on a
+  *surviving* parent stay correct. A parent deleted out from under a
+  still-in-flight trigger is a no-op (`isNotFound` guard), not a retry loop.
+
+### `readCount` ← incremented directly by a callable (no source collection)
+
+Every entity kind also carries an invisible `readCount`, tracking detail-screen
+views. Unlike every other row in this doc, there is no source-of-truth
+collection to project from — the mobile app fires a fire-and-forget
+`recordEntityView({ entityKind, entityId, municipalityId })` once per detail
+screen mount, and the callable increments the field directly. There is no
+reactions/likes feature — it was removed in favor of this invisible counter.
+
+- **Write path:** [functions/src/interaction/recordEntityView.ts](../../functions/src/interaction/recordEntityView.ts)
+  (`recordEntityView` callable) calls the same `applyToParent` helper
+  `syncEntityCommentCount` uses, so both counters route through one
+  entity-kind switch.
+- **Rules:** `firestore.rules` excludes `readCount` from client-writable
+  update fields, same as `commentCount`; only the callable (admin SDK) can
+  change it. Create rules require the field present and zeroed.
+- **Backfill:** [scripts/backfill-entity-readcount.mjs](../../scripts/backfill-entity-readcount.mjs)
+  sets `readCount: 0` on existing entity docs missing the field and drops any
+  leftover `reactionCounts` field from the old reactions feature.
+- **Not surfaced in the UI today** — it's tracked for future use (e.g.
+  ranking, moderation signal), not rendered on any card or detail screen.
+
 ## Adding a new denormalized field — checklist
 
 1. Add the field to the **read-model document's** data model in `packages/shared/src/models/`.

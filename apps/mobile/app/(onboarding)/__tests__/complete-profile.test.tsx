@@ -1,6 +1,11 @@
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import CompleteProfileScreen from '../complete-profile';
+import { observability } from '@cultuvilla/shared';
 
+jest.mock('@cultuvilla/shared', () => ({
+  ...jest.requireActual('@cultuvilla/shared'),
+  observability: { trackEvent: jest.fn() },
+}));
 jest.mock('@cultuvilla/shared/services/personService', () => ({
   createPerson: jest.fn().mockResolvedValue('person-1'),
   updatePerson: jest.fn().mockResolvedValue(undefined),
@@ -110,27 +115,27 @@ describe('CompleteProfileScreen', () => {
     (personService.createPerson as jest.Mock).mockImplementation(async () => { order.push('person'); return 'person-1'; });
     (userService.createUserProfile as jest.Mock).mockImplementation(async () => { order.push('user'); });
 
-    const { getByText, getByLabelText, getByTestId, getAllByText } = render(<CompleteProfileScreen />);
+    const { getByText, getByLabelText, getByTestId } = render(<CompleteProfileScreen />);
 
     // Step 1: fill identity fields.
     fireEvent.changeText(getByLabelText('Nombre'), 'Ana');
     fireEvent.changeText(getByLabelText('Primer apellido'), 'García');
     fireEvent.changeText(getByLabelText('Segundo apellido'), 'López');
     fireEvent.press(getByText('Mujer')); // sex is required to advance
-    fireEvent.press(getByText('Siguiente'));
-
-    // Step 2: fill birthday (required when requireFullName=true).
-    fireEvent.press(getByTestId('birthday-year'));
-    fireEvent.press(getAllByText('1990')[0]!);
-    fireEvent.press(getByTestId('birthday-month'));
-    fireEvent.press(getAllByText('Mayo')[0]!);
-    fireEvent.press(getByTestId('birthday-day'));
-    const dayMatches = getAllByText('5');
-    fireEvent.press(dayMatches[dayMatches.length - 1]!);
-    fireEvent.press(getByText('Siguiente'));
-
-    // Step 3: accept the terms (submit is gated on it), then submit.
+    // Terms acceptance lives at the end of step 1, which is gated on it.
     fireEvent.press(getByTestId('accept-terms'));
+    fireEvent.press(getByText('Siguiente'));
+
+    // Step 2: fill birthday (required when requireFullName=true) via the
+    // calendar: open the trigger, jump to 1990-05, press the day cell.
+    fireEvent.press(getByTestId('birthday-trigger'));
+    fireEvent.press(getByTestId('birthday-calendar-title'));
+    fireEvent.press(getByTestId('birthday-calendar-year-1990'));
+    fireEvent.press(getByTestId('birthday-calendar-month-4'));
+    fireEvent.press(getByTestId('birthday-calendar-day-1990-05-05'));
+    fireEvent.press(getByText('Siguiente'));
+
+    // Step 3: submit.
     await act(async () => {
       fireEvent.press(getByText('Crear perfil'));
     });
@@ -182,7 +187,7 @@ describe('CompleteProfileScreen', () => {
     (userService.createUserProfile as jest.Mock).mockImplementation(async () => { order.push('user'); });
     (villageMemberService.ensureVillageMembership as jest.Mock).mockImplementation(async () => { order.push('village'); });
 
-    const { getByText, getByLabelText, getByTestId, getAllByText } = render(<CompleteProfileScreen />);
+    const { getByText, getByLabelText, getByTestId } = render(<CompleteProfileScreen />);
     // Let the mount effect resolve readPendingVillage and commit municipalityId
     // before we submit, so ensureVillageMembership actually runs.
     await act(async () => { await Promise.resolve(); });
@@ -191,18 +196,17 @@ describe('CompleteProfileScreen', () => {
     fireEvent.changeText(getByLabelText('Primer apellido'), 'García');
     fireEvent.changeText(getByLabelText('Segundo apellido'), 'López');
     fireEvent.press(getByText('Mujer'));
-    fireEvent.press(getByText('Siguiente'));
-
-    fireEvent.press(getByTestId('birthday-year'));
-    fireEvent.press(getAllByText('1990')[0]!);
-    fireEvent.press(getByTestId('birthday-month'));
-    fireEvent.press(getAllByText('Mayo')[0]!);
-    fireEvent.press(getByTestId('birthday-day'));
-    const dayMatches = getAllByText('5');
-    fireEvent.press(dayMatches[dayMatches.length - 1]!);
-    fireEvent.press(getByText('Siguiente'));
-
+    // Terms acceptance lives at the end of step 1, which is gated on it.
     fireEvent.press(getByTestId('accept-terms'));
+    fireEvent.press(getByText('Siguiente'));
+
+    fireEvent.press(getByTestId('birthday-trigger'));
+    fireEvent.press(getByTestId('birthday-calendar-title'));
+    fireEvent.press(getByTestId('birthday-calendar-year-1990'));
+    fireEvent.press(getByTestId('birthday-calendar-month-4'));
+    fireEvent.press(getByTestId('birthday-calendar-day-1990-05-05'));
+    fireEvent.press(getByText('Siguiente'));
+
     await act(async () => {
       fireEvent.press(getByText('Crear perfil'));
     });
@@ -214,34 +218,29 @@ describe('CompleteProfileScreen', () => {
     // The account doc must be written before the village membership.
     expect(order.indexOf('user')).toBeLessThan(order.indexOf('village'));
     expect(order).toEqual(['person', 'user', 'village']);
+    expect(observability.trackEvent).toHaveBeenCalledWith(
+      'onboarding.complete.success',
+      { municipalityId: 'muni-1' },
+    );
   });
 
-  it('does not create the profile until the terms are accepted', async () => {
+  it('does not advance past step 1 until the terms are accepted', async () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const userService = require('@cultuvilla/shared/services/userService');
 
-    const { getByText, getByLabelText, getByTestId, getAllByText } = render(<CompleteProfileScreen />);
+    const { getByText, getByLabelText, queryByTestId } = render(<CompleteProfileScreen />);
 
     fireEvent.changeText(getByLabelText('Nombre'), 'Ana');
     fireEvent.changeText(getByLabelText('Primer apellido'), 'García');
     fireEvent.changeText(getByLabelText('Segundo apellido'), 'López');
     fireEvent.press(getByText('Mujer'));
-    fireEvent.press(getByText('Siguiente'));
-
-    fireEvent.press(getByTestId('birthday-year'));
-    fireEvent.press(getAllByText('1990')[0]!);
-    fireEvent.press(getByTestId('birthday-month'));
-    fireEvent.press(getAllByText('Mayo')[0]!);
-    fireEvent.press(getByTestId('birthday-day'));
-    const dayMatches = getAllByText('5');
-    fireEvent.press(dayMatches[dayMatches.length - 1]!);
-    fireEvent.press(getByText('Siguiente'));
-
-    // Step 3: attempt to submit WITHOUT accepting the terms.
+    // Terms live at the end of step 1 and gate it: pressing Next without
+    // accepting them must keep us on step 1 (birthday belongs to step 2).
     await act(async () => {
-      fireEvent.press(getByText('Crear perfil'));
+      fireEvent.press(getByText('Siguiente'));
     });
 
+    expect(queryByTestId('birthday-trigger')).toBeNull();
     expect(userService.createUserProfile).not.toHaveBeenCalled();
   });
 
@@ -252,13 +251,16 @@ describe('CompleteProfileScreen', () => {
     fireEvent.changeText(getByLabelText('Primer apellido'), 'García');
     fireEvent.changeText(getByLabelText('Segundo apellido'), 'López');
     fireEvent.press(getByText('Mujer'));
+    // Terms acceptance lives at the end of step 1, which is gated on it.
+    fireEvent.press(getByTestId('accept-terms'));
     fireEvent.press(getByText('Siguiente'));
 
-    fireEvent.press(getByTestId('birthday-year'));
+    fireEvent.press(getByTestId('birthday-trigger'));
+    fireEvent.press(getByTestId('birthday-calendar-title'));
 
     // The current year (age 0) must not be selectable; a comfortably-old year is.
     const thisYear = new Date().getFullYear();
-    expect(queryByTestId(`birthday-year-option-${thisYear}`)).toBeNull();
-    expect(queryByTestId(`birthday-year-option-${thisYear - 20}`)).not.toBeNull();
+    expect(queryByTestId(`birthday-calendar-year-${thisYear}`)).toBeNull();
+    expect(queryByTestId(`birthday-calendar-year-${thisYear - 20}`)).not.toBeNull();
   });
 });

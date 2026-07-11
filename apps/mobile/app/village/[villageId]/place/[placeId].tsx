@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ScrollView } from 'react-native';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Text } from '../../../../components/primitives/Text';
@@ -7,10 +7,12 @@ import { EntityDetailScaffold } from '../../../../components/feature/EntityDetai
 import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
 import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
 import { PersonCard } from '../../../../components/feature/VillageSections';
+import { EntityComments } from '../../../../components/feature/EntityComments';
 import { useT } from '../../../../lib/i18n';
 import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 import { getPlace } from '@cultuvilla/shared/services/municipalityService';
+import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { getPlaceViewLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getPersonsByBurialPlace } from '@cultuvilla/shared/services/personService';
 import { buildDisplayName } from '@cultuvilla/shared/models/person';
@@ -47,6 +49,11 @@ export default function PlaceDetailScreen() {
       void load();
     }, [load]),
   );
+
+  useEffect(() => {
+    if (!place) return;
+    void recordEntityView({ entityKind: 'place', entityId: place.id, municipalityId: place.municipalityId });
+  }, [place?.id]);
 
   const actions: EntityDetailAction[] = place
     ? [
@@ -103,6 +110,13 @@ export default function PlaceDetailScreen() {
               )}
             </VStack>
           ) : null}
+          <EntityComments
+            key={place.id}
+            entityKind="place"
+            entityId={place.id}
+            municipalityId={place.municipalityId}
+            canModerate={canManage}
+          />
         </>
       ) : null}
     </EntityDetailScaffold>

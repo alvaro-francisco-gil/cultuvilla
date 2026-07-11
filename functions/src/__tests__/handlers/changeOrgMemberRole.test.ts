@@ -27,6 +27,8 @@ async function seedOrg(): Promise<void> {
     reviewedBy: 'someone',
     createdAt: new Date(),
     reviewedAt: new Date(),
+    commentCount: 0,
+    readCount: 0,
   });
 }
 
