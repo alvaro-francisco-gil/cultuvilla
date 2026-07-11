@@ -32,6 +32,7 @@ export const EventFormSchema = z
       .refine((s) => s.length > 0, 'El nombre del lugar es obligatorio'),
     maxAttendees: optionalPositiveInt,
     telephoneRequired: z.boolean().default(false),
+    requiresPayment: z.boolean().default(false),
   })
   .refine((v) => v.endDate == null || v.endDate >= v.startDate, {
     message: 'La fecha de fin no puede ser anterior a la de inicio',

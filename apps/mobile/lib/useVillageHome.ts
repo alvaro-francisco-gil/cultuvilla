@@ -120,8 +120,12 @@ export function useVillageHome(municipalityId: string | null) {
         getOrganizationsByMunicipality(municipalityId),
       );
 
+      // evts arrives sorted ascending by startDate. Show upcoming events first
+      // (soonest first), then past events (most recent first).
       const now = new Date();
       const upcoming = evts.filter((e) => e.startDate >= now);
+      const past = evts.filter((e) => e.startDate < now).reverse();
+      const orderedEvents = [...upcoming, ...past];
 
       const counts = await Promise.all(
         orgs.map((o) =>
@@ -156,7 +160,7 @@ export function useVillageHome(municipalityId: string | null) {
         organizations: orgs,
         orgMemberCounts: countByOrg,
         barrioResidentCounts: countByBarrio,
-        events: upcoming,
+        events: orderedEvents,
         news: nws,
         festivalPosters: posters,
         peopleCount: members.length,

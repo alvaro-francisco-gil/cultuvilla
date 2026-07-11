@@ -4,6 +4,17 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.9.0 — 2026-07-11
+
+### Added
+- **Enlaces externos en los artículos.** Al escribir una noticia puedes **pegar un enlace web** y, en ese momento, darle opcionalmente un texto a mostrar (p. ej. "compra tus entradas" en vez de la URL cruda); si lo omites, la URL queda igualmente pulsable. Cualquier URL `http(s)` escrita o pegada en el cuerpo —y en artículos antiguos— se detecta y se vuelve un enlace pulsable automáticamente. Los enlaces se abren en el navegador del sistema. El modelo de bloques gana un array `links` (y `captionLinks` en las imágenes) que solo persiste los enlaces con texto personalizado; las URLs sueltas se resuelven al renderizar. Guardado tras una comprobación de esquema `http/https` (los `javascript:`/`data:` nunca se abren).
+- Add `/descarga` landing endpoint and a branded QR generator (`pnpm qr:generate`) encoding `https://cultuvilla.es/descarga` — a print-once QR that works on web now and will open the native app once released.
+- **Pull-to-refresh inside every entity detail screen.** Events, news posts, festival posters, places, barrios, and organizations can now be refreshed in place — pull down (or, on desktop web, scroll up at the top) to re-fetch the screen's data. The gesture lives once in the shared `EntityDetailScaffold` (native `RefreshControl` on iOS/Android, the existing web-gesture hook on the Firebase Hosting build), so every detail screen gets it. The feed's `PullSpinner` was promoted to a shared component so the pull affordance looks identical everywhere.
+- Events can be flagged as requiring payment; organizers mark who has paid per attendee.
+
+### Changed
+- **La lista de espera de un evento ahora se ve, tanto al apuntarte como al gestionar asistentes.** El botón flotante de inscripción (`RegisterFab`) ya no muestra siempre "Apuntados (N)": si estás en lista de espera aparece "En lista de espera (N)", y cuando tienes personas confirmadas *y* en espera se muestran **dos botones** contiguos, cada uno con su recuento (verde ✓ confirmados, ámbar ⏳ en espera). En la vista de organizador (`EventAttendees`), el listado plano se ha dividido en dos secciones con recuento —**Asistentes (N)** y **Lista de espera (N)**—, respetando el orden de cola (`position`) dentro de cada una; la sección de espera solo aparece si hay alguien esperando. La promoción de la lista de espera sigue siendo **automática** (un trigger de Cloud Function asciende al siguiente en cola al liberarse una plaza confirmada); no se añade acción manual de promoción.
+
 ## v0.8.0 — 2026-07-11
 
 ### Added

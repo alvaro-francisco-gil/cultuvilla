@@ -73,6 +73,19 @@ it('leaves the village and reassigns active on confirm', async () => {
   await waitFor(() => expect(mockSetActiveMunicipality).toHaveBeenCalledWith('u1', 'm2'));
 });
 
+it('shows a barrio control for every village, even one with no approved barrios', async () => {
+  // getBarrios is mocked to resolve [] for every village. The barrio control
+  // must still render per row so the user can set/change a barrio for any of
+  // their villages — not vanish for barrio-less villages (regression guard).
+  mockGetUserMemberships.mockResolvedValue([
+    { municipalityId: 'm1', role: 'user', joinedAt: new Date(), profileCompletedAt: null },
+    { municipalityId: 'm2', role: 'user', joinedAt: new Date(), profileCompletedAt: null },
+  ]);
+  mockGetPersonByUserId.mockResolvedValue({ municipalityLinks: [] });
+  const { getAllByText } = render(<MembershipVillageEditor userId="u1" />);
+  await waitFor(() => expect(getAllByText('profile.personForm.barrio')).toHaveLength(2));
+});
+
 it('leaves a non-active village without reassigning active', async () => {
   mockActiveMunicipalityId = 'm2';
   mockGetUserMemberships.mockResolvedValue([

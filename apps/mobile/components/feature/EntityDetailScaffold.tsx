@@ -1,11 +1,13 @@
-import type { ReactNode } from 'react';
-import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { useRef, useState, type ReactNode } from 'react';
+import { ActivityIndicator, Animated, RefreshControl, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../primitives/Screen';
 import { VStack } from '../primitives/VStack';
 import { Text } from '../primitives/Text';
 import { DetailHeroImage } from './DetailHeroImage';
 import { EntityDetailHeader, type EntityDetailAction } from './EntityDetailHeader';
+import { PullSpinner } from './PullSpinner';
+import { useWebPullToRefresh } from '../../lib/useWebPullToRefresh';
 import { useT } from '../../lib/i18n';
 
 /**
@@ -14,9 +16,9 @@ import { useT } from '../../lib/i18n';
  * that opens a hero-image detail screen: event, festival-poster (cartel),
  * place, barrio, organization, news. (person + village are NOT entities — they
  * open into forms.) The scaffold owns the chrome — solid static header bar,
- * full-bleed flyer, title, and loading / not-found states — so each screen is
- * a thin body: fetch data, pass `actions`, render `{children}` and an optional
- * `fab`.
+ * full-bleed flyer, title, loading / not-found states, and pull-to-refresh — so
+ * each screen is a thin body: fetch data, pass `actions`, render `{children}`
+ * and an optional `fab`.
  */
 export type EntityDetailScaffoldProps = {
   loading: boolean;
@@ -32,6 +34,9 @@ export type EntityDetailScaffoldProps = {
    * live on `style`, not `className`, to render on RN-Web. */
   fab?: ReactNode;
   scrollContentClassName?: string;
+  /** Refetch the screen's data. When provided, the scaffold wires pull-to-refresh:
+   * native `RefreshControl` on iOS/Android, the web gesture on the Hosting build. */
+  onRefresh?: () => Promise<unknown> | void;
 };
 
 export function EntityDetailScaffold({
@@ -46,9 +51,28 @@ export function EntityDetailScaffold({
   children,
   fab,
   scrollContentClassName = 'pb-10',
+  onRefresh,
 }: EntityDetailScaffoldProps) {
   const { t } = useT();
   const busy = loading || notFound;
+
+  const scrollRef = useRef<ScrollView>(null);
+  const [nativeRefreshing, setNativeRefreshing] = useState(false);
+  const runRefresh = async () => {
+    if (!onRefresh) return;
+    setNativeRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setNativeRefreshing(false);
+    }
+  };
+  // Web-only pull-to-refresh (RefreshControl is inert on react-native-web). The
+  // hook owns the pull animation + spinner timing; the returned offset moves the
+  // content so it follows the drag. Enabled only once content is mounted and the
+  // screen opted in with `onRefresh`. Native uses RefreshControl below.
+  const { translateY: pull } = useWebPullToRefresh(scrollRef, runRefresh, !!onRefresh && !busy);
+
   return (
     <Screen padded={false} topInset={false}>
       <EntityDetailHeader onBack={onBack} actions={busy ? [] : actions} />
@@ -62,17 +86,30 @@ export function EntityDetailScaffold({
         </View>
       ) : (
         <>
-          <ScrollView contentContainerClassName={scrollContentClassName}>
-            <DetailHeroImage
-              imageUri={imageUri}
-              fallbackImageUri={fallbackImageUri}
-              fallbackIcon={fallbackIcon}
-            />
-            <VStack gap={3} className="p-4">
-              {title ? <Text variant="h1">{title}</Text> : null}
-              {children}
-            </VStack>
-          </ScrollView>
+          <View style={{ flex: 1 }}>
+            {onRefresh ? <PullSpinner pull={pull} top={0} /> : null}
+            <Animated.View style={{ flex: 1, transform: [{ translateY: pull }] }}>
+              <ScrollView
+                ref={scrollRef}
+                contentContainerClassName={scrollContentClassName}
+                refreshControl={
+                  onRefresh ? (
+                    <RefreshControl refreshing={nativeRefreshing} onRefresh={runRefresh} />
+                  ) : undefined
+                }
+              >
+                <DetailHeroImage
+                  imageUri={imageUri}
+                  fallbackImageUri={fallbackImageUri}
+                  fallbackIcon={fallbackIcon}
+                />
+                <VStack gap={3} className="p-4">
+                  {title ? <Text variant="h1">{title}</Text> : null}
+                  {children}
+                </VStack>
+              </ScrollView>
+            </Animated.View>
+          </View>
           {fab}
         </>
       )}

@@ -178,6 +178,9 @@ export function MembershipVillageEditor({ userId }: MembershipVillageEditorProps
               value={r.barrioId}
               onChange={(barrioId) => void onChangeBarrio(r.municipalityId, barrioId)}
               wholeVillageLabel={t('profile.personForm.wholeVillage')}
+              // Always show a barrio control per village so residence can be set
+              // for any of them — even a village with no approved barrios yet.
+              hideWhenEmpty={false}
             />
           </VStack>
         ))

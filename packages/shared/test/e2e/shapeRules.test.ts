@@ -203,6 +203,7 @@ describe('shape enforcement — /organizations/{orgId}', () => {
     reviewedAt: null,
     commentCount: 0,
     readCount: 0,
+    membersPublic: true,
   };
 
   it('accepts a valid full-shape payload', async () => {
@@ -291,6 +292,7 @@ describe('shape enforcement — /events/{eventId}', () => {
     imageURL: null,
     maxAttendees: null,
     telephoneRequired: false,
+    requiresPayment: false,
     status: 'published' as const,
     organizerUserIds: ['alice'],
     organizerOrgIds: [],
@@ -335,6 +337,14 @@ describe('shape enforcement — /events/{eventId}', () => {
     const alice = asUser(getEnv(), 'alice');
     await assertFails(
       setDoc(doc(alice, 'events/e1'), { ...validEvent, telephoneRequired: 'yes' }),
+    );
+  });
+
+  it('rejects wrong type on requiresPayment', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, 'events/e1'), { ...validEvent, requiresPayment: 'yes' }),
     );
   });
 

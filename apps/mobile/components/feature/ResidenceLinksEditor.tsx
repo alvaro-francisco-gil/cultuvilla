@@ -70,6 +70,9 @@ export function ResidenceLinksEditor({ value, onChange }: ResidenceLinksEditorPr
             value={link.barrioId}
             onChange={(barrioId) => setBarrio(i, barrioId)}
             wholeVillageLabel={t('profile.personForm.wholeVillage')}
+            // Show a barrio control for every selected village, even one with no
+            // approved barrios yet — not only the ones that happen to have some.
+            hideWhenEmpty={false}
           />
         </VStack>
       ))}

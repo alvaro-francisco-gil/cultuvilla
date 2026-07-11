@@ -289,9 +289,6 @@
       "label": "Eventos",
       "empty": "No hay eventos en este pueblo"
     },
-    "upcomingEvents": {
-      "title": "Próximos eventos"
-    },
     "newsFeed": {
       "title": "Artículos"
     },
@@ -500,6 +497,8 @@
     "maxAttendees": "Máximo de asistentes",
     "unlimited": "Sin límite",
     "telephoneRequired": "Teléfono requerido",
+    "requiresPayment": "Se paga en el evento",
+    "paid": "Pagado",
     "signUp": "Inscribirse",
     "cancelSignUp": "Cancelar inscripción",
     "spotsLeft": "{count} plazas disponibles",
@@ -509,6 +508,9 @@
     "waitlisted": "En lista de espera",
     "attendees": "Asistentes",
     "attendeesEmpty": "Aún no hay asistentes",
+    "removeAttendeeTitle": "Quitar asistente",
+    "removeAttendeeBody": "¿Seguro que quieres quitar a {name} de este evento?",
+    "removeAttendeeConfirm": "Quitar",
     "notFoundTitle": "Evento no encontrado",
     "notFoundBody": "Este evento ya no existe o se ha eliminado.",
     "descriptionLabel": "Descripción",
@@ -577,7 +579,8 @@
       "phoneInvalid": "Introduce un número de teléfono válido",
       "phoneSearch": "Buscar país",
       "phoneNoResults": "Sin resultados",
-      "signedUpCount": "{count, plural, one {Apuntado} other {Apuntados (#)}}",
+      "signedUpCount": "{count, plural, one {Apuntado (#)} other {Apuntados (#)}}",
+      "waitlistedCount": "{count, plural, one {En lista de espera (#)} other {En lista de espera (#)}}",
       "attendeesTitle": "¿A quién quieres apuntar?",
       "createPersona": "Crear una nueva persona",
       "confirm": "Confirmar",
@@ -605,7 +608,12 @@
     "approved": "Aprobada",
     "rejected": "Rechazada",
     "approve": "Aprobar",
-    "reject": "Rechazar"
+    "reject": "Rechazar",
+    "members": "Miembros",
+    "membersPublicLabel": "Mostrar los miembros del grupo",
+    "membersPrivateHint": "Solo los miembros del grupo verán quién forma parte.",
+    "membersEmpty": "Este grupo aún no tiene miembros.",
+    "adminBadge": "Admin"
   },
   "profile": {
     "myProfile": "Mi perfil",
@@ -850,6 +858,11 @@
         "festivalPoster": "Cartel"
       }
     },
+    "linkSheet": {
+      "textPlaceholder": "Texto a mostrar (opcional)",
+      "save": "Guardar",
+      "skip": "Omitir"
+    },
     "reactions": {
       "like": "Me gusta",
       "heart": "Me encanta"
@@ -862,6 +875,14 @@
       "reportConfirm": "¿Reportar este comentario?",
       "reportSent": "Reporte enviado."
     }
+  },
+  "descarga": {
+    "tagline": "La agenda de tu pueblo, en tu bolsillo.",
+    "openWeb": "Abrir en la web",
+    "comingSoon": "App para móvil, muy pronto.",
+    "getOnAppStore": "Descargar en el App Store",
+    "getOnPlayStore": "Descargar en Google Play",
+    "continueOnWeb": "Seguir en la web"
   },
   "deeplink": {
     "share": {

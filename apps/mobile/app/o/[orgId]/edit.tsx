@@ -3,6 +3,8 @@ import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { useLocalSearchParams, Redirect, router } from 'expo-router';
 import { Screen } from '../../../components/primitives/Screen';
 import { Text } from '../../../components/primitives/Text';
+import { Toggle } from '../../../components/primitives/Toggle';
+import { VStack } from '../../../components/primitives/VStack';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { ProposableForm } from '../../../components/feature/proposable/ProposableForm';
 import { DeleteHeaderButton } from '../../../components/feature/DeleteHeaderButton';
@@ -26,6 +28,7 @@ export default function OrgEditScreen() {
   const [type, setType] = useState<OrganizationType>('peña');
   const [existingImageUri, setExistingImageUri] = useState<string | null>(null);
   const [image, setImage] = useState<UploadableImage | null>(null);
+  const [membersPublic, setMembersPublic] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -43,6 +46,7 @@ export default function OrgEditScreen() {
         setType(o.type);
         setExistingImageUri(o.imageURL ?? null);
         setMunicipalityId(o.municipalityId);
+        setMembersPublic(o.membersPublic);
       } else {
         setNotFound(true);
       }
@@ -76,6 +80,7 @@ export default function OrgEditScreen() {
         name: name.trim(),
         description: description.trim() || null,
         type,
+        membersPublic,
       });
       if (image) {
         const imageURL = await uploadOrganizationImage(orgId, image);
@@ -134,6 +139,21 @@ export default function OrgEditScreen() {
                 onChangeType: (v: string) => setType(v as OrganizationType),
               }
             : {})}
+          footer={
+            <VStack gap={1}>
+              <Toggle
+                value={membersPublic}
+                onValueChange={setMembersPublic}
+                label={t('organization.membersPublicLabel')}
+                testID="org-edit-members-public-toggle"
+              />
+              {!membersPublic ? (
+                <Text tone="muted" variant="bodySm">
+                  {t('organization.membersPrivateHint')}
+                </Text>
+              ) : null}
+            </VStack>
+          }
           submitLabel={t('common.save')}
           submitTestID="org-edit-submit"
           onSubmit={submit}

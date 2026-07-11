@@ -7,6 +7,7 @@ import {
   NEWS_POST_CATEGORIES,
   type NewsPostCategory,
 } from '../../../src/models/news/NewsPostDataModel';
+import { NewsTextBlockSchema, NewsLinkSchema } from '../../../src/models/news/NewsPostDataModel';
 
 describe('MENTION_ENTITY_TYPES', () => {
   it('is the entity family plus village, and excludes persons', () => {
@@ -35,6 +36,48 @@ describe('NewsImageBlockSchema captionMentions', () => {
     const mention = { entityType: 'organization' as const, entityId: 'org1', label: 'Peña El Barrio', offset: 9, length: 14 };
     const parsed = NewsImageBlockSchema.parse({ ...base, captionMentions: [mention] });
     expect(parsed.captionMentions).toEqual([mention]);
+  });
+});
+
+describe('NewsLinkSchema', () => {
+  it('accepts a well-formed http(s) link span', () => {
+    const link = { url: 'https://entradas.example.com', offset: 4, length: 6 };
+    expect(NewsLinkSchema.parse(link)).toEqual(link);
+  });
+
+  it('rejects a non-URL string', () => {
+    expect(() => NewsLinkSchema.parse({ url: 'not a url', offset: 0, length: 1 })).toThrow();
+  });
+
+  it('rejects an unsafe scheme like javascript:', () => {
+    expect(() =>
+      NewsLinkSchema.parse({ url: 'javascript:alert(1)', offset: 0, length: 1 }),
+    ).toThrow();
+  });
+
+  it('accepts a normal https URL', () => {
+    const link = { url: 'https://x.com', offset: 0, length: 4 };
+    expect(NewsLinkSchema.parse(link)).toEqual(link);
+  });
+});
+
+describe('NewsTextBlockSchema links', () => {
+  it('defaults links to [] for a legacy text block without the field', () => {
+    const parsed = NewsTextBlockSchema.parse({ type: 'text', text: 'hola', mentions: [] });
+    expect(parsed.links).toEqual([]);
+  });
+
+  it('keeps link spans when present', () => {
+    const link = { url: 'https://x.com', offset: 0, length: 4 };
+    const parsed = NewsTextBlockSchema.parse({ type: 'text', text: 'aquí', mentions: [], links: [link] });
+    expect(parsed.links).toEqual([link]);
+  });
+});
+
+describe('NewsImageBlockSchema captionLinks', () => {
+  it('defaults captionLinks to [] for a legacy image block', () => {
+    const parsed = NewsImageBlockSchema.parse({ type: 'image', storagePath: 'p/1', width: 10, height: 5, caption: 'x' });
+    expect(parsed.captionLinks).toEqual([]);
   });
 });
 

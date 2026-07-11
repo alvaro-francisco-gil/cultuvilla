@@ -70,6 +70,7 @@ export default function FestivalPosterDetailScreen() {
       fallbackIcon={ENTITY_FALLBACK_ICON.festivalPoster}
       actions={actions}
       title={poster ? (poster.title ?? String(poster.year)) : undefined}
+      onRefresh={load}
     >
       {subtitle ? <Text tone="muted">{subtitle}</Text> : null}
       {poster && poster.images.length > 1 ? (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Text } from '../../components/primitives/Text';
 import { HStack } from '../../components/primitives/HStack';
@@ -31,13 +31,19 @@ export default function NewsDetailScreen() {
   const [loading, setLoading] = useState(true);
   const { canManage } = useEntityCapabilities(post?.municipalityId);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!newsId) return;
-    getNewsPost(newsId as string)
-      .then((p) => setPost(p))
-      .catch(() => setPost(null))
-      .finally(() => setLoading(false));
+    try {
+      setPost(await getNewsPost(newsId as string));
+    } catch {
+      setPost(null);
+    }
   }, [newsId]);
+
+  useEffect(() => {
+    setLoading(true);
+    void load().finally(() => setLoading(false));
+  }, [load]);
 
   // Resolve the cover to a download URL. Prefer the dedicated coverImage; fall
   // back to legacy images[0] for posts authored before covers existed.
@@ -97,6 +103,7 @@ export default function NewsDetailScreen() {
       fallbackIcon={ENTITY_FALLBACK_ICON.news}
       actions={actions}
       title={post?.title}
+      onRefresh={load}
     >
       {post ? (
         <>

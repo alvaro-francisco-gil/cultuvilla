@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { VStack, HStack, Text, Button, Input, Pressable, FieldLabel, ImagePickerField } from '../../primitives';
 import { pickImageAsBlob } from '../../../lib/images';
 import { useT } from '../../../lib/i18n';
@@ -35,6 +36,10 @@ export interface ProposableFormProps {
   typeValue?: string;
   onChangeType?: (value: string) => void;
 
+  /** Extra content rendered at the end of the form, just above the submit
+   * button (e.g. the agrupación members-visibility toggle). */
+  footer?: ReactNode;
+
   submitLabel: string;
   submitTestID?: string;
   onSubmit: () => void;
@@ -70,6 +75,7 @@ export function ProposableForm({
   typeOptions,
   typeValue,
   onChangeType,
+  footer,
   submitLabel,
   submitTestID,
   onSubmit,
@@ -134,6 +140,8 @@ export function ProposableForm({
           </HStack>
         </VStack>
       ) : null}
+
+      {footer}
 
       <Button testID={submitTestID} onPress={onSubmit} loading={saving} disabled={disabled}>
         {submitLabel}

@@ -146,50 +146,72 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
   }
 
   const count = registrations.size;
-  const anyWaitlisted = [...registrations.values()].some((r) => r.status === 'waitlisted');
-  const view =
+  const confirmedCount = [...registrations.values()].filter((r) => r.status === 'confirmed').length;
+  const waitlistedCount = count - confirmedCount;
+  // When the caller has a mix of confirmed + waitlisted personas we show two
+  // pills side by side, each with its own tally, so the split is legible.
+  // Otherwise a single pill: sign-up CTA, all-confirmed, or all-waitlisted.
+  // The first pill always carries the `register-fab` testID so the sheet stays
+  // openable via a stable handle regardless of the split.
+  const pillContent: { label: string; prefix: string; bg: string }[] =
     count === 0
-      ? { label: t('event.register.cta'), prefix: '+', bg: '#bb5d3a' }
-      : {
-          label: t('event.register.signedUpCount', { count }),
-          prefix: anyWaitlisted ? '⏳' : '✓',
-          bg: anyWaitlisted ? '#b07a1e' : '#2f7d4f',
-        };
+      ? [{ label: t('event.register.cta'), prefix: '+', bg: '#bb5d3a' }]
+      : [
+          ...(confirmedCount > 0
+            ? [{ label: t('event.register.signedUpCount', { count: confirmedCount }), prefix: '✓', bg: '#2f7d4f' }]
+            : []),
+          ...(waitlistedCount > 0
+            ? [{ label: t('event.register.waitlistedCount', { count: waitlistedCount }), prefix: '⏳', bg: '#b07a1e' }]
+            : []),
+        ];
+  const pills = pillContent.map((p, i) => ({ ...p, testID: i === 0 ? 'register-fab' : 'register-fab-waitlist' }));
 
   return (
     <>
       <Animated.View
         pointerEvents="box-none"
-        style={{ position: 'absolute', left: 0, right: 0, bottom: 24, alignItems: 'center', zIndex: 20 }}
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 24,
+          flexDirection: 'row',
+          justifyContent: 'center',
+          gap: 10,
+          zIndex: 20,
+        }}
       >
-        <RNPressable
-          onPress={() => {
-            if (!busy) setSheetOpen(true);
-          }}
-          disabled={busy}
-          testID="register-fab"
-          accessibilityRole="button"
-          accessibilityState={{ disabled: busy, selected: count > 0 }}
-          accessibilityLabel={view.label}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingVertical: 10,
-            paddingHorizontal: 22,
-            borderRadius: 999,
-            backgroundColor: view.bg,
-            opacity: busy ? 0.7 : 1,
-            elevation: 6,
-            shadowColor: '#000',
-            shadowOpacity: 0.25,
-            shadowRadius: 6,
-            shadowOffset: { width: 0, height: 3 },
-          }}
-        >
-          <Text style={{ color: '#f9f0e8', fontSize: 18, lineHeight: 22, marginRight: 8 }}>{view.prefix}</Text>
-          <Text style={{ color: '#f9f0e8', fontSize: 16, fontWeight: '700' }}>{view.label}</Text>
-        </RNPressable>
+        {pills.map((pill) => (
+          <RNPressable
+            key={pill.testID}
+            onPress={() => {
+              if (!busy) setSheetOpen(true);
+            }}
+            disabled={busy}
+            testID={pill.testID}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: busy, selected: count > 0 }}
+            accessibilityLabel={pill.label}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingVertical: 10,
+              paddingHorizontal: 22,
+              borderRadius: 999,
+              backgroundColor: pill.bg,
+              opacity: busy ? 0.7 : 1,
+              elevation: 6,
+              shadowColor: '#000',
+              shadowOpacity: 0.25,
+              shadowRadius: 6,
+              shadowOffset: { width: 0, height: 3 },
+            }}
+          >
+            <Text style={{ color: '#f9f0e8', fontSize: 18, lineHeight: 22, marginRight: 8 }}>{pill.prefix}</Text>
+            <Text style={{ color: '#f9f0e8', fontSize: 16, fontWeight: '700' }}>{pill.label}</Text>
+          </RNPressable>
+        ))}
       </Animated.View>
 
       <AttendeeSheet

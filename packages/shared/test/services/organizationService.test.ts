@@ -8,6 +8,7 @@ vi.mock('../../src/firebase/refs/client', () => ({
 }));
 vi.mock('firebase/firestore', () => ({
   doc: vi.fn(),
+  setDoc: vi.fn(),
   updateDoc: vi.fn(),
   serverTimestamp: vi.fn(),
   query: vi.fn(),
@@ -17,9 +18,13 @@ vi.mock('firebase/firestore', () => ({
 }));
 vi.mock('firebase/functions', () => ({ httpsCallable: vi.fn() }));
 
-import { query, where, orderBy, getDocs } from 'firebase/firestore';
+import { doc, query, where, orderBy, getDocs, setDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { approveOrganization, getMyOrganizations } from '../../src/services/organizationService';
+import {
+  approveOrganization,
+  getMyOrganizations,
+  requestOrganization,
+} from '../../src/services/organizationService';
 
 // Approval moved server-side (approveOrganization callable): the client service
 // is now a thin wrapper. The status flip + founding-admin seed + audit are
@@ -56,5 +61,33 @@ describe('getMyOrganizations', () => {
   it('maps snapshot docs to { id, ...data() }', async () => {
     const result = await getMyOrganizations('user123');
     expect(result).toEqual([{ id: 'o1', name: 'A' }]);
+  });
+});
+
+describe('requestOrganization membersPublic', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(doc).mockReturnValue({ id: 'o1' } as ReturnType<typeof doc>);
+  });
+
+  it('defaults membersPublic to true when omitted', async () => {
+    await requestOrganization({
+      id: 'o1', name: 'Peña', type: 'peña', municipalityId: 'm1', requestedBy: 'u1',
+    });
+    expect(setDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ membersPublic: true }),
+    );
+  });
+
+  it('persists membersPublic false when provided', async () => {
+    await requestOrganization({
+      id: 'o1', name: 'Peña', type: 'peña', municipalityId: 'm1', requestedBy: 'u1',
+      membersPublic: false,
+    });
+    expect(setDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ membersPublic: false }),
+    );
   });
 });

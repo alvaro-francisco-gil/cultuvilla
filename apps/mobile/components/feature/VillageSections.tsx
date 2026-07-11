@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
-import { Image, ScrollView, View } from 'react-native';
+import { FlatList, Image, ScrollView, View } from 'react-native';
+import type { ListRenderItem } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { iconSizes } from '@cultuvilla/shared/design-system';
+import { iconSizes, spacing } from '@cultuvilla/shared/design-system';
 import { VStack, HStack, Text, Pressable, TopCropImage } from '../primitives';
 import { useT } from '../../lib/i18n';
 
@@ -18,17 +19,29 @@ const CREST_BG = '#f9f0e8'; // palette.cream — matches the screen's bg-surface
 const CARD_W = 175;
 const CARD_H = 175; // square — same width and height
 
-export function Section({
+export function Section<T>({
   title,
   onManage,
   isEmpty,
   children,
+  data,
+  renderItem,
+  keyExtractor,
 }: {
   title: string;
   /** When provided, renders the "Gestionar" link (admins only). */
   onManage?: () => void;
   isEmpty: boolean;
-  children: ReactNode;
+  /** Eager path: children are rendered in a plain horizontal ScrollView. */
+  children?: ReactNode;
+  /**
+   * Virtualized path: when `data` + `renderItem` are given, the row is a
+   * horizontal FlatList instead of a ScrollView, so it stays fast for
+   * sections that can grow unbounded (e.g. events, which include past ones).
+   */
+  data?: readonly T[];
+  renderItem?: ListRenderItem<T>;
+  keyExtractor?: (item: T, index: number) => string;
 }) {
   const { t } = useT();
   // A section with no entities is hidden entirely — content is created from the
@@ -49,13 +62,28 @@ export function Section({
           </Pressable>
         ) : null}
       </HStack>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerClassName="px-4 gap-3"
-      >
-        {children}
-      </ScrollView>
+      {data && renderItem ? (
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={data}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={{ paddingHorizontal: spacing[4], gap: spacing[3] }}
+          initialNumToRender={4}
+          maxToRenderPerBatch={4}
+          windowSize={5}
+          removeClippedSubviews
+        />
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerClassName="px-4 gap-3"
+        >
+          {children}
+        </ScrollView>
+      )}
     </VStack>
   );
 }

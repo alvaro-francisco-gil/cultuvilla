@@ -76,7 +76,7 @@ async function seedOrganization(id: string, extra: Record<string, unknown> = {})
   await admin
     .firestore()
     .doc(`organizations/${id}`)
-    .set({ commentCount: 0, ...extra });
+    .set({ commentCount: 0, membersPublic: true, ...extra });
 }
 
 async function seedFestivalPoster(id: string, extra: Record<string, unknown> = {}): Promise<void> {
