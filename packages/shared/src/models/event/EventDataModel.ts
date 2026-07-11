@@ -23,7 +23,7 @@ export const EventDataSchema = z.object({
   // True when money is collected for the event; the organizer marks who paid
   // per-attendee via registration.paidAt. `.default(false)` so reads of event
   // docs created before this field parse instead of throwing the strict
-  // converter (also backfilled in dev; see scripts/backfill-event-requirespayment.mjs).
+  // converter (existing dev docs are backfilled to false in this same change).
   requiresPayment: z.boolean().default(false),
   status: EventStatusSchema,
   organizerUserIds: z.array(z.string()),
