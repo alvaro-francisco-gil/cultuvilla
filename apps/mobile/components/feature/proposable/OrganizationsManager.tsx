@@ -9,7 +9,6 @@ import {
   type OrganizationType,
 } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
 import { VStack, FieldLabel } from '../../primitives';
-import { Text } from '../../primitives/Text';
 import { Toggle } from '../../primitives/Toggle';
 import { useT } from '../../../lib/i18n';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
@@ -108,14 +107,13 @@ export function OrganizationsManager({
             <Toggle
               value={membersPublic}
               onValueChange={setMembersPublic}
-              label={t('organization.membersPublicLabel')}
+              label={
+                membersPublic
+                  ? t('organization.membersPublicLabel')
+                  : t('organization.membersPrivateHint')
+              }
               testID="org-members-public-toggle"
             />
-            {!membersPublic ? (
-              <Text tone="muted" variant="bodySm">
-                {t('organization.membersPrivateHint')}
-              </Text>
-            ) : null}
           </VStack>
         }
         submitLabel={canManage ? t('village.admin.organizations.add') : t('village.proposals.propose')}

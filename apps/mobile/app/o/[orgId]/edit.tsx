@@ -146,14 +146,13 @@ export default function OrgEditScreen() {
               <Toggle
                 value={membersPublic}
                 onValueChange={setMembersPublic}
-                label={t('organization.membersPublicLabel')}
+                label={
+                  membersPublic
+                    ? t('organization.membersPublicLabel')
+                    : t('organization.membersPrivateHint')
+                }
                 testID="org-edit-members-public-toggle"
               />
-              {!membersPublic ? (
-                <Text tone="muted" variant="bodySm">
-                  {t('organization.membersPrivateHint')}
-                </Text>
-              ) : null}
             </VStack>
           }
           submitLabel={t('common.save')}
