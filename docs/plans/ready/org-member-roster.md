@@ -207,6 +207,55 @@ git commit -m "feat(shared): add membersPublic flag and canViewOrgRoster predica
 
 ---
 
+### Task 1b: Allow `membersPublic` in the org create rule + shape contract
+
+> Added during execution: `isValidOrganizationCreate` in `firestore.rules` pins the exact create-payload key set (mirrored by the pure `rulesShapeContract` test and the emulator `shapeRules` test). Without this, the Task 2 client write of `membersPublic` is rejected by the security rule. The org **update** rule uses no strict key allowlist (only blocks `commentCount`/`readCount`/`status` changes), so the edit-form write needs no rule change.
+
+**Files:**
+- Modify: `firestore.rules` (`isValidOrganizationCreate`, ~lines 224-247)
+- Modify: `packages/shared/test/validation/rulesShapeContract.test.ts` (organizations `ruleKeys`, ~line 38)
+- Modify: `packages/shared/test/e2e/shapeRules.test.ts` (`validOrg` fixture, ~line 193)
+
+- [ ] **Step 1: Update the rule** — in `firestore.rules` `isValidOrganizationCreate`, add `'membersPublic'` to BOTH the `hasOnly([...])` and `hasAll([...])` key lists, and add a type check. The list becomes:
+
+```
+              'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
+              'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
+              'commentCount', 'readCount', 'membersPublic',
+```
+
+and add, alongside the other field checks (e.g. after `&& d.readCount == 0`):
+
+```
+          && d.membersPublic is bool
+```
+
+- [ ] **Step 2: Update the pure shape contract** — in `rulesShapeContract.test.ts`, add `'membersPublic'` to the `organizations — isValidOrganizationCreate` entry's `ruleKeys` array.
+
+- [ ] **Step 3: Update the emulator fixture** — in `shapeRules.test.ts`, add `membersPublic: true,` to the `validOrg` object (after `readCount: 0,`), so the "valid create succeeds" assertion still passes.
+
+- [ ] **Step 4: Verify (pure)**
+
+Run: `pnpm --filter @cultuvilla/shared test -- rulesShapeContract`
+Expected: PASS (organizations builder keys now match ruleKeys).
+
+- [ ] **Step 5: Verify (emulator rules)**
+
+Run: `pnpm test:rules`
+Expected: PASS — the org create/shape rules tests are green. If any other e2e org-create payload asserted to succeed is missing `membersPublic`, add `membersPublic: true` to it (search `packages/shared/test/e2e/` for org docs written with `assertSucceeds`).
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add firestore.rules packages/shared/test/validation/rulesShapeContract.test.ts \
+        packages/shared/test/e2e/shapeRules.test.ts
+git commit -m "feat(rules): allow membersPublic in org create validator + shape contract"
+```
+
+> **Deploy note (for Task 9):** the dev app cannot create orgs with `membersPublic` until these rules are deployed to `villa-events`. Deploy rules via the `firestore-deploy` skill as part of Task 9.
+
+---
+
 ### Task 2: Write `membersPublic` through the create + seed paths
 
 **Files:**
