@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, FlatList, Modal, TextInput, View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,12 +25,18 @@ export interface VillagePickerProps {
   value: string | null;
   onChange: (id: string | null) => void;
   placeholder?: string;
+  /**
+   * Render a custom control that opens the search modal, replacing the default
+   * label + bordered trigger row. `open` shows the picker. Used e.g. for an
+   * "add" affordance instead of a field-style trigger.
+   */
+  trigger?: (open: () => void) => ReactNode;
 }
 
 const PAGE_SIZE = 50;
 const DEBOUNCE_MS = 200;
 
-export function VillagePicker({ label, value, onChange, placeholder = 'Sin pueblo' }: VillagePickerProps) {
+export function VillagePicker({ label, value, onChange, placeholder = 'Sin pueblo', trigger }: VillagePickerProps) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState('');
   const [results, setResults] = useState<Option[]>([]);
@@ -84,16 +90,22 @@ export function VillagePicker({ label, value, onChange, placeholder = 'Sin puebl
 
   return (
     <View>
-      <FieldLabel>{label}</FieldLabel>
-      <Pressable onPress={() => setOpen(true)} accessibilityRole="button" style={styles.trigger}>
-        <View style={styles.triggerInner}>
-          {selected && (
-            <Escudo url={selected.escudoThumbUrl} size={28} fallbackInitial={selected.name} />
-          )}
-          <Text>{selected ? `${selected.name} (${selected.province})` : placeholder}</Text>
-        </View>
-        <Ionicons name="chevron-down" size={16} color="#64748b" />
-      </Pressable>
+      {trigger ? (
+        trigger(() => setOpen(true))
+      ) : (
+        <>
+          <FieldLabel>{label}</FieldLabel>
+          <Pressable onPress={() => setOpen(true)} accessibilityRole="button" style={styles.trigger}>
+            <View style={styles.triggerInner}>
+              {selected && (
+                <Escudo url={selected.escudoThumbUrl} size={28} fallbackInitial={selected.name} />
+              )}
+              <Text>{selected ? `${selected.name} (${selected.province})` : placeholder}</Text>
+            </View>
+            <Ionicons name="chevron-down" size={16} color="#64748b" />
+          </Pressable>
+        </>
+      )}
       <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
         <SafeAreaView style={styles.modal} edges={['top', 'bottom']}>
           <TextInput

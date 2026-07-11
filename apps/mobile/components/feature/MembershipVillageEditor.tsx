@@ -22,6 +22,7 @@ import { getPersonByUserId, updateResidenceBarrio } from '@cultuvilla/shared/ser
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { setActiveMunicipality } from '@cultuvilla/shared/services/userService';
 import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
+import { colors, iconSizes } from '@cultuvilla/shared/design-system';
 
 interface Row {
   municipalityId: string;
@@ -185,6 +186,18 @@ export function MembershipVillageEditor({ userId }: MembershipVillageEditorProps
         label={t('profile.personForm.addVillage')}
         value={null}
         onChange={(id) => void onAddVillage(id)}
+        trigger={(open) => (
+          <Pressable
+            onPress={open}
+            disabled={busy}
+            accessibilityLabel={t('profile.personForm.addVillage')}
+            accessibilityRole="button"
+            className="flex-row items-center justify-center gap-2 rounded-2xl border border-dashed border-subtle py-6"
+          >
+            <Ionicons name="add" size={iconSizes.lg} color={colors.light.fg.accent} />
+            <Text className="font-semibold">{t('profile.personForm.addVillage')}</Text>
+          </Pressable>
+        )}
       />
     </VStack>
   );
