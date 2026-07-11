@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.9.0 — 2026-07-11
+
 ### Added
 - **Enlaces externos en los artículos.** Al escribir una noticia puedes **pegar un enlace web** y, en ese momento, darle opcionalmente un texto a mostrar (p. ej. "compra tus entradas" en vez de la URL cruda); si lo omites, la URL queda igualmente pulsable. Cualquier URL `http(s)` escrita o pegada en el cuerpo —y en artículos antiguos— se detecta y se vuelve un enlace pulsable automáticamente. Los enlaces se abren en el navegador del sistema. El modelo de bloques gana un array `links` (y `captionLinks` en las imágenes) que solo persiste los enlaces con texto personalizado; las URLs sueltas se resuelven al renderizar. Guardado tras una comprobación de esquema `http/https` (los `javascript:`/`data:` nunca se abren).
 - Add `/descarga` landing endpoint and a branded QR generator (`pnpm qr:generate`) encoding `https://cultuvilla.es/descarga` — a print-once QR that works on web now and will open the native app once released.
