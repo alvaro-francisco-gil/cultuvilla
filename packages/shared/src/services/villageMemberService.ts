@@ -3,7 +3,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  deleteDoc,
   where,
   query,
   writeBatch,
@@ -115,11 +114,25 @@ export async function ensureVillageMembership(
   await setActiveMunicipality(userId, municipalityId);
 }
 
-export async function removeVillageMember(
-  municipalityId: string,
-  userId: string,
-): Promise<void> {
-  await deleteDoc(municipalityMemberDoc(getDb(), municipalityId, userId));
+/**
+ * Self-leave a village. Membership and residence are two docs, both
+ * owner-writable, so the member delete and the residence-link removal go in one
+ * atomic `writeBatch` — no eventual-consistency window. The delete-trigger
+ * `syncMemberBarrioToResidence` still fires on the member delete but finds the
+ * link already gone (idempotent no-op). Caller reassigns `activeMunicipalityId`.
+ */
+export async function leaveVillage(municipalityId: string, userId: string): Promise<void> {
+  const db = getDb();
+  const person = await getPersonByUserId(userId);
+
+  const batch = writeBatch(db);
+  batch.delete(municipalityMemberDoc(db, municipalityId, userId));
+  if (person) {
+    const remaining = person.municipalityLinks.filter((l) => l.municipalityId !== municipalityId);
+    // Raw doc ref: batch.update takes field paths, bypassing the converter.
+    batch.update(doc(db, 'persons', person.id), { municipalityLinks: remaining });
+  }
+  await batch.commit();
 }
 
 export async function isVillageMember(
