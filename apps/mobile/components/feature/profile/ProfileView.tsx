@@ -13,7 +13,7 @@ import { withFirestoreErrorLog } from '../../../lib/firestoreErrorLog';
 import { pickImageAsBlob } from '../../../lib/images';
 import { updatePerson } from '@cultuvilla/shared/services/personService';
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
-import { getPersonViewLink } from '@cultuvilla/shared/services/deepLinkService';
+import { getUserViewLink } from '@cultuvilla/shared/services/deepLinkService';
 import { buildDisplayName } from '@cultuvilla/shared/models/person';
 import { ManagedEventsScroll } from './ManagedEventsScroll';
 import { VillagesScroll } from './VillagesScroll';
@@ -122,7 +122,7 @@ export function ProfileView({
           </Pressable>
           <Pressable
             onPress={() =>
-              void share(getPersonViewLink(selfPerson.id), buildDisplayName(selfPerson))
+              void share(getUserViewLink(uid), buildDisplayName(selfPerson))
             }
             accessibilityLabel={t('profile.actions.share')}
             className="flex-1 flex-row items-center justify-center bg-surface"

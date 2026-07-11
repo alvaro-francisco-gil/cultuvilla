@@ -8,7 +8,7 @@ export type DeepLinkResource =
   | 'organization'
   | 'place'
   | 'barrio'
-  | 'person';
+  | 'user';
 
 export interface DeepLink {
   url: string;
@@ -27,7 +27,7 @@ const RESOURCE_TO_PATH: Record<DeepLinkResource, string> = {
   // Nested resources live under /village/<villageId>/...; see buildNestedLink.
   place: 'village',
   barrio: 'village',
-  person: 'person',
+  user: 'user',
 };
 
 const SUPPORTS_INVITE: Record<DeepLinkResource, boolean> = {
@@ -37,7 +37,7 @@ const SUPPORTS_INVITE: Record<DeepLinkResource, boolean> = {
   organization: true,
   place: false,
   barrio: false,
-  person: false,
+  user: false,
 };
 
 /**
@@ -88,8 +88,8 @@ export const getNewsLink = (newsId: string): DeepLink => buildLink('news', newsI
 export const getVillageViewLink = (villageId: string): DeepLink =>
   buildLink('village', villageId, 'content');
 
-export const getPersonViewLink = (personId: string): DeepLink =>
-  buildLink('person', personId, 'content');
+export const getUserViewLink = (uid: string): DeepLink =>
+  buildLink('user', uid, 'content');
 
 export const getOrgViewLink = (orgId: string): DeepLink =>
   buildLink('organization', orgId, 'content');
@@ -133,7 +133,7 @@ const PATH_TO_RESOURCE: { readonly [path: string]: DeepLinkResource | undefined 
   news: 'news',
   village: 'village',
   o: 'organization',
-  person: 'person',
+  user: 'user',
 };
 
 const SCHEME = 'cultuvilla';

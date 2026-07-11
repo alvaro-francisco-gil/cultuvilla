@@ -871,7 +871,7 @@
       },
       "place": { "view": "Mira «{name}» en Cultuvilla: {url}" },
       "barrio": { "view": "Mira {name} en Cultuvilla: {url}" },
-      "person": { "view": "Mira el perfil de {name} en Cultuvilla: {url}" }
+      "user": { "view": "Mira el perfil de {name} en Cultuvilla: {url}" }
     },
     "shareViewLabel": "Compartir"
   },
