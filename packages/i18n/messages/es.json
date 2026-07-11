@@ -497,6 +497,8 @@
     "maxAttendees": "Máximo de asistentes",
     "unlimited": "Sin límite",
     "telephoneRequired": "Teléfono requerido",
+    "requiresPayment": "Se paga en el evento",
+    "paid": "Pagado",
     "signUp": "Inscribirse",
     "cancelSignUp": "Cancelar inscripción",
     "spotsLeft": "{count} plazas disponibles",

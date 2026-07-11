@@ -102,6 +102,7 @@ export default function NewEventScreen() {
   const [locationName, setLocationName] = useState('');
   const [maxAttendees, setMaxAttendees] = useState('');
   const [telephoneRequired, setTelephoneRequired] = useState(false);
+  const [requiresPayment, setRequiresPayment] = useState(false);
   const [cover, setCover] = useState<UploadableImage | null>(null);
 
   // Picking a location auto-selects the nearest joined village (create mode,
@@ -159,6 +160,7 @@ export default function NewEventScreen() {
         setLocationName(ev.location?.displayName ?? '');
         setMaxAttendees(ev.maxAttendees != null ? String(ev.maxAttendees) : '');
         setTelephoneRequired(!!ev.telephoneRequired);
+        setRequiresPayment(!!ev.requiresPayment);
         setOrganizerUserIds(ev.organizerUserIds ?? []);
         setOrganizerOrgIds(ev.organizerOrgIds ?? []);
         setExistingImageURL(ev.imageURL ?? null);
@@ -241,6 +243,7 @@ export default function NewEventScreen() {
           location,
           maxAttendees: maxAttendeesValue,
           telephoneRequired,
+          requiresPayment,
           organizerUserIds,
           organizerOrgIds,
         });
@@ -264,6 +267,7 @@ export default function NewEventScreen() {
         location,
         maxAttendees: maxAttendeesValue,
         telephoneRequired,
+        requiresPayment,
         status: 'published',
         organizerUserIds,
         organizerOrgIds,
@@ -465,6 +469,17 @@ export default function NewEventScreen() {
                 value={telephoneRequired}
                 onValueChange={setTelephoneRequired}
                 testID="telephone-required"
+              />
+            </HStack>
+          </HStack>
+          <HStack className="items-center justify-between py-1">
+            <Text className="flex-1">{t('event.requiresPayment')}</Text>
+            <HStack gap={2} className="items-center">
+              <Text tone="muted">{requiresPayment ? t('common.yes') : t('common.no')}</Text>
+              <Toggle
+                value={requiresPayment}
+                onValueChange={setRequiresPayment}
+                testID="requires-payment"
               />
             </HStack>
           </HStack>
