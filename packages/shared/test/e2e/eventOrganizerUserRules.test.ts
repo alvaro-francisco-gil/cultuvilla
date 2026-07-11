@@ -29,6 +29,7 @@ function newEvent(createdBy: string, extraOrganizers: string[] = [], orgIds: str
     imageURL: null,
     maxAttendees: null,
     telephoneRequired: false,
+    requiresPayment: false,
     status: 'published',
     organizerUserIds: [createdBy, ...extraOrganizers],
     organizerOrgIds: orgIds,
