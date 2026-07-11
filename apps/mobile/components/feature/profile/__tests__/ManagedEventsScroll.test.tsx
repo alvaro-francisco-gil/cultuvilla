@@ -14,6 +14,7 @@ function makeEvent(over: Partial<ManagedEvent> & { id: string }): ManagedEvent {
     imageURL: null,
     maxAttendees: null,
     telephoneRequired: false,
+    requiresPayment: false,
     status: over.status ?? 'published',
     organizerUserIds: ['uid-1'],
     organizerOrgIds: [],

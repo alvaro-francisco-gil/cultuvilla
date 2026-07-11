@@ -339,7 +339,7 @@ service cloud.firestore {
     function isValidEventCreate(d) {
       return d.keys().hasOnly([
               'title', 'description', 'startDate', 'endDate', 'endBoundary', 'location',
-              'imageURL', 'maxAttendees', 'telephoneRequired',
+              'imageURL', 'maxAttendees', 'telephoneRequired', 'requiresPayment',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
               'villageCoverImage', 'villageCoordinates',
@@ -348,7 +348,7 @@ service cloud.firestore {
             ])
           && d.keys().hasAll([
               'title', 'description', 'startDate', 'endDate', 'endBoundary', 'location',
-              'imageURL', 'maxAttendees', 'telephoneRequired',
+              'imageURL', 'maxAttendees', 'telephoneRequired', 'requiresPayment',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
               'villageCoverImage', 'villageCoordinates',
@@ -369,6 +369,7 @@ service cloud.firestore {
           && isStringOrNull(d.imageURL)
           && isNumberOrNull(d.maxAttendees)
           && isBool(d.telephoneRequired)
+          && isBool(d.requiresPayment)
           && d.status in ['published', 'cancelled', 'completed']
           && d.organizerUserIds is list
           && d.organizerOrgIds is list
@@ -696,10 +697,17 @@ service cloud.firestore {
         // capacity/waitlist decision must be made server-side in a
         // transaction.
         allow create: if false;
-        // Self may update/cancel their own registration; an organizer may too
+        // Self may update their own registration; an organizer may too
         // (check-in via `checkedInAt`, or removing a no-show / walk-in).
-        allow update: if (isAuthenticated() && resource.data.userId == request.auth.uid)
-          || isEventOrganizer(eventId);
+        // EXCEPTION: writes touching `paidAt` are the paid register and are
+        // organizer-only — a registrant must not be able to self-mark paid.
+        allow update: if (
+             (isAuthenticated() && resource.data.userId == request.auth.uid)
+          || isEventOrganizer(eventId)
+        ) && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['paidAt'])
+          || isEventOrganizer(eventId)
+        );
         allow delete: if (isAuthenticated() && resource.data.userId == request.auth.uid)
           || isEventOrganizer(eventId);
       }

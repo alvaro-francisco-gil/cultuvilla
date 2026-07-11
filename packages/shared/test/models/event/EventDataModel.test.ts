@@ -95,6 +95,36 @@ describe('buildEventData', () => {
     expect(built.endBoundary).toEqual(new Date('2026-06-17T18:00:00Z'));
     expect(() => EventDataSchema.parse(built)).not.toThrow();
   });
+
+  it('defaults requiresPayment to false when omitted', () => {
+    const built = buildEventData({
+      title: 'X', description: 'Y',
+      startDate: new Date('2026-06-15T18:00:00Z'),
+      location: { coordinates: { lat: 1, lng: 2 }, displayName: 'Plaza' },
+      organizerUserIds: ['u'],
+      organizerOrgIds: [],
+      createdBy: 'u',
+      municipalityId: 'm', villageName: 'M',
+      villageCoordinates: { lat: 1, lng: 2 },
+    });
+    expect(built.requiresPayment).toBe(false);
+    expect(() => EventDataSchema.parse(built)).not.toThrow();
+  });
+
+  it('preserves requiresPayment: true', () => {
+    const built = buildEventData({
+      title: 'X', description: 'Y',
+      startDate: new Date('2026-06-15T18:00:00Z'),
+      location: { coordinates: { lat: 1, lng: 2 }, displayName: 'Plaza' },
+      organizerUserIds: ['u'],
+      organizerOrgIds: [],
+      createdBy: 'u',
+      municipalityId: 'm', villageName: 'M',
+      villageCoordinates: { lat: 1, lng: 2 },
+      requiresPayment: true,
+    });
+    expect(built.requiresPayment).toBe(true);
+  });
 });
 
 describe('isEventFull', () => {

@@ -35,6 +35,18 @@ describe('RegistrationDataSchema', () => {
   it('rejects an unknown status value', () => {
     expect(() => RegistrationDataSchema.parse({ ...validRegistration, status: 'pending' })).toThrow();
   });
+
+  it('defaults paidAt to null when the field is absent (converter-safe)', () => {
+    const { checkedInAt: _c, ...rest } = validRegistration;
+    const parsed = RegistrationDataSchema.parse({ ...rest, checkedInAt: null });
+    expect(parsed.paidAt).toBeNull();
+  });
+
+  it('accepts an explicit paidAt date', () => {
+    const paidAt = new Date('2026-06-16T10:00:00Z');
+    const parsed = RegistrationDataSchema.parse({ ...validRegistration, paidAt });
+    expect(parsed.paidAt).toEqual(paidAt);
+  });
 });
 
 describe('RegistrationStatusSchema', () => {
@@ -63,5 +75,13 @@ describe('buildRegistrationData', () => {
       registeredAt: d,
     });
     expect(built.registeredAt).toEqual(d);
+  });
+
+  it('defaults paidAt to null when omitted', () => {
+    const built = buildRegistrationData({
+      userId: 'u', personId: 'p', name: 'n', status: 'confirmed', position: 1,
+    });
+    expect(built.paidAt).toBeNull();
+    expect(() => RegistrationDataSchema.parse(built)).not.toThrow();
   });
 });

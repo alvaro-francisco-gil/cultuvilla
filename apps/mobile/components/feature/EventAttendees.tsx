@@ -12,6 +12,7 @@ import {
   getEventRegistrations,
   getRegistrationPhone,
   cancelRegistration,
+  setRegistrationPaid,
 } from '@cultuvilla/shared/services/registrationService';
 import { getPerson } from '@cultuvilla/shared/services/personService';
 import type { RegistrationData } from '@cultuvilla/shared/models/event/RegistrationDataModel';
@@ -30,9 +31,11 @@ type Row = RegistrationData & { id: string };
 export function EventAttendees({
   eventId,
   telephoneRequired,
+  requiresPayment,
 }: {
   eventId: string;
   telephoneRequired: boolean;
+  requiresPayment: boolean;
 }) {
   const { t } = useT();
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -64,6 +67,14 @@ export function EventAttendees({
     void load();
   }, [load]);
 
+  const togglePaid = useCallback(
+    async (regId: string, next: boolean) => {
+      await setRegistrationPaid(eventId, regId, next);
+      await load();
+    },
+    [eventId, load],
+  );
+
   // getEventRegistrations already orders by `position`, so the split keeps each
   // section's queue order. Waitlist promotion is automatic (a Cloud Function
   // fires when a confirmed reg is removed) — there is no manual promote action.
@@ -76,6 +87,21 @@ export function EventAttendees({
       <Text numberOfLines={1} className="flex-1">
         {r.name}
       </Text>
+      {requiresPayment ? (
+        <Pressable
+          testID={`paid-attendee-${r.id}`}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: r.paidAt != null }}
+          accessibilityLabel={t('event.paid')}
+          onPress={() => void togglePaid(r.id, r.paidAt == null)}
+        >
+          <Ionicons
+            name={r.paidAt != null ? 'checkbox' : 'square-outline'}
+            size={iconSizes.md}
+            color={r.paidAt != null ? colors.light.fg.accent : colors.light.fg.muted}
+          />
+        </Pressable>
+      ) : null}
       {telephoneRequired && phones[r.id] ? (
         <Pressable
           testID={`call-attendee-${r.id}`}
