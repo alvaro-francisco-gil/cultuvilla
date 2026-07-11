@@ -124,7 +124,11 @@ export function MentionTextInput({
   return (
     <VStack gap={1}>
       <View className="border rounded-md px-3 py-2 bg-surface border-subtle" style={{ minHeight: 96 }}>
-        <View style={{ position: 'relative', flex: 1 }}>
+        {/* Clip the styled overlay to the box. On RN-Web the multiline input is
+            a fixed-height textarea that scrolls internally (we sync scrollY),
+            but the absolute-fill overlay holds the full text and, unclipped,
+            spilled its overflow below the box over the fields beneath. */}
+        <View style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
           <Text
             pointerEvents="none"
             className="text-body"
