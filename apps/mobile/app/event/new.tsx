@@ -30,6 +30,7 @@ import { buildLocationData } from '@cultuvilla/shared/models/core/LocationDataMo
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 import { Stepper, type StepConfig } from '../../components/feature/Stepper';
 import { DeleteHeaderButton } from '../../components/feature/DeleteHeaderButton';
+import { roundUpToMinuteStep } from '../../lib/date/clockGrid';
 
 /** Nearest joined village to a coordinate (by great-circle distance), or null. */
 function nearestVillage(c: LatLng, villages: VillageOption[]): VillageOption | null {
@@ -94,7 +95,7 @@ export default function NewEventScreen() {
   // form fields
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [startDate, setStartDate] = useState<Date | null>(() => roundUpToMinuteStep(new Date(), 5));
   // Optional multi-day end; null = single-day event.
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [coords, setCoords] = useState<LatLng | null>(null);
@@ -399,7 +400,8 @@ export default function NewEventScreen() {
             value={startDate}
             onChange={setStartDate}
             minimumDate={new Date()}
-            placeholder={t('event.selectDateTime')}
+            datePlaceholder={t('event.selectDate')}
+            timePlaceholder={t('event.selectTime')}
             testID="startDate"
           />
           <DateTimeField
@@ -407,7 +409,8 @@ export default function NewEventScreen() {
             value={endDate}
             onChange={setEndDate}
             minimumDate={startDate ?? new Date()}
-            placeholder={t('event.selectDateTime')}
+            datePlaceholder={t('event.selectDate')}
+            timePlaceholder={t('event.selectTime')}
             testID="endDate"
           />
           <EventLocationField
