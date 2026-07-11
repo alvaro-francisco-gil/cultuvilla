@@ -606,7 +606,12 @@
     "approved": "Aprobada",
     "rejected": "Rechazada",
     "approve": "Aprobar",
-    "reject": "Rechazar"
+    "reject": "Rechazar",
+    "members": "Miembros",
+    "membersPublicLabel": "Mostrar los miembros del grupo",
+    "membersPublicHelp": "Si se desactiva, solo los miembros del grupo verán quién forma parte.",
+    "membersEmpty": "Este grupo aún no tiene miembros.",
+    "adminBadge": "Admin"
   },
   "profile": {
     "myProfile": "Mi perfil",
