@@ -197,12 +197,16 @@ export function PersonForm({
       key: 'identity',
       title: t('profile.personForm.stepIdentity'),
       icon: 'person-outline',
+      // Gate the first step (and thus any progress) on consent when the
+      // consumer collects it. `=== false` so consumers that omit the prop are
+      // never gated (undefined leaves the step valid).
       validate: () => {
         const errs: string[] = [];
         if (!givenName.trim()) errs.push('givenName');
         if ((requireFullName || requireFirstSurname) && !firstSurname.trim()) errs.push('firstSurname');
         if (requireFullName && !secondSurname.trim()) errs.push('secondSurname');
         if (!sex) errs.push('sex');
+        if (consentSatisfied === false) errs.push('consent');
         return errs;
       },
       render: () =>
@@ -255,6 +259,7 @@ export function PersonForm({
                 })}
               </HStack>
             </VStack>
+            {renderConsent?.()}
           </>,
         ),
     },
@@ -297,10 +302,7 @@ export function PersonForm({
       key: 'about',
       title: t('profile.personForm.stepAbout'),
       icon: 'document-text-outline',
-      // Gate the final step (and thus submit) on consent when the consumer
-      // collects it. `=== false` so consumers that omit the prop are never
-      // gated (undefined leaves the step valid).
-      validate: () => (consentSatisfied === false ? ['consent'] : []),
+      validate: () => [],
       render: () =>
         stepBody(
           <>
@@ -386,7 +388,6 @@ export function PersonForm({
                 </>
               )}
             </VStack>
-            {renderConsent?.()}
           </>,
         ),
     },
