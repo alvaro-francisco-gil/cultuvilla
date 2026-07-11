@@ -37,6 +37,7 @@ async function seedAyuntamiento(status: 'pending' | 'approved' | 'rejected'): Pr
     reviewedAt: null,
     commentCount: 0,
     readCount: 0,
+    membersPublic: true,
   });
 }
 
