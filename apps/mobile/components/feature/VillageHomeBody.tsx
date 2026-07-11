@@ -67,7 +67,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
     );
   }
   if (loadError) {
-    return <ErrorState onRetry={reload} />;
+    return <ErrorState error={loadError} onRetry={reload} />;
   }
   if (!village) {
     return (

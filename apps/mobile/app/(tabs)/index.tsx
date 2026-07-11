@@ -17,6 +17,7 @@ import { Screen } from '../../components/primitives/Screen';
 import { Text } from '../../components/primitives/Text';
 import { Pressable } from '../../components/primitives/Pressable';
 import { Fab } from '../../components/primitives/Fab';
+import { ErrorState } from '../../components/primitives/ErrorState';
 import { EventCard } from '../../components/feature/EventCard';
 import { NewsCard } from '../../components/feature/NewsCard';
 import { SegmentedToggle } from '../../components/feature/SegmentedToggle';
@@ -441,9 +442,7 @@ export default function FeedScreen() {
         <ActivityIndicator />
       </View>
     ) : error ? (
-      <View className="flex-1 items-center justify-center px-8">
-        <Text tone="danger">{error}</Text>
-      </View>
+      <ErrorState error={error} onRetry={load} />
     ) : (
       <View style={{ flex: 1 }}>
         <PullSpinner pull={eventsPull} top={feedPaddingTop} />
@@ -502,9 +501,7 @@ export default function FeedScreen() {
         <ActivityIndicator />
       </View>
     ) : newsError ? (
-      <View className="flex-1 items-center justify-center px-8">
-        <Text tone="danger">{newsError}</Text>
-      </View>
+      <ErrorState error={newsError} onRetry={loadNews} />
     ) : (
       <View style={{ flex: 1 }}>
         <PullSpinner pull={newsPull} top={feedPaddingTop} />

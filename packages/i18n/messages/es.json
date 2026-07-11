@@ -33,8 +33,10 @@
     "photo": "Foto",
     "and": "y",
     "error": {
-      "title": "No se pudo cargar",
-      "body": "Algo salió mal al cargar el contenido. Inténtalo de nuevo.",
+      "network": "Parece que no hay conexión. Comprueba tu internet.",
+      "data": "No pudimos mostrar este contenido.",
+      "unknown": "Algo salió mal al cargar el contenido.",
+      "retryLater": "Inténtalo de nuevo más tarde.",
       "retry": "Reintentar"
     }
   },
@@ -507,6 +509,8 @@
     "waitlisted": "En lista de espera",
     "attendees": "Asistentes",
     "attendeesEmpty": "Aún no hay asistentes",
+    "notFoundTitle": "Evento no encontrado",
+    "notFoundBody": "Este evento ya no existe o se ha eliminado.",
     "descriptionLabel": "Descripción",
     "call": "Llamar",
     "draft": "Borrador",

@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native';
 import { router, useLocalSearchParams, Redirect } from 'expo-router';
-import { Screen, Text, Input, DateTimeField, FieldLabel, Toggle, HStack } from '../../components/primitives';
+import { Screen, Text, Input, DateTimeField, FieldLabel, Toggle, HStack, ErrorState } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { EventCoverPicker } from '../../components/feature/EventCoverPicker';
 import { EventLocationField } from '../../components/feature/EventLocationField';
@@ -318,12 +318,15 @@ export default function NewEventScreen() {
   }
 
   if (loadError) {
+    const notFound = loadError === 'not-found';
     return (
       <Screen padded={false} topInset={false}>
         <ScreenHeader accent title={headerTitle} />
-        <View className="flex-1 items-center justify-center px-8">
-          <Text tone="danger">{loadError}</Text>
-        </View>
+        <ErrorState
+          error={notFound ? undefined : loadError}
+          title={notFound ? t('event.notFoundTitle') : undefined}
+          message={notFound ? t('event.notFoundBody') : undefined}
+        />
       </Screen>
     );
   }
