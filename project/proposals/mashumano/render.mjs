@@ -30,11 +30,10 @@ const CSS = `
   body{ font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:var(--ink);
         font-size:11pt; line-height:1.55; margin:0; }
   .cover{ display:flex; align-items:center; justify-content:space-between;
-          border-bottom:3px solid var(--orange); padding-bottom:14px; margin-bottom:26px; }
+          padding-bottom:14px; margin-bottom:26px; }
   .cover .cv{ height:64px; } .cover .mh{ height:42px; opacity:.9; }
   h1{ color:var(--orange); font-size:22pt; margin:.2em 0 .1em; letter-spacing:-.3px; }
-  h2{ color:var(--green); font-size:14pt; margin:1.4em 0 .4em; padding-bottom:4px;
-      border-bottom:1.5px solid var(--line); page-break-after:avoid; }
+  h2{ color:var(--green); font-size:14pt; margin:1.4em 0 .4em; page-break-after:avoid; }
   h3{ color:var(--ink); font-size:12pt; margin:1em 0 .3em; page-break-after:avoid; }
   p,li{ margin:.35em 0; }
   strong{ color:var(--ink); }

@@ -2,7 +2,6 @@
 
 > Adjunto principal de la candidatura al **Premio Jóvenes Máshumano 2026**.
 > Categoría: **Fundación Máshumano** (iniciativas sociales y culturales).
-> Los `[[campos entre dobles corchetes]]` son datos que debéis rellenar o confirmar.
 
 ## 0. Resumen ejecutivo
 
@@ -87,11 +86,10 @@ Periodista e historiador (Graduado en Periodismo y Humanidades), **experto en do
 **Cómo escalamos (profundidad, no humo):**
 De 1 pueblo a **8 a 10 pueblos de la comarca de Segovia** en un año, replicando el modelo Matabuena: penetración alta y comisión implicada en cada pueblo. El mapa de municipios ya está trazado, y el crecimiento es concéntrico, aprovechando el boca a boca entre pueblos vecinos y las redes de comisiones que ya se conocen. *No queremos crecer rápido; queremos crecer bien.*
 
-**Cómo se sostiene económicamente** `[[a confirmar/ajustar entre nosotros]]`:
+**Cómo se sostiene económicamente:**
 
 - **Base gratuita para los pueblos.** La misión exige barreras bajas; el acceso comunitario no se cobra.
 - **Vía institucional.** Ayuntamientos y diputaciones ya destinan fondos a la **digitalización rural y al Reto Demográfico** (fondos estatales y europeos). Cultuvilla encaja como servicio de digitalización cultural municipal → convenios/subvenciones.
-- **El premio y el mentoring** de esta convocatoria como impulso inicial para consolidar el piloto y el primer salto comarcal.
 
 > El foco es el impacto; la sostenibilidad existe y es realista, apoyada en dinero público ya disponible para revitalizar la España vaciada.
 
