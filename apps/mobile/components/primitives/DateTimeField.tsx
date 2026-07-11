@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { Modal, View, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDate } from '@cultuvilla/shared/utils/format';
 import { colors } from '@cultuvilla/shared/design-system';
 import { Pressable } from './Pressable';
 import { Text } from './Text';
+import { Card } from './Card';
 import { FieldLabel } from './FieldLabel';
 import { Button } from './Button';
 import { CalendarDatePicker } from './CalendarDatePicker';
-import { TimePicker } from './TimePicker';
+import { ClockTimePicker } from './ClockTimePicker';
 
 const ACCENT = colors.light.fg.accent;
 
@@ -19,9 +20,14 @@ export interface DateTimeFieldProps {
   onChange: (date: Date | null) => void;
   minimumDate?: Date;
   maximumDate?: Date;
-  /** Minute granularity for the time picker. Defaults to 5. */
+  /** Minute granularity for the clock. Defaults to 5. */
   minuteStep?: number;
+  /** Fallback placeholder for both buttons. */
   placeholder?: string;
+  /** Placeholder shown on the date button when empty. Falls back to `placeholder`. */
+  datePlaceholder?: string;
+  /** Placeholder shown on the time button when empty. Falls back to `placeholder`. */
+  timePlaceholder?: string;
   testID?: string;
 }
 
@@ -34,10 +40,10 @@ function defaultDraft(minimumDate?: Date): Date {
 }
 
 /**
- * Date + time picker: two side-by-side buttons (date, time), each opening its
- * own full-screen modal — the calendar grid for the date, the hour/minute
- * wheels for the time. Picking a date preserves the current time and vice
- * versa, so the two buttons always compose onto the same underlying value.
+ * Date + time picker: two side-by-side buttons, each opening a compact centered
+ * dialog — the calendar grid for the date, the tap-only clock for the time.
+ * Picking a date preserves the time and vice versa, so the two buttons compose
+ * onto the same underlying value.
  */
 export function DateTimeField({
   label,
@@ -47,11 +53,19 @@ export function DateTimeField({
   maximumDate,
   minuteStep = 5,
   placeholder,
+  datePlaceholder,
+  timePlaceholder,
   testID,
 }: DateTimeFieldProps) {
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
-
+  const insets = useSafeAreaInsets();
   const current = value ?? defaultDraft(minimumDate);
+
+  // The clock's own hour tap doesn't round-trip through the parent's `value`
+  // prop before the minute tap fires (the modal stays open in between), so we
+  // track the in-progress edit locally and seed it fresh each time the time
+  // dialog opens.
+  const [timeDraft, setTimeDraft] = useState<Date>(current);
 
   function pickDate(day: Date) {
     const merged = new Date(current);
@@ -60,13 +74,45 @@ export function DateTimeField({
     setActiveModal(null);
   }
 
-  function pickTime(time: Date) {
-    onChange(time);
-    setActiveModal(null);
+  function openTime() {
+    setTimeDraft(current);
+    setActiveModal('time');
   }
 
-  const dateText = value ? formatDate(value, 'dayMonth') : (placeholder ?? 'Fecha');
-  const timeText = value ? formatDate(value, 'time') : (placeholder ?? 'Hora');
+  // Hour and minute taps both update the value; only a minute tap commits
+  // (fires onCommit), so an hour tap keeps the clock open on its minute page.
+  function updateTime(time: Date) {
+    setTimeDraft(time);
+    onChange(time);
+  }
+
+  const dateText = value ? formatDate(value, 'dayMonth') : (datePlaceholder ?? placeholder ?? 'Fecha');
+  const timeText = value ? formatDate(value, 'time') : (timePlaceholder ?? placeholder ?? 'Hora');
+
+  function dialog(children: React.ReactNode) {
+    return (
+      <View style={styles.backdrop}>
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          accessibilityRole="button"
+          onPress={() => setActiveModal(null)}
+        >
+          <View />
+        </Pressable>
+        <Card variant="elevated" className="w-full max-w-sm" testID={testID ? `${testID}-dialog` : undefined}>
+          <View style={[styles.dialogInner, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+            <Text variant="h3">{label}</Text>
+            {children}
+            <View style={styles.dialogActions}>
+              <Button variant="secondary" onPress={() => setActiveModal(null)}>
+                Cancelar
+              </Button>
+            </View>
+          </View>
+        </Card>
+      </View>
+    );
+  }
 
   return (
     <View testID={testID}>
@@ -85,7 +131,7 @@ export function DateTimeField({
           </Text>
         </Pressable>
         <Pressable
-          onPress={() => setActiveModal('time')}
+          onPress={openTime}
           accessibilityRole="button"
           testID={testID ? `${testID}-time` : undefined}
           className="flex-1"
@@ -100,49 +146,36 @@ export function DateTimeField({
 
       <Modal
         visible={activeModal === 'date'}
-        animationType="slide"
+        transparent
+        animationType="fade"
         onRequestClose={() => setActiveModal(null)}
       >
-        <SafeAreaView style={styles.modal} edges={['top', 'bottom']}>
-          <View style={styles.modalHeader}>
-            <Text variant="h3">{label}</Text>
-          </View>
+        {dialog(
           <CalendarDatePicker
             testID={testID ? `${testID}-date-calendar` : undefined}
             value={current}
             onChange={pickDate}
             minDate={minimumDate}
             maxDate={maximumDate}
-          />
-          <View style={styles.modalActions}>
-            <Button variant="secondary" onPress={() => setActiveModal(null)}>
-              Cancelar
-            </Button>
-          </View>
-        </SafeAreaView>
+          />,
+        )}
       </Modal>
 
       <Modal
         visible={activeModal === 'time'}
-        animationType="slide"
+        transparent
+        animationType="fade"
         onRequestClose={() => setActiveModal(null)}
       >
-        <SafeAreaView style={styles.modal} edges={['top', 'bottom']}>
-          <View style={styles.modalHeader}>
-            <Text variant="h3">{label}</Text>
-          </View>
-          <TimePicker
+        {dialog(
+          <ClockTimePicker
             testID={testID ? `${testID}-time-picker` : undefined}
-            value={current}
-            onChange={pickTime}
+            value={timeDraft}
+            onChange={updateTime}
+            onCommit={() => setActiveModal(null)}
             minuteStep={minuteStep}
-          />
-          <View style={styles.modalActions}>
-            <Button variant="secondary" onPress={() => setActiveModal(null)}>
-              Cancelar
-            </Button>
-          </View>
-        </SafeAreaView>
+          />,
+        )}
       </Modal>
     </View>
   );
@@ -162,7 +195,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   triggerText: { flexShrink: 1 },
-  modal: { flex: 1, padding: 16 },
-  modalHeader: { paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e5e7eb' },
-  modalActions: { paddingTop: 12, flexDirection: 'row', justifyContent: 'flex-end' },
+  backdrop: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    padding: 16,
+  },
+  dialogInner: { gap: 12 },
+  dialogActions: { flexDirection: 'row', justifyContent: 'flex-end' },
 });
