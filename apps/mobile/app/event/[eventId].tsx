@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Linking, View } from 'react-native';
 import { VStack } from '../../components/primitives/VStack';
@@ -50,29 +50,20 @@ export default function EventDetailScreen() {
   const { canOrganize } = useEventOrganizer(event);
   const { canManage } = useEntityCapabilities(event?.municipalityId);
 
-  useEffect(() => {
+  // Single refetch for the whole screen, reused by pull-to-refresh. The escudo
+  // lives on the municipality doc (not the event), so the village is fetched
+  // once the event's municipalityId is known.
+  const load = useCallback(async () => {
     if (!eventId) return;
-    void (async () => {
-      setEvent(await getEvent(eventId));
-    })();
-  }, [eventId]);
+    const e = await getEvent(eventId);
+    setEvent(e);
+    if (e?.municipalityId) setVillage(await getMunicipality(e.municipalityId));
+    if (user) setPerson(await getPersonByUserId(user.uid));
+  }, [eventId, user]);
 
   useEffect(() => {
-    if (!user) return;
-    void (async () => {
-      setPerson(await getPersonByUserId(user.uid));
-    })();
-  }, [user]);
-
-  // The escudo lives on the municipality doc, not the event; fetch it once the
-  // event (and its municipalityId) is loaded to render the Pueblo section.
-  useEffect(() => {
-    const municipalityId = event?.municipalityId;
-    if (!municipalityId) return;
-    void (async () => {
-      setVillage(await getMunicipality(municipalityId));
-    })();
-  }, [event?.municipalityId]);
+    void load();
+  }, [load]);
 
   useEffect(() => {
     if (!event) return;
@@ -129,6 +120,7 @@ export default function EventDetailScreen() {
       fallbackIcon={ENTITY_FALLBACK_ICON.event}
       actions={actions}
       title={event?.title}
+      onRefresh={load}
       scrollContentClassName="pb-24"
       fab={
         event && person && user ? (

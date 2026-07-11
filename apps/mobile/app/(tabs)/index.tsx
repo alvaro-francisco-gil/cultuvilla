@@ -23,6 +23,7 @@ import { NewsCard } from '../../components/feature/NewsCard';
 import { SegmentedToggle } from '../../components/feature/SegmentedToggle';
 import { FilterPill, FILTER_PILL_HEIGHT } from '../../components/feature/FilterPill';
 import { FilterSheet, type FilterSheetOption } from '../../components/feature/FilterSheet';
+import { PullSpinner } from '../../components/feature/PullSpinner';
 import { AppHeader } from '../../components/layout/AppHeader';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
@@ -66,33 +67,6 @@ function inDatePreset(d: Date, preset: DatePreset): boolean {
 }
 
 const TABS: FeedTab[] = ['eventos', 'noticias'];
-
-// Spinner revealed in the gap that opens above the cards as the feed is pulled
-// down. Rides with the same offset the list wrapper uses, and fades in as the
-// pull approaches the trigger. `style` (not className) — NativeWind drops
-// className on Animated.View.
-function PullSpinner({ pull, top }: { pull: Animated.Value; top: number }) {
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={{
-        position: 'absolute',
-        top,
-        left: 0,
-        right: 0,
-        marginTop: -44,
-        alignItems: 'center',
-        zIndex: 5,
-        opacity: pull.interpolate({ inputRange: [0, 40], outputRange: [0, 1], extrapolate: 'clamp' }),
-        transform: [{ translateY: pull }],
-      }}
-    >
-      <View className="rounded-full bg-white p-2 shadow-sm">
-        <ActivityIndicator size="small" color={ACCENT} />
-      </View>
-    </Animated.View>
-  );
-}
 
 export default function FeedScreen() {
   const { t } = useT();

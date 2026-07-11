@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import { Animated, Platform, type FlatList } from 'react-native';
+import { Animated, Platform } from 'react-native';
+
+/**
+ * The slice of the FlatList / ScrollView imperative handle this hook needs: a
+ * way to reach the underlying scrollable DOM node on web. Both list and scroll
+ * views expose it, so the hook drives pull-to-refresh for either.
+ */
+type ScrollableHandle = { getScrollableNode(): unknown };
 
 // ── feel constants (tune these to taste) ──
 // Upward wheel distance (px) required at the top before a desktop refresh fires.
@@ -40,8 +47,8 @@ const MIN_VISIBLE_MS = 600;
  * Transforms are interpolated on JS (`useNativeDriver: false`): the web build
  * mishandles native-driven transforms (see the mobile-web-compat notes).
  */
-export function useWebPullToRefresh<T>(
-  listRef: RefObject<FlatList<T> | null>,
+export function useWebPullToRefresh(
+  listRef: RefObject<ScrollableHandle | null>,
   onRefresh: () => void | Promise<void>,
   enabled: boolean,
 ): { translateY: Animated.Value; refreshing: boolean } {

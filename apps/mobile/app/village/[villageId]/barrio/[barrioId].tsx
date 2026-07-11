@@ -83,6 +83,7 @@ export default function BarrioDetailScreen() {
       fallbackIcon={ENTITY_FALLBACK_ICON.barrio}
       actions={actions}
       title={barrio?.name}
+      onRefresh={load}
     >
       {barrio ? (
         <>
