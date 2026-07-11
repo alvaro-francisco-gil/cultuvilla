@@ -55,7 +55,7 @@ function newsDoc(municipalityId: string, createdBy: string, extra: Record<string
     publishedAt: new Date(),
     createdBy,
     updatedAt: new Date(),
-    reactionCounts: { like: 0, heart: 0 },
+    readCount: 0,
     commentCount: 0,
     ...extra,
   };
@@ -158,7 +158,7 @@ describe('firestore.rules — /news/{postId}', () => {
   });
 
   // 8. client cannot delete a news post directly (author + admin deletes go
-  //    through the deleteNewsPost callable, which cascades comments/reactions).
+  //    through the deleteNewsPost callable, which cascades comments).
   it('8: client cannot delete a news post directly', async () => {
     await seedMember('m1', 'alice');
     await seedPost('p1', 'm1', 'alice');

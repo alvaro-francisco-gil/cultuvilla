@@ -57,7 +57,7 @@ const validNewsPayload = {
   publishedAt: new Date(),
   createdBy: 'alice',
   updatedAt: new Date(),
-  reactionCounts: { like: 0, heart: 0 },
+  readCount: 0,
   commentCount: 0,
 };
 
@@ -202,7 +202,7 @@ describe('shape enforcement — /organizations/{orgId}', () => {
     createdAt: new Date(),
     reviewedAt: null,
     commentCount: 0,
-    reactionCounts: { like: 0, heart: 0 },
+    readCount: 0,
   };
 
   it('accepts a valid full-shape payload', async () => {
@@ -245,9 +245,10 @@ describe('shape enforcement — /organizations/{orgId}', () => {
     );
   });
 
-  // D5 count guards: counts are function-owned (synced by the comments/
-  // reactions triggers), so clients must create at 0 and never touch them
-  // again, even through an otherwise-authorized update.
+  // D5 count guards: counts are function-owned (commentCount synced by the
+  // comments trigger, readCount synced by recordEntityView), so clients must
+  // create at 0 and never touch them again, even through an otherwise-authorized
+  // update.
   it('rejects a create with a nonzero commentCount', async () => {
     await seedMember('m1', 'alice');
     const alice = asUser(getEnv(), 'alice');
@@ -256,11 +257,11 @@ describe('shape enforcement — /organizations/{orgId}', () => {
     );
   });
 
-  it('rejects a create with a nonzero reactionCounts', async () => {
+  it('rejects a create with a nonzero readCount', async () => {
     await seedMember('m1', 'alice');
     const alice = asUser(getEnv(), 'alice');
     await assertFails(
-      setDoc(doc(alice, 'organizations/o1'), { ...validOrg, reactionCounts: { like: 3, heart: 0 } }),
+      setDoc(doc(alice, 'organizations/o1'), { ...validOrg, readCount: 3 }),
     );
   });
 
@@ -272,7 +273,7 @@ describe('shape enforcement — /organizations/{orgId}', () => {
     const boss = asUser(getEnv(), 'boss');
     await assertFails(updateDoc(doc(boss, 'organizations/o1'), { commentCount: 99 }));
     await assertFails(
-      updateDoc(doc(boss, 'organizations/o1'), { reactionCounts: { like: 9, heart: 9 } }),
+      updateDoc(doc(boss, 'organizations/o1'), { readCount: 9 }),
     );
     await assertSucceeds(updateDoc(doc(boss, 'organizations/o1'), { description: 'Actualizada' }));
   });
@@ -303,7 +304,7 @@ describe('shape enforcement — /events/{eventId}', () => {
     // the stored villageCoordinates is a GeoPoint, not a map.
     villageCoordinates: new GeoPoint(40, -3),
     commentCount: 0,
-    reactionCounts: { like: 0, heart: 0 },
+    readCount: 0,
     endBoundary: eventStart,
   };
 
@@ -365,9 +366,10 @@ describe('shape enforcement — /events/{eventId}', () => {
     );
   });
 
-  // D5 count guards: counts are function-owned (synced by the comments/
-  // reactions triggers), so clients must create at 0 and never touch them
-  // again, even through an otherwise-authorized update.
+  // D5 count guards: counts are function-owned (commentCount synced by the
+  // comments trigger, readCount synced by recordEntityView), so clients must
+  // create at 0 and never touch them again, even through an otherwise-authorized
+  // update.
   it('rejects a create with a nonzero commentCount', async () => {
     await seedMember('m1', 'alice');
     const alice = asUser(getEnv(), 'alice');
@@ -376,11 +378,11 @@ describe('shape enforcement — /events/{eventId}', () => {
     );
   });
 
-  it('rejects a create with a nonzero reactionCounts', async () => {
+  it('rejects a create with a nonzero readCount', async () => {
     await seedMember('m1', 'alice');
     const alice = asUser(getEnv(), 'alice');
     await assertFails(
-      setDoc(doc(alice, 'events/e1'), { ...validEvent, reactionCounts: { like: 3, heart: 0 } }),
+      setDoc(doc(alice, 'events/e1'), { ...validEvent, readCount: 3 }),
     );
   });
 
@@ -392,7 +394,7 @@ describe('shape enforcement — /events/{eventId}', () => {
     const alice = asUser(getEnv(), 'alice');
     await assertFails(updateDoc(doc(alice, 'events/e1'), { commentCount: 99 }));
     await assertFails(
-      updateDoc(doc(alice, 'events/e1'), { reactionCounts: { like: 9, heart: 9 } }),
+      updateDoc(doc(alice, 'events/e1'), { readCount: 9 }),
     );
     await assertSucceeds(updateDoc(doc(alice, 'events/e1'), { title: 'Fiesta Mayor' }));
   });

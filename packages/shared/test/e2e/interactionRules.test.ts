@@ -1,6 +1,8 @@
-// Firestore Rules e2e tests for the generic /comments and /reactions
-// collections shared by all entity kinds (event, festivalPoster, place,
-// barrio, organization, news).
+// Firestore Rules e2e tests for the generic /comments collection shared by
+// all entity kinds (event, festivalPoster, place, barrio, organization,
+// news), plus the function-owned `readCount` counter that every entity
+// carries (written only by the recordEntityView callable via the admin SDK,
+// which bypasses these rules).
 import { describe, it } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { doc, setDoc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
@@ -59,14 +61,33 @@ function validComment(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function validReaction(overrides: Record<string, unknown> = {}) {
+// A full, schema-valid event payload (mirrors isValidEventCreate keys) used
+// to exercise the function-owned `readCount` guard — readCount is written
+// only by the recordEntityView callable via the admin SDK, so every client
+// path here goes through the normal rules.
+function validEvent(overrides: Record<string, unknown> = {}) {
   return {
-    entityKind: 'event',
-    entityId: 'e1',
-    municipalityId: 'm1',
-    userId: 'alice',
-    kind: 'like',
+    title: 'Fiesta',
+    description: 'desc',
+    startDate: new Date('2026-07-01'),
+    endDate: null,
+    endBoundary: new Date('2026-07-01'),
+    location: { coordinates: { lat: 40.0, lng: -3.0 }, displayName: 'Plaza Mayor' },
+    imageURL: null,
+    maxAttendees: null,
+    telephoneRequired: false,
+    status: 'published',
+    organizerUserIds: ['alice'],
+    organizerOrgIds: [],
+    createdBy: 'alice',
     createdAt: new Date(),
+    updatedAt: new Date(),
+    municipalityId: 'm1',
+    villageName: 'Villa',
+    villageCoverImage: null,
+    villageCoordinates: null,
+    commentCount: 0,
+    readCount: 0,
     ...overrides,
   };
 }
@@ -143,77 +164,35 @@ describe('firestore.rules — /comments/{commentId}', () => {
   });
 });
 
-// ── /reactions ─────────────────────────────────────────────────────────────
+// ── readCount (function-owned) ──────────────────────────────────────────────
+//
+// readCount is written only by the recordEntityView Cloud Function via the
+// admin SDK, which bypasses these rules entirely — so there is no client
+// write path to allow. These assertions pin that: creation requires
+// readCount == 0, and no client update may touch it, even alongside an
+// otherwise-valid change.
 
-describe('firestore.rules — /reactions/{reactionId}', () => {
-  it('a signed-in user creates a reaction at the correct composite id', async () => {
+describe('firestore.rules — readCount is function-owned', () => {
+  it('a valid entity with readCount: 0 and no reactionCounts is accepted', async () => {
+    await seedMember('m1', 'alice');
     const alice = asUser(getEnv(), 'alice');
-    await assertSucceeds(
-      setDoc(doc(alice, 'reactions/event_e1_alice'), validReaction({ userId: 'alice' }))
-    );
+    await assertSucceeds(setDoc(doc(alice, 'events/e1'), validEvent()));
   });
 
-  it('create fails when the doc id does not match entityKind_entityId_uid', async () => {
+  it('creating an entity with a nonzero readCount is denied', async () => {
+    await seedMember('m1', 'alice');
     const alice = asUser(getEnv(), 'alice');
     await assertFails(
-      setDoc(doc(alice, 'reactions/event_e1_bob'), validReaction({ userId: 'bob' }))
+      setDoc(doc(alice, 'events/e1'), validEvent({ readCount: 3 }))
     );
   });
 
-  it('the owner can delete their own reaction', async () => {
+  it('a client update touching readCount is denied, even for the owner', async () => {
+    await seedMember('m1', 'alice');
     await seed(getEnv(), async (ctx) => {
-      await setDoc(doc(ctx.firestore(), 'reactions/event_e1_alice'), validReaction({ userId: 'alice' }));
+      await setDoc(doc(ctx.firestore(), 'events/e1'), validEvent());
     });
     const alice = asUser(getEnv(), 'alice');
-    await assertSucceeds(deleteDoc(doc(alice, 'reactions/event_e1_alice')));
-  });
-
-  it('a stranger cannot delete another user\'s reaction', async () => {
-    await seed(getEnv(), async (ctx) => {
-      await setDoc(doc(ctx.firestore(), 'reactions/event_e1_alice'), validReaction({ userId: 'alice' }));
-    });
-    const bob = asUser(getEnv(), 'bob');
-    await assertFails(deleteDoc(doc(bob, 'reactions/event_e1_alice')));
-  });
-
-  it('create fails when userId does not match the caller uid, even at the caller\'s own doc id', async () => {
-    const alice = asUser(getEnv(), 'alice');
-    await assertFails(
-      setDoc(doc(alice, 'reactions/event_e1_alice'), validReaction({ userId: 'bob' }))
-    );
-  });
-
-  it('create fails when kind is not like/heart', async () => {
-    const alice = asUser(getEnv(), 'alice');
-    await assertFails(
-      setDoc(doc(alice, 'reactions/event_e1_alice'), validReaction({ kind: 'wow' }))
-    );
-  });
-
-  it('create fails when an extra key is present', async () => {
-    const alice = asUser(getEnv(), 'alice');
-    await assertFails(
-      setDoc(doc(alice, 'reactions/event_e1_alice'), validReaction({ extra: 'nope' }))
-    );
-  });
-
-  it('the owner can update their own reaction to change kind at the same doc id', async () => {
-    await seed(getEnv(), async (ctx) => {
-      await setDoc(doc(ctx.firestore(), 'reactions/event_e1_alice'), validReaction({ userId: 'alice', kind: 'like' }));
-    });
-    const alice = asUser(getEnv(), 'alice');
-    await assertSucceeds(
-      updateDoc(doc(alice, 'reactions/event_e1_alice'), { kind: 'heart' })
-    );
-  });
-
-  it('a stranger cannot update another user\'s reaction', async () => {
-    await seed(getEnv(), async (ctx) => {
-      await setDoc(doc(ctx.firestore(), 'reactions/event_e1_alice'), validReaction({ userId: 'alice', kind: 'like' }));
-    });
-    const bob = asUser(getEnv(), 'bob');
-    await assertFails(
-      updateDoc(doc(bob, 'reactions/event_e1_alice'), { kind: 'heart' })
-    );
+    await assertFails(updateDoc(doc(alice, 'events/e1'), { readCount: 99 }));
   });
 });
