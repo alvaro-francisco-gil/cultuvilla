@@ -88,6 +88,7 @@ export const registerToEvent = onCall<RegisterToEventData, Promise<RegisterToEve
           isMember,
           registeredAt,
           checkedInAt: null,
+          paidAt: null,
         };
         tx.set(newRef, reg);
         // Phone (when telephoneRequired) lands in a separately-gated

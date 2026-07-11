@@ -97,6 +97,7 @@ export const addWalkInRegistration = onCall<AddWalkInData, Promise<AddWalkInResu
         isMember: false,
         registeredAt: new Date(),
         checkedInAt: null,
+        paidAt: null,
       };
       tx.set(newRef, reg);
       if (phone) {
