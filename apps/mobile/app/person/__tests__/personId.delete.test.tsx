@@ -43,7 +43,7 @@ jest.mock('expo-router', () => ({
 }));
 // Stub the heavy form + residence editors so the screen renders standalone.
 jest.mock('../../../components/feature/PersonForm', () => ({ PersonForm: () => null }));
-jest.mock('../../../components/feature/MembershipBarrioList', () => ({ MembershipBarrioList: () => null }));
+jest.mock('../../../components/feature/MembershipVillageEditor', () => ({ MembershipVillageEditor: () => null }));
 jest.mock('../../../components/feature/ResidenceLinksEditor', () => ({ ResidenceLinksEditor: () => null }));
 
 describe('PersonDetailScreen — persona delete', () => {
