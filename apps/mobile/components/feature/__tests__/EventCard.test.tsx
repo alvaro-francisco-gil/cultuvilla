@@ -48,23 +48,10 @@ describe('<EventCard>', () => {
     expect(queryByText('En curso')).toBeNull();
   });
 
-  it('renders the comment count badge when commentCount > 0', () => {
-    const { getByTestId, getByText } = render(
+  it('never surfaces a comment count, even when the event has comments', () => {
+    const { queryByTestId } = render(
       <EventCard event={{ ...fixture, commentCount: 3 }} onPress={() => {}} />,
     );
-    expect(getByTestId('feed-card-comment-count')).toBeTruthy();
-    expect(getByText('3')).toBeTruthy();
-  });
-
-  it('renders no comment count badge when commentCount is 0 or undefined', () => {
-    const { queryByTestId: queryZero } = render(
-      <EventCard event={{ ...fixture, commentCount: 0 }} onPress={() => {}} />,
-    );
-    expect(queryZero('feed-card-comment-count')).toBeNull();
-
-    const { queryByTestId: queryUndefined } = render(
-      <EventCard event={fixture} onPress={() => {}} />,
-    );
-    expect(queryUndefined('feed-card-comment-count')).toBeNull();
+    expect(queryByTestId('feed-card-comment-count')).toBeNull();
   });
 });

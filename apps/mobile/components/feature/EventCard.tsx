@@ -39,7 +39,6 @@ export function EventCard({ event, onPress, badge, testID }: EventCardProps) {
       metaRight={relativeDayLabel(event.startDate, t)}
       fallbackIcon="calendar-outline"
       badge={badge}
-      commentCount={event.commentCount}
       onPress={() => onPress(event.id)}
       testID={testID}
     />
