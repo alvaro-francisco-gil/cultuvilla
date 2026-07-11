@@ -3,8 +3,10 @@ import { Platform } from 'react-native';
 import { MembershipVillageEditor } from '../MembershipVillageEditor';
 
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ t: (k: string) => k }) }));
+// eslint-disable-next-line prefer-const -- reassigned per-test to vary the active village.
+let mockActiveMunicipalityId = 'm1';
 jest.mock('../../../lib/auth/useAuth', () => ({
-  useAuth: () => ({ profile: { activeMunicipalityId: 'm1' } }),
+  useAuth: () => ({ profile: { activeMunicipalityId: mockActiveMunicipalityId } }),
 }));
 
 // babel-plugin-jest-hoist only allows out-of-scope references from `jest.mock`
@@ -40,6 +42,7 @@ beforeEach(() => {
   mockGetPersonByUserId.mockReset();
   mockLeaveVillage.mockClear();
   mockSetActiveMunicipality.mockClear();
+  mockActiveMunicipalityId = 'm1';
   Platform.OS = 'web';
   // jsdom isn't loaded in this jest env, so window has no confirm to spy on —
   // install the mock directly (mirrors DeleteHeaderButton.test.tsx).
@@ -68,4 +71,18 @@ it('leaves the village and reassigns active on confirm', async () => {
   await waitFor(() => expect(mockLeaveVillage).toHaveBeenCalledWith('m1', 'u1'));
   // m1 was active → reassign to the remaining membership.
   await waitFor(() => expect(mockSetActiveMunicipality).toHaveBeenCalledWith('u1', 'm2'));
+});
+
+it('leaves a non-active village without reassigning active', async () => {
+  mockActiveMunicipalityId = 'm2';
+  mockGetUserMemberships.mockResolvedValue([
+    { municipalityId: 'm1', role: 'user', joinedAt: new Date(), profileCompletedAt: null },
+    { municipalityId: 'm2', role: 'user', joinedAt: new Date(), profileCompletedAt: null },
+  ]);
+  mockGetPersonByUserId.mockResolvedValue({ municipalityLinks: [] });
+  const { getAllByLabelText } = render(<MembershipVillageEditor userId="u1" />);
+  await waitFor(() => expect(getAllByLabelText('profile.personForm.removeVillage').length).toBe(2));
+  fireEvent.press(getAllByLabelText('profile.personForm.removeVillage')[0]!);
+  await waitFor(() => expect(mockLeaveVillage).toHaveBeenCalledWith('m1', 'u1'));
+  expect(mockSetActiveMunicipality).not.toHaveBeenCalled();
 });

@@ -49,7 +49,7 @@ export function MembershipVillageEditor({ userId }: MembershipVillageEditorProps
   const [rows, setRows] = useState<Row[] | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function load() {
+  async function loadRows(): Promise<Row[]> {
     const [memberships, person] = await Promise.all([
       getUserMemberships(userId),
       getPersonByUserId(userId),
@@ -68,14 +68,14 @@ export function MembershipVillageEditor({ userId }: MembershipVillageEditorProps
       }),
     );
     named.sort((a, b) => a.name.localeCompare(b.name));
-    setRows(named);
+    return named;
   }
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      await load();
-      if (cancelled) setRows(null);
+      const named = await loadRows();
+      if (!cancelled) setRows(named);
     })();
     return () => {
       cancelled = true;
@@ -95,7 +95,7 @@ export function MembershipVillageEditor({ userId }: MembershipVillageEditorProps
     setBusy(true);
     try {
       await ensureVillageMembership(municipalityId, userId);
-      await load();
+      setRows(await loadRows());
     } finally {
       setBusy(false);
     }
