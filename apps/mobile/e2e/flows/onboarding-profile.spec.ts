@@ -21,11 +21,13 @@ test.describe('onboarding: complete profile', () => {
     const givenName = page.getByTestId('person-given-name');
     await expect(givenName).toBeVisible({ timeout: 30_000 });
 
-    // Step 1 — identity.
+    // Step 1 — identity. Terms acceptance lives at the end of this step and
+    // gates it, so accept before advancing.
     await givenName.fill('Nueva');
     await page.getByTestId('person-first-surname').fill('Vecina');
     await page.getByTestId('person-second-surname').fill('DePrueba');
     await page.getByTestId('person-sex-female').click();
+    await page.getByTestId('accept-terms').click();
     await page.getByTestId('person-form-primary').click();
 
     // Step 2 — residence: only the birthday is required (requireFullName). Open the
@@ -37,8 +39,7 @@ test.describe('onboarding: complete profile', () => {
     await page.getByTestId('birthday-calendar-day-1990-05-15').click();
     await page.getByTestId('person-form-primary').click();
 
-    // Step 3 — about: fields optional, but terms acceptance is required.
-    await page.getByTestId('accept-terms').click();
+    // Step 3 — about: all fields optional, submit directly.
     await page.getByTestId('person-form-primary').click();
 
     // Strong assertion: the profile now links a person, and that person exists.
