@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.8.0 — 2026-07-11
+
 ### Added
 - **Comments on every village entity, plus an invisible view count.** Events, festival posters, places, barrios, organizations, and news posts each get a comments thread, with the count shown on their cards and detail screens. Backed by a generic top-level `comments/` collection (entity-scoped via `entityKind`/`entityId`) — anyone can read, signed-in users can post, and authors, village admins, or app admins can delete. `commentCount` is denormalized onto each entity doc by a shared trigger. Each detail screen also fires a fire-and-forget `recordEntityView` callable on mount, which increments a function-owned `readCount` field — no reactions/likes UI, and the count isn't surfaced anywhere yet.
 - **Los carteles de fiestas admiten ahora varias imágenes (máx. 5).** La primera imagen es la portada que se ve en la tarjeta y como imagen principal del detalle; las demás se muestran en vertical bajo las fechas, desplazándote hacia abajo. Los formularios de crear/editar usan una fila de miniaturas cuadradas con un botón "+" a la derecha para añadir más. **Migración:** el modelo pasa de `imageURL` (una URL) a `images: string[]`; los documentos de dev (`villa-events`) se migran con `scripts/backfill-festivalPoster-images.mjs` (`imageURL` → `[imageURL]`).
