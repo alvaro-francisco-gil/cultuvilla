@@ -7,32 +7,30 @@
  * builder default (`true`) on every org doc that lacks the field.
  *
  * USAGE
- *   node scripts/backfill-org-members-public.mjs          (dry run — no writes)
- *   node scripts/backfill-org-members-public.mjs --apply  (writes to Firestore)
+ *   node scripts/backfill-org-members-public.mjs                 (dev dry run)
+ *   node scripts/backfill-org-members-public.mjs --apply         (dev writes)
+ *   env -u GOOGLE_APPLICATION_CREDENTIALS \
+ *     node scripts/backfill-org-members-public.mjs --env=beta --confirm --apply
+ *
+ * Credentials resolve via initAdminForEnv (see lib/env-credentials.mjs). Dev is
+ * autonomous; beta/prod require --confirm (and the stored ADC — unset
+ * GOOGLE_APPLICATION_CREDENTIALS so a dev key can't hijack the target project).
+ * `--apply` still gates the actual write on every env (dry run without it).
  *
  * Idempotent: skips any org doc that already has `membersPublic` set.
  */
 import admin from 'firebase-admin';
+import { initAdminForEnv } from './lib/env-credentials.mjs';
+import { parseEnvConfirm } from './lib/env-confirm.mjs';
 
-const PROJECT_ID = 'villa-events';
-
-if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  console.error('GOOGLE_APPLICATION_CREDENTIALS is not set. See firebase-admin-dev skill.');
-  process.exit(1);
-}
-
-admin.initializeApp({ projectId: PROJECT_ID });
+const { projectId } = initAdminForEnv(parseEnvConfirm());
 const db = admin.firestore();
-
-if (admin.app().options.projectId !== PROJECT_ID) {
-  console.error(`Refusing to run against ${admin.app().options.projectId} — dev only.`);
-  process.exit(1);
-}
 
 const APPLY = process.argv.includes('--apply');
 
 async function main() {
   const orgs = await db.collection('organizations').get();
+  console.log(`Backfilling membersPublic against ${projectId}`);
   console.log(`Loaded ${orgs.size} organization docs.`);
 
   let patched = 0;
