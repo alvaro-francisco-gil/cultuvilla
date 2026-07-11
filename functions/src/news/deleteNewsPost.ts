@@ -6,7 +6,6 @@ import {
   municipalityMemberDoc,
   newsDoc,
   commentsCollection,
-  reactionsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
 
 const db = admin.firestore();
@@ -64,11 +63,6 @@ export const deleteNewsPost = onCall<DeleteNewsPostData, Promise<DeleteNewsPostR
     // Delete comments for this post (generic top-level collection, entity-scoped)
     await batchDeleteQuery(
       commentsCollection(db).where('entityKind', '==', 'news').where('entityId', '==', postId),
-    );
-
-    // Delete reactions for this post (generic top-level collection, entity-scoped)
-    await batchDeleteQuery(
-      reactionsCollection(db).where('entityKind', '==', 'news').where('entityId', '==', postId),
     );
 
     // Delete the post document last
