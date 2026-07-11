@@ -669,7 +669,12 @@
       "noVillages": "Aún no perteneces a ningún pueblo. Únete a uno para elegir tu barrio.",
       "residenceHeading": "Pueblos de residencia",
       "addVillage": "Añadir pueblo",
-      "removeVillage": "Quitar"
+      "removeVillage": "Quitar",
+      "leaveVillageTitle": "Salir del pueblo",
+      "leaveVillageMessage": "Dejarás de ver el contenido de este pueblo y de aparecer en su censo. Puedes volver a unirte cuando quieras.",
+      "leaveVillageConfirm": "Salir",
+      "leaveVillageCancel": "Cancelar",
+      "leavingVillage": "Saliendo del pueblo…"
     },
     "personDetailTitle": "Persona",
     "personEdit": "Editar",
