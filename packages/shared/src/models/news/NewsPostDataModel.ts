@@ -58,10 +58,25 @@ export const NewsMentionSchema = z.object({
 });
 export type NewsMention = z.infer<typeof NewsMentionSchema>;
 
+/**
+ * An external web link span within a text block. `offset`/`length` locate the
+ * display text in the block's `text`; `url` is the target. Stored ONLY for
+ * custom-text links — bare URLs are autolinked at render, never persisted here.
+ */
+export const NewsLinkSchema = z.object({
+  url: z.string().regex(/^https?:\/\//i, 'must be an http(s) URL'),
+  offset: z.number(),
+  length: z.number(),
+});
+export type NewsLink = z.infer<typeof NewsLinkSchema>;
+
 export const NewsTextBlockSchema = z.object({
   type: z.literal('text'),
   text: z.string(),
   mentions: z.array(NewsMentionSchema),
+  // `.default([])` keeps text blocks written before links existed parseable on
+  // read (the converter runs schema.parse on every read).
+  links: z.array(NewsLinkSchema).default([]),
 });
 export type NewsTextBlock = z.infer<typeof NewsTextBlockSchema>;
 
@@ -76,6 +91,7 @@ export const NewsImageBlockSchema = z.object({
   // keeps image blocks written before captions supported mentions parseable
   // on read (the converter runs schema.parse on every read).
   captionMentions: z.array(NewsMentionSchema).default([]),
+  captionLinks: z.array(NewsLinkSchema).default([]),
 });
 export type NewsImageBlock = z.infer<typeof NewsImageBlockSchema>;
 

@@ -8,12 +8,16 @@ import {
   splitMentionsAtCaret,
   type MentionCandidate,
 } from '../mentionText';
-import type { NewsMention } from '@cultuvilla/shared/models/news/NewsPostDataModel';
+import type { NewsMention, NewsLink } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 
 const peña: MentionCandidate = { entityType: 'organization', entityId: 'org1', label: 'Peña El Barrio' };
 
 function mention(offset: number, length: number, label = 'x'): NewsMention {
   return { entityType: 'place', entityId: 'p', label, offset, length };
+}
+
+function link(offset: number, length: number): NewsLink {
+  return { url: 'https://x.com', offset, length };
 }
 
 describe('adjustMentions', () => {
@@ -40,6 +44,21 @@ describe('adjustMentions', () => {
     const m = [mention(6, 5)]; // "world"
     const out = adjustMentions('hello world', 'hello w0rld', m);
     expect(out).toEqual([]);
+  });
+});
+
+describe('adjustMentions is generic over spans', () => {
+  it('shifts a link span after an insertion, preserving url', () => {
+    const out = adjustMentions('hello world', 'oh hello world', [link(6, 5)]);
+    expect(out[0]).toEqual({ url: 'https://x.com', offset: 9, length: 5 });
+  });
+});
+
+describe('splitMentionsAtCaret is generic over spans', () => {
+  it('splits link spans at the caret and rebases the after side', () => {
+    const { before, after } = splitMentionsAtCaret([link(0, 3), link(8, 4)], 5);
+    expect(before).toEqual([link(0, 3)]);
+    expect(after).toEqual([{ url: 'https://x.com', offset: 3, length: 4 }]);
   });
 });
 

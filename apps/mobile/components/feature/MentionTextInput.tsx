@@ -16,10 +16,11 @@ import {
   adjustMentions,
   deleteMentionAt,
   insertMention,
-  mentionRuns,
   type MentionCandidate,
 } from '../../lib/mentionText';
-import type { NewsMention, MentionEntityType } from '@cultuvilla/shared/models/news/NewsPostDataModel';
+import { detectPastedUrl, applyCustomTextLink, buildLinkRuns, isSafeHttpUrl } from '../../lib/linkText';
+import { LinkSheet } from './LinkSheet';
+import type { NewsMention, NewsLink, MentionEntityType } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 
 const ACCENT = colors.light.fg.accent;
 
@@ -40,7 +41,8 @@ const ENTITY_ICON: Record<MentionEntityType, keyof typeof Ionicons.glyphMap> = {
 interface MentionTextInputProps {
   value: string;
   mentions: NewsMention[];
-  onChange: (text: string, mentions: NewsMention[]) => void;
+  links: NewsLink[];
+  onChange: (text: string, mentions: NewsMention[], links: NewsLink[]) => void;
   candidates: MentionCandidate[];
   placeholder?: string;
   /** Fired when this field gains focus — lets the editor track the active block. */
@@ -59,6 +61,7 @@ interface MentionTextInputProps {
 export function MentionTextInput({
   value,
   mentions,
+  links,
   onChange,
   candidates,
   placeholder,
@@ -72,7 +75,10 @@ export function MentionTextInput({
   // suggestion strip (the "keyboard got smaller" bug). After a mention insert we
   // let the caret fall to the end of the new value, which is the common case.
   const [selection, setSelection] = useState({ start: 0, end: 0 });
-  const runs = useMemo(() => mentionRuns(value, mentions), [value, mentions]);
+  const [pendingUrl, setPendingUrl] = useState<{ url: string; offset: number; length: number } | null>(
+    null,
+  );
+  const runs = useMemo(() => buildLinkRuns(value, mentions, links), [value, mentions, links]);
 
   const active =
     selection.start === selection.end
@@ -89,7 +95,11 @@ export function MentionTextInput({
   }, [active, candidates]);
 
   function handleChangeText(next: string) {
-    onChange(next, adjustMentions(value, next, mentions));
+    const nextMentions = adjustMentions(value, next, mentions);
+    const nextLinks = adjustMentions(value, next, links);
+    onChange(next, nextMentions, nextLinks);
+    const detected = detectPastedUrl(value, next);
+    if (detected && isSafeHttpUrl(detected.url)) setPendingUrl(detected);
   }
 
   function handleKeyPress(e: NativeSyntheticEvent<TextInputKeyPressEventData>) {
@@ -102,14 +112,14 @@ export function MentionTextInput({
     // from also eating one character. Native has no equivalent — see the plan's
     // accepted-risks note.
     (e as unknown as { preventDefault?: () => void }).preventDefault?.();
-    onChange(res.text, res.mentions);
+    onChange(res.text, res.mentions, adjustMentions(value, res.text, links));
     moveCaret(res.cursor);
   }
 
   function pick(candidate: MentionCandidate) {
     if (!active) return;
     const res = insertMention(value, mentions, active, candidate);
-    onChange(res.text, res.mentions);
+    onChange(res.text, res.mentions, adjustMentions(value, res.text, links));
     moveCaret(res.cursor);
   }
 
@@ -137,7 +147,7 @@ export function MentionTextInput({
         <View style={{ position: 'relative', minHeight: 80 }}>
           <Text pointerEvents="none" className="text-body">
             {runs.map((run, i) =>
-              run.mention ? (
+              run.mention || run.link || run.autoUrl ? (
                 <Text key={i} className="text-accent underline">
                   {run.text}
                 </Text>
@@ -192,6 +202,17 @@ export function MentionTextInput({
           ))}
         </VStack>
       ) : null}
+      <LinkSheet
+        url={pendingUrl?.url ?? null}
+        onDismiss={() => setPendingUrl(null)}
+        onSave={(displayText) => {
+          if (pendingUrl && displayText) {
+            const res = applyCustomTextLink(value, mentions, links, pendingUrl, displayText);
+            onChange(res.text, res.mentions, res.links);
+          }
+          setPendingUrl(null);
+        }}
+      />
     </VStack>
   );
 }

@@ -7,7 +7,7 @@ import { useT } from '../../lib/i18n';
 import { pickImageWithSize } from '../../lib/images';
 import { MentionTextInput } from './MentionTextInput';
 import { splitMentionsAtCaret, type MentionCandidate } from '../../lib/mentionText';
-import type { NewsMention } from '@cultuvilla/shared/models/news/NewsPostDataModel';
+import type { NewsMention, NewsLink } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 
 const ACCENT = colors.light.fg.accent;
 
@@ -22,6 +22,7 @@ export type EditorTextBlock = {
   type: 'text';
   text: string;
   mentions: NewsMention[];
+  links: NewsLink[];
 };
 export type EditorImageBlock = {
   id: string;
@@ -36,6 +37,7 @@ export type EditorImageBlock = {
   height: number;
   caption: string;
   captionMentions: NewsMention[];
+  captionLinks: NewsLink[];
 };
 export type EditorBlock = EditorTextBlock | EditorImageBlock;
 
@@ -46,7 +48,7 @@ export function newBlockId(): string {
 }
 
 export function emptyTextBlock(): EditorTextBlock {
-  return { id: newBlockId(), type: 'text', text: '', mentions: [] };
+  return { id: newBlockId(), type: 'text', text: '', mentions: [], links: [] };
 }
 
 interface BlockEditorProps {
@@ -88,6 +90,7 @@ export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) 
         type: 'text',
         text: prev.text + sep + next.text,
         mentions: [...prev.mentions, ...next.mentions.map((m) => ({ ...m, offset: m.offset + shift }))],
+        links: [...prev.links, ...next.links.map((l) => ({ ...l, offset: l.offset + shift }))],
       };
       onChange([...blocks.slice(0, i - 1), merged, ...blocks.slice(i + 2)]);
     } else {
@@ -108,6 +111,7 @@ export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) 
       height: picked.height,
       caption: '',
       captionMentions: [],
+      captionLinks: [],
     };
 
     const i = active.current.id ? blocks.findIndex((b) => b.id === active.current.id) : -1;
@@ -120,17 +124,20 @@ export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) 
 
     const caret = Math.min(Math.max(active.current.caret, 0), target.text.length);
     const { before, after } = splitMentionsAtCaret(target.mentions, caret);
+    const { before: linksBefore, after: linksAfter } = splitMentionsAtCaret(target.links, caret);
     const beforeBlock: EditorTextBlock = {
       id: target.id,
       type: 'text',
       text: target.text.slice(0, caret),
       mentions: before,
+      links: linksBefore,
     };
     const afterBlock: EditorTextBlock = {
       id: newBlockId(),
       type: 'text',
       text: target.text.slice(caret),
       mentions: after,
+      links: linksAfter,
     };
     const middle: EditorBlock[] = [];
     if (beforeBlock.text.length > 0) middle.push(beforeBlock);
@@ -147,9 +154,10 @@ export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) 
             key={block.id}
             value={block.text}
             mentions={block.mentions}
+            links={block.links}
             candidates={candidates}
             placeholder={t('news.compose.block.textPlaceholder')}
-            onChange={(text, mentions) => updateBlock(block.id, { text, mentions })}
+            onChange={(text, mentions, links) => updateBlock(block.id, { text, mentions, links })}
             onFocus={() => {
               active.current = { id: block.id, caret: block.text.length };
             }}
@@ -164,7 +172,8 @@ export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) 
             candidates={candidates}
             captionPlaceholder={t('news.compose.block.captionPlaceholder')}
             removeLabel={t('news.compose.block.removeImage')}
-            onCaption={(caption, captionMentions) => updateBlock(block.id, { caption, captionMentions })}
+            onCaption={(caption, captionMentions, captionLinks) =>
+              updateBlock(block.id, { caption, captionMentions, captionLinks })}
             onRemove={() => removeImage(block.id)}
           />
         ),
@@ -191,7 +200,7 @@ function ImageBlock({
   candidates: MentionCandidate[];
   captionPlaceholder: string;
   removeLabel: string;
-  onCaption: (caption: string, captionMentions: NewsMention[]) => void;
+  onCaption: (caption: string, captionMentions: NewsMention[], captionLinks: NewsLink[]) => void;
   onRemove: () => void;
 }) {
   return (
@@ -221,6 +230,7 @@ function ImageBlock({
       <MentionTextInput
         value={block.caption}
         mentions={block.captionMentions}
+        links={block.captionLinks}
         candidates={candidates}
         placeholder={captionPlaceholder}
         onChange={onCaption}

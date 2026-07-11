@@ -36,26 +36,31 @@ function commonSuffixLength(a: string, b: string, cap: number): number {
   return i;
 }
 
+export interface Span {
+  offset: number;
+  length: number;
+}
+
 /**
- * Recompute mention spans after `oldText` was edited into `newText`. Spans fully
+ * Recompute spans after `oldText` was edited into `newText`. Spans fully
  * before the edited region are kept; spans fully after are shifted by the length
  * delta; spans overlapping the edit are dropped (their text changed, so the
  * annotation is no longer trustworthy).
  */
-export function adjustMentions(
+export function adjustMentions<T extends Span>(
   oldText: string,
   newText: string,
-  mentions: NewsMention[],
-): NewsMention[] {
-  if (oldText === newText) return mentions;
+  spans: T[],
+): T[] {
+  if (oldText === newText) return spans;
   const prefix = commonPrefixLength(oldText, newText);
   const cap = Math.min(oldText.length, newText.length) - prefix;
   const suffix = commonSuffixLength(oldText, newText, Math.max(0, cap));
   const oldChangeEnd = oldText.length - suffix; // exclusive
   const delta = newText.length - oldText.length;
 
-  const result: NewsMention[] = [];
-  for (const m of mentions) {
+  const result: T[] = [];
+  for (const m of spans) {
     const end = m.offset + m.length;
     if (end <= prefix) {
       result.push(m);
@@ -107,13 +112,13 @@ export function activeMentionQuery(
  * entirely after move to `after` with offsets rebased to the split point; a span
  * straddling the caret is dropped.
  */
-export function splitMentionsAtCaret(
-  mentions: NewsMention[],
+export function splitMentionsAtCaret<T extends Span>(
+  spans: T[],
   caret: number,
-): { before: NewsMention[]; after: NewsMention[] } {
-  const before: NewsMention[] = [];
-  const after: NewsMention[] = [];
-  for (const m of mentions) {
+): { before: T[]; after: T[] } {
+  const before: T[] = [];
+  const after: T[] = [];
+  for (const m of spans) {
     const end = m.offset + m.length;
     if (end <= caret) before.push(m);
     else if (m.offset >= caret) after.push({ ...m, offset: m.offset - caret });
