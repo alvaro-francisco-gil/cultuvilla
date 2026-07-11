@@ -858,6 +858,14 @@
         "festivalPoster": "Cartel"
       }
     },
+    "linkSheet": {
+      "title": "Añadir enlace",
+      "urlLabel": "Enlace detectado",
+      "textLabel": "Texto a mostrar (opcional)",
+      "textPlaceholder": "p. ej. compra tus entradas",
+      "save": "Guardar",
+      "skip": "Omitir"
+    },
     "reactions": {
       "like": "Me gusta",
       "heart": "Me encanta"
