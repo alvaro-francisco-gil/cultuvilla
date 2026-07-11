@@ -89,7 +89,9 @@ describe('<EntityComments>', () => {
       },
     ]);
     const { findByText } = render(<EntityComments {...BASE_PROPS} />);
-    expect(await findByText('Qué buena idea')).toBeTruthy();
+    // Name + body share one Text node (Instagram-style inline), so match the
+    // body as a substring rather than an exact text node.
+    expect(await findByText(/Qué buena idea/)).toBeTruthy();
     expect(await findByText('Ana Gil')).toBeTruthy();
   });
 
@@ -112,7 +114,7 @@ describe('<EntityComments>', () => {
       authorUserId: 'uid-1',
       body: 'Un comentario nuevo',
     }));
-    expect(await findByText('Un comentario nuevo')).toBeTruthy();
+    expect(await findByText(/Un comentario nuevo/)).toBeTruthy();
     expect(input.props.value).toBe('');
   });
 
@@ -138,14 +140,14 @@ describe('<EntityComments>', () => {
     } as never;
 
     const { findByText, findByLabelText, queryByText } = render(<EntityComments {...BASE_PROPS} />);
-    await findByText('Mi comentario');
+    await findByText(/Mi comentario/);
 
     await act(async () => {
       fireEvent.press(await findByLabelText('Eliminar'));
     });
 
     await waitFor(() => expect(deleteCommentMock).toHaveBeenCalledWith('c-1'));
-    expect(queryByText('Mi comentario')).toBeNull();
+    expect(queryByText(/Mi comentario/)).toBeNull();
 
     Platform.OS = 'ios';
   });
