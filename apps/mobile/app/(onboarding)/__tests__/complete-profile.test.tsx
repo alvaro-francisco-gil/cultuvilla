@@ -122,6 +122,8 @@ describe('CompleteProfileScreen', () => {
     fireEvent.changeText(getByLabelText('Primer apellido'), 'García');
     fireEvent.changeText(getByLabelText('Segundo apellido'), 'López');
     fireEvent.press(getByText('Mujer')); // sex is required to advance
+    // Terms acceptance lives at the end of step 1, which is gated on it.
+    fireEvent.press(getByTestId('accept-terms'));
     fireEvent.press(getByText('Siguiente'));
 
     // Step 2: fill birthday (required when requireFullName=true) via the
@@ -133,8 +135,7 @@ describe('CompleteProfileScreen', () => {
     fireEvent.press(getByTestId('birthday-calendar-day-1990-05-05'));
     fireEvent.press(getByText('Siguiente'));
 
-    // Step 3: accept the terms (submit is gated on it), then submit.
-    fireEvent.press(getByTestId('accept-terms'));
+    // Step 3: submit.
     await act(async () => {
       fireEvent.press(getByText('Crear perfil'));
     });
@@ -195,6 +196,8 @@ describe('CompleteProfileScreen', () => {
     fireEvent.changeText(getByLabelText('Primer apellido'), 'García');
     fireEvent.changeText(getByLabelText('Segundo apellido'), 'López');
     fireEvent.press(getByText('Mujer'));
+    // Terms acceptance lives at the end of step 1, which is gated on it.
+    fireEvent.press(getByTestId('accept-terms'));
     fireEvent.press(getByText('Siguiente'));
 
     fireEvent.press(getByTestId('birthday-trigger'));
@@ -204,7 +207,6 @@ describe('CompleteProfileScreen', () => {
     fireEvent.press(getByTestId('birthday-calendar-day-1990-05-05'));
     fireEvent.press(getByText('Siguiente'));
 
-    fireEvent.press(getByTestId('accept-terms'));
     await act(async () => {
       fireEvent.press(getByText('Crear perfil'));
     });
@@ -222,30 +224,23 @@ describe('CompleteProfileScreen', () => {
     );
   });
 
-  it('does not create the profile until the terms are accepted', async () => {
+  it('does not advance past step 1 until the terms are accepted', async () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const userService = require('@cultuvilla/shared/services/userService');
 
-    const { getByText, getByLabelText, getByTestId } = render(<CompleteProfileScreen />);
+    const { getByText, getByLabelText, queryByTestId } = render(<CompleteProfileScreen />);
 
     fireEvent.changeText(getByLabelText('Nombre'), 'Ana');
     fireEvent.changeText(getByLabelText('Primer apellido'), 'García');
     fireEvent.changeText(getByLabelText('Segundo apellido'), 'López');
     fireEvent.press(getByText('Mujer'));
-    fireEvent.press(getByText('Siguiente'));
-
-    fireEvent.press(getByTestId('birthday-trigger'));
-    fireEvent.press(getByTestId('birthday-calendar-title'));
-    fireEvent.press(getByTestId('birthday-calendar-year-1990'));
-    fireEvent.press(getByTestId('birthday-calendar-month-4'));
-    fireEvent.press(getByTestId('birthday-calendar-day-1990-05-05'));
-    fireEvent.press(getByText('Siguiente'));
-
-    // Step 3: attempt to submit WITHOUT accepting the terms.
+    // Terms live at the end of step 1 and gate it: pressing Next without
+    // accepting them must keep us on step 1 (birthday belongs to step 2).
     await act(async () => {
-      fireEvent.press(getByText('Crear perfil'));
+      fireEvent.press(getByText('Siguiente'));
     });
 
+    expect(queryByTestId('birthday-trigger')).toBeNull();
     expect(userService.createUserProfile).not.toHaveBeenCalled();
   });
 
@@ -256,6 +251,8 @@ describe('CompleteProfileScreen', () => {
     fireEvent.changeText(getByLabelText('Primer apellido'), 'García');
     fireEvent.changeText(getByLabelText('Segundo apellido'), 'López');
     fireEvent.press(getByText('Mujer'));
+    // Terms acceptance lives at the end of step 1, which is gated on it.
+    fireEvent.press(getByTestId('accept-terms'));
     fireEvent.press(getByText('Siguiente'));
 
     fireEvent.press(getByTestId('birthday-trigger'));
