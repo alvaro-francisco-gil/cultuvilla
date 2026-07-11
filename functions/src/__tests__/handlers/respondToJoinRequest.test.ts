@@ -30,6 +30,7 @@ async function seedOrg(): Promise<void> {
     reviewedAt: new Date(),
     commentCount: 0,
     readCount: 0,
+    membersPublic: true,
   });
 }
 

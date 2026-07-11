@@ -38,6 +38,7 @@ export async function seedOrgs(dataset) {
             requestedBy: adminUid,
             reviewedBy: adminUid,
             reviewedAt: new Date(),
+            membersPublic: org.membersPublic ?? true,
           }),
         ),
         { merge: true },

@@ -203,6 +203,7 @@ describe('shape enforcement — /organizations/{orgId}', () => {
     reviewedAt: null,
     commentCount: 0,
     readCount: 0,
+    membersPublic: true,
   };
 
   it('accepts a valid full-shape payload', async () => {

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   OrganizationDataSchema,
   buildOrganizationData,
+  canViewOrgRoster,
 } from '../../../src/models/organization/OrganizationDataModel';
 
 const validOrg = {
@@ -17,6 +18,7 @@ const validOrg = {
   reviewedAt: null,
   commentCount: 0,
   readCount: 0,
+  membersPublic: true,
 };
 
 describe('OrganizationDataSchema', () => {
@@ -59,5 +61,38 @@ describe('buildOrganizationData', () => {
     expect(o.commentCount).toBe(0);
     expect('reactionCounts' in o).toBe(false);
     expect(() => OrganizationDataSchema.parse(o)).not.toThrow();
+  });
+});
+
+describe('membersPublic', () => {
+  it('rejects an org missing membersPublic', () => {
+    const { membersPublic: _omit, ...rest } = validOrg;
+    expect(() => OrganizationDataSchema.parse(rest)).toThrow();
+  });
+
+  it('buildOrganizationData defaults membersPublic to true', () => {
+    const o = buildOrganizationData({
+      name: 'Peña X', type: 'peña', requestedBy: 'u1', municipalityId: 'v1',
+    });
+    expect(o.membersPublic).toBe(true);
+    expect(() => OrganizationDataSchema.parse(o)).not.toThrow();
+  });
+
+  it('buildOrganizationData honours an explicit membersPublic false', () => {
+    const o = buildOrganizationData({
+      name: 'Peña X', type: 'peña', requestedBy: 'u1', municipalityId: 'v1', membersPublic: false,
+    });
+    expect(o.membersPublic).toBe(false);
+  });
+});
+
+describe('canViewOrgRoster', () => {
+  it('public group: anyone sees the roster', () => {
+    expect(canViewOrgRoster({ membersPublic: true, isMember: false })).toBe(true);
+    expect(canViewOrgRoster({ membersPublic: true, isMember: true })).toBe(true);
+  });
+  it('private group: only members see the roster', () => {
+    expect(canViewOrgRoster({ membersPublic: false, isMember: true })).toBe(true);
+    expect(canViewOrgRoster({ membersPublic: false, isMember: false })).toBe(false);
   });
 });
