@@ -14,7 +14,7 @@ interface RecordEntityViewResult {
 }
 
 export const recordEntityView = onCall<RecordEntityViewData, Promise<RecordEntityViewResult>>(
-  { region: 'us-central1' },
+  { region: 'us-central1', cors: true },
   async (request) => {
     const { entityKind, entityId, municipalityId } = request.data;
     if (!entityKind || !entityId || !municipalityId) {

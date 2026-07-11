@@ -108,7 +108,7 @@ export const NewsPostDataSchema = z.object({
   createdAt: z.date(),
   publishedAt: z.date().nullable(),
   updatedAt: z.date(),
-  readCount: z.number(),
+  readCount: z.number().int(),
   commentCount: z.number(),
 });
 export type NewsPostData = z.infer<typeof NewsPostDataSchema>;
