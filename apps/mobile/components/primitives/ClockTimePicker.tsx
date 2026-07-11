@@ -59,11 +59,19 @@ export function ClockTimePicker({ value, onChange, onCommit, minuteStep = 5, tes
   return (
     <View testID={testID}>
       <View className="flex-row items-center justify-center" style={styles.readout}>
-        <Pressable testID={testID ? `${testID}-show-hour` : undefined} onPress={() => setPage('hour')}>
+        <Pressable
+          testID={testID ? `${testID}-show-hour` : undefined}
+          accessibilityRole="button"
+          onPress={() => setPage('hour')}
+        >
           <Text variant="h3" tone={page === 'hour' ? 'primary' : 'muted'}>{pad2(hour)}</Text>
         </Pressable>
         <Text variant="h3">:</Text>
-        <Pressable testID={testID ? `${testID}-show-minute` : undefined} onPress={() => setPage('minute')}>
+        <Pressable
+          testID={testID ? `${testID}-show-minute` : undefined}
+          accessibilityRole="button"
+          onPress={() => setPage('minute')}
+        >
           <Text variant="h3" tone={page === 'minute' ? 'primary' : 'muted'}>{pad2(minute)}</Text>
         </Pressable>
       </View>

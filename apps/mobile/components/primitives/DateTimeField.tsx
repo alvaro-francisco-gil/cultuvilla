@@ -95,6 +95,7 @@ export function DateTimeField({
         <Pressable
           style={StyleSheet.absoluteFill}
           accessibilityRole="button"
+          accessibilityLabel="Cerrar"
           onPress={() => setActiveModal(null)}
         >
           <View />
