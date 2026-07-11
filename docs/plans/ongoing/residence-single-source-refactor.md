@@ -94,13 +94,13 @@ trigger):
   true for onboarding (created in the same flow) and for any later village join.
   Use `set(..., { merge: true })` semantics or a read-modify-write so a missing doc
   doesn't fail the batch.
-- **Change barrio** (own profile, `MembershipBarrioList`): a single `persons` write
-  (read-modify-write, replacing the matching `municipalityLinks` entry via
+- **Change barrio** (own profile, `MembershipVillageEditor`): a single `persons`
+  write (read-modify-write, replacing the matching `municipalityLinks` entry via
   `buildResidenceLinks`).
 - **Self-leave**: batch { delete `members/{uid}`, remove the matching
-  `municipalityLinks` entry }. (No self-leave UI exists today — `removeVillageMember`
-  has no caller — so this is forward-looking; wire the batch when the leave flow
-  lands.)
+  `municipalityLinks` entry }. This now exists — `leaveVillage`
+  (`villageMemberService`) implements the batch and is called from
+  `MembershipVillageEditor`'s leave-confirmation flow.
 
 ### The two server-privileged cases
 
@@ -138,8 +138,8 @@ only re-introduces the asymmetry this refactor removes.
 ## Out of scope
 
 - **A validating callable now.** Deferred to the upgrade path above.
-- **Building the self-leave UI.** The atomic self-leave batch is specified but only
-  wired if/when a leave flow is added.
+- ~~**Building the self-leave UI.**~~ Done — `MembershipVillageEditor` wires the
+  atomic self-leave batch via `leaveVillage`.
 - **Non-barrio census fields.** `profileAnswers` / `profileCompletedAt` stay on the
   membership doc, untouched.
 

@@ -43,9 +43,10 @@ for everyone, account or not. There is no `member.barrioId`. Writes:
   allows `userId == request.auth.uid`:
   - **Join** (`joinVillage`) is an atomic `writeBatch` that creates the member doc
     AND upserts the residence link — no eventual-consistency window.
-  - **Change barrio** (`personService.updateResidenceBarrio`, used by
-    `MembershipBarrioList`) and **non-account persons** (`ResidenceLinksEditor`)
-    write the person doc directly.
+  - **Change barrio** (`personService.updateResidenceBarrio`, used by the
+    own-profile `MembershipVillageEditor` — which also handles village
+    add/leave) and **non-account persons** (`ResidenceLinksEditor`) write the
+    person doc directly.
 - **Server-privileged paths** cannot write another user's person doc client-side,
   so they use the admin SDK:
   - **Admin removes a member** → the `syncMemberBarrioToResidence` trigger
