@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
 import { Text } from '../../../../components/primitives/Text';
 import { VStack } from '../../../../components/primitives/VStack';
@@ -10,6 +10,7 @@ import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilitie
 import { EntityComments } from '../../../../components/feature/EntityComments';
 import { useT } from '../../../../lib/i18n';
 import { getFestivalPoster } from '@cultuvilla/shared/services/festivalPosterService';
+import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import type { FestivalPosterWithId } from '@cultuvilla/shared/services/festivalPosterService';
 import { formatFestivalPosterDates } from '@cultuvilla/shared/utils';
 
@@ -34,6 +35,15 @@ export default function FestivalPosterDetailScreen() {
       void load();
     }, [load]),
   );
+
+  useEffect(() => {
+    if (!poster) return;
+    void recordEntityView({
+      entityKind: 'festivalPoster',
+      entityId: poster.id,
+      municipalityId: poster.municipalityId,
+    });
+  }, [poster?.id]);
 
   const dateLabel = poster ? formatFestivalPosterDates(poster) : '';
   const subtitle = poster
@@ -60,24 +70,21 @@ export default function FestivalPosterDetailScreen() {
       fallbackIcon={ENTITY_FALLBACK_ICON.festivalPoster}
       actions={actions}
       title={poster ? (poster.title ?? String(poster.year)) : undefined}
-      belowContent={
-        poster && poster.images.length > 1 ? (
-          <VStack gap={2} className="pt-2">
-            {poster.images.slice(1).map((uri) => (
-              <NaturalImage key={uri} uri={uri} />
-            ))}
-          </VStack>
-        ) : undefined
-      }
     >
       {subtitle ? <Text tone="muted">{subtitle}</Text> : null}
+      {poster && poster.images.length > 1 ? (
+        <VStack gap={2} className="pt-2">
+          {poster.images.slice(1).map((uri) => (
+            <NaturalImage key={uri} uri={uri} />
+          ))}
+        </VStack>
+      ) : null}
       {poster ? (
         <EntityComments
           key={poster.id}
           entityKind="festivalPoster"
           entityId={poster.id}
           municipalityId={poster.municipalityId}
-          initialReactionCounts={poster.reactionCounts}
           canModerate={canManage}
         />
       ) : null}

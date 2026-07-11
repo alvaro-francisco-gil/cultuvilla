@@ -15,6 +15,7 @@ jest.mock('../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: (
 jest.mock('../../../components/feature/NewsContentRenderer', () => ({ NewsContentRenderer: () => null }));
 jest.mock('../../../components/feature/LiveOwnerChip', () => ({ LiveOwnerChip: () => null }));
 jest.mock('../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
+jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: () => ({ canManage: false, canApprove: false, uid: null, loading: false }),
 }));

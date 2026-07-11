@@ -24,6 +24,7 @@ jest.mock('../../../lib/events/useEventOrganizer', () => ({ useEventOrganizer: (
 jest.mock('../../../components/feature/LiveOwnerChip', () => ({ LiveOwnerChip: () => null }));
 jest.mock('../../../components/feature/RegisterFab', () => ({ RegisterFab: () => null }));
 jest.mock('../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
+jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: () => ({ canManage: false, canApprove: false, uid: null, loading: false }),
 }));
