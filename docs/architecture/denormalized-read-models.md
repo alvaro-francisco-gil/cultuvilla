@@ -153,6 +153,9 @@ reactions/likes feature — it was removed in favor of this invisible counter.
 - **Rules:** `firestore.rules` excludes `readCount` from client-writable
   update fields, same as `commentCount`; only the callable (admin SDK) can
   change it. Create rules require the field present and zeroed.
+- **Backfill:** [scripts/backfill-entity-readcount.mjs](../../scripts/backfill-entity-readcount.mjs)
+  sets `readCount: 0` on existing entity docs missing the field and drops any
+  leftover `reactionCounts` field from the old reactions feature.
 - **Not surfaced in the UI today** — it's tracked for future use (e.g.
   ranking, moderation signal), not rendered on any card or detail screen.
 
