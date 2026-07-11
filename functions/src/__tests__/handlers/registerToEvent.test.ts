@@ -39,7 +39,7 @@ async function seedEvent(opts: { maxAttendees: number | null }): Promise<void> {
     totalCount: 0,
     endBoundary: now,
     commentCount: 0,
-    reactionCounts: { like: 0, heart: 0 },
+    readCount: 0,
   });
 }
 

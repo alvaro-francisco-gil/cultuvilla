@@ -124,17 +124,6 @@ async function seedComment(uid: string): Promise<void> {
   });
 }
 
-async function seedReaction(uid: string): Promise<void> {
-  await db().doc(`reactions/news_${NEWS_ID}_${uid}`).set({
-    entityKind: 'news',
-    entityId: NEWS_ID,
-    municipalityId: MUNICIPALITY_ID,
-    userId: uid,
-    kind: 'like',
-    createdAt: new Date(),
-  });
-}
-
 async function seedStoragePhoto(uid: string, personId: string): Promise<void> {
   const bucket = admin.storage().bucket();
   await bucket.file(`users/${uid}/photo/avatar.jpg`).save('avatar-bytes', {
@@ -211,7 +200,6 @@ describe('deleteAccount (callable)', () => {
     await seedRegistration(USER_ID, `person-${USER_ID}`);
     await seedRegistration(USER_ID, 'dependent-1');
     await seedComment(USER_ID);
-    await seedReaction(USER_ID);
     await seedStoragePhoto(USER_ID, `person-${USER_ID}`);
     await seedNotification(USER_ID);
     await seedOrganizerRequest(USER_ID);
@@ -249,9 +237,8 @@ describe('deleteAccount (callable)', () => {
     expect((await db().doc('organizerRequests/req-1').get()).exists).toBe(false);
     expect((await db().doc(`users/${USER_ID}`).get()).exists).toBe(false);
 
-    // Interactions (comment, reaction) hard-deleted.
+    // Interactions (comment) hard-deleted.
     expect((await db().doc('comments/comment-1').get()).exists).toBe(false);
-    expect((await db().doc(`reactions/news_${NEWS_ID}_${USER_ID}`).get()).exists).toBe(false);
 
     // Storage photos (avatar + persona) purged.
     expect(await storageFileExists(`users/${USER_ID}/photo/avatar.jpg`)).toBe(false);

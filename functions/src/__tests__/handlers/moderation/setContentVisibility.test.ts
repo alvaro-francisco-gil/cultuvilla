@@ -46,7 +46,7 @@ async function seedNewsPost(postId: string): Promise<void> {
       createdAt: now,
       publishedAt: now,
       updatedAt: now,
-      reactionCounts: { like: 0, heart: 0 },
+      readCount: 0,
       commentCount: 0,
     });
 }

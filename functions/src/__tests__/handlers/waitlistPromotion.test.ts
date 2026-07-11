@@ -52,7 +52,7 @@ async function seedEvent(opts: { title: string; maxAttendees: number | null }): 
     totalCount: 0,
     endBoundary: now,
     commentCount: 0,
-    reactionCounts: { like: 0, heart: 0 },
+    readCount: 0,
   });
 }
 
@@ -175,7 +175,7 @@ describe('onRegistrationDeleted (waitlist promotion)', () => {
       totalCount: 999,
       endBoundary: now,
       commentCount: 0,
-      reactionCounts: { like: 0, heart: 0 },
+      readCount: 0,
     });
     await seedRegistration({ id: 'r2', status: 'confirmed', userId: 'wl-bob', name: 'Bob', position: 2 });
     await seedRegistration({ id: 'r3', status: 'waitlisted', userId: 'wl-carol', name: 'Carol', position: 3 });
