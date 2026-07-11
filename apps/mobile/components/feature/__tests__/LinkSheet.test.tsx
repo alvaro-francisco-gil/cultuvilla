@@ -7,7 +7,7 @@ jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: stri
 describe('LinkSheet', () => {
   it('is not rendered when url is null', () => {
     const { queryByText } = render(<LinkSheet url={null} onSave={jest.fn()} onDismiss={jest.fn()} />);
-    expect(queryByText('news.linkSheet.title')).toBeNull();
+    expect(queryByText('news.linkSheet.skip')).toBeNull();
   });
 
   it('returns the typed display text on save', () => {

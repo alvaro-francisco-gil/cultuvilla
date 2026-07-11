@@ -859,10 +859,7 @@
       }
     },
     "linkSheet": {
-      "title": "Añadir enlace",
-      "urlLabel": "Enlace detectado",
-      "textLabel": "Texto a mostrar (opcional)",
-      "textPlaceholder": "p. ej. compra tus entradas",
+      "textPlaceholder": "Texto a mostrar (opcional)",
       "save": "Guardar",
       "skip": "Omitir"
     },
