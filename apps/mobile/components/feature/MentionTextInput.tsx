@@ -23,6 +23,10 @@ import type { NewsMention, MentionEntityType } from '@cultuvilla/shared/models/n
 
 const ACCENT = colors.light.fg.accent;
 
+// Appended to the styled overlay so its last line still has height when the
+// text ends in a newline — keeps the overlay aligned with the input layer.
+const TRAILING_ANCHOR = String.fromCodePoint(0x200b); // zero-width space
+
 const ENTITY_ICON: Record<MentionEntityType, keyof typeof Ionicons.glyphMap> = {
   organization: 'people-outline',
   event: 'calendar-outline',
@@ -68,7 +72,6 @@ export function MentionTextInput({
   // suggestion strip (the "keyboard got smaller" bug). After a mention insert we
   // let the caret fall to the end of the new value, which is the common case.
   const [selection, setSelection] = useState({ start: 0, end: 0 });
-  const [scrollY, setScrollY] = useState(0);
   const runs = useMemo(() => mentionRuns(value, mentions), [value, mentions]);
 
   const active =
@@ -123,17 +126,16 @@ export function MentionTextInput({
 
   return (
     <VStack gap={1}>
-      <View className="border rounded-md px-3 py-2 bg-surface border-subtle" style={{ minHeight: 96 }}>
-        {/* Clip the styled overlay to the box. On RN-Web the multiline input is
-            a fixed-height textarea that scrolls internally (we sync scrollY),
-            but the absolute-fill overlay holds the full text and, unclipped,
-            spilled its overflow below the box over the fields beneath. */}
-        <View style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
-          <Text
-            pointerEvents="none"
-            className="text-body"
-            style={[StyleSheet.absoluteFill, { transform: [{ translateY: -scrollY }] }]}
-          >
+      <View className="border rounded-md px-3 py-2 bg-surface border-subtle">
+        {/* Auto-grow: the styled overlay sits in normal flow and drives the
+            box height, so it expands line-by-line as you type instead of
+            scrolling inside a fixed window. The transparent TextInput is
+            layered on top (absolute-fill) to own the caret and editing; since
+            it renders the same text it wraps to the same height as the overlay.
+            The trailing zero-width space keeps the overlay's final line present
+            when the text ends in a newline, so the two layers stay aligned. */}
+        <View style={{ position: 'relative', minHeight: 80 }}>
+          <Text pointerEvents="none" className="text-body">
             {runs.map((run, i) =>
               run.mention ? (
                 <Text key={i} className="text-accent underline">
@@ -145,19 +147,19 @@ export function MentionTextInput({
                 </Text>
               ),
             )}
+            {TRAILING_ANCHOR}
           </Text>
           <TextInput
             value={value}
             onChangeText={handleChangeText}
             onKeyPress={handleKeyPress}
-            onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
             multiline
             placeholder={placeholder}
             placeholderTextColor={colors.light.fg.muted}
             accessibilityLabel={placeholder}
             className="text-body"
             textAlignVertical="top"
-            style={{ minHeight: 96, color: 'transparent' }}
+            style={[StyleSheet.absoluteFill, { color: 'transparent', padding: 0 }]}
             cursorColor={ACCENT}
             selectionColor={ACCENT}
             onFocus={onFocus}
