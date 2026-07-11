@@ -48,6 +48,17 @@ describe('NewsLinkSchema', () => {
   it('rejects a non-URL string', () => {
     expect(() => NewsLinkSchema.parse({ url: 'not a url', offset: 0, length: 1 })).toThrow();
   });
+
+  it('rejects an unsafe scheme like javascript:', () => {
+    expect(() =>
+      NewsLinkSchema.parse({ url: 'javascript:alert(1)', offset: 0, length: 1 }),
+    ).toThrow();
+  });
+
+  it('accepts a normal https URL', () => {
+    const link = { url: 'https://x.com', offset: 0, length: 4 };
+    expect(NewsLinkSchema.parse(link)).toEqual(link);
+  });
 });
 
 describe('NewsTextBlockSchema links', () => {

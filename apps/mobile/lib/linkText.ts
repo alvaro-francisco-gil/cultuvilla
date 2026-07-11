@@ -36,6 +36,12 @@ function commonPrefixLength(a: string, b: string): number {
   return i;
 }
 
+function commonSuffixLength(a: string, b: string, cap: number): number {
+  let i = 0;
+  while (i < cap && a[a.length - 1 - i] === b[b.length - 1 - i]) i++;
+  return i;
+}
+
 /**
  * When the last edit inserted a chunk (paste) containing a single http(s) URL,
  * return that URL and its position in `newText`. Null for single-char typing,
@@ -48,7 +54,10 @@ export function detectPastedUrl(
   const delta = newText.length - oldText.length;
   if (delta <= 1) return null; // typing one char at a time never triggers the sheet
   const prefix = commonPrefixLength(oldText, newText);
-  const inserted = newText.slice(prefix, prefix + delta);
+  const cap = Math.min(oldText.length, newText.length) - prefix;
+  const suffix = commonSuffixLength(oldText, newText, Math.max(0, cap));
+  const inserted = newText.slice(prefix, newText.length - suffix);
+  if (inserted.length <= 1) return null;
   const found = bareUrls(inserted);
   if (found.length !== 1) return null;
   return { url: found[0]!.url, offset: prefix + found[0]!.offset, length: found[0]!.length };

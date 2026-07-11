@@ -30,6 +30,11 @@ describe('detectPastedUrl', () => {
   it('returns null when the inserted chunk has no URL', () => {
     expect(detectPastedUrl('hola', 'hola mundo')).toBeNull();
   });
+  it('detects a URL pasted over a selection without truncating it', () => {
+    // "ver SELECTED tail" with "SELECTED" (offset 4, len 8) replaced by the pasted URL
+    const out = detectPastedUrl('ver SELECTED tail', 'ver https://x.com/foo tail');
+    expect(out).toEqual({ url: 'https://x.com/foo', offset: 4, length: 17 });
+  });
 });
 
 describe('applyCustomTextLink', () => {

@@ -46,13 +46,9 @@ export function RichText({ text, mentions, links = [], municipalityId, ...textPr
       );
     }
     const url = run.link?.url ?? run.autoUrl;
-    if (url) {
+    if (url && isSafeHttpUrl(url)) {
       return (
-        <RNText
-          key={i}
-          className={LINK_CLASS}
-          onPress={isSafeHttpUrl(url) ? () => openExternal(url) : undefined}
-        >
+        <RNText key={i} className={LINK_CLASS} onPress={() => openExternal(url)}>
           {run.text}
         </RNText>
       );

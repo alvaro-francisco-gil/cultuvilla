@@ -64,7 +64,7 @@ export type NewsMention = z.infer<typeof NewsMentionSchema>;
  * custom-text links — bare URLs are autolinked at render, never persisted here.
  */
 export const NewsLinkSchema = z.object({
-  url: z.string().url(),
+  url: z.string().regex(/^https?:\/\//i, 'must be an http(s) URL'),
   offset: z.number(),
   length: z.number(),
 });
