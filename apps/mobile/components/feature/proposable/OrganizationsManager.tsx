@@ -9,6 +9,8 @@ import {
   type OrganizationType,
 } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
 import { VStack } from '../../primitives';
+import { Text } from '../../primitives/Text';
+import { Toggle } from '../../primitives/Toggle';
 import { useT } from '../../../lib/i18n';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { ProposableForm } from './ProposableForm';
@@ -35,6 +37,7 @@ export function OrganizationsManager({
   const [description, setDescription] = useState('');
   const [type, setType] = useState<OrganizationType>(initialType);
   const [image, setImage] = useState<UploadableImage | null>(null);
+  const [membersPublic, setMembersPublic] = useState(true);
   const [saving, setSaving] = useState(false);
 
   async function submit() {
@@ -56,6 +59,7 @@ export function OrganizationsManager({
         municipalityId: villageId,
         requestedBy: uid,
         status: 'pending',
+        membersPublic,
       });
       // Organizer commit: the create path is always pending; auto-approve so the
       // round-trip is invisible (single rules surface + full audit trail).
@@ -66,6 +70,7 @@ export function OrganizationsManager({
       setDescription('');
       setType('peña');
       setImage(null);
+      setMembersPublic(true);
       onCreated?.();
     } catch (e) {
       if (!succeeded) observability.trackEvent(OBSERVABILITY_EVENTS.ORG_CREATE_ERROR, { municipalityId: villageId });
@@ -79,6 +84,17 @@ export function OrganizationsManager({
 
   return (
     <VStack gap={3} className="p-4">
+      <VStack gap={1}>
+        <Toggle
+          value={membersPublic}
+          onValueChange={setMembersPublic}
+          label={t('organization.membersPublicLabel')}
+          testID="org-members-public-toggle"
+        />
+        <Text tone="muted" variant="bodySm">
+          {t('organization.membersPublicHelp')}
+        </Text>
+      </VStack>
       <ProposableForm
         image={image}
         onImageChange={setImage}
