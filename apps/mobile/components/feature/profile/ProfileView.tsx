@@ -148,21 +148,25 @@ export function ProfileView({
         </View>
       ) : null}
 
-      <ProfileSectionHeader title={t('profile.personasSection.title')} />
-      {loading && allPersonas.length === 0 ? (
-        <View className="px-4">
-          <ActivityIndicator />
-        </View>
-      ) : (
-        <PersonaScroll
-          personas={otherPersonas}
-          addLabel={isSelf ? t('profile.personasSection.add') : undefined}
-          emptyLabel={t('profile.personasSection.empty')}
-          onPressPersona={(id) => router.push(`/person/${id}`)}
-          onPressAdd={isSelf ? () => router.push('/person/new') : undefined}
-          showAdd={isSelf}
-        />
-      )}
+      {isSelf ? (
+        <>
+          <ProfileSectionHeader title={t('profile.personasSection.title')} />
+          {loading && allPersonas.length === 0 ? (
+            <View className="px-4">
+              <ActivityIndicator />
+            </View>
+          ) : (
+            <PersonaScroll
+              personas={otherPersonas}
+              addLabel={t('profile.personasSection.add')}
+              emptyLabel={t('profile.personasSection.empty')}
+              onPressPersona={(id) => router.push(`/person/${id}`)}
+              onPressAdd={() => router.push('/person/new')}
+              showAdd
+            />
+          )}
+        </>
+      ) : null}
 
       {managedEvents.length > 0 ? (
         <>
