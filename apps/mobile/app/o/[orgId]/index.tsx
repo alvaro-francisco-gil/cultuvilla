@@ -149,7 +149,10 @@ export default function OrgDetailScreen() {
           {org.description ? <Text>{org.description}</Text> : null}
           <Text tone="muted">{t('organization.membersCount', { count: membersCount ?? 0 })}</Text>
           {canViewOrgRoster({ membersPublic: org.membersPublic, isMember }) ? (
-            <OrgMembersList orgId={org.id} />
+            // Remount (re-fetch) when membership changes, so joining a public org
+            // immediately shows yourself in the roster — the component self-fetches
+            // once on mount and has no other refresh trigger.
+            <OrgMembersList key={`${org.id}-${isMember}-${membersCount ?? 0}`} orgId={org.id} />
           ) : null}
           {arrivedViaInvite && !isMember ? (
             <Text tone="muted" variant="bodySm">
