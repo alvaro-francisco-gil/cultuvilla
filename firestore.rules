@@ -225,12 +225,12 @@ service cloud.firestore {
       return d.keys().hasOnly([
               'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
               'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
-              'commentCount', 'readCount',
+              'commentCount', 'readCount', 'membersPublic',
             ])
           && d.keys().hasAll([
               'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
               'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
-              'commentCount', 'readCount',
+              'commentCount', 'readCount', 'membersPublic',
             ])
           && isString(d.name)
           && isStringOrNull(d.description)
@@ -243,7 +243,8 @@ service cloud.firestore {
           && isTimestamp(d.createdAt)
           && isTimestampOrNull(d.reviewedAt)
           && d.commentCount == 0
-          && d.readCount == 0;
+          && d.readCount == 0
+          && d.membersPublic is bool;
     }
 
     function isValidPlaceCreate(d) {
