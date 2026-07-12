@@ -8,13 +8,13 @@ export default function Descarga() {
   const { t } = useT();
   const router = useRouter();
 
-  // On native, the user is already in the app — this route only exists so the
-  // shared app/ tree compiles; send them home.
-  if (Platform.OS !== 'web') {
+  // Pre-release there is no app to download, so /descarga is not a landing page —
+  // it forwards straight into the web app (the cultuvilla.es home feed). On native
+  // the user is already in the app. The store landing below stays dormant until
+  // APP_AVAILABLE flips at release.
+  if (!APP_AVAILABLE || Platform.OS !== 'web') {
     return <Redirect href="/(tabs)" />;
   }
-
-  const openWeb = () => router.replace('/(tabs)');
 
   return (
     <Screen>
@@ -22,26 +22,21 @@ export default function Descarga() {
         <Text variant="h1" tone="primary">Cultuvilla</Text>
         <Text tone="muted" className="text-center">{t('descarga.tagline')}</Text>
 
-        <Button onPress={openWeb} variant="primary" size="lg" fullWidth>
-          {t('descarga.openWeb')}
-        </Button>
-
-        {APP_AVAILABLE ? (
-          <VStack gap={3} className="w-full">
-            {APP_STORES.ios ? (
-              <Button onPress={() => Linking.openURL(APP_STORES.ios)} variant="secondary" fullWidth>
-                {t('descarga.getOnAppStore')}
-              </Button>
-            ) : null}
-            {APP_STORES.android ? (
-              <Button onPress={() => Linking.openURL(APP_STORES.android)} variant="secondary" fullWidth>
-                {t('descarga.getOnPlayStore')}
-              </Button>
-            ) : null}
-          </VStack>
-        ) : (
-          <Text variant="caption" tone="muted" className="text-center">{t('descarga.comingSoon')}</Text>
-        )}
+        <VStack gap={3} className="w-full">
+          {APP_STORES.ios ? (
+            <Button onPress={() => Linking.openURL(APP_STORES.ios)} variant="primary" size="lg" fullWidth>
+              {t('descarga.getOnAppStore')}
+            </Button>
+          ) : null}
+          {APP_STORES.android ? (
+            <Button onPress={() => Linking.openURL(APP_STORES.android)} variant="primary" size="lg" fullWidth>
+              {t('descarga.getOnPlayStore')}
+            </Button>
+          ) : null}
+          <Button onPress={() => router.replace('/(tabs)')} variant="ghost" fullWidth>
+            {t('descarga.continueOnWeb')}
+          </Button>
+        </VStack>
       </VStack>
     </Screen>
   );
