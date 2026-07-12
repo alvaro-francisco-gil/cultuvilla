@@ -35,21 +35,24 @@ export async function getEvent(eventId: string): Promise<(EventData & { id: stri
 
 export async function getEventsByMunicipality(
   municipalityId: string,
-  status?: EventStatus,
+  status?: EventStatus | EventStatus[],
 ): Promise<(EventData & { id: string })[]> {
   const ref = eventsCollection(getDb());
-  const q = status
-    ? query(
-        ref,
-        where('municipalityId', '==', municipalityId),
-        where('status', '==', status),
-        orderBy('startDate', 'asc'),
-      )
-    : query(
-        ref,
-        where('municipalityId', '==', municipalityId),
-        orderBy('startDate', 'asc'),
-      );
+  // A status array becomes an `in` filter (e.g. the pueblo tab wants
+  // 'published' + 'completed' so past events survive the completion job);
+  // a single status stays an equality filter. Both reuse the
+  // municipalityId + status + startDate composite index.
+  const statusConstraint = Array.isArray(status)
+    ? [where('status', 'in', status)]
+    : status
+      ? [where('status', '==', status)]
+      : [];
+  const q = query(
+    ref,
+    where('municipalityId', '==', municipalityId),
+    ...statusConstraint,
+    orderBy('startDate', 'asc'),
+  );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
