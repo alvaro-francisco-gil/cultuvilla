@@ -1,4 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react-native';
+import { getEventsByMunicipality } from '@cultuvilla/shared/services/eventService';
 import { useVillageHome } from '../useVillageHome';
 
 jest.mock('../auth/useAuth', () => {
@@ -51,17 +52,45 @@ jest.mock('@cultuvilla/shared/services/festivalPosterService', () => ({
 describe('useVillageHome', () => {
   it('aggregates village data and derives isMember + peopleCount', async () => {
     const { result } = renderHook(() => useVillageHome('m1'));
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    // The village doc is the only essential fetch; it clears coreLoading first.
+    await waitFor(() => expect(result.current.coreLoading).toBe(false));
     expect(result.current.village?.name).toBe('Anaya');
-    expect(result.current.isMember).toBe(true); // u1 is in members
+    // The chrome + sections settle independently, so wait on each derived value.
+    await waitFor(() => expect(result.current.isMember).toBe(true)); // u1 is in members
     expect(result.current.peopleCount).toBe(2);
-    expect(result.current.barrios).toHaveLength(1);
-    expect(result.current.festivalPosters).toHaveLength(1);
+    await waitFor(() => expect(result.current.barrios).toHaveLength(1));
+    await waitFor(() => expect(result.current.festivalPosters).toHaveLength(1));
+    await waitFor(() => expect(result.current.sectionStatus.events).toBe('ready'));
+  });
+
+  it('fetches published + completed events and orders upcoming before past', async () => {
+    // Service returns ascending by startDate; the hook splits on the end
+    // boundary and surfaces upcoming (soonest first) then past (most recent).
+    const past = { id: 'ev-past', startDate: new Date('2020-01-01T10:00:00Z'), endDate: null };
+    const future = { id: 'ev-future', startDate: new Date('2999-01-01T10:00:00Z'), endDate: null };
+    (getEventsByMunicipality as jest.Mock).mockResolvedValueOnce([past, future]);
+
+    const { result } = renderHook(() => useVillageHome('m1'));
+
+    await waitFor(() => expect(result.current.sectionStatus.events).toBe('ready'));
+    expect(getEventsByMunicipality).toHaveBeenCalledWith('m1', ['published', 'completed']);
+    expect(result.current.events.map((e) => e.id)).toEqual(['ev-future', 'ev-past']);
+  });
+
+  it('marks a section as errored when its fetch fails, without failing the tab', async () => {
+    (getEventsByMunicipality as jest.Mock).mockRejectedValueOnce(new Error('boom'));
+
+    const { result } = renderHook(() => useVillageHome('m1'));
+
+    await waitFor(() => expect(result.current.sectionStatus.events).toBe('error'));
+    // The essential village doc still loaded — the tab is not in an error state.
+    expect(result.current.coreError).toBeNull();
+    expect(result.current.village?.name).toBe('Anaya');
   });
 
   it('returns empty state for a null municipalityId', async () => {
     const { result } = renderHook(() => useVillageHome(null));
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    await waitFor(() => expect(result.current.coreLoading).toBe(false));
     expect(result.current.village).toBeNull();
     expect(result.current.isMember).toBe(false);
   });
