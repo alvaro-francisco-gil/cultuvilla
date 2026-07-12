@@ -3,19 +3,22 @@ import {
   doc,
   getDoc,
   getDocs,
-  setDoc,
-  updateDoc,
-  deleteDoc,
   where,
   query,
+  writeBatch,
 } from 'firebase/firestore';
-import { getDb } from '../firebase';
+import { httpsCallable } from 'firebase/functions';
+import { getDb, getFirebaseFunctions } from '../firebase';
 import {
   municipalityMembersCollection,
   municipalityMemberDoc,
 } from '../firebase/refs/client';
 import { villageMemberConverterClient } from '../firebase/converters/villageMemberConverter.client';
+import { buildVillageMemberData } from '../models/municipality/VillageMemberDataModel';
+import { buildResidenceLinks } from '../models/person/PersonDataModel';
 import { setActiveMunicipality } from './userService';
+import { getPersonByUserId } from './personService';
+import { getMunicipality, startVillage } from './municipalityService';
 import type {
   VillageMemberData,
   VillageMemberRole,
@@ -36,63 +39,100 @@ export async function getVillageMembers(
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-export async function addVillageMember(
-  municipalityId: string,
-  userId: string,
-  role: VillageMemberRole = 'user',
-  barrioId: string | null = null,
-): Promise<void> {
-  const ref = municipalityMemberDoc(getDb(), municipalityId, userId);
-  await setDoc(ref, {
-    userId,
-    role,
-    joinedAt: new Date(),
-    profileAnswers: {},
-    profileCompletedAt: null,
-    trustedNewsAuthor: false,
-    barrioId,
-  });
-}
-
 /**
  * Join a village as the calling user and make it their active village.
- * Side effects: creates the member doc AND patches users/{userId}.activeMunicipalityId
- * so the Pueblo tab immediately surfaces the village just joined. Use this for the
- * self-service join surfaces; `addVillageMember` alone leaves the active village
- * unchanged (used by flows that set it separately, e.g. the acceptInvite callable).
+ *
+ * Residence is single-source-of-truth on the caller's person doc, so the member
+ * doc and the residence link are written in one atomic `writeBatch` — no
+ * eventual-consistency window (barrio residency shows up the instant the join
+ * lands). `barrioId` is the chosen residence within the village (`null` = whole
+ * village). Both docs are owner-writable, so the batch passes Firestore rules.
+ *
+ * The residence link is written via `buildResidenceLinks`, the single constructor
+ * of the exact `{ municipalityId, barrioId }` shape that `getPersonsByBarrio`
+ * matches on. If the caller has no person doc yet, only the membership is created
+ * (residence gets set when their person exists) — but the self-service join
+ * surfaces always run post-onboarding, so a person is present in practice.
+ *
+ * Also patches users/{userId}.activeMunicipalityId so the Pueblo tab immediately
+ * surfaces the joined village.
  */
 export async function joinVillage(
   municipalityId: string,
   userId: string,
   barrioId: string | null = null,
 ): Promise<void> {
-  await addVillageMember(municipalityId, userId, 'user', barrioId);
+  const db = getDb();
+  const person = await getPersonByUserId(userId);
+
+  const batch = writeBatch(db);
+  batch.set(
+    municipalityMemberDoc(db, municipalityId, userId),
+    buildVillageMemberData({ userId, role: 'user' }),
+  );
+  if (person) {
+    const others = person.municipalityLinks.filter((l) => l.municipalityId !== municipalityId);
+    // Raw doc ref: batch.update takes field paths, bypassing the converter.
+    batch.update(doc(db, 'persons', person.id), {
+      municipalityLinks: [...others, ...buildResidenceLinks(municipalityId, barrioId)],
+    });
+  }
+  await batch.commit();
+
   await setActiveMunicipality(userId, municipalityId);
 }
 
 /**
- * Set the caller's residence barrio within a village they already belong to.
- * `null` means "Todo el pueblo" (whole village). The
- * `syncMemberBarrioToResidence` trigger projects this into the linked person's
- * `municipalityLinks` so the barrio residents list stays consistent. An invalid
- * barrioId (not an approved barrio of this municipality) is normalized to null
- * by that trigger — the picker prevents it on the honest path.
+ * Land the caller in a village, activating it first if it is still dormant.
+ *
+ * The single entry point registration and the logged-out "sign in to join" flow
+ * use to become a villager. It closes the gap that let a picked village never
+ * turn into a membership: whichever branch runs, a `members/{uid}` doc ends up
+ * existing — the doc the profile's village list reads.
+ *
+ * - Community already active → a plain self-service {@link joinVillage} (allowed
+ *   by rules because `isCommunityActive`).
+ * - Dormant municipality → {@link startVillage}, which is self-service (any
+ *   authenticated user; organizer stays null) and *itself* seats the caller as
+ *   the first member (role `user`) server-side. Activation doesn't touch
+ *   `activeMunicipalityId`, so we set it here to mirror `joinVillage`.
+ *
+ * A missing municipality is treated as dormant so we attempt activation rather
+ * than fire a self-join that the rules would deny.
  */
-export async function updateVillageMemberBarrio(
+export async function ensureVillageMembership(
   municipalityId: string,
   userId: string,
-  barrioId: string | null,
+  barrioId: string | null = null,
 ): Promise<void> {
-  // Plain (converter-less) ref: a partial single-field update bypasses the
-  // converter's full-document parse, matching how other services patch one key.
-  await updateDoc(doc(getDb(), 'municipalities', municipalityId, 'members', userId), { barrioId });
+  const municipality = await getMunicipality(municipalityId);
+  if (municipality?.communityActive) {
+    await joinVillage(municipalityId, userId, barrioId);
+    return;
+  }
+  await startVillage({ municipalityId });
+  await setActiveMunicipality(userId, municipalityId);
 }
 
-export async function removeVillageMember(
-  municipalityId: string,
-  userId: string,
-): Promise<void> {
-  await deleteDoc(municipalityMemberDoc(getDb(), municipalityId, userId));
+/**
+ * Self-leave a village. Membership and residence are two docs, both
+ * owner-writable, so the member delete and the residence-link removal go in one
+ * atomic `writeBatch` — no eventual-consistency window. The delete-trigger
+ * `syncMemberBarrioToResidence` still fires on the member delete but finds the
+ * link already gone (idempotent no-op). Caller reassigns `activeMunicipalityId`.
+ */
+export async function leaveVillage(municipalityId: string, userId: string): Promise<void> {
+  const db = getDb();
+  const person = await getPersonByUserId(userId);
+
+  const batch = writeBatch(db);
+  batch.delete(municipalityMemberDoc(db, municipalityId, userId));
+  if (person) {
+    const remaining = person.municipalityLinks.filter((l) => l.municipalityId !== municipalityId);
+    // Raw doc ref: batch.update takes field paths, bypassing the converter.
+    batch.update(doc(db, 'persons', person.id), { municipalityLinks: remaining });
+  }
+  await batch.commit();
 }
 
 export async function isVillageMember(
@@ -112,12 +152,31 @@ export async function isVillageAdmin(
   return snap.data().role === 'admin';
 }
 
+/**
+ * Promote/demote a village member's role. The ONLY way to create (or remove) a
+ * village admin — a thin wrapper over the `changeVillageMemberRole` callable,
+ * which checks caller authority, updates the role, and writes a
+ * `membershipEvents` audit record in one transaction. Clients can no longer
+ * write `role` directly (firestore.rules makes it function-owned), so there is
+ * no non-audited path.
+ */
+export async function setVillageMemberRole(
+  municipalityId: string,
+  userId: string,
+  role: VillageMemberRole,
+): Promise<void> {
+  const fn = httpsCallable<
+    { municipalityId: string; targetUserId: string; role: VillageMemberRole },
+    { ok: true }
+  >(getFirebaseFunctions(), 'changeVillageMemberRole');
+  await fn({ municipalityId, targetUserId: userId, role });
+}
+
 export interface UserMembership {
   municipalityId: string;
   role: VillageMemberRole;
   joinedAt: Date;
   profileCompletedAt: Date | null;
-  barrioId: string | null;
 }
 
 export async function getUserMemberships(userId: string): Promise<UserMembership[]> {
@@ -136,7 +195,6 @@ export async function getUserMemberships(userId: string): Promise<UserMembership
         role: data.role,
         joinedAt: data.joinedAt,
         profileCompletedAt: data.profileCompletedAt,
-        barrioId: data.barrioId,
       };
     });
 }

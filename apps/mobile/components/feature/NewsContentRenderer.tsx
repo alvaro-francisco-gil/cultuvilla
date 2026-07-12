@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Image, View } from 'react-native';
-import { VStack, Text } from '../primitives';
+import { VStack } from '../primitives';
 import { RichText } from './RichText';
 import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
 import type { NewsBlock, NewsImageBlock } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 
 /** Resolve a stored inline image and render it at its natural aspect ratio. */
-function InlineImage({ block }: { block: NewsImageBlock }) {
+function InlineImage({ block, municipalityId }: { block: NewsImageBlock; municipalityId: string }) {
   const [uri, setUri] = useState<string | null>(null);
 
   useEffect(() => {
@@ -38,9 +38,15 @@ function InlineImage({ block }: { block: NewsImageBlock }) {
         ) : null}
       </View>
       {block.caption ? (
-        <Text tone="muted" variant="caption" className="text-center">
-          {block.caption}
-        </Text>
+        <RichText
+          text={block.caption}
+          mentions={block.captionMentions}
+          links={block.captionLinks}
+          municipalityId={municipalityId}
+          tone="muted"
+          variant="caption"
+          className="text-center"
+        />
       ) : null}
     </VStack>
   );
@@ -61,7 +67,7 @@ interface NewsContentRendererProps {
  */
 export function NewsContentRenderer({ content, body, municipalityId }: NewsContentRendererProps) {
   if (content.length === 0) {
-    return <Text>{body}</Text>;
+    return <RichText text={body} mentions={[]} links={[]} municipalityId={municipalityId} />;
   }
 
   return (
@@ -72,10 +78,11 @@ export function NewsContentRenderer({ content, body, municipalityId }: NewsConte
             key={i}
             text={block.text}
             mentions={block.mentions}
+            links={block.links}
             municipalityId={municipalityId}
           />
         ) : (
-          <InlineImage key={i} block={block} />
+          <InlineImage key={i} block={block} municipalityId={municipalityId} />
         ),
       )}
     </VStack>

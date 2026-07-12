@@ -11,24 +11,26 @@ import {
   type NativeSyntheticEvent,
   type NativeScrollEvent,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../components/primitives/Screen';
 import { Text } from '../../components/primitives/Text';
-import { Button } from '../../components/primitives/Button';
 import { Pressable } from '../../components/primitives/Pressable';
 import { Fab } from '../../components/primitives/Fab';
+import { ErrorState } from '../../components/primitives/ErrorState';
 import { EventCard } from '../../components/feature/EventCard';
 import { NewsCard } from '../../components/feature/NewsCard';
 import { SegmentedToggle } from '../../components/feature/SegmentedToggle';
 import { FilterPill, FILTER_PILL_HEIGHT } from '../../components/feature/FilterPill';
 import { FilterSheet, type FilterSheetOption } from '../../components/feature/FilterSheet';
+import { PullSpinner } from '../../components/feature/PullSpinner';
 import { AppHeader } from '../../components/layout/AppHeader';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useT } from '../../lib/i18n';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
 import { webSpread } from '../../lib/platform';
+import { useWebPullToRefresh } from '../../lib/useWebPullToRefresh';
 import { getUpcomingFeed, haversineKm } from '@cultuvilla/shared/services/feedService';
 import { getAllVillagesFeed } from '@cultuvilla/shared/services/newsService';
 import { getActiveCommunities } from '@cultuvilla/shared/services/municipalityService';
@@ -83,6 +85,8 @@ export default function FeedScreen() {
   }, [gate, t]);
   const { width } = useWindowDimensions();
   const pagerRef = useRef<ScrollView>(null);
+  const eventsListRef = useRef<FlatList<FeedEvent>>(null);
+  const newsListRef = useRef<FlatList<FeedNews>>(null);
 
   const [events, setEvents] = useState<FeedEvent[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -139,8 +143,8 @@ export default function FeedScreen() {
     }
   }
 
+  // Village list for the filter pills — static enough to fetch once on mount.
   useEffect(() => {
-    void load();
     void getActiveCommunities()
       .then((communities) =>
         setVillages(
@@ -154,11 +158,35 @@ export default function FeedScreen() {
       .catch(() => setVillages([]));
   }, []);
 
+  // Refetch the events feed whenever Explore regains focus (covers first mount
+  // too), so an event just created on another screen shows up on return without
+  // a manual refresh. Mirrors useVillageHome / the detail screens.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
+  );
+
   // Lazily load the news feed the first time the user opens the tab.
   useEffect(() => {
     if (activeTab === 'noticias' && news === null) void loadNews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
+
+  // Web-only pull-to-refresh (RefreshControl is inert on react-native-web). The
+  // hook owns the pull animation + spinner timing; it returns an offset we apply
+  // to the list wrapper so the cards follow the drag. Native uses RefreshControl.
+  const { translateY: eventsPull } = useWebPullToRefresh(
+    eventsListRef,
+    load,
+    events !== null && !error,
+  );
+  const { translateY: newsPull } = useWebPullToRefresh(
+    newsListRef,
+    loadNews,
+    news !== null && !newsError,
+  );
 
   // Reference point for proximity sort: the user's active village coordinates.
   const referenceCoords = useMemo<LatLng | null>(
@@ -289,14 +317,6 @@ export default function FeedScreen() {
       style={{ flexGrow: 0 }}
       contentContainerStyle={{ alignItems: 'center', paddingHorizontal: 16 }}
     >
-      {/* Pueblo — the primary filter, always first. */}
-      <FilterPill
-        label={selectedVillageName ?? t('feed.filter.village')}
-        active={villageFilter !== null}
-        onPress={() => setActiveSheet('village')}
-        testID="filter-village"
-      />
-
       {/* Buscar — inline expandable search. */}
       {searchOpen ? (
         <View
@@ -355,6 +375,13 @@ export default function FeedScreen() {
         />
       )}
 
+      <FilterPill
+        label={selectedVillageName ?? t('feed.filter.village')}
+        active={villageFilter !== null}
+        onPress={() => setActiveSheet('village')}
+        testID="filter-village"
+      />
+
       {activeTab === 'eventos' ? (
         <>
           <FilterPill
@@ -389,11 +416,13 @@ export default function FeedScreen() {
         <ActivityIndicator />
       </View>
     ) : error ? (
-      <View className="flex-1 items-center justify-center px-8">
-        <Text tone="danger">{error}</Text>
-      </View>
+      <ErrorState error={error} onRetry={load} />
     ) : (
+      <View style={{ flex: 1 }}>
+        <PullSpinner pull={eventsPull} top={feedPaddingTop} />
+        <Animated.View style={{ flex: 1, transform: [{ translateY: eventsPull }] }}>
       <FlatList
+        ref={eventsListRef}
         style={{ flex: 1 }}
         onScroll={onFeedScroll}
         scrollEventThrottle={16}
@@ -406,10 +435,9 @@ export default function FeedScreen() {
         ListEmptyComponent={
           <View className="items-center justify-center px-8">
             <Ionicons name="calendar-outline" size={48} color="#64748b" />
-            <Text tone="muted" className="mt-3 mb-4 text-center">
+            <Text tone="muted" className="mt-3 text-center">
               {t('feed.empty')}
             </Text>
-            <Button onPress={createEvent}>{t('feed.events.create')}</Button>
           </View>
         }
         renderItem={({ item }) => (
@@ -421,6 +449,7 @@ export default function FeedScreen() {
               locationName: item.location?.displayName ?? null,
               imageURL: item.imageURL,
               villageCoverImage: item.villageCoverImage ?? null,
+              commentCount: item.commentCount,
             }}
             onPress={(id) => router.push(`/event/${id}`)}
           />
@@ -436,6 +465,8 @@ export default function FeedScreen() {
           />
         }
       />
+        </Animated.View>
+      </View>
     );
 
   const newsPage =
@@ -444,11 +475,13 @@ export default function FeedScreen() {
         <ActivityIndicator />
       </View>
     ) : newsError ? (
-      <View className="flex-1 items-center justify-center px-8">
-        <Text tone="danger">{newsError}</Text>
-      </View>
+      <ErrorState error={newsError} onRetry={loadNews} />
     ) : (
+      <View style={{ flex: 1 }}>
+        <PullSpinner pull={newsPull} top={feedPaddingTop} />
+        <Animated.View style={{ flex: 1, transform: [{ translateY: newsPull }] }}>
       <FlatList
+        ref={newsListRef}
         style={{ flex: 1 }}
         onScroll={onFeedScroll}
         scrollEventThrottle={16}
@@ -461,10 +494,9 @@ export default function FeedScreen() {
         ListEmptyComponent={
           <View className="items-center justify-center px-8">
             <Ionicons name="newspaper-outline" size={48} color="#64748b" />
-            <Text tone="muted" className="mt-3 mb-4 text-center">
+            <Text tone="muted" className="mt-3 text-center">
               {t('feed.news.empty')}
             </Text>
-            <Button onPress={createNews}>{t('feed.news.create')}</Button>
           </View>
         }
         renderItem={({ item }) => (
@@ -485,6 +517,8 @@ export default function FeedScreen() {
           />
         }
       />
+        </Animated.View>
+      </View>
     );
 
   return (

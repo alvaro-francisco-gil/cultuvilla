@@ -18,8 +18,9 @@ referenced a nullable `personaId`.
 - Added supporting reference domains: **`municipalities`** (predefined Spanish
   ayuntamientos, with `barrios` / `places` subcollections — `places` holds
   notable sites by `kind`, where `kind === 'cemetery'` backs burial links) and
-  **`occupations`** (superadmin-managed multi-select list with a user
-  `occupationProposals` flow).
+  **`occupations`** (a global catalog of keys plus collected free-text entries,
+  no approval flow — see
+  [content-moderation-optimistic-visibility](content-moderation-optimistic-visibility.md)).
 - `PersonaDataModel` / `personaService` were deleted, not deprecated.
 
 ## Rejected alternatives

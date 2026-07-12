@@ -7,10 +7,12 @@ type Persona = PersonData & { id: string };
 
 export interface PersonaScrollProps {
   personas: Persona[];
-  addLabel: string;
+  addLabel?: string;
   emptyLabel: string;
   onPressPersona: (id: string) => void;
-  onPressAdd: () => void;
+  onPressAdd?: () => void;
+  /** Hides the "add persona" tile — used by the 'other' profile variant. Defaults to true. */
+  showAdd?: boolean;
 }
 
 export function PersonaScroll({
@@ -19,11 +21,19 @@ export function PersonaScroll({
   emptyLabel,
   onPressPersona,
   onPressAdd,
+  showAdd = true,
 }: PersonaScrollProps) {
   if (personas.length === 0) {
+    if (!showAdd) {
+      return (
+        <View className="px-4">
+          <Text tone="muted">{emptyLabel}</Text>
+        </View>
+      );
+    }
     return (
       <View className="flex-row items-center px-4">
-        <AddCard label={addLabel} onPress={onPressAdd} />
+        <AddCard label={addLabel ?? ''} onPress={() => onPressAdd?.()} />
         <Text tone="muted" className="flex-1 ml-2">
           {emptyLabel}
         </Text>
@@ -45,7 +55,7 @@ export function PersonaScroll({
           onPress={() => onPressPersona(item.id)}
         />
       )}
-      ListFooterComponent={<AddCard label={addLabel} onPress={onPressAdd} />}
+      ListFooterComponent={showAdd ? <AddCard label={addLabel ?? ''} onPress={() => onPressAdd?.()} /> : null}
     />
   );
 }

@@ -144,6 +144,34 @@ const webTabBarOverrides = Platform.OS === 'web'
 
 Reference fix: `apps/mobile/app/(tabs)/_layout.tsx` (commit 6168e7d). The original web fix in 69dded8 was the bug — over-applying the override to every platform — until 6168e7d gated it.
 
+## A `.web.tsx` override only shadows a default with the SAME extension
+
+A native-only module (no web build) that runs `TurboModuleRegistry.getEnforcing(...)` at import time crashes the **entire** web app before it mounts — `Uncaught TypeError: Cannot read properties of undefined (reading 'getEnforcing')`, blank page, nothing renders. The standard RN fix is a platform split: a default file (native, imports the native module) beside a `.web.tsx` override (web, uses a browser equivalent), with callers importing extensionless `./foo`.
+
+The trap is in **which extension the default file uses.** Metro's resolver (`metro-resolver/src/resolve.js`, `resolveSourceFile`) iterates `sourceExts` in order — `['ts','tsx','js','jsx',…]` — and for each ext tries `foo.<platform>.<ext>` then falls back to the **bare `foo.<ext>` in the same iteration**, returning the first hit. So a `.web.tsx` override is only reached if resolution gets to the `tsx` iteration. If the default file is `foo.ts`, the earlier `ts` iteration finds `foo.ts` first (there is no `foo.web.ts`) and resolution stops — **`foo.web.tsx` is never tried**, and the native default leaks into web.
+
+**Rule:** a platform override and its default must share the same base extension. Since a web override that renders JSX must be `.tsx`, the default file must **also** be `.tsx` — not `.ts`:
+
+```
+lib/imageCrop.tsx        ← default (native): react-native-image-crop-picker
+lib/imageCrop.web.tsx    ← web override: react-easy-crop     ✅ both .tsx
+```
+
+```
+lib/imageCrop.ts         ← default (native)
+lib/imageCrop.web.tsx    ← web override — DEAD, .ts is found first  ❌
+```
+
+This is guarded by `pnpm app:check-web-compat`, which flags any `X.web.<ext>` whose default sibling has a different extension.
+
+**This does not fail on the dev server the way it fails in production.** `expo start` bundles routes lazily, so a native module only pulled in by a not-yet-visited route stays out of the initial bundle — the dev site loads, then crashes when you navigate to the screen that touches it. `expo export --platform web` (the deployed static build) bundles eagerly, so the same code crashes on first paint. **A green dev server is not evidence the web export is healthy** — verify against the export (or the CI web smoke test).
+
+Reference fix: renamed `lib/imageCrop.ts` → `lib/imageCrop.tsx` so `imageCrop.web.tsx` (react-easy-crop) shadows it on web instead of the native `react-native-image-crop-picker` leaking in. To confirm a native module isn't in the web export, grep the built bundle for its `getEnforcing("Rn…")` marker:
+
+```bash
+pnpm app:web:build && grep -oc 'RNCImageCropPicker' apps/mobile/dist/_expo/static/js/web/entry-*.js  # want 0
+```
+
 ## `Alert.alert` and Animated `className` are the two heavyweights
 
 If you take only one thing from this skill: when touching `Animated.*` or `Alert.*` in `apps/mobile/`, the web build will lie to you. Native renders cleanly, classes appear in the deployed CSS, but the actual DOM has neither the class nor the alert. Inline-style every `Animated.*`; `Platform.OS === 'web'`-branch every `Alert.alert`.

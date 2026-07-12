@@ -14,13 +14,12 @@ import { personConverterClient } from '../converters/personConverter.client';
 import { userConverterClient } from '../converters/userConverter.client';
 import { notificationConverterClient } from '../converters/notificationConverter.client';
 import { newsPostConverterClient } from '../converters/newsPostConverter.client';
-import { newsCommentConverterClient } from '../converters/newsCommentConverter.client';
-import { newsReactionConverterClient } from '../converters/newsReactionConverter.client';
-import { newsReportConverterClient } from '../converters/newsReportConverter.client';
+import { commentConverterClient } from '../converters/commentConverter.client';
 import { occupationConverterClient } from '../converters/occupationConverter.client';
-import { occupationProposalConverterClient } from '../converters/occupationProposalConverter.client';
 import { adminConverterClient } from '../converters/adminConverter.client';
 import { organizationJoinRequestConverterClient } from '../converters/organizationJoinRequestConverter.client';
+import { membershipEventConverterClient } from '../converters/membershipEventConverter.client';
+import { festivalPosterConverterClient } from '../converters/festivalPosterConverter.client';
 
 export const eventsCollection = (db: Firestore) =>
   collection(db, 'events').withConverter(eventConverterClient);
@@ -124,23 +123,19 @@ export const newsCollection = (db: Firestore) =>
 export const newsDoc = (db: Firestore, postId: string) =>
   doc(db, 'news', postId).withConverter(newsPostConverterClient);
 
-export const newsCommentsCollection = (db: Firestore) =>
-  collection(db, 'newsComments').withConverter(newsCommentConverterClient);
+// ── Comments (generic, entity-scoped, top-level) ────────────────────────
 
-export const newsCommentDoc = (db: Firestore, commentId: string) =>
-  doc(db, 'newsComments', commentId).withConverter(newsCommentConverterClient);
+export const commentsCollection = (db: Firestore) =>
+  collection(db, 'comments').withConverter(commentConverterClient);
 
-export const newsReactionsCollection = (db: Firestore) =>
-  collection(db, 'newsReactions').withConverter(newsReactionConverterClient);
+export const commentDoc = (db: Firestore, commentId: string) =>
+  doc(db, 'comments', commentId).withConverter(commentConverterClient);
 
-export const newsReactionDoc = (db: Firestore, reactionId: string) =>
-  doc(db, 'newsReactions', reactionId).withConverter(newsReactionConverterClient);
+export const festivalPostersCollection = (db: Firestore) =>
+  collection(db, 'festivalPosters').withConverter(festivalPosterConverterClient);
 
-export const newsReportsCollection = (db: Firestore) =>
-  collection(db, 'newsReports').withConverter(newsReportConverterClient);
-
-export const newsReportDoc = (db: Firestore, reportId: string) =>
-  doc(db, 'newsReports', reportId).withConverter(newsReportConverterClient);
+export const festivalPosterDoc = (db: Firestore, posterId: string) =>
+  doc(db, 'festivalPosters', posterId).withConverter(festivalPosterConverterClient);
 
 // ── Occupation domain (top-level collections) ────────────────────────────
 
@@ -150,12 +145,6 @@ export const occupationsCollection = (db: Firestore) =>
 export const occupationDoc = (db: Firestore, occupationId: string) =>
   doc(db, 'occupations', occupationId).withConverter(occupationConverterClient);
 
-export const occupationProposalsCollection = (db: Firestore) =>
-  collection(db, 'occupationProposals').withConverter(occupationProposalConverterClient);
-
-export const occupationProposalDoc = (db: Firestore, proposalId: string) =>
-  doc(db, 'occupationProposals', proposalId).withConverter(occupationProposalConverterClient);
-
 // ── Organization join requests ───────────────────────────────────────────
 
 export const organizationJoinRequestsCollection = (db: Firestore) =>
@@ -163,6 +152,16 @@ export const organizationJoinRequestsCollection = (db: Firestore) =>
 
 export const organizationJoinRequestDoc = (db: Firestore, id: string) =>
   doc(db, 'organizationJoinRequests', id).withConverter(organizationJoinRequestConverterClient);
+
+// ── Membership audit log ─────────────────────────────────────────────────
+// Append-only, top-level, scoped by `municipalityId`. Function-owned: clients
+// only read (firestore.rules denies all client writes).
+
+export const membershipEventsCollection = (db: Firestore) =>
+  collection(db, 'membershipEvents').withConverter(membershipEventConverterClient);
+
+export const membershipEventDoc = (db: Firestore, id: string) =>
+  doc(db, 'membershipEvents', id).withConverter(membershipEventConverterClient);
 
 // ── Admin domain ─────────────────────────────────────────────────────────
 

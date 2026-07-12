@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../components/primitives/Screen';
 import { Text } from '../../components/primitives/Text';
+import { ErrorState } from '../../components/primitives/ErrorState';
 import { Pressable } from '../../components/primitives/Pressable';
 import { Button } from '../../components/primitives/Button';
 import { VStack } from '../../components/primitives/VStack';
@@ -28,33 +29,31 @@ export default function MyVillagesScreen() {
   const [error, setError] = useState<string | null>(null);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!user) return;
-    let cancelled = false;
-    async function load() {
-      try {
-        setError(null);
-        const memberships = await getUserMemberships(user!.uid);
-        const named = await Promise.all(
-          memberships.map(async (m) => {
-            const muni = await getMunicipality(m.municipalityId);
-            return {
-              ...m,
-              name: muni?.name ?? m.municipalityId,
-              escudoThumbUrl: muni ? escudoThumbDisplayUrl(muni) : null,
-            };
-          }),
-        );
-        if (!cancelled) setRows(named);
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'unknown');
-      }
+    try {
+      setError(null);
+      setRows(null);
+      const memberships = await getUserMemberships(user.uid);
+      const named = await Promise.all(
+        memberships.map(async (m) => {
+          const muni = await getMunicipality(m.municipalityId);
+          return {
+            ...m,
+            name: muni?.name ?? m.municipalityId,
+            escudoThumbUrl: muni ? escudoThumbDisplayUrl(muni) : null,
+          };
+        }),
+      );
+      setRows(named);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'unknown');
     }
-    void load();
-    return () => {
-      cancelled = true;
-    };
   }, [user]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   async function selectVillage(municipalityId: string) {
     if (!user) return;
@@ -78,9 +77,7 @@ export default function MyVillagesScreen() {
           <ActivityIndicator />
         </View>
       ) : error ? (
-        <View className="p-4">
-          <Text tone="danger">{error}</Text>
-        </View>
+        <ErrorState error={error} onRetry={load} />
       ) : (
         <FlatList
           data={rows ?? []}

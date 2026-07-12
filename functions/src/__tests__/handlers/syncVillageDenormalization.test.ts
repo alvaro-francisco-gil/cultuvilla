@@ -54,6 +54,7 @@ async function seedEvent(villageCoverImage: string | null): Promise<void> {
     villageCoordinates: null,
     confirmedCount: 0,
     totalCount: 0,
+    endBoundary: now,
   });
 }
 

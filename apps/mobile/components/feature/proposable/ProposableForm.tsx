@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { VStack, HStack, Text, Button, Input, Pressable, FieldLabel, ImagePickerField } from '../../primitives';
 import { pickImageAsBlob } from '../../../lib/images';
 import { useT } from '../../../lib/i18n';
@@ -15,6 +16,9 @@ export interface ProposableFormProps {
   image?: UploadableImage | null;
   onImageChange?: (image: UploadableImage) => void;
   imageLabels?: { add: string; selected: string };
+  /** Existing stored image URL to show as the thumbnail before the user picks a
+   * new one (edit mode). Falls back behind a freshly-picked `image`. */
+  existingImageUri?: string | null;
 
   name: string;
   onChangeName: (value: string) => void;
@@ -31,6 +35,10 @@ export interface ProposableFormProps {
   typeOptions?: ProposableTypeOption[];
   typeValue?: string;
   onChangeType?: (value: string) => void;
+
+  /** Extra content rendered at the end of the form, just above the submit
+   * button (e.g. the agrupación members-visibility toggle). */
+  footer?: ReactNode;
 
   submitLabel: string;
   submitTestID?: string;
@@ -55,6 +63,7 @@ export function ProposableForm({
   image,
   onImageChange,
   imageLabels,
+  existingImageUri,
   name,
   onChangeName,
   nameLabel,
@@ -66,6 +75,7 @@ export function ProposableForm({
   typeOptions,
   typeValue,
   onChangeType,
+  footer,
   submitLabel,
   submitTestID,
   onSubmit,
@@ -83,7 +93,7 @@ export function ProposableForm({
         <VStack gap={1} align="start">
           <FieldLabel>{t('common.photo')}</FieldLabel>
           <ImagePickerField
-            uri={image?.previewUri ?? null}
+            uri={image?.previewUri ?? existingImageUri ?? null}
             onPress={async () => {
               const picked = await pickImageAsBlob();
               if (picked) onImageChange!(picked);
@@ -130,6 +140,8 @@ export function ProposableForm({
           </HStack>
         </VStack>
       ) : null}
+
+      {footer}
 
       <Button testID={submitTestID} onPress={onSubmit} loading={saving} disabled={disabled}>
         {submitLabel}

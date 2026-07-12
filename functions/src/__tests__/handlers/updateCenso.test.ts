@@ -19,7 +19,7 @@ async function seedCensoMunicipality(fields: unknown[]): Promise<void> {
     mapZoom: null,
     createdAt: now, escudoUrl: null, escudoThumbUrl: null, escudoManualUrl: null,
     communityActive: true,
-    community: { adminUserId: ADMIN_ID, description: 'x', activatedAt: now,
+    community: { organizerId: ADMIN_ID, description: 'x', activatedAt: now,
       profileForm: { fields, updatedAt: now } },
   });
 }
@@ -27,7 +27,7 @@ async function seedCensoMunicipality(fields: unknown[]): Promise<void> {
 async function seedMember(uid: string, role: 'user' | 'admin', profileAnswers: Record<string, unknown>): Promise<void> {
   await admin.firestore().doc(`municipalities/${MID}/members/${uid}`).set({
     userId: uid, role, joinedAt: new Date(), profileAnswers,
-    profileCompletedAt: null, trustedNewsAuthor: false, barrioId: null,
+    profileCompletedAt: null,
   });
 }
 

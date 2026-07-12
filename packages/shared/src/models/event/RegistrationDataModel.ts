@@ -17,6 +17,11 @@ export const RegistrationDataSchema = z.object({
   isMember: z.boolean(),
   // Set by an organizer when the attendee is checked in. `null` until then.
   checkedInAt: z.date().nullable(),
+  // Set by an organizer when the attendee has paid (events with
+  // requiresPayment). `.default(null)`: registrations created before this field
+  // existed have no paidAt key, so reads normalize the absent field to null
+  // instead of throwing the strict converter.
+  paidAt: z.date().nullable().default(null),
 });
 export type RegistrationData = z.infer<typeof RegistrationDataSchema>;
 
@@ -29,6 +34,7 @@ export interface RegistrationDataInput {
   registeredAt?: Date;
   isMember?: boolean;
   checkedInAt?: Date | null;
+  paidAt?: Date | null;
 }
 
 export function buildRegistrationData(input: RegistrationDataInput): RegistrationData {
@@ -37,5 +43,6 @@ export function buildRegistrationData(input: RegistrationDataInput): Registratio
     registeredAt: input.registeredAt ?? new Date(),
     isMember: input.isMember ?? false,
     checkedInAt: input.checkedInAt ?? null,
+    paidAt: input.paidAt ?? null,
   };
 }

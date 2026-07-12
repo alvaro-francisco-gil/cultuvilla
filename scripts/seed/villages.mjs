@@ -40,7 +40,7 @@ export async function seedVillage(v, adminUid) {
   });
   const community = buildVillageCommunity({
     description: v.description,
-    adminUserId: adminUid,
+    organizerId: adminUid,
   });
   await db
     .collection('municipalities')

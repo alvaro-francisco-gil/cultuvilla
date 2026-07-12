@@ -1,5 +1,6 @@
 import { Avatar } from '../primitives';
 import { HStack } from '../primitives/HStack';
+import { Pressable } from '../primitives/Pressable';
 import { Text } from '../primitives/Text';
 import { useOwnerSummary, type OwnerType } from '../../lib/useOwnerSummary';
 
@@ -13,13 +14,8 @@ export interface LiveOwnerChipProps {
   tone?: 'primary' | 'muted';
   /** Prefix shown before the name, e.g. "Por " for a news byline. */
   prefix?: string;
-  /**
-   * Explicit image to show instead of the resolved one. Use for `user` owners,
-   * whose avatar lives on the linked person doc (the user doc's `photoURL` is
-   * frequently null). `undefined` keeps the live-resolved image; `null` forces
-   * initials.
-   */
-  imageUri?: string | null;
+  /** When provided, the whole chip is tappable (e.g. to open the owner's screen). */
+  onPress?: () => void;
 }
 
 /**
@@ -35,18 +31,23 @@ export function LiveOwnerChip({
   fallbackName,
   tone = 'primary',
   prefix,
-  imageUri,
+  onPress,
 }: LiveOwnerChipProps) {
-  const { name, imageUri: resolvedImageUri } = useOwnerSummary(ownerId, ownerType);
+  const { name, imageUri } = useOwnerSummary(ownerId, ownerType);
   const label = name ?? fallbackName ?? '';
   const initials = label ? label.slice(0, 1).toUpperCase() : undefined;
-  const shownImage = imageUri !== undefined ? imageUri : resolvedImageUri;
-  return (
+  const content = (
     <HStack gap={2} align="center">
-      <Avatar uri={shownImage} size={size} initials={initials} />
+      <Avatar uri={imageUri} size={size} initials={initials} />
       <Text tone={tone} numberOfLines={1} className="shrink">
         {prefix ? `${prefix}${label}` : label}
       </Text>
     </HStack>
+  );
+  if (!onPress) return content;
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label || undefined}>
+      {content}
+    </Pressable>
   );
 }

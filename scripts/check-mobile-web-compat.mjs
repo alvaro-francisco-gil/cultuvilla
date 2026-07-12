@@ -21,7 +21,7 @@
  * never reaches), add the comment `// mobile-web-compat: native-only`
  * on the line ABOVE the call.
  */
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { execSync } from 'node:child_process';
@@ -139,6 +139,40 @@ for (const path of listSourceFiles()) {
         });
         break;
       }
+    }
+  }
+}
+
+// 4) A `X.web.<ext>` platform override only shadows the default file when
+// they share the SAME extension. Metro's resolver iterates sourceExts in
+// order (ts, tsx, js, ...) and, for each, tries `X.web.<ext>` then falls back
+// to the bare `X.<ext>` within that SAME iteration. So `imageCrop.web.tsx`
+// (tsx) never shadows a bare `imageCrop.ts` (ts) — the `.ts` iteration finds
+// the native file first and resolution stops, leaking the native-only module
+// (react-native-image-crop-picker) into the web bundle where it crashes on
+// TurboModuleRegistry.getEnforcing. Flag any `.web.` override whose default
+// sibling has a different extension. See the skill and commit beefc28.
+{
+  const platformFiles = listSourceFiles().filter((p) =>
+    /\.web\.(ts|tsx|js|jsx)$/.test(p),
+  );
+  for (const p of platformFiles) {
+    const dir = dirname(join(repoRoot, p));
+    const m = /(.*)\.web\.(ts|tsx|js|jsx)$/.exec(p);
+    const base = m[1].split('/').pop();
+    const webExt = m[2];
+    const siblings = (await readdir(dir)).filter((f) =>
+      new RegExp(`^${base}\\.(ts|tsx|js|jsx)$`).test(f),
+    );
+    const mismatched = siblings.filter((f) => !f.endsWith(`.${webExt}`));
+    if (siblings.length > 0 && mismatched.length > 0) {
+      violations.push({
+        path: p,
+        line: 1,
+        rule: '.web override / default extension mismatch',
+        excerpt: `${base}.web.${webExt} default sibling is ${mismatched.join(', ')} (different extension)`,
+        hint: `A .web.${webExt} override only resolves on web if the default file is ${base}.${webExt} (same extension). Rename ${mismatched.join(', ')} to .${webExt} so Metro's resolver picks the web variant instead of leaking the native file.`,
+      });
     }
   }
 }

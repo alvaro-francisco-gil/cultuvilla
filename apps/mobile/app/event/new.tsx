@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native';
 import { router, useLocalSearchParams, Redirect } from 'expo-router';
-import { Screen, Text, Input, DateTimeField, FieldLabel, Toggle, HStack } from '../../components/primitives';
+import { Screen, Text, Input, DateTimeField, FieldLabel, Toggle, HStack, ErrorState } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { EventCoverPicker } from '../../components/feature/EventCoverPicker';
 import { EventLocationField } from '../../components/feature/EventLocationField';
@@ -22,13 +22,15 @@ import { getMunicipality } from '@cultuvilla/shared/services/municipalityService
 import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
 import { getUserMemberships } from '@cultuvilla/shared/services/villageMemberService';
 import { haversineKm } from '@cultuvilla/shared/services/feedService';
-import { createEvent, updateEvent, getEvent } from '@cultuvilla/shared/services/eventService';
+import { createEvent, updateEvent, getEvent, updateEventStatus } from '@cultuvilla/shared/services/eventService';
 import { useEventOrganizer } from '../../lib/events/useEventOrganizer';
 import { uploadEventImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 import { buildLocationData } from '@cultuvilla/shared/models/core/LocationDataModel';
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 import { Stepper, type StepConfig } from '../../components/feature/Stepper';
+import { DeleteHeaderButton } from '../../components/feature/DeleteHeaderButton';
+import { roundUpToMinuteStep } from '../../lib/date/clockGrid';
 
 /** Nearest joined village to a coordinate (by great-circle distance), or null. */
 function nearestVillage(c: LatLng, villages: VillageOption[]): VillageOption | null {
@@ -93,13 +95,14 @@ export default function NewEventScreen() {
   // form fields
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [startDate, setStartDate] = useState<Date | null>(() => roundUpToMinuteStep(new Date(), 5));
   // Optional multi-day end; null = single-day event.
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [coords, setCoords] = useState<LatLng | null>(null);
   const [locationName, setLocationName] = useState('');
   const [maxAttendees, setMaxAttendees] = useState('');
   const [telephoneRequired, setTelephoneRequired] = useState(false);
+  const [requiresPayment, setRequiresPayment] = useState(false);
   const [cover, setCover] = useState<UploadableImage | null>(null);
 
   // Picking a location auto-selects the nearest joined village (create mode,
@@ -157,6 +160,7 @@ export default function NewEventScreen() {
         setLocationName(ev.location?.displayName ?? '');
         setMaxAttendees(ev.maxAttendees != null ? String(ev.maxAttendees) : '');
         setTelephoneRequired(!!ev.telephoneRequired);
+        setRequiresPayment(!!ev.requiresPayment);
         setOrganizerUserIds(ev.organizerUserIds ?? []);
         setOrganizerOrgIds(ev.organizerOrgIds ?? []);
         setExistingImageURL(ev.imageURL ?? null);
@@ -239,6 +243,7 @@ export default function NewEventScreen() {
           location,
           maxAttendees: maxAttendeesValue,
           telephoneRequired,
+          requiresPayment,
           organizerUserIds,
           organizerOrgIds,
         });
@@ -262,6 +267,7 @@ export default function NewEventScreen() {
         location,
         maxAttendees: maxAttendeesValue,
         telephoneRequired,
+        requiresPayment,
         status: 'published',
         organizerUserIds,
         organizerOrgIds,
@@ -294,6 +300,16 @@ export default function NewEventScreen() {
 
   const headerTitle = editMode ? t('event.editEvent') : t('event.createEvent');
 
+  // Framed as delete but soft in practice: cancelling sets status → 'cancelled',
+  // which the feeds already filter out (they query status == 'published'). Nav
+  // must leave the event — returning to its detail would re-show the (still
+  // existing) cancelled doc and read as "delete didn't work". Reaching edit mode
+  // already implies organizer rights.
+  const deleteEvent = () => {
+    if (!eventId) return;
+    return updateEventStatus(eventId, 'cancelled').then(() => router.replace('/(tabs)'));
+  };
+
   if (loading) {
     return (
       <Screen padded={false} topInset={false}>
@@ -306,12 +322,15 @@ export default function NewEventScreen() {
   }
 
   if (loadError) {
+    const notFound = loadError === 'not-found';
     return (
       <Screen padded={false} topInset={false}>
         <ScreenHeader accent title={headerTitle} />
-        <View className="flex-1 items-center justify-center px-8">
-          <Text tone="danger">{loadError}</Text>
-        </View>
+        <ErrorState
+          error={notFound ? undefined : loadError}
+          title={notFound ? t('event.notFoundTitle') : undefined}
+          message={notFound ? t('event.notFoundBody') : undefined}
+        />
       </Screen>
     );
   }
@@ -344,12 +363,11 @@ export default function NewEventScreen() {
       validate: () => {
         const e: string[] = [];
         if (!title.trim()) e.push('title');
-        if (!description.trim()) e.push('description');
         return e;
       },
       render: () => stepBody(
         <>
-          <Input label={t('event.title')} value={title} onChangeText={setTitle} />
+          <Input label={t('event.title')} value={title} onChangeText={setTitle} testID="event-title" />
           <Input
             label={t('event.description')}
             value={description}
@@ -389,7 +407,8 @@ export default function NewEventScreen() {
             value={startDate}
             onChange={setStartDate}
             minimumDate={new Date()}
-            placeholder={t('event.selectDateTime')}
+            datePlaceholder={t('event.selectDate')}
+            timePlaceholder={t('event.selectTime')}
             testID="startDate"
           />
           <DateTimeField
@@ -397,7 +416,8 @@ export default function NewEventScreen() {
             value={endDate}
             onChange={setEndDate}
             minimumDate={startDate ?? new Date()}
-            placeholder={t('event.selectDateTime')}
+            datePlaceholder={t('event.selectDate')}
+            timePlaceholder={t('event.selectTime')}
             testID="endDate"
           />
           <EventLocationField
@@ -452,6 +472,17 @@ export default function NewEventScreen() {
               />
             </HStack>
           </HStack>
+          <HStack className="items-center justify-between py-1">
+            <Text className="flex-1">{t('event.requiresPayment')}</Text>
+            <HStack gap={2} className="items-center">
+              <Text tone="muted">{requiresPayment ? t('common.yes') : t('common.no')}</Text>
+              <Toggle
+                value={requiresPayment}
+                onValueChange={setRequiresPayment}
+                testID="requires-payment"
+              />
+            </HStack>
+          </HStack>
         </>,
       ),
     },
@@ -460,7 +491,24 @@ export default function NewEventScreen() {
   // bottomInset={false}: the Stepper's own bottom nav bar applies the safe-area inset.
   return (
     <Screen padded={false} bottomInset={false} topInset={false}>
-      <ScreenHeader accent title={headerTitle} />
+      <ScreenHeader
+        accent
+        title={headerTitle}
+        rightSlot={
+          editMode ? (
+            <DeleteHeaderButton
+              onAccent
+              onConfirm={deleteEvent}
+              accessibilityLabel={t('common.delete')}
+              confirmTitle={t('event.cancelTitle')}
+              confirmMessage={t('event.cancelConfirm')}
+              confirmLabel={t('common.delete')}
+              cancelLabel={t('common.cancel')}
+              deletingLabel={t('common.deleting.event')}
+            />
+          ) : undefined
+        }
+      />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Stepper
           steps={steps}
@@ -468,6 +516,7 @@ export default function NewEventScreen() {
           submitLabel={editMode ? t('common.save') : t('event.createEvent')}
           loading={isPending}
           allStepsReachable={editMode}
+          primaryTestID="event-form-primary"
         />
       </KeyboardAvoidingView>
     </Screen>

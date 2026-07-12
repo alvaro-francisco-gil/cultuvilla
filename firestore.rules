@@ -46,11 +46,6 @@ service cloud.firestore {
         || isVillageAdmin(get(/databases/$(database)/documents/events/$(eventId)).data.municipalityId)
       );
     }
-    function isTrustedNewsAuthor(municipalityId) {
-      return isAuthenticated()
-        && exists(/databases/$(database)/documents/municipalities/$(municipalityId)/members/$(request.auth.uid))
-        && get(/databases/$(database)/documents/municipalities/$(municipalityId)/members/$(request.auth.uid)).data.trustedNewsAuthor == true;
-    }
 
     // ── Shape validation helpers ─────────────────────────────────────────
     // These mirror the Zod schemas in packages/shared/src/models/*. Any
@@ -91,14 +86,6 @@ service cloud.firestore {
       );
     }
 
-    function isValidReactionCounts(v) {
-      return v is map
-        && v.keys().hasOnly(['like', 'heart'])
-        && v.keys().hasAll(['like', 'heart'])
-        && v.like is number
-        && v.heart is number;
-    }
-
     // ── Per-collection shape predicates (create payloads) ────────────────
 
     // /users/{userId} on create: clients omit `displayName` (the
@@ -109,15 +96,19 @@ service cloud.firestore {
           && isStringOrNull(d.telephone)
           && isStringOrNull(d.activeMunicipalityId)
           && isStringOrNull(d.personId)
-          && isTimestamp(d.createdAt);
+          && isTimestamp(d.createdAt)
+          && isTimestamp(d.termsAcceptedAt)
+          && isString(d.termsVersion);
     }
 
     function isValidUserCreate(d) {
       return d.keys().hasOnly([
               'email', 'telephone', 'activeMunicipalityId', 'personId', 'createdAt',
+              'termsAcceptedAt', 'termsVersion',
             ])
           && d.keys().hasAll([
               'email', 'telephone', 'activeMunicipalityId', 'personId', 'createdAt',
+              'termsAcceptedAt', 'termsVersion',
             ])
           && hasValidUserFields(d);
     }
@@ -128,7 +119,14 @@ service cloud.firestore {
     function isValidUserUpdateKeys(affected) {
       return affected.hasOnly([
         'email', 'telephone', 'activeMunicipalityId', 'personId',
+        'termsAcceptedAt', 'termsVersion',
       ]);
+    }
+
+    // A client-writable `email` must equal the caller's verified Auth token
+    // claim — otherwise a user could spoof any email onto their own profile.
+    function isEmailUpdateVerified(reqData, affected) {
+      return !affected.hasAny(['email']) || reqData.email == request.auth.token.email;
     }
 
     // Onboarding race: createPerson() fires syncPersonDenormalization, which
@@ -142,6 +140,7 @@ service cloud.firestore {
       return !('createdAt' in resData)
           && reqData.diff(resData).affectedKeys().hasOnly([
                'email', 'telephone', 'activeMunicipalityId', 'personId', 'createdAt',
+               'termsAcceptedAt', 'termsVersion',
              ])
           && hasValidUserFields(reqData);
     }
@@ -149,15 +148,15 @@ service cloud.firestore {
     function isValidNewsPostCreate(d) {
       return d.keys().hasOnly([
               'municipalityId', 'organizerUserIds', 'organizerOrgIds', 'title', 'body',
-              'content', 'category', 'images', 'coverImage', 'status', 'rejectionReason',
-              'submittedAt', 'publishedAt', 'createdBy', 'updatedAt',
-              'reactionCounts', 'commentCount',
+              'content', 'category', 'images', 'coverImage', 'status', 'hiddenBy',
+              'hiddenAt', 'hiddenReason', 'createdAt', 'publishedAt', 'createdBy',
+              'updatedAt', 'readCount', 'commentCount',
             ])
           && d.keys().hasAll([
               'municipalityId', 'organizerUserIds', 'organizerOrgIds', 'title', 'body',
-              'content', 'category', 'images', 'coverImage', 'status', 'rejectionReason',
-              'submittedAt', 'publishedAt', 'createdBy', 'updatedAt',
-              'reactionCounts', 'commentCount',
+              'content', 'category', 'images', 'coverImage', 'status', 'hiddenBy',
+              'hiddenAt', 'hiddenReason', 'createdAt', 'publishedAt', 'createdBy',
+              'updatedAt', 'readCount', 'commentCount',
             ])
           && isString(d.municipalityId)
           && d.organizerUserIds is list
@@ -168,77 +167,31 @@ service cloud.firestore {
           && d.category in ['fiesta', 'tradicion', 'gastronomia', 'historia', 'otro']
           && isList(d.images)
           && isMapOrNull(d.coverImage)
-          && d.status in ['pending', 'approved', 'rejected']
-          && isStringOrNull(d.rejectionReason)
-          && isTimestamp(d.submittedAt)
+          && d.status == 'active'
+          && d.hiddenBy == null
+          && d.hiddenAt == null
+          && d.hiddenReason == null
+          && isTimestamp(d.createdAt)
           && isTimestampOrNull(d.publishedAt)
           && isString(d.createdBy)
           && isTimestamp(d.updatedAt)
-          && isValidReactionCounts(d.reactionCounts)
+          && d.readCount == 0
           && d.commentCount is number;
-    }
-
-    function isValidNewsCommentCreate(d) {
-      return d.keys().hasOnly([
-              'postId', 'municipalityId', 'authorUserId', 'body', 'createdAt', 'hidden',
-            ])
-          && d.keys().hasAll([
-              'postId', 'municipalityId', 'authorUserId', 'body', 'createdAt', 'hidden',
-            ])
-          && isString(d.postId)
-          && isString(d.municipalityId)
-          && isString(d.authorUserId)
-          && isString(d.body)
-          && isTimestamp(d.createdAt)
-          && isBool(d.hidden);
-    }
-
-    function isValidNewsReactionWrite(d) {
-      return d.keys().hasOnly(['postId', 'municipalityId', 'userId', 'kind', 'createdAt'])
-          && d.keys().hasAll(['postId', 'municipalityId', 'userId', 'kind', 'createdAt'])
-          && isString(d.postId)
-          && isString(d.municipalityId)
-          && isString(d.userId)
-          && d.kind in ['like', 'heart']
-          && isTimestamp(d.createdAt);
-    }
-
-    function isValidNewsReportCreate(d) {
-      return d.keys().hasOnly([
-              'targetType', 'targetId', 'postId', 'municipalityId',
-              'reporterUserId', 'reason', 'createdAt', 'status',
-              'resolvedBy', 'resolvedAt',
-            ])
-          && d.keys().hasAll([
-              'targetType', 'targetId', 'postId', 'municipalityId',
-              'reporterUserId', 'reason', 'createdAt', 'status',
-              'resolvedBy', 'resolvedAt',
-            ])
-          && d.targetType in ['comment']
-          && isString(d.targetId)
-          && isString(d.postId)
-          && isString(d.municipalityId)
-          && isString(d.reporterUserId)
-          && isString(d.reason)
-          && isTimestamp(d.createdAt)
-          && d.status in ['open', 'dismissed', 'actioned']
-          && isStringOrNull(d.resolvedBy)
-          && isTimestampOrNull(d.resolvedAt);
     }
 
     function isValidPersonCreate(d) {
       return d.keys().hasOnly([
               'givenName', 'middleNames', 'firstSurname', 'secondSurname',
               'nickname', 'sex', 'birthday', 'deathDate', 'birthPlace',
-              'burialPlace', 'municipalityLinks', 'occupationIds',
-              'pendingOccupations', 'biography', 'photoURL', 'userId',
+              'burialPlace', 'municipalityLinks', 'occupations',
+              'biography', 'photoURL', 'userId',
               'createdBy', 'createdAt',
             ])
           && d.keys().hasAll([
               'givenName', 'middleNames', 'firstSurname', 'secondSurname',
               'nickname', 'sex', 'birthday', 'deathDate', 'birthPlace',
-              'burialPlace', 'municipalityLinks', 'occupationIds',
-              'pendingOccupations', 'biography', 'photoURL', 'userId',
+              'burialPlace', 'municipalityLinks', 'occupations',
+              'biography', 'photoURL', 'userId',
               'createdBy', 'createdAt',
             ])
           && isString(d.givenName)
@@ -252,8 +205,7 @@ service cloud.firestore {
           && isMapOrNull(d.birthPlace)
           && isMapOrNull(d.burialPlace)
           && isList(d.municipalityLinks)
-          && isList(d.occupationIds)
-          && isList(d.pendingOccupations)
+          && isList(d.occupations)
           && isStringOrNull(d.biography)
           && isStringOrNull(d.photoURL)
           && isStringOrNull(d.userId)
@@ -262,8 +214,9 @@ service cloud.firestore {
     }
 
     function isValidOrgMemberCreate(d) {
-      return d.keys().hasOnly(['joinedAt', 'role'])
-          && d.keys().hasAll(['joinedAt', 'role'])
+      return d.keys().hasOnly(['userId', 'joinedAt', 'role'])
+          && d.keys().hasAll(['userId', 'joinedAt', 'role'])
+          && isString(d.userId)
           && isTimestamp(d.joinedAt)
           && d.role in ['admin', 'member'];
     }
@@ -272,10 +225,12 @@ service cloud.firestore {
       return d.keys().hasOnly([
               'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
               'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
+              'commentCount', 'readCount', 'membersPublic',
             ])
           && d.keys().hasAll([
               'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
               'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
+              'commentCount', 'readCount', 'membersPublic',
             ])
           && isString(d.name)
           && isStringOrNull(d.description)
@@ -286,35 +241,22 @@ service cloud.firestore {
           && isString(d.requestedBy)
           && isStringOrNull(d.reviewedBy)
           && isTimestamp(d.createdAt)
-          && isTimestampOrNull(d.reviewedAt);
-    }
-
-    function isValidOccupationProposalCreate(d) {
-      return d.keys().hasOnly([
-              'name', 'proposedBy', 'proposedAt', 'status',
-              'reviewedBy', 'reviewedAt', 'approvedOccupationId',
-            ])
-          && d.keys().hasAll([
-              'name', 'proposedBy', 'proposedAt', 'status',
-              'reviewedBy', 'reviewedAt', 'approvedOccupationId',
-            ])
-          && isString(d.name)
-          && isString(d.proposedBy)
-          && isTimestamp(d.proposedAt)
-          && d.status in ['pending', 'approved', 'rejected']
-          && isStringOrNull(d.reviewedBy)
           && isTimestampOrNull(d.reviewedAt)
-          && isStringOrNull(d.approvedOccupationId);
+          && d.commentCount == 0
+          && d.readCount == 0
+          && d.membersPublic is bool;
     }
 
-    function isValidPlaceProposalCreate(d) {
+    function isValidPlaceCreate(d) {
       return d.keys().hasOnly([
               'name', 'kind', 'description', 'municipalityId', 'imageURL',
-              'createdAt', 'status', 'proposedBy', 'reviewedBy', 'reviewedAt',
+              'createdAt', 'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+              'commentCount', 'readCount',
             ])
           && d.keys().hasAll([
               'name', 'kind', 'description', 'municipalityId', 'imageURL',
-              'createdAt', 'status', 'proposedBy', 'reviewedBy', 'reviewedAt',
+              'createdAt', 'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+              'commentCount', 'readCount',
             ])
           && isString(d.name)
           && d.kind in ['cemetery', 'church', 'hermitage', 'plaza', 'town_hall', 'otros']
@@ -322,10 +264,43 @@ service cloud.firestore {
           && isString(d.municipalityId)
           && isStringOrNull(d.imageURL)
           && isTimestamp(d.createdAt)
-          && d.status in ['pending', 'approved', 'rejected']
+          && d.status == 'active'
           && isStringOrNull(d.proposedBy)
-          && isStringOrNull(d.reviewedBy)
-          && isTimestampOrNull(d.reviewedAt);
+          && d.hiddenBy == null
+          && d.hiddenAt == null
+          && d.hiddenReason == null
+          && d.commentCount == 0
+          && d.readCount == 0;
+    }
+
+    function isValidFestivalPosterCreate(d) {
+      return d.keys().hasOnly([
+              'municipalityId', 'proposedBy', 'year', 'title', 'imageURL',
+              'datePrecision', 'startsAt', 'endsAt', 'createdAt',
+              'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+              'commentCount', 'readCount',
+            ])
+          && d.keys().hasAll([
+              'municipalityId', 'proposedBy', 'year', 'title', 'imageURL',
+              'datePrecision', 'startsAt', 'endsAt', 'createdAt',
+              'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+              'commentCount', 'readCount',
+            ])
+          && isString(d.municipalityId)
+          && isStringOrNull(d.proposedBy)
+          && d.year is int
+          && isStringOrNull(d.title)
+          && isStringOrNull(d.imageURL)
+          && d.datePrecision in ['year', 'month', 'day']
+          && isTimestampOrNull(d.startsAt)
+          && isTimestampOrNull(d.endsAt)
+          && isTimestamp(d.createdAt)
+          && d.status == 'active'
+          && d.hiddenBy == null
+          && d.hiddenAt == null
+          && d.hiddenReason == null
+          && d.commentCount == 0
+          && d.readCount == 0;
     }
 
     function isValidJoinRequestCreate(d) {
@@ -337,40 +312,47 @@ service cloud.firestore {
           && d.reviewedAt == null && d.reviewedBy == null;
     }
 
-    function isValidBarrioProposalCreate(d) {
+    function isValidBarrioCreate(d) {
       return d.keys().hasOnly([
               'name', 'municipalityId', 'imageURL', 'createdAt',
-              'status', 'proposedBy', 'reviewedBy', 'reviewedAt',
+              'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+              'commentCount', 'readCount',
             ])
           && d.keys().hasAll([
               'name', 'municipalityId', 'imageURL', 'createdAt',
-              'status', 'proposedBy', 'reviewedBy', 'reviewedAt',
+              'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+              'commentCount', 'readCount',
             ])
           && isString(d.name)
           && isString(d.municipalityId)
           && isStringOrNull(d.imageURL)
           && isTimestamp(d.createdAt)
-          && d.status in ['pending', 'approved', 'rejected']
+          && d.status == 'active'
           && isStringOrNull(d.proposedBy)
-          && isStringOrNull(d.reviewedBy)
-          && isTimestampOrNull(d.reviewedAt);
+          && d.hiddenBy == null
+          && d.hiddenAt == null
+          && d.hiddenReason == null
+          && d.commentCount == 0
+          && d.readCount == 0;
     }
 
     function isValidEventCreate(d) {
       return d.keys().hasOnly([
-              'title', 'description', 'startDate', 'endDate', 'location',
-              'imageURL', 'maxAttendees', 'telephoneRequired',
+              'title', 'description', 'startDate', 'endDate', 'endBoundary', 'location',
+              'imageURL', 'maxAttendees', 'telephoneRequired', 'requiresPayment',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
               'villageCoverImage', 'villageCoordinates',
               'confirmedCount', 'totalCount',
+              'commentCount', 'readCount',
             ])
           && d.keys().hasAll([
-              'title', 'description', 'startDate', 'endDate', 'location',
-              'imageURL', 'maxAttendees', 'telephoneRequired',
+              'title', 'description', 'startDate', 'endDate', 'endBoundary', 'location',
+              'imageURL', 'maxAttendees', 'telephoneRequired', 'requiresPayment',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
               'villageCoverImage', 'villageCoordinates',
+              'commentCount', 'readCount',
             ])
           && isString(d.title)
           && isString(d.description)
@@ -379,10 +361,15 @@ service cloud.firestore {
           // otherwise a Timestamp no earlier than startDate.
           && isTimestampOrNull(d.endDate)
           && (d.endDate == null || d.endDate >= d.startDate)
+          // endBoundary is the derived feed key: it must equal endDate ?? startDate
+          // so the client can't corrupt Explora's ordering (see EventDataModel).
+          && isTimestamp(d.endBoundary)
+          && d.endBoundary == (d.endDate == null ? d.startDate : d.endDate)
           && isMap(d.location)
           && isStringOrNull(d.imageURL)
           && isNumberOrNull(d.maxAttendees)
           && isBool(d.telephoneRequired)
+          && isBool(d.requiresPayment)
           && d.status in ['published', 'cancelled', 'completed']
           && d.organizerUserIds is list
           && d.organizerOrgIds is list
@@ -392,16 +379,33 @@ service cloud.firestore {
           && isString(d.municipalityId)
           && isString(d.villageName)
           && isStringOrNull(d.villageCoverImage)
-          && isLatLngOrNull(d.villageCoordinates);
+          && isLatLngOrNull(d.villageCoordinates)
+          && d.commentCount == 0
+          && d.readCount == 0;
+    }
+
+    function isValidEntityKind(v) {
+      return v in ['event', 'festivalPoster', 'place', 'barrio', 'organization', 'news'];
+    }
+
+    function isValidCommentCreate(d) {
+      return d.keys().hasOnly(['entityKind', 'entityId', 'municipalityId', 'authorUserId', 'body', 'createdAt'])
+          && d.keys().hasAll(['entityKind', 'entityId', 'municipalityId', 'authorUserId', 'body', 'createdAt'])
+          && isValidEntityKind(d.entityKind)
+          && isString(d.entityId)
+          && isString(d.municipalityId)
+          && isString(d.authorUserId)
+          && isString(d.body) && d.body.size() > 0 && d.body.size() <= 2000
+          && isTimestamp(d.createdAt);
     }
 
     // ── Collections ──────────────────────────────────────────────────────
 
     match /news/{postId} {
-      // Approved posts are public (parity with published events) so the
-      // cross-village Explora feed can list them. Pending/rejected posts stay
-      // visible only to members of the post's own village (moderation + author).
-      allow read: if resource.data.status == 'approved'
+      // Active posts are public (parity with published events) so the
+      // cross-village Explora feed can list them. Hidden posts stay visible
+      // only to members of the post's own village (moderation + author).
+      allow read: if resource.data.status == 'active'
                     || isVillageMember(resource.data.municipalityId)
                     || isOwner(resource.data.createdBy)
                     || (request.auth.uid in resource.data.organizerUserIds);
@@ -409,57 +413,41 @@ service cloud.firestore {
                       && isValidNewsPostCreate(request.resource.data)
                       && request.resource.data.createdBy == request.auth.uid
                       && (request.auth.uid in request.resource.data.organizerUserIds)
-                      && request.resource.data.publishedAt == null
-                      && request.resource.data.reactionCounts.like == 0
-                      && request.resource.data.reactionCounts.heart == 0
-                      && request.resource.data.commentCount == 0
-                      && (
-                        request.resource.data.status == 'pending'
-                        || (request.resource.data.status == 'approved'
-                            && isTrustedNewsAuthor(request.resource.data.municipalityId))
-                      );
+                      && request.resource.data.readCount == 0
+                      && request.resource.data.commentCount == 0;
+      // status/hiddenBy/hiddenAt/hiddenReason are function-owned — clients
+      // can never touch them; setContentVisibility (Cloud Function) is the
+      // only writer. Posts are created `active` (optimistic; enforced by
+      // isValidNewsPostCreate), never gated behind a pending/approved queue.
+      // Authority is the CURRENT organizer set (resource.data, pre-update), so a
+      // named organizer may reattribute the post. organizerUserIds/OrgIds are
+      // editable but must stay non-empty — an empty set would orphan the article
+      // (only the immutable createdBy owner + admins could then reach it).
       allow update: if (
                         isOwner(resource.data.createdBy)
                         || (request.auth.uid in resource.data.organizerUserIds)
                       )
+                      && request.resource.data.organizerUserIds.size() > 0
                       && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-                           'status','publishedAt','organizerUserIds','organizerOrgIds',
-                           'municipalityId','submittedAt','createdBy',
-                           'reactionCounts','commentCount'
+                           'status','hiddenBy','hiddenAt','hiddenReason',
+                           'publishedAt',
+                           'municipalityId','createdAt','createdBy',
+                           'readCount','commentCount'
                          ]);
+      // Clients never delete a post directly — the deleteNewsPost callable
+      // cascades comments with the admin SDK (author or admin).
       allow delete: if false;
     }
 
-    match /newsComments/{commentId} {
-      allow read: if isVillageMember(resource.data.municipalityId);
-      allow create: if isVillageMember(request.resource.data.municipalityId)
-                      && isValidNewsCommentCreate(request.resource.data)
-                      && request.resource.data.authorUserId == request.auth.uid
-                      && request.resource.data.hidden == false;
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if isAuthenticated()
+                      && isValidCommentCreate(request.resource.data)
+                      && request.resource.data.authorUserId == request.auth.uid;
       allow update: if false;
-      allow delete: if isOwner(resource.data.authorUserId);
-    }
-
-    match /newsReactions/{reactionId} {
-      allow read: if isVillageMember(resource.data.municipalityId);
-      allow create, update: if isVillageMember(request.resource.data.municipalityId)
-                              && isValidNewsReactionWrite(request.resource.data)
-                              && request.resource.data.userId == request.auth.uid
-                              && reactionId == request.resource.data.postId + '_' + request.auth.uid;
-      allow delete: if isOwner(resource.data.userId);
-    }
-
-    match /newsReports/{reportId} {
-      allow read: if isVillageAdmin(resource.data.municipalityId)
-                    || isOwner(resource.data.reporterUserId)
-                    || isAppAdmin();
-      allow create: if isVillageMember(request.resource.data.municipalityId)
-                      && isValidNewsReportCreate(request.resource.data)
-                      && request.resource.data.reporterUserId == request.auth.uid
-                      && request.resource.data.status == 'open'
-                      && request.resource.data.resolvedBy == null
-                      && request.resource.data.resolvedAt == null;
-      allow update, delete: if false;
+      allow delete: if isOwner(resource.data.authorUserId)
+                      || isVillageAdmin(resource.data.municipalityId)
+                      || isAppAdmin();
     }
 
     match /admins/{userId} {
@@ -475,6 +463,10 @@ service cloud.firestore {
                     && !request.resource.data.keys().hasAny(['displayName'])
                     && isValidUserCreate(request.resource.data);
       allow update: if isOwner(userId)
+                    && isEmailUpdateVerified(
+                         request.resource.data,
+                         request.resource.data.diff(resource.data).affectedKeys()
+                       )
                     && (
                          isValidUserUpdateKeys(
                            request.resource.data.diff(resource.data).affectedKeys()
@@ -507,27 +499,26 @@ service cloud.firestore {
       allow update: if isAppAdmin() || isVillageAdmin(municipalityId);
       allow delete: if isAppAdmin();
 
-      // Propose-pending: any village member may create a `pending` barrio
-      // (visible to all); organizers (village/app admin) create directly and
-      // approve/reject. A proposer may edit/withdraw their own still-pending one.
+      // Instant self-service: any village member may create a barrio, which
+      // lands `active` immediately (no propose/approve ceremony). status/
+      // hiddenBy/hiddenAt/hiddenReason are function-owned — only the
+      // setContentVisibility Cloud Function may hide/unhide afterward.
       match /barrios/{barrioId} {
         allow read: if true;
         allow create: if isAppAdmin()
           || isVillageAdmin(municipalityId)
           || (
                isVillageMember(municipalityId)
-               && isValidBarrioProposalCreate(request.resource.data)
-               && request.resource.data.status == 'pending'
+               && isValidBarrioCreate(request.resource.data)
                && request.resource.data.proposedBy == request.auth.uid
              );
-        allow update: if isVillageAdmin(municipalityId) || isAppAdmin()
-          || (
-               isOwner(resource.data.proposedBy)
-               && resource.data.status == 'pending'
-               && request.resource.data.status == 'pending'
-             );
+        allow update: if (isVillageAdmin(municipalityId) || isAppAdmin() || isOwner(resource.data.proposedBy))
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+               'commentCount', 'readCount',
+             ]);
         allow delete: if isVillageAdmin(municipalityId) || isAppAdmin()
-          || (isOwner(resource.data.proposedBy) && resource.data.status == 'pending');
+          || (isOwner(resource.data.proposedBy) && resource.data.status == 'active');
       }
 
       match /places/{placeId} {
@@ -536,43 +527,45 @@ service cloud.firestore {
           || isVillageAdmin(municipalityId)
           || (
                isVillageMember(municipalityId)
-               && isValidPlaceProposalCreate(request.resource.data)
-               && request.resource.data.status == 'pending'
+               && isValidPlaceCreate(request.resource.data)
                && request.resource.data.proposedBy == request.auth.uid
              );
-        allow update: if isVillageAdmin(municipalityId) || isAppAdmin()
-          || (
-               isOwner(resource.data.proposedBy)
-               && resource.data.status == 'pending'
-               && request.resource.data.status == 'pending'
-             );
+        allow update: if (isVillageAdmin(municipalityId) || isAppAdmin() || isOwner(resource.data.proposedBy))
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+               'commentCount', 'readCount',
+             ]);
         allow delete: if isVillageAdmin(municipalityId) || isAppAdmin()
-          || (isOwner(resource.data.proposedBy) && resource.data.status == 'pending');
+          || (isOwner(resource.data.proposedBy) && resource.data.status == 'active');
       }
 
       match /members/{userId} {
         allow read: if true;
-        // Self-service join: an authenticated user adds themselves to an active
-        // village as a plain member. Owner-only, role pinned to 'user', cannot
-        // self-grant trustedNewsAuthor. Already-a-member is handled by create
-        // semantics (create fails when the doc exists). Village admin / app
-        // admin retain their direct-create power (e.g. organizer activation).
-        allow create: if isVillageAdmin(municipalityId)
-                       || isAppAdmin()
-                       || (
-                            isOwner(userId)
-                            && isCommunityActive(municipalityId)
-                            && request.resource.data.userId == userId
-                            && request.resource.data.role == 'user'
-                            && request.resource.data.trustedNewsAuthor == false
+        // `role` is function-owned: EVERY client-created member is a plain
+        // 'user'. Admins granting/removing admin (or seeding one on organizer
+        // approval) go through the changeVillageMemberRole callable / admin SDK,
+        // which audits the change. So the create paths are: a village/app admin
+        // adding a plain member, or a self-service join (owner adds themselves).
+        allow create: if request.resource.data.role == 'user'
+                       && (
+                            isVillageAdmin(municipalityId)
+                            || isAppAdmin()
+                            || (
+                                 isOwner(userId)
+                                 && isCommunityActive(municipalityId)
+                                 && request.resource.data.userId == userId
+                               )
                           );
+        // Admins may edit member fields client-side EXCEPT role
+        // (changeVillageMemberRole callable) — function-owned. Owners edit
+        // only their profile.
         allow update: if (
                          (isVillageAdmin(municipalityId) || isAppAdmin())
-                         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['trustedNewsAuthor'])
+                         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])
                        )
                        || (isOwner(userId)
                            && request.resource.data.diff(resource.data).affectedKeys()
-                              .hasOnly(['profileAnswers', 'profileCompletedAt', 'barrioId']));
+                              .hasOnly(['profileAnswers', 'profileCompletedAt']));
         allow delete: if isVillageAdmin(municipalityId) || isAppAdmin() || isOwner(userId);
       }
 
@@ -603,6 +596,31 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Append-only membership/role audit log (see docs decision
+    // membership-roles-and-audit). Function-owned: written only by callables /
+    // triggers via the admin SDK, so every client write is denied — and, since
+    // there is no client write path, no shape predicate is needed. Reads are
+    // scoped to the village's admins (by municipalityId); org-scoped events are
+    // additionally readable by that org's admins. app admins see everything.
+    // Note: only the by-municipalityId read is usable as a list query; the org
+    // clause applies to single-doc reads (list queries can't be constrained by
+    // the per-doc scopeId/scopeType).
+    match /membershipEvents/{eventId} {
+      allow read: if isVillageAdmin(resource.data.municipalityId)
+        || (resource.data.scopeType == 'org' && isOrgAdmin(resource.data.scopeId))
+        || isAppAdmin();
+      allow create, update, delete: if false;
+    }
+
+    // Append-only content-moderation audit log (hide/unhide of news,
+    // festivalPosters, barrios, places). Function-owned: written only by the
+    // setContentVisibility callable via the admin SDK. Reads scoped to the
+    // village's admins by municipalityId; app admins see everything.
+    match /moderationEvents/{eventId} {
+      allow read: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
+      allow write: if false;
+    }
+
     match /organizations/{orgId} {
       allow read: if true;
       // ayuntamiento is a singleton per village — created only via the
@@ -613,24 +631,36 @@ service cloud.firestore {
         && isValidOrganizationCreate(request.resource.data)
         && request.resource.data.status == 'pending'
         && request.resource.data.type != 'ayuntamiento';
-      allow update: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
+      // Approval (status -> 'approved') is function-owned: the approveOrganization
+      // callable flips the status AND seeds the founding admin + audits it in one
+      // transaction. Clients may edit other fields or reject, never approve.
+      allow update: if (isVillageAdmin(resource.data.municipalityId) || isAppAdmin())
+        && (request.resource.data.status == resource.data.status
+            || request.resource.data.status == 'rejected')
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['commentCount', 'readCount']);
       allow delete: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
 
       match /members/{userId} {
         allow read: if true;
-        // org admin / village admin / app admin may add anyone (incl. seeding an admin);
-        // a plain member may only add others as 'member'.
+        // `role` is function-owned: every client-created member is a plain
+        // 'member'. Orgs are open self-service join — a user adds only THEMSELVES
+        // (isOwner); admins (org/village/app) may add anyone. Users cannot add
+        // other users (no member-adds-member), so a self-join can't be leveraged
+        // to spam-add third parties. The founding admin is seeded server-side by
+        // approveOrganization, and promotions go through the changeOrgMemberRole
+        // callable — both audited via admin SDK.
         allow create: if isValidOrgMemberCreate(request.resource.data)
+          && request.resource.data.userId == userId
+          && request.resource.data.role == 'member'
           && (
-               isOrgAdmin(orgId)
+               isOwner(userId)
+               || isOrgAdmin(orgId)
                || isVillageAdmin(orgMunicipalityId(orgId))
                || isAppAdmin()
-               || (isOrgMember(orgId) && request.resource.data.role == 'member')
              );
-        // only the role may change, and only an org admin / backstop may change it.
-        allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
-          && request.resource.data.role in ['admin', 'member']
-          && (isOrgAdmin(orgId) || isVillageAdmin(orgMunicipalityId(orgId)) || isAppAdmin());
+        // role goes through changeOrgMemberRole (admin SDK); a member doc has no
+        // other client-editable fields.
+        allow update: if false;
         allow delete: if isOwner(userId)
           || isOrgAdmin(orgId)
           || isVillageAdmin(orgMunicipalityId(orgId))
@@ -653,7 +683,8 @@ service cloud.firestore {
         || isAppAdmin()
       )
         && request.resource.data.createdBy == resource.data.createdBy
-        && request.resource.data.municipalityId == resource.data.municipalityId;
+        && request.resource.data.municipalityId == resource.data.municipalityId
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['commentCount', 'readCount']);
       allow delete: if isOwner(resource.data.createdBy)
         || (request.auth.uid in resource.data.organizerUserIds)
         || isVillageAdmin(resource.data.municipalityId)
@@ -666,10 +697,17 @@ service cloud.firestore {
         // capacity/waitlist decision must be made server-side in a
         // transaction.
         allow create: if false;
-        // Self may update/cancel their own registration; an organizer may too
+        // Self may update their own registration; an organizer may too
         // (check-in via `checkedInAt`, or removing a no-show / walk-in).
-        allow update: if (isAuthenticated() && resource.data.userId == request.auth.uid)
-          || isEventOrganizer(eventId);
+        // EXCEPTION: writes touching `paidAt` are the paid register and are
+        // organizer-only — a registrant must not be able to self-mark paid.
+        allow update: if (
+             (isAuthenticated() && resource.data.userId == request.auth.uid)
+          || isEventOrganizer(eventId)
+        ) && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['paidAt'])
+          || isEventOrganizer(eventId)
+        );
         allow delete: if (isAuthenticated() && resource.data.userId == request.auth.uid)
           || isEventOrganizer(eventId);
       }
@@ -704,37 +742,67 @@ service cloud.firestore {
         );
     }
 
-    // Collection-group queries: allow authenticated users to list only their
-    // own rows. These rules are evaluated for CG list operations on the named
-    // sub-collection regardless of which parent collection they live under.
-    // "allow read: if true" on nested paths allows single-doc gets but does
-    // NOT satisfy list operations on a collection-group in Firestore Rules v2.
-
-    match /{path=**}/members/{userId} {
-      allow list: if isAuthenticated()
-        && resource.data.userId == request.auth.uid;
+    // festivalPosters — top-level, scoped by municipalityId field (mirrors
+    // the /places proposal pattern: members propose, admins/app-admins
+    // approve/reject and may act directly).
+    match /festivalPosters/{posterId} {
+      allow read: if true;
+      allow create: if isAppAdmin()
+        || isVillageAdmin(request.resource.data.municipalityId)
+        || (
+             isVillageMember(request.resource.data.municipalityId)
+             && isValidFestivalPosterCreate(request.resource.data)
+             && request.resource.data.proposedBy == request.auth.uid
+           );
+      // status/hiddenBy/hiddenAt/hiddenReason and the interaction counters
+      // (commentCount/readCount) are function-owned (see setContentVisibility
+      // and the interaction count triggers) — clients may never touch them here.
+      allow update: if (isVillageAdmin(resource.data.municipalityId) || isAppAdmin() || isOwner(resource.data.proposedBy))
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+             'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+             'commentCount', 'readCount',
+           ]);
+      allow delete: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin()
+        || (isOwner(resource.data.proposedBy) && resource.data.status == 'active');
     }
+
+    // Collection-group queries: these rules are evaluated for CG list
+    // operations on the named sub-collection regardless of which parent
+    // collection they live under. "allow read: if true" on nested paths
+    // allows single-doc gets but does NOT satisfy list operations on a
+    // collection-group in Firestore Rules v2.
+
+    // Member docs are individually public (allow read: if true), so any
+    // authenticated user may also list member rows across collection groups
+    // (e.g. to show another user's villages on their profile). Firestore
+    // rules cannot express "filtered to a single userId", so this also
+    // permits an unfiltered dump of all member rows to any signed-in caller
+    // — an accepted tradeoff since the underlying docs are already public.
+    match /{path=**}/members/{userId} {
+      allow list: if isAuthenticated();
+    }
+
+    // Registrations remain restricted to the caller's own rows (unlike
+    // members, registration docs are not individually public).
 
     match /{path=**}/registrations/{regId} {
       allow list: if isAuthenticated()
         && resource.data.userId == request.auth.uid;
     }
 
-    // occupations — superadmin managed list
-    match /occupations/{occupationId} {
+    // Public read-only app config (force-update gate). Written by admin/seed
+    // script via the admin SDK, never by clients.
+    match /config/{docId} {
       allow read: if true;
-      allow write: if isAppAdmin();
+      allow write: if false;
     }
 
-    // occupationProposals — users propose, superadmin reviews
-    match /occupationProposals/{proposalId} {
-      allow read: if isOwner(resource.data.proposedBy) || isAppAdmin();
-      allow create: if isAuthenticated()
-        && isValidOccupationProposalCreate(request.resource.data)
-        && request.resource.data.proposedBy == request.auth.uid
-        && request.resource.data.status == 'pending';
-      allow update: if isAppAdmin();
-      allow delete: if isOwner(resource.data.proposedBy) || isAppAdmin();
+    // occupations — collected free-text tally (doc id = slug), low-risk
+    // reference data. Any authenticated client may upsert count/name/
+    // updatedAt via recordOccupation; not moderated.
+    match /occupations/{occupationId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
     }
   }
 }

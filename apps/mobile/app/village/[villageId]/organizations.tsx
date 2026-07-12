@@ -3,18 +3,31 @@ import { Screen } from '../../../components/primitives';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { useT } from '../../../lib/i18n';
 import { OrganizationsManager } from '../../../components/feature/proposable/OrganizationsManager';
+import type { OrganizationType } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
 
-// Create-only Agrupaciones surface: any member proposes a peña/asociación/otros;
+// ASCII query aliases: the add-content sheet can't safely pass the accented type
+// names through a URL, so it sends these; anything else leaves the picker default.
+const TYPE_ALIASES: Record<string, OrganizationType> = {
+  pena: 'peña',
+  asociacion: 'asociación',
+  otros: 'otros',
+};
+
+// Agrupaciones create surface: any member proposes a peña/asociación/otros;
 // organizers create (auto-approved). After submit we return to the pueblo tab.
-// Moderation lives in the community ("Editar") screen.
 export default function VillageOrganizations() {
-  const { villageId } = useLocalSearchParams<{ villageId: string }>();
+  const { villageId, type } = useLocalSearchParams<{ villageId: string; type?: string }>();
   const { t } = useT();
+  const initialType = type ? TYPE_ALIASES[type] : undefined;
   return (
     <Screen padded={false}>
       <ScreenHeader title={t('village.admin.organizations.add')} />
       {villageId ? (
-        <OrganizationsManager villageId={villageId} mode="create" onCreated={() => router.back()} />
+        <OrganizationsManager
+          villageId={villageId}
+          initialType={initialType}
+          onCreated={() => router.back()}
+        />
       ) : null}
     </Screen>
   );

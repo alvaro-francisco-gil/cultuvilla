@@ -1,17 +1,18 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, View } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { useLocalSearchParams, router } from 'expo-router';
-import { Screen } from '../../../../components/primitives/Screen';
-import { VStack } from '../../../../components/primitives/VStack';
+import { useCallback, useEffect, useState } from 'react';
+import { ScrollView } from 'react-native';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Text } from '../../../../components/primitives/Text';
-import { DetailHeroImage } from '../../../../components/feature/DetailHeroImage';
-import { FloatingBackButton } from '../../../../components/feature/FloatingBackButton';
-import { FloatingShareButton } from '../../../../components/feature/FloatingShareButton';
+import { VStack } from '../../../../components/primitives/VStack';
+import { EntityDetailScaffold } from '../../../../components/feature/EntityDetailScaffold';
+import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
+import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
 import { PersonCard } from '../../../../components/feature/VillageSections';
+import { EntityComments } from '../../../../components/feature/EntityComments';
 import { useT } from '../../../../lib/i18n';
 import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
+import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 import { getPlace } from '@cultuvilla/shared/services/municipalityService';
+import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { getPlaceViewLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getPersonsByBurialPlace } from '@cultuvilla/shared/services/personService';
 import { buildDisplayName } from '@cultuvilla/shared/models/person';
@@ -28,47 +29,63 @@ export default function PlaceDetailScreen() {
   const [place, setPlace] = useState<Place | null>(null);
   const [buried, setBuried] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
+  const { canManage } = useEntityCapabilities(villageId);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!villageId || !placeId) return;
-    void (async () => {
-      try {
-        const p = await getPlace(villageId, placeId);
-        setPlace(p);
-        if (p?.kind === 'cemetery') {
-          setBuried(await getPersonsByBurialPlace(placeId));
-        }
-      } finally {
-        // On failure `place` stays null, so the not-found view renders
-        // instead of an indefinite spinner.
-        setLoading(false);
+    try {
+      const p = await getPlace(villageId, placeId);
+      setPlace(p);
+      if (p?.kind === 'cemetery') {
+        setBuried(await getPersonsByBurialPlace(placeId));
       }
-    })();
+    } finally {
+      setLoading(false);
+    }
   }, [villageId, placeId]);
 
-  if (loading || !place) {
-    return (
-      <Screen padded={false} topInset={false}>
-        <StatusBar style="light" />
-        <View className="flex-1 items-center justify-center">
-          {loading ? <ActivityIndicator /> : <Text>{t('common.notFound')}</Text>}
-        </View>
-        <FloatingBackButton />
-      </Screen>
-    );
-  }
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
+
+  useEffect(() => {
+    if (!place) return;
+    void recordEntityView({ entityKind: 'place', entityId: place.id, municipalityId: place.municipalityId });
+  }, [place?.id]);
+
+  const actions: EntityDetailAction[] = place
+    ? [
+        ...(canManage
+          ? [
+              {
+                icon: 'create-outline' as const,
+                accessibilityLabel: t('common.edit'),
+                onPress: () => router.push(`/village/${villageId}/place/${place.id}/edit` as never),
+              },
+            ]
+          : []),
+        {
+          icon: 'share-outline',
+          accessibilityLabel: t('deeplink.shareViewLabel'),
+          onPress: () => void share(getPlaceViewLink(villageId, place.id), place.name),
+        },
+      ]
+    : [];
 
   return (
-    <Screen padded={false} topInset={false}>
-      <StatusBar style="light" />
-      <ScrollView contentContainerClassName="pb-10">
-        <DetailHeroImage imageUri={place.imageURL} fallbackIcon="location-outline" />
-        <FloatingBackButton />
-        <FloatingShareButton
-          onPress={() => void share(getPlaceViewLink(villageId, place.id), place.name)}
-        />
-        <VStack gap={3} className="p-4">
-          <Text variant="h1">{place.name}</Text>
+    <EntityDetailScaffold
+      loading={loading}
+      notFound={!loading && !place}
+      imageUri={place?.imageURL ?? null}
+      fallbackIcon={ENTITY_FALLBACK_ICON.place}
+      actions={actions}
+      title={place?.name}
+      onRefresh={load}
+    >
+      {place ? (
+        <>
           <Text tone="muted" variant="bodySm">
             {t(`village.admin.places.kind.${place.kind}` as never)}
           </Text>
@@ -94,8 +111,15 @@ export default function PlaceDetailScreen() {
               )}
             </VStack>
           ) : null}
-        </VStack>
-      </ScrollView>
-    </Screen>
+          <EntityComments
+            key={place.id}
+            entityKind="place"
+            entityId={place.id}
+            municipalityId={place.municipalityId}
+            canModerate={canManage}
+          />
+        </>
+      ) : null}
+    </EntityDetailScaffold>
   );
 }

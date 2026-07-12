@@ -1,9 +1,11 @@
 import { View } from 'react-native';
-import { HStack, Text, VStack } from '../primitives';
+import { HStack, Text, VStack, Pressable } from '../primitives';
 
 export interface StatItem {
   label: string;
   value: number | null;
+  /** When set, the column is tappable (e.g. the pueblo's personas stat opens the roster). */
+  onPress?: () => void;
 }
 
 /**
@@ -15,9 +17,8 @@ export interface StatItem {
 export function StatsRow({ stats }: { stats: StatItem[] }) {
   return (
     <HStack className="items-stretch justify-center w-full">
-      {stats.map((s, i) => (
-        <View key={s.label} className="flex-row flex-1 items-center justify-center">
-          {i > 0 ? <View className="w-px h-8 bg-subtle mx-2" /> : null}
+      {stats.map((s, i) => {
+        const column = (
           <VStack gap={1} className="items-center flex-1">
             <Text variant="h2" className="font-bold">
               {s.value === null ? '—' : String(s.value)}
@@ -26,8 +27,25 @@ export function StatsRow({ stats }: { stats: StatItem[] }) {
               {s.label}
             </Text>
           </VStack>
-        </View>
-      ))}
+        );
+        return (
+          <View key={s.label} className="flex-row flex-1 items-center justify-center">
+            {i > 0 ? <View className="w-px h-8 bg-subtle mx-2" /> : null}
+            {s.onPress ? (
+              <Pressable
+                onPress={s.onPress}
+                accessibilityRole="button"
+                accessibilityLabel={s.label}
+                className="flex-1 items-center"
+              >
+                {column}
+              </Pressable>
+            ) : (
+              column
+            )}
+          </View>
+        );
+      })}
     </HStack>
   );
 }

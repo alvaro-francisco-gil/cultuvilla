@@ -151,6 +151,22 @@ export async function uploadBarrioImage(
   );
 }
 
+/**
+ * Upload one festival poster image. Returns the **download URL** to append to
+ * `FestivalPosterData.images[]`. Each image gets a unique id so multiple images
+ * under the same poster coexist instead of overwriting.
+ */
+export async function uploadFestivalPosterImage(
+  municipalityId: string,
+  posterId: string,
+  image: UploadableImage,
+): Promise<string> {
+  return uploadToPath(
+    `festivalPosters/${municipalityId}/${posterId}/${generateImageId(image.filename)}`,
+    image,
+  );
+}
+
 /** Resolve a download URL for a stored news image path. */
 export async function newsImageDownloadURL(storagePath: string): Promise<string> {
   return getDownloadURL(ref(getFirebaseStorage(), storagePath));

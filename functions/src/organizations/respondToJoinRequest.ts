@@ -10,6 +10,7 @@ import {
 } from '@cultuvilla/shared/firebase/refs/admin';
 import { buildOrgMemberData } from '@cultuvilla/shared/models';
 import { notifyJoinRequestResolved } from '../helpers/notifyRequests';
+import { writeMembershipEvent } from '../helpers/membershipAudit';
 
 const db = admin.firestore();
 const HANDLER = 'respondToJoinRequest';
@@ -84,7 +85,16 @@ export const respondToJoinRequest = onCall<
 
       if (decision === 'approved') {
         const memberRef = organizationMemberDoc(db, orgId, requesterUid);
-        tx.set(memberRef, buildOrgMemberData({ role: 'member' }));
+        tx.set(memberRef, buildOrgMemberData({ userId: requesterUid, role: 'member' }));
+        writeMembershipEvent(tx, db, {
+          scopeType: 'org',
+          scopeId: orgId,
+          municipalityId,
+          actorUserId: uid,
+          targetUserId: requesterUid,
+          action: 'added',
+          toRole: 'member',
+        });
       }
     });
 

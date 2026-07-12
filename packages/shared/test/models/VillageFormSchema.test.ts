@@ -4,7 +4,7 @@ import { VillageFormSchema } from '../../src/models/municipality/VillageFormSche
 const validBase = {
   municipalityId: 'mun-1',
   description: 'Pueblo de la sierra',
-  adminUserId: 'user-1',
+  organizerId: 'user-1',
   location: { lat: 40.7, lng: -3.9, displayName: 'Madrid' },
 };
 
@@ -40,11 +40,11 @@ describe('VillageFormSchema', () => {
     expect(result.data.description).toBe('Hola');
   });
 
-  it('rejects an empty adminUserId', () => {
-    const result = VillageFormSchema.safeParse({ ...validBase, adminUserId: '' });
+  it('rejects an empty organizerId', () => {
+    const result = VillageFormSchema.safeParse({ ...validBase, organizerId: '' });
     expect(result.success).toBe(false);
     if (result.success) return;
-    const err = result.error.issues.find((i) => i.path[0] === 'adminUserId');
+    const err = result.error.issues.find((i) => i.path[0] === 'organizerId');
     expect(err?.message).toBe('Selecciona el coordinador');
   });
 

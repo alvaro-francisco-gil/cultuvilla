@@ -4,7 +4,7 @@
 // the rule family doesn't add value for these inline mocks.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../src/firebase', () => ({ getDb: vi.fn() }));
+vi.mock('../../src/firebase', () => ({ getDb: vi.fn(), getFirebaseFunctions: vi.fn(() => ({})) }));
 vi.mock('../../src/firebase/refs/client', () => ({
   organizationMembersCollection: vi.fn((_db, orgId) => ({ _orgId: orgId })),
   organizationMemberDoc: vi.fn(),
@@ -15,10 +15,11 @@ vi.mock('firebase/firestore', () => ({
   getDocs: vi.fn(),
   setDoc: vi.fn(),
   deleteDoc: vi.fn(),
-  updateDoc: vi.fn(),
 }));
+vi.mock('firebase/functions', () => ({ httpsCallable: vi.fn() }));
 
-import { getCountFromServer, setDoc, updateDoc } from 'firebase/firestore';
+import { getCountFromServer, setDoc } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { organizationMembersCollection } from '../../src/firebase/refs/client';
 import {
   getOrgMemberCount,
@@ -66,11 +67,12 @@ describe('orgMemberService roles', () => {
     expect(arg).toMatchObject({ role: 'admin' });
   });
 
-  it('setOrgMemberRole updates only the role', async () => {
-    vi.mocked(updateDoc).mockResolvedValue(undefined);
+  it('setOrgMemberRole invokes the changeOrgMemberRole callable', async () => {
+    const call = vi.fn().mockResolvedValue({ data: { ok: true } });
+    vi.mocked(httpsCallable).mockReturnValue(call as unknown as ReturnType<typeof httpsCallable>);
     await setOrgMemberRole('org1', 'u1', 'admin');
-    const patch = (updateDoc as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1];
-    expect(patch).toEqual({ role: 'admin' });
+    expect(httpsCallable).toHaveBeenCalledWith(expect.anything(), 'changeOrgMemberRole');
+    expect(call).toHaveBeenCalledWith({ orgId: 'org1', targetUserId: 'u1', role: 'admin' });
   });
 });
 
@@ -92,5 +94,47 @@ describe('getOrgAdminIds', () => {
 
     const adminIds = await getOrgAdminIds('org1');
     expect(adminIds).toEqual(['u1', 'u3']);
+  });
+});
+
+describe('isOrgAdmin', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns true when the membership doc has role admin', async () => {
+    const { getDoc } = await import('firebase/firestore');
+    const { isOrgAdmin } = await import('../../src/services/orgMemberService');
+    vi.mocked(getDoc).mockResolvedValue({
+      exists: () => true,
+      data: () => ({ joinedAt: new Date(), role: 'admin' }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+
+    expect(await isOrgAdmin('org1', 'u1')).toBe(true);
+  });
+
+  it('returns false when the member has role member', async () => {
+    const { getDoc } = await import('firebase/firestore');
+    const { isOrgAdmin } = await import('../../src/services/orgMemberService');
+    vi.mocked(getDoc).mockResolvedValue({
+      exists: () => true,
+      data: () => ({ joinedAt: new Date(), role: 'member' }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+
+    expect(await isOrgAdmin('org1', 'u1')).toBe(false);
+  });
+
+  it('returns false when no membership doc exists', async () => {
+    const { getDoc } = await import('firebase/firestore');
+    const { isOrgAdmin } = await import('../../src/services/orgMemberService');
+    vi.mocked(getDoc).mockResolvedValue({
+      exists: () => false,
+      data: () => undefined,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+
+    expect(await isOrgAdmin('org1', 'u1')).toBe(false);
   });
 });

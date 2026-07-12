@@ -1,10 +1,6 @@
 import { z } from 'zod';
 import { LatLngSchema, type LatLng } from '../core/LocationDataModel';
-import {
-  ReviewStatusSchema,
-  reviewDecisionFields,
-  type ReviewStatus,
-} from '../core/ReviewableDataModel';
+import { visibilityFields, defaultVisibility } from '../core/VisibilityModel';
 import { VillageProfileFormSchema } from './CensoTypes';
 
 /**
@@ -22,7 +18,7 @@ export const VillageCommunitySchema = z.object({
   /** The village organizer (founding admin). `null` while the community has been
    * "started" by a villager but nobody has been granted the organizer role yet —
    * during that window any member can edit the basic info (wiki phase). */
-  adminUserId: z.string().nullable(),
+  organizerId: z.string().nullable(),
   profileForm: VillageProfileFormSchema.nullable(),
   activatedAt: z.date(),
 });
@@ -136,29 +132,24 @@ export function buildMunicipalityData(input: MunicipalityDataInput): Municipalit
 
 export interface ActivateCommunityInput {
   description: string;
-  adminUserId?: string | null;
+  organizerId?: string | null;
   coordinates?: LatLng | null;
 }
 
 export function buildVillageCommunity(input: ActivateCommunityInput): VillageCommunity {
   return {
     description: input.description,
-    adminUserId: input.adminUserId ?? null,
+    organizerId: input.organizerId ?? null,
     profileForm: null,
     activatedAt: new Date(),
   };
 }
 
-// ── Proposals (propose-pending shared by barrios & places) ──────────────
-//
-// Any village member may propose a barrio/place; it lands as `pending` and is
-// visible to everyone. Organizers (village/app admin) create directly and
-// approve/reject. Enforcement lives in firestore.rules.
-
-export const ProposalStatusSchema = ReviewStatusSchema;
-export type ProposalStatus = ReviewStatus;
-
 // ── Barrios (subcollection: /municipalities/{id}/barrios/{barrioId}) ────
+//
+// Any village member may propose a barrio/place; it lands `active` and is
+// visible to everyone immediately. Organizers (village/app admin) can hide it
+// afterward via the visibility model. Enforcement lives in firestore.rules.
 
 export const BarrioDataSchema = z.object({
   name: z.string(),
@@ -167,8 +158,12 @@ export const BarrioDataSchema = z.object({
   imageURL: z.string().nullable(),
   createdAt: z.date(),
   proposedBy: z.string().nullable(),
-  // status + reviewedBy + reviewedAt
-  ...reviewDecisionFields,
+  // Denormalized interaction counters, maintained server-side by the comments
+  // Cloud Function trigger / the detail-screen view tracker. Initialized to 0
+  // at create.
+  commentCount: z.number().int(),
+  readCount: z.number().int(),
+  ...visibilityFields,
 });
 export type BarrioData = z.infer<typeof BarrioDataSchema>;
 
@@ -176,10 +171,7 @@ export interface BarrioDataInput {
   name: string;
   municipalityId: string;
   imageURL?: string | null;
-  status?: ProposalStatus;
   proposedBy?: string | null;
-  reviewedBy?: string | null;
-  reviewedAt?: Date | null;
 }
 
 export function buildBarrioData(input: BarrioDataInput): BarrioData {
@@ -188,10 +180,10 @@ export function buildBarrioData(input: BarrioDataInput): BarrioData {
     municipalityId: input.municipalityId,
     imageURL: input.imageURL ?? null,
     createdAt: new Date(),
-    status: input.status ?? 'pending',
     proposedBy: input.proposedBy ?? null,
-    reviewedBy: input.reviewedBy ?? null,
-    reviewedAt: input.reviewedAt ?? null,
+    commentCount: 0,
+    readCount: 0,
+    ...defaultVisibility(),
   };
 }
 
@@ -227,8 +219,12 @@ export const PlaceDataSchema = z.object({
   imageURL: z.string().nullable(),
   createdAt: z.date(),
   proposedBy: z.string().nullable(),
-  // status + reviewedBy + reviewedAt
-  ...reviewDecisionFields,
+  // Denormalized interaction counters, maintained server-side by the comments
+  // Cloud Function trigger / the detail-screen view tracker. Initialized to 0
+  // at create.
+  commentCount: z.number().int(),
+  readCount: z.number().int(),
+  ...visibilityFields,
 });
 export type PlaceData = z.infer<typeof PlaceDataSchema>;
 
@@ -238,10 +234,7 @@ export interface PlaceDataInput {
   municipalityId: string;
   description?: string | null;
   imageURL?: string | null;
-  status?: ProposalStatus;
   proposedBy?: string | null;
-  reviewedBy?: string | null;
-  reviewedAt?: Date | null;
 }
 
 export function buildPlaceData(input: PlaceDataInput): PlaceData {
@@ -252,9 +245,9 @@ export function buildPlaceData(input: PlaceDataInput): PlaceData {
     description: input.description ?? null,
     imageURL: input.imageURL ?? null,
     createdAt: new Date(),
-    status: input.status ?? 'pending',
     proposedBy: input.proposedBy ?? null,
-    reviewedBy: input.reviewedBy ?? null,
-    reviewedAt: input.reviewedAt ?? null,
+    commentCount: 0,
+    readCount: 0,
+    ...defaultVisibility(),
   };
 }

@@ -41,6 +41,12 @@ export interface StepperProps {
    * to false for create-from-scratch flows.
    */
   allStepsReachable?: boolean;
+  /**
+   * Stable testID for the bottom-right primary button. It stays constant across
+   * steps even though its label flips between "next" and the submit label, so an
+   * E2E driver advances the whole wizard through one selector.
+   */
+  primaryTestID?: string;
 }
 
 export function Stepper({
@@ -50,6 +56,7 @@ export function Stepper({
   loading = false,
   submitError,
   allStepsReachable = false,
+  primaryTestID,
 }: StepperProps) {
   const { t } = useT();
   const insets = useSafeAreaInsets();
@@ -164,6 +171,7 @@ export function Stepper({
               loading={loading}
               disabled={!stepValid}
               fullWidth
+              testID={primaryTestID}
             >
               {isLast ? submitLabel : t('common.stepper.next')}
             </Button>

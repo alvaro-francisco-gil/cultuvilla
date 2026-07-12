@@ -6,5 +6,5 @@
     "noEmit": true,
     "resolveJsonModule": true
   },
-  "include": ["index.ts", "messages/*.json"]
+  "include": ["index.ts", "messages/*.json", "test/**/*.ts", "vitest.config.ts"]
 }

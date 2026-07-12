@@ -1,12 +1,15 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { router, useFocusEffect } from 'expo-router';
 import { Pressable } from '../primitives/Pressable';
 import { Text } from '../primitives/Text';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
+import { useActiveVillageId } from '../../lib/village/useActiveVillageId';
+import { useUnreadInboxCount } from '../../lib/hooks/useUnreadInboxCount';
 import { useT } from '../../lib/i18n';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { UserMenuModal } from '../feature/UserMenuModal';
@@ -20,26 +23,33 @@ export type AppHeaderProps = {
 
 export function AppHeader({ centerLabel, extraRightSlot }: AppHeaderProps) {
   const insets = useSafeAreaInsets();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const activeMunicipalityId = useActiveVillageId();
   const gate = useRegisterGate();
   const { t } = useT();
+  const { count: unreadCount, refresh: refreshUnread } = useUnreadInboxCount();
   const [municipalityName, setMunicipalityName] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  useFocusEffect(
+    useCallback(() => {
+      refreshUnread();
+    }, [refreshUnread]),
+  );
+
   useEffect(() => {
     let cancelled = false;
-    const id = profile?.activeMunicipalityId;
-    if (!id) {
+    if (!activeMunicipalityId) {
       setMunicipalityName(null);
       return;
     }
-    getMunicipality(id).then((m) => {
+    getMunicipality(activeMunicipalityId).then((m) => {
       if (!cancelled) setMunicipalityName(m?.name ?? null);
     });
     return () => {
       cancelled = true;
     };
-  }, [profile?.activeMunicipalityId]);
+  }, [activeMunicipalityId]);
 
   const label = centerLabel ?? municipalityName ?? t('header.noVillage');
 
@@ -50,7 +60,8 @@ export function AppHeader({ centerLabel, extraRightSlot }: AppHeaderProps) {
         className="bg-accent"
         style={{ paddingTop: insets.top }}
       >
-        <View className="flex-row items-center px-3 pt-1 pb-3">
+        {/* pb is 2px under the pb-3 token (10px) to balance the perceived gap above vs below the row. */}
+        <View className="flex-row items-center px-3 pt-1" style={{ paddingBottom: 10 }}>
           <View className="flex-1">
             <Text
               variant="h3"
@@ -65,13 +76,23 @@ export function AppHeader({ centerLabel, extraRightSlot }: AppHeaderProps) {
           <View className="flex-row items-center gap-1">
             {extraRightSlot}
             <Pressable
-              onPress={() => {
-                // notifications surface not built yet
-              }}
+              onPress={() => router.push('/inbox')}
               accessibilityLabel={t('header.openNotifications')}
               className="p-1"
             >
-              <Ionicons name="notifications" size={28} color="#f9f0e8" />
+              <View>
+                <Ionicons name="notifications" size={28} color="#f9f0e8" />
+                {unreadCount > 0 && (
+                  <View
+                    className="absolute -top-1 -right-1 bg-danger rounded-full items-center justify-center px-1"
+                    style={{ minWidth: 16, height: 16 }}
+                  >
+                    <Text variant="caption" tone="onAccent" style={{ fontSize: 10, lineHeight: 12 }}>
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </Pressable>
             <Pressable
               onPress={() => {

@@ -55,9 +55,8 @@ export function BarrioPicker({
     getBarrios(municipalityId)
       .then((rows) => {
         if (cancelled) return;
-        setOptions(
-          rows.filter((b) => b.status === 'approved').map((b) => ({ id: b.id, name: b.name })),
-        );
+        // getBarrios already filters to active barrios server-side.
+        setOptions(rows.map((b) => ({ id: b.id, name: b.name })));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

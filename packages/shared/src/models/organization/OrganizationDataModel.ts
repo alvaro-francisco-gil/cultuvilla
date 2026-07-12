@@ -31,6 +31,15 @@ export const OrganizationDataSchema = z.object({
   municipalityId: z.string(),
   requestedBy: z.string(),
   createdAt: z.date(),
+  // Denormalized interaction counters, maintained server-side by the comments
+  // Cloud Function trigger / the detail-screen view tracker. Initialized to 0
+  // at create.
+  commentCount: z.number().int(),
+  readCount: z.number().int(),
+  // When false, the member roster is shown only to joined members (admins
+  // included); when true, it is shown to everyone. Display preference, not a
+  // security boundary — member identities are world-readable. Default true.
+  membersPublic: z.boolean(),
   // status + reviewedBy + reviewedAt
   ...reviewDecisionFields,
 });
@@ -50,6 +59,7 @@ export interface OrganizationDataInput {
   reviewedBy?: string | null;
   createdAt?: Date;
   reviewedAt?: Date | null;
+  membersPublic?: boolean;
 }
 
 export function buildOrganizationData(input: OrganizationDataInput): OrganizationData {
@@ -64,5 +74,23 @@ export function buildOrganizationData(input: OrganizationDataInput): Organizatio
     reviewedBy: input.reviewedBy ?? null,
     createdAt: input.createdAt ?? new Date(),
     reviewedAt: input.reviewedAt ?? null,
+    commentCount: 0,
+    readCount: 0,
+    membersPublic: input.membersPublic ?? true,
   };
+}
+
+/**
+ * Whether a given viewer may see an org's member roster. Public groups are
+ * visible to everyone; private groups only to joined members (admins are
+ * members, so they always see it). Pure — the UI-level display gate.
+ */
+export function canViewOrgRoster({
+  membersPublic,
+  isMember,
+}: {
+  membersPublic: boolean;
+  isMember: boolean;
+}): boolean {
+  return membersPublic || isMember;
 }

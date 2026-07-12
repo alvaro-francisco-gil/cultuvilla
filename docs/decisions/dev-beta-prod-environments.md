@@ -71,7 +71,8 @@ production, so dev auto-deploys on `develop`.
 
 ## Revisit when
 
-- Beta needs its own deployed web URL → add a second Vercel project/scope with
-  `NEXT_PUBLIC_APP_ENV=beta`.
 - Mobile store shipping is needed → add EAS build/submit workflows per branch
   (deliberately out of scope for the CI-deploy work, which is backend + hosting).
+- Beta/prod need env-restricted API surfaces → give them their own Google
+  Sign-In web OAuth client (`GOOGLE_WEB_CLIENT_ID`) and per-env restricted Maps
+  keys (they currently reuse dev's).

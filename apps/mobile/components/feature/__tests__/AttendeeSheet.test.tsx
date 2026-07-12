@@ -52,7 +52,7 @@ describe('AttendeeSheet', () => {
     expect(onConfirm).toHaveBeenCalledWith(['self', 'dep1'], undefined);
   });
 
-  it('gates confirm behind a shared phone on telephoneRequired events with a new attendee', () => {
+  it('gates confirm behind a valid phone on telephoneRequired events with a new attendee', () => {
     const onConfirm = jest.fn();
     const { getByTestId, queryByTestId } = render(
       <AttendeeSheet
@@ -72,9 +72,61 @@ describe('AttendeeSheet', () => {
     fireEvent.press(getByTestId('attendee-confirm'));
     expect(onConfirm).not.toHaveBeenCalled();
 
+    // Invalid Spanish number (too short) still blocks confirm.
+    fireEvent.changeText(phone, '12345');
+    fireEvent.press(getByTestId('attendee-confirm'));
+    expect(onConfirm).not.toHaveBeenCalled();
+
+    // A valid number is reported to the parent in E.164 form (with the +34 prefix).
     fireEvent.changeText(phone, '600111222');
     fireEvent.press(getByTestId('attendee-confirm'));
-    expect(onConfirm).toHaveBeenCalledWith(['self'], '600111222');
+    expect(onConfirm).toHaveBeenCalledWith(['self'], '+34600111222');
+  });
+
+  it('shows the invalid-phone error only after Confirmar is pressed, not while typing', () => {
+    const { getByTestId, queryByText, getByText } = render(
+      <AttendeeSheet
+        {...baseProps}
+        telephoneRequired
+        attendees={[{ id: 'self', name: 'Ana' }]}
+      />,
+    );
+    fireEvent.press(getByTestId('attendee-row-self'));
+    const phone = getByTestId('attendee-phone');
+
+    // Typing a still-invalid number must NOT nag — the error is silent until submit.
+    fireEvent.changeText(phone, '123');
+    expect(queryByText('event.register.phoneInvalid')).toBeNull();
+
+    // Pressing Confirmar with an invalid number reveals the error (the button is
+    // reachable — it is not disabled just because the phone is invalid).
+    fireEvent.press(getByTestId('attendee-confirm'));
+    expect(getByText('event.register.phoneInvalid')).toBeTruthy();
+
+    // Correcting the number clears the error again.
+    fireEvent.changeText(phone, '600111222');
+    expect(queryByText('event.register.phoneInvalid')).toBeNull();
+  });
+
+  it('validates against the selected country prefix', () => {
+    const onConfirm = jest.fn();
+    const { getByTestId } = render(
+      <AttendeeSheet
+        {...baseProps}
+        telephoneRequired
+        onConfirm={onConfirm}
+        attendees={[{ id: 'self', name: 'Ana' }]}
+      />,
+    );
+    fireEvent.press(getByTestId('attendee-row-self'));
+
+    // '12345' is invalid for Spain (+34) but valid as a generic 5-digit number.
+    fireEvent.changeText(getByTestId('attendee-phone'), '12345');
+    fireEvent.press(getByTestId('attendee-phone-prefix'));
+    fireEvent.press(getByTestId('attendee-phone-option-FR'));
+
+    fireEvent.press(getByTestId('attendee-confirm'));
+    expect(onConfirm).toHaveBeenCalledWith(['self'], '+3312345');
   });
 
   it('routes to persona creation via onCreateNew', () => {

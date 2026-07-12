@@ -20,6 +20,11 @@ export const EventDataSchema = z.object({
   imageURL: z.string().nullable(),
   maxAttendees: z.number().int().nullable(),
   telephoneRequired: z.boolean(),
+  // True when money is collected for the event; the organizer marks who paid
+  // per-attendee via registration.paidAt. `.default(false)` so reads of event
+  // docs created before this field parse instead of throwing the strict
+  // converter (existing dev docs are backfilled to false in this same change).
+  requiresPayment: z.boolean().default(false),
   status: EventStatusSchema,
   organizerUserIds: z.array(z.string()),
   organizerOrgIds: z.array(z.string()),
@@ -39,6 +44,19 @@ export const EventDataSchema = z.object({
   // so every event doc carries them — never absent.
   confirmedCount: z.number().int(),
   totalCount: z.number().int(),
+  // Denormalized interaction counters, maintained server-side by the comments
+  // Cloud Function trigger / the detail-screen view tracker. Initialized to 0
+  // at create.
+  commentCount: z.number().int(),
+  readCount: z.number().int(),
+  // Derived from `endDate ?? startDate` (see eventEndBoundary): the instant an
+  // event stops being current. The Explora feed queries on this — not on
+  // `startDate` — so a same-day event that already started, or a multi-day
+  // event mid-run, still surfaces (it drops out only once completeExpiredEvents
+  // flips its status). Written by buildEventData on create and recomputed in
+  // updateEvent whenever the dates change; kept a stored field (not computed at
+  // read) because Firestore can only range-filter/order on a persisted field.
+  endBoundary: z.date(),
 });
 export type EventData = z.infer<typeof EventDataSchema>;
 
@@ -51,6 +69,7 @@ export interface EventDataInput {
   imageURL?: string | null;
   maxAttendees?: number | null;
   telephoneRequired?: boolean;
+  requiresPayment?: boolean;
   status?: EventStatus;
   organizerUserIds: string[];
   organizerOrgIds: string[];
@@ -65,15 +84,17 @@ export interface EventDataInput {
 
 export function buildEventData(input: EventDataInput): EventData {
   const now = new Date();
+  const endDate = input.endDate ?? null;
   return {
     title: input.title,
     description: input.description,
     startDate: input.startDate,
-    endDate: input.endDate ?? null,
+    endDate,
     location: input.location,
     imageURL: input.imageURL ?? null,
     maxAttendees: input.maxAttendees ?? null,
     telephoneRequired: input.telephoneRequired ?? false,
+    requiresPayment: input.requiresPayment ?? false,
     status: input.status ?? 'published',
     organizerUserIds: input.organizerUserIds,
     organizerOrgIds: input.organizerOrgIds,
@@ -86,6 +107,9 @@ export function buildEventData(input: EventDataInput): EventData {
     villageCoordinates: input.villageCoordinates,
     confirmedCount: 0,
     totalCount: 0,
+    commentCount: 0,
+    readCount: 0,
+    endBoundary: eventEndBoundary({ startDate: input.startDate, endDate }),
   };
 }
 

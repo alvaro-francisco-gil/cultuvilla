@@ -5,6 +5,17 @@
     "save": "Guardar",
     "cancel": "Cancelar",
     "delete": "Eliminar",
+    "deleteConfirmTitle": "Eliminar",
+    "deleteConfirmMessage": "¿Seguro que quieres eliminarlo? Esta acción no se puede deshacer.",
+    "deleting": {
+      "event": "Eliminando evento…",
+      "news": "Eliminando noticia…",
+      "organization": "Eliminando organización…",
+      "person": "Eliminando persona…",
+      "place": "Eliminando lugar…",
+      "barrio": "Eliminando barrio…",
+      "festivalPoster": "Eliminando cartel…"
+    },
     "edit": "Editar",
     "approve": "Aprobar",
     "reject": "Rechazar",
@@ -20,9 +31,12 @@
     "stepper": { "back": "Anterior", "next": "Siguiente" },
     "close": "Cerrar",
     "photo": "Foto",
+    "and": "y",
     "error": {
-      "title": "No se pudo cargar",
-      "body": "Algo salió mal al cargar el contenido. Inténtalo de nuevo.",
+      "network": "Parece que no hay conexión. Comprueba tu internet.",
+      "data": "No pudimos mostrar este contenido.",
+      "unknown": "Algo salió mal al cargar el contenido.",
+      "retryLater": "Inténtalo de nuevo más tarde.",
       "retry": "Reintentar"
     }
   },
@@ -40,7 +54,7 @@
     },
     "googleConnecting": "Conectando con Google…",
     "emailLinkHint": "Te enviaremos un enlace para entrar sin contraseña.",
-    "emailLinkSent": "Enlace enviado a {email}. Revisa tu correo.",
+    "emailLinkSent": "Enlace enviado a {email}. Revisa tu correo, incluida la carpeta de correo no deseado.",
     "emailLink": {
       "completing": "Iniciando sesión…",
       "confirmTitle": "Confirma tu correo",
@@ -62,25 +76,56 @@
     "profileEntry": "Administración",
     "hub": {
       "organizerRequests": "Solicitudes de administrador",
-      "organizerRequestsHint": "Revisar pendientes",
-      "occupations": "Ocupaciones",
-      "occupationsHint": "Aprobadas y propuestas"
+      "organizerRequestsHint": "Revisar pendientes"
     },
     "organizerRequests": {
       "title": "Solicitudes de administrador",
       "empty": "No hay solicitudes pendientes",
       "approve": "Aprobar",
       "reject": "Rechazar"
+    }
+  },
+  "occupations": {
+    "picker": {
+      "label": "Ocupación",
+      "customLabel": "Otra ocupación",
+      "customPlaceholder": "Escribe una ocupación",
+      "add": "Añadir"
     },
-    "occupations": {
-      "title": "Ocupaciones",
-      "catalog": "Catálogo",
-      "proposals": "Propuestas pendientes",
-      "addName": "Nombre",
-      "add": "Añadir ocupación",
-      "approve": "Aprobar",
-      "reject": "Rechazar",
-      "noProposals": "Sin propuestas pendientes"
+    "catalog": {
+      "agricultor": "Agricultor/a",
+      "ganadero": "Ganadero/a",
+      "profesor": "Profesor/a",
+      "medico": "Médico/a",
+      "enfermero": "Enfermero/a",
+      "hosteleria": "Hostelería",
+      "construccion": "Construcción",
+      "comerciante": "Comerciante",
+      "funcionario": "Funcionario/a",
+      "estudiante": "Estudiante",
+      "jubilado": "Jubilado/a",
+      "autonomo": "Autónomo/a",
+      "administrativo": "Administrativo/a",
+      "transportista": "Transportista",
+      "electricista": "Electricista",
+      "fontanero": "Fontanero/a",
+      "mecanico": "Mecánico/a",
+      "panadero": "Panadero/a",
+      "peluquero": "Peluquero/a",
+      "limpieza": "Limpieza",
+      "veterinario": "Veterinario/a",
+      "abogado": "Abogado/a",
+      "arquitecto": "Arquitecto/a",
+      "ingeniero": "Ingeniero/a",
+      "cocinero": "Cocinero/a",
+      "camarero": "Camarero/a",
+      "albanil": "Albañil",
+      "carpintero": "Carpintero/a",
+      "informatico": "Informático/a",
+      "artesano": "Artesano/a",
+      "desempleado": "Desempleado/a",
+      "ama-de-casa": "Amo/a de casa",
+      "otro": "Otro"
     }
   },
   "feed": {
@@ -133,6 +178,7 @@
     "menu": "Regístrate para acceder al menú.",
     "createEvent": "Regístrate para crear un evento.",
     "createNews": "Regístrate para crear un artículo.",
+    "comment": "Regístrate para comentar.",
     "eventCta": "Apuntarme",
     "register": "Registrarse",
     "dismiss": "Ahora no"
@@ -155,7 +201,6 @@
     "switchVillage": "Cambiar de pueblo",
     "findVillage": "Buscar pueblo",
     "myRequests": "Mis solicitudes",
-    "solicitudes": "Solicitudes",
     "suggestions": "Sugerencias",
     "terms": "Términos de uso",
     "privacy": "Política de privacidad",
@@ -195,13 +240,10 @@
     "proposals": {
       "pending": "Pendiente",
       "withdraw": "Retirar",
-      "propose": "Proponer",
-      "pendingTitle": "Propuesta pendiente",
-      "pendingInfo": "Los datos se podrán cambiar una vez que se acepte la propuesta. ¿Quieres retirarla?"
+      "propose": "Proponer"
     },
     "join": "Unirme a este pueblo",
     "signInToJoin": "Inicia sesión para unirte",
-    "invitedBanner": "Te han invitado a unirte a este pueblo",
     "joinConfirm": {
       "title": "Unirte a este pueblo",
       "body": "Unirte significa que consideras este tu pueblo. No verifica que vivas aquí.",
@@ -210,8 +252,22 @@
       "cancel": "Cancelar"
     },
     "share": { "title": "Compartir pueblo" },
-    "invite": { "title": "Invitar vecino" },
-    "edit": { "title": "Editar pueblo", "tabDetails": "Detalles", "tabContent": "Contenido", "tabMembers": "Miembros" },
+    "addContent": {
+      "button": "Añadir contenido",
+      "title": "¿Qué quieres añadir?",
+      "items": {
+        "detalles": "Detalles pueblo",
+        "evento": "Evento",
+        "articulo": "Artículo",
+        "agrupacion": "Grupo",
+        "pena": "Peña",
+        "barrio": "Barrio",
+        "lugar": "Lugar",
+        "cartel": "Cartel de fiestas"
+      }
+    },
+    "edit": { "title": "Editar pueblo" },
+    "villagers": { "title": "Personas" },
     "membersList": {
       "colName": "Nombre",
       "colCenso": "Censo",
@@ -220,19 +276,21 @@
       "roleUser": "Miembro",
       "censoComplete": "Censo completo",
       "censoPending": "Censo pendiente",
-      "empty": "Aún no hay miembros."
+      "empty": "Aún no hay miembros.",
+      "promote": "Hacer administrador",
+      "demote": "Quitar administrador",
+      "confirmPromoteTitle": "Hacer administrador",
+      "confirmPromoteBody": "¿Dar permisos de administrador a {name}? Podrá editar el pueblo y gestionar a otros miembros.",
+      "confirmDemoteTitle": "Quitar administrador",
+      "confirmDemoteBody": "¿Retirar los permisos de administrador a {name}?",
+      "roleChangeError": "No se pudo cambiar el rol. Inténtalo de nuevo."
     },
     "events": {
       "label": "Eventos",
       "empty": "No hay eventos en este pueblo"
     },
-    "upcomingEvents": {
-      "title": "Próximos eventos",
-      "empty": "No hay eventos próximos"
-    },
     "newsFeed": {
-      "title": "Artículos",
-      "empty": "Aún no hay artículos en este pueblo"
+      "title": "Artículos"
     },
     "info": {
       "directions": "Cómo llegar"
@@ -260,8 +318,9 @@
       "barrios": {
         "title": "Barrios",
         "add": "Añadir barrio",
+        "editTitle": "Editar barrio",
         "name": "Nombre del barrio",
-        "empty": "Aún no hay barrios",
+        "residentCount": "{count} vecinos",
         "addImage": "Añadir imagen",
         "changeImage": "Cambiar imagen",
         "imageSelected": "Imagen seleccionada"
@@ -269,9 +328,9 @@
       "places": {
         "title": "Lugares",
         "add": "Añadir lugar",
+        "editTitle": "Editar lugar",
         "name": "Nombre",
         "description": "Descripción",
-        "empty": "Aún no hay lugares",
         "addImage": "Añadir imagen",
         "changeImage": "Cambiar imagen",
         "imageSelected": "Imagen seleccionada",
@@ -288,7 +347,6 @@
       "organizations": {
         "title": "Grupos",
         "add": "Añadir grupo",
-        "addPena": "Añadir peña",
         "empty": "Sin solicitudes pendientes",
         "approve": "Aprobar",
         "reject": "Rechazar"
@@ -343,7 +401,7 @@
     "noOrganizer": {
       "body": "Este pueblo todavía no tiene administrador.",
       "cta": "Administrar este pueblo",
-      "pending": "Tu solicitud de administrador está pendiente de revisión"
+      "pending": "Solicitud pendiente"
     },
     "hub": {
       "events": "Eventos",
@@ -361,10 +419,21 @@
       "buried": "Personas enterradas aquí",
       "buriedEmpty": "Aún no hay personas registradas en este lugar"
     },
-    "organizationsList": {
-      "title": "Grupos",
-      "empty": "Aún no hay grupos",
-      "penasEmpty": "Aún no hay peñas"
+    "festivalPosters": {
+      "title": "Carteles de fiestas",
+      "editTitle": "Editar cartel",
+      "add": "Añadir",
+      "form": {
+        "year": "Año",
+        "title": "Nombre de las fiestas",
+        "titlePlaceholder": "p. ej. San Roque",
+        "startDate": "Fecha de inicio",
+        "endDate": "Fecha de fin",
+        "image": "Cartel",
+        "addImage": "Añadir imagen",
+        "removeImage": "Quitar imagen"
+      },
+      "viewer": { "close": "Cerrar" }
     }
   },
   "villages": {
@@ -419,16 +488,17 @@
   },
   "event": {
     "title": "Título",
-    "description": "Descripción",
+    "description": "Descripción (opcional)",
     "startDate": "Fecha de inicio",
     "endDate": "Fecha de fin (opcional)",
     "startDateTime": "Inicio del evento",
     "endDateTime": "Fin del evento (opcional)",
-    "dateRange": "{start} – {end}",
     "location": "Ubicación",
     "maxAttendees": "Máximo de asistentes",
     "unlimited": "Sin límite",
     "telephoneRequired": "Teléfono requerido",
+    "requiresPayment": "Se paga en el evento",
+    "paid": "Pagado",
     "signUp": "Inscribirse",
     "cancelSignUp": "Cancelar inscripción",
     "spotsLeft": "{count} plazas disponibles",
@@ -437,14 +507,22 @@
     "confirmed": "Confirmado",
     "waitlisted": "En lista de espera",
     "attendees": "Asistentes",
+    "attendeesEmpty": "Aún no hay asistentes",
+    "removeAttendeeTitle": "Quitar asistente",
+    "removeAttendeeBody": "¿Seguro que quieres quitar a {name} de este evento?",
+    "removeAttendeeConfirm": "Quitar",
+    "notFoundTitle": "Evento no encontrado",
+    "notFoundBody": "Este evento ya no existe o se ha eliminado.",
+    "descriptionLabel": "Descripción",
+    "call": "Llamar",
     "draft": "Borrador",
     "published": "Publicado",
     "cancelled": "Cancelado",
-    "completed": "Completado",
+    "cancelTitle": "Cancelar evento",
+    "cancelConfirm": "¿Seguro que quieres cancelar este evento?",
     "publish": "Publicar",
     "createEvent": "Crear evento",
     "editEvent": "Editar evento",
-    "manageEvent": "Gestionar evento",
     "imageLabel": "Imagen",
     "addImage": "Añadir imagen",
     "changeImage": "Cambiar imagen",
@@ -452,14 +530,13 @@
     "stepWhen": "Cuándo y dónde",
     "stepDetails": "Detalles",
     "locationName": "Lugar",
-    "locationPin": "Ver en el mapa",
     "village": "Pueblo",
     "villageAutoHint": "Detectado por la ubicación",
     "noVillages": "Únete a un pueblo para poder crear eventos.",
-    "dateTime": "Fecha y hora",
     "date": "Fecha",
     "time": "Hora",
-    "selectDateTime": "Seleccionar fecha y hora",
+    "selectDate": "Seleccionar fecha",
+    "selectTime": "Seleccionar hora",
     "selectLocation": "Seleccionar ubicación",
     "selectedLocation": "Ubicación seleccionada",
     "confirmLocation": "Confirmar ubicación",
@@ -468,6 +545,7 @@
     "locationPickerTitle": "Ubicación del evento",
     "noLocationYet": "Busca una dirección o usa tu ubicación",
     "organizersLabel": "Organizadores",
+    "villageLabel": "Pueblo",
     "groupsLabel": "Grupos involucrados",
     "addOrganizerUser": "Añadir organizador",
     "addOrganizerOrg": "Añadir organización organizadora",
@@ -498,7 +576,11 @@
       "cancelConfirm": "Sí, cancelar",
       "phoneTitle": "Tu teléfono",
       "phonePlaceholder": "Número de teléfono",
-      "signedUpCount": "{count, plural, one {Apuntado} other {Apuntados (#)}}",
+      "phoneInvalid": "Introduce un número de teléfono válido",
+      "phoneSearch": "Buscar país",
+      "phoneNoResults": "Sin resultados",
+      "signedUpCount": "{count, plural, one {Apuntado (#)} other {Apuntados (#)}}",
+      "waitlistedCount": "{count, plural, one {En lista de espera (#)} other {En lista de espera (#)}}",
       "attendeesTitle": "¿A quién quieres apuntar?",
       "createPersona": "Crear una nueva persona",
       "confirm": "Confirmar",
@@ -507,6 +589,7 @@
   },
   "organization": {
     "title": "Grupo",
+    "editTitle": "Editar grupo",
     "description": "Descripción",
     "membersCount": "{count} miembros",
     "join": "Unirme a este grupo",
@@ -525,7 +608,13 @@
     "approved": "Aprobada",
     "rejected": "Rechazada",
     "approve": "Aprobar",
-    "reject": "Rechazar"
+    "reject": "Rechazar",
+    "members": "Miembros",
+    "privacy": "Privacidad",
+    "membersPublicLabel": "Los miembros del grupo son visibles para el pueblo",
+    "membersPrivateHint": "Solo los miembros del grupo verán quién forma parte.",
+    "membersEmpty": "Este grupo aún no tiene miembros.",
+    "adminBadge": "Admin"
   },
   "profile": {
     "myProfile": "Mi perfil",
@@ -557,12 +646,10 @@
       "add": "Añadir"
     },
     "gruposSection": {
-      "title": "Grupos",
-      "empty": "Aún no perteneces a ningún grupo."
+      "title": "Grupos"
     },
     "peñasSection": {
-      "title": "Peñas",
-      "empty": "Aún no perteneces a ninguna peña."
+      "title": "Peñas"
     },
     "orgRole": {
       "admin": "Administrador",
@@ -595,7 +682,12 @@
       "noVillages": "Aún no perteneces a ningún pueblo. Únete a uno para elegir tu barrio.",
       "residenceHeading": "Pueblos de residencia",
       "addVillage": "Añadir pueblo",
-      "removeVillage": "Quitar"
+      "removeVillage": "Quitar",
+      "leaveVillageTitle": "Salir del pueblo",
+      "leaveVillageMessage": "Dejarás de ver el contenido de este pueblo y de aparecer en su censo. Puedes volver a unirte cuando quieras.",
+      "leaveVillageConfirm": "Salir",
+      "leaveVillageCancel": "Cancelar",
+      "leavingVillage": "Saliendo del pueblo…"
     },
     "personDetailTitle": "Persona",
     "personEdit": "Editar",
@@ -630,11 +722,19 @@
       "sex_other": "Otro",
       "birthday": "Fecha de nacimiento",
       "birthPlace": "Lugar de nacimiento (opcional)",
-      "biography": "Biografía (opcional)",
+      "biography": "Biografía",
+      "biographySelf": "Cuenta algo al pueblo sobre ti",
       "submit": "Crear perfil",
       "requiredFields": "Nombre, ambos apellidos y fecha de nacimiento son obligatorios.",
-      "error": "No se pudo guardar el perfil"
+      "error": "No se pudo guardar el perfil",
+      "acceptPrefix": "Acepto los",
+      "acceptRequired": "Debes aceptar los términos para continuar.",
+      "minAge": "Debes tener al menos 14 años para registrarte."
     }
+  },
+  "imageCrop": {
+    "title": "Ajusta tu foto",
+    "confirm": "Recortar"
   },
   "discover": {
     "title": "Buscar pueblo",
@@ -646,33 +746,28 @@
     "joinVillage": "Unirse a este pueblo",
     "alreadyMember": "Ya eres miembro"
   },
-  "solicitudes": {
-    "title": "Solicitudes",
-    "empty": "No hay solicitudes pendientes",
+  "inbox": {
+    "title": "Buzón",
+    "needsAction": "Necesita tu acción",
+    "activity": "Actividad",
+    "empty": "No tienes nada nuevo",
     "tab": {
       "organizer": "Administrador",
       "org": "Grupos",
-      "join": "Unirse",
-      "inbox": "Recibidas",
-      "outbox": "Enviadas"
-    },
-    "status": {
-      "pending": "Pendiente",
-      "approved": "Aprobada",
-      "rejected": "Rechazada"
-    },
-    "outbox": {
-      "empty": "No has enviado solicitudes",
-      "organizer": "Administrar {municipality}",
-      "org": "Crear {org}",
-      "join": "Unirse a {org}"
+      "join": "Unirse"
     },
     "approve": "Aprobar",
     "reject": "Rechazar",
-    "organizerRow": "{user} quiere administrar {municipality}",
+    "wantsToAdminister": "quiere administrar",
     "motivation": "Motivo",
     "joinRow": "{user} quiere unirse a {org}",
-    "orgRow": "{org} ({type})"
+    "orgRow": "{org} ({type})",
+    "pendingSent": {
+      "organizer": "Quieres administrar {name}",
+      "org": "Quieres crear {name}",
+      "join": "Quieres unirte a {name}",
+      "waiting": "Esperando aprobación"
+    }
   },
   "requests": {
     "organizer": {
@@ -689,7 +784,6 @@
     "explainer": "Iniciar el pueblo lo activa para que cualquier vecino pueda unirse. Serás su primer miembro y podrás añadir su información. No te convierte en administrador.",
     "escudoAdd": "Añadir escudo (opcional)",
     "escudoSelected": "Escudo seleccionado",
-    "locationLabel": "Añadir ubicación del pueblo",
     "organizeIntro": "Si además quieres supervisar la creación de elementos representativos de tu pueblo, como asociaciones, lugares o barrios, solicita ser administrador.",
     "organizeToggle": "Quiero administrar este pueblo",
     "phoneLabel": "Teléfono de contacto",
@@ -733,9 +827,8 @@
       "imagesLabel": "Imágenes",
       "addImage": "Añadir imagen",
       "submit": "Enviar",
-      "submitTrusted": "Publicar",
       "postAsOrg": "Publicar como…",
-      "successPending": "Tu artículo se ha enviado y está pendiente de aprobación.",
+      "successPublished": "Tu artículo se ha publicado.",
       "needsMembership": "Únete a este pueblo para publicar artículos.",
       "organizersLabel": "Organizadores",
       "addOrganizerUser": "Añadir organizador",
@@ -747,7 +840,6 @@
       "coverLabel": "Imagen de portada",
       "addCover": "Añadir portada",
       "contentLabel": "Cuerpo del artículo",
-      "attributionLocked": "La autoría no se puede cambiar después de crear el artículo.",
       "writersLabel": "Escritores",
       "addWriter": "Añadir escritor",
       "selectWriters": "Seleccionar escritores",
@@ -759,17 +851,18 @@
       },
       "mentionType": {
         "organization": "Grupo",
-        "user": "Persona",
         "event": "Evento",
         "place": "Lugar",
+        "barrio": "Barrio",
         "village": "Pueblo",
-        "news": "Artículo"
+        "news": "Artículo",
+        "festivalPoster": "Cartel"
       }
     },
-    "status": {
-      "pending": "Pendiente de aprobación",
-      "rejected": "Rechazado",
-      "rejectedReason": "Motivo: {reason}"
+    "linkSheet": {
+      "textPlaceholder": "Texto a mostrar (opcional)",
+      "save": "Guardar",
+      "skip": "Omitir"
     },
     "reactions": {
       "like": "Me gusta",
@@ -777,41 +870,92 @@
     },
     "comments": {
       "title": "Comentarios",
-      "empty": "Sé el primero en comentar.",
       "placeholder": "Escribe un comentario…",
       "send": "Enviar",
       "report": "Reportar",
       "reportConfirm": "¿Reportar este comentario?",
       "reportSent": "Reporte enviado."
-    },
-    "moderation": {
-      "queueTitle": "Artículos pendientes",
-      "approve": "Aprobar",
-      "reject": "Rechazar",
-      "rejectReasonPrompt": "Motivo del rechazo",
-      "reportsTitle": "Reportes",
-      "dismiss": "Descartar",
-      "remove": "Eliminar comentario",
-      "trustToggle": "Autor de confianza"
     }
+  },
+  "descarga": {
+    "tagline": "La agenda de tu pueblo, en tu bolsillo.",
+    "getOnAppStore": "Descargar en el App Store",
+    "getOnPlayStore": "Descargar en Google Play",
+    "continueOnWeb": "Seguir en la web"
   },
   "deeplink": {
     "share": {
       "event": { "view": "Mira «{name}» en Cultuvilla: {url}" },
       "news": { "view": "Mira «{name}» en Cultuvilla: {url}" },
-      "village": {
-        "view": "Mira {name} en Cultuvilla: {url}",
-        "invite": "Te invito a unirte a {name} en Cultuvilla: {url}"
-      },
+      "village": { "view": "Mira {name} en Cultuvilla: {url}" },
       "organization": {
         "view": "Mira {name} en Cultuvilla: {url}",
         "invite": "Te invito a unirte a {name} en Cultuvilla: {url}"
       },
       "place": { "view": "Mira «{name}» en Cultuvilla: {url}" },
       "barrio": { "view": "Mira {name} en Cultuvilla: {url}" },
-      "person": { "view": "Mira el perfil de {name} en Cultuvilla: {url}" }
+      "user": { "view": "Mira el perfil de {name} en Cultuvilla: {url}" }
     },
-    "shareViewLabel": "Compartir",
-    "shareInviteLabel": "Invitar a unirse"
+    "shareViewLabel": "Compartir"
+  },
+  "appUpdate": {
+    "blockTitle": "Actualización necesaria",
+    "blockBody": "Esta versión ya no es compatible. Actualiza para seguir usando Cultuvilla.",
+    "nudge": "Hay una versión nueva disponible.",
+    "cta": "Actualizar"
+  },
+  "userProfile": {
+    "title": "Perfil",
+    "notFound": "No se encontró el usuario"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "section": {
+      "account": "Cuenta"
+    },
+    "changeEmail": {
+      "title": "Cambiar correo",
+      "label": "Cambiar correo",
+      "current": "Correo actual",
+      "newEmailPlaceholder": "Nuevo correo electrónico",
+      "submit": "Cambiar correo",
+      "reauthNotice": "Hemos enviado un enlace de confirmación a tu correo actual. Haz clic en él para verificar tu identidad.",
+      "sentToNewEmail": "Hemos enviado un enlace de confirmación a tu nuevo correo. Haz clic en él para completar el cambio.",
+      "googleDisabledHint": "Los usuarios conectados con Google gestionan su correo en su cuenta de Google.",
+      "error": {
+        "invalidEmail": "Introduce un correo electrónico válido",
+        "emailInUse": "Este correo ya está registrado en otra cuenta",
+        "generic": "No pudimos cambiar tu correo. Inténtalo de nuevo."
+      }
+    },
+    "deleteAccount": {
+      "title": "Eliminar cuenta",
+      "label": "Eliminar cuenta",
+      "warning": "Esta acción es irreversible. Tus datos personales se eliminarán permanentemente, aunque tu contenido publicado se mantendrá bajo un usuario anónimo.",
+      "confirmPrompt": "Escribe ELIMINAR para confirmar",
+      "confirmWord": "ELIMINAR",
+      "blockerIntro": "Antes de eliminar tu cuenta, debes ceder los permisos de administrador en:",
+      "blockerVillage": "Pueblo de {name} — eres el único administrador",
+      "blockerOrg": "Grupo de {name} — eres el único administrador",
+      "submit": "Eliminar mi cuenta",
+      "success": "Tu cuenta ha sido eliminada",
+      "error": {
+        "generic": "No pudimos eliminar tu cuenta. Inténtalo de nuevo."
+      }
+    },
+    "deletedUser": "Usuario eliminado"
+  },
+  "comments": {
+    "sectionTitle": "Comentarios",
+    "countLabel": "{count, plural, one {# comentario} other {# comentarios}}",
+    "placeholder": "Escribe un comentario…",
+    "send": "Enviar",
+    "signInToComment": "Inicia sesión para comentar",
+    "delete": "Eliminar",
+    "deleteConfirmTitle": "Eliminar comentario",
+    "deleteConfirmMessage": "¿Eliminar este comentario?",
+    "deleteConfirmCancel": "Cancelar",
+    "deleteConfirmConfirm": "Eliminar",
+    "anonymousAuthor": "Usuario"
   }
 }

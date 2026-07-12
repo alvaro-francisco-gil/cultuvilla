@@ -20,8 +20,6 @@ async function seedMember(userId: string): Promise<void> {
     joinedAt: new Date(),
     profileAnswers: {},
     profileCompletedAt: null,
-    trustedNewsAuthor: false,
-    barrioId: null,
   });
 }
 
@@ -37,6 +35,9 @@ async function seedAyuntamiento(status: 'pending' | 'approved' | 'rejected'): Pr
     reviewedBy: null,
     createdAt: new Date(),
     reviewedAt: null,
+    commentCount: 0,
+    readCount: 0,
+    membersPublic: true,
   });
 }
 

@@ -1,0 +1,108 @@
+/**
+ * Deterministic E2E fixtures for the Firebase emulator.
+ *
+ * Consumed by `scripts/seed/e2e.mjs`, which builds converter-valid docs via the
+ * shared model builders (so these can't drift from schema — D5). The Playwright
+ * suite mirrors the handful of identifiers it needs in
+ * `apps/mobile/e2e/lib/fixtures.ts`; THIS file is the source of truth.
+ *
+ * Small, stable, assertion-friendly on purpose — never the demo_1 showcase set.
+ * IDs are fixed (not dataset-namespaced) because this set owns the emulator.
+ */
+
+export const E2E_PASSWORD = 'e2e-cultuvilla-pw';
+
+// personId links the profile to a persons/{id} doc. Without it the app treats
+// the user as not-yet-onboarded and diverts to complete-profile, so the event
+// register FAB never renders — seed the person so login → sign-up is one hop.
+export const users = {
+  admin: {
+    uid: 'e2e-admin',
+    email: 'e2e-admin@cultuvilla.test',
+    displayName: 'E2E Admin',
+    personId: 'e2e-person-admin',
+    givenName: 'Admin',
+    firstSurname: 'E2E',
+  },
+  attendee: {
+    uid: 'e2e-user',
+    email: 'e2e-user@cultuvilla.test',
+    displayName: 'E2E User',
+    personId: 'e2e-person-user',
+    givenName: 'Usuario',
+    firstSurname: 'E2E',
+    // A stored phone so the organizer-request screen (which validates a phone on
+    // submit) prefills it — the flow doesn't have to drive the phone field.
+    telephone: '+34600000000',
+  },
+  // App super-admin: presence of an admins/{uid} doc is what isAppAdmin() tests.
+  // Approves organizer requests in the organizer-request-approval flow.
+  superAdmin: {
+    uid: 'e2e-superadmin',
+    email: 'e2e-superadmin@cultuvilla.test',
+    displayName: 'E2E Superadmin',
+    personId: 'e2e-person-superadmin',
+    givenName: 'Super',
+    firstSurname: 'Admin',
+    appAdmin: true,
+  },
+  // Onboarded villager who is NOT a member of any org — requests to join a peña
+  // in the org-create-approve-join flow.
+  joiner: {
+    uid: 'e2e-joiner',
+    email: 'e2e-joiner@cultuvilla.test',
+    displayName: 'E2E Joiner',
+    personId: 'e2e-person-joiner',
+    givenName: 'Vecino',
+    firstSurname: 'Nuevo',
+  },
+  // Auth account ONLY — no persons/{id}, no users/{uid} profile. Signing in
+  // diverts to complete-profile, which is exactly what the onboarding flow drives.
+  fresh: {
+    uid: 'e2e-fresh',
+    email: 'e2e-fresh@cultuvilla.test',
+    displayName: 'E2E Fresh',
+    authOnly: true,
+  },
+};
+
+export const village = {
+  docId: 'e2e-village-altozano',
+  name: 'Altozano de Prueba',
+  province: 'Valencia',
+  comunidadAutonoma: 'Comunitat Valenciana',
+  codigoINE: '46999',
+  description: 'Pueblo de prueba para los tests E2E.',
+  coordinates: { lat: 39.4699, lng: -0.3763 },
+};
+
+// An ACTIVE village that has been started but has no organizer yet (community
+// present, organizerId null — the "wiki phase"). The organizer-request-approval
+// flow requests to organize THIS pueblo; on approval the super-admin sets its
+// organizerId and promotes the requester to admin. Kept separate from the main
+// `village` so approving it never mutates state other flows rely on.
+export const organizerlessVillage = {
+  docId: 'e2e-village-solana',
+  name: 'Solana de Prueba',
+  province: 'Valencia',
+  comunidadAutonoma: 'Comunitat Valenciana',
+  codigoINE: '46998',
+  description: 'Pueblo iniciado sin organizador, para el flujo de solicitud.',
+  coordinates: { lat: 39.5, lng: -0.4 },
+};
+
+export const org = {
+  docId: 'e2e-org-ayto',
+  name: 'Ayuntamiento de Altozano',
+  type: 'ayuntamiento',
+  description: 'Organización de prueba para los tests E2E.',
+};
+
+export const event = {
+  docId: 'e2e-event-fiesta',
+  title: 'Fiesta de Prueba E2E',
+  description: 'Evento de prueba para el flujo de inscripción end-to-end.',
+  startOffsetDays: 7,
+  maxAttendees: 100,
+  status: 'published',
+};

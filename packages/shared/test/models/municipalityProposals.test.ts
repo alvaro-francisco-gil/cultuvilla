@@ -6,24 +6,32 @@ import {
   buildPlaceData,
 } from '../../src/models/municipality/MunicipalityDataModel';
 
-describe('Place/Barrio proposal fields', () => {
-  it('buildBarrioData defaults to a pending proposal carrying the proposer', () => {
+describe('Place/Barrio visibility fields', () => {
+  it('buildBarrioData defaults to an active doc carrying the proposer, no hide metadata', () => {
     const b = buildBarrioData({ name: 'Centro', municipalityId: 'm1', proposedBy: 'alice' });
-    expect(b.status).toBe('pending');
+    expect(b.status).toBe('active');
     expect(b.proposedBy).toBe('alice');
-    expect(b.reviewedBy).toBeNull();
-    expect(b.reviewedAt).toBeNull();
+    expect(b.hiddenBy).toBeNull();
+    expect(b.hiddenAt).toBeNull();
+    expect(b.hiddenReason).toBeNull();
+    // fields removed by the review -> visibility migration
+    expect('reviewedBy' in b).toBe(false);
+    expect('reviewedAt' in b).toBe(false);
   });
 
-  it('buildPlaceData honours an explicit approved status (organizer direct create)', () => {
-    const p = buildPlaceData({
-      name: 'Iglesia', kind: 'church', municipalityId: 'm1', status: 'approved',
-    });
-    expect(p.status).toBe('approved');
+  it('buildPlaceData defaults to an active doc, no hide metadata', () => {
+    const p = buildPlaceData({ name: 'Iglesia', kind: 'church', municipalityId: 'm1' });
+    expect(p.status).toBe('active');
+    expect(p.hiddenBy).toBeNull();
+    expect(p.hiddenAt).toBeNull();
+    expect(p.hiddenReason).toBeNull();
     expect(p.proposedBy).toBeNull();
+    // fields removed by the review -> visibility migration
+    expect('reviewedBy' in p).toBe(false);
+    expect('reviewedAt' in p).toBe(false);
   });
 
-  it('requires the proposal fields on the persisted shape', () => {
+  it('requires the visibility fields on the persisted shape', () => {
     expect(() =>
       BarrioDataSchema.parse({ name: 'Viejo', municipalityId: 'm1', createdAt: new Date() }),
     ).toThrow();

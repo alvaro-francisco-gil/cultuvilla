@@ -55,6 +55,11 @@ describe('createUserProfile', () => {
     expect(payload).toHaveProperty('personId', null);
     expect(payload).toHaveProperty('createdAt', '__SERVER_TIMESTAMP__');
 
+    // Consent defaults to the current version + a server timestamp when the
+    // caller omits them (onboarding always passes them explicitly).
+    expect(payload).toHaveProperty('termsAcceptedAt', '__SERVER_TIMESTAMP__');
+    expect(payload).toHaveProperty('termsVersion', '1.0');
+
     // birthday/biography/photoURL are NOT on the user doc — they live on the
     // linked person (the profile of record). createUserProfile writes account
     // state only.
@@ -63,12 +68,35 @@ describe('createUserProfile', () => {
     expect(payload).not.toHaveProperty('photoURL');
 
     expect(Object.keys(payload as object).sort()).toEqual(
-      ['activeMunicipalityId', 'createdAt', 'email', 'personId', 'telephone'],
+      [
+        'activeMunicipalityId',
+        'createdAt',
+        'email',
+        'personId',
+        'telephone',
+        'termsAcceptedAt',
+        'termsVersion',
+      ],
     );
 
     // setDoc must run with { merge: true } so the trigger-written displayName
     // (if it landed first) survives the client's create call.
     expect(options).toEqual({ merge: true });
+  });
+
+  it('persists the caller-provided terms acceptance', async () => {
+    vi.mocked(setDoc).mockResolvedValue(undefined);
+
+    await createUserProfile('uid-1', {
+      email: 'a@b.test',
+      personId: 'p1',
+      termsAcceptedAt: '__SERVER_TIMESTAMP__' as unknown as Date,
+      termsVersion: '1.0',
+    });
+
+    const [, payload] = vi.mocked(setDoc).mock.calls[0];
+    expect(payload).toHaveProperty('termsVersion', '1.0');
+    expect(payload).toHaveProperty('termsAcceptedAt', '__SERVER_TIMESTAMP__');
   });
 });
 
@@ -103,6 +131,16 @@ describe('patchUserProfile', () => {
       activeMunicipalityId: null,
       personId: null,
     });
+  });
+
+  it('calls updateDoc once with { email } when patching email', async () => {
+    vi.mocked(updateDoc).mockResolvedValue(undefined);
+
+    await patchUserProfile('uid-1', { email: 'new@example.com' });
+
+    expect(updateDoc).toHaveBeenCalledTimes(1);
+    const [, payload] = vi.mocked(updateDoc).mock.calls[0];
+    expect(payload).toEqual({ email: 'new@example.com' });
   });
 });
 

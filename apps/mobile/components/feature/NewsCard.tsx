@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { FeedCard } from './FeedCard';
 import { useT } from '../../lib/i18n';
 import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
-import { relativeDayLabel } from '../../lib/relativeDayLabel';
 import type {
   NewsPostCategory,
   NewsPostImage,
@@ -14,9 +13,10 @@ export type NewsLike = {
   title: string;
   category: NewsPostCategory;
   publishedAt: Date | null;
-  submittedAt: Date;
+  createdAt: Date;
   images: NewsPostImage[];
   coverImage?: NewsPostImage | null;
+  commentCount?: number;
 };
 
 export type NewsCardProps = {
@@ -50,16 +50,17 @@ export function NewsCard({ post, fallbackImageUri = null, onPress, testID }: New
     };
   }, [firstImagePath]);
 
-  const date = post.publishedAt ?? post.submittedAt;
-
+  // Articles surface the comment count in place of a date; when there are no
+  // comments the meta row's right side stays blank (empty metaRight).
   return (
     <FeedCard
       imageUri={imageUrl}
       fallbackImageUri={fallbackImageUri}
       title={post.title}
       metaLeft={t(`news.compose.category.${post.category}`)}
-      metaRight={relativeDayLabel(date, t)}
+      metaRight=""
       fallbackIcon="newspaper-outline"
+      commentCount={post.commentCount}
       onPress={() => onPress(post.id)}
       testID={testID}
     />

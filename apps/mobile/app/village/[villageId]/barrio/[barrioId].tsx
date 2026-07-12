@@ -1,17 +1,18 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, View } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { useLocalSearchParams, router } from 'expo-router';
-import { Screen } from '../../../../components/primitives/Screen';
-import { VStack } from '../../../../components/primitives/VStack';
+import { useCallback, useEffect, useState } from 'react';
+import { ScrollView } from 'react-native';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Text } from '../../../../components/primitives/Text';
-import { DetailHeroImage } from '../../../../components/feature/DetailHeroImage';
-import { FloatingBackButton } from '../../../../components/feature/FloatingBackButton';
-import { FloatingShareButton } from '../../../../components/feature/FloatingShareButton';
+import { VStack } from '../../../../components/primitives/VStack';
+import { EntityDetailScaffold } from '../../../../components/feature/EntityDetailScaffold';
+import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
+import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
 import { PersonCard } from '../../../../components/feature/VillageSections';
+import { EntityComments } from '../../../../components/feature/EntityComments';
 import { useT } from '../../../../lib/i18n';
 import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
+import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 import { getBarrio } from '@cultuvilla/shared/services/municipalityService';
+import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { getBarrioViewLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getPersonsByBarrio } from '@cultuvilla/shared/services/personService';
 import { buildDisplayName } from '@cultuvilla/shared/models/person';
@@ -25,51 +26,67 @@ export default function BarrioDetailScreen() {
   const { villageId, barrioId } = useLocalSearchParams<{ villageId: string; barrioId: string }>();
   const { t } = useT();
   const share = useShareDeepLink();
+  const { canManage } = useEntityCapabilities(villageId);
   const [barrio, setBarrio] = useState<Barrio | null>(null);
   const [residents, setResidents] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!villageId || !barrioId) return;
-    void (async () => {
-      try {
-        const [b, people] = await Promise.all([
-          getBarrio(villageId, barrioId),
-          getPersonsByBarrio(villageId, barrioId),
-        ]);
-        setBarrio(b);
-        setResidents(people);
-      } finally {
-        // On failure `barrio` stays null, so the not-found view renders
-        // instead of an indefinite spinner.
-        setLoading(false);
-      }
-    })();
+    try {
+      const [b, people] = await Promise.all([
+        getBarrio(villageId, barrioId),
+        getPersonsByBarrio(villageId, barrioId),
+      ]);
+      setBarrio(b);
+      setResidents(people);
+    } finally {
+      setLoading(false);
+    }
   }, [villageId, barrioId]);
 
-  if (loading || !barrio) {
-    return (
-      <Screen padded={false} topInset={false}>
-        <StatusBar style="light" />
-        <View className="flex-1 items-center justify-center">
-          {loading ? <ActivityIndicator /> : <Text>{t('common.notFound')}</Text>}
-        </View>
-        <FloatingBackButton />
-      </Screen>
-    );
-  }
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
+
+  useEffect(() => {
+    if (!barrio) return;
+    void recordEntityView({ entityKind: 'barrio', entityId: barrio.id, municipalityId: barrio.municipalityId });
+  }, [barrio?.id]);
+
+  const actions: EntityDetailAction[] = barrio
+    ? [
+        ...(canManage
+          ? [
+              {
+                icon: 'create-outline' as const,
+                accessibilityLabel: t('common.edit'),
+                onPress: () => router.push(`/village/${villageId}/barrio/${barrio.id}/edit` as never),
+              },
+            ]
+          : []),
+        {
+          icon: 'share-outline',
+          accessibilityLabel: t('deeplink.shareViewLabel'),
+          onPress: () => void share(getBarrioViewLink(villageId, barrio.id), barrio.name),
+        },
+      ]
+    : [];
 
   return (
-    <Screen padded={false} topInset={false}>
-      <StatusBar style="light" />
-      <ScrollView contentContainerClassName="pb-10">
-        <DetailHeroImage imageUri={barrio.imageURL} fallbackIcon="map-outline" />
-        <FloatingBackButton />
-        <FloatingShareButton
-          onPress={() => void share(getBarrioViewLink(villageId, barrio.id), barrio.name)}
-        />
-        <VStack gap={3} className="p-4">
-          <Text variant="h1">{barrio.name}</Text>
+    <EntityDetailScaffold
+      loading={loading}
+      notFound={!loading && !barrio}
+      imageUri={barrio?.imageURL ?? null}
+      fallbackIcon={ENTITY_FALLBACK_ICON.barrio}
+      actions={actions}
+      title={barrio?.name}
+      onRefresh={load}
+    >
+      {barrio ? (
+        <>
           <Text variant="h2">{t('village.barrioDetail.residents')}</Text>
           {residents.length === 0 ? (
             <Text tone="muted" variant="bodySm">
@@ -87,8 +104,15 @@ export default function BarrioDetailScreen() {
               ))}
             </ScrollView>
           )}
-        </VStack>
-      </ScrollView>
-    </Screen>
+          <EntityComments
+            key={barrio.id}
+            entityKind="barrio"
+            entityId={barrio.id}
+            municipalityId={barrio.municipalityId}
+            canModerate={canManage}
+          />
+        </>
+      ) : null}
+    </EntityDetailScaffold>
   );
 }

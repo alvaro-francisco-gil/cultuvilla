@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 // Import from the same subpaths the rest of the app uses, NOT the bare
 // `@cultuvilla/shared` entry. `.` is the only subpath in the package's
 // `exports` map, so Metro resolves it via package-exports while every other
@@ -11,10 +11,15 @@ import { getDb } from '@cultuvilla/shared/firebase';
 import { useFirestoreDoc } from '@cultuvilla/shared/hooks';
 import { userDoc, personDoc, organizationDoc } from '@cultuvilla/shared/firebase/refs/client';
 import { buildDisplayName } from '@cultuvilla/shared/models/person/PersonDataModel';
+import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
+import { DELETED_USER_UID } from '@cultuvilla/shared/models/user';
+import { useT } from './i18n';
 
 /**
- * Owners whose document carries a name + image we resolve live. `user`/`person`
- * expose a name + `photoURL`; `organization` exposes `name` + `imageURL`.
+ * Owners whose document carries a name + image we resolve live. `person` and
+ * `organization` carry their own avatar (`photoURL` / `imageURL`); a `user`'s
+ * avatar lives on the linked person doc — the user doc's `photoURL` is
+ * frequently null — so we resolve the person and use its photo as the fallback.
  */
 export type OwnerType = 'user' | 'person' | 'organization';
 
@@ -38,8 +43,11 @@ export function useOwnerSummary(
   ownerId: string | null | undefined,
   ownerType: OwnerType,
 ): OwnerSummary {
+  const { t } = useT();
+  const isDeletedUser = ownerType === 'user' && ownerId === DELETED_USER_UID;
+
   const ref = useMemo(() => {
-    if (!ownerId) return null;
+    if (!ownerId || isDeletedUser) return null;
     const db = getDb();
     switch (ownerType) {
       case 'user':
@@ -51,7 +59,7 @@ export function useOwnerSummary(
       default:
         return null;
     }
-  }, [ownerId, ownerType]);
+  }, [ownerId, ownerType, isDeletedUser]);
 
   // The per-collection converters give each ref a distinct DocumentReference<T>,
   // so we erase to the hook's own parameter type and re-type the payload below.
@@ -71,7 +79,33 @@ export function useOwnerSummary(
       }
     | undefined;
 
+  // A `user`'s avatar lives on their linked person doc, which is a query
+  // (persons.userId == uid) rather than a doc we can subscribe to by path. We
+  // resolve it once per uid and fall back to it when the user doc has no photo.
+  const [personPhotoURL, setPersonPhotoURL] = useState<string | null>(null);
+  useEffect(() => {
+    if (ownerType !== 'user' || !ownerId || isDeletedUser) {
+      setPersonPhotoURL(null);
+      return;
+    }
+    let cancelled = false;
+    setPersonPhotoURL(null);
+    getPersonByUserId(ownerId)
+      .then((p) => {
+        if (!cancelled) setPersonPhotoURL(p?.photoURL ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setPersonPhotoURL(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ownerId, ownerType, isDeletedUser]);
+
   return useMemo(() => {
+    if (isDeletedUser) {
+      return { name: t('settings.deletedUser'), imageUri: null, loading: false };
+    }
     if (!data) return { name: null, imageUri: null, loading };
     switch (ownerType) {
       case 'organization':
@@ -91,7 +125,11 @@ export function useOwnerSummary(
         };
       case 'user':
       default:
-        return { name: data.displayName ?? null, imageUri: data.photoURL ?? null, loading };
+        return {
+          name: data.displayName ?? null,
+          imageUri: data.photoURL ?? personPhotoURL ?? null,
+          loading,
+        };
     }
-  }, [data, ownerType, loading]);
+  }, [data, ownerType, loading, personPhotoURL, isDeletedUser, t]);
 }

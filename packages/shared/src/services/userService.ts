@@ -11,6 +11,7 @@ import {
 import { getDb } from '../firebase';
 import { usersCollection, userDoc } from '../firebase/refs/client';
 import type { UserData, UserDataInput } from '../models/user';
+import { CURRENT_TERMS_VERSION } from '../models/user';
 
 export async function getUserProfile(
   userId: string,
@@ -52,6 +53,11 @@ export async function createUserProfile(
       activeMunicipalityId: input.activeMunicipalityId ?? null,
       personId: input.personId ?? null,
       createdAt: serverTimestamp(),
+      // Legal acceptance captured at onboarding. The caller passes a
+      // serverTimestamp() sentinel; default to one (plus the current version)
+      // so this write can never land an account doc without consent.
+      termsAcceptedAt: input.termsAcceptedAt ?? serverTimestamp(),
+      termsVersion: input.termsVersion ?? CURRENT_TERMS_VERSION,
     },
     { merge: true },
   );
@@ -61,7 +67,7 @@ export async function patchUserProfile(
   userId: string,
   // displayName intentionally excluded — denormalized by Cloud Function.
   // birthday/biography/photoURL live on the linked person, not here.
-  data: Partial<Pick<UserData, 'telephone' | 'activeMunicipalityId' | 'personId'>>,
+  data: Partial<Pick<UserData, 'email' | 'telephone' | 'activeMunicipalityId' | 'personId'>>,
 ): Promise<void> {
   // updateDoc bypasses the converter, so partial-update payloads (and any
   // FieldValue sentinels callers might pass through Partial) go on the raw

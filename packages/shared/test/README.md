@@ -13,13 +13,12 @@ Three layers, each with its own vitest config and runner.
 
 - `setup/integration.setup.ts` — sets emulator host env vars before any import
 - `setup/e2e.setup.ts` — same, scoped to rules tests
-- `helpers/testFirebase.ts` — dedicated client app + `getTestDb()` / `getTestAuth()` pointed at the emulator
-- `helpers/firebaseEmulator.ts` — REST-based `resetEmulators()` / `clearFirestore()` for isolation between tests
+- `helpers/rulesTestEnv.ts` — mounts the live `firestore.rules` against the Firestore emulator. `useRulesTestEnv()` registers the standard suite lifecycle (initialize once in `beforeAll`, clear Firestore between tests in `beforeEach`, clean up in `afterAll`) and returns a getter for the live env; `createRulesTestEnv()` builds a one-off env when you need manual lifecycle control.
+- `helpers/roles.ts` — auth-context helpers that name the actor at the call site: `asUser(env, uid)` / `asAnon(env)` return a Firestore client scoped to that identity, `asAdmin(env, uid)` seeds the `admins/{uid}` marker then returns that user's client, `seedAdmin(env, uid)` seeds the marker alone, and `seed(env, fn)` is a `withSecurityRulesDisabled` wrapper for setting up state a rule would otherwise forbid.
 - `factories/villageFactory.ts`, `factories/userFactory.ts` — typed builders for test data
 
 ## Patterns
 
-- **Reset, don't share state.** Call `resetEmulators()` in `beforeEach` so each test starts empty.
+- **Reset, don't share state.** `useRulesTestEnv()` clears Firestore in a `beforeEach` so each test starts empty — call it at the top of the module.
 - **Factories return data, tests persist.** Builders produce objects; the test decides where they go.
-- **No production Firebase init in tests.** Always import from `helpers/testFirebase`, never from `src/firebase`.
-- **Rules tests bypass rules to seed.** Use `env.withSecurityRulesDisabled()` to set up state, then test the rule under the role.
+- **Rules tests bypass rules to seed.** Use `seed(env, …)` (a `withSecurityRulesDisabled` wrapper) to set up state, then exercise the rule under the role via `asUser` / `asAnon` / `asAdmin`.

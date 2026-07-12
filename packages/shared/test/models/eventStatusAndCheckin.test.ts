@@ -9,6 +9,7 @@ const baseEvent = {
   createdBy: 'u1', createdAt: new Date(), updatedAt: new Date(),
   municipalityId: 'm1', villageName: 'X', villageCoverImage: null,
   villageCoordinates: null, confirmedCount: 0, totalCount: 0,
+  commentCount: 0, readCount: 0, endBoundary: new Date(),
 };
 
 describe('event status + registration check-in', () => {

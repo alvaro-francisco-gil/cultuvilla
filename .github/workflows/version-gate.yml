@@ -1,0 +1,34 @@
+name: Version gate (beta)
+
+# Enforces the "bump the marketing version on every develop -> beta promotion"
+# rule (AGENTS.md -> Versioning & releases). Runs ONLY on PRs whose base is beta,
+# so ordinary develop PRs are untouched. Fails unless app.config.ts `version` is
+# strictly greater than the version currently on beta.
+on:
+  pull_request:
+    branches: [beta]
+
+permissions:
+  contents: read
+
+jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Fetch beta
+        run: git fetch origin beta --depth=1
+      - name: Materialize beta's app.config.ts
+        run: git show origin/beta:apps/mobile/app.config.ts > "$RUNNER_TEMP/beta.app.config.ts"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          # This job installs no deps (it runs a dependency-free node script), so
+          # skip setup-node@v5's default package-manager cache — it auto-detects
+          # the pnpm `packageManager` field and fails with "Unable to locate
+          # executable file: pnpm" since pnpm isn't set up in this job.
+          package-manager-cache: false
+      - name: Require a version bump
+        run: node scripts/check-beta-version-bump.mjs apps/mobile/app.config.ts "$RUNNER_TEMP/beta.app.config.ts"

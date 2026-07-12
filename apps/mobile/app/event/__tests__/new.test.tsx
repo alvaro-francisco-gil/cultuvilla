@@ -23,7 +23,7 @@ jest.mock('../../../lib/images', () => ({ pickImageAsBlob: jest.fn() }));
 // The event's village now comes from the user's joined villages.
 jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
   getUserMemberships: jest.fn().mockResolvedValue([
-    { municipalityId: 'm-1', role: 'user', joinedAt: new Date(), profileCompletedAt: null, barrioId: null },
+    { municipalityId: 'm-1', role: 'user', joinedAt: new Date(), profileCompletedAt: null },
   ]),
 }));
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
@@ -70,22 +70,26 @@ jest.mock('../../../components/feature/MyVillagePicker', () => ({
     return <Text testID="village-picker">{value ?? ''}</Text>;
   },
 }));
-// Drive DateTimeField.onChange directly without the modal UI.
+// Drive DateTimeField.onChange directly; also surface the incoming value for assertions.
 jest.mock('../../../components/primitives/DateTimeField', () => ({
-  DateTimeField: ({ onChange, testID }: { onChange: (d: Date) => void; testID?: string }) => {
-    const { Pressable } = require('react-native');
-    return <Pressable testID={testID} onPress={() => onChange(new Date('2026-08-01T18:00'))} />;
+  DateTimeField: ({ onChange, testID, value }: { onChange: (d: Date) => void; testID?: string; value: Date | null }) => {
+    const { Pressable, Text } = require('react-native');
+    return (
+      <Pressable testID={testID} onPress={() => onChange(new Date('2026-08-01T18:00'))}>
+        <Text testID={`${testID}-value`}>{value ? value.toISOString() : ''}</Text>
+      </Pressable>
+    );
   },
 }));
 
 describe('NewEventScreen stepper', () => {
-  it('gates Next until title + description are set', async () => {
+  it('gates Next on title only — description is optional', async () => {
     const { getByText, getByLabelText, getByTestId, queryByTestId } = render(<NewEventScreen />);
     await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
     fireEvent.press(getByText('common.stepper.next'));
-    expect(queryByTestId('startDate')).toBeNull(); // blocked: empty title/description
+    expect(queryByTestId('startDate')).toBeNull(); // blocked: empty title
+    // Title alone unblocks; description is left empty on purpose.
     fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
-    fireEvent.changeText(getByLabelText('event.description'), 'Desc');
     fireEvent.press(getByText('common.stepper.next'));
     // Now in step 2 (Cuándo y dónde): datetime (+ optional end), location + village present.
     expect(getByTestId('startDate')).toBeTruthy();
@@ -138,5 +142,16 @@ describe('NewEventScreen stepper', () => {
     await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
     fireEvent.press(getByLabelText('event.addImage'));
     await waitFor(() => expect(pickImageAsBlob).toHaveBeenCalled());
+  });
+
+  it('pre-seeds the event start with a 5-minute-aligned current time', async () => {
+    const { getByText, getByLabelText, getByTestId } = render(<NewEventScreen />);
+    await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
+    fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => getByTestId('startDate-value'));
+    const iso = getByTestId('startDate-value').props.children as string;
+    expect(iso).not.toBe(''); // not the empty placeholder
+    expect(new Date(iso).getMinutes() % 5).toBe(0);
   });
 });

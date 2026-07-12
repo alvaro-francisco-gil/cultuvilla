@@ -37,6 +37,9 @@ async function seedEvent(opts: { maxAttendees: number | null }): Promise<void> {
     villageCoordinates: null,
     confirmedCount: 0,
     totalCount: 0,
+    endBoundary: now,
+    commentCount: 0,
+    readCount: 0,
   });
 }
 
@@ -47,8 +50,6 @@ async function seedMembership(userId: string): Promise<void> {
     joinedAt: new Date(),
     profileAnswers: {},
     profileCompletedAt: null,
-    trustedNewsAuthor: false,
-    barrioId: null,
   });
 }
 

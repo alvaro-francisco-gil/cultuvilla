@@ -17,9 +17,9 @@ jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
     name: 'Anaya',
     province: 'Segovia',
     communityActive: true,
-    community: { adminUserId: null, description: null },
+    community: { organizerId: null, description: null },
   })),
-  getBarrios: jest.fn(async () => [{ id: 'b1', name: 'Centro', status: 'approved' }]),
+  getBarrios: jest.fn(async () => [{ id: 'b1', name: 'Centro', status: 'active' }]),
   getPlaces: jest.fn(async () => []),
 }));
 jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
@@ -32,6 +32,9 @@ jest.mock('@cultuvilla/shared/services/organizationService', () => ({
 jest.mock('@cultuvilla/shared/services/orgMemberService', () => ({
   getOrgMemberCount: jest.fn(async () => 0),
 }));
+jest.mock('@cultuvilla/shared/services/personService', () => ({
+  getBarrioResidentCount: jest.fn(async () => 0),
+}));
 jest.mock('@cultuvilla/shared/services/organizerRequestService', () => ({
   getMyOrganizerRequests: jest.fn(async () => []),
 }));
@@ -40,6 +43,9 @@ jest.mock('@cultuvilla/shared/services/eventService', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/newsService', () => ({
   getHomeFeed: jest.fn(async () => []),
+}));
+jest.mock('@cultuvilla/shared/services/festivalPosterService', () => ({
+  getFestivalPosters: jest.fn(async () => [{ id: 'p1', year: 2024, status: 'active' }]),
 }));
 
 describe('useVillageHome', () => {
@@ -50,6 +56,7 @@ describe('useVillageHome', () => {
     expect(result.current.isMember).toBe(true); // u1 is in members
     expect(result.current.peopleCount).toBe(2);
     expect(result.current.barrios).toHaveLength(1);
+    expect(result.current.festivalPosters).toHaveLength(1);
   });
 
   it('returns empty state for a null municipalityId', async () => {

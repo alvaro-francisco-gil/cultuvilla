@@ -7,7 +7,12 @@ import {
   cancelRegistration,
 } from '@cultuvilla/shared/services/registrationService';
 import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
+import { observability } from '@cultuvilla/shared';
 
+jest.mock('@cultuvilla/shared', () => ({
+  ...jest.requireActual('@cultuvilla/shared'),
+  observability: { trackEvent: jest.fn() },
+}));
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
@@ -60,6 +65,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockGetUserRegistrations.mockResolvedValue([]);
   mockGetPersonsByCreator.mockResolvedValue([]);
+  (observability.trackEvent as jest.Mock).mockClear();
 });
 
 describe('RegisterFab', () => {
@@ -76,6 +82,28 @@ describe('RegisterFab', () => {
     mockGetUserRegistrations.mockResolvedValue([{ id: 'rA', personId: 'p1', status: 'confirmed' }]);
     const { getByText } = render(<RegisterFab {...baseProps} />);
     await waitFor(() => expect(getByText('event.register.signedUpCount')).toBeTruthy());
+  });
+
+  it('shows two pills when the caller has both confirmed and waitlisted personas', async () => {
+    mockGetUserRegistrations.mockResolvedValue([
+      { id: 'rA', personId: 'p1', status: 'confirmed' },
+      { id: 'rB', personId: 'p2', status: 'waitlisted' },
+    ]);
+    const { getByTestId, getByText } = render(<RegisterFab {...baseProps} />);
+    await waitFor(() => expect(getByTestId('register-fab-waitlist')).toBeTruthy());
+    // Confirmed pill (default testID) alongside the waitlist pill, each labelled.
+    expect(getByTestId('register-fab')).toBeTruthy();
+    expect(getByText('event.register.signedUpCount')).toBeTruthy();
+    expect(getByText('event.register.waitlistedCount')).toBeTruthy();
+  });
+
+  it('shows only the waitlist pill when every persona is waitlisted', async () => {
+    mockGetUserRegistrations.mockResolvedValue([{ id: 'rB', personId: 'p1', status: 'waitlisted' }]);
+    const { getByTestId, queryByTestId, getByText } = render(<RegisterFab {...baseProps} />);
+    await waitFor(() => expect(getByText('event.register.waitlistedCount')).toBeTruthy());
+    // The waitlist pill claims the primary testID so the sheet is still openable.
+    expect(getByTestId('register-fab')).toBeTruthy();
+    expect(queryByTestId('register-fab-waitlist')).toBeNull();
   });
 
   it('registers newly-selected personas (self + dependent) in one call', async () => {
@@ -98,6 +126,43 @@ describe('RegisterFab', () => {
         { personId: 'p2', name: 'Hijo García' },
       ]),
     );
+    expect(observability.trackEvent).toHaveBeenCalledWith('event.signup.success', { villageId: undefined });
+  });
+
+  // Reproduces production data: getPersonsByCreator returns the caller's OWN
+  // persona (createdBy == uid, userId == uid) alongside the dependents
+  // (createdBy == uid, userId == null). Only the own persona must be dropped;
+  // every dependent must appear as a tickable row.
+  it('lists every dependent when the creator query also returns the own persona', async () => {
+    const self = { id: 'p1', givenName: 'Ana', nickname: null, firstSurname: 'López', userId: 'u1' };
+    const dep1 = { id: 'p2', givenName: 'Jose', nickname: null, firstSurname: 'García', userId: null };
+    const dep2 = { id: 'p3', givenName: 'Jos', nickname: null, firstSurname: 'Ruiz', userId: null };
+    mockGetPersonsByCreator.mockResolvedValue([self, dep1, dep2]);
+    const { getByTestId, getByText, queryByTestId } = render(<RegisterFab {...baseProps} />);
+    await waitFor(() => expect(getByText('event.register.cta')).toBeTruthy());
+
+    fireEvent.press(getByTestId('register-fab'));
+    // Own persona rendered from props (once, not duplicated by the creator query).
+    expect(getByTestId('attendee-row-p1')).toBeTruthy();
+    // Both dependents must be listed.
+    expect(getByTestId('attendee-row-p2')).toBeTruthy();
+    expect(getByTestId('attendee-row-p3')).toBeTruthy();
+    // And no second copy of the own persona.
+    expect(queryByTestId('attendee-row-p1')).toBe(getByTestId('attendee-row-p1'));
+  });
+
+  // Regression: the two reads are independent, so a failing getUserRegistrations
+  // (e.g. a missing Firestore index) must NOT blank the dependent list. Before
+  // the fix they shared one Promise.all and a rejection hid every dependent.
+  it('still lists dependents when getUserRegistrations rejects', async () => {
+    mockGetUserRegistrations.mockRejectedValue(new Error('FAILED_PRECONDITION: missing index'));
+    mockGetPersonsByCreator.mockResolvedValue([dep]);
+    const { getByTestId, getByText } = render(<RegisterFab {...baseProps} />);
+    await waitFor(() => expect(getByText('event.register.cta')).toBeTruthy());
+
+    fireEvent.press(getByTestId('register-fab'));
+    expect(getByTestId('attendee-row-p1')).toBeTruthy(); // self
+    expect(getByTestId('attendee-row-p2')).toBeTruthy(); // dependent survives the reg failure
   });
 
   it('cancels a deselected registered persona after a single combined confirm', async () => {
@@ -115,5 +180,40 @@ describe('RegisterFab', () => {
     fireEvent.press(getByTestId('attendee-confirm'));
 
     await waitFor(() => expect(mockCancelRegistration).toHaveBeenCalledWith('e1', 'rB'));
+  });
+
+  it('threads the villageId prop into the success event', async () => {
+    mockRegisterToEvent.mockResolvedValue([{ id: 'rA', status: 'confirmed', position: 1, isMember: true }]);
+    const { getByTestId, getByText } = render(<RegisterFab {...baseProps} villageId="m1" />);
+    await waitFor(() => expect(getByText('event.register.cta')).toBeTruthy());
+
+    fireEvent.press(getByTestId('register-fab'));
+    fireEvent.press(getByTestId('attendee-row-p1'));
+    fireEvent.press(getByTestId('attendee-confirm'));
+
+    await waitFor(() =>
+      expect(observability.trackEvent).toHaveBeenCalledWith('event.signup.success', { villageId: 'm1' }),
+    );
+  });
+
+  // Regression: a failure in the post-signup cancel loop must NOT also fire
+  // EVENT_SIGNUP_ERROR once the signup itself already succeeded — that would
+  // record both a success and an error for the same operation.
+  it('does not fire EVENT_SIGNUP_ERROR when signup succeeds but a later cancel fails', async () => {
+    mockGetUserRegistrations.mockResolvedValue([{ id: 'rB', personId: 'p2', status: 'confirmed' }]);
+    mockGetPersonsByCreator.mockResolvedValue([dep]);
+    mockRegisterToEvent.mockResolvedValue([{ id: 'rA', status: 'confirmed', position: 1, isMember: true }]);
+    mockCancelRegistration.mockRejectedValue(new Error('cancel failed'));
+    const { getByTestId, getByText } = render(<RegisterFab {...baseProps} />);
+    await waitFor(() => expect(getByText('event.register.signedUpCount')).toBeTruthy());
+
+    fireEvent.press(getByTestId('register-fab'));
+    fireEvent.press(getByTestId('attendee-row-p1')); // add self
+    fireEvent.press(getByTestId('attendee-row-p2')); // untick the dependent (triggers cancel)
+    fireEvent.press(getByTestId('attendee-confirm'));
+
+    await waitFor(() => expect(mockCancelRegistration).toHaveBeenCalled());
+    expect(observability.trackEvent).toHaveBeenCalledWith('event.signup.success', { villageId: undefined });
+    expect(observability.trackEvent).not.toHaveBeenCalledWith('event.signup.error', expect.anything());
   });
 });

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, View } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '../../components/primitives/Screen';
 import { Text } from '../../components/primitives/Text';
+import { ErrorState } from '../../components/primitives/ErrorState';
 import { EventCard } from '../../components/feature/EventCard';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { useAuth } from '../../lib/auth/useAuth';
@@ -19,32 +20,29 @@ export default function MyRegistrationsScreen() {
   const [events, setEvents] = useState<Row[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!user) return;
-    let cancelled = false;
-    async function load() {
-      try {
-        setError(null);
-        const regs = await getUserRegistrationsAcrossEvents(user!.uid);
-        const eventIds = Array.from(
-          new Set(
-            regs
-              .map((r) => r.eventPath.split('/')[1])
-              .filter((id): id is string => typeof id === 'string'),
-          ),
-        );
-        const fetched = await Promise.all(eventIds.map((id) => getEvent(id)));
-        if (cancelled) return;
-        setEvents(fetched.filter((e): e is Row => e !== null));
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'unknown');
-      }
+    try {
+      setError(null);
+      setEvents(null);
+      const regs = await getUserRegistrationsAcrossEvents(user.uid);
+      const eventIds = Array.from(
+        new Set(
+          regs
+            .map((r) => r.eventPath.split('/')[1])
+            .filter((id): id is string => typeof id === 'string'),
+        ),
+      );
+      const fetched = await Promise.all(eventIds.map((id) => getEvent(id)));
+      setEvents(fetched.filter((e): e is Row => e !== null));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'unknown');
     }
-    void load();
-    return () => {
-      cancelled = true;
-    };
   }, [user]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   return (
     <Screen padded={false}>
@@ -54,9 +52,7 @@ export default function MyRegistrationsScreen() {
           <ActivityIndicator />
         </View>
       ) : error ? (
-        <View className="p-4">
-          <Text tone="danger">{error}</Text>
-        </View>
+        <ErrorState error={error} onRetry={load} />
       ) : (
         <FlatList
           contentContainerClassName="p-4 gap-4"
@@ -70,6 +66,9 @@ export default function MyRegistrationsScreen() {
                 title: item.title,
                 startDate: item.startDate,
                 locationName: item.location?.displayName ?? null,
+                imageURL: item.imageURL,
+                villageCoverImage: item.villageCoverImage,
+                commentCount: item.commentCount,
               }}
               onPress={(id) => router.push(`/event/${id}`)}
             />

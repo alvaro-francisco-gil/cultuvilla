@@ -2,11 +2,17 @@ import { useEffect, useState } from 'react';
 import { Modal, Pressable as RNPressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../primitives/Button';
-import { Input } from '../primitives/Input';
 import { Text } from '../primitives/Text';
 import { VStack } from '../primitives/VStack';
 import { HStack } from '../primitives/HStack';
+import { PhoneField } from './PhoneField';
 import type { RegistrationStatus } from '@cultuvilla/shared/models/event/RegistrationDataModel';
+import {
+  DEFAULT_PHONE_COUNTRY,
+  formatPhoneE164,
+  isValidPhoneNumber,
+  type PhoneCountry,
+} from '@cultuvilla/shared/utils';
 import { useT } from '../../lib/i18n';
 
 export interface AttendeeOption {
@@ -53,6 +59,11 @@ export function AttendeeSheet({
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [phone, setPhone] = useState('');
+  const [phoneCountry, setPhoneCountry] = useState<PhoneCountry>(DEFAULT_PHONE_COUNTRY);
+  // Whether the user has pressed Confirmar at least once. The invalid-phone
+  // error stays hidden until then — validating on every keystroke nags before
+  // the user has finished typing.
+  const [confirmAttempted, setConfirmAttempted] = useState(false);
 
   const registeredIds = new Set(attendees.filter((a) => a.status).map((a) => a.id));
 
@@ -62,6 +73,8 @@ export function AttendeeSheet({
     if (visible) {
       setSelected(new Set(attendees.filter((a) => a.status).map((a) => a.id)));
       setPhone('');
+      setPhoneCountry(DEFAULT_PHONE_COUNTRY);
+      setConfirmAttempted(false);
     }
     // attendees identity intentionally excluded — re-seed only on open.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,11 +107,20 @@ export function AttendeeSheet({
   const changed =
     selected.size !== registeredIds.size || selectedInOrder.some((id) => !registeredIds.has(id));
   const needsPhone = telephoneRequired && hasNewSelection;
-  const canConfirm = changed && !busy && (!needsPhone || phone.trim().length > 0);
+  const phoneValid = isValidPhoneNumber(phone, phoneCountry.dialCode);
+  // The button gates on the selection change, NOT on phone validity — an
+  // invalid phone must still let the press through so it can surface the error.
+  const canConfirm = changed && !busy;
+  // Show the invalid-phone error only after a confirm attempt (not per keystroke).
+  const phoneError = confirmAttempted && needsPhone && !phoneValid;
 
   function handleConfirm() {
     if (!canConfirm) return;
-    onConfirm(selectedInOrder, needsPhone ? phone.trim() : undefined);
+    if (needsPhone && !phoneValid) {
+      setConfirmAttempted(true);
+      return;
+    }
+    onConfirm(selectedInOrder, needsPhone ? formatPhoneE164(phone, phoneCountry.dialCode) : undefined);
   }
 
   return (
@@ -180,12 +202,16 @@ export function AttendeeSheet({
             </ScrollView>
 
             {needsPhone ? (
-              <Input
+              <PhoneField
                 label={t('event.register.phoneTitle')}
                 value={phone}
                 onChangeText={setPhone}
+                country={phoneCountry}
+                onCountryChange={setPhoneCountry}
                 placeholder={t('event.register.phonePlaceholder')}
-                keyboardType="phone-pad"
+                searchPlaceholder={t('event.register.phoneSearch')}
+                noResultsLabel={t('event.register.phoneNoResults')}
+                error={phoneError ? t('event.register.phoneInvalid') : undefined}
                 testID="attendee-phone"
               />
             ) : null}

@@ -12,24 +12,22 @@ import {
   ErrorState,
 } from '../primitives';
 import { ACCENT, Section, EntityCard } from './VillageSections';
+import { AddContentSheet } from './AddContentSheet';
 import { JoinVillageModal } from './JoinVillageModal';
 import { StatsRow } from './StatsRow';
 import { useAuth } from '../../lib/auth/useAuth';
+import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { useT } from '../../lib/i18n';
 import { showConfirm } from '../../lib/dialogs';
 import { isProposalVisible } from '../../lib/proposals';
 import { joinVillage } from '@cultuvilla/shared/services/villageMemberService';
-import { deletePlace, deleteBarrio } from '@cultuvilla/shared/services/municipalityService';
-import {
-  getVillageViewLink,
-  getVillageInviteLink,
-} from '@cultuvilla/shared/services/deepLinkService';
+import { getVillageViewLink } from '@cultuvilla/shared/services/deepLinkService';
 import { staticMapUrl, MAP_ZOOM_DEFAULT } from '@cultuvilla/shared/services/mapsService';
 import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
 import type { NewsPostData } from '@cultuvilla/shared/models/news/NewsPostDataModel';
-import { formatDate } from '@cultuvilla/shared/utils';
+import { formatDate, formatFestivalPosterDates } from '@cultuvilla/shared/utils';
 import {
   escudoFullUrl,
   hasManualEscudo,
@@ -39,25 +37,25 @@ import type { VillageHomeState } from '../../lib/useVillageHome';
 export interface VillageHomeBodyProps {
   data: VillageHomeState;
   reload: () => Promise<void> | void;
-  /** Pushed-detail invite deep-link: show the "you were invited" line above join. */
-  arrivedViaInvite?: boolean;
 }
 
 /**
  * Presentational village home shared by the pueblo tab and the pushed
  * `/village/[villageId]` detail. Takes data from `useVillageHome`; the host
- * supplies the header chrome (AppHeader vs ScreenHeader). For non-members the
- * action row's first button is "Unirme" (join); members see "Invitar vecino"
- * there instead. `!data.isMember` is the single source of truth for "offer to
- * join".
+ * supplies the header chrome (AppHeader vs ScreenHeader). The action row's first
+ * button is "Unirme" (join) for non-members and "Añadir contenido" (opens the
+ * add sheet) for members; `!data.isMember` is the single source of truth for
+ * "offer to join". Editar (admins) and Compartir (everyone) follow it.
  */
-export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: VillageHomeBodyProps) {
+export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
   const { user, refreshProfile } = useAuth();
+  const gate = useRegisterGate();
   const { isAppAdmin } = useIsAppAdmin();
   const share = useShareDeepLink();
   const { t } = useT();
   const [joining, setJoining] = useState(false);
   const [pendingJoin, setPendingJoin] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
 
   const { loading, loadError, village } = data;
 
@@ -69,7 +67,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
     );
   }
   if (loadError) {
-    return <ErrorState onRetry={reload} />;
+    return <ErrorState error={loadError} onRetry={reload} />;
   }
   if (!village) {
     return (
@@ -113,19 +111,23 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
     places,
     organizations,
     orgMemberCounts,
+    barrioResidentCounts,
     events,
     news,
+    festivalPosters,
     peopleCount,
     pendingOrganizerRequest,
   } = data;
   const canManage = isAppAdmin || villageAdmin;
-  // Wiki phase: active but no organizer granted yet (community.adminUserId null).
-  const noOrganizer = village.community?.adminUserId == null;
+  // Wiki phase: active but no organizer granted yet (community.organizerId null).
+  const noOrganizer = village.community?.organizerId == null;
   const villageBase = `/village/${village.id}` as const;
 
   const caps = { canManage, uid: user?.uid ?? null };
-  const visibleBarrios = barrios.filter((b) => isProposalVisible(b.status, b.proposedBy, caps));
-  const visiblePlaces = places.filter((p) => isProposalVisible(p.status, p.proposedBy, caps));
+  // Barrios/places already come back active-only from useVillageHome (see
+  // getBarrios/getPlaces) — the optimistic-visibility model means there's no
+  // pending state left to filter here. Organizations keep the real
+  // pending/approved/rejected review flow, so they still need the filter.
   const visibleOrgs = organizations.filter((o) => isProposalVisible(o.status, o.requestedBy, caps));
   const penas = visibleOrgs.filter((o) => o.type === 'peña');
   const agrupaciones = visibleOrgs.filter((o) => o.type !== 'peña');
@@ -139,24 +141,6 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
   const censoFilled =
     censoFields.length > 0 && censoFields.every((f) => isAnswered(data.myCensoAnswers[f.key]));
   const censoFillLabel = censoFilled ? t('village.censo.edit') : t('village.censo.fill');
-
-  // A proposer's own still-pending barrio/place. They reach withdraw from the
-  // pueblo-tab card (the create screen no longer lists items); moderation for
-  // organizers lives in the community ("Editar") screen.
-  const isOwnPending = (status: string, proposedBy?: string | null) =>
-    !canManage && status === 'pending' && proposedBy === (user?.uid ?? null);
-
-  const confirmWithdraw = (kind: 'place' | 'barrio', id: string) => {
-    showConfirm(
-      t('village.proposals.pendingTitle'),
-      t('village.proposals.pendingInfo'),
-      () => {
-        const op = kind === 'place' ? deletePlace(village.id, id) : deleteBarrio(village.id, id);
-        void op.then(() => reload());
-      },
-      { confirmText: t('village.proposals.withdraw') },
-    );
-  };
 
   const openDirections = () => {
     const c = village.coordinates;
@@ -177,7 +161,9 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
 
   const onJoin = () => {
     if (!user) {
-      router.push('/(auth)/login' as never);
+      // Carry this village across auth: after the guest registers, onboarding
+      // pre-selects it and joins them; an already-onboarded user resumes to it.
+      gate.requireAuth(villageBase, t('guest.village'), village.id);
       return;
     }
     // Open the shared modal (escudo + name + barrio picker). Replaces the old
@@ -226,112 +212,69 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           </HStack>
         </VStack>
 
-        {/* ── "You were invited" banner (non-members via invite) ── */}
-        {!isMember && arrivedViaInvite ? (
-          <VStack gap={1} className="px-4 pt-3">
-            <Text tone="muted" variant="bodySm" className="text-center">
-              {t('village.invitedBanner')}
-            </Text>
-          </VStack>
-        ) : null}
-
         {/* ── Stats ────────────────────────────────────────────── */}
         <View className="px-4 pt-4 pb-4">
           <StatsRow
             stats={[
-              { label: t('village.admin.overview.people'), value: peopleCount },
-              { label: t('village.hub.organizations'), value: agrupaciones.length },
+              {
+                label: t('village.admin.overview.people'),
+                value: peopleCount,
+                onPress: isMember
+                  ? () => router.push(`/village/${village.id}/members` as never)
+                  : undefined,
+              },
+              { label: t('village.hub.organizations'), value: visibleOrgs.length },
               { label: t('village.admin.hub.places'), value: places.length },
             ]}
           />
         </View>
 
-        {/* ── Unirme (non-members) / Invitar (members) + Compartir ─ */}
+        {/* ── slot 1: Unirme (non-members) / Añadir contenido (members)
+            + Editar (admins) + Compartir (everyone) ─────────────── */}
         <HStack gap={3} className="px-4 pt-2 pb-2">
           {!isMember ? (
-            <Pressable
+            <ActionPill
+              label={user ? t('village.join') : t('village.signInToJoin')}
               onPress={onJoin}
               disabled={joining}
-              accessibilityLabel={t('village.join')}
-              className="flex-1 flex-row items-center justify-center bg-surface"
-              style={{
-                paddingVertical: 5,
-                paddingHorizontal: 12,
-                borderRadius: 24,
-                borderWidth: 1.5,
-                borderColor: ACCENT,
-                minHeight: 32,
-              }}
-            >
-              <Text style={{ color: ACCENT }} className="font-semibold">
-                {user ? t('village.join') : t('village.signInToJoin')}
-              </Text>
-            </Pressable>
-          ) : (
-            <Pressable
-              onPress={() => void share(getVillageInviteLink(village.id), village.name)}
-              accessibilityLabel={t('village.invite.title')}
-              className="flex-1 flex-row items-center justify-center bg-surface"
-              style={{
-                paddingVertical: 5,
-                paddingHorizontal: 12,
-                borderRadius: 24,
-                borderWidth: 1.5,
-                borderColor: ACCENT,
-                minHeight: 32,
-              }}
-            >
-              <Text style={{ color: ACCENT }} className="font-semibold">
-                {t('village.invite.title')}
-              </Text>
-            </Pressable>
-          )}
-          {canManage ? (
-            <Pressable
-              onPress={() => router.push(`/village/${village.id}/community` as never)}
-              accessibilityLabel={t('village.edit.title')}
-              className="flex-1 flex-row items-center justify-center bg-surface"
-              style={{
-                paddingVertical: 5,
-                paddingHorizontal: 12,
-                borderRadius: 24,
-                borderWidth: 1.5,
-                borderColor: ACCENT,
-                minHeight: 32,
-              }}
-            >
-              <Text style={{ color: ACCENT }} className="font-semibold">
-                {t('village.edit.title')}
-              </Text>
-            </Pressable>
-          ) : (
-            <Pressable
-              onPress={() => void share(getVillageViewLink(village.id), village.name)}
-              accessibilityLabel={t('village.share.title')}
-              className="flex-1 flex-row items-center justify-center bg-surface"
-              style={{
-                paddingVertical: 5,
-                paddingHorizontal: 12,
-                borderRadius: 24,
-                borderWidth: 1.5,
-                borderColor: ACCENT,
-                minHeight: 32,
-              }}
-            >
-              <Text style={{ color: ACCENT }} className="font-semibold">
-                {t('village.share.title')}
-              </Text>
-            </Pressable>
-          )}
+            />
+          ) : null}
+          {isMember ? (
+            <ActionPill
+              label={t('village.addContent.button')}
+              onPress={() => setAddOpen(true)}
+            />
+          ) : null}
+          <ActionPill
+            label={t('village.share.title')}
+            onPress={() => void share(getVillageViewLink(village.id), village.name)}
+          />
         </HStack>
 
         {/* ── No organizer yet (wiki phase) ─────────────────────── */}
         {noOrganizer ? (
           <VStack gap={2} className="px-4 pt-2">
             {pendingOrganizerRequest ? (
-              <Text tone="muted" variant="bodySm" className="text-center">
-                {t('village.noOrganizer.pending')}
-              </Text>
+              <Pressable
+                disabled
+                onPress={() => {}}
+                accessibilityLabel={t('village.noOrganizer.pending')}
+                accessibilityState={{ disabled: true }}
+                className="flex-row items-center justify-center bg-surface"
+                style={{
+                  paddingVertical: 5,
+                  paddingHorizontal: 12,
+                  borderRadius: 24,
+                  borderWidth: 1.5,
+                  borderColor: ACCENT,
+                  minHeight: 32,
+                  opacity: 0.5,
+                }}
+              >
+                <Text style={{ color: ACCENT }} className="font-semibold">
+                  {t('village.noOrganizer.pending')}
+                </Text>
+              </Pressable>
             ) : (
               <Pressable
                 onPress={() => router.push(`/discover/organize/${village.id}` as never)}
@@ -357,7 +300,9 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           </VStack>
         ) : null}
 
-        {/* ── Ubicación (map rectangle, when coordinates are set) ── */}
+        {/* ── Ubicación: the map rectangle when coordinates are set. When
+            missing, the slot is hidden entirely — location is set in the
+            edit-village ("Detalles") step, not from here. ── */}
         {village.coordinates ? (
           <View className="px-4 pt-2">
             <Pressable
@@ -379,33 +324,27 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           </View>
         ) : null}
 
-        {/* ── Próximos eventos ─────────────────────────────────── */}
+        {/* ── Eventos ──────────────────────────────────────────── */}
         <Section
-          title={t('village.upcomingEvents.title')}
+          title={t('village.events.label')}
           isEmpty={events.length === 0}
-          emptyLabel={t('village.upcomingEvents.empty')}
-          addLabel={isMember ? t('feed.events.create') : undefined}
-          onAdd={isMember ? () => router.push(`/event/new?villageId=${village.id}` as never) : undefined}
-        >
-          {events.map((e) => (
+          data={events}
+          keyExtractor={(e) => e.id}
+          renderItem={({ item: e }) => (
             <EntityCard
-              key={e.id}
               label={e.title}
               sub={formatDate(e.startDate, 'short')}
               icon="calendar-outline"
               imageUri={e.imageURL ?? e.villageCoverImage}
               onPress={() => router.push(`/event/${e.id}` as never)}
             />
-          ))}
-        </Section>
+          )}
+        />
 
         {/* ── Artículos ────────────────────────────────────────── */}
         <Section
           title={t('village.newsFeed.title')}
           isEmpty={news.length === 0}
-          emptyLabel={t('village.newsFeed.empty')}
-          addLabel={isMember ? t('feed.news.create') : undefined}
-          onAdd={isMember ? () => router.push(`/news/new?villageId=${village.id}` as never) : undefined}
         >
           {news.map((n) => (
             <NewsEntityCard
@@ -416,26 +355,40 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
           ))}
         </Section>
 
+        {/* ── Carteles de fiestas ──────────────────────────────── */}
+        <Section
+          title={t('village.festivalPosters.title')}
+          isEmpty={festivalPosters.length === 0}
+        >
+          {festivalPosters.map((p) => (
+            <EntityCard
+              key={p.id}
+              label={String(p.year)}
+              sub={[p.title, formatFestivalPosterDates(p)].filter(Boolean).join(' · ') || undefined}
+              icon="image-outline"
+              imageUri={p.images[0] ?? null}
+              commentCount={p.commentCount}
+              onPress={() => router.push(`${villageBase}/festival-poster/${p.id}` as never)}
+            />
+          ))}
+        </Section>
+
         {/* ── Barrios ──────────────────────────────────────────── */}
         <Section
           title={t('village.admin.hub.barrios')}
-          isEmpty={visibleBarrios.length === 0}
-          emptyLabel={t('village.admin.barrios.empty')}
-          addLabel={canManage ? t('village.admin.barrios.add') : t('village.proposals.propose')}
-          onAdd={() => router.push(`${villageBase}/barrios` as never)}
+          isEmpty={barrios.length === 0}
         >
-          {visibleBarrios.map((b) => (
+          {barrios.map((b) => (
             <EntityCard
               key={b.id}
               label={b.name}
-              sub={b.status === 'pending' ? t('village.proposals.pending') : undefined}
+              sub={t('village.admin.barrios.residentCount', {
+                count: barrioResidentCounts[b.id] ?? 0,
+              })}
               icon="map-outline"
               imageUri={b.imageURL}
-              onPress={() =>
-                isOwnPending(b.status, b.proposedBy)
-                  ? confirmWithdraw('barrio', b.id)
-                  : router.push(`/village/${village.id}/barrio/${b.id}` as never)
-              }
+              commentCount={b.commentCount}
+              onPress={() => router.push(`/village/${village.id}/barrio/${b.id}` as never)}
             />
           ))}
         </Section>
@@ -443,23 +396,16 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
         {/* ── Lugares ──────────────────────────────────────────── */}
         <Section
           title={t('village.admin.hub.places')}
-          isEmpty={visiblePlaces.length === 0}
-          emptyLabel={t('village.admin.places.empty')}
-          addLabel={canManage ? t('village.admin.places.add') : t('village.proposals.propose')}
-          onAdd={() => router.push(`${villageBase}/places` as never)}
+          isEmpty={places.length === 0}
         >
-          {visiblePlaces.map((p) => (
+          {places.map((p) => (
             <EntityCard
               key={p.id}
               label={p.name}
-              sub={p.status === 'pending' ? t('village.proposals.pending') : undefined}
               icon="location-outline"
               imageUri={p.imageURL}
-              onPress={() =>
-                isOwnPending(p.status, p.proposedBy)
-                  ? confirmWithdraw('place', p.id)
-                  : router.push(`/village/${village.id}/place/${p.id}` as never)
-              }
+              commentCount={p.commentCount}
+              onPress={() => router.push(`/village/${village.id}/place/${p.id}` as never)}
             />
           ))}
         </Section>
@@ -468,9 +414,6 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
         <Section
           title={t('village.hub.organizations')}
           isEmpty={agrupaciones.length === 0}
-          emptyLabel={t('village.organizationsList.empty')}
-          addLabel={canManage ? t('village.admin.organizations.add') : t('village.proposals.propose')}
-          onAdd={() => router.push(`${villageBase}/organizations` as never)}
         >
           {agrupaciones.map((o) => (
             <EntityCard
@@ -479,6 +422,7 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
               sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
               icon="business-outline"
               imageUri={o.imageURL}
+              commentCount={o.commentCount}
               onPress={() => router.push(`/o/${o.id}` as never)}
             />
           ))}
@@ -488,9 +432,6 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
         <Section
           title={t('village.hub.penas')}
           isEmpty={penas.length === 0}
-          emptyLabel={t('village.organizationsList.penasEmpty')}
-          addLabel={canManage ? t('village.admin.organizations.addPena') : t('village.proposals.propose')}
-          onAdd={() => router.push(`${villageBase}/organizations` as never)}
         >
           {penas.map((o) => (
             <EntityCard
@@ -499,50 +440,55 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
               sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
               icon="people-circle-outline"
               imageUri={o.imageURL}
+              commentCount={o.commentCount}
               onPress={() => router.push(`/o/${o.id}` as never)}
             />
           ))}
         </Section>
 
-        {/* ── Censo: everyone fills; admins also configure ─────── */}
-        <HStack gap={3} className="px-4 pt-8">
-          <Pressable
-            onPress={() => router.push(`/village/${village.id}/censo?mode=fill` as never)}
-            accessibilityLabel={censoFillLabel}
-            className="flex-1 flex-row items-center justify-center bg-surface"
-            style={{
-              paddingVertical: 5,
-              paddingHorizontal: 12,
-              borderRadius: 24,
-              borderWidth: 1.5,
-              borderColor: ACCENT,
-              minHeight: 32,
-            }}
-          >
-            <Text style={{ color: ACCENT }} className="font-semibold">
-              {censoFillLabel}
-            </Text>
-          </Pressable>
-          {canManage ? (
-            <Pressable
-              onPress={() => router.push(`/village/${village.id}/censo?mode=configure` as never)}
-              accessibilityLabel={t('village.censo.configure')}
-              className="flex-1 flex-row items-center justify-center bg-surface"
-              style={{
-                paddingVertical: 5,
-                paddingHorizontal: 12,
-                borderRadius: 24,
-                borderWidth: 1.5,
-                borderColor: ACCENT,
-                minHeight: 32,
-              }}
-            >
-              <Text style={{ color: ACCENT }} className="font-semibold">
-                {t('village.censo.configure')}
-              </Text>
-            </Pressable>
-          ) : null}
-        </HStack>
+        {/* ── Censo: only villagers of this village fill; admins also configure ─── */}
+        {isMember || canManage ? (
+          <HStack gap={3} className="px-4 pt-8">
+            {isMember ? (
+              <Pressable
+                onPress={() => router.push(`/village/${village.id}/censo?mode=fill` as never)}
+                accessibilityLabel={censoFillLabel}
+                className="flex-1 flex-row items-center justify-center bg-surface"
+                style={{
+                  paddingVertical: 5,
+                  paddingHorizontal: 12,
+                  borderRadius: 24,
+                  borderWidth: 1.5,
+                  borderColor: ACCENT,
+                  minHeight: 32,
+                }}
+              >
+                <Text style={{ color: ACCENT }} className="font-semibold">
+                  {censoFillLabel}
+                </Text>
+              </Pressable>
+            ) : null}
+            {canManage ? (
+              <Pressable
+                onPress={() => router.push(`/village/${village.id}/censo?mode=configure` as never)}
+                accessibilityLabel={t('village.censo.configure')}
+                className="flex-1 flex-row items-center justify-center bg-surface"
+                style={{
+                  paddingVertical: 5,
+                  paddingHorizontal: 12,
+                  borderRadius: 24,
+                  borderWidth: 1.5,
+                  borderColor: ACCENT,
+                  minHeight: 32,
+                }}
+              >
+                <Text style={{ color: ACCENT }} className="font-semibold">
+                  {t('village.censo.configure')}
+                </Text>
+              </Pressable>
+            ) : null}
+          </HStack>
+        ) : null}
       </ScrollView>
       <JoinVillageModal
         municipality={
@@ -559,7 +505,45 @@ export function VillageHomeBody({ data, reload, arrivedViaInvite = false }: Vill
         onCancel={() => setPendingJoin(false)}
         onConfirm={(barrioId) => void doJoin(barrioId)}
       />
+      <AddContentSheet
+        visible={addOpen}
+        onClose={() => setAddOpen(false)}
+        villageId={village.id}
+        canManage={canManage}
+      />
     </>
+  );
+}
+
+/** The terracotta-outline pill used across the village-home action row. */
+function ActionPill({
+  label,
+  onPress,
+  disabled = false,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityLabel={label}
+      className="flex-1 flex-row items-center justify-center bg-surface"
+      style={{
+        paddingVertical: 5,
+        paddingHorizontal: 12,
+        borderRadius: 24,
+        borderWidth: 1.5,
+        borderColor: ACCENT,
+        minHeight: 32,
+      }}
+    >
+      <Text style={{ color: ACCENT }} className="font-semibold">
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -599,7 +583,7 @@ function NewsEntityCard({
   return (
     <EntityCard
       label={post.title}
-      sub={formatDate(post.publishedAt ?? post.submittedAt, 'short')}
+      sub={formatDate(post.publishedAt ?? post.createdAt, 'short')}
       icon="newspaper-outline"
       imageUri={imageUri}
       onPress={onPress}

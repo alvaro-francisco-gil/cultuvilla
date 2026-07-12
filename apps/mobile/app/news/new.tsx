@@ -7,6 +7,7 @@ import { Screen, VStack, Text, Input, Button, FieldLabel, ImagePickerField, Pres
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { OrganizerPicker } from '../../components/feature/OrganizerPicker';
 import { Stepper, type StepConfig } from '../../components/feature/Stepper';
+import { DeleteHeaderButton } from '../../components/feature/DeleteHeaderButton';
 import {
   BlockEditor,
   emptyTextBlock,
@@ -18,7 +19,7 @@ import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 import { useCallable } from '../../lib/useCallable';
 import { useMentionSources } from '../../lib/useMentionSources';
-import { createNewsPost, updateNewsPost, getNewsPost } from '@cultuvilla/shared/services/newsService';
+import { createNewsPost, updateNewsPost, getNewsPost, deleteNewsPost } from '@cultuvilla/shared/services/newsService';
 import { uploadNewsImage, newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
 import {
   NEWS_POST_CATEGORIES,
@@ -163,8 +164,9 @@ export default function NewNewsScreen() {
   const [blocks, setBlocks] = useState<EditorBlock[]>([emptyTextBlock()]);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(editMode);
-  // In edit mode the municipality comes from the loaded article; organizers are
-  // immutable (the update rules forbid changing them), so the picker is hidden.
+  // In edit mode the municipality comes from the loaded article. Organizers stay
+  // editable (any current organizer may reattribute the post), so the picker is
+  // shown in both modes — just without the creator lock outside of create.
   const [editMunicipalityId, setEditMunicipalityId] = useState<string | null>(null);
   const municipalityId = editMode ? editMunicipalityId : (villageId ?? profile?.activeMunicipalityId ?? null);
   const [organizerUserIds, setOrganizerUserIds] = useState<string[]>([]);
@@ -208,7 +210,7 @@ export default function NewNewsScreen() {
         ? await Promise.all(
             post.content.map(async (b): Promise<EditorBlock> => {
               if (b.type === 'text') {
-                return { id: newBlockId(), type: 'text', text: b.text, mentions: b.mentions };
+                return { id: newBlockId(), type: 'text', text: b.text, mentions: b.mentions, links: b.links };
               }
               const uri = await newsImageDownloadURL(b.storagePath);
               return {
@@ -220,10 +222,12 @@ export default function NewNewsScreen() {
                 width: b.width,
                 height: b.height,
                 caption: b.caption ?? '',
+                captionMentions: b.captionMentions,
+                captionLinks: b.captionLinks,
               };
             }),
           )
-        : [{ id: newBlockId(), type: 'text', text: post.body, mentions: [] }];
+        : [{ id: newBlockId(), type: 'text', text: post.body, mentions: [], links: [] }];
 
       if (!cancelled) {
         setBlocks(editorBlocks.length ? editorBlocks : [emptyTextBlock()]);
@@ -276,7 +280,7 @@ export default function NewNewsScreen() {
       for (const [i, block] of blocks.entries()) {
         if (block.type === 'text') {
           if (block.text.trim().length === 0) continue;
-          content.push({ type: 'text', text: block.text, mentions: block.mentions });
+          content.push({ type: 'text', text: block.text, mentions: block.mentions, links: block.links });
           continue;
         }
         let storagePath = block.storagePath;
@@ -294,6 +298,8 @@ export default function NewNewsScreen() {
             width: block.width,
             height: block.height,
             caption: block.caption.trim() || null,
+            captionMentions: block.captionMentions,
+            captionLinks: block.captionLinks,
           });
         }
       }
@@ -311,7 +317,16 @@ export default function NewNewsScreen() {
         coverImage = { storagePath: cover.storagePath, width: cover.width, height: cover.height };
       }
 
-      await updateNewsPost(postId, { title: title.trim(), body, content, category, coverImage });
+      await updateNewsPost(postId, {
+        title: title.trim(),
+        body,
+        content,
+        category,
+        coverImage,
+        // Authorship was already set on create; only re-persist it when editing,
+        // where the organizer picker may have reassigned it.
+        ...(editMode ? { organizerUserIds, organizerOrgIds } : {}),
+      });
       return postId;
     },
     onSuccess: (postId) => {
@@ -325,6 +340,13 @@ export default function NewNewsScreen() {
   });
 
   const headerTitle = editMode ? t('news.compose.editTitle') : t('news.compose.title');
+
+  // Hard delete via the cascading callable. Reaching edit mode implies the
+  // caller is the author (or a co-organizer / admin who deep-linked here).
+  const remove = () => {
+    if (!newsId) return;
+    return deleteNewsPost(newsId).then(() => router.replace('/(tabs)'));
+  };
 
   if (loading) {
     return (
@@ -357,7 +379,7 @@ export default function NewNewsScreen() {
         <View className="flex-1 items-center justify-center px-8">
           <VStack gap={4} className="items-center">
             <Ionicons name="checkmark-circle-outline" size={48} color="#16a34a" />
-            <Text className="text-center">{t('news.compose.successPending')}</Text>
+            <Text className="text-center">{t('news.compose.successPublished')}</Text>
             <Button onPress={() => router.back()}>{t('common.back')}</Button>
           </VStack>
         </View>
@@ -404,21 +426,21 @@ export default function NewNewsScreen() {
       icon: 'people-outline',
       render: () =>
         stepBody(
-          !editMode && municipalityId && user ? (
+          municipalityId && user ? (
             <OrganizerPicker
               municipalityId={municipalityId}
               selectedUserIds={organizerUserIds}
               selectedOrgIds={organizerOrgIds}
-              lockedUserId={user.uid}
+              // Lock the creator into the set only while composing; in edit mode
+              // authorship is fully reassignable by any current organizer.
+              lockedUserId={editMode ? undefined : user.uid}
               onChangeUsers={setOrganizerUserIds}
               onChangeOrgs={setOrganizerOrgIds}
               peopleLabel={t('news.compose.writersLabel')}
               addPersonLabel={t('news.compose.addWriter')}
               selectPeopleTitle={t('news.compose.selectWriters')}
             />
-          ) : (
-            <Text tone="muted">{t('news.compose.attributionLocked')}</Text>
-          ),
+          ) : null,
         ),
     },
   ];
@@ -426,7 +448,22 @@ export default function NewNewsScreen() {
   // bottomInset={false}: the Stepper's own bottom nav bar applies the inset.
   return (
     <Screen padded={false} bottomInset={false}>
-      <ScreenHeader title={headerTitle} />
+      <ScreenHeader
+        title={headerTitle}
+        rightSlot={
+          editMode ? (
+            <DeleteHeaderButton
+              onConfirm={remove}
+              accessibilityLabel={t('common.delete')}
+              confirmTitle={t('common.deleteConfirmTitle')}
+              confirmMessage={t('common.deleteConfirmMessage')}
+              confirmLabel={t('common.delete')}
+              cancelLabel={t('common.cancel')}
+              deletingLabel={t('common.deleting.news')}
+            />
+          ) : undefined
+        }
+      />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Stepper
           steps={steps}

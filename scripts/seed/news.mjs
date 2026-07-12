@@ -49,7 +49,7 @@ export async function seedNews(dataset) {
       const coverImage = images[0] ?? null;
       const content = [{ type: 'text', text: post.body, mentions: [] }];
       for (const img of images.slice(1)) {
-        content.push({ type: 'image', storagePath: img.storagePath, width: img.width, height: img.height, caption: null });
+        content.push({ type: 'image', storagePath: img.storagePath, width: img.width, height: img.height, caption: null, captionMentions: [] });
       }
 
       const publishedAt = new Date(Date.now() - (post.publishedOffsetDays ?? 1) * DAY_MS);

@@ -1,28 +1,28 @@
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { OrganizationsManager } from '../OrganizationsManager';
 import {
-  getOrganizationsByMunicipality, requestOrganization, approveOrganization,
+  requestOrganization, approveOrganization,
 } from '@cultuvilla/shared/services/organizationService';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+import { observability } from '@cultuvilla/shared';
 
+jest.mock('@cultuvilla/shared', () => ({
+  ...jest.requireActual('@cultuvilla/shared'),
+  observability: { trackEvent: jest.fn() },
+}));
 jest.mock('@cultuvilla/shared/services/organizationService', () => ({
-  getOrganizationsByMunicipality: jest.fn(),
   requestOrganization: jest.fn().mockResolvedValue('new-org'),
   newOrganizationId: jest.fn(() => 'new-org'),
   approveOrganization: jest.fn().mockResolvedValue(undefined),
-  rejectOrganization: jest.fn().mockResolvedValue(undefined),
-  deleteOrganization: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('@cultuvilla/shared/services/imageService', () => ({ uploadOrganizationImage: jest.fn() }));
 jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({ useEntityCapabilities: jest.fn() }));
 
 const mockCaps = useEntityCapabilities as jest.Mock;
-const mockGet = getOrganizationsByMunicipality as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockGet.mockResolvedValue([]);
   mockCaps.mockReturnValue({ canManage: false, canApprove: false, uid: 'alice', loading: false });
 });
 
@@ -39,6 +39,7 @@ describe('<OrganizationsManager>', () => {
       ),
     );
     expect(approveOrganization).not.toHaveBeenCalled();
+    expect(observability.trackEvent).toHaveBeenCalledWith('org.create.success', { municipalityId: 'm1' });
   });
 
   it('an organizer submitting requests then auto-approves', async () => {
@@ -47,28 +48,6 @@ describe('<OrganizationsManager>', () => {
     fireEvent.changeText(getByTestId('org-name-input'), 'Peña Nueva');
     fireEvent.press(getByTestId('org-submit'));
     await waitFor(() => expect(requestOrganization).toHaveBeenCalled());
-    await waitFor(() => expect(approveOrganization).toHaveBeenCalledWith('new-org', 'boss', 'boss'));
-  });
-
-  it('a villager sees approved orgs + their own pending, not others’ pending', async () => {
-    mockGet.mockResolvedValue([
-      { id: 'a', name: 'Aprobada', description: null, imageURL: null, type: 'peña', status: 'approved', municipalityId: 'm1', requestedBy: 'x', reviewedBy: 'b', reviewedAt: null },
-      { id: 'mine', name: 'MiPropuesta', description: null, imageURL: null, type: 'peña', status: 'pending', municipalityId: 'm1', requestedBy: 'alice', reviewedBy: null, reviewedAt: null },
-      { id: 'other', name: 'OtraPendiente', description: null, imageURL: null, type: 'peña', status: 'pending', municipalityId: 'm1', requestedBy: 'bob', reviewedBy: null, reviewedAt: null },
-    ]);
-    const { findByText, queryByText } = render(<OrganizationsManager villageId="m1" mode="manage" />);
-    expect(await findByText('Aprobada')).toBeTruthy();
-    expect(await findByText('MiPropuesta')).toBeTruthy();
-    expect(queryByText('OtraPendiente')).toBeNull();
-  });
-
-  it('an organizer can approve a pending row', async () => {
-    mockCaps.mockReturnValue({ canManage: true, canApprove: true, uid: 'boss', loading: false });
-    mockGet.mockResolvedValue([
-      { id: 'o1', name: 'Peña Vieja', description: null, imageURL: null, type: 'peña', status: 'pending', municipalityId: 'm1', requestedBy: 'alice', reviewedBy: null, reviewedAt: null },
-    ]);
-    const { findByTestId } = render(<OrganizationsManager villageId="m1" mode="manage" />);
-    fireEvent.press(await findByTestId('action-approve'));
-    await waitFor(() => expect(approveOrganization).toHaveBeenCalledWith('o1', 'boss', 'alice'));
+    await waitFor(() => expect(approveOrganization).toHaveBeenCalledWith('new-org'));
   });
 });

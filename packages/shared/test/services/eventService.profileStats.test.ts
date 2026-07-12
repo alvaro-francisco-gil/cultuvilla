@@ -71,6 +71,22 @@ describe('getEventsByOrganizer', () => {
     expect(where).toHaveBeenCalledWith('organizerUserIds', 'array-contains', 'uid-1');
     expect(orderBy).toHaveBeenCalledWith('createdAt', 'desc');
   });
+
+  // Regression: "deleting" an event soft-cancels it (status -> 'cancelled'), but the
+  // profile's managed-events list kept showing it. Cancelled events must not appear.
+  it('omits cancelled (soft-deleted) events from the organizer list', async () => {
+    vi.mocked(getDocs).mockResolvedValue({
+      docs: [
+        { id: 'e-published', data: () => ({ status: 'published' }) },
+        { id: 'e-cancelled', data: () => ({ status: 'cancelled' }) },
+        { id: 'e-completed', data: () => ({ status: 'completed' }) },
+      ],
+    } as any);
+
+    const events = await getEventsByOrganizer('uid-1');
+
+    expect(events.map((e) => e.id)).toEqual(['e-published', 'e-completed']);
+  });
 });
 
 describe('getEventsByOrganization', () => {

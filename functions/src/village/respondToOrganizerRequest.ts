@@ -9,6 +9,8 @@ import {
 } from '@cultuvilla/shared/firebase/refs/admin';
 import type { VillageMemberData } from '@cultuvilla/shared';
 import { notifyOrganizerRequestResolved } from '../helpers/notifyRequests';
+import { writeMembershipEvent } from '../helpers/membershipAudit';
+import { readResidenceTarget, upsertResidenceLink, type ResidenceTarget } from './residenceProjection';
 
 const db = getFirestore();
 
@@ -72,11 +74,20 @@ export const respondToOrganizerRequest = onCall<
         if (muniData?.communityActive !== true) {
           throw new HttpsError('failed-precondition', 'El pueblo aún no está iniciado.');
         }
-        if (muniData.community?.adminUserId != null) {
+        if (muniData.community?.organizerId != null) {
           throw new HttpsError('already-exists', 'Este pueblo ya tiene organizador.');
         }
       }
       municipalityName = muniData?.name ?? municipalityId;
+
+      // Residence link projection for a requester who is NOT yet a member and
+      // will be seeded as admin below. Read before any write (tx requirement);
+      // the upsert happens in the fresh-member branch. Already-members keep the
+      // residence link they got when they joined/started the village.
+      let residenceTarget: ResidenceTarget | null = null;
+      if (decision === 'approved' && !memberSnap.exists) {
+        residenceTarget = await readResidenceTarget(tx, db, requesterUid);
+      }
 
       // tx.update bypasses the converter — FieldValue.serverTimestamp() is fine.
       tx.update(reqRef, {
@@ -88,7 +99,8 @@ export const respondToOrganizerRequest = onCall<
       if (decision === 'approved') {
         // Set the organizer on the existing community (dotted path preserves the
         // description/profileForm/activatedAt seeded at start time).
-        tx.update(muniRef, { 'community.adminUserId': requesterUid });
+        tx.update(muniRef, { 'community.organizerId': requesterUid });
+        const priorRole = memberSnap.exists ? (memberSnap.data()?.role ?? null) : null;
         if (memberSnap.exists) {
           // Already a member (joined or started the village) → promote to admin.
           tx.update(memberRef, { role: 'admin' });
@@ -100,11 +112,30 @@ export const respondToOrganizerRequest = onCall<
             joinedAt: new Date(),
             profileAnswers: {},
             profileCompletedAt: null,
-            trustedNewsAuthor: false,
-            barrioId: null,
           };
           tx.set(memberRef, newMember);
+          if (residenceTarget) upsertResidenceLink(tx, residenceTarget, municipalityId, null);
         }
+        // Audit: the organizer grant, then the admin membership it establishes
+        // (a promotion if they were already a member, otherwise a fresh add).
+        writeMembershipEvent(tx, db, {
+          scopeType: 'village',
+          scopeId: municipalityId,
+          municipalityId,
+          actorUserId: callerUid,
+          targetUserId: requesterUid,
+          action: 'organizer_set',
+        });
+        writeMembershipEvent(tx, db, {
+          scopeType: 'village',
+          scopeId: municipalityId,
+          municipalityId,
+          actorUserId: callerUid,
+          targetUserId: requesterUid,
+          action: memberSnap.exists ? 'role_changed' : 'added',
+          fromRole: priorRole,
+          toRole: 'admin',
+        });
       }
     });
 

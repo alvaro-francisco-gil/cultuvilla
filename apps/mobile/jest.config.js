@@ -1,6 +1,9 @@
 module.exports = {
   preset: 'jest-expo',
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
+  // Playwright specs under e2e/ use @playwright/test's runner, not jest — jest
+  // must not try to execute them (it would fail parsing test.describe/expect).
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/e2e/'],
   // jest-expo render suites are heavy (~12-15s each) and run in parallel; the
   // default 5000ms per-test limit is too tight under CI contention and flakes
   // (e.g. complete-profile timing out). 15s gives headroom without hiding hangs.
@@ -22,5 +25,11 @@ module.exports = {
     '^@cultuvilla/i18n$': '<rootDir>/../../packages/i18n/index',
     '^@cultuvilla/i18n/(.*)$': '<rootDir>/../../packages/i18n/$1',
   },
+  // Report-only coverage (docs/plans/ongoing/testing-enhancement.md, D4): only
+  // collected with `pnpm app:test:coverage` (jest --coverage); no gate yet.
+  // v8 + lcov keeps the output format aligned with the vitest packages so a
+  // future diff-cover step can merge one lcov set across the monorepo.
+  coverageProvider: 'v8',
+  coverageReporters: ['text-summary', 'lcov'],
   collectCoverageFrom: ['lib/**/*.ts', 'components/**/*.{ts,tsx}'],
 };

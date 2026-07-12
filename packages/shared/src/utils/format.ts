@@ -7,7 +7,7 @@
 
 const LOCALE = 'es-ES';
 
-export type DateStyle = 'short' | 'dayMonth' | 'long' | 'time' | 'datetime';
+export type DateStyle = 'short' | 'dayMonth' | 'monthYear' | 'long' | 'time' | 'datetime';
 
 export function formatDate(date: Date, style: DateStyle = 'short'): string {
   switch (style) {
@@ -27,6 +27,16 @@ export function formatDate(date: Date, style: DateStyle = 'short'): string {
       return parts
         .map((p) => (p.type === 'month' ? p.value.charAt(0).toUpperCase() + p.value.slice(1) : p.value))
         .join('');
+    }
+    // Month + year, no "de": "Agosto 2025". Intl's { month: 'long', year:
+    // 'numeric' } inserts a literal " de " between them (es-ES grammar); we
+    // drop literals and join with a single space for the poster's display style.
+    case 'monthYear': {
+      const parts = new Intl.DateTimeFormat(LOCALE, { month: 'long', year: 'numeric' }).formatToParts(date);
+      return parts
+        .filter((p) => p.type !== 'literal')
+        .map((p) => (p.type === 'month' ? p.value.charAt(0).toUpperCase() + p.value.slice(1) : p.value))
+        .join(' ');
     }
     case 'long':
       return new Intl.DateTimeFormat(LOCALE, {
@@ -60,6 +70,19 @@ export function formatDate(date: Date, style: DateStyle = 'short'): string {
 export function calendarDayOffset(date: Date, now: Date = new Date()): number {
   const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   return Math.round((startOfDay(date) - startOfDay(now)) / 86_400_000);
+}
+
+/**
+ * The 12 capitalized es-ES abbreviated month names ("Ene".."Dic"), derived
+ * from Intl rather than hardcoded, so the locale stays the single source
+ * of truth for month labels (month chip pickers, etc.).
+ */
+export function monthShortLabels(): string[] {
+  return Array.from({ length: 12 }, (_, i) => {
+    const raw = new Intl.DateTimeFormat(LOCALE, { month: 'short' }).format(new Date(2000, i, 1));
+    const trimmed = raw.replace(/\.$/, '');
+    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  });
 }
 
 export function formatPrice(amount: number, currency: string = 'EUR'): string {

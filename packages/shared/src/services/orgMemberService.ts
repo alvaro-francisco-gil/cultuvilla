@@ -1,6 +1,7 @@
 // packages/shared/src/services/orgMemberService.ts
-import { getCountFromServer, getDoc, getDocs, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
-import { getDb } from '../firebase';
+import { getCountFromServer, getDoc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { getDb, getFirebaseFunctions } from '../firebase';
 import {
   organizationMembersCollection,
   organizationMemberDoc,
@@ -24,15 +25,25 @@ export async function addOrgMember(
   userId: string,
   role: OrgMemberRole = 'member',
 ): Promise<void> {
-  await setDoc(organizationMemberDoc(getDb(), orgId, userId), buildOrgMemberData({ role }));
+  await setDoc(organizationMemberDoc(getDb(), orgId, userId), buildOrgMemberData({ userId, role }));
 }
 
+/**
+ * Promote/demote an org member — the only way to make (or unmake) an org admin.
+ * Thin wrapper over the `changeOrgMemberRole` callable, which checks authority,
+ * updates the role, and writes a `membershipEvents` audit record in one
+ * transaction. Clients can no longer write `role` directly (function-owned).
+ */
 export async function setOrgMemberRole(
   orgId: string,
   userId: string,
   role: OrgMemberRole,
 ): Promise<void> {
-  await updateDoc(organizationMemberDoc(getDb(), orgId, userId), { role });
+  const fn = httpsCallable<{ orgId: string; targetUserId: string; role: OrgMemberRole }, { ok: true }>(
+    getFirebaseFunctions(),
+    'changeOrgMemberRole',
+  );
+  await fn({ orgId, targetUserId: userId, role });
 }
 
 export async function getOrgAdminIds(orgId: string): Promise<string[]> {
@@ -47,6 +58,16 @@ export async function removeOrgMember(orgId: string, userId: string): Promise<vo
 export async function isOrgMember(orgId: string, userId: string): Promise<boolean> {
   const snap = await getDoc(organizationMemberDoc(getDb(), orgId, userId));
   return snap.exists();
+}
+
+/**
+ * True iff `userId` is an admin of the org. Authority is the role flag, never
+ * the founder pointer (AGENTS.md §Membership roles) — the founder is seeded as
+ * admin on approval, so this covers "a group I created" without special-casing.
+ */
+export async function isOrgAdmin(orgId: string, userId: string): Promise<boolean> {
+  const snap = await getDoc(organizationMemberDoc(getDb(), orgId, userId));
+  return snap.exists() && snap.data().role === 'admin';
 }
 
 export interface UserOrgMembership {

@@ -1,4 +1,4 @@
-import { onDocumentWritten } from 'firebase-functions/v2/firestore';
+import { onDocumentDeleted } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 
@@ -10,45 +10,35 @@ interface ResidenceLink {
 }
 
 /**
- * Projects an account-holder's residence barrio from their membership doc into
- * the linked person's `municipalityLinks`, so the barrio residents list
- * (`getPersonsByBarrio`, an array-contains query on persons) stays consistent
- * with the editable source of truth.
+ * Cleans an ex-member's residence link when their membership is deleted by a
+ * *privileged* party — a village admin removing a member, or the admin SDK.
+ * That actor cannot write another user's `persons` doc client-side (the persons
+ * rule only lets a user edit their own), so this cleanup has to run server-side.
  *
- * Source of truth: municipalities/{municipalityId}/members/{userId}.barrioId
- * Read target:     persons/{personId}.municipalityLinks (the entry whose
- *   municipalityId === this municipality).
+ * Barrio residency otherwise lives ONLY in `persons.municipalityLinks`, written
+ * directly by the owner (join / change-barrio client batches) and by
+ * `acceptInvite` for the invited party. This delete trigger is the single
+ * remaining server-privileged write — the create/upsert projection it used to do
+ * is gone.
  *
- * Behaviour:
- *   - create/update → upsert {municipalityId, barrioId} into municipalityLinks
- *     (replace the matching entry, or append if absent). Joining a village makes
- *     you a resident of it (whole village when barrioId is null).
- *   - delete → remove the municipalityLinks entry for this municipality. Leaving
- *     the community drops the residence link.
- *   - barrioId that is not an *approved* barrio of this municipality (stale,
- *     foreign, or a tampered client write) is normalized to null rather than
- *     failing — the picker prevents it on the honest path.
- *
- * Account-holders only: a person is found by `userId == {userId}`. Persons
- * without an account (no membership) keep setting municipalityLinks directly.
+ * Self-leave (owner deletes their own membership) also fires this, but the client
+ * batch already removed the link, so the filter is a no-op and the idempotency
+ * guard skips the write.
  */
-export const syncMemberBarrioToResidence = onDocumentWritten(
+export const syncMemberBarrioToResidence = onDocumentDeleted(
   { document: 'municipalities/{municipalityId}/members/{userId}', region: 'us-central1' },
   async (event) => {
     const handler = 'syncMemberBarrioToResidence';
     const { municipalityId, userId } = event.params;
 
-    const after = event.data?.after.data();
-    const isDelete = !after;
-
-    // The person linked to this account. No person → nothing to project onto.
+    // The person linked to this account. No person → nothing to clean up.
     const personSnap = await db
       .collection('persons')
       .where('userId', '==', userId)
       .limit(1)
       .get();
     if (personSnap.empty) {
-      logger.info('No linked person; skipping residence sync', {
+      logger.info('No linked person; skipping residence cleanup', {
         handler,
         municipalityId,
         userId,
@@ -58,45 +48,21 @@ export const syncMemberBarrioToResidence = onDocumentWritten(
     const personRef = personSnap.docs[0].ref;
     const person = personSnap.docs[0].data();
 
-    // Desired barrio for this village: validate against approved barrios.
-    let desiredBarrioId: string | null = null;
-    let normalized = false;
-    if (!isDelete) {
-      const raw = (after['barrioId'] as string | null | undefined) ?? null;
-      if (raw) {
-        const barrioSnap = await db
-          .doc(`municipalities/${municipalityId}/barrios/${raw}`)
-          .get();
-        if (barrioSnap.exists && barrioSnap.get('status') === 'approved') {
-          desiredBarrioId = raw;
-        } else {
-          normalized = true; // stale/foreign/pending → whole village
-        }
-      }
-    }
-
     const current: ResidenceLink[] = Array.isArray(person['municipalityLinks'])
       ? (person['municipalityLinks'] as ResidenceLink[])
       : [];
-    const others = current.filter((l) => l.municipalityId !== municipalityId);
-    const next: ResidenceLink[] = isDelete
-      ? others
-      : [...others, { municipalityId, barrioId: desiredBarrioId }];
+    const next = current.filter((l) => l.municipalityId !== municipalityId);
 
-    // Idempotency: skip the write when the projected links are unchanged, so a
-    // membership mutation that didn't touch the barrio (e.g. profileAnswers)
-    // doesn't fan out a no-op person write.
-    if (JSON.stringify(current) === JSON.stringify(next)) return;
+    // Idempotency: nothing linked to this municipality (e.g. a self-leave batch
+    // already removed it) → skip the write.
+    if (current.length === next.length) return;
 
     await personRef.update({ municipalityLinks: next });
-    logger.info('Residence link synced from membership', {
+    logger.info('Residence link removed on membership delete', {
       handler,
       municipalityId,
       userId,
       personId: personRef.id,
-      action: isDelete ? 'remove' : 'upsert',
-      barrioId: desiredBarrioId,
-      normalized,
     });
   },
 );

@@ -16,5 +16,15 @@ export default defineConfig({
     hookTimeout: 30_000,
     fileParallelism: false,
     maxConcurrency: 1,
+    // Report-only coverage (docs/plans/ongoing/testing-enhancement.md, D4).
+    coverage: {
+      enabled: false,
+      provider: 'v8',
+      reporter: ['text-summary', 'lcov'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.d.ts'],
+      all: true,
+    },
   },
 });

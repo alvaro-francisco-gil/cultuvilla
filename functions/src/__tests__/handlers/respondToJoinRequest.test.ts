@@ -28,6 +28,9 @@ async function seedOrg(): Promise<void> {
     reviewedBy: APP_ADMIN_ID,
     createdAt: new Date(),
     reviewedAt: new Date(),
+    commentCount: 0,
+    readCount: 0,
+    membersPublic: true,
   });
 }
 
@@ -35,7 +38,7 @@ async function seedOrgMember(uid: string, role: 'admin' | 'member'): Promise<voi
   await admin
     .firestore()
     .doc(`organizations/${ORG_ID}/members/${uid}`)
-    .set({ joinedAt: new Date(), role });
+    .set({ userId: uid, joinedAt: new Date(), role });
 }
 
 async function seedAppAdmin(uid: string): Promise<void> {
@@ -168,6 +171,18 @@ describe('respondToJoinRequest (callable)', () => {
       .get();
     expect(memberDoc.exists).toBe(true);
     expect(memberDoc.data()?.role).toBe('member');
+
+    // Audit: an 'added' membership event scoped to the org's municipality.
+    const events = await admin.firestore().collection('membershipEvents').get();
+    expect(events.size).toBe(1);
+    expect(events.docs[0].data()).toMatchObject({
+      scopeType: 'org',
+      scopeId: ORG_ID,
+      municipalityId: MUNICIPALITY_ID,
+      targetUserId: REQUESTER_ID,
+      action: 'added',
+      toRole: 'member',
+    });
 
     // Notification sent to requester
     const notifs = await admin

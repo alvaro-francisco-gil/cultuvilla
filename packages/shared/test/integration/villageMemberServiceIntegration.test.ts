@@ -12,52 +12,35 @@
 // tests we spy on getDb() to return an authenticated-context Firestore from
 // @firebase/rules-unit-testing so the collectionGroup rule (requires auth)
 // is satisfied without initialising the full Firebase JS SDK.
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import {
-  initializeTestEnvironment,
-  type RulesTestEnvironment,
-} from '@firebase/rules-unit-testing';
+import { describe, it, expect, afterAll, vi } from 'vitest';
 import { doc, setDoc, type Firestore } from 'firebase/firestore';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { useRulesTestEnv } from '../helpers/rulesTestEnv';
+import { asUser, seed } from '../helpers/roles';
 import { getUserMemberships } from '../../src/services/villageMemberService';
 import * as firebaseModule from '../../src/firebase';
 
-let env: RulesTestEnvironment;
+const getEnv = useRulesTestEnv();
 
-beforeAll(async () => {
-  const rules = readFileSync(resolve(__dirname, '../../../../firestore.rules'), 'utf8');
-  env = await initializeTestEnvironment({
-    projectId: process.env.TEST_PROJECT_ID || 'cultuvilla-test',
-    firestore: { rules },
-  });
-});
-
-beforeEach(async () => {
-  await env.clearFirestore();
-});
-
-afterAll(async () => {
+afterAll(() => {
   vi.restoreAllMocks();
-  await env.cleanup();
 });
 
 describe('villageMemberService — getUserMemberships', () => {
   it('returns memberships for the caller across municipalities', async () => {
-    await env.withSecurityRulesDisabled(async (ctx) => {
+    await seed(getEnv(), async (ctx) => {
       const db = ctx.firestore() as unknown as Firestore;
       const now = new Date();
       await setDoc(doc(db, 'municipalities/m1/members/alice'), {
         userId: 'alice', role: 'user', joinedAt: now, profileAnswers: {},
-        profileCompletedAt: null, trustedNewsAuthor: false, barrioId: null,
+        profileCompletedAt: null,
       });
       await setDoc(doc(db, 'municipalities/m2/members/alice'), {
         userId: 'alice', role: 'admin', joinedAt: now, profileAnswers: {},
-        profileCompletedAt: null, trustedNewsAuthor: false, barrioId: 'la-estacion',
+        profileCompletedAt: null,
       });
       await setDoc(doc(db, 'municipalities/m3/members/bob'), {
         userId: 'bob', role: 'user', joinedAt: now, profileAnswers: {},
-        profileCompletedAt: null, trustedNewsAuthor: false, barrioId: null,
+        profileCompletedAt: null,
       });
     });
 
@@ -65,22 +48,19 @@ describe('villageMemberService — getUserMemberships', () => {
     // from the rules-testing environment.  The collectionGroup rule requires
     // auth (resource.data.userId == request.auth.uid), so we use the context
     // for 'alice' — the user whose memberships we're querying.
-    const aliceDb = env.authenticatedContext('alice').firestore() as unknown as Firestore;
+    const aliceDb = asUser(getEnv(), 'alice');
     vi.spyOn(firebaseModule, 'getDb').mockReturnValue(aliceDb);
 
     const memberships = await getUserMemberships('alice');
 
     expect(memberships.map((m) => m.municipalityId).sort()).toEqual(['m1', 'm2']);
     expect(memberships.find((m) => m.municipalityId === 'm2')?.role).toBe('admin');
-    // barrioId flows through; a member with no barrio reads back as null.
-    expect(memberships.find((m) => m.municipalityId === 'm2')?.barrioId).toBe('la-estacion');
-    expect(memberships.find((m) => m.municipalityId === 'm1')?.barrioId).toBeNull();
 
     vi.restoreAllMocks();
   });
 
   it('returns empty for a user with no memberships', async () => {
-    const nobodyDb = env.authenticatedContext('nobody').firestore() as unknown as Firestore;
+    const nobodyDb = asUser(getEnv(), 'nobody');
     vi.spyOn(firebaseModule, 'getDb').mockReturnValue(nobodyDb);
 
     const memberships = await getUserMemberships('nobody');

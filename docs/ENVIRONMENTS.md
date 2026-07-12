@@ -180,6 +180,68 @@ GOOGLE_CLOUD_PROJECT=cultuvilla-prod pnpm seed:municipalities
 The script has no `:beta` / `:prod` shortcuts — seeding non-dev is a
 deliberate manual act.
 
+## Admin-SDK credentials (per env)
+
+Some bootstrap steps can't happen in-app and need a Node script running the
+firebase-admin SDK against a specific project — chiefly **granting the first
+app-admin** (writing `/admins/{uid}`, which rules deny to all clients).
+[scripts/lib/env-credentials.mjs](../scripts/lib/env-credentials.mjs) is the one
+place that maps env → project → credentials and initializes the SDK; any per-env
+admin script goes through it. It resolves credentials in two ways:
+
+Everything lives **outside the repo** under `~/.config/cultuvilla/` (dir
+`chmod 700`, each file `chmod 600`). The resolver checks, in order:
+
+1. `GOOGLE_APPLICATION_CREDENTIALS` (a path; any credential type) — explicit override.
+2. `~/.config/cultuvilla/<env>-sa.json` — a service-account **key** for that env.
+3. `~/.config/cultuvilla/adc.json` — a stored **user credential** covering every
+   env its principal can access (dev/beta/prod).
+4. The system default ADC.
+
+**Keyless is the primary path (and the only option for beta/prod).** beta and
+prod enforce the `iam.disableServiceAccountKeyCreation` org policy (Google
+secure-by-default since May 2024), so **downloaded service-account keys cannot be
+created there** — and shouldn't be. Authenticate once as a project Owner and
+**capture that login into the persistent `adc.json`** so it survives other
+projects' logins (the system default ADC is a single global file that every
+`gcloud auth application-default login` overwrites):
+
+```bash
+gcloud auth application-default login                       # sign in as a cultuvilla Owner
+gcloud auth application-default set-quota-project cultuvilla-beta
+cp ~/.config/gcloud/application_default_credentials.json ~/.config/cultuvilla/adc.json
+chmod 600 ~/.config/cultuvilla/adc.json
+```
+
+That's a **one-time** setup: `cultuvilla.app@gmail.com` is Owner of dev, beta and
+prod, so a single `adc.json` serves all three (projectId is pinned in code). You
+never re-login for cultuvilla, and unrelated projects (e.g. ordago) can clobber
+the system default ADC freely without affecting this store. For stricter
+isolation you can instead impersonate the env's `firebase-adminsdk-fbsvc@<project>`
+SA — also keyless.
+
+**Service-account key file (dev-only, legacy).** Where key creation is allowed
+(dev `villa-events`), a key may live at `~/.config/cultuvilla/<env>-sa.json`; its
+`project_id` must match the target env. CI never uses any of these — it
+authenticates via keyless WIF (see above). Never commit a credential —
+`.gitignore` blocks `*-sa.json`, but the real defense is keeping them under
+`~/.config`.
+
+### Granting the first app-admin
+
+The account must have signed into the deployed app once (so its Auth user
+exists). Then:
+
+```bash
+pnpm grant:admin:dev  --email you@example.com            # dev, no confirmation
+pnpm grant:admin:beta --email cultuvilla.app@gmail.com --yes   # beta/prod need --yes
+pnpm grant:admin:prod --email cultuvilla.app@gmail.com --yes
+```
+
+The grant is idempotent; `--revoke` removes it. After it lands, that account
+sees "Administración" in the app and the rest of the bootstrap (activate
+villages, approve organizer/org requests) is done in-app.
+
 ## Firebase Auth providers — keep parity
 
 Auth providers must match across envs or sign-in will break in one of them.
@@ -224,3 +286,7 @@ Authorized domains, or the Identity Toolkit Admin REST API
 8. (Recommended) **Budget alerts** in GCP Console → Billing → Budgets &
    alerts. €10–€20/month with thresholds at 50/90/100% is plenty for a
    pilot.
+9. **Seed municipalities** (script-only, see *Seeding data*) so there are
+   villages to activate.
+10. **Grant the first app-admin** (script-only, see *Admin-SDK credentials*).
+    From there, everything else is done in-app.

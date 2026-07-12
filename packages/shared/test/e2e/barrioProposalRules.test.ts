@@ -1,85 +1,146 @@
-import { describe, it, beforeAll, afterAll, beforeEach } from 'vitest';
-import {
-  initializeTestEnvironment, assertSucceeds, assertFails, type RulesTestEnvironment,
-} from '@firebase/rules-unit-testing';
+import { describe, it } from 'vitest';
+import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { doc, setDoc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { useRulesTestEnv } from '../helpers/rulesTestEnv';
+import { asUser, asAnon, seed } from '../helpers/roles';
 
-let env: RulesTestEnvironment;
+const getEnv = useRulesTestEnv();
 const M = 'm1';
-function barrioDoc(status: string, proposedBy: string | null) {
+function barrioDoc(proposedBy: string | null, extra: Record<string, unknown> = {}) {
   return {
     name: 'Norte', municipalityId: M, imageURL: null, createdAt: new Date(),
-    status, proposedBy, reviewedBy: null, reviewedAt: null,
+    status: 'active', proposedBy, hiddenBy: null, hiddenAt: null, hiddenReason: null,
+    commentCount: 0, readCount: 0,
+    ...extra,
   };
 }
 async function seedMember(uid: string, role: 'user' | 'admin' = 'user') {
-  await env.withSecurityRulesDisabled(async (ctx) => {
+  await seed(getEnv(), async (ctx) => {
     await setDoc(doc(ctx.firestore(), `municipalities/${M}/members/${uid}`), {
-      role, joinedAt: new Date(), profileAnswers: {}, profileCompletedAt: null, trustedNewsAuthor: false,
+      role, joinedAt: new Date(), profileAnswers: {}, profileCompletedAt: null,
     });
   });
 }
-async function seedBarrio(id: string, status: string, proposedBy: string | null) {
-  await env.withSecurityRulesDisabled(async (ctx) => {
-    await setDoc(doc(ctx.firestore(), `municipalities/${M}/barrios/${id}`), barrioDoc(status, proposedBy));
+async function seedBarrio(id: string, proposedBy: string | null, extra: Record<string, unknown> = {}) {
+  await seed(getEnv(), async (ctx) => {
+    await setDoc(doc(ctx.firestore(), `municipalities/${M}/barrios/${id}`), barrioDoc(proposedBy, extra));
   });
 }
 
-beforeAll(async () => {
-  const rules = readFileSync(resolve(__dirname, '../../../../firestore.rules'), 'utf8');
-  env = await initializeTestEnvironment({
-    projectId: process.env.TEST_PROJECT_ID || 'cultuvilla-rules-test',
-    firestore: { rules },
-  });
-});
-beforeEach(async () => { await env.clearFirestore(); });
-afterAll(async () => { await env.cleanup(); });
-
-describe('firestore.rules — /municipalities/{m}/barrios (proposals)', () => {
+describe('firestore.rules — /municipalities/{m}/barrios', () => {
   it('anyone can read barrios', async () => {
-    await seedBarrio('b1', 'approved', null);
-    await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(), `municipalities/${M}/barrios/b1`)));
+    await seedBarrio('b1', null);
+    await assertSucceeds(getDoc(doc(asAnon(getEnv()), `municipalities/${M}/barrios/b1`)));
   });
-  it('member can create a pending barrio proposal', async () => {
+  it('member can create an active barrio (instant self-service)', async () => {
     await seedMember('alice');
-    const alice = env.authenticatedContext('alice').firestore();
-    await assertSucceeds(setDoc(doc(alice, `municipalities/${M}/barrios/b1`), barrioDoc('pending', 'alice')));
+    const alice = asUser(getEnv(), 'alice');
+    await assertSucceeds(setDoc(doc(alice, `municipalities/${M}/barrios/b1`), barrioDoc('alice')));
   });
-  it('member CANNOT create an approved barrio', async () => {
+  it('member CANNOT create a barrio already hidden', async () => {
     await seedMember('alice');
-    const alice = env.authenticatedContext('alice').firestore();
-    await assertFails(setDoc(doc(alice, `municipalities/${M}/barrios/b1`), barrioDoc('approved', 'alice')));
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, `municipalities/${M}/barrios/b1`), barrioDoc('alice', { status: 'hidden' })),
+    );
+  });
+  it('member CANNOT create a barrio with non-null hiddenBy', async () => {
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, `municipalities/${M}/barrios/b1`), barrioDoc('alice', { hiddenBy: 'alice' })),
+    );
   });
   it('non-member cannot create a barrio', async () => {
-    const stranger = env.authenticatedContext('stranger').firestore();
-    await assertFails(setDoc(doc(stranger, `municipalities/${M}/barrios/b1`), barrioDoc('pending', 'stranger')));
+    const stranger = asUser(getEnv(), 'stranger');
+    await assertFails(setDoc(doc(stranger, `municipalities/${M}/barrios/b1`), barrioDoc('stranger')));
   });
-  it('village admin can create an approved barrio directly', async () => {
+  it('village admin can create a barrio directly', async () => {
     await seedMember('boss', 'admin');
-    const boss = env.authenticatedContext('boss').firestore();
-    await assertSucceeds(setDoc(doc(boss, `municipalities/${M}/barrios/b1`), barrioDoc('approved', null)));
+    const boss = asUser(getEnv(), 'boss');
+    await assertSucceeds(setDoc(doc(boss, `municipalities/${M}/barrios/b1`), barrioDoc(null)));
   });
-  it('village admin can approve a pending barrio', async () => {
-    await seedMember('boss', 'admin');
-    await seedBarrio('b1', 'pending', 'alice');
-    const boss = env.authenticatedContext('boss').firestore();
-    await assertSucceeds(updateDoc(doc(boss, `municipalities/${M}/barrios/b1`), { status: 'approved', reviewedBy: 'boss' }));
-  });
-  it('proposer can edit own pending barrio but not approve it', async () => {
+  it('proposer can edit own barrio content fields', async () => {
     await seedMember('alice');
-    await seedBarrio('b1', 'pending', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    await seedBarrio('b1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(updateDoc(doc(alice, `municipalities/${M}/barrios/b1`), { name: 'Norte Alto' }));
-    await assertFails(updateDoc(doc(alice, `municipalities/${M}/barrios/b1`), { status: 'approved', reviewedBy: 'alice' }));
   });
-  it('proposer can withdraw own pending barrio but not an approved one', async () => {
+  it('proposer CANNOT change status on their own barrio', async () => {
     await seedMember('alice');
-    await seedBarrio('b1', 'pending', 'alice');
-    const alice = env.authenticatedContext('alice').firestore();
+    await seedBarrio('b1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(updateDoc(doc(alice, `municipalities/${M}/barrios/b1`), { status: 'hidden' }));
+  });
+  it('proposer CANNOT set hiddenBy/hiddenAt/hiddenReason directly', async () => {
+    await seedMember('alice');
+    await seedBarrio('b1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      updateDoc(doc(alice, `municipalities/${M}/barrios/b1`), {
+        hiddenBy: 'alice', hiddenAt: new Date(), hiddenReason: 'self-hide',
+      }),
+    );
+  });
+  it('village admin CANNOT change status via a plain client update either', async () => {
+    await seedMember('boss', 'admin');
+    await seedBarrio('b1', 'alice');
+    const boss = asUser(getEnv(), 'boss');
+    await assertFails(updateDoc(doc(boss, `municipalities/${M}/barrios/b1`), { status: 'hidden' }));
+  });
+  it('proposer can withdraw (delete) own barrio', async () => {
+    await seedMember('alice');
+    await seedBarrio('b1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(deleteDoc(doc(alice, `municipalities/${M}/barrios/b1`)));
-    await seedBarrio('b2', 'approved', 'alice');
-    await assertFails(deleteDoc(doc(alice, `municipalities/${M}/barrios/b2`)));
+  });
+  it('proposer CANNOT delete their own barrio once hidden (moderation bypass)', async () => {
+    await seedMember('alice');
+    await seedBarrio('b1', 'alice', { status: 'hidden', hiddenBy: 'boss', hiddenAt: new Date(), hiddenReason: 'spam' });
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(deleteDoc(doc(alice, `municipalities/${M}/barrios/b1`)));
+  });
+  it('village admin can delete a hidden barrio', async () => {
+    await seedMember('boss', 'admin');
+    await seedBarrio('b1', 'alice', { status: 'hidden', hiddenBy: 'boss', hiddenAt: new Date(), hiddenReason: 'spam' });
+    const boss = asUser(getEnv(), 'boss');
+    await assertSucceeds(deleteDoc(doc(boss, `municipalities/${M}/barrios/b1`)));
+  });
+
+  // D5 count guards: counts are function-owned (commentCount synced by the
+  // comments trigger, readCount synced by recordEntityView), so clients must
+  // create at 0 and never touch them again, even through an otherwise-authorized
+  // update.
+  it('rejects a create with a nonzero commentCount', async () => {
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, `municipalities/${M}/barrios/b1`), {
+        ...barrioDoc('alice'), commentCount: 5,
+      }),
+    );
+  });
+
+  it('rejects a create with a nonzero readCount', async () => {
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, `municipalities/${M}/barrios/b1`), {
+        ...barrioDoc('alice'), readCount: 3,
+      }),
+    );
+  });
+
+  it('village admin cannot mutate counts on update, but a normal edit still succeeds', async () => {
+    await seedMember('boss', 'admin');
+    await seedBarrio('b1', 'alice');
+    const boss = asUser(getEnv(), 'boss');
+    await assertFails(updateDoc(doc(boss, `municipalities/${M}/barrios/b1`), { commentCount: 99 }));
+    await assertFails(
+      updateDoc(doc(boss, `municipalities/${M}/barrios/b1`), { readCount: 9 }),
+    );
+    await assertSucceeds(
+      updateDoc(doc(boss, `municipalities/${M}/barrios/b1`), { name: 'Norte Alto' }),
+    );
   });
 });

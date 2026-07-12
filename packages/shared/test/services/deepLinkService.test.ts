@@ -8,10 +8,9 @@ import {
   getEventLink,
   getNewsLink,
   getVillageViewLink,
-  getVillageInviteLink,
   getOrgViewLink,
   getOrgInviteLink,
-  getPersonViewLink,
+  getUserViewLink,
   getPlaceViewLink,
   getBarrioViewLink,
   parseLink,
@@ -41,15 +40,6 @@ describe('deepLinkService builders', () => {
     expect(getVillageViewLink('mun_abc')).toEqual({
       url: 'https://example.test.app/village/mun_abc',
       kind: 'content',
-      resource: 'village',
-      id: 'mun_abc',
-    });
-  });
-
-  it('builds a village invite link with /join suffix', () => {
-    expect(getVillageInviteLink('mun_abc')).toEqual({
-      url: 'https://example.test.app/village/mun_abc/join',
-      kind: 'invite',
       resource: 'village',
       id: 'mun_abc',
     });
@@ -93,12 +83,12 @@ describe('deepLinkService builders', () => {
     });
   });
 
-  it('builds a person view link using /person/', () => {
-    expect(getPersonViewLink('person_1')).toEqual({
-      url: 'https://example.test.app/person/person_1',
+  it('builds a user profile view link using /user/', () => {
+    expect(getUserViewLink('uid_1')).toEqual({
+      url: 'https://example.test.app/user/uid_1',
       kind: 'content',
-      resource: 'person',
-      id: 'person_1',
+      resource: 'user',
+      id: 'uid_1',
     });
   });
 
@@ -129,14 +119,6 @@ describe('deepLinkService.parseLink', () => {
     });
   });
 
-  it('parses a village invite URL', () => {
-    expect(parseLink('https://example.test.app/village/mun_abc/join')).toEqual({
-      kind: 'invite',
-      resource: 'village',
-      id: 'mun_abc',
-    });
-  });
-
   it('parses an org invite URL', () => {
     expect(parseLink('https://example.test.app/o/org_xyz/join')).toEqual({
       kind: 'invite',
@@ -148,6 +130,7 @@ describe('deepLinkService.parseLink', () => {
   it('rejects /join suffix on resources that do not support invite', () => {
     expect(parseLink('https://example.test.app/event/evt_1/join')).toBeNull();
     expect(parseLink('https://example.test.app/news/n_1/join')).toBeNull();
+    expect(parseLink('https://example.test.app/village/mun_abc/join')).toBeNull();
   });
 
   it('rejects unknown path suffixes', () => {
@@ -163,10 +146,10 @@ describe('deepLinkService.parseLink', () => {
   });
 
   it('parses a cultuvilla:// invite URL', () => {
-    expect(parseLink('cultuvilla://village/mun_1/join')).toEqual({
+    expect(parseLink('cultuvilla://o/org_1/join')).toEqual({
       kind: 'invite',
-      resource: 'village',
-      id: 'mun_1',
+      resource: 'organization',
+      id: 'org_1',
     });
   });
 
@@ -174,25 +157,29 @@ describe('deepLinkService.parseLink', () => {
     expect(parseLink('https://other.host/event/evt_123')).toBeNull();
   });
 
-  it('parses a person view URL', () => {
-    expect(parseLink('https://example.test.app/person/person_1')).toEqual({
+  it('parses a user profile view URL', () => {
+    expect(parseLink('https://example.test.app/user/uid_1')).toEqual({
       kind: 'content',
-      resource: 'person',
-      id: 'person_1',
+      resource: 'user',
+      id: 'uid_1',
     });
   });
 
-  it('round-trips a person view link', () => {
-    const link = getPersonViewLink('person_round');
+  it('round-trips a user profile view link', () => {
+    const link = getUserViewLink('uid_round');
     expect(parseLink(link.url)).toEqual({
       kind: 'content',
-      resource: 'person',
-      id: 'person_round',
+      resource: 'user',
+      id: 'uid_round',
     });
   });
 
   it('returns null for an unknown resource segment', () => {
     expect(parseLink('https://example.test.app/profile/user_1')).toBeNull();
+  });
+
+  it('no longer parses a /person/ URL (person is the editor, not a shareable view)', () => {
+    expect(parseLink('https://example.test.app/person/person_1')).toBeNull();
   });
 
   it('returns null for a malformed URL', () => {
@@ -203,15 +190,6 @@ describe('deepLinkService.parseLink', () => {
     const link = getVillageViewLink('mun_round');
     expect(parseLink(link.url)).toEqual({
       kind: 'content',
-      resource: 'village',
-      id: 'mun_round',
-    });
-  });
-
-  it('round-trips a village invite link', () => {
-    const link = getVillageInviteLink('mun_round');
-    expect(parseLink(link.url)).toEqual({
-      kind: 'invite',
       resource: 'village',
       id: 'mun_round',
     });
@@ -279,12 +257,11 @@ describe('deepLinkService.buildShareMessage', () => {
       'deeplink.share.event.view': 'Mira «{name}»: {url}',
       'deeplink.share.news.view': 'Mira «{name}»: {url}',
       'deeplink.share.village.view': 'Mira {name}: {url}',
-      'deeplink.share.village.invite': 'Te invito a unirte a {name}: {url}',
       'deeplink.share.organization.view': 'Mira {name}: {url}',
       'deeplink.share.organization.invite': 'Te invito a unirte a {name}: {url}',
       'deeplink.share.place.view': 'Mira «{name}»: {url}',
       'deeplink.share.barrio.view': 'Mira {name}: {url}',
-      'deeplink.share.person.view': 'Mira el perfil de {name}: {url}',
+      'deeplink.share.user.view': 'Mira el perfil de {name}: {url}',
     };
     let out: string = map[key] ?? key;
     if (!vars) return out;
@@ -298,13 +275,6 @@ describe('deepLinkService.buildShareMessage', () => {
     const link = getEventLink('evt_1');
     expect(buildShareMessage(link, t, 'Fiesta de San Juan')).toBe(
       `Mira «Fiesta de San Juan»: ${link.url}`,
-    );
-  });
-
-  it('interpolates the village name into the invite message', () => {
-    const link = getVillageInviteLink('mun_1');
-    expect(buildShareMessage(link, t, 'Matabuena')).toBe(
-      `Te invito a unirte a Matabuena: ${link.url}`,
     );
   });
 
@@ -332,8 +302,8 @@ describe('deepLinkService.buildShareMessage', () => {
     expect(buildShareMessage(link, t, 'El Arrabal')).toBe(`Mira El Arrabal: ${link.url}`);
   });
 
-  it('interpolates the person name into the view message', () => {
-    const link = getPersonViewLink('person_1');
+  it('interpolates the user name into the profile view message', () => {
+    const link = getUserViewLink('uid_1');
     expect(buildShareMessage(link, t, 'María García')).toBe(
       `Mira el perfil de María García: ${link.url}`,
     );

@@ -43,7 +43,7 @@ This is the result of the migration recorded in [docs/decisions/open-feed-archit
 
 ### Request types (solicitudes)
 
-Three user-initiated requests exist. The Solicitudes screen (mobile) is open to
+Two user-initiated requests exist. The Solicitudes screen (mobile) is open to
 everyone and has two tabs: **Recibidas** (inbox — items you can approve, scoped to
 what you administer) and **Enviadas** (outbox — requests you've sent). Non-admins
 simply see an empty inbox. Requests are created from in-context screens; outcomes
@@ -52,12 +52,32 @@ arrive as notifications.
 | Request | Collection | Created by | Approved by |
 |---|---|---|---|
 | Organizer (be the pueblo's organizer) | `organizerRequests/` | any user | super admin (`respondToOrganizerRequest` callable) |
-| Organization (create peña/asociación/ayuntamiento) | `organizations/` (status `pending`) | village member | village admin (own village) or super admin (`approveOrganization`/`rejectOrganization`) |
-| Join org (join a peña/asociación) | `organizationJoinRequests/` | any authed non-member | org admin or super admin (`respondToJoinRequest` callable) |
+| Organization (create peña/asociación/ayuntamiento) | `organizations/` (status `pending`) | village member | village admin (own village) or super admin (`approveOrganization` callable; `rejectOrganization` stays a client write) |
 
-Org membership has a `role: 'admin' | 'member'`. Org admins approve join requests,
-remove members, and promote/demote; the `requestedBy` creator is seeded as admin on
-org approval. Village/app admins are the backstop.
+**Joining a peña/asociación is not a request — it is instant self-service.** The
+org detail FAB does a direct client write of `organizations/{orgId}/members/{uid}`
+(role `member`, function-owned), gated by Firestore rules: a user may add only
+themselves (`isOwner`), admins may add anyone. This mirrors village join
+(`joinVillage`) — both memberships are direct, approval-free client writes. (The
+legacy `organizationJoinRequests` approve-flow is superseded and slated for removal.)
+
+**Membership roles & the audit log.** Villages and orgs are the same abstraction —
+a membership group with members that carry a `role` and one *founder*. Authority is
+ALWAYS the role flag, never the founder pointer:
+
+- **Village:** members at `municipalities/{id}/members/{uid}` with `role: 'admin' | 'user'`.
+  `community.organizerId` is the *founding organizer* — a single, nullable pointer
+  (`null` during the wiki phase, where any member may edit basic info). It grants no
+  authority of its own and it is **not** "the admin": a village can have many admins.
+- **Org:** members at `organizations/{orgId}/members/{uid}` with `role: 'admin' | 'member'`;
+  `requestedBy` is the founder, seeded as admin on approval.
+
+`role` is **function-owned** — clients cannot write it. New admins are created (and
+demoted) only through the audited callables **`changeVillageMemberRole` /
+`changeOrgMemberRole`**, which verify authority, mutate the role, and append to the
+append-only **`membershipEvents/`** log (top-level, scoped by `municipalityId`,
+readable by the village/org admins) in one transaction. Organizer approval and org
+approval also emit events. Village/app admins are the backstop.
 
 ### 4. Denormalized read models for high fan-out
 
@@ -74,6 +94,22 @@ When a query would require N reads or live across collection boundaries, write a
 ### Forms
 
 Currently controlled inputs with `useState`. No form library yet. New forms should match the existing style until/unless we adopt `react-hook-form + zod` (see CHANGELOG — this is on the table).
+
+### Entities
+
+An **entity** is a village-scoped domain object that appears in a horizontal
+`Section` scroll (as a `BigCard` / `EntityCard`) and opens a hero-image detail
+screen. The family: **event, festival-poster (cartel), place, barrio,
+organization, news**. `person` and `village` are **not** entities — they open
+into forms (`ScreenHeader`), not hero-detail screens.
+
+Every entity detail screen is a thin consumer of one scaffold,
+[apps/mobile/components/feature/EntityDetailScaffold.tsx](apps/mobile/components/feature/EntityDetailScaffold.tsx):
+a solid static top bar (`EntityDetailHeader` — back + action icons) above a
+full-bleed flyer (`DetailHeroImage`), then title + body. Don't hand-roll a
+detail screen; add a scaffold consumer. The term is also carried by
+`EntityCard` and `useEntityCapabilities`; the per-kind fallback icon lives in
+[apps/mobile/lib/entities/registry.ts](apps/mobile/lib/entities/registry.ts).
 
 ### State and data fetching
 
@@ -161,6 +197,18 @@ ci(scope): ...
 
 Header ≤ 100 chars. Direct-to-`develop` is fine for small self-contained changes; `beta` and `main` advance only via promotion PRs (see the branch model under Development workflow).
 
+### Versioning & releases
+
+- **Web-first: the native apps are built but NOT released yet.** The first iteration ships **only the web build** (Expo web export → Firebase Hosting). The iOS/Android apps compile and can be run via EAS/dev-client, but they are not published to the stores. **Consequence for deep links:** native App Link / Universal Link association (`apps/mobile/public/.well-known/{env}/{apple-app-site-association,assetlinks.json}`) still carries `REPLACE_TEAM_ID` / `REPLACE_SHA256_FINGERPRINT_*` placeholders, so tapping an `https://<host>/…` share link on a phone will **not** open a native app — it opens the web build, which is the intended behaviour for now. **Don't treat "the link doesn't open the app" as a bug pre-release.** What must work is that every deep link resolves as a real **web route** (each share URL, including invite `…/join` paths, needs a matching file under `apps/mobile/app/**`). Fill the `.well-known` placeholders with the real Apple Team ID + per-env signing SHA-256s only when the native apps are actually released.
+- **Marketing version** (`app.config.ts` `version`, semver `MAJOR.MINOR.PATCH`) is the single source of truth; `apps/mobile/package.json` mirrors it. MAJOR = redesign/breaking migration, MINOR = new feature, PATCH = fixes.
+- **Pre-release (now): stay on `0.x`.** Until the app is actually published to the stores, the MAJOR stays `0` — do **not** jump to `1.0.0`. Bump the **MINOR** on every `develop → beta` promotion (`0.1.0 → 0.2.0 → …`) as a running counter to track what's on beta. The `1.0.0` bump happens once, at the first real store release.
+- **Set the version in the `develop → beta` promotion PR** (beta = release candidate); it rides unchanged into `main`. Build numbers auto-increment (EAS `appVersionSource: remote`). **CI enforces this**: `.github/workflows/version-gate.yml` fails any PR targeting `beta` whose `app.config.ts` `version` isn't strictly greater than beta's, so the bump can't be forgotten. Use the `prepare-release` skill to do it.
+- **The version-bump commit message is the bare version string** — `0.10.0`, not `chore(release): 0.10.0`. commitlint (`commitlint.config.cjs`) has an `ignores` rule that exempts exactly a `X.Y.Z` header; every other commit still follows conventional commits. The bump commit contents are `apps/mobile/app.config.ts` + `apps/mobile/package.json` + the `CHANGELOG.md` stamp.
+- **Force-update gate is dormant pre-release.** `config/appVersion.minSupported` is `0.0.0` (never blocks) while unreleased; keep `latest` in step with the current `app.config.ts` version. Only raise `minSupported` above `0.0.0` once real store clients exist.
+- **Tag `vX.Y.Z` on the `main` merge commit** and push it.
+- **CHANGELOG:** on a cut release, stamp the version into the section heading (`## vX.Y.Z — YYYY-MM-DD`).
+- **Force-update gate:** clients read `config/appVersion` on launch (`appConfigService`) and block/nudge via `resolveVersionGate`. When you ship a client-breaking backend change (see *No retrocompat shims*), bump that doc's `minSupported` to the version carrying the client fix, at release time.
+
 ### Delete > deprecate
 
 If something is unused, delete it. Don't leave dead code, "removed: …" comments, or shim re-exports. Git keeps history; the codebase should reflect the present.
@@ -172,6 +220,7 @@ When changing the shape of data already in Firestore, surface the migration expl
 - Note the affected docs and field(s) in the commit body and the PR description.
 - Add a backfill script under `scripts/` when the change can't be expressed as a Cloud Function trigger.
 - Don't leave dual-read code, shim re-exports, or `// removed: …` comments. Pairs with the `### Delete > deprecate` rule above.
+- If the change breaks older store clients, raise `config/appVersion.minSupported` to the fixed version at release time (see *Versioning & releases*).
 
 Only add a compatibility layer when the user explicitly asks for one (e.g. when an in-flight client release would break without it).
 
@@ -257,16 +306,25 @@ pnpm app:typecheck                             # tsc --noEmit for apps/mobile
 - **App Check**: the `initMobileAppCheck` seam is wired in the app bootstrap but is a no-op. Do not remove it — it will be activated when the product opts in. Leave it untouched unless explicitly asked.
 - **Native rebuilds**: after installing a package that ships an Expo config plugin, or after changing the `plugins` array in `apps/mobile/app.config.ts`, run a clean prebuild. See the `expo-native-rebuild` skill.
 
-### Never start dev servers
+### Never start long-lived dev servers
 
-You (Claude) do not start long-running processes — the user owns the iteration loop. Don't run:
+You (Claude) **may** run the emulator-backed test suites yourself — they boot
+*ephemeral* Firebase emulators via `scripts/run-tests-with-emulators.mjs` and tear
+them down when the run ends, so they don't collide with anything. Run them as part
+of verification before pushing or merging:
+
+- `pnpm check` (the full gate), `pnpm test`, `pnpm test:emulators`,
+  `pnpm test:integration`, `pnpm test:rules`, `pnpm test:functions`
+
+Still off-limits — these run indefinitely (the user owns that iteration loop) or
+bypass CI:
 
 - `pnpm app:start` / `expo start` (Expo/Metro dev server)
-- `pnpm test:integration`, `pnpm test:rules`, `pnpm test:functions`, or `pnpm test:emulators` (they boot Firebase emulators that the user wants to keep alive)
-- `firebase emulators:start` directly
+- `firebase emulators:start` directly (standalone long-lived emulator session)
 - Any deploy script (`pnpm deploy:*`) — use the `firestore-deploy` skill instead
 
-If you need output from a long-running service to verify a change, ask the user to run it and paste the relevant lines.
+If you need output from a long-lived server you can't start (Metro, a standalone
+emulator session), ask the user to run it and paste the relevant lines.
 
 ## Development workflow
 

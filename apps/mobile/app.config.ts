@@ -12,8 +12,8 @@ function resolveEnv(): Env {
 const env = resolveEnv();
 
 const namePerEnv: Record<Env, string> = {
-  dev: 'Cultuvilla (Dev)',
-  beta: 'Cultuvilla (Beta)',
+  dev: 'Dev',
+  beta: 'Beta',
   prod: 'Cultuvilla',
 };
 
@@ -101,7 +101,7 @@ const firebaseConfigPerEnv: Record<Env, FirebaseOptions> = {
 const config: ExpoConfig = {
   name: namePerEnv[env],
   slug: 'cultuvilla',
-  version: '0.1.0',
+  version: '0.10.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   scheme: 'cultuvilla',
@@ -113,6 +113,10 @@ const config: ExpoConfig = {
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
         'Cultuvilla usa tu ubicación para fijar la del pueblo en el mapa.',
+      // expo-image-picker reads the photo library to pick + crop avatars/escudos;
+      // iOS requires this usage string.
+      NSPhotoLibraryUsageDescription:
+        'Cultuvilla necesita acceso a tus fotos para elegir y recortar tu imagen de perfil.',
     },
   },
   android: {
@@ -145,6 +149,15 @@ const config: ExpoConfig = {
     firebaseConfig: firebaseConfigPerEnv[env],
     googleSignIn: googleSignInPerEnv[env],
     deepLinkHost: deepLinkHostPerEnv[env],
+    // E2E only: when USE_FIREBASE_EMULATOR=1 (set ONLY by the web-e2e CI job,
+    // never by any deploy workflow — deploy-*.yml positively assert it is unset),
+    // firebaseInit wires the client SDK to the local emulators AND AuthContext
+    // enables the fixture-login. One flag gates both halves, so a fixture session
+    // can only be minted when the app points at 127.0.0.1 emulators. A deployed
+    // build talks to real Firebase with no emulator reachable, so the bypass
+    // fails closed even if this flag somehow leaked. The check:no-test-login-leak
+    // grep gate blocks the flag/seam symbols from escaping their allowlisted files.
+    useEmulator: process.env['USE_FIREBASE_EMULATOR'] === '1',
     // Dev-only auto sign-in: when DEV_AUTOLOGIN_EMAIL/PASSWORD are set in a
     // `dev` build, the app signs straight into that account on launch instead
     // of the email-link round-trip. Gated to env === 'dev' here AND behind
@@ -180,7 +193,6 @@ const config: ExpoConfig = {
           ] as [string, { iosUrlScheme: string }],
         ]
       : []),
-    '@react-native-community/datetimepicker',
     [
       'expo-location',
       {

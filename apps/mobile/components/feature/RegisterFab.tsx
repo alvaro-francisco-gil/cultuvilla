@@ -12,6 +12,8 @@ import {
 import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
 import { buildShortName, type PersonData } from '@cultuvilla/shared/models/person';
 import { useT } from '../../lib/i18n';
+import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
+import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 
 export interface RegisterFabProps {
   eventId: string;
@@ -23,6 +25,8 @@ export interface RegisterFabProps {
   name: string;
   /** When true, adding new attendees first requires a shared phone. */
   telephoneRequired: boolean;
+  /** The event's municipality — threaded into signup observability events. */
+  villageId?: string;
 }
 
 type PersonDoc = PersonData & { id: string };
@@ -36,7 +40,7 @@ type PersonDoc = PersonData & { id: string };
  *
  * Styles live on `style` (never `className`) so the pill renders on RN-Web.
  */
-export function RegisterFab({ eventId, userId, personId, name, telephoneRequired }: RegisterFabProps) {
+export function RegisterFab({ eventId, userId, personId, name, telephoneRequired, villageId }: RegisterFabProps) {
   const { t } = useT();
   const [registrations, setRegistrations] = useState<Map<string, AttendeeRegistration>>(new Map());
   const [dependents, setDependents] = useState<PersonDoc[]>([]);
@@ -48,21 +52,31 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
   // Load the caller's registrations + personas a cargo. Runs on focus so a
   // dependent created via /person/new shows up on return.
   const load = useCallback(async () => {
-    const [regs, deps] = await Promise.all([
-      getUserRegistrations(eventId, userId),
-      getPersonsByCreator(userId),
+    // The two reads are independent — the registered set and the persona list
+    // come from different collections. Fetch them separately (allSettled) so a
+    // failure in one (e.g. a missing index on registrations) never blanks the
+    // other; coupling them in a single Promise.all previously hid every
+    // dependent whenever getUserRegistrations threw.
+    const [regsResult, depsResult] = await Promise.allSettled([
+      withFirestoreErrorLog('event:getUserRegistrations', () => getUserRegistrations(eventId, userId)),
+      withFirestoreErrorLog('event:getPersonsByCreator', () => getPersonsByCreator(userId)),
     ]);
-    const map = new Map<string, AttendeeRegistration>();
-    regs.forEach((r) => map.set(r.personId, { regId: r.id, status: r.status }));
-    setRegistrations(map);
 
-    // Drop the caller's own persona (rendered from props) and other account holders.
-    const filtered = deps.filter((d) => d.id !== personId && d.userId !== userId);
-    const known = knownDepIds.current;
-    const fresh = filtered.filter((d) => !known.has(d.id)).map((d) => d.id);
-    if (known.size > 0 && fresh.length > 0) setAutoSelectIds(fresh);
-    knownDepIds.current = new Set(filtered.map((d) => d.id));
-    setDependents(filtered);
+    if (regsResult.status === 'fulfilled') {
+      const map = new Map<string, AttendeeRegistration>();
+      regsResult.value.forEach((r) => map.set(r.personId, { regId: r.id, status: r.status }));
+      setRegistrations(map);
+    }
+
+    if (depsResult.status === 'fulfilled') {
+      // Drop the caller's own persona (rendered from props) and other account holders.
+      const filtered = depsResult.value.filter((d) => d.id !== personId && d.userId !== userId);
+      const known = knownDepIds.current;
+      const fresh = filtered.filter((d) => !known.has(d.id)).map((d) => d.id);
+      if (known.size > 0 && fresh.length > 0) setAutoSelectIds(fresh);
+      knownDepIds.current = new Set(filtered.map((d) => d.id));
+      setDependents(filtered);
+    }
   }, [eventId, userId, personId]);
 
   useFocusEffect(
@@ -83,15 +97,18 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
 
   async function applyDiff(diff: AttendeeDiff, phone?: string) {
     setBusy(true);
+    let succeeded = false;
     try {
       const next = new Map(registrations);
       if (diff.toAdd.length > 0) {
         const registrants = diff.toAdd.map((a) => ({ ...a, ...(phone ? { phone } : {}) }));
         const summaries = await registerToEvent(eventId, registrants);
+        succeeded = true;
         summaries.forEach((s, i) => {
           const pid = diff.toAdd[i]?.personId;
           if (pid) next.set(pid, { regId: s.id, status: s.status });
         });
+        observability.trackEvent(OBSERVABILITY_EVENTS.EVENT_SIGNUP_SUCCESS, { villageId });
       }
       for (const regId of diff.toCancelRegIds) {
         await cancelRegistration(eventId, regId);
@@ -104,6 +121,7 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
       setAutoSelectIds([]);
       setSheetOpen(false);
     } catch (e) {
+      if (!succeeded) observability.trackEvent(OBSERVABILITY_EVENTS.EVENT_SIGNUP_ERROR, { villageId });
       showAlert(e instanceof Error ? e.message : 'unknown', t('event.register.error'));
     } finally {
       setBusy(false);
@@ -128,50 +146,72 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
   }
 
   const count = registrations.size;
-  const anyWaitlisted = [...registrations.values()].some((r) => r.status === 'waitlisted');
-  const view =
+  const confirmedCount = [...registrations.values()].filter((r) => r.status === 'confirmed').length;
+  const waitlistedCount = count - confirmedCount;
+  // When the caller has a mix of confirmed + waitlisted personas we show two
+  // pills side by side, each with its own tally, so the split is legible.
+  // Otherwise a single pill: sign-up CTA, all-confirmed, or all-waitlisted.
+  // The first pill always carries the `register-fab` testID so the sheet stays
+  // openable via a stable handle regardless of the split.
+  const pillContent: { label: string; prefix: string; bg: string }[] =
     count === 0
-      ? { label: t('event.register.cta'), prefix: '+', bg: '#bb5d3a' }
-      : {
-          label: t('event.register.signedUpCount', { count }),
-          prefix: anyWaitlisted ? '⏳' : '✓',
-          bg: anyWaitlisted ? '#b07a1e' : '#2f7d4f',
-        };
+      ? [{ label: t('event.register.cta'), prefix: '+', bg: '#bb5d3a' }]
+      : [
+          ...(confirmedCount > 0
+            ? [{ label: t('event.register.signedUpCount', { count: confirmedCount }), prefix: '✓', bg: '#2f7d4f' }]
+            : []),
+          ...(waitlistedCount > 0
+            ? [{ label: t('event.register.waitlistedCount', { count: waitlistedCount }), prefix: '⏳', bg: '#b07a1e' }]
+            : []),
+        ];
+  const pills = pillContent.map((p, i) => ({ ...p, testID: i === 0 ? 'register-fab' : 'register-fab-waitlist' }));
 
   return (
     <>
       <Animated.View
         pointerEvents="box-none"
-        style={{ position: 'absolute', left: 0, right: 0, bottom: 24, alignItems: 'center', zIndex: 20 }}
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 24,
+          flexDirection: 'row',
+          justifyContent: 'center',
+          gap: 10,
+          zIndex: 20,
+        }}
       >
-        <RNPressable
-          onPress={() => {
-            if (!busy) setSheetOpen(true);
-          }}
-          disabled={busy}
-          testID="register-fab"
-          accessibilityRole="button"
-          accessibilityState={{ disabled: busy, selected: count > 0 }}
-          accessibilityLabel={view.label}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingVertical: 10,
-            paddingHorizontal: 22,
-            borderRadius: 999,
-            backgroundColor: view.bg,
-            opacity: busy ? 0.7 : 1,
-            elevation: 6,
-            shadowColor: '#000',
-            shadowOpacity: 0.25,
-            shadowRadius: 6,
-            shadowOffset: { width: 0, height: 3 },
-          }}
-        >
-          <Text style={{ color: '#f9f0e8', fontSize: 18, lineHeight: 22, marginRight: 8 }}>{view.prefix}</Text>
-          <Text style={{ color: '#f9f0e8', fontSize: 16, fontWeight: '700' }}>{view.label}</Text>
-        </RNPressable>
+        {pills.map((pill) => (
+          <RNPressable
+            key={pill.testID}
+            onPress={() => {
+              if (!busy) setSheetOpen(true);
+            }}
+            disabled={busy}
+            testID={pill.testID}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: busy, selected: count > 0 }}
+            accessibilityLabel={pill.label}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingVertical: 10,
+              paddingHorizontal: 22,
+              borderRadius: 999,
+              backgroundColor: pill.bg,
+              opacity: busy ? 0.7 : 1,
+              elevation: 6,
+              shadowColor: '#000',
+              shadowOpacity: 0.25,
+              shadowRadius: 6,
+              shadowOffset: { width: 0, height: 3 },
+            }}
+          >
+            <Text style={{ color: '#f9f0e8', fontSize: 18, lineHeight: 22, marginRight: 8 }}>{pill.prefix}</Text>
+            <Text style={{ color: '#f9f0e8', fontSize: 16, fontWeight: '700' }}>{pill.label}</Text>
+          </RNPressable>
+        ))}
       </Animated.View>
 
       <AttendeeSheet

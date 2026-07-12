@@ -107,10 +107,29 @@ jobs:
       - name: Deploy Cloud Functions
         run: firebase deploy --only functions --project ${{ inputs.firebase_alias }} --non-interactive --force
 
+      # Belt-and-suspenders (fixture-login security model, Option 1C): a deployed
+      # bundle must NEVER be built with the E2E emulator bypass enabled. The flag
+      # is never set in this workflow; assert that positively so a future edit
+      # that leaks it fails the deploy instead of shipping the auth bypass.
+      - name: Assert E2E emulator bypass is disabled
+        run: |
+          if [ -n "${USE_FIREBASE_EMULATOR:-}" ] && [ "${USE_FIREBASE_EMULATOR}" != "0" ]; then
+            echo "::error::USE_FIREBASE_EMULATOR is set ('${USE_FIREBASE_EMULATOR}') during a deploy build — refusing to ship the E2E auth bypass."
+            exit 1
+          fi
+          echo "OK — USE_FIREBASE_EMULATOR is unset; deployed bundle excludes the E2E bypass."
+
       - name: Build web bundle
         run: |
           node apps/mobile/scripts/copy-well-known.mjs ${{ inputs.firebase_alias }}
           pnpm app:web:build
+
+      # Reject the deploy if a native-only module leaked into the web bundle
+      # (calls TurboModuleRegistry.getEnforcing -> crashes the app on load).
+      # Runs before hosting deploy so a broken bundle never reaches Firebase.
+      # See .agents/skills/mobile-web-compat/SKILL.md.
+      - name: Check web export
+        run: pnpm app:check-web-export
 
       - name: Deploy Hosting
         run: firebase deploy --only hosting --project ${{ inputs.firebase_alias }} --non-interactive

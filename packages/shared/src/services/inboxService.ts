@@ -1,0 +1,95 @@
+// packages/shared/src/services/inboxService.ts
+import { getMyOrganizerRequests } from './organizerRequestService';
+import { getMyOrganizations } from './organizationService';
+import { getMyJoinRequests } from './organizationJoinRequestService';
+import type { NotificationData } from '../models/notification/NotificationDataModel';
+
+export type PendingRequestType = 'organizer' | 'org' | 'join';
+
+export type ActivityItem =
+  | { kind: 'notification'; id: string; notification: NotificationData & { id: string } }
+  | { kind: 'pending-sent'; id: string; requestType: PendingRequestType; label: string; createdAt: Date };
+
+export interface InboxFeed {
+  activity: ActivityItem[];
+}
+
+export interface PendingSentRequest {
+  requestType: PendingRequestType;
+  id: string;
+  label: string;
+  createdAt: Date;
+}
+
+function activityTimestamp(item: ActivityItem): number {
+  return item.kind === 'notification' ? item.notification.createdAt.getTime() : item.createdAt.getTime();
+}
+
+/**
+ * Merges the notification log and the user's own still-pending sent requests
+ * into one list, sorted by createdAt descending. Pure — no I/O.
+ */
+export function buildActivityFeed(
+  notifications: (NotificationData & { id: string })[],
+  pendingSent: PendingSentRequest[],
+): ActivityItem[] {
+  const notificationItems: ActivityItem[] = notifications.map((notification) => ({
+    kind: 'notification',
+    id: notification.id,
+    notification,
+  }));
+  const pendingSentItems: ActivityItem[] = pendingSent.map((request) => ({
+    kind: 'pending-sent',
+    id: request.id,
+    requestType: request.requestType,
+    label: request.label,
+    createdAt: request.createdAt,
+  }));
+
+  return [...notificationItems, ...pendingSentItems].sort(
+    (a, b) => activityTimestamp(b) - activityTimestamp(a),
+  );
+}
+
+/**
+ * Fetches the user's own pending "sent" requests across the three request
+ * types, filtered to status 'pending'. Labels use only fields already present
+ * on the request doc — no extra name-resolution reads (municipality/org name
+ * lookup is left to the screen, which already hydrates those for display).
+ */
+export async function getMyPendingRequests(uid: string): Promise<PendingSentRequest[]> {
+  const [organizerRequests, organizations, joinRequests] = await Promise.all([
+    getMyOrganizerRequests(uid),
+    getMyOrganizations(uid),
+    getMyJoinRequests(uid),
+  ]);
+
+  const pendingOrganizer: PendingSentRequest[] = organizerRequests
+    .filter((r) => r.status === 'pending')
+    .map((r) => ({
+      requestType: 'organizer' as const,
+      id: r.id,
+      label: r.municipalityId,
+      createdAt: r.requestedAt,
+    }));
+
+  const pendingOrg: PendingSentRequest[] = organizations
+    .filter((r) => r.status === 'pending')
+    .map((r) => ({
+      requestType: 'org' as const,
+      id: r.id,
+      label: r.name,
+      createdAt: r.createdAt,
+    }));
+
+  const pendingJoin: PendingSentRequest[] = joinRequests
+    .filter((r) => r.status === 'pending')
+    .map((r) => ({
+      requestType: 'join' as const,
+      id: r.id,
+      label: r.orgId,
+      createdAt: r.requestedAt,
+    }));
+
+  return [...pendingOrganizer, ...pendingOrg, ...pendingJoin];
+}

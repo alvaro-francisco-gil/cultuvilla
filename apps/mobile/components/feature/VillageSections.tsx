@@ -1,14 +1,16 @@
 import type { ReactNode } from 'react';
-import { Image, ScrollView, View } from 'react-native';
+import { FlatList, Image, ScrollView, View } from 'react-native';
+import type { ListRenderItem } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { VStack, HStack, Text, Pressable } from '../primitives';
+import { iconSizes, spacing } from '@cultuvilla/shared/design-system';
+import { VStack, HStack, Text, Pressable, TopCropImage } from '../primitives';
 import { useT } from '../../lib/i18n';
 
 /**
  * Presentational building blocks for the village overview on the shared
- * village tab ((tabs)/village.tsx). The management affordances — `onManage`
- * and `onAdd` — route everyone to the shared propose-pending screens; the add
- * label reads "Proponer" for villagers and "Añadir" for organizers.
+ * village tab ((tabs)/village.tsx). Creating content lives on the single
+ * "Añadir contenido" sheet, so a section carries no add affordance of its own
+ * and simply hides itself when it has no entities.
  */
 
 export const ACCENT = '#bb5d3a';
@@ -17,31 +19,39 @@ const CREST_BG = '#f9f0e8'; // palette.cream — matches the screen's bg-surface
 const CARD_W = 175;
 const CARD_H = 175; // square — same width and height
 
-export function Section({
+export function Section<T>({
   title,
   onManage,
   isEmpty,
-  emptyLabel,
-  addLabel,
-  onAdd,
   children,
+  data,
+  renderItem,
+  keyExtractor,
 }: {
   title: string;
   /** When provided, renders the "Gestionar" link (admins only). */
   onManage?: () => void;
   isEmpty: boolean;
-  emptyLabel: string;
-  /** When provided alongside `addLabel`, renders the trailing add card (admins only). */
-  addLabel?: string;
-  onAdd?: () => void;
-  children: ReactNode;
+  /** Eager path: children are rendered in a plain horizontal ScrollView. */
+  children?: ReactNode;
+  /**
+   * Virtualized path: when `data` + `renderItem` are given, the row is a
+   * horizontal FlatList instead of a ScrollView, so it stays fast for
+   * sections that can grow unbounded (e.g. events, which include past ones).
+   */
+  data?: readonly T[];
+  renderItem?: ListRenderItem<T>;
+  keyExtractor?: (item: T, index: number) => string;
 }) {
   const { t } = useT();
+  // A section with no entities is hidden entirely — content is created from the
+  // single "Añadir contenido" sheet, not from an in-scroll add card.
+  if (isEmpty) return null;
   return (
     <VStack gap={3} className="pt-4">
       <HStack className="items-center justify-between px-4">
-        {/* Matches the profile screen's section header (h3, bold, default tone). */}
-        <Text variant="h3" className="font-bold">
+        {/* Based on the profile section header (h3, bold), bumped +2px for the village overview. */}
+        <Text variant="h3" className="font-bold" style={{ fontSize: 22, lineHeight: 30, marginTop: 1 }}>
           {title}
         </Text>
         {onManage ? (
@@ -52,10 +62,19 @@ export function Section({
           </Pressable>
         ) : null}
       </HStack>
-      {isEmpty && !onAdd ? (
-        <Text tone="muted" variant="bodySm" className="px-4">
-          {emptyLabel}
-        </Text>
+      {data && renderItem ? (
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={data}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={{ paddingHorizontal: spacing[4], gap: spacing[3] }}
+          initialNumToRender={4}
+          maxToRenderPerBatch={4}
+          windowSize={5}
+          removeClippedSubviews
+        />
       ) : (
         <ScrollView
           horizontal
@@ -63,7 +82,6 @@ export function Section({
           contentContainerClassName="px-4 gap-3"
         >
           {children}
-          {onAdd && addLabel ? <AddCard label={addLabel} onPress={onAdd} /> : null}
         </ScrollView>
       )}
     </VStack>
@@ -86,6 +104,7 @@ function BigCard({
   secondary,
   accent,
   crest,
+  commentCount,
   onPress,
 }: {
   label: string;
@@ -104,6 +123,12 @@ function BigCard({
    * dark photo scrim.
    */
   crest?: boolean;
+  /**
+   * Comment count shown as a small pill in the photo's top-right corner, when
+   * > 0. Only meaningful for the (non-crest) photo cards — villages (crest)
+   * aren't a commentable entity.
+   */
+  commentCount?: number;
   onPress?: () => void;
 }) {
   const body = crest ? (
@@ -160,14 +185,36 @@ function BigCard({
       }}
     >
       {imageUri ? (
-        <Image
-          source={{ uri: imageUri }}
-          style={{ width: '100%', height: '100%' }}
-          resizeMode="cover"
-        />
+        <TopCropImage uri={imageUri} />
       ) : (
         <View className="w-full h-full items-center justify-center">{fallback}</View>
       )}
+
+      {commentCount && commentCount > 0 ? (
+        <View
+          testID="entity-card-comment-count"
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0,0,0,0.45)',
+            borderRadius: 12,
+            paddingHorizontal: 6,
+            paddingVertical: 3,
+          }}
+        >
+          <Ionicons name="chatbubble-outline" size={iconSizes.sm} color="rgba(255,255,255,0.85)" />
+          <Text
+            variant="bodySm"
+            numberOfLines={1}
+            style={{ color: 'rgba(255,255,255,0.85)', marginLeft: 4 }}
+          >
+            {commentCount}
+          </Text>
+        </View>
+      ) : null}
 
       {/* Bottom scrim keeps the overlaid text legible against any photo. */}
       <View
@@ -244,6 +291,7 @@ export function EntityCard({
   imageUri,
   accent,
   crest,
+  commentCount,
   onPress,
 }: {
   label: string;
@@ -253,6 +301,8 @@ export function EntityCard({
   accent?: boolean;
   /** Render the image as a small, centred escudo on the cream bg (villages). */
   crest?: boolean;
+  /** Comment count shown as a pill over the photo, when > 0. */
+  commentCount?: number;
   onPress?: () => void;
 }) {
   return (
@@ -263,6 +313,7 @@ export function EntityCard({
       secondary={sub}
       accent={accent}
       crest={crest}
+      commentCount={commentCount}
       onPress={onPress}
     />
   );

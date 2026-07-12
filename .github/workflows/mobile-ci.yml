@@ -6,6 +6,13 @@ on:
       - 'apps/mobile/**'
       - 'packages/shared/**'
       - 'packages/i18n/**'
+      # web-e2e exercises the backend it talks to, so trigger on those too.
+      - 'functions/**'
+      - 'scripts/seed/**'
+      - 'scripts/run-tests-with-emulators.mjs'
+      - 'firebase.json'
+      - 'firestore.rules'
+      - 'storage.rules'
       - 'pnpm-lock.yaml'
       - '.github/workflows/mobile-ci.yml'
   push:
@@ -64,3 +71,100 @@ jobs:
           FIREBASE_MESSAGING_SENDER_ID_DEV: '0'
           FIREBASE_APP_ID_DEV: ci-placeholder
         run: pnpm app:web:build
+
+      # Fail the PR fast if a native-only module leaked into the web bundle
+      # (getEnforcing crash on load). Cheap static check on the artifact just
+      # built above — the deploy pipeline runs the same gate before hosting,
+      # and the web E2E job below catches it behaviorally.
+      - name: Check web export
+        run: pnpm app:check-web-export
+
+  # Web E2E (D3): drive real user journeys over the Expo web export against the
+  # Firebase emulator. Expensive (emulator boot + Playwright), so it's gated to
+  # the release path — it runs only on PRs targeting `beta` (the develop → beta
+  # promotion / release-candidate gate) and pushes to `beta`, NOT on day-to-day
+  # develop PRs. develop still gets the fast `typecheck-and-test` job above.
+  web-e2e:
+    name: Web E2E (Playwright over the web export)
+    if: >-
+      ${{ (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'beta') ||
+          (github.event_name == 'push' && github.ref == 'refs/heads/beta') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.24.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup Java (Firebase emulators)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install functions dependencies
+        run: npm ci
+        working-directory: functions
+
+      - name: Build shared package
+        run: pnpm shared:build
+
+      - name: Build functions
+        run: pnpm functions:build
+
+      # Web export baked with USE_FIREBASE_EMULATOR=1 so firebaseInit connects to
+      # the local emulators and AuthContext installs the fixture-login seam.
+      # projectId = cultuvilla-test to match the emulator + seeder; the remaining
+      # Firebase values are placeholders (the emulator ignores them).
+      - name: Build web export (emulator mode)
+        env:
+          APP_ENV: dev
+          USE_FIREBASE_EMULATOR: '1'
+          GOOGLE_IOS_CLIENT_ID_DEV: ci-placeholder.apps.googleusercontent.com
+          GOOGLE_IOS_URL_SCHEME_DEV: com.googleusercontent.apps.ci-placeholder
+          FIREBASE_API_KEY_DEV: ci-placeholder
+          FIREBASE_AUTH_DOMAIN_DEV: cultuvilla-test.firebaseapp.com
+          FIREBASE_PROJECT_ID_DEV: cultuvilla-test
+          FIREBASE_STORAGE_BUCKET_DEV: cultuvilla-test.appspot.com
+          FIREBASE_MESSAGING_SENDER_ID_DEV: '0'
+          FIREBASE_APP_ID_DEV: ci-placeholder
+        run: pnpm app:web:build
+
+      - name: Install Playwright browser (chromium)
+        run: pnpm --filter cultuvilla-mobile exec playwright install --with-deps chromium
+
+      # One emulator boot: seed the deterministic fixtures, then run the flows
+      # (Playwright serves the pre-built dist). TEST_PROJECT_ID defaults to
+      # cultuvilla-test in run-tests-with-emulators.mjs.
+      - name: Seed + run web E2E under emulators
+        env:
+          E2E_FIREBASE_PROJECT: cultuvilla-test
+          VITEST_RETRY_COUNT: '1'
+        run: pnpm test:e2e:web
+
+      - name: Upload Playwright artifacts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            apps/mobile/playwright-report/
+            apps/mobile/test-results/
+            apps/mobile/e2e/playwright-report/
+            apps/mobile/e2e/test-results/
+          if-no-files-found: ignore
+          retention-days: 7

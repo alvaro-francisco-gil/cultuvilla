@@ -118,6 +118,20 @@ export async function setRegistrationCheckIn(
   });
 }
 
+// Organizer marks/unmarks an attendee as paid (events with requiresPayment).
+// updateDoc bypasses the converter, so the serverTimestamp()/null union is fine
+// on the raw path ref. Gated by firestore.rules: any write touching paidAt
+// requires the event organizer.
+export async function setRegistrationPaid(
+  eventId: string,
+  regId: string,
+  paid: boolean,
+): Promise<void> {
+  await updateDoc(doc(getDb(), 'events', eventId, 'registrations', regId), {
+    paidAt: paid ? serverTimestamp() : null,
+  });
+}
+
 interface AddWalkInCallableData {
   eventId: string;
   name: string;

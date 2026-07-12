@@ -108,7 +108,7 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
         {
           icon: 'settings-outline',
           label: t('menu.settings'),
-          comingSoon: true,
+          onPress: () => close(() => router.push('/settings' as Href)),
         },
       ],
     },
@@ -144,7 +144,7 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
           label: t('menu.suggestions'),
           onPress: async () => {
             try {
-              await Linking.openURL('mailto:hola@cultuvilla.com');
+              await Linking.openURL('mailto:cultuvilla.app@gmail.com');
             } catch {
               // best-effort
             }
@@ -158,12 +158,12 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
         {
           icon: 'document-text-outline',
           label: t('menu.terms'),
-          comingSoon: true,
+          onPress: () => close(() => router.push('/legal/terms' as Href)),
         },
         {
           icon: 'shield-checkmark-outline',
           label: t('menu.privacy'),
-          comingSoon: true,
+          onPress: () => close(() => router.push('/legal/privacy' as Href)),
         },
       ],
     },
@@ -181,16 +181,6 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
           },
         ]
       : []),
-    {
-      title: t('solicitudes.title'),
-      items: [
-        {
-          icon: 'mail-unread-outline',
-          label: t('menu.solicitudes'),
-          onPress: () => close(() => router.push('/solicitudes')),
-        },
-      ],
-    },
     {
       title: t('menu.section.app'),
       items: [

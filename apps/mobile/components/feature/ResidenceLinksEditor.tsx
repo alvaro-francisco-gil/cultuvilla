@@ -14,7 +14,7 @@ export interface ResidenceLinksEditorProps {
  * relatives, historical figures, family members). Writes directly to
  * municipalityLinks — there is no membership to drive a barrio, so the village
  * and barrio are both chosen here. Add/remove villages freely; one barrio per
- * village. Account-holders edit residence via MembershipBarrioList instead.
+ * village. Account-holders edit residence via MembershipVillageEditor instead.
  */
 export function ResidenceLinksEditor({ value, onChange }: ResidenceLinksEditorProps) {
   const { t } = useT();
@@ -70,6 +70,9 @@ export function ResidenceLinksEditor({ value, onChange }: ResidenceLinksEditorPr
             value={link.barrioId}
             onChange={(barrioId) => setBarrio(i, barrioId)}
             wholeVillageLabel={t('profile.personForm.wholeVillage')}
+            // Show a barrio control for every selected village, even one with no
+            // approved barrios yet — not only the ones that happen to have some.
+            hideWhenEmpty={false}
           />
         </VStack>
       ))}
