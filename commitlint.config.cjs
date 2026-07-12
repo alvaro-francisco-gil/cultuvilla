@@ -3,4 +3,9 @@ module.exports = {
   rules: {
     'header-max-length': [2, 'always', 100],
   },
+  // The version-bump commit on a `develop → beta` promotion is a bare semver
+  // string (e.g. `0.10.0`), not a conventional commit — see the "Versioning &
+  // releases" section of AGENTS.md. Exempt exactly that shape; everything else
+  // still goes through config-conventional.
+  ignores: [(message) => /^\d+\.\d+\.\d+$/.test(message.trim())],
 };

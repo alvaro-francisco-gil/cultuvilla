@@ -4,6 +4,21 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.10.0 — 2026-07-12
+
+### Changed
+- Analytics consent is now granted implicitly by accepting the Terms & Conditions; the standalone analytics consent bar has been removed.
+- Pre-release, the `/descarga` endpoint redirects straight into the web app instead of showing a landing page. The App Store / Play Store download landing stays gated behind `APP_AVAILABLE` until the native apps ship.
+- Organization visibility control is now a **Privacidad** section whose label reflects the current state instead of an extra hint line.
+- The branded `/descarga` QR now uses a plain square logo backing (no rounded corners), with the logo trimmed for an even, centred fit.
+
+### Fixed
+- The article editor now shows a blinking caret on the web build.
+
+### Tooling
+- Required-field backfill scripts can target beta/prod via `--env` (with `--confirm`).
+- commitlint accepts a bare `X.Y.Z` version-bump commit message.
+
 ## v0.9.0 — 2026-07-11
 
 ### Added

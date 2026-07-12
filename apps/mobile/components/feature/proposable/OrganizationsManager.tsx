@@ -8,8 +8,7 @@ import {
   PROPOSABLE_ORGANIZATION_TYPES,
   type OrganizationType,
 } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
-import { VStack } from '../../primitives';
-import { Text } from '../../primitives/Text';
+import { VStack, FieldLabel } from '../../primitives';
 import { Toggle } from '../../primitives/Toggle';
 import { useT } from '../../../lib/i18n';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
@@ -104,17 +103,17 @@ export function OrganizationsManager({
         onChangeType={(v) => setType(v as OrganizationType)}
         footer={
           <VStack gap={1}>
+            <FieldLabel>{t('organization.privacy')}</FieldLabel>
             <Toggle
               value={membersPublic}
               onValueChange={setMembersPublic}
-              label={t('organization.membersPublicLabel')}
+              label={
+                membersPublic
+                  ? t('organization.membersPublicLabel')
+                  : t('organization.membersPrivateHint')
+              }
               testID="org-members-public-toggle"
             />
-            {!membersPublic ? (
-              <Text tone="muted" variant="bodySm">
-                {t('organization.membersPrivateHint')}
-              </Text>
-            ) : null}
           </VStack>
         }
         submitLabel={canManage ? t('village.admin.organizations.add') : t('village.proposals.propose')}

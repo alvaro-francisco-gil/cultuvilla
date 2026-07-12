@@ -610,7 +610,8 @@
     "approve": "Aprobar",
     "reject": "Rechazar",
     "members": "Miembros",
-    "membersPublicLabel": "Mostrar los miembros del grupo",
+    "privacy": "Privacidad",
+    "membersPublicLabel": "Los miembros del grupo son visibles para el pueblo",
     "membersPrivateHint": "Solo los miembros del grupo verán quién forma parte.",
     "membersEmpty": "Este grupo aún no tiene miembros.",
     "adminBadge": "Admin"
@@ -878,8 +879,6 @@
   },
   "descarga": {
     "tagline": "La agenda de tu pueblo, en tu bolsillo.",
-    "openWeb": "Abrir en la web",
-    "comingSoon": "App para móvil, muy pronto.",
     "getOnAppStore": "Descargar en el App Store",
     "getOnPlayStore": "Descargar en Google Play",
     "continueOnWeb": "Seguir en la web"
@@ -945,11 +944,6 @@
       }
     },
     "deletedUser": "Usuario eliminado"
-  },
-  "consent": {
-    "message": "Usamos analítica anónima para mejorar la app. ¿Nos das tu consentimiento?",
-    "accept": "Aceptar",
-    "decline": "Rechazar"
   },
   "comments": {
     "sectionTitle": "Comentarios",

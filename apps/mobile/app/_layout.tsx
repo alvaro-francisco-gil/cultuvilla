@@ -16,7 +16,6 @@ import { RegisterGateProvider, useRegisterGate } from '../lib/auth/RegisterGateC
 import { GuestActiveVillageProvider } from '../lib/village/GuestActiveVillageContext';
 import { useDeepLinkRouter } from '../lib/deeplink/useDeepLinkRouter';
 import { CropperHost } from '../lib/imageCrop';
-import { ConsentBar } from '../lib/observability/ConsentBar';
 import { ActivityIndicator, View } from 'react-native';
 
 bootstrapFirebase();
@@ -51,7 +50,6 @@ export default function RootLayout() {
                         own native cropper). Rendered above the app so it can cover
                         any screen when pickImageAsBlob({ square }) opens it. */}
                     <CropperHost />
-                    <ConsentBar />
                   </RegisterGateProvider>
                 </GuestActiveVillageProvider>
               </AuthProvider>

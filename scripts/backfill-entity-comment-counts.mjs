@@ -15,28 +15,24 @@
  * `news` already has this field (NewsPostDataModel) — not touched here.
  *
  * USAGE
- *   node scripts/backfill-entity-comment-counts.mjs
+ *   node scripts/backfill-entity-comment-counts.mjs              (dev, default)
+ *   env -u GOOGLE_APPLICATION_CREDENTIALS \
+ *     node scripts/backfill-entity-comment-counts.mjs --env=beta --confirm
+ *
+ * Credentials resolve via initAdminForEnv (see lib/env-credentials.mjs). Dev is
+ * autonomous; beta/prod require --confirm (and the stored ADC — unset
+ * GOOGLE_APPLICATION_CREDENTIALS so a dev key can't hijack the target project).
  *
  * Idempotent: only patches docs where `commentCount` is missing; re-running
  * after a full backfill patches 0 docs.
  */
 
 import admin from 'firebase-admin';
+import { initAdminForEnv } from './lib/env-credentials.mjs';
+import { parseEnvConfirm } from './lib/env-confirm.mjs';
 
-const PROJECT_ID = 'villa-events';
-
-if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  console.error('GOOGLE_APPLICATION_CREDENTIALS is not set.');
-  process.exit(1);
-}
-
-admin.initializeApp({ projectId: PROJECT_ID });
+const { projectId } = initAdminForEnv(parseEnvConfirm());
 const db = admin.firestore();
-
-if (admin.app().options.projectId !== PROJECT_ID) {
-  console.error(`Refusing to run against ${admin.app().options.projectId} — dev only.`);
-  process.exit(1);
-}
 
 function needsPatch(data) {
   return data.commentCount === undefined;
@@ -74,7 +70,7 @@ async function backfillCollection(label, collectionRef) {
 }
 
 async function main() {
-  console.log(`Backfilling commentCount against ${PROJECT_ID}\n`);
+  console.log(`Backfilling commentCount against ${projectId}\n`);
 
   let totalPatched = 0;
 

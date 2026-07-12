@@ -5,6 +5,7 @@ import { Screen } from '../../../components/primitives/Screen';
 import { Text } from '../../../components/primitives/Text';
 import { Toggle } from '../../../components/primitives/Toggle';
 import { VStack } from '../../../components/primitives/VStack';
+import { FieldLabel } from '../../../components/primitives/FieldLabel';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { ProposableForm } from '../../../components/feature/proposable/ProposableForm';
 import { DeleteHeaderButton } from '../../../components/feature/DeleteHeaderButton';
@@ -141,17 +142,17 @@ export default function OrgEditScreen() {
             : {})}
           footer={
             <VStack gap={1}>
+              <FieldLabel>{t('organization.privacy')}</FieldLabel>
               <Toggle
                 value={membersPublic}
                 onValueChange={setMembersPublic}
-                label={t('organization.membersPublicLabel')}
+                label={
+                  membersPublic
+                    ? t('organization.membersPublicLabel')
+                    : t('organization.membersPrivateHint')
+                }
                 testID="org-edit-members-public-toggle"
               />
-              {!membersPublic ? (
-                <Text tone="muted" variant="bodySm">
-                  {t('organization.membersPrivateHint')}
-                </Text>
-              ) : null}
             </VStack>
           }
           submitLabel={t('common.save')}
