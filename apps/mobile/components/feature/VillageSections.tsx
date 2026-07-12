@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { FlatList, Image, ScrollView, View } from 'react-native';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { Animated, FlatList, Image, ScrollView, View } from 'react-native';
 import type { ListRenderItem } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { iconSizes, spacing } from '@cultuvilla/shared/design-system';
@@ -18,11 +18,57 @@ const PLACEHOLDER_BG = '#dcab93'; // palette.peach — keeps the white scrim tex
 const CREST_BG = '#f9f0e8'; // palette.cream — matches the screen's bg-surface so the crest card reads as an outline
 const CARD_W = 175;
 const CARD_H = 175; // square — same width and height
+const CARD_RADIUS = 16; // matches the cards' rounded-2xl
+const SKELETON_BG = '#e7dccf'; // muted cream — reads as an empty card on bg-surface
+
+/** How a section's data is loading; drives skeleton vs content vs hidden. */
+export type SectionStatus = 'loading' | 'ready' | 'error';
+
+/**
+ * Placeholder row shown while a section's own fetch is in flight. A gentle
+ * shared opacity pulse animates the cards; per the NativeWind-on-web gotcha the
+ * animated value drives `style.opacity`, never a className.
+ */
+function SkeletonRow({ count = 4 }: { count?: number }) {
+  const pulse = useRef(new Animated.Value(0.5)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.5, duration: 700, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+  return (
+    <View
+      testID="section-skeleton"
+      style={{ flexDirection: 'row', paddingHorizontal: spacing[4], gap: spacing[3] }}
+    >
+      {Array.from({ length: count }).map((_, i) => (
+        <Animated.View
+          key={i}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{
+            width: CARD_W,
+            height: CARD_H,
+            borderRadius: CARD_RADIUS,
+            backgroundColor: SKELETON_BG,
+            opacity: pulse,
+          }}
+        />
+      ))}
+    </View>
+  );
+}
 
 export function Section<T>({
   title,
   onManage,
   isEmpty,
+  status = 'ready',
   children,
   data,
   renderItem,
@@ -32,6 +78,12 @@ export function Section<T>({
   /** When provided, renders the "Gestionar" link (admins only). */
   onManage?: () => void;
   isEmpty: boolean;
+  /**
+   * Load state of this section's own fetch. 'loading' shows a skeleton row,
+   * 'error' hides the section (same as an empty one — the tab stays up), and
+   * 'ready' renders the content. Defaults to 'ready' for eager callers.
+   */
+  status?: SectionStatus;
   /** Eager path: children are rendered in a plain horizontal ScrollView. */
   children?: ReactNode;
   /**
@@ -44,9 +96,13 @@ export function Section<T>({
   keyExtractor?: (item: T, index: number) => string;
 }) {
   const { t } = useT();
-  // A section with no entities is hidden entirely — content is created from the
-  // single "Añadir contenido" sheet, not from an in-scroll add card.
-  if (isEmpty) return null;
+  // A failed section hides itself rather than blanking the tab; an empty
+  // (ready) section is likewise hidden — content is created from the single
+  // "Añadir contenido" sheet, not from an in-scroll add card. While loading we
+  // keep the header + a skeleton row so the user sees the section fill in.
+  const showSkeleton = status === 'loading';
+  if (status === 'error') return null;
+  if (!showSkeleton && isEmpty) return null;
   return (
     <VStack gap={3} className="pt-4">
       <HStack className="items-center justify-between px-4">
@@ -62,7 +118,9 @@ export function Section<T>({
           </Pressable>
         ) : null}
       </HStack>
-      {data && renderItem ? (
+      {showSkeleton ? (
+        <SkeletonRow />
+      ) : data && renderItem ? (
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
