@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import {
   configureObservability,
+  observability,
   OBSERVABILITY_EVENTS,
   type ObservabilityAdapter,
   type UserContext,
@@ -51,5 +52,8 @@ export function bootstrapObservability(): void {
   };
 
   configureObservability(adapter);
+  // Analytics consent is granted through the Terms & Conditions the user accepts
+  // at registration, so there is no separate in-app consent prompt.
+  observability.setConsent({ analytics: true });
   attachGlobalHandlers();
 }

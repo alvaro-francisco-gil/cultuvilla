@@ -1,10 +1,12 @@
 const mockConfigureObservability = jest.fn();
+const mockSetConsent = jest.fn();
 const mockTrackEvent = jest.fn();
 const mockSendClientError = jest.fn().mockResolvedValue(undefined);
 const mockAttachGlobalHandlers = jest.fn();
 
 jest.mock('@cultuvilla/shared', () => ({
   configureObservability: (...a: unknown[]) => mockConfigureObservability(...a),
+  observability: { setConsent: (...a: unknown[]) => mockSetConsent(...a) },
   OBSERVABILITY_EVENTS: { APP_EXCEPTION: 'app.exception.thrown' },
 }));
 jest.mock('../analytics', () => ({
@@ -28,6 +30,8 @@ describe('bootstrapObservability', () => {
   it('configures the port and attaches handlers, and captureError double-writes', () => {
     bootstrapObservability();
     expect(mockConfigureObservability).toHaveBeenCalledTimes(1);
+    // Analytics consent is granted implicitly via T&C acceptance, not a prompt.
+    expect(mockSetConsent).toHaveBeenCalledWith({ analytics: true });
     expect(mockAttachGlobalHandlers).toHaveBeenCalledTimes(1);
     const adapter = mockConfigureObservability.mock.calls[0][0];
     adapter.captureError(new Error('boom'), { route: '/x' });

@@ -945,11 +945,6 @@
     },
     "deletedUser": "Usuario eliminado"
   },
-  "consent": {
-    "message": "Usamos analítica anónima para mejorar la app. ¿Nos das tu consentimiento?",
-    "accept": "Aceptar",
-    "decline": "Rechazar"
-  },
   "comments": {
     "sectionTitle": "Comentarios",
     "countLabel": "{count, plural, one {# comentario} other {# comentarios}}",
