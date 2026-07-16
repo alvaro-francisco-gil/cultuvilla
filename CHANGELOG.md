@@ -4,6 +4,15 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.11.0 — 2026-07-16
+
+### Added
+- **Formato de texto y enlaces por selección en los artículos.** Al escribir una noticia, seleccionar texto muestra una barra con **negrita**, **cursiva**, **subrayado**, **tachado** y **enlace**: cada botón pone/quita su estilo sobre la selección, y el de enlace convierte el texto seleccionado en un enlace introduciendo su URL (se valida como `http/https`). Los estilos pueden combinarse entre sí y coincidir con una mención o un enlace sobre el mismo texto. Convive con el flujo anterior de pegar una URL. El modelo de bloques gana un array tipado `marks` (y `captionMarks` en las imágenes) que sustituye al `bolds` anterior; los artículos antiguos siguen leyéndose vía `.default([])` y se migran con `scripts/backfill-news-marks.mjs`.
+
+### Changed
+- The pueblo (village) tab now shows past events again: its events row loads both `published` and `completed` events and lists upcoming first, then past (most recent first). Previously finished events vanished once the hourly completion job flipped them to `completed`.
+- Each pueblo-tab scroll (events, news, festival posters, barrios, places, organizations) now loads independently with its own skeleton placeholder, and a single failed section hides itself instead of blanking the whole tab.
+
 ## v0.10.0 — 2026-07-12
 
 ### Changed

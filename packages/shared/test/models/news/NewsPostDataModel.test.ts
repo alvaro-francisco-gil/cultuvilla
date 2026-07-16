@@ -8,6 +8,7 @@ import {
   type NewsPostCategory,
 } from '../../../src/models/news/NewsPostDataModel';
 import { NewsTextBlockSchema, NewsLinkSchema } from '../../../src/models/news/NewsPostDataModel';
+import { NewsMarkSchema, NEWS_MARK_TYPES } from '../../../src/models/news/NewsPostDataModel';
 
 describe('MENTION_ENTITY_TYPES', () => {
   it('is the entity family plus village, and excludes persons', () => {
@@ -78,6 +79,43 @@ describe('NewsImageBlockSchema captionLinks', () => {
   it('defaults captionLinks to [] for a legacy image block', () => {
     const parsed = NewsImageBlockSchema.parse({ type: 'image', storagePath: 'p/1', width: 10, height: 5, caption: 'x' });
     expect(parsed.captionLinks).toEqual([]);
+  });
+});
+
+describe('NewsMarkSchema', () => {
+  it('exposes the canonical mark types', () => {
+    expect([...NEWS_MARK_TYPES]).toEqual(['bold', 'italic', 'underline', 'strikethrough']);
+  });
+
+  it('accepts each mark type', () => {
+    for (const type of NEWS_MARK_TYPES) {
+      const mark = { type, offset: 2, length: 4 };
+      expect(NewsMarkSchema.parse(mark)).toEqual(mark);
+    }
+  });
+
+  it('rejects an unknown mark type', () => {
+    expect(() => NewsMarkSchema.parse({ type: 'blink', offset: 0, length: 1 })).toThrow();
+  });
+});
+
+describe('NewsTextBlockSchema marks', () => {
+  it('defaults marks to [] for a legacy text block without the field', () => {
+    const parsed = NewsTextBlockSchema.parse({ type: 'text', text: 'hola', mentions: [] });
+    expect(parsed.marks).toEqual([]);
+  });
+
+  it('keeps mark spans when present', () => {
+    const mark = { type: 'italic' as const, offset: 0, length: 4 };
+    const parsed = NewsTextBlockSchema.parse({ type: 'text', text: 'hola', mentions: [], marks: [mark] });
+    expect(parsed.marks).toEqual([mark]);
+  });
+});
+
+describe('NewsImageBlockSchema captionMarks', () => {
+  it('defaults captionMarks to [] for a legacy image block', () => {
+    const parsed = NewsImageBlockSchema.parse({ type: 'image', storagePath: 'p/1', width: 10, height: 5, caption: 'x' });
+    expect(parsed.captionMarks).toEqual([]);
   });
 });
 

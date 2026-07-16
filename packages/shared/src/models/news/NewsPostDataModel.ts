@@ -70,6 +70,27 @@ export const NewsLinkSchema = z.object({
 });
 export type NewsLink = z.infer<typeof NewsLinkSchema>;
 
+/**
+ * Inline character styles a text run can carry. Pure presentation, no payload;
+ * a mark may overlap a mention or link span (the same characters can be bold and
+ * a link) and marks of different types may overlap each other.
+ */
+export const NEWS_MARK_TYPES = ['bold', 'italic', 'underline', 'strikethrough'] as const;
+export const NewsMarkTypeSchema = z.enum([...NEWS_MARK_TYPES]);
+export type NewsMarkType = z.infer<typeof NewsMarkTypeSchema>;
+
+/**
+ * A formatting span within a text block. `offset`/`length` locate the styled
+ * characters in the block's `text`. Spans of the same `type` are normalized
+ * (sorted, merged, non-overlapping) at author time.
+ */
+export const NewsMarkSchema = z.object({
+  type: NewsMarkTypeSchema,
+  offset: z.number(),
+  length: z.number(),
+});
+export type NewsMark = z.infer<typeof NewsMarkSchema>;
+
 export const NewsTextBlockSchema = z.object({
   type: z.literal('text'),
   text: z.string(),
@@ -77,6 +98,8 @@ export const NewsTextBlockSchema = z.object({
   // `.default([])` keeps text blocks written before links existed parseable on
   // read (the converter runs schema.parse on every read).
   links: z.array(NewsLinkSchema).default([]),
+  // `.default([])` keeps text blocks written before formatting marks existed parseable on read.
+  marks: z.array(NewsMarkSchema).default([]),
 });
 export type NewsTextBlock = z.infer<typeof NewsTextBlockSchema>;
 
@@ -92,6 +115,7 @@ export const NewsImageBlockSchema = z.object({
   // on read (the converter runs schema.parse on every read).
   captionMentions: z.array(NewsMentionSchema).default([]),
   captionLinks: z.array(NewsLinkSchema).default([]),
+  captionMarks: z.array(NewsMarkSchema).default([]),
 });
 export type NewsImageBlock = z.infer<typeof NewsImageBlockSchema>;
 

@@ -1,5 +1,6 @@
-import type { NewsMention, NewsLink } from '@cultuvilla/shared/models/news/NewsPostDataModel';
+import type { NewsMention, NewsLink, NewsMark, NewsMarkType } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 import { adjustMentions, type Span } from './mentionText';
+import { normalizeMarks } from './markText';
 
 /** Trailing characters trimmed off an autodetected URL (sentence punctuation). */
 const TRAILING = new Set(['.', ',', ';', ':', '!', '?', '»', '"', "'", '’', '”']);
@@ -87,21 +88,78 @@ export function applyCustomTextLink(
   };
 }
 
+/**
+ * Record a custom-text link over an existing selection `[start, end)` (the
+ * display text is already in `text`, so `text` is unchanged — only a link span
+ * is added). Callers must pass a safe http(s) `url` and a non-empty range.
+ */
+export function addLinkSpan(links: NewsLink[], start: number, end: number, url: string): NewsLink[] {
+  if (end <= start) return links;
+  const span: NewsLink = { url, offset: start, length: end - start };
+  return [...links, span].sort((a, b) => a.offset - b.offset);
+}
+
 export interface LinkRun {
   text: string;
   mention?: NewsMention;
   link?: NewsLink;
   autoUrl?: string;
+  /** Active formatting marks over this run (bold/italic/underline/strikethrough). */
+  marks?: NewsMarkType[];
+}
+
+/**
+ * Subdivide contiguous runs at mark-span boundaries, tagging each resulting run
+ * with the mark types active over it. Marks are orthogonal to mentions/links
+ * (the same characters can be both) and to each other, so they are applied as a
+ * second pass over the already-built runs rather than competing for the same
+ * span slot. `runs` must cover `text` contiguously and in order (as
+ * {@link buildLinkRuns} produces them) so offsets line up.
+ */
+function applyMarks(runs: LinkRun[], marks: NewsMark[]): LinkRun[] {
+  const norm = normalizeMarks(marks);
+  if (norm.length === 0) return runs;
+  const out: LinkRun[] = [];
+  let offset = 0;
+  for (const run of runs) {
+    const start = offset;
+    const end = offset + run.text.length;
+    offset = end;
+    const cuts = new Set<number>([start, end]);
+    for (const m of norm) {
+      const mEnd = m.offset + m.length;
+      if (m.offset > start && m.offset < end) cuts.add(m.offset);
+      if (mEnd > start && mEnd < end) cuts.add(mEnd);
+    }
+    const points = [...cuts].sort((a, b) => a - b);
+    for (let i = 0; i < points.length - 1; i++) {
+      const from = points[i]!;
+      const to = points[i + 1]!;
+      const types = [
+        ...new Set(norm.filter((m) => m.offset <= from && m.offset + m.length >= to).map((m) => m.type)),
+      ];
+      const text = run.text.slice(from - start, to - start);
+      out.push(types.length ? { ...run, text, marks: types } : { ...run, text });
+    }
+  }
+  return out;
 }
 
 /**
  * Split `text` into ordered runs: mention spans, stored link spans, bare-URL
- * autolinks, and plain prose. Mentions and stored links are laid down first
- * (mentions win on overlap); autolinks fill only the still-plain gaps, so a URL
- * inside a stored span is never double-linked. Out-of-range / overlapping /
- * non-positive spans are skipped so a malformed block still renders.
+ * autolinks, and plain prose, each optionally tagged with formatting `marks`.
+ * Mentions and stored links are laid down first (mentions win on overlap);
+ * autolinks fill only the still-plain gaps, so a URL inside a stored span is
+ * never double-linked; marks are applied as an orthogonal overlay on top.
+ * Out-of-range / overlapping / non-positive spans are skipped so a malformed
+ * block still renders.
  */
-export function buildLinkRuns(text: string, mentions: NewsMention[], links: NewsLink[]): LinkRun[] {
+export function buildLinkRuns(
+  text: string,
+  mentions: NewsMention[],
+  links: NewsLink[],
+  marks: NewsMark[] = [],
+): LinkRun[] {
   type Tagged = Span & { mention?: NewsMention; link?: NewsLink };
   const tagged: Tagged[] = [
     ...mentions.map((m): Tagged => ({ offset: m.offset, length: m.length, mention: m })),
@@ -130,5 +188,5 @@ export function buildLinkRuns(text: string, mentions: NewsMention[], links: News
     cursor = s.offset + s.length;
   }
   pushPlain(cursor, text.length);
-  return runs;
+  return applyMarks(runs, marks);
 }

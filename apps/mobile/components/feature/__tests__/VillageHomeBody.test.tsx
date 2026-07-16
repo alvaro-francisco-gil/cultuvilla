@@ -69,8 +69,8 @@ const village = {
 } as unknown as VillageHomeState['village'];
 
 const base: VillageHomeState = {
-  loading: false,
-  loadError: null,
+  coreLoading: false,
+  coreError: null,
   village,
   villageAdmin: false,
   isMember: true,
@@ -85,6 +85,14 @@ const base: VillageHomeState = {
   peopleCount: 3,
   pendingOrganizerRequest: false,
   myCensoAnswers: {},
+  sectionStatus: {
+    events: 'ready',
+    news: 'ready',
+    festivalPosters: 'ready',
+    barrios: 'ready',
+    places: 'ready',
+    organizations: 'ready',
+  },
 };
 
 beforeEach(() => {
@@ -236,5 +244,28 @@ describe('VillageHomeBody', () => {
     // Admins still configure the censo, but filling requires being a villager.
     expect(queryByText('Rellenar censo')).toBeNull();
     expect(queryByText('Configurar censo')).toBeTruthy();
+  });
+
+  it('shows a skeleton row for a section whose fetch is still in flight', () => {
+    const { getAllByTestId } = render(
+      <VillageHomeBody
+        data={{ ...base, sectionStatus: { ...base.sectionStatus, events: 'loading' } }}
+        reload={jest.fn()}
+      />,
+    );
+    expect(getAllByTestId('section-skeleton').length).toBeGreaterThan(0);
+  });
+
+  it('hides a failed section instead of blanking the whole tab', () => {
+    const { queryByTestId, getByText } = render(
+      <VillageHomeBody
+        data={{ ...base, sectionStatus: { ...base.sectionStatus, events: 'error' } }}
+        reload={jest.fn()}
+      />,
+    );
+    // A section in error renders nothing (no skeleton), yet the tab chrome — the
+    // village name — is still on screen: one failed fetch must not take it down.
+    expect(queryByTestId('section-skeleton')).toBeNull();
+    expect(getByText('Anaya')).toBeTruthy();
   });
 });
