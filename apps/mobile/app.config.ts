@@ -23,14 +23,16 @@ const bundleIdPerEnv: Record<Env, string> = {
   prod: 'com.cultuvilla.app',
 };
 
-// Each env's deep-link host MUST be the Firebase Hosting site of that env's
+// Each env's deep-link host MUST be a Firebase Hosting domain of that env's
 // project (where the ogRenderer rewrites live). dev = villa-events project,
-// beta = cultuvilla-beta, prod = cultuvilla-prod. The old villa-events-*.web.app
+// beta = cultuvilla-beta, prod = cultuvilla-prod. Prod uses the brand custom
+// domain cultuvilla.es (attached to the cultuvilla-prod site) so shared links
+// carry the brand, not the *.web.app default. The old villa-events-*.web.app
 // sites never existed post-rename, so share links 404'd.
 const deepLinkHostPerEnv: Record<Env, string> = {
   dev: process.env['DEEP_LINK_HOST_DEV'] ?? 'villa-events.web.app',
   beta: process.env['DEEP_LINK_HOST_BETA'] ?? 'cultuvilla-beta.web.app',
-  prod: process.env['DEEP_LINK_HOST_PROD'] ?? 'cultuvilla-prod.web.app',
+  prod: process.env['DEEP_LINK_HOST_PROD'] ?? 'cultuvilla.es',
 };
 
 // Firebase config is injected per-environment from .env (or EAS secrets).
