@@ -332,9 +332,11 @@ All non-trivial changes follow the same loop. Tiny edits (typo in a doc, a renam
 
 **Branch model (three-tier):** `develop` → `beta` → `main`, each mapped to a Firebase
 environment (dev `villa-events`, beta `cultuvilla-beta`, prod `cultuvilla-prod`).
-Merging into a branch auto-deploys backend + hosting to its env via CI; `main` is
-production and **forbids direct pushes** (merge-from-`beta` only, behind a manual
-approval gate). All daily work targets `develop`. See
+Merging into a branch auto-deploys backend + hosting to its env via CI — prod
+included, with no manual approval step; `main` is production and **forbids direct
+pushes** (merge-from-`beta` only). The `production` GitHub Environment still
+restricts which branch may deploy (branch policy), but no longer requires a
+reviewer. All daily work targets `develop`. See
 [docs/decisions/dev-beta-prod-environments.md](docs/decisions/dev-beta-prod-environments.md).
 
 1. **Ask which mode to use, then work in it.** Before writing code, ask the user to pick one of two modes:

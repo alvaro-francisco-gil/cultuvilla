@@ -9,7 +9,7 @@ Firebase project; the active env is selected at build time by a single
 | Firebase project    | `villa-events`                   | `cultuvilla-beta`                 | `cultuvilla-prod`                 |
 | `.firebaserc` alias | `dev` (also the `default`)       | `beta`                            | `prod`                            |
 | Firestore region    | `europe-southwest1` (Madrid)     | `europe-southwest1` (Madrid)      | `europe-southwest1` (Madrid)      |
-| Hosting URL (web)   | `villa-events.web.app`           | `cultuvilla-beta.web.app`         | `cultuvilla-prod.web.app` (apex TBD) |
+| Hosting URL (web)   | `villa-events.web.app`           | `cultuvilla-beta.web.app`         | `cultuvilla.es` (custom domain on `cultuvilla-prod`) |
 | iOS bundle id       | `com.cultuvilla.app.dev`         | `com.cultuvilla.app.beta`         | `com.cultuvilla.app`              |
 | `APP_ENV` value     | `dev`                            | `beta`                            | `prod`                            |
 
