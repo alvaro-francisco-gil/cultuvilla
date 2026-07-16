@@ -5,8 +5,8 @@ import { Text } from '../primitives';
 import type { TextProps } from '../primitives/Text';
 import { mentionHref } from '../../lib/newsMentions';
 import { buildLinkRuns, isSafeHttpUrl } from '../../lib/linkText';
-import { markClasses } from '../../lib/markStyle';
-import type { NewsMention, NewsLink, NewsMark, NewsMarkType } from '@cultuvilla/shared/models/news/NewsPostDataModel';
+import { markPresentation } from '../../lib/markStyle';
+import type { NewsMention, NewsLink, NewsMark } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 
 interface RichTextProps extends Omit<TextProps, 'children'> {
   text: string;
@@ -18,16 +18,12 @@ interface RichTextProps extends Omit<TextProps, 'children'> {
   municipalityId: string;
 }
 
-const LINK_CLASS = 'text-accent font-medium underline';
+// Colour + weight for a link/mention span. Underline is NOT here — decoration is
+// applied via style (markStyle.ts) so it composes with a strikethrough mark.
+const LINK_CLASS = 'text-accent font-medium';
 
 function openExternal(url: string) {
   if (isSafeHttpUrl(url)) void Linking.openURL(url);
-}
-
-/** Append a run's mark classes to a base (link/mention) class string. */
-function withMarks(base: string, types: NewsMarkType[] | undefined): string {
-  const extra = markClasses(types);
-  return extra ? `${base} ${extra}` : base;
 }
 
 /**
@@ -45,10 +41,12 @@ export function RichText({ text, mentions, links = [], marks = [], municipalityI
   const parts = runs.map((run, i) => {
     if (run.mention) {
       const href = mentionHref(run.mention, municipalityId);
+      const pres = markPresentation(run.marks, true);
       return (
         <RNText
           key={i}
-          className={withMarks(LINK_CLASS, run.marks)}
+          className={`${LINK_CLASS} ${pres.className}`}
+          style={pres.style}
           onPress={href ? () => router.push(href as never) : undefined}
         >
           {run.text}
@@ -57,15 +55,22 @@ export function RichText({ text, mentions, links = [], marks = [], municipalityI
     }
     const url = run.link?.url ?? run.autoUrl;
     if (url && isSafeHttpUrl(url)) {
+      const pres = markPresentation(run.marks, true);
       return (
-        <RNText key={i} className={withMarks(LINK_CLASS, run.marks)} onPress={() => openExternal(url)}>
+        <RNText
+          key={i}
+          className={`${LINK_CLASS} ${pres.className}`}
+          style={pres.style}
+          onPress={() => openExternal(url)}
+        >
           {run.text}
         </RNText>
       );
     }
     if (run.marks?.length) {
+      const pres = markPresentation(run.marks, false);
       return (
-        <RNText key={i} className={markClasses(run.marks)}>
+        <RNText key={i} className={pres.className} style={pres.style}>
           {run.text}
         </RNText>
       );

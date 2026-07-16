@@ -4,6 +4,7 @@ import {
   Platform,
   Pressable,
   StyleSheet,
+  Text as RNText,
   TextInput,
   TextInputKeyPressEventData,
   TextStyle,
@@ -22,7 +23,7 @@ import {
 } from '../../lib/mentionText';
 import { detectPastedUrl, applyCustomTextLink, buildLinkRuns, isSafeHttpUrl, addLinkSpan } from '../../lib/linkText';
 import { toggleMark, isRangeMarked } from '../../lib/markText';
-import { markClasses } from '../../lib/markStyle';
+import { markPresentation } from '../../lib/markStyle';
 import { LinkSheet } from './LinkSheet';
 import { LinkUrlSheet } from './LinkUrlSheet';
 import {
@@ -182,13 +183,16 @@ export function MentionTextInput({
         <View style={{ position: 'relative', minHeight: 80 }}>
           <Text pointerEvents="none" className="text-body">
             {runs.map((run, i) => {
-              const linked = run.mention || run.link || run.autoUrl;
-              const base = linked ? 'text-accent underline' : 'text-primary';
-              const extra = markClasses(run.marks);
+              // Raw RNText (not the primitive Text) so `text-accent` isn't
+              // overridden by the primitive's default `text-primary` tone —
+              // that override is why mentions weren't orange in the preview.
+              const linked = !!(run.mention || run.link || run.autoUrl);
+              const pres = markPresentation(run.marks, linked);
+              const color = linked ? 'text-accent' : 'text-primary';
               return (
-                <Text key={i} className={extra ? `${base} ${extra}` : base}>
+                <RNText key={i} className={`${color} ${pres.className}`} style={pres.style}>
                   {run.text}
-                </Text>
+                </RNText>
               );
             })}
             {TRAILING_ANCHOR}
@@ -228,6 +232,7 @@ export function MentionTextInput({
         <View className="flex-row items-center gap-1 self-start rounded-md border border-subtle bg-surface-elevated p-1">
           {NEWS_MARK_TYPES.map((type) => {
             const activeMark = isRangeMarked(marks, type, selection.start, selection.end);
+            const pres = markPresentation([type], false);
             return (
               <Pressable
                 key={type}
@@ -238,7 +243,12 @@ export function MentionTextInput({
                 hitSlop={4}
                 className={`h-8 w-8 items-center justify-center rounded ${activeMark ? 'bg-surface' : ''}`}
               >
-                <Text className={`text-accent ${markClasses([type])}`}>{MARK_BUTTON_LABEL[type]}</Text>
+                {/* The label previews its own effect (struck S, italic I, …).
+                    Raw RNText so `text-accent` wins and the decoration style
+                    (underline/strikethrough) actually renders. */}
+                <RNText className={`text-accent ${pres.className}`} style={pres.style}>
+                  {MARK_BUTTON_LABEL[type]}
+                </RNText>
               </Pressable>
             );
           })}

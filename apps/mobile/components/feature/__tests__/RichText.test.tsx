@@ -60,6 +60,35 @@ describe('RichText external links', () => {
     expect(getByText('mundo')).toBeTruthy();
   });
 
+  it('applies strikethrough via a decoration style (not a class)', () => {
+    const { getByText } = render(
+      <RichText
+        text="hola mundo"
+        mentions={[]}
+        links={[]}
+        marks={[{ type: 'strikethrough', offset: 5, length: 5 }]}
+        municipalityId="m1"
+      />,
+    );
+    expect(getByText('mundo').props.style).toEqual({ textDecorationLine: 'line-through' });
+  });
+
+  it('composes underline + strikethrough on the same run', () => {
+    const { getByText } = render(
+      <RichText
+        text="mundo"
+        mentions={[]}
+        links={[]}
+        marks={[
+          { type: 'underline', offset: 0, length: 5 },
+          { type: 'strikethrough', offset: 0, length: 5 },
+        ]}
+        municipalityId="m1"
+      />,
+    );
+    expect(getByText('mundo').props.style).toEqual({ textDecorationLine: 'underline line-through' });
+  });
+
   it('does not make an unsafe-scheme span pressable', () => {
     const spy = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined as never);
     const { getByText } = render(
