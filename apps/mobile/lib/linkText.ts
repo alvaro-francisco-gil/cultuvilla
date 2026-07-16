@@ -1,6 +1,6 @@
-import type { NewsMention, NewsLink } from '@cultuvilla/shared/models/news/NewsPostDataModel';
+import type { NewsMention, NewsLink, NewsMark, NewsMarkType } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 import { adjustMentions, type Span } from './mentionText';
-import { normalizeBolds } from './boldText';
+import { normalizeMarks } from './markText';
 
 /** Trailing characters trimmed off an autodetected URL (sentence punctuation). */
 const TRAILING = new Set(['.', ',', ';', ':', '!', '?', '»', '"', "'", '’', '”']);
@@ -104,18 +104,20 @@ export interface LinkRun {
   mention?: NewsMention;
   link?: NewsLink;
   autoUrl?: string;
-  bold?: boolean;
+  /** Active formatting marks over this run (bold/italic/underline/strikethrough). */
+  marks?: NewsMarkType[];
 }
 
 /**
- * Subdivide contiguous runs at bold-span boundaries, tagging each resulting run
- * with `bold`. Bold is orthogonal to mentions/links (the same characters can be
- * both), so it is applied as a second pass over the already-built runs rather
- * than competing for the same span slot. `runs` must cover `text` contiguously
- * and in order (as {@link buildLinkRuns} produces them) so offsets line up.
+ * Subdivide contiguous runs at mark-span boundaries, tagging each resulting run
+ * with the mark types active over it. Marks are orthogonal to mentions/links
+ * (the same characters can be both) and to each other, so they are applied as a
+ * second pass over the already-built runs rather than competing for the same
+ * span slot. `runs` must cover `text` contiguously and in order (as
+ * {@link buildLinkRuns} produces them) so offsets line up.
  */
-function applyBold(runs: LinkRun[], bolds: Span[]): LinkRun[] {
-  const norm = normalizeBolds(bolds);
+function applyMarks(runs: LinkRun[], marks: NewsMark[]): LinkRun[] {
+  const norm = normalizeMarks(marks);
   if (norm.length === 0) return runs;
   const out: LinkRun[] = [];
   let offset = 0;
@@ -124,17 +126,20 @@ function applyBold(runs: LinkRun[], bolds: Span[]): LinkRun[] {
     const end = offset + run.text.length;
     offset = end;
     const cuts = new Set<number>([start, end]);
-    for (const b of norm) {
-      const bEnd = b.offset + b.length;
-      if (b.offset > start && b.offset < end) cuts.add(b.offset);
-      if (bEnd > start && bEnd < end) cuts.add(bEnd);
+    for (const m of norm) {
+      const mEnd = m.offset + m.length;
+      if (m.offset > start && m.offset < end) cuts.add(m.offset);
+      if (mEnd > start && mEnd < end) cuts.add(mEnd);
     }
     const points = [...cuts].sort((a, b) => a - b);
     for (let i = 0; i < points.length - 1; i++) {
       const from = points[i]!;
       const to = points[i + 1]!;
-      const bold = norm.some((b) => b.offset <= from && b.offset + b.length >= to);
-      out.push({ ...run, text: run.text.slice(from - start, to - start), bold });
+      const types = [
+        ...new Set(norm.filter((m) => m.offset <= from && m.offset + m.length >= to).map((m) => m.type)),
+      ];
+      const text = run.text.slice(from - start, to - start);
+      out.push(types.length ? { ...run, text, marks: types } : { ...run, text });
     }
   }
   return out;
@@ -142,17 +147,18 @@ function applyBold(runs: LinkRun[], bolds: Span[]): LinkRun[] {
 
 /**
  * Split `text` into ordered runs: mention spans, stored link spans, bare-URL
- * autolinks, and plain prose, each optionally tagged `bold`. Mentions and stored
- * links are laid down first (mentions win on overlap); autolinks fill only the
- * still-plain gaps, so a URL inside a stored span is never double-linked; bold is
- * applied as an orthogonal overlay on top. Out-of-range / overlapping /
- * non-positive spans are skipped so a malformed block still renders.
+ * autolinks, and plain prose, each optionally tagged with formatting `marks`.
+ * Mentions and stored links are laid down first (mentions win on overlap);
+ * autolinks fill only the still-plain gaps, so a URL inside a stored span is
+ * never double-linked; marks are applied as an orthogonal overlay on top.
+ * Out-of-range / overlapping / non-positive spans are skipped so a malformed
+ * block still renders.
  */
 export function buildLinkRuns(
   text: string,
   mentions: NewsMention[],
   links: NewsLink[],
-  bolds: Span[] = [],
+  marks: NewsMark[] = [],
 ): LinkRun[] {
   type Tagged = Span & { mention?: NewsMention; link?: NewsLink };
   const tagged: Tagged[] = [
@@ -182,5 +188,5 @@ export function buildLinkRuns(
     cursor = s.offset + s.length;
   }
   pushPlain(cursor, text.length);
-  return applyBold(runs, bolds);
+  return applyMarks(runs, marks);
 }

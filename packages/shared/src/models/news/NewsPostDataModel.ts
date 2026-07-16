@@ -71,16 +71,25 @@ export const NewsLinkSchema = z.object({
 export type NewsLink = z.infer<typeof NewsLinkSchema>;
 
 /**
- * A bold span within a text block. `offset`/`length` locate the emphasized
- * characters in the block's `text`. Bold is a pure style with no payload, and it
- * may overlap a mention or link span (the same characters can be both bold and a
- * link) — spans are normalized (sorted, merged, non-overlapping) at author time.
+ * Inline character styles a text run can carry. Pure presentation, no payload;
+ * a mark may overlap a mention or link span (the same characters can be bold and
+ * a link) and marks of different types may overlap each other.
  */
-export const NewsBoldSchema = z.object({
+export const NEWS_MARK_TYPES = ['bold', 'italic', 'underline', 'strikethrough'] as const;
+export const NewsMarkTypeSchema = z.enum([...NEWS_MARK_TYPES]);
+export type NewsMarkType = z.infer<typeof NewsMarkTypeSchema>;
+
+/**
+ * A formatting span within a text block. `offset`/`length` locate the styled
+ * characters in the block's `text`. Spans of the same `type` are normalized
+ * (sorted, merged, non-overlapping) at author time.
+ */
+export const NewsMarkSchema = z.object({
+  type: NewsMarkTypeSchema,
   offset: z.number(),
   length: z.number(),
 });
-export type NewsBold = z.infer<typeof NewsBoldSchema>;
+export type NewsMark = z.infer<typeof NewsMarkSchema>;
 
 export const NewsTextBlockSchema = z.object({
   type: z.literal('text'),
@@ -89,8 +98,8 @@ export const NewsTextBlockSchema = z.object({
   // `.default([])` keeps text blocks written before links existed parseable on
   // read (the converter runs schema.parse on every read).
   links: z.array(NewsLinkSchema).default([]),
-  // `.default([])` keeps text blocks written before bold existed parseable on read.
-  bolds: z.array(NewsBoldSchema).default([]),
+  // `.default([])` keeps text blocks written before formatting marks existed parseable on read.
+  marks: z.array(NewsMarkSchema).default([]),
 });
 export type NewsTextBlock = z.infer<typeof NewsTextBlockSchema>;
 
@@ -106,7 +115,7 @@ export const NewsImageBlockSchema = z.object({
   // on read (the converter runs schema.parse on every read).
   captionMentions: z.array(NewsMentionSchema).default([]),
   captionLinks: z.array(NewsLinkSchema).default([]),
-  captionBolds: z.array(NewsBoldSchema).default([]),
+  captionMarks: z.array(NewsMarkSchema).default([]),
 });
 export type NewsImageBlock = z.infer<typeof NewsImageBlockSchema>;
 

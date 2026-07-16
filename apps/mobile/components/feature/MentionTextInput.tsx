@@ -21,12 +21,29 @@ import {
   type MentionCandidate,
 } from '../../lib/mentionText';
 import { detectPastedUrl, applyCustomTextLink, buildLinkRuns, isSafeHttpUrl, addLinkSpan } from '../../lib/linkText';
-import { toggleBold, isRangeBold } from '../../lib/boldText';
+import { toggleMark, isRangeMarked } from '../../lib/markText';
+import { markClasses } from '../../lib/markStyle';
 import { LinkSheet } from './LinkSheet';
 import { LinkUrlSheet } from './LinkUrlSheet';
-import type { NewsMention, NewsLink, NewsBold, MentionEntityType } from '@cultuvilla/shared/models/news/NewsPostDataModel';
+import {
+  NEWS_MARK_TYPES,
+  type NewsMention,
+  type NewsLink,
+  type NewsMark,
+  type NewsMarkType,
+  type MentionEntityType,
+} from '@cultuvilla/shared/models/news/NewsPostDataModel';
 
 const ACCENT = colors.light.fg.accent;
+
+// The single letter shown on each formatting button, styled by its own mark so
+// the button previews the effect (bold B, italic I, underlined U, struck S).
+const MARK_BUTTON_LABEL: Record<NewsMarkType, string> = {
+  bold: 'B',
+  italic: 'I',
+  underline: 'U',
+  strikethrough: 'S',
+};
 
 // Appended to the styled overlay so its last line still has height when the
 // text ends in a newline — keeps the overlay aligned with the input layer.
@@ -46,8 +63,8 @@ interface MentionTextInputProps {
   value: string;
   mentions: NewsMention[];
   links: NewsLink[];
-  bolds: NewsBold[];
-  onChange: (text: string, mentions: NewsMention[], links: NewsLink[], bolds: NewsBold[]) => void;
+  marks: NewsMark[];
+  onChange: (text: string, mentions: NewsMention[], links: NewsLink[], marks: NewsMark[]) => void;
   candidates: MentionCandidate[];
   placeholder?: string;
   /** Fired when this field gains focus — lets the editor track the active block. */
@@ -67,7 +84,7 @@ export function MentionTextInput({
   value,
   mentions,
   links,
-  bolds,
+  marks,
   onChange,
   candidates,
   placeholder,
@@ -86,7 +103,7 @@ export function MentionTextInput({
   );
   // A non-empty range awaiting a URL (the toolbar's link button opens LinkUrlSheet).
   const [linkRange, setLinkRange] = useState<{ start: number; end: number } | null>(null);
-  const runs = useMemo(() => buildLinkRuns(value, mentions, links, bolds), [value, mentions, links, bolds]);
+  const runs = useMemo(() => buildLinkRuns(value, mentions, links, marks), [value, mentions, links, marks]);
 
   const hasSelection = selection.start !== selection.end;
   const active = !hasSelection ? activeMentionQuery(value, selection.start, mentions) : null;
@@ -103,8 +120,8 @@ export function MentionTextInput({
   function handleChangeText(next: string) {
     const nextMentions = adjustMentions(value, next, mentions);
     const nextLinks = adjustMentions(value, next, links);
-    const nextBolds = adjustMentions(value, next, bolds);
-    onChange(next, nextMentions, nextLinks, nextBolds);
+    const nextMarks = adjustMentions(value, next, marks);
+    onChange(next, nextMentions, nextLinks, nextMarks);
     const detected = detectPastedUrl(value, next);
     if (detected && isSafeHttpUrl(detected.url)) setPendingUrl(detected);
   }
@@ -119,22 +136,22 @@ export function MentionTextInput({
     // from also eating one character. Native has no equivalent — see the plan's
     // accepted-risks note.
     (e as unknown as { preventDefault?: () => void }).preventDefault?.();
-    onChange(res.text, res.mentions, adjustMentions(value, res.text, links), adjustMentions(value, res.text, bolds));
+    onChange(res.text, res.mentions, adjustMentions(value, res.text, links), adjustMentions(value, res.text, marks));
     moveCaret(res.cursor);
   }
 
   function pick(candidate: MentionCandidate) {
     if (!active) return;
     const res = insertMention(value, mentions, active, candidate);
-    onChange(res.text, res.mentions, adjustMentions(value, res.text, links), adjustMentions(value, res.text, bolds));
+    onChange(res.text, res.mentions, adjustMentions(value, res.text, links), adjustMentions(value, res.text, marks));
     moveCaret(res.cursor);
   }
 
   // Toolbar actions operate on the last known selection range. The value is
-  // unchanged (bold is a style; a link records a span over existing text), so
+  // unchanged (a mark is a style; a link records a span over existing text), so
   // even if pressing the button blurred the field, the offsets stay valid.
-  function applyBoldToSelection() {
-    onChange(value, mentions, links, toggleBold(bolds, selection.start, selection.end));
+  function applyMarkToSelection(type: NewsMarkType) {
+    onChange(value, mentions, links, toggleMark(marks, type, selection.start, selection.end));
   }
 
   function openLinkForSelection() {
@@ -167,8 +184,9 @@ export function MentionTextInput({
             {runs.map((run, i) => {
               const linked = run.mention || run.link || run.autoUrl;
               const base = linked ? 'text-accent underline' : 'text-primary';
+              const extra = markClasses(run.marks);
               return (
-                <Text key={i} className={run.bold ? `${base} font-bold` : base}>
+                <Text key={i} className={extra ? `${base} ${extra}` : base}>
                   {run.text}
                 </Text>
               );
@@ -208,18 +226,22 @@ export function MentionTextInput({
       </View>
       {hasSelection ? (
         <View className="flex-row items-center gap-1 self-start rounded-md border border-subtle bg-surface-elevated p-1">
-          <Pressable
-            onPress={applyBoldToSelection}
-            accessibilityRole="button"
-            accessibilityLabel={t('news.compose.format.bold')}
-            accessibilityState={{ selected: isRangeBold(bolds, selection.start, selection.end) }}
-            hitSlop={4}
-            className={`h-8 w-8 items-center justify-center rounded ${
-              isRangeBold(bolds, selection.start, selection.end) ? 'bg-surface' : ''
-            }`}
-          >
-            <Text className="text-accent font-bold">B</Text>
-          </Pressable>
+          {NEWS_MARK_TYPES.map((type) => {
+            const activeMark = isRangeMarked(marks, type, selection.start, selection.end);
+            return (
+              <Pressable
+                key={type}
+                onPress={() => applyMarkToSelection(type)}
+                accessibilityRole="button"
+                accessibilityLabel={t(`news.compose.format.${type}`)}
+                accessibilityState={{ selected: activeMark }}
+                hitSlop={4}
+                className={`h-8 w-8 items-center justify-center rounded ${activeMark ? 'bg-surface' : ''}`}
+              >
+                <Text className={`text-accent ${markClasses([type])}`}>{MARK_BUTTON_LABEL[type]}</Text>
+              </Pressable>
+            );
+          })}
           <Pressable
             onPress={openLinkForSelection}
             accessibilityRole="button"
@@ -258,8 +280,8 @@ export function MentionTextInput({
         onSave={(displayText) => {
           if (pendingUrl && displayText) {
             const res = applyCustomTextLink(value, mentions, links, pendingUrl, displayText);
-            // The display text replaces the pasted URL, so bold spans shift too.
-            onChange(res.text, res.mentions, res.links, adjustMentions(value, res.text, bolds));
+            // The display text replaces the pasted URL, so mark spans shift too.
+            onChange(res.text, res.mentions, res.links, adjustMentions(value, res.text, marks));
           }
           setPendingUrl(null);
         }}
@@ -269,7 +291,7 @@ export function MentionTextInput({
         onDismiss={() => setLinkRange(null)}
         onSave={(url) => {
           if (linkRange) {
-            onChange(value, mentions, addLinkSpan(links, linkRange.start, linkRange.end, url), bolds);
+            onChange(value, mentions, addLinkSpan(links, linkRange.start, linkRange.end, url), marks);
           }
           setLinkRange(null);
         }}

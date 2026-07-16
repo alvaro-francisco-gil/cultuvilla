@@ -42,7 +42,7 @@ function InlineImage({ block, municipalityId }: { block: NewsImageBlock; municip
           text={block.caption}
           mentions={block.captionMentions}
           links={block.captionLinks}
-          bolds={block.captionBolds}
+          marks={block.captionMarks}
           municipalityId={municipalityId}
           tone="muted"
           variant="caption"
@@ -80,7 +80,7 @@ export function NewsContentRenderer({ content, body, municipalityId }: NewsConte
             text={block.text}
             mentions={block.mentions}
             links={block.links}
-            bolds={block.bolds}
+            marks={block.marks}
             municipalityId={municipalityId}
           />
         ) : (

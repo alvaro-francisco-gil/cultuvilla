@@ -13,7 +13,7 @@ describe('MentionTextInput link paste', () => {
         value="ver "
         mentions={[]}
         links={[]}
-        bolds={[]}
+        marks={[]}
         candidates={noopCandidates}
         placeholder="Escribe…"
         onChange={onChange}
@@ -32,14 +32,19 @@ describe('MentionTextInput link paste', () => {
 });
 
 describe('MentionTextInput format toolbar', () => {
-  it('bolds the selected range when the B button is pressed', () => {
+  it.each([
+    ['bold', 'news.compose.format.bold'],
+    ['italic', 'news.compose.format.italic'],
+    ['underline', 'news.compose.format.underline'],
+    ['strikethrough', 'news.compose.format.strikethrough'],
+  ])('marks the selected range %s when its button is pressed', (type, label) => {
     const onChange = jest.fn();
     const { getByPlaceholderText, getByLabelText } = render(
       <MentionTextInput
         value="hola mundo"
         mentions={[]}
         links={[]}
-        bolds={[]}
+        marks={[]}
         candidates={noopCandidates}
         placeholder="Escribe…"
         onChange={onChange}
@@ -48,10 +53,10 @@ describe('MentionTextInput format toolbar', () => {
     fireEvent(getByPlaceholderText('Escribe…'), 'selectionChange', {
       nativeEvent: { selection: { start: 5, end: 10 } }, // "mundo"
     });
-    fireEvent.press(getByLabelText('news.compose.format.bold'));
+    fireEvent.press(getByLabelText(label));
 
-    const [, , , bolds] = onChange.mock.calls.at(-1)!;
-    expect(bolds).toEqual([{ offset: 5, length: 5 }]);
+    const [, , , marks] = onChange.mock.calls.at(-1)!;
+    expect(marks).toEqual([{ type, offset: 5, length: 5 }]);
   });
 
   it('records a link over the selection after entering a URL', () => {
@@ -61,7 +66,7 @@ describe('MentionTextInput format toolbar', () => {
         value="ver aquí"
         mentions={[]}
         links={[]}
-        bolds={[]}
+        marks={[]}
         candidates={noopCandidates}
         placeholder="Escribe…"
         onChange={onChange}

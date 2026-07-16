@@ -37,7 +37,7 @@ describe('RichText external links', () => {
         text="entradas aquí"
         mentions={[]}
         links={[{ url: 'https://tickets.example.com', offset: 9, length: 4 }]}
-        bolds={[{ offset: 9, length: 4 }]}
+        marks={[{ type: 'bold', offset: 9, length: 4 }]}
         municipalityId="m1"
       />,
     );
@@ -46,11 +46,17 @@ describe('RichText external links', () => {
     spy.mockRestore();
   });
 
-  it('renders bold-only prose as its own run', () => {
+  it('renders a formatted run as its own text node', () => {
     const { getByText } = render(
-      <RichText text="hola mundo" mentions={[]} links={[]} bolds={[{ offset: 5, length: 5 }]} municipalityId="m1" />,
+      <RichText
+        text="hola mundo"
+        mentions={[]}
+        links={[]}
+        marks={[{ type: 'italic', offset: 5, length: 5 }]}
+        municipalityId="m1"
+      />,
     );
-    // "mundo" is split into its own bold run, so it is a distinct text node.
+    // "mundo" is split into its own italic run, so it is a distinct text node.
     expect(getByText('mundo')).toBeTruthy();
   });
 

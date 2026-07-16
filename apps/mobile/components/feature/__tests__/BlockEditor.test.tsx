@@ -12,7 +12,7 @@ describe('BlockEditor', () => {
         text: 'antes',
         mentions: [],
         links: [{ url: 'https://a.com', offset: 0, length: 5 }],
-        bolds: [{ offset: 0, length: 5 }],
+        marks: [{ type: 'bold', offset: 0, length: 5 }],
       },
       {
         id: 'i1',
@@ -25,7 +25,7 @@ describe('BlockEditor', () => {
         caption: '',
         captionMentions: [],
         captionLinks: [],
-        captionBolds: [],
+        captionMarks: [],
       },
       {
         id: 't2',
@@ -33,7 +33,7 @@ describe('BlockEditor', () => {
         text: 'después',
         mentions: [],
         links: [{ url: 'https://b.com', offset: 0, length: 7 }],
-        bolds: [{ offset: 0, length: 7 }],
+        marks: [{ type: 'italic', offset: 0, length: 7 }],
       },
     ];
     const onChange = jest.fn();
@@ -45,9 +45,9 @@ describe('BlockEditor', () => {
       { url: 'https://a.com', offset: 0, length: 5 },
       { url: 'https://b.com', offset: 7, length: 7 }, // shifted by "antes\n\n"
     ]);
-    expect(merged.bolds).toEqual([
-      { offset: 0, length: 5 },
-      { offset: 7, length: 7 }, // shifted by "antes\n\n"
+    expect(merged.marks).toEqual([
+      { type: 'bold', offset: 0, length: 5 },
+      { type: 'italic', offset: 7, length: 7 }, // shifted by "antes\n\n"
     ]);
   });
 });

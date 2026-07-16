@@ -860,6 +860,9 @@
       },
       "format": {
         "bold": "Negrita",
+        "italic": "Cursiva",
+        "underline": "Subrayado",
+        "strikethrough": "Tachado",
         "link": "Enlace"
       }
     },
