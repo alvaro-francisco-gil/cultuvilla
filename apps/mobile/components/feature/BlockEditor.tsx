@@ -7,7 +7,7 @@ import { useT } from '../../lib/i18n';
 import { pickImageWithSize } from '../../lib/images';
 import { MentionTextInput } from './MentionTextInput';
 import { splitMentionsAtCaret, type MentionCandidate } from '../../lib/mentionText';
-import type { NewsMention, NewsLink, NewsBold } from '@cultuvilla/shared/models/news/NewsPostDataModel';
+import type { NewsMention, NewsLink, NewsMark } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 
 const ACCENT = colors.light.fg.accent;
 
@@ -23,7 +23,7 @@ export type EditorTextBlock = {
   text: string;
   mentions: NewsMention[];
   links: NewsLink[];
-  bolds: NewsBold[];
+  marks: NewsMark[];
 };
 export type EditorImageBlock = {
   id: string;
@@ -39,7 +39,7 @@ export type EditorImageBlock = {
   caption: string;
   captionMentions: NewsMention[];
   captionLinks: NewsLink[];
-  captionBolds: NewsBold[];
+  captionMarks: NewsMark[];
 };
 export type EditorBlock = EditorTextBlock | EditorImageBlock;
 
@@ -50,7 +50,7 @@ export function newBlockId(): string {
 }
 
 export function emptyTextBlock(): EditorTextBlock {
-  return { id: newBlockId(), type: 'text', text: '', mentions: [], links: [], bolds: [] };
+  return { id: newBlockId(), type: 'text', text: '', mentions: [], links: [], marks: [] };
 }
 
 interface BlockEditorProps {
@@ -93,7 +93,7 @@ export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) 
         text: prev.text + sep + next.text,
         mentions: [...prev.mentions, ...next.mentions.map((m) => ({ ...m, offset: m.offset + shift }))],
         links: [...prev.links, ...next.links.map((l) => ({ ...l, offset: l.offset + shift }))],
-        bolds: [...prev.bolds, ...next.bolds.map((b) => ({ ...b, offset: b.offset + shift }))],
+        marks: [...prev.marks, ...next.marks.map((b) => ({ ...b, offset: b.offset + shift }))],
       };
       onChange([...blocks.slice(0, i - 1), merged, ...blocks.slice(i + 2)]);
     } else {
@@ -115,7 +115,7 @@ export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) 
       caption: '',
       captionMentions: [],
       captionLinks: [],
-      captionBolds: [],
+      captionMarks: [],
     };
 
     const i = active.current.id ? blocks.findIndex((b) => b.id === active.current.id) : -1;
@@ -129,14 +129,14 @@ export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) 
     const caret = Math.min(Math.max(active.current.caret, 0), target.text.length);
     const { before, after } = splitMentionsAtCaret(target.mentions, caret);
     const { before: linksBefore, after: linksAfter } = splitMentionsAtCaret(target.links, caret);
-    const { before: boldsBefore, after: boldsAfter } = splitMentionsAtCaret(target.bolds, caret);
+    const { before: marksBefore, after: marksAfter } = splitMentionsAtCaret(target.marks, caret);
     const beforeBlock: EditorTextBlock = {
       id: target.id,
       type: 'text',
       text: target.text.slice(0, caret),
       mentions: before,
       links: linksBefore,
-      bolds: boldsBefore,
+      marks: marksBefore,
     };
     const afterBlock: EditorTextBlock = {
       id: newBlockId(),
@@ -144,7 +144,7 @@ export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) 
       text: target.text.slice(caret),
       mentions: after,
       links: linksAfter,
-      bolds: boldsAfter,
+      marks: marksAfter,
     };
     const middle: EditorBlock[] = [];
     if (beforeBlock.text.length > 0) middle.push(beforeBlock);
@@ -162,10 +162,10 @@ export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) 
             value={block.text}
             mentions={block.mentions}
             links={block.links}
-            bolds={block.bolds}
+            marks={block.marks}
             candidates={candidates}
             placeholder={t('news.compose.block.textPlaceholder')}
-            onChange={(text, mentions, links, bolds) => updateBlock(block.id, { text, mentions, links, bolds })}
+            onChange={(text, mentions, links, marks) => updateBlock(block.id, { text, mentions, links, marks })}
             onFocus={() => {
               active.current = { id: block.id, caret: block.text.length };
             }}
@@ -180,8 +180,8 @@ export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) 
             candidates={candidates}
             captionPlaceholder={t('news.compose.block.captionPlaceholder')}
             removeLabel={t('news.compose.block.removeImage')}
-            onCaption={(caption, captionMentions, captionLinks, captionBolds) =>
-              updateBlock(block.id, { caption, captionMentions, captionLinks, captionBolds })}
+            onCaption={(caption, captionMentions, captionLinks, captionMarks) =>
+              updateBlock(block.id, { caption, captionMentions, captionLinks, captionMarks })}
             onRemove={() => removeImage(block.id)}
           />
         ),
@@ -212,7 +212,7 @@ function ImageBlock({
     caption: string,
     captionMentions: NewsMention[],
     captionLinks: NewsLink[],
-    captionBolds: NewsBold[],
+    captionMarks: NewsMark[],
   ) => void;
   onRemove: () => void;
 }) {
@@ -244,7 +244,7 @@ function ImageBlock({
         value={block.caption}
         mentions={block.captionMentions}
         links={block.captionLinks}
-        bolds={block.captionBolds}
+        marks={block.captionMarks}
         candidates={candidates}
         placeholder={captionPlaceholder}
         onChange={onCaption}

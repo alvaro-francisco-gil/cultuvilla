@@ -87,29 +87,37 @@ describe('buildLinkRuns', () => {
     expect(runs).toEqual([{ text: 'https://x.com', link }]);
   });
 
-  it('splits a plain run at bold boundaries', () => {
-    const runs = buildLinkRuns('hola mundo', [], [], [{ offset: 5, length: 5 }]);
+  it('splits a plain run at mark boundaries', () => {
+    const runs = buildLinkRuns('hola mundo', [], [], [{ type: 'bold', offset: 5, length: 5 }]);
     expect(runs).toEqual([
-      { text: 'hola ', bold: false },
-      { text: 'mundo', bold: true },
+      { text: 'hola ' },
+      { text: 'mundo', marks: ['bold'] },
     ]);
   });
 
-  it('marks a link run bold when the bold span covers it', () => {
+  it('tags a link run with a mark when the span covers it', () => {
     const link = { url: 'https://x.com', offset: 3, length: 4 };
-    const runs = buildLinkRuns('ir aquí', [], [link], [{ offset: 3, length: 4 }]);
+    const runs = buildLinkRuns('ir aquí', [], [link], [{ type: 'italic', offset: 3, length: 4 }]);
     expect(runs).toEqual([
-      { text: 'ir ', bold: false },
-      { text: 'aquí', link, bold: true },
+      { text: 'ir ' },
+      { text: 'aquí', link, marks: ['italic'] },
     ]);
   });
 
-  it('subdivides a mention run when bold covers only part of it', () => {
+  it('subdivides a mention run when a mark covers only part of it', () => {
     const mention = { entityType: 'place' as const, entityId: 'p', label: 'Plaza Mayor', offset: 0, length: 11 };
-    const runs = buildLinkRuns('Plaza Mayor', [mention], [], [{ offset: 0, length: 5 }]);
+    const runs = buildLinkRuns('Plaza Mayor', [mention], [], [{ type: 'bold', offset: 0, length: 5 }]);
     expect(runs).toEqual([
-      { text: 'Plaza', mention, bold: true },
-      { text: ' Mayor', mention, bold: false },
+      { text: 'Plaza', mention, marks: ['bold'] },
+      { text: ' Mayor', mention },
     ]);
+  });
+
+  it('carries multiple overlapping mark types on one run', () => {
+    const runs = buildLinkRuns('hola', [], [], [
+      { type: 'bold', offset: 0, length: 4 },
+      { type: 'underline', offset: 0, length: 4 },
+    ]);
+    expect(runs).toEqual([{ text: 'hola', marks: ['bold', 'underline'] }]);
   });
 });
