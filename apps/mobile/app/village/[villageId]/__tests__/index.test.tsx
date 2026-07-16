@@ -5,8 +5,8 @@ import { render } from '@testing-library/react-native';
 // tab shell.
 jest.mock('../../../../lib/useVillageHome', () => ({
   useVillageHome: () => ({
-    loading: false,
-    loadError: null,
+    coreLoading: false,
+    coreError: null,
     village: {
       id: 'm1',
       name: 'Anaya',

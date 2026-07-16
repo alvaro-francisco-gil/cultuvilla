@@ -57,17 +57,17 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
   const [pendingJoin, setPendingJoin] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
 
-  const { loading, loadError, village } = data;
+  const { coreLoading, coreError, village } = data;
 
-  if (loading) {
+  if (coreLoading) {
     return (
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator />
       </View>
     );
   }
-  if (loadError) {
-    return <ErrorState error={loadError} onRetry={reload} />;
+  if (coreError) {
+    return <ErrorState error={coreError} onRetry={reload} />;
   }
   if (!village) {
     return (
@@ -117,6 +117,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
     festivalPosters,
     peopleCount,
     pendingOrganizerRequest,
+    sectionStatus,
   } = data;
   const canManage = isAppAdmin || villageAdmin;
   // Wiki phase: active but no organizer granted yet (community.organizerId null).
@@ -223,8 +224,14 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
                   ? () => router.push(`/village/${village.id}/members` as never)
                   : undefined,
               },
-              { label: t('village.hub.organizations'), value: visibleOrgs.length },
-              { label: t('village.admin.hub.places'), value: places.length },
+              {
+                label: t('village.hub.organizations'),
+                value: sectionStatus.organizations === 'ready' ? visibleOrgs.length : null,
+              },
+              {
+                label: t('village.admin.hub.places'),
+                value: sectionStatus.places === 'ready' ? places.length : null,
+              },
             ]}
           />
         </View>
@@ -328,6 +335,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         <Section
           title={t('village.events.label')}
           isEmpty={events.length === 0}
+          status={sectionStatus.events}
           data={events}
           keyExtractor={(e) => e.id}
           renderItem={({ item: e }) => (
@@ -345,6 +353,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         <Section
           title={t('village.newsFeed.title')}
           isEmpty={news.length === 0}
+          status={sectionStatus.news}
         >
           {news.map((n) => (
             <NewsEntityCard
@@ -359,6 +368,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         <Section
           title={t('village.festivalPosters.title')}
           isEmpty={festivalPosters.length === 0}
+          status={sectionStatus.festivalPosters}
         >
           {festivalPosters.map((p) => (
             <EntityCard
@@ -377,6 +387,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         <Section
           title={t('village.admin.hub.barrios')}
           isEmpty={barrios.length === 0}
+          status={sectionStatus.barrios}
         >
           {barrios.map((b) => (
             <EntityCard
@@ -397,6 +408,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         <Section
           title={t('village.admin.hub.places')}
           isEmpty={places.length === 0}
+          status={sectionStatus.places}
         >
           {places.map((p) => (
             <EntityCard
@@ -414,6 +426,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         <Section
           title={t('village.hub.organizations')}
           isEmpty={agrupaciones.length === 0}
+          status={sectionStatus.organizations}
         >
           {agrupaciones.map((o) => (
             <EntityCard
@@ -432,6 +445,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         <Section
           title={t('village.hub.penas')}
           isEmpty={penas.length === 0}
+          status={sectionStatus.organizations}
         >
           {penas.map((o) => (
             <EntityCard
