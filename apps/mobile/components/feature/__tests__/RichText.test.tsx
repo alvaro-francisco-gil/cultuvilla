@@ -30,6 +30,30 @@ describe('RichText external links', () => {
     spy.mockRestore();
   });
 
+  it('keeps a bold custom-text link tappable', () => {
+    const spy = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined as never);
+    const { getByText } = render(
+      <RichText
+        text="entradas aquí"
+        mentions={[]}
+        links={[{ url: 'https://tickets.example.com', offset: 9, length: 4 }]}
+        bolds={[{ offset: 9, length: 4 }]}
+        municipalityId="m1"
+      />,
+    );
+    fireEvent.press(getByText('aquí'));
+    expect(spy).toHaveBeenCalledWith('https://tickets.example.com');
+    spy.mockRestore();
+  });
+
+  it('renders bold-only prose as its own run', () => {
+    const { getByText } = render(
+      <RichText text="hola mundo" mentions={[]} links={[]} bolds={[{ offset: 5, length: 5 }]} municipalityId="m1" />,
+    );
+    // "mundo" is split into its own bold run, so it is a distinct text node.
+    expect(getByText('mundo')).toBeTruthy();
+  });
+
   it('does not make an unsafe-scheme span pressable', () => {
     const spy = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined as never);
     const { getByText } = render(

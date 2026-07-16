@@ -4,6 +4,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+- **Negrita y enlaces por selección en los artículos.** Al escribir una noticia, seleccionar texto muestra una pequeña barra con **B** (negrita) y **enlace**: pulsa **B** para poner/quitar negrita sobre la selección, o el icono de enlace para convertir el texto seleccionado en un enlace introduciendo su URL (se valida como `http/https`). La negrita puede coincidir con una mención o un enlace sobre el mismo texto. Convive con el flujo anterior de pegar una URL. El modelo de bloques gana un array `bolds` (y `captionBolds` en las imágenes); los artículos antiguos siguen leyéndose vía `.default([])` y se rellenan con `scripts/backfill-news-bolds.mjs`.
+
 ### Changed
 - The pueblo (village) tab now shows past events again: its events row loads both `published` and `completed` events and lists upcoming first, then past (most recent first). Previously finished events vanished once the hourly completion job flipped them to `completed`.
 - Each pueblo-tab scroll (events, news, festival posters, barrios, places, organizations) now loads independently with its own skeleton placeholder, and a single failed section hides itself instead of blanking the whole tab.

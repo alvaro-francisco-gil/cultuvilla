@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { isSafeHttpUrl, detectPastedUrl, applyCustomTextLink, buildLinkRuns } from '../linkText';
+import { isSafeHttpUrl, detectPastedUrl, applyCustomTextLink, buildLinkRuns, addLinkSpan } from '../linkText';
 import type { NewsMention } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 
 describe('isSafeHttpUrl', () => {
@@ -53,6 +53,20 @@ describe('applyCustomTextLink', () => {
   });
 });
 
+describe('addLinkSpan', () => {
+  it('records a link span over a selection without touching the text', () => {
+    const links = addLinkSpan([], 4, 8, 'https://x.com');
+    expect(links).toEqual([{ url: 'https://x.com', offset: 4, length: 4 }]);
+  });
+  it('keeps spans sorted by offset', () => {
+    const links = addLinkSpan([{ url: 'https://b.com', offset: 10, length: 2 }], 0, 3, 'https://a.com');
+    expect(links.map((l) => l.offset)).toEqual([0, 10]);
+  });
+  it('is a no-op for a collapsed range', () => {
+    expect(addLinkSpan([], 5, 5, 'https://x.com')).toEqual([]);
+  });
+});
+
 describe('buildLinkRuns', () => {
   it('autolinks a bare URL in plain text', () => {
     const runs = buildLinkRuns('ir a https://x.com hoy', [], []);
@@ -71,5 +85,31 @@ describe('buildLinkRuns', () => {
     const link = { url: 'https://real.com', offset: 0, length: 13 };
     const runs = buildLinkRuns('https://x.com', [], [link]);
     expect(runs).toEqual([{ text: 'https://x.com', link }]);
+  });
+
+  it('splits a plain run at bold boundaries', () => {
+    const runs = buildLinkRuns('hola mundo', [], [], [{ offset: 5, length: 5 }]);
+    expect(runs).toEqual([
+      { text: 'hola ', bold: false },
+      { text: 'mundo', bold: true },
+    ]);
+  });
+
+  it('marks a link run bold when the bold span covers it', () => {
+    const link = { url: 'https://x.com', offset: 3, length: 4 };
+    const runs = buildLinkRuns('ir aquí', [], [link], [{ offset: 3, length: 4 }]);
+    expect(runs).toEqual([
+      { text: 'ir ', bold: false },
+      { text: 'aquí', link, bold: true },
+    ]);
+  });
+
+  it('subdivides a mention run when bold covers only part of it', () => {
+    const mention = { entityType: 'place' as const, entityId: 'p', label: 'Plaza Mayor', offset: 0, length: 11 };
+    const runs = buildLinkRuns('Plaza Mayor', [mention], [], [{ offset: 0, length: 5 }]);
+    expect(runs).toEqual([
+      { text: 'Plaza', mention, bold: true },
+      { text: ' Mayor', mention, bold: false },
+    ]);
   });
 });

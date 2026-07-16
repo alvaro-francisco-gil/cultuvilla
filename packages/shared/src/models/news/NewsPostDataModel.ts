@@ -70,6 +70,18 @@ export const NewsLinkSchema = z.object({
 });
 export type NewsLink = z.infer<typeof NewsLinkSchema>;
 
+/**
+ * A bold span within a text block. `offset`/`length` locate the emphasized
+ * characters in the block's `text`. Bold is a pure style with no payload, and it
+ * may overlap a mention or link span (the same characters can be both bold and a
+ * link) — spans are normalized (sorted, merged, non-overlapping) at author time.
+ */
+export const NewsBoldSchema = z.object({
+  offset: z.number(),
+  length: z.number(),
+});
+export type NewsBold = z.infer<typeof NewsBoldSchema>;
+
 export const NewsTextBlockSchema = z.object({
   type: z.literal('text'),
   text: z.string(),
@@ -77,6 +89,8 @@ export const NewsTextBlockSchema = z.object({
   // `.default([])` keeps text blocks written before links existed parseable on
   // read (the converter runs schema.parse on every read).
   links: z.array(NewsLinkSchema).default([]),
+  // `.default([])` keeps text blocks written before bold existed parseable on read.
+  bolds: z.array(NewsBoldSchema).default([]),
 });
 export type NewsTextBlock = z.infer<typeof NewsTextBlockSchema>;
 
@@ -92,6 +106,7 @@ export const NewsImageBlockSchema = z.object({
   // on read (the converter runs schema.parse on every read).
   captionMentions: z.array(NewsMentionSchema).default([]),
   captionLinks: z.array(NewsLinkSchema).default([]),
+  captionBolds: z.array(NewsBoldSchema).default([]),
 });
 export type NewsImageBlock = z.infer<typeof NewsImageBlockSchema>;
 

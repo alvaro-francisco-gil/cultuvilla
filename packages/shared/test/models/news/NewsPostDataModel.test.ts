@@ -8,6 +8,7 @@ import {
   type NewsPostCategory,
 } from '../../../src/models/news/NewsPostDataModel';
 import { NewsTextBlockSchema, NewsLinkSchema } from '../../../src/models/news/NewsPostDataModel';
+import { NewsBoldSchema } from '../../../src/models/news/NewsPostDataModel';
 
 describe('MENTION_ENTITY_TYPES', () => {
   it('is the entity family plus village, and excludes persons', () => {
@@ -78,6 +79,33 @@ describe('NewsImageBlockSchema captionLinks', () => {
   it('defaults captionLinks to [] for a legacy image block', () => {
     const parsed = NewsImageBlockSchema.parse({ type: 'image', storagePath: 'p/1', width: 10, height: 5, caption: 'x' });
     expect(parsed.captionLinks).toEqual([]);
+  });
+});
+
+describe('NewsBoldSchema', () => {
+  it('accepts a bold span', () => {
+    const bold = { offset: 2, length: 4 };
+    expect(NewsBoldSchema.parse(bold)).toEqual(bold);
+  });
+});
+
+describe('NewsTextBlockSchema bolds', () => {
+  it('defaults bolds to [] for a legacy text block without the field', () => {
+    const parsed = NewsTextBlockSchema.parse({ type: 'text', text: 'hola', mentions: [] });
+    expect(parsed.bolds).toEqual([]);
+  });
+
+  it('keeps bold spans when present', () => {
+    const bold = { offset: 0, length: 4 };
+    const parsed = NewsTextBlockSchema.parse({ type: 'text', text: 'hola', mentions: [], bolds: [bold] });
+    expect(parsed.bolds).toEqual([bold]);
+  });
+});
+
+describe('NewsImageBlockSchema captionBolds', () => {
+  it('defaults captionBolds to [] for a legacy image block', () => {
+    const parsed = NewsImageBlockSchema.parse({ type: 'image', storagePath: 'p/1', width: 10, height: 5, caption: 'x' });
+    expect(parsed.captionBolds).toEqual([]);
   });
 });
 
