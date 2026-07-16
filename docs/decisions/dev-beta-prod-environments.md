@@ -59,9 +59,12 @@ Firebase projects are now driven by a three-tier branch model — `develop` → 
   the per-project `gha-deployer` SA is scoped to that env's branch. Chosen so the
   setup is permanent — no keys to rotate, and it survives an org later disabling
   SA-key creation.
-- **Prod is gated** by the `production` GitHub Environment (manual approval);
-  `main` forbids direct pushes (merge-from-`beta` only). Dev auto-deploys on every
-  `develop` merge, with a `[skip-deploy]` commit-message escape hatch.
+- **Prod auto-deploys on every `beta` → `main` merge**, no manual approval. The
+  `production` GitHub Environment now enforces only a branch policy (which branch
+  may deploy); `main` forbids direct pushes (merge-from-`beta` only). Dev auto-deploys
+  on every `develop` merge. All three envs honour the `[skip-deploy]` commit-message
+  escape hatch. (The reviewer requirement was removed 2026-07-16 — it added friction
+  without a second maintainer to approve.)
 - Per-env Firebase web config + the WIF provider/SA references live as GitHub
   **Environment variables** (`dev` / `beta` / `production`), consumed by the
   reusable workflow. Local deploys still use `scripts/firebase.sh`.

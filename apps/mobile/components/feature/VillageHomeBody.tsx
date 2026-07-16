@@ -137,10 +137,11 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
   // answer; "Rellenar censo" otherwise. A newly-added (still-unanswered)
   // question therefore flips the label back to "Rellenar".
   const censoFields = village.community?.profileForm?.fields ?? [];
+  const censoConfigured = censoFields.length > 0;
   const isAnswered = (v: unknown): boolean =>
     Array.isArray(v) ? v.length > 0 : v !== undefined && v !== null && v !== '';
   const censoFilled =
-    censoFields.length > 0 && censoFields.every((f) => isAnswered(data.myCensoAnswers[f.key]));
+    censoConfigured && censoFields.every((f) => isAnswered(data.myCensoAnswers[f.key]));
   const censoFillLabel = censoFilled ? t('village.censo.edit') : t('village.censo.fill');
 
   const openDirections = () => {
@@ -460,10 +461,10 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
           ))}
         </Section>
 
-        {/* ── Censo: only villagers of this village fill; admins also configure ─── */}
-        {isMember || canManage ? (
+        {/* ── Censo: only villagers of a configured village fill; admins also configure ─── */}
+        {(isMember && censoConfigured) || canManage ? (
           <HStack gap={3} className="px-4 pt-8">
-            {isMember ? (
+            {isMember && censoConfigured ? (
               <Pressable
                 onPress={() => router.push(`/village/${village.id}/censo?mode=fill` as never)}
                 accessibilityLabel={censoFillLabel}

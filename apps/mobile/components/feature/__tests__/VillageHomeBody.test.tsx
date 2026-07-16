@@ -224,9 +224,23 @@ describe('VillageHomeBody', () => {
     expect(router.push).toHaveBeenCalledWith('/village/m1/organizations?type=pena');
   });
 
-  it('shows the censo fill CTA to a villager of this village', () => {
-    const { getByText } = render(<VillageHomeBody data={base} reload={jest.fn()} />);
+  it('shows the censo fill CTA to a villager of a village with a configured censo', () => {
+    const censoVillage = {
+      ...village,
+      community: {
+        ...(village as unknown as { community: Record<string, unknown> }).community,
+        profileForm: { fields: [{ key: 'age', label: 'Edad', type: 'number' }] },
+      },
+    } as unknown as VillageHomeState['village'];
+    const { getByText } = render(
+      <VillageHomeBody data={{ ...base, village: censoVillage }} reload={jest.fn()} />,
+    );
     expect(getByText('Rellenar censo')).toBeTruthy();
+  });
+
+  it('hides the censo fill CTA when the village has no censo configured', () => {
+    const { queryByText } = render(<VillageHomeBody data={base} reload={jest.fn()} />);
+    expect(queryByText('Rellenar censo')).toBeNull();
   });
 
   it('hides the censo fill CTA from a non-member (registered but not a villager here)', () => {

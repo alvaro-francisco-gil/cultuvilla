@@ -4,6 +4,11 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.12.0 — 2026-07-16
+
+### Fixed
+- Shared links in production now use the brand domain `cultuvilla.es` instead of the `cultuvilla-prod.web.app` Firebase default. All share/invite/deep links (`/event`, `/news`, `/village`, `/o`, `…/join`) and the native App/Universal Link association now carry `cultuvilla.es`.
+
 ## v0.11.0 — 2026-07-16
 
 ### Added
