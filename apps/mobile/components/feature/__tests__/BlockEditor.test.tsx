@@ -6,7 +6,14 @@ jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: stri
 describe('BlockEditor', () => {
   it('merges links across a removed image, rebasing the trailing block offsets', () => {
     const blocks: EditorBlock[] = [
-      { id: 't1', type: 'text', text: 'antes', mentions: [], links: [{ url: 'https://a.com', offset: 0, length: 5 }] },
+      {
+        id: 't1',
+        type: 'text',
+        text: 'antes',
+        mentions: [],
+        links: [{ url: 'https://a.com', offset: 0, length: 5 }],
+        bolds: [{ offset: 0, length: 5 }],
+      },
       {
         id: 'i1',
         type: 'image',
@@ -18,8 +25,16 @@ describe('BlockEditor', () => {
         caption: '',
         captionMentions: [],
         captionLinks: [],
+        captionBolds: [],
       },
-      { id: 't2', type: 'text', text: 'después', mentions: [], links: [{ url: 'https://b.com', offset: 0, length: 7 }] },
+      {
+        id: 't2',
+        type: 'text',
+        text: 'después',
+        mentions: [],
+        links: [{ url: 'https://b.com', offset: 0, length: 7 }],
+        bolds: [{ offset: 0, length: 7 }],
+      },
     ];
     const onChange = jest.fn();
     const { getByLabelText } = render(<BlockEditor blocks={blocks} onChange={onChange} candidates={[]} />);
@@ -29,6 +44,10 @@ describe('BlockEditor', () => {
     expect(merged.links).toEqual([
       { url: 'https://a.com', offset: 0, length: 5 },
       { url: 'https://b.com', offset: 7, length: 7 }, // shifted by "antes\n\n"
+    ]);
+    expect(merged.bolds).toEqual([
+      { offset: 0, length: 5 },
+      { offset: 7, length: 7 }, // shifted by "antes\n\n"
     ]);
   });
 });

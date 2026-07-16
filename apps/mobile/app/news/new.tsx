@@ -210,7 +210,7 @@ export default function NewNewsScreen() {
         ? await Promise.all(
             post.content.map(async (b): Promise<EditorBlock> => {
               if (b.type === 'text') {
-                return { id: newBlockId(), type: 'text', text: b.text, mentions: b.mentions, links: b.links };
+                return { id: newBlockId(), type: 'text', text: b.text, mentions: b.mentions, links: b.links, bolds: b.bolds };
               }
               const uri = await newsImageDownloadURL(b.storagePath);
               return {
@@ -224,10 +224,11 @@ export default function NewNewsScreen() {
                 caption: b.caption ?? '',
                 captionMentions: b.captionMentions,
                 captionLinks: b.captionLinks,
+                captionBolds: b.captionBolds,
               };
             }),
           )
-        : [{ id: newBlockId(), type: 'text', text: post.body, mentions: [], links: [] }];
+        : [{ id: newBlockId(), type: 'text', text: post.body, mentions: [], links: [], bolds: [] }];
 
       if (!cancelled) {
         setBlocks(editorBlocks.length ? editorBlocks : [emptyTextBlock()]);
@@ -280,7 +281,7 @@ export default function NewNewsScreen() {
       for (const [i, block] of blocks.entries()) {
         if (block.type === 'text') {
           if (block.text.trim().length === 0) continue;
-          content.push({ type: 'text', text: block.text, mentions: block.mentions, links: block.links });
+          content.push({ type: 'text', text: block.text, mentions: block.mentions, links: block.links, bolds: block.bolds });
           continue;
         }
         let storagePath = block.storagePath;
@@ -300,6 +301,7 @@ export default function NewNewsScreen() {
             caption: block.caption.trim() || null,
             captionMentions: block.captionMentions,
             captionLinks: block.captionLinks,
+            captionBolds: block.captionBolds,
           });
         }
       }

@@ -20,9 +20,11 @@ import {
   insertMention,
   type MentionCandidate,
 } from '../../lib/mentionText';
-import { detectPastedUrl, applyCustomTextLink, buildLinkRuns, isSafeHttpUrl } from '../../lib/linkText';
+import { detectPastedUrl, applyCustomTextLink, buildLinkRuns, isSafeHttpUrl, addLinkSpan } from '../../lib/linkText';
+import { toggleBold, isRangeBold } from '../../lib/boldText';
 import { LinkSheet } from './LinkSheet';
-import type { NewsMention, NewsLink, MentionEntityType } from '@cultuvilla/shared/models/news/NewsPostDataModel';
+import { LinkUrlSheet } from './LinkUrlSheet';
+import type { NewsMention, NewsLink, NewsBold, MentionEntityType } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 
 const ACCENT = colors.light.fg.accent;
 
@@ -44,7 +46,8 @@ interface MentionTextInputProps {
   value: string;
   mentions: NewsMention[];
   links: NewsLink[];
-  onChange: (text: string, mentions: NewsMention[], links: NewsLink[]) => void;
+  bolds: NewsBold[];
+  onChange: (text: string, mentions: NewsMention[], links: NewsLink[], bolds: NewsBold[]) => void;
   candidates: MentionCandidate[];
   placeholder?: string;
   /** Fired when this field gains focus — lets the editor track the active block. */
@@ -64,6 +67,7 @@ export function MentionTextInput({
   value,
   mentions,
   links,
+  bolds,
   onChange,
   candidates,
   placeholder,
@@ -80,12 +84,12 @@ export function MentionTextInput({
   const [pendingUrl, setPendingUrl] = useState<{ url: string; offset: number; length: number } | null>(
     null,
   );
-  const runs = useMemo(() => buildLinkRuns(value, mentions, links), [value, mentions, links]);
+  // A non-empty range awaiting a URL (the toolbar's link button opens LinkUrlSheet).
+  const [linkRange, setLinkRange] = useState<{ start: number; end: number } | null>(null);
+  const runs = useMemo(() => buildLinkRuns(value, mentions, links, bolds), [value, mentions, links, bolds]);
 
-  const active =
-    selection.start === selection.end
-      ? activeMentionQuery(value, selection.start, mentions)
-      : null;
+  const hasSelection = selection.start !== selection.end;
+  const active = !hasSelection ? activeMentionQuery(value, selection.start, mentions) : null;
 
   const suggestions = useMemo(() => {
     if (!active) return [];
@@ -99,7 +103,8 @@ export function MentionTextInput({
   function handleChangeText(next: string) {
     const nextMentions = adjustMentions(value, next, mentions);
     const nextLinks = adjustMentions(value, next, links);
-    onChange(next, nextMentions, nextLinks);
+    const nextBolds = adjustMentions(value, next, bolds);
+    onChange(next, nextMentions, nextLinks, nextBolds);
     const detected = detectPastedUrl(value, next);
     if (detected && isSafeHttpUrl(detected.url)) setPendingUrl(detected);
   }
@@ -114,15 +119,26 @@ export function MentionTextInput({
     // from also eating one character. Native has no equivalent — see the plan's
     // accepted-risks note.
     (e as unknown as { preventDefault?: () => void }).preventDefault?.();
-    onChange(res.text, res.mentions, adjustMentions(value, res.text, links));
+    onChange(res.text, res.mentions, adjustMentions(value, res.text, links), adjustMentions(value, res.text, bolds));
     moveCaret(res.cursor);
   }
 
   function pick(candidate: MentionCandidate) {
     if (!active) return;
     const res = insertMention(value, mentions, active, candidate);
-    onChange(res.text, res.mentions, adjustMentions(value, res.text, links));
+    onChange(res.text, res.mentions, adjustMentions(value, res.text, links), adjustMentions(value, res.text, bolds));
     moveCaret(res.cursor);
+  }
+
+  // Toolbar actions operate on the last known selection range. The value is
+  // unchanged (bold is a style; a link records a span over existing text), so
+  // even if pressing the button blurred the field, the offsets stay valid.
+  function applyBoldToSelection() {
+    onChange(value, mentions, links, toggleBold(bolds, selection.start, selection.end));
+  }
+
+  function openLinkForSelection() {
+    setLinkRange({ start: selection.start, end: selection.end });
   }
 
   // A programmatic edit (mention insert / atomic delete) moves the caret without
@@ -148,17 +164,15 @@ export function MentionTextInput({
             when the text ends in a newline, so the two layers stay aligned. */}
         <View style={{ position: 'relative', minHeight: 80 }}>
           <Text pointerEvents="none" className="text-body">
-            {runs.map((run, i) =>
-              run.mention || run.link || run.autoUrl ? (
-                <Text key={i} className="text-accent underline">
+            {runs.map((run, i) => {
+              const linked = run.mention || run.link || run.autoUrl;
+              const base = linked ? 'text-accent underline' : 'text-primary';
+              return (
+                <Text key={i} className={run.bold ? `${base} font-bold` : base}>
                   {run.text}
                 </Text>
-              ) : (
-                <Text key={i} className="text-primary">
-                  {run.text}
-                </Text>
-              ),
-            )}
+              );
+            })}
             {TRAILING_ANCHOR}
           </Text>
           <TextInput
@@ -192,6 +206,31 @@ export function MentionTextInput({
           />
         </View>
       </View>
+      {hasSelection ? (
+        <View className="flex-row items-center gap-1 self-start rounded-md border border-subtle bg-surface-elevated p-1">
+          <Pressable
+            onPress={applyBoldToSelection}
+            accessibilityRole="button"
+            accessibilityLabel={t('news.compose.format.bold')}
+            accessibilityState={{ selected: isRangeBold(bolds, selection.start, selection.end) }}
+            hitSlop={4}
+            className={`h-8 w-8 items-center justify-center rounded ${
+              isRangeBold(bolds, selection.start, selection.end) ? 'bg-surface' : ''
+            }`}
+          >
+            <Text className="text-accent font-bold">B</Text>
+          </Pressable>
+          <Pressable
+            onPress={openLinkForSelection}
+            accessibilityRole="button"
+            accessibilityLabel={t('news.compose.format.link')}
+            hitSlop={4}
+            className="h-8 w-8 items-center justify-center rounded"
+          >
+            <Ionicons name="link" size={18} color={ACCENT} />
+          </Pressable>
+        </View>
+      ) : null}
       {active && suggestions.length > 0 ? (
         <VStack gap={1} className="rounded-md border border-subtle bg-surface-elevated p-1">
           {suggestions.map((c) => (
@@ -219,9 +258,20 @@ export function MentionTextInput({
         onSave={(displayText) => {
           if (pendingUrl && displayText) {
             const res = applyCustomTextLink(value, mentions, links, pendingUrl, displayText);
-            onChange(res.text, res.mentions, res.links);
+            // The display text replaces the pasted URL, so bold spans shift too.
+            onChange(res.text, res.mentions, res.links, adjustMentions(value, res.text, bolds));
           }
           setPendingUrl(null);
+        }}
+      />
+      <LinkUrlSheet
+        displayText={linkRange ? value.slice(linkRange.start, linkRange.end) : null}
+        onDismiss={() => setLinkRange(null)}
+        onSave={(url) => {
+          if (linkRange) {
+            onChange(value, mentions, addLinkSpan(links, linkRange.start, linkRange.end, url), bolds);
+          }
+          setLinkRange(null);
         }}
       />
     </VStack>

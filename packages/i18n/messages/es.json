@@ -857,10 +857,15 @@
         "village": "Pueblo",
         "news": "Artículo",
         "festivalPoster": "Cartel"
+      },
+      "format": {
+        "bold": "Negrita",
+        "link": "Enlace"
       }
     },
     "linkSheet": {
       "textPlaceholder": "Texto a mostrar (opcional)",
+      "urlPlaceholder": "https://…",
       "save": "Guardar",
       "skip": "Omitir"
     },

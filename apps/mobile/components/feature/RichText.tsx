@@ -5,13 +5,15 @@ import { Text } from '../primitives';
 import type { TextProps } from '../primitives/Text';
 import { mentionHref } from '../../lib/newsMentions';
 import { buildLinkRuns, isSafeHttpUrl } from '../../lib/linkText';
-import type { NewsMention, NewsLink } from '@cultuvilla/shared/models/news/NewsPostDataModel';
+import type { NewsMention, NewsLink, NewsBold } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 
 interface RichTextProps extends Omit<TextProps, 'children'> {
   text: string;
   mentions: NewsMention[];
   /** Stored custom-text external links indexing into `text`. */
   links?: NewsLink[];
+  /** Stored bold spans indexing into `text`. */
+  bolds?: NewsBold[];
   municipalityId: string;
 }
 
@@ -22,13 +24,14 @@ function openExternal(url: string) {
 }
 
 /**
- * Render a text block with its inline `@`-mentions (in-app navigation) and
+ * Render a text block with its inline `@`-mentions (in-app navigation),
  * external links — both stored custom-text links and bare URLs autolinked at
- * render — styled and tappable. Unsafe-scheme URLs render as plain text.
+ * render — and bold spans, styled and tappable. Unsafe-scheme URLs render as
+ * plain text.
  */
-export function RichText({ text, mentions, links = [], municipalityId, ...textProps }: RichTextProps) {
-  const runs = buildLinkRuns(text, mentions, links);
-  if (runs.length === 1 && !runs[0]!.mention && !runs[0]!.link && !runs[0]!.autoUrl) {
+export function RichText({ text, mentions, links = [], bolds = [], municipalityId, ...textProps }: RichTextProps) {
+  const runs = buildLinkRuns(text, mentions, links, bolds);
+  if (runs.length === 1 && !runs[0]!.mention && !runs[0]!.link && !runs[0]!.autoUrl && !runs[0]!.bold) {
     return <Text {...textProps}>{text}</Text>;
   }
 
@@ -38,7 +41,7 @@ export function RichText({ text, mentions, links = [], municipalityId, ...textPr
       return (
         <RNText
           key={i}
-          className={LINK_CLASS}
+          className={run.bold ? `${LINK_CLASS} font-bold` : LINK_CLASS}
           onPress={href ? () => router.push(href as never) : undefined}
         >
           {run.text}
@@ -48,7 +51,18 @@ export function RichText({ text, mentions, links = [], municipalityId, ...textPr
     const url = run.link?.url ?? run.autoUrl;
     if (url && isSafeHttpUrl(url)) {
       return (
-        <RNText key={i} className={LINK_CLASS} onPress={() => openExternal(url)}>
+        <RNText
+          key={i}
+          className={run.bold ? `${LINK_CLASS} font-bold` : LINK_CLASS}
+          onPress={() => openExternal(url)}
+        >
+          {run.text}
+        </RNText>
+      );
+    }
+    if (run.bold) {
+      return (
+        <RNText key={i} className="font-bold">
           {run.text}
         </RNText>
       );
