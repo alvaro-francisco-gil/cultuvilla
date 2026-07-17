@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { iconSizes, spacing } from '@cultuvilla/shared/design-system';
 import { VStack, HStack, Text, Pressable, TopCropImage } from '../primitives';
 import { useT } from '../../lib/i18n';
+import { SectionTitle } from './SectionTitle';
 
 /**
  * Presentational building blocks for the village overview on the shared
@@ -106,10 +107,7 @@ export function Section<T>({
   return (
     <VStack gap={3} className="pt-4">
       <HStack className="items-center justify-between px-4">
-        {/* Based on the profile section header (h3, bold), bumped +2px for the village overview. */}
-        <Text variant="h3" className="font-bold" style={{ fontSize: 22, lineHeight: 30, marginTop: 1 }}>
-          {title}
-        </Text>
+        <SectionTitle>{title}</SectionTitle>
         {onManage ? (
           <Pressable onPress={onManage} accessibilityLabel={t('village.admin.overview.manage')}>
             <Text variant="bodySm" style={{ color: ACCENT }} className="font-medium">
