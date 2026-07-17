@@ -115,6 +115,7 @@ export async function requestOrganization(input: OrganizationDataInput): Promise
     reviewedAt: null,
     commentCount: 0,
     readCount: 0,
+    memberCount: 0,
     membersPublic: input.membersPublic ?? true,
   };
   await setDoc(newRef, data);

@@ -110,8 +110,6 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
     barrios,
     places,
     organizations,
-    orgMemberCounts,
-    barrioResidentCounts,
     events,
     news,
     festivalPosters,
@@ -395,7 +393,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               key={b.id}
               label={b.name}
               sub={t('village.admin.barrios.residentCount', {
-                count: barrioResidentCounts[b.id] ?? 0,
+                count: b.residentCount,
               })}
               icon="map-outline"
               imageUri={b.imageURL}
@@ -433,7 +431,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
             <EntityCard
               key={o.id}
               label={o.name}
-              sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
+              sub={t('village.hub.memberCount', { count: o.memberCount })}
               icon="business-outline"
               imageUri={o.imageURL}
               commentCount={o.commentCount}
@@ -452,7 +450,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
             <EntityCard
               key={o.id}
               label={o.name}
-              sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
+              sub={t('village.hub.memberCount', { count: o.memberCount })}
               icon="people-circle-outline"
               imageUri={o.imageURL}
               commentCount={o.commentCount}

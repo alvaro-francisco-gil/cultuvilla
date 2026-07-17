@@ -19,7 +19,6 @@ jest.mock('../../../../lib/useVillageHome', () => ({
     barrios: [],
     places: [],
     organizations: [],
-    orgMemberCounts: {},
     events: [],
     peopleCount: 1,
     pendingOrganizerRequest: false,

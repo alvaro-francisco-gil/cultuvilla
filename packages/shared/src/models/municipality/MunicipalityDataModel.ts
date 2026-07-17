@@ -163,6 +163,11 @@ export const BarrioDataSchema = z.object({
   // at create.
   commentCount: z.number().int(),
   readCount: z.number().int(),
+  // Denormalized resident count — kept in sync by
+  // functions/src/village/syncBarrioResidentCount.ts as persons gain/lose/switch
+  // this barrio in their `municipalityLinks`. Lets the village hub order barrios
+  // by population without an N+1 count-aggregate fan-out. Initialized to 0.
+  residentCount: z.number().int(),
   ...visibilityFields,
 });
 export type BarrioData = z.infer<typeof BarrioDataSchema>;
@@ -183,6 +188,7 @@ export function buildBarrioData(input: BarrioDataInput): BarrioData {
     proposedBy: input.proposedBy ?? null,
     commentCount: 0,
     readCount: 0,
+    residentCount: 0,
     ...defaultVisibility(),
   };
 }

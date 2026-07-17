@@ -36,6 +36,12 @@ export const OrganizationDataSchema = z.object({
   // at create.
   commentCount: z.number().int(),
   readCount: z.number().int(),
+  // Denormalized member count — kept in sync by
+  // functions/src/organizations/syncOrgMemberCount.ts as members join/leave.
+  // Lets the village hub order peñas/agrupaciones by size without an N+1
+  // count-aggregate fan-out. Initialized to 0 at create (the founder is seeded
+  // by approveOrganization, which fires the trigger).
+  memberCount: z.number().int(),
   // When false, the member roster is shown only to joined members (admins
   // included); when true, it is shown to everyone. Display preference, not a
   // security boundary — member identities are world-readable. Default true.
@@ -76,6 +82,7 @@ export function buildOrganizationData(input: OrganizationDataInput): Organizatio
     reviewedAt: input.reviewedAt ?? null,
     commentCount: 0,
     readCount: 0,
+    memberCount: 0,
     membersPublic: input.membersPublic ?? true,
   };
 }

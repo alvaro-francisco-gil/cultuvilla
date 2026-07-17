@@ -18,6 +18,7 @@ export { respondToOrganizerRequest } from './village/respondToOrganizerRequest';
 export { changeVillageMemberRole } from './village/changeVillageMemberRole';
 export { syncVillageDenormalization } from './village/syncVillageDenormalization';
 export { syncMemberBarrioToResidence } from './village/syncMemberBarrioToResidence';
+export { syncBarrioResidentCount } from './village/syncBarrioResidentCount';
 
 // Organizations (ayuntamiento singleton enforcement)
 export { requestAyuntamiento } from './organizations/requestAyuntamiento';
@@ -25,6 +26,7 @@ export { requestJoinOrganization } from './organizations/requestJoinOrganization
 export { respondToJoinRequest } from './organizations/respondToJoinRequest';
 export { approveOrganization } from './organizations/approveOrganization';
 export { changeOrgMemberRole } from './organizations/changeOrgMemberRole';
+export { syncOrgMemberCount } from './organizations/syncOrgMemberCount';
 export { onOrganizationUpdated } from './organizations/notificationTriggers';
 
 // Census (censo)

@@ -160,9 +160,10 @@ describe('buildVillageCommunity', () => {
 });
 
 describe('BarrioDataSchema and buildBarrioData', () => {
-  it('builds, defaults imageURL to null, and round-trips', () => {
+  it('builds, defaults imageURL to null and residentCount to 0, and round-trips', () => {
     const b = buildBarrioData({ name: 'El Castillo', municipalityId: 'm1' });
     expect(b.imageURL).toBeNull();
+    expect(b.residentCount).toBe(0);
     expect(() => BarrioDataSchema.parse(b)).not.toThrow();
   });
 

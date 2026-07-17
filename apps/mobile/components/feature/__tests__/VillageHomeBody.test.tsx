@@ -77,8 +77,6 @@ const base: VillageHomeState = {
   barrios: [],
   places: [],
   organizations: [],
-  orgMemberCounts: {},
-  barrioResidentCounts: {},
   events: [],
   news: [],
   festivalPosters: [],

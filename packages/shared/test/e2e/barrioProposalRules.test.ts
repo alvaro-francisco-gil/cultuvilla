@@ -10,7 +10,7 @@ function barrioDoc(proposedBy: string | null, extra: Record<string, unknown> = {
   return {
     name: 'Norte', municipalityId: M, imageURL: null, createdAt: new Date(),
     status: 'active', proposedBy, hiddenBy: null, hiddenAt: null, hiddenReason: null,
-    commentCount: 0, readCount: 0,
+    commentCount: 0, readCount: 0, residentCount: 0,
     ...extra,
   };
 }
@@ -131,6 +131,16 @@ describe('firestore.rules — /municipalities/{m}/barrios', () => {
     );
   });
 
+  it('rejects a create with a nonzero residentCount', async () => {
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, `municipalities/${M}/barrios/b1`), {
+        ...barrioDoc('alice'), residentCount: 4,
+      }),
+    );
+  });
+
   it('village admin cannot mutate counts on update, but a normal edit still succeeds', async () => {
     await seedMember('boss', 'admin');
     await seedBarrio('b1', 'alice');
@@ -138,6 +148,9 @@ describe('firestore.rules — /municipalities/{m}/barrios', () => {
     await assertFails(updateDoc(doc(boss, `municipalities/${M}/barrios/b1`), { commentCount: 99 }));
     await assertFails(
       updateDoc(doc(boss, `municipalities/${M}/barrios/b1`), { readCount: 9 }),
+    );
+    await assertFails(
+      updateDoc(doc(boss, `municipalities/${M}/barrios/b1`), { residentCount: 7 }),
     );
     await assertSucceeds(
       updateDoc(doc(boss, `municipalities/${M}/barrios/b1`), { name: 'Norte Alto' }),

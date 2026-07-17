@@ -38,7 +38,7 @@ const SHAPE_CONTRACTS: ShapeContract[] = [
     ruleKeys: [
       'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
       'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
-      'commentCount', 'readCount', 'membersPublic',
+      'commentCount', 'readCount', 'memberCount', 'membersPublic',
     ],
   },
   {
@@ -66,7 +66,7 @@ const SHAPE_CONTRACTS: ShapeContract[] = [
     ruleKeys: [
       'name', 'municipalityId', 'imageURL', 'createdAt', 'status', 'proposedBy',
       'hiddenBy', 'hiddenAt', 'hiddenReason',
-      'commentCount', 'readCount',
+      'commentCount', 'readCount', 'residentCount',
     ],
   },
 ];

@@ -225,12 +225,12 @@ service cloud.firestore {
       return d.keys().hasOnly([
               'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
               'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
-              'commentCount', 'readCount', 'membersPublic',
+              'commentCount', 'readCount', 'memberCount', 'membersPublic',
             ])
           && d.keys().hasAll([
               'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
               'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
-              'commentCount', 'readCount', 'membersPublic',
+              'commentCount', 'readCount', 'memberCount', 'membersPublic',
             ])
           && isString(d.name)
           && isStringOrNull(d.description)
@@ -244,6 +244,7 @@ service cloud.firestore {
           && isTimestampOrNull(d.reviewedAt)
           && d.commentCount == 0
           && d.readCount == 0
+          && d.memberCount == 0
           && d.membersPublic is bool;
     }
 
@@ -316,12 +317,12 @@ service cloud.firestore {
       return d.keys().hasOnly([
               'name', 'municipalityId', 'imageURL', 'createdAt',
               'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
-              'commentCount', 'readCount',
+              'commentCount', 'readCount', 'residentCount',
             ])
           && d.keys().hasAll([
               'name', 'municipalityId', 'imageURL', 'createdAt',
               'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
-              'commentCount', 'readCount',
+              'commentCount', 'readCount', 'residentCount',
             ])
           && isString(d.name)
           && isString(d.municipalityId)
@@ -333,7 +334,8 @@ service cloud.firestore {
           && d.hiddenAt == null
           && d.hiddenReason == null
           && d.commentCount == 0
-          && d.readCount == 0;
+          && d.readCount == 0
+          && d.residentCount == 0;
     }
 
     function isValidEventCreate(d) {
@@ -515,7 +517,7 @@ service cloud.firestore {
         allow update: if (isVillageAdmin(municipalityId) || isAppAdmin() || isOwner(resource.data.proposedBy))
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
                'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
-               'commentCount', 'readCount',
+               'commentCount', 'readCount', 'residentCount',
              ]);
         allow delete: if isVillageAdmin(municipalityId) || isAppAdmin()
           || (isOwner(resource.data.proposedBy) && resource.data.status == 'active');
@@ -637,7 +639,7 @@ service cloud.firestore {
       allow update: if (isVillageAdmin(resource.data.municipalityId) || isAppAdmin())
         && (request.resource.data.status == resource.data.status
             || request.resource.data.status == 'rejected')
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['commentCount', 'readCount']);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['commentCount', 'readCount', 'memberCount']);
       allow delete: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
 
       match /members/{userId} {

@@ -18,6 +18,7 @@ const validOrg = {
   reviewedAt: null,
   commentCount: 0,
   readCount: 0,
+  memberCount: 0,
   membersPublic: true,
 };
 
@@ -59,6 +60,7 @@ describe('buildOrganizationData', () => {
     expect(o.createdAt).toBeInstanceOf(Date);
     expect(o.readCount).toBe(0);
     expect(o.commentCount).toBe(0);
+    expect(o.memberCount).toBe(0);
     expect('reactionCounts' in o).toBe(false);
     expect(() => OrganizationDataSchema.parse(o)).not.toThrow();
   });
