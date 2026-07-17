@@ -90,7 +90,20 @@ jest.mock('../../../lib/appVersion', () => ({
 }));
 jest.mock('../../../components/layout/AppHeader', () => ({ AppHeader: () => null }));
 jest.mock('../../../components/feature/profile/ProfileStatsRow', () => ({
-  ProfileStatsRow: () => null,
+  ProfileStatsRow: ({
+    stats,
+  }: {
+    stats: { label: string; value: number | null }[];
+  }) => {
+    const { Text, View } = require('react-native');
+    return (
+      <View>
+        {stats.map((stat) => (
+          <Text key={stat.label}>{`${stat.label}:${stat.value ?? '-'}`}</Text>
+        ))}
+      </View>
+    );
+  },
 }));
 jest.mock('../../../components/feature/profile/PersonaScroll', () => ({
   PersonaScroll: () => null,
@@ -204,6 +217,19 @@ describe('ProfileScreen — Grupos & Peñas', () => {
     await waitFor(() => {
       expect(getByText('profile.gruposSection.title')).toBeTruthy();
       expect(getByText('profile.peñasSection.title')).toBeTruthy();
+    });
+  });
+
+  it('counts a peña membership in the Grupos profile stat', async () => {
+    seedActiveMunicipalityWith(
+      [{ id: 'org-pena', name: 'Peña El Bote', type: 'peña', imageURL: null }],
+      [{ orgId: 'org-pena', role: 'member' }],
+    );
+
+    const { getByText } = render(<ProfileScreen />);
+
+    await waitFor(() => {
+      expect(getByText('profile.stats.grupos:1')).toBeTruthy();
     });
   });
 
