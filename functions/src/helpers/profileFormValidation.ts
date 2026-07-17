@@ -25,7 +25,7 @@ export interface CustomField {
   label: string;
   type: FieldType;
   options?: string[];
-  optionsSource?: 'barrios' | 'places' | 'organizations';
+  optionsSource?: 'barrios' | 'places' | 'organizations' | 'events' | 'festivalPosters' | 'news';
   required: boolean;
 }
 
@@ -36,7 +36,7 @@ export interface PrevField {
   key: string;
   type?: FieldType;
   options?: string[];
-  optionsSource?: 'barrios' | 'places' | 'organizations';
+  optionsSource?: 'barrios' | 'places' | 'organizations' | 'events' | 'festivalPosters' | 'news';
 }
 
 export interface UsedValuesByKey {
@@ -52,7 +52,14 @@ export const PREDEFINED_KEYS = new Set([
   'originVillage',
 ]);
 
-const VALID_OPTION_SOURCES = new Set(['barrios', 'places', 'organizations']);
+const VALID_OPTION_SOURCES = new Set([
+  'barrios',
+  'places',
+  'organizations',
+  'events',
+  'festivalPosters',
+  'news',
+]);
 
 const VALID_FIELD_TYPES = new Set<FieldType>([
   'text',

@@ -35,6 +35,9 @@ const ENTITY_ROWS: Row[] = [
   { pick: { kind: 'entity', source: 'barrios' }, labelKey: 'censo.builder.sourceBarrios', icon: 'map-outline' },
   { pick: { kind: 'entity', source: 'places' }, labelKey: 'censo.builder.sourcePlaces', icon: 'location-outline' },
   { pick: { kind: 'entity', source: 'organizations' }, labelKey: 'censo.builder.sourceOrganizations', icon: 'people-outline' },
+  { pick: { kind: 'entity', source: 'events' }, labelKey: 'censo.builder.sourceEvents', icon: 'calendar-outline' },
+  { pick: { kind: 'entity', source: 'festivalPosters' }, labelKey: 'censo.builder.sourceFestivalPosters', icon: 'image-outline' },
+  { pick: { kind: 'entity', source: 'news' }, labelKey: 'censo.builder.sourceNews', icon: 'newspaper-outline' },
 ];
 
 function samePick(a: SheetPick | undefined, b: SheetPick): boolean {
