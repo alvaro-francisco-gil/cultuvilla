@@ -19,7 +19,14 @@ export const PredefinedProfileFormFieldSchema = z.object({
 });
 export type PredefinedProfileFormField = z.infer<typeof PredefinedProfileFormFieldSchema>;
 
-export const OptionsSourceSchema = z.enum(['barrios', 'places', 'organizations']);
+export const OptionsSourceSchema = z.enum([
+  'barrios',
+  'places',
+  'organizations',
+  'events',
+  'festivalPosters',
+  'news',
+]);
 export type OptionsSource = z.infer<typeof OptionsSourceSchema>;
 
 // The Firebase callable serializer encodes `undefined` object values as
