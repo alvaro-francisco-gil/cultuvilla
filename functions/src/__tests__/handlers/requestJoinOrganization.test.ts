@@ -31,6 +31,7 @@ async function seedOrg(status: 'pending' | 'approved' | 'rejected'): Promise<voi
     reviewedAt: new Date(),
     commentCount: 0,
     readCount: 0,
+    memberCount: 0,
     membersPublic: true,
   });
 }

@@ -2,7 +2,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  getCountFromServer,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -103,24 +102,6 @@ export async function getPersonsByBarrio(
   return snap.docs
     .map((d) => ({ id: d.id, ...d.data() }))
     .sort((a, b) => buildDisplayName(a).localeCompare(buildDisplayName(b)));
-}
-
-/**
- * Count of people whose residence is a given barrio. Uses a server-side count
- * aggregate over the same `array-contains { municipalityId, barrioId }` query as
- * `getPersonsByBarrio`, so it never ships the person docs. Excludes whole-village
- * members (`barrioId: null`), who match no specific barrio.
- */
-export async function getBarrioResidentCount(
-  municipalityId: string,
-  barrioId: string,
-): Promise<number> {
-  const q = query(
-    personsCollection(getDb()),
-    where('municipalityLinks', 'array-contains', { municipalityId, barrioId }),
-  );
-  const snap = await getCountFromServer(q);
-  return snap.data().count;
 }
 
 /**
