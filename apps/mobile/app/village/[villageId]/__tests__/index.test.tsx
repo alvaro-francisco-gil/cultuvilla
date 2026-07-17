@@ -1,8 +1,8 @@
 import { render } from '@testing-library/react-native';
 
 // The body is exercised in its own suite; here we only verify the screen wires
-// the village name into the header (signed-in) and redirects guests into the
-// tab shell.
+// the village name into the header when pushed in-app (has a back stack) and
+// redirects a cold share-link entry (no back stack) into the tab shell.
 jest.mock('../../../../lib/useVillageHome', () => ({
   useVillageHome: () => ({
     coreLoading: false,
@@ -35,9 +35,10 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 const mockRedirect = jest.fn();
+const mockCanGoBack = jest.fn();
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ villageId: 'm1' }),
-  router: { push: jest.fn(), back: jest.fn() },
+  router: { push: jest.fn(), back: jest.fn(), canGoBack: () => mockCanGoBack() },
   Redirect: ({ href }: { href: string }) => {
     mockRedirect(href);
     return null;
@@ -62,16 +63,36 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-it('renders the village name in the header for a signed-in viewer', () => {
+it('renders the village name in the header when pushed in-app (has a back stack)', () => {
+  mockCanGoBack.mockReturnValue(true);
   mockUseAuth.mockReturnValue({ user: { uid: 'uid-1' } });
   const { getByText } = render(<VillageHome />);
   expect(getByText('Anaya')).toBeTruthy();
   expect(mockRedirect).not.toHaveBeenCalled();
 });
 
-it('activates the shared village and redirects a guest into the tab shell', () => {
+it('keeps the back-navigable screen for a guest browsing in-app (has a back stack)', () => {
+  mockCanGoBack.mockReturnValue(true);
+  mockUseAuth.mockReturnValue({ user: null });
+  render(<VillageHome />);
+  expect(mockActivate).not.toHaveBeenCalled();
+  expect(mockRedirect).not.toHaveBeenCalled();
+});
+
+it('activates the shared village and redirects a guest cold entry into the tab shell', () => {
+  mockCanGoBack.mockReturnValue(false);
   mockUseAuth.mockReturnValue({ user: null });
   render(<VillageHome />);
   expect(mockActivate).toHaveBeenCalledWith('m1');
-  expect(mockRedirect).toHaveBeenCalledWith('/(tabs)/village');
+  expect(mockRedirect).toHaveBeenCalledWith('/(tabs)/village?villageId=m1');
+});
+
+it('redirects a signed-in cold entry into the tab shell without switching their home', () => {
+  mockCanGoBack.mockReturnValue(false);
+  mockUseAuth.mockReturnValue({ user: { uid: 'uid-1' } });
+  render(<VillageHome />);
+  // No activate + no profile write: the shared village rides the query param,
+  // so the member's activeMunicipalityId is untouched.
+  expect(mockActivate).not.toHaveBeenCalled();
+  expect(mockRedirect).toHaveBeenCalledWith('/(tabs)/village?villageId=m1');
 });

@@ -4,6 +4,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Fixed
+- Opening a shared village link (`/village/<id>`) now always lands inside the app shell (bottom tabs + header) for signed-in members too, not just guests. Previously a signed-in visitor got a chrome-less, tab-less dead-end screen. A cold entry (no back stack) redirects into the pueblo tab showing the shared village; in-app navigation to a village (from discovery, a profile, the inbox or a news mention) keeps its back-navigable detail screen. The shared village rides a transient `villageId` query param, so a member's home village (`activeMunicipalityId`) is never silently switched.
+
 ## v0.12.0 — 2026-07-16
 
 ### Fixed
