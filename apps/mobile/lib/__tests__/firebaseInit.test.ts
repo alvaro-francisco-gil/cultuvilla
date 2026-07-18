@@ -6,6 +6,7 @@ const getReactNativePersistence = jest.fn((storage: unknown) => ({ rnPersistence
 const indexedDBLocalPersistence = { name: 'indexedDBLocalPersistence' };
 const browserLocalPersistence = { name: 'browserLocalPersistence' };
 const inMemoryPersistence = { name: 'inMemoryPersistence' };
+const browserPopupRedirectResolver = { name: 'browserPopupRedirectResolver' };
 
 function mockModules(platformOS: 'web' | 'ios' | 'android'): void {
   jest.resetModules();
@@ -23,6 +24,7 @@ function mockModules(platformOS: 'web' | 'ios' | 'android'): void {
     indexedDBLocalPersistence,
     browserLocalPersistence,
     inMemoryPersistence,
+    browserPopupRedirectResolver,
     connectAuthEmulator: jest.fn(),
   }));
   jest.doMock('firebase/firestore', () => ({ connectFirestoreEmulator: jest.fn() }));
@@ -44,7 +46,7 @@ function mockModules(platformOS: 'web' | 'ios' | 'android'): void {
 }
 
 describe('bootstrapFirebase', () => {
-  it('pins an explicit indexedDB -> localStorage -> in-memory persistence chain on web', () => {
+  it('configures web persistence without breaking Google popup sign-in', () => {
     mockModules('web');
     const { bootstrapFirebase } = require('../firebaseInit');
     bootstrapFirebase();
@@ -56,7 +58,10 @@ describe('bootstrapFirebase', () => {
     customizeAuth({});
     expect(initializeAuth).toHaveBeenCalledWith(
       {},
-      { persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence] },
+      {
+        persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence],
+        popupRedirectResolver: browserPopupRedirectResolver,
+      },
     );
     expect(getReactNativePersistence).not.toHaveBeenCalled();
   });
