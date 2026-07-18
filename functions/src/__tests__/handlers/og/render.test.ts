@@ -232,7 +232,7 @@ describe('ogRenderer', () => {
     await admin.firestore().doc('organizations/org-1').set({
       name: 'Peña Los Sauces',
       description: 'Una peña activa',
-      imageURL: 'https://cdn.example/org-1.jpg',
+      images: ['https://cdn.example/org-1.jpg'],
       municipalityId: 'mun-1',
       type: 'pena',
       status: 'approved',

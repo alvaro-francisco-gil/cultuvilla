@@ -223,18 +223,18 @@ service cloud.firestore {
 
     function isValidOrganizationCreate(d) {
       return d.keys().hasOnly([
-              'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
+              'name', 'description', 'images', 'type', 'status', 'municipalityId',
               'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
               'commentCount', 'readCount', 'memberCount', 'membersPublic',
             ])
           && d.keys().hasAll([
-              'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
+              'name', 'description', 'images', 'type', 'status', 'municipalityId',
               'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
               'commentCount', 'readCount', 'memberCount', 'membersPublic',
             ])
           && isString(d.name)
           && isStringOrNull(d.description)
-          && isStringOrNull(d.imageURL)
+          && isList(d.images) && d.images.size() <= 5
           && d.type in ['ayuntamiento', 'peña', 'asociación', 'otros']
           && d.status in ['pending', 'approved', 'rejected']
           && isString(d.municipalityId)
@@ -250,12 +250,12 @@ service cloud.firestore {
 
     function isValidPlaceCreate(d) {
       return d.keys().hasOnly([
-              'name', 'kind', 'description', 'municipalityId', 'imageURL',
+              'name', 'kind', 'description', 'municipalityId', 'images',
               'createdAt', 'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount',
             ])
           && d.keys().hasAll([
-              'name', 'kind', 'description', 'municipalityId', 'imageURL',
+              'name', 'kind', 'description', 'municipalityId', 'images',
               'createdAt', 'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount',
             ])
@@ -263,7 +263,7 @@ service cloud.firestore {
           && d.kind in ['cemetery', 'church', 'hermitage', 'plaza', 'town_hall', 'otros']
           && isStringOrNull(d.description)
           && isString(d.municipalityId)
-          && isStringOrNull(d.imageURL)
+          && isList(d.images) && d.images.size() <= 5
           && isTimestamp(d.createdAt)
           && d.status == 'active'
           && isStringOrNull(d.proposedBy)
@@ -276,13 +276,13 @@ service cloud.firestore {
 
     function isValidFestivalPosterCreate(d) {
       return d.keys().hasOnly([
-              'municipalityId', 'proposedBy', 'year', 'title', 'imageURL',
+              'municipalityId', 'proposedBy', 'year', 'title', 'images',
               'datePrecision', 'startsAt', 'endsAt', 'createdAt',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount',
             ])
           && d.keys().hasAll([
-              'municipalityId', 'proposedBy', 'year', 'title', 'imageURL',
+              'municipalityId', 'proposedBy', 'year', 'title', 'images',
               'datePrecision', 'startsAt', 'endsAt', 'createdAt',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount',
@@ -291,7 +291,7 @@ service cloud.firestore {
           && isStringOrNull(d.proposedBy)
           && d.year is int
           && isStringOrNull(d.title)
-          && isStringOrNull(d.imageURL)
+          && isList(d.images) && d.images.size() <= 5
           && d.datePrecision in ['year', 'month', 'day']
           && isTimestampOrNull(d.startsAt)
           && isTimestampOrNull(d.endsAt)
@@ -315,18 +315,18 @@ service cloud.firestore {
 
     function isValidBarrioCreate(d) {
       return d.keys().hasOnly([
-              'name', 'municipalityId', 'imageURL', 'createdAt',
+              'name', 'municipalityId', 'images', 'createdAt',
               'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount', 'residentCount',
             ])
           && d.keys().hasAll([
-              'name', 'municipalityId', 'imageURL', 'createdAt',
+              'name', 'municipalityId', 'images', 'createdAt',
               'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount', 'residentCount',
             ])
           && isString(d.name)
           && isString(d.municipalityId)
-          && isStringOrNull(d.imageURL)
+          && isList(d.images) && d.images.size() <= 5
           && isTimestamp(d.createdAt)
           && d.status == 'active'
           && isStringOrNull(d.proposedBy)

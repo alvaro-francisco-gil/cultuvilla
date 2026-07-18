@@ -251,8 +251,18 @@ export async function getBarrios(municipalityId: string): Promise<(BarrioData & 
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-export async function createBarrio(municipalityId: string, input: BarrioDataInput): Promise<string> {
-  const newRef = doc(municipalityBarriosCollection(getDb(), municipalityId));
+/** Mint a barrio doc id up front, so images can be uploaded to its storage
+ * path before `createBarrio` writes the doc (with images). */
+export function newBarrioId(municipalityId: string): string {
+  return doc(municipalityBarriosCollection(getDb(), municipalityId)).id;
+}
+
+export async function createBarrio(
+  municipalityId: string,
+  input: BarrioDataInput,
+  id: string = newBarrioId(municipalityId),
+): Promise<string> {
+  const newRef = municipalityBarrioDoc(getDb(), municipalityId, id);
   await setDoc(newRef, buildBarrioData({ ...input, municipalityId }));
   return newRef.id;
 }
@@ -301,8 +311,18 @@ export async function getPlaces(
   return kind ? rows.filter((r) => r.kind === kind) : rows;
 }
 
-export async function createPlace(municipalityId: string, input: PlaceDataInput): Promise<string> {
-  const newRef = doc(municipalityPlacesCollection(getDb(), municipalityId));
+/** Mint a place doc id up front, so images can be uploaded to its storage
+ * path before `createPlace` writes the doc (with images). */
+export function newPlaceId(municipalityId: string): string {
+  return doc(municipalityPlacesCollection(getDb(), municipalityId)).id;
+}
+
+export async function createPlace(
+  municipalityId: string,
+  input: PlaceDataInput,
+  id: string = newPlaceId(municipalityId),
+): Promise<string> {
+  const newRef = municipalityPlaceDoc(getDb(), municipalityId, id);
   await setDoc(newRef, buildPlaceData({ ...input, municipalityId }));
   return newRef.id;
 }

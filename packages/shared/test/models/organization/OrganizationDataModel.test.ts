@@ -8,7 +8,7 @@ import {
 const validOrg = {
   name: 'Peña X',
   description: null,
-  imageURL: null,
+  images: [] as string[],
   type: 'peña' as const,
   status: 'pending' as const,
   municipalityId: 'm-1',
@@ -36,9 +36,15 @@ describe('OrganizationDataSchema', () => {
     expect(() => OrganizationDataSchema.parse({ ...validOrg, status: 'archived' })).toThrow();
   });
 
-  it('requires imageURL on the persisted shape', () => {
-    const { imageURL: _omit, ...rest } = validOrg;
+  it('requires images on the persisted shape', () => {
+    const { images: _omit, ...rest } = validOrg;
     expect(() => OrganizationDataSchema.parse(rest)).toThrow();
+  });
+
+  it('rejects more than 5 images at the schema boundary', () => {
+    expect(() =>
+      OrganizationDataSchema.parse({ ...validOrg, images: ['1', '2', '3', '4', '5', '6'] }),
+    ).toThrow();
   });
 });
 
@@ -54,7 +60,7 @@ describe('buildOrganizationData', () => {
     expect(o.municipalityId).toBe('v1');
     expect(o.status).toBe('pending');
     expect(o.description).toBeNull();
-    expect(o.imageURL).toBeNull();
+    expect(o.images).toEqual([]);
     expect(o.reviewedBy).toBeNull();
     expect(o.reviewedAt).toBeNull();
     expect(o.createdAt).toBeInstanceOf(Date);

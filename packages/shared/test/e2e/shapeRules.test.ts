@@ -193,7 +193,7 @@ describe('shape enforcement — /organizations/{orgId}', () => {
   const validOrg = {
     name: 'Peña X',
     description: null,
-    imageURL: null,
+    images: [] as string[],
     type: 'peña' as const,
     status: 'pending' as const,
     municipalityId: 'm1',
@@ -213,11 +213,22 @@ describe('shape enforcement — /organizations/{orgId}', () => {
     await assertSucceeds(setDoc(doc(alice, 'organizations/o1'), validOrg));
   });
 
-  it('accepts an imageURL string', async () => {
+  it('accepts up to 5 images', async () => {
     await seedMember('m1', 'alice');
     const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(
-      setDoc(doc(alice, 'organizations/o1'), { ...validOrg, imageURL: 'https://x/o.png' }),
+      setDoc(doc(alice, 'organizations/o1'), { ...validOrg, images: ['1', '2', '3', '4', '5'] }),
+    );
+  });
+
+  it('rejects more than 5 images', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, 'organizations/o1'), {
+        ...validOrg,
+        images: ['1', '2', '3', '4', '5', '6'],
+      }),
     );
   });
 

@@ -8,7 +8,7 @@ const getEnv = useRulesTestEnv();
 const M = 'm1';
 function barrioDoc(proposedBy: string | null, extra: Record<string, unknown> = {}) {
   return {
-    name: 'Norte', municipalityId: M, imageURL: null, createdAt: new Date(),
+    name: 'Norte', municipalityId: M, images: [], createdAt: new Date(),
     status: 'active', proposedBy, hiddenBy: null, hiddenAt: null, hiddenReason: null,
     commentCount: 0, readCount: 0, residentCount: 0,
     ...extra,
@@ -59,6 +59,26 @@ describe('firestore.rules — /municipalities/{m}/barrios', () => {
     await seedMember('boss', 'admin');
     const boss = asUser(getEnv(), 'boss');
     await assertSucceeds(setDoc(doc(boss, `municipalities/${M}/barrios/b1`), barrioDoc(null)));
+  });
+  it('member can create a barrio with 5 images', async () => {
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertSucceeds(
+      setDoc(
+        doc(alice, `municipalities/${M}/barrios/b1`),
+        barrioDoc('alice', { images: ['1', '2', '3', '4', '5'] }),
+      ),
+    );
+  });
+  it('member CANNOT create a barrio with 6 images', async () => {
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(
+        doc(alice, `municipalities/${M}/barrios/b1`),
+        barrioDoc('alice', { images: ['1', '2', '3', '4', '5', '6'] }),
+      ),
+    );
   });
   it('proposer can edit own barrio content fields', async () => {
     await seedMember('alice');

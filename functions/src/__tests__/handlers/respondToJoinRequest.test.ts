@@ -23,7 +23,7 @@ async function seedOrg(): Promise<void> {
     status: 'approved',
     type: 'asociación',
     description: 'Una asociacion de vecinos',
-    imageURL: null,
+    images: [],
     requestedBy: ORG_ADMIN_ID,
     reviewedBy: APP_ADMIN_ID,
     createdAt: new Date(),
