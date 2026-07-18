@@ -3,6 +3,7 @@ export {
   formatDate,
   formatPrice,
   formatRelativeTime,
+  monthLongLabels,
   monthShortLabels,
   type DateStyle,
 } from './format';

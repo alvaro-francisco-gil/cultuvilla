@@ -3,7 +3,7 @@ import { FlatList, Modal, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, iconSizes } from '@cultuvilla/shared/design-system';
-import { monthShortLabels } from '@cultuvilla/shared/utils/format';
+import { monthLongLabels } from '@cultuvilla/shared/utils/format';
 import { useT } from '../../lib/i18n';
 import { Button } from './Button';
 import { FieldLabel } from './FieldLabel';
@@ -12,7 +12,7 @@ import { Text } from './Text';
 
 type Segment = 'year' | 'month' | 'day';
 
-const MONTHS = monthShortLabels();
+const MONTHS = monthLongLabels();
 const CHEVRON_COLOR = colors.light.fg.muted;
 
 export interface BirthDateFieldProps {
@@ -195,7 +195,7 @@ function OptionList({
       renderItem={({ item }) => (
         <Pressable
           onPress={() => onPick(item)}
-          className="py-3.5 border-b border-subtle"
+          className="px-4 py-3.5 border-b border-subtle"
           testID={testID ? `${testID}-${item}` : undefined}
         >
           <Text>{label(item)}</Text>

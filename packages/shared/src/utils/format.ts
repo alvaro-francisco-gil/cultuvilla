@@ -85,6 +85,13 @@ export function monthShortLabels(): string[] {
   });
 }
 
+export function monthLongLabels(): string[] {
+  return Array.from({ length: 12 }, (_, i) => {
+    const raw = new Intl.DateTimeFormat(LOCALE, { month: 'long' }).format(new Date(2000, i, 1));
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+  });
+}
+
 export function formatPrice(amount: number, currency: string = 'EUR'): string {
   return new Intl.NumberFormat(LOCALE, {
     style: 'currency',

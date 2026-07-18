@@ -4,6 +4,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Fixed
+- The person birth-date month picker now shows full month names and gives modal options readable horizontal spacing.
+
 ## v0.13.0 — 2026-07-18
 
 - Show each article's category instead of its publication date on village cards.

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatPrice, formatRelativeTime, monthShortLabels } from '../../src/utils/format';
+import {
+  formatDate,
+  formatPrice,
+  formatRelativeTime,
+  monthLongLabels,
+  monthShortLabels,
+} from '../../src/utils/format';
 
 describe('formatDate', () => {
   const d = new Date('2026-05-19T15:30:00.000Z');
@@ -49,6 +55,19 @@ describe('monthShortLabels', () => {
     expect(labels[7]).toBe('Ago');
     for (const label of labels) {
       expect(label).not.toMatch(/\.$/);
+      expect(label.charAt(0)).toBe(label.charAt(0).toUpperCase());
+    }
+  });
+});
+
+describe('monthLongLabels', () => {
+  it('returns 12 capitalized es-ES full month names', () => {
+    const labels = monthLongLabels();
+    expect(labels).toHaveLength(12);
+    expect(labels[0]).toBe('Enero');
+    expect(labels[4]).toBe('Mayo');
+    expect(labels[11]).toBe('Diciembre');
+    for (const label of labels) {
       expect(label.charAt(0)).toBe(label.charAt(0).toUpperCase());
     }
   });
