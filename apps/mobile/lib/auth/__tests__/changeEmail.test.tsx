@@ -27,7 +27,7 @@ const mockFirebaseAuth = {
 };
 
 const mockVerifyBeforeUpdateEmail = jest.fn();
-const mockSendSignInLinkToEmail = jest.fn();
+const mockSendAuthSignInEmail = jest.fn();
 const mockReauthenticateWithCredential = jest.fn();
 const mockCredentialWithLink = jest.fn().mockReturnValue({ credential: true });
 
@@ -35,12 +35,15 @@ jest.mock('@cultuvilla/shared/firebase', () => ({
   getAuth: () => mockFirebaseAuth,
 }));
 
+jest.mock('@cultuvilla/shared/services/authEmailService', () => ({
+  sendAuthSignInEmail: (...args: unknown[]) => mockSendAuthSignInEmail(...args),
+}));
+
 jest.mock('firebase/auth', () => ({
   onAuthStateChanged: (_auth: unknown, cb: (u: unknown) => void) => {
     cb(mockCurrentUser);
     return () => {};
   },
-  sendSignInLinkToEmail: (...args: unknown[]) => mockSendSignInLinkToEmail(...args),
   isSignInWithEmailLink: jest.fn().mockReturnValue(true),
   signInWithEmailLink: jest.fn(),
   verifyBeforeUpdateEmail: (...args: unknown[]) => mockVerifyBeforeUpdateEmail(...args),
@@ -85,19 +88,17 @@ describe('AuthContext changeEmail / re-auth', () => {
     mockFirebaseAuth.languageCode = null;
   });
 
-  it('sends account access links in Spanish', async () => {
-    mockSendSignInLinkToEmail.mockResolvedValueOnce(undefined);
+  it('sends the branded sign-in email via authEmailService', async () => {
+    mockSendAuthSignInEmail.mockResolvedValueOnce(undefined);
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
 
     await act(async () => {
       await result.current.sendEmailLink('new@example.com');
     });
 
-    expect(mockFirebaseAuth.languageCode).toBe('es');
-    expect(mockSendSignInLinkToEmail).toHaveBeenCalledWith(
-      mockFirebaseAuth,
+    expect(mockSendAuthSignInEmail).toHaveBeenCalledWith(
       'new@example.com',
-      expect.objectContaining({ handleCodeInApp: true }),
+      expect.stringContaining('/finish'),
     );
   });
 
@@ -123,10 +124,9 @@ describe('AuthContext changeEmail / re-auth', () => {
       );
     });
 
-    expect(mockSendSignInLinkToEmail).toHaveBeenCalledWith(
-      expect.anything(),
+    expect(mockSendAuthSignInEmail).toHaveBeenCalledWith(
       'old@example.com',
-      expect.objectContaining({ handleCodeInApp: true }),
+      expect.stringContaining('/finish'),
     );
 
     const stored = await AsyncStorage.getItem('cultuvilla.pendingReauth');
