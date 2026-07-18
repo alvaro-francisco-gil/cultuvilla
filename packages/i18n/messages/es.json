@@ -759,19 +759,16 @@
     "empty": "No tienes nada nuevo",
     "tab": {
       "organizer": "Administrador",
-      "org": "Grupos",
-      "join": "Unirse"
+      "org": "Grupos"
     },
     "approve": "Aprobar",
     "reject": "Rechazar",
     "wantsToAdminister": "quiere administrar",
     "motivation": "Motivo",
-    "joinRow": "{user} quiere unirse a {org}",
     "orgRow": "{org} ({type})",
     "pendingSent": {
       "organizer": "Quieres administrar {name}",
       "org": "Quieres crear {name}",
-      "join": "Quieres unirte a {name}",
       "waiting": "Esperando aprobación"
     }
   },
