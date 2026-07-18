@@ -572,6 +572,7 @@ function NewsEntityCard({
   post: NewsPostData & { id: string };
   onPress: () => void;
 }) {
+  const { t } = useT();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const firstImagePath = post.coverImage?.storagePath ?? post.images[0]?.storagePath ?? null;
 
@@ -596,7 +597,7 @@ function NewsEntityCard({
   return (
     <EntityCard
       label={post.title}
-      sub={formatDate(post.publishedAt ?? post.createdAt, 'short')}
+      sub={t(`news.compose.category.${post.category}`)}
       icon="newspaper-outline"
       imageUri={imageUri}
       onPress={onPress}

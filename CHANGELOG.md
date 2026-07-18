@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+- Show each article's category instead of its publication date on village cards.
+
 ### Added
 - **Organization admins can now manage membership from the org's member roster**: promote a member to admin, demote another admin back to member, or remove a member entirely — mirroring the pueblo's members list, routed through the audited `changeOrgMemberRole` callable (promote/demote) and the existing rules-gated member delete (remove).
 - **Places, barrios and organizations now accept up to 5 pictures** instead of a single image, matching the convention already used by festival posters (`images[0]` is the hero shown in the detail screen; the rest render in a vertical stack below the title). Barrio residents are now shown as a wrapping row of avatar-and-name chips (matching an event's organizers) instead of full-image cards. News articles' inline body images are now capped at 10. **Migration:** existing dev docs are backfilled by `scripts/backfill-multi-image-entities.mjs`, converting the old `imageURL` into `images: [imageURL]` (or `images: []`).

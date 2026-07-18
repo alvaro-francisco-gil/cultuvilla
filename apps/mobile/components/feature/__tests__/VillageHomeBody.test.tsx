@@ -2,6 +2,7 @@ import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { VillageHomeBody } from '../VillageHomeBody';
 import type { VillageHomeState } from '../../../lib/useVillageHome';
+import { buildNewsPostData } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 
 const mockRefreshProfile = jest.fn(async () => undefined);
 let mockUser: { uid: string } | null = { uid: 'u1' };
@@ -279,5 +280,30 @@ describe('VillageHomeBody', () => {
     // village name — is still on screen: one failed fetch must not take it down.
     expect(queryByTestId('section-skeleton')).toBeNull();
     expect(getByText('Anaya')).toBeTruthy();
+  });
+
+  it('shows the article category instead of its publication date', () => {
+    const publishedAt = new Date(2026, 5, 15);
+    const post = {
+      id: 'news-1',
+      ...buildNewsPostData({
+        municipalityId: 'm1',
+        createdBy: 'u1',
+        organizerUserIds: ['u1'],
+        title: 'Sabores de siempre',
+        body: 'Recetas del pueblo',
+        category: 'historia',
+        createdAt: publishedAt,
+        publishedAt,
+        updatedAt: publishedAt,
+      }),
+    };
+
+    const { getByText, queryByText } = render(
+      <VillageHomeBody data={{ ...base, news: [post] }} reload={jest.fn()} />,
+    );
+
+    expect(getByText('Historia')).toBeTruthy();
+    expect(queryByText('15/06/2026')).toBeNull();
   });
 });
