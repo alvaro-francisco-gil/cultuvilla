@@ -28,6 +28,7 @@ const VILLAGE_ADMIN = 'vadmin';
 const VILLAGE_MEMBER = 'vmember';
 const OTHER_USER = 'stranger';
 const APP_ADMIN = 'sadmin';
+const ORG_ADMIN = 'oadmin';
 
 // Approval is callable-only — a client attempting this patch is denied.
 const approvePatch = { status: 'approved', reviewedBy: VILLAGE_ADMIN, reviewedAt: new Date() };
@@ -64,6 +65,13 @@ async function seedOrgAndMembers() {
       joinedAt: new Date(),
       profileAnswers: {},
       profileCompletedAt: null,
+    });
+    // isOrgAdmin(ORG_ID): an org member doc with role 'admin' — not a village
+    // admin, mirroring a founder seeded by approveOrganization.
+    await setDoc(doc(db, `organizations/${ORG_ID}/members/${ORG_ADMIN}`), {
+      userId: ORG_ADMIN,
+      role: 'admin',
+      joinedAt: new Date(),
     });
   });
 }
@@ -112,6 +120,12 @@ describe('firestore.rules — /organizations/{orgId} update + delete', () => {
       await seedOrgAndMembers();
       const db = asUser(getEnv(), OTHER_USER);
       await assertFails(updateDoc(doc(db, `organizations/${ORG_ID}`), rejectPatch));
+    });
+
+    it('an org admin (not a village admin) can edit a non-status field, e.g. imageURL', async () => {
+      await seedOrgAndMembers();
+      const db = asUser(getEnv(), ORG_ADMIN);
+      await assertSucceeds(updateDoc(doc(db, `organizations/${ORG_ID}`), { imageURL: 'https://example.com/new.jpg' }));
     });
 
     it('an anonymous user cannot update', async () => {
