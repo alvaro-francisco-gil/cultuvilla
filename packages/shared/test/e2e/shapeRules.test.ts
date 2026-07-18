@@ -193,7 +193,7 @@ describe('shape enforcement — /organizations/{orgId}', () => {
   const validOrg = {
     name: 'Peña X',
     description: null,
-    imageURL: null,
+    images: [] as string[],
     type: 'peña' as const,
     status: 'pending' as const,
     municipalityId: 'm1',
@@ -203,6 +203,7 @@ describe('shape enforcement — /organizations/{orgId}', () => {
     reviewedAt: null,
     commentCount: 0,
     readCount: 0,
+    memberCount: 0,
     membersPublic: true,
   };
 
@@ -212,11 +213,22 @@ describe('shape enforcement — /organizations/{orgId}', () => {
     await assertSucceeds(setDoc(doc(alice, 'organizations/o1'), validOrg));
   });
 
-  it('accepts an imageURL string', async () => {
+  it('accepts up to 5 images', async () => {
     await seedMember('m1', 'alice');
     const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(
-      setDoc(doc(alice, 'organizations/o1'), { ...validOrg, imageURL: 'https://x/o.png' }),
+      setDoc(doc(alice, 'organizations/o1'), { ...validOrg, images: ['1', '2', '3', '4', '5'] }),
+    );
+  });
+
+  it('rejects more than 5 images', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, 'organizations/o1'), {
+        ...validOrg,
+        images: ['1', '2', '3', '4', '5', '6'],
+      }),
     );
   });
 
@@ -266,6 +278,14 @@ describe('shape enforcement — /organizations/{orgId}', () => {
     );
   });
 
+  it('rejects a create with a nonzero memberCount', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, 'organizations/o1'), { ...validOrg, memberCount: 2 }),
+    );
+  });
+
   it('a village admin cannot mutate counts on update, but a normal edit still succeeds', async () => {
     await seedMember('m1', 'boss', /* extra */ { role: 'admin' });
     await seed(getEnv(), async (ctx) => {
@@ -275,6 +295,9 @@ describe('shape enforcement — /organizations/{orgId}', () => {
     await assertFails(updateDoc(doc(boss, 'organizations/o1'), { commentCount: 99 }));
     await assertFails(
       updateDoc(doc(boss, 'organizations/o1'), { readCount: 9 }),
+    );
+    await assertFails(
+      updateDoc(doc(boss, 'organizations/o1'), { memberCount: 42 }),
     );
     await assertSucceeds(updateDoc(doc(boss, 'organizations/o1'), { description: 'Actualizada' }));
   });

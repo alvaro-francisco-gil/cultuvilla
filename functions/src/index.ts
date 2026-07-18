@@ -18,13 +18,13 @@ export { respondToOrganizerRequest } from './village/respondToOrganizerRequest';
 export { changeVillageMemberRole } from './village/changeVillageMemberRole';
 export { syncVillageDenormalization } from './village/syncVillageDenormalization';
 export { syncMemberBarrioToResidence } from './village/syncMemberBarrioToResidence';
+export { syncBarrioResidentCount } from './village/syncBarrioResidentCount';
 
 // Organizations (ayuntamiento singleton enforcement)
 export { requestAyuntamiento } from './organizations/requestAyuntamiento';
-export { requestJoinOrganization } from './organizations/requestJoinOrganization';
-export { respondToJoinRequest } from './organizations/respondToJoinRequest';
 export { approveOrganization } from './organizations/approveOrganization';
 export { changeOrgMemberRole } from './organizations/changeOrgMemberRole';
+export { syncOrgMemberCount } from './organizations/syncOrgMemberCount';
 export { onOrganizationUpdated } from './organizations/notificationTriggers';
 
 // Census (censo)
@@ -53,6 +53,9 @@ export { ogRenderer } from './og/render';
 // Maps (Google Static Maps proxy + geocoding — key stays server-side)
 export { staticMap } from './maps/staticMap';
 export { geocodeSearch } from './maps/geocodeSearch';
+
+// Auth (branded sign-in email delivery via Resend)
+export { sendAuthSignInEmail } from './auth/sendAuthSignInEmail';
 
 // Observability (client error ingestion + pseudonymized identity)
 export { logClientError } from './observability/logClientError';

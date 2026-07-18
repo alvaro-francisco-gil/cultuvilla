@@ -16,7 +16,7 @@ describe('<PersonForm> stepper', () => {
     );
     // Step indicator is icon-only, so detect the current step by its fields:
     // the identity step shows the given-name input; the residence step (which
-    // owns the birthday DateField, testID "birthday") is not rendered yet.
+    // owns the birthday BirthDateField, testID "birthday") is not rendered yet.
     expect(getByLabelText('onboarding.completeProfile.givenName')).toBeTruthy();
     fireEvent.press(getByText('common.stepper.next'));
     expect(queryByTestId('birthday')).toBeNull();
@@ -29,7 +29,7 @@ describe('<PersonForm> stepper', () => {
     fireEvent.changeText(getByLabelText('onboarding.completeProfile.givenName'), 'Ana');
     fireEvent.press(getByText('onboarding.completeProfile.sex_female')); // sex required
     fireEvent.press(getByText('common.stepper.next'));
-    // Residence step now rendered — its birthday DateField is present.
+    // Residence step now rendered — its birthday BirthDateField is present.
     expect(getByTestId('birthday')).toBeTruthy();
   });
 
@@ -68,15 +68,14 @@ describe('<PersonForm> stepper', () => {
   });
 
   describe('requireFirstSurname gate (linked-persona create)', () => {
-    /** Fill the required birthday via the CalendarDatePicker: open the trigger,
-     * jump to 1990-05 via the year/month picker (month is zero-based, so
-     * May === 4), then press the day cell. */
+    /** Fill the required birthday through the Año/Mes/Día selectors. */
     function fillBirthday(utils: ReturnType<typeof render>) {
-      fireEvent.press(utils.getByTestId('birthday-trigger'));
-      fireEvent.press(utils.getByTestId('birthday-calendar-title'));
-      fireEvent.press(utils.getByTestId('birthday-calendar-year-1990'));
-      fireEvent.press(utils.getByTestId('birthday-calendar-month-4'));
-      fireEvent.press(utils.getByTestId('birthday-calendar-day-1990-05-05'));
+      fireEvent.press(utils.getByTestId('birthday-year'));
+      fireEvent.press(utils.getByTestId('birthday-year-option-1990'));
+      fireEvent.press(utils.getByTestId('birthday-month'));
+      fireEvent.press(utils.getByTestId('birthday-month-option-4'));
+      fireEvent.press(utils.getByTestId('birthday-day'));
+      fireEvent.press(utils.getByTestId('birthday-day-option-5'));
     }
 
     it('blocks leaving the identity step until the first surname is filled', () => {

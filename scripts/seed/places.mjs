@@ -35,7 +35,7 @@ export async function seedPlaces(dataset) {
             kind: p.kind,
             municipalityId: vDocId,
             description: p.description ?? null,
-            imageURL,
+            images: imageURL ? [imageURL] : [],
           }),
         ),
         { merge: true },
@@ -47,7 +47,13 @@ export async function seedPlaces(dataset) {
       let imageURL = null;
       if (b.image) imageURL = await uploadImage(b.image, `municipalities/${vDocId}/barrios/${id}/image`);
       await db.collection('municipalities').doc(vDocId).collection('barrios').doc(id).set(
-        tag(buildBarrioData({ name: b.name, municipalityId: vDocId, imageURL })),
+        tag(
+          buildBarrioData({
+            name: b.name,
+            municipalityId: vDocId,
+            images: imageURL ? [imageURL] : [],
+          }),
+        ),
         { merge: true },
       );
       console.log(`[seed] barrio ${id}${imageURL ? ' + image' : ''} ✓`);

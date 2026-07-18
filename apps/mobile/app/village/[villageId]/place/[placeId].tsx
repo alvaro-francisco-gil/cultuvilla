@@ -3,6 +3,7 @@ import { ScrollView } from 'react-native';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Text } from '../../../../components/primitives/Text';
 import { VStack } from '../../../../components/primitives/VStack';
+import { NaturalImage } from '../../../../components/primitives/NaturalImage';
 import { EntityDetailScaffold } from '../../../../components/feature/EntityDetailScaffold';
 import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
 import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
@@ -78,7 +79,7 @@ export default function PlaceDetailScreen() {
     <EntityDetailScaffold
       loading={loading}
       notFound={!loading && !place}
-      imageUri={place?.imageURL ?? null}
+      imageUri={place?.images[0] ?? null}
       fallbackIcon={ENTITY_FALLBACK_ICON.place}
       actions={actions}
       title={place?.name}
@@ -90,6 +91,13 @@ export default function PlaceDetailScreen() {
             {t(`village.admin.places.kind.${place.kind}` as never)}
           </Text>
           {place.description ? <Text>{place.description}</Text> : null}
+          {place.images.length > 1 ? (
+            <VStack gap={2} className="pt-2">
+              {place.images.slice(1).map((uri) => (
+                <NaturalImage key={uri} uri={uri} />
+              ))}
+            </VStack>
+          ) : null}
           {place.kind === 'cemetery' ? (
             <VStack gap={3}>
               <Text variant="h2">{t('village.placeDetail.buried')}</Text>

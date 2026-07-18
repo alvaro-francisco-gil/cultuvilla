@@ -8,7 +8,7 @@ import {
 const validOrg = {
   name: 'Peña X',
   description: null,
-  imageURL: null,
+  images: [] as string[],
   type: 'peña' as const,
   status: 'pending' as const,
   municipalityId: 'm-1',
@@ -18,6 +18,7 @@ const validOrg = {
   reviewedAt: null,
   commentCount: 0,
   readCount: 0,
+  memberCount: 0,
   membersPublic: true,
 };
 
@@ -35,9 +36,15 @@ describe('OrganizationDataSchema', () => {
     expect(() => OrganizationDataSchema.parse({ ...validOrg, status: 'archived' })).toThrow();
   });
 
-  it('requires imageURL on the persisted shape', () => {
-    const { imageURL: _omit, ...rest } = validOrg;
+  it('requires images on the persisted shape', () => {
+    const { images: _omit, ...rest } = validOrg;
     expect(() => OrganizationDataSchema.parse(rest)).toThrow();
+  });
+
+  it('rejects more than 5 images at the schema boundary', () => {
+    expect(() =>
+      OrganizationDataSchema.parse({ ...validOrg, images: ['1', '2', '3', '4', '5', '6'] }),
+    ).toThrow();
   });
 });
 
@@ -53,12 +60,13 @@ describe('buildOrganizationData', () => {
     expect(o.municipalityId).toBe('v1');
     expect(o.status).toBe('pending');
     expect(o.description).toBeNull();
-    expect(o.imageURL).toBeNull();
+    expect(o.images).toEqual([]);
     expect(o.reviewedBy).toBeNull();
     expect(o.reviewedAt).toBeNull();
     expect(o.createdAt).toBeInstanceOf(Date);
     expect(o.readCount).toBe(0);
     expect(o.commentCount).toBe(0);
+    expect(o.memberCount).toBe(0);
     expect('reactionCounts' in o).toBe(false);
     expect(() => OrganizationDataSchema.parse(o)).not.toThrow();
   });

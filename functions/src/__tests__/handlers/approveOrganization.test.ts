@@ -19,7 +19,7 @@ async function seedOrg(status: 'pending' | 'approved' = 'pending'): Promise<void
   await admin.firestore().doc(`organizations/${ORG_ID}`).set({
     name: 'Peña',
     description: null,
-    imageURL: null,
+    images: [],
     type: 'peña',
     status,
     municipalityId: MUNICIPALITY_ID,
@@ -29,6 +29,7 @@ async function seedOrg(status: 'pending' | 'approved' = 'pending'): Promise<void
     reviewedAt: null,
     commentCount: 0,
     readCount: 0,
+    memberCount: 0,
     membersPublic: true,
   });
 }

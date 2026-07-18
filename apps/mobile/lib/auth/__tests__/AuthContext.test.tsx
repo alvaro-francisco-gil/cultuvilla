@@ -28,7 +28,6 @@ jest.mock('firebase/auth', () => ({
     cb(mockAuthUser);
     return () => {};
   },
-  sendSignInLinkToEmail: jest.fn(),
   isSignInWithEmailLink: jest.fn().mockReturnValue(false),
   signInWithEmailLink: jest.fn(),
   GoogleAuthProvider: class {

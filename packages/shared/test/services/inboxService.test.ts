@@ -10,7 +10,7 @@ function makeNotification(
 ): NotificationData & { id: string } {
   return {
     id,
-    type: 'join_request_created',
+    type: 'organizer_request_created',
     title: `title-${id}`,
     body: `body-${id}`,
     eventId: null,

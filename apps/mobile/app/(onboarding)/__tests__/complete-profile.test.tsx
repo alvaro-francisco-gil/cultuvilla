@@ -126,13 +126,13 @@ describe('CompleteProfileScreen', () => {
     fireEvent.press(getByTestId('accept-terms'));
     fireEvent.press(getByText('Siguiente'));
 
-    // Step 2: fill birthday (required when requireFullName=true) via the
-    // calendar: open the trigger, jump to 1990-05, press the day cell.
-    fireEvent.press(getByTestId('birthday-trigger'));
-    fireEvent.press(getByTestId('birthday-calendar-title'));
-    fireEvent.press(getByTestId('birthday-calendar-year-1990'));
-    fireEvent.press(getByTestId('birthday-calendar-month-4'));
-    fireEvent.press(getByTestId('birthday-calendar-day-1990-05-05'));
+    // Step 2: fill birthday (required when requireFullName=true).
+    fireEvent.press(getByTestId('birthday-year'));
+    fireEvent.press(getByTestId('birthday-year-option-1990'));
+    fireEvent.press(getByTestId('birthday-month'));
+    fireEvent.press(getByTestId('birthday-month-option-4'));
+    fireEvent.press(getByTestId('birthday-day'));
+    fireEvent.press(getByTestId('birthday-day-option-5'));
     fireEvent.press(getByText('Siguiente'));
 
     // Step 3: submit.
@@ -200,11 +200,12 @@ describe('CompleteProfileScreen', () => {
     fireEvent.press(getByTestId('accept-terms'));
     fireEvent.press(getByText('Siguiente'));
 
-    fireEvent.press(getByTestId('birthday-trigger'));
-    fireEvent.press(getByTestId('birthday-calendar-title'));
-    fireEvent.press(getByTestId('birthday-calendar-year-1990'));
-    fireEvent.press(getByTestId('birthday-calendar-month-4'));
-    fireEvent.press(getByTestId('birthday-calendar-day-1990-05-05'));
+    fireEvent.press(getByTestId('birthday-year'));
+    fireEvent.press(getByTestId('birthday-year-option-1990'));
+    fireEvent.press(getByTestId('birthday-month'));
+    fireEvent.press(getByTestId('birthday-month-option-4'));
+    fireEvent.press(getByTestId('birthday-day'));
+    fireEvent.press(getByTestId('birthday-day-option-5'));
     fireEvent.press(getByText('Siguiente'));
 
     await act(async () => {
@@ -240,7 +241,7 @@ describe('CompleteProfileScreen', () => {
       fireEvent.press(getByText('Siguiente'));
     });
 
-    expect(queryByTestId('birthday-trigger')).toBeNull();
+    expect(queryByTestId('birthday-year')).toBeNull();
     expect(userService.createUserProfile).not.toHaveBeenCalled();
   });
 
@@ -255,12 +256,11 @@ describe('CompleteProfileScreen', () => {
     fireEvent.press(getByTestId('accept-terms'));
     fireEvent.press(getByText('Siguiente'));
 
-    fireEvent.press(getByTestId('birthday-trigger'));
-    fireEvent.press(getByTestId('birthday-calendar-title'));
+    fireEvent.press(getByTestId('birthday-year'));
 
     // The current year (age 0) must not be selectable; a comfortably-old year is.
     const thisYear = new Date().getFullYear();
-    expect(queryByTestId(`birthday-calendar-year-${thisYear}`)).toBeNull();
-    expect(queryByTestId(`birthday-calendar-year-${thisYear - 20}`)).not.toBeNull();
+    expect(queryByTestId(`birthday-year-option-${thisYear}`)).toBeNull();
+    expect(queryByTestId(`birthday-year-option-${thisYear - 20}`)).not.toBeNull();
   });
 });

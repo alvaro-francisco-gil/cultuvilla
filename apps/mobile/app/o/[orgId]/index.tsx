@@ -3,6 +3,8 @@ import { ActivityIndicator, Pressable, Text as RNText, View } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Text } from '../../../components/primitives/Text';
+import { VStack } from '../../../components/primitives/VStack';
+import { NaturalImage } from '../../../components/primitives/NaturalImage';
 import { EntityDetailScaffold } from '../../../components/feature/EntityDetailScaffold';
 import type { EntityDetailAction } from '../../../components/feature/EntityDetailHeader';
 import { ENTITY_FALLBACK_ICON } from '../../../lib/entities/registry';
@@ -91,12 +93,15 @@ export default function OrgDetailScreen() {
         },
       ]
     : [];
+  const joinLabel = user
+    ? t(org?.type === 'peña' ? 'organization.joinPeña' : 'organization.join')
+    : t('organization.signInToJoin');
 
   return (
     <EntityDetailScaffold
       loading={loading}
       notFound={!loading && !org}
-      imageUri={org?.imageURL ?? null}
+      imageUri={org?.images[0] ?? null}
       fallbackIcon={ENTITY_FALLBACK_ICON.organization}
       actions={actions}
       title={org?.name}
@@ -114,7 +119,7 @@ export default function OrgDetailScreen() {
               testID="join-org-fab"
               accessibilityRole="button"
               accessibilityState={{ disabled: joining }}
-              accessibilityLabel={user ? t('organization.join') : t('organization.signInToJoin')}
+              accessibilityLabel={joinLabel}
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -137,7 +142,7 @@ export default function OrgDetailScreen() {
                 <RNText style={{ color: '#f9f0e8', fontSize: 18, lineHeight: 22, marginRight: 8 }}>+</RNText>
               )}
               <RNText style={{ color: '#f9f0e8', fontSize: 16, fontWeight: '700' }}>
-                {user ? t('organization.join') : t('organization.signInToJoin')}
+                {joinLabel}
               </RNText>
             </Pressable>
           </View>
@@ -147,12 +152,24 @@ export default function OrgDetailScreen() {
       {org ? (
         <>
           {org.description ? <Text>{org.description}</Text> : null}
+          {org.images.length > 1 ? (
+            <VStack gap={2} className="pt-2">
+              {org.images.slice(1).map((uri) => (
+                <NaturalImage key={uri} uri={uri} />
+              ))}
+            </VStack>
+          ) : null}
           <Text tone="muted">{t('organization.membersCount', { count: membersCount ?? 0 })}</Text>
           {canViewOrgRoster({ membersPublic: org.membersPublic, isMember }) ? (
             // Remount (re-fetch) when membership changes, so joining a public org
             // immediately shows yourself in the roster — the component self-fetches
             // once on mount and has no other refresh trigger.
-            <OrgMembersList key={`${org.id}-${isMember}-${membersCount ?? 0}`} orgId={org.id} />
+            <OrgMembersList
+              key={`${org.id}-${isMember}-${membersCount ?? 0}`}
+              orgId={org.id}
+              canManage={canManage}
+              currentUserId={user?.uid ?? null}
+            />
           ) : null}
           {arrivedViaInvite && !isMember ? (
             <Text tone="muted" variant="bodySm">

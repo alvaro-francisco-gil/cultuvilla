@@ -90,7 +90,20 @@ jest.mock('../../../lib/appVersion', () => ({
 }));
 jest.mock('../../../components/layout/AppHeader', () => ({ AppHeader: () => null }));
 jest.mock('../../../components/feature/profile/ProfileStatsRow', () => ({
-  ProfileStatsRow: () => null,
+  ProfileStatsRow: ({
+    stats,
+  }: {
+    stats: { label: string; value: number | null }[];
+  }) => {
+    const { Text, View } = require('react-native');
+    return (
+      <View>
+        {stats.map((stat) => (
+          <Text key={stat.label}>{`${stat.label}:${stat.value ?? '-'}`}</Text>
+        ))}
+      </View>
+    );
+  },
 }));
 jest.mock('../../../components/feature/profile/PersonaScroll', () => ({
   PersonaScroll: () => null,
@@ -175,7 +188,7 @@ describe('ProfileScreen — Grupos & Peñas', () => {
   });
 
   function seedActiveMunicipalityWith(
-    orgs: { id: string; name: string; type: string; imageURL: string | null }[],
+    orgs: { id: string; name: string; type: string; images: string[] }[],
     memberships: { orgId: string; role: 'admin' | 'member' }[],
   ) {
     mockProfile.activeMunicipalityId = 'mun-1';
@@ -192,8 +205,8 @@ describe('ProfileScreen — Grupos & Peñas', () => {
   it('shows each section title only when the user belongs to that kind of org', async () => {
     seedActiveMunicipalityWith(
       [
-        { id: 'org-aso', name: 'Asociación Cultural', type: 'asociación', imageURL: null },
-        { id: 'org-pena', name: 'Peña El Bote', type: 'peña', imageURL: null },
+        { id: 'org-aso', name: 'Asociación Cultural', type: 'asociación', images: [] },
+        { id: 'org-pena', name: 'Peña El Bote', type: 'peña', images: [] },
       ],
       [
         { orgId: 'org-aso', role: 'member' },
@@ -204,6 +217,19 @@ describe('ProfileScreen — Grupos & Peñas', () => {
     await waitFor(() => {
       expect(getByText('profile.gruposSection.title')).toBeTruthy();
       expect(getByText('profile.peñasSection.title')).toBeTruthy();
+    });
+  });
+
+  it('counts a peña membership in the Grupos profile stat', async () => {
+    seedActiveMunicipalityWith(
+      [{ id: 'org-pena', name: 'Peña El Bote', type: 'peña', images: [] }],
+      [{ orgId: 'org-pena', role: 'member' }],
+    );
+
+    const { getByText } = render(<ProfileScreen />);
+
+    await waitFor(() => {
+      expect(getByText('profile.stats.grupos:1')).toBeTruthy();
     });
   });
 
@@ -222,7 +248,7 @@ describe('ProfileScreen — Grupos & Peñas', () => {
 
   it('hides the Peñas section when the user only belongs to a non-peña org', async () => {
     seedActiveMunicipalityWith(
-      [{ id: 'org-aso', name: 'Asociación Cultural', type: 'asociación', imageURL: null }],
+      [{ id: 'org-aso', name: 'Asociación Cultural', type: 'asociación', images: [] }],
       [{ orgId: 'org-aso', role: 'member' }],
     );
     const { getByText, queryByText } = render(<ProfileScreen />);
@@ -235,9 +261,9 @@ describe('ProfileScreen — Grupos & Peñas', () => {
   it('routes a peña membership to the Peñas scroll and a non-peña to Grupos, each linking to /o/:id', async () => {
     seedActiveMunicipalityWith(
       [
-        { id: 'org-aso', name: 'Asociación Cultural', type: 'asociación', imageURL: null },
-        { id: 'org-pena', name: 'Peña El Bote', type: 'peña', imageURL: null },
-        { id: 'org-other', name: 'No soy miembro', type: 'peña', imageURL: null },
+        { id: 'org-aso', name: 'Asociación Cultural', type: 'asociación', images: [] },
+        { id: 'org-pena', name: 'Peña El Bote', type: 'peña', images: [] },
+        { id: 'org-other', name: 'No soy miembro', type: 'peña', images: [] },
       ],
       [
         { orgId: 'org-aso', role: 'admin' },

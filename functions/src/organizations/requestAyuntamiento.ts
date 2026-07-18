@@ -74,7 +74,6 @@ export const requestAyuntamiento = onCall<
       const data = buildOrganizationData({
         name,
         description,
-        imageURL: null,
         type: 'ayuntamiento',
         status: 'pending',
         municipalityId,

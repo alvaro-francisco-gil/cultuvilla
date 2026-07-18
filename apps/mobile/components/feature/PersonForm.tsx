@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Button,
-  DateField,
+  BirthDateField,
   FieldLabel,
   HStack,
   ImagePickerField,
@@ -276,7 +276,7 @@ export function PersonForm({
       render: () =>
         stepBody(
           <>
-            <DateField
+            <BirthDateField
               label={t('onboarding.completeProfile.birthday')}
               value={birthday}
               onChange={setBirthday}

@@ -73,9 +73,11 @@ jest.mock('../../../lib/auth/RegisterGateContext', () => ({
 jest.mock('../../../lib/firestoreErrorLog', () => ({
   withFirestoreErrorLog: (_label: string, fn: () => unknown) => fn(),
 }));
+let mockParams: Record<string, string> = {};
 jest.mock('expo-router', () => ({
   router: { push: jest.fn() },
   useFocusEffect: jest.fn(),
+  useLocalSearchParams: () => mockParams,
 }));
 jest.mock('../../../components/layout/AppHeader', () => ({
   AppHeader: () => null,
@@ -128,7 +130,19 @@ const activeNoOrganizer = {
 const inactiveMuni = { ...base, id: 'mun1' }; // communityActive: false, community: null
 
 describe('VillageTabScreen', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockParams = {};
+  });
+
+  it('renders the villageId param village instead of the active one (transient share-link entry)', async () => {
+    // useActiveVillageId is mocked to 'mun1' (the viewer's home); the query
+    // param must win so a resolved share link shows the shared village.
+    mockParams = { villageId: 'shared-village' };
+    (getMunicipality as jest.Mock).mockResolvedValue({ ...activeMuni, id: 'shared-village' });
+    render(<VillageTabScreen />);
+    expect(getMunicipality).toHaveBeenCalledWith('shared-village');
+  });
 
   it('renders the village page when the community is active and has an organizer', async () => {
     (getMunicipality as jest.Mock).mockResolvedValue(activeMuni);

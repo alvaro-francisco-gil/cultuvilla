@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import {
-  createBarrio, updateBarrio,
+  createBarrio, newBarrioId,
 } from '@cultuvilla/shared/services/municipalityService';
-import { uploadBarrioImage } from '@cultuvilla/shared/services/imageService';
-import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
+import { deleteImageByURL, uploadBarrioImage } from '@cultuvilla/shared/services/imageService';
 import { VStack } from '../../primitives';
+import { pickImageAsBlob } from '../../../lib/images';
 import { useT } from '../../../lib/i18n';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { ProposableForm } from './ProposableForm';
@@ -24,23 +24,42 @@ export function BarriosManager({
 }) {
   const { t } = useT();
   const { uid } = useEntityCapabilities(villageId);
+
+  // Mint the id up front so each picked image can upload before the doc write.
+  const [barrioId] = useState(() => newBarrioId(villageId));
   const [name, setName] = useState('');
-  const [image, setImage] = useState<UploadableImage | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [addingImage, setAddingImage] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  async function addImage() {
+    if (!villageId) return;
+    const picked = await pickImageAsBlob();
+    if (!picked) return;
+    setAddingImage(true);
+    try {
+      const url = await uploadBarrioImage(villageId, barrioId, picked);
+      setImages((prev) => [...prev, url]);
+    } finally {
+      setAddingImage(false);
+    }
+  }
+
+  function removeImage(index: number) {
+    const url = images[index];
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    if (url) void deleteImageByURL(url).catch(() => {}); // best-effort orphan cleanup
+  }
 
   async function submit() {
     if (!villageId || !name.trim() || !uid) return;
     setSaving(true);
     try {
-      const id = await createBarrio(villageId, {
-        name: name.trim(), municipalityId: villageId, proposedBy: uid,
-      });
-      if (image) {
-        const imageURL = await uploadBarrioImage(villageId, id, image);
-        await updateBarrio(villageId, id, { imageURL });
-      }
+      await createBarrio(villageId, {
+        name: name.trim(), municipalityId: villageId, proposedBy: uid, images,
+      }, barrioId);
       setName('');
-      setImage(null);
+      setImages([]);
       onCreated?.();
     } finally {
       setSaving(false);
@@ -50,11 +69,13 @@ export function BarriosManager({
   return (
     <VStack gap={3} className="p-4">
       <ProposableForm
-        image={image}
-        onImageChange={setImage}
+        images={images}
+        onAddImage={addImage}
+        onRemoveImage={removeImage}
+        addingImage={addingImage}
         imageLabels={{
           add: t('village.admin.barrios.addImage'),
-          selected: t('village.admin.barrios.imageSelected'),
+          remove: t('village.admin.barrios.removeImage'),
         }}
         name={name}
         onChangeName={setName}

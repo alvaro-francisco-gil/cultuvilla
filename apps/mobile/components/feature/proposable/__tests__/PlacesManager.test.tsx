@@ -1,21 +1,31 @@
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { PlacesManager } from '../PlacesManager';
-import { createPlace } from '@cultuvilla/shared/services/municipalityService';
+import { createPlace, newPlaceId } from '@cultuvilla/shared/services/municipalityService';
+import { uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
+import { pickImageAsBlob } from '../../../../lib/images';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
+  newPlaceId: jest.fn().mockReturnValue('new-id'),
   createPlace: jest.fn().mockResolvedValue('new-id'),
   updatePlace: jest.fn().mockResolvedValue(undefined),
 }));
-jest.mock('@cultuvilla/shared/services/imageService', () => ({ uploadPlaceImage: jest.fn() }));
+jest.mock('@cultuvilla/shared/services/imageService', () => ({
+  uploadPlaceImage: jest.fn().mockResolvedValue('https://example.com/place.jpg'),
+  deleteImageByURL: jest.fn(),
+}));
 jest.mock('../../../../lib/images', () => ({ pickImageAsBlob: jest.fn() }));
 jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({ useEntityCapabilities: jest.fn() }));
 
 const mockCaps = useEntityCapabilities as jest.Mock;
+const mockPick = pickImageAsBlob as jest.Mock;
+
+const stubImage = { blob: {} as Blob, filename: 'place.jpg', contentType: 'image/jpeg', previewUri: 'file://place.jpg' };
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockPick.mockResolvedValue(stubImage);
   mockCaps.mockReturnValue({ canManage: false, canApprove: false, uid: 'alice', loading: false });
 });
 
@@ -25,9 +35,11 @@ describe('<PlacesManager>', () => {
     fireEvent.changeText(getByTestId('place-name-input'), 'Fuente');
     fireEvent.press(getByTestId('place-submit'));
     await waitFor(() =>
-      expect(createPlace).toHaveBeenCalledWith('m1', {
-        name: 'Fuente', kind: 'cemetery', description: '', municipalityId: 'm1', proposedBy: 'alice',
-      }),
+      expect(createPlace).toHaveBeenCalledWith(
+        'm1',
+        { name: 'Fuente', kind: 'cemetery', description: '', municipalityId: 'm1', proposedBy: 'alice', images: [] },
+        'new-id',
+      ),
     );
   });
 
@@ -37,9 +49,33 @@ describe('<PlacesManager>', () => {
     fireEvent.changeText(getByTestId('place-name-input'), 'Iglesia');
     fireEvent.press(getByTestId('place-submit'));
     await waitFor(() =>
-      expect(createPlace).toHaveBeenCalledWith('m1', {
-        name: 'Iglesia', kind: 'cemetery', description: '', municipalityId: 'm1', proposedBy: 'boss',
-      }),
+      expect(createPlace).toHaveBeenCalledWith(
+        'm1',
+        { name: 'Iglesia', kind: 'cemetery', description: '', municipalityId: 'm1', proposedBy: 'boss', images: [] },
+        'new-id',
+      ),
     );
+  });
+
+  it('uploads a picked image to the minted place id and includes it in the create payload', async () => {
+    const { getByTestId, getByLabelText } = render(<PlacesManager villageId="m1" />);
+    fireEvent.press(getByLabelText('village.admin.places.addImage'));
+    await waitFor(() => expect(mockPick).toHaveBeenCalled());
+    fireEvent.changeText(getByTestId('place-name-input'), 'Fuente');
+    fireEvent.press(getByTestId('place-submit'));
+
+    expect(uploadPlaceImage).toHaveBeenCalledWith('m1', 'new-id', stubImage);
+    await waitFor(() =>
+      expect(createPlace).toHaveBeenCalledWith(
+        'm1',
+        expect.objectContaining({ images: ['https://example.com/place.jpg'] }),
+        'new-id',
+      ),
+    );
+  });
+
+  it('mints the place id up front via newPlaceId', () => {
+    render(<PlacesManager villageId="m1" />);
+    expect(newPlaceId).toHaveBeenCalledWith('m1');
   });
 });

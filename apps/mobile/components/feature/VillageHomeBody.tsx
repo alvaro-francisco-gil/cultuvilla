@@ -110,8 +110,6 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
     barrios,
     places,
     organizations,
-    orgMemberCounts,
-    barrioResidentCounts,
     events,
     news,
     festivalPosters,
@@ -395,10 +393,10 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               key={b.id}
               label={b.name}
               sub={t('village.admin.barrios.residentCount', {
-                count: barrioResidentCounts[b.id] ?? 0,
+                count: b.residentCount,
               })}
               icon="map-outline"
-              imageUri={b.imageURL}
+              imageUri={b.images[0] ?? null}
               commentCount={b.commentCount}
               onPress={() => router.push(`/village/${village.id}/barrio/${b.id}` as never)}
             />
@@ -416,7 +414,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               key={p.id}
               label={p.name}
               icon="location-outline"
-              imageUri={p.imageURL}
+              imageUri={p.images[0] ?? null}
               commentCount={p.commentCount}
               onPress={() => router.push(`/village/${village.id}/place/${p.id}` as never)}
             />
@@ -433,9 +431,9 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
             <EntityCard
               key={o.id}
               label={o.name}
-              sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
+              sub={t('village.hub.memberCount', { count: o.memberCount })}
               icon="business-outline"
-              imageUri={o.imageURL}
+              imageUri={o.images[0] ?? null}
               commentCount={o.commentCount}
               onPress={() => router.push(`/o/${o.id}` as never)}
             />
@@ -452,9 +450,9 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
             <EntityCard
               key={o.id}
               label={o.name}
-              sub={t('village.hub.memberCount', { count: orgMemberCounts[o.id] ?? 0 })}
+              sub={t('village.hub.memberCount', { count: o.memberCount })}
               icon="people-circle-outline"
-              imageUri={o.imageURL}
+              imageUri={o.images[0] ?? null}
               commentCount={o.commentCount}
               onPress={() => router.push(`/o/${o.id}` as never)}
             />
@@ -574,6 +572,7 @@ function NewsEntityCard({
   post: NewsPostData & { id: string };
   onPress: () => void;
 }) {
+  const { t } = useT();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const firstImagePath = post.coverImage?.storagePath ?? post.images[0]?.storagePath ?? null;
 
@@ -598,7 +597,7 @@ function NewsEntityCard({
   return (
     <EntityCard
       label={post.title}
-      sub={formatDate(post.publishedAt ?? post.createdAt, 'short')}
+      sub={t(`news.compose.category.${post.category}`)}
       icon="newspaper-outline"
       imageUri={imageUri}
       onPress={onPress}

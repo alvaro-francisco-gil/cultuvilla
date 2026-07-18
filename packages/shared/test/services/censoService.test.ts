@@ -33,6 +33,14 @@ describe('ProfileFormFieldSchema tolerates null optional fields', () => {
     expect((parsed as { optionsSource?: unknown }).optionsSource).toBeUndefined();
     expect(parsed).toMatchObject({ options: ['a', 'b'] });
   });
+
+  it.each(['events', 'festivalPosters', 'news'])('accepts an entity field sourced from %s', (source) => {
+    const parsed = ProfileFormFieldSchema.parse({
+      source: 'custom', key: 'q', label: 'q', type: 'select',
+      options: null, optionsSource: source, required: false,
+    });
+    expect(parsed).toMatchObject({ optionsSource: source });
+  });
 });
 
 describe('missingRequiredAnswers', () => {

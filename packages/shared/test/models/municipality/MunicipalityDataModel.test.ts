@@ -160,32 +160,47 @@ describe('buildVillageCommunity', () => {
 });
 
 describe('BarrioDataSchema and buildBarrioData', () => {
-  it('builds, defaults imageURL to null, and round-trips', () => {
+  it('builds, defaults images to [] and residentCount to 0, and round-trips', () => {
     const b = buildBarrioData({ name: 'El Castillo', municipalityId: 'm1' });
-    expect(b.imageURL).toBeNull();
+    expect(b.images).toEqual([]);
+    expect(b.residentCount).toBe(0);
     expect(() => BarrioDataSchema.parse(b)).not.toThrow();
   });
 
-  it('keeps a provided imageURL', () => {
-    const b = buildBarrioData({ name: 'El Castillo', municipalityId: 'm1', imageURL: 'https://x/b.png' });
-    expect(b.imageURL).toBe('https://x/b.png');
+  it('keeps provided images ordered (cover first)', () => {
+    const b = buildBarrioData({ name: 'El Castillo', municipalityId: 'm1', images: ['https://x/b.png', 'https://x/b2.png'] });
+    expect(b.images).toEqual(['https://x/b.png', 'https://x/b2.png']);
     expect(() => BarrioDataSchema.parse(b)).not.toThrow();
+  });
+
+  it('rejects more than 5 images at the schema boundary', () => {
+    const b = buildBarrioData({ name: 'El Castillo', municipalityId: 'm1' });
+    expect(() =>
+      BarrioDataSchema.parse({ ...b, images: ['1', '2', '3', '4', '5', '6'] }),
+    ).toThrow();
   });
 });
 
 describe('PlaceDataSchema and buildPlaceData', () => {
-  it('defaults description + imageURL to null, keeps kind, and round-trips', () => {
+  it('defaults description to null and images to [], keeps kind, and round-trips', () => {
     const p = buildPlaceData({ name: 'C', kind: 'cemetery', municipalityId: 'm1' });
     expect(p.description).toBeNull();
-    expect(p.imageURL).toBeNull();
+    expect(p.images).toEqual([]);
     expect(p.kind).toBe('cemetery');
     expect(() => PlaceDataSchema.parse(p)).not.toThrow();
   });
 
-  it('keeps a provided imageURL', () => {
-    const p = buildPlaceData({ name: 'C', kind: 'church', municipalityId: 'm1', imageURL: 'https://x/p.png' });
-    expect(p.imageURL).toBe('https://x/p.png');
+  it('keeps provided images ordered (cover first)', () => {
+    const p = buildPlaceData({ name: 'C', kind: 'church', municipalityId: 'm1', images: ['https://x/p.png', 'https://x/p2.png'] });
+    expect(p.images).toEqual(['https://x/p.png', 'https://x/p2.png']);
     expect(() => PlaceDataSchema.parse(p)).not.toThrow();
+  });
+
+  it('rejects more than 5 images at the schema boundary', () => {
+    const p = buildPlaceData({ name: 'C', kind: 'church', municipalityId: 'm1' });
+    expect(() =>
+      PlaceDataSchema.parse({ ...p, images: ['1', '2', '3', '4', '5', '6'] }),
+    ).toThrow();
   });
 
   it('rejects an unknown kind', () => {
@@ -195,7 +210,7 @@ describe('PlaceDataSchema and buildPlaceData', () => {
         kind: 'castle',
         description: null,
         municipalityId: 'm1',
-        imageURL: null,
+        images: [],
         createdAt: new Date(),
       }),
     ).toThrow();

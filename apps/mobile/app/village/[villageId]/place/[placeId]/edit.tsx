@@ -8,10 +8,10 @@ import { ProposableForm } from '../../../../../components/feature/proposable/Pro
 import { DeleteHeaderButton } from '../../../../../components/feature/DeleteHeaderButton';
 import { useT } from '../../../../../lib/i18n';
 import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
+import { pickImageAsBlob } from '../../../../../lib/images';
 import { getPlace, updatePlace } from '@cultuvilla/shared/services/municipalityService';
 import { hideContent } from '@cultuvilla/shared/services/moderationService';
-import { uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
-import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
+import { deleteImageByURL, uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
 import { PLACE_KINDS, type PlaceKind } from '@cultuvilla/shared/models/municipality';
 
 export default function PlaceEditScreen() {
@@ -21,8 +21,8 @@ export default function PlaceEditScreen() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [kind, setKind] = useState<PlaceKind>('cemetery');
-  const [existingImageUri, setExistingImageUri] = useState<string | null>(null);
-  const [image, setImage] = useState<UploadableImage | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [addingImage, setAddingImage] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -37,7 +37,7 @@ export default function PlaceEditScreen() {
         setName(p.name);
         setDescription(p.description ?? '');
         setKind(p.kind);
-        setExistingImageUri(p.imageURL ?? null);
+        setImages(p.images);
       } else {
         setNotFound(true);
       }
@@ -55,6 +55,33 @@ export default function PlaceEditScreen() {
   }
   if (!canManage) return <Redirect href={`/village/${villageId}/place/${placeId}`} />;
 
+  // Images persist immediately (unlike the create flow, the doc already
+  // exists here), so add/remove writes the doc on each action rather than
+  // batching to submit.
+  async function addImage() {
+    if (!villageId || !placeId) return;
+    const picked = await pickImageAsBlob();
+    if (!picked) return;
+    setAddingImage(true);
+    try {
+      const url = await uploadPlaceImage(villageId, placeId, picked);
+      const next = [...images, url];
+      await updatePlace(villageId, placeId, { images: next });
+      setImages(next);
+    } finally {
+      setAddingImage(false);
+    }
+  }
+
+  async function removeImage(index: number) {
+    if (!villageId || !placeId) return;
+    const url = images[index];
+    const next = images.filter((_, i) => i !== index);
+    await updatePlace(villageId, placeId, { images: next });
+    setImages(next);
+    if (url) void deleteImageByURL(url).catch(() => {}); // best-effort orphan cleanup
+  }
+
   async function submit() {
     if (!villageId || !placeId || !name.trim()) return;
     setSaving(true);
@@ -62,10 +89,6 @@ export default function PlaceEditScreen() {
       await updatePlace(villageId, placeId, {
         name: name.trim(), kind, description: description.trim() || null,
       });
-      if (image) {
-        const imageURL = await uploadPlaceImage(villageId, placeId, image);
-        await updatePlace(villageId, placeId, { imageURL });
-      }
       router.back();
     } finally {
       setSaving(false);
@@ -101,12 +124,13 @@ export default function PlaceEditScreen() {
       ) : (
         <ScrollView contentContainerClassName="p-4">
           <ProposableForm
-            image={image}
-            onImageChange={setImage}
-            existingImageUri={existingImageUri}
+            images={images}
+            onAddImage={addImage}
+            onRemoveImage={removeImage}
+            addingImage={addingImage}
             imageLabels={{
               add: t('village.admin.places.addImage'),
-              selected: t('village.admin.places.imageSelected'),
+              remove: t('village.admin.places.removeImage'),
             }}
             name={name}
             onChangeName={setName}

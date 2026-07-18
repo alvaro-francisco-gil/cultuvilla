@@ -4,6 +4,7 @@ import { Pressable, Text, HStack } from '../../primitives';
 export interface ChoiceOption {
   value: string;
   label: string;
+  imageUri?: string | null;
   disabled?: boolean;
 }
 

@@ -9,7 +9,7 @@ export function DetailSectionHeading({ children }: { children: string }) {
   return (
     <Text
       variant="h3"
-      className="font-bold"
+      className="mt-4 font-bold"
       style={{ color: colors.light.fg.secondary, fontSize: 22, lineHeight: 28 }}
     >
       {children}

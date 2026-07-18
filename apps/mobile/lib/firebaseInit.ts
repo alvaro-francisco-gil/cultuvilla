@@ -9,7 +9,13 @@ import { Platform } from 'react-native';
 import { initializeAuth, getReactNativePersistence } from '@firebase/auth';
 import type { FirebaseOptions } from 'firebase/app';
 import Constants from 'expo-constants';
-import { connectAuthEmulator } from 'firebase/auth';
+import {
+  browserLocalPersistence,
+  browserPopupRedirectResolver,
+  connectAuthEmulator,
+  inMemoryPersistence,
+  indexedDBLocalPersistence,
+} from 'firebase/auth';
 import { connectFirestoreEmulator } from 'firebase/firestore';
 import { connectFunctionsEmulator } from 'firebase/functions';
 import { connectStorageEmulator } from 'firebase/storage';
@@ -89,7 +95,7 @@ function connectEmulatorsIfEnabled(): void {
 }
 
 /**
- * Initialise Firebase with React Native AsyncStorage persistence.
+ * Initialise Firebase with explicit, platform-appropriate auth persistence.
  *
  * Idempotent — `initFirebase` returns early if already initialised, and the
  * module-level guard prevents the options object from being rebuilt on every
@@ -98,7 +104,19 @@ function connectEmulatorsIfEnabled(): void {
 export function bootstrapFirebase(): void {
   const config = getFirebaseOptions();
   if (Platform.OS === 'web') {
-    initFirebase(config);
+    // Pin the persistence chain explicitly rather than relying on
+    // firebase/auth's environment auto-detection (plain getAuth(app)): the
+    // default silently downgrades to session/in-memory persistence in
+    // storage-restricted contexts (Safari private browsing, in-app browsers
+    // like WhatsApp/Instagram webviews), which signs users out on every
+    // visit and forces them back through the email-link round-trip.
+    initFirebase(config, {
+      customizeAuth: (app) =>
+        initializeAuth(app, {
+          persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence],
+          popupRedirectResolver: browserPopupRedirectResolver,
+        }),
+    });
   } else {
     initFirebase(config, {
       customizeAuth: (app) =>

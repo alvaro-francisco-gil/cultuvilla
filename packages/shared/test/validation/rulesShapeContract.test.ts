@@ -17,7 +17,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildOrganizationData } from '../../src/models/organization/OrganizationDataModel';
 import { buildOrgMemberData } from '../../src/models/organization/OrgMemberDataModel';
-import { buildOrganizationJoinRequestData } from '../../src/models/organizationJoinRequest/OrganizationJoinRequestDataModel';
 import { buildOrganizerRequestData } from '../../src/models/municipality/OrganizerRequestDataModel';
 import { buildPlaceData, buildBarrioData } from '../../src/models/municipality/MunicipalityDataModel';
 
@@ -36,9 +35,9 @@ const SHAPE_CONTRACTS: ShapeContract[] = [
     build: () =>
       buildOrganizationData({ name: 'Peña', type: 'peña', municipalityId: 'm1', requestedBy: 'u1' }),
     ruleKeys: [
-      'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
+      'name', 'description', 'images', 'type', 'status', 'municipalityId',
       'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
-      'commentCount', 'readCount', 'membersPublic',
+      'commentCount', 'readCount', 'memberCount', 'membersPublic',
     ],
   },
   {
@@ -47,15 +46,10 @@ const SHAPE_CONTRACTS: ShapeContract[] = [
     ruleKeys: ['userId', 'joinedAt', 'role'],
   },
   {
-    label: 'organizationJoinRequests — isValidJoinRequestCreate',
-    build: () => buildOrganizationJoinRequestData({ userId: 'u1', orgId: 'o1', municipalityId: 'm1' }),
-    ruleKeys: ['userId', 'orgId', 'municipalityId', 'status', 'requestedAt', 'reviewedAt', 'reviewedBy'],
-  },
-  {
     label: 'places (create) — isValidPlaceCreate',
     build: () => buildPlaceData({ name: 'Cementerio Viejo', kind: 'cemetery', municipalityId: 'm1' }),
     ruleKeys: [
-      'name', 'kind', 'description', 'municipalityId', 'imageURL',
+      'name', 'kind', 'description', 'municipalityId', 'images',
       'createdAt', 'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
       'commentCount', 'readCount',
     ],
@@ -64,9 +58,9 @@ const SHAPE_CONTRACTS: ShapeContract[] = [
     label: 'barrios (create) — isValidBarrioCreate',
     build: () => buildBarrioData({ name: 'Centro', municipalityId: 'm1' }),
     ruleKeys: [
-      'name', 'municipalityId', 'imageURL', 'createdAt', 'status', 'proposedBy',
+      'name', 'municipalityId', 'images', 'createdAt', 'status', 'proposedBy',
       'hiddenBy', 'hiddenAt', 'hiddenReason',
-      'commentCount', 'readCount',
+      'commentCount', 'readCount', 'residentCount',
     ],
   },
 ];
@@ -81,12 +75,11 @@ describe('model builder ↔ firestore.rules shape-validator contract', () => {
 
 describe('review-lifecycle create defaults', () => {
   // The rules' isValid*Create require a fresh request: status=='pending' with
-  // reviewedAt/reviewedBy null; the response callables (respondToJoinRequest,
-  // respondToOrganizerRequest, approveOrganization) all assume that starting
-  // state. Every approval-gated builder must produce it.
+  // reviewedAt/reviewedBy null; the response callables (respondToOrganizerRequest,
+  // approveOrganization) all assume that starting state. Every approval-gated
+  // builder must produce it.
   const PENDING_BUILDERS: Array<[string, Record<string, unknown>]> = [
     ['organization', buildOrganizationData({ name: 'x', type: 'peña', municipalityId: 'm', requestedBy: 'u' })],
-    ['organizationJoinRequest', buildOrganizationJoinRequestData({ userId: 'u', orgId: 'o', municipalityId: 'm' })],
     ['organizerRequest', buildOrganizerRequestData({ userId: 'u', municipalityId: 'm' })],
   ];
 
