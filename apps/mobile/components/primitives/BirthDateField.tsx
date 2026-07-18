@@ -119,8 +119,8 @@ export function BirthDateField({
           style={StyleSheet.absoluteFill}
           className="bg-surface p-4"
         >
-          <View className="pb-3 border-b border-subtle">
-            <Text variant="h3">
+          <View className="px-2 pt-4 pb-5 border-b border-subtle">
+            <Text variant="h2" tone="success">
               {open ? t(`profile.personForm.birthDatePicker.${open}`) : ''}
             </Text>
           </View>
@@ -195,7 +195,7 @@ function OptionList({
       renderItem={({ item }) => (
         <Pressable
           onPress={() => onPick(item)}
-          className="px-4 py-3.5 border-b border-subtle"
+          className="px-6 py-4 border-b border-subtle"
           testID={testID ? `${testID}-${item}` : undefined}
         >
           <Text>{label(item)}</Text>
