@@ -79,6 +79,13 @@ const PENDING_EMAIL_KEY = 'cultuvilla.pendingEmailSignIn';
 // do once the re-auth email link completes), not a sign-in email. The two
 // flows can be in flight independently and must not clobber each other.
 const PENDING_REAUTH_KEY = 'cultuvilla.pendingReauth';
+const AUTH_EMAIL_LANGUAGE = 'es';
+
+function getLocalizedAuth(): ReturnType<typeof getAuth> {
+  const auth = getAuth();
+  auth.languageCode = AUTH_EMAIL_LANGUAGE;
+  return auth;
+}
 
 interface PendingReauthIntent {
   purpose: 'change-email';
@@ -339,7 +346,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       url: getEmailLinkContinueUrl(),
       handleCodeInApp: true,
     };
-    await sendSignInLinkToEmail(getAuth(), trimmed, settings);
+    await sendSignInLinkToEmail(getLocalizedAuth(), trimmed, settings);
     await AsyncStorage.setItem(PENDING_EMAIL_KEY, trimmed);
   };
 
@@ -360,7 +367,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     AsyncStorage.getItem(PENDING_EMAIL_KEY);
 
   const changeEmail = async (newEmail: string): Promise<void> => {
-    const auth = getAuth();
+    const auth = getLocalizedAuth();
     const currentUser = auth.currentUser;
     if (!currentUser) throw new Error('not-signed-in');
     // Defense in depth: the UI hides change-email for non-email-only accounts,
@@ -387,7 +394,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const completeReauth = async (url: string): Promise<void> => {
-    const auth = getAuth();
+    const auth = getLocalizedAuth();
     const currentUser = auth.currentUser;
     if (!currentUser) {
       // The session lapsed between changeEmail() sending the re-auth link and

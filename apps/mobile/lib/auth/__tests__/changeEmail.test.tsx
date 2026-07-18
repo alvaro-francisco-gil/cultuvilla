@@ -15,21 +15,24 @@ const mockAuthState: { currentUser: typeof mockCurrentUser | null } = {
   currentUser: mockCurrentUser,
 };
 
+const mockFirebaseAuth = {
+  languageCode: null as string | null,
+  get currentUser() {
+    return mockAuthState.currentUser;
+  },
+  onAuthStateChanged: (cb: (u: unknown) => void) => {
+    cb(mockAuthState.currentUser);
+    return () => {};
+  },
+};
+
 const mockVerifyBeforeUpdateEmail = jest.fn();
 const mockSendSignInLinkToEmail = jest.fn();
 const mockReauthenticateWithCredential = jest.fn();
 const mockCredentialWithLink = jest.fn().mockReturnValue({ credential: true });
 
 jest.mock('@cultuvilla/shared/firebase', () => ({
-  getAuth: () => ({
-    get currentUser() {
-      return mockAuthState.currentUser;
-    },
-    onAuthStateChanged: (cb: (u: unknown) => void) => {
-      cb(mockAuthState.currentUser);
-      return () => {};
-    },
-  }),
+  getAuth: () => mockFirebaseAuth,
 }));
 
 jest.mock('firebase/auth', () => ({
@@ -79,6 +82,23 @@ describe('AuthContext changeEmail / re-auth', () => {
     AsyncStorage.clear();
     mockCurrentUser.providerData = [{ providerId: 'password' }];
     mockAuthState.currentUser = mockCurrentUser;
+    mockFirebaseAuth.languageCode = null;
+  });
+
+  it('sends account access links in Spanish', async () => {
+    mockSendSignInLinkToEmail.mockResolvedValueOnce(undefined);
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+
+    await act(async () => {
+      await result.current.sendEmailLink('new@example.com');
+    });
+
+    expect(mockFirebaseAuth.languageCode).toBe('es');
+    expect(mockSendSignInLinkToEmail).toHaveBeenCalledWith(
+      mockFirebaseAuth,
+      'new@example.com',
+      expect.objectContaining({ handleCodeInApp: true }),
+    );
   });
 
   it('calls verifyBeforeUpdateEmail with the new address', async () => {
@@ -89,6 +109,7 @@ describe('AuthContext changeEmail / re-auth', () => {
       await result.current.changeEmail('new@example.com');
     });
 
+    expect(mockFirebaseAuth.languageCode).toBe('es');
     expect(mockVerifyBeforeUpdateEmail).toHaveBeenCalledWith(mockCurrentUser, 'new@example.com');
   });
 
@@ -130,6 +151,7 @@ describe('AuthContext changeEmail / re-auth', () => {
       await result.current.completeReauth('https://example.com/finish?mode=signIn');
     });
 
+    expect(mockFirebaseAuth.languageCode).toBe('es');
     expect(mockCredentialWithLink).toHaveBeenCalledWith(
       'old@example.com',
       'https://example.com/finish?mode=signIn',
