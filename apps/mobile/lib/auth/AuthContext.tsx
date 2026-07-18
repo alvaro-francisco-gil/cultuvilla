@@ -12,20 +12,19 @@ import {
   GoogleAuthProvider,
   signInWithCredential,
   signInWithPopup,
-  sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink,
   signInWithEmailAndPassword,
   verifyBeforeUpdateEmail,
   EmailAuthProvider,
   reauthenticateWithCredential,
-  type ActionCodeSettings,
 } from 'firebase/auth';
 import {
   getUserProfile,
   setActiveMunicipality,
   patchUserProfile,
 } from '@cultuvilla/shared/services/userService';
+import { sendAuthSignInEmail } from '@cultuvilla/shared/services/authEmailService';
 import { getUserMemberships } from '@cultuvilla/shared/services/villageMemberService';
 import * as listenerManager from '@cultuvilla/shared/services/listenerManager';
 import type { UserData } from '@cultuvilla/shared/models/user';
@@ -342,11 +341,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const sendEmailLink = async (email: string): Promise<void> => {
     const trimmed = email.trim();
     if (!trimmed) throw new Error('email-required');
-    const settings: ActionCodeSettings = {
-      url: getEmailLinkContinueUrl(),
-      handleCodeInApp: true,
-    };
-    await sendSignInLinkToEmail(getLocalizedAuth(), trimmed, settings);
+    await sendAuthSignInEmail(trimmed, getEmailLinkContinueUrl());
     await AsyncStorage.setItem(PENDING_EMAIL_KEY, trimmed);
   };
 
@@ -384,11 +379,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!currentEmail) throw err;
       const intent: PendingReauthIntent = { purpose: 'change-email', newEmail: trimmed };
       await AsyncStorage.setItem(PENDING_REAUTH_KEY, JSON.stringify(intent));
-      const settings: ActionCodeSettings = {
-        url: getEmailLinkContinueUrl(),
-        handleCodeInApp: true,
-      };
-      await sendSignInLinkToEmail(auth, currentEmail, settings);
+      await sendAuthSignInEmail(currentEmail, getEmailLinkContinueUrl());
       throw new ReauthRequiredError();
     }
   };
