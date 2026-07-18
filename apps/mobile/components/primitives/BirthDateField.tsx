@@ -119,8 +119,8 @@ export function BirthDateField({
           style={StyleSheet.absoluteFill}
           className="bg-surface p-4"
         >
-          <View className="px-2 pt-4 pb-5 border-b border-subtle">
-            <Text variant="h2" tone="success">
+          <View className="px-6 pt-4 pb-5 border-b border-subtle">
+            <Text variant="h2" className="text-accent">
               {open ? t(`profile.personForm.birthDatePicker.${open}`) : ''}
             </Text>
           </View>

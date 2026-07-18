@@ -53,7 +53,7 @@ describe('BirthDateField', () => {
 
     expect(getByText('Mayo')).toBeTruthy();
     expect(getAllByText('Mes')[1]?.props.className).toContain('text-h2');
-    expect(getAllByText('Mes')[1]?.props.className).toContain('text-success');
+    expect(getAllByText('Mes')[1]?.props.className).toContain('text-accent');
     expect(getByTestId('birth-month-option-4').props.className).toContain('px-6');
   });
 
