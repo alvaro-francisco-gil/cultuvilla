@@ -33,10 +33,17 @@ async function main() {
   console.log(`Backfilling barrios.residentCount against ${projectId}\n`);
 
   const munis = await db.collection('municipalities').get();
+  const activeMunis = munis.docs.filter((doc) => {
+    try {
+      return doc.data().communityActive === true;
+    } catch {
+      return true; // malformed doc: descend rather than silently skip
+    }
+  });
   let total = 0;
   let patched = 0;
 
-  for (const muni of munis.docs) {
+  for (const muni of activeMunis) {
     const barrios = await muni.ref.collection('barrios').get();
     for (const barrio of barrios.docs) {
       total++;
@@ -56,7 +63,9 @@ async function main() {
     }
   }
 
-  console.log(`Done. barrios: ${total} docs — patched ${patched}, already correct ${total - patched}`);
+  console.log(
+    `Done. barrios: ${total} docs across ${activeMunis.length} active of ${munis.size} municipalities — patched ${patched}, already correct ${total - patched}`,
+  );
 }
 
 main().catch((err) => {

@@ -80,7 +80,15 @@ async function main() {
   let barriosSkipped = 0;
   let barriosTotal = 0;
 
-  for (const muniDoc of municipalitiesSnap.docs) {
+  const activeMunicipalities = municipalitiesSnap.docs.filter((doc) => {
+    try {
+      return doc.data().communityActive === true;
+    } catch {
+      return true; // malformed doc: descend rather than silently skip
+    }
+  });
+
+  for (const muniDoc of activeMunicipalities) {
     const placesSnap = await muniDoc.ref.collection('places').get();
     const placesResult = await migrateDocs(placesSnap.docs);
     placesPatched += placesResult.patched;
@@ -95,10 +103,10 @@ async function main() {
   }
 
   console.log(
-    `places: patched ${placesPatched}, already migrated ${placesSkipped} (of ${placesTotal}, across ${municipalitiesSnap.size} municipalities)`,
+    `places: patched ${placesPatched}, already migrated ${placesSkipped} (of ${placesTotal}, across ${activeMunicipalities.length} active of ${municipalitiesSnap.size} municipalities)`,
   );
   console.log(
-    `barrios: patched ${barriosPatched}, already migrated ${barriosSkipped} (of ${barriosTotal}, across ${municipalitiesSnap.size} municipalities)`,
+    `barrios: patched ${barriosPatched}, already migrated ${barriosSkipped} (of ${barriosTotal}, across ${activeMunicipalities.length} active of ${municipalitiesSnap.size} municipalities)`,
   );
 
   console.log(
