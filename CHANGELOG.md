@@ -13,6 +13,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Fixed
 - Peña actions now use specific request copy: the detail FAB says “Unirme a esta peña” and the creation form says “Enviar solicitud”.
+- Web sign-in now pins an explicit auth persistence chain (indexedDB → localStorage → in-memory) instead of relying on the Firebase SDK's environment auto-detection, which could silently downgrade to session-only persistence in storage-restricted contexts (Safari private browsing, in-app browser webviews) and force users back through the passwordless email-link sign-in on every visit.
 - The profile's Grupos stat now includes peña memberships instead of counting only non-peña organizations.
 - Profile section titles now use the same font size as the pueblo tab, removing the smaller headings previously used by Personas, managed events, created news and Pueblos.
 - Opening a shared village link (`/village/<id>`) now always lands inside the app shell (bottom tabs + header) for signed-in members too, not just guests. Previously a signed-in visitor got a chrome-less, tab-less dead-end screen. A cold entry (no back stack) redirects into the pueblo tab showing the shared village; in-app navigation to a village (from discovery, a profile, the inbox or a news mention) keeps its back-navigable detail screen. The shared village rides a transient `villageId` query param, so a member's home village (`activeMunicipalityId`) is never silently switched.
