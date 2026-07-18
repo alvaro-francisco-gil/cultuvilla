@@ -159,6 +159,37 @@ reactions/likes feature — it was removed in favor of this invisible counter.
 - **Not surfaced in the UI today** — it's tracked for future use (e.g.
   ranking, moderation signal), not rendered on any card or detail screen.
 
+### `memberCount` ← `organizations/{orgId}/members/` and `residentCount` ← `persons/`
+
+Membership-size counters that back **ordering** on the village hub: peñas /
+agrupaciones sort by member count, barrios by resident count (both descending,
+name as tie-break). They are the reason these are denormalized triggers rather
+than the `getCountFromServer` aggregate the "Counters vs. denormalization"
+section below would otherwise prescribe — the hub renders *every* org and barrio
+in the village, so the old approach fired one count-aggregate query per entity
+(an N+1 on a hot path) **and** the counts arrived in a separate async map after
+the list order was already fixed, so they couldn't drive ordering at all. Moving
+the count onto the list doc removes the fan-out and lets the hub sort in memory
+with no extra reads and no visible reshuffle.
+
+- **Source of truth is membership, not a count doc.** `syncOrgMemberCount`
+  ([functions/src/organizations/syncOrgMemberCount.ts](../../functions/src/organizations/syncOrgMemberCount.ts))
+  watches `organizations/{orgId}/members/{userId}` and applies ±1 on
+  create/delete (role changes are a no-op). `syncBarrioResidentCount`
+  ([functions/src/village/syncBarrioResidentCount.ts](../../functions/src/village/syncBarrioResidentCount.ts))
+  watches `persons/{personId}` and diffs the `municipalityLinks` barrio set,
+  applying ±1 to each barrio a person gains or loses (whole-village links with
+  `barrioId: null` count toward no barrio). Both use the field-path
+  `.update(field, increment)` overload (no converter) and swallow `NOT_FOUND`
+  so a parent deleted mid-cascade doesn't retry forever.
+- **Rules:** `firestore.rules` forbids clients writing `memberCount` /
+  `residentCount` on update and requires them zeroed at create — function-owned,
+  same as the comment/read counters.
+- **Backfill:** [scripts/backfill-org-member-count.mjs](../../scripts/backfill-org-member-count.mjs)
+  and [scripts/backfill-barrio-resident-count.mjs](../../scripts/backfill-barrio-resident-count.mjs)
+  recompute the true count from the source and write it; they double as repair
+  tools if a trigger ever drifts.
+
 ## Adding a new denormalized field — checklist
 
 1. Add the field to the **read-model document's** data model in `packages/shared/src/models/`.

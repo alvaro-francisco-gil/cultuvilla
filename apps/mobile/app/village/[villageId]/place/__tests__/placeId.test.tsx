@@ -16,7 +16,7 @@ jest.mock('../../../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: () => ({ canManage: false, uid: 'u1', loading: false }),
 }));
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
-  getPlace: jest.fn().mockResolvedValue({ id: 'pl1', name: 'La Plaza', kind: 'square', imageURL: null, description: 'desc' }),
+  getPlace: jest.fn().mockResolvedValue({ id: 'pl1', name: 'La Plaza', kind: 'square', images: [], description: 'desc' }),
 }));
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({ getPlaceViewLink: () => 'https://x' }));
 jest.mock('@cultuvilla/shared/services/personService', () => ({ getPersonsByBurialPlace: jest.fn().mockResolvedValue([]) }));

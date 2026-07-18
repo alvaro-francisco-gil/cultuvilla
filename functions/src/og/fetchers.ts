@@ -53,7 +53,7 @@ interface RawVillage {
 interface RawOrg {
   name?: unknown;
   description?: unknown;
-  imageURL?: unknown;
+  images?: unknown;
 }
 
 function asString(v: unknown): string | null {
@@ -99,10 +99,12 @@ export async function getOrgOg(orgId: string): Promise<OgMeta | null> {
   const snap = await getFirestore().collection('organizations').doc(orgId).get();
   if (!snap.exists) return null;
   const o = (snap.data() ?? {}) as RawOrg;
+  // images[0] is the hero/cover — see OrganizationDataModel's images convention.
+  const images = Array.isArray(o.images) ? o.images : [];
   return {
     title: asString(o.name) ?? '',
     description: trim(asString(o.description)),
-    imageUrl: asString(o.imageURL),
+    imageUrl: asString(images[0]),
   };
 }
 

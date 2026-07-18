@@ -154,8 +154,9 @@ export function buildVillageCommunity(input: ActivateCommunityInput): VillageCom
 export const BarrioDataSchema = z.object({
   name: z.string(),
   municipalityId: z.string(),
-  /** Public download URL for the barrio's picture. `null` when unset. */
-  imageURL: z.string().nullable(),
+  /** Public download URLs for the barrio's pictures (max 5). `images[0]` is
+   *  the hero/cover shown in the detail scaffold. */
+  images: z.array(z.string()).max(5),
   createdAt: z.date(),
   proposedBy: z.string().nullable(),
   // Denormalized interaction counters, maintained server-side by the comments
@@ -163,6 +164,11 @@ export const BarrioDataSchema = z.object({
   // at create.
   commentCount: z.number().int(),
   readCount: z.number().int(),
+  // Denormalized resident count — kept in sync by
+  // functions/src/village/syncBarrioResidentCount.ts as persons gain/lose/switch
+  // this barrio in their `municipalityLinks`. Lets the village hub order barrios
+  // by population without an N+1 count-aggregate fan-out. Initialized to 0.
+  residentCount: z.number().int(),
   ...visibilityFields,
 });
 export type BarrioData = z.infer<typeof BarrioDataSchema>;
@@ -170,7 +176,7 @@ export type BarrioData = z.infer<typeof BarrioDataSchema>;
 export interface BarrioDataInput {
   name: string;
   municipalityId: string;
-  imageURL?: string | null;
+  images?: string[];
   proposedBy?: string | null;
 }
 
@@ -178,11 +184,12 @@ export function buildBarrioData(input: BarrioDataInput): BarrioData {
   return {
     name: input.name,
     municipalityId: input.municipalityId,
-    imageURL: input.imageURL ?? null,
+    images: input.images ?? [],
     createdAt: new Date(),
     proposedBy: input.proposedBy ?? null,
     commentCount: 0,
     readCount: 0,
+    residentCount: 0,
     ...defaultVisibility(),
   };
 }
@@ -215,8 +222,9 @@ export const PlaceDataSchema = z.object({
   kind: PlaceKindSchema,
   description: z.string().nullable(),
   municipalityId: z.string(),
-  /** Public download URL for the place's picture. `null` when unset. */
-  imageURL: z.string().nullable(),
+  /** Public download URLs for the place's pictures (max 5). `images[0]` is
+   *  the hero/cover shown in the detail scaffold. */
+  images: z.array(z.string()).max(5),
   createdAt: z.date(),
   proposedBy: z.string().nullable(),
   // Denormalized interaction counters, maintained server-side by the comments
@@ -233,7 +241,7 @@ export interface PlaceDataInput {
   kind: PlaceKind;
   municipalityId: string;
   description?: string | null;
-  imageURL?: string | null;
+  images?: string[];
   proposedBy?: string | null;
 }
 
@@ -243,7 +251,7 @@ export function buildPlaceData(input: PlaceDataInput): PlaceData {
     kind: input.kind,
     municipalityId: input.municipalityId,
     description: input.description ?? null,
-    imageURL: input.imageURL ?? null,
+    images: input.images ?? [],
     createdAt: new Date(),
     proposedBy: input.proposedBy ?? null,
     commentCount: 0,

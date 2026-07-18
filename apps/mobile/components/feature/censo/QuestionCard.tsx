@@ -15,6 +15,9 @@ const SOURCE_LABEL: Record<OptionsSource, string> = {
   barrios: 'censo.builder.sourceBarrios',
   places: 'censo.builder.sourcePlaces',
   organizations: 'censo.builder.sourceOrganizations',
+  events: 'censo.builder.sourceEvents',
+  festivalPosters: 'censo.builder.sourceFestivalPosters',
+  news: 'censo.builder.sourceNews',
 };
 
 export function QuestionCard({

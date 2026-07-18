@@ -12,8 +12,6 @@ import {
   getVillageMembers,
 } from '@cultuvilla/shared/services/villageMemberService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
-import { getOrgMemberCount } from '@cultuvilla/shared/services/orgMemberService';
-import { getBarrioResidentCount } from '@cultuvilla/shared/services/personService';
 import { getMyOrganizerRequests } from '@cultuvilla/shared/services/organizerRequestService';
 import { getEventsByMunicipality } from '@cultuvilla/shared/services/eventService';
 import { getHomeFeed } from '@cultuvilla/shared/services/newsService';
@@ -53,12 +51,11 @@ export interface VillageHomeState {
   village: (MunicipalityData & { id: string }) | null;
   villageAdmin: boolean;
   isMember: boolean;
+  /** Ordered by resident count desc, then name — populated barrios lead. */
   barrios: (BarrioData & { id: string })[];
   places: (PlaceData & { id: string })[];
+  /** Ordered by member count desc, then name — biggest orgs lead. */
   organizations: (OrganizationData & { id: string })[];
-  orgMemberCounts: Record<string, number>;
-  /** Resident count per barrio id (people who picked that specific barrio). */
-  barrioResidentCounts: Record<string, number>;
   events: (EventData & { id: string })[];
   news: (NewsPostData & { id: string })[];
   festivalPosters: FestivalPosterWithId[];
@@ -89,8 +86,6 @@ const EMPTY: VillageHomeState = {
   barrios: [],
   places: [],
   organizations: [],
-  orgMemberCounts: {},
-  barrioResidentCounts: {},
   events: [],
   news: [],
   festivalPosters: [],
@@ -260,21 +255,14 @@ export function useVillageHome(municipalityId: string | null) {
         const bar = await withFirestoreErrorLog('villageHome:getBarrios', () =>
           getBarrios(municipalityId),
         );
-        const counts = await Promise.all(
-          bar.map((b) =>
-            withFirestoreErrorLog('villageHome:getBarrioResidentCount', () =>
-              getBarrioResidentCount(municipalityId, b.id),
-            ),
-          ),
+        // Populated barrios first; the denormalized residentCount rides on each
+        // doc, so this sorts in-memory with no extra reads and no reshuffle.
+        const sorted = [...bar].sort(
+          (a, b) => b.residentCount - a.residentCount || a.name.localeCompare(b.name),
         );
-        const countByBarrio: Record<string, number> = {};
-        bar.forEach((b, i) => {
-          countByBarrio[b.id] = counts[i] ?? 0;
-        });
         commit((s) => ({
           ...s,
-          barrios: bar,
-          barrioResidentCounts: countByBarrio,
+          barrios: sorted,
           sectionStatus: { ...s.sectionStatus, barrios: 'ready' },
         }));
       } catch {
@@ -287,19 +275,14 @@ export function useVillageHome(municipalityId: string | null) {
         const orgs = await withFirestoreErrorLog('villageHome:getOrganizations', () =>
           getOrganizationsByMunicipality(municipalityId),
         );
-        const counts = await Promise.all(
-          orgs.map((o) =>
-            withFirestoreErrorLog('villageHome:getOrgMemberCount', () => getOrgMemberCount(o.id)),
-          ),
+        // Biggest orgs first; the denormalized memberCount rides on each doc, so
+        // this sorts in-memory with no extra reads and no reshuffle.
+        const sorted = [...orgs].sort(
+          (a, b) => b.memberCount - a.memberCount || a.name.localeCompare(b.name),
         );
-        const countByOrg: Record<string, number> = {};
-        orgs.forEach((o, i) => {
-          countByOrg[o.id] = counts[i] ?? 0;
-        });
         commit((s) => ({
           ...s,
-          organizations: orgs,
-          orgMemberCounts: countByOrg,
+          organizations: sorted,
           sectionStatus: { ...s.sectionStatus, organizations: 'ready' },
         }));
       } catch {

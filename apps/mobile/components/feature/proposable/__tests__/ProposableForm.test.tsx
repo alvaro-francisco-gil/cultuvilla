@@ -2,16 +2,15 @@ import { render } from '@testing-library/react-native';
 import { ProposableForm } from '../ProposableForm';
 
 jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ t: (k: string) => k }) }));
-jest.mock('../../../../lib/images', () => ({ pickImageAsBlob: jest.fn() }));
 
-describe('ProposableForm existingImageUri', () => {
-  it('renders the existing image as the picker thumbnail when no image is picked', () => {
+describe('ProposableForm images', () => {
+  it('renders one thumbnail per already-uploaded image URL', () => {
     const { UNSAFE_getAllByProps } = render(
       <ProposableForm
-        image={null}
-        onImageChange={() => {}}
-        existingImageUri="https://example.com/escudo.png"
-        imageLabels={{ add: 'add', selected: 'selected' }}
+        images={['https://example.com/escudo.png']}
+        onAddImage={() => {}}
+        onRemoveImage={() => {}}
+        imageLabels={{ add: 'add', remove: 'remove' }}
         name="Peña"
         onChangeName={() => {}}
         nameLabel="name"
@@ -25,5 +24,24 @@ describe('ProposableForm existingImageUri', () => {
     expect(
       UNSAFE_getAllByProps({ uri: 'https://example.com/escudo.png' }).length,
     ).toBeGreaterThan(0);
+  });
+
+  it('hides the "+" add tile once the image cap (5) is reached', () => {
+    const { queryByLabelText } = render(
+      <ProposableForm
+        images={['a', 'b', 'c', 'd', 'e']}
+        onAddImage={() => {}}
+        onRemoveImage={() => {}}
+        imageLabels={{ add: 'add-photo', remove: 'remove-photo' }}
+        name="Peña"
+        onChangeName={() => {}}
+        nameLabel="name"
+        submitLabel="save"
+        onSubmit={() => {}}
+        saving={false}
+        disabled={false}
+      />,
+    );
+    expect(queryByLabelText('add-photo')).toBeNull();
   });
 });

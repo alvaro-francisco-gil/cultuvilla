@@ -223,18 +223,18 @@ service cloud.firestore {
 
     function isValidOrganizationCreate(d) {
       return d.keys().hasOnly([
-              'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
+              'name', 'description', 'images', 'type', 'status', 'municipalityId',
               'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
-              'commentCount', 'readCount', 'membersPublic',
+              'commentCount', 'readCount', 'memberCount', 'membersPublic',
             ])
           && d.keys().hasAll([
-              'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
+              'name', 'description', 'images', 'type', 'status', 'municipalityId',
               'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
-              'commentCount', 'readCount', 'membersPublic',
+              'commentCount', 'readCount', 'memberCount', 'membersPublic',
             ])
           && isString(d.name)
           && isStringOrNull(d.description)
-          && isStringOrNull(d.imageURL)
+          && isList(d.images) && d.images.size() <= 5
           && d.type in ['ayuntamiento', 'peña', 'asociación', 'otros']
           && d.status in ['pending', 'approved', 'rejected']
           && isString(d.municipalityId)
@@ -244,17 +244,18 @@ service cloud.firestore {
           && isTimestampOrNull(d.reviewedAt)
           && d.commentCount == 0
           && d.readCount == 0
+          && d.memberCount == 0
           && d.membersPublic is bool;
     }
 
     function isValidPlaceCreate(d) {
       return d.keys().hasOnly([
-              'name', 'kind', 'description', 'municipalityId', 'imageURL',
+              'name', 'kind', 'description', 'municipalityId', 'images',
               'createdAt', 'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount',
             ])
           && d.keys().hasAll([
-              'name', 'kind', 'description', 'municipalityId', 'imageURL',
+              'name', 'kind', 'description', 'municipalityId', 'images',
               'createdAt', 'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount',
             ])
@@ -262,7 +263,7 @@ service cloud.firestore {
           && d.kind in ['cemetery', 'church', 'hermitage', 'plaza', 'town_hall', 'otros']
           && isStringOrNull(d.description)
           && isString(d.municipalityId)
-          && isStringOrNull(d.imageURL)
+          && isList(d.images) && d.images.size() <= 5
           && isTimestamp(d.createdAt)
           && d.status == 'active'
           && isStringOrNull(d.proposedBy)
@@ -275,13 +276,13 @@ service cloud.firestore {
 
     function isValidFestivalPosterCreate(d) {
       return d.keys().hasOnly([
-              'municipalityId', 'proposedBy', 'year', 'title', 'imageURL',
+              'municipalityId', 'proposedBy', 'year', 'title', 'images',
               'datePrecision', 'startsAt', 'endsAt', 'createdAt',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount',
             ])
           && d.keys().hasAll([
-              'municipalityId', 'proposedBy', 'year', 'title', 'imageURL',
+              'municipalityId', 'proposedBy', 'year', 'title', 'images',
               'datePrecision', 'startsAt', 'endsAt', 'createdAt',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount',
@@ -290,7 +291,7 @@ service cloud.firestore {
           && isStringOrNull(d.proposedBy)
           && d.year is int
           && isStringOrNull(d.title)
-          && isStringOrNull(d.imageURL)
+          && isList(d.images) && d.images.size() <= 5
           && d.datePrecision in ['year', 'month', 'day']
           && isTimestampOrNull(d.startsAt)
           && isTimestampOrNull(d.endsAt)
@@ -303,29 +304,20 @@ service cloud.firestore {
           && d.readCount == 0;
     }
 
-    function isValidJoinRequestCreate(d) {
-      return d.keys().hasOnly(['userId', 'orgId', 'municipalityId', 'status', 'requestedAt', 'reviewedAt', 'reviewedBy'])
-          && d.keys().hasAll(['userId', 'orgId', 'municipalityId', 'status', 'requestedAt', 'reviewedAt', 'reviewedBy'])
-          && isString(d.userId) && isString(d.orgId) && isString(d.municipalityId)
-          && d.status == 'pending'
-          && isTimestamp(d.requestedAt)
-          && d.reviewedAt == null && d.reviewedBy == null;
-    }
-
     function isValidBarrioCreate(d) {
       return d.keys().hasOnly([
-              'name', 'municipalityId', 'imageURL', 'createdAt',
+              'name', 'municipalityId', 'images', 'createdAt',
               'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
-              'commentCount', 'readCount',
+              'commentCount', 'readCount', 'residentCount',
             ])
           && d.keys().hasAll([
-              'name', 'municipalityId', 'imageURL', 'createdAt',
+              'name', 'municipalityId', 'images', 'createdAt',
               'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
-              'commentCount', 'readCount',
+              'commentCount', 'readCount', 'residentCount',
             ])
           && isString(d.name)
           && isString(d.municipalityId)
-          && isStringOrNull(d.imageURL)
+          && isList(d.images) && d.images.size() <= 5
           && isTimestamp(d.createdAt)
           && d.status == 'active'
           && isStringOrNull(d.proposedBy)
@@ -333,7 +325,8 @@ service cloud.firestore {
           && d.hiddenAt == null
           && d.hiddenReason == null
           && d.commentCount == 0
-          && d.readCount == 0;
+          && d.readCount == 0
+          && d.residentCount == 0;
     }
 
     function isValidEventCreate(d) {
@@ -515,7 +508,7 @@ service cloud.firestore {
         allow update: if (isVillageAdmin(municipalityId) || isAppAdmin() || isOwner(resource.data.proposedBy))
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
                'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
-               'commentCount', 'readCount',
+               'commentCount', 'readCount', 'residentCount',
              ]);
         allow delete: if isVillageAdmin(municipalityId) || isAppAdmin()
           || (isOwner(resource.data.proposedBy) && resource.data.status == 'active');
@@ -586,16 +579,6 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
-    match /organizationJoinRequests/{requestId} {
-      allow read: if isOwner(resource.data.userId)
-        || isOrgAdmin(resource.data.orgId)
-        || isAppAdmin();
-      allow create: if isOwner(request.resource.data.userId)
-        && isValidJoinRequestCreate(request.resource.data);
-      // status transitions only via respondToJoinRequest (admin SDK).
-      allow update, delete: if false;
-    }
-
     // Append-only membership/role audit log (see docs decision
     // membership-roles-and-audit). Function-owned: written only by callables /
     // triggers via the admin SDK, so every client write is denied — and, since
@@ -634,10 +617,10 @@ service cloud.firestore {
       // Approval (status -> 'approved') is function-owned: the approveOrganization
       // callable flips the status AND seeds the founding admin + audits it in one
       // transaction. Clients may edit other fields or reject, never approve.
-      allow update: if (isVillageAdmin(resource.data.municipalityId) || isAppAdmin())
+      allow update: if (isVillageAdmin(resource.data.municipalityId) || isAppAdmin() || isOrgAdmin(orgId))
         && (request.resource.data.status == resource.data.status
             || request.resource.data.status == 'rejected')
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['commentCount', 'readCount']);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['commentCount', 'readCount', 'memberCount']);
       allow delete: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
 
       match /members/{userId} {

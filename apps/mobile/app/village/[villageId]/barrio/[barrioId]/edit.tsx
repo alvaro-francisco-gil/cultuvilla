@@ -8,18 +8,18 @@ import { ProposableForm } from '../../../../../components/feature/proposable/Pro
 import { DeleteHeaderButton } from '../../../../../components/feature/DeleteHeaderButton';
 import { useT } from '../../../../../lib/i18n';
 import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
+import { pickImageAsBlob } from '../../../../../lib/images';
 import { getBarrio, updateBarrio } from '@cultuvilla/shared/services/municipalityService';
 import { hideContent } from '@cultuvilla/shared/services/moderationService';
-import { uploadBarrioImage } from '@cultuvilla/shared/services/imageService';
-import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
+import { deleteImageByURL, uploadBarrioImage } from '@cultuvilla/shared/services/imageService';
 
 export default function BarrioEditScreen() {
   const { villageId, barrioId } = useLocalSearchParams<{ villageId: string; barrioId: string }>();
   const { t } = useT();
   const { canManage, loading: capLoading } = useEntityCapabilities(villageId);
   const [name, setName] = useState('');
-  const [existingImageUri, setExistingImageUri] = useState<string | null>(null);
-  const [image, setImage] = useState<UploadableImage | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [addingImage, setAddingImage] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -30,7 +30,7 @@ export default function BarrioEditScreen() {
       const b = await getBarrio(villageId, barrioId);
       if (b) {
         setName(b.name);
-        setExistingImageUri(b.imageURL ?? null);
+        setImages(b.images);
       } else {
         setNotFound(true);
       }
@@ -48,15 +48,38 @@ export default function BarrioEditScreen() {
   }
   if (!canManage) return <Redirect href={`/village/${villageId}/barrio/${barrioId}`} />;
 
+  // Images persist immediately (unlike the create flow, the doc already
+  // exists here), so add/remove writes the doc on each action rather than
+  // batching to submit.
+  async function addImage() {
+    if (!villageId || !barrioId) return;
+    const picked = await pickImageAsBlob();
+    if (!picked) return;
+    setAddingImage(true);
+    try {
+      const url = await uploadBarrioImage(villageId, barrioId, picked);
+      const next = [...images, url];
+      await updateBarrio(villageId, barrioId, { images: next });
+      setImages(next);
+    } finally {
+      setAddingImage(false);
+    }
+  }
+
+  async function removeImage(index: number) {
+    if (!villageId || !barrioId) return;
+    const url = images[index];
+    const next = images.filter((_, i) => i !== index);
+    await updateBarrio(villageId, barrioId, { images: next });
+    setImages(next);
+    if (url) void deleteImageByURL(url).catch(() => {}); // best-effort orphan cleanup
+  }
+
   async function submit() {
     if (!villageId || !barrioId || !name.trim()) return;
     setSaving(true);
     try {
       await updateBarrio(villageId, barrioId, { name: name.trim() });
-      if (image) {
-        const imageURL = await uploadBarrioImage(villageId, barrioId, image);
-        await updateBarrio(villageId, barrioId, { imageURL });
-      }
       router.back();
     } finally {
       setSaving(false);
@@ -92,12 +115,13 @@ export default function BarrioEditScreen() {
       ) : (
         <ScrollView contentContainerClassName="p-4">
           <ProposableForm
-            image={image}
-            onImageChange={setImage}
-            existingImageUri={existingImageUri}
+            images={images}
+            onAddImage={addImage}
+            onRemoveImage={removeImage}
+            addingImage={addingImage}
             imageLabels={{
               add: t('village.admin.barrios.addImage'),
-              selected: t('village.admin.barrios.imageSelected'),
+              remove: t('village.admin.barrios.removeImage'),
             }}
             name={name}
             onChangeName={setName}

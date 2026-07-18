@@ -1,4 +1,5 @@
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { Share } from 'react-native';
 import { UserMenuModal } from '../UserMenuModal';
 
 const mockPush = jest.fn();
@@ -30,12 +31,40 @@ jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
   getUserMemberships: jest.fn().mockResolvedValue([]),
 }));
 
-describe('UserMenuModal — Ajustes entry', () => {
+describe('UserMenuModal menu actions', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('navigates to /settings when tapping Ajustes', async () => {
     const { getByText } = render(<UserMenuModal visible onClose={jest.fn()} />);
     fireEvent.press(getByText('menu.settings'));
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/settings'));
+  });
+
+  it('shares the Cultuvilla website', async () => {
+    const shareSpy = jest
+      .spyOn(Share, 'share')
+      .mockResolvedValue({ action: Share.sharedAction });
+    const { getByText } = render(<UserMenuModal visible onClose={jest.fn()} />);
+
+    fireEvent.press(getByText('menu.shareApp'));
+
+    await waitFor(() =>
+      expect(shareSpy).toHaveBeenCalledWith({ message: 'https://cultuvilla.es' }),
+    );
+    shareSpy.mockRestore();
+  });
+
+  it('does not show the obsolete requests entry', () => {
+    const { queryByText } = render(<UserMenuModal visible onClose={jest.fn()} />);
+
+    expect(queryByText('menu.myRequests')).toBeNull();
+  });
+
+  it('renders the menu title with the larger green heading style', () => {
+    const { getByText } = render(<UserMenuModal visible onClose={jest.fn()} />);
+    const title = getByText('menu.title');
+
+    expect(title.props.className).toMatch(/text-h1/);
+    expect(title.props.className).toMatch(/text-accent/);
   });
 });

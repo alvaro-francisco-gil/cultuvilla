@@ -60,7 +60,7 @@ function defaultMocks() {
   }));
   mockGetPersonByUserId.mockResolvedValue({ photoURL: null });
   mockGetOrganizationsByMunicipality.mockResolvedValue([
-    { id: ORG_ID, name: 'Org One', municipalityId: MUNICIPALITY_ID, status: 'approved' },
+    { id: ORG_ID, name: 'Org One', municipalityId: MUNICIPALITY_ID, status: 'approved', images: [] },
   ]);
 }
 

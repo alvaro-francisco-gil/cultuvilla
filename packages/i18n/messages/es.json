@@ -200,13 +200,11 @@
     "settings": "Ajustes",
     "switchVillage": "Cambiar de pueblo",
     "findVillage": "Buscar pueblo",
-    "myRequests": "Mis solicitudes",
     "suggestions": "Sugerencias",
     "terms": "Términos de uso",
     "privacy": "Política de privacidad",
     "rateApp": "Valorar app",
     "shareApp": "Compartir app",
-    "shareAppMessage": "Descubre Cultuvilla, la app de tu pueblo.",
     "comingSoon": "Próximamente",
     "version": "Cultuvilla v{version}",
     "section": {
@@ -322,8 +320,7 @@
         "name": "Nombre del barrio",
         "residentCount": "{count} vecinos",
         "addImage": "Añadir imagen",
-        "changeImage": "Cambiar imagen",
-        "imageSelected": "Imagen seleccionada"
+        "removeImage": "Quitar imagen"
       },
       "places": {
         "title": "Lugares",
@@ -332,8 +329,7 @@
         "name": "Nombre",
         "description": "Descripción",
         "addImage": "Añadir imagen",
-        "changeImage": "Cambiar imagen",
-        "imageSelected": "Imagen seleccionada",
+        "removeImage": "Quitar imagen",
         "kindLabel": "Tipo",
         "kind": {
           "cemetery": "Cementerio",
@@ -448,6 +444,10 @@
     "noFields": "Este pueblo no tiene censo configurado",
     "fillIntro": "Responde el cuestionario de tu pueblo.",
     "missingRequired": "Campos obligatorios sin rellenar",
+    "entityPicker": {
+      "placeholder": "Selecciona una opción",
+      "selectedCount": "{count, plural, one {1 seleccionado} other {# seleccionados}}"
+    },
     "types": {
       "text": "Texto corto",
       "textarea": "Párrafo",
@@ -469,6 +469,9 @@
       "sourceBarrios": "Barrios",
       "sourcePlaces": "Lugares",
       "sourceOrganizations": "Peñas",
+      "sourceEvents": "Eventos",
+      "sourceFestivalPosters": "Carteles",
+      "sourceNews": "Artículos",
       "moveUp": "Subir",
       "moveDown": "Bajar",
       "locked": "En uso",
@@ -593,17 +596,19 @@
     "description": "Descripción",
     "membersCount": "{count} miembros",
     "join": "Unirme a este grupo",
+    "joinPeña": "Unirme a esta peña",
     "signInToJoin": "Inicia sesión para unirte",
     "invitedBanner": "Te han invitado a unirte a este grupo",
     "name": "Nombre",
     "type": "Tipo",
     "addImage": "Añadir imagen",
-    "imageSelected": "Imagen seleccionada",
+    "removeImage": "Quitar imagen",
     "ayuntamiento": "Ayuntamiento",
     "peña": "Peña",
     "asociación": "Asociación",
     "otros": "Otros",
     "requestOrg": "Solicitar grupo",
+    "submitRequest": "Enviar solicitud",
     "pending": "Pendiente",
     "approved": "Aprobada",
     "rejected": "Rechazada",
@@ -614,7 +619,20 @@
     "membersPublicLabel": "Los miembros del grupo son visibles para el pueblo",
     "membersPrivateHint": "Solo los miembros del grupo verán quién forma parte.",
     "membersEmpty": "Este grupo aún no tiene miembros.",
-    "adminBadge": "Admin"
+    "adminBadge": "Admin",
+    "membersList": {
+      "promote": "Hacer administrador",
+      "demote": "Quitar administrador",
+      "remove": "Eliminar",
+      "confirmPromoteTitle": "Hacer administrador",
+      "confirmPromoteBody": "¿Dar permisos de administrador a {name}? Podrá editar el grupo y gestionar a otros miembros.",
+      "confirmDemoteTitle": "Quitar administrador",
+      "confirmDemoteBody": "¿Retirar los permisos de administrador a {name}?",
+      "confirmRemoveTitle": "Eliminar miembro",
+      "confirmRemoveBody": "¿Eliminar a {name} del grupo?",
+      "roleChangeError": "No se pudo cambiar el rol. Inténtalo de nuevo.",
+      "removeError": "No se pudo eliminar al miembro. Inténtalo de nuevo."
+    }
   },
   "profile": {
     "myProfile": "Mi perfil",
@@ -672,6 +690,11 @@
     "born": "Nacido en {place}",
     "bornYear": "{year}",
     "personForm": {
+      "birthDatePicker": {
+        "year": "Año",
+        "month": "Mes",
+        "day": "Día"
+      },
       "village": "Pueblo",
       "barrio": "Barrio",
       "wholeVillage": "Todo el pueblo",
@@ -753,19 +776,16 @@
     "empty": "No tienes nada nuevo",
     "tab": {
       "organizer": "Administrador",
-      "org": "Grupos",
-      "join": "Unirse"
+      "org": "Grupos"
     },
     "approve": "Aprobar",
     "reject": "Rechazar",
     "wantsToAdminister": "quiere administrar",
     "motivation": "Motivo",
-    "joinRow": "{user} quiere unirse a {org}",
     "orgRow": "{org} ({type})",
     "pendingSent": {
       "organizer": "Quieres administrar {name}",
       "org": "Quieres crear {name}",
-      "join": "Quieres unirte a {name}",
       "waiting": "Esperando aprobación"
     }
   },

@@ -12,20 +12,19 @@ import {
   GoogleAuthProvider,
   signInWithCredential,
   signInWithPopup,
-  sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink,
   signInWithEmailAndPassword,
   verifyBeforeUpdateEmail,
   EmailAuthProvider,
   reauthenticateWithCredential,
-  type ActionCodeSettings,
 } from 'firebase/auth';
 import {
   getUserProfile,
   setActiveMunicipality,
   patchUserProfile,
 } from '@cultuvilla/shared/services/userService';
+import { sendAuthSignInEmail } from '@cultuvilla/shared/services/authEmailService';
 import { getUserMemberships } from '@cultuvilla/shared/services/villageMemberService';
 import * as listenerManager from '@cultuvilla/shared/services/listenerManager';
 import type { UserData } from '@cultuvilla/shared/models/user';
@@ -79,6 +78,13 @@ const PENDING_EMAIL_KEY = 'cultuvilla.pendingEmailSignIn';
 // do once the re-auth email link completes), not a sign-in email. The two
 // flows can be in flight independently and must not clobber each other.
 const PENDING_REAUTH_KEY = 'cultuvilla.pendingReauth';
+const AUTH_EMAIL_LANGUAGE = 'es';
+
+function getLocalizedAuth(): ReturnType<typeof getAuth> {
+  const auth = getAuth();
+  auth.languageCode = AUTH_EMAIL_LANGUAGE;
+  return auth;
+}
 
 interface PendingReauthIntent {
   purpose: 'change-email';
@@ -335,11 +341,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const sendEmailLink = async (email: string): Promise<void> => {
     const trimmed = email.trim();
     if (!trimmed) throw new Error('email-required');
-    const settings: ActionCodeSettings = {
-      url: getEmailLinkContinueUrl(),
-      handleCodeInApp: true,
-    };
-    await sendSignInLinkToEmail(getAuth(), trimmed, settings);
+    await sendAuthSignInEmail(trimmed, getEmailLinkContinueUrl());
     await AsyncStorage.setItem(PENDING_EMAIL_KEY, trimmed);
   };
 
@@ -360,7 +362,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     AsyncStorage.getItem(PENDING_EMAIL_KEY);
 
   const changeEmail = async (newEmail: string): Promise<void> => {
-    const auth = getAuth();
+    const auth = getLocalizedAuth();
     const currentUser = auth.currentUser;
     if (!currentUser) throw new Error('not-signed-in');
     // Defense in depth: the UI hides change-email for non-email-only accounts,
@@ -377,17 +379,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!currentEmail) throw err;
       const intent: PendingReauthIntent = { purpose: 'change-email', newEmail: trimmed };
       await AsyncStorage.setItem(PENDING_REAUTH_KEY, JSON.stringify(intent));
-      const settings: ActionCodeSettings = {
-        url: getEmailLinkContinueUrl(),
-        handleCodeInApp: true,
-      };
-      await sendSignInLinkToEmail(auth, currentEmail, settings);
+      await sendAuthSignInEmail(currentEmail, getEmailLinkContinueUrl());
       throw new ReauthRequiredError();
     }
   };
 
   const completeReauth = async (url: string): Promise<void> => {
-    const auth = getAuth();
+    const auth = getLocalizedAuth();
     const currentUser = auth.currentUser;
     if (!currentUser) {
       // The session lapsed between changeEmail() sending the re-auth link and

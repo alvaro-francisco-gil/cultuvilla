@@ -94,7 +94,7 @@ export function ProfileView({
       <View className="px-4 pt-4 pb-4">
         <ProfileStatsRow
           stats={[
-            { label: t('profile.stats.grupos'), value: grupos.length },
+            { label: t('profile.stats.grupos'), value: orgs.length },
             { label: t('profile.stats.eventsCreated'), value: eventsCreated },
             { label: t('profile.stats.news'), value: newsCount },
           ]}

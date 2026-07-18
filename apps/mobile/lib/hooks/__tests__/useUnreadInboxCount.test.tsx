@@ -29,18 +29,10 @@ jest.mock('@cultuvilla/shared/services/organizationService', () => ({
     mockGetOrganizationsByMunicipality(municipalityId, status),
 }));
 
-const mockGetAllPendingJoinRequests = jest.fn();
-const mockGetPendingJoinRequestsForOrgs = jest.fn();
-jest.mock('@cultuvilla/shared/services/organizationJoinRequestService', () => ({
-  getAllPendingJoinRequests: () => mockGetAllPendingJoinRequests(),
-  getPendingJoinRequestsForOrgs: (orgIds: string[]) => mockGetPendingJoinRequestsForOrgs(orgIds),
-}));
-
 const NOT_APPROVER = {
   loading: false,
   isSuperAdmin: false,
   adminVillageIds: [] as string[],
-  adminOrgIds: [] as string[],
   canApprove: false,
 };
 
@@ -52,8 +44,6 @@ beforeEach(() => {
   mockGetPendingOrganizerRequests.mockResolvedValue([]);
   mockGetPendingOrganizations.mockResolvedValue([]);
   mockGetOrganizationsByMunicipality.mockResolvedValue([]);
-  mockGetAllPendingJoinRequests.mockResolvedValue([]);
-  mockGetPendingJoinRequestsForOrgs.mockResolvedValue([]);
 });
 
 describe('useUnreadInboxCount', () => {
@@ -78,15 +68,13 @@ describe('useUnreadInboxCount', () => {
       loading: false,
       isSuperAdmin: true,
       adminVillageIds: [],
-      adminOrgIds: [],
       canApprove: true,
     });
     mockGetPendingOrganizerRequests.mockResolvedValue([{ id: 'o1' }]);
     mockGetPendingOrganizations.mockResolvedValue([{ id: 'org1' }, { id: 'org2' }]);
-    mockGetAllPendingJoinRequests.mockResolvedValue([{ id: 'j1' }]);
 
     const { result } = renderHook(() => useUnreadInboxCount());
-    await waitFor(() => expect(result.current.count).toBe(2 + 1 + 2 + 1));
+    await waitFor(() => expect(result.current.count).toBe(2 + 1 + 2));
   });
 
   it('village admin: sums unread + pending orgs across admin villages', async () => {
@@ -95,7 +83,6 @@ describe('useUnreadInboxCount', () => {
       loading: false,
       isSuperAdmin: false,
       adminVillageIds: ['v1', 'v2'],
-      adminOrgIds: [],
       canApprove: true,
     });
     mockGetOrganizationsByMunicipality.mockImplementation((vid: string) =>
@@ -106,22 +93,6 @@ describe('useUnreadInboxCount', () => {
     await waitFor(() => expect(result.current.count).toBe(1 + 1));
     expect(mockGetOrganizationsByMunicipality).toHaveBeenCalledWith('v1', 'pending');
     expect(mockGetOrganizationsByMunicipality).toHaveBeenCalledWith('v2', 'pending');
-  });
-
-  it('org admin: sums unread + pending join requests for admin orgs', async () => {
-    mockGetUnreadCount.mockResolvedValue(0);
-    mockUseApproverStatus.mockReturnValue({
-      loading: false,
-      isSuperAdmin: false,
-      adminVillageIds: [],
-      adminOrgIds: ['org1'],
-      canApprove: true,
-    });
-    mockGetPendingJoinRequestsForOrgs.mockResolvedValue([{ id: 'j1' }, { id: 'j2' }]);
-
-    const { result } = renderHook(() => useUnreadInboxCount());
-    await waitFor(() => expect(result.current.count).toBe(2));
-    expect(mockGetPendingJoinRequestsForOrgs).toHaveBeenCalledWith(['org1']);
   });
 
   it('service failure: falls back to count 0 rather than throwing', async () => {

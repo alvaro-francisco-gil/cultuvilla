@@ -10,7 +10,6 @@ vi.mock('../../src/firebase/refs/client', () => ({
   organizationMemberDoc: vi.fn(),
 }));
 vi.mock('firebase/firestore', () => ({
-  getCountFromServer: vi.fn(),
   getDoc: vi.fn(),
   getDocs: vi.fn(),
   setDoc: vi.fn(),
@@ -18,33 +17,13 @@ vi.mock('firebase/firestore', () => ({
 }));
 vi.mock('firebase/functions', () => ({ httpsCallable: vi.fn() }));
 
-import { getCountFromServer, setDoc } from 'firebase/firestore';
+import { setDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { organizationMembersCollection } from '../../src/firebase/refs/client';
 import {
-  getOrgMemberCount,
   addOrgMember,
   setOrgMemberRole,
   getOrgAdminIds,
 } from '../../src/services/orgMemberService';
-
-describe('getOrgMemberCount', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('returns the server-side member count for the org', async () => {
-    vi.mocked(getCountFromServer).mockResolvedValue({
-      data: () => ({ count: 12 }),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
-
-    const n = await getOrgMemberCount('org-1');
-
-    expect(organizationMembersCollection).toHaveBeenCalledWith(undefined, 'org-1');
-    expect(n).toBe(12);
-  });
-});
 
 describe('orgMemberService roles', () => {
   beforeEach(() => {

@@ -17,7 +17,6 @@ import { newsPostConverterAdmin } from '../converters/newsPostConverter.admin';
 import { commentConverterAdmin } from '../converters/commentConverter.admin';
 import { occupationConverterAdmin } from '../converters/occupationConverter.admin';
 import { adminConverterAdmin } from '../converters/adminConverter.admin';
-import { organizationJoinRequestConverterAdmin } from '../converters/organizationJoinRequestConverter.admin';
 import { membershipEventConverterAdmin } from '../converters/membershipEventConverter.admin';
 import { moderationEventConverterAdmin } from '../converters/moderationEventConverter.admin';
 import { festivalPosterConverterAdmin } from '../converters/festivalPosterConverter.admin';
@@ -145,14 +144,6 @@ export const occupationsCollection = (db: Firestore) =>
 
 export const occupationDoc = (db: Firestore, occupationId: string) =>
   db.collection('occupations').doc(occupationId).withConverter(occupationConverterAdmin);
-
-// ── Organization join requests ───────────────────────────────────────────
-
-export const organizationJoinRequestsCollection = (db: Firestore) =>
-  db.collection('organizationJoinRequests').withConverter(organizationJoinRequestConverterAdmin);
-
-export const organizationJoinRequestDoc = (db: Firestore, id: string) =>
-  db.collection('organizationJoinRequests').doc(id).withConverter(organizationJoinRequestConverterAdmin);
 
 // ── Membership audit log ─────────────────────────────────────────────────
 // Append-only, top-level, scoped by `municipalityId`. Function-owned: clients

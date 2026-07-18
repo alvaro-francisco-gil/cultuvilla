@@ -73,8 +73,8 @@ export async function getOrganizationsByMunicipality(
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-/** Mint an organization doc id up front, so an image can be uploaded to its
- * storage path before `requestOrganization` writes the doc (with imageURL). */
+/** Mint an organization doc id up front, so images can be uploaded to its
+ * storage path before `requestOrganization` writes the doc (with images). */
 export function newOrganizationId(): string {
   return doc(organizationsCollection(getDb())).id;
 }
@@ -96,16 +96,16 @@ export async function requestOrganization(input: OrganizationDataInput): Promise
     return res.data.orgId;
   }
 
-  // Use a caller-provided id when present, so an image can be uploaded to the
+  // Use a caller-provided id when present, so images can be uploaded to the
   // org's storage path *before* the doc is created (the create payload carries
-  // imageURL — no post-create update, which proposers aren't allowed).
+  // images — no post-create update, which proposers aren't allowed).
   const newRef = input.id
     ? doc(organizationsCollection(getDb()), input.id)
     : doc(organizationsCollection(getDb()));
   const data: OrganizationData = {
     name: input.name,
     description: input.description ?? null,
-    imageURL: input.imageURL ?? null,
+    images: input.images ?? [],
     type: input.type,
     status: 'pending',
     municipalityId: input.municipalityId,
@@ -115,6 +115,7 @@ export async function requestOrganization(input: OrganizationDataInput): Promise
     reviewedAt: null,
     commentCount: 0,
     readCount: 0,
+    memberCount: 0,
     membersPublic: input.membersPublic ?? true,
   };
   await setDoc(newRef, data);

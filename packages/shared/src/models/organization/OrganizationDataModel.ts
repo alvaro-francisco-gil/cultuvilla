@@ -25,8 +25,9 @@ export type OrganizationStatus = ReviewStatus;
 export const OrganizationDataSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
-  /** Public download URL for the organization's picture. `null` when unset. */
-  imageURL: z.string().nullable(),
+  /** Public download URLs for the organization's pictures (max 5). `images[0]`
+   *  is the hero/cover shown in the detail scaffold. */
+  images: z.array(z.string()).max(5),
   type: OrganizationTypeSchema,
   municipalityId: z.string(),
   requestedBy: z.string(),
@@ -36,6 +37,12 @@ export const OrganizationDataSchema = z.object({
   // at create.
   commentCount: z.number().int(),
   readCount: z.number().int(),
+  // Denormalized member count — kept in sync by
+  // functions/src/organizations/syncOrgMemberCount.ts as members join/leave.
+  // Lets the village hub order peñas/agrupaciones by size without an N+1
+  // count-aggregate fan-out. Initialized to 0 at create (the founder is seeded
+  // by approveOrganization, which fires the trigger).
+  memberCount: z.number().int(),
   // When false, the member roster is shown only to joined members (admins
   // included); when true, it is shown to everyone. Display preference, not a
   // security boundary — member identities are world-readable. Default true.
@@ -51,7 +58,7 @@ export interface OrganizationDataInput {
   id?: string;
   name: string;
   description?: string | null;
-  imageURL?: string | null;
+  images?: string[];
   type: OrganizationType;
   status?: OrganizationStatus;
   municipalityId: string;
@@ -66,7 +73,7 @@ export function buildOrganizationData(input: OrganizationDataInput): Organizatio
   return {
     name: input.name,
     description: input.description ?? null,
-    imageURL: input.imageURL ?? null,
+    images: input.images ?? [],
     type: input.type,
     status: input.status ?? 'pending',
     municipalityId: input.municipalityId,
@@ -76,6 +83,7 @@ export function buildOrganizationData(input: OrganizationDataInput): Organizatio
     reviewedAt: input.reviewedAt ?? null,
     commentCount: 0,
     readCount: 0,
+    memberCount: 0,
     membersPublic: input.membersPublic ?? true,
   };
 }

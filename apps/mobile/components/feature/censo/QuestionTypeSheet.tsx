@@ -1,10 +1,13 @@
-import { Modal, View, ScrollView } from 'react-native';
+import { Dimensions, Modal, Pressable as RNPressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, HStack } from '../../primitives';
 import { useT } from '../../../lib/i18n';
 import { ACCENT } from '../VillageSections';
 import type { FieldType, OptionsSource } from '@cultuvilla/shared/models/municipality/CensoTypes';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const SHEET_MAX_HEIGHT = Math.round(SCREEN_HEIGHT * 0.9);
 
 /**
  * A pick from the type sheet: either a generic question type, or a village
@@ -35,6 +38,9 @@ const ENTITY_ROWS: Row[] = [
   { pick: { kind: 'entity', source: 'barrios' }, labelKey: 'censo.builder.sourceBarrios', icon: 'map-outline' },
   { pick: { kind: 'entity', source: 'places' }, labelKey: 'censo.builder.sourcePlaces', icon: 'location-outline' },
   { pick: { kind: 'entity', source: 'organizations' }, labelKey: 'censo.builder.sourceOrganizations', icon: 'people-outline' },
+  { pick: { kind: 'entity', source: 'events' }, labelKey: 'censo.builder.sourceEvents', icon: 'calendar-outline' },
+  { pick: { kind: 'entity', source: 'festivalPosters' }, labelKey: 'censo.builder.sourceFestivalPosters', icon: 'image-outline' },
+  { pick: { kind: 'entity', source: 'news' }, labelKey: 'censo.builder.sourceNews', icon: 'newspaper-outline' },
 ];
 
 function samePick(a: SheetPick | undefined, b: SheetPick): boolean {
@@ -79,14 +85,25 @@ export function QuestionTypeSheet({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      {/* Backdrop: tap to dismiss. */}
-      <Pressable onPress={onClose} className="flex-1 bg-black/40 justify-end">
-        <View className="bg-surface rounded-t-2xl overflow-hidden max-h-[90%]">
-          <SafeAreaView edges={['bottom']}>
+      {/* absoluteFill (not flex-1): RN-Web collapses a flex-1 Modal child to zero
+          height, which in turn starved the sheet's max-height calculation and
+          cropped the last rows with no way to scroll to them. */}
+      <RNPressable
+        onPress={onClose}
+        style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }]}
+      >
+        {/* No-op onPress stops a tap on the sheet itself from bubbling to the
+            backdrop and closing the sheet. */}
+        <RNPressable
+          onPress={() => {}}
+          className="bg-surface rounded-t-2xl overflow-hidden"
+          style={{ maxHeight: SHEET_MAX_HEIGHT }}
+        >
+          <SafeAreaView edges={['bottom']} className="shrink">
             <View className="px-4 pt-4 pb-2">
               <Text variant="h3">{t('censo.builder.typeSheetTitle')}</Text>
             </View>
-            <ScrollView>
+            <ScrollView className="shrink">
               {TYPE_ROWS.map(renderRow)}
 
               <View className="px-4 pt-4 pb-1">
@@ -95,8 +112,8 @@ export function QuestionTypeSheet({
               {ENTITY_ROWS.map(renderRow)}
             </ScrollView>
           </SafeAreaView>
-        </View>
-      </Pressable>
+        </RNPressable>
+      </RNPressable>
     </Modal>
   );
 }

@@ -19,9 +19,9 @@ describe('NotificationDataSchema', () => {
     expect(parsed.type).toBe('waitlist_promoted');
   });
 
-  it('accepts a join_request_created notification with requesterUid', () => {
+  it('accepts an organizer_request_created notification with requesterUid', () => {
     const parsed = NotificationDataSchema.parse({
-      type: 'join_request_created',
+      type: 'organizer_request_created',
       title: 'Nueva solicitud',
       body: 'Solicitud entrante.',
       eventId: null,
@@ -30,7 +30,7 @@ describe('NotificationDataSchema', () => {
       read: false,
       createdAt: new Date(),
     });
-    expect(parsed.type).toBe('join_request_created');
+    expect(parsed.type).toBe('organizer_request_created');
     expect(parsed.requesterUid).toBe('user-42');
   });
 

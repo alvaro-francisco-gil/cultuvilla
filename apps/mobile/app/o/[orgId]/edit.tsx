@@ -12,8 +12,8 @@ import { DeleteHeaderButton } from '../../../components/feature/DeleteHeaderButt
 import { useT } from '../../../lib/i18n';
 import { useOrgCapabilities } from '../../../lib/auth/useOrgCapabilities';
 import { getOrganization, updateOrganization, deleteOrganization } from '@cultuvilla/shared/services/organizationService';
-import { uploadOrganizationImage } from '@cultuvilla/shared/services/imageService';
-import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
+import { deleteImageByURL, uploadOrganizationImage } from '@cultuvilla/shared/services/imageService';
+import { pickImageAsBlob } from '../../../lib/images';
 import {
   PROPOSABLE_ORGANIZATION_TYPES,
   type OrganizationType,
@@ -27,8 +27,8 @@ export default function OrgEditScreen() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<OrganizationType>('peña');
-  const [existingImageUri, setExistingImageUri] = useState<string | null>(null);
-  const [image, setImage] = useState<UploadableImage | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [addingImage, setAddingImage] = useState(false);
   const [membersPublic, setMembersPublic] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -45,7 +45,7 @@ export default function OrgEditScreen() {
         setName(o.name);
         setDescription(o.description ?? '');
         setType(o.type);
-        setExistingImageUri(o.imageURL ?? null);
+        setImages(o.images);
         setMunicipalityId(o.municipalityId);
         setMembersPublic(o.membersPublic);
       } else {
@@ -73,6 +73,33 @@ export default function OrgEditScreen() {
   }
   if (!canManage) return <Redirect href={`/o/${orgId}`} />;
 
+  // Images persist immediately (unlike the create flow, the doc already
+  // exists here), so add/remove writes the doc on each action rather than
+  // batching to submit.
+  async function addImage() {
+    if (!orgId) return;
+    const picked = await pickImageAsBlob();
+    if (!picked) return;
+    setAddingImage(true);
+    try {
+      const url = await uploadOrganizationImage(orgId, picked);
+      const next = [...images, url];
+      await updateOrganization(orgId, { images: next });
+      setImages(next);
+    } finally {
+      setAddingImage(false);
+    }
+  }
+
+  async function removeImage(index: number) {
+    if (!orgId) return;
+    const url = images[index];
+    const next = images.filter((_, i) => i !== index);
+    await updateOrganization(orgId, { images: next });
+    setImages(next);
+    if (url) void deleteImageByURL(url).catch(() => {}); // best-effort orphan cleanup
+  }
+
   async function submit() {
     if (!orgId || !name.trim()) return;
     setSaving(true);
@@ -83,10 +110,6 @@ export default function OrgEditScreen() {
         type,
         membersPublic,
       });
-      if (image) {
-        const imageURL = await uploadOrganizationImage(orgId, image);
-        await updateOrganization(orgId, { imageURL });
-      }
       router.back();
     } finally {
       setSaving(false);
@@ -115,12 +138,13 @@ export default function OrgEditScreen() {
       />
       <ScrollView contentContainerClassName="p-4">
         <ProposableForm
-          image={image}
-          onImageChange={setImage}
-          existingImageUri={existingImageUri}
+          images={images}
+          onAddImage={addImage}
+          onRemoveImage={removeImage}
+          addingImage={addingImage}
           imageLabels={{
             add: t('organization.addImage'),
-            selected: t('organization.imageSelected'),
+            remove: t('organization.removeImage'),
           }}
           name={name}
           onChangeName={setName}

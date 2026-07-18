@@ -129,11 +129,6 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
           label: t('menu.findVillage'),
           onPress: () => close(() => router.push('/discover')),
         },
-        {
-          icon: 'paper-plane-outline',
-          label: t('menu.myRequests'),
-          comingSoon: true,
-        },
       ],
     },
     {
@@ -194,7 +189,7 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
           label: t('menu.shareApp'),
           onPress: async () => {
             try {
-              await Share.share({ message: t('menu.shareAppMessage') });
+              await Share.share({ message: 'https://cultuvilla.es' });
             } catch {
               // best-effort
             }
@@ -231,7 +226,9 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
             className="flex-row items-center justify-between px-4 border-b border-subtle"
             style={{ paddingTop: insets.top + 8, paddingBottom: 12 }}
           >
-            <Text variant="h2">{t('menu.title')}</Text>
+            <Text variant="h1" className="text-accent">
+              {t('menu.title')}
+            </Text>
             <Pressable
               onPress={() => close()}
               accessibilityLabel={t('menu.close')}

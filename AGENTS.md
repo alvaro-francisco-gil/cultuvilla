@@ -310,8 +310,9 @@ pnpm app:typecheck                             # tsc --noEmit for apps/mobile
 
 You (Claude) **may** run the emulator-backed test suites yourself — they boot
 *ephemeral* Firebase emulators via `scripts/run-tests-with-emulators.mjs` and tear
-them down when the run ends, so they don't collide with anything. Run them as part
-of verification before pushing or merging:
+them down when the run ends, so they don't collide with anything. In worktree mode,
+prefer targeted tests/typechecks locally and let the PR's CI run the full gate. In
+direct-to-`develop` mode, run the full gate locally before committing:
 
 - `pnpm check` (the full gate), `pnpm test`, `pnpm test:emulators`,
   `pnpm test:integration`, `pnpm test:rules`, `pnpm test:functions`
@@ -353,14 +354,14 @@ reviewer. All daily work targets `develop`. See
    - New ESLint rules, type-level contracts, or other "this must keep working" invariants get a test that fails if the invariant breaks (see [packages/shared/test/eslint/rules.test.ts](packages/shared/test/eslint/rules.test.ts) for the pattern).
    - If a change is genuinely untestable today (UI-only, no extractable logic), say so in the PR description and explain why.
 5. **Keep documentation in sync.** If you add a new collection or denormalized field, update [packages/shared/src/services/_services-map.md](packages/shared/src/services/_services-map.md) and [docs/architecture/denormalized-read-models.md](docs/architecture/denormalized-read-models.md) in the same change. Note user-facing changes in [CHANGELOG.md](CHANGELOG.md) under `## [Unreleased]`.
-6. **Run `pnpm check` before pushing.** CI runs the same gate; failing locally is faster than failing in Actions.
+6. **Verify according to the selected mode.** In a worktree, run the relevant targeted tests/typechecks, push promptly, and use the PR's GitHub CI result as the authoritative full `pnpm check` gate — do not duplicate the entire gate locally by default. Direct-to-`develop` has no PR gate, so run `pnpm check` locally before committing.
 7. **Open a pull request** with `gh pr create` targeting `develop`. A PR is a written record of what changed and why, and lets CI gate the change before it touches `develop` (and, via promotion, beta/prod). The PR description should cover:
    - **What** changed at a level the future reader needs (not a diff restatement).
    - **Why** it was done — the motivating problem or design decision.
    - **Tests** that were added (or an explicit note if none were possible).
-   - **Test plan** as a checklist: local check, CI, manual verification steps.
+   - **Test plan** as a checklist: targeted local checks, full CI gate, manual verification steps.
 8. **Wait for the user to confirm the merge.** Once the PR is open and CI is green, summarize the result and stop. Do **not** merge autonomously, even if every check passes — the human is the merge gate.
-9. **Before merging, rebase the branch onto the latest `develop`.** `git fetch origin develop && git rebase origin/develop`, resolve any conflicts, re-run `pnpm check`, then `git push --force-with-lease`. CI must go green again on the rebased commits before the merge. Stale branches cause silent breakage when the merge crosses a refactor that landed on develop while the PR was in review. (Promotion PRs `develop → beta` and `beta → main` follow the same rebase-then-green rule.)
+9. **Before merging, rebase the branch onto the latest `develop`.** `git fetch origin develop && git rebase origin/develop`, resolve any conflicts, run targeted checks for the affected/conflicted areas, then `git push --force-with-lease`. CI must run the full gate and go green again on the rebased commits before the merge. Stale branches cause silent breakage when the merge crosses a refactor that landed on develop while the PR was in review. (Promotion PRs `develop → beta` and `beta → main` follow the same rebase-then-green rule.)
 10. **Merge with a merge commit, not squash or rebase.** Use `gh pr merge <n> --merge`. Squashing would collapse the carefully-scoped commits in the PR (e.g. "feature" + "test for feature") into one, which makes `git bisect` and `git blame` worse. Rebase-merging hides the PR boundary entirely. A merge commit preserves both.
 11. **If you broke a rule in this file deliberately**, update this file in the same PR.
 

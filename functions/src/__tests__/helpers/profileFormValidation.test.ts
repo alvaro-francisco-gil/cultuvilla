@@ -209,6 +209,12 @@ describe('ensureValidFieldShape optionsSource', () => {
   it('rejects optionsSource on text', () => {
     expect(() => { ensureValidFieldShape({ ...base, type: 'text', optionsSource: 'barrios' }); }).toThrow();
   });
+  it.each(['events', 'festivalPosters', 'news'])('accepts select with optionsSource %s', (source) => {
+    expect(() => { ensureValidFieldShape({ ...base, type: 'select', optionsSource: source }); }).not.toThrow();
+  });
+  it('rejects an unknown optionsSource', () => {
+    expect(() => { ensureValidFieldShape({ ...base, type: 'select', optionsSource: 'bogus' }); }).toThrow();
+  });
 });
 
 describe('validateTransition dynamic source', () => {

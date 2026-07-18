@@ -1,10 +1,9 @@
 // packages/shared/src/services/inboxService.ts
 import { getMyOrganizerRequests } from './organizerRequestService';
 import { getMyOrganizations } from './organizationService';
-import { getMyJoinRequests } from './organizationJoinRequestService';
 import type { NotificationData } from '../models/notification/NotificationDataModel';
 
-export type PendingRequestType = 'organizer' | 'org' | 'join';
+export type PendingRequestType = 'organizer' | 'org';
 
 export type ActivityItem =
   | { kind: 'notification'; id: string; notification: NotificationData & { id: string } }
@@ -58,10 +57,9 @@ export function buildActivityFeed(
  * lookup is left to the screen, which already hydrates those for display).
  */
 export async function getMyPendingRequests(uid: string): Promise<PendingSentRequest[]> {
-  const [organizerRequests, organizations, joinRequests] = await Promise.all([
+  const [organizerRequests, organizations] = await Promise.all([
     getMyOrganizerRequests(uid),
     getMyOrganizations(uid),
-    getMyJoinRequests(uid),
   ]);
 
   const pendingOrganizer: PendingSentRequest[] = organizerRequests
@@ -82,14 +80,5 @@ export async function getMyPendingRequests(uid: string): Promise<PendingSentRequ
       createdAt: r.createdAt,
     }));
 
-  const pendingJoin: PendingSentRequest[] = joinRequests
-    .filter((r) => r.status === 'pending')
-    .map((r) => ({
-      requestType: 'join' as const,
-      id: r.id,
-      label: r.orgId,
-      createdAt: r.requestedAt,
-    }));
-
-  return [...pendingOrganizer, ...pendingOrg, ...pendingJoin];
+  return [...pendingOrganizer, ...pendingOrg];
 }
