@@ -5,6 +5,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 ## [Unreleased]
 
 ### Added
+- **Organization admins can now manage membership from the org's member roster**: promote a member to admin, demote another admin back to member, or remove a member entirely — mirroring the pueblo's members list, routed through the audited `changeOrgMemberRole` callable (promote/demote) and the existing rules-gated member delete (remove).
 - **Places, barrios and organizations now accept up to 5 pictures** instead of a single image, matching the convention already used by festival posters (`images[0]` is the hero shown in the detail screen; the rest render in a vertical stack below the title). Barrio residents are now shown as a wrapping row of avatar-and-name chips (matching an event's organizers) instead of full-image cards. News articles' inline body images are now capped at 10. **Migration:** existing dev docs are backfilled by `scripts/backfill-multi-image-entities.mjs`, converting the old `imageURL` into `images: [imageURL]` (or `images: []`).
 
 ### Changed
@@ -15,6 +16,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 - The pueblo (village) tab now orders **peñas / agrupaciones by member count** and **barrios by resident count** (largest first, name as tie-break), so the busiest groups lead each row. The counts are now denormalized onto the org/barrio docs (`memberCount`, `residentCount`) and kept live by Cloud Function triggers, replacing the per-entity count queries the tab used to fire on every load. **Migration:** existing dev docs are backfilled by `scripts/backfill-org-member-count.mjs` and `scripts/backfill-barrio-resident-count.mjs`; the new fields are function-owned (clients cannot write them).
 
 ### Fixed
+- An organization's founder could not edit their own org (including changing its image) after creation. The Firestore update rule checked only village-admin/app-admin, missing the org-admin case — the mobile edit screen already granted access via `useOrgCapabilities`, so every save was silently rejected by rules.
 - Peña actions now use specific request copy: the detail FAB says “Unirme a esta peña” and the creation form says “Enviar solicitud”.
 - Web sign-in now pins an explicit auth persistence chain (indexedDB → localStorage → in-memory) instead of relying on the Firebase SDK's environment auto-detection, which could silently downgrade to session-only persistence in storage-restricted contexts (Safari private browsing, in-app browser webviews) and force users back through the passwordless email-link sign-in on every visit.
 - Festival poster creation by a non-admin village member no longer fails Firestore rules validation. The create rule still checked for a scalar `imageURL` field, which the model stopped writing when posters moved to a multi-image `images[]` array; only admins (who bypass the check) could create posters until now.
