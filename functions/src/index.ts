@@ -54,6 +54,9 @@ export { ogRenderer } from './og/render';
 export { staticMap } from './maps/staticMap';
 export { geocodeSearch } from './maps/geocodeSearch';
 
+// Auth (branded sign-in email delivery via Resend)
+export { sendAuthSignInEmail } from './auth/sendAuthSignInEmail';
+
 // Observability (client error ingestion + pseudonymized identity)
 export { logClientError } from './observability/logClientError';
 export { getUserIdHash } from './observability/getUserIdHash';
