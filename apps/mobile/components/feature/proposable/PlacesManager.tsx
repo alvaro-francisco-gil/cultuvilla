@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import {
-  createPlace, updatePlace,
+  createPlace, newPlaceId,
 } from '@cultuvilla/shared/services/municipalityService';
-import { uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
-import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
+import { deleteImageByURL, uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
 import { PLACE_KINDS, type PlaceKind } from '@cultuvilla/shared/models/municipality';
 import { VStack } from '../../primitives';
+import { pickImageAsBlob } from '../../../lib/images';
 import { useT } from '../../../lib/i18n';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { ProposableForm } from './ProposableForm';
@@ -25,13 +25,36 @@ export function PlacesManager({
 }) {
   const { t } = useT();
   const { uid } = useEntityCapabilities(villageId);
+
+  // Mint the id up front so each picked image can upload before the doc write.
+  const [placeId] = useState(() => newPlaceId(villageId));
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [kind, setKind] = useState<PlaceKind>('cemetery');
-  const [image, setImage] = useState<UploadableImage | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [addingImage, setAddingImage] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const kindLabel = (k: PlaceKind) => t(`village.admin.places.kind.${k}`);
+
+  async function addImage() {
+    if (!villageId) return;
+    const picked = await pickImageAsBlob();
+    if (!picked) return;
+    setAddingImage(true);
+    try {
+      const url = await uploadPlaceImage(villageId, placeId, picked);
+      setImages((prev) => [...prev, url]);
+    } finally {
+      setAddingImage(false);
+    }
+  }
+
+  function removeImage(index: number) {
+    const url = images[index];
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    if (url) void deleteImageByURL(url).catch(() => {}); // best-effort orphan cleanup
+  }
 
   async function submit() {
     if (!villageId || !name.trim() || !uid) return;
@@ -39,17 +62,13 @@ export function PlacesManager({
     try {
       const input = {
         name: name.trim(), kind, description: description.trim(),
-        municipalityId: villageId, proposedBy: uid,
+        municipalityId: villageId, proposedBy: uid, images,
       };
-      const id = await createPlace(villageId, input);
-      if (image) {
-        const imageURL = await uploadPlaceImage(villageId, id, image);
-        await updatePlace(villageId, id, { imageURL });
-      }
+      await createPlace(villageId, input, placeId);
       setName('');
       setDescription('');
       setKind('cemetery');
-      setImage(null);
+      setImages([]);
       onCreated?.();
     } finally {
       setSaving(false);
@@ -59,11 +78,13 @@ export function PlacesManager({
   return (
     <VStack gap={3} className="p-4">
       <ProposableForm
-        image={image}
-        onImageChange={setImage}
+        images={images}
+        onAddImage={addImage}
+        onRemoveImage={removeImage}
+        addingImage={addingImage}
         imageLabels={{
           add: t('village.admin.places.addImage'),
-          selected: t('village.admin.places.imageSelected'),
+          remove: t('village.admin.places.removeImage'),
         }}
         name={name}
         onChangeName={setName}

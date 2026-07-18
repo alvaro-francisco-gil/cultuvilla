@@ -2,7 +2,7 @@
 /**
  * Seed organizations: one `organizations/{id}` per village org, status
  * `approved`, owned by the village admin. Uploads an optional `image` to
- * `organizations/{orgId}/image/` and wires `imageURL`.
+ * `organizations/{orgId}/image/` and wires it as `images[0]`.
  *
  *   DATASET=demo_1 pnpm seed:dev:orgs
  *   DATASET=demo_1 pnpm seed:dev:orgs:wipe
@@ -31,7 +31,7 @@ export async function seedOrgs(dataset) {
           buildOrganizationData({
             name: org.name,
             description: org.description,
-            imageURL,
+            images: imageURL ? [imageURL] : [],
             type: org.type,
             status: 'approved',
             municipalityId: vDocId,

@@ -17,7 +17,8 @@
 //   treated repo-relative instead (e.g. a shared asset), with no copy.
 //
 //   Image-capable entities: user/persona photo, village escudo, event
-//   imageURL, news images[]. Orgs, places and barrios have no image field.
+//   imageURL, news images[], and org/place/barrio images[] (max 5; only the
+//   first `image` fixture field is seeded today, landing as images[0]).
 
 export default {
   name: 'demo_1',

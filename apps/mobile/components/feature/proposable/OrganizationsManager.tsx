@@ -2,14 +2,14 @@ import { useState } from 'react';
 import {
   requestOrganization, newOrganizationId, approveOrganization,
 } from '@cultuvilla/shared/services/organizationService';
-import { uploadOrganizationImage } from '@cultuvilla/shared/services/imageService';
-import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
+import { deleteImageByURL, uploadOrganizationImage } from '@cultuvilla/shared/services/imageService';
 import {
   PROPOSABLE_ORGANIZATION_TYPES,
   type OrganizationType,
 } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
 import { VStack, FieldLabel } from '../../primitives';
 import { Toggle } from '../../primitives/Toggle';
+import { pickImageAsBlob } from '../../../lib/images';
 import { useT } from '../../../lib/i18n';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { ProposableForm } from './ProposableForm';
@@ -35,25 +35,43 @@ export function OrganizationsManager({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<OrganizationType>(initialType);
-  const [image, setImage] = useState<UploadableImage | null>(null);
+  // Mint the id first so images can be uploaded to the org's storage path
+  // before the doc write — proposers can't update the doc afterwards (org
+  // update is admin-only).
+  const [orgId] = useState(newOrganizationId);
+  const [images, setImages] = useState<string[]>([]);
+  const [addingImage, setAddingImage] = useState(false);
   const [membersPublic, setMembersPublic] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  async function addImage() {
+    const picked = await pickImageAsBlob();
+    if (!picked) return;
+    setAddingImage(true);
+    try {
+      const url = await uploadOrganizationImage(orgId, picked);
+      setImages((prev) => [...prev, url]);
+    } finally {
+      setAddingImage(false);
+    }
+  }
+
+  function removeImage(index: number) {
+    const url = images[index];
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    if (url) void deleteImageByURL(url).catch(() => {}); // best-effort orphan cleanup
+  }
 
   async function submit() {
     if (!villageId || !name.trim() || !uid) return;
     setSaving(true);
     let succeeded = false;
     try {
-      // Mint the id first so the image can be uploaded to the org's storage
-      // path and its URL written in the create payload — proposers can't update
-      // the doc afterwards (org update is admin-only).
-      const id = newOrganizationId();
-      const imageURL = image ? await uploadOrganizationImage(id, image) : null;
       await requestOrganization({
-        id,
+        id: orgId,
         name: name.trim(),
         description: description.trim() || null,
-        imageURL,
+        images,
         type,
         municipalityId: villageId,
         requestedBy: uid,
@@ -62,13 +80,13 @@ export function OrganizationsManager({
       });
       // Organizer commit: the create path is always pending; auto-approve so the
       // round-trip is invisible (single rules surface + full audit trail).
-      if (canManage) await approveOrganization(id);
+      if (canManage) await approveOrganization(orgId);
       succeeded = true;
       observability.trackEvent(OBSERVABILITY_EVENTS.ORG_CREATE_SUCCESS, { municipalityId: villageId });
       setName('');
       setDescription('');
       setType('peña');
-      setImage(null);
+      setImages([]);
       setMembersPublic(true);
       onCreated?.();
     } catch (e) {
@@ -84,11 +102,13 @@ export function OrganizationsManager({
   return (
     <VStack gap={3} className="p-4">
       <ProposableForm
-        image={image}
-        onImageChange={setImage}
+        images={images}
+        onAddImage={addImage}
+        onRemoveImage={removeImage}
+        addingImage={addingImage}
         imageLabels={{
           add: t('organization.addImage'),
-          selected: t('organization.imageSelected'),
+          remove: t('organization.removeImage'),
         }}
         name={name}
         onChangeName={setName}

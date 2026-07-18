@@ -20,7 +20,7 @@ jest.mock('@cultuvilla/shared/services/organizationService', () => ({
     id: 'o1',
     name: 'Peña La Unión',
     type: 'peña',
-    imageURL: null,
+    images: [],
     description: 'd',
     municipalityId: 'm1',
   }),

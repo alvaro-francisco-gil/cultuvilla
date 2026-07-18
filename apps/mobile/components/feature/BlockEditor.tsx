@@ -43,6 +43,10 @@ export type EditorImageBlock = {
 };
 export type EditorBlock = EditorTextBlock | EditorImageBlock;
 
+// Cap to avoid unbounded arrays — the block editor's inline body images, not a
+// gallery, so this is a UI-only product decision rather than a schema limit.
+const MAX_IMAGE_BLOCKS = 10;
+
 let blockSeq = 0;
 export function newBlockId(): string {
   blockSeq += 1;
@@ -72,6 +76,7 @@ export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) 
   // The currently-focused text block and caret, tracked in a ref (no re-render
   // needed) so an image insert knows where to split.
   const active = useRef<{ id: string | null; caret: number }>({ id: null, caret: 0 });
+  const imageBlockCount = blocks.filter((b) => b.type === 'image').length;
 
   function updateBlock(id: string, patch: Partial<EditorBlock>) {
     onChange(blocks.map((b) => (b.id === id ? ({ ...b, ...patch } as EditorBlock) : b)));
@@ -187,11 +192,13 @@ export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) 
         ),
       )}
 
-      <AddBlockButton
-        icon="image-outline"
-        label={t('news.compose.block.addImage')}
-        onPress={() => void addImageAtCaret()}
-      />
+      {imageBlockCount < MAX_IMAGE_BLOCKS ? (
+        <AddBlockButton
+          icon="image-outline"
+          label={t('news.compose.block.addImage')}
+          onPress={() => void addImageAtCaret()}
+        />
+      ) : null}
     </VStack>
   );
 }

@@ -36,7 +36,7 @@ const SHAPE_CONTRACTS: ShapeContract[] = [
     build: () =>
       buildOrganizationData({ name: 'Peña', type: 'peña', municipalityId: 'm1', requestedBy: 'u1' }),
     ruleKeys: [
-      'name', 'description', 'imageURL', 'type', 'status', 'municipalityId',
+      'name', 'description', 'images', 'type', 'status', 'municipalityId',
       'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
       'commentCount', 'readCount', 'memberCount', 'membersPublic',
     ],
@@ -55,7 +55,7 @@ const SHAPE_CONTRACTS: ShapeContract[] = [
     label: 'places (create) — isValidPlaceCreate',
     build: () => buildPlaceData({ name: 'Cementerio Viejo', kind: 'cemetery', municipalityId: 'm1' }),
     ruleKeys: [
-      'name', 'kind', 'description', 'municipalityId', 'imageURL',
+      'name', 'kind', 'description', 'municipalityId', 'images',
       'createdAt', 'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
       'commentCount', 'readCount',
     ],
@@ -64,7 +64,7 @@ const SHAPE_CONTRACTS: ShapeContract[] = [
     label: 'barrios (create) — isValidBarrioCreate',
     build: () => buildBarrioData({ name: 'Centro', municipalityId: 'm1' }),
     ruleKeys: [
-      'name', 'municipalityId', 'imageURL', 'createdAt', 'status', 'proposedBy',
+      'name', 'municipalityId', 'images', 'createdAt', 'status', 'proposedBy',
       'hiddenBy', 'hiddenAt', 'hiddenReason',
       'commentCount', 'readCount', 'residentCount',
     ],

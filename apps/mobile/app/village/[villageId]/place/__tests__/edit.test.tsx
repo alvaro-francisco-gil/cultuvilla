@@ -13,11 +13,14 @@ jest.mock('../../../../../lib/auth/useEntityCapabilities', () => ({
 jest.mock('../../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getPlace: jest.fn().mockResolvedValue({
-    id: 'p1', name: 'Plaza', kind: 'cemetery', description: '', imageURL: null, municipalityId: 'm1',
+    id: 'p1', name: 'Plaza', kind: 'cemetery', description: '', images: [], municipalityId: 'm1',
   }),
   updatePlace: jest.fn(),
 }));
-jest.mock('@cultuvilla/shared/services/imageService', () => ({ uploadPlaceImage: jest.fn() }));
+jest.mock('@cultuvilla/shared/services/imageService', () => ({
+  uploadPlaceImage: jest.fn(),
+  deleteImageByURL: jest.fn(),
+}));
 
 import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
 

@@ -16,8 +16,9 @@ import { DELETED_USER_UID } from '@cultuvilla/shared/models/user';
 import { useT } from './i18n';
 
 /**
- * Owners whose document carries a name + image we resolve live. `person` and
- * `organization` carry their own avatar (`photoURL` / `imageURL`); a `user`'s
+ * Owners whose document carries a name + image we resolve live. `person`
+ * carries its own avatar (`photoURL`); `organization`'s avatar is `images[0]`
+ * (the hero/cover convention shared with places/barrios/festival posters); a `user`'s
  * avatar lives on the linked person doc — the user doc's `photoURL` is
  * frequently null — so we resolve the person and use its photo as the fallback.
  */
@@ -71,7 +72,7 @@ export function useOwnerSummary(
         displayName?: string | null;
         name?: string | null;
         photoURL?: string | null;
-        imageURL?: string | null;
+        images?: string[];
         givenName?: string;
         middleNames?: string[];
         firstSurname?: string;
@@ -109,7 +110,7 @@ export function useOwnerSummary(
     if (!data) return { name: null, imageUri: null, loading };
     switch (ownerType) {
       case 'organization':
-        return { name: data.name ?? null, imageUri: data.imageURL ?? null, loading };
+        return { name: data.name ?? null, imageUri: data.images?.[0] ?? null, loading };
       case 'person':
         return {
           name: data.givenName

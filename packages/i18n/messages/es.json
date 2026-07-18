@@ -320,8 +320,7 @@
         "name": "Nombre del barrio",
         "residentCount": "{count} vecinos",
         "addImage": "Añadir imagen",
-        "changeImage": "Cambiar imagen",
-        "imageSelected": "Imagen seleccionada"
+        "removeImage": "Quitar imagen"
       },
       "places": {
         "title": "Lugares",
@@ -330,8 +329,7 @@
         "name": "Nombre",
         "description": "Descripción",
         "addImage": "Añadir imagen",
-        "changeImage": "Cambiar imagen",
-        "imageSelected": "Imagen seleccionada",
+        "removeImage": "Quitar imagen",
         "kindLabel": "Tipo",
         "kind": {
           "cemetery": "Cementerio",
@@ -600,7 +598,7 @@
     "name": "Nombre",
     "type": "Tipo",
     "addImage": "Añadir imagen",
-    "imageSelected": "Imagen seleccionada",
+    "removeImage": "Quitar imagen",
     "ayuntamiento": "Ayuntamiento",
     "peña": "Peña",
     "asociación": "Asociación",

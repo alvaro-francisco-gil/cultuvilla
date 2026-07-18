@@ -111,8 +111,8 @@ export async function uploadEventImage(
 }
 
 /**
- * Upload an organization's picture. Returns the **download URL** to persist in
- * `OrganizationData.imageURL`.
+ * Upload one of an organization's pictures. Returns the **download URL** to
+ * append to `OrganizationData.images` (call once per picked image).
  */
 export async function uploadOrganizationImage(
   organizationId: string,
@@ -122,8 +122,8 @@ export async function uploadOrganizationImage(
 }
 
 /**
- * Upload a place's picture. Returns the **download URL** to persist in
- * `PlaceData.imageURL`.
+ * Upload one of a place's pictures. Returns the **download URL** to append
+ * to `PlaceData.images` (call once per picked image).
  */
 export async function uploadPlaceImage(
   municipalityId: string,
@@ -137,8 +137,8 @@ export async function uploadPlaceImage(
 }
 
 /**
- * Upload a barrio's picture. Returns the **download URL** to persist in
- * `BarrioData.imageURL`.
+ * Upload one of a barrio's pictures. Returns the **download URL** to append
+ * to `BarrioData.images` (call once per picked image).
  */
 export async function uploadBarrioImage(
   municipalityId: string,

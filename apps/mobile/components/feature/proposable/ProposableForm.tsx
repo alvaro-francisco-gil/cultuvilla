@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
-import { VStack, HStack, Text, Button, Input, Pressable, FieldLabel, ImagePickerField } from '../../primitives';
-import { pickImageAsBlob } from '../../../lib/images';
+import { VStack, HStack, Text, Button, Input, Pressable, FieldLabel } from '../../primitives';
+import { MultiImagePickerRow } from '../MultiImagePickerRow';
 import { useT } from '../../../lib/i18n';
-import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 
 export interface ProposableTypeOption {
   value: string;
@@ -10,15 +9,15 @@ export interface ProposableTypeOption {
 }
 
 export interface ProposableFormProps {
-  /** Currently-picked image, or null. Its `previewUri` renders the thumbnail.
-   * Leave `onImageChange` unset to hide the image picker entirely (e.g.
-   * agrupaciones, which have no client image-upload path). */
-  image?: UploadableImage | null;
-  onImageChange?: (image: UploadableImage) => void;
-  imageLabels?: { add: string; selected: string };
-  /** Existing stored image URL to show as the thumbnail before the user picks a
-   * new one (edit mode). Falls back behind a freshly-picked `image`. */
-  existingImageUri?: string | null;
+  /** Already-uploaded image URLs, in order — `images[0]` is the hero/cover. */
+  images: string[];
+  /** Parent picks + uploads (mirroring FestivalPostersManager.addImage) and
+   * appends the returned URL to `images`. */
+  onAddImage: () => void;
+  onRemoveImage: (index: number) => void;
+  /** Loading state for the picker's "+" tile while an upload is in flight. */
+  addingImage?: boolean;
+  imageLabels?: { add: string; remove: string };
 
   name: string;
   onChangeName: (value: string) => void;
@@ -49,21 +48,23 @@ export interface ProposableFormProps {
 
 /**
  * Standardized "Añadir X" form shared by the Lugares, Barrios and Agrupaciones
- * proposable surfaces. Layout, top-to-bottom: prominent image picker (first, so
- * the photo leads) → name → optional description → optional type chips →
- * submit. The "Añadir X" title is the screen header, so it is not repeated
- * inside the form. Each field shows its name as a top label (matching
- * PersonForm). The selected type chip uses a light-orange fill.
+ * proposable surfaces. Layout, top-to-bottom: prominent multi-image picker
+ * row (first, so the photos lead) → name → optional description → optional
+ * type chips → submit. The "Añadir X" title is the screen header, so it is
+ * not repeated inside the form. Each field shows its name as a top label
+ * (matching PersonForm). The selected type chip uses a light-orange fill.
  *
- * The form owns image picking (via pickImageAsBlob) so the three managers no
- * longer duplicate that logic; it hands the picked image back through
- * onImageChange. Selection-chip and field styling live here only.
+ * The form only renders the picker row — the parent (a manager or edit
+ * screen) owns picking and uploading, mirroring FestivalPostersManager, so it
+ * hands back already-uploaded URLs through `onAddImage`/`onRemoveImage`
+ * rather than raw picked blobs.
  */
 export function ProposableForm({
-  image,
-  onImageChange,
+  images,
+  onAddImage,
+  onRemoveImage,
+  addingImage,
   imageLabels,
-  existingImageUri,
   name,
   onChangeName,
   nameLabel,
@@ -83,25 +84,22 @@ export function ProposableForm({
   disabled,
 }: ProposableFormProps) {
   const { t } = useT();
-  const showImage = onImageChange !== undefined;
   const showDescription = onChangeDescription !== undefined;
   const showTypes = !!typeOptions && typeOptions.length > 0 && onChangeType !== undefined;
 
   return (
     <VStack gap={3}>
-      {showImage ? (
-        <VStack gap={1} align="start">
-          <FieldLabel>{t('common.photo')}</FieldLabel>
-          <ImagePickerField
-            uri={image?.previewUri ?? existingImageUri ?? null}
-            onPress={async () => {
-              const picked = await pickImageAsBlob();
-              if (picked) onImageChange!(picked);
-            }}
-            label={(image ? imageLabels?.selected : imageLabels?.add) ?? ''}
-          />
-        </VStack>
-      ) : null}
+      <VStack gap={1} align="start">
+        <FieldLabel>{t('common.photo')}</FieldLabel>
+        <MultiImagePickerRow
+          uris={images}
+          onAddPress={onAddImage}
+          onRemove={onRemoveImage}
+          adding={addingImage}
+          addLabel={imageLabels?.add ?? ''}
+          removeLabel={imageLabels?.remove ?? ''}
+        />
+      </VStack>
 
       <Input
         testID={nameTestID}

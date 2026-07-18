@@ -25,8 +25,9 @@ export type OrganizationStatus = ReviewStatus;
 export const OrganizationDataSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
-  /** Public download URL for the organization's picture. `null` when unset. */
-  imageURL: z.string().nullable(),
+  /** Public download URLs for the organization's pictures (max 5). `images[0]`
+   *  is the hero/cover shown in the detail scaffold. */
+  images: z.array(z.string()).max(5),
   type: OrganizationTypeSchema,
   municipalityId: z.string(),
   requestedBy: z.string(),
@@ -57,7 +58,7 @@ export interface OrganizationDataInput {
   id?: string;
   name: string;
   description?: string | null;
-  imageURL?: string | null;
+  images?: string[];
   type: OrganizationType;
   status?: OrganizationStatus;
   municipalityId: string;
@@ -72,7 +73,7 @@ export function buildOrganizationData(input: OrganizationDataInput): Organizatio
   return {
     name: input.name,
     description: input.description ?? null,
-    imageURL: input.imageURL ?? null,
+    images: input.images ?? [],
     type: input.type,
     status: input.status ?? 'pending',
     municipalityId: input.municipalityId,

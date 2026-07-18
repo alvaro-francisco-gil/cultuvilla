@@ -14,11 +14,14 @@ jest.mock('../../../lib/auth/useOrgCapabilities', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/organizationService', () => ({
   getOrganization: jest.fn().mockResolvedValue({
-    id: 'org1', name: 'Peña', description: null, type: 'peña', imageURL: null, municipalityId: 'm1',
+    id: 'org1', name: 'Peña', description: null, type: 'peña', images: [], municipalityId: 'm1',
   }),
   updateOrganization: jest.fn(),
 }));
-jest.mock('@cultuvilla/shared/services/imageService', () => ({ uploadOrganizationImage: jest.fn() }));
+jest.mock('@cultuvilla/shared/services/imageService', () => ({
+  uploadOrganizationImage: jest.fn(),
+  deleteImageByURL: jest.fn(),
+}));
 
 import { useOrgCapabilities } from '../../../lib/auth/useOrgCapabilities';
 

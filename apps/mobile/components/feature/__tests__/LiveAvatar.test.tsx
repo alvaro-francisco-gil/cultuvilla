@@ -43,9 +43,9 @@ describe('<LiveAvatar>', () => {
     expect(UNSAFE_getByType(Image).props.source).toEqual({ uri: 'https://img/alice.jpg' });
   });
 
-  it('reads imageURL for organization owners', () => {
+  it('reads images[0] for organization owners', () => {
     mockUseFirestoreDoc.mockReturnValue({
-      data: { imageURL: 'https://img/pena.jpg' },
+      data: { images: ['https://img/pena.jpg'] },
       loading: false,
       error: null,
     });

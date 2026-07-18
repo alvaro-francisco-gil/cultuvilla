@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView } from 'react-native';
+import { View } from 'react-native';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Text } from '../../../../components/primitives/Text';
 import { VStack } from '../../../../components/primitives/VStack';
+import { NaturalImage } from '../../../../components/primitives/NaturalImage';
 import { EntityDetailScaffold } from '../../../../components/feature/EntityDetailScaffold';
 import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
 import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
-import { PersonCard } from '../../../../components/feature/VillageSections';
+import { LivePersonChip } from '../../../../components/feature/LivePersonChip';
 import { EntityComments } from '../../../../components/feature/EntityComments';
 import { useT } from '../../../../lib/i18n';
 import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
@@ -79,7 +80,7 @@ export default function BarrioDetailScreen() {
     <EntityDetailScaffold
       loading={loading}
       notFound={!loading && !barrio}
-      imageUri={barrio?.imageURL ?? null}
+      imageUri={barrio?.images[0] ?? null}
       fallbackIcon={ENTITY_FALLBACK_ICON.barrio}
       actions={actions}
       title={barrio?.name}
@@ -87,22 +88,29 @@ export default function BarrioDetailScreen() {
     >
       {barrio ? (
         <>
+          {barrio.images.length > 1 ? (
+            <VStack gap={2} className="pt-2">
+              {barrio.images.slice(1).map((uri) => (
+                <NaturalImage key={uri} uri={uri} />
+              ))}
+            </VStack>
+          ) : null}
           <Text variant="h2">{t('village.barrioDetail.residents')}</Text>
           {residents.length === 0 ? (
             <Text tone="muted" variant="bodySm">
               {t('village.barrioDetail.residentsEmpty')}
             </Text>
           ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-3">
+            <View className="flex-row flex-wrap items-center" style={{ gap: 12 }}>
               {residents.map((p) => (
-                <PersonCard
+                <LivePersonChip
                   key={p.id}
-                  name={buildDisplayName(p)}
-                  photoURL={p.photoURL}
+                  personId={p.id}
+                  fallbackName={buildDisplayName(p)}
                   onPress={() => router.push(`/person/${p.id}` as never)}
                 />
               ))}
-            </ScrollView>
+            </View>
           )}
           <EntityComments
             key={barrio.id}
