@@ -673,6 +673,11 @@
     "born": "Nacido en {place}",
     "bornYear": "{year}",
     "personForm": {
+      "birthDatePicker": {
+        "year": "Año",
+        "month": "Mes",
+        "day": "Día"
+      },
       "village": "Pueblo",
       "barrio": "Barrio",
       "wholeVillage": "Todo el pueblo",

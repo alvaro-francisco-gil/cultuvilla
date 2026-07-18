@@ -23,6 +23,8 @@ export { Escudo } from './Escudo';
 export type { EscudoProps } from './Escudo';
 export { DateField } from './DateField';
 export type { DateFieldProps } from './DateField';
+export { BirthDateField } from './BirthDateField';
+export type { BirthDateFieldProps } from './BirthDateField';
 export { DateTimeField } from './DateTimeField';
 export type { DateTimeFieldProps } from './DateTimeField';
 export { PasswordInput } from './PasswordInput';
