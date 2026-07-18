@@ -91,6 +91,9 @@ export default function OrgDetailScreen() {
         },
       ]
     : [];
+  const joinLabel = user
+    ? t(org?.type === 'peña' ? 'organization.joinPeña' : 'organization.join')
+    : t('organization.signInToJoin');
 
   return (
     <EntityDetailScaffold
@@ -114,7 +117,7 @@ export default function OrgDetailScreen() {
               testID="join-org-fab"
               accessibilityRole="button"
               accessibilityState={{ disabled: joining }}
-              accessibilityLabel={user ? t('organization.join') : t('organization.signInToJoin')}
+              accessibilityLabel={joinLabel}
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -137,7 +140,7 @@ export default function OrgDetailScreen() {
                 <RNText style={{ color: '#f9f0e8', fontSize: 18, lineHeight: 22, marginRight: 8 }}>+</RNText>
               )}
               <RNText style={{ color: '#f9f0e8', fontSize: 16, fontWeight: '700' }}>
-                {user ? t('organization.join') : t('organization.signInToJoin')}
+                {joinLabel}
               </RNText>
             </Pressable>
           </View>

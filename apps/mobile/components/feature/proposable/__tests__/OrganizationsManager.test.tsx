@@ -28,7 +28,8 @@ beforeEach(() => {
 
 describe('<OrganizationsManager>', () => {
   it('a villager submitting requests a pending organization (no auto-approve)', async () => {
-    const { getByTestId } = render(<OrganizationsManager villageId="m1" />);
+    const { getByTestId, getByText } = render(<OrganizationsManager villageId="m1" />);
+    getByText('organization.submitRequest');
     fireEvent.changeText(getByTestId('org-name-input'), 'Peña El Pilar');
     fireEvent.press(getByTestId('org-submit'));
     await waitFor(() =>

@@ -116,7 +116,7 @@ export function OrganizationsManager({
             />
           </VStack>
         }
-        submitLabel={canManage ? t('village.admin.organizations.add') : t('village.proposals.propose')}
+        submitLabel={canManage ? t('village.admin.organizations.add') : t('organization.submitRequest')}
         submitTestID="org-submit"
         onSubmit={submit}
         saving={saving}

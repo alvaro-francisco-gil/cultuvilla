@@ -11,12 +11,19 @@ jest.mock('expo-router', () => ({
   router: { back: jest.fn(), push: jest.fn(), canGoBack: () => true, replace: jest.fn() },
 }));
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
-jest.mock('../../../lib/auth/useAuth', () => ({ useAuth: () => ({ user: null }) }));
+jest.mock('../../../lib/auth/useAuth', () => ({ useAuth: () => ({ user: { uid: 'u2' } }) }));
 jest.mock('../../../lib/auth/RegisterGateContext', () => ({ useRegisterGate: () => ({ requireAuth: jest.fn() }) }));
 jest.mock('../../../lib/auth/useOrgCapabilities', () => ({ useOrgCapabilities: () => ({ canManage: false }) }));
 jest.mock('../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: () => jest.fn() }));
 jest.mock('@cultuvilla/shared/services/organizationService', () => ({
-  getOrganization: jest.fn().mockResolvedValue({ id: 'o1', name: 'Peña La Unión', imageURL: null, description: 'd', municipalityId: 'm1' }),
+  getOrganization: jest.fn().mockResolvedValue({
+    id: 'o1',
+    name: 'Peña La Unión',
+    type: 'peña',
+    imageURL: null,
+    description: 'd',
+    municipalityId: 'm1',
+  }),
 }));
 jest.mock('@cultuvilla/shared/services/orgMemberService', () => ({
   isOrgMember: jest.fn().mockResolvedValue(false),
@@ -28,9 +35,10 @@ jest.mock('../../../components/feature/EntityComments', () => ({ EntityComments:
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 
 describe('OrgDetailScreen', () => {
-  it('renders the org name and the join FAB for a guest', async () => {
+  it('labels the join FAB specifically for a peña', async () => {
     const { getByText, getByTestId } = render(<OrgDetailScreen />);
     await waitFor(() => getByText('Peña La Unión'));
     getByTestId('join-org-fab');
+    getByText('organization.joinPeña');
   });
 });
