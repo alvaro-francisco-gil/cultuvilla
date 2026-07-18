@@ -7,6 +7,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 ### Added
 - **Places, barrios and organizations now accept up to 5 pictures** instead of a single image, matching the convention already used by festival posters (`images[0]` is the hero shown in the detail screen; the rest render in a vertical stack below the title). Barrio residents are now shown as a wrapping row of avatar-and-name chips (matching an event's organizers) instead of full-image cards. News articles' inline body images are now capped at 10. **Migration:** existing dev docs are backfilled by `scripts/backfill-multi-image-entities.mjs`, converting the old `imageURL` into `images: [imageURL]` (or `images: []`).
 
+### Removed
+- The legacy organization join-request approve-flow (`organizationJoinRequests/`, `requestJoinOrganization`, `respondToJoinRequest`) — orphaned since joining a peña/asociación became instant self-service; no UI ever called the create-side callable. Removed the Firestore collection's rules/indexes, the two callables, `organizationJoinRequestService`, the mobile inbox's join-request section, and the corresponding notification types (`join_request_created/approved/rejected`).
+
 ### Changed
 - Account-access emails are now explicitly requested in Spanish for first-time sign-in, returning sign-in, reauthentication and email-change confirmation. Firebase's built-in email still has no Cultuvilla logo; richer branded HTML remains a separate custom-mail delivery change.
 - Person birth dates now use dedicated **Año / Mes / Día** selectors again, making distant birthdays quicker to enter; event date-times, censo dates, and festival-poster dates keep the calendar picker.

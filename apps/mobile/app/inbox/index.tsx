@@ -16,36 +16,27 @@ import { buildDisplayName } from '@cultuvilla/shared/models/person';
 import {
   getPendingOrganizations,
   getOrganizationsByMunicipality,
-  getOrganization,
   approveOrganization,
   rejectOrganization,
 } from '@cultuvilla/shared/services/organizationService';
-import {
-  getAllPendingJoinRequests,
-  getPendingJoinRequestsForOrgs,
-  respondToJoinRequest,
-} from '@cultuvilla/shared/services/organizationJoinRequestService';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { getNotifications, markAllAsRead } from '@cultuvilla/shared/services/notificationService';
 import { getMyPendingRequests, buildActivityFeed } from '@cultuvilla/shared/services/inboxService';
 import type { ActivityItem } from '@cultuvilla/shared/services/inboxService';
 import type { OrganizerRequestData } from '@cultuvilla/shared/models/municipality/OrganizerRequestDataModel';
 import type { OrganizationData } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
-import type { OrganizationJoinRequestData } from '@cultuvilla/shared/models/organizationJoinRequest/OrganizationJoinRequestDataModel';
 
 type OrganizerRow = OrganizerRequestData & { id: string };
 type OrgRow = OrganizationData & { id: string };
-type JoinRow = OrganizationJoinRequestData & { id: string };
 
 export default function InboxScreen() {
   const { t } = useT();
   const { user } = useAuth();
-  const { loading, isSuperAdmin, adminVillageIds, adminOrgIds, canApprove } = useApproverStatus();
+  const { loading, isSuperAdmin, adminVillageIds, canApprove } = useApproverStatus();
 
   // ─── Actionable ("Necesita tu acción") state ────────────────────────────────
   const [organizerRows, setOrganizerRows] = useState<OrganizerRow[]>([]);
   const [orgRows, setOrgRows] = useState<OrgRow[]>([]);
-  const [joinRows, setJoinRows] = useState<JoinRow[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
 
   // ─── Activity feed state ────────────────────────────────────────────────────
@@ -55,7 +46,6 @@ export default function InboxScreen() {
   // Shared name maps (used by both the actionable cards and the activity feed's
   // pending-sent rows).
   const [municipalityNames, setMunicipalityNames] = useState<Record<string, string>>({});
-  const [orgNames, setOrgNames] = useState<Record<string, string>>({});
   const [requesterByUid, setRequesterByUid] = useState<
     Record<string, { name: string; photoURL: string | null }>
   >({});
@@ -75,11 +65,9 @@ export default function InboxScreen() {
     try {
       const promises: Promise<void>[] = [];
       const newMunicipalityIds = new Set<string>();
-      const newOrgIds = new Set<string>();
 
       let fetchedOrganizerRows: OrganizerRow[] = [];
       let fetchedOrgRows: OrgRow[] = [];
-      let fetchedJoinRows: JoinRow[] = [];
 
       if (isSuperAdmin) {
         promises.push(
@@ -94,38 +82,21 @@ export default function InboxScreen() {
             rows.forEach((r) => newMunicipalityIds.add(r.municipalityId));
           }),
         );
+      } else if (adminVillageIds.length > 0) {
         promises.push(
-          getAllPendingJoinRequests().then((rows) => {
-            fetchedJoinRows = rows;
-            rows.forEach((r) => newOrgIds.add(r.orgId));
+          Promise.all(
+            adminVillageIds.map((vid) => getOrganizationsByMunicipality(vid, 'pending')),
+          ).then((perVillage) => {
+            fetchedOrgRows = perVillage.flat();
+            fetchedOrgRows.forEach((r) => newMunicipalityIds.add(r.municipalityId));
           }),
         );
-      } else {
-        if (adminVillageIds.length > 0) {
-          promises.push(
-            Promise.all(
-              adminVillageIds.map((vid) => getOrganizationsByMunicipality(vid, 'pending')),
-            ).then((perVillage) => {
-              fetchedOrgRows = perVillage.flat();
-              fetchedOrgRows.forEach((r) => newMunicipalityIds.add(r.municipalityId));
-            }),
-          );
-        }
-        if (adminOrgIds.length > 0) {
-          promises.push(
-            getPendingJoinRequestsForOrgs(adminOrgIds).then((rows) => {
-              fetchedJoinRows = rows;
-              rows.forEach((r) => newOrgIds.add(r.orgId));
-            }),
-          );
-        }
       }
 
       await Promise.all(promises);
 
       setOrganizerRows(fetchedOrganizerRows);
       setOrgRows(fetchedOrgRows);
-      setJoinRows(fetchedJoinRows);
 
       // Resolve organizer-request requesters (name + photo)
       const requesterFetches = fetchedOrganizerRows.map(async (r) => {
@@ -166,32 +137,12 @@ export default function InboxScreen() {
       if (Object.keys(newNames).length > 0) {
         setMunicipalityNames((prev) => ({ ...prev, ...newNames }));
       }
-
-      // Resolve org names for join rows
-      const knownOrgNames: Record<string, string> = {};
-      for (const org of fetchedOrgRows) {
-        knownOrgNames[org.id] = org.name;
-      }
-      const missingOrgIds = [...newOrgIds].filter((id) => !knownOrgNames[id]);
-      if (missingOrgIds.length > 0) {
-        const orgNameFetches = missingOrgIds.map(async (id) => {
-          const org = await getOrganization(id);
-          return [id, org?.name ?? id] as const;
-        });
-        const resolvedOrgNames = await Promise.all(orgNameFetches);
-        for (const [id, name] of resolvedOrgNames) {
-          knownOrgNames[id] = name;
-        }
-      }
-      if (Object.keys(knownOrgNames).length > 0) {
-        setOrgNames((prev) => ({ ...prev, ...knownOrgNames }));
-      }
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : String(err));
     } finally {
       setDataLoading(false);
     }
-  }, [loading, canApprove, isSuperAdmin, adminVillageIds, adminOrgIds]);
+  }, [loading, canApprove, isSuperAdmin, adminVillageIds]);
 
   useEffect(() => {
     void loadData();
@@ -215,44 +166,27 @@ export default function InboxScreen() {
         const feed = buildActivityFeed(notifications, pendingSent);
         setActivityItems(feed);
 
-        // Resolve municipality/org names for pending-sent rows (organizer's
-        // label is a municipalityId, join's label is an orgId; org's label is
-        // already the org name — see inboxService.getMyPendingRequests).
+        // Resolve municipality names for pending-sent rows (organizer's
+        // label is a municipalityId; org's label is already the org name —
+        // see inboxService.getMyPendingRequests).
         const newMunicipalityIds = new Set<string>();
-        const newOrgIds = new Set<string>();
         for (const item of feed) {
           if (item.kind !== 'pending-sent') continue;
           if (item.requestType === 'organizer') newMunicipalityIds.add(item.label);
-          if (item.requestType === 'join') newOrgIds.add(item.label);
         }
 
-        const [resolvedMunicipalities, resolvedOrgs] = await Promise.all([
-          Promise.all(
-            [...newMunicipalityIds].map(async (mid) => {
-              const m = await getMunicipality(mid);
-              return [mid, m?.name ?? mid] as const;
-            }),
-          ),
-          Promise.all(
-            [...newOrgIds].map(async (id) => {
-              const org = await getOrganization(id);
-              return [id, org?.name ?? id] as const;
-            }),
-          ),
-        ]);
+        const resolvedMunicipalities = await Promise.all(
+          [...newMunicipalityIds].map(async (mid) => {
+            const m = await getMunicipality(mid);
+            return [mid, m?.name ?? mid] as const;
+          }),
+        );
         if (cancelled) return;
 
         if (resolvedMunicipalities.length > 0) {
           setMunicipalityNames((prev) => {
             const next = { ...prev };
             for (const [id, name] of resolvedMunicipalities) next[id] = name;
-            return next;
-          });
-        }
-        if (resolvedOrgs.length > 0) {
-          setOrgNames((prev) => {
-            const next = { ...prev };
-            for (const [id, name] of resolvedOrgs) next[id] = name;
             return next;
           });
         }
@@ -304,21 +238,8 @@ export default function InboxScreen() {
     }
   }
 
-  async function handleJoinDecide(row: JoinRow, decision: 'approved' | 'rejected') {
-    const key = `join-${row.id}`;
-    setBusyKey(key);
-    try {
-      await respondToJoinRequest(row.id, decision);
-      setJoinRows((prev) => prev.filter((r) => r.id !== row.id));
-    } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusyKey(null);
-    }
-  }
-
   // ─── Render: actionable section ──────────────────────────────────────────────
-  const hasActionable = organizerRows.length > 0 || orgRows.length > 0 || joinRows.length > 0;
+  const hasActionable = organizerRows.length > 0 || orgRows.length > 0;
 
   function renderActionable() {
     if (dataLoading) {
@@ -455,42 +376,6 @@ export default function InboxScreen() {
             })}
           </VStack>
         )}
-
-        {/* Join-request section */}
-        {joinRows.length > 0 && (
-          <VStack gap={2}>
-            <Text variant="h3">{t('inbox.tab.join')}</Text>
-            {joinRows.map((row) => {
-              const key = `join-${row.id}`;
-              const orgName = orgNames[row.orgId] ?? row.orgId;
-              return (
-                <VStack
-                  key={row.id}
-                  gap={2}
-                  className="bg-surface border border-subtle rounded-xl p-3"
-                >
-                  <Text>{t('inbox.joinRow', { user: row.userId, org: orgName })}</Text>
-                  <HStack gap={2}>
-                    <Button
-                      onPress={() => handleJoinDecide(row, 'approved')}
-                      loading={busyKey === key}
-                      testID={`approve-join-${row.id}`}
-                    >
-                      {t('inbox.approve')}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      onPress={() => handleJoinDecide(row, 'rejected')}
-                      loading={busyKey === key}
-                    >
-                      {t('inbox.reject')}
-                    </Button>
-                  </HStack>
-                </VStack>
-              );
-            })}
-          </VStack>
-        )}
       </VStack>
     );
   }
@@ -501,9 +386,6 @@ export default function InboxScreen() {
       return t('inbox.pendingSent.organizer', {
         name: municipalityNames[item.label] ?? item.label,
       });
-    }
-    if (item.requestType === 'join') {
-      return t('inbox.pendingSent.join', { name: orgNames[item.label] ?? item.label });
     }
     return t('inbox.pendingSent.org', { name: item.label });
   }

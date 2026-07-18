@@ -22,8 +22,6 @@ export { syncBarrioResidentCount } from './village/syncBarrioResidentCount';
 
 // Organizations (ayuntamiento singleton enforcement)
 export { requestAyuntamiento } from './organizations/requestAyuntamiento';
-export { requestJoinOrganization } from './organizations/requestJoinOrganization';
-export { respondToJoinRequest } from './organizations/respondToJoinRequest';
 export { approveOrganization } from './organizations/approveOrganization';
 export { changeOrgMemberRole } from './organizations/changeOrgMemberRole';
 export { syncOrgMemberCount } from './organizations/syncOrgMemberCount';

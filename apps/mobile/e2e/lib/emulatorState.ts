@@ -97,7 +97,7 @@ export async function getVillageMemberRole(
   return fieldStr(await getDoc(`municipalities/${municipalityId}/members/${userId}`), 'role');
 }
 
-// ── Organization create → approve → join ──────────────────────────────────────
+// ── Organization create → approve ──────────────────────────────────────────────
 
 /** Find the org created in a municipality (by name, since the id is generated). */
 export async function findOrganization(match: {
@@ -116,18 +116,6 @@ export async function findOrganization(match: {
 /** Whether a user has a member doc under an organization. */
 export async function isOrgMember(orgId: string, userId: string): Promise<boolean> {
   return (await getDoc(`organizations/${orgId}/members/${userId}`)) !== null;
-}
-
-/** Status of a join request for an org from a given user (`null` if none yet). */
-export async function findJoinRequestStatus(match: {
-  orgId: string;
-  userId: string;
-}): Promise<string | null> {
-  const docs = await listDocs('organizationJoinRequests');
-  const hit = docs.find(
-    (d) => fieldStr(d, 'orgId') === match.orgId && fieldStr(d, 'userId') === match.userId,
-  );
-  return hit ? fieldStr(hit, 'status') : null;
 }
 
 // ── Create & publish event ────────────────────────────────────────────────────
