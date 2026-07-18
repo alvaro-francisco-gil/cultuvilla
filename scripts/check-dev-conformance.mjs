@@ -59,7 +59,6 @@ import {
   newsCollection,
   commentsCollection,
   occupationsCollection,
-  organizationJoinRequestsCollection,
   membershipEventsCollection,
   moderationEventsCollection,
   adminsCollection,
@@ -119,7 +118,6 @@ const REGISTRY = [
   },
   { name: 'festivalPosters', coll: (db) => festivalPostersCollection(db) },
   { name: 'organizerRequests', coll: (db) => organizerRequestsCollection(db) },
-  { name: 'organizationJoinRequests', coll: (db) => organizationJoinRequestsCollection(db) },
   { name: 'persons', coll: (db) => personsCollection(db) },
   {
     name: 'users',

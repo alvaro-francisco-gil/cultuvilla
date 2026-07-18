@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.13.0 — 2026-07-18
+
 - Show each article's category instead of its publication date on village cards.
 
 ### Added
