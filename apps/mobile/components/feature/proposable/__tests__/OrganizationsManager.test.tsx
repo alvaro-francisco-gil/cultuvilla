@@ -3,6 +3,8 @@ import { OrganizationsManager } from '../OrganizationsManager';
 import {
   requestOrganization, approveOrganization,
 } from '@cultuvilla/shared/services/organizationService';
+import { uploadOrganizationImage } from '@cultuvilla/shared/services/imageService';
+import { pickImageAsBlob } from '../../../../lib/images';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 import { observability } from '@cultuvilla/shared';
 
@@ -15,14 +17,22 @@ jest.mock('@cultuvilla/shared/services/organizationService', () => ({
   newOrganizationId: jest.fn(() => 'new-org'),
   approveOrganization: jest.fn().mockResolvedValue(undefined),
 }));
-jest.mock('@cultuvilla/shared/services/imageService', () => ({ uploadOrganizationImage: jest.fn() }));
+jest.mock('@cultuvilla/shared/services/imageService', () => ({
+  uploadOrganizationImage: jest.fn().mockResolvedValue('https://example.com/org.jpg'),
+  deleteImageByURL: jest.fn(),
+}));
+jest.mock('../../../../lib/images', () => ({ pickImageAsBlob: jest.fn() }));
 jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({ useEntityCapabilities: jest.fn() }));
 
 const mockCaps = useEntityCapabilities as jest.Mock;
+const mockPick = pickImageAsBlob as jest.Mock;
+
+const stubImage = { blob: {} as Blob, filename: 'org.jpg', contentType: 'image/jpeg', previewUri: 'file://org.jpg' };
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockPick.mockResolvedValue(stubImage);
   mockCaps.mockReturnValue({ canManage: false, canApprove: false, uid: 'alice', loading: false });
 });
 
@@ -35,7 +45,7 @@ describe('<OrganizationsManager>', () => {
     await waitFor(() =>
       expect(requestOrganization).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: 'Peña El Pilar', type: 'peña', municipalityId: 'm1', requestedBy: 'alice', status: 'pending',
+          name: 'Peña El Pilar', type: 'peña', municipalityId: 'm1', requestedBy: 'alice', status: 'pending', images: [],
         }),
       ),
     );
@@ -50,5 +60,20 @@ describe('<OrganizationsManager>', () => {
     fireEvent.press(getByTestId('org-submit'));
     await waitFor(() => expect(requestOrganization).toHaveBeenCalled());
     await waitFor(() => expect(approveOrganization).toHaveBeenCalledWith('new-org'));
+  });
+
+  it('uploads a picked image to the minted org id and includes it in the request payload', async () => {
+    const { getByTestId, getByLabelText } = render(<OrganizationsManager villageId="m1" />);
+    fireEvent.press(getByLabelText('organization.addImage'));
+    await waitFor(() => expect(mockPick).toHaveBeenCalled());
+    fireEvent.changeText(getByTestId('org-name-input'), 'Peña El Pilar');
+    fireEvent.press(getByTestId('org-submit'));
+
+    expect(uploadOrganizationImage).toHaveBeenCalledWith('new-org', stubImage);
+    await waitFor(() =>
+      expect(requestOrganization).toHaveBeenCalledWith(
+        expect.objectContaining({ images: ['https://example.com/org.jpg'] }),
+      ),
+    );
   });
 });

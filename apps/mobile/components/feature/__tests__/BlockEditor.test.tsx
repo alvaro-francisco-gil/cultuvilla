@@ -1,7 +1,23 @@
 import { render, fireEvent } from '@testing-library/react-native';
-import { BlockEditor, type EditorBlock } from '../BlockEditor';
+import { BlockEditor, type EditorBlock, type EditorImageBlock } from '../BlockEditor';
 
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+
+function imageBlock(id: string): EditorImageBlock {
+  return {
+    id,
+    type: 'image',
+    storagePath: `p/${id}`,
+    blob: null,
+    uri: null,
+    width: 10,
+    height: 10,
+    caption: '',
+    captionMentions: [],
+    captionLinks: [],
+    captionMarks: [],
+  };
+}
 
 describe('BlockEditor', () => {
   it('merges links across a removed image, rebasing the trailing block offsets', () => {
@@ -49,5 +65,17 @@ describe('BlockEditor', () => {
       { type: 'bold', offset: 0, length: 5 },
       { type: 'italic', offset: 7, length: 7 }, // shifted by "antes\n\n"
     ]);
+  });
+
+  it('hides the "add image" affordance once 10 image blocks are present', () => {
+    const blocks: EditorBlock[] = Array.from({ length: 10 }, (_, i) => imageBlock(`i${i}`));
+    const { queryByLabelText } = render(<BlockEditor blocks={blocks} onChange={jest.fn()} candidates={[]} />);
+    expect(queryByLabelText('news.compose.block.addImage')).toBeNull();
+  });
+
+  it('still shows the "add image" affordance under the cap', () => {
+    const blocks: EditorBlock[] = Array.from({ length: 9 }, (_, i) => imageBlock(`i${i}`));
+    const { queryByLabelText } = render(<BlockEditor blocks={blocks} onChange={jest.fn()} candidates={[]} />);
+    expect(queryByLabelText('news.compose.block.addImage')).not.toBeNull();
   });
 });

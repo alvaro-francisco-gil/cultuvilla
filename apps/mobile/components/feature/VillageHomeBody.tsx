@@ -396,7 +396,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
                 count: b.residentCount,
               })}
               icon="map-outline"
-              imageUri={b.imageURL}
+              imageUri={b.images[0] ?? null}
               commentCount={b.commentCount}
               onPress={() => router.push(`/village/${village.id}/barrio/${b.id}` as never)}
             />
@@ -414,7 +414,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               key={p.id}
               label={p.name}
               icon="location-outline"
-              imageUri={p.imageURL}
+              imageUri={p.images[0] ?? null}
               commentCount={p.commentCount}
               onPress={() => router.push(`/village/${village.id}/place/${p.id}` as never)}
             />
@@ -433,7 +433,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               label={o.name}
               sub={t('village.hub.memberCount', { count: o.memberCount })}
               icon="business-outline"
-              imageUri={o.imageURL}
+              imageUri={o.images[0] ?? null}
               commentCount={o.commentCount}
               onPress={() => router.push(`/o/${o.id}` as never)}
             />
@@ -452,7 +452,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               label={o.name}
               sub={t('village.hub.memberCount', { count: o.memberCount })}
               icon="people-circle-outline"
-              imageUri={o.imageURL}
+              imageUri={o.images[0] ?? null}
               commentCount={o.commentCount}
               onPress={() => router.push(`/o/${o.id}` as never)}
             />

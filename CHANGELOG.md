@@ -4,6 +4,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+- **Places, barrios and organizations now accept up to 5 pictures** instead of a single image, matching the convention already used by festival posters (`images[0]` is the hero shown in the detail screen; the rest render in a vertical stack below the title). Barrio residents are now shown as a wrapping row of avatar-and-name chips (matching an event's organizers) instead of full-image cards. News articles' inline body images are now capped at 10. **Migration:** existing dev docs are backfilled by `scripts/backfill-multi-image-entities.mjs`, converting the old `imageURL` into `images: [imageURL]` (or `images: []`).
+
 ### Changed
 - Account-access emails are now explicitly requested in Spanish for first-time sign-in, returning sign-in, reauthentication and email-change confirmation. Firebase's built-in email still has no Cultuvilla logo; richer branded HTML remains a separate custom-mail delivery change.
 - Person birth dates now use dedicated **Año / Mes / Día** selectors again, making distant birthdays quicker to enter; event date-times, censo dates, and festival-poster dates keep the calendar picker.
@@ -14,6 +17,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 ### Fixed
 - Peña actions now use specific request copy: the detail FAB says “Unirme a esta peña” and the creation form says “Enviar solicitud”.
 - Web sign-in now pins an explicit auth persistence chain (indexedDB → localStorage → in-memory) instead of relying on the Firebase SDK's environment auto-detection, which could silently downgrade to session-only persistence in storage-restricted contexts (Safari private browsing, in-app browser webviews) and force users back through the passwordless email-link sign-in on every visit.
+- Festival poster creation by a non-admin village member no longer fails Firestore rules validation. The create rule still checked for a scalar `imageURL` field, which the model stopped writing when posters moved to a multi-image `images[]` array; only admins (who bypass the check) could create posters until now.
 - The profile's Grupos stat now includes peña memberships instead of counting only non-peña organizations.
 - Profile section titles now use the same font size as the pueblo tab, removing the smaller headings previously used by Personas, managed events, created news and Pueblos.
 - Opening a shared village link (`/village/<id>`) now always lands inside the app shell (bottom tabs + header) for signed-in members too, not just guests. Previously a signed-in visitor got a chrome-less, tab-less dead-end screen. A cold entry (no back stack) redirects into the pueblo tab showing the shared village; in-app navigation to a village (from discovery, a profile, the inbox or a news mention) keeps its back-navigable detail screen. The shared village rides a transient `villageId` query param, so a member's home village (`activeMunicipalityId`) is never silently switched.

@@ -153,7 +153,7 @@ export function useProfileData(
               id: o.id,
               name: o.name,
               type: o.type,
-              imageURL: o.imageURL,
+              imageURL: o.images[0] ?? null,
               role: roleByOrgId.get(o.id) ?? 'member',
               commentCount: o.commentCount,
             })),

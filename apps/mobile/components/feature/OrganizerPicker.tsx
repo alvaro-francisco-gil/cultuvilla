@@ -262,7 +262,7 @@ export function OrganizerPicker({
             key={o.id}
             testID={`org-row-${o.id}`}
             label={o.name}
-            imageUri={o.imageURL ?? null}
+            imageUri={o.images[0] ?? null}
             initials={initialsOf(o.name)}
             selected={orgSheetSelected.has(o.id)}
             onPress={() => toggleOrg(o.id)}
