@@ -11,6 +11,7 @@ import type { FirebaseOptions } from 'firebase/app';
 import Constants from 'expo-constants';
 import {
   browserLocalPersistence,
+  browserPopupRedirectResolver,
   connectAuthEmulator,
   inMemoryPersistence,
   indexedDBLocalPersistence,
@@ -113,6 +114,7 @@ export function bootstrapFirebase(): void {
       customizeAuth: (app) =>
         initializeAuth(app, {
           persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence],
+          popupRedirectResolver: browserPopupRedirectResolver,
         }),
     });
   } else {
