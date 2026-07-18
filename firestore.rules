@@ -617,7 +617,7 @@ service cloud.firestore {
       // Approval (status -> 'approved') is function-owned: the approveOrganization
       // callable flips the status AND seeds the founding admin + audits it in one
       // transaction. Clients may edit other fields or reject, never approve.
-      allow update: if (isVillageAdmin(resource.data.municipalityId) || isAppAdmin())
+      allow update: if (isVillageAdmin(resource.data.municipalityId) || isAppAdmin() || isOrgAdmin(orgId))
         && (request.resource.data.status == resource.data.status
             || request.resource.data.status == 'rejected')
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['commentCount', 'readCount', 'memberCount']);
