@@ -1,4 +1,5 @@
 import { render, fireEvent } from '@testing-library/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { CensoFieldInput } from '../CensoFieldInput';
 
 jest.mock('../../../../lib/i18n', () => ({
@@ -25,12 +26,19 @@ it('renders a numeric input and emits a number', () => {
 it('appends a deleted-entity option for a stored id not in current options', () => {
   const onChange = jest.fn();
   const { getByText } = render(
-    <CensoFieldInput
-      field={{ source: 'custom', key: 'b', label: 'Barrio', type: 'select', optionsSource: 'barrios', required: false }}
-      value="gone-id"
-      onChange={onChange}
-      entityOptions={[{ value: 'x', label: 'Centro' }]}
-    />,
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 390, height: 844 },
+        insets: { top: 0, left: 0, right: 0, bottom: 0 },
+      }}
+    >
+      <CensoFieldInput
+        field={{ source: 'custom', key: 'b', label: 'Barrio', type: 'select', optionsSource: 'barrios', required: false }}
+        value="gone-id"
+        onChange={onChange}
+        entityOptions={[{ value: 'x', label: 'Centro' }]}
+      />
+    </SafeAreaProvider>,
   );
   expect(getByText('(eliminado)')).toBeTruthy();
   // Verify the ghost chip is non-interactive (disabled)

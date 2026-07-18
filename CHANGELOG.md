@@ -14,6 +14,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 - The legacy organization join-request approve-flow (`organizationJoinRequests/`, `requestJoinOrganization`, `respondToJoinRequest`) — orphaned since joining a peña/asociación became instant self-service; no UI ever called the create-side callable. Removed the Firestore collection's rules/indexes, the two callables, `organizationJoinRequestService`, the mobile inbox's join-request section, and the corresponding notification types (`join_request_created/approved/rejected`).
 
 ### Changed
+- Entity-backed censo questions now use a compact dropdown-style selector instead of showing every option inline; opening it shows each barrio, place, organization, event, festival poster, or article with its image.
 - Account-access emails are now explicitly requested in Spanish for first-time sign-in, returning sign-in, reauthentication and email-change confirmation. Firebase's built-in email still has no Cultuvilla logo; richer branded HTML remains a separate custom-mail delivery change.
 - Person birth dates now use dedicated **Año / Mes / Día** selectors again, making distant birthdays quicker to enter; event date-times, censo dates, and festival-poster dates keep the calendar picker.
 - The censo builder's entity-backed answer options (a select/multiselect question whose choices come from a live village collection) now cover all six village entities — **events, festival posters (carteles) and news** join the existing barrios/places/organizations sources.

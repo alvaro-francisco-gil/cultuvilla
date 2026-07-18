@@ -1,5 +1,6 @@
 import { Input, Toggle, DateField, Text, VStack } from '../../primitives';
 import { ChoiceList, type ChoiceOption } from './ChoiceList';
+import { EntityChoicePicker } from './EntityChoicePicker';
 import { useT } from '../../../lib/i18n';
 import { resolveFieldDisplay } from '@cultuvilla/shared/services/censoFieldResolver';
 import type { ProfileFormField, ProfileAnswerValue } from '@cultuvilla/shared/models/municipality/CensoTypes';
@@ -63,15 +64,26 @@ export function CensoFieldInput({ field, value, onChange, entityOptions, showLab
       const ghosts: ChoiceOption[] = stored
         .filter((sv) => !known.has(sv))
         .map((sv) => ({ value: sv, label: t('censo.builder.deletedEntity'), disabled: true }));
+      const options = [...baseOptions, ...ghosts];
       return (
         <VStack gap={1}>
           {showLabel && <Text variant="bodySm" tone="muted">{fullLabel}</Text>}
-          <ChoiceList
-            options={[...baseOptions, ...ghosts]}
-            mode={r.type === 'multiselect' ? 'multi' : 'single'}
-            value={value as string | string[] | undefined}
-            onChange={(next) => onChange(next)}
-          />
+          {r.optionsSource ? (
+            <EntityChoicePicker
+              title={fullLabel}
+              options={options}
+              mode={r.type === 'multiselect' ? 'multi' : 'single'}
+              value={value as string | string[] | undefined}
+              onChange={(next) => onChange(next)}
+            />
+          ) : (
+            <ChoiceList
+              options={options}
+              mode={r.type === 'multiselect' ? 'multi' : 'single'}
+              value={value as string | string[] | undefined}
+              onChange={(next) => onChange(next)}
+            />
+          )}
         </VStack>
       );
     }

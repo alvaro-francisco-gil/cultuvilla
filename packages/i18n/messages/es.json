@@ -444,6 +444,10 @@
     "noFields": "Este pueblo no tiene censo configurado",
     "fillIntro": "Responde el cuestionario de tu pueblo.",
     "missingRequired": "Campos obligatorios sin rellenar",
+    "entityPicker": {
+      "placeholder": "Selecciona una opción",
+      "selectedCount": "{count, plural, one {1 seleccionado} other {# seleccionados}}"
+    },
     "types": {
       "text": "Texto corto",
       "textarea": "Párrafo",
