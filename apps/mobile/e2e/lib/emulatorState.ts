@@ -118,6 +118,13 @@ export async function isOrgMember(orgId: string, userId: string): Promise<boolea
   return (await getDoc(`organizations/${orgId}/members/${userId}`)) !== null;
 }
 
+// ── Village join ─────────────────────────────────────────────────────────────
+
+/** Whether a user has any member doc under a village. */
+export async function isVillageMember(municipalityId: string, userId: string): Promise<boolean> {
+  return (await getDoc(`municipalities/${municipalityId}/members/${userId}`)) !== null;
+}
+
 // ── Create & publish event ────────────────────────────────────────────────────
 
 /** Events scoped to a municipality (top-level collection, `municipalityId` field). */
@@ -137,6 +144,35 @@ export async function findEvent(match: {
   return hit ? { id: docIdOf(hit), status: fieldStr(hit, 'status') } : null;
 }
 
+// ── Registrations / waitlist ─────────────────────────────────────────────────
+
+export async function getRegistration(
+  eventId: string,
+  regId: string,
+): Promise<{ id: string; personId: string | null; status: string | null } | null> {
+  const doc = await getDoc(`events/${eventId}/registrations/${regId}`);
+  if (!doc) return null;
+  return {
+    id: regId,
+    personId: fieldStr(doc, 'personId'),
+    status: fieldStr(doc, 'status'),
+  };
+}
+
+export async function findRegistration(match: {
+  eventId: string;
+  personId?: string;
+  userId?: string;
+}): Promise<{ id: string; status: string | null } | null> {
+  const docs = await listDocs(`events/${match.eventId}/registrations`);
+  const hit = docs.find(
+    (d) =>
+      (match.personId === undefined || fieldStr(d, 'personId') === match.personId) &&
+      (match.userId === undefined || fieldStr(d, 'userId') === match.userId),
+  );
+  return hit ? { id: docIdOf(hit), status: fieldStr(hit, 'status') } : null;
+}
+
 // ── Onboarding + profile ──────────────────────────────────────────────────────
 
 /** The personId linked on a user profile — set when onboarding completes. */
@@ -147,6 +183,28 @@ export async function getUserPersonId(userId: string): Promise<string | null> {
 /** Whether a persons/{id} doc exists (created by the onboarding flow). */
 export async function personExists(personId: string): Promise<boolean> {
   return (await getDoc(`persons/${personId}`)) !== null;
+}
+
+// ── News + optimistic content visibility ─────────────────────────────────────
+
+export async function findNewsPost(match: {
+  municipalityId: string;
+  title: string;
+}): Promise<{ id: string; status: string | null } | null> {
+  const docs = await listDocs('news');
+  const hit = docs.find(
+    (d) =>
+      fieldStr(d, 'municipalityId') === match.municipalityId &&
+      fieldStr(d, 'title') === match.title,
+  );
+  return hit ? { id: docIdOf(hit), status: fieldStr(hit, 'status') } : null;
+}
+
+export async function getPlaceStatus(
+  municipalityId: string,
+  placeId: string,
+): Promise<string | null> {
+  return fieldStr(await getDoc(`municipalities/${municipalityId}/places/${placeId}`), 'status');
 }
 
 /** Poll until `predicate(value)` holds or the deadline passes. */

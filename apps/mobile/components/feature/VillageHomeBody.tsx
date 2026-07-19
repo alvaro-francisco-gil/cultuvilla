@@ -243,12 +243,14 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               label={user ? t('village.join') : t('village.signInToJoin')}
               onPress={onJoin}
               disabled={joining}
+              testID="village-join-action"
             />
           ) : null}
           {isMember ? (
             <ActionPill
               label={t('village.addContent.button')}
               onPress={() => setAddOpen(true)}
+              testID="village-add-content-action"
             />
           ) : null}
           <ActionPill
@@ -415,7 +417,16 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               label={p.name}
               icon="location-outline"
               imageUri={p.images[0] ?? null}
-              commentCount={p.commentCount}
+              commentCount={p.kind === 'cemetery' ? undefined : p.commentCount}
+              statBadge={
+                p.kind === 'cemetery'
+                  ? {
+                      icon: 'person-outline',
+                      count: p.burialCount,
+                      testID: 'entity-card-burial-count',
+                    }
+                  : undefined
+              }
               onPress={() => router.push(`/village/${village.id}/place/${p.id}` as never)}
             />
           ))}
@@ -533,16 +544,19 @@ function ActionPill({
   label,
   onPress,
   disabled = false,
+  testID,
 }: {
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  testID?: string;
 }) {
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
       accessibilityLabel={label}
+      testID={testID}
       className="flex-1 flex-row items-center justify-center bg-surface"
       style={{
         paddingVertical: 5,

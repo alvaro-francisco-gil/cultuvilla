@@ -116,6 +116,30 @@ RN-Web 0.21 mostly supports `useNativeDriver: true` for opacity / transform anim
 
 Reference fix: `apps/mobile/components/feature/SegmentedToggle.tsx` (commit 31cec02).
 
+## A horizontal `ScrollView`/`FlatList` can't be scrolled by mouse on web
+
+A `horizontal` RN-Web `ScrollView`/`FlatList` renders as an `overflow-x` scroller, but a **mouse** has no way to move it: a vertical wheel doesn't scroll it horizontally, there is no drag-to-scroll, and `showsHorizontalScrollIndicator={false}` hides the scrollbar (the last mouse affordance). On a phone it works because touch-drag moves the overflow container; on a PC the row is stuck. This bit every card row on the Pueblo tab and the Perfil screen — content overflowing, unreachable.
+
+**Rule:** wrap any `horizontal` row the web build renders in `HorizontalScrollRow` (`apps/mobile/components/feature/HorizontalScrollRow.tsx`), spreading the provided ref onto the list. On **non-touch desktop screens only** it overlays prev/next arrow buttons that page the row; the row moves solely via those arrows there. Fully inert on native and on touch screens, so phone behaviour (touch-drag) is unchanged.
+
+```tsx
+import { HorizontalScrollRow } from '../HorizontalScrollRow';
+
+<HorizontalScrollRow>
+  {(scrollRef) => (
+    <FlatList ref={scrollRef} horizontal showsHorizontalScrollIndicator={false} … />
+  )}
+</HorizontalScrollRow>
+```
+
+It resolves the DOM node via the list's `getScrollableNode()` (both `ScrollView` and `FlatList` expose it on web), pages via `scrollTo` on click, and gates the arrows behind `matchMedia('(hover: hover) and (pointer: fine)')`. The pure edge/page math lives in `apps/mobile/lib/horizontalScroll.ts` (unit-tested).
+
+**Two gotchas baked into this component, learned the hard way:**
+- **Never unmount a control mid-interaction.** The arrows first *unmounted* when their direction wasn't scrollable; a still-settling `scrollTo` flips that flag between mouse-down and mouse-up, and a control removed mid-press fires **no `click`** — so arrow clicks dropped intermittently (the left one more, since it sits near its toggle boundary). Fix: keep both arrows mounted always and toggle `opacity` + `pointerEvents` instead. An invisible `pointerEvents:'none'` control also lets clicks fall through to the card underneath.
+- An earlier version translated the vertical mouse wheel into horizontal scroll; it worked but read as an unwanted "free-scroll" once the arrows existed. Desktop rows are **arrows-only** now.
+
+Reference: `apps/mobile/components/feature/VillageSections.tsx` + the four `apps/mobile/components/feature/profile/*Scroll.tsx` rows.
+
 ## `expo-router` `Tabs` default metrics clip labels on web
 
 The default `bottom-tabs` height + label/icon spacing fits iOS / Android line-height but clips labels under RN-Web's text metrics. Default tab-bar height is shorter than expected and the label appears covered by padding.

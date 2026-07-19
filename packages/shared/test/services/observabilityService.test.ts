@@ -65,6 +65,27 @@ describe('observability port', () => {
     expect(params).toEqual({ villageId: 'v1' });
   });
 
+  it('forwards the new engagement keys through filterContext', () => {
+    observability.trackEvent(OBSERVABILITY_EVENTS.CONTENT_DETAIL_VIEWED, {
+      entityKind: 'event',
+      entityId: 'e1',
+      municipalityId: 'm1',
+      surface: 'village_discovery',
+      resultCount: 3,
+      viaInvite: true,
+      leaked: 'nope',
+    });
+    const [, params] = adapter.calls.trackEvent[0];
+    expect(params).toEqual({
+      entityKind: 'event',
+      entityId: 'e1',
+      municipalityId: 'm1',
+      surface: 'village_discovery',
+      resultCount: 3,
+      viaInvite: true,
+    });
+  });
+
   it('captureError flows even when analytics consent is denied', () => {
     observability.setConsent({ analytics: false });
     observability.captureError(new Error('boom'), { route: '/x', leaked: 'y' });

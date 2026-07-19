@@ -187,6 +187,7 @@ describe('PlaceDataSchema and buildPlaceData', () => {
     expect(p.description).toBeNull();
     expect(p.images).toEqual([]);
     expect(p.kind).toBe('cemetery');
+    expect(p.burialCount).toBe(0);
     expect(() => PlaceDataSchema.parse(p)).not.toThrow();
   });
 

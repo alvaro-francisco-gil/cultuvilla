@@ -72,6 +72,7 @@ interface MentionTextInputProps {
   onFocus?: () => void;
   /** Reports the caret position so the editor can split here on image insert. */
   onSelectionChange?: (caret: number) => void;
+  testID?: string;
 }
 
 /**
@@ -91,6 +92,7 @@ export function MentionTextInput({
   placeholder,
   onFocus,
   onSelectionChange,
+  testID,
 }: MentionTextInputProps) {
   const { t } = useT();
   // Track the caret only to detect an in-progress `@query`. We deliberately do
@@ -205,6 +207,7 @@ export function MentionTextInput({
             placeholder={placeholder}
             placeholderTextColor={colors.light.fg.muted}
             accessibilityLabel={placeholder}
+            testID={testID}
             className="text-body"
             textAlignVertical="top"
             // The text layer is transparent (glyphs come from the overlay Text

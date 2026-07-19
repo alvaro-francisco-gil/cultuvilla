@@ -32,6 +32,10 @@
     "close": "Cerrar",
     "photo": "Foto",
     "and": "y",
+    "carousel": {
+      "prev": "Anterior",
+      "next": "Siguiente"
+    },
     "error": {
       "network": "Parece que no hay conexión. Comprueba tu internet.",
       "data": "No pudimos mostrar este contenido.",
@@ -269,9 +273,6 @@
     "membersList": {
       "colName": "Nombre",
       "colCenso": "Censo",
-      "colDate": "Fecha",
-      "roleAdmin": "Administrador",
-      "roleUser": "Miembro",
       "censoComplete": "Censo completo",
       "censoPending": "Censo pendiente",
       "empty": "Aún no hay miembros.",
@@ -413,7 +414,15 @@
     },
     "placeDetail": {
       "buried": "Personas enterradas aquí",
-      "buriedEmpty": "Aún no hay personas registradas en este lugar"
+      "buriedEmpty": "Aún no hay personas registradas en este lugar",
+      "addDifunto": "Añadir difunto",
+      "condolence": "Lamentamos tu pérdida",
+      "deathDatePrompt": "¿Sabes la fecha de su fallecimiento? Con el año basta.",
+      "deathDateUnknown": "Sin fecha",
+      "removeBurial": "Quitar de este cementerio",
+      "createPersona": "Crear nueva persona",
+      "alreadyBuried": "Ya está aquí",
+      "addAction": "Añadir"
     },
     "festivalPosters": {
       "title": "Carteles de fiestas",
@@ -633,6 +642,12 @@
       "roleChangeError": "No se pudo cambiar el rol. Inténtalo de nuevo.",
       "removeError": "No se pudo eliminar al miembro. Inténtalo de nuevo."
     }
+  },
+  "partialDate": {
+    "year": "Año",
+    "month": "Mes",
+    "day": "Día",
+    "clear": "Sin fecha"
   },
   "profile": {
     "myProfile": "Mi perfil",

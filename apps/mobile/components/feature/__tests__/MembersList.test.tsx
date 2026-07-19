@@ -72,7 +72,11 @@ beforeEach(() => {
   mockGetMunicipality.mockResolvedValue({ id: 'm1', community: { organizerId: null } });
 });
 
-test('renders a table with column headers and a row per member', async () => {
+test('renders members without joined date or role labels', async () => {
+  mockGetMunicipality.mockResolvedValue({
+    id: 'm1',
+    community: { organizerId: null, profileForm: { fields: [{ key: 'age' }] } },
+  });
   mockGetVillageMembers.mockResolvedValue([
     { id: 'admin1', userId: 'admin1', role: 'admin', joinedAt: new Date('2026-01-01'), profileCompletedAt: new Date('2026-01-02') },
     { id: 'user1', userId: 'user1', role: 'user', joinedAt: new Date('2026-02-01'), profileCompletedAt: null },
@@ -84,13 +88,51 @@ test('renders a table with column headers and a row per member', async () => {
   // Column headers.
   expect(screen.getByText('Nombre')).toBeTruthy();
   expect(screen.getByText('Censo')).toBeTruthy();
-  expect(screen.getByText('Fecha')).toBeTruthy();
+  expect(screen.queryByText('Fecha')).toBeNull();
   // Names.
   expect(screen.getByText('Bruno Vecino')).toBeTruthy();
+  expect(screen.queryByText('Administrador')).toBeNull();
+  expect(screen.queryByText('Miembro')).toBeNull();
   // Censo cell is a tick for the completed member and a cross for the pending one.
   expect(screen.getByLabelText('Censo completo')).toBeTruthy();
   expect(screen.getByLabelText('Censo pendiente')).toBeTruthy();
   expect(mockGetVillageMembers).toHaveBeenCalledWith('m1');
+});
+
+test('hides the censo column when the village has no configured censo', async () => {
+  mockGetMunicipality.mockResolvedValue({ id: 'm1', community: { organizerId: null, profileForm: null } });
+  mockGetVillageMembers.mockResolvedValue([
+    { id: 'admin1', userId: 'admin1', role: 'admin', joinedAt: new Date('2026-01-01'), profileCompletedAt: new Date('2026-01-02') },
+    { id: 'user1', userId: 'user1', role: 'user', joinedAt: new Date('2026-02-01'), profileCompletedAt: null },
+  ]);
+
+  render(<MembersList villageId="m1" />);
+
+  await waitFor(() => expect(screen.getByText('Ana Admin')).toBeTruthy());
+  expect(screen.getByText('Nombre')).toBeTruthy();
+  expect(screen.queryByText('Censo')).toBeNull();
+  expect(screen.queryByLabelText('Censo completo')).toBeNull();
+  expect(screen.queryByLabelText('Censo pendiente')).toBeNull();
+});
+
+test('reserves the action column for every row when only some members are actionable', async () => {
+  mockGetMunicipality.mockResolvedValue({
+    id: 'm1',
+    community: { organizerId: 'admin2', profileForm: { fields: [{ key: 'age' }] } },
+  });
+  mockGetVillageMembers.mockResolvedValue([
+    { id: 'admin1', userId: 'admin1', role: 'admin', joinedAt: new Date('2026-01-01'), profileCompletedAt: new Date('2026-01-02') },
+    { id: 'admin2', userId: 'admin2', role: 'admin', joinedAt: new Date('2026-01-02'), profileCompletedAt: null },
+    { id: 'user1', userId: 'user1', role: 'user', joinedAt: new Date('2026-02-01'), profileCompletedAt: null },
+  ]);
+
+  render(<MembersList villageId="m1" canManage currentUserId="admin1" />);
+
+  await waitFor(() => expect(screen.getByText('Bruno Vecino')).toBeTruthy());
+  expect(screen.getAllByTestId('member-action-slot')).toHaveLength(3);
+  expect(screen.getByTestId('member-row-user1')).toBeTruthy();
+  expect(screen.queryByTestId('member-row-admin1')).toBeNull();
+  expect(screen.queryByTestId('member-row-admin2')).toBeNull();
 });
 
 test('lists admins before regular members regardless of join order', async () => {
@@ -125,8 +167,7 @@ test('read-only viewer sees no role-change controls', async () => {
   await waitFor(() => expect(screen.getByText('Ana Admin')).toBeTruthy());
   expect(screen.queryByTestId('member-row-user1')).toBeNull();
   expect(screen.queryByTestId('member-row-admin1')).toBeNull();
-  // Read-only: never reads the community doc for the organizer pointer.
-  expect(mockGetMunicipality).not.toHaveBeenCalled();
+  expect(mockGetMunicipality).toHaveBeenCalledWith('m1');
 });
 
 test('an admin can promote a member; the roster refetches afterwards', async () => {

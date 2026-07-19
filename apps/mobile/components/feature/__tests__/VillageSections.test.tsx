@@ -10,6 +10,20 @@ describe('<EntityCard>', () => {
     expect(getByText('5')).toBeTruthy();
   });
 
+  it('renders an alternate stat badge instead of the comment badge', () => {
+    const { getByTestId, getByText, queryByTestId } = render(
+      <EntityCard
+        label="Cementerio"
+        icon="location-outline"
+        commentCount={5}
+        statBadge={{ icon: 'person-outline', count: 7, testID: 'entity-card-burial-count' }}
+      />,
+    );
+    expect(getByTestId('entity-card-burial-count')).toBeTruthy();
+    expect(getByText('7')).toBeTruthy();
+    expect(queryByTestId('entity-card-comment-count')).toBeNull();
+  });
+
   it('renders no comment count badge when commentCount is 0', () => {
     const { queryByTestId } = render(
       <EntityCard label="La Fiesta" icon="calendar-outline" commentCount={0} />,

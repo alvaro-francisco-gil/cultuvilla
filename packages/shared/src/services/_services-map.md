@@ -63,6 +63,7 @@ Some documents carry denormalized copies of fields owned by other collections so
 | `readCount` on each entity doc (same six kinds) | same as above | (no source collection — incremented directly by the callable) | [functions/src/interaction/recordEntityView.ts](../../../../functions/src/interaction/recordEntityView.ts) (`recordEntityView` callable) |
 | `memberCount` on org doc | `organizations/{orgId}` | `organizations/{orgId}/members/` | [functions/src/organizations/syncOrgMemberCount.ts](../../../../functions/src/organizations/syncOrgMemberCount.ts) (`syncOrgMemberCount`) |
 | `residentCount` on barrio doc | `municipalities/{mid}/barrios/{bid}` | `persons/` (via `municipalityLinks` `{municipalityId, barrioId}`) | [functions/src/village/syncBarrioResidentCount.ts](../../../../functions/src/village/syncBarrioResidentCount.ts) (`syncBarrioResidentCount`) |
+| `burialCount` on place doc | `municipalities/{mid}/places/{pid}` | `persons/` (via `burialPlace` `{municipalityId, placeId}`) | [functions/src/village/syncPlaceBurialCount.ts](../../../../functions/src/village/syncPlaceBurialCount.ts) (`syncPlaceBurialCount`) |
 
 See [docs/architecture/denormalized-read-models.md](../../../../docs/architecture/denormalized-read-models.md) for the pattern. If you introduce a new denormalized field, add a row above and a trigger in the same change.
 

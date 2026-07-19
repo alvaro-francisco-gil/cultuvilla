@@ -91,6 +91,11 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
     });
   }
 
+  async function handleSignOut() {
+    await signOut();
+    router.replace('/(tabs)');
+  }
+
   const sections: MenuSection[] = [
     {
       title: t('menu.section.account'),
@@ -317,7 +322,7 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
             </Text>
 
             <Pressable
-              onPress={() => close(() => void signOut())}
+              onPress={() => close(() => void handleSignOut())}
               className="flex-row items-center justify-center bg-surface rounded-md border border-subtle py-4"
             >
               <Ionicons name="log-out-outline" size={20} color="#dc2626" />

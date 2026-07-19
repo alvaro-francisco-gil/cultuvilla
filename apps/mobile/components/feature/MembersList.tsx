@@ -8,7 +8,6 @@ import {
 import { getUserProfile } from '@cultuvilla/shared/services/userService';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
-import { formatDate } from '@cultuvilla/shared/utils';
 import { iconSizes } from '@cultuvilla/shared/design-system';
 import { VStack, HStack, Text, Avatar, Pressable } from '../primitives';
 import { showConfirm, showAlert } from '../../lib/dialogs';
@@ -32,10 +31,9 @@ const initialsOf = (name: string) =>
     .join('');
 
 /**
- * Roster of a pueblo's members, mounted as the "Miembros" tab of the community
- * ("Editar pueblo") screen. Rendered as a table: Nombre · Censo · Fecha. Joins
- * each member doc with the user profile for name/photo, lists admins first,
- * then by join date.
+ * Roster of a pueblo's members, reached from the village personas stat. It joins
+ * each member doc with the user profile for name/photo, lists admins first, then
+ * by join date, without exposing the join date in the UI.
  *
  * When `canManage`, admins/app-admins can promote a member to admin or demote
  * an admin back to member by tapping the row — routed through the audited
@@ -55,13 +53,18 @@ export function MembersList({
   const { t } = useT();
   const [rows, setRows] = useState<MemberRow[] | null>(null);
   const [organizerId, setOrganizerId] = useState<string | null>(null);
+  const [censoConfigured, setCensoConfigured] = useState(false);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const members = await getVillageMembers(villageId);
+      const [members, municipality] = await Promise.all([
+        getVillageMembers(villageId),
+        getMunicipality(villageId),
+      ]);
+      const profileFields = municipality?.community?.profileForm?.fields ?? [];
       const joined = await Promise.all(
         members.map(async (m) => {
           // Name comes from the (denormalized) user doc; the avatar lives on the
@@ -84,25 +87,16 @@ export function MembersList({
         if (a.role !== b.role) return a.role === 'admin' ? -1 : 1;
         return a.joinedAt.getTime() - b.joinedAt.getTime();
       });
-      if (!cancelled) setRows(joined);
+      if (!cancelled) {
+        setOrganizerId(municipality?.community?.organizerId ?? null);
+        setCensoConfigured(profileFields.length > 0);
+        setRows(joined);
+      }
     })();
     return () => {
       cancelled = true;
     };
   }, [villageId, refreshKey]);
-
-  useEffect(() => {
-    // The organizer pointer only matters for hiding a demote action, so only
-    // managers pay for the extra community read.
-    if (!canManage) return;
-    let cancelled = false;
-    getMunicipality(villageId).then((muni) => {
-      if (!cancelled) setOrganizerId(muni?.community?.organizerId ?? null);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [villageId, canManage]);
 
   const changeRole = (m: MemberRow) => {
     const nextRole = m.role === 'admin' ? 'user' : 'admin';
@@ -156,29 +150,25 @@ export function MembersList({
           <Text testID="member-name" numberOfLines={1}>
             {m.displayName}
           </Text>
-          <Text variant="caption" tone="muted" numberOfLines={1}>
-            {t(m.role === 'admin' ? 'village.membersList.roleAdmin' : 'village.membersList.roleUser')}
-          </Text>
         </VStack>
       </HStack>
-      <View
-        className="w-14 items-center"
-        accessibilityLabel={
-          m.censoComplete
-            ? t('village.membersList.censoComplete')
-            : t('village.membersList.censoPending')
-        }
-      >
-        <Ionicons
-          name={m.censoComplete ? 'checkmark' : 'close'}
-          size={iconSizes.sm}
-          color={m.censoComplete ? '#16a34a' : '#9ca3af'}
-        />
-      </View>
-      <Text variant="caption" tone="muted" numberOfLines={1} className="w-28 text-right">
-        {formatDate(m.joinedAt, 'short')}
-      </Text>
-      <View className="w-6 items-end">
+      {censoConfigured ? (
+        <View
+          className="w-14 items-center"
+          accessibilityLabel={
+            m.censoComplete
+              ? t('village.membersList.censoComplete')
+              : t('village.membersList.censoPending')
+          }
+        >
+          <Ionicons
+            name={m.censoComplete ? 'checkmark' : 'close'}
+            size={iconSizes.sm}
+            color={m.censoComplete ? '#16a34a' : '#9ca3af'}
+          />
+        </View>
+      ) : null}
+      <View testID="member-action-slot" className="w-6 items-end">
         {pendingUserId === m.userId ? (
           <ActivityIndicator size="small" />
         ) : actionable ? (
@@ -192,16 +182,15 @@ export function MembersList({
     <ScrollView contentContainerClassName="pb-10">
       <VStack className="pt-3 px-4">
         {/* Header row */}
-        <HStack className="items-center py-2 border-b border-subtle">
+        <HStack gap={0} className="items-center py-2 border-b border-subtle">
           <Text variant="caption" tone="muted" numberOfLines={1} className="flex-1 font-bold">
             {t('village.membersList.colName')}
           </Text>
-          <Text variant="caption" tone="muted" numberOfLines={1} className="w-14 text-center font-bold">
-            {t('village.membersList.colCenso')}
-          </Text>
-          <Text variant="caption" tone="muted" numberOfLines={1} className="w-28 text-right font-bold">
-            {t('village.membersList.colDate')}
-          </Text>
+          {censoConfigured ? (
+            <Text variant="caption" tone="muted" numberOfLines={1} className="w-14 text-center font-bold">
+              {t('village.membersList.colCenso')}
+            </Text>
+          ) : null}
           <View className="w-6" />
         </HStack>
 
@@ -219,7 +208,7 @@ export function MembersList({
               {renderRowContent(m, actionable)}
             </Pressable>
           ) : (
-            <HStack key={m.userId} className="items-center py-3 border-b border-subtle">
+            <HStack key={m.userId} gap={0} className="items-center py-3 border-b border-subtle">
               {renderRowContent(m, actionable)}
             </HStack>
           );

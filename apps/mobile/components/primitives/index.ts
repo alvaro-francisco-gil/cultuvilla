@@ -25,6 +25,8 @@ export { DateField } from './DateField';
 export type { DateFieldProps } from './DateField';
 export { BirthDateField } from './BirthDateField';
 export type { BirthDateFieldProps } from './BirthDateField';
+export { PartialDateField } from './PartialDateField';
+export type { PartialDateFieldProps } from './PartialDateField';
 export { DateTimeField } from './DateTimeField';
 export type { DateTimeFieldProps } from './DateTimeField';
 export { PasswordInput } from './PasswordInput';

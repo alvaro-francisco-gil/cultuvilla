@@ -4,6 +4,22 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.14.0 — 2026-07-19
+
+### Added
+- Cemetery detail screens now have an **"Añadir difunto"** button so any resident — not just village admins — can record one of their personas a cargo as buried there. Picking (or creating) a persona opens a gentle "Lamentamos tu pérdida" step with an optional approximate death date (year alone is enough), then lists them among the cemetery's difuntos as a compact date-sorted list. Tapping an editable difunto opens a burial-date editor with an option to remove them from that cemetery. Cemetery cards on the Pueblo tab now show a person-count badge for added difuntos instead of the generic comment badge.
+- Product-analytics engagement events: content-detail views, search submit/select, and org join & invite share — feeding the behavioral-dashboard initiative (Phase 1).
+
+### Changed
+- The village personas roster now shows only each person's avatar and name, plus censo completion when that village has a configured censo; join dates and role labels are no longer shown.
+
+### Fixed
+- The village personas roster now keeps the censo column aligned when some rows have an admin action arrow and others do not.
+- Returning to the **Pueblo (village) tab** after opening an entity (event, article, cartel, barrio, lugar, peña…) now keeps your place. Previously the tab reloaded from scratch on every return — flashing skeletons and jumping back to the top — because the focus refetch blanked the whole screen to a spinner. The refetch now happens silently in the background over the already-rendered content, so both the vertical scroll position and each horizontal card row's position are preserved. The tab still fully reloads (spinner + skeletons) on first open and when you switch to a different village.
+- The person birth-date month picker now shows full month names and gives modal options readable horizontal spacing.
+- Tapping a resident (vecino) in a barrio no longer opens the editable person stepper. Registered users open their profile (the same view as a shared profile link), while dependent personas without an account are shown without a link. The barrio "Vecinos" heading now matches the "Comentarios" section heading style.
+- Horizontal card rows on the **Pueblo (village) tab** and the **Perfil (profile)** screen are now usable on the web build's **desktop** (non-touch) screens. On a phone these scroll by touch-drag, but a desktop has no touch — so on a fine-pointer screen each row shows prev/next **arrow buttons** at its edges (each enabled only when there's more to scroll that way), and the row moves solely via those arrows. Native touch behaviour is unchanged; the arrows never appear on a touch screen.
+
 ## v0.13.0 — 2026-07-18
 
 - Show each article's category instead of its publication date on village cards.

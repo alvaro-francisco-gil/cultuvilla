@@ -159,6 +159,23 @@ reactions/likes feature — it was removed in favor of this invisible counter.
 - **Not surfaced in the UI today** — it's tracked for future use (e.g.
   ranking, moderation signal), not rendered on any card or detail screen.
 
+### `burialCount` ← `persons/{personId}.burialPlace`
+
+Cemetery place cards show how many people have been added to that cemetery
+without issuing one `persons` query per place in the village home scroll.
+
+- **Source of truth:** `persons/{personId}.burialPlace`, carrying
+  `{ municipalityId, placeId }` for deceased personas assigned to a cemetery.
+- **Trigger:** [functions/src/village/syncPlaceBurialCount.ts](../../functions/src/village/syncPlaceBurialCount.ts)
+  (`syncPlaceBurialCount`), an `onDocumentWritten` on `persons/`. It diffs the
+  before/after burial place and increments/decrements
+  `municipalities/{mid}/places/{pid}.burialCount` with
+  `FieldValue.increment`.
+- **Rules:** `firestore.rules` requires `burialCount: 0` on place create and
+  blocks client updates to the field; only the trigger can mutate it.
+- **Backfill:** [scripts/backfill-place-burial-count.mjs](../../scripts/backfill-place-burial-count.mjs)
+  recalculates existing place counts from `persons/`.
+
 ### `memberCount` ← `organizations/{orgId}/members/` and `residentCount` ← `persons/`
 
 Membership-size counters that back **ordering** on the village hub: peñas /

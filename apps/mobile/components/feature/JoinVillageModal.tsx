@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, View } from 'react-native';
+import { Modal, StyleSheet, View } from 'react-native';
 import {
   VStack,
   HStack,
@@ -50,7 +50,7 @@ export function JoinVillageModal({ municipality, busy = false, onCancel, onConfi
         onPress={() => {
           if (!busy) onCancel();
         }}
-        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}
+        style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
         className="items-center justify-center px-8"
       >
         {/* Inner press-catcher: taps inside the card must not dismiss. */}
@@ -82,10 +82,15 @@ export function JoinVillageModal({ municipality, busy = false, onCancel, onConfi
                 wholeVillageLabel={t('profile.personForm.wholeVillage')}
               />
               <HStack gap={3} className="justify-end items-center">
-                <Button variant="ghost" onPress={onCancel} disabled={busy}>
+                <Button variant="ghost" onPress={onCancel} disabled={busy} testID="join-village-cancel">
                   {t('village.joinConfirm.cancel')}
                 </Button>
-                <Button variant="primary" onPress={() => onConfirm(barrioId)} loading={busy}>
+                <Button
+                  variant="primary"
+                  onPress={() => onConfirm(barrioId)}
+                  loading={busy}
+                  testID="join-village-confirm"
+                >
                   {t('village.joinConfirm.confirm')}
                 </Button>
               </HStack>
