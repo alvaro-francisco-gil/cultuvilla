@@ -84,9 +84,6 @@ export function BuriedSheet({
           {inDatePhase ? (
             <VStack gap={3}>
               <Text variant="h3">{t('village.placeDetail.condolence')}</Text>
-              <Text tone="muted" variant="bodySm">
-                {t('village.placeDetail.deathDatePrompt')}
-              </Text>
               <PartialDateField
                 label={t('village.placeDetail.deathDatePrompt')}
                 value={deathDate}

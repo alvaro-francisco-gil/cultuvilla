@@ -252,12 +252,12 @@ service cloud.firestore {
       return d.keys().hasOnly([
               'name', 'kind', 'description', 'municipalityId', 'images',
               'createdAt', 'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
-              'commentCount', 'readCount',
+              'commentCount', 'readCount', 'burialCount',
             ])
           && d.keys().hasAll([
               'name', 'kind', 'description', 'municipalityId', 'images',
               'createdAt', 'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
-              'commentCount', 'readCount',
+              'commentCount', 'readCount', 'burialCount',
             ])
           && isString(d.name)
           && d.kind in ['cemetery', 'church', 'hermitage', 'plaza', 'town_hall', 'otros']
@@ -271,7 +271,8 @@ service cloud.firestore {
           && d.hiddenAt == null
           && d.hiddenReason == null
           && d.commentCount == 0
-          && d.readCount == 0;
+          && d.readCount == 0
+          && d.burialCount == 0;
     }
 
     function isValidFestivalPosterCreate(d) {
@@ -526,7 +527,7 @@ service cloud.firestore {
         allow update: if (isVillageAdmin(municipalityId) || isAppAdmin() || isOwner(resource.data.proposedBy))
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
                'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
-               'commentCount', 'readCount',
+               'commentCount', 'readCount', 'burialCount',
              ]);
         allow delete: if isVillageAdmin(municipalityId) || isAppAdmin()
           || (isOwner(resource.data.proposedBy) && resource.data.status == 'active');

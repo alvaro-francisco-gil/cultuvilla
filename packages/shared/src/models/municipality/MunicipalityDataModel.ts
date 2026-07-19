@@ -232,6 +232,9 @@ export const PlaceDataSchema = z.object({
   // at create.
   commentCount: z.number().int(),
   readCount: z.number().int(),
+  // Counter denormalized from persons/{personId}.burialPlace by
+  // functions/src/village/syncPlaceBurialCount.ts.
+  burialCount: z.number().int(),
   ...visibilityFields,
 });
 export type PlaceData = z.infer<typeof PlaceDataSchema>;
@@ -256,6 +259,7 @@ export function buildPlaceData(input: PlaceDataInput): PlaceData {
     proposedBy: input.proposedBy ?? null,
     commentCount: 0,
     readCount: 0,
+    burialCount: 0,
     ...defaultVisibility(),
   };
 }

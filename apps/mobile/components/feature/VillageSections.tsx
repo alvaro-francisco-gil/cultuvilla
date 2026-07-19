@@ -167,6 +167,7 @@ function BigCard({
   accent,
   crest,
   commentCount,
+  statBadge,
   onPress,
 }: {
   label: string;
@@ -191,8 +192,20 @@ function BigCard({
    * aren't a commentable entity.
    */
   commentCount?: number;
+  /** Alternate top-right count badge, used when the count is not comments. */
+  statBadge?: {
+    icon: keyof typeof Ionicons.glyphMap;
+    count: number;
+    testID?: string;
+  };
   onPress?: () => void;
 }) {
+  const topRightBadge = statBadge && statBadge.count > 0
+    ? statBadge
+    : commentCount && commentCount > 0
+      ? { icon: 'chatbubble-outline' as const, count: commentCount, testID: 'entity-card-comment-count' }
+      : null;
+
   const body = crest ? (
     <View
       className="rounded-2xl overflow-hidden"
@@ -252,9 +265,9 @@ function BigCard({
         <View className="w-full h-full items-center justify-center">{fallback}</View>
       )}
 
-      {commentCount && commentCount > 0 ? (
+      {topRightBadge ? (
         <View
-          testID="entity-card-comment-count"
+          testID={topRightBadge.testID}
           style={{
             position: 'absolute',
             top: 8,
@@ -267,13 +280,13 @@ function BigCard({
             paddingVertical: 3,
           }}
         >
-          <Ionicons name="chatbubble-outline" size={iconSizes.sm} color="rgba(255,255,255,0.85)" />
+          <Ionicons name={topRightBadge.icon} size={iconSizes.sm} color="rgba(255,255,255,0.85)" />
           <Text
             variant="bodySm"
             numberOfLines={1}
             style={{ color: 'rgba(255,255,255,0.85)', marginLeft: 4 }}
           >
-            {commentCount}
+            {topRightBadge.count}
           </Text>
         </View>
       ) : null}
@@ -354,6 +367,7 @@ export function EntityCard({
   accent,
   crest,
   commentCount,
+  statBadge,
   onPress,
 }: {
   label: string;
@@ -365,6 +379,12 @@ export function EntityCard({
   crest?: boolean;
   /** Comment count shown as a pill over the photo, when > 0. */
   commentCount?: number;
+  /** Alternate top-right count badge, used when the count is not comments. */
+  statBadge?: {
+    icon: keyof typeof Ionicons.glyphMap;
+    count: number;
+    testID?: string;
+  };
   onPress?: () => void;
 }) {
   return (
@@ -376,6 +396,7 @@ export function EntityCard({
       accent={accent}
       crest={crest}
       commentCount={commentCount}
+      statBadge={statBadge}
       onPress={onPress}
     />
   );

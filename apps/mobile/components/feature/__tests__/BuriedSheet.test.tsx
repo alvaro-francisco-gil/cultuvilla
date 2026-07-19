@@ -79,4 +79,19 @@ describe('BuriedSheet', () => {
     );
     expect(getByTestId('buried-confirm')).toBeTruthy();
   });
+
+  it('shows the death date prompt once in the date phase', () => {
+    const { getAllByText, getByTestId } = render(
+      <BuriedSheet
+        visible
+        personas={personas}
+        busy={false}
+        onClose={() => {}}
+        onCreateNew={() => {}}
+        onConfirm={() => {}}
+      />,
+    );
+    fireEvent.press(getByTestId('buried-persona-p1'));
+    expect(getAllByText('village.placeDetail.deathDatePrompt')).toHaveLength(1);
+  });
 });

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView } from 'react-native';
+import { View } from 'react-native';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Text } from '../../../../components/primitives/Text';
 import { VStack } from '../../../../components/primitives/VStack';
@@ -8,7 +8,8 @@ import { EntityDetailScaffold } from '../../../../components/feature/EntityDetai
 import { BuryFab } from '../../../../components/feature/BuryFab';
 import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
 import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
-import { PersonCard } from '../../../../components/feature/VillageSections';
+import { LivePersonChip } from '../../../../components/feature/LivePersonChip';
+import { DetailSectionHeading } from '../../../../components/feature/DetailSectionHeading';
 import { EntityComments } from '../../../../components/feature/EntityComments';
 import { useT } from '../../../../lib/i18n';
 import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
@@ -102,22 +103,30 @@ export default function PlaceDetailScreen() {
           ) : null}
           {place.kind === 'cemetery' ? (
             <VStack gap={3}>
-              <Text variant="h2">{t('village.placeDetail.buried')}</Text>
+              <DetailSectionHeading>{t('village.placeDetail.buried')}</DetailSectionHeading>
               {buried.length === 0 ? (
                 <Text tone="muted" variant="bodySm">
                   {t('village.placeDetail.buriedEmpty')}
                 </Text>
               ) : (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-3">
+                <View className="flex-row flex-wrap items-center" style={{ gap: 12 }}>
                   {buried.map((p) => (
-                    <PersonCard
+                    <LivePersonChip
                       key={p.id}
-                      name={buildDisplayName(p)}
-                      photoURL={p.photoURL}
-                      onPress={() => router.push(`/person/${p.id}` as never)}
+                      personId={p.id}
+                      fallbackName={buildDisplayName(p)}
+                      onPress={() =>
+                        router.push(
+                          (p.userId === uid
+                            ? '/(tabs)/profile'
+                            : p.userId
+                              ? `/user/${p.userId}`
+                              : `/person/${p.id}`) as never,
+                        )
+                      }
                     />
                   ))}
-                </ScrollView>
+                </View>
               )}
             </VStack>
           ) : null}

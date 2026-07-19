@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { VillageHomeBody } from '../VillageHomeBody';
 import type { VillageHomeState } from '../../../lib/useVillageHome';
 import { buildNewsPostData } from '@cultuvilla/shared/models/news/NewsPostDataModel';
+import { buildPlaceData } from '@cultuvilla/shared/models/municipality';
 
 const mockRefreshProfile = jest.fn(async () => undefined);
 let mockUser: { uid: string } | null = { uid: 'u1' };
@@ -178,6 +179,22 @@ describe('VillageHomeBody', () => {
     );
     expect(getByText('Unirme a este pueblo')).toBeTruthy();
     expect(queryByText('Añadir contenido')).toBeNull();
+  });
+
+  it('shows cemetery cards with a buried-person count badge instead of comments', () => {
+    const cemetery = {
+      ...buildPlaceData({ name: 'Cementerio', kind: 'cemetery', municipalityId: 'm1' }),
+      id: 'cemetery-1',
+      commentCount: 9,
+      burialCount: 4,
+    };
+    const { getByTestId, getByText, queryByTestId } = render(
+      <VillageHomeBody data={{ ...base, places: [cemetery] }} reload={jest.fn()} />,
+    );
+
+    expect(getByTestId('entity-card-burial-count')).toBeTruthy();
+    expect(getByText('4')).toBeTruthy();
+    expect(queryByTestId('entity-card-comment-count')).toBeNull();
   });
 
   it('admin sees "Añadir contenido" + "Compartir pueblo" (no standalone Editar pill)', () => {

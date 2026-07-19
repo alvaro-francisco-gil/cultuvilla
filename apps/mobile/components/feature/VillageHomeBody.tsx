@@ -415,7 +415,16 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               label={p.name}
               icon="location-outline"
               imageUri={p.images[0] ?? null}
-              commentCount={p.commentCount}
+              commentCount={p.kind === 'cemetery' ? undefined : p.commentCount}
+              statBadge={
+                p.kind === 'cemetery'
+                  ? {
+                      icon: 'person-outline',
+                      count: p.burialCount,
+                      testID: 'entity-card-burial-count',
+                    }
+                  : undefined
+              }
               onPress={() => router.push(`/village/${village.id}/place/${p.id}` as never)}
             />
           ))}
