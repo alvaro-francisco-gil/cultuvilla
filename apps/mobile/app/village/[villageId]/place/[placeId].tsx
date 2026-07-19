@@ -21,6 +21,7 @@ import { useT } from '../../../../lib/i18n';
 import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 import { showAlert } from '../../../../lib/dialogs';
+import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 import { getPlace } from '@cultuvilla/shared/services/municipalityService';
 import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { getPlaceViewLink } from '@cultuvilla/shared/services/deepLinkService';
@@ -79,6 +80,11 @@ export default function PlaceDetailScreen() {
   useEffect(() => {
     if (!place) return;
     void recordEntityView({ entityKind: 'place', entityId: place.id, municipalityId: place.municipalityId });
+    observability.trackEvent(OBSERVABILITY_EVENTS.CONTENT_DETAIL_VIEWED, {
+      entityKind: 'place',
+      entityId: place.id,
+      municipalityId: place.municipalityId,
+    });
   }, [place?.id]);
 
   const actions: EntityDetailAction[] = place

@@ -12,6 +12,7 @@ import { useAuth } from '../../lib/auth/useAuth';
 import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
 import { useT } from '../../lib/i18n';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
+import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 import { getNewsLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getNewsPost } from '@cultuvilla/shared/services/newsService';
 import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
@@ -69,6 +70,11 @@ export default function NewsDetailScreen() {
   useEffect(() => {
     if (!post) return;
     void recordEntityView({ entityKind: 'news', entityId: post.id, municipalityId: post.municipalityId });
+    observability.trackEvent(OBSERVABILITY_EVENTS.CONTENT_DETAIL_VIEWED, {
+      entityKind: 'news',
+      entityId: post.id,
+      municipalityId: post.municipalityId,
+    });
   }, [post?.id]);
 
   const date = post ? (post.publishedAt ?? post.createdAt) : null;

@@ -15,6 +15,7 @@ import { useOrgCapabilities } from '../../../lib/auth/useOrgCapabilities';
 import { EntityComments } from '../../../components/feature/EntityComments';
 import { OrgMembersList } from '../../../components/feature/OrgMembersList';
 import { useShareDeepLink } from '../../../lib/deeplink/useShareDeepLink';
+import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 import { getOrganization } from '@cultuvilla/shared/services/organizationService';
 import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { isOrgMember, addOrgMember, getOrgMembers } from '@cultuvilla/shared/services/orgMemberService';
@@ -58,6 +59,11 @@ export default function OrgDetailScreen() {
   useEffect(() => {
     if (!org) return;
     void recordEntityView({ entityKind: 'organization', entityId: org.id, municipalityId: org.municipalityId });
+    observability.trackEvent(OBSERVABILITY_EVENTS.CONTENT_DETAIL_VIEWED, {
+      entityKind: 'organization',
+      entityId: org.id,
+      municipalityId: org.municipalityId,
+    });
   }, [org?.id]);
 
   const onJoin = useCallback(async () => {

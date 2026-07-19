@@ -14,6 +14,7 @@ import { useT } from '../../../../lib/i18n';
 import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
 import { useAuth } from '../../../../lib/auth/useAuth';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 import { getBarrio } from '@cultuvilla/shared/services/municipalityService';
 import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { getBarrioViewLink } from '@cultuvilla/shared/services/deepLinkService';
@@ -58,6 +59,11 @@ export default function BarrioDetailScreen() {
   useEffect(() => {
     if (!barrio) return;
     void recordEntityView({ entityKind: 'barrio', entityId: barrio.id, municipalityId: barrio.municipalityId });
+    observability.trackEvent(OBSERVABILITY_EVENTS.CONTENT_DETAIL_VIEWED, {
+      entityKind: 'barrio',
+      entityId: barrio.id,
+      municipalityId: barrio.municipalityId,
+    });
   }, [barrio?.id]);
 
   const actions: EntityDetailAction[] = barrio
