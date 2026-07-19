@@ -1,5 +1,7 @@
 import { render, waitFor } from '@testing-library/react-native';
+import { router } from 'expo-router';
 import BarrioDetailScreen from '../[barrioId]';
+import { getPersonsByBarrio } from '@cultuvilla/shared/services/personService';
 
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
@@ -13,6 +15,9 @@ jest.mock('expo-router', () => ({
 jest.mock('../../../../../lib/auth/useAuth', () => ({ useAuth: () => ({ user: { uid: 'u1' } }) }));
 jest.mock('../../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: () => jest.fn() }));
+jest.mock('../../../../../lib/useOwnerSummary', () => ({
+  useOwnerSummary: () => ({ name: null, imageUri: null }),
+}));
 jest.mock('../../../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: () => ({ canManage: false, uid: 'u1', loading: false }),
 }));
@@ -26,8 +31,26 @@ jest.mock('../../../../../components/feature/EntityComments', () => ({ EntityCom
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 
 describe('BarrioDetailScreen', () => {
+  beforeEach(() => {
+    jest.mocked(getPersonsByBarrio).mockReset();
+    jest.mocked(getPersonsByBarrio).mockResolvedValue([]);
+    jest.mocked(router.push).mockClear();
+  });
+
   it('renders the barrio name once loaded', async () => {
     const { getByText } = render(<BarrioDetailScreen />);
     await waitFor(() => getByText('Centro'));
+  });
+
+  it('does not make an account-less persona clickable from the residents list', async () => {
+    jest.mocked(getPersonsByBarrio).mockResolvedValue([
+      { id: 'p1', userId: null, createdBy: 'u1' },
+    ] as Awaited<ReturnType<typeof getPersonsByBarrio>>);
+
+    const { queryByRole, findAllByText } = render(<BarrioDetailScreen />);
+
+    await findAllByText('N');
+    expect(queryByRole('button', { name: 'N' })).toBeNull();
+    expect(router.push).not.toHaveBeenCalledWith('/person/p1');
   });
 });

@@ -116,18 +116,15 @@ export default function BarrioDetailScreen() {
                   key={p.id}
                   personId={p.id}
                   fallbackName={buildDisplayName(p)}
-                  onPress={() =>
-                    router.push(
-                      // Your own chip opens your profile tab; other account-
-                      // holders open their read-only user profile; dependent
-                      // personas open the person screen (read-only for everyone
-                      // but the persona's owner).
-                      (p.userId === user?.uid
-                        ? '/(tabs)/profile'
-                        : p.userId
-                          ? `/user/${p.userId}`
-                          : `/person/${p.id}`) as never,
-                    )
+                  onPress={
+                    p.userId
+                      ? () =>
+                          router.push(
+                            (p.userId === user?.uid
+                              ? '/(tabs)/profile'
+                              : `/user/${p.userId}`) as never,
+                          )
+                      : undefined
                   }
                 />
               ))}
