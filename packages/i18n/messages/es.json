@@ -32,6 +32,10 @@
     "close": "Cerrar",
     "photo": "Foto",
     "and": "y",
+    "carousel": {
+      "prev": "Anterior",
+      "next": "Siguiente"
+    },
     "error": {
       "network": "Parece que no hay conexión. Comprueba tu internet.",
       "data": "No pudimos mostrar este contenido.",

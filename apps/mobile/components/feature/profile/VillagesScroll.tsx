@@ -1,7 +1,7 @@
 import { FlatList, View } from 'react-native';
 import { Text } from '../../primitives';
 import { EntityCard, AddCard } from '../VillageSections';
-import { useHorizontalWheelScroll } from '../../../lib/useHorizontalWheelScroll';
+import { HorizontalScrollRow } from '../HorizontalScrollRow';
 
 export interface VillageRow {
   municipalityId: string;
@@ -33,7 +33,6 @@ export function VillagesScroll({
   onPressJoin,
   showJoin = true,
 }: VillagesScrollProps) {
-  const wheelRef = useHorizontalWheelScroll();
   if (villages.length === 0) {
     if (!showJoin) {
       return (
@@ -53,27 +52,31 @@ export function VillagesScroll({
   }
 
   return (
-    <FlatList
-      ref={wheelRef}
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      data={villages}
-      keyExtractor={(v) => v.municipalityId}
-      contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-      renderItem={({ item }) => (
-        <EntityCard
-          label={item.name}
-          sub={item.comunidadAutonoma}
-          icon="map-outline"
-          imageUri={item.escudoUrl}
-          crest={!item.manualEscudo}
-          accent={item.municipalityId === activeId}
-          onPress={() => onPressVillage(item.municipalityId)}
+    <HorizontalScrollRow>
+      {(scrollRef) => (
+        <FlatList
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={villages}
+          keyExtractor={(v) => v.municipalityId}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+          renderItem={({ item }) => (
+            <EntityCard
+              label={item.name}
+              sub={item.comunidadAutonoma}
+              icon="map-outline"
+              imageUri={item.escudoUrl}
+              crest={!item.manualEscudo}
+              accent={item.municipalityId === activeId}
+              onPress={() => onPressVillage(item.municipalityId)}
+            />
+          )}
+          ListFooterComponent={
+            showJoin ? <AddCard label={joinLabel ?? ''} onPress={() => onPressJoin?.()} /> : null
+          }
         />
       )}
-      ListFooterComponent={
-        showJoin ? <AddCard label={joinLabel ?? ''} onPress={() => onPressJoin?.()} /> : null
-      }
-    />
+    </HorizontalScrollRow>
   );
 }
