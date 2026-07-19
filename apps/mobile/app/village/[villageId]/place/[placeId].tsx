@@ -131,9 +131,9 @@ export default function PlaceDetailScreen() {
         </>
       ) : null}
       </EntityDetailScaffold>
-      {place?.kind === 'cemetery' && uid && villageId ? (
+      {place && place.kind === 'cemetery' && uid && villageId ? (
         <BuryFab
-          municipalityId={villageId}
+          municipalityId={place.municipalityId}
           placeId={place.id}
           userId={uid}
           buriedHereIds={buried.map((p) => p.id)}

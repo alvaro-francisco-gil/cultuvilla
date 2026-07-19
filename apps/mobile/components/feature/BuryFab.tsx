@@ -28,6 +28,11 @@ export function BuryFab({ municipalityId, placeId, userId, buriedHereIds, onChan
   const [busy, setBusy] = useState(false);
   const [autoSelectId, setAutoSelectId] = useState<string | undefined>(undefined);
   const knownIds = useRef<Set<string>>(new Set());
+  // Set right before navigating to /person/new so the next focus-reload knows
+  // a fresh id should auto-advance the sheet, even if the user had zero
+  // personas a cargo before (known.size === 0 is otherwise indistinguishable
+  // from a passive first load).
+  const pendingCreate = useRef(false);
 
   // Load personas a cargo on focus (so one created via /person/new shows on return).
   const load = useCallback(async () => {
@@ -38,7 +43,10 @@ export function BuryFab({ municipalityId, placeId, userId, buriedHereIds, onChan
     const deps = result.filter((d) => d.userId == null);
     const known = knownIds.current;
     const fresh = deps.filter((d) => !known.has(d.id)).map((d) => d.id);
-    if (known.size > 0 && fresh.length === 1) setAutoSelectId(fresh[0]);
+    if ((known.size > 0 || pendingCreate.current) && fresh.length === 1) {
+      setAutoSelectId(fresh[0]);
+    }
+    pendingCreate.current = false;
     knownIds.current = new Set(deps.map((d) => d.id));
     setDependents(deps);
   }, [userId]);
@@ -113,8 +121,14 @@ export function BuryFab({ municipalityId, placeId, userId, buriedHereIds, onChan
         personas={personas}
         busy={busy}
         autoSelectId={autoSelectId}
-        onClose={() => setSheetOpen(false)}
-        onCreateNew={() => router.push('/person/new')}
+        onClose={() => {
+          setSheetOpen(false);
+          setAutoSelectId(undefined);
+        }}
+        onCreateNew={() => {
+          pendingCreate.current = true;
+          router.push('/person/new');
+        }}
         onConfirm={handleConfirm}
       />
     </>

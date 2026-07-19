@@ -50,4 +50,23 @@ describe('BuryFab', () => {
     );
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
   });
+
+  it('auto-advances to the date phase for the first persona a cargo created from zero', async () => {
+    asMock(personService.getPersonsByCreator)
+      .mockResolvedValueOnce([]) // initial focus load: zero personas a cargo
+      .mockResolvedValueOnce([
+        { id: 'new-dep', userId: null, givenName: 'Nueva', firstSurname: 'Persona', nickname: null },
+      ]); // focus reload after returning from /person/new
+
+    const { getByTestId } = render(
+      <BuryFab municipalityId="m1" placeId="c1" userId="u1" buriedHereIds={[]} onChanged={jest.fn()} />,
+    );
+
+    fireEvent.press(getByTestId('bury-fab'));
+    await waitFor(() => expect(getByTestId('buried-create')).toBeTruthy());
+
+    fireEvent.press(getByTestId('buried-create'));
+
+    await waitFor(() => expect(getByTestId('buried-confirm')).toBeTruthy());
+  });
 });

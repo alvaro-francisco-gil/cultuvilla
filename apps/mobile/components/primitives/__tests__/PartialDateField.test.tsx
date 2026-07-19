@@ -43,7 +43,7 @@ describe('PartialDateField', () => {
     fireEvent.press(getByTestId('d-year'));
     fireEvent.press(getByTestId('d-year-option-1990'));
     fireEvent.press(getByTestId('d-month'));
-    fireEvent.press(getByTestId('d-month-option-4')); // internal 0-based April
+    fireEvent.press(getByTestId('d-month-option-4')); // internal 0-based May
     expect(onChange).toHaveBeenLastCalledWith({ year: 1990, month: 5, day: null });
   });
 
