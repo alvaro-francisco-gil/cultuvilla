@@ -1,6 +1,7 @@
 import { FlatList, View } from 'react-native';
 import { Text } from '../../primitives';
 import { EntityCard } from '../VillageSections';
+import { useHorizontalWheelScroll } from '../../../lib/useHorizontalWheelScroll';
 import { formatDate } from '@cultuvilla/shared/utils';
 import {
   isEventOngoing,
@@ -24,6 +25,7 @@ export function ManagedEventsScroll({
   emptyLabel,
   onPressEvent,
 }: ManagedEventsScrollProps) {
+  const wheelRef = useHorizontalWheelScroll();
   if (events.length === 0) {
     return (
       <View className="px-4">
@@ -43,6 +45,7 @@ export function ManagedEventsScroll({
 
   return (
     <FlatList
+      ref={wheelRef}
       horizontal
       showsHorizontalScrollIndicator={false}
       data={ordered}
