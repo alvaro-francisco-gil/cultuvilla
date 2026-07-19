@@ -70,10 +70,11 @@ build (where `__DEV__` is false).
 - All fixtures go through the `build*Data` builders.
 - `USE_FIREBASE_EMULATOR` must never appear in deploy workflows or `.env`; the grep
   gate enforces it.
-- The `web-e2e` CI job is currently gated to the **beta release path** (PRs
-  targeting `beta` / pushes to `beta`), not day-to-day `develop` PRs — expensive
-  emulator+Playwright boot, run at the release-candidate gate. `develop` PRs get
-  the fast `typecheck-and-test` job.
+- The `web-e2e` CI job is gated to the **beta/main release paths** (PRs targeting
+  `beta` or `main`, and pushes to those branches), not day-to-day `develop` PRs
+  — expensive emulator+Playwright boot, run at the release-candidate and
+  production-promotion gates. `develop` PRs get the fast `typecheck-and-test`
+  job.
 
 ## Revisit when
 

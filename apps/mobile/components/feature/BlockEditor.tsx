@@ -61,6 +61,7 @@ interface BlockEditorProps {
   blocks: EditorBlock[];
   onChange: (blocks: EditorBlock[]) => void;
   candidates: MentionCandidate[];
+  textTestIDPrefix?: string;
 }
 
 /**
@@ -71,7 +72,7 @@ interface BlockEditorProps {
  * text box after the image so writing can continue. There is no separate
  * "add paragraph" or manual reorder — the structure follows from where images go.
  */
-export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) {
+export function BlockEditor({ blocks, onChange, candidates, textTestIDPrefix }: BlockEditorProps) {
   const { t } = useT();
   // The currently-focused text block and caret, tracked in a ref (no re-render
   // needed) so an image insert knows where to split.
@@ -160,7 +161,7 @@ export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) 
 
   return (
     <VStack gap={3}>
-      {blocks.map((block) =>
+      {blocks.map((block, index) =>
         block.type === 'text' ? (
           <MentionTextInput
             key={block.id}
@@ -170,6 +171,7 @@ export function BlockEditor({ blocks, onChange, candidates }: BlockEditorProps) 
             marks={block.marks}
             candidates={candidates}
             placeholder={t('news.compose.block.textPlaceholder')}
+            testID={textTestIDPrefix ? `${textTestIDPrefix}-${index}` : undefined}
             onChange={(text, mentions, links, marks) => updateBlock(block.id, { text, mentions, links, marks })}
             onFocus={() => {
               active.current = { id: block.id, caret: block.text.length };

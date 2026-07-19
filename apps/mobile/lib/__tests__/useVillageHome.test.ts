@@ -1,5 +1,6 @@
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { renderHook, waitFor, act } from '@testing-library/react-native';
 import { getEventsByMunicipality } from '@cultuvilla/shared/services/eventService';
+import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { useVillageHome } from '../useVillageHome';
 
 jest.mock('../auth/useAuth', () => {
@@ -86,6 +87,46 @@ describe('useVillageHome', () => {
     // The essential village doc still loaded — the tab is not in an error state.
     expect(result.current.coreError).toBeNull();
     expect(result.current.village?.name).toBe('Anaya');
+  });
+
+  it('keeps the loaded tab mounted while refetching the same village on focus', async () => {
+    const { result } = renderHook(() => useVillageHome('m1'));
+    await waitFor(() => expect(result.current.village?.name).toBe('Anaya'));
+    await waitFor(() => expect(result.current.sectionStatus.events).toBe('ready'));
+
+    // Simulate returning from a detail screen: the focus effect re-runs reload
+    // while the essential village fetch is still in flight. Hold it open so we
+    // can observe the in-flight state.
+    let releaseCore!: () => void;
+    (getMunicipality as jest.Mock).mockImplementationOnce(
+      () =>
+        new Promise((res) => {
+          releaseCore = () =>
+            res({
+              id: 'm1',
+              name: 'Anaya',
+              province: 'Segovia',
+              communityActive: true,
+              community: { organizerId: null, description: null },
+            });
+        }),
+    );
+
+    act(() => {
+      void result.current.reload();
+    });
+
+    // A background refresh must not blank the tab: the village stays populated
+    // and coreLoading stays false, so <VillageHomeBody>'s ScrollView is never
+    // swapped for the spinner and the scroll position survives.
+    expect(result.current.coreLoading).toBe(false);
+    expect(result.current.village?.name).toBe('Anaya');
+    expect(result.current.sectionStatus.events).toBe('ready');
+
+    await act(async () => {
+      releaseCore();
+    });
+    await waitFor(() => expect(result.current.village?.name).toBe('Anaya'));
   });
 
   it('returns empty state for a null municipalityId', async () => {

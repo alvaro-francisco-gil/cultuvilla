@@ -20,6 +20,7 @@ export type DeleteHeaderButtonProps = {
   deletingLabel: string;
   /** Rendered inside an orange `ScreenHeader accent` bar → use the light tint. */
   onAccent?: boolean;
+  testID?: string;
 };
 
 /**
@@ -41,6 +42,7 @@ export function DeleteHeaderButton({
   cancelLabel,
   deletingLabel,
   onAccent = false,
+  testID,
 }: DeleteHeaderButtonProps) {
   const [deleting, setDeleting] = useState(false);
 
@@ -63,7 +65,7 @@ export function DeleteHeaderButton({
 
   return (
     <>
-      <Pressable onPress={run} accessibilityLabel={accessibilityLabel} className="p-1 ml-2">
+      <Pressable onPress={run} accessibilityLabel={accessibilityLabel} testID={testID} className="p-1 ml-2">
         <Ionicons
           name="trash-outline"
           size={iconSizes.md}

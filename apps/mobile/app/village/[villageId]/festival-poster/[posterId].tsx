@@ -9,6 +9,7 @@ import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 import { EntityComments } from '../../../../components/feature/EntityComments';
 import { useT } from '../../../../lib/i18n';
+import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 import { getFestivalPoster } from '@cultuvilla/shared/services/festivalPosterService';
 import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import type { FestivalPosterWithId } from '@cultuvilla/shared/services/festivalPosterService';
@@ -39,6 +40,11 @@ export default function FestivalPosterDetailScreen() {
   useEffect(() => {
     if (!poster) return;
     void recordEntityView({
+      entityKind: 'festivalPoster',
+      entityId: poster.id,
+      municipalityId: poster.municipalityId,
+    });
+    observability.trackEvent(OBSERVABILITY_EVENTS.CONTENT_DETAIL_VIEWED, {
       entityKind: 'festivalPoster',
       entityId: poster.id,
       municipalityId: poster.municipalityId,

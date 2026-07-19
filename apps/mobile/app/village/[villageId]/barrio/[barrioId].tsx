@@ -8,10 +8,13 @@ import { EntityDetailScaffold } from '../../../../components/feature/EntityDetai
 import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
 import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
 import { LivePersonChip } from '../../../../components/feature/LivePersonChip';
+import { DetailSectionHeading } from '../../../../components/feature/DetailSectionHeading';
 import { EntityComments } from '../../../../components/feature/EntityComments';
 import { useT } from '../../../../lib/i18n';
 import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
+import { useAuth } from '../../../../lib/auth/useAuth';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 import { getBarrio } from '@cultuvilla/shared/services/municipalityService';
 import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { getBarrioViewLink } from '@cultuvilla/shared/services/deepLinkService';
@@ -26,6 +29,7 @@ type Person = PersonData & { id: string };
 export default function BarrioDetailScreen() {
   const { villageId, barrioId } = useLocalSearchParams<{ villageId: string; barrioId: string }>();
   const { t } = useT();
+  const { user } = useAuth();
   const share = useShareDeepLink();
   const { canManage } = useEntityCapabilities(villageId);
   const [barrio, setBarrio] = useState<Barrio | null>(null);
@@ -55,6 +59,11 @@ export default function BarrioDetailScreen() {
   useEffect(() => {
     if (!barrio) return;
     void recordEntityView({ entityKind: 'barrio', entityId: barrio.id, municipalityId: barrio.municipalityId });
+    observability.trackEvent(OBSERVABILITY_EVENTS.CONTENT_DETAIL_VIEWED, {
+      entityKind: 'barrio',
+      entityId: barrio.id,
+      municipalityId: barrio.municipalityId,
+    });
   }, [barrio?.id]);
 
   const actions: EntityDetailAction[] = barrio
@@ -95,7 +104,7 @@ export default function BarrioDetailScreen() {
               ))}
             </VStack>
           ) : null}
-          <Text variant="h2">{t('village.barrioDetail.residents')}</Text>
+          <DetailSectionHeading>{t('village.barrioDetail.residents')}</DetailSectionHeading>
           {residents.length === 0 ? (
             <Text tone="muted" variant="bodySm">
               {t('village.barrioDetail.residentsEmpty')}
@@ -107,7 +116,16 @@ export default function BarrioDetailScreen() {
                   key={p.id}
                   personId={p.id}
                   fallbackName={buildDisplayName(p)}
-                  onPress={() => router.push(`/person/${p.id}` as never)}
+                  onPress={
+                    p.userId
+                      ? () =>
+                          router.push(
+                            (p.userId === user?.uid
+                              ? '/(tabs)/profile'
+                              : `/user/${p.userId}`) as never,
+                          )
+                      : undefined
+                  }
                 />
               ))}
             </View>

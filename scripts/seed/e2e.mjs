@@ -21,15 +21,21 @@ import {
   buildOrganizationData,
   buildOrgMemberData,
   buildEventData,
+  buildRegistrationData,
   buildLocationData,
+  buildPlaceData,
 } from '@cultuvilla/shared/models';
 import {
   E2E_PASSWORD,
   users,
   village,
+  joinVillage,
   organizerlessVillage,
   org,
   event,
+  capacityEvent,
+  dependentPerson,
+  place,
 } from '../data/seed-fixtures/e2e/fixtures.mjs';
 
 if (!EMULATOR) {
@@ -88,6 +94,20 @@ async function run() {
       );
   }
 
+  await db
+    .collection('persons')
+    .doc(dependentPerson.docId)
+    .set(
+      buildPersonData({
+        givenName: dependentPerson.givenName,
+        firstSurname: dependentPerson.firstSurname,
+        createdBy: users.attendee.uid,
+        userId: null,
+        municipalityLinks: [{ municipalityId: village.docId, barrioId: null }],
+      }),
+      { merge: true },
+    );
+
   // The "fresh" user is Auth-only: no persons/{id}, no users/{uid} profile. The
   // onboarding-profile flow signs it in and drives complete-profile from scratch.
   await upsertUser(users.fresh);
@@ -128,6 +148,28 @@ async function run() {
   await members
     .doc(users.joiner.uid)
     .set(buildVillageMemberData({ userId: users.joiner.uid, role: 'user' }), { merge: true });
+
+  const joinCoords = new GeoPoint(joinVillage.coordinates.lat, joinVillage.coordinates.lng);
+  await db
+    .collection('municipalities')
+    .doc(joinVillage.docId)
+    .set(
+      {
+        ...buildMunicipalityData({
+          name: joinVillage.name,
+          province: joinVillage.province,
+          comunidadAutonoma: joinVillage.comunidadAutonoma,
+          codigoINE: joinVillage.codigoINE,
+          coordinates: joinCoords,
+        }),
+        community: buildVillageCommunity({
+          description: joinVillage.description,
+          adminUserId: users.admin.uid,
+        }),
+        communityActive: true,
+      },
+      { merge: true },
+    );
 
   // Active village, started but organizer-less (community.organizerId === null).
   // The organizer-request flow requests to organize it; approval sets the
@@ -206,11 +248,75 @@ async function run() {
       { merge: true },
     );
 
+  const capacityStartDate = new Date(Date.now() + capacityEvent.startOffsetDays * DAY_MS);
+  const capacityData = buildEventData({
+    title: capacityEvent.title,
+    description: capacityEvent.description,
+    startDate: capacityStartDate,
+    location: buildLocationData({
+      coordinates: village.coordinates,
+      displayName: `Centro social, ${village.name}`,
+    }),
+    maxAttendees: capacityEvent.maxAttendees,
+    telephoneRequired: false,
+    status: capacityEvent.status,
+    organizerUserIds: [users.admin.uid],
+    organizerOrgIds: [org.docId],
+    createdBy: users.admin.uid,
+    municipalityId: village.docId,
+    villageName: village.name,
+    villageCoordinates: coords,
+  });
+  await db
+    .collection('events')
+    .doc(capacityEvent.docId)
+    .set(
+      {
+        ...capacityData,
+        confirmedCount: 1,
+        totalCount: 1,
+      },
+      { merge: true },
+    );
+  await db
+    .collection('events')
+    .doc(capacityEvent.docId)
+    .collection('registrations')
+    .doc(capacityEvent.seededRegistrationId)
+    .set(
+      buildRegistrationData({
+        userId: users.admin.uid,
+        personId: users.admin.personId,
+        name: `${users.admin.givenName} ${users.admin.firstSurname}`,
+        status: 'confirmed',
+        position: 0,
+        isMember: true,
+      }),
+      { merge: true },
+    );
+
+  await db
+    .collection('municipalities')
+    .doc(village.docId)
+    .collection('places')
+    .doc(place.docId)
+    .set(
+      buildPlaceData({
+        name: place.name,
+        kind: place.kind,
+        description: place.description,
+        municipalityId: village.docId,
+        proposedBy: users.admin.uid,
+      }),
+      { merge: true },
+    );
+
   console.log(
     `[seed:e2e] seeded emulator (users=${users.admin.uid},${users.attendee.uid},` +
       `${users.superAdmin.uid},${users.joiner.uid},${users.fresh.uid} ` +
       `village=${village.docId} organizerless=${organizerlessVillage.docId} ` +
-      `org=${org.docId} event=${event.docId})`,
+      `joinVillage=${joinVillage.docId} org=${org.docId} event=${event.docId} ` +
+      `capacityEvent=${capacityEvent.docId})`,
   );
 }
 

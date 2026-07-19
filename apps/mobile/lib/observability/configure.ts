@@ -52,8 +52,10 @@ export function bootstrapObservability(): void {
   };
 
   configureObservability(adapter);
-  // Analytics consent is granted through the Terms & Conditions the user accepts
-  // at registration, so there is no separate in-app consent prompt.
+  // Analytics is enabled app-wide with no per-session consent prompt: the Terms of
+  // Use + Privacy Policy — accepted via the single registration checkbox — cover
+  // usage analytics (Google Analytics for Firebase is named in the Privacy Policy).
+  // Granted once at boot; pre-registration/guest sessions are included by design.
   observability.setConsent({ analytics: true });
   attachGlobalHandlers();
 }

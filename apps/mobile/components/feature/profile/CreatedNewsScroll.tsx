@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { FlatList, View } from 'react-native';
 import { Text } from '../../primitives';
 import { EntityCard } from '../VillageSections';
+import { HorizontalScrollRow } from '../HorizontalScrollRow';
 import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
 import { formatDate } from '@cultuvilla/shared/utils';
 import type { NewsPostData } from '@cultuvilla/shared/models/news/NewsPostDataModel';
@@ -24,14 +25,21 @@ export function CreatedNewsScroll({ news, emptyLabel, onPressNews }: CreatedNews
   }
 
   return (
-    <FlatList
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      data={news}
-      keyExtractor={(n) => n.id}
-      contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-      renderItem={({ item }) => <NewsScrollCard post={item} onPress={() => onPressNews(item.id)} />}
-    />
+    <HorizontalScrollRow>
+      {(scrollRef) => (
+        <FlatList
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={news}
+          keyExtractor={(n) => n.id}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+          renderItem={({ item }) => (
+            <NewsScrollCard post={item} onPress={() => onPressNews(item.id)} />
+          )}
+        />
+      )}
+    </HorizontalScrollRow>
   );
 }
 

@@ -51,7 +51,7 @@ const SHAPE_CONTRACTS: ShapeContract[] = [
     ruleKeys: [
       'name', 'kind', 'description', 'municipalityId', 'images',
       'createdAt', 'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
-      'commentCount', 'readCount',
+      'commentCount', 'readCount', 'burialCount',
     ],
   },
   {

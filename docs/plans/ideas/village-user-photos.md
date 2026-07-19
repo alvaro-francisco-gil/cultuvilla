@@ -12,13 +12,13 @@ The intent: villages feel alive when residents contribute. A photo stream — "t
 
 - **Who can publish:** any village **member** (not just admins). Anonymous / non-members cannot.
 - **Where it shows:** a separate horizontally- or vertically-scrolling photo section on the village tab, below the existing content. Not mixed with the escudo.
-- **Data shape (candidate):** a `villagePhotos` subcollection under `/municipalities/{id}/` — one doc per photo with `imageURL`, `authorId`, `createdAt`, and likely a `status` (proposed/approved) mirroring the existing barrios/places proposal pattern, so admins can moderate. (Reusing the `ProposalStatus` pattern already in `MunicipalityDataModel.ts` keeps moderation consistent.)
+- **Data shape (candidate):** a `villagePhotos` subcollection under `/municipalities/{id}/` — one doc per photo with `imageURL`, `authorId`, `createdAt`, and likely a `status` using the optimistic visibility model (`active | hidden`) so admins can remove abusive content without an approval queue.
 - **Storage:** photos in Cloud Storage under `villages/{id}/photos/...`, public download URLs stored on the doc — same shape as today's image fields.
-- **Moderation:** likely propose-pending (any member proposes, admin approves) to prevent abuse, consistent with barrios/places. Could start admin-only-approval and relax later.
+- **Moderation:** likely optimistic publish + soft-hide, consistent with places, barrios, festival posters and news. If photos need stricter treatment later, document why they differ from the current content posture.
 
 ## Open questions
 
-- Moderation model: auto-publish vs propose-pending? (Lean propose-pending, reusing `ProposalStatus`.)
+- Moderation model: optimistic publish vs stricter pre-review?
 - Per-user / per-village photo caps to bound storage cost.
 - Whether photos can be reused as event-card or OG fallback images, or stay purely decorative on the village tab.
 - Captions? EXIF stripping / privacy? Reporting/removal flow.

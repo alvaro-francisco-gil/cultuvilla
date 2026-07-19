@@ -20,13 +20,15 @@ Delete the `/admin/` route group. Every organizer task lives on the **shared
 village screens**, and a user's **role changes a screen's behaviour** rather than
 which screen they see. Enforcement lives in `firestore.rules` (mirroring
 `occupationProposals` / `organizations`), not just the UI. Three interaction
-patterns cover every surface:
+patterns covered the original surface split. Current content moderation has since
+retired the generic proposal queue for places, barrios and festival posters; the
+historical patterns below should be read through the superseding note above.
 
-1. **Propose-pending** (Places, Barrios, Organizations). Everyone can add. A
-   villager's add lands as `pending` and is visible; an organizer's add commits
-   live. Organizers approve/reject; proposers may edit/withdraw their own pending
-   item. One `useEntityCapabilities(municipalityId)` hook (`{ canManage,
-   canApprove, uid }`) drives the affordances.
+1. **Request/approve** (Organizations only). Everyone can request a peña or
+   asociación. A villager-created org lands as `pending`; village/app admins
+   approve or reject because approval grants admin authority to the requester.
+   One `useEntityCapabilities(municipalityId)` hook (`{ canManage, canApprove,
+   uid }`) drives the affordances.
 2. **Role-mode** (Census, Community header). Same screen, no proposals — the role
    picks the capability: author the census schema vs. answer it; edit the village
    header in place vs. view it.
@@ -36,11 +38,10 @@ patterns cover every surface:
 
 Supporting decisions that are non-obvious from the code:
 
-- **Proposal state lives in-collection, with legacy read-compat via `.default`.**
-  Places/Barrios/Orgs carry `status ∈ {pending, approved, rejected}` +
-  `proposedBy`/`approvedBy`/`decidedAt` on the *same* doc, not a side collection.
-  `status` uses `.default('approved')` so pre-existing docs read as approved with
-  **no migration**; new nullable fields use `.nullable().default(null)`.
+- **Organization request state lives in-collection.** Organizations carry
+  `status ∈ {pending, approved, rejected}` plus request/review fields on the same
+  doc, not a side collection. Places, barrios and festival posters now use
+  optimistic visibility (`active | hidden`) instead.
 - **"Organizer" is context-dependent.** Everywhere it means
   `isVillageAdmin(municipalityId) || isAppAdmin()` — **except events**, where it
   is `isOrgMember(event.organizationId) || isVillageAdmin || isAppAdmin`, because
@@ -53,12 +54,11 @@ Supporting decisions that are non-obvious from the code:
 - **Walk-ins are organizer-created registrations with empty `userId`/`personId`**,
   added via the `addWalkInRegistration` callable so capacity/waitlist logic stays
   server-side.
-- **Pending-visibility is UI filtering, not a security boundary.** Approved items
-  are public; a pending item shows only to its proposer and to organizers;
-  rejected items are hidden from lists. This is one shared filter
-  (`apps/mobile/lib/proposals.ts#isProposalVisible`) — the data isn't sensitive
-  (rules allow public reads); the point is not to flood the community with
-  unreviewed content while letting proposers track their own submissions.
+- **Pending-visibility is UI filtering for organizations, not a security
+  boundary.** Approved organizations are public; a pending org shows only to its
+  requester and to admins; rejected orgs are hidden from lists. Places, barrios,
+  festival posters and news are filtered by `active` visibility in their
+  services.
 - **`draft` event status was dropped.** Create → `published`; the enum is
   `['published','cancelled','completed']`. Legacy `draft` docs coerce to
   `published` on read via `z.preprocess`.
@@ -78,8 +78,10 @@ Supporting decisions that are non-obvious from the code:
   no admin route group to add screens to.
 - Reads of a public doc must assume field-level privacy is impossible — sensitive
   data goes in a separately-gated child doc written by a callable.
-- The proposal status enum is exactly `pending | approved | rejected`; new
-  proposable collections reuse the same `.default('approved')` legacy convention.
+- The review status enum is exactly `pending | approved | rejected` for
+  approval-gated requests such as organizations and organizer requests. New
+  content collections should not reuse it by default; use the optimistic
+  visibility model unless authority is granted on approval.
 
 ## Revisit when
 

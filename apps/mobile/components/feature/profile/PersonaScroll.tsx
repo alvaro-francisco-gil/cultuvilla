@@ -1,6 +1,7 @@
 import { FlatList, View } from 'react-native';
 import { Text } from '../../primitives';
 import { PersonCard, AddCard } from '../VillageSections';
+import { HorizontalScrollRow } from '../HorizontalScrollRow';
 import { buildShortName, type PersonData } from '@cultuvilla/shared/models/person';
 
 type Persona = PersonData & { id: string };
@@ -41,21 +42,28 @@ export function PersonaScroll({
     );
   }
   return (
-    <FlatList
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      data={personas}
-      keyExtractor={(p) => p.id}
-      contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-      renderItem={({ item }) => (
-        <PersonCard
-          name={buildShortName(item)}
-          photoURL={item.photoURL ?? null}
-          subtitle={item.nickname ? `@${item.nickname}` : undefined}
-          onPress={() => onPressPersona(item.id)}
+    <HorizontalScrollRow>
+      {(scrollRef) => (
+        <FlatList
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={personas}
+          keyExtractor={(p) => p.id}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+          renderItem={({ item }) => (
+            <PersonCard
+              name={buildShortName(item)}
+              photoURL={item.photoURL ?? null}
+              subtitle={item.nickname ? `@${item.nickname}` : undefined}
+              onPress={() => onPressPersona(item.id)}
+            />
+          )}
+          ListFooterComponent={
+            showAdd ? <AddCard label={addLabel ?? ''} onPress={() => onPressAdd?.()} /> : null
+          }
         />
       )}
-      ListFooterComponent={showAdd ? <AddCard label={addLabel ?? ''} onPress={() => onPressAdd?.()} /> : null}
-    />
+    </HorizontalScrollRow>
   );
 }

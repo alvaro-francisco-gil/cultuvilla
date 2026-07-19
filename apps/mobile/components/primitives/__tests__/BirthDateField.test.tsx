@@ -44,6 +44,19 @@ describe('BirthDateField', () => {
     expect(onChange).toHaveBeenLastCalledWith(new Date(1990, 4, 5));
   });
 
+  it('shows full month names with readable inset in the month modal', () => {
+    const { getAllByText, getByTestId, getByText } = render(
+      <BirthDateField label="Fecha de nacimiento" value={null} onChange={() => {}} testID="birth" />,
+    );
+
+    fireEvent.press(getByTestId('birth-month'));
+
+    expect(getByText('Mayo')).toBeTruthy();
+    expect(getAllByText('Mes')[1]?.props.className).toContain('text-h2');
+    expect(getAllByText('Mes')[1]?.props.className).toContain('text-accent');
+    expect(getByTestId('birth-month-option-4').props.className).toContain('px-6');
+  });
+
   it('caps the available years at maximumDate', () => {
     const { getByTestId, queryByTestId } = render(
       <BirthDateField

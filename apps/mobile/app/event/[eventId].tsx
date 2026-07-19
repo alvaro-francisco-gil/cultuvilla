@@ -22,6 +22,7 @@ import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { getEvent } from '@cultuvilla/shared/services/eventService';
+import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { getEventLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
@@ -68,6 +69,11 @@ export default function EventDetailScreen() {
   useEffect(() => {
     if (!event) return;
     void recordEntityView({ entityKind: 'event', entityId: event.id, municipalityId: event.municipalityId });
+    observability.trackEvent(OBSERVABILITY_EVENTS.CONTENT_DETAIL_VIEWED, {
+      entityKind: 'event',
+      entityId: event.id,
+      municipalityId: event.municipalityId,
+    });
   }, [event?.id]);
 
   const personName = person ? buildDisplayName(person) : '';

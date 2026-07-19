@@ -4,15 +4,14 @@ import { useAuth } from './useAuth';
 import { useIsAppAdmin } from './useIsAppAdmin';
 
 /**
- * Role-driven capabilities for the propose-pending surfaces (places, barrios,
- * organizations). "Organizer" = village admin or app admin: they commit
- * directly and approve/reject proposals. A plain member can only propose
- * (and edit/withdraw their own pending item — gated by `uid` at the call site).
+ * Role-driven capabilities for village-scoped entity surfaces. "Organizer" =
+ * village admin or app admin: they can manage optimistic content directly and
+ * approve/reject approval-gated organization requests.
  */
 export interface EntityCapabilities {
   /** Commit directly / edit live items (organizer). */
   canManage: boolean;
-  /** Approve or reject pending proposals (same axis as canManage). */
+  /** Approve or reject pending org requests (same axis as canManage). */
   canApprove: boolean;
   /** Current user's uid, for own-pending checks. `null` when signed out. */
   uid: string | null;

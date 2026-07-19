@@ -72,11 +72,11 @@ Do **not** commit, tag, or push. Print a summary:
 - CHANGELOG heading line
 - Files touched
 
-Hand control to the user. When they commit, the message is a conventional commit (commitlint is enforced here — unlike some sibling repos, a bare version number would be rejected):
+Hand control to the user. When they commit, the message is the **bare version string** — commitlint has an `ignores` rule (`commitlint.config.cjs`) that exempts exactly a `X.Y.Z` header:
 
 ```bash
 git add apps/mobile/app.config.ts apps/mobile/package.json CHANGELOG.md
-git commit -m "chore(release): vX.Y.Z"
+git commit -m "X.Y.Z"
 ```
 
 The version rides `develop → beta → main` via the normal promotion PRs. **Tag `vX.Y.Z` on the `main` merge commit** (per AGENTS.md) — not here.

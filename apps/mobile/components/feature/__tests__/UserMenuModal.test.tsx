@@ -3,9 +3,14 @@ import { Share } from 'react-native';
 import { UserMenuModal } from '../UserMenuModal';
 
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
+const mockSignOut = jest.fn();
 
 jest.mock('expo-router', () => ({
-  router: { push: (...args: unknown[]) => mockPush(...args) },
+  router: {
+    push: (...args: unknown[]) => mockPush(...args),
+    replace: (...args: unknown[]) => mockReplace(...args),
+  },
 }));
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
@@ -18,7 +23,7 @@ jest.mock('../../../lib/auth/useAuth', () => ({
   useAuth: () => ({
     user: { uid: 'uid-1', email: 'ana@test.com' },
     profile: { email: 'ana@test.com', displayName: 'Ana Gil' },
-    signOut: jest.fn(),
+    signOut: mockSignOut,
   }),
 }));
 jest.mock('../../../lib/auth/useIsAppAdmin', () => ({
@@ -58,6 +63,15 @@ describe('UserMenuModal menu actions', () => {
     const { queryByText } = render(<UserMenuModal visible onClose={jest.fn()} />);
 
     expect(queryByText('menu.myRequests')).toBeNull();
+  });
+
+  it('returns to the explore tab after signing out', async () => {
+    const { getByText } = render(<UserMenuModal visible onClose={jest.fn()} />);
+
+    fireEvent.press(getByText('menu.signOut'));
+
+    await waitFor(() => expect(mockSignOut).toHaveBeenCalledTimes(1));
+    expect(mockReplace).toHaveBeenCalledWith('/(tabs)');
   });
 
   it('renders the menu title with the larger green heading style', () => {

@@ -12,7 +12,7 @@ function placeDoc(proposedBy: string | null, extra: Record<string, unknown> = {}
     name: 'Fuente', kind: 'plaza', description: null, municipalityId: M,
     images: [], createdAt: new Date(), status: 'active', proposedBy,
     hiddenBy: null, hiddenAt: null, hiddenReason: null,
-    commentCount: 0, readCount: 0,
+    commentCount: 0, readCount: 0, burialCount: 0,
     ...extra,
   };
 }
@@ -173,6 +173,16 @@ describe('firestore.rules — /municipalities/{m}/places', () => {
     );
   });
 
+  it('rejects a create with a nonzero burialCount', async () => {
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, `municipalities/${M}/places/p1`), {
+        ...placeDoc('alice'), burialCount: 3,
+      }),
+    );
+  });
+
   it('village admin cannot mutate counts on update, but a normal edit still succeeds', async () => {
     await seedMember('boss', 'admin');
     await seedPlace('p1', 'alice');
@@ -180,6 +190,9 @@ describe('firestore.rules — /municipalities/{m}/places', () => {
     await assertFails(updateDoc(doc(boss, `municipalities/${M}/places/p1`), { commentCount: 99 }));
     await assertFails(
       updateDoc(doc(boss, `municipalities/${M}/places/p1`), { readCount: 9 }),
+    );
+    await assertFails(
+      updateDoc(doc(boss, `municipalities/${M}/places/p1`), { burialCount: 2 }),
     );
     await assertSucceeds(
       updateDoc(doc(boss, `municipalities/${M}/places/p1`), { name: 'Fuente Nueva' }),
