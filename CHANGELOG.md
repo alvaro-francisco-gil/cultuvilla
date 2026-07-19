@@ -4,6 +4,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+- Cemetery detail screens now have an **"Añadir difunto"** button so any resident — not just village admins — can record one of their personas a cargo as buried there. Picking (or creating) a persona opens a gentle "Lamentamos tu pérdida" step with an optional approximate death date (year alone is enough), then lists them among the cemetery's difuntos.
+
 ### Fixed
 - The person birth-date month picker now shows full month names and gives modal options readable horizontal spacing.
 - Tapping a resident (vecino) in a barrio no longer opens the editable person stepper. Registered users now open their read-only profile (the same view as a shared profile link); dependent personas open a read-only person view unless you're the one who created them — village admins included. The barrio "Vecinos" heading now matches the "Comentarios" section heading style.
