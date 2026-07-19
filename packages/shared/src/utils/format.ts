@@ -4,6 +4,7 @@
  * `Intl.NumberFormat` in a screen, write a helper here instead —
  * formatting drift across the app reads as bugs.
  */
+import type { PartialDate } from '../models/person';
 
 const LOCALE = 'es-ES';
 
@@ -90,6 +91,18 @@ export function monthLongLabels(): string[] {
     const raw = new Intl.DateTimeFormat(LOCALE, { month: 'long' }).format(new Date(2000, i, 1));
     return raw.charAt(0).toUpperCase() + raw.slice(1);
   });
+}
+
+export function formatPartialDate(date: PartialDate | null): string | null {
+  if (!date?.year) return null;
+  if (date.month != null && date.day != null) {
+    return formatDate(new Date(date.year, date.month - 1, date.day), 'short');
+  }
+  if (date.month != null) {
+    const month = monthLongLabels()[date.month - 1];
+    return month ? `${month} ${String(date.year)}` : String(date.year);
+  }
+  return String(date.year);
 }
 
 export function formatPrice(amount: number, currency: string = 'EUR'): string {
