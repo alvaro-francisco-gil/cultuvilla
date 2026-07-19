@@ -6,6 +6,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Added
 - Cemetery detail screens now have an **"Añadir difunto"** button so any resident — not just village admins — can record one of their personas a cargo as buried there. Picking (or creating) a persona opens a gentle "Lamentamos tu pérdida" step with an optional approximate death date (year alone is enough), then lists them among the cemetery's difuntos as a compact date-sorted list. Tapping an editable difunto opens a burial-date editor with an option to remove them from that cemetery. Cemetery cards on the Pueblo tab now show a person-count badge for added difuntos instead of the generic comment badge.
+- Product-analytics engagement events: content-detail views, search submit/select, and org join & invite share — feeding the behavioral-dashboard initiative (Phase 1).
 
 ### Fixed
 - Returning to the **Pueblo (village) tab** after opening an entity (event, article, cartel, barrio, lugar, peña…) now keeps your place. Previously the tab reloaded from scratch on every return — flashing skeletons and jumping back to the top — because the focus refetch blanked the whole screen to a spinner. The refetch now happens silently in the background over the already-rendered content, so both the vertical scroll position and each horizontal card row's position are preserved. The tab still fully reloads (spinner + skeletons) on first open and when you switch to a different village.

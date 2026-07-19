@@ -31,6 +31,7 @@ import { useT } from '../../lib/i18n';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
 import { webSpread } from '../../lib/platform';
 import { useWebPullToRefresh } from '../../lib/useWebPullToRefresh';
+import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 import { getUpcomingFeed, haversineKm } from '@cultuvilla/shared/services/feedService';
 import { getAllVillagesFeed } from '@cultuvilla/shared/services/newsService';
 import { getActiveCommunities } from '@cultuvilla/shared/services/municipalityService';
@@ -451,7 +452,12 @@ export default function FeedScreen() {
               villageCoverImage: item.villageCoverImage ?? null,
               commentCount: item.commentCount,
             }}
-            onPress={(id) => router.push(`/event/${id}`)}
+            onPress={(id) => {
+              if (search.trim().length > 0) {
+                observability.trackEvent(OBSERVABILITY_EVENTS.SEARCH_RESULT_SELECTED, { surface: 'home_feed' });
+              }
+              router.push(`/event/${id}`);
+            }}
           />
         )}
         refreshControl={
@@ -503,7 +509,12 @@ export default function FeedScreen() {
           <NewsCard
             post={item}
             fallbackImageUri={null}
-            onPress={(id) => router.push(`/news/${id}`)}
+            onPress={(id) => {
+              if (search.trim().length > 0) {
+                observability.trackEvent(OBSERVABILITY_EVENTS.SEARCH_RESULT_SELECTED, { surface: 'home_feed' });
+              }
+              router.push(`/news/${id}`);
+            }}
           />
         )}
         refreshControl={

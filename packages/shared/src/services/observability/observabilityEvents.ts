@@ -11,6 +11,12 @@ export const OBSERVABILITY_EVENTS = {
   EVENT_SIGNUP_ERROR: 'event.signup.error',
   ORG_CREATE_SUCCESS: 'org.create.success',
   ORG_CREATE_ERROR: 'org.create.error',
+  CONTENT_DETAIL_VIEWED: 'content.detail.viewed',
+  SEARCH_QUERY_SUBMITTED: 'search.query.submitted',
+  SEARCH_RESULT_SELECTED: 'search.result.selected',
+  ORG_INVITE_SHARED: 'org.invite.shared',
+  ORG_JOIN_SUCCESS: 'org.join.success',
+  ORG_JOIN_ERROR: 'org.join.error',
   APP_EXCEPTION: 'app.exception.thrown',
 } as const;
 
