@@ -1,4 +1,10 @@
-# News feed: top-level collections, trusted-author moderation bypass, denormalized counters
+# News feed: top-level collections, optimistic visibility, denormalized counters
+
+> **Partly superseded.** The original trusted-author `pending → approved` queue
+> below was replaced by the optimistic content model: news posts are created
+> `active`, author deletion is a hard delete, and reported comments remain the
+> moderation surface. See
+> [content-moderation-optimistic-visibility](content-moderation-optimistic-visibility.md).
 
 ## Context
 
@@ -13,10 +19,10 @@ collection architecture (AGENTS.md §3, see [open-feed-architecture](open-feed-a
 - Four **top-level** collections scoped by a `municipalityId` field — `news/`,
   `newsComments/`, `newsReactions/`, `newsReports/` — not nested under
   `municipalities/`. Matches the open-feed migration.
-- **Trusted-author bypass:** an optional `trustedNewsAuthor` boolean on the
-  membership doc (`municipalities/{id}/members/{uid}`) lets a member create
-  posts directly as `approved`; everyone else creates `pending` and waits for
-  admin review. Trust is per-municipality and dies with the membership.
+- **Historical trusted-author bypass:** an optional `trustedNewsAuthor` boolean
+  on the membership doc let a member bypass the old post queue. Current news
+  posts are content, not approval-gated authority, so they use optimistic
+  visibility instead.
 - **Reaction/comment counters are denormalized onto the post**
   (`reactionCounts.{like,heart}`, `commentCount`) and kept in sync by Cloud
   Function triggers on `newsReactions`/`newsComments` using
@@ -47,6 +53,8 @@ collection architecture (AGENTS.md §3, see [open-feed-architecture](open-feed-a
 - `trustedNewsAuthor` is writable **only** via `setTrustedNewsAuthor` — even
   admins cannot set it through a direct member-doc write (rules forbid it).
 - Any new privileged news mutation belongs in a callable, not `newsService`.
+  Ordinary author create/edit/delete follows the current optimistic visibility
+  model.
 - A reaction doc id is deterministic: `${postId}_${userId}` (one reaction per
   user per post).
 

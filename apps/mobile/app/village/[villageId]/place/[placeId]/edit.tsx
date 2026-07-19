@@ -114,6 +114,7 @@ export default function PlaceEditScreen() {
             confirmLabel={t('common.delete')}
             cancelLabel={t('common.cancel')}
             deletingLabel={t('common.deleting.place')}
+            testID="place-delete"
           />
         }
       />

@@ -76,6 +76,16 @@ export const village = {
   coordinates: { lat: 39.4699, lng: -0.3763 },
 };
 
+export const joinVillage = {
+  docId: 'e2e-village-join',
+  name: 'Pueblo de Unión E2E',
+  province: 'Valencia',
+  comunidadAutonoma: 'Comunitat Valenciana',
+  codigoINE: '46997',
+  description: 'Pueblo activo usado para comprobar la unión directa.',
+  coordinates: { lat: 39.52, lng: -0.42 },
+};
+
 // An ACTIVE village that has been started but has no organizer yet (community
 // present, organizerId null — the "wiki phase"). The organizer-request-approval
 // flow requests to organize THIS pueblo; on approval the super-admin sets its
@@ -105,4 +115,27 @@ export const event = {
   startOffsetDays: 7,
   maxAttendees: 100,
   status: 'published',
+};
+
+export const capacityEvent = {
+  docId: 'e2e-event-aforo',
+  title: 'Evento con Aforo E2E',
+  description: 'Evento lleno usado para comprobar lista de espera y promoción.',
+  startOffsetDays: 8,
+  maxAttendees: 1,
+  status: 'published',
+  seededRegistrationId: 'e2e-reg-admin-confirmed',
+};
+
+export const dependentPerson = {
+  docId: 'e2e-person-dependent',
+  givenName: 'Lucía',
+  firstSurname: 'Dependiente',
+};
+
+export const place = {
+  docId: 'e2e-place-plaza',
+  name: 'Plaza E2E Visible',
+  kind: 'plaza',
+  description: 'Lugar visible usado para comprobar eliminación moderada.',
 };

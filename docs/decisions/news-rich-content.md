@@ -34,9 +34,9 @@ on the mobile target.
   doesn't retro-rewrite historical news; the deep-link still resolves by id.
 - **Mention targets required a `places` collection.** Orgs/users/events already
   existed; places did not (events only carried `LatLng`). Places shipped as a
-  first-class `municipalityId`-scoped collection (via the propose-pending
-  pattern from [organizer-shared-ui-merge](organizer-shared-ui-merge.md)), which
-  is what made place-mentions possible.
+  first-class `municipalityId`-scoped collection, which is what made
+  place-mentions possible. They now follow the optimistic visibility model for
+  moderation.
 
 ## Rejected alternatives
 
