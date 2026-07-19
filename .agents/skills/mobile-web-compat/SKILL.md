@@ -116,6 +116,23 @@ RN-Web 0.21 mostly supports `useNativeDriver: true` for opacity / transform anim
 
 Reference fix: `apps/mobile/components/feature/SegmentedToggle.tsx` (commit 31cec02).
 
+## A horizontal `ScrollView`/`FlatList` can't be scrolled by mouse on web
+
+A `horizontal` RN-Web `ScrollView`/`FlatList` renders as an `overflow-x` scroller, but a **mouse** has no way to move it: a vertical wheel doesn't scroll it horizontally, there is no drag-to-scroll, and `showsHorizontalScrollIndicator={false}` hides the scrollbar (the last mouse affordance). On a phone it works because touch-drag moves the overflow container; on a PC the row is stuck. This bit every card row on the Pueblo tab and the Perfil screen — content overflowing, unreachable.
+
+**Rule:** any `horizontal` row the web build renders must attach `useHorizontalWheelScroll()` (`apps/mobile/lib/useHorizontalWheelScroll.ts`) so a vertical wheel scrolls it horizontally. It's a web-only callback ref (no-op on native, so touch behaviour is untouched) — spread it onto the list:
+
+```tsx
+import { useHorizontalWheelScroll } from '../../lib/useHorizontalWheelScroll';
+
+const wheelRef = useHorizontalWheelScroll();
+<FlatList ref={wheelRef} horizontal showsHorizontalScrollIndicator={false} … />
+```
+
+The hook resolves the DOM node via the list's `getScrollableNode()` (both `ScrollView` and `FlatList` expose it on web) and releases the wheel back to the page once the row is scrolled to its edge, so vertical page scroll still works past the ends.
+
+Reference fix: `apps/mobile/components/feature/VillageSections.tsx` + the four `apps/mobile/components/feature/profile/*Scroll.tsx` rows.
+
 ## `expo-router` `Tabs` default metrics clip labels on web
 
 The default `bottom-tabs` height + label/icon spacing fits iOS / Android line-height but clips labels under RN-Web's text metrics. Default tab-bar height is shorter than expected and the label appears covered by padding.

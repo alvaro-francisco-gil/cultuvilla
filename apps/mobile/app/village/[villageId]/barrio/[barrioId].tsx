@@ -12,6 +12,7 @@ import { DetailSectionHeading } from '../../../../components/feature/DetailSecti
 import { EntityComments } from '../../../../components/feature/EntityComments';
 import { useT } from '../../../../lib/i18n';
 import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
+import { useAuth } from '../../../../lib/auth/useAuth';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 import { getBarrio } from '@cultuvilla/shared/services/municipalityService';
 import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
@@ -27,6 +28,7 @@ type Person = PersonData & { id: string };
 export default function BarrioDetailScreen() {
   const { villageId, barrioId } = useLocalSearchParams<{ villageId: string; barrioId: string }>();
   const { t } = useT();
+  const { user } = useAuth();
   const share = useShareDeepLink();
   const { canManage } = useEntityCapabilities(villageId);
   const [barrio, setBarrio] = useState<Barrio | null>(null);
@@ -110,10 +112,15 @@ export default function BarrioDetailScreen() {
                   fallbackName={buildDisplayName(p)}
                   onPress={() =>
                     router.push(
-                      // Account-holders open their read-only user profile;
-                      // dependent personas open the person screen (read-only
-                      // for everyone but the persona's owner).
-                      (p.userId ? `/user/${p.userId}` : `/person/${p.id}`) as never,
+                      // Your own chip opens your profile tab; other account-
+                      // holders open their read-only user profile; dependent
+                      // personas open the person screen (read-only for everyone
+                      // but the persona's owner).
+                      (p.userId === user?.uid
+                        ? '/(tabs)/profile'
+                        : p.userId
+                          ? `/user/${p.userId}`
+                          : `/person/${p.id}`) as never,
                     )
                   }
                 />
