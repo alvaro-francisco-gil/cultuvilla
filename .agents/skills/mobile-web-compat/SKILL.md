@@ -120,18 +120,21 @@ Reference fix: `apps/mobile/components/feature/SegmentedToggle.tsx` (commit 31ce
 
 A `horizontal` RN-Web `ScrollView`/`FlatList` renders as an `overflow-x` scroller, but a **mouse** has no way to move it: a vertical wheel doesn't scroll it horizontally, there is no drag-to-scroll, and `showsHorizontalScrollIndicator={false}` hides the scrollbar (the last mouse affordance). On a phone it works because touch-drag moves the overflow container; on a PC the row is stuck. This bit every card row on the Pueblo tab and the Perfil screen — content overflowing, unreachable.
 
-**Rule:** any `horizontal` row the web build renders must attach `useHorizontalWheelScroll()` (`apps/mobile/lib/useHorizontalWheelScroll.ts`) so a vertical wheel scrolls it horizontally. It's a web-only callback ref (no-op on native, so touch behaviour is untouched) — spread it onto the list:
+**Rule:** wrap any `horizontal` row the web build renders in `HorizontalScrollRow` (`apps/mobile/components/feature/HorizontalScrollRow.tsx`), spreading the provided ref onto the list. It (a) translates a vertical mouse wheel into horizontal scroll and (b) on **non-touch desktop screens only** overlays prev/next arrow buttons at the row's edges. Fully inert on native and on touch screens, so phone behaviour is unchanged.
 
 ```tsx
-import { useHorizontalWheelScroll } from '../../lib/useHorizontalWheelScroll';
+import { HorizontalScrollRow } from '../HorizontalScrollRow';
 
-const wheelRef = useHorizontalWheelScroll();
-<FlatList ref={wheelRef} horizontal showsHorizontalScrollIndicator={false} … />
+<HorizontalScrollRow>
+  {(scrollRef) => (
+    <FlatList ref={scrollRef} horizontal showsHorizontalScrollIndicator={false} … />
+  )}
+</HorizontalScrollRow>
 ```
 
-The hook resolves the DOM node via the list's `getScrollableNode()` (both `ScrollView` and `FlatList` expose it on web) and releases the wheel back to the page once the row is scrolled to its edge, so vertical page scroll still works past the ends.
+It resolves the DOM node via the list's `getScrollableNode()` (both `ScrollView` and `FlatList` expose it on web), releases the wheel back to the page once the row hits its edge, and gates the arrows behind `matchMedia('(hover: hover) and (pointer: fine)')`. The pure edge/wheel/page math lives in `apps/mobile/lib/horizontalScroll.ts` (unit-tested).
 
-Reference fix: `apps/mobile/components/feature/VillageSections.tsx` + the four `apps/mobile/components/feature/profile/*Scroll.tsx` rows.
+Reference: `apps/mobile/components/feature/VillageSections.tsx` + the four `apps/mobile/components/feature/profile/*Scroll.tsx` rows.
 
 ## `expo-router` `Tabs` default metrics clip labels on web
 

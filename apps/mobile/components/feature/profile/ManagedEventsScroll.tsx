@@ -1,7 +1,7 @@
 import { FlatList, View } from 'react-native';
 import { Text } from '../../primitives';
 import { EntityCard } from '../VillageSections';
-import { useHorizontalWheelScroll } from '../../../lib/useHorizontalWheelScroll';
+import { HorizontalScrollRow } from '../HorizontalScrollRow';
 import { formatDate } from '@cultuvilla/shared/utils';
 import {
   isEventOngoing,
@@ -25,7 +25,6 @@ export function ManagedEventsScroll({
   emptyLabel,
   onPressEvent,
 }: ManagedEventsScrollProps) {
-  const wheelRef = useHorizontalWheelScroll();
   if (events.length === 0) {
     return (
       <View className="px-4">
@@ -44,26 +43,30 @@ export function ManagedEventsScroll({
   const ongoingIds = new Set(ongoing.map((e) => e.id));
 
   return (
-    <FlatList
-      ref={wheelRef}
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      data={ordered}
-      keyExtractor={(e) => e.id}
-      contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-      renderItem={({ item }) => {
-        const isOngoing = ongoingIds.has(item.id);
-        return (
-          <EntityCard
-            label={item.title}
-            sub={isOngoing ? ongoingLabel : formatDate(item.startDate, 'short')}
-            icon="calendar-outline"
-            imageUri={item.imageURL ?? item.villageCoverImage}
-            accent={isOngoing}
-            onPress={() => onPressEvent(item.id)}
-          />
-        );
-      }}
-    />
+    <HorizontalScrollRow>
+      {(scrollRef) => (
+        <FlatList
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={ordered}
+          keyExtractor={(e) => e.id}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+          renderItem={({ item }) => {
+            const isOngoing = ongoingIds.has(item.id);
+            return (
+              <EntityCard
+                label={item.title}
+                sub={isOngoing ? ongoingLabel : formatDate(item.startDate, 'short')}
+                icon="calendar-outline"
+                imageUri={item.imageURL ?? item.villageCoverImage}
+                accent={isOngoing}
+                onPress={() => onPressEvent(item.id)}
+              />
+            );
+          }}
+        />
+      )}
+    </HorizontalScrollRow>
   );
 }

@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { iconSizes, spacing } from '@cultuvilla/shared/design-system';
 import { VStack, HStack, Text, Pressable, TopCropImage } from '../primitives';
 import { useT } from '../../lib/i18n';
-import { useHorizontalWheelScroll } from '../../lib/useHorizontalWheelScroll';
+import { HorizontalScrollRow } from './HorizontalScrollRow';
 import { SectionTitle } from './SectionTitle';
 
 /**
@@ -98,9 +98,6 @@ export function Section<T>({
   keyExtractor?: (item: T, index: number) => string;
 }) {
   const { t } = useT();
-  // Desktop-web only: let a vertical mouse wheel scroll the row horizontally
-  // (no touch-drag on a PC, and the indicator is hidden). No-op on native.
-  const wheelRef = useHorizontalWheelScroll();
   // A failed section hides itself rather than blanking the tab; an empty
   // (ready) section is likewise hidden — content is created from the single
   // "Añadir contenido" sheet, not from an in-scroll add card. While loading we
@@ -123,28 +120,36 @@ export function Section<T>({
       {showSkeleton ? (
         <SkeletonRow />
       ) : data && renderItem ? (
-        <FlatList
-          ref={wheelRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={data}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          contentContainerStyle={{ paddingHorizontal: spacing[4], gap: spacing[3] }}
-          initialNumToRender={4}
-          maxToRenderPerBatch={4}
-          windowSize={5}
-          removeClippedSubviews
-        />
+        <HorizontalScrollRow>
+          {(scrollRef) => (
+            <FlatList
+              ref={scrollRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              data={data}
+              renderItem={renderItem}
+              keyExtractor={keyExtractor}
+              contentContainerStyle={{ paddingHorizontal: spacing[4], gap: spacing[3] }}
+              initialNumToRender={4}
+              maxToRenderPerBatch={4}
+              windowSize={5}
+              removeClippedSubviews
+            />
+          )}
+        </HorizontalScrollRow>
       ) : (
-        <ScrollView
-          ref={wheelRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerClassName="px-4 gap-3"
-        >
-          {children}
-        </ScrollView>
+        <HorizontalScrollRow>
+          {(scrollRef) => (
+            <ScrollView
+              ref={scrollRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerClassName="px-4 gap-3"
+            >
+              {children}
+            </ScrollView>
+          )}
+        </HorizontalScrollRow>
       )}
     </VStack>
   );

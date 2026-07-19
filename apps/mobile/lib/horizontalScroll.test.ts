@@ -1,20 +1,26 @@
-import { attachWheelToHorizontal, type WheelLike, type WheelScrollable } from './useHorizontalWheelScroll';
+import {
+  attachWheelToHorizontal,
+  edgeState,
+  pageScrollTarget,
+  type HScrollNode,
+  type WheelLike,
+} from './horizontalScroll';
 
 /** A fake scrollable DOM node with a single captured `wheel` listener. */
-function makeNode(over: Partial<WheelScrollable> = {}) {
+function makeNode(over: Partial<HScrollNode> = {}) {
   let listener: ((e: WheelLike) => void) | null = null;
   const node = {
     scrollLeft: 0,
     clientWidth: 300,
     scrollWidth: 900, // overflows → horizontally scrollable
-    addEventListener: (_type: 'wheel', l: (e: WheelLike) => void) => {
+    addEventListener: (_type: 'wheel' | 'scroll', l: (e: WheelLike) => void) => {
       listener = l;
     },
-    removeEventListener: (_type: 'wheel', l: (e: WheelLike) => void) => {
+    removeEventListener: (_type: 'wheel' | 'scroll', l: (e: WheelLike) => void) => {
       if (listener === l) listener = null;
     },
     ...over,
-  } as WheelScrollable;
+  } as HScrollNode;
   const fire = (delta: Partial<WheelLike>) => {
     const e: WheelLike = { deltaX: 0, deltaY: 0, preventDefault: jest.fn(), ...delta };
     listener?.(e);
@@ -70,5 +76,51 @@ describe('attachWheelToHorizontal', () => {
     expect(hasListener()).toBe(true);
     detach();
     expect(hasListener()).toBe(false);
+  });
+});
+
+describe('edgeState', () => {
+  it('shows only the right arrow at the start', () => {
+    expect(edgeState({ scrollLeft: 0, clientWidth: 300, scrollWidth: 900 })).toEqual({
+      left: false,
+      right: true,
+    });
+  });
+
+  it('shows both arrows in the middle', () => {
+    expect(edgeState({ scrollLeft: 300, clientWidth: 300, scrollWidth: 900 })).toEqual({
+      left: true,
+      right: true,
+    });
+  });
+
+  it('shows only the left arrow at the end', () => {
+    expect(edgeState({ scrollLeft: 600, clientWidth: 300, scrollWidth: 900 })).toEqual({
+      left: true,
+      right: false,
+    });
+  });
+
+  it('shows no arrows when the row does not overflow', () => {
+    expect(edgeState({ scrollLeft: 0, clientWidth: 300, scrollWidth: 300 })).toEqual({
+      left: false,
+      right: false,
+    });
+  });
+});
+
+describe('pageScrollTarget', () => {
+  const node = { scrollLeft: 0, clientWidth: 300, scrollWidth: 900 };
+
+  it('advances by ~85% of the visible width to the right', () => {
+    expect(pageScrollTarget(node, 'right')).toBeCloseTo(255); // 300 * 0.85
+  });
+
+  it('clamps to the max scroll instead of overshooting the end', () => {
+    expect(pageScrollTarget({ ...node, scrollLeft: 500 }, 'right')).toBe(600); // max = 900 - 300
+  });
+
+  it('clamps to 0 instead of overshooting the start', () => {
+    expect(pageScrollTarget({ ...node, scrollLeft: 100 }, 'left')).toBe(0);
   });
 });
