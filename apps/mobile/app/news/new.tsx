@@ -80,6 +80,7 @@ function CategoryField({
         onPress={() => setOpen((o) => !o)}
         accessibilityRole="button"
         accessibilityLabel={t('news.compose.categoryLabel')}
+        testID="news-category"
         className="flex-row items-center justify-between border rounded-md px-3 py-3 bg-surface border-subtle"
       >
         <Text tone={value ? 'primary' : 'muted'}>
@@ -98,6 +99,7 @@ function CategoryField({
               }}
               accessibilityRole="button"
               accessibilityState={{ selected: value === opt }}
+              testID={`news-category-${opt}`}
               className={`flex-row items-center justify-between px-3 py-3 ${value === opt ? 'bg-surface' : ''}`}
             >
               <Text>{t(`news.compose.category.${opt}`)}</Text>
@@ -403,7 +405,12 @@ export default function NewNewsScreen() {
       render: () =>
         stepBody(
           <>
-            <Input label={t('news.compose.titleLabel')} value={title} onChangeText={setTitle} />
+            <Input
+              label={t('news.compose.titleLabel')}
+              value={title}
+              onChangeText={setTitle}
+              testID="news-title"
+            />
             <CategoryField value={category} onChange={setCategory} t={t} />
             <CoverField cover={cover} onPick={pickCover} t={t} />
           </>,
@@ -418,7 +425,12 @@ export default function NewNewsScreen() {
         stepBody(
           <>
             <FieldLabel>{t('news.compose.contentLabel')}</FieldLabel>
-            <BlockEditor blocks={blocks} onChange={setBlocks} candidates={candidates} />
+            <BlockEditor
+              blocks={blocks}
+              onChange={setBlocks}
+              candidates={candidates}
+              textTestIDPrefix="news-block-text"
+            />
           </>,
         ),
     },
@@ -462,6 +474,7 @@ export default function NewNewsScreen() {
               confirmLabel={t('common.delete')}
               cancelLabel={t('common.cancel')}
               deletingLabel={t('common.deleting.news')}
+              testID="news-delete"
             />
           ) : undefined
         }
@@ -473,6 +486,7 @@ export default function NewNewsScreen() {
           submitLabel={editMode ? t('common.save') : t('news.compose.submit')}
           loading={isPending}
           allStepsReachable={editMode}
+          primaryTestID="news-form-primary"
         />
       </KeyboardAvoidingView>
     </Screen>
