@@ -274,6 +274,7 @@ export default function PlaceDetailScreen() {
                   label={t('village.placeDetail.deathDatePrompt')}
                   value={editingDeathDate}
                   onChange={setEditingDeathDate}
+                  showClearAction={false}
                   testID="buried-edit-death-date"
                 />
                 <HStack gap={3} className="items-center justify-end">

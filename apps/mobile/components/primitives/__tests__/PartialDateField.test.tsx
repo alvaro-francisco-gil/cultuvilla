@@ -60,4 +60,18 @@ describe('PartialDateField', () => {
     fireEvent.press(getByTestId('d-clear'));
     expect(onChange).toHaveBeenLastCalledWith(null);
   });
+
+  it('can hide the clear action', () => {
+    const { queryByTestId, queryByText } = render(
+      <PartialDateField
+        label="Fecha"
+        value={{ year: 1990, month: 5, day: null }}
+        onChange={() => {}}
+        showClearAction={false}
+        testID="d"
+      />,
+    );
+    expect(queryByTestId('d-clear')).toBeNull();
+    expect(queryByText('Sin fecha')).toBeNull();
+  });
 });

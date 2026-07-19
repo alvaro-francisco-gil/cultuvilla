@@ -88,6 +88,7 @@ export function BuriedSheet({
                 label={t('village.placeDetail.deathDatePrompt')}
                 value={deathDate}
                 onChange={setDeathDate}
+                showClearAction={false}
                 testID="buried-death-date"
               />
               <Button

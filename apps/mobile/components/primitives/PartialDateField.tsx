@@ -22,6 +22,7 @@ export interface PartialDateFieldProps {
   onChange: (value: PartialDate | null) => void;
   minYear?: number;
   maxYear?: number;
+  showClearAction?: boolean;
   testID?: string;
 }
 
@@ -35,6 +36,7 @@ export function PartialDateField({
   onChange,
   minYear = 1900,
   maxYear = new Date().getFullYear(),
+  showClearAction = true,
   testID,
 }: PartialDateFieldProps) {
   const { t } = useT();
@@ -99,7 +101,7 @@ export function PartialDateField({
     <View testID={testID}>
       <View className="flex-row items-center justify-between">
         <FieldLabel>{label}</FieldLabel>
-        {year != null ? (
+        {showClearAction && year != null ? (
           <Pressable onPress={clear} testID={testID ? `${testID}-clear` : undefined} accessibilityRole="button">
             <Text tone="muted" variant="bodySm">
               {t('partialDate.clear')}
