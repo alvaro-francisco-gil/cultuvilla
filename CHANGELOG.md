@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.14.0 — 2026-07-19
+
 ### Added
 - Cemetery detail screens now have an **"Añadir difunto"** button so any resident — not just village admins — can record one of their personas a cargo as buried there. Picking (or creating) a persona opens a gentle "Lamentamos tu pérdida" step with an optional approximate death date (year alone is enough), then lists them among the cemetery's difuntos as a compact date-sorted list. Tapping an editable difunto opens a burial-date editor with an option to remove them from that cemetery. Cemetery cards on the Pueblo tab now show a person-count badge for added difuntos instead of the generic comment badge.
 - Product-analytics engagement events: content-detail views, search submit/select, and org join & invite share — feeding the behavioral-dashboard initiative (Phase 1).
