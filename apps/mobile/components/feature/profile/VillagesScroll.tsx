@@ -1,6 +1,7 @@
 import { FlatList, View } from 'react-native';
 import { Text } from '../../primitives';
 import { EntityCard, AddCard } from '../VillageSections';
+import { useHorizontalWheelScroll } from '../../../lib/useHorizontalWheelScroll';
 
 export interface VillageRow {
   municipalityId: string;
@@ -32,6 +33,7 @@ export function VillagesScroll({
   onPressJoin,
   showJoin = true,
 }: VillagesScrollProps) {
+  const wheelRef = useHorizontalWheelScroll();
   if (villages.length === 0) {
     if (!showJoin) {
       return (
@@ -52,6 +54,7 @@ export function VillagesScroll({
 
   return (
     <FlatList
+      ref={wheelRef}
       horizontal
       showsHorizontalScrollIndicator={false}
       data={villages}

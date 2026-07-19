@@ -7,6 +7,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 ### Fixed
 - The person birth-date month picker now shows full month names and gives modal options readable horizontal spacing.
 - Tapping a resident (vecino) in a barrio no longer opens the editable person stepper. Registered users now open their read-only profile (the same view as a shared profile link); dependent personas open a read-only person view unless you're the one who created them — village admins included. The barrio "Vecinos" heading now matches the "Comentarios" section heading style.
+- Horizontal card rows on the **Pueblo (village) tab** and the **Perfil (profile)** screen can now be scrolled with a mouse on the web build. On a phone these scroll by touch-drag, but on a desktop there is no touch and — with the scroll indicator hidden — a mouse user had no way to reach the off-screen cards. A vertical mouse wheel now scrolls these rows horizontally (releasing to the page once the row hits its edge). Native touch behaviour is unchanged.
 
 ## v0.13.0 — 2026-07-18
 

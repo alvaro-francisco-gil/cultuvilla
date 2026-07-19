@@ -1,6 +1,7 @@
 import { FlatList, View } from 'react-native';
 import { Text } from '../../primitives';
 import { PersonCard, AddCard } from '../VillageSections';
+import { useHorizontalWheelScroll } from '../../../lib/useHorizontalWheelScroll';
 import { buildShortName, type PersonData } from '@cultuvilla/shared/models/person';
 
 type Persona = PersonData & { id: string };
@@ -23,6 +24,7 @@ export function PersonaScroll({
   onPressAdd,
   showAdd = true,
 }: PersonaScrollProps) {
+  const wheelRef = useHorizontalWheelScroll();
   if (personas.length === 0) {
     if (!showAdd) {
       return (
@@ -42,6 +44,7 @@ export function PersonaScroll({
   }
   return (
     <FlatList
+      ref={wheelRef}
       horizontal
       showsHorizontalScrollIndicator={false}
       data={personas}
