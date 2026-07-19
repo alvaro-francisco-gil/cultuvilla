@@ -5,6 +5,7 @@ import { Text } from '../../../../components/primitives/Text';
 import { VStack } from '../../../../components/primitives/VStack';
 import { NaturalImage } from '../../../../components/primitives/NaturalImage';
 import { EntityDetailScaffold } from '../../../../components/feature/EntityDetailScaffold';
+import { BuryFab } from '../../../../components/feature/BuryFab';
 import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
 import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
 import { PersonCard } from '../../../../components/feature/VillageSections';
@@ -30,7 +31,7 @@ export default function PlaceDetailScreen() {
   const [place, setPlace] = useState<Place | null>(null);
   const [buried, setBuried] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
-  const { canManage } = useEntityCapabilities(villageId);
+  const { canManage, uid } = useEntityCapabilities(villageId);
 
   const load = useCallback(async () => {
     if (!villageId || !placeId) return;
@@ -76,16 +77,17 @@ export default function PlaceDetailScreen() {
     : [];
 
   return (
-    <EntityDetailScaffold
-      loading={loading}
-      notFound={!loading && !place}
-      imageUri={place?.images[0] ?? null}
-      fallbackIcon={ENTITY_FALLBACK_ICON.place}
-      actions={actions}
-      title={place?.name}
-      onRefresh={load}
-    >
-      {place ? (
+    <>
+      <EntityDetailScaffold
+        loading={loading}
+        notFound={!loading && !place}
+        imageUri={place?.images[0] ?? null}
+        fallbackIcon={ENTITY_FALLBACK_ICON.place}
+        actions={actions}
+        title={place?.name}
+        onRefresh={load}
+      >
+        {place ? (
         <>
           <Text tone="muted" variant="bodySm">
             {t(`village.admin.places.kind.${place.kind}` as never)}
@@ -128,6 +130,16 @@ export default function PlaceDetailScreen() {
           />
         </>
       ) : null}
-    </EntityDetailScaffold>
+      </EntityDetailScaffold>
+      {place && place.kind === 'cemetery' && uid && villageId ? (
+        <BuryFab
+          municipalityId={place.municipalityId}
+          placeId={place.id}
+          userId={uid}
+          buriedHereIds={buried.map((p) => p.id)}
+          onChanged={load}
+        />
+      ) : null}
+    </>
   );
 }

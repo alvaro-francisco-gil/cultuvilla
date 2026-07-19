@@ -413,7 +413,13 @@
     },
     "placeDetail": {
       "buried": "Personas enterradas aquí",
-      "buriedEmpty": "Aún no hay personas registradas en este lugar"
+      "buriedEmpty": "Aún no hay personas registradas en este lugar",
+      "addDifunto": "Añadir difunto",
+      "condolence": "Lamentamos tu pérdida",
+      "deathDatePrompt": "¿Sabes la fecha de su fallecimiento? Con el año basta.",
+      "createPersona": "Crear nueva persona",
+      "alreadyBuried": "Ya está aquí",
+      "addAction": "Añadir"
     },
     "festivalPosters": {
       "title": "Carteles de fiestas",
@@ -633,6 +639,12 @@
       "roleChangeError": "No se pudo cambiar el rol. Inténtalo de nuevo.",
       "removeError": "No se pudo eliminar al miembro. Inténtalo de nuevo."
     }
+  },
+  "partialDate": {
+    "year": "Año",
+    "month": "Mes",
+    "day": "Día",
+    "clear": "Sin fecha"
   },
   "profile": {
     "myProfile": "Mi perfil",
