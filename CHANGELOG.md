@@ -12,6 +12,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 - The village personas roster now shows only each person's avatar and name, plus censo completion when that village has a configured censo; join dates and role labels are no longer shown.
 
 ### Fixed
+- The village personas roster now keeps the censo column aligned when some rows have an admin action arrow and others do not.
 - Returning to the **Pueblo (village) tab** after opening an entity (event, article, cartel, barrio, lugar, peña…) now keeps your place. Previously the tab reloaded from scratch on every return — flashing skeletons and jumping back to the top — because the focus refetch blanked the whole screen to a spinner. The refetch now happens silently in the background over the already-rendered content, so both the vertical scroll position and each horizontal card row's position are preserved. The tab still fully reloads (spinner + skeletons) on first open and when you switch to a different village.
 - The person birth-date month picker now shows full month names and gives modal options readable horizontal spacing.
 - Tapping a resident (vecino) in a barrio no longer opens the editable person stepper. Registered users now open their read-only profile (the same view as a shared profile link); dependent personas open a read-only person view unless you're the one who created them — village admins included. The barrio "Vecinos" heading now matches the "Comentarios" section heading style.

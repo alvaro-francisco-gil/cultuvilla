@@ -168,7 +168,7 @@ export function MembersList({
           />
         </View>
       ) : null}
-      <View className="w-6 items-end">
+      <View testID="member-action-slot" className="w-6 items-end">
         {pendingUserId === m.userId ? (
           <ActivityIndicator size="small" />
         ) : actionable ? (
@@ -182,7 +182,7 @@ export function MembersList({
     <ScrollView contentContainerClassName="pb-10">
       <VStack className="pt-3 px-4">
         {/* Header row */}
-        <HStack className="items-center py-2 border-b border-subtle">
+        <HStack gap={0} className="items-center py-2 border-b border-subtle">
           <Text variant="caption" tone="muted" numberOfLines={1} className="flex-1 font-bold">
             {t('village.membersList.colName')}
           </Text>
@@ -208,7 +208,7 @@ export function MembersList({
               {renderRowContent(m, actionable)}
             </Pressable>
           ) : (
-            <HStack key={m.userId} className="items-center py-3 border-b border-subtle">
+            <HStack key={m.userId} gap={0} className="items-center py-3 border-b border-subtle">
               {renderRowContent(m, actionable)}
             </HStack>
           );

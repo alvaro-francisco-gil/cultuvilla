@@ -115,6 +115,26 @@ test('hides the censo column when the village has no configured censo', async ()
   expect(screen.queryByLabelText('Censo pendiente')).toBeNull();
 });
 
+test('reserves the action column for every row when only some members are actionable', async () => {
+  mockGetMunicipality.mockResolvedValue({
+    id: 'm1',
+    community: { organizerId: 'admin2', profileForm: { fields: [{ key: 'age' }] } },
+  });
+  mockGetVillageMembers.mockResolvedValue([
+    { id: 'admin1', userId: 'admin1', role: 'admin', joinedAt: new Date('2026-01-01'), profileCompletedAt: new Date('2026-01-02') },
+    { id: 'admin2', userId: 'admin2', role: 'admin', joinedAt: new Date('2026-01-02'), profileCompletedAt: null },
+    { id: 'user1', userId: 'user1', role: 'user', joinedAt: new Date('2026-02-01'), profileCompletedAt: null },
+  ]);
+
+  render(<MembersList villageId="m1" canManage currentUserId="admin1" />);
+
+  await waitFor(() => expect(screen.getByText('Bruno Vecino')).toBeTruthy());
+  expect(screen.getAllByTestId('member-action-slot')).toHaveLength(3);
+  expect(screen.getByTestId('member-row-user1')).toBeTruthy();
+  expect(screen.queryByTestId('member-row-admin1')).toBeNull();
+  expect(screen.queryByTestId('member-row-admin2')).toBeNull();
+});
+
 test('lists admins before regular members regardless of join order', async () => {
   mockGetVillageMembers.mockResolvedValue([
     { id: 'user1', userId: 'user1', role: 'user', joinedAt: new Date('2026-01-01'), profileCompletedAt: null },
