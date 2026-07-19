@@ -11,7 +11,7 @@ export interface StatItem {
 /**
  * Shared three-up stats row used by both the pueblo (village) and profile
  * screens so the numbers line up in the same place across a tab switch.
- * Equal-width columns, a hero number (`h2`, bold) over a muted label, with
+ * Equal-width columns, a compact prominent number over a muted label, with
  * full-height hairline separators between columns.
  */
 export function StatsRow({ stats }: { stats: StatItem[] }) {
@@ -19,18 +19,18 @@ export function StatsRow({ stats }: { stats: StatItem[] }) {
     <HStack className="items-stretch justify-center w-full">
       {stats.map((s, i) => {
         const column = (
-          <VStack gap={1} className="items-center flex-1">
-            <Text variant="h2" className="font-bold">
+          <VStack className="items-center flex-1">
+            <Text variant="h3" className="font-bold">
               {s.value === null ? '—' : String(s.value)}
             </Text>
-            <Text variant="bodySm" tone="muted">
+            <Text variant="caption" tone="muted">
               {s.label}
             </Text>
           </VStack>
         );
         return (
           <View key={s.label} className="flex-row flex-1 items-center justify-center">
-            {i > 0 ? <View className="w-px h-8 bg-subtle mx-2" /> : null}
+            {i > 0 ? <View className="w-px h-6 bg-subtle mx-2" /> : null}
             {s.onPress ? (
               <Pressable
                 onPress={s.onPress}
