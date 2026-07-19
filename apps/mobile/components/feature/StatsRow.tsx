@@ -20,7 +20,7 @@ export function StatsRow({ stats }: { stats: StatItem[] }) {
       {stats.map((s, i) => {
         const column = (
           <VStack gap={1} className="items-center flex-1">
-            <Text variant="h3" className="font-bold">
+            <Text variant="h2" className="font-bold">
               {s.value === null ? '—' : String(s.value)}
             </Text>
             <Text variant="bodySm" tone="muted">
