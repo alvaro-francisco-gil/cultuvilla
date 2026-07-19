@@ -132,10 +132,11 @@ import { HorizontalScrollRow } from '../HorizontalScrollRow';
 </HorizontalScrollRow>
 ```
 
-It resolves the DOM node via the list's `getScrollableNode()` (both `ScrollView` and `FlatList` expose it on web), pages via `scrollTo` on click, and gates the arrows behind `matchMedia('(hover: hover) and (pointer: fine)')`. The pure edge/page math lives in `apps/mobile/lib/horizontalScroll.ts` (unit-tested).
+It resolves the DOM node via the list's `getScrollableNode()` (both `ScrollView` and `FlatList` expose it on web), pages by animating `scrollLeft` with a `requestAnimationFrame` tween on click, and gates the arrows behind `matchMedia('(hover: hover) and (pointer: fine)')`. The pure edge/page math lives in `apps/mobile/lib/horizontalScroll.ts` (unit-tested).
 
-**Two gotchas baked into this component, learned the hard way:**
-- **Never unmount a control mid-interaction.** The arrows first *unmounted* when their direction wasn't scrollable; a still-settling `scrollTo` flips that flag between mouse-down and mouse-up, and a control removed mid-press fires **no `click`** — so arrow clicks dropped intermittently (the left one more, since it sits near its toggle boundary). Fix: keep both arrows mounted always and toggle `opacity` + `pointerEvents` instead. An invisible `pointerEvents:'none'` control also lets clicks fall through to the card underneath.
+**Three gotchas baked into this component, learned the hard way:**
+- **`element.scrollTo({behavior:'smooth'})` is broken on a virtualized `FlatList` node.** The native smooth animation is fought by `removeClippedSubviews`/VirtualizedList and *collapses the position back toward 0* mid-animation — so clicking "next" appeared to do nothing, then jumped, and a second click snapped back to the start. A **direct `node.scrollLeft = x` assignment is respected and holds**, so page via a small rAF tween that sets `scrollLeft` each frame (see `animateScrollLeft`), never `scrollTo`. Confirmed by logging `scrollLeft` before/after in the running web app.
+- **Never unmount a control mid-interaction.** The arrows first *unmounted* when their direction wasn't scrollable; a still-settling scroll flips that flag between mouse-down and mouse-up, and a control removed mid-press fires **no `click`** — so arrow clicks dropped intermittently (the left one more, since it sits near its toggle boundary). Fix: keep both arrows mounted always and toggle `opacity` + `pointerEvents` instead. An invisible `pointerEvents:'none'` control also lets clicks fall through to the card underneath.
 - An earlier version translated the vertical mouse wheel into horizontal scroll; it worked but read as an unwanted "free-scroll" once the arrows existed. Desktop rows are **arrows-only** now.
 
 Reference: `apps/mobile/components/feature/VillageSections.tsx` + the four `apps/mobile/components/feature/profile/*Scroll.tsx` rows.

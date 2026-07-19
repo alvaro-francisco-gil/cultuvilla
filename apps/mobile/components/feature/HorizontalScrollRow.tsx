@@ -16,9 +16,38 @@ interface ScrollableInstance {
 
 /** The DOM node `getScrollableNode()` returns on web. */
 interface ScrollNodeDom extends HScrollNode {
-  scrollTo?: (opts: { left: number; behavior?: 'smooth' | 'auto' }) => void;
   addEventListener: (type: 'scroll', listener: () => void, options?: { passive?: boolean }) => void;
   removeEventListener: (type: 'scroll', listener: () => void) => void;
+}
+
+const ANIM_MS = 320;
+const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
+/**
+ * Animate `node.scrollLeft` to `to` over `ANIM_MS` by setting it directly each
+ * frame. We do NOT use `element.scrollTo({behavior:'smooth'})`: on RN-Web's
+ * virtualized `FlatList` node that native animation is fought by
+ * `removeClippedSubviews`/VirtualizedList and collapses the position back toward
+ * 0 (verified in-browser). A direct per-frame assignment is respected. Returns a
+ * cancel fn. `requestAnimationFrame` supplies the timestamp, so no clock is read.
+ */
+function animateScrollLeft(node: ScrollNodeDom, to: number): () => void {
+  const from = node.scrollLeft;
+  const dist = to - from;
+  if (Math.abs(dist) < 1) {
+    node.scrollLeft = to;
+    return () => {};
+  }
+  let raf = 0;
+  let startTs: number | null = null;
+  const stepAt = (ts: number) => {
+    if (startTs === null) startTs = ts;
+    const t = Math.min(1, (ts - startTs) / ANIM_MS);
+    node.scrollLeft = from + dist * easeOutCubic(t);
+    if (t < 1) raf = requestAnimationFrame(stepAt);
+  };
+  raf = requestAnimationFrame(stepAt);
+  return () => cancelAnimationFrame(raf);
 }
 
 /**
@@ -43,6 +72,7 @@ export function HorizontalScrollRow({
 }) {
   const nodeRef = useRef<ScrollNodeDom | null>(null);
   const cleanup = useRef<(() => void) | null>(null);
+  const cancelAnim = useRef<(() => void) | null>(null);
   const [edges, setEdges] = useState<Edges>({ left: false, right: false });
   const [isDesktop, setIsDesktop] = useState(false);
 
@@ -57,7 +87,13 @@ export function HorizontalScrollRow({
     return () => mq.removeEventListener?.('change', update);
   }, []);
 
-  useEffect(() => () => cleanup.current?.(), []);
+  useEffect(
+    () => () => {
+      cleanup.current?.();
+      cancelAnim.current?.();
+    },
+    [],
+  );
 
   const scrollRef = useCallback((instance: ScrollableInstance | null) => {
     cleanup.current?.();
@@ -67,7 +103,13 @@ export function HorizontalScrollRow({
     const node = instance.getScrollableNode?.() as ScrollNodeDom | undefined;
     if (!node || typeof node.addEventListener !== 'function') return;
     nodeRef.current = node;
-    const recompute = () => setEdges(edgeState(node));
+    // Only re-render when the enabled edges actually flip, so an in-flight
+    // arrow animation (which fires a scroll event per frame) doesn't thrash.
+    const recompute = () =>
+      setEdges((prev) => {
+        const next = edgeState(node);
+        return prev.left === next.left && prev.right === next.right ? prev : next;
+      });
     node.addEventListener('scroll', recompute, { passive: true });
     // Recompute when the content resizes — images load in after mount and grow
     // the scrollable width, which changes whether the right arrow should show.
@@ -86,9 +128,9 @@ export function HorizontalScrollRow({
   const scrollBy = useCallback((dir: 'left' | 'right') => {
     const node = nodeRef.current;
     if (!node) return;
-    const left = pageScrollTarget(node, dir);
-    if (typeof node.scrollTo === 'function') node.scrollTo({ left, behavior: 'smooth' });
-    else node.scrollLeft = left;
+    cancelAnim.current?.();
+    const to = pageScrollTarget(node, dir);
+    cancelAnim.current = animateScrollLeft(node, to);
   }, []);
 
   return (
