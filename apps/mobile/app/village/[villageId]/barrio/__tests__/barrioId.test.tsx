@@ -10,6 +10,7 @@ jest.mock('expo-router', () => ({
   useFocusEffect: (cb: () => void) => cb(),
   router: { back: jest.fn(), push: jest.fn(), canGoBack: () => true, replace: jest.fn() },
 }));
+jest.mock('../../../../../lib/auth/useAuth', () => ({ useAuth: () => ({ user: { uid: 'u1' } }) }));
 jest.mock('../../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: () => jest.fn() }));
 jest.mock('../../../../../lib/auth/useEntityCapabilities', () => ({
