@@ -117,10 +117,15 @@ export function useVillageHome(municipalityId: string | null) {
     coreLoading: !!municipalityId,
   });
   const runId = useRef(0);
+  // The municipalityId whose data currently lives in `state`. Lets `reload`
+  // tell a fresh load (first mount / village switch) from a background refresh
+  // of the same village.
+  const loadedId = useRef<string | null>(null);
 
   const reload = useCallback(async () => {
     if (!municipalityId) {
       runId.current += 1;
+      loadedId.current = null;
       setState({ ...EMPTY });
       return;
     }
@@ -130,7 +135,18 @@ export function useVillageHome(municipalityId: string | null) {
     const commit = (updater: (prev: VillageHomeState) => VillageHomeState) =>
       setState((prev) => (runId.current === myRun ? updater(prev) : prev));
 
-    setState({ ...EMPTY, coreLoading: true, sectionStatus: { ...ALL_LOADING } });
+    // A fresh load (first mount or a switch to a different village) blanks to a
+    // spinner + section skeletons. A background refresh of the SAME village must
+    // NOT blank: the village tab lives under Tabs and stays mounted across a
+    // push into an entity detail, and expo-router re-runs reload on focus when
+    // you pop back. Resetting to the spinner here would unmount <VillageHomeBody>'s
+    // ScrollView and every horizontal row, throwing away the user's scroll
+    // position. Keeping the loaded content mounted and swapping data in place as
+    // each fetch resolves lets React Native preserve both axes' scroll offsets.
+    const isRefresh = loadedId.current === municipalityId;
+    if (!isRefresh) {
+      setState({ ...EMPTY, coreLoading: true, sectionStatus: { ...ALL_LOADING } });
+    }
 
     let village: (MunicipalityData & { id: string }) | null;
     try {
@@ -142,7 +158,8 @@ export function useVillageHome(municipalityId: string | null) {
       commit((s) => ({ ...s, coreLoading: false, coreError: msg }));
       return;
     }
-    commit((s) => ({ ...s, coreLoading: false, village }));
+    commit((s) => ({ ...s, coreLoading: false, coreError: null, village }));
+    if (runId.current === myRun) loadedId.current = municipalityId;
 
     const markSection = (key: VillageSectionKey, status: SectionStatus) =>
       commit((s) => ({ ...s, sectionStatus: { ...s.sectionStatus, [key]: status } }));
