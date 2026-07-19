@@ -8,18 +8,19 @@ Builds directly on the shipped
 - **Updated:** 2026-07-19
 - **Stage:** Phase 0 (enable GA4→BigQuery export) in progress; Phase 1 (engagement instrumentation) shipped.
 - **Branch:** n/a — Phase 1 merged; Phase 0 is a console/infra action, no branch.
-- **Done:** Phase 1 full-engagement instrumentation merged to `develop` (PR #150, merge `295a6d9e`, 2026-07-19) — 6 new events, 5 new allowlist keys, content-view/search/org-join+share call sites; notifications deferred; native stays a no-op (web-first). `observability-conventions` skill updated as the review gate.
-- **Next:** Enable the GA4→BigQuery link on `cultuvilla-prod` (console — see Phase 0). Then confirm the `analytics_<propertyId>` dataset appears in BigQuery and is receiving rows.
-- **Blockers:** GA4→BQ link is console-only (no CLI); requires a human with console access to `cultuvilla-prod`. Data-location choice (EU) is irreversible per dataset — must be set correctly at link time.
-- **Handoff:** BigQuery API already enabled on `cultuvilla-prod`; no analytics dataset exists yet (verified 2026-07-19). Phase 1's DebugView smoke (verify events actually fire on the web build) is still pending and is the fastest end-to-end check of the whole pipeline once export is on.
+- **Done:** Phase 1 full-engagement instrumentation merged to `develop` (PR #150, merge `295a6d9e`, 2026-07-19). **Google Analytics enabled on all three Firebase projects (dev/beta/prod) on 2026-07-19** — until then no GA4 property existed and no web analytics data was being collected anywhere (the app config carries no `measurementId`; the SDK relies on the runtime dynamic-config fetch, which only resolves once GA is enabled server-side).
+- **Next:** (1) DebugView smoke — confirm events now actually reach GA4 on the web build (validates the dynamic-fetch path). (2) GA4→BigQuery link per env (console — see Phase 0). (3) If DebugView shows nothing, add explicit `measurementId` to `firebaseConfigPerEnv` and redeploy.
+- **Blockers:** GA4→BQ link is console-only (no CLI). Data-location choice (EU) is irreversible per dataset — set correctly at link time.
+- **Handoff:** BigQuery API already enabled on `cultuvilla-prod`; no analytics dataset exists yet (verified 2026-07-19). **Open finding:** `measurementId` is absent from `apps/mobile/app.config.ts` `firebaseConfigPerEnv` for all envs — analytics currently depends on the Firebase JS SDK's runtime dynamic-config fetch (works now that GA is enabled, but is an implicit dependency worth making explicit).
 
 ## Rollout status
 
 | Step | Dev (`villa-events`) | Beta (`cultuvilla-beta`) | Prod (`cultuvilla-prod`) |
 |---|---|---|---|
+| Prereq — Google Analytics enabled on Firebase project | ✅ | ✅ | ✅ |
 | Phase 1 — engagement instrumentation (code) | ✅ | ⬜ | ⬜ |
-| Phase 1 — DebugView smoke verified | ⬜ | — | — |
-| Phase 0 — GA4→BigQuery export enabled | ⬜ | ⬜ | ⏳ |
+| Phase 1 — DebugView smoke verified | ⏳ | — | — |
+| Phase 0 — GA4→BigQuery export enabled | ⏳ | ⬜ | ⏳ |
 | Phase 2 — Firestore→BigQuery export | ⬜ | ⬜ | ⬜ |
 | Phase 2 — Looker Studio dashboard | ⬜ | ⬜ | ⬜ |
 | Phase 3 — log-based metrics + Cloud Monitoring dashboard | ⬜ | ⬜ | ⬜ |
