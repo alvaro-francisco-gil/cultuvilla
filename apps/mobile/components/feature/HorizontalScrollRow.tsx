@@ -5,13 +5,7 @@ import { iconSizes, elevation } from '@cultuvilla/shared/design-system';
 import { Pressable } from '../primitives';
 import { useT } from '../../lib/i18n';
 import { isWeb } from '../../lib/platform';
-import {
-  attachWheelToHorizontal,
-  edgeState,
-  pageScrollTarget,
-  type Edges,
-  type HScrollNode,
-} from '../../lib/horizontalScroll';
+import { edgeState, pageScrollTarget, type Edges, type HScrollNode } from '../../lib/horizontalScroll';
 
 const ACCENT = '#bb5d3a'; // palette.terracotta — matches VillageSections cards
 
@@ -20,18 +14,22 @@ interface ScrollableInstance {
   getScrollableNode?: () => unknown;
 }
 
-/** The DOM node `getScrollableNode()` returns on web, plus the scroll method. */
+/** The DOM node `getScrollableNode()` returns on web. */
 interface ScrollNodeDom extends HScrollNode {
   scrollTo?: (opts: { left: number; behavior?: 'smooth' | 'auto' }) => void;
+  addEventListener: (type: 'scroll', listener: () => void, options?: { passive?: boolean }) => void;
+  removeEventListener: (type: 'scroll', listener: () => void) => void;
 }
 
 /**
  * Wraps a horizontal `FlatList`/`ScrollView` and, on **non-touch desktop
- * screens only**, overlays prev/next arrow buttons at the row's edges — each
- * shown only when there's more to scroll that way. The mouse-wheel-to-
- * horizontal translation is attached here too, so a wrapped row is fully
- * mouse-operable. Entirely inert on native and on touch screens (the arrows
- * never mount), so phone behaviour is unchanged.
+ * screens only**, overlays prev/next arrow buttons that page the row. On such a
+ * screen the row moves *only* via the arrows — there is no wheel/scrollbar
+ * free-scroll — which is why this is the sole desktop affordance. Both arrows
+ * stay mounted and fade/disable at the edges rather than unmounting: unmounting
+ * an arrow between a mouse-down and mouse-up (which a still-settling scroll can
+ * trigger) would swallow the click. Entirely inert on native and on touch
+ * screens, so phone behaviour (touch-drag) is unchanged.
  *
  * Render-prop: pass the list as `children`, spreading the provided ref onto it:
  *   <HorizontalScrollRow>
@@ -69,7 +67,6 @@ export function HorizontalScrollRow({
     const node = instance.getScrollableNode?.() as ScrollNodeDom | undefined;
     if (!node || typeof node.addEventListener !== 'function') return;
     nodeRef.current = node;
-    const detachWheel = attachWheelToHorizontal(node);
     const recompute = () => setEdges(edgeState(node));
     node.addEventListener('scroll', recompute, { passive: true });
     // Recompute when the content resizes — images load in after mount and grow
@@ -81,7 +78,6 @@ export function HorizontalScrollRow({
     }
     recompute();
     cleanup.current = () => {
-      detachWheel();
       node.removeEventListener('scroll', recompute);
       ro?.disconnect();
     };
@@ -98,11 +94,11 @@ export function HorizontalScrollRow({
   return (
     <View style={{ position: 'relative' }}>
       {children(scrollRef)}
-      {isDesktop && edges.left ? (
-        <ArrowButton dir="left" onPress={() => scrollBy('left')} />
-      ) : null}
-      {isDesktop && edges.right ? (
-        <ArrowButton dir="right" onPress={() => scrollBy('right')} />
+      {isDesktop ? (
+        <>
+          <ArrowButton dir="left" active={edges.left} onPress={() => scrollBy('left')} />
+          <ArrowButton dir="right" active={edges.right} onPress={() => scrollBy('right')} />
+        </>
       ) : null}
     </View>
   );
@@ -110,11 +106,26 @@ export function HorizontalScrollRow({
 
 const BTN = 36;
 
-function ArrowButton({ dir, onPress }: { dir: 'left' | 'right'; onPress: () => void }) {
+function ArrowButton({
+  dir,
+  active,
+  onPress,
+}: {
+  dir: 'left' | 'right';
+  active: boolean;
+  onPress: () => void;
+}) {
   const { t } = useT();
   return (
     <Pressable
       onPress={onPress}
+      disabled={!active}
+      // Stays mounted always; when it can't scroll that way it's just invisible
+      // and non-interactive (pointerEvents:none) — so it never covers a card and
+      // never unmounts mid-click (the bug that dropped arrow clicks).
+      pointerEvents={active ? 'auto' : 'none'}
+      accessibilityElementsHidden={!active}
+      importantForAccessibility={active ? 'auto' : 'no-hide-descendants'}
       accessibilityLabel={t(dir === 'left' ? 'common.carousel.prev' : 'common.carousel.next')}
       style={{
         position: 'absolute',
@@ -128,6 +139,7 @@ function ArrowButton({ dir, onPress }: { dir: 'left' | 'right'; onPress: () => v
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 5,
+        opacity: active ? 1 : 0,
         ...elevation.md.rn,
       }}
     >
