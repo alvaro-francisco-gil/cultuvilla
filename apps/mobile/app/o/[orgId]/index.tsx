@@ -71,15 +71,29 @@ export default function OrgDetailScreen() {
       gate.requireAuth(`/o/${orgId}`, t('guest.org'));
       return;
     }
-    if (!orgId) return;
+    if (!orgId || !org) return;
     setJoining(true);
+    let succeeded = false;
     try {
       await addOrgMember(orgId as string, user.uid);
+      succeeded = true;
+      observability.trackEvent(OBSERVABILITY_EVENTS.ORG_JOIN_SUCCESS, {
+        municipalityId: org.municipalityId,
+        viaInvite: arrivedViaInvite,
+      });
       await refresh();
+    } catch (e) {
+      if (!succeeded) {
+        observability.trackEvent(OBSERVABILITY_EVENTS.ORG_JOIN_ERROR, {
+          municipalityId: org.municipalityId,
+          viaInvite: arrivedViaInvite,
+        });
+      }
+      throw e;
     } finally {
       setJoining(false);
     }
-  }, [user, orgId, refresh, gate, t]);
+  }, [user, orgId, org, arrivedViaInvite, refresh, gate, t]);
 
   const actions: EntityDetailAction[] = org
     ? [
@@ -95,7 +109,12 @@ export default function OrgDetailScreen() {
         {
           icon: 'share-outline',
           accessibilityLabel: t('deeplink.shareViewLabel'),
-          onPress: () => void share(getOrgViewLink(org.id), org.name),
+          onPress: () => {
+            observability.trackEvent(OBSERVABILITY_EVENTS.ORG_INVITE_SHARED, {
+              municipalityId: org.municipalityId,
+            });
+            void share(getOrgViewLink(org.id), org.name);
+          },
         },
       ]
     : [];
