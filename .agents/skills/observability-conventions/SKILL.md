@@ -24,6 +24,13 @@ Every event name is `<domain>.<action>.<outcome>` — e.g.
   const object is that every event name that has ever shipped is greppable in
   one file, and TypeScript catches a typo instead of shipping a
   Firebase Analytics no-op.
+- Current product events:
+  `onboarding.start.begin`, `onboarding.age.gate`,
+  `onboarding.complete.success`, `village.join.success`,
+  `village.join.error`, `event.signup.success`, `event.signup.error`,
+  `org.create.success`, `org.create.error`, `content.detail.viewed`,
+  `search.query.submitted`, `search.result.selected`, `org.invite.shared`,
+  `org.join.success`, `org.join.error`, `app.exception.thrown`.
 - Reuse `<domain>` and `<action>` segments that already exist before minting
   new ones (`village`, `event`, `org`, `onboarding` are the current domains).
   If a new domain or action is genuinely needed, that's fine — just don't
@@ -45,6 +52,11 @@ uid, municipalityId, villageId, role, appVersion, platform, route, operation_id
 call site needs to pass a new field through to analytics/error context, add
 the key to `ALLOWED_CONTEXT_KEYS` (and justify it isn't PII) rather than
 smuggling it in under an existing key or bypassing `filterContext`.
+
+Engagement analytics also allow `entityKind`, `entityId`, `surface`,
+`resultCount`, and `viaInvite`. These are limited to doc ids, enums, counts,
+and booleans. Search events must log only shape and selection context, never raw
+query text, names, or any free-text/user content.
 
 **Never hash or scrub a value yourself before logging it.** On the server,
 `functions/src/shared/observability.ts` is the *one* chokepoint:

@@ -36,6 +36,11 @@ export const ALLOWED_CONTEXT_KEYS = [
   'platform',
   'route',
   'operation_id',
+  'entityKind',
+  'entityId',
+  'surface',
+  'resultCount',
+  'viaInvite',
 ] as const;
 
 export function filterContext(input: Record<string, unknown>): Record<string, unknown> {
