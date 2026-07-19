@@ -113,7 +113,7 @@ describe('PlaceDetailScreen', () => {
       },
     ]);
 
-    const { getByText, getByTestId } = render(<PlaceDetailScreen />);
+    const { getByTestId, queryByText } = render(<PlaceDetailScreen />);
 
     await waitFor(() => getByTestId('buried-person-row-p-recent'));
     expect(getByTestId('buried-person-date-p-recent')).toHaveTextContent('03/05/2020');
@@ -121,7 +121,8 @@ describe('PlaceDetailScreen', () => {
 
     fireEvent.press(getByTestId('buried-person-row-p-recent'));
 
-    getByText('village.placeDetail.editBurialTitle');
+    expect(getByTestId('buried-edit-person-name')).toHaveTextContent('Reciente Con Fecha');
+    expect(queryByText('village.placeDetail.editBurialTitle')).toBeNull();
     expect(router.push).not.toHaveBeenCalledWith('/person/p-recent');
   });
 

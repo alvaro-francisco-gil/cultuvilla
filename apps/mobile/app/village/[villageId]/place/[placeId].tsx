@@ -119,7 +119,7 @@ export default function PlaceDetailScreen() {
       setEditingPerson(null);
       await load();
     } catch (e) {
-      showAlert(e instanceof Error ? e.message : 'error', t('village.placeDetail.editBurialTitle'));
+      showAlert(e instanceof Error ? e.message : 'error', buildDisplayName(editingPerson));
     } finally {
       setSavingBurial(false);
     }
@@ -133,7 +133,7 @@ export default function PlaceDetailScreen() {
       setEditingPerson(null);
       await load();
     } catch (e) {
-      showAlert(e instanceof Error ? e.message : 'error', t('village.placeDetail.editBurialTitle'));
+      showAlert(e instanceof Error ? e.message : 'error', buildDisplayName(editingPerson));
     } finally {
       setSavingBurial(false);
     }
@@ -255,9 +255,8 @@ export default function PlaceDetailScreen() {
             className="rounded-t-2xl bg-surface-elevated p-5 border-t border-subtle"
           >
             {editingPerson ? (
-              <VStack gap={3}>
-                <Text variant="h3">{t('village.placeDetail.editBurialTitle')}</Text>
-                <Text tone="muted" variant="bodySm">
+              <VStack gap={4}>
+                <Text variant="h3" className="text-primary" testID="buried-edit-person-name">
                   {buildDisplayName(editingPerson)}
                 </Text>
                 <PartialDateField
