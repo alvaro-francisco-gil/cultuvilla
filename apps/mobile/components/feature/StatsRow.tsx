@@ -19,18 +19,18 @@ export function StatsRow({ stats }: { stats: StatItem[] }) {
     <HStack className="items-stretch justify-center w-full">
       {stats.map((s, i) => {
         const column = (
-          <VStack className="items-center flex-1">
+          <VStack gap={1} className="items-center flex-1">
             <Text variant="h3" className="font-bold">
               {s.value === null ? '—' : String(s.value)}
             </Text>
-            <Text variant="caption" tone="muted">
+            <Text variant="bodySm" tone="muted">
               {s.label}
             </Text>
           </VStack>
         );
         return (
           <View key={s.label} className="flex-row flex-1 items-center justify-center">
-            {i > 0 ? <View className="w-px h-6 bg-subtle mx-2" /> : null}
+            {i > 0 ? <View className="w-px h-7 bg-subtle mx-2" /> : null}
             {s.onPress ? (
               <Pressable
                 onPress={s.onPress}
