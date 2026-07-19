@@ -12,7 +12,8 @@ async function ensureAnalytics(): Promise<void> {
   try {
     if (await isSupported()) {
       analytics = getAnalytics(getFirebaseApp());
-      // Consent Mode v2: denied by default until the user opts in.
+      // Consent Mode v2: start denied at init; configure.ts grants analytics
+      // app-wide at boot (see the consent note there). ad_storage stays denied.
       setConsent({ analytics_storage: 'denied', ad_storage: 'denied' });
     }
   } catch {
