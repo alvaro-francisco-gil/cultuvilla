@@ -273,9 +273,6 @@
     "membersList": {
       "colName": "Nombre",
       "colCenso": "Censo",
-      "colDate": "Fecha",
-      "roleAdmin": "Administrador",
-      "roleUser": "Miembro",
       "censoComplete": "Censo completo",
       "censoPending": "Censo pendiente",
       "empty": "Aún no hay miembros.",
