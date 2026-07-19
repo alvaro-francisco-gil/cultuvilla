@@ -180,7 +180,10 @@ export default function PlaceDetailScreen() {
                   <VStack gap={1}>
                     {sortedBuried.map((p) => {
                       const name = buildDisplayName(p);
-                      const date = formatPartialDate(p.deathDate) ?? t('village.placeDetail.deathDateUnknown');
+                      const date =
+                        editingPerson?.id === p.id
+                          ? null
+                          : (formatPartialDate(p.deathDate) ?? t('village.placeDetail.deathDateUnknown'));
                       const editable = canEditPerson(p);
                       const row = (
                         <HStack gap={3} align="center" className="py-2">
@@ -188,14 +191,16 @@ export default function PlaceDetailScreen() {
                           <Text numberOfLines={1} className="flex-1">
                             {name}
                           </Text>
-                          <Text
-                            testID={`buried-person-date-${p.id}`}
-                            tone="muted"
-                            variant="bodySm"
-                            numberOfLines={1}
-                          >
-                            {date}
-                          </Text>
+                          {date ? (
+                            <Text
+                              testID={`buried-person-date-${p.id}`}
+                              tone="muted"
+                              variant="bodySm"
+                              numberOfLines={1}
+                            >
+                              {date}
+                            </Text>
+                          ) : null}
                           {editable ? (
                             <Ionicons name="chevron-forward" size={iconSizes.sm} color={colors.light.fg.muted} />
                           ) : null}
@@ -262,7 +267,7 @@ export default function PlaceDetailScreen() {
           >
             {editingPerson ? (
               <VStack gap={4}>
-                <Text variant="h3" className="text-primary" testID="buried-edit-person-name">
+                <Text variant="h2" className="font-semibold" testID="buried-edit-person-name">
                   {buildDisplayName(editingPerson)}
                 </Text>
                 <PartialDateField
@@ -273,7 +278,7 @@ export default function PlaceDetailScreen() {
                 />
                 <HStack gap={3} className="items-center justify-end">
                   <Button
-                    variant="danger"
+                    variant="secondary"
                     onPress={() => void removeFromCemetery()}
                     loading={savingBurial}
                     testID="buried-remove"

@@ -119,11 +119,12 @@ describe('PlaceDetailScreen', () => {
     expect(getByTestId('buried-person-date-p-recent')).toHaveTextContent('03/05/2020');
     expect(getByTestId('buried-person-date-p-old')).toHaveTextContent('village.placeDetail.deathDateUnknown');
 
-    fireEvent.press(getByTestId('buried-person-row-p-recent'));
+    fireEvent.press(getByTestId('buried-person-row-p-old'));
 
-    expect(getByTestId('buried-edit-person-name')).toHaveTextContent('Reciente Con Fecha');
+    expect(getByTestId('buried-edit-person-name')).toHaveTextContent('Antigua Sin Fecha');
+    expect(queryByText('village.placeDetail.deathDateUnknown')).toBeNull();
     expect(queryByText('village.placeDetail.editBurialTitle')).toBeNull();
-    expect(router.push).not.toHaveBeenCalledWith('/person/p-recent');
+    expect(router.push).not.toHaveBeenCalledWith('/person/p-old');
   });
 
   it('updates or removes the selected cemetery burial from the editor modal', async () => {
