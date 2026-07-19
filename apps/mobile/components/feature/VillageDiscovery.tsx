@@ -134,7 +134,9 @@ export function VillageDiscovery() {
   }
 
   const viewMuni = (m: Muni) => {
-    observability.trackEvent(OBSERVABILITY_EVENTS.SEARCH_RESULT_SELECTED, { surface: 'village_discovery' });
+    if (search.trim().length >= 2) {
+      observability.trackEvent(OBSERVABILITY_EVENTS.SEARCH_RESULT_SELECTED, { surface: 'village_discovery' });
+    }
     // Active villages → the rich village home; dormant municipalities → the "start" flow.
     const target: Href = m.communityActive
       ? { pathname: '/village/[villageId]', params: { villageId: m.id } }
