@@ -6,6 +6,7 @@ import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { DeleteHeaderButton } from '../../components/feature/DeleteHeaderButton';
 import { PersonForm } from '../../components/feature/PersonForm';
 import type { PersonFormPhoto, PersonFormValues } from '../../components/feature/PersonForm';
+import { PersonProfileView } from '../../components/feature/profile/PersonProfileView';
 import { MembershipVillageEditor } from '../../components/feature/MembershipVillageEditor';
 import { ResidenceLinksEditor } from '../../components/feature/ResidenceLinksEditor';
 import { useAuth } from '../../lib/auth/useAuth';
@@ -19,6 +20,7 @@ import {
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
 import { recordOccupation } from '@cultuvilla/shared/services/occupationService';
 import { isCatalogOccupation } from '@cultuvilla/shared/models/occupation';
+import { buildDisplayName } from '@cultuvilla/shared/models/person';
 import type { MunicipalityLink, PartialDate, PersonData } from '@cultuvilla/shared/models/person';
 
 type PersonDoc = PersonData & { id: string };
@@ -56,6 +58,12 @@ export default function PersonDetailScreen() {
   // (createdBy == uid && userId == null). Own account-persona deletion belongs to
   // account deletion, not this screen.
   const canDelete = !isNew && person != null && person.createdBy === user?.uid && person.userId == null;
+
+  // Only the persona's owner may edit: their own account-persona, or a
+  // dependent persona they created. Everyone else — village admins included —
+  // gets the read-only PersonProfileView. Account-holder vecinos never reach
+  // this screen for viewing; they route to the richer /user/[uid] profile.
+  const canEdit = isNew || isOwnPersona || canDelete;
 
   const removePersona = () => {
     if (!person) return;
@@ -190,7 +198,7 @@ export default function PersonDetailScreen() {
     <Screen padded={false} bottomInset={false} topInset={false}>
       <ScreenHeader
         accent
-        title={t('profile.personDetailTitle')}
+        title={canEdit ? t('profile.personDetailTitle') : person ? buildDisplayName(person) : ''}
         rightSlot={
           canDelete ? (
             <DeleteHeaderButton
@@ -214,6 +222,8 @@ export default function PersonDetailScreen() {
         <View className="flex-1 items-center justify-center p-4">
           <Text tone="muted">404</Text>
         </View>
+      ) : !canEdit && person ? (
+        <PersonProfileView person={person} />
       ) : (
         <PersonForm
           initial={initial}

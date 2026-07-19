@@ -8,6 +8,7 @@ import { EntityDetailScaffold } from '../../../../components/feature/EntityDetai
 import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
 import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
 import { LivePersonChip } from '../../../../components/feature/LivePersonChip';
+import { DetailSectionHeading } from '../../../../components/feature/DetailSectionHeading';
 import { EntityComments } from '../../../../components/feature/EntityComments';
 import { useT } from '../../../../lib/i18n';
 import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
@@ -95,7 +96,7 @@ export default function BarrioDetailScreen() {
               ))}
             </VStack>
           ) : null}
-          <Text variant="h2">{t('village.barrioDetail.residents')}</Text>
+          <DetailSectionHeading>{t('village.barrioDetail.residents')}</DetailSectionHeading>
           {residents.length === 0 ? (
             <Text tone="muted" variant="bodySm">
               {t('village.barrioDetail.residentsEmpty')}
@@ -107,7 +108,14 @@ export default function BarrioDetailScreen() {
                   key={p.id}
                   personId={p.id}
                   fallbackName={buildDisplayName(p)}
-                  onPress={() => router.push(`/person/${p.id}` as never)}
+                  onPress={() =>
+                    router.push(
+                      // Account-holders open their read-only user profile;
+                      // dependent personas open the person screen (read-only
+                      // for everyone but the persona's owner).
+                      (p.userId ? `/user/${p.userId}` : `/person/${p.id}`) as never,
+                    )
+                  }
                 />
               ))}
             </View>
