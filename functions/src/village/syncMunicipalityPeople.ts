@@ -2,6 +2,7 @@ import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions/v2';
 import { getFirestore } from 'firebase-admin/firestore';
 import { municipalityPersonDoc } from '@cultuvilla/shared/firebase/refs/admin';
+import { buildDisplayName, buildNameWithNickname } from '@cultuvilla/shared/models';
 
 const db = getFirestore();
 
@@ -13,18 +14,22 @@ interface DirectoryPerson {
   municipalityIds: Set<string>;
 }
 
+const asString = (value: unknown): string => (typeof value === 'string' ? value : '');
+const asNullableString = (value: unknown): string | null =>
+  typeof value === 'string' ? value : null;
+
 function asDirectoryPerson(data: Record<string, unknown>): DirectoryPerson {
   const rawMiddleNames: unknown = data['middleNames'];
   const middleNames = Array.isArray(rawMiddleNames)
     ? rawMiddleNames.filter((name): name is string => typeof name === 'string')
     : [];
-  const nameParts = [
-    data['givenName'],
-    ...middleNames,
-    data['firstSurname'],
-    data['secondSurname'],
-  ].filter((part): part is string => typeof part === 'string' && part.length > 0);
-  const displayName = nameParts.join(' ');
+  const person = {
+    givenName: asString(data['givenName']),
+    middleNames,
+    firstSurname: asNullableString(data['firstSurname']),
+    secondSurname: asNullableString(data['secondSurname']),
+    nickname: asNullableString(data['nickname']),
+  };
   const links = Array.isArray(data['municipalityLinks']) ? data['municipalityLinks'] : [];
   const municipalityIds = new Set(
     links.flatMap((link) => {
@@ -34,8 +39,10 @@ function asDirectoryPerson(data: Record<string, unknown>): DirectoryPerson {
     }),
   );
   return {
-    displayName,
-    sortName: displayName
+    // Directory shows the apodo in parentheses after the full name; the sort key
+    // stays on the plain full name so the list stays alphabetical by real name.
+    displayName: buildNameWithNickname(person),
+    sortName: buildDisplayName(person)
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .toLocaleLowerCase('es-ES'),

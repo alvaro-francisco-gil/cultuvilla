@@ -137,3 +137,16 @@ export function buildShortName(
 ): string {
   return person.nickname ?? [person.givenName, person.firstSurname].filter(Boolean).join(' ');
 }
+
+/** Full name with the nickname appended in parentheses: "Juan Carlos García López (Juanito)" */
+export function buildNameWithNickname(
+  person: Pick<
+    PersonData,
+    'givenName' | 'middleNames' | 'firstSurname' | 'secondSurname' | 'nickname'
+  >,
+): string {
+  const full = buildDisplayName(person);
+  const nickname = person.nickname?.trim();
+  if (!nickname) return full;
+  return full ? `${full} (${nickname})` : nickname;
+}

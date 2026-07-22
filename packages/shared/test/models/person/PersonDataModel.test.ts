@@ -5,6 +5,7 @@ import {
   buildResidenceLinks,
   buildDisplayName,
   buildShortName,
+  buildNameWithNickname,
   isDeceased,
 } from '../../../src/models/person/PersonDataModel';
 
@@ -245,5 +246,43 @@ describe('buildShortName', () => {
     expect(buildShortName({ givenName: 'Juan', nickname: null, firstSurname: 'García' })).toBe(
       'Juan García',
     );
+  });
+});
+
+describe('buildNameWithNickname', () => {
+  it('appends the nickname in parentheses after the full name', () => {
+    expect(
+      buildNameWithNickname({
+        givenName: 'Juan',
+        middleNames: ['Carlos'],
+        firstSurname: 'García',
+        secondSurname: 'López',
+        nickname: 'Juanito',
+      }),
+    ).toBe('Juan Carlos García López (Juanito)');
+  });
+
+  it('returns the full name unchanged when there is no nickname', () => {
+    expect(
+      buildNameWithNickname({
+        givenName: 'Ana',
+        middleNames: [],
+        firstSurname: 'Martínez',
+        secondSurname: null,
+        nickname: null,
+      }),
+    ).toBe('Ana Martínez');
+  });
+
+  it('ignores a blank nickname', () => {
+    expect(
+      buildNameWithNickname({
+        givenName: 'Ana',
+        middleNames: [],
+        firstSurname: 'Martínez',
+        secondSurname: null,
+        nickname: '   ',
+      }),
+    ).toBe('Ana Martínez');
   });
 });
