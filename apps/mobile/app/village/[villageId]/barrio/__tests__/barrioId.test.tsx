@@ -26,7 +26,11 @@ jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({ getBarrioViewLink: () => 'https://x' }));
 jest.mock('@cultuvilla/shared/services/personService', () => ({ getPersonsByBarrio: jest.fn().mockResolvedValue([]) }));
-jest.mock('@cultuvilla/shared/models/person', () => ({ buildDisplayName: () => 'N' }));
+jest.mock('@cultuvilla/shared/models/person', () => ({
+  buildDisplayName: (p: { id: string }) => p.id,
+  isDeceased: (p: { deathDate?: unknown; burialPlace?: unknown }) =>
+    p.deathDate != null || p.burialPlace != null,
+}));
 jest.mock('../../../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 
@@ -49,8 +53,23 @@ describe('BarrioDetailScreen', () => {
 
     const { queryByRole, findAllByText } = render(<BarrioDetailScreen />);
 
-    await findAllByText('N');
-    expect(queryByRole('button', { name: 'N' })).toBeNull();
+    await findAllByText('p1');
+    expect(queryByRole('button', { name: 'p1' })).toBeNull();
     expect(router.push).not.toHaveBeenCalledWith('/person/p1');
+  });
+
+  it('hides deceased personas (death date or burial place) from the residents list', async () => {
+    jest.mocked(getPersonsByBarrio).mockResolvedValue([
+      { id: 'alive', userId: null, createdBy: 'u1' },
+      { id: 'byDate', userId: null, createdBy: 'u1', deathDate: { year: 2020, month: null, day: null } },
+      { id: 'byBurial', userId: null, createdBy: 'u1', burialPlace: { municipalityId: 'm1', placeId: 'c1' } },
+    ] as unknown as Awaited<ReturnType<typeof getPersonsByBarrio>>);
+
+    const { findByText, queryByText } = render(<BarrioDetailScreen />);
+
+    // The living persona renders; the two deceased ones are filtered out.
+    await findByText('alive');
+    expect(queryByText('byDate')).toBeNull();
+    expect(queryByText('byBurial')).toBeNull();
   });
 });
