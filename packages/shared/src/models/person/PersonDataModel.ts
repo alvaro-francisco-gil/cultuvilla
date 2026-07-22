@@ -120,6 +120,17 @@ export function buildDisplayName(
     .join(' ');
 }
 
+/**
+ * A person is considered deceased once either death signal is present: a
+ * recorded `deathDate` or a `burialPlace` (cemetery) assignment. Burial writes
+ * both at once, but the two can drift (a death date can be set before burial),
+ * so we treat either as sufficient — this keeps anyone buried out of the
+ * living-residents lists.
+ */
+export function isDeceased(person: Pick<PersonData, 'deathDate' | 'burialPlace'>): boolean {
+  return person.deathDate !== null || person.burialPlace !== null;
+}
+
 /** Short name for tight spaces: nickname if set, otherwise "Juan García" */
 export function buildShortName(
   person: Pick<PersonData, 'givenName' | 'nickname' | 'firstSurname'>,

@@ -19,7 +19,7 @@ import { getBarrio } from '@cultuvilla/shared/services/municipalityService';
 import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { getBarrioViewLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getPersonsByBarrio } from '@cultuvilla/shared/services/personService';
-import { buildDisplayName } from '@cultuvilla/shared/models/person';
+import { buildDisplayName, isDeceased } from '@cultuvilla/shared/models/person';
 import type { BarrioData } from '@cultuvilla/shared/models/municipality';
 import type { PersonData } from '@cultuvilla/shared/models/person';
 
@@ -44,7 +44,8 @@ export default function BarrioDetailScreen() {
         getPersonsByBarrio(villageId, barrioId),
       ]);
       setBarrio(b);
-      setResidents(people);
+      // Deceased residents live in the cemetery view, not the barrio roster.
+      setResidents(people.filter((person) => !isDeceased(person)));
     } finally {
       setLoading(false);
     }

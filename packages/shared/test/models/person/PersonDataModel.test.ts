@@ -5,6 +5,7 @@ import {
   buildResidenceLinks,
   buildDisplayName,
   buildShortName,
+  isDeceased,
 } from '../../../src/models/person/PersonDataModel';
 
 describe('PersonDataSchema', () => {
@@ -203,6 +204,33 @@ describe('buildResidenceLinks', () => {
     // so the stored object must have exactly those two keys and no others.
     const [link] = buildResidenceLinks('muni-1', 'barrio-1');
     expect(Object.keys(link).sort()).toEqual(['barrioId', 'municipalityId']);
+  });
+});
+
+describe('isDeceased', () => {
+  it('is false when both death signals are absent', () => {
+    expect(isDeceased({ deathDate: null, burialPlace: null })).toBe(false);
+  });
+
+  it('is true when a deathDate is present (not yet buried)', () => {
+    expect(
+      isDeceased({ deathDate: { year: 2020, month: null, day: null }, burialPlace: null }),
+    ).toBe(true);
+  });
+
+  it('is true when a burialPlace is present (no death date recorded)', () => {
+    expect(
+      isDeceased({ deathDate: null, burialPlace: { municipalityId: 'mun1', placeId: 'place1' } }),
+    ).toBe(true);
+  });
+
+  it('is true when both signals are present', () => {
+    expect(
+      isDeceased({
+        deathDate: { year: 2020, month: 6, day: 1 },
+        burialPlace: { municipalityId: 'mun1', placeId: 'place1' },
+      }),
+    ).toBe(true);
   });
 });
 
