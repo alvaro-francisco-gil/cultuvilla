@@ -72,6 +72,7 @@
     "seed:villages:wipe": "node scripts/seed-village-requests.mjs --wipe",
     "seed:e2e": "pnpm shared:build && node scripts/seed/e2e.mjs",
     "backfill:dev:place-burial-count": "pnpm shared:build && node scripts/backfill-place-burial-count.mjs",
+    "backfill:dev:entity-contributors": "pnpm shared:build && node scripts/backfill-entity-contributors.mjs",
     "wipe:dev:everything": "node scripts/wipe-dev-everything.mjs",
     "deploy:rules:dev": "bash scripts/firebase.sh deploy --only firestore:rules,storage --project dev",
     "deploy:rules:beta": "bash scripts/firebase.sh deploy --only firestore:rules,storage --project beta",

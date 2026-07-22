@@ -425,6 +425,12 @@
       "alreadyBuried": "Ya está aquí",
       "addAction": "Añadir"
     },
+    "contributors": {
+      "label": "Contribuyeron",
+      "peopleLabel": "Personas colaboradoras",
+      "addPerson": "Añadir persona",
+      "selectPeople": "Seleccionar personas colaboradoras"
+    },
     "festivalPosters": {
       "title": "Carteles de fiestas",
       "editTitle": "Editar cartel",

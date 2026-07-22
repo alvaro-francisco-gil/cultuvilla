@@ -9,6 +9,7 @@ import { Button } from '../../../../../components/primitives/Button';
 import { FieldLabel } from '../../../../../components/primitives/FieldLabel';
 import { DateField } from '../../../../../components/primitives/DateField';
 import { MultiImagePickerRow } from '../../../../../components/feature/MultiImagePickerRow';
+import { OrganizerPicker } from '../../../../../components/feature/OrganizerPicker';
 import { ScreenHeader } from '../../../../../components/layout/ScreenHeader';
 import { DeleteHeaderButton } from '../../../../../components/feature/DeleteHeaderButton';
 import { sanitizeYear, datesToPayload } from '../../../../../components/feature/proposable/festivalPosterForm';
@@ -28,7 +29,7 @@ import {
 export default function FestivalPosterEditScreen() {
   const { villageId, posterId } = useLocalSearchParams<{ villageId: string; posterId: string }>();
   const { t } = useT();
-  const { canManage, loading: capLoading } = useEntityCapabilities(villageId);
+  const { canManage, uid, loading: capLoading } = useEntityCapabilities(villageId);
 
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const [title, setTitle] = useState('');
@@ -39,6 +40,8 @@ export default function FestivalPosterEditScreen() {
   const [loaded, setLoaded] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [contributorUserIds, setContributorUserIds] = useState<string[]>([]);
+  const [contributorOrgIds, setContributorOrgIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!posterId) return;
@@ -50,6 +53,8 @@ export default function FestivalPosterEditScreen() {
         setStartsAt(p.startsAt);
         setEndsAt(p.endsAt);
         setImages(p.images);
+        setContributorUserIds(p.contributorUserIds);
+        setContributorOrgIds(p.contributorOrgIds);
       } else {
         setNotFound(true);
       }
@@ -96,6 +101,8 @@ export default function FestivalPosterEditScreen() {
         year: yearNum,
         title: title.trim() || null,
         images,
+        contributorUserIds,
+        contributorOrgIds,
         ...datesToPayload(startsAt, endsAt),
       });
       router.back();
@@ -163,6 +170,18 @@ export default function FestivalPosterEditScreen() {
               value={startsAt}
               onChange={setStartsAt}
             />
+            {uid ? (
+              <OrganizerPicker
+                municipalityId={villageId}
+                selectedUserIds={contributorUserIds}
+                selectedOrgIds={contributorOrgIds}
+                onChangeUsers={setContributorUserIds}
+                onChangeOrgs={setContributorOrgIds}
+                peopleLabel={t('village.contributors.peopleLabel')}
+                addPersonLabel={t('village.contributors.addPerson')}
+                selectPeopleTitle={t('village.contributors.selectPeople')}
+              />
+            ) : null}
             <DateField
               label={t('village.festivalPosters.form.endDate')}
               value={endsAt}

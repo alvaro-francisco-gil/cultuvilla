@@ -10,7 +10,7 @@ const M = 'm1';
 function placeDoc(proposedBy: string | null, extra: Record<string, unknown> = {}) {
   return {
     name: 'Fuente', kind: 'plaza', description: null, municipalityId: M,
-    images: [], createdAt: new Date(), status: 'active', proposedBy,
+    images: [], createdAt: new Date(), status: 'active', proposedBy, contributorUserIds: [], contributorOrgIds: [],
     hiddenBy: null, hiddenAt: null, hiddenReason: null,
     commentCount: 0, readCount: 0, burialCount: 0,
     ...extra,

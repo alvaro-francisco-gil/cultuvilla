@@ -227,6 +227,8 @@ export const PlaceDataSchema = z.object({
   images: z.array(z.string()).max(5),
   createdAt: z.date(),
   proposedBy: z.string().nullable(),
+  contributorUserIds: z.array(z.string()),
+  contributorOrgIds: z.array(z.string()),
   // Denormalized interaction counters, maintained server-side by the comments
   // Cloud Function trigger / the detail-screen view tracker. Initialized to 0
   // at create.
@@ -246,6 +248,8 @@ export interface PlaceDataInput {
   description?: string | null;
   images?: string[];
   proposedBy?: string | null;
+  contributorUserIds?: string[];
+  contributorOrgIds?: string[];
 }
 
 export function buildPlaceData(input: PlaceDataInput): PlaceData {
@@ -257,6 +261,8 @@ export function buildPlaceData(input: PlaceDataInput): PlaceData {
     images: input.images ?? [],
     createdAt: new Date(),
     proposedBy: input.proposedBy ?? null,
+    contributorUserIds: input.contributorUserIds ?? [],
+    contributorOrgIds: input.contributorOrgIds ?? [],
     commentCount: 0,
     readCount: 0,
     burialCount: 0,
