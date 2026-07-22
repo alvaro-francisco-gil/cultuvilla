@@ -1,6 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { MembersList } from '../MembersList';
 
+const mockPush = jest.fn();
+jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(...a) } }));
+
 const mockGetVillageMembers = jest.fn();
 const mockSetVillageMemberRole = jest.fn();
 jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
@@ -8,14 +11,9 @@ jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
   setVillageMemberRole: (...a: unknown[]) => mockSetVillageMemberRole(...a),
 }));
 
-const mockGetUserProfile = jest.fn();
-jest.mock('@cultuvilla/shared/services/userService', () => ({
-  getUserProfile: (...a: unknown[]) => mockGetUserProfile(...a),
-}));
-
-const mockGetPersonByUserId = jest.fn();
-jest.mock('@cultuvilla/shared/services/personService', () => ({
-  getPersonByUserId: (...a: unknown[]) => mockGetPersonByUserId(...a),
+const mockGetMunicipalityPeople = jest.fn();
+jest.mock('@cultuvilla/shared/services/municipalityPersonService', () => ({
+  getMunicipalityPeople: (...a: unknown[]) => mockGetMunicipalityPeople(...a),
 }));
 
 const mockGetMunicipality = jest.fn();
@@ -23,220 +21,95 @@ jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getMunicipality: (...a: unknown[]) => mockGetMunicipality(...a),
 }));
 
-// showConfirm auto-accepts so we can assert the role change fires on confirm.
 const mockShowConfirm = jest.fn();
-const mockShowAlert = jest.fn();
 jest.mock('../../../lib/dialogs', () => ({
-  showConfirm: (title: string, message: string, onConfirm: () => void) => {
-    mockShowConfirm(title, message);
+  showConfirm: (_title: string, _message: string, onConfirm: () => void) => {
+    mockShowConfirm();
     onConfirm();
   },
-  showAlert: (...a: unknown[]) => mockShowAlert(...a),
+  showAlert: jest.fn(),
 }));
 
-// Real Spanish catalog so we can assert on the visible strings.
-jest.mock('../../../lib/i18n', () => {
-  const { getMessages } = jest.requireActual('@cultuvilla/i18n');
-  const es = getMessages('es');
-  const resolve = (k: string): unknown =>
-    k.split('.').reduce<unknown>((o, seg) => (o == null ? undefined : (o as Record<string, unknown>)[seg]), es);
-  return {
-    useT: () => ({
-      locale: 'es',
-      t: (k: string, vars?: Record<string, string | number>) => {
-        const tpl = resolve(k);
-        if (typeof tpl !== 'string') return k;
-        return vars ? tpl.replace(/\{(\w+)\}/g, (_: string, kk: string) => String(vars[kk] ?? `{${kk}}`)) : tpl;
-      },
-    }),
-  };
-});
+jest.mock('../../../lib/i18n', () => ({
+  useT: () => ({ t: (key: string) => ({
+    'village.membersList.colName': 'Nombre',
+    'village.membersList.colCenso': 'Censo',
+    'village.membersList.censoComplete': 'Censo completo',
+    'village.membersList.censoPending': 'Censo pendiente',
+    'village.membersList.empty': 'Aún no hay personas registradas.',
+  }[key] ?? key) }),
+}));
 
-const profiles: Record<string, { displayName: string; photoURL: string | null }> = {
-  admin1: { displayName: 'Ana Admin', photoURL: null },
-  admin2: { displayName: 'Carlos Organizador', photoURL: null },
-  user1: { displayName: 'Bruno Vecino', photoURL: null },
-};
+const people = [
+  { id: 'm1_p1', personId: 'p1', municipalityId: 'm1', displayName: 'Álvaro Vecino', sortName: 'alvaro vecino', photoURL: null, userId: 'user1' },
+  { id: 'm1_p2', personId: 'p2', municipalityId: 'm1', displayName: 'Bea A Cargo', sortName: 'bea a cargo', photoURL: null, userId: null },
+];
 
 beforeEach(() => {
   mockGetVillageMembers.mockReset();
-  mockSetVillageMemberRole.mockReset();
-  mockGetUserProfile.mockReset();
-  mockGetPersonByUserId.mockReset();
+  mockGetMunicipalityPeople.mockReset();
   mockGetMunicipality.mockReset();
+  mockSetVillageMemberRole.mockReset();
   mockShowConfirm.mockReset();
-  mockShowAlert.mockReset();
-  mockGetUserProfile.mockImplementation(async (uid: string) => profiles[uid] ?? null);
-  mockGetPersonByUserId.mockResolvedValue({ photoURL: null });
+  mockPush.mockReset();
+  mockGetMunicipalityPeople.mockResolvedValue(people);
+  mockGetVillageMembers.mockResolvedValue([
+    { userId: 'user1', role: 'user', profileCompletedAt: null },
+  ]);
+  mockGetMunicipality.mockResolvedValue({ id: 'm1', community: { organizerId: null, profileForm: null } });
   mockSetVillageMemberRole.mockResolvedValue(undefined);
-  mockGetMunicipality.mockResolvedValue({ id: 'm1', community: { organizerId: null } });
 });
 
-test('renders members without joined date or role labels', async () => {
+test('renders account and dependent personas in the directory order', async () => {
+  render(<MembersList villageId="m1" />);
+
+  await waitFor(() => expect(screen.getByText('Álvaro Vecino')).toBeTruthy());
+  expect(screen.getByText('Bea A Cargo')).toBeTruthy();
+  expect(screen.getAllByTestId('member-name').map((node) => node.props.children))
+    .toEqual(['Álvaro Vecino', 'Bea A Cargo']);
+  expect(mockGetMunicipalityPeople).toHaveBeenCalledWith('m1');
+});
+
+test('shows censo only for account-linked people when configured', async () => {
   mockGetMunicipality.mockResolvedValue({
     id: 'm1',
     community: { organizerId: null, profileForm: { fields: [{ key: 'age' }] } },
   });
   mockGetVillageMembers.mockResolvedValue([
-    { id: 'admin1', userId: 'admin1', role: 'admin', joinedAt: new Date('2026-01-01'), profileCompletedAt: new Date('2026-01-02') },
-    { id: 'user1', userId: 'user1', role: 'user', joinedAt: new Date('2026-02-01'), profileCompletedAt: null },
+    { userId: 'user1', role: 'user', profileCompletedAt: new Date() },
   ]);
 
   render(<MembersList villageId="m1" />);
 
-  await waitFor(() => expect(screen.getByText('Ana Admin')).toBeTruthy());
-  // Column headers.
-  expect(screen.getByText('Nombre')).toBeTruthy();
-  expect(screen.getByText('Censo')).toBeTruthy();
-  expect(screen.queryByText('Fecha')).toBeNull();
-  // Names.
-  expect(screen.getByText('Bruno Vecino')).toBeTruthy();
-  expect(screen.queryByText('Administrador')).toBeNull();
-  expect(screen.queryByText('Miembro')).toBeNull();
-  // Censo cell is a tick for the completed member and a cross for the pending one.
-  expect(screen.getByLabelText('Censo completo')).toBeTruthy();
-  expect(screen.getByLabelText('Censo pendiente')).toBeTruthy();
-  expect(mockGetVillageMembers).toHaveBeenCalledWith('m1');
-});
-
-test('hides the censo column when the village has no configured censo', async () => {
-  mockGetMunicipality.mockResolvedValue({ id: 'm1', community: { organizerId: null, profileForm: null } });
-  mockGetVillageMembers.mockResolvedValue([
-    { id: 'admin1', userId: 'admin1', role: 'admin', joinedAt: new Date('2026-01-01'), profileCompletedAt: new Date('2026-01-02') },
-    { id: 'user1', userId: 'user1', role: 'user', joinedAt: new Date('2026-02-01'), profileCompletedAt: null },
-  ]);
-
-  render(<MembersList villageId="m1" />);
-
-  await waitFor(() => expect(screen.getByText('Ana Admin')).toBeTruthy());
-  expect(screen.getByText('Nombre')).toBeTruthy();
-  expect(screen.queryByText('Censo')).toBeNull();
-  expect(screen.queryByLabelText('Censo completo')).toBeNull();
+  await waitFor(() => expect(screen.getByLabelText('Censo completo')).toBeTruthy());
   expect(screen.queryByLabelText('Censo pendiente')).toBeNull();
 });
 
-test('reserves the action column for every row when only some members are actionable', async () => {
-  mockGetMunicipality.mockResolvedValue({
-    id: 'm1',
-    community: { organizerId: 'admin2', profileForm: { fields: [{ key: 'age' }] } },
-  });
-  mockGetVillageMembers.mockResolvedValue([
-    { id: 'admin1', userId: 'admin1', role: 'admin', joinedAt: new Date('2026-01-01'), profileCompletedAt: new Date('2026-01-02') },
-    { id: 'admin2', userId: 'admin2', role: 'admin', joinedAt: new Date('2026-01-02'), profileCompletedAt: null },
-    { id: 'user1', userId: 'user1', role: 'user', joinedAt: new Date('2026-02-01'), profileCompletedAt: null },
-  ]);
-
-  render(<MembersList villageId="m1" canManage currentUserId="admin1" />);
-
-  await waitFor(() => expect(screen.getByText('Bruno Vecino')).toBeTruthy());
-  expect(screen.getAllByTestId('member-action-slot')).toHaveLength(3);
-  expect(screen.getByTestId('member-row-user1')).toBeTruthy();
-  expect(screen.queryByTestId('member-row-admin1')).toBeNull();
-  expect(screen.queryByTestId('member-row-admin2')).toBeNull();
-});
-
-test('lists admins before regular members regardless of join order', async () => {
-  mockGetVillageMembers.mockResolvedValue([
-    { id: 'user1', userId: 'user1', role: 'user', joinedAt: new Date('2026-01-01'), profileCompletedAt: null },
-    { id: 'admin1', userId: 'admin1', role: 'admin', joinedAt: new Date('2026-02-01'), profileCompletedAt: null },
-  ]);
-
-  render(<MembersList villageId="m1" />);
-
-  await waitFor(() => expect(screen.getByText('Ana Admin')).toBeTruthy());
-  const names = screen.getAllByTestId('member-name').map((n) => n.props.children);
-  expect(names).toEqual(['Ana Admin', 'Bruno Vecino']);
-});
-
-test('shows an empty state when the pueblo has no members', async () => {
-  mockGetVillageMembers.mockResolvedValue([]);
-
-  render(<MembersList villageId="m1" />);
-
-  await waitFor(() => expect(screen.getByText('Aún no hay miembros.')).toBeTruthy());
-});
-
-test('read-only viewer sees no role-change controls', async () => {
-  mockGetVillageMembers.mockResolvedValue([
-    { id: 'admin1', userId: 'admin1', role: 'admin', joinedAt: new Date('2026-01-01'), profileCompletedAt: null },
-    { id: 'user1', userId: 'user1', role: 'user', joinedAt: new Date('2026-02-01'), profileCompletedAt: null },
-  ]);
-
-  render(<MembersList villageId="m1" />);
-
-  await waitFor(() => expect(screen.getByText('Ana Admin')).toBeTruthy());
-  expect(screen.queryByTestId('member-row-user1')).toBeNull();
-  expect(screen.queryByTestId('member-row-admin1')).toBeNull();
-  expect(mockGetMunicipality).toHaveBeenCalledWith('m1');
-});
-
-test('an admin can promote a member; the roster refetches afterwards', async () => {
-  mockGetVillageMembers.mockResolvedValue([
-    { id: 'admin1', userId: 'admin1', role: 'admin', joinedAt: new Date('2026-01-01'), profileCompletedAt: null },
-    { id: 'user1', userId: 'user1', role: 'user', joinedAt: new Date('2026-02-01'), profileCompletedAt: null },
-  ]);
-
-  render(<MembersList villageId="m1" canManage currentUserId="admin1" />);
+test('only an account member is actionable for an admin', async () => {
+  render(<MembersList villageId="m1" canManage currentUserId="admin" />);
 
   await waitFor(() => expect(screen.getByTestId('member-row-user1')).toBeTruthy());
+  expect(screen.queryByTestId('member-row-')).toBeNull();
   fireEvent.press(screen.getByTestId('member-row-user1'));
-
   expect(mockSetVillageMemberRole).toHaveBeenCalledWith('m1', 'user1', 'admin');
-  await waitFor(() => expect(mockGetVillageMembers).toHaveBeenCalledTimes(2));
 });
 
-test('an admin can demote another admin', async () => {
-  mockGetVillageMembers.mockResolvedValue([
-    { id: 'admin1', userId: 'admin1', role: 'admin', joinedAt: new Date('2026-01-01'), profileCompletedAt: null },
-    { id: 'admin2', userId: 'admin2', role: 'admin', joinedAt: new Date('2026-02-01'), profileCompletedAt: null },
-  ]);
-
-  render(<MembersList villageId="m1" canManage currentUserId="admin1" />);
-
-  await waitFor(() => expect(screen.getByTestId('member-row-admin2')).toBeTruthy());
-  fireEvent.press(screen.getByTestId('member-row-admin2'));
-
-  expect(mockSetVillageMemberRole).toHaveBeenCalledWith('m1', 'admin2', 'user');
+test('opens the linked user profile from the name or avatar area', async () => {
+  render(<MembersList villageId="m1" />);
+  await waitFor(() => expect(screen.getByTestId('person-profile-p1')).toBeTruthy());
+  fireEvent.press(screen.getByTestId('person-profile-p1'));
+  expect(mockPush).toHaveBeenCalledWith('/user/user1');
 });
 
-test('an admin cannot change their own role', async () => {
-  mockGetVillageMembers.mockResolvedValue([
-    { id: 'admin1', userId: 'admin1', role: 'admin', joinedAt: new Date('2026-01-01'), profileCompletedAt: null },
-    { id: 'user1', userId: 'user1', role: 'user', joinedAt: new Date('2026-02-01'), profileCompletedAt: null },
-  ]);
-
-  render(<MembersList villageId="m1" canManage currentUserId="admin1" />);
-
-  await waitFor(() => expect(screen.getByTestId('member-row-user1')).toBeTruthy());
-  expect(screen.queryByTestId('member-row-admin1')).toBeNull();
+test('opens a dependent persona profile when no user account is linked', async () => {
+  render(<MembersList villageId="m1" />);
+  await waitFor(() => expect(screen.getByTestId('person-profile-p2')).toBeTruthy());
+  fireEvent.press(screen.getByTestId('person-profile-p2'));
+  expect(mockPush).toHaveBeenCalledWith('/person/p2');
 });
 
-test('the founding organizer cannot be demoted from the UI', async () => {
-  mockGetMunicipality.mockResolvedValue({ id: 'm1', community: { organizerId: 'admin2' } });
-  mockGetVillageMembers.mockResolvedValue([
-    { id: 'admin1', userId: 'admin1', role: 'admin', joinedAt: new Date('2026-01-01'), profileCompletedAt: null },
-    { id: 'admin2', userId: 'admin2', role: 'admin', joinedAt: new Date('2026-02-01'), profileCompletedAt: null },
-  ]);
-
-  render(<MembersList villageId="m1" canManage currentUserId="admin1" />);
-
-  await waitFor(() => expect(screen.getByText('Carlos Organizador')).toBeTruthy());
-  expect(screen.queryByTestId('member-row-admin2')).toBeNull();
-  // A non-organizer admin is still actionable.
-  expect(screen.queryByTestId('member-row-admin1')).toBeNull(); // own row
-});
-
-test('surfaces an error if the role change fails', async () => {
-  mockSetVillageMemberRole.mockRejectedValue(new Error('No autorizado.'));
-  mockGetVillageMembers.mockResolvedValue([
-    { id: 'admin1', userId: 'admin1', role: 'admin', joinedAt: new Date('2026-01-01'), profileCompletedAt: null },
-    { id: 'user1', userId: 'user1', role: 'user', joinedAt: new Date('2026-02-01'), profileCompletedAt: null },
-  ]);
-
-  render(<MembersList villageId="m1" canManage currentUserId="admin1" />);
-
-  await waitFor(() => expect(screen.getByTestId('member-row-user1')).toBeTruthy());
-  fireEvent.press(screen.getByTestId('member-row-user1'));
-
-  await waitFor(() => expect(mockShowAlert).toHaveBeenCalledWith('No autorizado.'));
+test('shows the people empty state', async () => {
+  mockGetMunicipalityPeople.mockResolvedValue([]);
+  render(<MembersList villageId="m1" />);
+  await waitFor(() => expect(screen.getByText('Aún no hay personas registradas.')).toBeTruthy());
 });

@@ -107,6 +107,14 @@
       ]
     },
     {
+      "collectionGroup": "municipalityPeople",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "municipalityId", "order": "ASCENDING" },
+        { "fieldPath": "sortName", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "joinRequests",
       "queryScope": "COLLECTION_GROUP",
       "fields": [

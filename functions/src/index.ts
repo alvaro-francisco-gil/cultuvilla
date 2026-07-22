@@ -20,6 +20,7 @@ export { syncVillageDenormalization } from './village/syncVillageDenormalization
 export { syncMemberBarrioToResidence } from './village/syncMemberBarrioToResidence';
 export { syncBarrioResidentCount } from './village/syncBarrioResidentCount';
 export { syncPlaceBurialCount } from './village/syncPlaceBurialCount';
+export { syncMunicipalityPeople } from './village/syncMunicipalityPeople';
 
 // Organizations (ayuntamiento singleton enforcement)
 export { requestAyuntamiento } from './organizations/requestAyuntamiento';
