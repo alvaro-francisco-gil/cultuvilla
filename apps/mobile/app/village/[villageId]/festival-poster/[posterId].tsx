@@ -8,6 +8,7 @@ import type { EntityDetailAction } from '../../../../components/feature/EntityDe
 import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 import { EntityComments } from '../../../../components/feature/EntityComments';
+import { EntityContributors } from '../../../../components/feature/EntityContributors';
 import { useT } from '../../../../lib/i18n';
 import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 import { getFestivalPoster } from '@cultuvilla/shared/services/festivalPosterService';
@@ -79,6 +80,13 @@ export default function FestivalPosterDetailScreen() {
       onRefresh={load}
     >
       {subtitle ? <Text tone="muted">{subtitle}</Text> : null}
+      {poster ? (
+        <EntityContributors
+          userIds={poster.contributorUserIds}
+          orgIds={poster.contributorOrgIds}
+          label={t('village.contributors.label')}
+        />
+      ) : null}
       {poster && poster.images.length > 1 ? (
         <VStack gap={2} className="pt-2">
           {poster.images.slice(1).map((uri) => (

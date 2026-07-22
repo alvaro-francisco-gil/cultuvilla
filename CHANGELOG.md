@@ -7,6 +7,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 ### Changed
 
 - The village **Personas** roster now includes dependent personas linked to the village and is alphabetical. Tapping a name or avatar opens the user profile when an account is linked (or the persona profile otherwise); village-admin role changes remain behind the row’s separate arrow.
+### Added
+
+- Place and festival-poster detail screens now recognize the people and village groups that contributed them. Creators are credited automatically, and editors can add or remove additional contributors without changing the underlying proposal owner or its permissions. **Migration:** existing dev places and posters are backfilled by `scripts/backfill-entity-contributors.mjs`.
 
 ## v0.14.0 — 2026-07-19
 

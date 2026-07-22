@@ -32,6 +32,7 @@ jest.mock('@cultuvilla/shared/services/personService', () => ({
   updatePerson: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('../../../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
+jest.mock('../../../../../components/feature/EntityContributors', () => ({ EntityContributors: () => null }));
 jest.mock('../../../../../components/feature/BuryFab', () => ({ BuryFab: () => null }));
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 

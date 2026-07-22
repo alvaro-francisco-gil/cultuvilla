@@ -9,6 +9,8 @@ export type DatePrecision = z.infer<typeof DatePrecisionSchema>;
 export const FestivalPosterDataSchema = z.object({
   municipalityId: z.string(),
   proposedBy: z.string().nullable(),
+  contributorUserIds: z.array(z.string()),
+  contributorOrgIds: z.array(z.string()),
   year: z.number().int(),
   title: z.string().nullable(),
   images: z.array(z.string()).max(5),
@@ -28,6 +30,8 @@ export type FestivalPosterData = z.infer<typeof FestivalPosterDataSchema>;
 export interface FestivalPosterDataInput {
   municipalityId: string;
   proposedBy?: string | null;
+  contributorUserIds?: string[];
+  contributorOrgIds?: string[];
   year: number;
   title?: string | null;
   images?: string[];
@@ -48,6 +52,8 @@ export function buildFestivalPosterData(input: FestivalPosterDataInput): Festiva
   return {
     municipalityId: input.municipalityId,
     proposedBy: input.proposedBy ?? null,
+    contributorUserIds: input.contributorUserIds ?? [],
+    contributorOrgIds: input.contributorOrgIds ?? [],
     year: input.year,
     title: input.title ?? null,
     images: input.images ?? [],

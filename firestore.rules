@@ -251,12 +251,12 @@ service cloud.firestore {
     function isValidPlaceCreate(d) {
       return d.keys().hasOnly([
               'name', 'kind', 'description', 'municipalityId', 'images',
-              'createdAt', 'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+              'createdAt', 'status', 'proposedBy', 'contributorUserIds', 'contributorOrgIds', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount', 'burialCount',
             ])
           && d.keys().hasAll([
               'name', 'kind', 'description', 'municipalityId', 'images',
-              'createdAt', 'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+              'createdAt', 'status', 'proposedBy', 'contributorUserIds', 'contributorOrgIds', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount', 'burialCount',
             ])
           && isString(d.name)
@@ -267,6 +267,8 @@ service cloud.firestore {
           && isTimestamp(d.createdAt)
           && d.status == 'active'
           && isStringOrNull(d.proposedBy)
+          && isList(d.contributorUserIds)
+          && isList(d.contributorOrgIds)
           && d.hiddenBy == null
           && d.hiddenAt == null
           && d.hiddenReason == null
@@ -277,19 +279,21 @@ service cloud.firestore {
 
     function isValidFestivalPosterCreate(d) {
       return d.keys().hasOnly([
-              'municipalityId', 'proposedBy', 'year', 'title', 'images',
+              'municipalityId', 'proposedBy', 'contributorUserIds', 'contributorOrgIds', 'year', 'title', 'images',
               'datePrecision', 'startsAt', 'endsAt', 'createdAt',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount',
             ])
           && d.keys().hasAll([
-              'municipalityId', 'proposedBy', 'year', 'title', 'images',
+              'municipalityId', 'proposedBy', 'contributorUserIds', 'contributorOrgIds', 'year', 'title', 'images',
               'datePrecision', 'startsAt', 'endsAt', 'createdAt',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount',
             ])
           && isString(d.municipalityId)
           && isStringOrNull(d.proposedBy)
+          && isList(d.contributorUserIds)
+          && isList(d.contributorOrgIds)
           && d.year is int
           && isStringOrNull(d.title)
           && isList(d.images) && d.images.size() <= 5

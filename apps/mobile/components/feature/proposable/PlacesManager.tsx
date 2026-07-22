@@ -9,6 +9,7 @@ import { pickImageAsBlob } from '../../../lib/images';
 import { useT } from '../../../lib/i18n';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { ProposableForm } from './ProposableForm';
+import { OrganizerPicker } from '../OrganizerPicker';
 
 /**
  * "Añadir lugar" form. Any member creates directly and the place is visible
@@ -34,6 +35,8 @@ export function PlacesManager({
   const [images, setImages] = useState<string[]>([]);
   const [addingImage, setAddingImage] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [contributorUserIds, setContributorUserIds] = useState<string[]>([]);
+  const [contributorOrgIds, setContributorOrgIds] = useState<string[]>([]);
 
   const kindLabel = (k: PlaceKind) => t(`village.admin.places.kind.${k}`);
 
@@ -63,12 +66,16 @@ export function PlacesManager({
       const input = {
         name: name.trim(), kind, description: description.trim(),
         municipalityId: villageId, proposedBy: uid, images,
+        contributorUserIds: contributorUserIds.includes(uid) ? contributorUserIds : [uid, ...contributorUserIds],
+        contributorOrgIds,
       };
       await createPlace(villageId, input, placeId);
       setName('');
       setDescription('');
       setKind('cemetery');
       setImages([]);
+      setContributorUserIds([]);
+      setContributorOrgIds([]);
       onCreated?.();
     } finally {
       setSaving(false);
@@ -77,6 +84,19 @@ export function PlacesManager({
 
   return (
     <VStack gap={3} className="p-4">
+      {uid ? (
+        <OrganizerPicker
+          municipalityId={villageId}
+          selectedUserIds={contributorUserIds.includes(uid) ? contributorUserIds : [uid, ...contributorUserIds]}
+          selectedOrgIds={contributorOrgIds}
+          lockedUserId={uid}
+          onChangeUsers={setContributorUserIds}
+          onChangeOrgs={setContributorOrgIds}
+          peopleLabel={t('village.contributors.peopleLabel')}
+          addPersonLabel={t('village.contributors.addPerson')}
+          selectPeopleTitle={t('village.contributors.selectPeople')}
+        />
+      ) : null}
       <ProposableForm
         images={images}
         onAddImage={addImage}

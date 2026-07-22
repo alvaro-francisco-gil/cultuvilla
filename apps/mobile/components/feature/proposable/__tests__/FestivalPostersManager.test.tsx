@@ -15,6 +15,7 @@ jest.mock('@cultuvilla/shared/services/imageService', () => ({
 jest.mock('../../../../lib/images', () => ({ pickImageAsBlob: jest.fn() }));
 jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({ useEntityCapabilities: jest.fn() }));
+jest.mock('../../OrganizerPicker', () => ({ OrganizerPicker: () => null }));
 
 const mockCaps = useEntityCapabilities as jest.Mock;
 const mockPick = pickImageAsBlob as jest.Mock;
@@ -40,6 +41,8 @@ describe('<FestivalPostersManager>', () => {
         expect.objectContaining({
           municipalityId: 'm1',
           proposedBy: 'alice',
+          contributorUserIds: ['alice'],
+          contributorOrgIds: [],
           year: 2026,
           datePrecision: 'year',
           startsAt: null,
