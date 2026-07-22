@@ -1,4 +1,4 @@
-import { edgeState, pageScrollTarget } from './horizontalScroll';
+import { animateScrollLeft, edgeState, pageScrollTarget } from './horizontalScroll';
 
 describe('edgeState', () => {
   it('shows only the right arrow at the start', () => {
@@ -43,5 +43,25 @@ describe('pageScrollTarget', () => {
 
   it('clamps to 0 instead of overshooting the start', () => {
     expect(pageScrollTarget({ ...node, scrollLeft: 100 }, 'left')).toBe(0);
+  });
+});
+
+describe('animateScrollLeft', () => {
+  it('reaches the page target through direct scrollLeft assignments', () => {
+    const node = { scrollLeft: 0, clientWidth: 300, scrollWidth: 900 };
+    const frames: Array<(timestamp: number) => void> = [];
+
+    animateScrollLeft(node, 255, {
+      requestFrame: (callback) => {
+        frames.push(callback);
+        return frames.length;
+      },
+      cancelFrame: jest.fn(),
+    });
+
+    frames.shift()?.(0);
+    expect(node.scrollLeft).toBe(0);
+    frames.shift()?.(320);
+    expect(node.scrollLeft).toBe(255);
   });
 });
