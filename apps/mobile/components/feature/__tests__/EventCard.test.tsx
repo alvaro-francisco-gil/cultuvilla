@@ -54,4 +54,12 @@ describe('<EventCard>', () => {
     );
     expect(queryByTestId('feed-card-comment-count')).toBeNull();
   });
+
+  it('shows the confirmed attendee count in the image top-right corner', () => {
+    const { getByTestId, getByText } = render(
+      <EventCard event={{ ...fixture, confirmedCount: 12 }} onPress={() => {}} />,
+    );
+    expect(getByTestId('event-card-attendee-count')).toBeTruthy();
+    expect(getByText('12')).toBeTruthy();
+  });
 });

@@ -451,6 +451,7 @@ export default function FeedScreen() {
               imageURL: item.imageURL,
               villageCoverImage: item.villageCoverImage ?? null,
               commentCount: item.commentCount,
+              confirmedCount: item.confirmedCount,
             }}
             onPress={(id) => {
               if (search.trim().length > 0) {

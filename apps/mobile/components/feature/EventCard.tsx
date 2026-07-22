@@ -19,6 +19,8 @@ export type EventLike = {
   /** Village cover photo, used as the fallback when the event has no image. */
   villageCoverImage?: string | null;
   commentCount?: number;
+  /** Server-maintained count of confirmed event registrations. */
+  confirmedCount?: number;
 };
 
 export type EventCardProps = {
@@ -39,6 +41,11 @@ export function EventCard({ event, onPress, badge, testID }: EventCardProps) {
       metaRight={relativeDayLabel(event.startDate, t)}
       fallbackIcon="calendar-outline"
       badge={badge}
+      statBadge={
+        event.confirmedCount != null
+          ? { icon: 'person-outline', count: event.confirmedCount, testID: 'event-card-attendee-count' }
+          : undefined
+      }
       onPress={() => onPress(event.id)}
       testID={testID}
     />
