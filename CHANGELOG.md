@@ -7,6 +7,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 ### Changed
 
 - The village **Personas** roster now includes dependent personas linked to the village and is alphabetical. Tapping a name or avatar opens the user profile when an account is linked (or the persona profile otherwise); village-admin role changes remain behind the row’s separate arrow.
+- People lists now show a person's **apodo (nickname) in parentheses after their full name** — e.g. "Juan García López (Juanito)" — in the village Personas roster and the barrio (vecinos) list. Sorting stays alphabetical by the real name. The barrio residents list is now one person per line, matching the village roster. **Migration:** the `municipalityPeople` directory `displayName` is re-projected by `scripts/backfill-municipality-people-nickname.mjs`.
 
 ### Added
 

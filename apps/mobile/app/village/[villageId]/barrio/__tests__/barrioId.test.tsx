@@ -27,7 +27,7 @@ jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({ getBarrioViewLink: () => 'https://x' }));
 jest.mock('@cultuvilla/shared/services/personService', () => ({ getPersonsByBarrio: jest.fn().mockResolvedValue([]) }));
 jest.mock('@cultuvilla/shared/models/person', () => ({
-  buildDisplayName: (p: { id: string }) => p.id,
+  buildNameWithNickname: (p: { id: string }) => p.id,
   isDeceased: (p: { deathDate?: unknown; burialPlace?: unknown }) =>
     p.deathDate != null || p.burialPlace != null,
 }));
