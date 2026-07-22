@@ -34,6 +34,7 @@
     "check:no-raw-firestore-refs": "node scripts/check-no-raw-firestore-refs.mjs",
     "check:no-test-login-leak": "node scripts/check-no-test-login-leak.mjs",
     "check:dev-conformance": "pnpm shared:build && node scripts/check-dev-conformance.mjs",
+    "backfill:municipality-people:dev": "pnpm shared:build && node scripts/backfill-municipality-people.mjs",
     "typecheck": "pnpm shared:typecheck && pnpm functions:typecheck && pnpm i18n:typecheck && pnpm app:typecheck",
     "build": "pnpm shared:build && pnpm functions:build",
     "test": "node scripts/run-tests-with-emulators.mjs --label shared pnpm --filter @cultuvilla/shared test:all --label mobile pnpm app:test && ONLY=auth,firestore,storage node scripts/run-tests-with-emulators.mjs --label functions pnpm --prefix functions run test:all && pnpm qr:test",

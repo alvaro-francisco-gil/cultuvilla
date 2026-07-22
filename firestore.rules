@@ -726,6 +726,13 @@ service cloud.firestore {
         );
     }
 
+    // Municipality-scoped projection of persons/{personId}. Function-owned so
+    // a client can never forge or change directory membership.
+    match /municipalityPeople/{directoryId} {
+      allow read: if isVillageMember(resource.data.municipalityId) || isAppAdmin();
+      allow write: if false;
+    }
+
     // festivalPosters — top-level, scoped by municipalityId field (mirrors
     // the /places proposal pattern: members propose, admins/app-admins
     // approve/reject and may act directly).
