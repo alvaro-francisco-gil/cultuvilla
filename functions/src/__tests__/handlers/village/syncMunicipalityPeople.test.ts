@@ -8,10 +8,10 @@ const ft = functionsTestFactory({ projectId: process.env.GCLOUD_PROJECT || 'cult
 const wrapped = ft.wrap(syncMunicipalityPeople);
 
 interface Link { municipalityId: string; barrioId: string | null }
-interface Person { givenName: string; middleNames: string[]; firstSurname: string | null; secondSurname: string | null; municipalityLinks: Link[]; photoURL: string | null; userId: string | null }
+interface Person { givenName: string; middleNames: string[]; firstSurname: string | null; secondSurname: string | null; nickname: string | null; municipalityLinks: Link[]; photoURL: string | null; userId: string | null }
 
 function person(overrides: Partial<Person> = {}): Person {
-  return { givenName: 'Álvaro', middleNames: [], firstSurname: 'García', secondSurname: null, municipalityLinks: [], photoURL: null, userId: null, ...overrides };
+  return { givenName: 'Álvaro', middleNames: [], firstSurname: 'García', secondSurname: null, nickname: null, municipalityLinks: [], photoURL: null, userId: null, ...overrides };
 }
 
 async function fire(before: Person | null, after: Person | null, personId = 'p1'): Promise<void> {
@@ -29,6 +29,15 @@ describe('syncMunicipalityPeople', () => {
     await fire(null, person({ municipalityLinks: [{ municipalityId: 'm1', barrioId: null }] }));
     const row = await admin.firestore().doc('municipalityPeople/m1_p1').get();
     expect(row.data()).toMatchObject({ municipalityId: 'm1', personId: 'p1', displayName: 'Álvaro García', sortName: 'alvaro garcia', userId: null });
+  });
+
+  it('shows the apodo in parentheses in displayName but keeps sortName on the full name', async () => {
+    await fire(
+      null,
+      person({ nickname: 'Varo', municipalityLinks: [{ municipalityId: 'm1', barrioId: null }] }),
+    );
+    const row = await admin.firestore().doc('municipalityPeople/m1_p1').get();
+    expect(row.data()).toMatchObject({ displayName: 'Álvaro García (Varo)', sortName: 'alvaro garcia' });
   });
 
   it('adds and removes rows when municipality links change', async () => {
