@@ -102,14 +102,11 @@ export function HorizontalScrollRow({
     const node = nodeRef.current;
     if (!node) return;
     cancelAnimation.current?.();
-    cancelAnimation.current = animateScrollLeft(node, pageScrollTarget(node, dir), {
-      requestFrame: requestAnimationFrame,
-      cancelFrame: cancelAnimationFrame,
-    });
+    cancelAnimation.current = animateScrollLeft(node, pageScrollTarget(node, dir));
   }, []);
 
   return (
-    <View style={{ position: 'relative' }}>
+    <View testID="hscroll-row" style={{ position: 'relative' }}>
       {children(scrollRef)}
       {isDesktop ? (
         <>
@@ -137,6 +134,7 @@ function ArrowButton({
     <Pressable
       onPress={onPress}
       disabled={!active}
+      testID={`hscroll-arrow-${dir}`}
       // Stays mounted always; when it can't scroll that way it's just invisible
       // and non-interactive (pointerEvents:none) — so it never covers a card and
       // never unmounts mid-click (the bug that dropped arrow clicks).

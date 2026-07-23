@@ -52,11 +52,25 @@ export function pageScrollTarget(node: HScrollNode, dir: 'left' | 'right'): numb
   return Math.max(0, Math.min(raw, maxScroll));
 }
 
+/**
+ * The real-DOM frame scheduler. `requestAnimationFrame` / `cancelAnimationFrame`
+ * are WebIDL methods that MUST run with `this === window`; handing the bare
+ * globals to `animateScrollLeft` as object properties made the browser call them
+ * with `this` = the scheduler object, throwing "Illegal invocation" and killing
+ * the arrow click. Wrapping each in an arrow that invokes `window.…` keeps the
+ * receiver correct. `window` is only touched when a frame is actually scheduled,
+ * so this stays inert on native (arrows are web-desktop-only).
+ */
+const domScheduler: AnimationFrameScheduler = {
+  requestFrame: (callback) => window.requestAnimationFrame(callback),
+  cancelFrame: (handle) => window.cancelAnimationFrame(handle),
+};
+
 /** Moves a row with direct DOM assignments, avoiding RN-Web's unstable smooth-scroll path. */
 export function animateScrollLeft(
   node: HScrollNode,
   to: number,
-  scheduler: AnimationFrameScheduler,
+  scheduler: AnimationFrameScheduler = domScheduler,
   durationMs = 320,
 ): () => void {
   const from = node.scrollLeft;

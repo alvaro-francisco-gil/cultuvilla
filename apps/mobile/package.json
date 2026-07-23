@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "e2e": "playwright test --config e2e/playwright.config.ts",
     "e2e:ui": "playwright test --config e2e/playwright.config.ts --ui",
+    "e2e:browser": "playwright test --config e2e/browser.config.ts",
     "e2e:native": "maestro test e2e/native/flows"
   },
   "dependencies": {
