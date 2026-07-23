@@ -2,7 +2,7 @@ import { FlatList, View } from 'react-native';
 import { Text } from '../../primitives';
 import { PersonCard, AddCard } from '../VillageSections';
 import { HorizontalScrollRow } from '../HorizontalScrollRow';
-import { buildShortName, type PersonData } from '@cultuvilla/shared/models/person';
+import { buildDisplayName, type PersonData } from '@cultuvilla/shared/models/person';
 
 type Persona = PersonData & { id: string };
 
@@ -53,9 +53,8 @@ export function PersonaScroll({
           contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
           renderItem={({ item }) => (
             <PersonCard
-              name={buildShortName(item)}
+              name={buildDisplayName(item)}
               photoURL={item.photoURL ?? null}
-              subtitle={item.nickname ? `@${item.nickname}` : undefined}
               onPress={() => onPressPersona(item.id)}
             />
           )}
