@@ -55,7 +55,7 @@ Piloto en **Matabuena (Segovia)**:
 - *"Ahora hasta nos da tiempo a echarnos la siesta antes de la carrera"*, la comisión de festejos, sobre la carga que les ha quitado. *(gestión)*
 - *"Ver los carteles antiguos me ha recordado mi pasado"*, Angelines (vecina). *(memoria)*
 
-**Demo en vivo:** el tab del pueblo de Matabuena → **cultuvilla.es**
+**Demo en vivo:** el tab del pueblo de Matabuena → **[cultuvilla.es](https://cultuvilla.es/village/digSmD1NFyaOJCPQ99cC)**
 
 ## 5. Modelo de impacto
 
@@ -79,11 +79,13 @@ Ingeniero de Software (UPM), investigador (MIT). Más allá de lo técnico, llev
 **Moisés Rodríguez Gil · rescata y cuenta la memoria.**
 Periodista e historiador. Se graduó en Periodismo y Humanidades (UC3M), realizó el Máster en Historia Moderna de la Monarquía Hispánica (UCM) y, actualmente, es doctorando en Historia Moderna en la Universidad Complutense de Madrid, realizando múltiples seminarios y comunicaciones en universidades nacionales e internacionales. Es **experto en documentación del patrimonio cultural** (Diploma UNED en Tecnologías Avanzadas para la Gestión y Documentación del Patrimonio Cultural) y en **innovación social** (Técnico de Proyectos en Madrid Futuro). Asimismo, cuenta con experiencia en medios digitales (El Generacional).
 
+<br>
+
 **Juntos:** el ingeniero y el gestor cultural. Primos, del mismo pueblo. *No lo vemos desde fuera: la comisión de festejos son amigas nuestras, y lo que construimos lo usa gente a la que llamamos por su nombre.* La estructura del equipo **es** la tesis del proyecto: **cultura + tu + villa**.
 
 ## 7. Escalabilidad y sostenibilidad
 
-**Un crecimiento replicable, pueblo a pueblo**
+### Un crecimiento replicable, pueblo a pueblo
 
 Cultuvilla no busca crecer acumulando municipios sin actividad real. Nuestro objetivo es consolidar en cada pueblo una comunidad activa, con una organización local implicada y unos resultados que puedan medirse.
 
@@ -91,16 +93,16 @@ Durante los próximos doce meses queremos pasar del piloto de Matabuena a entre 
 
 Para hacerlo posible, convertiremos lo aprendido en Matabuena en un método de implantación sencillo y repetible:
 
-**1. Selección del pueblo**, priorizando municipios con una comisión, asociación o persona responsable que pueda impulsar el proyecto localmente.
-**2. Reunión inicial**, para conocer sus necesidades culturales, su calendario de actividades y los materiales patrimoniales disponibles.
-**3. Creación y configuración del espacio digital del pueblo**, adaptado a sus organizaciones, eventos y contenidos.
-**4. Formación de las personas responsables**, para que puedan publicar actividades, gestionar inscripciones y coordinar las aportaciones vecinales.
-**5. Lanzamiento acompañado**, incorporando los primeros eventos y contenidos culturales para que la plataforma sea útil desde el primer día.
-**6. Seguimiento y evaluación**, midiendo la participación, la actividad de las organizaciones, los contenidos recuperados y las necesidades de soporte.
+1. **Selección del pueblo**, priorizando municipios con una comisión, asociación o persona responsable que pueda impulsar el proyecto localmente.
+2. **Reunión inicial**, para conocer sus necesidades culturales, su calendario de actividades y los materiales patrimoniales disponibles.
+3. **Creación y configuración del espacio digital del pueblo**, adaptado a sus organizaciones, eventos y contenidos.
+4. **Formación de las personas responsables**, para que puedan publicar actividades, gestionar inscripciones y coordinar las aportaciones vecinales.
+5. **Lanzamiento acompañado**, incorporando los primeros eventos y contenidos culturales para que la plataforma sea útil desde el primer día.
+6. **Seguimiento y evaluación**, midiendo la participación, la actividad de las organizaciones, los contenidos recuperados y las necesidades de soporte.
 
 Este proceso permitirá reducir progresivamente el tiempo y el coste de incorporación de cada nuevo municipio, sin perder el acompañamiento humano que diferencia a Cultuvilla.
 
-**Quién utiliza Cultuvilla y quién financia el servicio**
+### Quién utiliza Cultuvilla y quién financia el servicio
 
 El acceso a Cultuvilla será gratuito para los vecinos. También queremos evitar que las asociaciones, comisiones de festejos y voluntarios (que ya dedican gratuitamente su tiempo a sostener la vida comunitaria) encuentren una nueva barrera económica.
 
@@ -117,24 +119,19 @@ Estas instituciones no financiarán únicamente una plataforma tecnológica, sin
 
 De esta manera, se separa claramente a quien se beneficia y utiliza la plataforma (la comunidad) de quien financia su implantación como servicio público (la institución).
 
-**Modelo de ingresos**
+### Modelo de ingresos
 
 La sostenibilidad económica de Cultuvilla se apoyará en tres vías complementarias:
 
-**1. Implantación municipal.**
-Los ayuntamientos podrán contratar la puesta en marcha de Cultuvilla en su municipio, incluyendo la configuración inicial, la formación de las organizaciones y el acompañamiento durante el lanzamiento.
-
-**2. Mantenimiento y soporte.**
-Una vez implantada la plataforma, las instituciones podrán contratar un servicio anual de mantenimiento, almacenamiento, soporte y seguimiento. Este ingreso recurrente permitirá que Cultuvilla no dependa exclusivamente de nuevas implantaciones.
-
-**3. Proyectos de documentación patrimonial.**
-Ayuntamientos, diputaciones y otras entidades podrán contratar proyectos específicos para entrevistar a mayores, digitalizar fotografías y documentos, recuperar tradiciones y crear archivos culturales locales.
+1. **Implantación municipal.** Los ayuntamientos podrán contratar la puesta en marcha de Cultuvilla en su municipio, incluyendo la configuración inicial, la formación de las organizaciones y el acompañamiento durante el lanzamiento.
+2. **Mantenimiento y soporte.** Una vez implantada la plataforma, las instituciones podrán contratar un servicio anual de mantenimiento, almacenamiento, soporte y seguimiento. Este ingreso recurrente permitirá que Cultuvilla no dependa exclusivamente de nuevas implantaciones.
+3. **Proyectos de documentación patrimonial.** Ayuntamientos, diputaciones y otras entidades podrán contratar proyectos específicos para entrevistar a mayores, digitalizar fotografías y documentos, recuperar tradiciones y crear archivos culturales locales.
 
 A medio plazo, los acuerdos comarcales o provinciales permitirán incorporar varios pueblos dentro de un mismo programa, reduciendo el coste por municipio y aumentando el alcance del proyecto.
 
 Las subvenciones y premios actuarán como impulso inicial para desarrollar y validar el modelo, pero no serán la única fuente de sostenibilidad. Nuestro objetivo es que Cultuvilla genere ingresos mediante servicios concretos, útiles y evaluables para las instituciones públicas.
 
-**Una estructura diseñada para escalar**
+### Una estructura diseñada para escalar
 
 La tecnología ya desarrollada puede reutilizarse en distintos municipios, por lo que no es necesario construir una plataforma nueva para cada pueblo. Lo que cambia es su identidad, sus organizaciones, sus eventos y su patrimonio.
 
@@ -147,25 +144,23 @@ La escalabilidad se apoyará en cuatro elementos:
 
 Este último elemento permite que el crecimiento de Cultuvilla también genere oportunidades vinculadas al territorio. Los jóvenes colaboradores no solo recopilarán información: aprenderán un método de documentación que después podrá aplicarse en nuevos pueblos.
 
-**Cómo mediremos la sostenibilidad**
+### Cómo mediremos la sostenibilidad
 
 Para comprobar que el crecimiento es real y no únicamente territorial, mediremos:
 
-- Número de pueblos incorporados.
-- Número de pueblos activos después de seis meses.
+- Número de pueblos incorporados y activos tras seis meses.
 - Usuarios registrados y usuarios activos.
 - Porcentaje de participación juvenil.
 - Eventos e inscripciones gestionados.
 - Organizaciones locales que utilizan regularmente la plataforma.
 - Entrevistas, fotografías, carteles y documentos recuperados.
-- Tiempo necesario para implantar un nuevo pueblo.
-- Coste de implantación y mantenimiento por municipio.
+- Tiempo y coste de implantación y mantenimiento por municipio.
 - Acuerdos institucionales firmados y renovados.
 - Horas de trabajo juvenil generadas.
 
 El objetivo no es solo llegar a más pueblos, sino demostrar que cada incorporación produce actividad, participación y conservación del patrimonio.
 
-**El papel del Premio Jóvenes Máshumano**
+### El papel del Premio Jóvenes Máshumano
 
 Los 3.000 euros del premio actuarán como capital catalizador para convertir el piloto de Matabuena en un modelo comarcal demostrable.
 
@@ -173,7 +168,7 @@ Nos permitirán documentar el método, formar a jóvenes colaboradores, acompañ
 
 Al finalizar este periodo, Cultuvilla contará no solo con una plataforma y un pueblo piloto, sino con una metodología de implantación, una primera red territorial, resultados medibles y una propuesta de servicio preparada para ser presentada a ayuntamientos y diputaciones.
 
-**No queremos crecer rápido; queremos demostrar que Cultuvilla puede crecer bien: con comunidades activas, memoria recuperada y un modelo económico que permita sostener el proyecto en el tiempo.**
+> No queremos crecer rápido; queremos demostrar que Cultuvilla puede crecer bien: con comunidades activas, memoria recuperada y un modelo económico que permita sostener el proyecto en el tiempo.
 
 ## 8. Uso de los 3.000 €
 
@@ -187,6 +182,8 @@ Al finalizar este periodo, Cultuvilla contará no solo con una plataforma y un p
 
 De las cuevas prehistóricas al futuro: un pueblo que **no olvida**.
 
-Nuestra ambición a largo plazo es reconstruir el **árbol genealógico del pueblo** (las relaciones familiares que tejen la comunidad) para que cada pueblo llegue a entenderse a sí mismo, sus raíces y sus lazos. Une nuestros dos perfiles en una sola idea: el análisis de redes del ingeniero y la mirada del historiador, al servicio de la memoria colectiva.
+No basta con recoger el patrimonio: hay que mantenerlo **vivo y al alcance de todos**. Un archivo guardado en el sótano de una biblioteca a la que no va nadie no preserva nada; solo aplaza el olvido. Nuestra visión es que la memoria de cada pueblo (sus fotografías, sus carteles, sus tradiciones, las voces de sus mayores) esté digitalizada y **accesible en el bolsillo de cualquier vecino**, dentro y fuera del pueblo, y forme parte de su vida cotidiana en lugar de dormir en un cajón.
 
-Que dentro de mil años, alguien pueda mirar atrás y encontrar no solo unas cuevas, sino la voz viva de quienes hicieron el pueblo.
+Sobre esa base iremos construyendo herramientas que ayuden al pueblo a entenderse a sí mismo, como un **árbol genealógico** que reconstruya las relaciones familiares que tejen la comunidad: el análisis de redes del ingeniero y la mirada del historiador, al servicio de una memoria que se consulta, se comparte y se vive.
+
+Que dentro de mil años, alguien pueda mirar atrás y encontrar no solo unas cuevas, sino la voz viva y accesible de quienes hicieron el pueblo.
