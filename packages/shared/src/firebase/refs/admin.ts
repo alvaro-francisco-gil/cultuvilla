@@ -20,6 +20,7 @@ import { adminConverterAdmin } from '../converters/adminConverter.admin';
 import { membershipEventConverterAdmin } from '../converters/membershipEventConverter.admin';
 import { moderationEventConverterAdmin } from '../converters/moderationEventConverter.admin';
 import { festivalPosterConverterAdmin } from '../converters/festivalPosterConverter.admin';
+import { municipalityPersonConverterAdmin } from '../converters/municipalityPersonConverter.admin';
 
 export const eventsCollection = (db: Firestore) =>
   db.collection('events').withConverter(eventConverterAdmin);
@@ -70,6 +71,12 @@ export const municipalityInviteTokensCollection = (db: Firestore, municipalityId
 
 export const municipalityInviteTokenDoc = (db: Firestore, municipalityId: string, tokenId: string) =>
   db.collection('municipalities').doc(municipalityId).collection('inviteTokens').doc(tokenId).withConverter(inviteTokenConverterAdmin);
+
+export const municipalityPeopleCollection = (db: Firestore) =>
+  db.collection('municipalityPeople').withConverter(municipalityPersonConverterAdmin);
+
+export const municipalityPersonDoc = (db: Firestore, municipalityId: string, personId: string) =>
+  db.collection('municipalityPeople').doc(`${municipalityId}_${personId}`).withConverter(municipalityPersonConverterAdmin);
 
 // ── Organization domain ──────────────────────────────────────────────────
 

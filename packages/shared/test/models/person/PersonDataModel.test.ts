@@ -5,6 +5,8 @@ import {
   buildResidenceLinks,
   buildDisplayName,
   buildShortName,
+  buildNameWithNickname,
+  isDeceased,
 } from '../../../src/models/person/PersonDataModel';
 
 describe('PersonDataSchema', () => {
@@ -206,6 +208,33 @@ describe('buildResidenceLinks', () => {
   });
 });
 
+describe('isDeceased', () => {
+  it('is false when both death signals are absent', () => {
+    expect(isDeceased({ deathDate: null, burialPlace: null })).toBe(false);
+  });
+
+  it('is true when a deathDate is present (not yet buried)', () => {
+    expect(
+      isDeceased({ deathDate: { year: 2020, month: null, day: null }, burialPlace: null }),
+    ).toBe(true);
+  });
+
+  it('is true when a burialPlace is present (no death date recorded)', () => {
+    expect(
+      isDeceased({ deathDate: null, burialPlace: { municipalityId: 'mun1', placeId: 'place1' } }),
+    ).toBe(true);
+  });
+
+  it('is true when both signals are present', () => {
+    expect(
+      isDeceased({
+        deathDate: { year: 2020, month: 6, day: 1 },
+        burialPlace: { municipalityId: 'mun1', placeId: 'place1' },
+      }),
+    ).toBe(true);
+  });
+});
+
 describe('buildShortName', () => {
   it('returns nickname if set', () => {
     expect(buildShortName({ givenName: 'Juan', nickname: 'Juanito', firstSurname: 'García' })).toBe(
@@ -217,5 +246,43 @@ describe('buildShortName', () => {
     expect(buildShortName({ givenName: 'Juan', nickname: null, firstSurname: 'García' })).toBe(
       'Juan García',
     );
+  });
+});
+
+describe('buildNameWithNickname', () => {
+  it('appends the nickname in parentheses after the full name', () => {
+    expect(
+      buildNameWithNickname({
+        givenName: 'Juan',
+        middleNames: ['Carlos'],
+        firstSurname: 'García',
+        secondSurname: 'López',
+        nickname: 'Juanito',
+      }),
+    ).toBe('Juan Carlos García López (Juanito)');
+  });
+
+  it('returns the full name unchanged when there is no nickname', () => {
+    expect(
+      buildNameWithNickname({
+        givenName: 'Ana',
+        middleNames: [],
+        firstSurname: 'Martínez',
+        secondSurname: null,
+        nickname: null,
+      }),
+    ).toBe('Ana Martínez');
+  });
+
+  it('ignores a blank nickname', () => {
+    expect(
+      buildNameWithNickname({
+        givenName: 'Ana',
+        middleNames: [],
+        firstSurname: 'Martínez',
+        secondSurname: null,
+        nickname: '   ',
+      }),
+    ).toBe('Ana Martínez');
   });
 });

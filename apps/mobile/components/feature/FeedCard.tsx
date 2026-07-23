@@ -29,6 +29,12 @@ export type FeedCardProps = {
   fallbackIcon: keyof typeof Ionicons.glyphMap;
   /** Optional pill shown over the top-left of the image (e.g. "En curso"). */
   badge?: string | null;
+  /** Optional icon + count pill shown in the image's top-right corner. */
+  statBadge?: {
+    icon: keyof typeof Ionicons.glyphMap;
+    count: number;
+    testID?: string;
+  };
   /**
    * When > 0, a chat-icon + count takes the right side of the meta row *in place
    * of* `metaRight`. Cards that shouldn't surface comments omit it (they keep
@@ -48,6 +54,7 @@ export function FeedCard({
   metaRight,
   fallbackIcon,
   badge = null,
+  statBadge,
   commentCount,
   onPress,
   testID,
@@ -135,6 +142,32 @@ export function FeedCard({
             >
               <Text variant="bodySm" style={{ color: '#ffffff' }} numberOfLines={1}>
                 {badge}
+              </Text>
+            </View>
+          ) : null}
+
+          {statBadge && statBadge.count > 0 ? (
+            <View
+              testID={statBadge.testID}
+              style={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: 'rgba(0,0,0,0.45)',
+                borderRadius: 12,
+                paddingHorizontal: 6,
+                paddingVertical: 3,
+              }}
+            >
+              <Ionicons name={statBadge.icon} size={iconSizes.sm} color="rgba(255,255,255,0.85)" />
+              <Text
+                variant="bodySm"
+                numberOfLines={1}
+                style={{ color: 'rgba(255,255,255,0.85)', marginLeft: 4 }}
+              >
+                {statBadge.count}
               </Text>
             </View>
           ) : null}

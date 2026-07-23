@@ -197,6 +197,42 @@ describe('VillageHomeBody', () => {
     expect(queryByTestId('entity-card-comment-count')).toBeNull();
   });
 
+  it('shows event cards with a confirmed-attendee count badge', () => {
+    const event: VillageHomeState['events'][number] = {
+      id: 'event-1',
+      title: 'Fiesta del pueblo',
+      description: '',
+      startDate: new Date('2026-07-01T18:00:00Z'),
+      endDate: null,
+      location: { coordinates: { lat: 40.4, lng: -3.7 }, displayName: 'Plaza Mayor' },
+      imageURL: null,
+      maxAttendees: null,
+      telephoneRequired: false,
+      requiresPayment: false,
+      status: 'published',
+      organizerUserIds: ['u1'],
+      organizerOrgIds: [],
+      createdBy: 'u1',
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+      updatedAt: new Date('2026-01-01T00:00:00Z'),
+      municipalityId: 'm1',
+      villageName: 'Anaya',
+      villageCoverImage: null,
+      villageCoordinates: null,
+      confirmedCount: 7,
+      totalCount: 7,
+      commentCount: 0,
+      readCount: 0,
+      endBoundary: new Date('2026-07-01T18:00:00Z'),
+    };
+    const { getByTestId, getByText } = render(
+      <VillageHomeBody data={{ ...base, events: [event] }} reload={jest.fn()} />,
+    );
+
+    expect(getByTestId('entity-card-event-attendee-count')).toBeTruthy();
+    expect(getByText('7')).toBeTruthy();
+  });
+
   it('admin sees "Añadir contenido" + "Compartir pueblo" (no standalone Editar pill)', () => {
     const { getByText, queryByText } = render(
       <VillageHomeBody data={{ ...base, villageAdmin: true }} reload={jest.fn()} />,

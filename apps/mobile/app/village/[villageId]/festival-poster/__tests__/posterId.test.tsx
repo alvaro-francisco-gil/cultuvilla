@@ -15,13 +15,14 @@ jest.mock('../../../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: () => ({ canManage: false, canApprove: false, uid: null, loading: false }),
 }));
 jest.mock('@cultuvilla/shared/services/festivalPosterService', () => ({
-  getFestivalPoster: jest.fn().mockResolvedValue({ id: 'p1', title: 'Fiestas 2026', year: 2026, images: ['https://example.com/a.jpg', 'https://example.com/b.jpg'], startsAt: null, endsAt: null }),
+  getFestivalPoster: jest.fn().mockResolvedValue({ id: 'p1', title: 'Fiestas 2026', year: 2026, images: ['https://example.com/a.jpg', 'https://example.com/b.jpg'], startsAt: null, endsAt: null, contributorUserIds: ['u1'], contributorOrgIds: ['o1'] }),
 }));
 jest.mock('@cultuvilla/shared/utils', () => ({ formatFestivalPosterDates: () => 'del 1 al 5' }));
 // NaturalImage reads Image.getSize (unmocked under jest-expo); the screen test
 // only asserts the title, so stub it to a plain view.
 jest.mock('../../../../../components/primitives/NaturalImage', () => ({ NaturalImage: () => null }));
 jest.mock('../../../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
+jest.mock('../../../../../components/feature/EntityContributors', () => ({ EntityContributors: () => null }));
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 
 describe('FestivalPosterDetailScreen', () => {

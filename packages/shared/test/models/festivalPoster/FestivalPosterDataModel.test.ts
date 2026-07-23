@@ -21,6 +21,8 @@ describe('buildFestivalPosterData', () => {
     expect(d.startsAt).toBeNull();
     expect(d.endsAt).toBeNull();
     expect(d.proposedBy).toBeNull();
+    expect(d.contributorUserIds).toEqual([]);
+    expect(d.contributorOrgIds).toEqual([]);
     expect(d.title).toBeNull();
     expect(d.images).toEqual([]);
     expect(() => FestivalPosterDataSchema.parse(d)).not.toThrow();

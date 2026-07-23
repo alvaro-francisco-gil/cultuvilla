@@ -11,6 +11,7 @@ import {
   isVillageAdmin,
   getVillageMembers,
 } from '@cultuvilla/shared/services/villageMemberService';
+import { getMunicipalityPeople } from '@cultuvilla/shared/services/municipalityPersonService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 import { getMyOrganizerRequests } from '@cultuvilla/shared/services/organizerRequestService';
 import { getEventsByMunicipality } from '@cultuvilla/shared/services/eventService';
@@ -166,7 +167,7 @@ export function useVillageHome(municipalityId: string | null) {
 
     const loadChrome = async () => {
       try {
-        const [isAdmin, myReqs, members] = await Promise.all([
+        const [isAdmin, myReqs, members, people] = await Promise.all([
           uid
             ? withFirestoreErrorLog('villageHome:isVillageAdmin', () =>
                 isVillageAdmin(municipalityId, uid),
@@ -180,12 +181,15 @@ export function useVillageHome(municipalityId: string | null) {
           withFirestoreErrorLog('villageHome:getVillageMembers', () =>
             getVillageMembers(municipalityId),
           ),
+          withFirestoreErrorLog('villageHome:getMunicipalityPeople', () =>
+            getMunicipalityPeople(municipalityId),
+          ),
         ]);
         commit((s) => ({
           ...s,
           villageAdmin: isAdmin,
           isMember: uid != null && members.some((m) => m.userId === uid),
-          peopleCount: members.length,
+          peopleCount: people.length,
           pendingOrganizerRequest: myReqs.some(
             (r) => r.municipalityId === municipalityId && r.status === 'pending',
           ),

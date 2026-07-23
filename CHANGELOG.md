@@ -4,6 +4,21 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.15.0 — 2026-07-23
+
+### Changed
+
+- The village **Personas** roster now includes dependent personas linked to the village and is alphabetical. Tapping a name or avatar opens the user profile when an account is linked (or the persona profile otherwise); village-admin role changes remain behind the row’s separate arrow.
+- People lists now show a person's **apodo (nickname) in parentheses after their full name** — e.g. "Juan García López (Juanito)" — in the village Personas roster and the barrio (vecinos) list. Sorting stays alphabetical by the real name. The barrio residents list is now one person per line, matching the village roster. **Migration:** the `municipalityPeople` directory `displayName` is re-projected by `scripts/backfill-municipality-people-nickname.mjs`.
+
+### Added
+
+- Place and festival-poster detail screens now recognize the people and village groups that contributed them. Creators are credited automatically, and editors can add or remove additional contributors without changing the underlying proposal owner or its permissions. **Migration:** existing dev places and posters are backfilled by `scripts/backfill-entity-contributors.mjs`.
+
+### Fixed
+- The persona ("team") cards on the profile now show each persona's **full name**, not their apodo. Previously a persona with a nickname showed the apodo as both the card title and the `@handle` subtitle — the nickname twice, and never their real name.
+- Deceased personas no longer appear in a barrio's **Vecinos** (residents) list — they now show only in the cemetery where they're buried. A persona counts as deceased once they have either a recorded death date or a cemetery assignment.
+
 ## v0.14.0 — 2026-07-19
 
 ### Added

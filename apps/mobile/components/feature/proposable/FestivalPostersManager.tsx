@@ -13,6 +13,7 @@ import { pickImageAsBlob } from '../../../lib/images';
 import { useT } from '../../../lib/i18n';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { sanitizeYear, datesToPayload } from './festivalPosterForm';
+import { OrganizerPicker } from '../OrganizerPicker';
 
 /**
  * "Añadir cartel" form — year, optional title, optional start/end dates and the
@@ -39,6 +40,12 @@ export function FestivalPostersManager({
   const [images, setImages] = useState<string[]>([]);
   const [addingImage, setAddingImage] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [contributorUserIds, setContributorUserIds] = useState<string[]>([]);
+  const [contributorOrgIds, setContributorOrgIds] = useState<string[]>([]);
+
+  function handleContributorUsers(ids: string[]) {
+    setContributorUserIds(ids);
+  }
 
   async function addImage() {
     if (!villageId) return;
@@ -67,6 +74,8 @@ export function FestivalPostersManager({
       const payload = {
         municipalityId: villageId,
         proposedBy: uid,
+        contributorUserIds: contributorUserIds.includes(uid) ? contributorUserIds : [uid, ...contributorUserIds],
+        contributorOrgIds,
         year: y,
         title: title.trim() || null,
         images,
@@ -79,6 +88,8 @@ export function FestivalPostersManager({
       setStartsAt(null);
       setEndsAt(null);
       setImages([]);
+      setContributorUserIds([]);
+      setContributorOrgIds([]);
       onCreated?.();
     } finally {
       setSaving(false);
@@ -122,6 +133,19 @@ export function FestivalPostersManager({
         value={startsAt}
         onChange={setStartsAt}
       />
+      {uid ? (
+        <OrganizerPicker
+          municipalityId={villageId}
+          selectedUserIds={contributorUserIds.includes(uid) ? contributorUserIds : [uid, ...contributorUserIds]}
+          selectedOrgIds={contributorOrgIds}
+          lockedUserId={uid}
+          onChangeUsers={handleContributorUsers}
+          onChangeOrgs={setContributorOrgIds}
+          peopleLabel={t('village.contributors.peopleLabel')}
+          addPersonLabel={t('village.contributors.addPerson')}
+          selectPeopleTitle={t('village.contributors.selectPeople')}
+        />
+      ) : null}
       <DateField
         testID="poster-end-date"
         label={t('village.festivalPosters.form.endDate')}

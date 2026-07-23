@@ -5,7 +5,13 @@ import { iconSizes, elevation } from '@cultuvilla/shared/design-system';
 import { Pressable } from '../primitives';
 import { useT } from '../../lib/i18n';
 import { isWeb } from '../../lib/platform';
-import { edgeState, pageScrollTarget, type Edges, type HScrollNode } from '../../lib/horizontalScroll';
+import {
+  animateScrollLeft,
+  edgeState,
+  pageScrollTarget,
+  type Edges,
+  type HScrollNode,
+} from '../../lib/horizontalScroll';
 
 const ACCENT = '#bb5d3a'; // palette.terracotta — matches VillageSections cards
 
@@ -43,6 +49,7 @@ export function HorizontalScrollRow({
 }) {
   const nodeRef = useRef<ScrollNodeDom | null>(null);
   const cleanup = useRef<(() => void) | null>(null);
+  const cancelAnimation = useRef<(() => void) | null>(null);
   const [edges, setEdges] = useState<Edges>({ left: false, right: false });
   const [isDesktop, setIsDesktop] = useState(false);
 
@@ -57,10 +64,18 @@ export function HorizontalScrollRow({
     return () => mq.removeEventListener?.('change', update);
   }, []);
 
-  useEffect(() => () => cleanup.current?.(), []);
+  useEffect(
+    () => () => {
+      cleanup.current?.();
+      cancelAnimation.current?.();
+    },
+    [],
+  );
 
   const scrollRef = useCallback((instance: ScrollableInstance | null) => {
     cleanup.current?.();
+    cancelAnimation.current?.();
+    cancelAnimation.current = null;
     cleanup.current = null;
     nodeRef.current = null;
     if (!isWeb || !instance) return;
@@ -86,13 +101,12 @@ export function HorizontalScrollRow({
   const scrollBy = useCallback((dir: 'left' | 'right') => {
     const node = nodeRef.current;
     if (!node) return;
-    const left = pageScrollTarget(node, dir);
-    if (typeof node.scrollTo === 'function') node.scrollTo({ left, behavior: 'smooth' });
-    else node.scrollLeft = left;
+    cancelAnimation.current?.();
+    cancelAnimation.current = animateScrollLeft(node, pageScrollTarget(node, dir));
   }, []);
 
   return (
-    <View style={{ position: 'relative' }}>
+    <View testID="hscroll-row" style={{ position: 'relative' }}>
       {children(scrollRef)}
       {isDesktop ? (
         <>
@@ -120,6 +134,7 @@ function ArrowButton({
     <Pressable
       onPress={onPress}
       disabled={!active}
+      testID={`hscroll-arrow-${dir}`}
       // Stays mounted always; when it can't scroll that way it's just invisible
       // and non-interactive (pointerEvents:none) — so it never covers a card and
       // never unmounts mid-click (the bug that dropped arrow clicks).

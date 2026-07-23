@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Modal, View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { getBarrios } from '@cultuvilla/shared/services/municipalityService';
@@ -11,6 +11,8 @@ import { Button } from './Button';
 interface Option {
   id: string;
   name: string;
+  /** The barrio's cover picture (`images[0]`), shown as a small thumbnail. */
+  image: string | null;
 }
 
 export interface BarrioPickerProps {
@@ -56,7 +58,7 @@ export function BarrioPicker({
       .then((rows) => {
         if (cancelled) return;
         // getBarrios already filters to active barrios server-side.
-        setOptions(rows.map((b) => ({ id: b.id, name: b.name })));
+        setOptions(rows.map((b) => ({ id: b.id, name: b.name, image: b.images[0] ?? null })));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -110,6 +112,9 @@ export function BarrioPicker({
                   }}
                   style={styles.row}
                 >
+                  <View style={styles.thumbPlaceholder}>
+                    <Ionicons name="albums-outline" size={18} color="#94a3b8" />
+                  </View>
                   <Text>{wholeVillageLabel}</Text>
                 </Pressable>
               }
@@ -121,6 +126,13 @@ export function BarrioPicker({
                   }}
                   style={styles.row}
                 >
+                  {item.image ? (
+                    <Image source={{ uri: item.image }} style={styles.thumb} />
+                  ) : (
+                    <View style={styles.thumbPlaceholder}>
+                      <Ionicons name="map-outline" size={18} color="#94a3b8" />
+                    </View>
+                  )}
                   <Text>{item.name}</Text>
                 </Pressable>
               )}
@@ -154,9 +166,26 @@ const styles = StyleSheet.create({
   modal: { flex: 1, padding: 16, gap: 12 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#e5e7eb',
+  },
+  thumb: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+  },
+  thumbPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actions: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end' },
 });

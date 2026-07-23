@@ -17,6 +17,7 @@ import type { EntityDetailAction } from '../../../../components/feature/EntityDe
 import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
 import { DetailSectionHeading } from '../../../../components/feature/DetailSectionHeading';
 import { EntityComments } from '../../../../components/feature/EntityComments';
+import { EntityContributors } from '../../../../components/feature/EntityContributors';
 import { useT } from '../../../../lib/i18n';
 import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
@@ -162,6 +163,11 @@ export default function PlaceDetailScreen() {
               {t(`village.admin.places.kind.${place.kind}` as never)}
             </Text>
             {place.description ? <Text>{place.description}</Text> : null}
+            <EntityContributors
+              userIds={place.contributorUserIds}
+              orgIds={place.contributorOrgIds}
+              label={t('village.contributors.label')}
+            />
             {place.images.length > 1 ? (
               <VStack gap={2} className="pt-2">
                 {place.images.slice(1).map((uri) => (
