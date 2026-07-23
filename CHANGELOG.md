@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.15.0 — 2026-07-23
+
 ### Changed
 
 - The village **Personas** roster now includes dependent personas linked to the village and is alphabetical. Tapping a name or avatar opens the user profile when an account is linked (or the persona profile otherwise); village-admin role changes remain behind the row’s separate arrow.
