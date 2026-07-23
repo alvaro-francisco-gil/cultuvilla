@@ -14,7 +14,7 @@
 
 **Nombres y LinkedIn del equipo:**
 
-> Álvaro Francisco Gil: Ingeniero de Software (UPM), investigador (MIT), creador de la app Órdago (1.000 usuarios). LinkedIn: https://www.linkedin.com/in/alvaro-francisco-gil/
+> Álvaro Francisco Gil: Ingeniero de Software (UPM), investigador (MIT), creador de la app [Órdago](https://ordago.club) (1.000 usuarios). LinkedIn: https://www.linkedin.com/in/alvaro-francisco-gil/
 > Moisés Rodríguez Gil: Periodista e historiador, experto en documentación de patrimonio cultural (UNED) e innovación social (Madrid Futuro). LinkedIn: https://www.linkedin.com/in/moisés-rodríguez-gil-753b86260/
 
 **Categoría:** Categoría Fundación Máshumano (iniciativas sociales y culturales)

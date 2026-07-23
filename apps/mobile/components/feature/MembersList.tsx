@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import {
   getVillageMembers,
   setVillageMemberRole,
 } from '@cultuvilla/shared/services/villageMemberService';
-import { getUserProfile } from '@cultuvilla/shared/services/userService';
-import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
+import { getMunicipalityPeople } from '@cultuvilla/shared/services/municipalityPersonService';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { iconSizes } from '@cultuvilla/shared/design-system';
 import { VStack, HStack, Text, Avatar, Pressable } from '../primitives';
@@ -14,10 +14,10 @@ import { showConfirm, showAlert } from '../../lib/dialogs';
 import { useT } from '../../lib/i18n';
 
 interface MemberRow {
+  personId: string;
   userId: string;
   role: 'admin' | 'user';
-  joinedAt: Date;
-  censoComplete: boolean;
+  censoComplete: boolean | null;
   displayName: string;
   photoURL: string | null;
 }
@@ -31,9 +31,9 @@ const initialsOf = (name: string) =>
     .join('');
 
 /**
- * Roster of a pueblo's members, reached from the village personas stat. It joins
- * each member doc with the user profile for name/photo, lists admins first, then
- * by join date, without exposing the join date in the UI.
+ * Roster of a pueblo's people, reached from the village personas stat. The
+ * municipalityPeople read model covers account holders and dependent personas
+ * and arrives already alphabetized by its function-owned sort key.
  *
  * When `canManage`, admins/app-admins can promote a member to admin or demote
  * an admin back to member by tapping the row — routed through the audited
@@ -60,37 +60,28 @@ export function MembersList({
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const [members, municipality] = await Promise.all([
+      const [people, members, municipality] = await Promise.all([
+        getMunicipalityPeople(villageId),
         getVillageMembers(villageId),
         getMunicipality(villageId),
       ]);
       const profileFields = municipality?.community?.profileForm?.fields ?? [];
-      const joined = await Promise.all(
-        members.map(async (m) => {
-          // Name comes from the (denormalized) user doc; the avatar lives on the
-          // person doc — the user doc's photoURL is frequently null.
-          const [profile, person] = await Promise.all([
-            getUserProfile(m.userId),
-            getPersonByUserId(m.userId),
-          ]);
-          return {
-            userId: m.userId,
-            role: m.role,
-            joinedAt: m.joinedAt,
-            censoComplete: m.profileCompletedAt != null,
-            displayName: profile?.displayName ?? '',
-            photoURL: person?.photoURL ?? null,
-          };
-        }),
-      );
-      joined.sort((a, b) => {
-        if (a.role !== b.role) return a.role === 'admin' ? -1 : 1;
-        return a.joinedAt.getTime() - b.joinedAt.getTime();
+      const memberships = new Map(members.map((member) => [member.userId, member]));
+      const rows = people.map((person) => {
+        const membership = person.userId ? memberships.get(person.userId) : undefined;
+        return {
+          personId: person.personId,
+          userId: person.userId ?? '',
+          role: membership?.role ?? 'user',
+          censoComplete: membership ? membership.profileCompletedAt != null : null,
+          displayName: person.displayName,
+          photoURL: person.photoURL,
+        };
       });
       if (!cancelled) {
         setOrganizerId(municipality?.community?.organizerId ?? null);
         setCensoConfigured(profileFields.length > 0);
-        setRows(joined);
+        setRows(rows);
       }
     })();
     return () => {
@@ -123,6 +114,7 @@ export function MembersList({
   // demoted, so their (admin) row isn't actionable either.
   const isActionable = (m: MemberRow) =>
     canManage &&
+    m.userId.length > 0 &&
     m.userId !== currentUserId &&
     !(m.role === 'admin' && m.userId === organizerId);
 
@@ -142,37 +134,59 @@ export function MembersList({
     );
   }
 
+  const openProfile = (m: MemberRow) => {
+    router.push((m.userId ? `/user/${m.userId}` : `/person/${m.personId}`) as never);
+  };
+
   const renderRowContent = (m: MemberRow, actionable: boolean) => (
     <>
-      <HStack gap={2} className="flex-1 items-center pr-2">
+      <Pressable
+        testID={`person-profile-${m.personId}`}
+        onPress={() => openProfile(m)}
+        className="flex-1"
+      >
+        <HStack gap={2} className="items-center pr-2">
         <Avatar uri={m.photoURL} size={32} initials={initialsOf(m.displayName)} />
         <VStack className="flex-1">
           <Text testID="member-name" numberOfLines={1}>
             {m.displayName}
           </Text>
         </VStack>
-      </HStack>
+        </HStack>
+      </Pressable>
       {censoConfigured ? (
         <View
           className="w-14 items-center"
           accessibilityLabel={
-            m.censoComplete
+            m.censoComplete === null
+              ? undefined
+              : m.censoComplete
               ? t('village.membersList.censoComplete')
               : t('village.membersList.censoPending')
           }
         >
-          <Ionicons
-            name={m.censoComplete ? 'checkmark' : 'close'}
-            size={iconSizes.sm}
-            color={m.censoComplete ? '#16a34a' : '#9ca3af'}
-          />
+          {m.censoComplete === null ? null : (
+            <Ionicons
+              name={m.censoComplete ? 'checkmark' : 'close'}
+              size={iconSizes.sm}
+              color={m.censoComplete ? '#16a34a' : '#9ca3af'}
+            />
+          )}
         </View>
       ) : null}
       <View testID="member-action-slot" className="w-6 items-end">
         {pendingUserId === m.userId ? (
           <ActivityIndicator size="small" />
         ) : actionable ? (
-          <Ionicons name="chevron-forward" size={iconSizes.sm} color="#9ca3af" />
+          <Pressable
+            testID={`member-row-${m.userId}`}
+            disabled={pendingUserId != null}
+            onPress={() => changeRole(m)}
+            accessibilityLabel={t('village.membersList.manageRole')}
+            hitSlop={8}
+          >
+            <Ionicons name="chevron-forward" size={iconSizes.sm} color="#9ca3af" />
+          </Pressable>
         ) : null}
       </View>
     </>
@@ -197,18 +211,8 @@ export function MembersList({
         {/* Member rows */}
         {rows.map((m) => {
           const actionable = isActionable(m);
-          return actionable ? (
-            <Pressable
-              key={m.userId}
-              testID={`member-row-${m.userId}`}
-              disabled={pendingUserId != null}
-              onPress={() => changeRole(m)}
-              className="flex-row items-center py-3 border-b border-subtle"
-            >
-              {renderRowContent(m, actionable)}
-            </Pressable>
-          ) : (
-            <HStack key={m.userId} gap={0} className="items-center py-3 border-b border-subtle">
+          return (
+            <HStack key={m.personId} gap={0} className="items-center py-3 border-b border-subtle">
               {renderRowContent(m, actionable)}
             </HStack>
           );

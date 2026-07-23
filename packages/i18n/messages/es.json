@@ -275,7 +275,8 @@
       "colCenso": "Censo",
       "censoComplete": "Censo completo",
       "censoPending": "Censo pendiente",
-      "empty": "Aún no hay miembros.",
+      "empty": "Aún no hay personas registradas.",
+      "manageRole": "Gestionar rol",
       "promote": "Hacer administrador",
       "demote": "Quitar administrador",
       "confirmPromoteTitle": "Hacer administrador",
@@ -423,6 +424,12 @@
       "createPersona": "Crear nueva persona",
       "alreadyBuried": "Ya está aquí",
       "addAction": "Añadir"
+    },
+    "contributors": {
+      "label": "Contribuyeron",
+      "peopleLabel": "Personas colaboradoras",
+      "addPerson": "Añadir persona",
+      "selectPeople": "Seleccionar personas colaboradoras"
     },
     "festivalPosters": {
       "title": "Carteles de fiestas",

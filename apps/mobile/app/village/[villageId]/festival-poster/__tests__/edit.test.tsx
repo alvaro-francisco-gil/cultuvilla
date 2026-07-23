@@ -31,6 +31,7 @@ jest.mock('@cultuvilla/shared/services/festivalPosterService', () => ({
 jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadFestivalPosterImage: jest.fn(),
 }));
+jest.mock('../../../../../components/feature/OrganizerPicker', () => ({ OrganizerPicker: () => null }));
 
 import PosterEditScreen from '../[posterId]/edit';
 

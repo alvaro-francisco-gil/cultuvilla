@@ -5,6 +5,7 @@ import { Screen } from '../../../../../components/primitives/Screen';
 import { Text } from '../../../../../components/primitives/Text';
 import { ScreenHeader } from '../../../../../components/layout/ScreenHeader';
 import { ProposableForm } from '../../../../../components/feature/proposable/ProposableForm';
+import { OrganizerPicker } from '../../../../../components/feature/OrganizerPicker';
 import { DeleteHeaderButton } from '../../../../../components/feature/DeleteHeaderButton';
 import { useT } from '../../../../../lib/i18n';
 import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
@@ -17,7 +18,7 @@ import { PLACE_KINDS, type PlaceKind } from '@cultuvilla/shared/models/municipal
 export default function PlaceEditScreen() {
   const { villageId, placeId } = useLocalSearchParams<{ villageId: string; placeId: string }>();
   const { t } = useT();
-  const { canManage, loading: capLoading } = useEntityCapabilities(villageId);
+  const { canManage, uid, loading: capLoading } = useEntityCapabilities(villageId);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [kind, setKind] = useState<PlaceKind>('cemetery');
@@ -26,6 +27,8 @@ export default function PlaceEditScreen() {
   const [loaded, setLoaded] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [contributorUserIds, setContributorUserIds] = useState<string[]>([]);
+  const [contributorOrgIds, setContributorOrgIds] = useState<string[]>([]);
 
   const kindLabel = (k: PlaceKind) => t(`village.admin.places.kind.${k}` as never);
 
@@ -38,6 +41,8 @@ export default function PlaceEditScreen() {
         setDescription(p.description ?? '');
         setKind(p.kind);
         setImages(p.images);
+        setContributorUserIds(p.contributorUserIds);
+        setContributorOrgIds(p.contributorOrgIds);
       } else {
         setNotFound(true);
       }
@@ -88,6 +93,7 @@ export default function PlaceEditScreen() {
     try {
       await updatePlace(villageId, placeId, {
         name: name.trim(), kind, description: description.trim() || null,
+        contributorUserIds, contributorOrgIds,
       });
       router.back();
     } finally {
@@ -150,6 +156,18 @@ export default function PlaceEditScreen() {
             saving={saving}
             disabled={!name.trim()}
           />
+          {uid ? (
+            <OrganizerPicker
+              municipalityId={villageId}
+              selectedUserIds={contributorUserIds}
+              selectedOrgIds={contributorOrgIds}
+              onChangeUsers={setContributorUserIds}
+              onChangeOrgs={setContributorOrgIds}
+              peopleLabel={t('village.contributors.peopleLabel')}
+              addPersonLabel={t('village.contributors.addPerson')}
+              selectPeopleTitle={t('village.contributors.selectPeople')}
+            />
+          ) : null}
         </ScrollView>
       )}
     </Screen>

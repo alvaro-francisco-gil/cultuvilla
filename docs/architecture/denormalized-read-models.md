@@ -88,6 +88,25 @@ When adding a new denormalization trigger, mirror its structure.
 
 ## Existing read models
 
+### `municipalityPeople/{municipalityId}_{personId}` ← `persons/{personId}`
+
+The village people roster reads a municipality-scoped projection rather than
+joining membership records to account profiles or trying to query partial
+objects inside `persons.municipalityLinks`. One row is created for every
+municipality linked from a persona, including dependent personas with no user
+account. Rows carry only display data and a normalized `sortName`, allowing the
+directory query to return an alphabetical list in one read.
+
+- **Source of truth:** `persons/{personId}.municipalityLinks` and its person
+  display fields.
+- **Trigger:** [functions/src/village/syncMunicipalityPeople.ts](../../functions/src/village/syncMunicipalityPeople.ts)
+  fires on every person write, diffs the linked municipality set, and writes or
+  deletes deterministic directory rows.
+- **Rules:** village members and app admins may read their municipality’s rows;
+  all writes are function-owned.
+- **Backfill:** [scripts/backfill-municipality-people.mjs](../../scripts/backfill-municipality-people.mjs)
+  reconciles directory rows in dev after the trigger deploys.
+
 ### `users/{uid}.displayName` ← `persons/{personId}`
 
 The user document carries a denormalized projection of the linked persona's

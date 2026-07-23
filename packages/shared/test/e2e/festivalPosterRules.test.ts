@@ -9,7 +9,7 @@ const getEnv = useRulesTestEnv();
 const M = 'm1';
 function posterDoc(proposedBy: string | null, extra: Record<string, unknown> = {}) {
   return {
-    municipalityId: M, proposedBy, year: 2025, title: null, images: [],
+    municipalityId: M, proposedBy, contributorUserIds: [], contributorOrgIds: [], year: 2025, title: null, images: [],
     datePrecision: 'year', startsAt: null, endsAt: null, createdAt: new Date(),
     status: 'active', hiddenBy: null, hiddenAt: null, hiddenReason: null,
     commentCount: 0, readCount: 0,

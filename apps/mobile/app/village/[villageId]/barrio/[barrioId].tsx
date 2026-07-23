@@ -3,11 +3,13 @@ import { View } from 'react-native';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Text } from '../../../../components/primitives/Text';
 import { VStack } from '../../../../components/primitives/VStack';
+import { HStack } from '../../../../components/primitives/HStack';
+import { Avatar } from '../../../../components/primitives/Avatar';
+import { Pressable } from '../../../../components/primitives/Pressable';
 import { NaturalImage } from '../../../../components/primitives/NaturalImage';
 import { EntityDetailScaffold } from '../../../../components/feature/EntityDetailScaffold';
 import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
 import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
-import { LivePersonChip } from '../../../../components/feature/LivePersonChip';
 import { DetailSectionHeading } from '../../../../components/feature/DetailSectionHeading';
 import { EntityComments } from '../../../../components/feature/EntityComments';
 import { useT } from '../../../../lib/i18n';
@@ -19,7 +21,7 @@ import { getBarrio } from '@cultuvilla/shared/services/municipalityService';
 import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { getBarrioViewLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getPersonsByBarrio } from '@cultuvilla/shared/services/personService';
-import { buildDisplayName } from '@cultuvilla/shared/models/person';
+import { buildNameWithNickname, isDeceased } from '@cultuvilla/shared/models/person';
 import type { BarrioData } from '@cultuvilla/shared/models/municipality';
 import type { PersonData } from '@cultuvilla/shared/models/person';
 
@@ -44,7 +46,8 @@ export default function BarrioDetailScreen() {
         getPersonsByBarrio(villageId, barrioId),
       ]);
       setBarrio(b);
-      setResidents(people);
+      // Deceased residents live in the cemetery view, not the barrio roster.
+      setResidents(people.filter((person) => !isDeceased(person)));
     } finally {
       setLoading(false);
     }
@@ -110,25 +113,32 @@ export default function BarrioDetailScreen() {
               {t('village.barrioDetail.residentsEmpty')}
             </Text>
           ) : (
-            <View className="flex-row flex-wrap items-center" style={{ gap: 12 }}>
-              {residents.map((p) => (
-                <LivePersonChip
-                  key={p.id}
-                  personId={p.id}
-                  fallbackName={buildDisplayName(p)}
-                  onPress={
-                    p.userId
-                      ? () =>
-                          router.push(
-                            (p.userId === user?.uid
-                              ? '/(tabs)/profile'
-                              : `/user/${p.userId}`) as never,
-                          )
-                      : undefined
-                  }
-                />
-              ))}
-            </View>
+            <VStack>
+              {residents.map((p) => {
+                const name = buildNameWithNickname(p);
+                const onPress = p.userId
+                  ? () =>
+                      router.push(
+                        (p.userId === user?.uid ? '/(tabs)/profile' : `/user/${p.userId}`) as never,
+                      )
+                  : undefined;
+                const row = (
+                  <HStack gap={2} className="items-center py-3 border-b border-subtle">
+                    <Avatar uri={p.photoURL} size={32} initials={name.slice(0, 1).toUpperCase()} />
+                    <Text numberOfLines={1} className="flex-1">
+                      {name}
+                    </Text>
+                  </HStack>
+                );
+                return onPress ? (
+                  <Pressable key={p.id} onPress={onPress} accessibilityRole="button" accessibilityLabel={name}>
+                    {row}
+                  </Pressable>
+                ) : (
+                  <View key={p.id}>{row}</View>
+                );
+              })}
+            </VStack>
           )}
           <EntityComments
             key={barrio.id}

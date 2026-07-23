@@ -17,6 +17,7 @@ jest.mock('@cultuvilla/shared/services/imageService', () => ({
 jest.mock('../../../../lib/images', () => ({ pickImageAsBlob: jest.fn() }));
 jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({ useEntityCapabilities: jest.fn() }));
+jest.mock('../../OrganizerPicker', () => ({ OrganizerPicker: () => null }));
 
 const mockCaps = useEntityCapabilities as jest.Mock;
 const mockPick = pickImageAsBlob as jest.Mock;
@@ -37,7 +38,7 @@ describe('<PlacesManager>', () => {
     await waitFor(() =>
       expect(createPlace).toHaveBeenCalledWith(
         'm1',
-        { name: 'Fuente', kind: 'cemetery', description: '', municipalityId: 'm1', proposedBy: 'alice', images: [] },
+        { name: 'Fuente', kind: 'cemetery', description: '', municipalityId: 'm1', proposedBy: 'alice', images: [], contributorUserIds: ['alice'], contributorOrgIds: [] },
         'new-id',
       ),
     );
@@ -51,7 +52,7 @@ describe('<PlacesManager>', () => {
     await waitFor(() =>
       expect(createPlace).toHaveBeenCalledWith(
         'm1',
-        { name: 'Iglesia', kind: 'cemetery', description: '', municipalityId: 'm1', proposedBy: 'boss', images: [] },
+        { name: 'Iglesia', kind: 'cemetery', description: '', municipalityId: 'm1', proposedBy: 'boss', images: [], contributorUserIds: ['boss'], contributorOrgIds: [] },
         'new-id',
       ),
     );

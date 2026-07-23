@@ -345,6 +345,11 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               sub={formatDate(e.startDate, 'short')}
               icon="calendar-outline"
               imageUri={e.imageURL ?? e.villageCoverImage}
+              statBadge={{
+                icon: 'person-outline',
+                count: e.confirmedCount,
+                testID: 'entity-card-event-attendee-count',
+              }}
               onPress={() => router.push(`/event/${e.id}` as never)}
             />
           )}

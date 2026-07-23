@@ -28,6 +28,9 @@ jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
   isVillageAdmin: jest.fn(async () => false),
   getVillageMembers: jest.fn(async () => [{ userId: 'u1' }, { userId: 'u2' }]),
 }));
+jest.mock('@cultuvilla/shared/services/municipalityPersonService', () => ({
+  getMunicipalityPeople: jest.fn(async () => [{ personId: 'p1' }, { personId: 'p2' }, { personId: 'p3' }]),
+}));
 jest.mock('@cultuvilla/shared/services/organizationService', () => ({
   getOrganizationsByMunicipality: jest.fn(async () => []),
 }));
@@ -58,7 +61,7 @@ describe('useVillageHome', () => {
     expect(result.current.village?.name).toBe('Anaya');
     // The chrome + sections settle independently, so wait on each derived value.
     await waitFor(() => expect(result.current.isMember).toBe(true)); // u1 is in members
-    expect(result.current.peopleCount).toBe(2);
+    expect(result.current.peopleCount).toBe(3);
     await waitFor(() => expect(result.current.barrios).toHaveLength(1));
     await waitFor(() => expect(result.current.festivalPosters).toHaveLength(1));
     await waitFor(() => expect(result.current.sectionStatus.events).toBe('ready'));
