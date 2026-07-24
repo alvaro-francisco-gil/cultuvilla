@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.16.0 — 2026-07-24
+
 ### Changed
 
 - Reworded the place/festival-poster contributor credit as "Digitalizado por" and turned their creation screens into step-by-step wizards.
