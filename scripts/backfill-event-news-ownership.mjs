@@ -2,7 +2,7 @@
 /**
  * backfill-event-news-ownership.mjs
  *
- * Combined dev backfill for the event/news model migration:
+ * Combined backfill for the event/news model migration:
  *  - Events: drop endDate; convert location to { coordinates, displayName };
  *    set organizerUserIds = [createdBy]; set organizerOrgIds from old organizationId;
  *    delete organizationId, organizationName.
@@ -17,40 +17,28 @@
  * added to the "needs-attention" list.
  *
  * USAGE
- *   GOOGLE_APPLICATION_CREDENTIALS=/path/to/sa.json \
- *   node scripts/backfill-event-news-ownership.mjs          # dry-run
+ *   node scripts/backfill-event-news-ownership.mjs                 (dev dry run)
+ *   node scripts/backfill-event-news-ownership.mjs --apply         (dev writes)
+ *   env -u GOOGLE_APPLICATION_CREDENTIALS \
+ *     node scripts/backfill-event-news-ownership.mjs --env=beta --confirm --apply
  *
- *   GOOGLE_APPLICATION_CREDENTIALS=/path/to/sa.json \
- *   node scripts/backfill-event-news-ownership.mjs --apply  # writes
- *
- * SAFETY
- *   Project-pinned to villa-events (dev). Never beta/prod.
+ * Credentials resolve via initAdminForEnv (see lib/env-credentials.mjs). Dev is
+ * autonomous; beta/prod require --confirm (and the stored ADC — unset
+ * GOOGLE_APPLICATION_CREDENTIALS so a dev key can't hijack the target project).
+ * `--apply` still gates the actual write on every env (dry run without it).
  */
 
 import admin from 'firebase-admin';
+import { initAdminForEnv } from './lib/env-credentials.mjs';
+import { parseEnvConfirm } from './lib/env-confirm.mjs';
+import { backfillCollection } from './lib/backfill.mjs';
 
-const PROJECT_ID = 'villa-events';
-
-if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  console.error('[backfill] GOOGLE_APPLICATION_CREDENTIALS is not set. See firebase-admin-dev skill.');
-  process.exit(1);
-}
-
-admin.initializeApp({ projectId: PROJECT_ID });
+const { projectId } = initAdminForEnv(parseEnvConfirm());
 const db = admin.firestore();
-
-if (admin.app().options.projectId !== PROJECT_ID) {
-  console.error(`[backfill] Refusing project "${admin.app().options.projectId}" — dev-only.`);
-  process.exit(1);
-}
 
 const APPLY = process.argv.includes('--apply');
 const DELETE = admin.firestore.FieldValue.delete();
 
-const stats = {
-  events: { scanned: 0, migrated: 0, skipped: 0, needsAttention: 0 },
-  news:   { scanned: 0, migrated: 0, skipped: 0 },
-};
 /** Docs whose location could not be migrated (no coords anywhere). */
 const needsAttentionIds = [];
 
@@ -125,120 +113,62 @@ function migrateLocation(data, municipalityCoords) {
   return null;
 }
 
-// ---- Events ----------------------------------------------------------------
-
-console.log('[backfill] Scanning events…');
-const eventsSnap = await db.collection('events').get();
-stats.events.scanned = eventsSnap.size;
-
-for (let i = 0; i < eventsSnap.docs.length; i += 400) {
-  const chunk = eventsSnap.docs.slice(i, i + 400);
-  const batch = db.batch();
-  let writes = 0;
-
-  for (const docSnap of chunk) {
-    const data = docSnap.data();
-
-    // Skip if already migrated: has organizerUserIds array AND no endDate
-    if (Array.isArray(data.organizerUserIds) && !Object.prototype.hasOwnProperty.call(data, 'endDate')) {
-      stats.events.skipped++;
-      continue;
-    }
-
-    const createdBy = typeof data.createdBy === 'string' ? data.createdBy : '';
-    const oldOrgId = typeof data.organizationId === 'string' ? data.organizationId : null;
-
-    const municipalityCoords = extractLatLng(data.villageCoordinates);
-    const newLocation = migrateLocation(data, municipalityCoords);
-
-    if (!newLocation) {
-      console.warn(`[backfill]   event ${docSnap.id} — cannot determine coordinates; skipping location field`);
-      stats.events.needsAttention++;
-      needsAttentionIds.push(docSnap.id);
-    }
-
-    /** @type {Record<string, unknown>} */
-    const update = {
-      organizerUserIds: [createdBy],
-      organizerOrgIds: oldOrgId ? [oldOrgId] : [],
-      // Delete old fields
-      endDate: DELETE,
-      organizationId: DELETE,
-      organizationName: DELETE,
-    };
-    if (newLocation) update.location = newLocation;
-
-    batch.update(docSnap.ref, update);
-    writes++;
-    stats.events.migrated++;
+function eventPatchFor(data, docSnap) {
+  // Skip if already migrated: has organizerUserIds array AND no endDate
+  if (Array.isArray(data.organizerUserIds) && !Object.prototype.hasOwnProperty.call(data, 'endDate')) {
+    return null;
   }
 
-  if (writes > 0 && APPLY) {
-    await batch.commit();
-    console.log(`[backfill] events: committed batch of ${writes}`);
-  } else if (writes > 0) {
-    console.log(`[backfill] events: (dry-run) would update ${writes} docs`);
+  const createdBy = typeof data.createdBy === 'string' ? data.createdBy : '';
+  const oldOrgId = typeof data.organizationId === 'string' ? data.organizationId : null;
+
+  const municipalityCoords = extractLatLng(data.villageCoordinates);
+  const newLocation = migrateLocation(data, municipalityCoords);
+
+  if (!newLocation) {
+    console.warn(`  event ${docSnap.id} — cannot determine coordinates; skipping location field`);
+    needsAttentionIds.push(docSnap.id);
   }
+
+  /** @type {Record<string, unknown>} */
+  const update = {
+    organizerUserIds: [createdBy],
+    organizerOrgIds: oldOrgId ? [oldOrgId] : [],
+    endDate: DELETE,
+    organizationId: DELETE,
+    organizationName: DELETE,
+  };
+  if (newLocation) update.location = newLocation;
+  return update;
 }
 
-// ---- News ------------------------------------------------------------------
+function newsPatchFor(data) {
+  // Skip if already migrated: has organizerUserIds array
+  if (Array.isArray(data.organizerUserIds)) return null;
 
-console.log('[backfill] Scanning news…');
-const newsSnap = await db.collection('news').get();
-stats.news.scanned = newsSnap.size;
+  const createdBy = typeof data.createdBy === 'string' ? data.createdBy : '';
+  const oldOrgId = typeof data.authorOrgId === 'string' ? data.authorOrgId : null;
 
-for (let i = 0; i < newsSnap.docs.length; i += 400) {
-  const chunk = newsSnap.docs.slice(i, i + 400);
-  const batch = db.batch();
-  let writes = 0;
-
-  for (const docSnap of chunk) {
-    const data = docSnap.data();
-
-    // Skip if already migrated: has organizerUserIds array
-    if (Array.isArray(data.organizerUserIds)) {
-      stats.news.skipped++;
-      continue;
-    }
-
-    const createdBy = typeof data.createdBy === 'string' ? data.createdBy : '';
-    const oldOrgId = typeof data.authorOrgId === 'string' ? data.authorOrgId : null;
-
-    /** @type {Record<string, unknown>} */
-    const update = {
-      organizerUserIds: [createdBy],
-      organizerOrgIds: oldOrgId ? [oldOrgId] : [],
-      // Delete old fields
-      authorUserId: DELETE,
-      authorOrgId: DELETE,
-    };
-
-    batch.update(docSnap.ref, update);
-    writes++;
-    stats.news.migrated++;
-  }
-
-  if (writes > 0 && APPLY) {
-    await batch.commit();
-    console.log(`[backfill] newsPosts: committed batch of ${writes}`);
-  } else if (writes > 0) {
-    console.log(`[backfill] newsPosts: (dry-run) would update ${writes} docs`);
-  }
+  return {
+    organizerUserIds: [createdBy],
+    organizerOrgIds: oldOrgId ? [oldOrgId] : [],
+    authorUserId: DELETE,
+    authorOrgId: DELETE,
+  };
 }
 
-// ---- Summary ---------------------------------------------------------------
+async function main() {
+  console.log(`${APPLY ? 'Backfilling' : 'DRY-RUN: checking'} event/news ownership against ${projectId}`);
 
-console.log('\n[backfill] ======== SUMMARY ========');
-console.log(`[backfill] Mode: ${APPLY ? 'APPLY (writes committed)' : 'DRY-RUN (no writes)'}`);
-console.log('[backfill] Events:');
-console.log(`[backfill]   scanned:         ${stats.events.scanned}`);
-console.log(`[backfill]   migrated:        ${stats.events.migrated}`);
-console.log(`[backfill]   skipped:         ${stats.events.skipped}`);
-console.log(`[backfill]   needs-attention: ${stats.events.needsAttention}`);
-if (needsAttentionIds.length > 0) {
-  console.warn('[backfill]   IDs needing manual coords:', needsAttentionIds.join(', '));
+  await backfillCollection(db, 'events', db.collection('events'), eventPatchFor, { apply: APPLY });
+  if (needsAttentionIds.length > 0) {
+    console.warn(`  IDs needing manual coords: ${needsAttentionIds.join(', ')}`);
+  }
+
+  await backfillCollection(db, 'news', db.collection('news'), newsPatchFor, { apply: APPLY });
 }
-console.log('[backfill] News:');
-console.log(`[backfill]   scanned:         ${stats.news.scanned}`);
-console.log(`[backfill]   migrated:        ${stats.news.migrated}`);
-console.log(`[backfill]   skipped:         ${stats.news.skipped}`);
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
