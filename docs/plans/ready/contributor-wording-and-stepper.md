@@ -572,7 +572,22 @@ git commit -m "feat(mobile): turn festival poster creation into a 3-step wizard"
   step icons `create-outline`/`calendar-outline`/`people-outline` (not
   asserted). This mirrors `apps/mobile/app/event/__tests__/new.test.tsx`.
 
-- [ ] **Step 1: Rewrite the two existing tests to step through the wizard**
+- [ ] **Step 1: Add the `Stepper`'s safe-area-inset mock**
+
+`Stepper` (used internally now) calls `useSafeAreaInsets()`, which throws
+`No safe area value available` when rendered without a provider in a jest
+test. Add this mock near the top of the file, alongside the other
+`jest.mock(...)` calls (mirrors `apps/mobile/app/news/__tests__/new.test.tsx`
+and `apps/mobile/app/event/__tests__/new.test.tsx`):
+
+```tsx
+jest.mock('react-native-safe-area-context', () => ({
+  ...jest.requireActual('react-native-safe-area-context'),
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+```
+
+- [ ] **Step 2: Rewrite the two existing tests to step through the wizard**
 
 Replace the `it(...)` blocks in `FestivalPostersManager.test.tsx`:
 
@@ -631,7 +646,7 @@ working across every step, including the final submit press — only the
 button's visible label changes between `"common.stepper.next"` and the
 submit label.
 
-- [ ] **Step 2: Run the test file**
+- [ ] **Step 3: Run the test file**
 
 ```bash
 pnpm --filter cultuvilla-mobile test -- FestivalPostersManager
@@ -639,7 +654,7 @@ pnpm --filter cultuvilla-mobile test -- FestivalPostersManager
 
 Expected: PASS (2 tests).
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add apps/mobile/components/feature/proposable/FestivalPostersManager.tsx apps/mobile/components/feature/proposable/__tests__/FestivalPostersManager.test.tsx
@@ -848,7 +863,20 @@ git commit -m "feat(mobile): turn place creation into a 2-step wizard"
 - Consumes: same `common.stepper.next` / `primaryTestID="place-submit"`
   pattern as Task 6.
 
-- [ ] **Step 1: Rewrite the four tests to step through the wizard**
+- [ ] **Step 1: Add the `Stepper`'s safe-area-inset mock**
+
+Same reason as Task 6: `Stepper` calls `useSafeAreaInsets()`, which throws
+without a provider in a jest test. Add this mock near the top of the file,
+alongside the other `jest.mock(...)` calls:
+
+```tsx
+jest.mock('react-native-safe-area-context', () => ({
+  ...jest.requireActual('react-native-safe-area-context'),
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+```
+
+- [ ] **Step 2: Rewrite the four tests to step through the wizard**
 
 ```tsx
 describe('<PlacesManager>', () => {
@@ -906,7 +934,7 @@ describe('<PlacesManager>', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test file**
+- [ ] **Step 3: Run the test file**
 
 ```bash
 pnpm --filter cultuvilla-mobile test -- PlacesManager
@@ -914,7 +942,7 @@ pnpm --filter cultuvilla-mobile test -- PlacesManager
 
 Expected: PASS (4 tests).
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add apps/mobile/components/feature/proposable/PlacesManager.tsx apps/mobile/components/feature/proposable/__tests__/PlacesManager.test.tsx
