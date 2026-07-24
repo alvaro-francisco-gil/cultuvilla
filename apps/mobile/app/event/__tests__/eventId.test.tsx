@@ -43,7 +43,7 @@ jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
     id: 'm1', name: 'Villapueblo', escudoUrl: null, escudoThumbUrl: null, escudoManualUrl: null,
   }),
 }));
-jest.mock('@cultuvilla/shared/models/person/PersonDataModel', () => ({ buildDisplayName: () => 'N' }));
+jest.mock('@cultuvilla/shared/models/person/PersonDataModel', () => ({ buildNameWithNickname: () => 'N' }));
 jest.mock('@cultuvilla/shared/utils', () => ({ formatDate: () => '12 jul', buildGoogleCalendarUrl: () => 'https://cal' }));
 
 describe('EventDetailScreen', () => {
