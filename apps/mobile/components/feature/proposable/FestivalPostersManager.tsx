@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ScrollView } from 'react-native';
 import {
   newFestivalPosterId,
   createFestivalPoster,
@@ -7,13 +8,26 @@ import {
   deleteImageByURL,
   uploadFestivalPosterImage,
 } from '@cultuvilla/shared/services/imageService';
-import { VStack, Button, Input, FieldLabel, DateField } from '../../primitives';
+import { VStack, Input, FieldLabel, DateField } from '../../primitives';
 import { MultiImagePickerRow } from '../MultiImagePickerRow';
+import { Stepper, type StepConfig } from '../Stepper';
 import { pickImageAsBlob } from '../../../lib/images';
 import { useT } from '../../../lib/i18n';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { sanitizeYear, datesToPayload } from './festivalPosterForm';
 import { OrganizerPicker } from '../OrganizerPicker';
+
+function stepBody(children: React.ReactNode) {
+  return (
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{ padding: 16, gap: 16 }}
+      keyboardShouldPersistTaps="handled"
+    >
+      {children}
+    </ScrollView>
+  );
+}
 
 /**
  * "Añadir cartel" form — year, optional title, optional start/end dates and the
@@ -97,70 +111,95 @@ export function FestivalPostersManager({
   }
 
   const y = parseInt(year, 10);
+  const steps: StepConfig[] = [
+    {
+      key: 'basics',
+      title: t('village.festivalPosters.stepBasics'),
+      icon: 'create-outline',
+      validate: () => (Number.isInteger(y) && images.length > 0 ? [] : ['basics']),
+      render: () =>
+        stepBody(
+          <>
+            <VStack gap={1} align="start">
+              <FieldLabel>{t('village.festivalPosters.form.image')}</FieldLabel>
+              <MultiImagePickerRow
+                uris={images}
+                onAddPress={addImage}
+                onRemove={removeImage}
+                adding={addingImage}
+                addLabel={t('village.festivalPosters.form.addImage')}
+                removeLabel={t('village.festivalPosters.form.removeImage')}
+              />
+            </VStack>
+            <Input
+              testID="poster-year-input"
+              value={year}
+              onChangeText={(txt) => setYear(sanitizeYear(txt))}
+              label={t('village.festivalPosters.form.year')}
+              keyboardType="number-pad"
+            />
+            <Input
+              testID="poster-title-input"
+              value={title}
+              onChangeText={setTitle}
+              label={t('village.festivalPosters.form.title')}
+              placeholder={t('village.festivalPosters.form.titlePlaceholder')}
+            />
+          </>,
+        ),
+    },
+    {
+      key: 'dates',
+      title: t('village.festivalPosters.stepDates'),
+      icon: 'calendar-outline',
+      render: () =>
+        stepBody(
+          <>
+            <DateField
+              testID="poster-start-date"
+              label={t('village.festivalPosters.form.startDate')}
+              value={startsAt}
+              onChange={setStartsAt}
+            />
+            <DateField
+              testID="poster-end-date"
+              label={t('village.festivalPosters.form.endDate')}
+              value={endsAt}
+              onChange={setEndsAt}
+            />
+          </>,
+        ),
+    },
+    {
+      key: 'attribution',
+      title: t('village.festivalPosters.stepAttribution'),
+      icon: 'people-outline',
+      render: () =>
+        stepBody(
+          uid ? (
+            <OrganizerPicker
+              municipalityId={villageId}
+              selectedUserIds={contributorUserIds.includes(uid) ? contributorUserIds : [uid, ...contributorUserIds]}
+              selectedOrgIds={contributorOrgIds}
+              lockedUserId={uid}
+              onChangeUsers={handleContributorUsers}
+              onChangeOrgs={setContributorOrgIds}
+              peopleLabel={t('village.contributors.peopleLabel')}
+              addPersonLabel={t('village.contributors.addPerson')}
+              selectPeopleTitle={t('village.contributors.selectPeople')}
+            />
+          ) : null,
+        ),
+    },
+  ];
+
   return (
-    <VStack gap={3} className="p-4">
-      <VStack gap={1} align="start">
-        <FieldLabel>{t('village.festivalPosters.form.image')}</FieldLabel>
-        <MultiImagePickerRow
-          uris={images}
-          onAddPress={addImage}
-          onRemove={removeImage}
-          adding={addingImage}
-          addLabel={t('village.festivalPosters.form.addImage')}
-          removeLabel={t('village.festivalPosters.form.removeImage')}
-        />
-      </VStack>
-
-      <Input
-        testID="poster-year-input"
-        value={year}
-        onChangeText={(txt) => setYear(sanitizeYear(txt))}
-        label={t('village.festivalPosters.form.year')}
-        keyboardType="number-pad"
-      />
-
-      <Input
-        testID="poster-title-input"
-        value={title}
-        onChangeText={setTitle}
-        label={t('village.festivalPosters.form.title')}
-        placeholder={t('village.festivalPosters.form.titlePlaceholder')}
-      />
-
-      <DateField
-        testID="poster-start-date"
-        label={t('village.festivalPosters.form.startDate')}
-        value={startsAt}
-        onChange={setStartsAt}
-      />
-      {uid ? (
-        <OrganizerPicker
-          municipalityId={villageId}
-          selectedUserIds={contributorUserIds.includes(uid) ? contributorUserIds : [uid, ...contributorUserIds]}
-          selectedOrgIds={contributorOrgIds}
-          lockedUserId={uid}
-          onChangeUsers={handleContributorUsers}
-          onChangeOrgs={setContributorOrgIds}
-          peopleLabel={t('village.contributors.peopleLabel')}
-          addPersonLabel={t('village.contributors.addPerson')}
-          selectPeopleTitle={t('village.contributors.selectPeople')}
-        />
-      ) : null}
-      <DateField
-        testID="poster-end-date"
-        label={t('village.festivalPosters.form.endDate')}
-        value={endsAt}
-        onChange={setEndsAt}
-      />
-
-      <Button
-        testID="poster-submit"
-        onPress={submit}
-        loading={saving}
-        disabled={!Number.isInteger(y) || images.length === 0}
-      >
-        {t('village.festivalPosters.add')}
-      </Button>
-    </VStack>
+    <Stepper
+      steps={steps}
+      onComplete={() => void submit()}
+      submitLabel={t('village.festivalPosters.add')}
+      loading={saving}
+      primaryTestID="poster-submit"
+    />
   );
 }

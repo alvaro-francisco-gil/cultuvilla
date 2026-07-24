@@ -8,56 +8,53 @@
  *   - every other member → 'member'
  *
  * USAGE
- *   node scripts/backfill-org-member-roles.mjs          (dry run — no writes)
- *   node scripts/backfill-org-member-roles.mjs --apply  (writes to Firestore)
+ *   node scripts/backfill-org-member-roles.mjs                 (dev dry run)
+ *   node scripts/backfill-org-member-roles.mjs --apply         (dev writes)
+ *   env -u GOOGLE_APPLICATION_CREDENTIALS \
+ *     node scripts/backfill-org-member-roles.mjs --env=beta --confirm --apply
+ *
+ * Credentials resolve via initAdminForEnv (see lib/env-credentials.mjs). Dev is
+ * autonomous; beta/prod require --confirm (and the stored ADC — unset
+ * GOOGLE_APPLICATION_CREDENTIALS so a dev key can't hijack the target project).
+ * `--apply` still gates the actual write on every env (dry run without it).
  *
  * Idempotent: skips any member doc that already has a `role` field set.
  */
 
+import { initAdminForEnv } from './lib/env-credentials.mjs';
+import { parseEnvConfirm } from './lib/env-confirm.mjs';
+import { backfillCollection } from './lib/backfill.mjs';
 import admin from 'firebase-admin';
 
-const PROJECT_ID = 'villa-events';
-
-if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  console.error('GOOGLE_APPLICATION_CREDENTIALS is not set. See firebase-admin-dev skill.');
-  process.exit(1);
-}
-
-admin.initializeApp({ projectId: PROJECT_ID });
+const { projectId } = initAdminForEnv(parseEnvConfirm());
 const db = admin.firestore();
-
-if (admin.app().options.projectId !== PROJECT_ID) {
-  console.error(`Refusing to run against ${admin.app().options.projectId} — dev only.`);
-  process.exit(1);
-}
 
 const APPLY = process.argv.includes('--apply');
 
 async function main() {
-  const orgs = await db.collection('organizations').get();
-  console.log(`Loaded ${orgs.size} organization docs.`);
+  console.log(`${APPLY ? 'Backfilling' : 'DRY-RUN: checking'} org member roles against ${projectId}`);
 
+  const orgs = await db.collection('organizations').get();
   let toAdmin = 0;
   let toMember = 0;
-  let alreadyMigrated = 0;
 
   for (const org of orgs.docs) {
     const requestedBy = org.get('requestedBy');
-    const members = await org.ref.collection('members').get();
-
-    for (const m of members.docs) {
-      if (m.get('role')) {
-        alreadyMigrated++;
-        continue; // already migrated — idempotent skip
-      }
-      const role = m.id === requestedBy ? 'admin' : 'member';
-      if (role === 'admin') toAdmin++; else toMember++;
-      if (APPLY) await m.ref.set({ role }, { merge: true });
-    }
+    await backfillCollection(
+      db,
+      `organizations/${org.id}/members`,
+      org.ref.collection('members'),
+      (data, docSnap) => {
+        if (data.role) return null; // already migrated
+        const role = docSnap.id === requestedBy ? 'admin' : 'member';
+        if (role === 'admin') toAdmin++; else toMember++;
+        return { role };
+      },
+      { apply: APPLY },
+    );
   }
 
-  console.log(`\n${APPLY ? 'WROTE' : 'DRY-RUN'}: ${toAdmin} admins, ${toMember} members`);
-  console.log(`  Already migrated (skipped): ${alreadyMigrated}`);
+  console.log(`\n${APPLY ? 'WROTE' : 'WOULD WRITE'}: ${toAdmin} admins, ${toMember} members`);
 }
 
 main().catch((err) => {

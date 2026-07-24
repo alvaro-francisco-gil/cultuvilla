@@ -16,6 +16,10 @@ jest.mock('../../../../lib/images', () => ({ pickImageAsBlob: jest.fn() }));
 jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({ useEntityCapabilities: jest.fn() }));
 jest.mock('../../OrganizerPicker', () => ({ OrganizerPicker: () => null }));
+jest.mock('react-native-safe-area-context', () => ({
+  ...jest.requireActual('react-native-safe-area-context'),
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
 
 const mockCaps = useEntityCapabilities as jest.Mock;
 const mockPick = pickImageAsBlob as jest.Mock;
@@ -30,11 +34,13 @@ beforeEach(() => {
 
 describe('<FestivalPostersManager>', () => {
   it('any member submitting the form creates the poster directly (year precision, optimistic)', async () => {
-    const { getByTestId, getByLabelText } = render(<FestivalPostersManager villageId="m1" />);
+    const { getByTestId, getByLabelText, getByText } = render(<FestivalPostersManager villageId="m1" />);
     fireEvent.press(getByLabelText('village.festivalPosters.form.addImage'));
     await waitFor(() => expect(mockPick).toHaveBeenCalled());
     fireEvent.changeText(getByTestId('poster-year-input'), '2026');
-    fireEvent.press(getByTestId('poster-submit'));
+    fireEvent.press(getByText('common.stepper.next')); // basics -> dates
+    fireEvent.press(getByText('common.stepper.next')); // dates -> attribution
+    fireEvent.press(getByTestId('poster-submit')); // submit
 
     await waitFor(() =>
       expect(createFestivalPoster).toHaveBeenCalledWith(
@@ -57,10 +63,12 @@ describe('<FestivalPostersManager>', () => {
 
   it('an admin creates the poster the same way', async () => {
     mockCaps.mockReturnValue({ canManage: true, canApprove: true, uid: 'boss', loading: false });
-    const { getByTestId, getByLabelText } = render(<FestivalPostersManager villageId="m1" />);
+    const { getByTestId, getByLabelText, getByText } = render(<FestivalPostersManager villageId="m1" />);
     fireEvent.press(getByLabelText('village.festivalPosters.form.addImage'));
     await waitFor(() => expect(mockPick).toHaveBeenCalled());
     fireEvent.changeText(getByTestId('poster-year-input'), '2027');
+    fireEvent.press(getByText('common.stepper.next'));
+    fireEvent.press(getByText('common.stepper.next'));
     fireEvent.press(getByTestId('poster-submit'));
 
     await waitFor(() =>

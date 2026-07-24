@@ -28,7 +28,7 @@ import { getEventLink } from '@cultuvilla/shared/services/deepLinkService';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
-import { buildDisplayName } from '@cultuvilla/shared/models/person/PersonDataModel';
+import { buildNameWithNickname } from '@cultuvilla/shared/models/person/PersonDataModel';
 import { formatDate, buildGoogleCalendarUrl } from '@cultuvilla/shared/utils';
 import { useT } from '../../lib/i18n';
 import type { EventData } from '@cultuvilla/shared/models/event/EventDataModel';
@@ -76,7 +76,7 @@ export default function EventDetailScreen() {
     });
   }, [event?.id]);
 
-  const personName = person ? buildDisplayName(person) : '';
+  const personName = person ? buildNameWithNickname(person) : '';
 
   const openInMaps = () => {
     const c = event?.location?.coordinates;

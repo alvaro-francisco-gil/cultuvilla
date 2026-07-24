@@ -18,6 +18,10 @@ jest.mock('../../../../lib/images', () => ({ pickImageAsBlob: jest.fn() }));
 jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({ useEntityCapabilities: jest.fn() }));
 jest.mock('../../OrganizerPicker', () => ({ OrganizerPicker: () => null }));
+jest.mock('react-native-safe-area-context', () => ({
+  ...jest.requireActual('react-native-safe-area-context'),
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
 
 const mockCaps = useEntityCapabilities as jest.Mock;
 const mockPick = pickImageAsBlob as jest.Mock;
@@ -32,9 +36,10 @@ beforeEach(() => {
 
 describe('<PlacesManager>', () => {
   it('any member submitting the form creates the place directly (default kind, optimistic)', async () => {
-    const { getByTestId } = render(<PlacesManager villageId="m1" />);
+    const { getByTestId, getByText } = render(<PlacesManager villageId="m1" />);
     fireEvent.changeText(getByTestId('place-name-input'), 'Fuente');
-    fireEvent.press(getByTestId('place-submit'));
+    fireEvent.press(getByText('common.stepper.next')); // basics -> attribution
+    fireEvent.press(getByTestId('place-submit')); // submit
     await waitFor(() =>
       expect(createPlace).toHaveBeenCalledWith(
         'm1',
@@ -46,8 +51,9 @@ describe('<PlacesManager>', () => {
 
   it('an admin creates the place the same way', async () => {
     mockCaps.mockReturnValue({ canManage: true, canApprove: true, uid: 'boss', loading: false });
-    const { getByTestId } = render(<PlacesManager villageId="m1" />);
+    const { getByTestId, getByText } = render(<PlacesManager villageId="m1" />);
     fireEvent.changeText(getByTestId('place-name-input'), 'Iglesia');
+    fireEvent.press(getByText('common.stepper.next'));
     fireEvent.press(getByTestId('place-submit'));
     await waitFor(() =>
       expect(createPlace).toHaveBeenCalledWith(
@@ -59,10 +65,11 @@ describe('<PlacesManager>', () => {
   });
 
   it('uploads a picked image to the minted place id and includes it in the create payload', async () => {
-    const { getByTestId, getByLabelText } = render(<PlacesManager villageId="m1" />);
+    const { getByTestId, getByLabelText, getByText } = render(<PlacesManager villageId="m1" />);
     fireEvent.press(getByLabelText('village.admin.places.addImage'));
     await waitFor(() => expect(mockPick).toHaveBeenCalled());
     fireEvent.changeText(getByTestId('place-name-input'), 'Fuente');
+    fireEvent.press(getByText('common.stepper.next'));
     fireEvent.press(getByTestId('place-submit'));
 
     expect(uploadPlaceImage).toHaveBeenCalledWith('m1', 'new-id', stubImage);

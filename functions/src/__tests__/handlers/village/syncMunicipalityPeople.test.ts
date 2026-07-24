@@ -8,10 +8,12 @@ const ft = functionsTestFactory({ projectId: process.env.GCLOUD_PROJECT || 'cult
 const wrapped = ft.wrap(syncMunicipalityPeople);
 
 interface Link { municipalityId: string; barrioId: string | null }
-interface Person { givenName: string; middleNames: string[]; firstSurname: string | null; secondSurname: string | null; nickname: string | null; municipalityLinks: Link[]; photoURL: string | null; userId: string | null }
+interface PartialDate { year: number | null; month: number | null; day: number | null }
+interface BurialPlace { municipalityId: string; placeId: string }
+interface Person { givenName: string; middleNames: string[]; firstSurname: string | null; secondSurname: string | null; nickname: string | null; municipalityLinks: Link[]; photoURL: string | null; userId: string | null; deathDate: PartialDate | null; burialPlace: BurialPlace | null }
 
 function person(overrides: Partial<Person> = {}): Person {
-  return { givenName: 'Álvaro', middleNames: [], firstSurname: 'García', secondSurname: null, nickname: null, municipalityLinks: [], photoURL: null, userId: null, ...overrides };
+  return { givenName: 'Álvaro', middleNames: [], firstSurname: 'García', secondSurname: null, nickname: null, municipalityLinks: [], photoURL: null, userId: null, deathDate: null, burialPlace: null, ...overrides };
 }
 
 async function fire(before: Person | null, after: Person | null, personId = 'p1'): Promise<void> {
@@ -52,6 +54,42 @@ describe('syncMunicipalityPeople', () => {
   it('removes all directory rows when the person is deleted', async () => {
     await admin.firestore().doc('municipalityPeople/m1_p1').set({ municipalityId: 'm1' });
     await fire(person({ municipalityLinks: [{ municipalityId: 'm1', barrioId: null }] }), null);
+    expect((await admin.firestore().doc('municipalityPeople/m1_p1').get()).exists).toBe(false);
+  });
+
+  it('does not create a directory row for a deceased persona (death date set)', async () => {
+    await fire(
+      null,
+      person({
+        municipalityLinks: [{ municipalityId: 'm1', barrioId: null }],
+        deathDate: { year: 2020, month: null, day: null },
+      }),
+    );
+    expect((await admin.firestore().doc('municipalityPeople/m1_p1').get()).exists).toBe(false);
+  });
+
+  it('does not create a directory row for a persona buried in a cemetery (no death date)', async () => {
+    await fire(
+      null,
+      person({
+        municipalityLinks: [{ municipalityId: 'm1', barrioId: null }],
+        burialPlace: { municipalityId: 'm1', placeId: 'cem1' },
+      }),
+    );
+    expect((await admin.firestore().doc('municipalityPeople/m1_p1').get()).exists).toBe(false);
+  });
+
+  it('removes the directory row when a living resident becomes deceased', async () => {
+    await fire(null, person({ municipalityLinks: [{ municipalityId: 'm1', barrioId: null }] }));
+    expect((await admin.firestore().doc('municipalityPeople/m1_p1').get()).exists).toBe(true);
+
+    await fire(
+      person({ municipalityLinks: [{ municipalityId: 'm1', barrioId: null }] }),
+      person({
+        municipalityLinks: [{ municipalityId: 'm1', barrioId: null }],
+        deathDate: { year: 2021, month: 3, day: null },
+      }),
+    );
     expect((await admin.firestore().doc('municipalityPeople/m1_p1').get()).exists).toBe(false);
   });
 });

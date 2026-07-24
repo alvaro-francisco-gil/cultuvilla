@@ -10,7 +10,7 @@ import {
   registerToEvent,
 } from '@cultuvilla/shared/services/registrationService';
 import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
-import { buildShortName, type PersonData } from '@cultuvilla/shared/models/person';
+import { buildNameWithNickname, type PersonData } from '@cultuvilla/shared/models/person';
 import { useT } from '../../lib/i18n';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
 import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
@@ -89,7 +89,7 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
     { id: personId, name, status: registrations.get(personId)?.status },
     ...dependents.map((d) => ({
       id: d.id,
-      name: buildShortName(d),
+      name: buildNameWithNickname(d),
       status: registrations.get(d.id)?.status,
     })),
   ];

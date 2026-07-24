@@ -219,6 +219,7 @@ When changing the shape of data already in Firestore, surface the migration expl
 
 - Note the affected docs and field(s) in the commit body and the PR description.
 - Add a backfill script under `scripts/` when the change can't be expressed as a Cloud Function trigger.
+- **Mark it in the CHANGELOG so beta/prod don't forget it.** When a change needs a backfill run against an env, put a `**Migration:**` marker inline in that `[Unreleased]` CHANGELOG entry, naming the script (e.g. `**Migration:** existing rows are purged by re-running \`scripts/backfill-municipality-people.mjs\` (per env)`). This marker is the single source of truth for "a backfill is pending": the `prepare-release` skill greps the stamped version block for `**Migration:**` and emits a per-env backfill checklist into the `develop → beta` / `beta → main` promotion PRs. Code deploys automatically on promotion; a backfill does not — the marker is what carries it across.
 - Don't leave dual-read code, shim re-exports, or `// removed: …` comments. Pairs with the `### Delete > deprecate` rule above.
 - If the change breaks older store clients, raise `config/appVersion.minSupported` to the fixed version at release time (see *Versioning & releases*).
 
@@ -230,7 +231,8 @@ Reads route through a **strict** Zod converter ([makeConverter](packages/shared/
 
 - **Dev backfill is autonomous — no confirmation needed.** Dev (`villa-events`) is safe to mutate; an agent implementing a feature may write and run the backfill script directly. Beta/prod stay off-limits (CI / explicit user instruction only — see `firebase-admin-dev` skill).
 - Write the backfill as a one-off, idempotent `scripts/backfill-<thing>.mjs` (mirror `scripts/backfill-municipality-namelower.mjs`): project-id guard, only patch docs missing the field, set the same default the model builder uses.
-- Verify with **`pnpm check:dev-conformance`** ([scripts/check-dev-conformance.mjs](scripts/check-dev-conformance.mjs)) — it walks every dev collection through its converter and reports nonconforming docs. Run it before and after the backfill. It needs dev credentials, so it is **not** part of the `pnpm check` CI gate; run it manually (or wire it into a credentialed job) after schema changes.
+- Verify with **`pnpm check:dev-conformance`** ([scripts/check-dev-conformance.mjs](scripts/check-dev-conformance.mjs)) — it walks every dev collection through its converter and reports nonconforming docs. Run it before and after the backfill. It needs credentials, so it is **not** part of the `pnpm check` CI gate; run it manually against dev after schema changes.
+- **Beta/prod are gated automatically.** Every `develop → beta` and `beta → main` deploy runs this same check against the target env's live data (via the WIF service account) *before* any `firebase deploy` — a schema promoted without its backfill fails the deploy instead of shipping a converter crash. See the "Conformance gate" step in [.github/workflows/deploy-firebase.yml](.github/workflows/deploy-firebase.yml); the wiring is locked in by [packages/shared/test/ci/conformanceGate.test.ts](packages/shared/test/ci/conformanceGate.test.ts). So the practical rule is: backfill the target env before promoting, or the promotion's deploy will block.
 
 ### Comments
 

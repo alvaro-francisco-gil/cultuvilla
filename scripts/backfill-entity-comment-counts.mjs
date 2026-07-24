@@ -30,43 +30,15 @@
 import admin from 'firebase-admin';
 import { initAdminForEnv } from './lib/env-credentials.mjs';
 import { parseEnvConfirm } from './lib/env-confirm.mjs';
+import { backfillCollection } from './lib/backfill.mjs';
 
 const { projectId } = initAdminForEnv(parseEnvConfirm());
 const db = admin.firestore();
-
-function needsPatch(data) {
-  return data.commentCount === undefined;
-}
 
 function patchFor(data) {
   const patch = {};
   if (data.commentCount === undefined) patch.commentCount = 0;
   return patch;
-}
-
-/** Backfill a flat collection of docs missing the fields. Returns { total, patched }. */
-async function backfillCollection(label, collectionRef) {
-  const snap = await collectionRef.get();
-  let patched = 0;
-  let batch = db.batch();
-  let inBatch = 0;
-
-  for (const docSnap of snap.docs) {
-    const data = docSnap.data();
-    if (!needsPatch(data)) continue;
-    batch.update(docSnap.ref, patchFor(data));
-    patched++;
-    inBatch++;
-    if (inBatch >= 400) {
-      await batch.commit();
-      batch = db.batch();
-      inBatch = 0;
-    }
-  }
-  if (inBatch > 0) await batch.commit();
-
-  console.log(`  ${label}: ${snap.size} docs — patched ${patched}, already conformant ${snap.size - patched}`);
-  return { total: snap.size, patched };
 }
 
 async function main() {
@@ -75,7 +47,7 @@ async function main() {
   let totalPatched = 0;
 
   for (const name of ['events', 'organizations', 'festivalPosters']) {
-    const { patched } = await backfillCollection(name, db.collection(name));
+    const { patched } = await backfillCollection(db, name, db.collection(name), patchFor);
     totalPatched += patched;
   }
 
@@ -89,15 +61,19 @@ async function main() {
 
   for (const muniDoc of municipalitiesSnap.docs) {
     const places = await backfillCollection(
+      db,
       `municipalities/${muniDoc.id}/places`,
       muniDoc.ref.collection('places'),
+      patchFor,
     );
     placesTotal += places.total;
     placesPatched += places.patched;
 
     const barrios = await backfillCollection(
+      db,
       `municipalities/${muniDoc.id}/barrios`,
       muniDoc.ref.collection('barrios'),
+      patchFor,
     );
     barriosTotal += barrios.total;
     barriosPatched += barrios.patched;

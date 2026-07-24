@@ -31,6 +31,7 @@ export default defineConfig({
       'test/design-system/**/*.test.ts',
       'test/utils/**/*.test.ts',
       'test/validation/**/*.test.ts',
+      'test/ci/**/*.test.ts',
     ],
     retry: Number.isFinite(RETRY) && RETRY > 0 ? RETRY : 0,
     // Report-only (D4 in docs/plans/ongoing/testing-enhancement.md): coverage is

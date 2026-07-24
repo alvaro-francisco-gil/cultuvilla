@@ -45,3 +45,24 @@ describe('ProposableForm images', () => {
     expect(queryByLabelText('add-photo')).toBeNull();
   });
 });
+
+describe('ProposableForm submit button', () => {
+  it('omits the submit button when hideSubmit is set', () => {
+    const { queryByText } = render(
+      <ProposableForm
+        images={[]}
+        onAddImage={() => {}}
+        onRemoveImage={() => {}}
+        name="Peña"
+        onChangeName={() => {}}
+        nameLabel="name"
+        submitLabel="save"
+        onSubmit={() => {}}
+        saving={false}
+        disabled={false}
+        hideSubmit
+      />,
+    );
+    expect(queryByText('save')).toBeNull();
+  });
+});

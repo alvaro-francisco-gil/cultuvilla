@@ -2,6 +2,8 @@ import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions/v2';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { municipalityBarrioDoc } from '@cultuvilla/shared/firebase/refs/admin';
+import { isDeceased } from '@cultuvilla/shared/models';
+import type { BurialPlace, PartialDate } from '@cultuvilla/shared/models';
 import { isNotFound } from '../interaction/syncEntityInteractionCounts';
 
 const db = getFirestore();
@@ -9,6 +11,18 @@ const db = getFirestore();
 interface ResidenceLink {
   municipalityId: string;
   barrioId: string | null;
+}
+
+// A deceased persona belongs to the cemetery, not the barrio resident count.
+// Zeroing their barrio set on each side of the diff means they never add to a
+// count, and a living resident who dies is decremented out of it.
+function residentBarrioKeys(data: Record<string, unknown> | undefined): Map<string, ResidenceLink> {
+  if (!data) return new Map<string, ResidenceLink>();
+  const deceased = isDeceased({
+    deathDate: (data['deathDate'] ?? null) as PartialDate | null,
+    burialPlace: (data['burialPlace'] ?? null) as BurialPlace | null,
+  });
+  return deceased ? new Map<string, ResidenceLink>() : barrioKeys(data['municipalityLinks']);
 }
 
 // A barrio is identified across municipalities by (municipalityId, barrioId).
@@ -46,8 +60,8 @@ export const syncBarrioResidentCount = onDocumentWritten(
   { document: 'persons/{personId}', region: 'us-central1' },
   async (event) => {
     const handler = 'syncBarrioResidentCount';
-    const before = barrioKeys(event.data?.before.data()?.['municipalityLinks']);
-    const after = barrioKeys(event.data?.after.data()?.['municipalityLinks']);
+    const before = residentBarrioKeys(event.data?.before.data());
+    const after = residentBarrioKeys(event.data?.after.data());
 
     const deltas = new Map<string, { link: ResidenceLink; delta: number }>();
     for (const [key, link] of after) {
