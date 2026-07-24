@@ -1,21 +1,33 @@
 #!/usr/bin/env node
 /**
- * Backfills the public contributor-credit arrays on places and festival posters.
+ * backfill-entity-contributors.mjs
  *
- * Dev only: strict converters require both arrays on every document. Existing
- * records credit their proposer when present, otherwise use empty arrays.
- * Re-running is safe: only missing fields are patched.
+ * Backfills the public contributor-credit arrays on places and festival posters.
+ * Strict converters require both arrays on every document; existing records
+ * credit their proposer when present, otherwise use empty arrays.
+ *
+ * USAGE
+ *   node scripts/backfill-entity-contributors.mjs                 (dev dry run)
+ *   node scripts/backfill-entity-contributors.mjs --apply         (dev writes)
+ *   env -u GOOGLE_APPLICATION_CREDENTIALS \
+ *     node scripts/backfill-entity-contributors.mjs --env=beta --confirm --apply
+ *
+ * Credentials resolve via initAdminForEnv (see lib/env-credentials.mjs). Dev is
+ * autonomous; beta/prod require --confirm (and the stored ADC — unset
+ * GOOGLE_APPLICATION_CREDENTIALS so a dev key can't hijack the target project).
+ * `--apply` still gates the actual write on every env (dry run without it).
+ *
+ * Idempotent: only patches documents missing either array.
  */
 
 import admin from 'firebase-admin';
 import { initAdminForEnv } from './lib/env-credentials.mjs';
+import { parseEnvConfirm } from './lib/env-confirm.mjs';
 
-const { projectId } = initAdminForEnv('dev');
-if (projectId !== 'villa-events') {
-  throw new Error(`Refusing to backfill ${projectId}; this script is dev only.`);
-}
-
+const { projectId } = initAdminForEnv(parseEnvConfirm());
 const db = admin.firestore();
+
+const APPLY = process.argv.includes('--apply');
 
 function missingContributorPatch(data) {
   const patch = {};
@@ -33,21 +45,23 @@ async function backfill(collectionName, snap) {
   for (const docSnap of snap.docs) {
     const patch = missingContributorPatch(docSnap.data());
     if (Object.keys(patch).length === 0) continue;
-    batch.update(docSnap.ref, patch);
     patched += 1;
     batchSize += 1;
+    if (APPLY) batch.update(docSnap.ref, patch);
     if (batchSize === 400) {
-      await batch.commit();
+      if (APPLY) await batch.commit();
       batch = db.batch();
       batchSize = 0;
     }
   }
-  if (batchSize > 0) await batch.commit();
-  console.log(`${collectionName}: ${snap.size} docs — patched ${patched}, already conformant ${snap.size - patched}`);
+  if (APPLY && batchSize > 0) await batch.commit();
+  console.log(
+    `${collectionName}: ${snap.size} docs — ${APPLY ? 'patched' : 'would patch'} ${patched}, already conformant ${snap.size - patched}`,
+  );
 }
 
 async function main() {
-  console.log(`Backfilling entity contributor credits against ${projectId}`);
+  console.log(`${APPLY ? 'Backfilling' : 'DRY-RUN: checking'} entity contributor credits against ${projectId}`);
   await backfill('festivalPosters', await db.collection('festivalPosters').get());
   await backfill('places', await db.collectionGroup('places').get());
 }
