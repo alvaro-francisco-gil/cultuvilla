@@ -44,6 +44,9 @@ export interface ProposableFormProps {
   onSubmit: () => void;
   saving: boolean;
   disabled: boolean;
+  /** Omit the built-in submit button — used when a parent Stepper owns the
+   * primary action instead (see PlacesManager). */
+  hideSubmit?: boolean;
 }
 
 /**
@@ -82,6 +85,7 @@ export function ProposableForm({
   onSubmit,
   saving,
   disabled,
+  hideSubmit,
 }: ProposableFormProps) {
   const { t } = useT();
   const showDescription = onChangeDescription !== undefined;
@@ -141,9 +145,11 @@ export function ProposableForm({
 
       {footer}
 
-      <Button testID={submitTestID} onPress={onSubmit} loading={saving} disabled={disabled}>
-        {submitLabel}
-      </Button>
+      {hideSubmit ? null : (
+        <Button testID={submitTestID} onPress={onSubmit} loading={saving} disabled={disabled}>
+          {submitLabel}
+        </Button>
+      )}
     </VStack>
   );
 }
