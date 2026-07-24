@@ -18,8 +18,16 @@ interface Link {
   barrioId: string | null;
 }
 
-function person(links: Link[]): { municipalityLinks: Link[] } {
-  return { municipalityLinks: links };
+interface PartialDate { year: number | null; month: number | null; day: number | null }
+interface BurialPlace { municipalityId: string; placeId: string }
+interface PersonDoc {
+  municipalityLinks: Link[];
+  deathDate?: PartialDate | null;
+  burialPlace?: BurialPlace | null;
+}
+
+function person(links: Link[], death: Pick<PersonDoc, 'deathDate' | 'burialPlace'> = {}): PersonDoc {
+  return { municipalityLinks: links, ...death };
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -27,8 +35,8 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 async function firePersonTrigger(
-  before: { municipalityLinks: Link[] } | null,
-  after: { municipalityLinks: Link[] } | null,
+  before: PersonDoc | null,
+  after: PersonDoc | null,
   personId = 'person-1',
 ): Promise<void> {
   const path = `persons/${personId}`;
@@ -114,5 +122,35 @@ describe('syncBarrioResidentCount', () => {
     await expect(
       firePersonTrigger(person([]), person([link('missing')])),
     ).resolves.not.toThrow();
+  });
+
+  it('does not count a persona who is created already deceased (death date)', async () => {
+    await seedBarrio('b1');
+    await firePersonTrigger(
+      person([]),
+      person([link('b1')], { deathDate: { year: 2020, month: null, day: null } }),
+    );
+
+    expect(await residentCount('b1')).toBe(0);
+  });
+
+  it('does not count a persona buried in a cemetery (no death date)', async () => {
+    await seedBarrio('b1');
+    await firePersonTrigger(
+      person([]),
+      person([link('b1')], { burialPlace: { municipalityId: MUNICIPALITY_ID, placeId: 'cem1' } }),
+    );
+
+    expect(await residentCount('b1')).toBe(0);
+  });
+
+  it('decrements the barrio when a living resident becomes deceased', async () => {
+    await seedBarrio('b1', { residentCount: 3 });
+    await firePersonTrigger(
+      person([link('b1')]),
+      person([link('b1')], { deathDate: { year: 2021, month: 3, day: null } }),
+    );
+
+    expect(await residentCount('b1')).toBe(2);
   });
 });
