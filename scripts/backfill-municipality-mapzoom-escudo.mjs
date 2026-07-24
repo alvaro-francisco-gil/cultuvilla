@@ -8,66 +8,38 @@
  * with `null` (the value the model builder defaults to).
  *
  * USAGE
- *   GOOGLE_APPLICATION_CREDENTIALS=... node scripts/backfill-municipality-mapzoom-escudo.mjs
+ *   node scripts/backfill-municipality-mapzoom-escudo.mjs                 (dev dry run)
+ *   node scripts/backfill-municipality-mapzoom-escudo.mjs --apply         (dev writes)
+ *   env -u GOOGLE_APPLICATION_CREDENTIALS \
+ *     node scripts/backfill-municipality-mapzoom-escudo.mjs --env=beta --confirm --apply
+ *
+ * Credentials resolve via initAdminForEnv (see lib/env-credentials.mjs). Dev is
+ * autonomous; beta/prod require --confirm (and the stored ADC — unset
+ * GOOGLE_APPLICATION_CREDENTIALS so a dev key can't hijack the target project).
+ * `--apply` still gates the actual write on every env (dry run without it).
  *
  * Idempotent: only patches docs still missing a key.
  */
 
+import { initAdminForEnv } from './lib/env-credentials.mjs';
+import { parseEnvConfirm } from './lib/env-confirm.mjs';
+import { backfillCollection } from './lib/backfill.mjs';
 import admin from 'firebase-admin';
 
-const PROJECT_ID = 'villa-events';
-
-if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  console.error('GOOGLE_APPLICATION_CREDENTIALS is not set.');
-  process.exit(1);
-}
-
-admin.initializeApp({ projectId: PROJECT_ID });
+const { projectId } = initAdminForEnv(parseEnvConfirm());
 const db = admin.firestore();
+const APPLY = process.argv.includes('--apply');
 
-if (admin.app().options.projectId !== PROJECT_ID) {
-  console.error(`Refusing to run against ${admin.app().options.projectId} — dev only.`);
-  process.exit(1);
+function patchFor(data) {
+  const patch = {};
+  if (!('mapZoom' in data)) patch.mapZoom = null;
+  if (!('escudoManualUrl' in data)) patch.escudoManualUrl = null;
+  return patch;
 }
 
 async function main() {
-  const snap = await db.collection('municipalities').get();
-  console.log(`Loaded ${snap.size} municipality docs.`);
-
-  let needsPatch = 0;
-  let alreadyCorrect = 0;
-  let batch = db.batch();
-  let inBatch = 0;
-  let committed = 0;
-
-  for (const docSnap of snap.docs) {
-    const data = docSnap.data();
-    const patch = {};
-    if (!('mapZoom' in data)) patch.mapZoom = null;
-    if (!('escudoManualUrl' in data)) patch.escudoManualUrl = null;
-    if (Object.keys(patch).length === 0) {
-      alreadyCorrect++;
-      continue;
-    }
-    batch.update(docSnap.ref, patch);
-    needsPatch++;
-    inBatch++;
-    if (inBatch >= 400) {
-      await batch.commit();
-      committed += inBatch;
-      console.log(`  Committed ${committed}/${needsPatch} patches so far...`);
-      batch = db.batch();
-      inBatch = 0;
-    }
-  }
-  if (inBatch > 0) {
-    await batch.commit();
-    committed += inBatch;
-  }
-
-  console.log(`\nDone.`);
-  console.log(`  Already correct: ${alreadyCorrect}`);
-  console.log(`  Patched:         ${needsPatch}`);
+  console.log(`${APPLY ? 'Backfilling' : 'DRY-RUN: checking'} municipalities.mapZoom/escudoManualUrl against ${projectId}`);
+  await backfillCollection(db, 'municipalities', db.collection('municipalities'), patchFor, { apply: APPLY });
 }
 
 main().catch((err) => {

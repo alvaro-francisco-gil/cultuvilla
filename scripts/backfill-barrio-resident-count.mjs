@@ -27,45 +27,44 @@
 import admin from 'firebase-admin';
 import { initAdminForEnv } from './lib/env-credentials.mjs';
 import { parseEnvConfirm } from './lib/env-confirm.mjs';
+import { backfillCollection, activeMunicipalityDocs } from './lib/backfill.mjs';
 
 const { projectId } = initAdminForEnv(parseEnvConfirm());
 const db = admin.firestore();
+
+async function residentCountFor(municipalityId, barrioId) {
+  const residents = await db
+    .collection('persons')
+    .where('municipalityLinks', 'array-contains', { municipalityId, barrioId })
+    .get();
+  // Deceased personas are excluded (see header) — Firestore can't express
+  // this in the aggregation, so we count living docs in JS.
+  return residents.docs.filter((doc) => {
+    const data = doc.data();
+    return data.deathDate == null && data.burialPlace == null;
+  }).length;
+}
 
 async function main() {
   console.log(`Backfilling barrios.residentCount against ${projectId}\n`);
 
   const munis = await db.collection('municipalities').get();
-  const activeMunis = munis.docs.filter((doc) => {
-    try {
-      return doc.data().communityActive === true;
-    } catch {
-      return true; // malformed doc: descend rather than silently skip
-    }
-  });
+  const activeMunis = activeMunicipalityDocs(munis);
   let total = 0;
   let patched = 0;
 
   for (const muni of activeMunis) {
-    const barrios = await muni.ref.collection('barrios').get();
-    for (const barrio of barrios.docs) {
-      total++;
-      const residents = await db
-        .collection('persons')
-        .where('municipalityLinks', 'array-contains', {
-          municipalityId: muni.id,
-          barrioId: barrio.id,
-        })
-        .get();
-      // Deceased personas are excluded (see header) — Firestore can't express
-      // this in the aggregation, so we count living docs in JS.
-      const count = residents.docs.filter((doc) => {
-        const data = doc.data();
-        return data.deathDate == null && data.burialPlace == null;
-      }).length;
-      if (barrio.data().residentCount === count) continue;
-      await barrio.ref.update({ residentCount: count });
-      patched++;
-    }
+    const result = await backfillCollection(
+      db,
+      `municipalities/${muni.id}/barrios`,
+      muni.ref.collection('barrios'),
+      async (data, docSnap) => {
+        const count = await residentCountFor(muni.id, docSnap.id);
+        return data.residentCount === count ? null : { residentCount: count };
+      },
+    );
+    total += result.total;
+    patched += result.patched;
   }
 
   console.log(

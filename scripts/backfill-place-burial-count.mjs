@@ -19,6 +19,7 @@
 import admin from 'firebase-admin';
 import { initAdminForEnv } from './lib/env-credentials.mjs';
 import { parseEnvConfirm } from './lib/env-confirm.mjs';
+import { backfillCollection } from './lib/backfill.mjs';
 
 const { projectId } = initAdminForEnv(parseEnvConfirm());
 const db = admin.firestore();
@@ -47,34 +48,12 @@ async function main() {
   const { counts, personTotal } = await computeBurialCounts();
   console.log(`  persons: ${personTotal} docs — ${counts.size} cemetery refs with burials`);
 
-  const placesSnap = await db.collectionGroup('places').get();
-  console.log(`  places: ${placesSnap.size} docs`);
-
-  let placesTotal = 0;
-  let patched = 0;
-  let batch = db.batch();
-  let inBatch = 0;
-
-  for (const placeDoc of placesSnap.docs) {
-    const municipalityDoc = placeDoc.ref.parent.parent;
-    if (!municipalityDoc) continue;
-    placesTotal++;
-    const data = placeDoc.data();
-    const want = data.kind === 'cemetery' ? (counts.get(countKey(municipalityDoc.id, placeDoc.id)) ?? 0) : 0;
-    if (data.burialCount === want) continue;
-    batch.update(placeDoc.ref, { burialCount: want });
-    patched++;
-    inBatch++;
-    if (inBatch >= 400) {
-      await batch.commit();
-      batch = db.batch();
-      inBatch = 0;
-    }
-  }
-  if (inBatch > 0) await batch.commit();
-
-  console.log(`\nDone.`);
-  console.log(`  places: ${placesTotal} docs — patched ${patched}, already conformant ${placesTotal - patched}`);
+  await backfillCollection(db, 'places', db.collectionGroup('places'), (data, docSnap) => {
+    const municipalityDoc = docSnap.ref.parent.parent;
+    if (!municipalityDoc) return null;
+    const want = data.kind === 'cemetery' ? (counts.get(countKey(municipalityDoc.id, docSnap.id)) ?? 0) : 0;
+    return data.burialCount === want ? null : { burialCount: want };
+  });
 }
 
 main().catch((err) => {

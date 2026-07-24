@@ -23,6 +23,7 @@
 import admin from 'firebase-admin';
 import { initAdminForEnv } from './lib/env-credentials.mjs';
 import { parseEnvConfirm } from './lib/env-confirm.mjs';
+import { backfillCollection } from './lib/backfill.mjs';
 
 const { projectId } = initAdminForEnv(parseEnvConfirm());
 const db = admin.firestore();
@@ -37,33 +38,10 @@ function missingContributorPatch(data) {
   return patch;
 }
 
-async function backfill(collectionName, snap) {
-  let patched = 0;
-  let batch = db.batch();
-  let batchSize = 0;
-
-  for (const docSnap of snap.docs) {
-    const patch = missingContributorPatch(docSnap.data());
-    if (Object.keys(patch).length === 0) continue;
-    patched += 1;
-    batchSize += 1;
-    if (APPLY) batch.update(docSnap.ref, patch);
-    if (batchSize === 400) {
-      if (APPLY) await batch.commit();
-      batch = db.batch();
-      batchSize = 0;
-    }
-  }
-  if (APPLY && batchSize > 0) await batch.commit();
-  console.log(
-    `${collectionName}: ${snap.size} docs — ${APPLY ? 'patched' : 'would patch'} ${patched}, already conformant ${snap.size - patched}`,
-  );
-}
-
 async function main() {
   console.log(`${APPLY ? 'Backfilling' : 'DRY-RUN: checking'} entity contributor credits against ${projectId}`);
-  await backfill('festivalPosters', await db.collection('festivalPosters').get());
-  await backfill('places', await db.collectionGroup('places').get());
+  await backfillCollection(db, 'festivalPosters', db.collection('festivalPosters'), missingContributorPatch, { apply: APPLY });
+  await backfillCollection(db, 'places', db.collectionGroup('places'), missingContributorPatch, { apply: APPLY });
 }
 
 main().catch((error) => {
