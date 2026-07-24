@@ -1,15 +1,28 @@
 import { useState } from 'react';
+import { ScrollView } from 'react-native';
 import {
   createPlace, newPlaceId,
 } from '@cultuvilla/shared/services/municipalityService';
 import { deleteImageByURL, uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
 import { PLACE_KINDS, type PlaceKind } from '@cultuvilla/shared/models/municipality';
-import { VStack } from '../../primitives';
+import { Stepper, type StepConfig } from '../Stepper';
 import { pickImageAsBlob } from '../../../lib/images';
 import { useT } from '../../../lib/i18n';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { ProposableForm } from './ProposableForm';
 import { OrganizerPicker } from '../OrganizerPicker';
+
+function stepBody(children: React.ReactNode) {
+  return (
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{ padding: 16, gap: 16 }}
+      keyboardShouldPersistTaps="handled"
+    >
+      {children}
+    </ScrollView>
+  );
+}
 
 /**
  * "Añadir lugar" form. Any member creates directly and the place is visible
@@ -82,47 +95,72 @@ export function PlacesManager({
     }
   }
 
+  const steps: StepConfig[] = [
+    {
+      key: 'basics',
+      title: t('village.admin.places.stepBasics'),
+      icon: 'create-outline',
+      validate: () => (name.trim() ? [] : ['name']),
+      render: () =>
+        stepBody(
+          <ProposableForm
+            images={images}
+            onAddImage={addImage}
+            onRemoveImage={removeImage}
+            addingImage={addingImage}
+            imageLabels={{
+              add: t('village.admin.places.addImage'),
+              remove: t('village.admin.places.removeImage'),
+            }}
+            name={name}
+            onChangeName={setName}
+            nameLabel={t('village.admin.places.name')}
+            nameTestID="place-name-input"
+            description={description}
+            onChangeDescription={setDescription}
+            descriptionLabel={t('village.admin.places.description')}
+            typeLabel={t('village.admin.places.kindLabel')}
+            typeOptions={PLACE_KINDS.map((k) => ({ value: k, label: kindLabel(k) }))}
+            typeValue={kind}
+            onChangeType={(v) => setKind(v as PlaceKind)}
+            submitLabel=""
+            onSubmit={() => {}}
+            saving={false}
+            disabled={false}
+            hideSubmit
+          />,
+        ),
+    },
+    {
+      key: 'attribution',
+      title: t('village.admin.places.stepAttribution'),
+      icon: 'people-outline',
+      render: () =>
+        stepBody(
+          uid ? (
+            <OrganizerPicker
+              municipalityId={villageId}
+              selectedUserIds={contributorUserIds.includes(uid) ? contributorUserIds : [uid, ...contributorUserIds]}
+              selectedOrgIds={contributorOrgIds}
+              lockedUserId={uid}
+              onChangeUsers={setContributorUserIds}
+              onChangeOrgs={setContributorOrgIds}
+              peopleLabel={t('village.contributors.peopleLabel')}
+              addPersonLabel={t('village.contributors.addPerson')}
+              selectPeopleTitle={t('village.contributors.selectPeople')}
+            />
+          ) : null,
+        ),
+    },
+  ];
+
   return (
-    <VStack gap={3} className="p-4">
-      {uid ? (
-        <OrganizerPicker
-          municipalityId={villageId}
-          selectedUserIds={contributorUserIds.includes(uid) ? contributorUserIds : [uid, ...contributorUserIds]}
-          selectedOrgIds={contributorOrgIds}
-          lockedUserId={uid}
-          onChangeUsers={setContributorUserIds}
-          onChangeOrgs={setContributorOrgIds}
-          peopleLabel={t('village.contributors.peopleLabel')}
-          addPersonLabel={t('village.contributors.addPerson')}
-          selectPeopleTitle={t('village.contributors.selectPeople')}
-        />
-      ) : null}
-      <ProposableForm
-        images={images}
-        onAddImage={addImage}
-        onRemoveImage={removeImage}
-        addingImage={addingImage}
-        imageLabels={{
-          add: t('village.admin.places.addImage'),
-          remove: t('village.admin.places.removeImage'),
-        }}
-        name={name}
-        onChangeName={setName}
-        nameLabel={t('village.admin.places.name')}
-        nameTestID="place-name-input"
-        description={description}
-        onChangeDescription={setDescription}
-        descriptionLabel={t('village.admin.places.description')}
-        typeLabel={t('village.admin.places.kindLabel')}
-        typeOptions={PLACE_KINDS.map((k) => ({ value: k, label: kindLabel(k) }))}
-        typeValue={kind}
-        onChangeType={(v) => setKind(v as PlaceKind)}
-        submitLabel={t('village.admin.places.add')}
-        submitTestID="place-submit"
-        onSubmit={submit}
-        saving={saving}
-        disabled={!name.trim()}
-      />
-    </VStack>
+    <Stepper
+      steps={steps}
+      onComplete={() => void submit()}
+      submitLabel={t('village.admin.places.add')}
+      loading={saving}
+      primaryTestID="place-submit"
+    />
   );
 }
