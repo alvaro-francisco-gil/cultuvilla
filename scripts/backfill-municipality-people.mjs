@@ -20,6 +20,8 @@
  *
  * Idempotent: reconciles municipalityPeople to exactly match persons'
  * municipalityLinks — writes missing/changed rows, deletes orphaned ones.
+ * Deceased personas (deathDate or burialPlace set) are excluded, so their
+ * stale directory rows are deleted as orphans.
  */
 import admin from 'firebase-admin';
 import { initAdminForEnv } from './lib/env-credentials.mjs';
@@ -55,6 +57,11 @@ async function main() {
   const expected = new Map();
   for (const person of persons.docs) {
     const data = person.data();
+    // Deceased personas belong only in the cemetery, not the living-people
+    // directory. Excluding them here means their stale rows fall into the
+    // orphan-deletion pass below (mirrors the syncMunicipalityPeople trigger).
+    const deceased = data.deathDate != null || data.burialPlace != null;
+    if (deceased) continue;
     const municipalityIds = new Set(
       (Array.isArray(data.municipalityLinks) ? data.municipalityLinks : [])
         .flatMap((link) => (typeof link?.municipalityId === 'string' ? [link.municipalityId] : [])),
