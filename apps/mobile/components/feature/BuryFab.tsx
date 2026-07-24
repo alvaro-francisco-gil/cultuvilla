@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Animated, Pressable as RNPressable, Text } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import type { PartialDate } from '@cultuvilla/shared/models/person';
-import { buildShortName, type PersonData } from '@cultuvilla/shared/models/person';
+import { buildNameWithNickname, type PersonData } from '@cultuvilla/shared/models/person';
 import { getPersonsByCreator, updatePerson } from '@cultuvilla/shared/services/personService';
 import { BuriedSheet, type BuriedPersonaOption } from './BuriedSheet';
 import { useT } from '../../lib/i18n';
@@ -60,7 +60,7 @@ export function BuryFab({ municipalityId, placeId, userId, buriedHereIds, onChan
   const buriedSet = new Set(buriedHereIds);
   const personas: BuriedPersonaOption[] = dependents.map((d) => ({
     id: d.id,
-    name: buildShortName(d),
+    name: buildNameWithNickname(d),
     buriedHere: buriedSet.has(d.id),
   }));
 
