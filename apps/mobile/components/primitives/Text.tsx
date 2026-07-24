@@ -2,7 +2,7 @@ import { Text as RNText, type TextProps as RNTextProps } from 'react-native';
 import type { TypographyVariant } from '@cultuvilla/shared/design-system';
 
 // Tone mirrors apps/web/components/primitives/Text.tsx exactly.
-type Tone = 'primary' | 'muted' | 'onAccent' | 'danger' | 'success';
+type Tone = 'primary' | 'muted' | 'onSubtle' | 'onAccent' | 'danger' | 'success';
 
 export interface TextProps extends Omit<RNTextProps, 'children'> {
   children: React.ReactNode;
@@ -13,6 +13,7 @@ export interface TextProps extends Omit<RNTextProps, 'children'> {
 const TONE_CLASS: Record<Tone, string> = {
   primary: 'text-primary',
   muted: 'text-muted',
+  onSubtle: 'text-on-subtle',
   onAccent: 'text-on-accent',
   danger: 'text-danger',
   success: 'text-success',

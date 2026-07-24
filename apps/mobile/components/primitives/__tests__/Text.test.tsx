@@ -18,6 +18,11 @@ describe('<Text>', () => {
     expect(getByText('quiet').props.className).toMatch(/text-muted/);
   });
 
+  it('applies onSubtle tone class', () => {
+    const { getByText } = render(<Text tone="onSubtle">tinted</Text>);
+    expect(getByText('tinted').props.className).toMatch(/text-on-subtle/);
+  });
+
   it('applies danger tone class', () => {
     const { getByText } = render(<Text tone="danger">error</Text>);
     expect(getByText('error').props.className).toMatch(/text-danger/);

@@ -19,8 +19,8 @@ jest.mock('react-native-safe-area-context', () => ({
 const asMock = <T,>(fn: T) => fn as unknown as jest.Mock;
 
 const personas = [
-  { id: 'own', userId: 'u1', givenName: 'Yo', firstSurname: 'Mismo', nickname: null },
-  { id: 'dep', userId: null, givenName: 'Abuelo', firstSurname: 'Juan', nickname: null },
+  { id: 'own', userId: 'u1', givenName: 'Yo', middleNames: [], firstSurname: 'Mismo', secondSurname: null, nickname: null },
+  { id: 'dep', userId: null, givenName: 'Abuelo', middleNames: [], firstSurname: 'Juan', secondSurname: null, nickname: null },
 ];
 
 describe('BuryFab', () => {
@@ -55,7 +55,7 @@ describe('BuryFab', () => {
     asMock(personService.getPersonsByCreator)
       .mockResolvedValueOnce([]) // initial focus load: zero personas a cargo
       .mockResolvedValueOnce([
-        { id: 'new-dep', userId: null, givenName: 'Nueva', firstSurname: 'Persona', nickname: null },
+        { id: 'new-dep', userId: null, givenName: 'Nueva', middleNames: [], firstSurname: 'Persona', secondSurname: null, nickname: null },
       ]); // focus reload after returning from /person/new
 
     const { getByTestId } = render(

@@ -9,6 +9,10 @@ export interface LinkSheetProps {
   /** Called with the display text (empty string = keep as autolinked raw URL). */
   onSave: (displayText: string) => void;
   onDismiss: () => void;
+  /** Y-offset (px, within the nearest positioned ancestor) to anchor the sheet
+   *  just below — typically the caret's line. Falls back to the screen bottom
+   *  when omitted. */
+  anchorTop?: number;
 }
 
 /**
@@ -16,7 +20,7 @@ export interface LinkSheetProps {
  * a single optional-display-text field with an inline Guardar, and a quiet Omitir.
  * Deliberately small and inset from the edges so it doesn't cover the article.
  */
-export function LinkSheet({ url, onSave, onDismiss }: LinkSheetProps) {
+export function LinkSheet({ url, onSave, onDismiss, anchorTop }: LinkSheetProps) {
   const { t } = useT();
   const [text, setText] = useState('');
 
@@ -27,7 +31,10 @@ export function LinkSheet({ url, onSave, onDismiss }: LinkSheetProps) {
   if (!url) return null;
 
   return (
-    <View className="absolute inset-x-4 bottom-2 rounded-xl border border-subtle bg-surface-elevated px-3 py-2 shadow-md">
+    <View
+      className="absolute inset-x-4 rounded-xl border border-subtle bg-surface-elevated px-3 py-2 shadow-md"
+      style={anchorTop != null ? { top: anchorTop } : { bottom: 8 }}
+    >
       <VStack gap={2}>
         <Text variant="caption" tone="muted" numberOfLines={1}>
           {url}

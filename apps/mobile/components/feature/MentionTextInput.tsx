@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@cultuvilla/shared/design-system';
+import { colors, zIndex } from '@cultuvilla/shared/design-system';
 import { Text, VStack } from '../primitives';
 import { useT } from '../../lib/i18n';
 import {
@@ -49,6 +49,10 @@ const MARK_BUTTON_LABEL: Record<NewsMarkType, string> = {
 // Appended to the styled overlay so its last line still has height when the
 // text ends in a newline — keeps the overlay aligned with the input layer.
 const TRAILING_ANCHOR = String.fromCodePoint(0x200b); // zero-width space
+
+// Vertical gap between the caret's line and the toolbar/link sheet anchored
+// beneath it.
+const ANCHOR_GAP = 6;
 
 const ENTITY_ICON: Record<MentionEntityType, keyof typeof Ionicons.glyphMap> = {
   organization: 'people-outline',
@@ -101,6 +105,13 @@ export function MentionTextInput({
   // suggestion strip (the "keyboard got smaller" bug). After a mention insert we
   // let the caret fall to the end of the new value, which is the common case.
   const [selection, setSelection] = useState({ start: 0, end: 0 });
+  // Height (in px) of the text up to the caret, rendered at the same width as
+  // the real field — i.e. the y-offset of the bottom of the caret's own line.
+  // Lets the toolbar/link sheets anchor next to the selection instead of
+  // always trailing the whole field. Measured via a hidden mirror of the
+  // overlay text since RN's TextInput exposes only character offsets, not
+  // on-screen caret coordinates.
+  const [caretLineTop, setCaretLineTop] = useState(0);
   const [pendingUrl, setPendingUrl] = useState<{ url: string; offset: number; length: number } | null>(
     null,
   );
@@ -199,6 +210,16 @@ export function MentionTextInput({
             })}
             {TRAILING_ANCHOR}
           </Text>
+          <Text
+            testID="caret-line-measurer"
+            pointerEvents="none"
+            className="text-body"
+            style={{ position: 'absolute', width: '100%', opacity: 0 }}
+            onLayout={(e) => setCaretLineTop(e.nativeEvent.layout.height)}
+          >
+            {value.slice(0, selection.start)}
+            {TRAILING_ANCHOR}
+          </Text>
           <TextInput
             value={value}
             onChangeText={handleChangeText}
@@ -229,43 +250,71 @@ export function MentionTextInput({
               onSelectionChange?.(sel.start);
             }}
           />
+          {hasSelection ? (
+            <View
+              testID="format-toolbar"
+              className="flex-row items-center gap-1 rounded-md border border-subtle bg-surface-elevated p-1 shadow-md"
+              style={{ position: 'absolute', top: caretLineTop + ANCHOR_GAP, left: 0, zIndex: zIndex.dropdown }}
+            >
+              {NEWS_MARK_TYPES.map((type) => {
+                const activeMark = isRangeMarked(marks, type, selection.start, selection.end);
+                const pres = markPresentation([type], false);
+                return (
+                  <Pressable
+                    key={type}
+                    onPress={() => applyMarkToSelection(type)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t(`news.compose.format.${type}`)}
+                    accessibilityState={{ selected: activeMark }}
+                    hitSlop={4}
+                    className={`h-8 w-8 items-center justify-center rounded ${activeMark ? 'bg-surface' : ''}`}
+                  >
+                    {/* The label previews its own effect (struck S, italic I, …).
+                        Raw RNText so `text-accent` wins and the decoration style
+                        (underline/strikethrough) actually renders. */}
+                    <RNText className={`text-accent ${pres.className}`} style={pres.style}>
+                      {MARK_BUTTON_LABEL[type]}
+                    </RNText>
+                  </Pressable>
+                );
+              })}
+              <Pressable
+                onPress={openLinkForSelection}
+                accessibilityRole="button"
+                accessibilityLabel={t('news.compose.format.link')}
+                hitSlop={4}
+                className="h-8 w-8 items-center justify-center rounded"
+              >
+                <Ionicons name="link" size={18} color={ACCENT} />
+              </Pressable>
+            </View>
+          ) : null}
+          <LinkSheet
+            anchorTop={caretLineTop + ANCHOR_GAP}
+            url={pendingUrl?.url ?? null}
+            onDismiss={() => setPendingUrl(null)}
+            onSave={(displayText) => {
+              if (pendingUrl && displayText) {
+                const res = applyCustomTextLink(value, mentions, links, pendingUrl, displayText);
+                // The display text replaces the pasted URL, so mark spans shift too.
+                onChange(res.text, res.mentions, res.links, adjustMentions(value, res.text, marks));
+              }
+              setPendingUrl(null);
+            }}
+          />
+          <LinkUrlSheet
+            anchorTop={caretLineTop + ANCHOR_GAP}
+            displayText={linkRange ? value.slice(linkRange.start, linkRange.end) : null}
+            onDismiss={() => setLinkRange(null)}
+            onSave={(url) => {
+              if (linkRange) {
+                onChange(value, mentions, addLinkSpan(links, linkRange.start, linkRange.end, url), marks);
+              }
+              setLinkRange(null);
+            }}
+          />
         </View>
       </View>
-      {hasSelection ? (
-        <View className="flex-row items-center gap-1 self-start rounded-md border border-subtle bg-surface-elevated p-1">
-          {NEWS_MARK_TYPES.map((type) => {
-            const activeMark = isRangeMarked(marks, type, selection.start, selection.end);
-            const pres = markPresentation([type], false);
-            return (
-              <Pressable
-                key={type}
-                onPress={() => applyMarkToSelection(type)}
-                accessibilityRole="button"
-                accessibilityLabel={t(`news.compose.format.${type}`)}
-                accessibilityState={{ selected: activeMark }}
-                hitSlop={4}
-                className={`h-8 w-8 items-center justify-center rounded ${activeMark ? 'bg-surface' : ''}`}
-              >
-                {/* The label previews its own effect (struck S, italic I, …).
-                    Raw RNText so `text-accent` wins and the decoration style
-                    (underline/strikethrough) actually renders. */}
-                <RNText className={`text-accent ${pres.className}`} style={pres.style}>
-                  {MARK_BUTTON_LABEL[type]}
-                </RNText>
-              </Pressable>
-            );
-          })}
-          <Pressable
-            onPress={openLinkForSelection}
-            accessibilityRole="button"
-            accessibilityLabel={t('news.compose.format.link')}
-            hitSlop={4}
-            className="h-8 w-8 items-center justify-center rounded"
-          >
-            <Ionicons name="link" size={18} color={ACCENT} />
-          </Pressable>
-        </View>
-      ) : null}
       {active && suggestions.length > 0 ? (
         <VStack gap={1} className="rounded-md border border-subtle bg-surface-elevated p-1">
           {suggestions.map((c) => (
@@ -287,28 +336,6 @@ export function MentionTextInput({
           ))}
         </VStack>
       ) : null}
-      <LinkSheet
-        url={pendingUrl?.url ?? null}
-        onDismiss={() => setPendingUrl(null)}
-        onSave={(displayText) => {
-          if (pendingUrl && displayText) {
-            const res = applyCustomTextLink(value, mentions, links, pendingUrl, displayText);
-            // The display text replaces the pasted URL, so mark spans shift too.
-            onChange(res.text, res.mentions, res.links, adjustMentions(value, res.text, marks));
-          }
-          setPendingUrl(null);
-        }}
-      />
-      <LinkUrlSheet
-        displayText={linkRange ? value.slice(linkRange.start, linkRange.end) : null}
-        onDismiss={() => setLinkRange(null)}
-        onSave={(url) => {
-          if (linkRange) {
-            onChange(value, mentions, addLinkSpan(links, linkRange.start, linkRange.end, url), marks);
-          }
-          setLinkRange(null);
-        }}
-      />
     </VStack>
   );
 }

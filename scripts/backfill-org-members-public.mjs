@@ -22,31 +22,20 @@
 import admin from 'firebase-admin';
 import { initAdminForEnv } from './lib/env-credentials.mjs';
 import { parseEnvConfirm } from './lib/env-confirm.mjs';
+import { backfillCollection } from './lib/backfill.mjs';
 
 const { projectId } = initAdminForEnv(parseEnvConfirm());
 const db = admin.firestore();
 
 const APPLY = process.argv.includes('--apply');
 
+function patchFor(data) {
+  return data.membersPublic === undefined ? { membersPublic: true } : null;
+}
+
 async function main() {
-  const orgs = await db.collection('organizations').get();
-  console.log(`Backfilling membersPublic against ${projectId}`);
-  console.log(`Loaded ${orgs.size} organization docs.`);
-
-  let patched = 0;
-  let alreadySet = 0;
-
-  for (const org of orgs.docs) {
-    if (org.get('membersPublic') !== undefined) {
-      alreadySet++;
-      continue; // idempotent skip
-    }
-    patched++;
-    if (APPLY) await org.ref.set({ membersPublic: true }, { merge: true });
-  }
-
-  console.log(`\n${APPLY ? 'WROTE' : 'DRY-RUN'}: ${patched} orgs set membersPublic=true`);
-  console.log(`  Already set (skipped): ${alreadySet}`);
+  console.log(`${APPLY ? 'Backfilling' : 'DRY-RUN: checking'} membersPublic against ${projectId}`);
+  await backfillCollection(db, 'organizations', db.collection('organizations'), patchFor, { apply: APPLY });
 }
 
 main().catch((err) => {

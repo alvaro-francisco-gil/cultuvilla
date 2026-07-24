@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import { EntityComments } from './EntityComments';
 import { addComment, deleteComment, getComments } from '@cultuvilla/shared/services/commentsService';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
+import { getUserProfile } from '@cultuvilla/shared/services/userService';
 
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({
   addComment: jest.fn(),
@@ -11,6 +12,9 @@ jest.mock('@cultuvilla/shared/services/commentsService', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/personService', () => ({
   getPersonByUserId: jest.fn(),
+}));
+jest.mock('@cultuvilla/shared/services/userService', () => ({
+  getUserProfile: jest.fn(),
 }));
 let mockUser: { uid: string; email: string; displayName: string | null } | null = {
   uid: 'uid-1',
@@ -45,6 +49,7 @@ jest.mock('expo-router', () => ({
 }));
 
 const getPersonByUserIdMock = getPersonByUserId as jest.Mock;
+const getUserProfileMock = getUserProfile as jest.Mock;
 const getCommentsMock = getComments as jest.Mock;
 const addCommentMock = addComment as jest.Mock;
 const deleteCommentMock = deleteComment as jest.Mock;
@@ -65,6 +70,7 @@ describe('<EntityComments>', () => {
       firstSurname: 'Gil',
       secondSurname: null,
     });
+    getUserProfileMock.mockResolvedValue(null);
   });
 
   it('renders nothing in place of the comment list when there are no comments', async () => {
@@ -93,6 +99,27 @@ describe('<EntityComments>', () => {
     // body as a substring rather than an exact text node.
     expect(await findByText(/Qué buena idea/)).toBeTruthy();
     expect(await findByText('Ana Gil')).toBeTruthy();
+  });
+
+  it('uses the public user display name while a new author persona is unavailable', async () => {
+    getPersonByUserIdMock.mockResolvedValue(null);
+    getUserProfileMock.mockResolvedValue({ id: 'uid-2', displayName: 'Bea Ruiz' });
+    getCommentsMock.mockResolvedValue([
+      {
+        id: 'c-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-2',
+        body: 'Recién registrado',
+        createdAt: new Date(),
+      },
+    ]);
+
+    const { findByText, queryByText } = render(<EntityComments {...BASE_PROPS} />);
+
+    expect(await findByText('Bea Ruiz')).toBeTruthy();
+    expect(queryByText(/^Usuario$/)).toBeNull();
   });
 
   it('optimistically appends a sent comment and clears the input', async () => {

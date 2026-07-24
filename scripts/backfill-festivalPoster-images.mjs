@@ -21,42 +21,20 @@
 import admin from 'firebase-admin';
 import { initAdminForEnv } from './lib/env-credentials.mjs';
 import { parseEnvConfirm } from './lib/env-confirm.mjs';
+import { backfillCollection } from './lib/backfill.mjs';
 
 const { projectId } = initAdminForEnv(parseEnvConfirm());
 const db = admin.firestore();
 
+function patchFor(data) {
+  if (!('imageURL' in data)) return null; // already migrated
+  const images = typeof data.imageURL === 'string' ? [data.imageURL] : [];
+  return { images, imageURL: admin.firestore.FieldValue.delete() };
+}
+
 async function main() {
-  const snap = await db.collection('festivalPosters').get();
   console.log(`Backfilling festivalPoster images against ${projectId}`);
-  console.log(`Loaded ${snap.size} festivalPoster docs.`);
-
-  let patched = 0;
-  let skipped = 0;
-  let batch = db.batch();
-  let inBatch = 0;
-
-  for (const docSnap of snap.docs) {
-    const data = docSnap.data();
-    if (!('imageURL' in data)) {
-      skipped++; // already migrated
-      continue;
-    }
-    const images = typeof data.imageURL === 'string' ? [data.imageURL] : [];
-    batch.update(docSnap.ref, {
-      images,
-      imageURL: admin.firestore.FieldValue.delete(),
-    });
-    patched++;
-    inBatch++;
-    if (inBatch >= 400) {
-      await batch.commit();
-      batch = db.batch();
-      inBatch = 0;
-    }
-  }
-  if (inBatch > 0) await batch.commit();
-
-  console.log(`\nDone. Patched: ${patched}  Already migrated: ${skipped}`);
+  await backfillCollection(db, 'festivalPosters', db.collection('festivalPosters'), patchFor);
 }
 
 main().catch((err) => {

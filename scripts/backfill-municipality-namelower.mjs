@@ -2,32 +2,31 @@
 /**
  * backfill-municipality-namelower.mjs
  *
- * One-off: for every municipality doc in dev Firestore that lacks `nameLower`,
- * derive it from `name` (NFD-decompose, strip combining marks, lowercase) and
- * patch the doc.
+ * One-off: for every municipality doc that lacks `nameLower`, derive it from
+ * `name` (NFD-decompose, strip combining marks, lowercase) and patch the doc.
  *
  * USAGE
- *   node scripts/backfill-municipality-namelower.mjs
+ *   node scripts/backfill-municipality-namelower.mjs                 (dev dry run)
+ *   node scripts/backfill-municipality-namelower.mjs --apply         (dev writes)
+ *   env -u GOOGLE_APPLICATION_CREDENTIALS \
+ *     node scripts/backfill-municipality-namelower.mjs --env=beta --confirm --apply
+ *
+ * Credentials resolve via initAdminForEnv (see lib/env-credentials.mjs). Dev is
+ * autonomous; beta/prod require --confirm (and the stored ADC — unset
+ * GOOGLE_APPLICATION_CREDENTIALS so a dev key can't hijack the target project).
+ * `--apply` still gates the actual write on every env (dry run without it).
  *
  * Idempotent: re-runs only patch docs whose `nameLower` is still wrong/missing.
  */
 
 import admin from 'firebase-admin';
+import { initAdminForEnv } from './lib/env-credentials.mjs';
+import { parseEnvConfirm } from './lib/env-confirm.mjs';
+import { backfillCollection } from './lib/backfill.mjs';
 
-const PROJECT_ID = 'villa-events';
-
-if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  console.error('GOOGLE_APPLICATION_CREDENTIALS is not set.');
-  process.exit(1);
-}
-
-admin.initializeApp({ projectId: PROJECT_ID });
+const { projectId } = initAdminForEnv(parseEnvConfirm());
 const db = admin.firestore();
-
-if (admin.app().options.projectId !== PROJECT_ID) {
-  console.error(`Refusing to run against ${admin.app().options.projectId} — dev only.`);
-  process.exit(1);
-}
+const APPLY = process.argv.includes('--apply');
 
 function searchKey(name) {
   return name
@@ -36,46 +35,18 @@ function searchKey(name) {
     .toLowerCase();
 }
 
-async function main() {
-  const snap = await db.collection('municipalities').get();
-  console.log(`Loaded ${snap.size} municipality docs.`);
-
-  let needsPatch = 0;
-  let alreadyCorrect = 0;
-  let batch = db.batch();
-  let inBatch = 0;
-  let committed = 0;
-
-  for (const docSnap of snap.docs) {
-    const data = docSnap.data();
-    if (typeof data.name !== 'string') continue;
-    const want = searchKey(data.name);
-    if (data.nameLower === want) {
-      alreadyCorrect++;
-      continue;
-    }
-    batch.update(docSnap.ref, { nameLower: want });
-    needsPatch++;
-    inBatch++;
-    if (inBatch >= 400) {
-      await batch.commit();
-      committed += inBatch;
-      console.log(`  Committed ${committed}/${needsPatch} patches so far...`);
-      batch = db.batch();
-      inBatch = 0;
-    }
-  }
-  if (inBatch > 0) {
-    await batch.commit();
-    committed += inBatch;
-  }
-
-  console.log(`\nDone.`);
-  console.log(`  Already correct: ${alreadyCorrect}`);
-  console.log(`  Patched:         ${needsPatch}`);
+function patchFor(data) {
+  if (typeof data.name !== 'string') return null;
+  const want = searchKey(data.name);
+  return data.nameLower === want ? null : { nameLower: want };
 }
 
-main().catch(err => {
+async function main() {
+  console.log(`${APPLY ? 'Backfilling' : 'DRY-RUN: checking'} municipalities.nameLower against ${projectId}`);
+  await backfillCollection(db, 'municipalities', db.collection('municipalities'), patchFor, { apply: APPLY });
+}
+
+main().catch((err) => {
   console.error(err);
   process.exit(1);
 });

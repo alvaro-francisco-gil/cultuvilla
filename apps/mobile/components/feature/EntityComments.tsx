@@ -15,6 +15,7 @@ import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useT } from '../../lib/i18n';
 import { addComment, deleteComment, getComments } from '@cultuvilla/shared/services/commentsService';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
+import { getUserProfile } from '@cultuvilla/shared/services/userService';
 import { buildDisplayName } from '@cultuvilla/shared/models/person/PersonDataModel';
 import { formatRelativeTime } from '@cultuvilla/shared/utils';
 import { iconSizes, colors } from '@cultuvilla/shared/design-system';
@@ -70,9 +71,14 @@ export function EntityComments({
     void (async () => {
       const entries = await Promise.all(
         unresolved.map(async (uid) => {
-          const person = await getPersonByUserId(uid);
+          const [person, profile] = await Promise.all([
+            getPersonByUserId(uid),
+            getUserProfile(uid),
+          ]);
           const author: CommentAuthor = {
-            name: person ? buildDisplayName(person) : t('comments.anonymousAuthor'),
+            name: person
+              ? buildDisplayName(person)
+              : profile?.displayName || t('comments.anonymousAuthor'),
             photoURL: person?.photoURL ?? null,
           };
           return [uid, author] as const;

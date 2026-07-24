@@ -83,6 +83,25 @@ test('read-only viewer sees no management controls', async () => {
   expect(screen.queryByTestId('org-member-remove-admin1')).toBeNull();
 });
 
+test('shows a member full name with the apodo in parentheses, not the apodo alone', async () => {
+  mockGetOrgMembers.mockResolvedValue([
+    { id: 'user1', userId: 'user1', role: 'member', joinedAt: new Date('2026-02-01') },
+  ]);
+  mockGetPersonByUserId.mockResolvedValue({
+    givenName: 'Juan',
+    middleNames: ['Carlos'],
+    firstSurname: 'García',
+    secondSurname: 'López',
+    nickname: 'Juanito',
+    photoURL: null,
+  });
+
+  render(<OrgMembersList orgId="o1" />);
+
+  await waitFor(() => expect(screen.getByText('Juan Carlos García López (Juanito)')).toBeTruthy());
+  expect(screen.queryByText('Juanito')).toBeNull();
+});
+
 test('an org admin can promote a member; the roster refetches afterwards', async () => {
   mockGetOrgMembers.mockResolvedValue([
     { id: 'admin1', userId: 'admin1', role: 'admin', joinedAt: new Date('2026-01-01') },

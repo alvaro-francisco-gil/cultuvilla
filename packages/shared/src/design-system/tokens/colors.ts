@@ -51,6 +51,7 @@ const light = {
   fg: {
     primary: palette.olive,
     muted: palette.sage,
+    'on-subtle': '#3f4635',
     'on-accent': palette.cream,
     'on-secondary': palette.cream,
     'on-danger': '#ffffff',
