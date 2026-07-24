@@ -14,6 +14,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 - The persona pickers when **registering for an event** and when **recording a burial** now list each persona by **full name with the apodo in parentheses**, matching the rest of the app. They previously showed the apodo alone for a persona with a nickname.
 - Deceased personas no longer appear in the village **Pueblo people count** or the **Personas roster** opened from it. Both are backed by the function-owned `municipalityPeople` directory, which previously listed a persona for every municipality link regardless of death status; the `syncMunicipalityPeople` trigger now excludes deceased personas (a death date or a cemetery burial), removing their directory row when they die. **Migration:** existing directory rows for already-deceased personas are purged by re-running `scripts/backfill-municipality-people.mjs` (idempotent; run per env).
 - Deceased personas no longer inflate a **barrio's resident count** (the population badge on barrio cards and the hub's population ordering). The `syncBarrioResidentCount` trigger now excludes deceased personas, matching the barrio residents list — so the count and the list agree. **Migration:** existing barrio counts are recomputed by re-running `scripts/backfill-barrio-resident-count.mjs` (idempotent; run per env).
+- The Explora segmented toggle now uses higher-contrast text for inactive options.
 
 ## v0.15.0 — 2026-07-23
 
@@ -42,6 +43,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 ### Fixed
 - The village personas roster now keeps the censo column aligned when some rows have an admin action arrow and others do not.
 - Returning to the **Pueblo (village) tab** after opening an entity (event, article, cartel, barrio, lugar, peña…) now keeps your place. Previously the tab reloaded from scratch on every return — flashing skeletons and jumping back to the top — because the focus refetch blanked the whole screen to a spinner. The refetch now happens silently in the background over the already-rendered content, so both the vertical scroll position and each horizontal card row's position are preserved. The tab still fully reloads (spinner + skeletons) on first open and when you switch to a different village.
+=======
+- The Explora segmented toggle now uses higher-contrast text for inactive options.
+>>>>>>> 23c632d5 (fix(app): improve segmented toggle contrast)
 - The person birth-date month picker now shows full month names and gives modal options readable horizontal spacing.
 - Tapping a resident (vecino) in a barrio no longer opens the editable person stepper. Registered users open their profile (the same view as a shared profile link), while dependent personas without an account are shown without a link. The barrio "Vecinos" heading now matches the "Comentarios" section heading style.
 - Horizontal card rows on the **Pueblo (village) tab** and the **Perfil (profile)** screen are now usable on the web build's **desktop** (non-touch) screens. On a phone these scroll by touch-drag, but a desktop has no touch — so on a fine-pointer screen each row shows prev/next **arrow buttons** at its edges (each enabled only when there's more to scroll that way), and the row moves solely via those arrows. Native touch behaviour is unchanged; the arrows never appear on a touch screen.

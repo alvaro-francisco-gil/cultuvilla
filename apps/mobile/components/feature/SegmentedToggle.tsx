@@ -88,7 +88,7 @@ export function SegmentedToggle<T extends string>({
           >
             <Text
               variant="caption"
-              tone={isActive ? 'primary' : 'muted'}
+              tone={isActive ? 'primary' : 'onSubtle'}
               className="uppercase font-semibold"
             >
               {opt.label}
