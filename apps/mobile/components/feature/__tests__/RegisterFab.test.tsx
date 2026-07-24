@@ -52,12 +52,14 @@ const baseProps = {
   telephoneRequired: false,
 };
 
-// A dependent persona created by the user (shape used by buildShortName).
+// A dependent persona created by the user (shape used by buildNameWithNickname).
 const dep = {
   id: 'p2',
   givenName: 'Hijo',
+  middleNames: [],
   nickname: null,
   firstSurname: 'García',
+  secondSurname: null,
   userId: null,
 };
 
@@ -129,14 +131,33 @@ describe('RegisterFab', () => {
     expect(observability.trackEvent).toHaveBeenCalledWith('event.signup.success', { villageId: undefined });
   });
 
+  it('shows a dependent full name with the apodo in parentheses, not the apodo alone', async () => {
+    const depNick = {
+      id: 'p2',
+      givenName: 'Jose',
+      middleNames: [],
+      nickname: 'Pepe',
+      firstSurname: 'García',
+      secondSurname: null,
+      userId: null,
+    };
+    mockGetPersonsByCreator.mockResolvedValue([depNick]);
+    const { getByTestId, getByText, queryByText } = render(<RegisterFab {...baseProps} />);
+    await waitFor(() => expect(getByText('event.register.cta')).toBeTruthy());
+
+    fireEvent.press(getByTestId('register-fab'));
+    expect(getByText('Jose García (Pepe)')).toBeTruthy();
+    expect(queryByText('Pepe')).toBeNull();
+  });
+
   // Reproduces production data: getPersonsByCreator returns the caller's OWN
   // persona (createdBy == uid, userId == uid) alongside the dependents
   // (createdBy == uid, userId == null). Only the own persona must be dropped;
   // every dependent must appear as a tickable row.
   it('lists every dependent when the creator query also returns the own persona', async () => {
-    const self = { id: 'p1', givenName: 'Ana', nickname: null, firstSurname: 'López', userId: 'u1' };
-    const dep1 = { id: 'p2', givenName: 'Jose', nickname: null, firstSurname: 'García', userId: null };
-    const dep2 = { id: 'p3', givenName: 'Jos', nickname: null, firstSurname: 'Ruiz', userId: null };
+    const self = { id: 'p1', givenName: 'Ana', middleNames: [], nickname: null, firstSurname: 'López', secondSurname: null, userId: 'u1' };
+    const dep1 = { id: 'p2', givenName: 'Jose', middleNames: [], nickname: null, firstSurname: 'García', secondSurname: null, userId: null };
+    const dep2 = { id: 'p3', givenName: 'Jos', middleNames: [], nickname: null, firstSurname: 'Ruiz', secondSurname: null, userId: null };
     mockGetPersonsByCreator.mockResolvedValue([self, dep1, dep2]);
     const { getByTestId, getByText, queryByTestId } = render(<RegisterFab {...baseProps} />);
     await waitFor(() => expect(getByText('event.register.cta')).toBeTruthy());

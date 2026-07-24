@@ -7,6 +7,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 ### Fixed
 
 - The **group (organization) detail** members list now shows each member's **full name with the apodo in parentheses** — e.g. "Juan García López (Juanito)" — matching the village Personas and barrio lists. It previously showed the apodo alone (or the short name when no apodo).
+- The persona pickers when **registering for an event** and when **recording a burial** now list each persona by **full name with the apodo in parentheses**, matching the rest of the app. They previously showed the apodo alone for a persona with a nickname.
 
 ## v0.15.0 — 2026-07-23
 
