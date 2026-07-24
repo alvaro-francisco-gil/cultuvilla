@@ -219,6 +219,7 @@ When changing the shape of data already in Firestore, surface the migration expl
 
 - Note the affected docs and field(s) in the commit body and the PR description.
 - Add a backfill script under `scripts/` when the change can't be expressed as a Cloud Function trigger.
+- **Mark it in the CHANGELOG so beta/prod don't forget it.** When a change needs a backfill run against an env, put a `**Migration:**` marker inline in that `[Unreleased]` CHANGELOG entry, naming the script (e.g. `**Migration:** existing rows are purged by re-running \`scripts/backfill-municipality-people.mjs\` (per env)`). This marker is the single source of truth for "a backfill is pending": the `prepare-release` skill greps the stamped version block for `**Migration:**` and emits a per-env backfill checklist into the `develop → beta` / `beta → main` promotion PRs. Code deploys automatically on promotion; a backfill does not — the marker is what carries it across.
 - Don't leave dual-read code, shim re-exports, or `// removed: …` comments. Pairs with the `### Delete > deprecate` rule above.
 - If the change breaks older store clients, raise `config/appVersion.minSupported` to the fixed version at release time (see *Versioning & releases*).
 
