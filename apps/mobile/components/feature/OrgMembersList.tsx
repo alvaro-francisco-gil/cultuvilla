@@ -14,6 +14,7 @@ import {
 } from '@cultuvilla/shared/services/orgMemberService';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 import { getUserProfile } from '@cultuvilla/shared/services/userService';
+import { buildNameWithNickname } from '@cultuvilla/shared/models/person';
 import type { OrgMemberData } from '@cultuvilla/shared/models/organization/OrgMemberDataModel';
 import { iconSizes } from '@cultuvilla/shared/design-system';
 import { showConfirm, showAlert } from '../../lib/dialogs';
@@ -54,9 +55,8 @@ export function OrgMembersList({
         // One hop per member: the person carries both photo and name parts.
         const person = await getPersonByUserId(m.userId).catch(() => null);
         if (person) {
-          const name =
-            person.nickname?.trim() ||
-            [person.givenName, person.firstSurname].filter(Boolean).join(' ').trim();
+          // Full name with the apodo in parentheses, matching the villager roster.
+          const name = buildNameWithNickname(person).trim();
           return { ...m, name: name || m.userId, photoURL: person.photoURL ?? null };
         }
         const user = await getUserProfile(m.userId).catch(() => null);
