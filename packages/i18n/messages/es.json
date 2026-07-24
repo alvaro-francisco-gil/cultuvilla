@@ -328,6 +328,8 @@
         "title": "Lugares",
         "add": "Añadir lugar",
         "editTitle": "Editar lugar",
+        "stepBasics": "Lo básico",
+        "stepAttribution": "Digitalización",
         "name": "Nombre",
         "description": "Descripción",
         "addImage": "Añadir imagen",
@@ -435,6 +437,9 @@
       "title": "Carteles de fiestas",
       "editTitle": "Editar cartel",
       "add": "Añadir",
+      "stepBasics": "Lo básico",
+      "stepDates": "Fechas",
+      "stepAttribution": "Digitalización",
       "form": {
         "year": "Año",
         "title": "Nombre de las fiestas",
