@@ -8,6 +8,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 - The **group (organization) detail** members list now shows each member's **full name with the apodo in parentheses** — e.g. "Juan García López (Juanito)" — matching the village Personas and barrio lists. It previously showed the apodo alone (or the short name when no apodo).
 - The persona pickers when **registering for an event** and when **recording a burial** now list each persona by **full name with the apodo in parentheses**, matching the rest of the app. They previously showed the apodo alone for a persona with a nickname.
+- Deceased personas no longer appear in the village **Pueblo people count** or the **Personas roster** opened from it. Both are backed by the function-owned `municipalityPeople` directory, which previously listed a persona for every municipality link regardless of death status; the `syncMunicipalityPeople` trigger now excludes deceased personas (a death date or a cemetery burial), removing their directory row when they die. **Migration:** existing directory rows for already-deceased personas are purged by re-running `scripts/backfill-municipality-people.mjs` (idempotent; run per env).
 
 ## v0.15.0 — 2026-07-23
 

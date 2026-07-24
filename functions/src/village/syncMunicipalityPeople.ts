@@ -2,7 +2,8 @@ import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions/v2';
 import { getFirestore } from 'firebase-admin/firestore';
 import { municipalityPersonDoc } from '@cultuvilla/shared/firebase/refs/admin';
-import { buildDisplayName, buildNameWithNickname } from '@cultuvilla/shared/models';
+import { buildDisplayName, buildNameWithNickname, isDeceased } from '@cultuvilla/shared/models';
+import type { BurialPlace, PartialDate } from '@cultuvilla/shared/models';
 
 const db = getFirestore();
 
@@ -30,7 +31,14 @@ function asDirectoryPerson(data: Record<string, unknown>): DirectoryPerson {
     secondSurname: asNullableString(data['secondSurname']),
     nickname: asNullableString(data['nickname']),
   };
-  const links = Array.isArray(data['municipalityLinks']) ? data['municipalityLinks'] : [];
+  // Deceased personas belong only in the cemetery, not the living-people
+  // directory. Zeroing their membership here removes them from the Pueblo
+  // people count and roster (and deletes any stale rows when they die).
+  const deceased = isDeceased({
+    deathDate: (data['deathDate'] ?? null) as PartialDate | null,
+    burialPlace: (data['burialPlace'] ?? null) as BurialPlace | null,
+  });
+  const links = deceased || !Array.isArray(data['municipalityLinks']) ? [] : data['municipalityLinks'];
   const municipalityIds = new Set(
     links.flatMap((link) => {
       if (!link || typeof link !== 'object') return [];
