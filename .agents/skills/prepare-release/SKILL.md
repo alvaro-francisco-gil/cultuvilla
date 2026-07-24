@@ -52,7 +52,29 @@ Keep the entries that were already accumulated under `[Unreleased]`; just move t
 
 > Store release notes (Play/App Store "what's new") are **not needed pre-release**. When the app is actually submitted, add a machine-extractable, ≤500-char es-ES store-notes block here and wire an extractor — track that as its own task; it's out of scope while unreleased.
 
-## 5. Keep the gate's `latest` in step
+## 5. Surface pending backfills (data migrations)
+
+A code change deploys automatically when it reaches an env; a **backfill does not** — it's a manual script run per env. The convention is a `**Migration:**` marker inline in the CHANGELOG entry that needs one (see AGENTS.md "No retrocompat shims"). This step turns those markers into an explicit promotion checklist so a backfill can't be silently forgotten when the version rides `develop → beta → main`.
+
+Extract every `Migration:` line from the block you just stamped:
+
+```bash
+# lines between the new "## vX.Y.Z" heading and the next "## " heading
+awk '/^## v/{n++} n==1 && /\*\*Migration:\*\*/' CHANGELOG.md
+```
+
+- **No matches** → say "No backfills needed for this release" and move on.
+- **Matches** → for each, produce a checklist item naming the script and the two env runs. Put this block in the **`develop → beta` and `beta → main` promotion PR descriptions** (not just here), because that's where a human actually runs them:
+
+  ```markdown
+  ## Pending backfills (run before/at promotion)
+  - [ ] beta:  `node scripts/backfill-<thing>.mjs --env=beta --confirm --apply`
+  - [ ] prod:  `node scripts/backfill-<thing>.mjs --env=prod --confirm --apply`
+  ```
+
+  Note in the PR whether each backfill is **crash-inducing** (a strict-converter / required-field change — the app breaks in that env until it runs; see the `promote-requires-beta-backfill` note) or **correctness-only** (stale/leftover data, non-breaking). Dev is already backfilled during development (autonomous), so it's not in the checklist.
+
+## 6. Keep the gate's `latest` in step
 
 The force-update gate reads `config/appVersion.latest`. After bumping to `vX.Y.Z`, update the target env's doc so `latest` matches (min stays `0.0.0` pre-release):
 
@@ -65,7 +87,7 @@ node scripts/seed-app-version-config.mjs --env=beta --latest=X.Y.Z --confirm
 
 Pre-release this is optional (an out-of-date `latest` only means no "update available" nudge — the gate still fails open). Do it when you want the nudge to reflect the new build.
 
-## 6. STOP
+## 7. STOP
 
 Do **not** commit, tag, or push. Print a summary:
 - New version
