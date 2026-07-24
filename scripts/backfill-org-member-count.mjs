@@ -25,6 +25,7 @@
 import admin from 'firebase-admin';
 import { initAdminForEnv } from './lib/env-credentials.mjs';
 import { parseEnvConfirm } from './lib/env-confirm.mjs';
+import { backfillCollection } from './lib/backfill.mjs';
 
 const { projectId } = initAdminForEnv(parseEnvConfirm());
 const db = admin.firestore();
@@ -32,26 +33,10 @@ const db = admin.firestore();
 async function main() {
   console.log(`Backfilling organizations.memberCount against ${projectId}\n`);
 
-  const orgs = await db.collection('organizations').get();
-  let patched = 0;
-  let batch = db.batch();
-  let inBatch = 0;
-
-  for (const orgDoc of orgs.docs) {
-    const count = (await orgDoc.ref.collection('members').count().get()).data().count;
-    if (orgDoc.data().memberCount === count) continue;
-    batch.update(orgDoc.ref, { memberCount: count });
-    patched++;
-    inBatch++;
-    if (inBatch >= 400) {
-      await batch.commit();
-      batch = db.batch();
-      inBatch = 0;
-    }
-  }
-  if (inBatch > 0) await batch.commit();
-
-  console.log(`Done. organizations: ${orgs.size} docs — patched ${patched}, already correct ${orgs.size - patched}`);
+  await backfillCollection(db, 'organizations', db.collection('organizations'), async (data, docSnap) => {
+    const count = (await docSnap.ref.collection('members').count().get()).data().count;
+    return data.memberCount === count ? null : { memberCount: count };
+  });
 }
 
 main().catch((err) => {

@@ -26,6 +26,7 @@
 import admin from 'firebase-admin';
 import { initAdminForEnv } from './lib/env-credentials.mjs';
 import { parseEnvConfirm } from './lib/env-confirm.mjs';
+import { BatchWriter } from './lib/backfill.mjs';
 
 const { projectId } = initAdminForEnv(parseEnvConfirm());
 const db = admin.firestore();
@@ -82,15 +83,7 @@ async function main() {
   const existingById = new Map(existing.docs.map((d) => [d.id, d.data()]));
   let toWrite = 0;
   let toDelete = 0;
-  let batch = db.batch();
-  let batchSize = 0;
-
-  const commitIfFull = async () => {
-    if (batchSize < 400) return;
-    if (APPLY) await batch.commit();
-    batch = db.batch();
-    batchSize = 0;
-  };
+  const writer = new BatchWriter(db, { apply: APPLY });
 
   for (const [directoryId, row] of expected) {
     const current = existingById.get(directoryId);
@@ -103,20 +96,16 @@ async function main() {
       && current.userId === row.userId;
     if (matches) continue;
     toWrite += 1;
-    batchSize += 1;
-    if (APPLY) batch.set(db.collection('municipalityPeople').doc(directoryId), row);
-    await commitIfFull();
+    await writer.set(db.collection('municipalityPeople').doc(directoryId), row);
   }
 
   for (const directoryId of existingById.keys()) {
     if (expected.has(directoryId)) continue;
     toDelete += 1;
-    batchSize += 1;
-    if (APPLY) batch.delete(db.collection('municipalityPeople').doc(directoryId));
-    await commitIfFull();
+    await writer.delete(db.collection('municipalityPeople').doc(directoryId));
   }
 
-  if (APPLY && batchSize > 0) await batch.commit();
+  await writer.flush();
 
   console.log(`\n${APPLY ? 'WROTE' : 'DRY-RUN'}: ${toWrite} rows set, ${toDelete} orphaned rows deleted`);
   console.log(`  Already conformant (skipped): ${expected.size - toWrite}`);

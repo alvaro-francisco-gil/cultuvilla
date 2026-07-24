@@ -28,90 +28,57 @@
 import admin from 'firebase-admin';
 import { initAdminForEnv } from './lib/env-credentials.mjs';
 import { parseEnvConfirm } from './lib/env-confirm.mjs';
+import { backfillCollection, activeMunicipalityDocs } from './lib/backfill.mjs';
 
 const { projectId } = initAdminForEnv(parseEnvConfirm());
 const db = admin.firestore();
 
-/** Migrate every doc in `snap` via batched updates. Returns { patched, skipped }. */
-async function migrateDocs(snap) {
-  let patched = 0;
-  let skipped = 0;
-  let batch = db.batch();
-  let inBatch = 0;
-
-  for (const docSnap of snap) {
-    const data = docSnap.data();
-    if (!('imageURL' in data)) {
-      skipped++; // already migrated
-      continue;
-    }
-    const images = typeof data.imageURL === 'string' ? [data.imageURL] : [];
-    batch.update(docSnap.ref, {
-      images,
-      imageURL: admin.firestore.FieldValue.delete(),
-    });
-    patched++;
-    inBatch++;
-    if (inBatch >= 400) {
-      await batch.commit();
-      batch = db.batch();
-      inBatch = 0;
-    }
-  }
-  if (inBatch > 0) await batch.commit();
-
-  return { patched, skipped };
+function patchFor(data) {
+  if (!('imageURL' in data)) return null; // already migrated
+  const images = typeof data.imageURL === 'string' ? [data.imageURL] : [];
+  return { images, imageURL: admin.firestore.FieldValue.delete() };
 }
 
 async function main() {
   console.log(`Backfilling org/place/barrio images against ${projectId}`);
 
-  const orgsSnap = await db.collection('organizations').get();
-  const orgResult = await migrateDocs(orgsSnap.docs);
-  console.log(
-    `organizations: patched ${orgResult.patched}, already migrated ${orgResult.skipped} (of ${orgsSnap.size})`,
-  );
+  const orgResult = await backfillCollection(db, 'organizations', db.collection('organizations'), patchFor);
 
   const municipalitiesSnap = await db.collection('municipalities').get();
+  const activeMunicipalities = activeMunicipalityDocs(municipalitiesSnap);
   let placesPatched = 0;
-  let placesSkipped = 0;
   let placesTotal = 0;
   let barriosPatched = 0;
-  let barriosSkipped = 0;
   let barriosTotal = 0;
 
-  const activeMunicipalities = municipalitiesSnap.docs.filter((doc) => {
-    try {
-      return doc.data().communityActive === true;
-    } catch {
-      return true; // malformed doc: descend rather than silently skip
-    }
-  });
-
   for (const muniDoc of activeMunicipalities) {
-    const placesSnap = await muniDoc.ref.collection('places').get();
-    const placesResult = await migrateDocs(placesSnap.docs);
-    placesPatched += placesResult.patched;
-    placesSkipped += placesResult.skipped;
-    placesTotal += placesSnap.size;
+    const places = await backfillCollection(
+      db,
+      `municipalities/${muniDoc.id}/places`,
+      muniDoc.ref.collection('places'),
+      patchFor,
+    );
+    placesPatched += places.patched;
+    placesTotal += places.total;
 
-    const barriosSnap = await muniDoc.ref.collection('barrios').get();
-    const barriosResult = await migrateDocs(barriosSnap.docs);
-    barriosPatched += barriosResult.patched;
-    barriosSkipped += barriosResult.skipped;
-    barriosTotal += barriosSnap.size;
+    const barrios = await backfillCollection(
+      db,
+      `municipalities/${muniDoc.id}/barrios`,
+      muniDoc.ref.collection('barrios'),
+      patchFor,
+    );
+    barriosPatched += barrios.patched;
+    barriosTotal += barrios.total;
   }
 
   console.log(
-    `places: patched ${placesPatched}, already migrated ${placesSkipped} (of ${placesTotal}, across ${activeMunicipalities.length} active of ${municipalitiesSnap.size} municipalities)`,
+    `places: patched ${placesPatched} (of ${placesTotal}, across ${activeMunicipalities.length} active of ${municipalitiesSnap.size} municipalities)`,
   );
   console.log(
-    `barrios: patched ${barriosPatched}, already migrated ${barriosSkipped} (of ${barriosTotal}, across ${activeMunicipalities.length} active of ${municipalitiesSnap.size} municipalities)`,
+    `barrios: patched ${barriosPatched} (of ${barriosTotal}, across ${activeMunicipalities.length} active of ${municipalitiesSnap.size} municipalities)`,
   );
 
-  console.log(
-    `\nDone. Total patched: ${orgResult.patched + placesPatched + barriosPatched}`,
-  );
+  console.log(`\nDone. Total patched: ${orgResult.patched + placesPatched + barriosPatched}`);
 }
 
 main().catch((err) => {
