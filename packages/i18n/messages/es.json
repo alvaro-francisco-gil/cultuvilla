@@ -426,10 +426,10 @@
       "addAction": "Añadir"
     },
     "contributors": {
-      "label": "Contribuyeron",
-      "peopleLabel": "Personas colaboradoras",
+      "label": "Digitalizado por",
+      "peopleLabel": "Personas que digitalizaron esto",
       "addPerson": "Añadir persona",
-      "selectPeople": "Seleccionar personas colaboradoras"
+      "selectPeople": "Seleccionar personas"
     },
     "festivalPosters": {
       "title": "Carteles de fiestas",
