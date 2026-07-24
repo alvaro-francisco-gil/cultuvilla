@@ -10,6 +10,10 @@ export interface LinkUrlSheetProps {
   /** Called with a validated http(s) URL. */
   onSave: (url: string) => void;
   onDismiss: () => void;
+  /** Y-offset (px, within the nearest positioned ancestor) to anchor the sheet
+   *  just below — typically the caret's line. Falls back to the screen bottom
+   *  when omitted. */
+  anchorTop?: number;
 }
 
 /**
@@ -17,7 +21,7 @@ export interface LinkUrlSheetProps {
  * selected the display text and taps the toolbar's link button, so here we ask
  * for the URL. Guardar stays disabled until the field holds a safe http(s) URL.
  */
-export function LinkUrlSheet({ displayText, onSave, onDismiss }: LinkUrlSheetProps) {
+export function LinkUrlSheet({ displayText, onSave, onDismiss, anchorTop }: LinkUrlSheetProps) {
   const { t } = useT();
   const [url, setUrl] = useState('');
 
@@ -30,7 +34,11 @@ export function LinkUrlSheet({ displayText, onSave, onDismiss }: LinkUrlSheetPro
   const valid = isSafeHttpUrl(url.trim());
 
   return (
-    <View className="absolute inset-x-4 bottom-2 rounded-xl border border-subtle bg-surface-elevated px-3 py-2 shadow-md">
+    <View
+      testID="link-url-sheet"
+      className="absolute inset-x-4 rounded-xl border border-subtle bg-surface-elevated px-3 py-2 shadow-md"
+      style={anchorTop != null ? { top: anchorTop } : { bottom: 8 }}
+    >
       <VStack gap={2}>
         <Text variant="caption" tone="muted" numberOfLines={1}>
           {displayText}

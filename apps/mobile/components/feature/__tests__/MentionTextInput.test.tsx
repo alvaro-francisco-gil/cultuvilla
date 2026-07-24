@@ -84,3 +84,51 @@ describe('MentionTextInput format toolbar', () => {
     expect(links).toEqual([{ url: 'https://x.com', offset: 4, length: 4 }]);
   });
 });
+
+describe('MentionTextInput popup anchoring', () => {
+  it('anchors the toolbar just below the measured caret line, not the field bottom', () => {
+    const { getByPlaceholderText, getByTestId } = render(
+      <MentionTextInput
+        value="hola mundo"
+        mentions={[]}
+        links={[]}
+        marks={[]}
+        candidates={noopCandidates}
+        placeholder="Escribe…"
+        onChange={jest.fn()}
+      />,
+    );
+    fireEvent(getByPlaceholderText('Escribe…'), 'selectionChange', {
+      nativeEvent: { selection: { start: 5, end: 10 } }, // "mundo"
+    });
+    // Simulate the hidden mirror text measuring 40px of wrapped text above the caret.
+    fireEvent(getByTestId('caret-line-measurer'), 'layout', {
+      nativeEvent: { layout: { height: 40, width: 200, x: 0, y: 0 } },
+    });
+
+    expect(getByTestId('format-toolbar').props.style).toMatchObject({ position: 'absolute', top: 46 });
+  });
+
+  it('re-anchors the link-url sheet at the same measured position', () => {
+    const { getByPlaceholderText, getByTestId, getByLabelText } = render(
+      <MentionTextInput
+        value="ver aquí"
+        mentions={[]}
+        links={[]}
+        marks={[]}
+        candidates={noopCandidates}
+        placeholder="Escribe…"
+        onChange={jest.fn()}
+      />,
+    );
+    fireEvent(getByPlaceholderText('Escribe…'), 'selectionChange', {
+      nativeEvent: { selection: { start: 4, end: 8 } }, // "aquí"
+    });
+    fireEvent(getByTestId('caret-line-measurer'), 'layout', {
+      nativeEvent: { layout: { height: 12, width: 200, x: 0, y: 0 } },
+    });
+    fireEvent.press(getByLabelText('news.compose.format.link'));
+
+    expect(getByTestId('link-url-sheet').props.style).toEqual({ top: 18 });
+  });
+});
