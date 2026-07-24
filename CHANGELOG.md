@@ -4,6 +4,10 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Changed
+
+- Reworded the place/festival-poster contributor credit as "Digitalizado por" and turned their creation screens into step-by-step wizards.
+
 ### Fixed
 
 - The **group (organization) detail** members list now shows each member's **full name with the apodo in parentheses** — e.g. "Juan García López (Juanito)" — matching the village Personas and barrio lists. It previously showed the apodo alone (or the short name when no apodo).
