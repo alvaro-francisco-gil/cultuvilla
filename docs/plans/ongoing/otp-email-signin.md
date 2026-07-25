@@ -2,6 +2,16 @@
 
 **Goal:** Replace the magic-link email sign-in flow with a 6-digit code so email sign-in completes in the same browsing session that requested it — fixing "device not remembered" for email users.
 
+## Status
+
+- **Updated:** 2026-07-25
+- **Stage:** Stage 1 — Backend
+- **Branch:** `feat/otp-email-signin` (worktree `.claude/worktrees/otp-email-signin`)
+- **Done:** design + task breakdown
+- **Next:** implement `sendAuthOtpCode`/`verifyAuthOtpCode` callables + tests
+- **Blockers:** none
+- **Handoff:** none yet
+
 ## Context
 
 Google sign-in (`signInWithPopup`/`signInWithCredential`) completes entirely within the tab/app instance that's already running, so the persisted session lands exactly where the app reads it on next launch. Email sign-in instead sends a clickable magic link; the user taps it from their mail app, which very often opens a *different* browser/webview (in-app browser, different default browser) than the one running the app. Sign-in succeeds there, but that session lives in different storage than the one the running app will check next time — so the "device" is never remembered.
