@@ -1,12 +1,17 @@
 /**
- * Branded HTML/text templates for the auth sign-in email, sent via Resend
- * instead of Firebase's unbrandable built-in passwordless email
+ * Branded HTML/text templates for auth emails, sent via Resend instead of
+ * Firebase's unbrandable built-in mail
  * (docs/plans/ideas/branded-auth-email-delivery.md). Hand-written table-based
  * HTML with inline styles — no react-email/JSX, no external CSS/JS/images, so
  * it survives Gmail/Outlook/Apple Mail's markup stripping.
  *
- * Copy is deliberately generic: the server can't know whether this address is
- * registering or returning until the link is redeemed.
+ * Two templates live here: the link template (`renderAuthEmailHtml`/`Text`,
+ * used only by the re-authentication step in changeEmail — see
+ * docs/plans/ongoing/otp-email-signin.md for why sign-in moved off links) and
+ * the OTP code template (`renderAuthOtpEmailHtml`/`Text`, used for sign-in).
+ *
+ * Link-template copy is deliberately generic: the server can't know whether
+ * this address is registering or returning until the link is redeemed.
  */
 
 export interface AuthEmailContent {
@@ -84,6 +89,67 @@ export function renderAuthEmailText(content: AuthEmailContent): string {
     content.actionUrl,
     '',
     'Si no has solicitado este correo, puedes ignorarlo con tranquilidad.',
+    '',
+    FOOTER_TEXT,
+  ].join('\n');
+}
+
+export interface AuthOtpEmailContent {
+  code: string;
+}
+
+/** Caller builds the actual subject as `${prefix} · ${timestamp}` so repeated
+ * sends don't collapse into one Gmail thread. */
+export const AUTH_OTP_EMAIL_SUBJECT_PREFIX = 'Tu código de acceso a Cultuvilla';
+
+export function renderAuthOtpEmailHtml(content: AuthOtpEmailContent): string {
+  const code = escapeHtml(content.code);
+  return `<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${AUTH_OTP_EMAIL_SUBJECT_PREFIX}</title>
+  </head>
+  <body style="margin:0; padding:0; background-color:#f4f1ec; font-family:Helvetica, Arial, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f1ec; padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background-color:#ffffff; border-radius:12px; overflow:hidden;">
+            <tr>
+              <td style="background-color:#2f5233; padding:24px; text-align:center;">
+                <span style="color:#ffffff; font-size:24px; font-weight:bold; letter-spacing:0.5px;">Cultuvilla</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:32px 24px; color:#2b2b2b; font-size:16px; line-height:24px; text-align:center;">
+                <p style="margin:0 0 16px;">Tu código de acceso a Cultuvilla:</p>
+                <p style="margin:0 0 24px; font-size:36px; font-weight:bold; letter-spacing:8px; color:#2f5233;">${code}</p>
+                <p style="margin:0 0 8px; font-size:14px; color:#5a5a5a;">Caduca en 10 minutos.</p>
+                <p style="margin:0; font-size:13px; color:#5a5a5a;">Si no has solicitado este código, puedes ignorar este correo.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 24px; background-color:#f4f1ec; text-align:center; font-size:12px; color:#8a8a8a;">
+                ${escapeHtml(FOOTER_TEXT)}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
+export function renderAuthOtpEmailText(content: AuthOtpEmailContent): string {
+  return [
+    'Cultuvilla',
+    '',
+    `Tu código de acceso: ${content.code}`,
+    '',
+    'Caduca en 10 minutos.',
+    'Si no has solicitado este código, puedes ignorar este correo.',
     '',
     FOOTER_TEXT,
   ].join('\n');

@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
-import { Button, Input, Text, VStack } from '../../components/primitives';
+import { Text } from '../../components/primitives';
 import { AuthCard, AuthHeader } from '../../components/auth';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 
-type Status = 'pending' | 'needs-email' | 'completing' | 'error' | 'done' | 'reauth-done';
+type Status = 'pending' | 'completing' | 'error' | 'reauth-done';
 
 async function readIncomingUrl(): Promise<string | null> {
   if (Platform.OS === 'web') {
@@ -17,13 +17,18 @@ async function readIncomingUrl(): Promise<string | null> {
   return Linking.getInitialURL();
 }
 
+/**
+ * The only email link left in the app is the changeEmail re-auth link (see
+ * docs/plans/ongoing/otp-email-signin.md — sign-in itself moved to an OTP
+ * code, which never lands here). So any link reaching this screen is
+ * expected to carry a pending-reauth intent; anything else is treated as
+ * invalid rather than a sign-in link to complete.
+ */
 export default function FinishScreen() {
   const {
     user,
     loading: authLoading,
     isEmailLink,
-    completeEmailLinkSignIn,
-    readPendingEmail,
     completeReauth,
     readPendingReauth,
     clearPendingReauth,
@@ -31,8 +36,6 @@ export default function FinishScreen() {
   const { t } = useT();
   const [status, setStatus] = useState<Status>('pending');
   const [error, setError] = useState<string | null>(null);
-  const [email, setEmail] = useState('');
-  const incomingUrlRef = useRef<string | null>(null);
   const attempted = useRef(false);
 
   useEffect(() => {
@@ -45,76 +48,40 @@ export default function FinishScreen() {
     attempted.current = true;
     void (async () => {
       const url = await readIncomingUrl();
-      incomingUrlRef.current = url;
       if (!url || !isEmailLink(url)) {
         setStatus('error');
         setError(t('auth.emailLink.invalid'));
         return;
       }
-      // A re-auth link (sent to the CURRENT email by changeEmail) and a
-      // sign-in link both satisfy isEmailLink — the pending-reauth intent is
-      // what distinguishes them, so check it first.
       const pendingReauth = await readPendingReauth();
-      if (pendingReauth) {
-        // The session can lapse between changeEmail() sending this link and
-        // the user tapping it (e.g. signed out on another device, token
-        // expired). completeReauth requires a live session, so retrying it
-        // here would just wedge on 'not-signed-in' forever. Clear the stale
-        // intent and fall through to the normal email-link sign-in path
-        // instead of getting stuck.
-        if (!user) {
-          await clearPendingReauth();
-        } else {
-          setStatus('completing');
-          try {
-            await completeReauth(url);
-            setStatus('reauth-done');
-            router.replace('/settings');
-          } catch (e) {
-            setStatus('error');
-            setError(e instanceof Error ? e.message : t('auth.error.unknown'));
-          }
-          return;
-        }
+      if (!pendingReauth) {
+        setStatus('error');
+        setError(t('auth.emailLink.invalid'));
+        return;
       }
-      const stored = await readPendingEmail();
-      if (stored) {
-        await tryComplete(url, stored);
-      } else {
-        setStatus('needs-email');
+      // The session can lapse between changeEmail() sending this link and
+      // the user tapping it (e.g. signed out on another device, token
+      // expired). completeReauth requires a live session, so retrying it
+      // here would just wedge on 'not-signed-in' forever.
+      if (!user) {
+        await clearPendingReauth();
+        setStatus('error');
+        setError(t('auth.emailLink.invalid'));
+        return;
+      }
+      setStatus('completing');
+      try {
+        await completeReauth(url);
+        setStatus('reauth-done');
+        router.replace('/settings');
+      } catch (e) {
+        setStatus('error');
+        setError(e instanceof Error ? e.message : t('auth.error.unknown'));
       }
     })();
-  }, [
-    authLoading,
-    isEmailLink,
-    readPendingEmail,
-    readPendingReauth,
-    completeReauth,
-    clearPendingReauth,
-    user,
-    t,
-  ]);
+  }, [authLoading, isEmailLink, readPendingReauth, completeReauth, clearPendingReauth, user, t]);
 
-  async function tryComplete(url: string, emailToUse: string) {
-    setStatus('completing');
-    setError(null);
-    try {
-      await completeEmailLinkSignIn(url, emailToUse);
-      setStatus('done');
-      // AuthGate (app/_layout.tsx) picks up the auth state change and routes.
-    } catch (e) {
-      setStatus('needs-email');
-      setError(e instanceof Error ? e.message : t('auth.error.unknown'));
-    }
-  }
-
-  async function onConfirmEmail() {
-    const url = incomingUrlRef.current;
-    if (!url) return;
-    await tryComplete(url, email);
-  }
-
-  if (status === 'pending' || status === 'completing' || status === 'done' || status === 'reauth-done') {
+  if (status === 'pending' || status === 'completing' || status === 'reauth-done') {
     return (
       <AuthCard>
         <View className="items-center pt-8">
@@ -127,33 +94,10 @@ export default function FinishScreen() {
     );
   }
 
-  if (status === 'error') {
-    return (
-      <AuthCard>
-        <AuthHeader title={t('auth.emailLink.invalidTitle')} />
-        <Text tone="danger">{error ?? t('auth.emailLink.invalid')}</Text>
-      </AuthCard>
-    );
-  }
-
   return (
     <AuthCard>
-      <AuthHeader title={t('auth.emailLink.confirmTitle')} />
-      <VStack gap={3}>
-        <Text tone="muted">{t('auth.emailLink.confirmHint')}</Text>
-        <Input
-          label={t('auth.email')}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          autoComplete="email"
-        />
-        {error != null && <Text tone="danger">{error}</Text>}
-        <Button onPress={onConfirmEmail} fullWidth testID="finish-confirm">
-          {t('auth.emailLink.confirmCta')}
-        </Button>
-      </VStack>
+      <AuthHeader title={t('auth.emailLink.invalidTitle')} />
+      <Text tone="danger">{error ?? t('auth.emailLink.invalid')}</Text>
     </AuthCard>
   );
 }

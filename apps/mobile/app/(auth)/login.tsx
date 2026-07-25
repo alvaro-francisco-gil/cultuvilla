@@ -9,26 +9,42 @@ import {
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 
+type Step = 'email' | 'code';
+
 export default function LoginScreen() {
-  const { sendEmailLink, signInWithGoogle } = useAuth();
+  const { sendOtpCode, verifyOtpCode, signInWithGoogle } = useAuth();
   const { t } = useT();
+  const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [sent, setSent] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [sendLoading, setSendLoading] = useState(false);
+  const [verifyLoading, setVerifyLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  async function onSubmit() {
+  async function onSendCode() {
     setError(null);
-    setSent(false);
-    setLoading(true);
+    setSendLoading(true);
     try {
-      await sendEmailLink(email);
-      setSent(true);
+      await sendOtpCode(email);
+      setStep('code');
     } catch (e) {
       setError(e instanceof Error ? e.message : t('auth.error.unknown'));
     } finally {
-      setLoading(false);
+      setSendLoading(false);
+    }
+  }
+
+  async function onVerifyCode() {
+    setError(null);
+    setVerifyLoading(true);
+    try {
+      await verifyOtpCode(email, code);
+      // AuthGate (app/_layout.tsx) picks up the auth state change and routes.
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('auth.error.unknown'));
+    } finally {
+      setVerifyLoading(false);
     }
   }
 
@@ -44,6 +60,35 @@ export default function LoginScreen() {
     }
   }
 
+  if (step === 'code') {
+    return (
+      <AuthCard>
+        <AuthHeader title={t('auth.login.title')} />
+        <VStack gap={3}>
+          <Text tone="muted" testID="login-code-sent">
+            {t('auth.otp.sent', { email })}
+          </Text>
+          <Input
+            label={t('auth.otp.codeLabel')}
+            value={code}
+            onChangeText={setCode}
+            keyboardType="number-pad"
+            autoComplete="one-time-code"
+            maxLength={6}
+            testID="login-code-input"
+          />
+          {error != null && <Text tone="danger">{error}</Text>}
+          <Button onPress={onVerifyCode} loading={verifyLoading} fullWidth testID="login-verify-code">
+            {t('auth.otp.verify')}
+          </Button>
+          <Button variant="ghost" onPress={onSendCode} loading={sendLoading} fullWidth testID="login-resend-code">
+            {t('auth.otp.resend')}
+          </Button>
+        </VStack>
+      </AuthCard>
+    );
+  }
+
   return (
     <AuthCard>
       <AuthHeader title={t('auth.login.title')} />
@@ -56,15 +101,10 @@ export default function LoginScreen() {
           autoComplete="email"
         />
         <Text tone="muted" variant="bodySm">
-          {t('auth.emailLinkHint')}
+          {t('auth.otp.hint')}
         </Text>
         {error != null && <Text tone="danger">{error}</Text>}
-        {sent && (
-          <Text tone="muted" testID="login-link-sent">
-            {t('auth.emailLinkSent', { email })}
-          </Text>
-        )}
-        <Button onPress={onSubmit} loading={loading} fullWidth testID="login-submit">
+        <Button onPress={onSendCode} loading={sendLoading} fullWidth testID="login-submit">
           {t('auth.login.submit')}
         </Button>
         <OrDivider />

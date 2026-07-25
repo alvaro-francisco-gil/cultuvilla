@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Mirrors PENDING_EMAIL_KEY in AuthContext.tsx — same cross-session storage,
-// so an intent set before an email-link flow survives a tab/session change.
+// Preserves a deep-link destination (e.g. an invite URL tapped while signed
+// out) across the sign-in flow, regardless of which auth method completes it.
 const PENDING_INTENT_KEY = 'cultuvilla.pendingIntent';
 
 export async function setPendingIntent(href: string): Promise<void> {

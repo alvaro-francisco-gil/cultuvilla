@@ -11,9 +11,9 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithCredential,
+  signInWithCustomToken,
   signInWithPopup,
   isSignInWithEmailLink,
-  signInWithEmailLink,
   signInWithEmailAndPassword,
   verifyBeforeUpdateEmail,
   EmailAuthProvider,
@@ -24,7 +24,11 @@ import {
   setActiveMunicipality,
   patchUserProfile,
 } from '@cultuvilla/shared/services/userService';
-import { sendAuthSignInEmail } from '@cultuvilla/shared/services/authEmailService';
+import {
+  sendAuthSignInEmail,
+  sendAuthOtpCode,
+  verifyAuthOtpCode,
+} from '@cultuvilla/shared/services/authEmailService';
 import { getUserMemberships } from '@cultuvilla/shared/services/villageMemberService';
 import * as listenerManager from '@cultuvilla/shared/services/listenerManager';
 import type { UserData } from '@cultuvilla/shared/models/user';
@@ -68,15 +72,9 @@ function getGoogleSignInConfig(): GoogleSignInExtra | null {
   return cfg;
 }
 
-// Firebase requires the continueUrl domain to be on Auth's "Authorized
-// domains" list. The auto-hosted `*.firebaseapp.com` and `*.web.app` domains
-// for the project are always authorized — derive the web SPA URL from
-// authDomain so we don't have to maintain another env var.
-const PENDING_EMAIL_KEY = 'cultuvilla.pendingEmailSignIn';
-
-// Distinct key from PENDING_EMAIL_KEY: this stores a re-auth *intent* (what to
-// do once the re-auth email link completes), not a sign-in email. The two
-// flows can be in flight independently and must not clobber each other.
+// This stores a re-auth *intent* (what to do once the re-auth email link
+// completes) — used only by changeEmail/completeReauth, the one flow that
+// still uses a real email link (see getEmailLinkContinueUrl below).
 const PENDING_REAUTH_KEY = 'cultuvilla.pendingReauth';
 const AUTH_EMAIL_LANGUAGE = 'es';
 
@@ -126,6 +124,11 @@ function isEmailOnlyAccount(user: User | null): boolean {
   );
 }
 
+// Firebase requires the continueUrl domain to be on Auth's "Authorized
+// domains" list. The auto-hosted `*.firebaseapp.com` and `*.web.app` domains
+// for the project are always authorized — derive the web SPA URL from
+// authDomain so we don't have to maintain another env var. Only reachable
+// from changeEmail/completeReauth now — sign-in uses sendAuthOtpCode instead.
 function getEmailLinkContinueUrl(): string {
   const cfg = (Constants.expoConfig?.extra as { firebaseConfig?: FirebaseOptions } | undefined)
     ?.firebaseConfig;
@@ -149,10 +152,9 @@ export interface AuthContextValue {
   profileChecked: boolean;
   refreshProfile: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  sendEmailLink: (email: string) => Promise<void>;
-  completeEmailLinkSignIn: (url: string, emailOverride?: string) => Promise<void>;
+  sendOtpCode: (email: string) => Promise<void>;
+  verifyOtpCode: (email: string, code: string) => Promise<void>;
   isEmailLink: (url: string) => boolean;
-  readPendingEmail: () => Promise<string | null>;
   changeEmail: (newEmail: string) => Promise<void>;
   completeReauth: (url: string) => Promise<void>;
   readPendingReauth: () => Promise<{ purpose: string; newEmail?: string } | null>;
@@ -338,28 +340,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const sendEmailLink = async (email: string): Promise<void> => {
+  const sendOtpCode = async (email: string): Promise<void> => {
     const trimmed = email.trim();
     if (!trimmed) throw new Error('email-required');
-    await sendAuthSignInEmail(trimmed, getEmailLinkContinueUrl());
-    await AsyncStorage.setItem(PENDING_EMAIL_KEY, trimmed);
+    await sendAuthOtpCode(trimmed);
   };
 
-  const completeEmailLinkSignIn = async (url: string, emailOverride?: string): Promise<void> => {
-    const auth = getAuth();
-    if (!isSignInWithEmailLink(auth, url)) {
-      throw new Error('not-an-email-link');
-    }
-    const stored = emailOverride ?? (await AsyncStorage.getItem(PENDING_EMAIL_KEY));
-    if (!stored) throw new Error('email-required');
-    await signInWithEmailLink(auth, stored, url);
-    await AsyncStorage.removeItem(PENDING_EMAIL_KEY);
+  const verifyOtpCode = async (email: string, code: string): Promise<void> => {
+    const trimmed = email.trim();
+    if (!trimmed) throw new Error('email-required');
+    const token = await verifyAuthOtpCode(trimmed, code);
+    await signInWithCustomToken(getAuth(), token);
   };
 
+  // Still used by finish.tsx to distinguish a genuine reauth email link from
+  // an unrelated deep link — reauth is the only flow left that sends links.
   const isEmailLink = (url: string): boolean => isSignInWithEmailLink(getAuth(), url);
-
-  const readPendingEmail = async (): Promise<string | null> =>
-    AsyncStorage.getItem(PENDING_EMAIL_KEY);
 
   const changeEmail = async (newEmail: string): Promise<void> => {
     const auth = getLocalizedAuth();
@@ -453,10 +449,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profileChecked,
         refreshProfile,
         signInWithGoogle,
-        sendEmailLink,
-        completeEmailLinkSignIn,
+        sendOtpCode,
+        verifyOtpCode,
         isEmailLink,
-        readPendingEmail,
         changeEmail,
         completeReauth,
         readPendingReauth,

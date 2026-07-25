@@ -5,12 +5,12 @@
 ## Status
 
 - **Updated:** 2026-07-25
-- **Stage:** Stage 1 — Backend
+- **Stage:** Stage 4 — Verification (implementation complete)
 - **Branch:** `feat/otp-email-signin` (worktree `.claude/worktrees/otp-email-signin`)
-- **Done:** design + task breakdown
-- **Next:** implement `sendAuthOtpCode`/`verifyAuthOtpCode` callables + tests
+- **Done:** backend callables + tests, shared service + tests, mobile AuthContext/login/finish + tests, i18n, services map, CHANGELOG. Typecheck/lint/mobile-jest/shared-vitest all green.
+- **Next:** open PR; functions handler tests (`sendAuthOtpCode.test.ts`, `verifyAuthOtpCode.test.ts`) need CI to run — this sandbox has no network egress to download the Firestore emulator jar, so they're unverified locally.
 - **Blockers:** none
-- **Handoff:** none yet
+- **Handoff:** the two new functions handler test files were written but never executed locally (emulator jar download times out in this sandbox — known constraint, see `project_worktree_emulator_ci` memory). Double-check them in CI before merging.
 
 ## Context
 
@@ -83,28 +83,28 @@ Native app release (once Universal Links/App Links for `/finish` are wired up) w
 
 ### Stage 1 — Backend
 
-- [ ] Add `authOtpCodes` doc read/write helpers + `sendAuthOtpCode` callable in `functions/src/auth/sendAuthOtpCode.ts`, reusing `bucketIdFor`/rate-limit logic from the existing file.
-- [ ] Add code template to `authEmailTemplate.ts`.
-- [ ] Add `verifyAuthOtpCode` callable in `functions/src/auth/verifyAuthOtpCode.ts` (expiry, attempts, hash check, get-or-create user, custom token mint).
-- [ ] Register both callables wherever functions are exported.
-- [ ] Emulator-backed handler tests for both callables (mirror `sendAuthSignInEmail.test.ts`'s pattern): valid send, malformed email, rate-limit, wrong code increments attempts, expired code rejected, lockout after 5 attempts, correct code returns a usable custom token, get-or-create for a brand-new email.
+- [x] Add `authOtpCodes` doc read/write helpers + `sendAuthOtpCode` callable in `functions/src/auth/sendAuthOtpCode.ts`, reusing `bucketIdFor`/rate-limit logic (extracted to `functions/src/auth/rateLimit.ts`, shared with `sendAuthSignInEmail.ts`).
+- [x] Add code template to `authEmailTemplate.ts`.
+- [x] Add `verifyAuthOtpCode` callable in `functions/src/auth/verifyAuthOtpCode.ts` (expiry, attempts, hash check, get-or-create user, custom token mint).
+- [x] Register both callables in `functions/src/index.ts`.
+- [x] Emulator-backed handler tests written for both callables (mirror `sendAuthSignInEmail.test.ts`'s pattern) — **not run locally**, see Handoff above.
 
 ### Stage 2 — Shared service
 
-- [ ] Update `authEmailService.ts`: add `sendAuthOtpCode`/`verifyAuthOtpCode`, remove the sign-in-only `sendAuthSignInEmail` export per Stage 1's naming decision.
-- [ ] Update/add vitest coverage.
+- [x] Update `authEmailService.ts`: add `sendAuthOtpCode`/`verifyAuthOtpCode`. `sendAuthSignInEmail` export kept as-is (still used by changeEmail's re-auth step).
+- [x] Add vitest coverage (`packages/shared/test/services/authEmailService.test.ts`) — passing.
 
 ### Stage 3 — Mobile
 
-- [ ] Update `AuthContext.tsx`: add `sendOtpCode`/`verifyOtpCode`, remove sign-in-specific link plumbing, update `AuthContextValue` interface.
-- [ ] Update `login.tsx`: two-step email → code UI, resend affordance.
-- [ ] Update `finish.tsx`: drop sign-in link branches, keep reauth branch.
-- [ ] Update i18n strings.
-- [ ] Update/add Jest tests for `AuthContext`, `login.tsx`, `finish.tsx`.
+- [x] Update `AuthContext.tsx`: add `sendOtpCode`/`verifyOtpCode`, remove sign-in-specific link plumbing (`PENDING_EMAIL_KEY`, `completeEmailLinkSignIn`, `readPendingEmail`), update `AuthContextValue` interface.
+- [x] Update `login.tsx`: two-step email → code UI, resend affordance.
+- [x] Update `finish.tsx`: drop sign-in link branches, keep reauth branch only.
+- [x] Update i18n strings (`packages/i18n/messages/es.json`).
+- [x] Update/add Jest tests for `AuthContext` (`changeEmail.test.tsx`), `login.tsx` (new), `finish.tsx` — all passing.
 
 ### Stage 4 — Verification
 
-- [ ] `pnpm test:functions`, `pnpm app:test`, `pnpm shared:test`.
-- [ ] `pnpm app:typecheck`, `pnpm typecheck`.
-- [ ] Manual smoke test: request code, receive email (dev — check emulator/Resend test mode), enter code, confirm sign-in completes and persists across a reload.
-- [ ] Update `CHANGELOG.md` under `[Unreleased]`.
+- [x] `pnpm app:test` (598 tests passing), `pnpm --filter @cultuvilla/shared test` (640 passing) — both green. `pnpm test:functions` **not run** (sandbox has no network egress for the emulator jar download); relying on CI.
+- [x] `pnpm app:typecheck`, `pnpm typecheck` (full monorepo) — clean. `pnpm lint`, `check:no-raw-firestore-refs`, `check:no-test-login-leak` — clean.
+- [ ] Manual smoke test: request code, receive email (dev — check emulator/Resend test mode), enter code, confirm sign-in completes and persists across a reload. **Not done** — needs a running dev server/device, out of scope for this session (see AGENTS.md "never start long-lived dev servers").
+- [x] Update `CHANGELOG.md` under `[Unreleased]`.

@@ -1,40 +1,46 @@
+import { createHash, randomInt } from 'crypto';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
-import { getAuth } from 'firebase-admin/auth';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { Resend } from 'resend';
 import { RESEND_API_KEY } from './secret';
 import { bucketIdFor, checkRateLimit } from './rateLimit';
-import {
-  renderAuthEmailHtml,
-  renderAuthEmailText,
-  AUTH_EMAIL_SUBJECT_PREFIX,
-} from './authEmailTemplate';
+import { renderAuthOtpEmailHtml, renderAuthOtpEmailText, AUTH_OTP_EMAIL_SUBJECT_PREFIX } from './authEmailTemplate';
 
-const handler = 'sendAuthSignInEmail';
+const handler = 'sendAuthOtpCode';
+
+// Server-only infra collection, same category as `authEmailRateLimits` — no
+// municipalityId, never touched by client Firestore rules (Admin SDK bypasses
+// rules entirely). Doc id = bucketIdFor(email), same hashing as rate limits.
+const OTP_COLLECTION = 'authOtpCodes';
+const OTP_EXPIRY_MS = 10 * 60 * 1000;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-interface SendAuthSignInEmailData {
+interface SendAuthOtpCodeData {
   email?: string;
-  continueUrl?: string;
 }
 
-interface SendAuthSignInEmailResult {
+interface SendAuthOtpCodeResult {
   ok: true;
 }
 
+function hashCode(code: string): string {
+  return createHash('sha256').update(code).digest('hex');
+}
+
+function generateCode(): string {
+  return randomInt(0, 1_000_000).toString().padStart(6, '0');
+}
+
 /** Core logic, separated from the onCall envelope so it is unit-testable. */
-export async function runSendAuthSignInEmail(
-  data: SendAuthSignInEmailData | undefined,
-): Promise<SendAuthSignInEmailResult> {
+export async function runSendAuthOtpCode(
+  data: SendAuthOtpCodeData | undefined,
+): Promise<SendAuthOtpCodeResult> {
   const email = data?.email;
-  const continueUrl = data?.continueUrl;
 
   if (typeof email !== 'string' || email.trim() === '' || !EMAIL_RE.test(email.trim())) {
     throw new HttpsError('invalid-argument', 'Email inválido.');
-  }
-  if (typeof continueUrl !== 'string' || continueUrl.trim() === '') {
-    throw new HttpsError('invalid-argument', 'continueUrl requerido.');
   }
 
   const trimmedEmail = email.trim();
@@ -43,32 +49,27 @@ export async function runSendAuthSignInEmail(
   const allowed = await checkRateLimit(bucketId);
   if (!allowed) {
     // Generic response on purpose — never let a caller distinguish
-    // "rate-limited" from "sent" (docs/plans/ideas/branded-auth-email-delivery.md).
-    // TODO: this only rate-limits by email hash; per-IP limiting is an open
-    // question in the plan and out of scope for this first cut.
-    logger.warn('auth email rate limited', { handler, bucketId, reason: 'window-exceeded' });
+    // "rate-limited" from "sent".
+    logger.warn('auth otp rate limited', { handler, bucketId, reason: 'window-exceeded' });
     return { ok: true };
   }
 
-  let actionUrl: string;
-  try {
-    actionUrl = await getAuth().generateSignInWithEmailLink(trimmedEmail, {
-      url: continueUrl,
-      handleCodeInApp: true,
+  const code = generateCode();
+  const db = getFirestore();
+  await db
+    .collection(OTP_COLLECTION)
+    .doc(bucketId)
+    .set({
+      codeHash: hashCode(code),
+      expiresAt: Timestamp.fromMillis(Date.now() + OTP_EXPIRY_MS),
+      attempts: 0,
+      createdAt: Timestamp.now(),
     });
-  } catch (err) {
-    logger.error('generateSignInWithEmailLink failed', {
-      handler,
-      bucketId,
-      error: err instanceof Error ? err.message : String(err),
-    });
-    throw new HttpsError('internal', 'No se pudo generar el enlace de acceso. Inténtalo de nuevo.');
-  }
 
   const timestamp = new Date().toISOString();
-  const subject = `${AUTH_EMAIL_SUBJECT_PREFIX} · ${timestamp}`;
-  const html = renderAuthEmailHtml({ actionUrl });
-  const text = renderAuthEmailText({ actionUrl });
+  const subject = `${AUTH_OTP_EMAIL_SUBJECT_PREFIX} · ${timestamp}`;
+  const html = renderAuthOtpEmailHtml({ code });
+  const text = renderAuthOtpEmailText({ code });
 
   try {
     const resend = new Resend(RESEND_API_KEY.value());
@@ -97,18 +98,15 @@ export async function runSendAuthSignInEmail(
     throw new HttpsError('internal', 'No se pudo enviar el email. Inténtalo de nuevo.');
   }
 
-  logger.info('auth sign-in email sent', { handler, bucketId });
+  logger.info('auth otp code sent', { handler, bucketId });
   return { ok: true };
 }
 
-export const sendAuthSignInEmail = onCall<
-  SendAuthSignInEmailData,
-  Promise<SendAuthSignInEmailResult>
->(
+export const sendAuthOtpCode = onCall<SendAuthOtpCodeData, Promise<SendAuthOtpCodeResult>>(
   { region: 'us-central1', cors: true, secrets: [RESEND_API_KEY] },
   async (request) => {
     // Unauthenticated by design: this is the entry point that lets a signed-out
-    // user request a sign-in link in the first place.
-    return runSendAuthSignInEmail(request.data);
+    // user request a sign-in code in the first place.
+    return runSendAuthOtpCode(request.data);
   },
 );
