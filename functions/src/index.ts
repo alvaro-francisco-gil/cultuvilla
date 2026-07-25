@@ -57,7 +57,11 @@ export { staticMap } from './maps/staticMap';
 export { geocodeSearch } from './maps/geocodeSearch';
 
 // Auth (branded sign-in email delivery via Resend)
+// sendAuthSignInEmail/completeReauth's link mechanism is used only by the
+// changeEmail re-authentication step now — sign-in itself uses the OTP pair.
 export { sendAuthSignInEmail } from './auth/sendAuthSignInEmail';
+export { sendAuthOtpCode } from './auth/sendAuthOtpCode';
+export { verifyAuthOtpCode } from './auth/verifyAuthOtpCode';
 
 // Observability (client error ingestion + pseudonymized identity)
 export { logClientError } from './observability/logClientError';
