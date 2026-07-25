@@ -1005,7 +1005,7 @@ git commit -m "feat(mobile): add difunto FAB to cemetery detail screen"
 
 **Files:**
 - Modify: `CHANGELOG.md`
-- Move: `docs/plans/ideas/cementerio-difuntos.md` → delete after distilling (optional; leave for now)
+- N/A: the idea-stage doc was already removed when this plan promoted to `ongoing/`.
 
 - [ ] **Step 1: Add a CHANGELOG entry under `## [Unreleased]`**
 

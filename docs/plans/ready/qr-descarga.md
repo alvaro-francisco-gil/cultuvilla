@@ -379,7 +379,7 @@ git commit -m "feat(scripts): add branded QR generator for /descarga"
 
 **Files:**
 - Modify: `CHANGELOG.md` (under `## [Unreleased]`)
-- Move: design doc `docs/plans/ideas/2026-07-11-qr-descarga-endpoint-design.md` stays as the record; this plan lives in `docs/plans/ready/`.
+- N/A: the idea-stage design doc was superseded by this plan and removed (lifecycle keeps one file per topic).
 
 - [ ] **Step 1: CHANGELOG entry**
 
