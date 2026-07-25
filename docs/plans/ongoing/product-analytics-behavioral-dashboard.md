@@ -5,8 +5,8 @@ Builds directly on the shipped
 
 ## Status
 
-- **Updated:** 2026-07-19
-- **Stage:** Phase 0 (enable GA4→BigQuery export) in progress; Phase 1 (engagement instrumentation) shipped.
+- **Updated:** 2026-07-25
+- **Stage:** Phase 0 (enable GA4→BigQuery export) in progress; Phase 1 (engagement instrumentation) shipped to dev/beta/prod.
 - **Branch:** n/a — Phase 1 merged; Phase 0 is a console/infra action, no branch.
 - **Done:** Phase 1 full-engagement instrumentation merged to `develop` (PR #150, merge `295a6d9e`, 2026-07-19). **Google Analytics enabled on all three Firebase projects (dev/beta/prod) on 2026-07-19** — until then no GA4 property existed and no web analytics data was being collected anywhere (the app config carries no `measurementId`; the SDK relies on the runtime dynamic-config fetch, which only resolves once GA is enabled server-side).
 - **Next:** (1) Confirm the `analytics_<propertyId>` dataset provisions on prod and that events land once traffic + consent occur (verify via `bq`). (2) Prove the chain end-to-end by generating a little consented traffic on the prod web build. (3) Decide whether to add explicit `measurementId` to `firebaseConfigPerEnv`.
@@ -18,7 +18,7 @@ Builds directly on the shipped
 | Step | Dev (`villa-events`) | Beta (`cultuvilla-beta`) | Prod (`cultuvilla-prod`) |
 |---|---|---|---|
 | Prereq — Google Analytics enabled on Firebase project | ✅ | ✅ | ✅ |
-| Phase 1 — engagement instrumentation (code) | ✅ | ⬜ | ⬜ |
+| Phase 1 — engagement instrumentation (code) | ✅ | ✅ | ✅ |
 | Phase 1 — DebugView smoke verified | ⏳ | — | — |
 | Phase 0 — GA4→BigQuery export enabled | ⏳ | ⬜ | ⏳ |
 | Phase 2 — Firestore→BigQuery export | ⬜ | ⬜ | ⬜ |
