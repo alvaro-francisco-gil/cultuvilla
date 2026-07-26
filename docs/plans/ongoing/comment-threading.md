@@ -17,6 +17,18 @@
 
 ---
 
+## Status
+
+- **Updated:** 2026-07-26
+- **Stage:** Not yet started — Task 1 (model changes) is next
+- **Branch:** `worktree-comment-threading` in `.claude/worktrees/comment-threading/`
+- **Done:** Worktree created, `pnpm install` + `functions/npm ci` run, baseline `packages/shared` vitest suite green (637 passed, 6 skipped)
+- **Next:** Execute Task 1 (add `parentCommentId`/`replyCount` to `CommentDataModel`)
+- **Blockers:** none
+- **Handoff:** Plan doc was cherry-picked from `develop` onto this branch (the worktree's base ref was `origin/develop`, which didn't yet have the plan commits) — no other special setup needed.
+
+---
+
 ## Goal
 
 Let a user reply to a specific comment on an entity (event, news, place, barrio, organization, festival-poster), instead of every comment landing in one flat chronological list.
