@@ -200,17 +200,25 @@ describe('syncEntityCommentCount — replies', () => {
 
   it('cascade-deletes replies when their top-level parent is deleted', async () => {
     await seedEvent('e1', { commentCount: 3 });
+    const replyA = comment({ parentCommentId: 'parent-1' });
+    const replyB = comment({ parentCommentId: 'parent-1' });
     await admin.firestore().doc('comments/parent-1').set(comment());
-    await admin.firestore().doc('comments/reply-a').set(comment({ parentCommentId: 'parent-1' }));
-    await admin.firestore().doc('comments/reply-b').set(comment({ parentCommentId: 'parent-1' }));
+    await admin.firestore().doc('comments/reply-a').set(replyA);
+    await admin.firestore().doc('comments/reply-b').set(replyB);
 
+    // The cascade only deletes the reply docs — in real production, Firestore
+    // re-fires this same trigger for each deleted reply doc, which is what
+    // performs its commentCount decrement. Simulate that re-firing explicitly
+    // since this test harness doesn't dispatch real Firestore trigger events.
     await fireCommentTrigger(comment(), null, 'parent-1');
+    await fireCommentTrigger(replyA, null, 'reply-a');
+    await fireCommentTrigger(replyB, null, 'reply-b');
 
-    const replyA = await admin.firestore().doc('comments/reply-a').get();
-    const replyB = await admin.firestore().doc('comments/reply-b').get();
-    expect(replyA.exists).toBe(false);
-    expect(replyB.exists).toBe(false);
+    const replyASnap = await admin.firestore().doc('comments/reply-a').get();
+    const replyBSnap = await admin.firestore().doc('comments/reply-b').get();
+    expect(replyASnap.exists).toBe(false);
+    expect(replyBSnap.exists).toBe(false);
     const eventDoc = await admin.firestore().doc('events/e1').get();
-    expect(eventDoc.get('commentCount')).toBe(0); // parent (-1) + 2 cascaded replies (-2)
+    expect(eventDoc.get('commentCount')).toBe(0); // parent (-1) + 2 replies' own re-fired deletes (-2)
   });
 });
