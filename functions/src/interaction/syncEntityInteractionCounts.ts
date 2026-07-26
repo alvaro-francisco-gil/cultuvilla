@@ -65,6 +65,24 @@ export const syncEntityCommentCount = onDocumentWritten(
     const entityKind = d['entityKind'] as string;
     const entityId = d['entityId'] as string;
     const municipalityId = d['municipalityId'] as string;
+    const parentCommentId = (d['parentCommentId'] as string | null | undefined) ?? null;
+
+    // A reply's own delete is also reported when its parent's cascade-delete
+    // removes it (Firestore triggers fire for every write, including ones made
+    // by our own batch below). By the time that happens the parent doc is
+    // already gone — the cascade's explicit count decrement (below) already
+    // accounted for it, so skip this invocation entirely to avoid double
+    // counting commentCount/replyCount.
+    if (delta === -1 && parentCommentId) {
+      const parentSnap = await db.doc(`comments/${parentCommentId}`).get();
+      if (!parentSnap.exists) {
+        logger.info('skipping cascaded reply delete already counted by parent', {
+          handler: 'syncEntityCommentCount', commentId: event.params.commentId, parentCommentId,
+        });
+        return;
+      }
+    }
+
     const result = await applyToParent(
       entityKind,
       entityId,
@@ -82,6 +100,41 @@ export const syncEntityCommentCount = onDocumentWritten(
       logger.info('comment count updated', {
         handler: 'syncEntityCommentCount', entityKind, entityId, delta,
       });
+    }
+
+    if (parentCommentId) {
+      try {
+        await db.doc(`comments/${parentCommentId}`).update('replyCount', FieldValue.increment(delta));
+      } catch (err) {
+        if (!isNotFound(err)) throw err;
+        // parent comment already deleted (cascade in flight) — no-op
+      }
+    }
+
+    // Cascade-delete replies when a top-level comment is deleted, and account
+    // for their commentCount decrement here (their own re-fired trigger
+    // invocations bail out above once they see the parent is gone).
+    if (delta === -1 && !parentCommentId) {
+      const commentId = event.params.commentId;
+      const repliesSnap = await db
+        .collection('comments')
+        .where('parentCommentId', '==', commentId)
+        .get();
+      if (!repliesSnap.empty) {
+        const batch = db.batch();
+        for (const replyDoc of repliesSnap.docs) batch.delete(replyDoc.ref);
+        await batch.commit();
+        await applyToParent(
+          entityKind,
+          entityId,
+          municipalityId,
+          'commentCount',
+          FieldValue.increment(-repliesSnap.size),
+        );
+        logger.info('cascade-deleted replies for removed comment', {
+          handler: 'syncEntityCommentCount', commentId, count: repliesSnap.size,
+        });
+      }
     }
   },
 );
