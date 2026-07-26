@@ -4,6 +4,11 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+- Comment replies: reply to a specific comment (one level of nesting), with a "View N replies" toggle and a notification to the parent comment's author.
+
+**Migration:** existing `comments/` docs are backfilled with `parentCommentId: null` and `replyCount: 0` by re-running `scripts/backfill-comment-threading.mjs` (per env).
+
 ## v0.17.0 — 2026-07-26
 
 ### Fixed

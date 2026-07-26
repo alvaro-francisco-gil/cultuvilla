@@ -387,14 +387,25 @@ service cloud.firestore {
     }
 
     function isValidCommentCreate(d) {
-      return d.keys().hasOnly(['entityKind', 'entityId', 'municipalityId', 'authorUserId', 'body', 'createdAt'])
-          && d.keys().hasAll(['entityKind', 'entityId', 'municipalityId', 'authorUserId', 'body', 'createdAt'])
+      return d.keys().hasOnly(['entityKind', 'entityId', 'municipalityId', 'authorUserId', 'body', 'createdAt', 'parentCommentId', 'replyCount'])
+          && d.keys().hasAll(['entityKind', 'entityId', 'municipalityId', 'authorUserId', 'body', 'createdAt', 'parentCommentId', 'replyCount'])
           && isValidEntityKind(d.entityKind)
           && isString(d.entityId)
           && isString(d.municipalityId)
           && isString(d.authorUserId)
           && isString(d.body) && d.body.size() > 0 && d.body.size() <= 2000
-          && isTimestamp(d.createdAt);
+          && isTimestamp(d.createdAt)
+          && (d.parentCommentId == null || isString(d.parentCommentId))
+          && d.replyCount == 0
+          && (d.parentCommentId == null || isValidReplyParent(d.entityKind, d.entityId, d.municipalityId, d.parentCommentId));
+    }
+
+    function isValidReplyParent(entityKind, entityId, municipalityId, parentCommentId) {
+      let parent = get(/databases/$(database)/documents/comments/$(parentCommentId));
+      return parent.data.entityKind == entityKind
+          && parent.data.entityId == entityId
+          && parent.data.municipalityId == municipalityId
+          && parent.data.parentCommentId == null;
     }
 
     // ── Collections ──────────────────────────────────────────────────────

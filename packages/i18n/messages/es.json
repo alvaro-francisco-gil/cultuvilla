@@ -1013,6 +1013,10 @@
     "deleteConfirmMessage": "¿Eliminar este comentario?",
     "deleteConfirmCancel": "Cancelar",
     "deleteConfirmConfirm": "Eliminar",
-    "anonymousAuthor": "Usuario"
+    "anonymousAuthor": "Usuario",
+    "reply": "Responder",
+    "replyPlaceholder": "Escribe una respuesta…",
+    "viewReplies": "{count, plural, one {Ver # respuesta} other {Ver # respuestas}}",
+    "hideReplies": "Ocultar respuestas"
   }
 }

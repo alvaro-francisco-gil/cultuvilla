@@ -156,6 +156,18 @@ can show it without a `getCountFromServer` per entity per render.
   *surviving* parent stay correct. A parent deleted out from under a
   still-in-flight trigger is a no-op (`isNotFound` guard), not a retry loop.
 
+### `replyCount` ← `comments/`
+
+Every top-level comment carries a running count of its replies (comments with that doc's id as their `parentCommentId`), so the UI can show a "View N replies" toggle without fetching replies on list render.
+
+- **Source of truth:** the generic top-level `comments/` collection, filtering to docs where `parentCommentId == {parentCommentId}` (the replies to one parent).
+- **Trigger:** [functions/src/interaction/syncEntityInteractionCounts.ts](../../functions/src/interaction/syncEntityInteractionCounts.ts)
+  — `syncEntityCommentCount`, an `onDocumentWritten` on `comments/`. When the comment is a reply (`parentCommentId != null`), increments/decrements the parent comment's `replyCount` using `FieldValue.increment` (not a full recompute, same as entity-level comment counts).
+- **Rules:** `firestore.rules` excludes `replyCount` from client-writable update fields on comment docs; only the trigger (admin SDK) can change it. Create rules require the field present and zeroed on all comments.
+- **Backfill:** [scripts/backfill-comment-threading.mjs](../../scripts/backfill-comment-threading.mjs)
+  adds `replyCount: 0` to top-level comments and `parentCommentId: null` to all comments missing the field.
+- **Delete behavior:** deleting a comment (reply or otherwise) fires the trigger; if it was a reply, the parent's `replyCount` is decremented. Deleting a parent comment cascades its replies, so `replyCount` zeroes along with the parent.
+
 ### `readCount` ← incremented directly by a callable (no source collection)
 
 Every entity kind also carries an invisible `readCount`, tracking detail-screen

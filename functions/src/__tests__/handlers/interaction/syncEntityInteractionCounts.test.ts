@@ -18,8 +18,9 @@ interface CommentShape {
   entityKind: string;
   entityId: string;
   municipalityId: string;
-  authorId: string;
-  text: string;
+  authorUserId: string;
+  body: string;
+  parentCommentId: string | null;
 }
 
 function comment(overrides: Partial<CommentShape> = {}): CommentShape {
@@ -27,8 +28,9 @@ function comment(overrides: Partial<CommentShape> = {}): CommentShape {
     entityKind: 'event',
     entityId: 'e1',
     municipalityId: MUNICIPALITY_ID,
-    authorId: 'user-1',
-    text: 'hola',
+    authorUserId: 'user-1',
+    body: 'hola',
+    parentCommentId: null,
     ...overrides,
   };
 }
@@ -172,5 +174,91 @@ describe('syncEntityCommentCount', () => {
     await expect(
       fireCommentTrigger(null, comment({ entityKind: 'event', entityId: 'does-not-exist' })),
     ).resolves.not.toThrow();
+  });
+});
+
+describe('syncEntityCommentCount — replies', () => {
+  it('increments the parent comment replyCount on reply create', async () => {
+    await seedEvent('e1');
+    await admin.firestore().doc('comments/parent-1').set({ replyCount: 0 });
+    await fireCommentTrigger(null, comment({ parentCommentId: 'parent-1' }), 'reply-1');
+
+    const parentDoc = await admin.firestore().doc('comments/parent-1').get();
+    expect(parentDoc.get('replyCount')).toBe(1);
+    const eventDoc = await admin.firestore().doc('events/e1').get();
+    expect(eventDoc.get('commentCount')).toBe(1);
+  });
+
+  it('decrements the parent comment replyCount on reply delete', async () => {
+    await seedEvent('e1', { commentCount: 1 });
+    await admin.firestore().doc('comments/parent-1').set({ replyCount: 1 });
+    await fireCommentTrigger(comment({ parentCommentId: 'parent-1' }), null, 'reply-1');
+
+    const parentDoc = await admin.firestore().doc('comments/parent-1').get();
+    expect(parentDoc.get('replyCount')).toBe(0);
+  });
+
+  it('notifies the parent comment author on reply create', async () => {
+    await seedEvent('e1', { title: 'Fiesta' });
+    await admin.firestore().doc('comments/parent-1').set({
+      ...comment(), authorUserId: 'parent-author', replyCount: 0,
+    });
+    await fireCommentTrigger(
+      null,
+      comment({ parentCommentId: 'parent-1', authorUserId: 'replier' }),
+      'reply-1',
+    );
+
+    const notifs = await admin
+      .firestore()
+      .collection('users/parent-author/notifications')
+      .get();
+    expect(notifs.size).toBe(1);
+    expect(notifs.docs[0].get('type')).toBe('comment_reply');
+    expect(notifs.docs[0].get('entityKind')).toBe('event');
+    expect(notifs.docs[0].get('entityId')).toBe('e1');
+    expect(notifs.docs[0].get('municipalityId')).toBe(MUNICIPALITY_ID);
+  });
+
+  it('does not notify when replying to your own comment', async () => {
+    await seedEvent('e1');
+    await admin.firestore().doc('comments/parent-1').set({
+      ...comment(), authorUserId: 'same-user', replyCount: 0,
+    });
+    await fireCommentTrigger(
+      null,
+      comment({ parentCommentId: 'parent-1', authorUserId: 'same-user' }),
+      'reply-1',
+    );
+
+    const notifs = await admin
+      .firestore()
+      .collection('users/same-user/notifications')
+      .get();
+    expect(notifs.size).toBe(0);
+  });
+
+  it('cascade-deletes replies when their top-level parent is deleted', async () => {
+    await seedEvent('e1', { commentCount: 3 });
+    const replyA = comment({ parentCommentId: 'parent-1' });
+    const replyB = comment({ parentCommentId: 'parent-1' });
+    await admin.firestore().doc('comments/parent-1').set(comment());
+    await admin.firestore().doc('comments/reply-a').set(replyA);
+    await admin.firestore().doc('comments/reply-b').set(replyB);
+
+    // The cascade only deletes the reply docs — in real production, Firestore
+    // re-fires this same trigger for each deleted reply doc, which is what
+    // performs its commentCount decrement. Simulate that re-firing explicitly
+    // since this test harness doesn't dispatch real Firestore trigger events.
+    await fireCommentTrigger(comment(), null, 'parent-1');
+    await fireCommentTrigger(replyA, null, 'reply-a');
+    await fireCommentTrigger(replyB, null, 'reply-b');
+
+    const replyASnap = await admin.firestore().doc('comments/reply-a').get();
+    const replyBSnap = await admin.firestore().doc('comments/reply-b').get();
+    expect(replyASnap.exists).toBe(false);
+    expect(replyBSnap.exists).toBe(false);
+    const eventDoc = await admin.firestore().doc('events/e1').get();
+    expect(eventDoc.get('commentCount')).toBe(0); // parent (-1) + 2 replies' own re-fired deletes (-2)
   });
 });
