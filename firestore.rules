@@ -397,13 +397,14 @@ service cloud.firestore {
           && isTimestamp(d.createdAt)
           && (d.parentCommentId == null || isString(d.parentCommentId))
           && d.replyCount == 0
-          && (d.parentCommentId == null || isValidReplyParent(d.entityKind, d.entityId, d.parentCommentId));
+          && (d.parentCommentId == null || isValidReplyParent(d.entityKind, d.entityId, d.municipalityId, d.parentCommentId));
     }
 
-    function isValidReplyParent(entityKind, entityId, parentCommentId) {
+    function isValidReplyParent(entityKind, entityId, municipalityId, parentCommentId) {
       let parent = get(/databases/$(database)/documents/comments/$(parentCommentId));
       return parent.data.entityKind == entityKind
           && parent.data.entityId == entityId
+          && parent.data.municipalityId == municipalityId
           && parent.data.parentCommentId == null;
     }
 

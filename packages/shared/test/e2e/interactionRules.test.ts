@@ -208,6 +208,14 @@ describe('firestore.rules — /comments/{commentId} replies', () => {
       setDoc(doc(carol, 'comments/c3'), validComment({ authorUserId: 'carol', parentCommentId: 'c2' }))
     );
   });
+
+  it('a reply fails if it claims a different municipalityId than its parent', async () => {
+    await seedComment('c1', 'alice', 'm1');
+    const bob = asUser(getEnv(), 'bob');
+    await assertFails(
+      setDoc(doc(bob, 'comments/c2'), validComment({ authorUserId: 'bob', parentCommentId: 'c1', municipalityId: 'm2' }))
+    );
+  });
 });
 
 // ── readCount (function-owned) ──────────────────────────────────────────────
