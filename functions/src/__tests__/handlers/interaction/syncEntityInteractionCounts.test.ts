@@ -215,6 +215,9 @@ describe('syncEntityCommentCount — replies', () => {
       .get();
     expect(notifs.size).toBe(1);
     expect(notifs.docs[0].get('type')).toBe('comment_reply');
+    expect(notifs.docs[0].get('entityKind')).toBe('event');
+    expect(notifs.docs[0].get('entityId')).toBe('e1');
+    expect(notifs.docs[0].get('municipalityId')).toBe(MUNICIPALITY_ID);
   });
 
   it('does not notify when replying to your own comment', async () => {
