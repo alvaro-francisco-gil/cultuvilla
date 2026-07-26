@@ -251,6 +251,7 @@
       "fields": [
         { "fieldPath": "entityKind", "order": "ASCENDING" },
         { "fieldPath": "entityId", "order": "ASCENDING" },
+        { "fieldPath": "parentCommentId", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "ASCENDING" }
       ]
     }
