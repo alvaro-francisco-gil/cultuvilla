@@ -12,6 +12,7 @@ import {
   addComment,
   deleteComment,
   getComments,
+  getReplies,
   recordEntityView,
 } from '../../src/services/commentsService';
 
@@ -86,6 +87,42 @@ describe('commentsService — comments', () => {
       parentCommentId: parentId,
     });
     expect(fakeStore()[`comments/${replyId}`]['parentCommentId']).toBe(parentId);
+  });
+
+  it('getComments excludes replies (only parentCommentId === null)', async () => {
+    const parentId = await addComment({
+      entityKind: 'event', entityId: 'e1', municipalityId: 'm1', authorUserId: 'u1', body: 'Parent',
+    });
+    await addComment({
+      entityKind: 'event', entityId: 'e1', municipalityId: 'm1', authorUserId: 'u2', body: 'Reply',
+      parentCommentId: parentId,
+    });
+    const comments = await getComments('event', 'e1');
+    expect(comments.map((c) => c.id)).toEqual([parentId]);
+  });
+
+  it('getReplies returns only replies to the given parent, oldest first', async () => {
+    const parentId = await addComment({
+      entityKind: 'event', entityId: 'e1', municipalityId: 'm1', authorUserId: 'u1', body: 'Parent',
+    });
+    const otherParentId = await addComment({
+      entityKind: 'event', entityId: 'e1', municipalityId: 'm1', authorUserId: 'u1', body: 'Other parent',
+    });
+    const reply1 = await addComment({
+      entityKind: 'event', entityId: 'e1', municipalityId: 'm1', authorUserId: 'u2', body: 'R1',
+      parentCommentId: parentId,
+    });
+    const reply2 = await addComment({
+      entityKind: 'event', entityId: 'e1', municipalityId: 'm1', authorUserId: 'u3', body: 'R2',
+      parentCommentId: parentId,
+    });
+    await addComment({
+      entityKind: 'event', entityId: 'e1', municipalityId: 'm1', authorUserId: 'u4', body: 'Not ours',
+      parentCommentId: otherParentId,
+    });
+
+    const replies = await getReplies('event', 'e1', parentId);
+    expect(replies.map((r) => r.id)).toEqual([reply1, reply2]);
   });
 });
 
