@@ -20,7 +20,7 @@ A village's only image is its **escudo** — Wikidata-sourced (`escudoUrl`) by d
 
 ## What this binds
 
-- No new village image field may reintroduce a per-village gallery. A future community-photo feature is a separate concept (see `docs/plans/ideas/village-user-photos.md`), not a revival of `coverImages`.
+- No new village image field may reintroduce a per-village gallery. A community-photo idea was explored and dropped (2026-07-25) — the product no longer wants member-uploaded village photos, so this stays closed unless raised again from scratch.
 - The escudo is the single source for any "village image" fallback (cards, share previews).
 
 ## Backward compatibility
@@ -29,4 +29,7 @@ No migration was required: reads go through `makeConverter` → `schema.parse()`
 
 ## Revisit when
 
-A community-driven village-photo feature is designed — at that point decide whether it supplies card/preview fallbacks or stays purely decorative.
+Someone proposes member-uploaded village photos again with a clear moderation
+and storage-cost model — the earlier sketch (`village-user-photos`) was dropped
+unimplemented on 2026-07-25 as no longer wanted, not because the idea was
+technically unsound.

@@ -88,20 +88,6 @@ describe('AuthContext changeEmail / re-auth', () => {
     mockFirebaseAuth.languageCode = null;
   });
 
-  it('sends the branded sign-in email via authEmailService', async () => {
-    mockSendAuthSignInEmail.mockResolvedValueOnce(undefined);
-    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
-
-    await act(async () => {
-      await result.current.sendEmailLink('new@example.com');
-    });
-
-    expect(mockSendAuthSignInEmail).toHaveBeenCalledWith(
-      'new@example.com',
-      expect.stringContaining('/finish'),
-    );
-  });
-
   it('calls verifyBeforeUpdateEmail with the new address', async () => {
     mockVerifyBeforeUpdateEmail.mockResolvedValueOnce(undefined);
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });

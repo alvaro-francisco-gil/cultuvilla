@@ -57,19 +57,21 @@
       "or": "O"
     },
     "googleConnecting": "Conectando con Google…",
-    "emailLinkHint": "Te enviaremos un enlace para entrar sin contraseña.",
-    "emailLinkSent": "Enlace enviado a {email}. Revisa tu correo, incluida la carpeta de correo no deseado.",
     "emailLink": {
       "completing": "Iniciando sesión…",
-      "confirmTitle": "Confirma tu correo",
-      "confirmHint": "Para terminar el inicio de sesión, confirma el correo donde recibiste el enlace.",
-      "confirmCta": "Continuar",
       "invalidTitle": "Enlace no válido",
       "invalid": "Este enlace ha caducado o no es válido. Pide uno nuevo."
     },
     "login": {
       "title": "Correo electrónico",
-      "submit": "Enviar enlace"
+      "submit": "Enviar código"
+    },
+    "otp": {
+      "hint": "Te enviaremos un código de acceso por correo.",
+      "sent": "Código enviado a {email}. Revisa tu correo, incluida la carpeta de spam.",
+      "codeLabel": "Código de 6 dígitos",
+      "verify": "Verificar código",
+      "resend": "Reenviar código"
     },
     "error": {
       "unknown": "Algo salió mal"
