@@ -19,7 +19,7 @@ interface CommentShape {
   entityId: string;
   municipalityId: string;
   authorUserId: string;
-  text: string;
+  body: string;
   parentCommentId: string | null;
 }
 
@@ -29,7 +29,7 @@ function comment(overrides: Partial<CommentShape> = {}): CommentShape {
     entityId: 'e1',
     municipalityId: MUNICIPALITY_ID,
     authorUserId: 'user-1',
-    text: 'hola',
+    body: 'hola',
     parentCommentId: null,
     ...overrides,
   };
@@ -196,6 +196,43 @@ describe('syncEntityCommentCount — replies', () => {
 
     const parentDoc = await admin.firestore().doc('comments/parent-1').get();
     expect(parentDoc.get('replyCount')).toBe(0);
+  });
+
+  it('notifies the parent comment author on reply create', async () => {
+    await seedEvent('e1', { title: 'Fiesta' });
+    await admin.firestore().doc('comments/parent-1').set({
+      ...comment(), authorUserId: 'parent-author', replyCount: 0,
+    });
+    await fireCommentTrigger(
+      null,
+      comment({ parentCommentId: 'parent-1', authorUserId: 'replier' }),
+      'reply-1',
+    );
+
+    const notifs = await admin
+      .firestore()
+      .collection('users/parent-author/notifications')
+      .get();
+    expect(notifs.size).toBe(1);
+    expect(notifs.docs[0].get('type')).toBe('comment_reply');
+  });
+
+  it('does not notify when replying to your own comment', async () => {
+    await seedEvent('e1');
+    await admin.firestore().doc('comments/parent-1').set({
+      ...comment(), authorUserId: 'same-user', replyCount: 0,
+    });
+    await fireCommentTrigger(
+      null,
+      comment({ parentCommentId: 'parent-1', authorUserId: 'same-user' }),
+      'reply-1',
+    );
+
+    const notifs = await admin
+      .firestore()
+      .collection('users/same-user/notifications')
+      .get();
+    expect(notifs.size).toBe(0);
   });
 
   it('cascade-deletes replies when their top-level parent is deleted', async () => {

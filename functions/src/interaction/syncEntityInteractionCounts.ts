@@ -8,7 +8,9 @@ import {
   newsDoc,
   municipalityPlaceDoc,
   municipalityBarrioDoc,
+  userNotificationsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
+import { buildNotificationData, type EntityKind } from '@cultuvilla/shared/models';
 
 const db = getFirestore();
 
@@ -89,6 +91,31 @@ export const syncEntityCommentCount = onDocumentWritten(
     if (parentCommentId) {
       try {
         await db.doc(`comments/${parentCommentId}`).update('replyCount', FieldValue.increment(delta));
+      } catch (err) {
+        if (!isNotFound(err)) throw err;
+        // parent comment already deleted (cascade in flight) — no-op
+      }
+    }
+
+    if (parentCommentId && delta === 1) {
+      try {
+        const parentSnap = await db.doc(`comments/${parentCommentId}`).get();
+        const parentAuthorUserId = parentSnap.get('authorUserId') as string | undefined;
+        const replyAuthorUserId = d['authorUserId'] as string;
+        if (parentAuthorUserId && parentAuthorUserId !== replyAuthorUserId) {
+          await userNotificationsCollection(db, parentAuthorUserId)
+            .doc()
+            .set(
+              buildNotificationData({
+                type: 'comment_reply',
+                title: 'Nueva respuesta a tu comentario',
+                body: (d['body'] as string).slice(0, 200),
+                entityKind: entityKind as EntityKind,
+                entityId,
+                municipalityId,
+              }),
+            );
+        }
       } catch (err) {
         if (!isNotFound(err)) throw err;
         // parent comment already deleted (cascade in flight) — no-op
