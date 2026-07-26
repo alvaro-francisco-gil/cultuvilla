@@ -4,9 +4,12 @@
  *
  * One-off: the comment-threading feature added two REQUIRED fields to the
  * `comments/` collection — `parentCommentId` (nullable) and `replyCount`.
- * Existing dev docs predate them, so the strict Zod converter now throws on
- * read. Backfill every doc missing either field with the same default the
- * model builder uses (`parentCommentId: null`, `replyCount: 0`).
+ * It also added `entityKind`/`entityId` (both nullable) to the
+ * `users/{uid}/notifications` collection group, for the `comment_reply`
+ * notification type. Existing dev docs predate these fields, so the strict
+ * Zod converter now throws on read. Backfill every doc missing them with the
+ * same defaults the model builders use (`parentCommentId: null`,
+ * `replyCount: 0`, `entityKind: null`, `entityId: null`).
  *
  * USAGE
  *   node scripts/backfill-comment-threading.mjs                  (dev, default)
@@ -36,10 +39,25 @@ function patchFor(data) {
   return patch;
 }
 
+function patchForNotifications(data) {
+  const patch = {};
+  if (data.entityKind === undefined) patch.entityKind = null;
+  if (data.entityId === undefined) patch.entityId = null;
+  return patch;
+}
+
 async function main() {
   console.log(`Backfilling comment threading fields against ${projectId}\n`);
   const { patched, total } = await backfillCollection(db, 'comments', db.collection('comments'), patchFor);
-  console.log(`\nDone. Total patched: ${patched}/${total}`);
+
+  const { patched: notificationsPatched, total: notificationsTotal } = await backfillCollection(
+    db,
+    'notifications (collection group)',
+    db.collectionGroup('notifications'),
+    patchForNotifications,
+  );
+
+  console.log(`\nDone. Total patched: ${patched}/${total} comments, ${notificationsPatched}/${notificationsTotal} notifications`);
 }
 
 main().catch((err) => {
