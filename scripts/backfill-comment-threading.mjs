@@ -12,13 +12,15 @@
  * `replyCount: 0`, `entityKind: null`, `entityId: null`).
  *
  * USAGE
- *   node scripts/backfill-comment-threading.mjs                  (dev, default)
+ *   node scripts/backfill-comment-threading.mjs                  (dev dry run)
+ *   node scripts/backfill-comment-threading.mjs --apply          (dev writes)
  *   env -u GOOGLE_APPLICATION_CREDENTIALS \
- *     node scripts/backfill-comment-threading.mjs --env=beta --confirm
+ *     node scripts/backfill-comment-threading.mjs --env=beta --confirm --apply
  *
  * Credentials resolve via initAdminForEnv (see lib/env-credentials.mjs). Dev is
  * autonomous; beta/prod require --confirm (and the stored ADC — unset
  * GOOGLE_APPLICATION_CREDENTIALS so a dev key can't hijack the target project).
+ * `--apply` still gates the actual write on every env (dry run without it).
  *
  * Idempotent: only patches docs missing the fields; re-running after a full
  * backfill patches 0 docs.
@@ -31,6 +33,7 @@ import { backfillCollection } from './lib/backfill.mjs';
 
 const { projectId } = initAdminForEnv(parseEnvConfirm());
 const db = admin.firestore();
+const APPLY = process.argv.includes('--apply');
 
 function patchFor(data) {
   const patch = {};
@@ -47,14 +50,17 @@ function patchForNotifications(data) {
 }
 
 async function main() {
-  console.log(`Backfilling comment threading fields against ${projectId}\n`);
-  const { patched, total } = await backfillCollection(db, 'comments', db.collection('comments'), patchFor);
+  console.log(`${APPLY ? 'Backfilling' : 'DRY-RUN: checking'} comment threading fields against ${projectId}\n`);
+  const { patched, total } = await backfillCollection(db, 'comments', db.collection('comments'), patchFor, {
+    apply: APPLY,
+  });
 
   const { patched: notificationsPatched, total: notificationsTotal } = await backfillCollection(
     db,
     'notifications (collection group)',
     db.collectionGroup('notifications'),
     patchForNotifications,
+    { apply: APPLY },
   );
 
   console.log(`\nDone. Total patched: ${patched}/${total} comments, ${notificationsPatched}/${notificationsTotal} notifications`);
