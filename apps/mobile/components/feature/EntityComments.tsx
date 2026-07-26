@@ -63,6 +63,7 @@ export function EntityComments({
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const [repliesByParent, setRepliesByParent] = useState<Map<string, CommentDoc[]>>(new Map());
   const [loadingReplies, setLoadingReplies] = useState<Set<string>>(new Set());
+  const [sendingReply, setSendingReply] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -120,7 +121,21 @@ export function EntityComments({
 
   const onDelete = (commentId: string) => {
     runDeleteConfirm(() => {
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
+      const parentId = [...repliesByParent.entries()].find(([, replies]) =>
+        replies.some((r) => r.id === commentId),
+      )?.[0];
+      setComments((prev) =>
+        prev
+          .filter((c) => c.id !== commentId)
+          .map((c) => (c.id === parentId ? { ...c, replyCount: c.replyCount - 1 } : c)),
+      );
+      if (parentId) {
+        setRepliesByParent((prev) => {
+          const next = new Map(prev);
+          next.set(parentId, (prev.get(parentId) ?? []).filter((r) => r.id !== commentId));
+          return next;
+        });
+      }
       void deleteComment(commentId);
     });
   };
@@ -152,26 +167,31 @@ export function EntityComments({
   const onSendReply = (parentCommentId: string) => {
     if (!user) return;
     const trimmed = replyBody.trim();
-    if (!trimmed) return;
+    if (!trimmed || sendingReply) return;
+    setSendingReply(true);
     void (async () => {
-      const id = await addComment({
-        entityKind, entityId, municipalityId, authorUserId: user.uid, body: trimmed, parentCommentId,
-      });
-      const newReply: CommentDoc = {
-        id, entityKind, entityId, municipalityId, authorUserId: user.uid, body: trimmed,
-        createdAt: new Date(), parentCommentId, replyCount: 0,
-      };
-      setRepliesByParent((prev) => {
-        const next = new Map(prev);
-        next.set(parentCommentId, [...(next.get(parentCommentId) ?? []), newReply]);
-        return next;
-      });
-      setComments((prev) =>
-        prev.map((c) => (c.id === parentCommentId ? { ...c, replyCount: c.replyCount + 1 } : c)),
-      );
-      setExpandedReplies((prev) => new Set(prev).add(parentCommentId));
-      setReplyingTo(null);
-      setReplyBody('');
+      try {
+        const id = await addComment({
+          entityKind, entityId, municipalityId, authorUserId: user.uid, body: trimmed, parentCommentId,
+        });
+        const newReply: CommentDoc = {
+          id, entityKind, entityId, municipalityId, authorUserId: user.uid, body: trimmed,
+          createdAt: new Date(), parentCommentId, replyCount: 0,
+        };
+        setRepliesByParent((prev) => {
+          const next = new Map(prev);
+          next.set(parentCommentId, [...(next.get(parentCommentId) ?? []), newReply]);
+          return next;
+        });
+        setComments((prev) =>
+          prev.map((c) => (c.id === parentCommentId ? { ...c, replyCount: c.replyCount + 1 } : c)),
+        );
+        setExpandedReplies((prev) => new Set(prev).add(parentCommentId));
+        setReplyingTo(null);
+        setReplyBody('');
+      } finally {
+        setSendingReply(false);
+      }
     })();
   };
 
@@ -262,7 +282,11 @@ export function EntityComments({
                         accessibilityLabel={t('comments.replyPlaceholder')}
                       />
                     </View>
-                    <Button onPress={() => onSendReply(comment.id)} disabled={!replyBody.trim()}>
+                    <Button
+                      onPress={() => onSendReply(comment.id)}
+                      disabled={!replyBody.trim() || sendingReply}
+                      loading={sendingReply}
+                    >
                       {t('comments.send')}
                     </Button>
                   </HStack>

@@ -1,7 +1,12 @@
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { Platform } from 'react-native';
 import { EntityComments } from './EntityComments';
-import { addComment, deleteComment, getComments } from '@cultuvilla/shared/services/commentsService';
+import {
+  addComment,
+  deleteComment,
+  getComments,
+  getReplies,
+} from '@cultuvilla/shared/services/commentsService';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 import { getUserProfile } from '@cultuvilla/shared/services/userService';
 
@@ -9,6 +14,7 @@ jest.mock('@cultuvilla/shared/services/commentsService', () => ({
   addComment: jest.fn(),
   deleteComment: jest.fn().mockResolvedValue(undefined),
   getComments: jest.fn(),
+  getReplies: jest.fn(),
 }));
 jest.mock('@cultuvilla/shared/services/personService', () => ({
   getPersonByUserId: jest.fn(),
@@ -31,7 +37,7 @@ jest.mock('../../lib/auth/RegisterGateContext', () => ({
 jest.mock('../../lib/i18n', () => ({
   useT: () => ({
     locale: 'es',
-    t: (key: string) => {
+    t: (key: string, params?: Record<string, unknown>) => {
       const table: Record<string, string> = {
         'comments.sectionTitle': 'Comentarios',
         'comments.placeholder': 'Escribe un comentario…',
@@ -39,7 +45,11 @@ jest.mock('../../lib/i18n', () => ({
         'comments.signInToComment': 'Inicia sesión para comentar',
         'comments.delete': 'Eliminar',
         'comments.anonymousAuthor': 'Usuario',
+        'comments.reply': 'Responder',
+        'comments.replyPlaceholder': 'Escribe una respuesta…',
+        'comments.hideReplies': 'Ocultar respuestas',
       };
+      if (key === 'comments.viewReplies') return `Ver ${params?.count ?? ''} respuestas`;
       return table[key] ?? key;
     },
   }),
@@ -53,6 +63,7 @@ const getUserProfileMock = getUserProfile as jest.Mock;
 const getCommentsMock = getComments as jest.Mock;
 const addCommentMock = addComment as jest.Mock;
 const deleteCommentMock = deleteComment as jest.Mock;
+const getRepliesMock = getReplies as jest.Mock;
 
 const BASE_PROPS = {
   entityKind: 'event' as const,
@@ -200,5 +211,129 @@ describe('<EntityComments>', () => {
 
     expect(mockRequireAuth).toHaveBeenCalledWith('/event/e-1', 'guest.comment');
     expect(addCommentMock).not.toHaveBeenCalled();
+  });
+
+  it('posts a reply with parentCommentId set via the inline reply composer', async () => {
+    getCommentsMock.mockResolvedValue([
+      {
+        id: 'c-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-2',
+        body: 'Comentario original',
+        createdAt: new Date(),
+        parentCommentId: null,
+        replyCount: 0,
+      },
+    ]);
+    addCommentMock.mockResolvedValue('r-new');
+
+    const { findByText, findByPlaceholderText, getAllByText } = render(
+      <EntityComments {...BASE_PROPS} />,
+    );
+    await findByText(/Comentario original/);
+
+    fireEvent.press(await findByText('Responder'));
+    const replyInput = await findByPlaceholderText('Escribe una respuesta…');
+    fireEvent.changeText(replyInput, 'Una respuesta');
+    await act(async () => {
+      // The bottom composer's "Enviar" also renders — the inline reply composer's
+      // is the first one in the tree (it's nested inside the comment row, which
+      // renders before the bottom composer).
+      fireEvent.press(getAllByText('Enviar')[0]!);
+    });
+
+    await waitFor(() =>
+      expect(addCommentMock).toHaveBeenCalledWith({
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-1',
+        body: 'Una respuesta',
+        parentCommentId: 'c-1',
+      }),
+    );
+  });
+
+  it('shows a "view replies" toggle and loads/renders replies on press', async () => {
+    getCommentsMock.mockResolvedValue([
+      {
+        id: 'c-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-2',
+        body: 'Comentario original',
+        createdAt: new Date(),
+        parentCommentId: null,
+        replyCount: 2,
+      },
+    ]);
+    getRepliesMock.mockResolvedValue([
+      {
+        id: 'r-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-3',
+        body: 'Una respuesta existente',
+        createdAt: new Date(),
+        parentCommentId: 'c-1',
+        replyCount: 0,
+      },
+    ]);
+
+    const { findByText } = render(<EntityComments {...BASE_PROPS} />);
+    await findByText(/Comentario original/);
+
+    const toggle = await findByText('Ver 2 respuestas');
+    await act(async () => {
+      fireEvent.press(toggle);
+    });
+
+    expect(getRepliesMock).toHaveBeenCalledWith('event', 'e-1', 'c-1');
+    expect(await findByText(/Una respuesta existente/)).toBeTruthy();
+  });
+
+  it('does not render a reply action on a reply row (one level of nesting only)', async () => {
+    getCommentsMock.mockResolvedValue([
+      {
+        id: 'c-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-2',
+        body: 'Comentario original',
+        createdAt: new Date(),
+        parentCommentId: null,
+        replyCount: 1,
+      },
+    ]);
+    getRepliesMock.mockResolvedValue([
+      {
+        id: 'r-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-3',
+        body: 'Una respuesta existente',
+        createdAt: new Date(),
+        parentCommentId: 'c-1',
+        replyCount: 0,
+      },
+    ]);
+
+    const { findByText, getAllByText } = render(<EntityComments {...BASE_PROPS} />);
+    await findByText(/Comentario original/);
+
+    await act(async () => {
+      fireEvent.press(await findByText('Ver 1 respuestas'));
+    });
+    await findByText(/Una respuesta existente/);
+
+    // Only the top-level comment's "Responder" affordance should exist —
+    // the reply row must not render its own.
+    expect(getAllByText('Responder')).toHaveLength(1);
   });
 });
