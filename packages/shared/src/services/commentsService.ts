@@ -20,6 +20,7 @@ export interface AddCommentInput {
   municipalityId: string;
   authorUserId: string;
   body: string;
+  parentCommentId?: string | null;
 }
 
 export async function addComment(input: AddCommentInput): Promise<string> {
@@ -33,6 +34,7 @@ export async function addComment(input: AddCommentInput): Promise<string> {
       authorUserId: input.authorUserId,
       body: input.body,
       createdAt: new Date(),
+      parentCommentId: input.parentCommentId ?? null,
     }),
   );
   return ref.id;

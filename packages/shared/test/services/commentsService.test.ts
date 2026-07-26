@@ -67,6 +67,26 @@ describe('commentsService — comments', () => {
     expect(ids.length).toBe(2);
     expect(comments.every((c) => c.entityKind === 'event' && c.entityId === 'e1')).toBe(true);
   });
+
+  it('addComment defaults parentCommentId to null and replyCount to 0', async () => {
+    const id = await addComment({
+      entityKind: 'event', entityId: 'e1', municipalityId: 'm1', authorUserId: 'u1', body: 'X',
+    });
+    const snap = fakeStore()[`comments/${id}`];
+    expect(snap['parentCommentId']).toBeNull();
+    expect(snap['replyCount']).toBe(0);
+  });
+
+  it('addComment accepts an explicit parentCommentId for a reply', async () => {
+    const parentId = await addComment({
+      entityKind: 'event', entityId: 'e1', municipalityId: 'm1', authorUserId: 'u1', body: 'Parent',
+    });
+    const replyId = await addComment({
+      entityKind: 'event', entityId: 'e1', municipalityId: 'm1', authorUserId: 'u2', body: 'Reply',
+      parentCommentId: parentId,
+    });
+    expect(fakeStore()[`comments/${replyId}`]['parentCommentId']).toBe(parentId);
+  });
 });
 
 describe('commentsService — recordEntityView', () => {
