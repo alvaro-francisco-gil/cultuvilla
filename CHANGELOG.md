@@ -4,6 +4,12 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.17.0 — 2026-07-26
+
+### Fixed
+
+- Email sign-in now uses a 6-digit code emailed to the user instead of a magic link. The link often opened in a different browser/webview than the one running the app (e.g. an email app's in-app browser), so the signed-in session landed in storage the app never read again — the device was never "remembered" the way Google sign-in is. The code is entered back in the same screen, so it persists the same way. The re-authentication step used by Settings → change email still uses a link (unaffected by this bug, and technically unable to move to a code).
+
 ## v0.16.0 — 2026-07-24
 
 ### Changed

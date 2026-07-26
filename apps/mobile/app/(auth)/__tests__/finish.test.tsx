@@ -18,8 +18,6 @@ const mockIsEmailLink = jest.fn().mockReturnValue(true);
 const mockCompleteReauth = jest.fn();
 const mockReadPendingReauth = jest.fn();
 const mockClearPendingReauth = jest.fn().mockResolvedValue(undefined);
-const mockReadPendingEmail = jest.fn().mockResolvedValue(null);
-const mockCompleteEmailLinkSignIn = jest.fn();
 
 const mockUseAuth = jest.fn();
 jest.mock('../../../lib/auth/useAuth', () => ({
@@ -31,8 +29,6 @@ function baseAuth(overrides: Partial<ReturnType<typeof mockUseAuth>> = {}) {
     user: null,
     loading: false,
     isEmailLink: mockIsEmailLink,
-    completeEmailLinkSignIn: mockCompleteEmailLinkSignIn,
-    readPendingEmail: mockReadPendingEmail,
     completeReauth: mockCompleteReauth,
     readPendingReauth: mockReadPendingReauth,
     clearPendingReauth: mockClearPendingReauth,
@@ -44,10 +40,9 @@ describe('<FinishScreen> re-auth wedge', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockIsEmailLink.mockReturnValue(true);
-    mockReadPendingEmail.mockResolvedValue(null);
   });
 
-  it('clears a stale pending-reauth intent and falls through to the normal sign-in path when no session is present', async () => {
+  it('clears a stale pending-reauth intent and shows an invalid-link error when no session is present', async () => {
     mockReadPendingReauth.mockResolvedValue({ purpose: 'change-email', newEmail: 'new@test.com' });
     mockUseAuth.mockReturnValue(baseAuth({ user: null }));
 
@@ -56,9 +51,7 @@ describe('<FinishScreen> re-auth wedge', () => {
     await waitFor(() => expect(mockClearPendingReauth).toHaveBeenCalled());
 
     expect(mockCompleteReauth).not.toHaveBeenCalled();
-    // Falls through to the "needs email" state (no pending sign-in email
-    // stored) rather than getting stuck on an error/spinner forever.
-    await waitFor(() => expect(queryByText('auth.emailLink.confirmTitle')).toBeTruthy());
+    await waitFor(() => expect(queryByText('auth.emailLink.invalidTitle')).toBeTruthy());
   });
 
   it('completes the re-auth normally when a session is present', async () => {
@@ -82,6 +75,16 @@ describe('<FinishScreen> re-auth wedge', () => {
     // Auth is still resolving — must not prematurely clear the intent.
     await new Promise((r) => setTimeout(r, 0));
     expect(mockClearPendingReauth).not.toHaveBeenCalled();
+    expect(mockCompleteReauth).not.toHaveBeenCalled();
+  });
+
+  it('shows an invalid-link error when there is no pending-reauth intent at all', async () => {
+    mockReadPendingReauth.mockResolvedValue(null);
+    mockUseAuth.mockReturnValue(baseAuth({ user: { uid: 'u1' } }));
+
+    const { queryByText } = render(<FinishScreen />);
+
+    await waitFor(() => expect(queryByText('auth.emailLink.invalidTitle')).toBeTruthy());
     expect(mockCompleteReauth).not.toHaveBeenCalled();
   });
 });
