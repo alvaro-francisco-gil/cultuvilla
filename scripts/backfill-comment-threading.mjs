@@ -1,33 +1,45 @@
 #!/usr/bin/env node
-// Backfills parentCommentId: null and replyCount: 0 onto existing comment
-// docs that predate the comment-threading feature. Idempotent — only
-// touches docs missing either field.
+/**
+ * backfill-comment-threading.mjs
+ *
+ * One-off: the comment-threading feature added two REQUIRED fields to the
+ * `comments/` collection — `parentCommentId` (nullable) and `replyCount`.
+ * Existing dev docs predate them, so the strict Zod converter now throws on
+ * read. Backfill every doc missing either field with the same default the
+ * model builder uses (`parentCommentId: null`, `replyCount: 0`).
+ *
+ * USAGE
+ *   node scripts/backfill-comment-threading.mjs                  (dev, default)
+ *   env -u GOOGLE_APPLICATION_CREDENTIALS \
+ *     node scripts/backfill-comment-threading.mjs --env=beta --confirm
+ *
+ * Credentials resolve via initAdminForEnv (see lib/env-credentials.mjs). Dev is
+ * autonomous; beta/prod require --confirm (and the stored ADC — unset
+ * GOOGLE_APPLICATION_CREDENTIALS so a dev key can't hijack the target project).
+ *
+ * Idempotent: only patches docs missing the fields; re-running after a full
+ * backfill patches 0 docs.
+ */
+
 import admin from 'firebase-admin';
+import { initAdminForEnv } from './lib/env-credentials.mjs';
+import { parseEnvConfirm } from './lib/env-confirm.mjs';
+import { backfillCollection } from './lib/backfill.mjs';
 
-const PROJECT_ID = 'villa-events';
-
-admin.initializeApp({ projectId: PROJECT_ID });
+const { projectId } = initAdminForEnv(parseEnvConfirm());
 const db = admin.firestore();
 
-async function main() {
-  if (process.env.GOOGLE_CLOUD_PROJECT !== PROJECT_ID && process.env.GCLOUD_PROJECT !== PROJECT_ID) {
-    console.error(`Refusing to run: expected project ${PROJECT_ID}`);
-    process.exit(1);
-  }
+function patchFor(data) {
+  const patch = {};
+  if (data.parentCommentId === undefined) patch.parentCommentId = null;
+  if (data.replyCount === undefined) patch.replyCount = 0;
+  return patch;
+}
 
-  const snap = await db.collection('comments').get();
-  let patched = 0;
-  for (const docSnap of snap.docs) {
-    const data = docSnap.data();
-    const update = {};
-    if (!('parentCommentId' in data)) update.parentCommentId = null;
-    if (!('replyCount' in data)) update.replyCount = 0;
-    if (Object.keys(update).length > 0) {
-      await docSnap.ref.update(update);
-      patched++;
-    }
-  }
-  console.log(`Patched ${patched}/${snap.size} comment docs.`);
+async function main() {
+  console.log(`Backfilling comment threading fields against ${projectId}\n`);
+  const { patched, total } = await backfillCollection(db, 'comments', db.collection('comments'), patchFor);
+  console.log(`\nDone. Total patched: ${patched}/${total}`);
 }
 
 main().catch((err) => {
