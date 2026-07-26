@@ -9,6 +9,7 @@ import {
   municipalityPlaceDoc,
   municipalityBarrioDoc,
   userNotificationsCollection,
+  commentDoc,
 } from '@cultuvilla/shared/firebase/refs/admin';
 import { buildNotificationData, type EntityKind } from '@cultuvilla/shared/models';
 
@@ -90,7 +91,7 @@ export const syncEntityCommentCount = onDocumentWritten(
 
     if (parentCommentId) {
       try {
-        await db.doc(`comments/${parentCommentId}`).update('replyCount', FieldValue.increment(delta));
+        await commentDoc(db, parentCommentId).update('replyCount', FieldValue.increment(delta));
       } catch (err) {
         if (!isNotFound(err)) throw err;
         // parent comment already deleted (cascade in flight) — no-op
@@ -99,7 +100,7 @@ export const syncEntityCommentCount = onDocumentWritten(
 
     if (parentCommentId && delta === 1) {
       try {
-        const parentSnap = await db.doc(`comments/${parentCommentId}`).get();
+        const parentSnap = await commentDoc(db, parentCommentId).get();
         const parentAuthorUserId = parentSnap.get('authorUserId') as string | undefined;
         const replyAuthorUserId = d['authorUserId'] as string;
         if (parentAuthorUserId && parentAuthorUserId !== replyAuthorUserId) {
