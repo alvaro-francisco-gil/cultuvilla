@@ -1,7 +1,7 @@
-import { render, waitFor } from '@testing-library/react-native';
+import { render, waitFor, fireEvent } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import BarrioDetailScreen from '../[barrioId]';
-import { getPersonsByBarrio } from '@cultuvilla/shared/services/personService';
+import { getMunicipalityPeopleByBarrio } from '@cultuvilla/shared/services/municipalityPersonService';
 
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
@@ -25,19 +25,31 @@ jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getBarrio: jest.fn().mockResolvedValue({ id: 'b1', name: 'Centro', images: [], municipalityId: 'm1' }),
 }));
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({ getBarrioViewLink: () => 'https://x' }));
-jest.mock('@cultuvilla/shared/services/personService', () => ({ getPersonsByBarrio: jest.fn().mockResolvedValue([]) }));
-jest.mock('@cultuvilla/shared/models/person', () => ({
-  buildNameWithNickname: (p: { id: string }) => p.id,
-  isDeceased: (p: { deathDate?: unknown; burialPlace?: unknown }) =>
-    p.deathDate != null || p.burialPlace != null,
+jest.mock('@cultuvilla/shared/services/municipalityPersonService', () => ({
+  getMunicipalityPeopleByBarrio: jest.fn().mockResolvedValue([]),
 }));
 jest.mock('../../../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 
+type Row = Awaited<ReturnType<typeof getMunicipalityPeopleByBarrio>>[number];
+
+const resident = (over: Partial<Row> & { personId: string }): Row =>
+  ({
+    id: `m1_${over.personId}`,
+    municipalityId: 'm1',
+    barrioId: 'b1',
+    displayName: over.personId,
+    sortName: over.personId,
+    photoURL: null,
+    userId: null,
+    isPublic: true,
+    ...over,
+  }) as Row;
+
 describe('BarrioDetailScreen', () => {
   beforeEach(() => {
-    jest.mocked(getPersonsByBarrio).mockReset();
-    jest.mocked(getPersonsByBarrio).mockResolvedValue([]);
+    jest.mocked(getMunicipalityPeopleByBarrio).mockReset();
+    jest.mocked(getMunicipalityPeopleByBarrio).mockResolvedValue([]);
     jest.mocked(router.push).mockClear();
   });
 
@@ -46,30 +58,37 @@ describe('BarrioDetailScreen', () => {
     await waitFor(() => getByText('Centro'));
   });
 
-  it('does not make an account-less persona clickable from the residents list', async () => {
-    jest.mocked(getPersonsByBarrio).mockResolvedValue([
-      { id: 'p1', userId: null, createdBy: 'u1' },
-    ] as Awaited<ReturnType<typeof getPersonsByBarrio>>);
+  // The barrio roster reads the municipalityPeople projection, not a persons
+  // query — that is what lets a persona with no account appear here at all.
+  it('lists a persona with no account and opens their details', async () => {
+    jest.mocked(getMunicipalityPeopleByBarrio).mockResolvedValue([resident({ personId: 'p1' })]);
 
-    const { queryByRole, findAllByText } = render(<BarrioDetailScreen />);
+    const { findByRole } = render(<BarrioDetailScreen />);
 
-    await findAllByText('p1');
-    expect(queryByRole('button', { name: 'p1' })).toBeNull();
-    expect(router.push).not.toHaveBeenCalledWith('/person/p1');
+    fireEvent.press(await findByRole('button', { name: 'p1' }));
+    expect(router.push).toHaveBeenCalledWith('/person/p1');
   });
 
-  it('hides deceased personas (death date or burial place) from the residents list', async () => {
-    jest.mocked(getPersonsByBarrio).mockResolvedValue([
-      { id: 'alive', userId: null, createdBy: 'u1' },
-      { id: 'byDate', userId: null, createdBy: 'u1', deathDate: { year: 2020, month: null, day: null } },
-      { id: 'byBurial', userId: null, createdBy: 'u1', burialPlace: { municipalityId: 'm1', placeId: 'c1' } },
-    ] as unknown as Awaited<ReturnType<typeof getPersonsByBarrio>>);
+  it('lists a private persona but leaves the row unlinked', async () => {
+    jest
+      .mocked(getMunicipalityPeopleByBarrio)
+      .mockResolvedValue([resident({ personId: 'p2', isPublic: false })]);
 
-    const { findByText, queryByText } = render(<BarrioDetailScreen />);
+    const { findAllByText, queryByRole } = render(<BarrioDetailScreen />);
 
-    // The living persona renders; the two deceased ones are filtered out.
-    await findByText('alive');
-    expect(queryByText('byDate')).toBeNull();
-    expect(queryByText('byBurial')).toBeNull();
+    await findAllByText('p2');
+    expect(queryByRole('button', { name: 'p2' })).toBeNull();
+    expect(router.push).not.toHaveBeenCalledWith('/person/p2');
+  });
+
+  it('opens the richer user profile for an account holder', async () => {
+    jest
+      .mocked(getMunicipalityPeopleByBarrio)
+      .mockResolvedValue([resident({ personId: 'p3', userId: 'u9' })]);
+
+    const { findByRole } = render(<BarrioDetailScreen />);
+
+    fireEvent.press(await findByRole('button', { name: 'p3' }));
+    expect(router.push).toHaveBeenCalledWith('/user/u9');
   });
 });

@@ -73,7 +73,7 @@ export async function deletePerson(personId: string): Promise<void> {
  * the entry for `municipalityId` directly (the caller owns their person doc).
  * `barrioId` null = "Todo el pueblo" (whole village). Written via
  * `buildResidenceLinks`, the single constructor of the exact
- * `{ municipalityId, barrioId }` shape `getPersonsByBarrio` matches on. No-op
+ * `{ municipalityId, barrioId }` shape the directory projection reads. No-op
  * when the user has no linked person.
  */
 export async function updateResidenceBarrio(
@@ -90,36 +90,17 @@ export async function updateResidenceBarrio(
 }
 
 /**
- * People linked to a given barrio (residence link in `municipalityLinks`).
- *
- * The `isPublic` filter isn't cosmetic: the persons read rule is evaluated per
- * matched document, so a query that could match a private persona is rejected
- * outright rather than returning a partial result. Private dependents are
- * therefore absent from the barrio list — they stay visible in the village
- * roster, which reads the municipalityPeople projection instead.
- */
-export async function getPersonsByBarrio(
-  municipalityId: string,
-  barrioId: string,
-): Promise<(PersonData & { id: string })[]> {
-  const q = query(
-    personsCollection(getDb()),
-    where('municipalityLinks', 'array-contains', { municipalityId, barrioId }),
-    where('isPublic', '==', true),
-  );
-  const snap = await getDocs(q);
-  return snap.docs
-    .map((d) => ({ id: d.id, ...d.data() }))
-    .sort((a, b) => buildDisplayName(a).localeCompare(buildDisplayName(b)));
-}
-
-/**
  * People buried in a given place (cemetery), via `burialPlace.placeId`.
  * Intentionally not scoped by municipality: `placeId` is a Firestore
  * auto-id from `/municipalities/{id}/places/`, so it is globally unique
  * and a bare `placeId` match cannot collide across villages.
  *
- * Filters on `isPublic` for the same reason as `getPersonsByBarrio`.
+ * Filters on `isPublic` because the persons read rule is evaluated per matched
+ * document: a query that could match a private persona is rejected outright.
+ * Consequence: a private persona is absent from the cemetery list rather than
+ * merely unlinked. The barrio roster avoids this by reading the
+ * municipalityPeople projection instead; the cemetery has no such projection
+ * (the directory deliberately excludes the deceased).
  */
 export async function getPersonsByBurialPlace(
   placeId: string,

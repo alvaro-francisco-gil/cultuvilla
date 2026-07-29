@@ -46,6 +46,19 @@ describe('syncMunicipalityPeople', () => {
     expect((await admin.firestore().doc('municipalityPeople/m1_p1').get()).get('isPublic')).toBe(true);
   });
 
+  // The barrio roster reads this projection, so the row must carry the barrio
+  // from the person's link for THAT municipality — not a global one.
+  it('projects the barrio of each municipality link', async () => {
+    await fire(null, person({
+      municipalityLinks: [
+        { municipalityId: 'm1', barrioId: 'b1' },
+        { municipalityId: 'm2', barrioId: null },
+      ],
+    }));
+    expect((await admin.firestore().doc('municipalityPeople/m1_p1').get()).get('barrioId')).toBe('b1');
+    expect((await admin.firestore().doc('municipalityPeople/m2_p1').get()).get('barrioId')).toBeNull();
+  });
+
   it('shows the apodo in parentheses in displayName but keeps sortName on the full name', async () => {
     await fire(
       null,

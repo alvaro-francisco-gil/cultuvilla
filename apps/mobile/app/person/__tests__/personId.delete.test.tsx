@@ -39,7 +39,7 @@ jest.mock('../../../lib/auth/useAuth', () => ({
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('expo-router', () => ({
   router: { back: jest.fn(), replace: jest.fn() },
-  useLocalSearchParams: () => ({ personId: 'p-1' }),
+  useLocalSearchParams: () => ({ personId: 'p-1', edit: '1' }),
 }));
 // Stub the heavy form + residence editors so the screen renders standalone.
 jest.mock('../../../components/feature/PersonForm', () => ({ PersonForm: () => null }));

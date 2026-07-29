@@ -60,7 +60,7 @@ vi.mock('firebase/firestore', () => {
   };
 });
 
-import { getPersonsByBarrio, getPersonsByBurialPlace } from '../../src/services/personService';
+import { getPersonsByBurialPlace } from '../../src/services/personService';
 
 function person(extra: Record<string, any>) {
   return {
@@ -73,34 +73,6 @@ function person(extra: Record<string, any>) {
 
 beforeEach(() => {
   store = {};
-});
-
-describe('getPersonsByBarrio', () => {
-  it('returns only people whose municipalityLinks include the exact {municipalityId, barrioId}', async () => {
-    store['persons/p1'] = person({ givenName: 'Ana', municipalityLinks: [{ municipalityId: 'm1', barrioId: 'b1' }] });
-    store['persons/p2'] = person({ givenName: 'Beto', municipalityLinks: [{ municipalityId: 'm1', barrioId: 'b2' }] });
-    store['persons/p3'] = person({ givenName: 'Carla', municipalityLinks: [{ municipalityId: 'm1', barrioId: 'b1' }] });
-    const res = await getPersonsByBarrio('m1', 'b1');
-    expect(res.map((p) => p.id)).toEqual(['p1', 'p3']); // sorted by display name: Ana, Carla
-  });
-
-  it('returns an empty array when nobody is linked', async () => {
-    expect(await getPersonsByBarrio('m1', 'bX')).toEqual([]);
-  });
-
-  // The persons read rule is evaluated per matched doc, so a private persona in
-  // the result set would fail the whole query — the filter has to be in the
-  // query, not applied after the fact.
-  it('excludes private personas', async () => {
-    store['persons/p1'] = person({ givenName: 'Ana', municipalityLinks: [{ municipalityId: 'm1', barrioId: 'b1' }] });
-    store['persons/p2'] = person({
-      givenName: 'Beto',
-      isPublic: false,
-      municipalityLinks: [{ municipalityId: 'm1', barrioId: 'b1' }],
-    });
-    const res = await getPersonsByBarrio('m1', 'b1');
-    expect(res.map((p) => p.id)).toEqual(['p1']);
-  });
 });
 
 describe('getPersonsByBurialPlace', () => {

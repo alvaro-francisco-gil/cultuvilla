@@ -21,6 +21,11 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 ### Changed
 - **Comment composer is now Instagram-style.** The always-on "Enviar" button is gone: the composer is a rounded capsule field (preceded by your own avatar) and a send arrow appears inside it only once you've typed something. Same treatment for the inline reply composer, which now autofocuses. New `pill` variant on the `Input` primitive.
 - **Artículos now come before Eventos.** The Explore feed opens on the Artículos tab (Eventos is second), and the village home lists the Artículos section above Eventos — while the pueblos have little event activity, articles are what there is to read. On Explore the order now derives from a single `TABS` array, so the toggle labels, the swipeable pages and the landing tab can no longer drift apart.
+- Everyone who lives in a barrio is now listed on its screen, personas with no account included, and tapping one opens their details. The barrio roster reads the `municipalityPeople` projection (which gained a `barrioId`) instead of querying `persons`, so a private persona stays listed by name with an unlinked row — the same behaviour as the pueblo roster — rather than disappearing from the barrio.
+
+**Migration:** existing `municipalityPeople/` docs are backfilled with `barrioId` by running `scripts/backfill-municipality-people-barrio.mjs` (per env).
+
+- Opening a persona from the village tab (roster, barrio, event attendees) now shows their details, never the edit form — even for a persona you manage. The form is reached only from your own profile.
 - The persona a cargo visibility switch moved to the first step of the form (Identidad), next to the name, rather than sitting after the biography.
 - Org member and event attendee rosters now open the tapped person's profile, like the villager roster does. Their destructive controls (remove from org / remove attendee) and the org promote/demote action moved behind an "Editar" toggle on the section heading, so they are hidden while simply reading a roster.
 

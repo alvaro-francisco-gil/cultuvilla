@@ -13,7 +13,8 @@ interface DirectoryPerson {
   photoURL: string | null;
   userId: string | null;
   isPublic: boolean;
-  municipalityIds: Set<string>;
+  /** municipalityId → barrioId (null when linked to the village at large). */
+  barrioByMunicipality: Map<string, string | null>;
 }
 
 const asString = (value: unknown): string => (typeof value === 'string' ? value : '');
@@ -40,13 +41,19 @@ function asDirectoryPerson(data: Record<string, unknown>): DirectoryPerson {
     burialPlace: (data['burialPlace'] ?? null) as BurialPlace | null,
   });
   const links = deceased || !Array.isArray(data['municipalityLinks']) ? [] : data['municipalityLinks'];
-  const municipalityIds = new Set(
-    links.flatMap((link) => {
-      if (!link || typeof link !== 'object') return [];
-      const municipalityId = (link as Record<string, unknown>)['municipalityId'];
-      return typeof municipalityId === 'string' && municipalityId.length > 0 ? [municipalityId] : [];
-    }),
-  );
+  const barrioByMunicipality = new Map<string, string | null>();
+  for (const link of links) {
+    if (!link || typeof link !== 'object') continue;
+    const record = link as Record<string, unknown>;
+    const municipalityId = record['municipalityId'];
+    if (typeof municipalityId !== 'string' || municipalityId.length === 0) continue;
+    const barrioId = typeof record['barrioId'] === 'string' ? record['barrioId'] : null;
+    // A person may hold several links to one municipality; the first that names
+    // a barrio wins, so a village-wide link can't erase a barrio assignment.
+    if (barrioByMunicipality.get(municipalityId) == null) {
+      barrioByMunicipality.set(municipalityId, barrioId);
+    }
+  }
   return {
     // Directory shows the apodo in parentheses after the full name; the sort key
     // stays on the plain full name so the list stays alphabetical by real name.
@@ -60,7 +67,7 @@ function asDirectoryPerson(data: Record<string, unknown>): DirectoryPerson {
     // Defensive default: a person doc written before the privacy field existed
     // projects as public, matching buildPersonData's default.
     isPublic: data['isPublic'] !== false,
-    municipalityIds,
+    barrioByMunicipality,
   };
 }
 
@@ -77,9 +84,9 @@ export const syncMunicipalityPeople = onDocumentWritten(
     const after = event.data?.after.data();
     const beforePerson = before ? asDirectoryPerson(before) : null;
     const afterPerson = after ? asDirectoryPerson(after) : null;
-    const beforeMunicipalities = beforePerson?.municipalityIds ?? new Set<string>();
-    const afterMunicipalities = afterPerson?.municipalityIds ?? new Set<string>();
-    const affectedMunicipalities = new Set([...beforeMunicipalities, ...afterMunicipalities]);
+    const beforeMunicipalities = beforePerson?.barrioByMunicipality ?? new Map<string, string | null>();
+    const afterMunicipalities = afterPerson?.barrioByMunicipality ?? new Map<string, string | null>();
+    const affectedMunicipalities = new Set([...beforeMunicipalities.keys(), ...afterMunicipalities.keys()]);
     if (affectedMunicipalities.size === 0) return;
 
     const { personId } = event.params;
@@ -98,6 +105,7 @@ export const syncMunicipalityPeople = onDocumentWritten(
         photoURL: afterPerson.photoURL,
         userId: afterPerson.userId,
         isPublic: afterPerson.isPublic,
+        barrioId: afterMunicipalities.get(municipalityId) ?? null,
       });
     }
     await batch.commit();
