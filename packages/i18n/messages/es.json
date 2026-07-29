@@ -746,6 +746,11 @@
       "visibilityPublicHint": "Cualquiera del pueblo puede abrir su ficha y ver su foto, biografía y oficios.",
       "visibilityPrivateHint": "Su nombre seguirá apareciendo en el censo del pueblo, pero solo tú podrás abrir su ficha."
     },
+    "personInfo": {
+      "birthPlace": "Nacimiento",
+      "village": "Pueblo",
+      "occupations": "Oficios"
+    },
     "personPrivate": "Esta ficha es privada",
     "personPrivateBody": "Quien la creó ha decidido no mostrarla a otras personas del pueblo.",
     "personDetailTitle": "Persona",
