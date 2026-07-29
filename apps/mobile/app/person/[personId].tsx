@@ -20,7 +20,6 @@ import {
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
 import { recordOccupation } from '@cultuvilla/shared/services/occupationService';
 import { isCatalogOccupation } from '@cultuvilla/shared/models/occupation';
-import { buildDisplayName } from '@cultuvilla/shared/models/person';
 import type { MunicipalityLink, PartialDate, PersonData } from '@cultuvilla/shared/models/person';
 
 type PersonDoc = PersonData & { id: string };
@@ -212,7 +211,9 @@ export default function PersonDetailScreen() {
     <Screen padded={false} bottomInset={false} topInset={false}>
       <ScreenHeader
         accent
-        title={canEdit ? t('profile.personDetailTitle') : person ? buildDisplayName(person) : ''}
+        // View mode puts the name at the top of the screen itself, so the bar
+        // stays empty rather than stating it twice.
+        title={canEdit ? t('profile.personDetailTitle') : ''}
         rightSlot={
           canDelete && canEdit ? (
             <DeleteHeaderButton
