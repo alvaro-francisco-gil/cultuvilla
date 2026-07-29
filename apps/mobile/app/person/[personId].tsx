@@ -43,6 +43,9 @@ export default function PersonDetailScreen() {
 
   const [person, setPerson] = useState<PersonDoc | null>(null);
   const [loading, setLoading] = useState(!isNew);
+  // The persons read rule denies private personas to everyone but their
+  // creator, so a rejected read is a real state to render — not an error.
+  const [denied, setDenied] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -94,6 +97,9 @@ export default function PersonDetailScreen() {
         setPerson(p);
         if (p) setLinks(p.municipalityLinks);
       })
+      .catch(() => {
+        if (!cancelled) setDenied(true);
+      })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
@@ -138,6 +144,7 @@ export default function PersonDetailScreen() {
           municipalityLinks: cleanedLinks,
           biography: values.biography.trim() || null,
           occupations: values.occupations,
+          isPublic: values.isPublic,
           createdBy: user.uid,
         });
       } else {
@@ -153,6 +160,7 @@ export default function PersonDetailScreen() {
           birthPlace: birthPlaceLink,
           biography: values.biography.trim() || null,
           occupations: values.occupations,
+          isPublic: values.isPublic,
           // Own persona: leave municipalityLinks to the membership trigger.
           ...(isOwnPersona ? {} : { municipalityLinks: cleanedLinks }),
         });
@@ -189,6 +197,7 @@ export default function PersonDetailScreen() {
         birthPlaceMunicipalityId: person.birthPlace?.municipalityId ?? null,
         biography: person.biography ?? '',
         occupations: person.occupations ?? [],
+        isPublic: person.isPublic,
         photoURL: person.photoURL,
       }
     : undefined;
@@ -217,6 +226,15 @@ export default function PersonDetailScreen() {
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
+        </View>
+      ) : denied ? (
+        <View className="flex-1 items-center justify-center p-4">
+          <Text variant="h3" className="text-center">
+            {t('profile.personPrivate')}
+          </Text>
+          <Text tone="muted" className="text-center mt-2">
+            {t('profile.personPrivateBody')}
+          </Text>
         </View>
       ) : !isNew && !person ? (
         <View className="flex-1 items-center justify-center p-4">

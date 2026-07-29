@@ -10,10 +10,10 @@ const wrapped = ft.wrap(syncMunicipalityPeople);
 interface Link { municipalityId: string; barrioId: string | null }
 interface PartialDate { year: number | null; month: number | null; day: number | null }
 interface BurialPlace { municipalityId: string; placeId: string }
-interface Person { givenName: string; middleNames: string[]; firstSurname: string | null; secondSurname: string | null; nickname: string | null; municipalityLinks: Link[]; photoURL: string | null; userId: string | null; deathDate: PartialDate | null; burialPlace: BurialPlace | null }
+interface Person { givenName: string; middleNames: string[]; firstSurname: string | null; secondSurname: string | null; nickname: string | null; municipalityLinks: Link[]; photoURL: string | null; userId: string | null; isPublic: boolean; deathDate: PartialDate | null; burialPlace: BurialPlace | null }
 
 function person(overrides: Partial<Person> = {}): Person {
-  return { givenName: 'Álvaro', middleNames: [], firstSurname: 'García', secondSurname: null, nickname: null, municipalityLinks: [], photoURL: null, userId: null, deathDate: null, burialPlace: null, ...overrides };
+  return { givenName: 'Álvaro', middleNames: [], firstSurname: 'García', secondSurname: null, nickname: null, municipalityLinks: [], photoURL: null, userId: null, isPublic: true, deathDate: null, burialPlace: null, ...overrides };
 }
 
 async function fire(before: Person | null, after: Person | null, personId = 'p1'): Promise<void> {
@@ -31,6 +31,19 @@ describe('syncMunicipalityPeople', () => {
     await fire(null, person({ municipalityLinks: [{ municipalityId: 'm1', barrioId: null }] }));
     const row = await admin.firestore().doc('municipalityPeople/m1_p1').get();
     expect(row.data()).toMatchObject({ municipalityId: 'm1', personId: 'p1', displayName: 'Álvaro García', sortName: 'alvaro garcia', userId: null });
+  });
+
+  // A private persona stays in the directory — the roster shows the name and
+  // uses the projected flag to decide the row leads nowhere.
+  it('projects the privacy flag, defaulting a pre-privacy person doc to public', async () => {
+    await fire(null, person({ isPublic: false, municipalityLinks: [{ municipalityId: 'm1', barrioId: null }] }));
+    expect((await admin.firestore().doc('municipalityPeople/m1_p1').get()).get('isPublic')).toBe(false);
+
+    await resetEmulators();
+    const legacy = person({ municipalityLinks: [{ municipalityId: 'm1', barrioId: null }] }) as Partial<Person>;
+    delete legacy.isPublic;
+    await fire(null, legacy as Person);
+    expect((await admin.firestore().doc('municipalityPeople/m1_p1').get()).get('isPublic')).toBe(true);
   });
 
   it('shows the apodo in parentheses in displayName but keeps sortName on the full name', async () => {

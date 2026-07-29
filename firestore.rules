@@ -184,14 +184,14 @@ service cloud.firestore {
               'givenName', 'middleNames', 'firstSurname', 'secondSurname',
               'nickname', 'sex', 'birthday', 'deathDate', 'birthPlace',
               'burialPlace', 'municipalityLinks', 'occupations',
-              'biography', 'photoURL', 'userId',
+              'biography', 'photoURL', 'userId', 'isPublic',
               'createdBy', 'createdAt',
             ])
           && d.keys().hasAll([
               'givenName', 'middleNames', 'firstSurname', 'secondSurname',
               'nickname', 'sex', 'birthday', 'deathDate', 'birthPlace',
               'burialPlace', 'municipalityLinks', 'occupations',
-              'biography', 'photoURL', 'userId',
+              'biography', 'photoURL', 'userId', 'isPublic',
               'createdBy', 'createdAt',
             ])
           && isString(d.givenName)
@@ -209,8 +209,15 @@ service cloud.firestore {
           && isStringOrNull(d.biography)
           && isStringOrNull(d.photoURL)
           && isStringOrNull(d.userId)
+          && d.isPublic is bool
           && isString(d.createdBy)
           && isTimestamp(d.createdAt);
+    }
+
+    // Privacy is a dependent-persona feature: an account holder's persona is
+    // their public face in the pueblo, so it can never be hidden.
+    function isPublicUnlessDependent(d) {
+      return d.userId == null || d.isPublic == true;
     }
 
     function isValidOrgMemberCreate(d) {
@@ -722,18 +729,32 @@ service cloud.firestore {
     // persons — canonical people registry
     match /persons/{personId} {
       // Public read: person profiles are shareable links viewable by guests
-      // (parity with events/orgs/users, all already world-readable). Writes
-      // stay authed + ownership-gated below.
-      allow read: if true;
+      // (parity with events/orgs/users, all already world-readable). A creator
+      // can mark a dependent persona private, which takes the doc out of that
+      // public read — the name still appears in village rosters, which read the
+      // function-owned municipalityPeople projection, but the card itself is
+      // only readable by its person, its creator, and app admins.
+      //
+      // This clause is evaluated per document, so a query over persons only
+      // succeeds if every matched doc passes: list queries that aren't scoped
+      // to the caller must filter on isPublic (see personService).
+      allow read: if resource.data.isPublic == true
+        || (isAuthenticated() && (
+             resource.data.userId == request.auth.uid
+             || resource.data.createdBy == request.auth.uid
+             || isAppAdmin()
+           ));
       allow create: if isAuthenticated()
         && isValidPersonCreate(request.resource.data)
-        && request.resource.data.createdBy == request.auth.uid;
+        && request.resource.data.createdBy == request.auth.uid
+        && isPublicUnlessDependent(request.resource.data);
       allow update: if isAuthenticated()
         && (
           resource.data.userId == request.auth.uid
           || (resource.data.createdBy == request.auth.uid && resource.data.userId == null)
           || isAppAdmin()
-        );
+        )
+        && isPublicUnlessDependent(request.resource.data);
       allow delete: if isAuthenticated()
         && (
           (resource.data.createdBy == request.auth.uid && resource.data.userId == null)

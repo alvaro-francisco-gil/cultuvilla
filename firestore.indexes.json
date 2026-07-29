@@ -107,6 +107,22 @@
       ]
     },
     {
+      "collectionGroup": "persons",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isPublic", "order": "ASCENDING" },
+        { "fieldPath": "municipalityLinks", "arrayConfig": "CONTAINS" }
+      ]
+    },
+    {
+      "collectionGroup": "persons",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "burialPlace.placeId", "order": "ASCENDING" },
+        { "fieldPath": "isPublic", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "municipalityPeople",
       "queryScope": "COLLECTION",
       "fields": [

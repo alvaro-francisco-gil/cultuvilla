@@ -89,7 +89,15 @@ export async function updateResidenceBarrio(
   });
 }
 
-/** People linked to a given barrio (residence link in `municipalityLinks`). */
+/**
+ * People linked to a given barrio (residence link in `municipalityLinks`).
+ *
+ * The `isPublic` filter isn't cosmetic: the persons read rule is evaluated per
+ * matched document, so a query that could match a private persona is rejected
+ * outright rather than returning a partial result. Private dependents are
+ * therefore absent from the barrio list — they stay visible in the village
+ * roster, which reads the municipalityPeople projection instead.
+ */
 export async function getPersonsByBarrio(
   municipalityId: string,
   barrioId: string,
@@ -97,6 +105,7 @@ export async function getPersonsByBarrio(
   const q = query(
     personsCollection(getDb()),
     where('municipalityLinks', 'array-contains', { municipalityId, barrioId }),
+    where('isPublic', '==', true),
   );
   const snap = await getDocs(q);
   return snap.docs
@@ -109,11 +118,17 @@ export async function getPersonsByBarrio(
  * Intentionally not scoped by municipality: `placeId` is a Firestore
  * auto-id from `/municipalities/{id}/places/`, so it is globally unique
  * and a bare `placeId` match cannot collide across villages.
+ *
+ * Filters on `isPublic` for the same reason as `getPersonsByBarrio`.
  */
 export async function getPersonsByBurialPlace(
   placeId: string,
 ): Promise<(PersonData & { id: string })[]> {
-  const q = query(personsCollection(getDb()), where('burialPlace.placeId', '==', placeId));
+  const q = query(
+    personsCollection(getDb()),
+    where('burialPlace.placeId', '==', placeId),
+    where('isPublic', '==', true),
+  );
   const snap = await getDocs(q);
   return snap.docs
     .map((d) => ({ id: d.id, ...d.data() }))

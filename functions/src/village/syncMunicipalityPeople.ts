@@ -12,6 +12,7 @@ interface DirectoryPerson {
   sortName: string;
   photoURL: string | null;
   userId: string | null;
+  isPublic: boolean;
   municipalityIds: Set<string>;
 }
 
@@ -56,6 +57,9 @@ function asDirectoryPerson(data: Record<string, unknown>): DirectoryPerson {
       .toLocaleLowerCase('es-ES'),
     photoURL: typeof data['photoURL'] === 'string' ? data['photoURL'] : null,
     userId: typeof data['userId'] === 'string' ? data['userId'] : null,
+    // Defensive default: a person doc written before the privacy field existed
+    // projects as public, matching buildPersonData's default.
+    isPublic: data['isPublic'] !== false,
     municipalityIds,
   };
 }
@@ -93,6 +97,7 @@ export const syncMunicipalityPeople = onDocumentWritten(
         sortName: afterPerson.sortName,
         photoURL: afterPerson.photoURL,
         userId: afterPerson.userId,
+        isPublic: afterPerson.isPublic,
       });
     }
     await batch.commit();
