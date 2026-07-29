@@ -9,6 +9,17 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 **Migration:** existing `comments/` docs are backfilled with `parentCommentId: null` and `replyCount: 0` by re-running `scripts/backfill-comment-threading.mjs` (per env).
 
+### Fixed
+
+- **Email-code sign-in now works.** Entering a correct 6-digit code failed with a server error on every attempt since the feature shipped (v0.17.0) — in production it never once succeeded. The code itself was fine; the final step, minting the sign-in token, was refused by Google Cloud. `createCustomToken()` signs through the IAM Credentials API as the Cloud Functions runtime service account, which must hold `roles/iam.serviceAccountTokenCreator` on itself; that binding was never granted, so signing was denied (`auth/insufficient-permission`). No test could catch it — the Auth emulator stubs token signing and never contacts IAM, so the suite passed against a project where this was broken. The binding has been applied to dev, beta and prod; a new pre-deploy CI gate (below) now keeps it that way.
+
+### Added
+
+- Pre-deploy **custom-token signing gate** (`scripts/check-custom-token-signing.mjs`, wired into `.github/workflows/deploy-firebase.yml` for every env): asserts the target project's functions runtime service account can actually mint custom tokens, and fails the deploy with the exact remediation command if not. Closes the class of bug above, where a project deploys clean and then fails every custom-token sign-in at runtime. Run it ad hoc with `pnpm check:custom-token-signing -- --env dev|beta|prod`.
+
+**Migration:** the gate reads IAM as the WIF deployer service account, which needs `roles/iam.serviceAccountViewer` — added to `scripts/setup-ci-deploy-wif.sh` for new environments, but **existing envs must be granted manually before this reaches them**, or the deploy fails on the new gate step:
+`gcloud projects add-iam-policy-binding <project-id> --member="serviceAccount:gha-deployer@<project-id>.iam.gserviceaccount.com" --role="roles/iam.serviceAccountViewer" --condition=None` (per env: `villa-events`, `cultuvilla-beta`, `cultuvilla-prod`).
+
 ## v0.17.0 — 2026-07-26
 
 ### Fixed
