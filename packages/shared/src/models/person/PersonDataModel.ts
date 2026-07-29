@@ -50,6 +50,13 @@ export const PersonDataSchema = z.object({
   // Auth link
   userId: z.string().nullable(),            // Firebase Auth uid if this person has an account
 
+  // Privacy — a dependent persona's creator can make their card unreadable to
+  // everyone else. The name still shows in village rosters (those read the
+  // municipalityPeople projection); the person doc itself is denied by rules.
+  // Account personas are always public: an account holder's profile is their
+  // public face in the pueblo.
+  isPublic: z.boolean(),
+
   // Meta
   createdBy: z.string(),
   createdAt: z.date(),
@@ -72,6 +79,7 @@ export interface PersonDataInput {
   biography?: string | null;
   photoURL?: string | null;
   userId?: string | null;
+  isPublic?: boolean;
   createdBy: string;
 }
 
@@ -92,6 +100,7 @@ export function buildPersonData(input: PersonDataInput): PersonData {
     biography: input.biography ?? null,
     photoURL: input.photoURL ?? null,
     userId: input.userId ?? null,
+    isPublic: input.isPublic ?? true,
     createdBy: input.createdBy,
     createdAt: new Date(),
   };

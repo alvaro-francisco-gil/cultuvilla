@@ -97,6 +97,11 @@ municipality linked from a persona, including dependent personas with no user
 account. Rows carry only display data and a normalized `sortName`, allowing the
 directory query to return an alphabetical list in one read.
 
+Rows also mirror `persons.isPublic`. A private dependent persona keeps its row —
+the pueblo census stays honest about who lives there — but the roster reads the
+projected flag to know the row leads nowhere, since the person doc itself is
+denied to everyone but its creator.
+
 - **Source of truth:** `persons/{personId}.municipalityLinks` and its person
   display fields.
 - **Trigger:** [functions/src/village/syncMunicipalityPeople.ts](../../functions/src/village/syncMunicipalityPeople.ts)
@@ -105,7 +110,9 @@ directory query to return an alphabetical list in one read.
 - **Rules:** village members and app admins may read their municipality’s rows;
   all writes are function-owned.
 - **Backfill:** [scripts/backfill-municipality-people.mjs](../../scripts/backfill-municipality-people.mjs)
-  reconciles directory rows in dev after the trigger deploys.
+  reconciles directory rows in dev after the trigger deploys;
+  [scripts/backfill-person-visibility.mjs](../../scripts/backfill-person-visibility.mjs)
+  seeds `isPublic` on both `persons` and the projection.
 
 ### `users/{uid}.displayName` ← `persons/{personId}`
 

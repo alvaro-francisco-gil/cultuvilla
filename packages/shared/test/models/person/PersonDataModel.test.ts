@@ -27,11 +27,19 @@ describe('PersonDataSchema', () => {
       biography: 'Fue agricultora',
       photoURL: 'https://example.com/photo.jpg',
       userId: 'user1',
+      isPublic: true,
       createdBy: 'user1',
       createdAt: new Date(),
     });
     expect(parsed.givenName).toBe('María');
     expect(parsed.sex).toBe('female');
+  });
+
+  it('defaults a new person to public, and keeps an explicit private choice', () => {
+    expect(buildPersonData({ givenName: 'Ana', createdBy: 'u1' }).isPublic).toBe(true);
+    expect(buildPersonData({ givenName: 'Ana', createdBy: 'u1', isPublic: false }).isPublic).toBe(
+      false,
+    );
   });
 
   it('rejects when a required field is missing', () => {

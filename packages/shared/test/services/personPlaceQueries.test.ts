@@ -67,7 +67,7 @@ function person(extra: Record<string, any>) {
     givenName: 'A', middleNames: [], firstSurname: null, secondSurname: null, nickname: null,
     sex: null, birthday: null, deathDate: null, birthPlace: null, burialPlace: null,
     municipalityLinks: [], occupations: [], biography: null,
-    photoURL: null, userId: null, createdBy: 'u1', ...extra,
+    photoURL: null, userId: null, isPublic: true, createdBy: 'u1', ...extra,
   };
 }
 
@@ -87,6 +87,20 @@ describe('getPersonsByBarrio', () => {
   it('returns an empty array when nobody is linked', async () => {
     expect(await getPersonsByBarrio('m1', 'bX')).toEqual([]);
   });
+
+  // The persons read rule is evaluated per matched doc, so a private persona in
+  // the result set would fail the whole query — the filter has to be in the
+  // query, not applied after the fact.
+  it('excludes private personas', async () => {
+    store['persons/p1'] = person({ givenName: 'Ana', municipalityLinks: [{ municipalityId: 'm1', barrioId: 'b1' }] });
+    store['persons/p2'] = person({
+      givenName: 'Beto',
+      isPublic: false,
+      municipalityLinks: [{ municipalityId: 'm1', barrioId: 'b1' }],
+    });
+    const res = await getPersonsByBarrio('m1', 'b1');
+    expect(res.map((p) => p.id)).toEqual(['p1']);
+  });
 });
 
 describe('getPersonsByBurialPlace', () => {
@@ -96,5 +110,16 @@ describe('getPersonsByBurialPlace', () => {
     store['persons/p3'] = person({ givenName: 'Bea', burialPlace: { municipalityId: 'm1', placeId: 'c2' } });
     const res = await getPersonsByBurialPlace('c1');
     expect(res.map((p) => p.id)).toEqual(['p2', 'p1']); // Aldo before Zoe
+  });
+
+  it('excludes private personas', async () => {
+    store['persons/p1'] = person({ givenName: 'Aldo', burialPlace: { municipalityId: 'm1', placeId: 'c1' } });
+    store['persons/p2'] = person({
+      givenName: 'Zoe',
+      isPublic: false,
+      burialPlace: { municipalityId: 'm1', placeId: 'c1' },
+    });
+    const res = await getPersonsByBurialPlace('c1');
+    expect(res.map((p) => p.id)).toEqual(['p1']);
   });
 });

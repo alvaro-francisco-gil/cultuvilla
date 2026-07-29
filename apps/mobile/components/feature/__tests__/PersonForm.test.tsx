@@ -132,6 +132,40 @@ describe('<PersonForm> stepper', () => {
     });
   });
 
+  describe('visibility', () => {
+    it('defaults a persona a cargo to public and submits the choice', () => {
+      const onSubmit = jest.fn();
+      const utils = reachAboutStep({ submitLabel: 'Guardar', onSubmit });
+      expect(utils.getByTestId('person-is-public')).toBeTruthy();
+      fireEvent.press(utils.getByText('Guardar'));
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ isPublic: true }), null);
+
+      onSubmit.mockClear();
+      fireEvent.press(utils.getByTestId('person-is-public'));
+      fireEvent.press(utils.getByText('Guardar'));
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ isPublic: false }), null);
+    });
+
+    // An account holder's persona is their public face in the pueblo, and
+    // firestore.rules rejects anything else — so the switch isn't offered.
+    it('offers no switch on the owner’s own profile, and always submits public', () => {
+      const onSubmit = jest.fn();
+      const utils = reachAboutStep({ submitLabel: 'Guardar', selfProfile: true, onSubmit });
+      expect(utils.queryByTestId('person-is-public')).toBeNull();
+      fireEvent.press(utils.getByText('Guardar'));
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ isPublic: true }), null);
+    });
+
+    it('starts from the persona’s stored choice when editing', () => {
+      const utils = reachAboutStep({
+        submitLabel: 'Guardar',
+        initial: { isPublic: false },
+        onSubmit: jest.fn(),
+      });
+      expect(utils.getByText('profile.personForm.visibilityPrivate')).toBeTruthy();
+    });
+  });
+
   it('reveals the free-text occupation input only after selecting "Otro"', () => {
     const utils = reachAboutStep({ submitLabel: 'Guardar', onSubmit: jest.fn() });
     // Hidden until the user opts into a custom occupation.

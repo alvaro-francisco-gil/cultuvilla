@@ -739,8 +739,15 @@
       "leaveVillageMessage": "Dejarás de ver el contenido de este pueblo y de aparecer en su censo. Puedes volver a unirte cuando quieras.",
       "leaveVillageConfirm": "Salir",
       "leaveVillageCancel": "Cancelar",
-      "leavingVillage": "Saliendo del pueblo…"
+      "leavingVillage": "Saliendo del pueblo…",
+      "visibilityLabel": "Visibilidad del perfil",
+      "visibilityPublic": "Perfil público",
+      "visibilityPrivate": "Perfil privado",
+      "visibilityPublicHint": "Cualquiera del pueblo puede abrir su ficha y ver su foto, biografía y oficios.",
+      "visibilityPrivateHint": "Su nombre seguirá apareciendo en el censo del pueblo, pero solo tú podrás abrir su ficha."
     },
+    "personPrivate": "Esta ficha es privada",
+    "personPrivateBody": "Quien la creó ha decidido no mostrarla a otras personas del pueblo.",
     "personDetailTitle": "Persona",
     "personEdit": "Editar",
     "personDelete": "Eliminar",

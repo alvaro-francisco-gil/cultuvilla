@@ -16,6 +16,7 @@ import { useT } from '../../lib/i18n';
 interface MemberRow {
   personId: string;
   userId: string;
+  isPublic: boolean;
   role: 'admin' | 'user';
   censoComplete: boolean | null;
   displayName: string;
@@ -76,6 +77,7 @@ export function MembersList({
           censoComplete: membership ? membership.profileCompletedAt != null : null,
           displayName: person.displayName,
           photoURL: person.photoURL,
+          isPublic: person.isPublic,
         };
       });
       if (!cancelled) {
@@ -134,6 +136,12 @@ export function MembersList({
     );
   }
 
+  // A private dependent persona keeps its row (the pueblo census stays honest)
+  // but leads nowhere — its person doc is unreadable to anyone but its creator,
+  // so the detail screen would only show the "private" notice. Account holders
+  // are always public.
+  const canOpenProfile = (m: MemberRow) => m.userId.length > 0 || m.isPublic;
+
   const openProfile = (m: MemberRow) => {
     router.push((m.userId ? `/user/${m.userId}` : `/person/${m.personId}`) as never);
   };
@@ -142,6 +150,7 @@ export function MembersList({
     <>
       <Pressable
         testID={`person-profile-${m.personId}`}
+        disabled={!canOpenProfile(m)}
         onPress={() => openProfile(m)}
         className="flex-1"
       >
@@ -152,6 +161,14 @@ export function MembersList({
             {m.displayName}
           </Text>
         </VStack>
+        {canOpenProfile(m) ? null : (
+          <Ionicons
+            name="lock-closed-outline"
+            size={iconSizes.sm}
+            color="#9ca3af"
+            accessibilityLabel={t('profile.personPrivate')}
+          />
+        )}
         </HStack>
       </Pressable>
       {censoConfigured ? (

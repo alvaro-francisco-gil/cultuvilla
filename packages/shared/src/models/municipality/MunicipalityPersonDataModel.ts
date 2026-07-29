@@ -7,6 +7,10 @@ export const MunicipalityPersonDataSchema = z.object({
   sortName: z.string(),
   photoURL: z.string().nullable(),
   userId: z.string().nullable(),
+  // Mirrors persons/{id}.isPublic so a roster can tell, without an extra read,
+  // whether tapping a row leads anywhere. A private person stays listed here
+  // by name; only their person doc is unreadable.
+  isPublic: z.boolean(),
 });
 
 export type MunicipalityPersonData = z.infer<typeof MunicipalityPersonDataSchema>;
