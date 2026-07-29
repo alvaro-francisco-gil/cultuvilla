@@ -268,6 +268,28 @@ export function PersonForm({
                 })}
               </HStack>
             </VStack>
+            {selfProfile ? null : (
+              <VStack gap={2}>
+                <FieldLabel>{t('profile.personForm.visibilityLabel')}</FieldLabel>
+                <Toggle
+                  value={isPublic}
+                  onValueChange={setIsPublic}
+                  label={t(
+                    isPublic
+                      ? 'profile.personForm.visibilityPublic'
+                      : 'profile.personForm.visibilityPrivate',
+                  )}
+                  testID="person-is-public"
+                />
+                <Text tone="muted" variant="bodySm">
+                  {t(
+                    isPublic
+                      ? 'profile.personForm.visibilityPublicHint'
+                      : 'profile.personForm.visibilityPrivateHint',
+                  )}
+                </Text>
+              </VStack>
+            )}
             {renderConsent?.()}
           </>,
         ),
@@ -397,28 +419,6 @@ export function PersonForm({
                 </>
               )}
             </VStack>
-            {selfProfile ? null : (
-              <VStack gap={2}>
-                <FieldLabel>{t('profile.personForm.visibilityLabel')}</FieldLabel>
-                <Toggle
-                  value={isPublic}
-                  onValueChange={setIsPublic}
-                  label={t(
-                    isPublic
-                      ? 'profile.personForm.visibilityPublic'
-                      : 'profile.personForm.visibilityPrivate',
-                  )}
-                  testID="person-is-public"
-                />
-                <Text tone="muted" variant="bodySm">
-                  {t(
-                    isPublic
-                      ? 'profile.personForm.visibilityPublicHint'
-                      : 'profile.personForm.visibilityPrivateHint',
-                  )}
-                </Text>
-              </VStack>
-            )}
           </>,
         ),
     },
