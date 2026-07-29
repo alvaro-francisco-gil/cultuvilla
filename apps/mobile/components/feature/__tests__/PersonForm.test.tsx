@@ -36,16 +36,25 @@ describe('<PersonForm> stepper', () => {
   /** Walk the stepper (identity → residence → about) so the biography field on
    * the last step is rendered. requireFullName defaults false, so identity only
    * needs a name + sex and residence has no required fields. */
-  function reachAboutStep(props: Parameters<typeof PersonForm>[0]) {
+  /** Fills the identity step but stays on it — the visibility switch lives here. */
+  function startIdentityStep(props: Parameters<typeof PersonForm>[0]) {
     const utils = render(<PersonForm {...props} />);
     fireEvent.changeText(
       utils.getByLabelText('onboarding.completeProfile.givenName'),
       'Ana',
     );
     fireEvent.press(utils.getByText('onboarding.completeProfile.sex_female'));
+    return utils;
+  }
+
+  function advanceToAboutStep(utils: ReturnType<typeof render>) {
     fireEvent.press(utils.getByText('common.stepper.next')); // → residence
     fireEvent.press(utils.getByText('common.stepper.next')); // → about
     return utils;
+  }
+
+  function reachAboutStep(props: Parameters<typeof PersonForm>[0]) {
+    return advanceToAboutStep(startIdentityStep(props));
   }
 
   it('uses the first-person biography prompt on the owner’s own profile', () => {
@@ -133,16 +142,28 @@ describe('<PersonForm> stepper', () => {
   });
 
   describe('visibility', () => {
-    it('defaults a persona a cargo to public and submits the choice', () => {
+    // The switch is asked for up front, on the identity step — deciding who may
+    // see a persona belongs with entering their name, not after the biography.
+    it('offers the switch on the identity step, defaulted to public', () => {
+      const utils = startIdentityStep({ submitLabel: 'Guardar', onSubmit: jest.fn() });
+      expect(utils.getByTestId('person-is-public')).toBeTruthy();
+      expect(utils.getByText('profile.personForm.visibilityPublic')).toBeTruthy();
+
+      advanceToAboutStep(utils);
+      expect(utils.queryByTestId('person-is-public')).toBeNull();
+    });
+
+    it('submits the default, and the flipped choice', () => {
       const onSubmit = jest.fn();
       const utils = reachAboutStep({ submitLabel: 'Guardar', onSubmit });
-      expect(utils.getByTestId('person-is-public')).toBeTruthy();
       fireEvent.press(utils.getByText('Guardar'));
       expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ isPublic: true }), null);
 
       onSubmit.mockClear();
-      fireEvent.press(utils.getByTestId('person-is-public'));
-      fireEvent.press(utils.getByText('Guardar'));
+      const flipped = startIdentityStep({ submitLabel: 'Guardar', onSubmit });
+      fireEvent.press(flipped.getByTestId('person-is-public'));
+      advanceToAboutStep(flipped);
+      fireEvent.press(flipped.getByText('Guardar'));
       expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ isPublic: false }), null);
     });
 
@@ -150,14 +171,15 @@ describe('<PersonForm> stepper', () => {
     // firestore.rules rejects anything else — so the switch isn't offered.
     it('offers no switch on the owner’s own profile, and always submits public', () => {
       const onSubmit = jest.fn();
-      const utils = reachAboutStep({ submitLabel: 'Guardar', selfProfile: true, onSubmit });
+      const utils = startIdentityStep({ submitLabel: 'Guardar', selfProfile: true, onSubmit });
       expect(utils.queryByTestId('person-is-public')).toBeNull();
+      advanceToAboutStep(utils);
       fireEvent.press(utils.getByText('Guardar'));
       expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ isPublic: true }), null);
     });
 
     it('starts from the persona’s stored choice when editing', () => {
-      const utils = reachAboutStep({
+      const utils = startIdentityStep({
         submitLabel: 'Guardar',
         initial: { isPublic: false },
         onSubmit: jest.fn(),

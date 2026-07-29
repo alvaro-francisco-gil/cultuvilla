@@ -19,9 +19,12 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 `gcloud projects add-iam-policy-binding <project-id> --member="serviceAccount:gha-deployer@<project-id>.iam.gserviceaccount.com" --role="roles/iam.serviceAccountViewer" --condition=None` (per env: `villa-events`, `cultuvilla-beta`, `cultuvilla-prod`).
 
 ### Changed
+- The persona a cargo visibility switch moved to the first step of the form (Identidad), next to the name, rather than sitting after the biography.
 - Org member and event attendee rosters now open the tapped person's profile, like the villager roster does. Their destructive controls (remove from org / remove attendee) and the org promote/demote action moved behind an "Editar" toggle on the section heading, so they are hidden while simply reading a roster.
 
 ### Fixed
+
+- The pueblo's people stat went blank, and the village silently rendered as if you weren't a member, whenever one `municipalityPeople` row didn't match the current schema. The directory read shared a `Promise.all` with the membership fetches, so its strict-converter throw took `isMember`, `villageAdmin`, the pending-organizer flag and the censo answers down with the count. The directory now loads on its own: a failure costs the stat only.
 
 - **Email-code sign-in now works.** Entering a correct 6-digit code failed with a server error on every attempt since the feature shipped (v0.17.0) — in production it never once succeeded. The code itself was fine; the final step, minting the sign-in token, was refused by Google Cloud. `createCustomToken()` signs through the IAM Credentials API as the Cloud Functions runtime service account, which must hold `roles/iam.serviceAccountTokenCreator` on itself; that binding was never granted, so signing was denied (`auth/insufficient-permission`). No test could catch it — the Auth emulator stubs token signing and never contacts IAM, so the suite passed against a project where this was broken. The binding has been applied to dev, beta and prod; a new pre-deploy CI gate (see Added) now keeps it that way.
 
