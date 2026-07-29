@@ -41,8 +41,8 @@ jest.mock('../../../lib/i18n', () => ({
 }));
 
 const people = [
-  { id: 'm1_p1', personId: 'p1', municipalityId: 'm1', displayName: 'Álvaro Vecino', sortName: 'alvaro vecino', photoURL: null, userId: 'user1', isPublic: true },
-  { id: 'm1_p2', personId: 'p2', municipalityId: 'm1', displayName: 'Bea A Cargo', sortName: 'bea a cargo', photoURL: null, userId: null, isPublic: true },
+  { id: 'm1_p1', personId: 'p1', municipalityId: 'm1', displayName: 'Álvaro Vecino', sortName: 'alvaro vecino', photoURL: null, userId: 'user1', isPublic: true, barrioId: null },
+  { id: 'm1_p2', personId: 'p2', municipalityId: 'm1', displayName: 'Bea A Cargo', sortName: 'bea a cargo', photoURL: null, userId: null, isPublic: true, barrioId: null },
 ];
 
 beforeEach(() => {
@@ -114,7 +114,7 @@ test('lists a private dependent persona but does not open it', async () => {
   mockGetMunicipalityPeople.mockResolvedValue([
     {
       id: 'm1_p3', personId: 'p3', municipalityId: 'm1', displayName: 'Carla Privada',
-      sortName: 'carla privada', photoURL: null, userId: null, isPublic: false,
+      sortName: 'carla privada', photoURL: null, userId: null, isPublic: false, barrioId: null,
     },
   ]);
   render(<MembersList villageId="m1" />);

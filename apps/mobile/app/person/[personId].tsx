@@ -36,7 +36,12 @@ function partialDateToDate(d: PartialDate | null): Date | null {
 }
 
 export default function PersonDetailScreen() {
-  const { personId } = useLocalSearchParams<{ personId: string }>();
+  // `edit=1` is the ONLY way into the form for an existing persona, and only
+  // the profile screen's persona list passes it. Everywhere else a persona is
+  // reachable — the village roster, a barrio, an event's attendees — the tap is
+  // "who is this?", not "let me edit them", even when it's a persona you manage.
+  const { personId, edit } = useLocalSearchParams<{ personId: string; edit?: string }>();
+  const editRequested = edit === '1';
   const { user, profile } = useAuth();
   const { t } = useT();
   const isNew = personId === 'new';
@@ -66,7 +71,7 @@ export default function PersonDetailScreen() {
   // dependent persona they created. Everyone else — village admins included —
   // gets the read-only PersonProfileView. Account-holder vecinos never reach
   // this screen for viewing; they route to the richer /user/[uid] profile.
-  const canEdit = isNew || isOwnPersona || canDelete;
+  const canEdit = isNew || (editRequested && (isOwnPersona || canDelete));
 
   const removePersona = () => {
     if (!person) return;
@@ -209,7 +214,7 @@ export default function PersonDetailScreen() {
         accent
         title={canEdit ? t('profile.personDetailTitle') : person ? buildDisplayName(person) : ''}
         rightSlot={
-          canDelete ? (
+          canDelete && canEdit ? (
             <DeleteHeaderButton
               onAccent
               onConfirm={removePersona}

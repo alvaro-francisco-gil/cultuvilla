@@ -97,6 +97,13 @@ municipality linked from a persona, including dependent personas with no user
 account. Rows carry only display data and a normalized `sortName`, allowing the
 directory query to return an alphabetical list in one read.
 
+Rows carry the person's `barrioId` for that municipality, so the **barrio
+roster reads this directory too** rather than querying `persons` by
+`municipalityLinks`. That isn't a performance choice: the persons read rule is
+evaluated per matched document, so a persons query that could match a private
+persona is rejected outright — filtering them out would drop those people from
+the barrio entirely instead of merely leaving their row unlinked.
+
 Rows also mirror `persons.isPublic`. A private dependent persona keeps its row —
 the pueblo census stays honest about who lives there — but the roster reads the
 projected flag to know the row leads nowhere, since the person doc itself is
@@ -112,7 +119,9 @@ denied to everyone but its creator.
 - **Backfill:** [scripts/backfill-municipality-people.mjs](../../scripts/backfill-municipality-people.mjs)
   reconciles directory rows in dev after the trigger deploys;
   [scripts/backfill-person-visibility.mjs](../../scripts/backfill-person-visibility.mjs)
-  seeds `isPublic` on both `persons` and the projection.
+  seeds `isPublic` on both `persons` and the projection;
+  [scripts/backfill-municipality-people-barrio.mjs](../../scripts/backfill-municipality-people-barrio.mjs)
+  seeds `barrioId` on the projection.
 
 ### `users/{uid}.displayName` ← `persons/{personId}`
 

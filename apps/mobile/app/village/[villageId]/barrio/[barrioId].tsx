@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { iconSizes } from '@cultuvilla/shared/design-system';
 import { Text } from '../../../../components/primitives/Text';
 import { VStack } from '../../../../components/primitives/VStack';
 import { HStack } from '../../../../components/primitives/HStack';
@@ -20,13 +22,11 @@ import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 import { getBarrio } from '@cultuvilla/shared/services/municipalityService';
 import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { getBarrioViewLink } from '@cultuvilla/shared/services/deepLinkService';
-import { getPersonsByBarrio } from '@cultuvilla/shared/services/personService';
-import { buildNameWithNickname, isDeceased } from '@cultuvilla/shared/models/person';
-import type { BarrioData } from '@cultuvilla/shared/models/municipality';
-import type { PersonData } from '@cultuvilla/shared/models/person';
+import { getMunicipalityPeopleByBarrio } from '@cultuvilla/shared/services/municipalityPersonService';
+import type { BarrioData, MunicipalityPersonData } from '@cultuvilla/shared/models/municipality';
 
 type Barrio = BarrioData & { id: string };
-type Person = PersonData & { id: string };
+type Resident = MunicipalityPersonData & { id: string };
 
 export default function BarrioDetailScreen() {
   const { villageId, barrioId } = useLocalSearchParams<{ villageId: string; barrioId: string }>();
@@ -35,7 +35,7 @@ export default function BarrioDetailScreen() {
   const share = useShareDeepLink();
   const { canManage } = useEntityCapabilities(villageId);
   const [barrio, setBarrio] = useState<Barrio | null>(null);
-  const [residents, setResidents] = useState<Person[]>([]);
+  const [residents, setResidents] = useState<Resident[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -43,11 +43,12 @@ export default function BarrioDetailScreen() {
     try {
       const [b, people] = await Promise.all([
         getBarrio(villageId, barrioId),
-        getPersonsByBarrio(villageId, barrioId),
+        getMunicipalityPeopleByBarrio(villageId, barrioId),
       ]);
       setBarrio(b);
-      // Deceased residents live in the cemetery view, not the barrio roster.
-      setResidents(people.filter((person) => !isDeceased(person)));
+      // Deceased residents are already absent: the directory trigger drops their
+      // municipality links, because they belong to the cemetery view.
+      setResidents(people);
     } finally {
       setLoading(false);
     }
@@ -115,12 +116,17 @@ export default function BarrioDetailScreen() {
           ) : (
             <VStack>
               {residents.map((p) => {
-                const name = buildNameWithNickname(p);
+                const name = p.displayName;
+                // Everyone in the barrio is listed. Only a private dependent's
+                // row leads nowhere — their person doc is unreadable to anyone
+                // but its creator, so there is nothing to open.
                 const onPress = p.userId
                   ? () =>
                       router.push(
                         (p.userId === user?.uid ? '/(tabs)/profile' : `/user/${p.userId}`) as never,
                       )
+                  : p.isPublic
+                  ? () => router.push(`/person/${p.personId}` as never)
                   : undefined;
                 const row = (
                   <HStack gap={2} className="items-center py-3 border-b border-subtle">
@@ -128,6 +134,14 @@ export default function BarrioDetailScreen() {
                     <Text numberOfLines={1} className="flex-1">
                       {name}
                     </Text>
+                    {onPress ? null : (
+                      <Ionicons
+                        name="lock-closed-outline"
+                        size={iconSizes.sm}
+                        color="#9ca3af"
+                        accessibilityLabel={t('profile.personPrivate')}
+                      />
+                    )}
                   </HStack>
                 );
                 return onPress ? (
