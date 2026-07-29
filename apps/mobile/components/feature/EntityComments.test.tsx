@@ -48,8 +48,10 @@ jest.mock('../../lib/i18n', () => ({
         'comments.reply': 'Responder',
         'comments.replyPlaceholder': 'Escribe una respuesta…',
         'comments.hideReplies': 'Ocultar respuestas',
+        'comments.cancelReply': 'Cancelar respuesta',
       };
       if (key === 'comments.viewReplies') return `Ver ${params?.count ?? ''} respuestas`;
+      if (key === 'comments.replyingTo') return `Respondiendo a ${String(params?.name ?? '')}`;
       return table[key] ?? key;
     },
   }),
@@ -230,7 +232,7 @@ describe('<EntityComments>', () => {
     expect(addCommentMock).not.toHaveBeenCalled();
   });
 
-  it('posts a reply with parentCommentId set via the inline reply composer', async () => {
+  it('reuses the single composer for replies, marking who is being replied to', async () => {
     getCommentsMock.mockResolvedValue([
       {
         id: 'c-1',
@@ -245,20 +247,21 @@ describe('<EntityComments>', () => {
       },
     ]);
     addCommentMock.mockResolvedValue('r-new');
+    getRepliesMock.mockResolvedValue([]);
 
-    const { findByText, findByPlaceholderText, getAllByLabelText } = render(
-      <EntityComments {...BASE_PROPS} />,
-    );
-    await findByText(/Comentario original/);
+    const { findByText, findByPlaceholderText, getByTestId, queryByText, queryByPlaceholderText } =
+      render(<EntityComments {...BASE_PROPS} />);
+    await findByText('Comentario original');
 
+    // No second field appears — the one composer switches into reply mode.
     fireEvent.press(await findByText('Responder'));
-    const replyInput = await findByPlaceholderText('Escribe una respuesta…');
-    fireEvent.changeText(replyInput, 'Una respuesta');
+    expect(await findByText('Respondiendo a Ana Gil')).toBeTruthy();
+    expect(queryByPlaceholderText('Escribe un comentario…')).toBeNull();
+
+    const input = await findByPlaceholderText('Escribe una respuesta…');
+    fireEvent.changeText(input, 'Una respuesta');
     await act(async () => {
-      // The bottom composer's send icon also renders — the inline reply
-      // composer's is the first one in the tree (it's nested inside the comment
-      // row, which renders before the bottom composer).
-      fireEvent.press(getAllByLabelText('Enviar')[0]!);
+      fireEvent.press(getByTestId('comment-send'));
     });
 
     await waitFor(() =>
@@ -269,6 +272,48 @@ describe('<EntityComments>', () => {
         authorUserId: 'uid-1',
         body: 'Una respuesta',
         parentCommentId: 'c-1',
+      }),
+    );
+    // Sending drops back to composing a top-level comment.
+    await waitFor(() => expect(queryByText('Respondiendo a Ana Gil')).toBeNull());
+  });
+
+  it('cancels reply mode and posts a top-level comment instead', async () => {
+    getCommentsMock.mockResolvedValue([
+      {
+        id: 'c-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-2',
+        body: 'Comentario original',
+        createdAt: new Date(),
+        parentCommentId: null,
+        replyCount: 0,
+      },
+    ]);
+    addCommentMock.mockResolvedValue('c-new');
+
+    const { findByText, findByPlaceholderText, getByTestId, queryByText } = render(
+      <EntityComments {...BASE_PROPS} />,
+    );
+    await findByText('Comentario original');
+    fireEvent.press(await findByText('Responder'));
+    fireEvent.press(getByTestId('comment-reply-cancel'));
+    expect(queryByText('Respondiendo a Ana Gil')).toBeNull();
+
+    fireEvent.changeText(await findByPlaceholderText('Escribe un comentario…'), 'Un comentario');
+    await act(async () => {
+      fireEvent.press(getByTestId('comment-send'));
+    });
+
+    await waitFor(() =>
+      expect(addCommentMock).toHaveBeenCalledWith({
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-1',
+        body: 'Un comentario',
       }),
     );
   });

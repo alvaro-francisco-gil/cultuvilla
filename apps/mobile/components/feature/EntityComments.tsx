@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Platform, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
 import { VStack } from '../primitives/VStack';
@@ -85,13 +85,16 @@ export function EntityComments({
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [replyBody, setReplyBody] = useState('');
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const [repliesByParent, setRepliesByParent] = useState<Map<string, CommentDoc[]>>(new Map());
   const [loadingReplies, setLoadingReplies] = useState<Set<string>>(new Set());
-  const [sendingReply, setSendingReply] = useState(false);
+  const inputRef = useRef<TextInput>(null);
 
   const me = user ? authors.get(user.uid) : undefined;
+  const replyTarget = replyingTo ? comments.find((c) => c.id === replyingTo) : undefined;
+  const replyTargetName = replyTarget
+    ? (authors.get(replyTarget.authorUserId)?.name ?? t('comments.anonymousAuthor'))
+    : null;
 
   useEffect(() => {
     setLoading(true);
@@ -177,53 +180,35 @@ export function EntityComments({
         return next;
       }
       next.add(commentId);
-      if (!repliesByParent.has(commentId)) {
-        setLoadingReplies((p) => new Set(p).add(commentId));
-        void (async () => {
-          const replies = await getReplies(entityKind, entityId, commentId);
-          setRepliesByParent((prev2) => new Map(prev2).set(commentId, replies));
-          setLoadingReplies((p) => {
-            const n = new Set(p);
-            n.delete(commentId);
-            return n;
-          });
-        })();
-      }
+      if (!repliesByParent.has(commentId)) void loadReplies(commentId);
       return next;
     });
   };
 
-  const onSendReply = (parentCommentId: string) => {
-    if (!user) return;
-    const trimmed = replyBody.trim();
-    if (!trimmed || sendingReply) return;
-    setSendingReply(true);
-    void (async () => {
-      try {
-        const id = await addComment({
-          entityKind, entityId, municipalityId, authorUserId: user.uid, body: trimmed, parentCommentId,
-        });
-        const newReply: CommentDoc = {
-          id, entityKind, entityId, municipalityId, authorUserId: user.uid, body: trimmed,
-          createdAt: new Date(), parentCommentId, replyCount: 0,
-        };
-        setRepliesByParent((prev) => {
-          const next = new Map(prev);
-          next.set(parentCommentId, [...(next.get(parentCommentId) ?? []), newReply]);
-          return next;
-        });
-        setComments((prev) =>
-          prev.map((c) => (c.id === parentCommentId ? { ...c, replyCount: c.replyCount + 1 } : c)),
-        );
-        setExpandedReplies((prev) => new Set(prev).add(parentCommentId));
-        setReplyingTo(null);
-        setReplyBody('');
-      } finally {
-        setSendingReply(false);
-      }
-    })();
+  const loadReplies = async (commentId: string) => {
+    setLoadingReplies((p) => new Set(p).add(commentId));
+    try {
+      const replies = await getReplies(entityKind, entityId, commentId);
+      setRepliesByParent((prev) => new Map(prev).set(commentId, replies));
+    } finally {
+      setLoadingReplies((p) => {
+        const next = new Set(p);
+        next.delete(commentId);
+        return next;
+      });
+    }
   };
 
+  const onStartReply = (commentId: string) => {
+    setReplyingTo(commentId);
+    inputRef.current?.focus();
+  };
+
+  /**
+   * One composer for both cases: `replyingTo` decides whether what you type
+   * lands as a top-level comment or as a reply to the comment named above the
+   * field.
+   */
   const onSend = () => {
     if (!user) {
       gate.requireAuth(pathname, t('guest.comment'));
@@ -231,6 +216,7 @@ export function EntityComments({
     }
     const trimmed = body.trim();
     if (!trimmed || sending) return;
+    const parentCommentId = replyingTo;
     setSending(true);
     void (async () => {
       try {
@@ -240,14 +226,30 @@ export function EntityComments({
           municipalityId,
           authorUserId: user.uid,
           body: trimmed,
+          ...(parentCommentId ? { parentCommentId } : {}),
         });
-        setComments((prev) => [
-          ...prev,
-          {
-            id, entityKind, entityId, municipalityId, authorUserId: user.uid, body: trimmed,
-            createdAt: new Date(), parentCommentId: null, replyCount: 0,
-          },
-        ]);
+        const posted: CommentDoc = {
+          id, entityKind, entityId, municipalityId, authorUserId: user.uid, body: trimmed,
+          createdAt: new Date(), parentCommentId, replyCount: 0,
+        };
+        if (parentCommentId) {
+          setComments((prev) =>
+            prev.map((c) => (c.id === parentCommentId ? { ...c, replyCount: c.replyCount + 1 } : c)),
+          );
+          setExpandedReplies((prev) => new Set(prev).add(parentCommentId));
+          // Appending to a thread we never fetched would render the new reply
+          // as if it were the whole thread — fetch it instead.
+          if (repliesByParent.has(parentCommentId)) {
+            setRepliesByParent((prev) =>
+              new Map(prev).set(parentCommentId, [...(prev.get(parentCommentId) ?? []), posted]),
+            );
+          } else {
+            void loadReplies(parentCommentId);
+          }
+        } else {
+          setComments((prev) => [...prev, posted]);
+        }
+        setReplyingTo(null);
         setBody('');
       } finally {
         setSending(false);
@@ -295,7 +297,7 @@ export function EntityComments({
                         </Pressable>
                       ) : null}
                       {user ? (
-                        <Pressable onPress={() => setReplyingTo(comment.id)}>
+                        <Pressable onPress={() => onStartReply(comment.id)}>
                           <Text variant="caption" tone="muted">{t('comments.reply')}</Text>
                         </Pressable>
                       ) : null}
@@ -312,29 +314,6 @@ export function EntityComments({
                     </Pressable>
                   ) : null}
                 </HStack>
-
-                {replyingTo === comment.id ? (
-                  <View className="pl-10">
-                    <Input
-                      value={replyBody}
-                      onChangeText={setReplyBody}
-                      placeholder={t('comments.replyPlaceholder')}
-                      accessibilityLabel={t('comments.replyPlaceholder')}
-                      autoFocus
-                      pill
-                      onSubmitEditing={() => onSendReply(comment.id)}
-                      returnKeyType="send"
-                      rightAdornment={
-                        <SendAdornment
-                          visible={replyBody.trim().length > 0}
-                          sending={sendingReply}
-                          onPress={() => onSendReply(comment.id)}
-                          label={t('comments.send')}
-                        />
-                      }
-                    />
-                  </View>
-                ) : null}
 
                 {expandedReplies.has(comment.id) ? (
                   loadingReplies.has(comment.id) ? (
@@ -383,34 +362,54 @@ export function EntityComments({
         </VStack>
       )}
       {user ? (
-        <HStack gap={2} align="center">
-          <Avatar
-            uri={me?.photoURL ?? null}
-            size={32}
-            initials={initialsOf(me?.name ?? t('comments.anonymousAuthor'))}
-          />
-          <View className="flex-1">
-            <Input
-              value={body}
-              onChangeText={setBody}
-              placeholder={t('comments.placeholder')}
-              accessibilityLabel={t('comments.placeholder')}
-              testID="comment-input"
-              pill
-              onSubmitEditing={onSend}
-              returnKeyType="send"
-              rightAdornment={
-                <SendAdornment
-                  visible={body.trim().length > 0}
-                  sending={sending}
-                  onPress={onSend}
-                  label={t('comments.send')}
-                  testID="comment-send"
-                />
-              }
+        <VStack gap={1}>
+          {replyTargetName ? (
+            <HStack gap={2} align="center" justify="between" className="pl-10">
+              <Text variant="caption" tone="muted" numberOfLines={1} className="flex-shrink">
+                {t('comments.replyingTo', { name: replyTargetName })}
+              </Text>
+              <Pressable
+                onPress={() => setReplyingTo(null)}
+                accessibilityRole="button"
+                accessibilityLabel={t('comments.cancelReply')}
+                testID="comment-reply-cancel"
+              >
+                <Ionicons name="close" size={iconSizes.sm} color={colors.light.fg.muted} />
+              </Pressable>
+            </HStack>
+          ) : null}
+          <HStack gap={2} align="center">
+            <Avatar
+              uri={me?.photoURL ?? null}
+              size={32}
+              initials={initialsOf(me?.name ?? t('comments.anonymousAuthor'))}
             />
-          </View>
-        </HStack>
+            <View className="flex-1">
+              <Input
+                inputRef={inputRef}
+                value={body}
+                onChangeText={setBody}
+                placeholder={
+                  replyTargetName ? t('comments.replyPlaceholder') : t('comments.placeholder')
+                }
+                accessibilityLabel={t('comments.placeholder')}
+                testID="comment-input"
+                pill
+                onSubmitEditing={onSend}
+                returnKeyType="send"
+                rightAdornment={
+                  <SendAdornment
+                    visible={body.trim().length > 0}
+                    sending={sending}
+                    onPress={onSend}
+                    label={t('comments.send')}
+                    testID="comment-send"
+                  />
+                }
+              />
+            </View>
+          </HStack>
+        </VStack>
       ) : (
         <Button variant="secondary" onPress={() => gate.requireAuth(pathname, t('guest.comment'))}>
           {t('comments.signInToComment')}

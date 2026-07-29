@@ -1023,6 +1023,8 @@
     "anonymousAuthor": "Usuario",
     "reply": "Responder",
     "replyPlaceholder": "Añade una respuesta…",
+    "replyingTo": "Respondiendo a {name}",
+    "cancelReply": "Cancelar respuesta",
     "viewReplies": "{count, plural, one {Ver # respuesta} other {Ver # respuestas}}",
     "hideReplies": "Ocultar respuestas"
   }

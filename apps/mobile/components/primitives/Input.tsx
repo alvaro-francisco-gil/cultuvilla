@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { TextInput, type TextInputProps, View } from 'react-native';
 import { colors } from '@cultuvilla/shared/design-system';
 import { Text } from './Text';
@@ -16,6 +16,8 @@ export type InputProps = Omit<TextInputProps, 'style' | 'value' | 'onChangeText'
   dense?: boolean;
   /** Fully rounded accent-outlined capsule, no fill (chat/comment composers). */
   pill?: boolean;
+  /** Ref to the underlying field, for imperative `.focus()` / `.blur()`. */
+  inputRef?: Ref<TextInput>;
 };
 
 // Controlled text input. `onChangeText` (vs `onChange`) keeps the API aligned
@@ -29,6 +31,7 @@ export function Input({
   rightAdornment,
   dense = false,
   pill = false,
+  inputRef,
   ...rest
 }: InputProps) {
   return (
@@ -40,6 +43,7 @@ export function Input({
         } ${error ? 'border-danger' : pill ? 'border-accent' : 'border-subtle'}`}
       >
         <TextInput
+          ref={inputRef}
           value={value}
           onChangeText={onChangeText}
           accessibilityLabel={rest.accessibilityLabel ?? label ?? rest.placeholder}
