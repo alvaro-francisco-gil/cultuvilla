@@ -40,7 +40,7 @@
  */
 
 import { pathToFileURL } from 'node:url';
-import { GoogleAuth } from 'google-auth-library';
+import admin from 'firebase-admin';
 import { ENVS, resolveEnv } from './lib/env-credentials.mjs';
 
 export const ROLE = 'roles/iam.serviceAccountTokenCreator';
@@ -51,35 +51,48 @@ function argValue(flag) {
 }
 
 /**
- * Credential resolution deliberately differs from initAdminForEnv: we need a
- * cloud-platform-scoped token for the IAM + Resource Manager REST APIs, whereas
- * firebase-admin mints narrower Firebase-scoped tokens that these APIs reject.
- * GOOGLE_APPLICATION_CREDENTIALS (set by the WIF auth action in CI, or by the
- * operator locally) is picked up by GoogleAuth automatically.
+ * Deliberately not initAdminForEnv: this check talks to the IAM and Resource
+ * Manager REST APIs, not Firestore, so it needs a raw access token rather than an
+ * initialized app. Application Default Credentials cover both callers — the WIF
+ * auth action in CI and the operator's stored adc.json (see env-credentials.mjs).
  */
-async function apiClient() {
-  const auth = new GoogleAuth({ scopes: ['https://www.googleapis.com/auth/cloud-platform'] });
-  return auth.getClient();
+async function accessToken() {
+  const { access_token: token } = await admin.credential.applicationDefault().getAccessToken();
+  return token;
 }
 
-async function projectNumber(client, projectId) {
-  const res = await client.request({
-    url: `https://cloudresourcemanager.googleapis.com/v1/projects/${projectId}`,
+async function apiFetch(token, url, init = {}) {
+  const res = await fetch(url, {
+    ...init,
+    headers: { ...init.headers, Authorization: `Bearer ${token}` },
   });
-  const number = res.data?.projectNumber;
-  if (!number) throw new Error(`No projectNumber in Resource Manager response for ${projectId}`);
-  return number;
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(body?.error?.message ?? `HTTP ${res.status} from ${url}`);
+    err.status = res.status;
+    throw err;
+  }
+  return body;
 }
 
-async function saIamPolicy(client, projectId, saEmail) {
-  const res = await client.request({
-    method: 'POST',
-    url:
-      `https://iam.googleapis.com/v1/projects/${projectId}` +
+async function projectNumber(token, projectId) {
+  const body = await apiFetch(
+    token,
+    `https://cloudresourcemanager.googleapis.com/v1/projects/${projectId}`,
+  );
+  if (!body.projectNumber) {
+    throw new Error(`No projectNumber in Resource Manager response for ${projectId}`);
+  }
+  return body.projectNumber;
+}
+
+async function saIamPolicy(token, projectId, saEmail) {
+  return apiFetch(
+    token,
+    `https://iam.googleapis.com/v1/projects/${projectId}` +
       `/serviceAccounts/${encodeURIComponent(saEmail)}:getIamPolicy`,
-    data: {},
-  });
-  return res.data ?? {};
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
+  );
 }
 
 export function selfSignBindingExists(policy, saEmail) {
@@ -102,8 +115,8 @@ async function main() {
   const env = resolveEnv(argValue('--env') ?? 'dev');
   const projectId = ENVS[env].project;
 
-  const client = await apiClient();
-  const number = await projectNumber(client, projectId);
+  const token = await accessToken();
+  const number = await projectNumber(token, projectId);
   // Functions declare no custom `serviceAccount`, so they run as the Compute
   // Engine default SA. If that ever changes, resolve the SA from the deployed
   // service instead of assuming this default.
@@ -112,7 +125,7 @@ async function main() {
   console.log(`Custom-token signing check: ${env} (${projectId})`);
   console.log(`  runtime service account: ${saEmail}`);
 
-  const policy = await saIamPolicy(client, projectId, saEmail);
+  const policy = await saIamPolicy(token, projectId, saEmail);
 
   if (!selfSignBindingExists(policy, saEmail)) {
     console.error(
@@ -129,13 +142,15 @@ async function main() {
 }
 
 function reportAndExit(err) {
-  const status = err?.response?.status ?? err?.code;
-  if (status === 403) {
+  if (err?.status === 403 || err?.status === 401) {
     console.error(
-      `\n✖ Permission denied reading IAM state (HTTP 403).\n\n` +
+      `\n✖ Denied reading IAM state (HTTP ${err.status}).\n\n` +
         `  This check needs iam.serviceAccounts.getIamPolicy and\n` +
         `  resourcemanager.projects.get. Grant the calling principal\n` +
         `  roles/iam.serviceAccountViewer on the project.\n\n` +
+        `  If you are authenticating with a ~/.config/cultuvilla/<env>-sa.json\n` +
+        `  service-account KEY, try again with it unset — firebase-admin scopes\n` +
+        `  key credentials narrowly, whereas the stored adc.json covers these APIs.\n\n` +
         `  Details: ${err.message}\n`,
     );
   } else {
