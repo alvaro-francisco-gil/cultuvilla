@@ -1,6 +1,12 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { OrgMembersList } from '../OrgMembersList';
 
+const mockPush = jest.fn();
+jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(...a) } }));
+
+/** Management controls only exist once the heading's "Editar" toggle is on. */
+const enterEditMode = () => fireEvent.press(screen.getByTestId('org-members-edit-toggle'));
+
 const mockGetOrgMembers = jest.fn();
 const mockSetOrgMemberRole = jest.fn();
 const mockRemoveOrgMember = jest.fn();
@@ -57,6 +63,7 @@ beforeEach(() => {
   mockGetPersonByUserId.mockReset();
   mockShowConfirm.mockReset();
   mockShowAlert.mockReset();
+  mockPush.mockReset();
   mockGetPersonByUserId.mockResolvedValue(null);
   mockSetOrgMemberRole.mockResolvedValue(undefined);
   mockRemoveOrgMember.mockResolvedValue(undefined);
@@ -79,8 +86,60 @@ test('read-only viewer sees no management controls', async () => {
   render(<OrgMembersList orgId="o1" />);
 
   await waitFor(() => expect(screen.getByText('Ana Admin')).toBeTruthy());
+  expect(screen.queryByTestId('org-members-edit-toggle')).toBeNull();
   expect(screen.queryByTestId('org-member-remove-user1')).toBeNull();
   expect(screen.queryByTestId('org-member-remove-admin1')).toBeNull();
+});
+
+test('an admin sees no row actions until edit mode is on', async () => {
+  mockGetOrgMembers.mockResolvedValue([
+    { id: 'admin1', userId: 'admin1', role: 'admin', joinedAt: new Date('2026-01-01') },
+    { id: 'user1', userId: 'user1', role: 'member', joinedAt: new Date('2026-02-01') },
+  ]);
+
+  render(<OrgMembersList orgId="o1" canManage currentUserId="admin1" />);
+
+  await waitFor(() => expect(screen.getByTestId('org-member-profile-user1')).toBeTruthy());
+  expect(screen.queryByTestId('org-member-remove-user1')).toBeNull();
+  expect(screen.queryByTestId('org-member-row-user1')).toBeNull();
+
+  enterEditMode();
+  expect(screen.getByTestId('org-member-remove-user1')).toBeTruthy();
+  expect(screen.getByTestId('org-member-row-user1')).toBeTruthy();
+
+  // Toggling back off hides them again.
+  fireEvent.press(screen.getByTestId('org-members-edit-toggle'));
+  expect(screen.queryByTestId('org-member-remove-user1')).toBeNull();
+});
+
+test('tapping a member opens their profile, in edit mode or out of it', async () => {
+  mockGetOrgMembers.mockResolvedValue([
+    { id: 'admin1', userId: 'admin1', role: 'admin', joinedAt: new Date('2026-01-01') },
+    { id: 'user1', userId: 'user1', role: 'member', joinedAt: new Date('2026-02-01') },
+  ]);
+
+  render(<OrgMembersList orgId="o1" canManage currentUserId="admin1" />);
+
+  await waitFor(() => expect(screen.getByTestId('org-member-profile-user1')).toBeTruthy());
+  fireEvent.press(screen.getByTestId('org-member-profile-user1'));
+  expect(mockPush).toHaveBeenCalledWith('/user/user1');
+  expect(mockSetOrgMemberRole).not.toHaveBeenCalled();
+
+  enterEditMode();
+  fireEvent.press(screen.getByTestId('org-member-profile-user1'));
+  expect(mockPush).toHaveBeenCalledTimes(2);
+});
+
+test('a read-only viewer can still open a member profile', async () => {
+  mockGetOrgMembers.mockResolvedValue([
+    { id: 'user1', userId: 'user1', role: 'member', joinedAt: new Date('2026-02-01') },
+  ]);
+
+  render(<OrgMembersList orgId="o1" />);
+
+  await waitFor(() => expect(screen.getByTestId('org-member-profile-user1')).toBeTruthy());
+  fireEvent.press(screen.getByTestId('org-member-profile-user1'));
+  expect(mockPush).toHaveBeenCalledWith('/user/user1');
 });
 
 test('shows a member full name with the apodo in parentheses, not the apodo alone', async () => {
@@ -110,7 +169,8 @@ test('an org admin can promote a member; the roster refetches afterwards', async
 
   render(<OrgMembersList orgId="o1" canManage currentUserId="admin1" />);
 
-  await waitFor(() => expect(screen.getByTestId('org-member-row-user1')).toBeTruthy());
+  await waitFor(() => expect(screen.getByTestId('org-member-profile-user1')).toBeTruthy());
+  enterEditMode();
   fireEvent.press(screen.getByTestId('org-member-row-user1'));
 
   expect(mockSetOrgMemberRole).toHaveBeenCalledWith('o1', 'user1', 'admin');
@@ -125,7 +185,8 @@ test('an org admin can demote another admin', async () => {
 
   render(<OrgMembersList orgId="o1" canManage currentUserId="admin1" />);
 
-  await waitFor(() => expect(screen.getByTestId('org-member-row-admin2')).toBeTruthy());
+  await waitFor(() => expect(screen.getByTestId('org-member-profile-admin2')).toBeTruthy());
+  enterEditMode();
   fireEvent.press(screen.getByTestId('org-member-row-admin2'));
 
   expect(mockSetOrgMemberRole).toHaveBeenCalledWith('o1', 'admin2', 'member');
@@ -139,7 +200,8 @@ test('an org admin can remove another member', async () => {
 
   render(<OrgMembersList orgId="o1" canManage currentUserId="admin1" />);
 
-  await waitFor(() => expect(screen.getByTestId('org-member-remove-user1')).toBeTruthy());
+  await waitFor(() => expect(screen.getByTestId('org-member-profile-user1')).toBeTruthy());
+  enterEditMode();
   fireEvent.press(screen.getByTestId('org-member-remove-user1'));
 
   expect(mockRemoveOrgMember).toHaveBeenCalledWith('o1', 'user1');
@@ -154,9 +216,11 @@ test('an admin cannot change or remove their own row', async () => {
 
   render(<OrgMembersList orgId="o1" canManage currentUserId="admin1" />);
 
-  await waitFor(() => expect(screen.getByTestId('org-member-row-user1')).toBeTruthy());
+  await waitFor(() => expect(screen.getByTestId('org-member-profile-admin1')).toBeTruthy());
+  enterEditMode();
+  expect(screen.getByTestId('org-member-row-user1')).toBeTruthy();
   expect(screen.queryByTestId('org-member-remove-admin1')).toBeNull();
-  fireEvent.press(screen.getByTestId('org-member-row-admin1'));
+  expect(screen.queryByTestId('org-member-row-admin1')).toBeNull();
   expect(mockSetOrgMemberRole).not.toHaveBeenCalled();
 });
 
@@ -169,7 +233,8 @@ test('surfaces an error if the role change fails', async () => {
 
   render(<OrgMembersList orgId="o1" canManage currentUserId="admin1" />);
 
-  await waitFor(() => expect(screen.getByTestId('org-member-row-user1')).toBeTruthy());
+  await waitFor(() => expect(screen.getByTestId('org-member-profile-user1')).toBeTruthy());
+  enterEditMode();
   fireEvent.press(screen.getByTestId('org-member-row-user1'));
 
   await waitFor(() => expect(mockShowAlert).toHaveBeenCalledWith('No autorizado.'));
@@ -184,7 +249,8 @@ test('surfaces an error if removal fails', async () => {
 
   render(<OrgMembersList orgId="o1" canManage currentUserId="admin1" />);
 
-  await waitFor(() => expect(screen.getByTestId('org-member-remove-user1')).toBeTruthy());
+  await waitFor(() => expect(screen.getByTestId('org-member-profile-user1')).toBeTruthy());
+  enterEditMode();
   fireEvent.press(screen.getByTestId('org-member-remove-user1'));
 
   await waitFor(() => expect(mockShowAlert).toHaveBeenCalledWith('No autorizado.'));

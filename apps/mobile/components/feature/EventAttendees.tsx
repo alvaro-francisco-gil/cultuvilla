@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { VStack } from '../primitives/VStack';
 import { HStack } from '../primitives/HStack';
 import { Text } from '../primitives/Text';
@@ -8,6 +9,7 @@ import { Pressable } from '../primitives/Pressable';
 import { Button } from '../primitives/Button';
 import { Avatar } from '../primitives/Avatar';
 import { DetailSectionHeading } from './DetailSectionHeading';
+import { SectionEditToggle } from './SectionEditToggle';
 import {
   getEventRegistrations,
   getRegistrationPhone,
@@ -22,11 +24,16 @@ import { showConfirm } from '../../lib/dialogs';
 
 type Row = RegistrationData & { id: string };
 
+type AttendeePerson = { photoURL: string | null; userId: string | null };
+
 /**
  * Organizer-only attendee roster shown inline on the event detail screen: a
  * circular profile photo (from the attendee's person, initials fallback) and
- * the name, with per-row call (only when the event required a phone) and
- * remove actions. Tapping call opens a dialog with the number to dial.
+ * the name, which opens that attendee's profile. Marking paid and calling (only
+ * when the event required a phone) are always available — they're the running
+ * ops of an event; tapping call opens a dialog with the number to dial.
+ * Removing an attendee is destructive, so the trash icons stay hidden until the
+ * heading's "Editar" toggle is on.
  */
 export function EventAttendees({
   eventId,
@@ -40,21 +47,26 @@ export function EventAttendees({
   const { t } = useT();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [phones, setPhones] = useState<Record<string, string | null>>({});
-  const [photos, setPhotos] = useState<Record<string, string | null>>({});
+  const [people, setPeople] = useState<Record<string, AttendeePerson>>({});
   const [callTarget, setCallTarget] = useState<{ name: string; phone: string } | null>(null);
+  const [editing, setEditing] = useState(false);
 
   const load = useCallback(async () => {
     const regs = await getEventRegistrations(eventId);
     setRows(regs);
-    // Photo isn't denormalised on the registration, so resolve it per person.
-    // A missing/private person just falls back to the initials avatar.
-    const photoEntries = await Promise.all(
+    // Neither the photo nor the account link is denormalised on the
+    // registration, so resolve the person per row. A missing/private person
+    // just falls back to the initials avatar and a non-tappable row.
+    const personEntries = await Promise.all(
       regs.map(async (r) => {
         const person = r.personId ? await getPerson(r.personId).catch(() => null) : null;
-        return [r.id, person?.photoURL ?? null] as const;
+        return [
+          r.id,
+          { photoURL: person?.photoURL ?? null, userId: person?.userId ?? null },
+        ] as const;
       }),
     );
-    setPhotos(Object.fromEntries(photoEntries));
+    setPeople(Object.fromEntries(personEntries));
     if (telephoneRequired) {
       const entries = await Promise.all(
         regs.map(async (r) => [r.id, await getRegistrationPhone(eventId, r.id)] as const),
@@ -81,12 +93,44 @@ export function EventAttendees({
   const confirmed = (rows ?? []).filter((r) => r.status === 'confirmed');
   const waitlisted = (rows ?? []).filter((r) => r.status === 'waitlisted');
 
-  const renderRow = (r: Row) => (
+  // Account holders get the richer /user profile; dependent personas open
+  // their read-only person card. A registration with no resolvable person
+  // (deleted or unreadable) simply isn't tappable.
+  const profileHref = (r: Row) => {
+    const userId = people[r.id]?.userId;
+    if (userId) return `/user/${userId}`;
+    return r.personId ? `/person/${r.personId}` : null;
+  };
+
+  const renderRow = (r: Row) => {
+    const href = profileHref(r);
+    const identity = (
+      <>
+        <Avatar
+          uri={people[r.id]?.photoURL ?? null}
+          size={36}
+          initials={r.name.slice(0, 1).toUpperCase()}
+        />
+        <Text numberOfLines={1} className="flex-1">
+          {r.name}
+        </Text>
+      </>
+    );
+    return (
     <HStack key={r.id} gap={3} align="center" className="py-2">
-      <Avatar uri={photos[r.id]} size={36} initials={r.name.slice(0, 1).toUpperCase()} />
-      <Text numberOfLines={1} className="flex-1">
-        {r.name}
-      </Text>
+      {href ? (
+        <Pressable
+          testID={`attendee-profile-${r.id}`}
+          onPress={() => router.push(href as never)}
+          accessibilityRole="button"
+          accessibilityLabel={r.name}
+          className="flex-1 flex-row items-center gap-3"
+        >
+          {identity}
+        </Pressable>
+      ) : (
+        identity
+      )}
       {requiresPayment ? (
         <Pressable
           testID={`paid-attendee-${r.id}`}
@@ -111,26 +155,38 @@ export function EventAttendees({
           <Ionicons name="call-outline" size={iconSizes.md} color={colors.light.fg.accent} />
         </Pressable>
       ) : null}
-      <Pressable
-        testID={`remove-attendee-${r.id}`}
-        accessibilityLabel={t('common.delete')}
-        onPress={() =>
-          showConfirm(
-            t('event.removeAttendeeTitle'),
-            t('event.removeAttendeeBody', { name: r.name }),
-            () => void cancelRegistration(eventId, r.id).then(load),
-            { confirmText: t('event.removeAttendeeConfirm'), cancelText: t('common.cancel') },
-          )
-        }
-      >
-        <Ionicons name="trash-outline" size={iconSizes.md} color={colors.light.fg.danger} />
-      </Pressable>
+      {editing ? (
+        <Pressable
+          testID={`remove-attendee-${r.id}`}
+          accessibilityLabel={t('common.delete')}
+          hitSlop={8}
+          onPress={() =>
+            showConfirm(
+              t('event.removeAttendeeTitle'),
+              t('event.removeAttendeeBody', { name: r.name }),
+              () => void cancelRegistration(eventId, r.id).then(load),
+              { confirmText: t('event.removeAttendeeConfirm'), cancelText: t('common.cancel') },
+            )
+          }
+        >
+          <Ionicons name="trash-outline" size={iconSizes.md} color={colors.light.fg.danger} />
+        </Pressable>
+      ) : null}
     </HStack>
-  );
+    );
+  };
 
   return (
     <VStack gap={2}>
-      <DetailSectionHeading>
+      <DetailSectionHeading
+        action={
+          <SectionEditToggle
+            testID="attendees-edit-toggle"
+            editing={editing}
+            onToggle={() => setEditing((e) => !e)}
+          />
+        }
+      >
         {confirmed.length > 0 ? `${t('event.attendees')} (${confirmed.length})` : t('event.attendees')}
       </DetailSectionHeading>
       {rows && confirmed.length === 0 ? (

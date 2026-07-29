@@ -7,6 +7,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 ### Added
 - Comment replies: reply to a specific comment (one level of nesting), with a "View N replies" toggle and a notification to the parent comment's author.
 
+### Changed
+- Org member and event attendee rosters now open the tapped person's profile, like the villager roster does. Their destructive controls (remove from org / remove attendee) and the org promote/demote action moved behind an "Editar" toggle on the section heading, so they are hidden while simply reading a roster.
+
 **Migration:** existing `comments/` docs are backfilled with `parentCommentId: null` and `replyCount: 0` by re-running `scripts/backfill-comment-threading.mjs` (per env).
 
 ### Fixed
