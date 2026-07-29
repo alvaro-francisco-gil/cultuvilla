@@ -1,5 +1,6 @@
 export {
   calendarDayOffset,
+  formatCompactRelativeTime,
   formatDate,
   formatPrice,
   formatRelativeTime,

@@ -106,10 +106,26 @@ describe('<EntityComments>', () => {
       },
     ]);
     const { findByText } = render(<EntityComments {...BASE_PROPS} />);
-    // Name + body share one Text node (Instagram-style inline), so match the
-    // body as a substring rather than an exact text node.
-    expect(await findByText(/Qué buena idea/)).toBeTruthy();
+    expect(await findByText('Qué buena idea')).toBeTruthy();
     expect(await findByText('Ana Gil')).toBeTruthy();
+    // The age of the comment sits next to the name, in its compact form.
+    expect(await findByText('ahora')).toBeTruthy();
+  });
+
+  it('hides the send affordance until the composer has something to send', async () => {
+    getCommentsMock.mockResolvedValue([]);
+    const { findByPlaceholderText, queryByTestId, getByTestId } = render(
+      <EntityComments {...BASE_PROPS} />,
+    );
+    const input = await findByPlaceholderText('Escribe un comentario…');
+    expect(queryByTestId('comment-send')).toBeNull();
+
+    fireEvent.changeText(input, 'Hola');
+    expect(getByTestId('comment-send')).toBeTruthy();
+
+    // Whitespace alone is not something to send.
+    fireEvent.changeText(input, '   ');
+    expect(queryByTestId('comment-send')).toBeNull();
   });
 
   it('uses the public user display name while a new author persona is unavailable', async () => {

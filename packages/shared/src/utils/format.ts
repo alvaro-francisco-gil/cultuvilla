@@ -173,6 +173,30 @@ function getRTF(): RelativeTimeFormatter {
   return rtfCache;
 }
 
+const ES_COMPACT_UNITS: Record<RTFUnit, string> = {
+  year: 'a',
+  month: 'mes',
+  week: 'sem',
+  day: 'd',
+  hour: 'h',
+  minute: 'min',
+  second: 's',
+};
+
+/**
+ * Age of a timestamp in the shortest form that still reads: `5s`, `3d`, `1sem`.
+ * Social-feed style — used where the timestamp sits inline next to a name and
+ * must not compete with it. Anything under a second is `ahora`. Future dates
+ * are formatted by magnitude too (no "en"/"hace" prefix — there is no room).
+ */
+export function formatCompactRelativeTime(date: Date, now: Date = new Date()): string {
+  const diff = Math.abs(date.getTime() - now.getTime());
+  for (const { unit, ms } of UNITS) {
+    if (diff >= ms) return `${String(Math.floor(diff / ms))}${ES_COMPACT_UNITS[unit]}`;
+  }
+  return 'ahora';
+}
+
 export function formatRelativeTime(date: Date, now: Date = new Date()): string {
   const diff = date.getTime() - now.getTime();
   const rtf = getRTF();

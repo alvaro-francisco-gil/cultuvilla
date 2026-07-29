@@ -22,7 +22,7 @@ import {
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 import { getUserProfile } from '@cultuvilla/shared/services/userService';
 import { buildDisplayName } from '@cultuvilla/shared/models/person/PersonDataModel';
-import { formatRelativeTime } from '@cultuvilla/shared/utils';
+import { formatCompactRelativeTime } from '@cultuvilla/shared/utils';
 import { iconSizes, colors } from '@cultuvilla/shared/design-system';
 import type { CommentData, EntityKind } from '@cultuvilla/shared/models';
 
@@ -273,15 +273,27 @@ export function EntityComments({
                 <HStack gap={2} align="start" justify="between">
                   <Avatar uri={author?.photoURL ?? null} size={36} initials={initialsOf(name)} />
                   <VStack gap={1} className="flex-1">
-                    {/* Instagram-style: the body flows immediately after the bold
-                        name in one paragraph, wrapping under the whole line. */}
-                    <Text>
-                      <Text className="font-bold">{name}</Text> {comment.body}
-                    </Text>
-                    <HStack gap={3}>
-                      <Text variant="caption" tone="muted">
-                        {formatRelativeTime(comment.createdAt)}
+                    {/* Instagram-style header: name with the age of the comment
+                        beside it, the body on its own line underneath. */}
+                    <HStack gap={2} align="center">
+                      <Text className="font-bold flex-shrink" numberOfLines={1}>
+                        {name}
                       </Text>
+                      <Text variant="caption" tone="muted">
+                        {formatCompactRelativeTime(comment.createdAt)}
+                      </Text>
+                    </HStack>
+                    <Text>{comment.body}</Text>
+                    <HStack gap={4}>
+                      {comment.replyCount > 0 ? (
+                        <Pressable onPress={() => onToggleReplies(comment.id)}>
+                          <Text variant="caption" tone="muted">
+                            {expandedReplies.has(comment.id)
+                              ? t('comments.hideReplies')
+                              : t('comments.viewReplies', { count: comment.replyCount })}
+                          </Text>
+                        </Pressable>
+                      ) : null}
                       {user ? (
                         <Pressable onPress={() => setReplyingTo(comment.id)}>
                           <Text variant="caption" tone="muted">{t('comments.reply')}</Text>
@@ -324,16 +336,6 @@ export function EntityComments({
                   </View>
                 ) : null}
 
-                {comment.replyCount > 0 ? (
-                  <Pressable onPress={() => onToggleReplies(comment.id)} className="pl-10">
-                    <Text variant="caption" tone="muted">
-                      {expandedReplies.has(comment.id)
-                        ? t('comments.hideReplies')
-                        : t('comments.viewReplies', { count: comment.replyCount })}
-                    </Text>
-                  </Pressable>
-                ) : null}
-
                 {expandedReplies.has(comment.id) ? (
                   loadingReplies.has(comment.id) ? (
                     <View className="pl-10 py-2">
@@ -349,12 +351,15 @@ export function EntityComments({
                           <HStack key={reply.id} gap={2} align="start" justify="between">
                             <Avatar uri={replyAuthor?.photoURL ?? null} size={28} initials={initialsOf(replyName)} />
                             <VStack gap={1} className="flex-1">
-                              <Text>
-                                <Text className="font-bold">{replyName}</Text> {reply.body}
-                              </Text>
-                              <Text variant="caption" tone="muted">
-                                {formatRelativeTime(reply.createdAt)}
-                              </Text>
+                              <HStack gap={2} align="center">
+                                <Text className="font-bold flex-shrink" numberOfLines={1}>
+                                  {replyName}
+                                </Text>
+                                <Text variant="caption" tone="muted">
+                                  {formatCompactRelativeTime(reply.createdAt)}
+                                </Text>
+                              </HStack>
+                              <Text>{reply.body}</Text>
                             </VStack>
                             {canDeleteReply ? (
                               <Pressable
