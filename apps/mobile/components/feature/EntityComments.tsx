@@ -43,6 +43,32 @@ function initialsOf(name: string): string {
   return name.trim().charAt(0).toUpperCase() || '+';
 }
 
+/**
+ * Instagram-style composer affordance: no button at rest, a send arrow inside
+ * the field as soon as there is something to send.
+ */
+function SendAdornment({
+  visible,
+  sending,
+  onPress,
+  label,
+  testID,
+}: {
+  visible: boolean;
+  sending: boolean;
+  onPress: () => void;
+  label: string;
+  testID?: string;
+}) {
+  if (!visible) return null;
+  if (sending) return <ActivityIndicator size="small" />;
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} testID={testID}>
+      <Ionicons name="arrow-up-circle" size={iconSizes.lg} color={colors.light.bg.accent} />
+    </Pressable>
+  );
+}
+
 export function EntityComments({
   entityKind,
   entityId,
@@ -65,6 +91,8 @@ export function EntityComments({
   const [loadingReplies, setLoadingReplies] = useState<Set<string>>(new Set());
   const [sendingReply, setSendingReply] = useState(false);
 
+  const me = user ? authors.get(user.uid) : undefined;
+
   useEffect(() => {
     setLoading(true);
     void (async () => {
@@ -76,9 +104,10 @@ export function EntityComments({
   // Resolve author name + photo once per uid (avoid an N+1 refetch per comment).
   useEffect(() => {
     const replyAuthorIds = [...repliesByParent.values()].flat().map((r) => r.authorUserId);
-    const unresolved = [...new Set([...comments.map((c) => c.authorUserId), ...replyAuthorIds])].filter(
-      (uid) => !authors.has(uid),
-    );
+    // The signed-in user is resolved too — the composer shows their avatar.
+    const unresolved = [
+      ...new Set([...comments.map((c) => c.authorUserId), ...replyAuthorIds, ...(user ? [user.uid] : [])]),
+    ].filter((uid) => !authors.has(uid));
     if (unresolved.length === 0) return;
     void (async () => {
       const entries = await Promise.all(
@@ -105,7 +134,7 @@ export function EntityComments({
     // authors is read but intentionally excluded — it's the accumulator this
     // effect writes to; including it would re-run on every resolution.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [comments, repliesByParent, t]);
+  }, [comments, repliesByParent, user, t]);
 
   const runDeleteConfirm = (onConfirm: () => void) => {
     // Alert.alert is a no-op on RN-Web, so branch to window.confirm there.
@@ -273,23 +302,26 @@ export function EntityComments({
                 </HStack>
 
                 {replyingTo === comment.id ? (
-                  <HStack gap={2} align="center" className="pl-10">
-                    <View className="flex-1">
-                      <Input
-                        value={replyBody}
-                        onChangeText={setReplyBody}
-                        placeholder={t('comments.replyPlaceholder')}
-                        accessibilityLabel={t('comments.replyPlaceholder')}
-                      />
-                    </View>
-                    <Button
-                      onPress={() => onSendReply(comment.id)}
-                      disabled={!replyBody.trim() || sendingReply}
-                      loading={sendingReply}
-                    >
-                      {t('comments.send')}
-                    </Button>
-                  </HStack>
+                  <View className="pl-10">
+                    <Input
+                      value={replyBody}
+                      onChangeText={setReplyBody}
+                      placeholder={t('comments.replyPlaceholder')}
+                      accessibilityLabel={t('comments.replyPlaceholder')}
+                      autoFocus
+                      pill
+                      onSubmitEditing={() => onSendReply(comment.id)}
+                      returnKeyType="send"
+                      rightAdornment={
+                        <SendAdornment
+                          visible={replyBody.trim().length > 0}
+                          sending={sendingReply}
+                          onPress={() => onSendReply(comment.id)}
+                          label={t('comments.send')}
+                        />
+                      }
+                    />
+                  </View>
                 ) : null}
 
                 {comment.replyCount > 0 ? (
@@ -347,6 +379,11 @@ export function EntityComments({
       )}
       {user ? (
         <HStack gap={2} align="center">
+          <Avatar
+            uri={me?.photoURL ?? null}
+            size={32}
+            initials={initialsOf(me?.name ?? t('comments.anonymousAuthor'))}
+          />
           <View className="flex-1">
             <Input
               value={body}
@@ -354,11 +391,20 @@ export function EntityComments({
               placeholder={t('comments.placeholder')}
               accessibilityLabel={t('comments.placeholder')}
               testID="comment-input"
+              pill
+              onSubmitEditing={onSend}
+              returnKeyType="send"
+              rightAdornment={
+                <SendAdornment
+                  visible={body.trim().length > 0}
+                  sending={sending}
+                  onPress={onSend}
+                  label={t('comments.send')}
+                  testID="comment-send"
+                />
+              }
             />
           </View>
-          <Button onPress={onSend} disabled={!body.trim()} loading={sending} testID="comment-send">
-            {t('comments.send')}
-          </Button>
         </HStack>
       ) : (
         <Button variant="secondary" onPress={() => gate.requireAuth(pathname, t('guest.comment'))}>

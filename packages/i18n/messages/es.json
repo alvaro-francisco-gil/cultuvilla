@@ -934,7 +934,7 @@
     },
     "comments": {
       "title": "Comentarios",
-      "placeholder": "Escribe un comentario…",
+      "placeholder": "Añade un comentario…",
       "send": "Enviar",
       "report": "Reportar",
       "reportConfirm": "¿Reportar este comentario?",
@@ -1012,7 +1012,7 @@
   "comments": {
     "sectionTitle": "Comentarios",
     "countLabel": "{count, plural, one {# comentario} other {# comentarios}}",
-    "placeholder": "Escribe un comentario…",
+    "placeholder": "Añade un comentario…",
     "send": "Enviar",
     "signInToComment": "Inicia sesión para comentar",
     "delete": "Eliminar",
@@ -1022,7 +1022,7 @@
     "deleteConfirmConfirm": "Eliminar",
     "anonymousAuthor": "Usuario",
     "reply": "Responder",
-    "replyPlaceholder": "Escribe una respuesta…",
+    "replyPlaceholder": "Añade una respuesta…",
     "viewReplies": "{count, plural, one {Ver # respuesta} other {Ver # respuestas}}",
     "hideReplies": "Ocultar respuestas"
   }

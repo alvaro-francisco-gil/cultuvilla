@@ -136,13 +136,14 @@ describe('<EntityComments>', () => {
   it('optimistically appends a sent comment and clears the input', async () => {
     getCommentsMock.mockResolvedValue([]);
     addCommentMock.mockResolvedValue('c-new');
-    const { findByPlaceholderText, findByText, getByText } = render(
+    const { findByPlaceholderText, findByText, getByTestId } = render(
       <EntityComments {...BASE_PROPS} />,
     );
     const input = await findByPlaceholderText('Escribe un comentario…');
     fireEvent.changeText(input, 'Un comentario nuevo');
+    // The send affordance only appears once there is something to send.
     await act(async () => {
-      fireEvent.press(getByText('Enviar'));
+      fireEvent.press(getByTestId('comment-send'));
     });
 
     await waitFor(() => expect(addCommentMock).toHaveBeenCalledWith({
@@ -229,7 +230,7 @@ describe('<EntityComments>', () => {
     ]);
     addCommentMock.mockResolvedValue('r-new');
 
-    const { findByText, findByPlaceholderText, getAllByText } = render(
+    const { findByText, findByPlaceholderText, getAllByLabelText } = render(
       <EntityComments {...BASE_PROPS} />,
     );
     await findByText(/Comentario original/);
@@ -238,10 +239,10 @@ describe('<EntityComments>', () => {
     const replyInput = await findByPlaceholderText('Escribe una respuesta…');
     fireEvent.changeText(replyInput, 'Una respuesta');
     await act(async () => {
-      // The bottom composer's "Enviar" also renders — the inline reply composer's
-      // is the first one in the tree (it's nested inside the comment row, which
-      // renders before the bottom composer).
-      fireEvent.press(getAllByText('Enviar')[0]!);
+      // The bottom composer's send icon also renders — the inline reply
+      // composer's is the first one in the tree (it's nested inside the comment
+      // row, which renders before the bottom composer).
+      fireEvent.press(getAllByLabelText('Enviar')[0]!);
     });
 
     await waitFor(() =>
