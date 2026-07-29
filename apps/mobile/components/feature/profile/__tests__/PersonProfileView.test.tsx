@@ -55,7 +55,7 @@ beforeEach(() => {
   mockGetBarrio.mockResolvedValue({ id: 'b1', name: 'Centro' });
 });
 
-test('shows birthplace, pueblo and oficios as infobox rows', async () => {
+test('shows birthplace, pueblo, barrio and oficios as separate facts', async () => {
   const { findByText, getByText } = render(
     <PersonProfileView
       person={person({
@@ -69,8 +69,30 @@ test('shows birthplace, pueblo and oficios as infobox rows', async () => {
   expect(await findByText('Segovia')).toBeTruthy();
   getByText('Nacimiento');
   getByText('Pueblo');
-  getByText('Anaya · Centro');
+  getByText('Anaya');
+  // Barrio is its own fact now, not a suffix on the pueblo.
+  getByText('Barrio');
+  getByText('Centro');
   getByText('Oficios');
+});
+
+test('puts the name at the top of the screen', async () => {
+  const { findByText } = render(<PersonProfileView person={person()} />);
+
+  expect(await findByText('Marta Prieto')).toBeTruthy();
+});
+
+test('omits the barrio fact when the residence link names no barrio', async () => {
+  mockGetBarrio.mockResolvedValue(null);
+
+  const { findByText, queryByText } = render(
+    <PersonProfileView
+      person={person({ municipalityLinks: [{ municipalityId: 'm1', barrioId: null }] })}
+    />,
+  );
+
+  expect(await findByText('Anaya')).toBeTruthy();
+  expect(queryByText('Barrio')).toBeNull();
 });
 
 test('joins several oficios into one line instead of separate chips', async () => {
@@ -81,7 +103,7 @@ test('joins several oficios into one line instead of separate chips', async () =
   expect(await findByText('Panadera, Costurera')).toBeTruthy();
 });
 
-test('renders no infobox at all when nothing is known', async () => {
+test('renders no facts at all when nothing is known', async () => {
   const { queryByText, getByText } = render(
     <PersonProfileView person={person({ biography: 'Vive aquí' })} />,
   );

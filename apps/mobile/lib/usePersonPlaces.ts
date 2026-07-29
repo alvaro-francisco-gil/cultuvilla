@@ -5,11 +5,13 @@ import type { MunicipalityLink, PersonData } from '@cultuvilla/shared/models/per
 export interface PersonPlaces {
   /** Municipality name the person was born in, or null when unset/unreadable. */
   birthPlace: string | null;
-  /** One entry per residence link: "Anaya" or "Anaya · Centro". */
-  residences: string[];
+  /** Village names from the residence links. */
+  villages: string[];
+  /** Barrio names from those same links — their own fact, not a suffix. */
+  barrios: string[];
 }
 
-const EMPTY: PersonPlaces = { birthPlace: null, residences: [] };
+const EMPTY: PersonPlaces = { birthPlace: null, villages: [], barrios: [] };
 
 /**
  * Resolves a person's `birthPlace` and `municipalityLinks` — which store ids —
@@ -34,7 +36,7 @@ export function usePersonPlaces(person: Pick<PersonData, 'birthPlace' | 'municip
     const links = JSON.parse(linksKey) as MunicipalityLink[];
 
     void (async () => {
-      const [birth, residences] = await Promise.all([
+      const [birth, resolved] = await Promise.all([
         birthPlaceId
           ? getMunicipality(birthPlaceId)
               .then((m) => m?.name ?? null)
@@ -49,12 +51,17 @@ export function usePersonPlaces(person: Pick<PersonData, 'birthPlace' | 'municip
                 : Promise.resolve(null),
             ]);
             if (!municipality) return null;
-            return barrio ? `${municipality.name} · ${barrio.name}` : municipality.name;
+            return { village: municipality.name, barrio: barrio?.name ?? null };
           }),
         ),
       ]);
       if (cancelled) return;
-      setPlaces({ birthPlace: birth, residences: residences.filter((r): r is string => r !== null) });
+      const found = resolved.filter((r): r is { village: string; barrio: string | null } => r !== null);
+      setPlaces({
+        birthPlace: birth,
+        villages: found.map((r) => r.village),
+        barrios: found.flatMap((r) => (r.barrio ? [r.barrio] : [])),
+      });
     })();
 
     return () => {

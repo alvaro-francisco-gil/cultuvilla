@@ -749,6 +749,7 @@
     "personInfo": {
       "birthPlace": "Nacimiento",
       "village": "Pueblo",
+      "barrio": "Barrio",
       "occupations": "Oficios"
     },
     "personPrivate": "Esta ficha es privada",
