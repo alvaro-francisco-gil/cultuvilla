@@ -115,6 +115,14 @@
       ]
     },
     {
+      "collectionGroup": "persons",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "burialPlace.placeId", "order": "ASCENDING" },
+        { "fieldPath": "createdBy", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "municipalityPeople",
       "queryScope": "COLLECTION",
       "fields": [

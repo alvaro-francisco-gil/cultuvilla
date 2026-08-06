@@ -7,7 +7,17 @@
 // contexts.
 import { describe, it } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  setDoc,
+  updateDoc,
+  where,
+  serverTimestamp,
+} from 'firebase/firestore';
 import { useRulesTestEnv } from '../helpers/rulesTestEnv';
 import { asUser, asAnon, seed } from '../helpers/roles';
 
@@ -141,6 +151,63 @@ describe('firestore.rules — /persons/{personId}', () => {
       await seedPerson({ createdBy: OWNER, userId: OWNER });
       const ownerDb = asUser(getEnv(), OWNER);
       await assertFails(updateDoc(doc(ownerDb, `persons/${PERSON_ID}`), { isPublic: false }));
+    });
+  });
+
+  // The cemetery list is built from two queries rather than one because rules
+  // are evaluated per matched document. These pin that constraint down: without
+  // them, someone could "simplify" getPersonsByBurialPlace back into a single
+  // query and only discover at runtime that the whole list is denied.
+  describe('list', () => {
+    const CEMETERY = 'cem-1';
+
+    async function seedBuried() {
+      await seed(getEnv(), async (ctx) => {
+        const db = ctx.firestore();
+        const burialPlace = { municipalityId: 'm1', placeId: CEMETERY };
+        await setDoc(doc(db, 'persons/buried-public'), {
+          ...personData({ createdBy: OTHER }),
+          burialPlace,
+          createdAt: new Date(),
+        });
+        await setDoc(doc(db, 'persons/buried-private'), {
+          ...personData({ createdBy: OWNER, isPublic: false }),
+          burialPlace,
+          createdAt: new Date(),
+        });
+      });
+    }
+
+    const buriedHere = () => where('burialPlace.placeId', '==', CEMETERY);
+
+    it('an unfiltered query is denied outright once a private persona is buried there', async () => {
+      await seedBuried();
+      const db = asUser(getEnv(), OWNER);
+      await assertFails(getDocs(query(collection(db, 'persons'), buriedHere())));
+    });
+
+    it('a guest may list the public burials', async () => {
+      await seedBuried();
+      const db = asAnon(getEnv());
+      await assertSucceeds(
+        getDocs(query(collection(db, 'persons'), buriedHere(), where('isPublic', '==', true))),
+      );
+    });
+
+    it('the creator may list their own burials, private ones included', async () => {
+      await seedBuried();
+      const db = asUser(getEnv(), OWNER);
+      await assertSucceeds(
+        getDocs(query(collection(db, 'persons'), buriedHere(), where('createdBy', '==', OWNER))),
+      );
+    });
+
+    it('nobody may list burials created by someone else', async () => {
+      await seedBuried();
+      const db = asUser(getEnv(), OTHER);
+      await assertFails(
+        getDocs(query(collection(db, 'persons'), buriedHere(), where('createdBy', '==', OWNER))),
+      );
     });
   });
 });
