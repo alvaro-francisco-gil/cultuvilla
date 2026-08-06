@@ -20,13 +20,19 @@ jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: stri
 jest.mock('../../../lib/auth/useAuth', () => ({ useAuth: () => ({ user: null }) }));
 jest.mock('../../../lib/auth/RegisterGateContext', () => ({ useRegisterGate: () => ({ requireAuth: jest.fn() }) }));
 jest.mock('../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: () => jest.fn() }));
-jest.mock('../../../lib/events/useEventOrganizer', () => ({ useEventOrganizer: () => ({ canOrganize: false }) }));
 jest.mock('../../../components/feature/LiveOwnerChip', () => ({ LiveOwnerChip: () => null }));
 jest.mock('../../../components/feature/RegisterFab', () => ({ RegisterFab: () => null }));
 jest.mock('../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('../../../lib/auth/useEntityCapabilities', () => ({
-  useEntityCapabilities: () => ({ canManage: false, canApprove: false, uid: null, loading: false }),
+  useEntityCapabilities: () => ({
+    canManage: false,
+    canApprove: false,
+    uid: null,
+    loading: false,
+    canEdit: () => false,
+    canDelete: () => false,
+  }),
 }));
 jest.mock('@cultuvilla/shared/services/eventService', () => ({
   getEvent: jest.fn().mockResolvedValue({

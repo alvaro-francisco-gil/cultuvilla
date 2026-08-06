@@ -10,6 +10,19 @@ jest.mock('../../../lib/auth/useAuth', () => ({
 jest.mock('expo-router', () => ({
   router: { back: jest.fn(), replace: jest.fn() },
   useLocalSearchParams: () => ({}),
+  Redirect: () => null,
+}));
+// Create mode never consults it, but the hook is mounted either way — stub it
+// so the suite doesn't reach the village-member service.
+jest.mock('../../../lib/auth/useEntityCapabilities', () => ({
+  useEntityCapabilities: () => ({
+    canManage: false,
+    canApprove: false,
+    uid: 'uid-1',
+    loading: false,
+    canEdit: () => true,
+    canDelete: () => true,
+  }),
 }));
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),

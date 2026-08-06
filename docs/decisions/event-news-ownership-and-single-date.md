@@ -24,11 +24,13 @@ not directly enforceable in rules.
     name, but membership grants no control.
   - `createdBy: string` stays as immutable audit; the creator is always forced
     into `organizerUserIds` at create time.
-- **Control predicate, identical everywhere** (rules `update`/`delete` +
-  `isEventOrganizer`, `useEventOrganizer`, and the walk-in authorization Cloud
-  Function): `createdBy || request.auth.uid in organizerUserIds || villageAdmin
-  || appAdmin`. The `in`-operator form is expressible in rules with no triggers,
-  no admin-callable, no denormalized controller list.
+- **Control predicate, identical everywhere** (rules `update`/`delete`, the
+  client's `useEntityCapabilities().canEdit`, and the walk-in authorization
+  Cloud Function): `createdBy || request.auth.uid in organizerUserIds ||
+  villageAdmin || appAdmin`. The `in`-operator form is expressible in rules with
+  no triggers, no admin-callable, no denormalized controller list. The same
+  predicate governs the other entity kinds (place, barrio, cartel), which simply
+  have no organizer set — so `canEdit` is the one definition for all five.
 - **Names are never denormalized.** Display resolves live via `useOwnerSummary`
   / `LiveOwnerChip` (`users/{id}.displayName`, `organizations/{id}.name`).
 - **`createdBy` and `municipalityId` are immutable** on update.

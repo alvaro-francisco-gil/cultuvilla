@@ -10,7 +10,6 @@ jest.mock('expo-router', () => ({
   router: { back: jest.fn(), push: jest.fn(), canGoBack: () => true, replace: jest.fn() },
 }));
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
-jest.mock('../../../lib/auth/useAuth', () => ({ useAuth: () => ({ user: null }) }));
 jest.mock('../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: () => jest.fn() }));
 jest.mock('../../../components/feature/NewsContentRenderer', () => ({ NewsContentRenderer: () => null }));
 jest.mock('../../../components/feature/LiveOwnerChip', () => ({
@@ -34,7 +33,7 @@ jest.mock('../../../components/feature/LiveOwnerChip', () => ({
 jest.mock('../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('../../../lib/auth/useEntityCapabilities', () => ({
-  useEntityCapabilities: () => ({ canManage: false, canApprove: false, uid: null, loading: false }),
+  useEntityCapabilities: jest.fn(),
 }));
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({ getNewsLink: () => 'https://x' }));
 jest.mock('@cultuvilla/shared/services/newsService', () => ({
@@ -48,14 +47,45 @@ jest.mock('@cultuvilla/shared/services/newsService', () => ({
 jest.mock('@cultuvilla/shared/services/imageService', () => ({ newsImageDownloadURL: jest.fn() }));
 jest.mock('@cultuvilla/shared/utils', () => ({ formatDate: () => '' }));
 
+import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
+
+function mockCaps(canEdit: boolean) {
+  const spy = jest.fn(() => canEdit);
+  (useEntityCapabilities as jest.Mock).mockReturnValue({
+    canManage: false,
+    canApprove: false,
+    uid: canEdit ? 'u1' : null,
+    loading: false,
+    canEdit: spy,
+    canDelete: jest.fn(() => canEdit),
+  });
+  return spy;
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
+  mockCaps(false);
 });
 
 describe('NewsDetailScreen', () => {
   it('renders the post title once loaded', async () => {
     const { getByText } = render(<NewsDetailScreen />);
     await waitFor(() => getByText('Gran noticia'));
+  });
+
+  // The screen no longer decides authority itself — it asks the shared hook,
+  // passing the post's author AND its organizer set.
+  it('asks the capability hook about the author and the organizer set', async () => {
+    const canEdit = mockCaps(true);
+    const { findByLabelText } = render(<NewsDetailScreen />);
+    expect(await findByLabelText('news.compose.editTitle')).toBeTruthy();
+    expect(canEdit).toHaveBeenCalledWith('u9', ['u1']);
+  });
+
+  it('hides the edit action when the hook says no', async () => {
+    const { getByText, queryByLabelText } = render(<NewsDetailScreen />);
+    await waitFor(() => getByText('Gran noticia'));
+    expect(queryByLabelText('news.compose.editTitle')).toBeNull();
   });
 
   it('opens the byline author and organization from their chips', async () => {

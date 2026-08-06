@@ -12,7 +12,6 @@ import { ownerRoute } from '../../lib/entities/ownerRoute';
 import { RegisterFab } from '../../components/feature/RegisterFab';
 import { EventAttendees } from '../../components/feature/EventAttendees';
 import { DetailSectionHeading } from '../../components/feature/DetailSectionHeading';
-import { useEventOrganizer } from '../../lib/events/useEventOrganizer';
 import { EntityDetailScaffold } from '../../components/feature/EntityDetailScaffold';
 import type { EntityDetailAction } from '../../components/feature/EntityDetailHeader';
 import { DetailInfoCard } from '../../components/feature/DetailInfoCard';
@@ -49,8 +48,10 @@ export default function EventDetailScreen() {
   const [event, setEvent] = useState<EventDoc | null>(null);
   const [person, setPerson] = useState<PersonDoc | null>(null);
   const [village, setVillage] = useState<VillageDoc | null>(null);
-  const { canOrganize } = useEventOrganizer(event);
-  const { canManage } = useEntityCapabilities(event?.municipalityId);
+  const { canManage, canEdit } = useEntityCapabilities(event?.municipalityId);
+  // Organizing an event IS editing it: author, named organizer, or an admin of
+  // the event's pueblo — the same three identities every entity kind accepts.
+  const canOrganize = canEdit(event?.createdBy, event?.organizerUserIds);
 
   // Single refetch for the whole screen, reused by pull-to-refresh. The escudo
   // lives on the municipality doc (not the event), so the village is fetched

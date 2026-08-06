@@ -439,9 +439,13 @@ service cloud.firestore {
       // named organizer may reattribute the post. organizerUserIds/OrgIds are
       // editable but must stay non-empty — an empty set would orphan the article
       // (only the immutable createdBy owner + admins could then reach it).
+      // Same three identities every other entity kind accepts: author, named
+      // organizer, or an admin of the article's pueblo.
       allow update: if (
                         isOwner(resource.data.createdBy)
                         || (request.auth.uid in resource.data.organizerUserIds)
+                        || isVillageAdmin(resource.data.municipalityId)
+                        || isAppAdmin()
                       )
                       && request.resource.data.organizerUserIds.size() > 0
                       && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
