@@ -153,7 +153,45 @@ for (const source of sources.docs) {
 }
 ```
 
-Run against dev first: `GOOGLE_CLOUD_PROJECT=villa-events node scripts/backfill-<source>-denorm.mjs`. Verify in the Firestore console that a sample doc now has the new fields. Repeat for beta/prod with explicit confirmation from the user.
+### Run the backfill AFTER the trigger is deployed, never before
+
+Until the new trigger is live, the **old** one is still handling writes — and it
+doesn't know about the new field. Any source doc that changes in the gap gets its
+target row rewritten without the field, silently undoing the rows you just
+backfilled. Reads then hit the strict Zod converter, which *throws* rather than
+tolerating the missing field, so the screen reading that collection crashes.
+
+This has bitten twice. Both times the backfill itself was correct; it just ran too
+early. A backfill is only durable once the code that maintains the field is live.
+
+**Dev** — you deploy, so you control the order. Deploy the function first
+(`firestore-deploy` skill), then run the backfill, then verify:
+
+```bash
+GOOGLE_CLOUD_PROJECT=villa-events node scripts/backfill-<source>-denorm.mjs
+pnpm check:dev-conformance   # walks every dev collection through its converter
+```
+
+No confirmation needed — dev is safe to mutate. Verify a sample doc in the console
+too; `check:dev-conformance` catches converter breakage, not a wrong value.
+
+**Beta / prod** — you do *not* run these, and there is no ordering decision to make
+by hand. Mark the CHANGELOG entry with a `**Migration:**` line naming the script:
+
+```markdown
+**Migration:** existing `<collection>/` docs are backfilled with `<field>` by
+running `scripts/backfill-<source>-denorm.mjs` (per env).
+```
+
+That marker is the whole handoff. `prepare-release` greps the stamped version block
+for it and emits a per-env backfill checklist into the `develop → beta` and
+`beta → main` promotion PRs, where a human runs it at promotion time. Code deploys
+automatically on promotion; a backfill does not — without the marker it is simply
+forgotten. The conformance gate then blocks the deploy if the backfill was skipped,
+which is the safe failure but a late and noisy one.
+
+Ordering holds across envs for the same reason as dev: the promotion deploys the
+function, *then* the checklist item runs the backfill.
 
 ## Step 6 — Integration test
 
@@ -183,7 +221,8 @@ Add a paragraph to [`docs/architecture/denormalized-read-models.md`](../../../do
 - [ ] Trigger written, exported from `functions/src/index.ts`, with `handler` field on every log call.
 - [ ] Early-return on unchanged source fields.
 - [ ] Rules updated to forbid client writes to the denormalized fields.
-- [ ] Backfill script created and run against dev (with sample-doc verification).
+- [ ] Backfill script created and run against dev **after** deploying the trigger, verified with `pnpm check:dev-conformance` + a sample doc.
+- [ ] `**Migration:**` marker in the CHANGELOG entry naming the script, so beta/prod inherit the backfill at promotion time.
 - [ ] Integration test that mutates source → asserts target updates.
 - [ ] `_services-map.md` and `docs/architecture/denormalized-read-models.md` updated.
 
