@@ -9,7 +9,6 @@ import { NewsContentRenderer } from '../../components/feature/NewsContentRendere
 import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
 import { ownerRoute } from '../../lib/entities/ownerRoute';
 import { EntityComments } from '../../components/feature/EntityComments';
-import { useAuth } from '../../lib/auth/useAuth';
 import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
 import { useT } from '../../lib/i18n';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
@@ -26,12 +25,11 @@ type Post = NewsPostData & { id: string };
 export default function NewsDetailScreen() {
   const { newsId } = useLocalSearchParams<{ newsId: string }>();
   const { t } = useT();
-  const { user } = useAuth();
   const share = useShareDeepLink();
   const [post, setPost] = useState<Post | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const { canManage } = useEntityCapabilities(post?.municipalityId);
+  const { canManage, canEdit } = useEntityCapabilities(post?.municipalityId);
 
   const load = useCallback(async () => {
     if (!newsId) return;
@@ -79,13 +77,11 @@ export default function NewsDetailScreen() {
   }, [post?.id]);
 
   const date = post ? (post.publishedAt ?? post.createdAt) : null;
-  // Mirrors the news update rules: the author or a named organizer may edit.
-  const canEdit =
-    !!user && !!post && (post.createdBy === user.uid || post.organizerUserIds.includes(user.uid));
+  const editable = !!post && canEdit(post.createdBy, post.organizerUserIds);
 
   const actions: EntityDetailAction[] = post
     ? [
-        ...(canEdit
+        ...(editable
           ? [
               {
                 icon: 'create-outline' as const,

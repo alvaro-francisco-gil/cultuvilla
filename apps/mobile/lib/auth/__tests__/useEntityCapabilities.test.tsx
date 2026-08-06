@@ -82,6 +82,28 @@ describe('useEntityCapabilities.canEdit', () => {
     expect(result.current.canEdit(null)).toBe(false);
     expect(result.current.canEdit(undefined)).toBe(false);
   });
+
+  // Events and news additionally name an organizer set; the other kinds pass none.
+  it('a named organizer can edit a post they did not author', async () => {
+    const result = await caps();
+    expect(result.current.canEdit('bob', ['carol', 'alice'])).toBe(true);
+  });
+
+  it('someone outside the organizer set still cannot edit', async () => {
+    const result = await caps();
+    expect(result.current.canEdit('bob', ['carol'])).toBe(false);
+  });
+
+  it('an empty organizer set grants nothing on its own', async () => {
+    const result = await caps();
+    expect(result.current.canEdit('bob', [])).toBe(false);
+  });
+
+  it('a signed-out viewer matches no organizer set', async () => {
+    mockAuth.mockReturnValue({ user: null, loading: false });
+    const result = await caps();
+    expect(result.current.canEdit('bob', ['alice'])).toBe(false);
+  });
 });
 
 // Mirrors the `allow delete` clause: admins always; the creator only while the

@@ -216,6 +216,40 @@ describe('firestore.rules — /news/{postId}', () => {
     );
   });
 
+  // T6-C-admin: a village admin maintains any post in their pueblo, the same
+  // authority they hold over places/barrios/carteles. Deliberately wider than
+  // moderation: an admin may rewrite the article, not just hide it.
+  it('T6-C-admin: village admin can update another member’s post', async () => {
+    await seedMember('m1', 'alice');
+    await seedMember('m1', 'boss', { role: 'admin' });
+    await seedPost('p1', 'm1', 'alice');
+    const boss = asUser(getEnv(), 'boss');
+    await assertSucceeds(
+      updateDoc(doc(boss, 'news/p1'), { title: 'Corregido', updatedAt: new Date() })
+    );
+  });
+
+  // …but the function-owned fields stay off-limits even to them: hiding is the
+  // audited setContentVisibility callable's job, never a plain client write.
+  it('T6-C-admin: village admin still cannot hide a post by writing status', async () => {
+    await seedMember('m1', 'alice');
+    await seedMember('m1', 'boss', { role: 'admin' });
+    await seedPost('p1', 'm1', 'alice');
+    const boss = asUser(getEnv(), 'boss');
+    await assertFails(updateDoc(doc(boss, 'news/p1'), { status: 'hidden' }));
+  });
+
+  // An admin of a *different* pueblo has no say here.
+  it('T6-C-admin: an admin of another pueblo cannot update the post', async () => {
+    await seedMember('m1', 'alice');
+    await seedMember('m2', 'boss', { role: 'admin' });
+    await seedPost('p1', 'm1', 'alice');
+    const boss = asUser(getEnv(), 'boss');
+    await assertFails(
+      updateDoc(doc(boss, 'news/p1'), { title: 'Hacked', updatedAt: new Date() })
+    );
+  });
+
   // T6-D: update denied when it tries to change createdBy
   it('T6-D: update denied when changing createdBy', async () => {
     await seedMember('m1', 'alice');

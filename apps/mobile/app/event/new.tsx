@@ -23,7 +23,7 @@ import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
 import { getUserMemberships } from '@cultuvilla/shared/services/villageMemberService';
 import { haversineKm } from '@cultuvilla/shared/services/feedService';
 import { createEvent, updateEvent, getEvent, updateEventStatus } from '@cultuvilla/shared/services/eventService';
-import { useEventOrganizer } from '../../lib/events/useEventOrganizer';
+import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
 import { uploadEventImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 import { buildLocationData } from '@cultuvilla/shared/models/core/LocationDataModel';
@@ -120,6 +120,7 @@ export default function NewEventScreen() {
   // Use an effect (not a one-shot initializer) so that if auth resolves after
   // the first render the creator's uid is still seeded.
   const [organizerUserIds, setOrganizerUserIds] = useState<string[]>([]);
+  const [createdBy, setCreatedBy] = useState<string | null>(null);
   const [organizerOrgIds, setOrganizerOrgIds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -162,6 +163,7 @@ export default function NewEventScreen() {
         setTelephoneRequired(!!ev.telephoneRequired);
         setRequiresPayment(!!ev.requiresPayment);
         setOrganizerUserIds(ev.organizerUserIds ?? []);
+        setCreatedBy(ev.createdBy);
         setOrganizerOrgIds(ev.organizerOrgIds ?? []);
         setExistingImageURL(ev.imageURL ?? null);
         setLoadError(null);
@@ -294,9 +296,7 @@ export default function NewEventScreen() {
 
   // Edit mode is organizer-gated (mirrors the event update rules); a
   // non-organizer who deep-links here is sent back to the public detail.
-  const { canOrganize, loading: organizerLoading } = useEventOrganizer(
-    editMode && municipalityId ? { organizerUserIds, municipalityId } : null,
-  );
+  const { canEdit, loading: capLoading } = useEntityCapabilities(municipalityId ?? undefined);
 
   const headerTitle = editMode ? t('event.editEvent') : t('event.createEvent');
 
@@ -336,7 +336,7 @@ export default function NewEventScreen() {
   }
 
   // ── Edit: non-organizer redirect ──────────────────────────────────────────
-  if (editMode && !organizerLoading && !canOrganize) {
+  if (editMode && !capLoading && !canEdit(createdBy, organizerUserIds)) {
     return <Redirect href={`/event/${eventId}`} />;
   }
 
