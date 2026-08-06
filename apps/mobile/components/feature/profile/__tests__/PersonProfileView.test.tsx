@@ -133,3 +133,15 @@ test('omits a place whose municipality doc has gone missing', async () => {
   expect(queryByText('gone')).toBeNull();
   expect(queryByText('Nacimiento')).toBeNull();
 });
+
+// Persona photos are uploaded through the 1:1 cropper, so the card must not
+// re-crop them: any other aspect ratio here eats a slice of an already-cropped
+// face (a 3:4 box cut the top of the head and the chin).
+test('renders the photo in a square box, matching the 1:1 upload crop', async () => {
+  const { findByTestId } = render(
+    <PersonProfileView person={person({ photoURL: 'https://example.test/a.jpg' })} />,
+  );
+
+  const box = await findByTestId('person-photo');
+  expect(box.props.style).toEqual(expect.objectContaining({ aspectRatio: 1 }));
+});

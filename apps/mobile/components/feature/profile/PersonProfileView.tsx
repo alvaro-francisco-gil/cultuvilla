@@ -12,8 +12,13 @@ export interface PersonProfileViewProps {
   person: PersonData & { id: string };
 }
 
-/** Portrait, like a passport photo — the shape a person reads as. */
-const PHOTO_ASPECT_RATIO = 3 / 4;
+/**
+ * Square, matching what is actually stored: persona photos are picked through
+ * the 1:1 cropper (`pickImageAsBlob({ square: true })`), so any other ratio
+ * here re-crops an already-cropped face — a 3:4 box took a quarter off the
+ * height, centred, cutting the top of the head and the chin.
+ */
+const PHOTO_ASPECT_RATIO = 1;
 
 /**
  * Read-only display of a single person (a dependent persona with no user
