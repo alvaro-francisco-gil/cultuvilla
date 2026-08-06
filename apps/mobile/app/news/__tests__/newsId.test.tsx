@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react-native';
+import { render, waitFor, fireEvent } from '@testing-library/react-native';
 import NewsDetailScreen from '../[newsId]';
 
 jest.mock('react-native-safe-area-context', () => ({
@@ -13,7 +13,24 @@ jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: stri
 jest.mock('../../../lib/auth/useAuth', () => ({ useAuth: () => ({ user: null }) }));
 jest.mock('../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: () => jest.fn() }));
 jest.mock('../../../components/feature/NewsContentRenderer', () => ({ NewsContentRenderer: () => null }));
-jest.mock('../../../components/feature/LiveOwnerChip', () => ({ LiveOwnerChip: () => null }));
+jest.mock('../../../components/feature/LiveOwnerChip', () => ({
+  LiveOwnerChip: ({
+    ownerId,
+    ownerType,
+    onPress,
+  }: {
+    ownerId: string;
+    ownerType: string;
+    onPress?: () => void;
+  }) => {
+    const { Text } = require('react-native');
+    return (
+      <Text testID={`chip:${ownerType}:${ownerId}`} onPress={onPress}>
+        {ownerId}
+      </Text>
+    );
+  },
+}));
 jest.mock('../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('../../../lib/auth/useEntityCapabilities', () => ({
@@ -23,7 +40,8 @@ jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({ getNewsLink: (
 jest.mock('@cultuvilla/shared/services/newsService', () => ({
   getNewsPost: jest.fn().mockResolvedValue({
     id: 'n1', title: 'Gran noticia', category: 'general', municipalityId: 'm1',
-    images: [], coverImage: null, content: null, body: '', organizerOrgIds: [], organizerUserIds: [],
+    images: [], coverImage: null, content: null, body: '',
+    organizerOrgIds: ['o1'], organizerUserIds: ['u1'],
     createdBy: 'u9', publishedAt: null, createdAt: null, status: 'active',
   }),
 }));
@@ -38,5 +56,17 @@ describe('NewsDetailScreen', () => {
   it('renders the post title once loaded', async () => {
     const { getByText } = render(<NewsDetailScreen />);
     await waitFor(() => getByText('Gran noticia'));
+  });
+
+  it('opens the byline author and organization from their chips', async () => {
+    const { router } = jest.requireMock('expo-router');
+    const { getByTestId, findByTestId } = render(<NewsDetailScreen />);
+
+    fireEvent.press(await findByTestId('chip:user:u1'));
+    expect(router.push).toHaveBeenCalledWith('/user/u1');
+
+    router.push.mockClear();
+    fireEvent.press(getByTestId('chip:organization:o1'));
+    expect(router.push).toHaveBeenCalledWith('/o/o1');
   });
 });

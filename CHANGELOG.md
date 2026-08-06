@@ -27,6 +27,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 **Migration:** existing `municipalityPeople/` docs are backfilled with `barrioId` by running `scripts/backfill-municipality-people-barrio.mjs` (per env).
 
 - Opening a persona from the village tab (roster, barrio, event attendees) now shows their details, never the edit form — even for a persona you manage. The form is reached only from your own profile.
+- **Every name credited on a screen now opens that person.** Comment and reply authors (both the avatar and the name), the news byline, and the contributor chips on places and carteles were the last surfaces printing a name you couldn't tap — the same chip was already tappable on events. All of them route through one `ownerRoute` helper, so a credit can no longer lead somewhere different depending on which screen rendered it. An author whose account was deleted stays inert rather than routing to a tombstone uid.
 - The persona a cargo visibility switch moved to the first step of the form (Identidad), next to the name, rather than sitting after the biography.
 - Org member and event attendee rosters now open the tapped person's profile, like the villager roster does. Their destructive controls (remove from org / remove attendee) and the org promote/demote action moved behind an "Editar" toggle on the section heading, so they are hidden while simply reading a roster.
 

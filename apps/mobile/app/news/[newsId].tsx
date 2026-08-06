@@ -7,6 +7,7 @@ import type { EntityDetailAction } from '../../components/feature/EntityDetailHe
 import { ENTITY_FALLBACK_ICON } from '../../lib/entities/registry';
 import { NewsContentRenderer } from '../../components/feature/NewsContentRenderer';
 import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
+import { ownerRoute } from '../../lib/entities/ownerRoute';
 import { EntityComments } from '../../components/feature/EntityComments';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
@@ -114,10 +115,24 @@ export default function NewsDetailScreen() {
       {post ? (
         <>
           {post.organizerOrgIds.map((id) => (
-            <LiveOwnerChip key={id} ownerId={id} ownerType="organization" size={28} tone="muted" />
+            <LiveOwnerChip
+              key={id}
+              ownerId={id}
+              ownerType="organization"
+              size={28}
+              tone="muted"
+              onPress={() => router.push(ownerRoute('organization', id) as never)}
+            />
           ))}
           {post.organizerUserIds.map((id) => (
-            <LiveOwnerChip key={id} ownerId={id} ownerType="user" size={28} tone="muted" />
+            <LiveOwnerChip
+              key={id}
+              ownerId={id}
+              ownerType="user"
+              size={28}
+              tone="muted"
+              onPress={() => router.push(ownerRoute('user', id) as never)}
+            />
           ))}
           <HStack gap={2} justify="between">
             <Text tone="muted">{t(`news.compose.category.${post.category}`)}</Text>

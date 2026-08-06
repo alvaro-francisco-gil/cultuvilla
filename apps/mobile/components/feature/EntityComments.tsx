@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Alert, Platform, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { usePathname } from 'expo-router';
+import { usePathname, router } from 'expo-router';
 import { VStack } from '../primitives/VStack';
 import { HStack } from '../primitives/HStack';
 import { Text } from '../primitives/Text';
@@ -23,8 +23,10 @@ import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 import { getUserProfile } from '@cultuvilla/shared/services/userService';
 import { buildDisplayName } from '@cultuvilla/shared/models/person/PersonDataModel';
 import { formatCompactRelativeTime } from '@cultuvilla/shared/utils';
+import { DELETED_USER_UID } from '@cultuvilla/shared/models/user';
 import { iconSizes, colors } from '@cultuvilla/shared/design-system';
 import type { CommentData, EntityKind } from '@cultuvilla/shared/models';
+import { ownerRoute } from '../../lib/entities/ownerRoute';
 
 export type EntityCommentsProps = {
   entityKind: EntityKind;
@@ -41,6 +43,35 @@ type CommentAuthor = { name: string; photoURL: string | null };
 
 function initialsOf(name: string): string {
   return name.trim().charAt(0).toUpperCase() || '+';
+}
+
+/**
+ * Makes an author's avatar/name open their profile. A comment left by an
+ * account that has since been deleted keeps its text but points at a tombstone
+ * uid, so it stays inert rather than routing to a screen that can't resolve.
+ */
+function AuthorLink({
+  uid,
+  label,
+  testID,
+  children,
+}: {
+  uid: string;
+  label: string;
+  testID: string;
+  children: ReactNode;
+}) {
+  if (uid === DELETED_USER_UID) return <>{children}</>;
+  return (
+    <Pressable
+      onPress={() => router.push(ownerRoute('user', uid) as never)}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      testID={testID}
+    >
+      {children}
+    </Pressable>
+  );
 }
 
 /**
@@ -273,14 +304,26 @@ export function EntityComments({
             return (
               <VStack key={comment.id} gap={1}>
                 <HStack gap={2} align="start" justify="between">
-                  <Avatar uri={author?.photoURL ?? null} size={36} initials={initialsOf(name)} />
+                  <AuthorLink
+                    uid={comment.authorUserId}
+                    label={name}
+                    testID={`comment-author-avatar-${comment.id}`}
+                  >
+                    <Avatar uri={author?.photoURL ?? null} size={36} initials={initialsOf(name)} />
+                  </AuthorLink>
                   <VStack gap={1} className="flex-1">
                     {/* Instagram-style header: name with the age of the comment
                         beside it, the body on its own line underneath. */}
                     <HStack gap={2} align="center">
-                      <Text className="font-bold flex-shrink" numberOfLines={1}>
-                        {name}
-                      </Text>
+                      <AuthorLink
+                        uid={comment.authorUserId}
+                        label={name}
+                        testID={`comment-author-${comment.id}`}
+                      >
+                        <Text className="font-bold flex-shrink" numberOfLines={1}>
+                          {name}
+                        </Text>
+                      </AuthorLink>
                       <Text variant="caption" tone="muted">
                         {formatCompactRelativeTime(comment.createdAt)}
                       </Text>
@@ -328,12 +371,24 @@ export function EntityComments({
                         const canDeleteReply = reply.authorUserId === user?.uid || canModerate;
                         return (
                           <HStack key={reply.id} gap={2} align="start" justify="between">
-                            <Avatar uri={replyAuthor?.photoURL ?? null} size={28} initials={initialsOf(replyName)} />
+                            <AuthorLink
+                              uid={reply.authorUserId}
+                              label={replyName}
+                              testID={`comment-author-avatar-${reply.id}`}
+                            >
+                              <Avatar uri={replyAuthor?.photoURL ?? null} size={28} initials={initialsOf(replyName)} />
+                            </AuthorLink>
                             <VStack gap={1} className="flex-1">
                               <HStack gap={2} align="center">
-                                <Text className="font-bold flex-shrink" numberOfLines={1}>
-                                  {replyName}
-                                </Text>
+                                <AuthorLink
+                                  uid={reply.authorUserId}
+                                  label={replyName}
+                                  testID={`comment-author-${reply.id}`}
+                                >
+                                  <Text className="font-bold flex-shrink" numberOfLines={1}>
+                                    {replyName}
+                                  </Text>
+                                </AuthorLink>
                                 <Text variant="caption" tone="muted">
                                   {formatCompactRelativeTime(reply.createdAt)}
                                 </Text>

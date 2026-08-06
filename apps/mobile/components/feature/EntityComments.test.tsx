@@ -58,7 +58,9 @@ jest.mock('../../lib/i18n', () => ({
 }));
 jest.mock('expo-router', () => ({
   usePathname: () => '/event/e-1',
+  router: { push: jest.fn() },
 }));
+const { router: mockRouter } = jest.requireMock('expo-router');
 
 const getPersonByUserIdMock = getPersonByUserId as jest.Mock;
 const getUserProfileMock = getUserProfile as jest.Mock;
@@ -397,5 +399,82 @@ describe('<EntityComments>', () => {
     // Only the top-level comment's "Responder" affordance should exist —
     // the reply row must not render its own.
     expect(getAllByText('Responder')).toHaveLength(1);
+  });
+
+  it('opens the author profile from a comment name and avatar', async () => {
+    getCommentsMock.mockResolvedValue([
+      {
+        id: 'c-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-2',
+        body: 'Qué buena idea',
+        createdAt: new Date(),
+      },
+    ]);
+    const { findByTestId } = render(<EntityComments {...BASE_PROPS} />);
+
+    fireEvent.press(await findByTestId('comment-author-c-1'));
+    expect(mockRouter.push).toHaveBeenCalledWith('/user/uid-2');
+
+    mockRouter.push.mockClear();
+    fireEvent.press(await findByTestId('comment-author-avatar-c-1'));
+    expect(mockRouter.push).toHaveBeenCalledWith('/user/uid-2');
+  });
+
+  it('opens the author profile from a reply', async () => {
+    getCommentsMock.mockResolvedValue([
+      {
+        id: 'c-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-2',
+        body: 'Comentario original',
+        createdAt: new Date(),
+        parentCommentId: null,
+        replyCount: 1,
+      },
+    ]);
+    getRepliesMock.mockResolvedValue([
+      {
+        id: 'r-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-3',
+        body: 'Una respuesta existente',
+        createdAt: new Date(),
+        parentCommentId: 'c-1',
+        replyCount: 0,
+      },
+    ]);
+    const { findByText, findByTestId } = render(<EntityComments {...BASE_PROPS} />);
+    await findByText(/Comentario original/);
+    await act(async () => {
+      fireEvent.press(await findByText('Ver 1 respuestas'));
+    });
+
+    fireEvent.press(await findByTestId('comment-author-r-1'));
+    expect(mockRouter.push).toHaveBeenCalledWith('/user/uid-3');
+  });
+
+  it('leaves a deleted author inert instead of routing to a tombstone uid', async () => {
+    getCommentsMock.mockResolvedValue([
+      {
+        id: 'c-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'deleted-user',
+        body: 'Comentario huérfano',
+        createdAt: new Date(),
+      },
+    ]);
+    const { findByText, queryByTestId } = render(<EntityComments {...BASE_PROPS} />);
+    await findByText(/Comentario huérfano/);
+    expect(queryByTestId('comment-author-c-1')).toBeNull();
+    expect(queryByTestId('comment-author-avatar-c-1')).toBeNull();
   });
 });
