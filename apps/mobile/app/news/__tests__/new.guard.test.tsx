@@ -32,8 +32,8 @@ jest.mock('@cultuvilla/shared/services/newsService', () => ({
     municipalityId: 'm-1',
     images: [],
     coverImage: null,
-    content: null,
-    body: '',
+    content: [],
+    body: 'Cuerpo',
     organizerUserIds: ['author'],
     organizerOrgIds: [],
     createdBy: 'author',
@@ -78,9 +78,11 @@ describe('NewNewsScreen edit guard', () => {
   });
 
   it('lets an authorized editor through', async () => {
-    mockCaps(true);
-    const { findByDisplayValue } = render(<NewNewsScreen />);
-    await findByDisplayValue('Gran noticia');
+    const canEdit = mockCaps(true);
+    render(<NewNewsScreen />);
+    // Asserting on the hook call rather than a field: the compose form is a
+    // Stepper, so which inputs are mounted depends on the current step.
+    await waitFor(() => expect(canEdit).toHaveBeenCalledWith('author', ['author']));
     expect(mockRedirect).not.toHaveBeenCalled();
   });
 });

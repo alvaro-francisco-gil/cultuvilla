@@ -296,7 +296,7 @@ export default function NewEventScreen() {
 
   // Edit mode is organizer-gated (mirrors the event update rules); a
   // non-organizer who deep-links here is sent back to the public detail.
-  const { canEdit, loading: capLoading } = useEntityCapabilities(municipalityId);
+  const { canEdit, loading: capLoading } = useEntityCapabilities(municipalityId ?? undefined);
 
   const headerTitle = editMode ? t('event.editEvent') : t('event.createEvent');
 
