@@ -56,7 +56,7 @@ export default function PlaceDetailScreen() {
   const [editingDeathDate, setEditingDeathDate] = useState<PartialDate | null>(null);
   const [savingBurial, setSavingBurial] = useState(false);
   const [loading, setLoading] = useState(true);
-  const { canManage, uid } = useEntityCapabilities(villageId);
+  const { canManage, canEdit, uid } = useEntityCapabilities(villageId);
   const insets = useSafeAreaInsets();
 
   const load = useCallback(async () => {
@@ -90,7 +90,7 @@ export default function PlaceDetailScreen() {
 
   const actions: EntityDetailAction[] = place
     ? [
-        ...(canManage
+        ...(canEdit(place.proposedBy)
           ? [
               {
                 icon: 'create-outline' as const,

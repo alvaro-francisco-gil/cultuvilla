@@ -21,7 +21,7 @@ jest.mock('expo-router', () => ({
 jest.mock('../../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: () => jest.fn() }));
 jest.mock('../../../../../lib/auth/useEntityCapabilities', () => ({
-  useEntityCapabilities: () => ({ canManage: false, uid: 'u1', loading: false }),
+  useEntityCapabilities: jest.fn(),
 }));
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getPlace: jest.fn().mockResolvedValue({ id: 'pl1', name: 'La Plaza', kind: 'plaza', images: [], description: 'desc' }),
@@ -36,8 +36,22 @@ jest.mock('../../../../../components/feature/EntityContributors', () => ({ Entit
 jest.mock('../../../../../components/feature/BuryFab', () => ({ BuryFab: () => null }));
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 
+import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
+
+function mockCaps(opts: { canEdit?: boolean; uid?: string | null } = {}) {
+  (useEntityCapabilities as jest.Mock).mockReturnValue({
+    canManage: false,
+    canApprove: false,
+    uid: opts.uid ?? 'u1',
+    loading: false,
+    canEdit: jest.fn(() => opts.canEdit ?? false),
+    canDelete: jest.fn(() => opts.canEdit ?? false),
+  });
+}
+
 describe('PlaceDetailScreen', () => {
   beforeEach(() => {
+    mockCaps();
     jest.mocked(getPlace).mockReset();
     jest.mocked(getPersonsByBurialPlace).mockReset();
     jest.mocked(updatePerson).mockClear();
@@ -57,6 +71,16 @@ describe('PlaceDetailScreen', () => {
     const { getByText, getByLabelText } = render(<PlaceDetailScreen />);
     await waitFor(() => getByText('La Plaza'));
     getByLabelText('deeplink.shareViewLabel');
+  });
+
+  it('shows the edit action to the place’s creator, not to an unrelated viewer', async () => {
+    const { getByText, queryByLabelText } = render(<PlaceDetailScreen />);
+    await waitFor(() => getByText('La Plaza'));
+    expect(queryByLabelText('common.edit')).toBeNull();
+
+    mockCaps({ canEdit: true, uid: 'creator' });
+    const creatorView = render(<PlaceDetailScreen />);
+    expect(await creatorView.findByLabelText('common.edit')).toBeTruthy();
   });
 
   it('sorts buried people by death date, most recent first and unknown last', () => {

@@ -9,20 +9,23 @@ import { DeleteHeaderButton } from '../../../../../components/feature/DeleteHead
 import { useT } from '../../../../../lib/i18n';
 import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
 import { pickImageAsBlob } from '../../../../../lib/images';
-import { getBarrio, updateBarrio } from '@cultuvilla/shared/services/municipalityService';
+import { getBarrio, updateBarrio, deleteBarrio } from '@cultuvilla/shared/services/municipalityService';
 import { hideContent } from '@cultuvilla/shared/services/moderationService';
 import { deleteImageByURL, uploadBarrioImage } from '@cultuvilla/shared/services/imageService';
+import type { VisibilityStatus } from '@cultuvilla/shared/models';
 
 export default function BarrioEditScreen() {
   const { villageId, barrioId } = useLocalSearchParams<{ villageId: string; barrioId: string }>();
   const { t } = useT();
-  const { canManage, loading: capLoading } = useEntityCapabilities(villageId);
+  const { canManage, canEdit, canDelete, loading: capLoading } = useEntityCapabilities(villageId);
   const [name, setName] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [addingImage, setAddingImage] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [proposedBy, setProposedBy] = useState<string | null>(null);
+  const [status, setStatus] = useState<VisibilityStatus>('active');
 
   useEffect(() => {
     if (!villageId || !barrioId) return;
@@ -31,6 +34,8 @@ export default function BarrioEditScreen() {
       if (b) {
         setName(b.name);
         setImages(b.images);
+        setProposedBy(b.proposedBy);
+        setStatus(b.status);
       } else {
         setNotFound(true);
       }
@@ -38,7 +43,9 @@ export default function BarrioEditScreen() {
     })();
   }, [villageId, barrioId]);
 
-  if (capLoading) {
+  // The creator check needs the doc, so the guard waits for the fetch — an
+  // admin and a creator are both allowed in, everyone else bounces back.
+  if (capLoading || !loaded) {
     return (
       <Screen padded={false} topInset={false}>
         <ScreenHeader accent title={t('village.admin.barrios.editTitle')} />
@@ -46,7 +53,20 @@ export default function BarrioEditScreen() {
       </Screen>
     );
   }
-  if (!canManage) return <Redirect href={`/village/${villageId}/barrio/${barrioId}`} />;
+  if (!notFound && !canEdit(proposedBy)) {
+    return <Redirect href={`/village/${villageId}/barrio/${barrioId}`} />;
+  }
+
+  // An admin *moderates* (audited soft-hide via the callable); a creator
+  // *withdraws* their own still-active proposal outright, which the Firestore
+  // rules permit directly.
+  function removeBarrio() {
+    if (!villageId || !barrioId) return;
+    const done = () => router.replace(`/village/${villageId}`);
+    return canManage
+      ? hideContent({ collection: 'barrios', docId: barrioId, municipalityId: villageId }).then(done)
+      : deleteBarrio(villageId, barrioId).then(done);
+  }
 
   // Images persist immediately (unlike the create flow, the doc already
   // exists here), so add/remove writes the doc on each action rather than
@@ -92,25 +112,21 @@ export default function BarrioEditScreen() {
         accent
         title={t('village.admin.barrios.editTitle')}
         rightSlot={
-          <DeleteHeaderButton
-            onAccent
-            onConfirm={() => {
-              if (villageId && barrioId)
-                return hideContent({ collection: 'barrios', docId: barrioId, municipalityId: villageId })
-                  .then(() => router.replace(`/village/${villageId}`));
-            }}
-            accessibilityLabel={t('common.delete')}
-            confirmTitle={t('common.deleteConfirmTitle')}
-            confirmMessage={t('common.deleteConfirmMessage')}
-            confirmLabel={t('common.delete')}
-            cancelLabel={t('common.cancel')}
-            deletingLabel={t('common.deleting.barrio')}
-          />
+          canDelete(proposedBy, status) ? (
+            <DeleteHeaderButton
+              onAccent
+              onConfirm={removeBarrio}
+              accessibilityLabel={t('common.delete')}
+              confirmTitle={t('common.deleteConfirmTitle')}
+              confirmMessage={t('common.deleteConfirmMessage')}
+              confirmLabel={t('common.delete')}
+              cancelLabel={t('common.cancel')}
+              deletingLabel={t('common.deleting.barrio')}
+            />
+          ) : undefined
         }
       />
-      {!loaded ? (
-        <View className="flex-1 items-center justify-center"><ActivityIndicator /></View>
-      ) : notFound ? (
+      {notFound ? (
         <View className="flex-1 items-center justify-center"><Text>{t('common.notFound')}</Text></View>
       ) : (
         <ScrollView contentContainerClassName="p-4">

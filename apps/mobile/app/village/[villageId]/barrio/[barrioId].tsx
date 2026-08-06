@@ -33,7 +33,7 @@ export default function BarrioDetailScreen() {
   const { t } = useT();
   const { user } = useAuth();
   const share = useShareDeepLink();
-  const { canManage } = useEntityCapabilities(villageId);
+  const { canManage, canEdit } = useEntityCapabilities(villageId);
   const [barrio, setBarrio] = useState<Barrio | null>(null);
   const [residents, setResidents] = useState<Resident[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,7 +72,7 @@ export default function BarrioDetailScreen() {
 
   const actions: EntityDetailAction[] = barrio
     ? [
-        ...(canManage
+        ...(canEdit(barrio.proposedBy)
           ? [
               {
                 icon: 'create-outline' as const,

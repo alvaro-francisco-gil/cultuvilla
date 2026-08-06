@@ -21,10 +21,15 @@ beforeEach(() => {
   mockIsVillageAdmin.mockResolvedValue(false);
 });
 
+async function caps() {
+  const { result } = renderHook(() => useEntityCapabilities('m1'));
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  return result;
+}
+
 describe('useEntityCapabilities', () => {
   it('plain member: cannot manage, exposes uid', async () => {
-    const { result } = renderHook(() => useEntityCapabilities('m1'));
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    const result = await caps();
     expect(result.current.canManage).toBe(false);
     expect(result.current.canApprove).toBe(false);
     expect(result.current.uid).toBe('alice');
@@ -32,24 +37,74 @@ describe('useEntityCapabilities', () => {
 
   it('village admin: can manage and approve', async () => {
     mockIsVillageAdmin.mockResolvedValue(true);
-    const { result } = renderHook(() => useEntityCapabilities('m1'));
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    const result = await caps();
     expect(result.current.canManage).toBe(true);
     expect(result.current.canApprove).toBe(true);
   });
 
   it('app admin: can manage without a village-admin record', async () => {
     mockAppAdmin.mockReturnValue({ isAppAdmin: true, loading: false });
-    const { result } = renderHook(() => useEntityCapabilities('m1'));
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    const result = await caps();
     expect(result.current.canManage).toBe(true);
   });
 
   it('unauthenticated: resolves not-loading, cannot manage, uid null', async () => {
     mockAuth.mockReturnValue({ user: null, loading: false });
-    const { result } = renderHook(() => useEntityCapabilities('m1'));
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    const result = await caps();
     expect(result.current.canManage).toBe(false);
     expect(result.current.uid).toBeNull();
+  });
+});
+
+// Mirrors the `allow update` clause shared by places / barrios / festivalPosters:
+// village admin OR app admin OR the doc's creator.
+describe('useEntityCapabilities.canEdit', () => {
+  it('creator can edit their own creation without being an admin', async () => {
+    const result = await caps();
+    expect(result.current.canEdit('alice')).toBe(true);
+  });
+
+  it('plain member cannot edit someone else’s creation', async () => {
+    const result = await caps();
+    expect(result.current.canEdit('bob')).toBe(false);
+  });
+
+  it('village admin can edit anything, including creator-less docs', async () => {
+    mockIsVillageAdmin.mockResolvedValue(true);
+    const result = await caps();
+    expect(result.current.canEdit('bob')).toBe(true);
+    expect(result.current.canEdit(null)).toBe(true);
+  });
+
+  it('a null/undefined creator never matches a signed-out viewer', async () => {
+    mockAuth.mockReturnValue({ user: null, loading: false });
+    const result = await caps();
+    expect(result.current.canEdit(null)).toBe(false);
+    expect(result.current.canEdit(undefined)).toBe(false);
+  });
+});
+
+// Mirrors the `allow delete` clause: admins always; the creator only while the
+// doc is still `active` (hiding it is a moderation act the author can't undo).
+describe('useEntityCapabilities.canDelete', () => {
+  it('creator can withdraw their own active creation', async () => {
+    const result = await caps();
+    expect(result.current.canDelete('alice', 'active')).toBe(true);
+  });
+
+  it('creator cannot delete their creation once it has been hidden', async () => {
+    const result = await caps();
+    expect(result.current.canDelete('alice', 'hidden')).toBe(false);
+  });
+
+  it('plain member cannot delete someone else’s creation', async () => {
+    const result = await caps();
+    expect(result.current.canDelete('bob', 'active')).toBe(false);
+  });
+
+  it('village admin can delete regardless of status', async () => {
+    mockIsVillageAdmin.mockResolvedValue(true);
+    const result = await caps();
+    expect(result.current.canDelete('bob', 'hidden')).toBe(true);
   });
 });
