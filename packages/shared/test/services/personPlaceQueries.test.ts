@@ -84,7 +84,7 @@ describe('getPersonsByBurialPlace', () => {
     expect(res.map((p) => p.id)).toEqual(['p2', 'p1']); // Aldo before Zoe
   });
 
-  it('excludes private personas', async () => {
+  it('hides a private persona from a signed-out visitor', async () => {
     store['persons/p1'] = person({ givenName: 'Aldo', burialPlace: { municipalityId: 'm1', placeId: 'c1' } });
     store['persons/p2'] = person({
       givenName: 'Zoe',
@@ -92,6 +92,40 @@ describe('getPersonsByBurialPlace', () => {
       burialPlace: { municipalityId: 'm1', placeId: 'c1' },
     });
     const res = await getPersonsByBurialPlace('c1');
+    expect(res.map((p) => p.id)).toEqual(['p1']);
+  });
+
+  it('hides a private persona from everyone but its creator', async () => {
+    store['persons/p1'] = person({ givenName: 'Aldo', burialPlace: { municipalityId: 'm1', placeId: 'c1' } });
+    store['persons/p2'] = person({
+      givenName: 'Zoe',
+      isPublic: false,
+      createdBy: 'creator',
+      burialPlace: { municipalityId: 'm1', placeId: 'c1' },
+    });
+    const stranger = await getPersonsByBurialPlace('c1', 'someone-else');
+    expect(stranger.map((p) => p.id)).toEqual(['p1']);
+  });
+
+  it('shows the creator their own private persona among the buried', async () => {
+    store['persons/p1'] = person({ givenName: 'Aldo', burialPlace: { municipalityId: 'm1', placeId: 'c1' } });
+    store['persons/p2'] = person({
+      givenName: 'Zoe',
+      isPublic: false,
+      createdBy: 'creator',
+      burialPlace: { municipalityId: 'm1', placeId: 'c1' },
+    });
+    const res = await getPersonsByBurialPlace('c1', 'creator');
+    expect(res.map((p) => p.id)).toEqual(['p1', 'p2']);
+  });
+
+  it('returns a persona once when both queries match it', async () => {
+    store['persons/p1'] = person({
+      givenName: 'Aldo',
+      createdBy: 'creator',
+      burialPlace: { municipalityId: 'm1', placeId: 'c1' },
+    });
+    const res = await getPersonsByBurialPlace('c1', 'creator');
     expect(res.map((p) => p.id)).toEqual(['p1']);
   });
 });

@@ -152,6 +152,41 @@ describe('PlaceDetailScreen', () => {
     expect(router.push).not.toHaveBeenCalledWith('/person/p-old');
   });
 
+  it('asks for the viewer\'s own burials and marks a private one with a lock', async () => {
+    jest.mocked(getPlace).mockResolvedValueOnce({
+      ...buildPlaceData({ name: 'Cementerio', kind: 'cemetery', municipalityId: 'm1' }),
+      id: 'pl1',
+    });
+    jest.mocked(getPersonsByBurialPlace).mockResolvedValueOnce([
+      {
+        ...buildPersonData({
+          givenName: 'Publica',
+          createdBy: 'u1',
+          burialPlace: { municipalityId: 'm1', placeId: 'pl1' },
+        }),
+        id: 'p-public',
+      },
+      {
+        ...buildPersonData({
+          givenName: 'Privada',
+          createdBy: 'u1',
+          isPublic: false,
+          burialPlace: { municipalityId: 'm1', placeId: 'pl1' },
+        }),
+        id: 'p-private',
+      },
+    ]);
+
+    const { getByTestId, queryByTestId } = render(<PlaceDetailScreen />);
+
+    await waitFor(() => getByTestId('buried-person-row-p-private'));
+    // Without the uid the query can only return public burials, so the viewer's
+    // own private relative would be missing from their cemetery.
+    expect(getPersonsByBurialPlace).toHaveBeenCalledWith('pl1', 'u1');
+    expect(getByTestId('buried-person-private-p-private')).toBeTruthy();
+    expect(queryByTestId('buried-person-private-p-public')).toBeNull();
+  });
+
   it('updates or removes the selected cemetery burial from the editor modal', async () => {
     jest.mocked(getPlace).mockResolvedValue({
       ...buildPlaceData({
