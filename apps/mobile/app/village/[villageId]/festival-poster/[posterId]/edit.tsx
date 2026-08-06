@@ -19,17 +19,19 @@ import { pickImageAsBlob } from '../../../../../lib/images';
 import {
   getFestivalPoster,
   updateFestivalPoster,
+  deleteFestivalPoster,
 } from '@cultuvilla/shared/services/festivalPosterService';
 import { hideContent } from '@cultuvilla/shared/services/moderationService';
 import {
   deleteImageByURL,
   uploadFestivalPosterImage,
 } from '@cultuvilla/shared/services/imageService';
+import type { VisibilityStatus } from '@cultuvilla/shared/models';
 
 export default function FestivalPosterEditScreen() {
   const { villageId, posterId } = useLocalSearchParams<{ villageId: string; posterId: string }>();
   const { t } = useT();
-  const { canManage, uid, loading: capLoading } = useEntityCapabilities(villageId);
+  const { canManage, canEdit, canDelete, uid, loading: capLoading } = useEntityCapabilities(villageId);
 
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const [title, setTitle] = useState('');
@@ -42,6 +44,8 @@ export default function FestivalPosterEditScreen() {
   const [saving, setSaving] = useState(false);
   const [contributorUserIds, setContributorUserIds] = useState<string[]>([]);
   const [contributorOrgIds, setContributorOrgIds] = useState<string[]>([]);
+  const [proposedBy, setProposedBy] = useState<string | null>(null);
+  const [status, setStatus] = useState<VisibilityStatus>('active');
 
   useEffect(() => {
     if (!posterId) return;
@@ -55,6 +59,8 @@ export default function FestivalPosterEditScreen() {
         setImages(p.images);
         setContributorUserIds(p.contributorUserIds);
         setContributorOrgIds(p.contributorOrgIds);
+        setProposedBy(p.proposedBy);
+        setStatus(p.status);
       } else {
         setNotFound(true);
       }
@@ -62,7 +68,9 @@ export default function FestivalPosterEditScreen() {
     })();
   }, [posterId]);
 
-  if (capLoading) {
+  // The creator check needs the doc, so the guard waits for the fetch — an
+  // admin and a creator are both allowed in, everyone else bounces back.
+  if (capLoading || !loaded) {
     return (
       <Screen padded={false} topInset={false}>
         <ScreenHeader accent title={t('village.festivalPosters.editTitle')} />
@@ -70,7 +78,20 @@ export default function FestivalPosterEditScreen() {
       </Screen>
     );
   }
-  if (!canManage) return <Redirect href={`/village/${villageId}/festival-poster/${posterId}`} />;
+  if (!notFound && !canEdit(proposedBy)) {
+    return <Redirect href={`/village/${villageId}/festival-poster/${posterId}`} />;
+  }
+
+  // An admin *moderates* (audited soft-hide via the callable); a creator
+  // *withdraws* their own still-active proposal outright, which the Firestore
+  // rules permit directly.
+  function removePoster() {
+    if (!posterId || !villageId) return;
+    const done = () => router.replace(`/village/${villageId}`);
+    return canManage
+      ? hideContent({ collection: 'festivalPosters', docId: posterId }).then(done)
+      : deleteFestivalPoster(posterId).then(done);
+  }
 
   const yearNum = parseInt(year, 10);
 
@@ -117,25 +138,21 @@ export default function FestivalPosterEditScreen() {
         accent
         title={t('village.festivalPosters.editTitle')}
         rightSlot={
-          <DeleteHeaderButton
-            onAccent
-            onConfirm={() => {
-              if (posterId)
-                return hideContent({ collection: 'festivalPosters', docId: posterId })
-                  .then(() => router.replace(`/village/${villageId}`));
-            }}
-            accessibilityLabel={t('common.delete')}
-            confirmTitle={t('common.deleteConfirmTitle')}
-            confirmMessage={t('common.deleteConfirmMessage')}
-            confirmLabel={t('common.delete')}
-            cancelLabel={t('common.cancel')}
-            deletingLabel={t('common.deleting.festivalPoster')}
-          />
+          canDelete(proposedBy, status) ? (
+            <DeleteHeaderButton
+              onAccent
+              onConfirm={removePoster}
+              accessibilityLabel={t('common.delete')}
+              confirmTitle={t('common.deleteConfirmTitle')}
+              confirmMessage={t('common.deleteConfirmMessage')}
+              confirmLabel={t('common.delete')}
+              cancelLabel={t('common.cancel')}
+              deletingLabel={t('common.deleting.festivalPoster')}
+            />
+          ) : undefined
         }
       />
-      {!loaded ? (
-        <View className="flex-1 items-center justify-center"><ActivityIndicator /></View>
-      ) : notFound ? (
+      {notFound ? (
         <View className="flex-1 items-center justify-center"><Text>{t('common.notFound')}</Text></View>
       ) : (
         <ScrollView contentContainerClassName="p-4">

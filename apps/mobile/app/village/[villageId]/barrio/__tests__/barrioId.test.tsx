@@ -19,10 +19,17 @@ jest.mock('../../../../../lib/useOwnerSummary', () => ({
   useOwnerSummary: () => ({ name: null, imageUri: null }),
 }));
 jest.mock('../../../../../lib/auth/useEntityCapabilities', () => ({
-  useEntityCapabilities: () => ({ canManage: false, uid: 'u1', loading: false }),
+  useEntityCapabilities: jest.fn(),
 }));
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
-  getBarrio: jest.fn().mockResolvedValue({ id: 'b1', name: 'Centro', images: [], municipalityId: 'm1' }),
+  getBarrio: jest.fn().mockResolvedValue({
+    id: 'b1',
+    name: 'Centro',
+    images: [],
+    municipalityId: 'm1',
+    proposedBy: 'creator',
+    status: 'active',
+  }),
 }));
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({ getBarrioViewLink: () => 'https://x' }));
 jest.mock('@cultuvilla/shared/services/municipalityPersonService', () => ({
@@ -46,8 +53,22 @@ const resident = (over: Partial<Row> & { personId: string }): Row =>
     ...over,
   }) as Row;
 
+import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
+
+function mockCaps(opts: { canEdit?: boolean; uid?: string | null } = {}) {
+  (useEntityCapabilities as jest.Mock).mockReturnValue({
+    canManage: false,
+    canApprove: false,
+    uid: opts.uid ?? 'u1',
+    loading: false,
+    canEdit: jest.fn(() => opts.canEdit ?? false),
+    canDelete: jest.fn(() => opts.canEdit ?? false),
+  });
+}
+
 describe('BarrioDetailScreen', () => {
   beforeEach(() => {
+    mockCaps();
     jest.mocked(getMunicipalityPeopleByBarrio).mockReset();
     jest.mocked(getMunicipalityPeopleByBarrio).mockResolvedValue([]);
     jest.mocked(router.push).mockClear();
@@ -56,6 +77,16 @@ describe('BarrioDetailScreen', () => {
   it('renders the barrio name once loaded', async () => {
     const { getByText } = render(<BarrioDetailScreen />);
     await waitFor(() => getByText('Centro'));
+  });
+
+  it('shows the edit action to the barrio’s creator, not to an unrelated viewer', async () => {
+    const { getByText, queryByLabelText } = render(<BarrioDetailScreen />);
+    await waitFor(() => getByText('Centro'));
+    expect(queryByLabelText('common.edit')).toBeNull();
+
+    mockCaps({ canEdit: true, uid: 'creator' });
+    const creatorView = render(<BarrioDetailScreen />);
+    expect(await creatorView.findByLabelText('common.edit')).toBeTruthy();
   });
 
   // The barrio roster reads the municipalityPeople projection, not a persons

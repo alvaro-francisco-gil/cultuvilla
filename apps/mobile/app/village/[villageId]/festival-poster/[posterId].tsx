@@ -19,7 +19,7 @@ import { formatFestivalPosterDates } from '@cultuvilla/shared/utils';
 export default function FestivalPosterDetailScreen() {
   const { villageId, posterId } = useLocalSearchParams<{ villageId: string; posterId: string }>();
   const { t } = useT();
-  const { canManage } = useEntityCapabilities(villageId);
+  const { canManage, canEdit } = useEntityCapabilities(villageId);
   const [poster, setPoster] = useState<FestivalPosterWithId | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -58,7 +58,7 @@ export default function FestivalPosterDetailScreen() {
     : '';
 
   const actions: EntityDetailAction[] =
-    poster && canManage
+    poster && canEdit(poster.proposedBy)
       ? [
           {
             icon: 'create-outline',
