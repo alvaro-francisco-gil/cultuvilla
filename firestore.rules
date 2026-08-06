@@ -404,6 +404,7 @@ service cloud.firestore {
           && isTimestamp(d.createdAt)
           && (d.parentCommentId == null || isString(d.parentCommentId))
           && d.replyCount == 0
+          && commentTargetsClaimedVillage(d.entityKind, d.entityId, d.municipalityId)
           && (d.parentCommentId == null || isValidReplyParent(d.entityKind, d.entityId, d.municipalityId, d.parentCommentId));
     }
 
@@ -413,6 +414,39 @@ service cloud.firestore {
           && parent.data.entityId == entityId
           && parent.data.municipalityId == municipalityId
           && parent.data.parentCommentId == null;
+    }
+
+    // Activating the community (null -> object) is startVillage's job, so a
+    // client may only carry an unchanged organizer pointer through an update.
+    function organizerIdUnchanged(before, after) {
+      return (before.community == null && after.community == null)
+          || (before.community != null && after.community != null
+              && before.community.organizerId == after.community.organizerId);
+    }
+
+    // A comment carries the municipalityId that its own delete rule reads for
+    // village-admin authority, so an unchecked value lets an author put their
+    // comment outside the reach of the moderators who own the entity. Anchor
+    // it to the target: nested kinds must exist under the claimed
+    // municipality, top-level kinds must agree with the stored field.
+    function commentTargetsClaimedVillage(kind, id, mid) {
+      return kind == 'place'
+               ? exists(/databases/$(database)/documents/municipalities/$(mid)/places/$(id))
+           : kind == 'barrio'
+               ? exists(/databases/$(database)/documents/municipalities/$(mid)/barrios/$(id))
+           : kind == 'event'
+               ? topLevelEntityInVillage(/databases/$(database)/documents/events/$(id), mid)
+           : kind == 'news'
+               ? topLevelEntityInVillage(/databases/$(database)/documents/news/$(id), mid)
+           : kind == 'organization'
+               ? topLevelEntityInVillage(/databases/$(database)/documents/organizations/$(id), mid)
+           : kind == 'festivalPoster'
+               ? topLevelEntityInVillage(/databases/$(database)/documents/festivalPosters/$(id), mid)
+           : false;
+    }
+
+    function topLevelEntityInVillage(path, mid) {
+      return exists(path) && get(path).data.municipalityId == mid;
     }
 
     // ── Collections ──────────────────────────────────────────────────────
@@ -516,7 +550,26 @@ service cloud.firestore {
       allow create: if isAppAdmin();
       // Updates: village admins can edit the community subfield + coordinates;
       // superadmin can edit anything; nobody else can write.
-      allow update: if isAppAdmin() || isVillageAdmin(municipalityId);
+      //
+      // The INE reference fields and `communityActive` are identity, not
+      // content — a village admin editing their pueblo must not be able to
+      // rewrite which municipality it *is*, nor deactivate the community
+      // (that is startVillage's to own).
+      //
+      // `community.organizerId` is diff-locked separately because
+      // affectedKeys() only reports the top-level `community` key, and the
+      // organizer pointer is granted solely by respondToOrganizerRequest.
+      // Left writable, a village admin could self-appoint as founding
+      // organizer, which changeVillageMemberRole then refuses to demote —
+      // an irreversible admin lock.
+      allow update: if isAppAdmin() || (
+           isVillageAdmin(municipalityId)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+             'name', 'nameLower', 'province', 'comunidadAutonoma', 'codigoINE',
+             'createdAt', 'communityActive',
+           ])
+        && organizerIdUnchanged(resource.data, request.resource.data)
+      );
       allow delete: if isAppAdmin();
 
       // Instant self-service: any village member may create a barrio, which
@@ -536,6 +589,7 @@ service cloud.firestore {
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
                'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
                'commentCount', 'readCount', 'residentCount',
+               'proposedBy',
              ]);
         allow delete: if isVillageAdmin(municipalityId) || isAppAdmin()
           || (isOwner(resource.data.proposedBy) && resource.data.status == 'active');
@@ -554,6 +608,7 @@ service cloud.firestore {
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
                'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
                'commentCount', 'readCount', 'burialCount',
+               'proposedBy',
              ]);
         allow delete: if isVillageAdmin(municipalityId) || isAppAdmin()
           || (isOwner(resource.data.proposedBy) && resource.data.status == 'active');
@@ -644,10 +699,19 @@ service cloud.firestore {
       // Approval (status -> 'approved') is function-owned: the approveOrganization
       // callable flips the status AND seeds the founding admin + audits it in one
       // transaction. Clients may edit other fields or reject, never approve.
+      // `type` is locked because create forbids seeding an ayuntamiento — the
+      // town hall is a per-village singleton that only requestAyuntamiento may
+      // mint. Left mutable, an approved peña could simply become one.
+      // `municipalityId` is locked because this rule derives village-admin
+      // authority from it: rewriting it moves the org into another pueblo and
+      // out of its own admins' reach.
       allow update: if (isVillageAdmin(resource.data.municipalityId) || isAppAdmin() || isOrgAdmin(orgId))
         && (request.resource.data.status == resource.data.status
             || request.resource.data.status == 'rejected')
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['commentCount', 'readCount', 'memberCount']);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+             'commentCount', 'readCount', 'memberCount',
+             'type', 'municipalityId', 'requestedBy', 'createdAt',
+           ]);
       allow delete: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
 
       match /members/{userId} {
@@ -715,7 +779,14 @@ service cloud.firestore {
              (isAuthenticated() && resource.data.userId == request.auth.uid)
           || isEventOrganizer(eventId)
         ) && (
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['paidAt'])
+          // The capacity/waitlist decision is made server-side in a
+          // transaction by registerToEvent; `status` and `position` are that
+          // decision's output. Self-writable, a waitlisted attendee could
+          // simply promote themselves past maxAttendees. `isMember` and the
+          // identity fields are likewise not the registrant's to restate.
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'paidAt', 'status', 'position', 'isMember', 'userId', 'personId',
+          ])
           || isEventOrganizer(eventId)
         );
         allow delete: if (isAuthenticated() && resource.data.userId == request.auth.uid)
@@ -748,9 +819,17 @@ service cloud.firestore {
              || resource.data.createdBy == request.auth.uid
              || isAppAdmin()
            ));
+      // `createdBy` pins who authored the doc; `userId` pins who it *is*, and
+      // syncPersonDenormalization projects this doc's name onto
+      // users/{userId}.displayName with the admin SDK — bypassing these rules.
+      // So an unconstrained `userId` is a write primitive against another
+      // account's profile. A persona may claim nobody (null) or its own owner,
+      // never a third party.
       allow create: if isAuthenticated()
         && isValidPersonCreate(request.resource.data)
         && request.resource.data.createdBy == request.auth.uid
+        && (request.resource.data.userId == null
+            || request.resource.data.userId == request.auth.uid)
         && isPublicUnlessDependent(request.resource.data);
       allow update: if isAuthenticated()
         && (
@@ -758,6 +837,10 @@ service cloud.firestore {
           || (resource.data.createdBy == request.auth.uid && resource.data.userId == null)
           || isAppAdmin()
         )
+        && (request.resource.data.userId == resource.data.userId
+            || request.resource.data.userId == null
+            || request.resource.data.userId == request.auth.uid
+            || isAppAdmin())
         && isPublicUnlessDependent(request.resource.data);
       allow delete: if isAuthenticated()
         && (
@@ -792,6 +875,10 @@ service cloud.firestore {
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
              'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
              'commentCount', 'readCount',
+             // Unlike places/barrios (nested, so the path fixes the village),
+             // a poster is top-level and this rule reads municipalityId for
+             // authority — mutable, it walks the doc into another pueblo.
+             'proposedBy', 'municipalityId',
            ]);
       allow delete: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin()
         || (isOwner(resource.data.proposedBy) && resource.data.status == 'active');

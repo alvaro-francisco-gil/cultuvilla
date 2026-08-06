@@ -4,6 +4,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Security
+- Locked the document fields that Firestore rules derive authority from. A guardrail audit found five places where a rule granted access based on a field the client could rewrite; no UI offered these writes, so only the rules could catch them. Closed: a person doc could point `userId` at another account and hijack that account's `displayName` via `syncPersonDenormalization`; an approved peña could flip `type` to `ayuntamiento` (a per-village singleton) or move itself to another pueblo; a village admin could self-appoint as `community.organizerId`, which `changeVillageMemberRole` then refuses to demote (an irreversible admin lock), rewrite the INE identity fields, or deactivate the community; a comment could carry a foreign `municipalityId` and so sit outside the reach of the admins who moderate its entity; a waitlisted attendee could self-promote to `confirmed` past `maxAttendees`; and the creator of a place/barrio/cartel could reassign `proposedBy` (plus move a cartel between villages).
+
 ### Added
 - Comment replies: reply to a specific comment (one level of nesting), with a "View N replies" toggle and a notification to the parent comment's author.
 
