@@ -8,6 +8,7 @@ import { Button } from '../../components/primitives/Button';
 import { Avatar } from '../../components/primitives/Avatar';
 import { Pressable } from '../../components/primitives/Pressable';
 import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
+import { ownerRoute } from '../../lib/entities/ownerRoute';
 import { RegisterFab } from '../../components/feature/RegisterFab';
 import { EventAttendees } from '../../components/feature/EventAttendees';
 import { DetailSectionHeading } from '../../components/feature/DetailSectionHeading';
@@ -168,7 +169,7 @@ export default function EventDetailScreen() {
                     key={id}
                     ownerType="organization"
                     ownerId={id}
-                    onPress={() => router.push(`/o/${id}` as never)}
+                    onPress={() => router.push(ownerRoute('organization', id) as never)}
                   />
                 ))}
                 {event.organizerUserIds?.map((id) => (
@@ -176,7 +177,7 @@ export default function EventDetailScreen() {
                     key={id}
                     ownerType="user"
                     ownerId={id}
-                    onPress={() => router.push(`/user/${id}` as never)}
+                    onPress={() => router.push(ownerRoute('user', id) as never)}
                   />
                 ))}
               </View>
