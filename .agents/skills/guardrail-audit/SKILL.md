@@ -21,7 +21,7 @@ Three passes. Pass 1 collects candidates; Pass 2 verifies enforcement; Pass 3 tr
 
 ### Pass 1 — collect UI candidates
 
-Grep across `apps/web/**` for patterns that typically indicate a UI-only gate:
+Grep across `apps/mobile/**` for patterns that typically indicate a UI-only gate:
 
 - `disabled=` / `disabled:` on action buttons whose predicate is non-trivial.
 - Variable/function names: `canEdit`, `canStart`, `canFinish`, `canApprove`, `canDelete`, `canInvite`, `canRegister`, `isOwner`, `isCreator`, `isAdmin`, `isOrganizer`, `isMember`.
@@ -83,6 +83,9 @@ These shapes recur — flag them on sight:
 - **Rule allows admin OR an `isSafeUpdate` shape-only diff helper that doesn't check identity** of who's being added/removed/modified. → GAP — the helper must check actor identity.
 - **Cloud Function callable trusts a uid from `request.data` instead of `request.auth.uid`.** → GAP, derive auth from the platform.
 - **Denormalized field is writable from the client** (no diff lock in rules). → GAP, lock the field; trigger is the only writer.
+- **A rule derives authority from a document field the same rule leaves writable.** Look at every `isVillageAdmin(resource.data.municipalityId)`, `isOwner(resource.data.createdBy)`, `resource.data.type == …`: if that field is not in the update's `affectedKeys().hasAny([...])` lock, the caller can rewrite the basis of their own permission check — moving a doc out of its moderators' reach, or into a privileged category. → GAP, add the field to the diff-lock. This is the highest-yield sweep in the whole audit and no UI comparison finds it, because no screen offers the write.
+- **A field that a Cloud Function trigger reads as a pointer to another document** (`userId`, `ownerId`, `targetId`). The trigger runs under the Admin SDK and so bypasses rules entirely; if the client chose the pointer, the trigger is a write primitive against whatever it points at. → GAP, constrain the pointer to `request.auth.uid` at the rules layer.
+- **Nested vs. top-level changes the answer.** For a doc at `parents/{pid}/children/{cid}`, a `pid` in the rule is a path variable and is immutable by construction. The same-named *field* on a top-level doc is not. Check which one you're looking at before reporting — siblings that look identical often differ here.
 
 ## Output checklist
 
