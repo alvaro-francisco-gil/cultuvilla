@@ -13,7 +13,7 @@
 // Firestore write, and polls the parent entity doc until the denormalized
 // counter settles. This is the only place that proves the trigger round-trip
 // end-to-end.
-import { describe, it, expect, afterEach, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { doc, setDoc, getDoc, type Firestore } from 'firebase/firestore';
 import { useRulesTestEnv } from '../helpers/rulesTestEnv';
 import { asUser, seed } from '../helpers/roles';
@@ -63,26 +63,37 @@ async function pollUntil<T>(
   return last;
 }
 
+function testEventData(municipalityId: string) {
+  return buildEventData({
+    title: 'Fiesta del pueblo',
+    description: 'Test event for comments integration',
+    startDate: new Date(),
+    location: { coordinates: { lat: 40.0, lng: -3.0 }, displayName: 'Plaza Mayor' },
+    organizerUserIds: [],
+    organizerOrgIds: [],
+    createdBy: 'admin',
+    municipalityId,
+    villageName: 'Villatest',
+    villageCoordinates: null,
+  });
+}
+
+function testPlaceData(municipalityId: string) {
+  return buildPlaceData({
+    name: 'Ermita del Cristo',
+    kind: 'hermitage',
+    municipalityId,
+    status: 'approved',
+    proposedBy: 'admin',
+  });
+}
+
 async function seedEvent(municipalityId: string): Promise<string> {
   let eventId = '';
   await seed(getEnv(), async (ctx) => {
     const db = ctx.firestore() as unknown as Firestore;
     const ref = doc(eventsCollection(db));
-    await setDoc(
-      ref,
-      buildEventData({
-        title: 'Fiesta del pueblo',
-        description: 'Test event for comments integration',
-        startDate: new Date(),
-        location: { coordinates: { lat: 40.0, lng: -3.0 }, displayName: 'Plaza Mayor' },
-        organizerUserIds: [],
-        organizerOrgIds: [],
-        createdBy: 'admin',
-        municipalityId,
-        villageName: 'Villatest',
-        villageCoordinates: null,
-      }),
-    );
+    await setDoc(ref, testEventData(municipalityId));
     eventId = ref.id;
   });
   return eventId;
@@ -105,16 +116,7 @@ async function seedPlace(municipalityId: string): Promise<string> {
   await seed(getEnv(), async (ctx) => {
     const db = ctx.firestore() as unknown as Firestore;
     const ref = doc(municipalityPlacesCollection(db, municipalityId));
-    await setDoc(
-      ref,
-      buildPlaceData({
-        name: 'Ermita del Cristo',
-        kind: 'hermitage',
-        municipalityId,
-        status: 'approved',
-        proposedBy: 'admin',
-      }),
-    );
+    await setDoc(ref, testPlaceData(municipalityId));
     placeId = ref.id;
   });
   return placeId;
@@ -133,6 +135,22 @@ async function readPlaceCommentCount(municipalityId: string, placeId: string): P
 }
 
 describe('commentsService — real Firestore (comments)', () => {
+  // A comment create is now anchored to its target entity: the rule's
+  // commentTargetsClaimedVillage() requires the referenced event/place to exist
+  // under the claimed municipality. These service-level tests use fixed entity
+  // ids, so seed those targets (rules disabled) after the per-test
+  // clearFirestore, or every addComment is denied.
+  const M1_EVENT_TARGETS = ['e-solo', 'e-order', 'e-scope', 'e-other', 'e-delete'];
+  beforeEach(async () => {
+    await seed(getEnv(), async (ctx) => {
+      const db = ctx.firestore() as unknown as Firestore;
+      for (const id of M1_EVENT_TARGETS) {
+        await setDoc(eventDoc(db, id), testEventData('m1'));
+      }
+      await setDoc(municipalityPlaceDoc(db, 'm1', 'e-scope'), testPlaceData('m1'));
+    });
+  });
+
   it('addComment then getComments returns the comment with a real Date createdAt', async () => {
     useDbAs('alice');
     const id = await addComment({
