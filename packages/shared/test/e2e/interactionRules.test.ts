@@ -3,7 +3,7 @@
 // news), plus the function-owned `readCount` counter that every entity
 // carries (written only by the recordEntityView callable via the admin SDK,
 // which bypasses these rules).
-import { describe, it } from 'vitest';
+import { describe, it, beforeEach } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { doc, setDoc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { useRulesTestEnv } from '../helpers/rulesTestEnv';
@@ -97,9 +97,19 @@ function validEvent(overrides: Record<string, unknown> = {}) {
   };
 }
 
+// A comment's create rule anchors its municipalityId to the entity it hangs
+// off, so the target has to exist for any create to be allowed.
+async function seedTargetEvent() {
+  await seed(getEnv(), async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'events/e1'), validEvent());
+  });
+}
+
 // ── /comments ──────────────────────────────────────────────────────────────
 
 describe('firestore.rules — /comments/{commentId}', () => {
+  beforeEach(seedTargetEvent);
+
   it('anyone (unauthenticated) can read a seeded comment', async () => {
     await seedComment('c1', 'alice', 'm1');
     const anon = asAnon(getEnv());
@@ -170,6 +180,8 @@ describe('firestore.rules — /comments/{commentId}', () => {
 });
 
 describe('firestore.rules — /comments/{commentId} replies', () => {
+  beforeEach(seedTargetEvent);
+
   it('create fails when replyCount is nonzero', async () => {
     const alice = asUser(getEnv(), 'alice');
     await assertFails(

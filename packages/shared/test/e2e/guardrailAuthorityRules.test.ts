@@ -60,7 +60,8 @@ describe('firestore.rules — authority-field locks', () => {
     // users/{userId}.displayName with the admin SDK, so an unconstrained
     // userId is a write primitive against someone else's profile.
     const person = (userId: string | null, createdBy: string) => ({
-      firstName: 'Ana',
+      givenName: 'Ana',
+      middleNames: [],
       firstSurname: 'García',
       secondSurname: null,
       nickname: null,
