@@ -418,10 +418,15 @@ service cloud.firestore {
 
     // Activating the community (null -> object) is startVillage's job, so a
     // client may only carry an unchanged organizer pointer through an update.
+    // Read every hop with get(k, null): a community map predating the
+    // organizer pointer has no such key, and a bare `.organizerId` on it is an
+    // evaluation error, which denies the write outright — locking admins out
+    // of editing their own pueblo rather than merely pinning the pointer.
     function organizerIdUnchanged(before, after) {
-      return (before.community == null && after.community == null)
-          || (before.community != null && after.community != null
-              && before.community.organizerId == after.community.organizerId);
+      return (before.get('community', null) == null && after.get('community', null) == null)
+          || (before.get('community', null) != null && after.get('community', null) != null
+              && before.community.get('organizerId', null)
+                 == after.community.get('organizerId', null));
     }
 
     // A comment carries the municipalityId that its own delete rule reads for
