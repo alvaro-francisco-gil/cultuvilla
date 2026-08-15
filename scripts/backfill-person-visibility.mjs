@@ -8,47 +8,43 @@
  * public — that was the only behaviour available — so the backfill value is
  * `true` everywhere, matching `buildPersonData`'s default.
  *
- * Dev only. Re-running is safe: only docs missing the field are patched.
+ * Registered on the backfill harness: see AGENTS.md "Backfills" and
+ * `pnpm backfills:list`.
+ *
+ *   node scripts/backfill-person-visibility.mjs --env=dev            (dry run)
+ *   node scripts/backfill-person-visibility.mjs --env=dev --apply
+ *   node scripts/backfill-person-visibility.mjs --env=beta --confirm --apply
  */
 
-import admin from 'firebase-admin';
-import { initAdminForEnv } from './lib/env-credentials.mjs';
+import { backfillCollection } from './lib/backfill.mjs';
+import { isMain, runBackfill } from './lib/backfill-harness.mjs';
 
-const { projectId } = initAdminForEnv('dev');
-if (projectId !== 'villa-events') {
-  throw new Error(`Refusing to backfill ${projectId}; this script is dev only.`);
+export const meta = {
+  id: 'person-visibility',
+  kind: 'backfill',
+  description: 'Add persons.isPublic and municipalityPeople.isPublic so the strict converters can read pre-privacy docs',
+  phase: 'pre-deploy',
+  envs: ['dev', 'beta', 'prod'],
+  idempotent: true,
+  owner: 'alvaro',
+  autoApply: [],
+};
+
+function patchVisibility(data) {
+  return typeof data.isPublic === 'boolean' ? {} : { isPublic: true };
 }
 
-const db = admin.firestore();
-
-async function backfillCollection(name) {
-  const snap = await db.collection(name).get();
-  let patched = 0;
-  let batch = db.batch();
-  let batchSize = 0;
-
-  for (const docSnap of snap.docs) {
-    if (typeof docSnap.data().isPublic === 'boolean') continue;
-    batch.update(docSnap.ref, { isPublic: true });
-    patched += 1;
-    batchSize += 1;
-    if (batchSize === 400) {
-      await batch.commit();
-      batch = db.batch();
-      batchSize = 0;
-    }
-  }
-  if (batchSize > 0) await batch.commit();
-  console.log(`${name}: ${snap.size} docs — patched ${patched}, already conformant ${snap.size - patched}`);
+export async function run({ db, apply, log }) {
+  log('person visibility flag');
+  const persons = await backfillCollection(db, 'persons', db.collection('persons'), patchVisibility, { apply });
+  const municipalityPeople = await backfillCollection(
+    db,
+    'municipalityPeople',
+    db.collection('municipalityPeople'),
+    patchVisibility,
+    { apply },
+  );
+  return { persons, municipalityPeople };
 }
 
-async function main() {
-  console.log(`Backfilling person visibility against ${projectId}`);
-  await backfillCollection('persons');
-  await backfillCollection('municipalityPeople');
-}
-
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (isMain(import.meta.url)) await runBackfill({ meta, run });
