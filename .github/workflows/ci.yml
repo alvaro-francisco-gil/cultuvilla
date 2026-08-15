@@ -72,6 +72,13 @@ jobs:
       - name: Check no E2E test-login bypass leak
         run: pnpm check:no-test-login-leak
 
+      # Warn-only: annotates backfill/migration/cleanup scripts that are not on
+      # the registry, so they are invisible to `backfills:list` and the deploy
+      # gate. Never fails — ~25 legacy scripts predate the registry and failing
+      # on all of them would just get the check switched off.
+      - name: Lint backfill registry coverage (warn only)
+        run: pnpm backfills:lint
+
       - name: Test (unit — shared, mobile, functions)
         run: pnpm test:unit
 
