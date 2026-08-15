@@ -4,6 +4,12 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.19.0 — 2026-08-15
+
+### Changed
+
+- **Eventos leads again, on both surfaces.** v0.18.0 put Artículos first in the Explore feed and the village home, on the reasoning that the pueblos had little event activity. Reverted before it reached production: Eventos is the landing tab and the first village-home section again. The feed order still derives from the single `TABS` tuple introduced in v0.18.0, so this was a one-line change there plus moving one `<Section>`.
+
 ## v0.18.0 — 2026-08-15
 
 ### Security
