@@ -8,19 +8,29 @@
  * converter) and the barrio query filters on it. `syncMunicipalityPeople`
  * writes it going forward; this refreshes rows written before the change.
  *
- * Dev only. Re-running is safe: only rows whose projected barrio differs are
- * patched.
+ * Registered on the backfill harness: see AGENTS.md "Backfills" and
+ * `pnpm backfills:list`.
+ *
+ *   node scripts/backfill-municipality-people-barrio.mjs --env=dev            (dry run)
+ *   node scripts/backfill-municipality-people-barrio.mjs --env=dev --apply
+ *   node scripts/backfill-municipality-people-barrio.mjs --env=beta --confirm --apply
  */
 
-import admin from 'firebase-admin';
-import { initAdminForEnv } from './lib/env-credentials.mjs';
+import { backfillCollection } from './lib/backfill.mjs';
+import { isMain, runBackfill } from './lib/backfill-harness.mjs';
 
-const { projectId } = initAdminForEnv('dev');
-if (projectId !== 'villa-events') {
-  throw new Error(`Refusing to backfill ${projectId}; this script is dev only.`);
-}
-
-const db = admin.firestore();
+export const meta = {
+  id: 'municipality-people-barrio',
+  kind: 'backfill',
+  description: 'Project municipalityPeople.barrioId from the person municipalityLinks entry for that municipality',
+  // The directory schema requires barrioId and the barrio roster query filters
+  // on it, so the rows must carry it before the reading code ships.
+  phase: 'pre-deploy',
+  envs: ['dev', 'beta', 'prod'],
+  idempotent: true,
+  owner: 'alvaro',
+  autoApply: [],
+};
 
 /** Mirrors the trigger: first link naming a barrio wins, else null. */
 function barrioFor(person, municipalityId) {
@@ -33,39 +43,24 @@ function barrioFor(person, municipalityId) {
   return null;
 }
 
-async function main() {
-  console.log(`Backfilling municipalityPeople.barrioId against ${projectId}`);
+export async function run({ db, apply, log }) {
+  log('municipalityPeople.barrioId');
 
   const persons = await db.collection('persons').get();
   const byId = new Map(persons.docs.map((d) => [d.id, d.data()]));
 
-  const rows = await db.collection('municipalityPeople').get();
-  let patched = 0;
-  let batch = db.batch();
-  let batchSize = 0;
-
-  for (const rowSnap of rows.docs) {
-    const row = rowSnap.data();
-    const person = byId.get(row.personId);
-    if (!person) continue; // orphan row; left for the trigger's delete path
-    const barrioId = barrioFor(person, row.municipalityId);
-    if (row.barrioId === barrioId) continue;
-    batch.update(rowSnap.ref, { barrioId });
-    patched += 1;
-    batchSize += 1;
-    if (batchSize === 400) {
-      await batch.commit();
-      batch = db.batch();
-      batchSize = 0;
-    }
-  }
-  if (batchSize > 0) await batch.commit();
-  console.log(
-    `municipalityPeople: ${rows.size} docs — patched ${patched}, already conformant ${rows.size - patched}`,
+  return await backfillCollection(
+    db,
+    'municipalityPeople',
+    db.collection('municipalityPeople'),
+    (row) => {
+      const person = byId.get(row.personId);
+      if (!person) return null; // orphan row; left for the trigger's delete path
+      const barrioId = barrioFor(person, row.municipalityId);
+      return row.barrioId === barrioId ? null : { barrioId };
+    },
+    { apply },
   );
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (isMain(import.meta.url)) await runBackfill({ meta, run });
