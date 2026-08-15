@@ -20,7 +20,6 @@ import {
 import { uploadUserPhoto } from '@cultuvilla/shared/services/imageService';
 import { recordOccupation } from '@cultuvilla/shared/services/occupationService';
 import { isCatalogOccupation } from '@cultuvilla/shared/models/occupation';
-import { buildDisplayName } from '@cultuvilla/shared/models/person';
 import type { MunicipalityLink, PartialDate, PersonData } from '@cultuvilla/shared/models/person';
 
 type PersonDoc = PersonData & { id: string };
@@ -36,13 +35,21 @@ function partialDateToDate(d: PartialDate | null): Date | null {
 }
 
 export default function PersonDetailScreen() {
-  const { personId } = useLocalSearchParams<{ personId: string }>();
+  // `edit=1` is the ONLY way into the form for an existing persona, and only
+  // the profile screen's persona list passes it. Everywhere else a persona is
+  // reachable — the village roster, a barrio, an event's attendees — the tap is
+  // "who is this?", not "let me edit them", even when it's a persona you manage.
+  const { personId, edit } = useLocalSearchParams<{ personId: string; edit?: string }>();
+  const editRequested = edit === '1';
   const { user, profile } = useAuth();
   const { t } = useT();
   const isNew = personId === 'new';
 
   const [person, setPerson] = useState<PersonDoc | null>(null);
   const [loading, setLoading] = useState(!isNew);
+  // The persons read rule denies private personas to everyone but their
+  // creator, so a rejected read is a real state to render — not an error.
+  const [denied, setDenied] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,7 +70,7 @@ export default function PersonDetailScreen() {
   // dependent persona they created. Everyone else — village admins included —
   // gets the read-only PersonProfileView. Account-holder vecinos never reach
   // this screen for viewing; they route to the richer /user/[uid] profile.
-  const canEdit = isNew || isOwnPersona || canDelete;
+  const canEdit = isNew || (editRequested && (isOwnPersona || canDelete));
 
   const removePersona = () => {
     if (!person) return;
@@ -93,6 +100,9 @@ export default function PersonDetailScreen() {
         if (cancelled) return;
         setPerson(p);
         if (p) setLinks(p.municipalityLinks);
+      })
+      .catch(() => {
+        if (!cancelled) setDenied(true);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -138,6 +148,7 @@ export default function PersonDetailScreen() {
           municipalityLinks: cleanedLinks,
           biography: values.biography.trim() || null,
           occupations: values.occupations,
+          isPublic: values.isPublic,
           createdBy: user.uid,
         });
       } else {
@@ -153,6 +164,7 @@ export default function PersonDetailScreen() {
           birthPlace: birthPlaceLink,
           biography: values.biography.trim() || null,
           occupations: values.occupations,
+          isPublic: values.isPublic,
           // Own persona: leave municipalityLinks to the membership trigger.
           ...(isOwnPersona ? {} : { municipalityLinks: cleanedLinks }),
         });
@@ -189,6 +201,7 @@ export default function PersonDetailScreen() {
         birthPlaceMunicipalityId: person.birthPlace?.municipalityId ?? null,
         biography: person.biography ?? '',
         occupations: person.occupations ?? [],
+        isPublic: person.isPublic,
         photoURL: person.photoURL,
       }
     : undefined;
@@ -198,9 +211,11 @@ export default function PersonDetailScreen() {
     <Screen padded={false} bottomInset={false} topInset={false}>
       <ScreenHeader
         accent
-        title={canEdit ? t('profile.personDetailTitle') : person ? buildDisplayName(person) : ''}
+        // View mode puts the name at the top of the screen itself, so the bar
+        // stays empty rather than stating it twice.
+        title={canEdit ? t('profile.personDetailTitle') : ''}
         rightSlot={
-          canDelete ? (
+          canDelete && canEdit ? (
             <DeleteHeaderButton
               onAccent
               onConfirm={removePersona}
@@ -217,6 +232,15 @@ export default function PersonDetailScreen() {
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
+        </View>
+      ) : denied ? (
+        <View className="flex-1 items-center justify-center p-4">
+          <Text variant="h3" className="text-center">
+            {t('profile.personPrivate')}
+          </Text>
+          <Text tone="muted" className="text-center mt-2">
+            {t('profile.personPrivateBody')}
+          </Text>
         </View>
       ) : !isNew && !person ? (
         <View className="flex-1 items-center justify-center p-4">

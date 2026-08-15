@@ -20,6 +20,7 @@ export interface AddCommentInput {
   municipalityId: string;
   authorUserId: string;
   body: string;
+  parentCommentId?: string | null;
 }
 
 export async function addComment(input: AddCommentInput): Promise<string> {
@@ -33,6 +34,7 @@ export async function addComment(input: AddCommentInput): Promise<string> {
       authorUserId: input.authorUserId,
       body: input.body,
       createdAt: new Date(),
+      parentCommentId: input.parentCommentId ?? null,
     }),
   );
   return ref.id;
@@ -50,10 +52,27 @@ export async function getComments(
   const constraints = [
     where('entityKind', '==', entityKind),
     where('entityId', '==', entityId),
+    where('parentCommentId', '==', null),
     orderBy('createdAt', 'asc'),
     ...(options.limit ? [fsLimit(options.limit)] : []),
   ];
   const q = query(commentsCollection(getDb()), ...constraints);
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export async function getReplies(
+  entityKind: EntityKind,
+  entityId: string,
+  parentCommentId: string,
+): Promise<(CommentData & { id: string })[]> {
+  const q = query(
+    commentsCollection(getDb()),
+    where('entityKind', '==', entityKind),
+    where('entityId', '==', entityId),
+    where('parentCommentId', '==', parentCommentId),
+    orderBy('createdAt', 'asc'),
+  );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }

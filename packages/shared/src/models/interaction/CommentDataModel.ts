@@ -8,6 +8,8 @@ export const CommentDataSchema = z.object({
   authorUserId: z.string(),
   body: z.string().min(1).max(2000),
   createdAt: z.date(),
+  parentCommentId: z.string().nullable(),
+  replyCount: z.number().int().min(0),
 });
 export type CommentData = z.infer<typeof CommentDataSchema>;
 
@@ -18,6 +20,7 @@ export interface CommentDataInput {
   authorUserId: string;
   body: string;
   createdAt: Date;
+  parentCommentId?: string | null;
 }
 
 export function buildCommentData(input: CommentDataInput): CommentData {
@@ -28,5 +31,7 @@ export function buildCommentData(input: CommentDataInput): CommentData {
     authorUserId: input.authorUserId,
     body: input.body,
     createdAt: input.createdAt,
+    parentCommentId: input.parentCommentId ?? null,
+    replyCount: 0,
   };
 }

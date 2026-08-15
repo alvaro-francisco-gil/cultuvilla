@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { VStack } from '../primitives/VStack';
 import { HStack } from '../primitives/HStack';
 import { Text } from '../primitives/Text';
 import { Avatar } from '../primitives/Avatar';
 import { Pressable } from '../primitives/Pressable';
 import { DetailSectionHeading } from './DetailSectionHeading';
+import { SectionEditToggle } from './SectionEditToggle';
 import {
   getOrgMembers,
   setOrgMemberRole,
@@ -29,10 +31,12 @@ type Row = OrgMemberData & { id: string; name: string; photoURL: string | null }
  * (canViewOrgRoster) — this component does its own access control for the
  * management actions below.
  *
- * When `canManage`, an org admin can tap a member's row to promote/demote them
- * (routed through the audited `changeOrgMemberRole` callable via
- * `setOrgMemberRole`), or tap the trailing trash icon to remove them from the
- * org. Your own row is never actionable (avoids self-lockout).
+ * Tapping a member opens their profile, mirroring the village roster. The
+ * management actions live behind the heading's "Editar" toggle: while editing,
+ * each actionable row grows a promote/demote arrow (routed through the audited
+ * `changeOrgMemberRole` callable via `setOrgMemberRole`) and a trash icon that
+ * removes them from the org. Your own row is never actionable (avoids
+ * self-lockout).
  */
 export function OrgMembersList({
   orgId,
@@ -47,6 +51,7 @@ export function OrgMembersList({
   const [rows, setRows] = useState<Row[] | null>(null);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [editing, setEditing] = useState(false);
 
   const load = useCallback(async () => {
     const members = await getOrgMembers(orgId);
@@ -116,21 +121,34 @@ export function OrgMembersList({
 
   return (
     <VStack gap={2}>
-      <DetailSectionHeading>{t('organization.members')}</DetailSectionHeading>
+      <DetailSectionHeading
+        action={
+          canManage ? (
+            <SectionEditToggle
+              testID="org-members-edit-toggle"
+              editing={editing}
+              onToggle={() => setEditing((e) => !e)}
+            />
+          ) : undefined
+        }
+      >
+        {t('organization.members')}
+      </DetailSectionHeading>
       {rows && rows.length === 0 ? (
         <Text tone="muted" variant="bodySm">
           {t('organization.membersEmpty')}
         </Text>
       ) : (
         (rows ?? []).map((r) => {
-          const actionable = isActionable(r);
+          const actionable = editing && isActionable(r);
           const pending = pendingUserId === r.id;
           return (
             <HStack key={r.id} gap={3} align="center" className="py-2">
               <Pressable
-                testID={`org-member-row-${r.id}`}
-                disabled={!actionable || pendingUserId != null}
-                onPress={() => changeRole(r)}
+                testID={`org-member-profile-${r.id}`}
+                onPress={() => router.push(`/user/${r.userId}` as never)}
+                accessibilityRole="button"
+                accessibilityLabel={r.name}
                 className="flex-1 flex-row items-center gap-3"
               >
                 <Avatar uri={r.photoURL} size={36} initials={r.name.slice(0, 1).toUpperCase()} />
@@ -147,14 +165,34 @@ export function OrgMembersList({
                 pending ? (
                   <ActivityIndicator size="small" />
                 ) : (
-                  <Pressable
-                    testID={`org-member-remove-${r.id}`}
-                    disabled={pendingUserId != null}
-                    onPress={() => removeMember(r)}
-                    accessibilityLabel={t('organization.membersList.remove')}
-                  >
-                    <Ionicons name="trash-outline" size={iconSizes.sm} color="#9ca3af" />
-                  </Pressable>
+                  <>
+                    <Pressable
+                      testID={`org-member-row-${r.id}`}
+                      disabled={pendingUserId != null}
+                      onPress={() => changeRole(r)}
+                      accessibilityLabel={t(
+                        r.role === 'admin'
+                          ? 'organization.membersList.demote'
+                          : 'organization.membersList.promote',
+                      )}
+                      hitSlop={8}
+                    >
+                      <Ionicons
+                        name={r.role === 'admin' ? 'arrow-down-circle-outline' : 'arrow-up-circle-outline'}
+                        size={iconSizes.sm}
+                        color="#9ca3af"
+                      />
+                    </Pressable>
+                    <Pressable
+                      testID={`org-member-remove-${r.id}`}
+                      disabled={pendingUserId != null}
+                      onPress={() => removeMember(r)}
+                      accessibilityLabel={t('organization.membersList.remove')}
+                      hitSlop={8}
+                    >
+                      <Ionicons name="trash-outline" size={iconSizes.sm} color="#9ca3af" />
+                    </Pressable>
+                  </>
                 )
               ) : null}
             </HStack>

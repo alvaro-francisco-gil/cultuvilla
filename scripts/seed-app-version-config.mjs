@@ -2,47 +2,32 @@
 /**
  * seed-app-version-config.mjs
  *
- * Seed / update the `config/appVersion` doc (the force-update gate config) in a
- * chosen Firebase environment.
+ * Write the `config/appVersion` doc (the force-update gate) in one environment.
+ * Clients read it on launch and block/nudge via `resolveVersionGate`.
  *
  * USAGE
  *   node scripts/seed-app-version-config.mjs [--env=dev|beta|prod] \
- *        [--min=0.0.0] [--latest=0.1.0] [--confirm]
+ *        [--latest=0.18.0] [--min=0.0.0] [--dry-run] [--confirm]
  *
- *   --env      target environment (default: dev). Maps to the Firebase project.
- *   --min      minSupported version, both platforms (default: 0.0.0 = never block).
- *   --latest   latest version, both platforms (default: current pre-release
- *              app.config.ts version).
- *   --confirm  REQUIRED for --env=beta or --env=prod (guards against accidental
- *              writes to shared non-dev environments).
+ *   --env      target environment (default: dev).
+ *   --latest   latest version. Defaults to the CURRENT apps/mobile/app.config.ts
+ *              version — the single source of truth per AGENTS.md, rather than a
+ *              constant here that silently goes stale.
+ *   --min      minSupported. Omit to PRESERVE whatever is stored (see
+ *              lib/app-version-config.mjs); only an explicit value moves the wall.
+ *   --dry-run  print the diff and write nothing.
+ *   --confirm  REQUIRED for beta/prod.
  *
- * Credentials: resolved by initAdminForEnv (GOOGLE_APPLICATION_CREDENTIALS
- * override → ~/.config/cultuvilla/<env>-sa.json → stored ADC). For beta/prod,
- * unset GOOGLE_APPLICATION_CREDENTIALS first so a dev key doesn't hijack the
- * target project. Dev is autonomous; beta/prod are gated — see the
- * `firebase-admin-dev` skill and the branch model in AGENTS.md. Not idempotent by
- * accident: it fully rewrites the doc (merge:false) so the whole gate config is
- * defined in one place.
+ * No credentials of your own? Use Actions → "Set App Version"
+ * (.github/workflows/set-app-version.yml), which authenticates via WIF.
+ * Otherwise credentials resolve through initAdminForEnv; for beta/prod unset
+ * GOOGLE_APPLICATION_CREDENTIALS so a dev key can't hijack the target project.
  */
 
 import admin from 'firebase-admin';
-import { initAdminForEnv } from './lib/env-credentials.mjs';
-
-// Environment → Firebase project id (see AGENTS.md branch model + eas.json).
-const PROJECTS = {
-  dev: 'villa-events',
-  beta: 'cultuvilla-beta',
-  prod: 'cultuvilla-prod',
-};
-
-const DEFAULT_MIN = '0.0.0'; // pre-release: never force-block
-const DEFAULT_LATEST = '0.1.0'; // keep in step with apps/mobile/app.config.ts `version`
-
-// Store URLs are the same across envs (one published app per store).
-const STORE_URL = {
-  ios: 'https://apps.apple.com/app/id000000000',
-  android: 'https://play.google.com/store/apps/details?id=com.cultuvilla.app',
-};
+import { initAdminForEnv, ENVS } from './lib/env-credentials.mjs';
+import { currentAppVersion } from './lib/app-version.mjs';
+import { resolveAppVersionConfig } from './lib/app-version-config.mjs';
 
 function parseArgs(argv) {
   const out = {};
@@ -55,36 +40,50 @@ function parseArgs(argv) {
 
 const args = parseArgs(process.argv.slice(2));
 const envArg = typeof args.env === 'string' ? args.env : 'dev';
+const dryRun = args['dry-run'] === true;
 
-if (!PROJECTS[envArg]) {
-  console.error(`Unknown --env "${envArg}". Use one of: ${Object.keys(PROJECTS).join(', ')}.`);
+if (!ENVS[envArg]) {
+  console.error(`Unknown --env "${envArg}". Use one of: ${Object.keys(ENVS).join(', ')}.`);
   process.exit(1);
 }
 
-// Beta/prod are shared environments — require an explicit acknowledgement.
-if ((envArg === 'beta' || envArg === 'prod') && args.confirm !== true) {
+// Beta/prod are shared environments — require explicit acknowledgement, unless
+// this is a read-only preview.
+if ((envArg === 'beta' || envArg === 'prod') && args.confirm !== true && !dryRun) {
   console.error(
-    `Refusing to write ${envArg} (${PROJECTS[envArg]}) without --confirm. ` +
+    `Refusing to write ${envArg} (${ENVS[envArg].project}) without --confirm. ` +
       `Beta/prod are off-limits without explicit intent (see AGENTS.md).`,
   );
   process.exit(1);
 }
 
-const min = typeof args.min === 'string' ? args.min : DEFAULT_MIN;
-const latest = typeof args.latest === 'string' ? args.latest : DEFAULT_LATEST;
-
 const { env, projectId } = initAdminForEnv(envArg);
 const db = admin.firestore();
+const ref = db.collection('config').doc('appVersion');
 
 async function main() {
-  const payload = {
-    ios: { minSupported: min, latest },
-    android: { minSupported: min, latest },
-    storeUrl: STORE_URL,
-  };
-  await db.collection('config').doc('appVersion').set(payload, { merge: false });
-  const snap = await db.collection('config').doc('appVersion').get();
-  console.log(`Seeded config/appVersion in ${env} (${projectId}):`, JSON.stringify(snap.data()));
+  const snap = await ref.get();
+  const stored = snap.exists ? snap.data() : null;
+
+  const { payload, minSource, latestSource } = resolveAppVersionConfig({
+    latest: typeof args.latest === 'string' ? args.latest : undefined,
+    minSupported: typeof args.min === 'string' ? args.min : undefined,
+    stored,
+    defaultLatest: currentAppVersion(),
+  });
+
+  console.log(`config/appVersion in ${env} (${projectId})`);
+  console.log(`  stored: ${stored ? JSON.stringify(stored) : '(absent)'}`);
+  console.log(`  latest       -> ${payload.ios.latest} (${latestSource})`);
+  console.log(`  minSupported -> ${payload.ios.minSupported} (${minSource})`);
+
+  if (dryRun) {
+    console.log('\nDRY RUN — nothing written. Re-run without --dry-run to apply.');
+    return;
+  }
+
+  await ref.set(payload, { merge: false });
+  console.log(`\nWrote config/appVersion: ${JSON.stringify((await ref.get()).data())}`);
 }
 
 main().catch((err) => {

@@ -1,32 +1,32 @@
 #!/usr/bin/env node
 /**
- * backfill-municipality-namelower.mjs
+ * Derive `nameLower` from `name` on every municipality doc that lacks it
+ * (NFD-decompose, strip combining marks, lowercase) — the search key the
+ * municipality lookup queries against.
  *
- * One-off: for every municipality doc that lacks `nameLower`, derive it from
- * `name` (NFD-decompose, strip combining marks, lowercase) and patch the doc.
+ * Registered on the backfill harness: see AGENTS.md "Backfills" and
+ * `pnpm backfills:list`.
  *
- * USAGE
- *   node scripts/backfill-municipality-namelower.mjs                 (dev dry run)
- *   node scripts/backfill-municipality-namelower.mjs --apply         (dev writes)
- *   env -u GOOGLE_APPLICATION_CREDENTIALS \
- *     node scripts/backfill-municipality-namelower.mjs --env=beta --confirm --apply
- *
- * Credentials resolve via initAdminForEnv (see lib/env-credentials.mjs). Dev is
- * autonomous; beta/prod require --confirm (and the stored ADC — unset
- * GOOGLE_APPLICATION_CREDENTIALS so a dev key can't hijack the target project).
- * `--apply` still gates the actual write on every env (dry run without it).
- *
- * Idempotent: re-runs only patch docs whose `nameLower` is still wrong/missing.
+ *   node scripts/backfill-municipality-namelower.mjs --env=dev            (dry run)
+ *   node scripts/backfill-municipality-namelower.mjs --env=dev --apply
+ *   node scripts/backfill-municipality-namelower.mjs --env=beta --confirm --apply
  */
 
-import admin from 'firebase-admin';
-import { initAdminForEnv } from './lib/env-credentials.mjs';
-import { parseEnvConfirm } from './lib/env-confirm.mjs';
 import { backfillCollection } from './lib/backfill.mjs';
+import { isMain, runBackfill } from './lib/backfill-harness.mjs';
 
-const { projectId } = initAdminForEnv(parseEnvConfirm());
-const db = admin.firestore();
-const APPLY = process.argv.includes('--apply');
+export const meta = {
+  id: 'municipality-name-lower',
+  kind: 'backfill',
+  description: 'Derive municipalities.nameLower from name (accent-stripped, lowercased) for the search key',
+  // Already applied to every env before the registry existed, so it gates
+  // nothing. A NEW backfill adding a required field would be 'pre-deploy'.
+  phase: 'none',
+  envs: ['dev', 'beta', 'prod'],
+  idempotent: true,
+  owner: 'alvaro',
+  autoApply: [],
+};
 
 function searchKey(name) {
   return name
@@ -41,12 +41,12 @@ function patchFor(data) {
   return data.nameLower === want ? null : { nameLower: want };
 }
 
-async function main() {
-  console.log(`${APPLY ? 'Backfilling' : 'DRY-RUN: checking'} municipalities.nameLower against ${projectId}`);
-  await backfillCollection(db, 'municipalities', db.collection('municipalities'), patchFor, { apply: APPLY });
+export async function run({ db, apply, log }) {
+  log('municipalities.nameLower');
+  const { total, patched } = await backfillCollection(db, 'municipalities', db.collection('municipalities'), patchFor, {
+    apply,
+  });
+  return { total, patched };
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (isMain(import.meta.url)) await runBackfill({ meta, run });

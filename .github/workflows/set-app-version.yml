@@ -1,0 +1,112 @@
+name: Set App Version
+
+# Writes `config/appVersion` (the force-update gate clients read on launch) in
+# one environment. DRY RUN BY DEFAULT.
+#
+# WHY THIS EXISTS: this is the one release step that is neither a code deploy
+# nor a data migration — it is a Firestore write, so it needs credentials that
+# deliberately do not exist outside CI (beta/prod enforce
+# iam.disableServiceAccountKeyCreation). Everything else in a release is a PR
+# merge that auto-deploys. This closes the last gap, so a release can be cut
+# end-to-end by someone holding no credentials.
+#
+# Deliberately NOT on the backfill registry: a backfill's marker answers "has
+# this run in this env?", which is meaningless here — this is a set-a-value
+# operation, re-run with a different value every release. Reusing the marker
+# semantics would corrupt them. It shares the credential mechanism, not the
+# bookkeeping.
+
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - beta
+          - prod
+      latest:
+        description: 'latest version (blank = current apps/mobile/app.config.ts version)'
+        required: false
+        type: string
+      min_supported:
+        description: 'minSupported (blank = PRESERVE the stored value; only set this to move the force-update wall)'
+        required: false
+        type: string
+      mode:
+        description: 'dry-run (default, no writes) or apply'
+        required: true
+        default: dry-run
+        type: choice
+        options:
+          - dry-run
+          - apply
+
+jobs:
+  set-app-version:
+    name: appVersion → ${{ inputs.env }} (${{ inputs.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ inputs.env == 'prod' && 'production' || inputs.env }}
+    concurrency:
+      group: app-version-${{ inputs.env }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write # required for Workload Identity Federation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.24.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      # Always preview first: the log shows the stored doc and the resolved
+      # values right above the write, so a wrong --min is visible before it
+      # walls the fleet.
+      - name: Dry run
+        run: |
+          node scripts/seed-app-version-config.mjs \
+            --env="$ENV" \
+            ${LATEST:+--latest="$LATEST"} \
+            ${MIN:+--min="$MIN"} \
+            --dry-run
+        env:
+          ENV: ${{ inputs.env }}
+          LATEST: ${{ inputs.latest }}
+          MIN: ${{ inputs.min_supported }}
+
+      - name: Apply
+        if: inputs.mode == 'apply'
+        run: |
+          node scripts/seed-app-version-config.mjs \
+            --env="$ENV" \
+            ${LATEST:+--latest="$LATEST"} \
+            ${MIN:+--min="$MIN"} \
+            --confirm
+        env:
+          ENV: ${{ inputs.env }}
+          LATEST: ${{ inputs.latest }}
+          MIN: ${{ inputs.min_supported }}

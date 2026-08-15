@@ -161,6 +161,7 @@ describe('shape enforcement — /persons/{personId}', () => {
     biography: null,
     photoURL: null,
     userId: null,
+    isPublic: true,
     createdBy: 'alice',
     createdAt: new Date(),
   };
@@ -168,6 +169,11 @@ describe('shape enforcement — /persons/{personId}', () => {
   it('accepts a valid full-shape payload', async () => {
     const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(setDoc(doc(alice, 'persons/p1'), validPerson));
+  });
+
+  it('rejects a non-boolean isPublic', async () => {
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(setDoc(doc(alice, 'persons/p1'), { ...validPerson, isPublic: 'yes' }));
   });
 
   it('rejects an unknown field', async () => {

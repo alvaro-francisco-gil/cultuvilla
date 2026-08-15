@@ -6,66 +6,41 @@
  * provincial capitals (INE codes) from scripts/data/municipalities-es.json.
  *
  * USAGE
- *   pnpm seed:municipalities
- *   # or:
- *   node scripts/seed-municipalities.mjs
+ *   pnpm seed:municipalities                        # dev
+ *   node scripts/seed-municipalities.mjs --env=beta --confirm
+ *   node scripts/seed-municipalities.mjs --env=prod --confirm
+ *   node scripts/seed-municipalities.mjs --dry-run  # report only, no writes
  *
- * CREDENTIALS
- *   Authenticate with Application Default Credentials before running:
- *     gcloud auth application-default login
- *   Or set the GOOGLE_APPLICATION_CREDENTIALS env var to a service-account key:
- *     export GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json
- *
- * PROJECT ID
- *   Set GOOGLE_CLOUD_PROJECT env var, or it will be read from firebase.json
- *   (the functions[0].source directory is used to locate firebase.json).
+ * Credentials + project id are resolved per-env by scripts/lib/env-credentials.mjs;
+ * beta/prod require an explicit --confirm (scripts/lib/env-confirm.mjs).
  *
  * FULL INE DATASET
  *   Replace scripts/data/municipalities-es.json with a fuller dataset (same
- *   shape: array of { name, province, comunidadAutonoma, codigoINE }). The
- *   script will pick up whatever entries are in the file. Existing documents
- *   (matched by codigoINE) are skipped so re-runs are safe.
+ *   shape: array of { name, province, comunidadAutonoma, codigoINE }) — see
+ *   scripts/fetch-municipalities.mjs.
+ *
+ * PURELY ADDITIVE: entries are matched by codigoINE and only the missing ones
+ * are created. Existing docs are never touched, so activated `community`
+ * overlays, escudos and admin uploads survive a re-run untouched.
  */
 
 import admin from 'firebase-admin';
 import { readFileSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import { initAdminForEnv } from './lib/env-credentials.mjs';
+import { parseEnvConfirm } from './lib/env-confirm.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(__dirname, '..');
 
-// ── Resolve project ID ────────────────────────────────────────────────────────
+const DRY_RUN = process.argv.slice(2).includes('--dry-run');
 
-function resolveProjectId() {
-  if (process.env.GOOGLE_CLOUD_PROJECT) {
-    return process.env.GOOGLE_CLOUD_PROJECT;
-  }
-  const firebaseJsonPath = path.join(repoRoot, 'firebase.json');
-  if (existsSync(firebaseJsonPath)) {
-    try {
-      const firebaseJson = JSON.parse(readFileSync(firebaseJsonPath, 'utf8'));
-      if (firebaseJson.projectId) return firebaseJson.projectId;
-    } catch {
-      // ignore parse errors, fall through
-    }
-  }
-  return undefined;
-}
+// ── Init firebase-admin for the target env ───────────────────────────────────
 
-const projectId = resolveProjectId();
-if (!projectId) {
-  console.error(
-    '[seed] Could not determine project ID.\n' +
-      '  Set GOOGLE_CLOUD_PROJECT env var, e.g.:\n' +
-      '    GOOGLE_CLOUD_PROJECT=my-project pnpm seed:municipalities',
-  );
-  process.exit(1);
-}
+const env = parseEnvConfirm(process.argv.slice(2).filter((a) => a !== '--dry-run'));
+const { projectId, auth } = initAdminForEnv(env);
+console.log(`[seed] env=${env} project=${projectId} auth=${auth}${DRY_RUN ? ' (dry-run)' : ''}`);
 
-// ── Init firebase-admin ───────────────────────────────────────────────────────
-
-admin.initializeApp({ projectId });
 const db = admin.firestore();
 const FieldValue = admin.firestore.FieldValue;
 
@@ -108,6 +83,22 @@ async function main() {
     process.exit(0);
   }
 
+  // Existing docs are never modified, so anything already activated as a village
+  // is safe; report the count so a re-run's blast radius is visible up front.
+  const activeSnap = await collection.where('communityActive', '==', true).count().get();
+  console.log(
+    `[seed] To create: ${toWrite.length} | untouched existing: ${skipCount} ` +
+      `(of which ${activeSnap.data().count} are activated villages)`,
+  );
+
+  if (DRY_RUN) {
+    console.log('[seed] --dry-run: no writes. First 10 that would be created:');
+    for (const e of toWrite.slice(0, 10)) {
+      console.log(`    ${e.codigoINE}  ${e.name} (${e.province})`);
+    }
+    process.exit(0);
+  }
+
   // 3. Write in batches of max 500
   const BATCH_SIZE = 500;
   let created = 0;
@@ -118,6 +109,8 @@ async function main() {
 
     for (const entry of chunk) {
       const docRef = collection.doc(); // auto-ID
+      // Mirrors municipalitySearchKey() in MunicipalityDataModel.ts — kept inline
+      // because this .mjs script can't import the TS model.
       const nameLower = entry.name
         .normalize('NFD')
         .replace(/[̀-ͯ]/g, '')

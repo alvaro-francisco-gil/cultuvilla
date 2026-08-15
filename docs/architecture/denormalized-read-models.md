@@ -97,6 +97,18 @@ municipality linked from a persona, including dependent personas with no user
 account. Rows carry only display data and a normalized `sortName`, allowing the
 directory query to return an alphabetical list in one read.
 
+Rows carry the person's `barrioId` for that municipality, so the **barrio
+roster reads this directory too** rather than querying `persons` by
+`municipalityLinks`. That isn't a performance choice: the persons read rule is
+evaluated per matched document, so a persons query that could match a private
+persona is rejected outright — filtering them out would drop those people from
+the barrio entirely instead of merely leaving their row unlinked.
+
+Rows also mirror `persons.isPublic`. A private dependent persona keeps its row —
+the pueblo census stays honest about who lives there — but the roster reads the
+projected flag to know the row leads nowhere, since the person doc itself is
+denied to everyone but its creator.
+
 - **Source of truth:** `persons/{personId}.municipalityLinks` and its person
   display fields.
 - **Trigger:** [functions/src/village/syncMunicipalityPeople.ts](../../functions/src/village/syncMunicipalityPeople.ts)
@@ -105,7 +117,11 @@ directory query to return an alphabetical list in one read.
 - **Rules:** village members and app admins may read their municipality’s rows;
   all writes are function-owned.
 - **Backfill:** [scripts/backfill-municipality-people.mjs](../../scripts/backfill-municipality-people.mjs)
-  reconciles directory rows in dev after the trigger deploys.
+  reconciles directory rows in dev after the trigger deploys;
+  [scripts/backfill-person-visibility.mjs](../../scripts/backfill-person-visibility.mjs)
+  seeds `isPublic` on both `persons` and the projection;
+  [scripts/backfill-municipality-people-barrio.mjs](../../scripts/backfill-municipality-people-barrio.mjs)
+  seeds `barrioId` on the projection.
 
 ### `users/{uid}.displayName` ← `persons/{personId}`
 
@@ -155,6 +171,18 @@ can show it without a `getCountFromServer` per entity per render.
   `deleteNewsPost`) still fires the trigger per deleted doc, so counts on a
   *surviving* parent stay correct. A parent deleted out from under a
   still-in-flight trigger is a no-op (`isNotFound` guard), not a retry loop.
+
+### `replyCount` ← `comments/`
+
+Every top-level comment carries a running count of its replies (comments with that doc's id as their `parentCommentId`), so the UI can show a "View N replies" toggle without fetching replies on list render.
+
+- **Source of truth:** the generic top-level `comments/` collection, filtering to docs where `parentCommentId == {parentCommentId}` (the replies to one parent).
+- **Trigger:** [functions/src/interaction/syncEntityInteractionCounts.ts](../../functions/src/interaction/syncEntityInteractionCounts.ts)
+  — `syncEntityCommentCount`, an `onDocumentWritten` on `comments/`. When the comment is a reply (`parentCommentId != null`), increments/decrements the parent comment's `replyCount` using `FieldValue.increment` (not a full recompute, same as entity-level comment counts).
+- **Rules:** `firestore.rules` excludes `replyCount` from client-writable update fields on comment docs; only the trigger (admin SDK) can change it. Create rules require the field present and zeroed on all comments.
+- **Backfill:** [scripts/backfill-comment-threading.mjs](../../scripts/backfill-comment-threading.mjs)
+  adds `replyCount: 0` to top-level comments and `parentCommentId: null` to all comments missing the field.
+- **Delete behavior:** deleting a comment (reply or otherwise) fires the trigger; if it was a reply, the parent's `replyCount` is decremented. Deleting a parent comment cascades its replies, so `replyCount` zeroes along with the parent.
 
 ### `readCount` ← incremented directly by a callable (no source collection)
 

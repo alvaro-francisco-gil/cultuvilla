@@ -42,7 +42,7 @@ jest.mock('../../../lib/i18n', () => ({
 }));
 jest.mock('expo-router', () => ({
   router: { back: jest.fn() },
-  useLocalSearchParams: () => ({ personId: 'p-existing' }),
+  useLocalSearchParams: () => ({ personId: 'p-existing', edit: '1' }),
 }));
 jest.mock('../../../components/layout/ScreenHeader', () => ({ ScreenHeader: () => null }));
 // Stub the form so we can fire onSubmit with a photo directly.

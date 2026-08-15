@@ -13,6 +13,8 @@ describe('NotificationDataSchema', () => {
       eventId: 'ev1',
       municipalityId: 'mun1',
       requesterUid: null,
+      entityKind: null,
+      entityId: null,
       read: false,
       createdAt: new Date(),
     });
@@ -27,6 +29,8 @@ describe('NotificationDataSchema', () => {
       eventId: null,
       municipalityId: 'mun1',
       requesterUid: 'user-42',
+      entityKind: null,
+      entityId: null,
       read: false,
       createdAt: new Date(),
     });
@@ -93,5 +97,24 @@ describe('buildNotificationData', () => {
     expect(n.requesterUid).toBe('requester-1');
     expect(n.read).toBe(true);
     expect(n.createdAt).toEqual(created);
+  });
+
+  it('defaults entityKind/entityId to null when not provided', () => {
+    const n = buildNotificationData({ type: 'org_approved', title: 't', body: 'b' });
+    expect(n.entityKind).toBeNull();
+    expect(n.entityId).toBeNull();
+  });
+
+  it('accepts comment_reply with an entityKind/entityId pair', () => {
+    const n = buildNotificationData({
+      type: 'comment_reply',
+      title: 't',
+      body: 'b',
+      entityKind: 'event',
+      entityId: 'e1',
+    });
+    expect(n.type).toBe('comment_reply');
+    expect(n.entityKind).toBe('event');
+    expect(n.entityId).toBe('e1');
   });
 });

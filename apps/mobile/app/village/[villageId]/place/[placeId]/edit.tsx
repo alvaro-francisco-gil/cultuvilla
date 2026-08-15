@@ -10,15 +10,16 @@ import { DeleteHeaderButton } from '../../../../../components/feature/DeleteHead
 import { useT } from '../../../../../lib/i18n';
 import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
 import { pickImageAsBlob } from '../../../../../lib/images';
-import { getPlace, updatePlace } from '@cultuvilla/shared/services/municipalityService';
+import { getPlace, updatePlace, deletePlace } from '@cultuvilla/shared/services/municipalityService';
 import { hideContent } from '@cultuvilla/shared/services/moderationService';
 import { deleteImageByURL, uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
 import { PLACE_KINDS, type PlaceKind } from '@cultuvilla/shared/models/municipality';
+import type { VisibilityStatus } from '@cultuvilla/shared/models';
 
 export default function PlaceEditScreen() {
   const { villageId, placeId } = useLocalSearchParams<{ villageId: string; placeId: string }>();
   const { t } = useT();
-  const { canManage, uid, loading: capLoading } = useEntityCapabilities(villageId);
+  const { canManage, canEdit, canDelete, uid, loading: capLoading } = useEntityCapabilities(villageId);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [kind, setKind] = useState<PlaceKind>('cemetery');
@@ -29,6 +30,8 @@ export default function PlaceEditScreen() {
   const [saving, setSaving] = useState(false);
   const [contributorUserIds, setContributorUserIds] = useState<string[]>([]);
   const [contributorOrgIds, setContributorOrgIds] = useState<string[]>([]);
+  const [proposedBy, setProposedBy] = useState<string | null>(null);
+  const [status, setStatus] = useState<VisibilityStatus>('active');
 
   const kindLabel = (k: PlaceKind) => t(`village.admin.places.kind.${k}` as never);
 
@@ -43,6 +46,8 @@ export default function PlaceEditScreen() {
         setImages(p.images);
         setContributorUserIds(p.contributorUserIds);
         setContributorOrgIds(p.contributorOrgIds);
+        setProposedBy(p.proposedBy);
+        setStatus(p.status);
       } else {
         setNotFound(true);
       }
@@ -50,7 +55,9 @@ export default function PlaceEditScreen() {
     })();
   }, [villageId, placeId]);
 
-  if (capLoading) {
+  // The creator check needs the doc, so the guard waits for the fetch — an
+  // admin and a creator are both allowed in, everyone else bounces back.
+  if (capLoading || !loaded) {
     return (
       <Screen padded={false} topInset={false}>
         <ScreenHeader accent title={t('village.admin.places.editTitle')} />
@@ -58,7 +65,20 @@ export default function PlaceEditScreen() {
       </Screen>
     );
   }
-  if (!canManage) return <Redirect href={`/village/${villageId}/place/${placeId}`} />;
+  if (!notFound && !canEdit(proposedBy)) {
+    return <Redirect href={`/village/${villageId}/place/${placeId}`} />;
+  }
+
+  // An admin *moderates* (audited soft-hide via the callable); a creator
+  // *withdraws* their own still-active proposal outright, which the Firestore
+  // rules permit directly.
+  function removePlace() {
+    if (!villageId || !placeId) return;
+    const done = () => router.replace(`/village/${villageId}`);
+    return canManage
+      ? hideContent({ collection: 'places', docId: placeId, municipalityId: villageId }).then(done)
+      : deletePlace(villageId, placeId).then(done);
+  }
 
   // Images persist immediately (unlike the create flow, the doc already
   // exists here), so add/remove writes the doc on each action rather than
@@ -107,26 +127,22 @@ export default function PlaceEditScreen() {
         accent
         title={t('village.admin.places.editTitle')}
         rightSlot={
-          <DeleteHeaderButton
-            onAccent
-            onConfirm={() => {
-              if (villageId && placeId)
-                return hideContent({ collection: 'places', docId: placeId, municipalityId: villageId })
-                  .then(() => router.replace(`/village/${villageId}`));
-            }}
-            accessibilityLabel={t('common.delete')}
-            confirmTitle={t('common.deleteConfirmTitle')}
-            confirmMessage={t('common.deleteConfirmMessage')}
-            confirmLabel={t('common.delete')}
-            cancelLabel={t('common.cancel')}
-            deletingLabel={t('common.deleting.place')}
-            testID="place-delete"
-          />
+          canDelete(proposedBy, status) ? (
+            <DeleteHeaderButton
+              onAccent
+              onConfirm={removePlace}
+              accessibilityLabel={t('common.delete')}
+              confirmTitle={t('common.deleteConfirmTitle')}
+              confirmMessage={t('common.deleteConfirmMessage')}
+              confirmLabel={t('common.delete')}
+              cancelLabel={t('common.cancel')}
+              deletingLabel={t('common.deleting.place')}
+              testID="place-delete"
+            />
+          ) : undefined
         }
       />
-      {!loaded ? (
-        <View className="flex-1 items-center justify-center"><ActivityIndicator /></View>
-      ) : notFound ? (
+      {notFound ? (
         <View className="flex-1 items-center justify-center"><Text>{t('common.notFound')}</Text></View>
       ) : (
         <ScrollView contentContainerClassName="p-4">

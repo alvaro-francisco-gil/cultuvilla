@@ -14,20 +14,7 @@
  * beta's copy via `git show origin/beta:apps/mobile/app.config.ts`.
  */
 
-import { readFileSync } from 'node:fs';
-
-/** Extract the single top-level `version: '...'` from an app.config.ts source. */
-function extractVersion(path) {
-  const src = readFileSync(path, 'utf8');
-  const matches = [...src.matchAll(/^\s*version:\s*['"]([^'"]+)['"]/gm)];
-  if (matches.length === 0) throw new Error(`No \`version:\` line found in ${path}`);
-  if (matches.length > 1) {
-    throw new Error(
-      `Ambiguous: ${matches.length} \`version:\` lines in ${path} — tighten this script's matcher.`,
-    );
-  }
-  return matches[0][1];
-}
+import { readVersionFrom } from './lib/app-version.mjs';
 
 /** -1 | 0 | 1, comparing MAJOR.MINOR.PATCH numerically. */
 function compareVersions(a, b) {
@@ -53,8 +40,8 @@ if (!headPath || !betaPath) {
   process.exit(2);
 }
 
-const head = extractVersion(headPath);
-const beta = extractVersion(betaPath);
+const head = readVersionFrom(headPath);
+const beta = readVersionFrom(betaPath);
 
 if (compareVersions(head, beta) <= 0) {
   console.error(

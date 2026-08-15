@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { EntityKindSchema } from '../interaction/EntityKind';
 
 export const NotificationTypeSchema = z.enum([
   'waitlist_promoted',
@@ -9,6 +10,7 @@ export const NotificationTypeSchema = z.enum([
   'organizer_request_created',
   'organizer_request_approved',
   'organizer_request_rejected',
+  'comment_reply',
 ]);
 export type NotificationType = z.infer<typeof NotificationTypeSchema>;
 
@@ -21,6 +23,10 @@ export const NotificationDataSchema = z.object({
   // Set on request-flow notifications (join_request_*, organizer_request_*);
   // null on the event/org notification types that don't carry a requester.
   requesterUid: z.string().nullable(),
+  // Set on comment_reply notifications to deep-link to the commented entity;
+  // null on notification types that don't reference an entity.
+  entityKind: EntityKindSchema.nullable(),
+  entityId: z.string().nullable(),
   read: z.boolean(),
   createdAt: z.date(),
 });
@@ -33,6 +39,8 @@ export interface NotificationDataInput {
   eventId?: string | null;
   municipalityId?: string | null;
   requesterUid?: string | null;
+  entityKind?: z.infer<typeof EntityKindSchema> | null;
+  entityId?: string | null;
   read?: boolean;
   createdAt?: Date;
 }
@@ -45,6 +53,8 @@ export function buildNotificationData(input: NotificationDataInput): Notificatio
     eventId: input.eventId ?? null,
     municipalityId: input.municipalityId ?? null,
     requesterUid: input.requesterUid ?? null,
+    entityKind: input.entityKind ?? null,
+    entityId: input.entityId ?? null,
     read: input.read ?? false,
     createdAt: input.createdAt ?? new Date(),
   };
