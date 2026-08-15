@@ -12,12 +12,18 @@ import { resolve } from 'node:path';
 // These invariant tests fail the build if that wiring is removed, un-guarded,
 // or reordered after a deploy step. Parsed as text (no YAML dep), in the same
 // spirit as conformanceGate.test.ts. See AGENTS.md "Backfills".
+//
+// Also covers set-app-version.yml, the sibling credential-free endpoint for
+// `config/appVersion`: same WIF mechanism, same dry-run-by-default posture, and
+// the same reason for existing — a release step that needs Firestore
+// credentials nobody holds locally.
 
 const repoRoot = resolve(__dirname, '../../../..');
 const read = (rel: string) => readFileSync(resolve(repoRoot, rel), 'utf-8');
 const deployWorkflow = read('.github/workflows/deploy-firebase.yml');
 const runWorkflow = read('.github/workflows/run-backfill.yml');
 const ciWorkflow = read('.github/workflows/ci.yml');
+const appVersionWorkflow = read('.github/workflows/set-app-version.yml');
 
 /** Split a workflow's steps into per-step blocks so `if:`/`run:` attribute correctly. */
 function stepBlockContaining(workflow: string, needle: string): string {
@@ -111,5 +117,50 @@ describe('run-backfill endpoint invariant', () => {
 describe('registry coverage lint invariant', () => {
   it('runs the warn-only coverage lint in CI', () => {
     expect(ciWorkflow).toContain('pnpm backfills:lint');
+  });
+});
+
+describe('set-app-version endpoint invariant', () => {
+  // config/appVersion is the force-update gate clients read on launch. It is
+  // the one release step that is neither a code deploy nor a data migration, so
+  // without this endpoint a release cannot be cut without local credentials.
+  it('is manually dispatchable with env, latest, min_supported and mode inputs', () => {
+    expect(appVersionWorkflow).toContain('workflow_dispatch');
+    for (const input of ['      env:', '      latest:', '      min_supported:', '      mode:']) {
+      expect(appVersionWorkflow).toContain(input);
+    }
+  });
+
+  it('defaults to dry-run and only writes when mode is explicitly apply', () => {
+    expect(appVersionWorkflow).toMatch(/default: dry-run/);
+    const applyStep = appVersionWorkflow.split(/^ {6}- name:/m).find((b) => b.includes('--confirm'));
+    expect(applyStep, 'apply step not found').toBeDefined();
+    expect(applyStep).toMatch(/if:\s*inputs\.mode == 'apply'/);
+  });
+
+  it('always previews before writing', () => {
+    const dryPos = appVersionWorkflow.indexOf('--dry-run');
+    const applyPos = appVersionWorkflow.indexOf('--confirm');
+    expect(dryPos).toBeGreaterThanOrEqual(0);
+    expect(dryPos).toBeLessThan(applyPos);
+  });
+
+  it('authenticates keylessly via WIF, never a stored SA key', () => {
+    expect(appVersionWorkflow).toContain('workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}');
+    expect(appVersionWorkflow).toContain('service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}');
+    expect(appVersionWorkflow).not.toMatch(/credentials_json:|secrets\.FIREBASE_SA/);
+    expect(appVersionWorkflow).toMatch(/id-token: write/);
+  });
+
+  it('serializes runs per environment and never cancels one mid-flight', () => {
+    expect(appVersionWorkflow).toContain('group: app-version-${{ inputs.env }}');
+    expect(appVersionWorkflow).toContain('cancel-in-progress: false');
+  });
+
+  it('omits a blank input rather than passing an empty flag value', () => {
+    // `--latest=` would be parsed as an explicit empty version. The ${VAR:+...}
+    // form drops the flag entirely when the input is blank.
+    expect(appVersionWorkflow).toContain('${LATEST:+--latest="$LATEST"}');
+    expect(appVersionWorkflow).toContain('${MIN:+--min="$MIN"}');
   });
 });
