@@ -271,13 +271,13 @@ describe('VillageTabScreen', () => {
       (getHomeFeed as jest.Mock).mockResolvedValue([post]);
     });
 
-    // Artículos sits above Eventos while the villages have little event
-    // activity. Both sections render only when non-empty, hence the fixtures.
-    it('renders Artículos above Eventos', async () => {
+    // Eventos leads the village home. Both sections render only when
+    // non-empty, hence the fixtures.
+    it('renders Eventos above Artículos', async () => {
       const { findByText, getAllByText } = render(<VillageTabScreen />);
       await findByText('Artículos', undefined, { timeout: 5000 });
       const titles = getAllByText(/^(Artículos|Eventos del pueblo)$/).map((n) => n.props.children);
-      expect(titles).toEqual(['Artículos', 'Eventos del pueblo']);
+      expect(titles).toEqual(['Eventos del pueblo', 'Artículos']);
     });
   });
 

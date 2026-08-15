@@ -332,21 +332,6 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
           </View>
         ) : null}
 
-        {/* ── Artículos ────────────────────────────────────────── */}
-        <Section
-          title={t('village.newsFeed.title')}
-          isEmpty={news.length === 0}
-          status={sectionStatus.news}
-        >
-          {news.map((n) => (
-            <NewsEntityCard
-              key={n.id}
-              post={n}
-              onPress={() => router.push(`/news/${n.id}` as never)}
-            />
-          ))}
-        </Section>
-
         {/* ── Eventos ──────────────────────────────────────────── */}
         <Section
           title={t('village.events.label')}
@@ -369,6 +354,21 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
             />
           )}
         />
+
+        {/* ── Artículos ────────────────────────────────────────── */}
+        <Section
+          title={t('village.newsFeed.title')}
+          isEmpty={news.length === 0}
+          status={sectionStatus.news}
+        >
+          {news.map((n) => (
+            <NewsEntityCard
+              key={n.id}
+              post={n}
+              onPress={() => router.push(`/news/${n.id}` as never)}
+            />
+          ))}
+        </Section>
 
         {/* ── Carteles de fiestas ──────────────────────────────── */}
         <Section
