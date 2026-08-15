@@ -101,19 +101,18 @@ describe('FeedScreen tab order', () => {
     (getAllVillagesFeed as jest.Mock).mockResolvedValue([post]);
   });
 
-  it('shows Artículos before Eventos in the toggle', async () => {
+  it('shows Eventos before Artículos in the toggle', async () => {
     const { findAllByText } = render(<FeedScreen />);
     const labels = (await findAllByText(/^(Artículos|Eventos)$/)).map((n) => n.props.children);
-    expect(labels).toEqual(['Artículos', 'Eventos']);
+    expect(labels).toEqual(['Eventos', 'Artículos']);
   });
 
-  it('opens on the Artículos feed and renders its page first', async () => {
-    const { findByText, getAllByText } = render(<FeedScreen />);
-    // The news feed only loads when its tab is the active one, so its content
-    // appearing without any interaction proves Artículos is the landing tab.
-    expect(await findByText('Corte de agua', undefined, { timeout: 5000 })).toBeTruthy();
-    // Pager page order mirrors the toggle: the article card precedes the event card.
-    const cards = getAllByText(/^(Corte de agua|Verbena)$/).map((n) => n.props.children);
-    expect(cards).toEqual(['Corte de agua', 'Verbena']);
+  it('opens on the Eventos feed and renders its page first', async () => {
+    const { findByText, queryByText } = render(<FeedScreen />);
+    // The news feed only loads once its tab is active. So the event card showing
+    // up with no interaction, while the article card is still absent, pins both
+    // halves at once: Eventos is the landing tab, and its page renders first.
+    expect(await findByText('Verbena', undefined, { timeout: 5000 })).toBeTruthy();
+    expect(queryByText('Corte de agua')).toBeNull();
   });
 });
