@@ -1,0 +1,125 @@
+name: Run Backfill
+
+# Manually/API-triggerable endpoint to run a registered backfill against an
+# environment and record its completion marker. DRY RUN BY DEFAULT.
+#
+# WHY THIS EXISTS: backfill scripts need Firestore write credentials, which are
+# deliberately not available outside CI — beta/prod enforce
+# `iam.disableServiceAccountKeyCreation`, so there are no downloadable keys to
+# hand out. This workflow is the credentialed front door: it authenticates
+# keylessly via Workload Identity Federation using the SAME per-environment
+# GitHub Environment vars the deploy uses (GCP_WIF_PROVIDER /
+# GCP_SERVICE_ACCOUNT, whose service account holds roles/datastore.owner).
+# Triggerable from the Actions UI or the GitHub API, so an agent with no
+# credentials of its own can still drive a migration.
+#
+# NO SERVICE-ACCOUNT KEY SECRETS. WIF binds each environment to its own
+# provider+SA, so "which credential am I holding?" is decided by the
+# `environment:` name rather than by picking between two secrets at runtime —
+# there is no way for a prod run to fall through to a beta credential.
+
+on:
+  workflow_dispatch:
+    inputs:
+      id:
+        description: 'Backfill id (see `pnpm backfills:list`)'
+        required: true
+        type: string
+      env:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - beta
+          - prod
+      mode:
+        description: 'dry-run (default, no writes) or apply'
+        required: true
+        default: dry-run
+        type: choice
+        options:
+          - dry-run
+          - apply
+
+jobs:
+  run-backfill:
+    name: ${{ inputs.id }} → ${{ inputs.env }} (${{ inputs.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Maps to the same GitHub Environments the deploy workflows use, so the
+    # WIF provider/SA vars resolve per target. A prod run additionally inherits
+    # whatever protection rules that environment carries.
+    environment: ${{ inputs.env == 'prod' && 'production' || inputs.env }}
+    # A backfill mutates shared data — never run two against one env at once,
+    # and never cancel one mid-flight (a half-applied run leaves no marker).
+    concurrency:
+      group: backfill-${{ inputs.env }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write # required for Workload Identity Federation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.24.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Backfills import converters/models from the shared package.
+      - name: Build shared
+        run: pnpm shared:build
+
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          # Exports GOOGLE_APPLICATION_CREDENTIALS, which is resolution step 1
+          # in scripts/lib/env-credentials.mjs — so the scripts need no
+          # CI-specific branch.
+          create_credentials_file: true
+          export_environment_variables: true
+
+      # Always dry-run first, even when the caller asked to apply: the log then
+      # shows what a run WOULD touch right above what it did, and a script that
+      # crashes on a read crashes here instead of half-applied.
+      - name: Dry run
+        run: node scripts/backfills-cli.mjs run --id="$ID" --env="$ENV" --confirm --verbose
+        env:
+          ID: ${{ inputs.id }}
+          ENV: ${{ inputs.env }}
+
+      - name: Apply
+        if: inputs.mode == 'apply'
+        run: node scripts/backfills-cli.mjs run --id="$ID" --env="$ENV" --confirm --apply --verbose
+        env:
+          ID: ${{ inputs.id }}
+          ENV: ${{ inputs.env }}
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Backfill \`${{ inputs.id }}\` → \`${{ inputs.env }}\`"
+            echo ""
+            echo "- Mode: **${{ inputs.mode }}**"
+            echo "- Result: **${{ job.status }}**"
+            if [ "${{ inputs.mode }}" = "apply" ] && [ "${{ job.status }}" = "success" ]; then
+              echo "- Marker: \`_admin/backfills/markers/${{ inputs.id }}.${{ inputs.env }}\` recorded."
+            else
+              echo "- No marker written (dry run or failed run)."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

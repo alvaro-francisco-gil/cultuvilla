@@ -1,72 +1,64 @@
 #!/usr/bin/env node
 /**
- * backfill-comment-threading.mjs
+ * Backfill the required fields the comment-threading feature added:
+ * `parentCommentId` (nullable) and `replyCount` on `comments/`, and
+ * `entityKind`/`entityId` (both nullable) on the `users/{uid}/notifications`
+ * collection group, for the `comment_reply` notification type.
  *
- * One-off: the comment-threading feature added two REQUIRED fields to the
- * `comments/` collection — `parentCommentId` (nullable) and `replyCount`.
- * It also added `entityKind`/`entityId` (both nullable) to the
- * `users/{uid}/notifications` collection group, for the `comment_reply`
- * notification type. Existing dev docs predate these fields, so the strict
- * Zod converter now throws on read. Backfill every doc missing them with the
- * same defaults the model builders use (`parentCommentId: null`,
- * `replyCount: 0`, `entityKind: null`, `entityId: null`).
+ * Docs predating those fields make the strict Zod converter throw on read, so
+ * this writes the same defaults the model builders use.
  *
- * USAGE
- *   node scripts/backfill-comment-threading.mjs                  (dev dry run)
- *   node scripts/backfill-comment-threading.mjs --apply          (dev writes)
- *   env -u GOOGLE_APPLICATION_CREDENTIALS \
- *     node scripts/backfill-comment-threading.mjs --env=beta --confirm --apply
+ * Registered on the backfill harness: see AGENTS.md "Backfills" and
+ * `pnpm backfills:list`.
  *
- * Credentials resolve via initAdminForEnv (see lib/env-credentials.mjs). Dev is
- * autonomous; beta/prod require --confirm (and the stored ADC — unset
- * GOOGLE_APPLICATION_CREDENTIALS so a dev key can't hijack the target project).
- * `--apply` still gates the actual write on every env (dry run without it).
- *
- * Idempotent: only patches docs missing the fields; re-running after a full
- * backfill patches 0 docs.
+ *   node scripts/backfill-comment-threading.mjs --env=dev            (dry run)
+ *   node scripts/backfill-comment-threading.mjs --env=dev --apply
+ *   node scripts/backfill-comment-threading.mjs --env=beta --confirm --apply
  */
 
-import admin from 'firebase-admin';
-import { initAdminForEnv } from './lib/env-credentials.mjs';
-import { parseEnvConfirm } from './lib/env-confirm.mjs';
 import { backfillCollection } from './lib/backfill.mjs';
+import { isMain, runBackfill } from './lib/backfill-harness.mjs';
 
-const { projectId } = initAdminForEnv(parseEnvConfirm());
-const db = admin.firestore();
-const APPLY = process.argv.includes('--apply');
+export const meta = {
+  id: 'comment-threading',
+  kind: 'backfill',
+  description:
+    'Add comments.parentCommentId/replyCount and notifications.entityKind/entityId so the strict converters can read pre-threading docs',
+  // Already applied to every env before the registry existed, so it gates
+  // nothing now. Authored today it would be 'pre-deploy': the converters that
+  // require these fields cannot read a doc that is missing them.
+  phase: 'none',
+  envs: ['dev', 'beta', 'prod'],
+  idempotent: true,
+  owner: 'alvaro',
+  autoApply: [],
+};
 
-function patchFor(data) {
+function patchComment(data) {
   const patch = {};
   if (data.parentCommentId === undefined) patch.parentCommentId = null;
   if (data.replyCount === undefined) patch.replyCount = 0;
   return patch;
 }
 
-function patchForNotifications(data) {
+function patchNotification(data) {
   const patch = {};
   if (data.entityKind === undefined) patch.entityKind = null;
   if (data.entityId === undefined) patch.entityId = null;
   return patch;
 }
 
-async function main() {
-  console.log(`${APPLY ? 'Backfilling' : 'DRY-RUN: checking'} comment threading fields against ${projectId}\n`);
-  const { patched, total } = await backfillCollection(db, 'comments', db.collection('comments'), patchFor, {
-    apply: APPLY,
-  });
-
-  const { patched: notificationsPatched, total: notificationsTotal } = await backfillCollection(
+export async function run({ db, apply, log }) {
+  log('comment threading fields');
+  const comments = await backfillCollection(db, 'comments', db.collection('comments'), patchComment, { apply });
+  const notifications = await backfillCollection(
     db,
     'notifications (collection group)',
     db.collectionGroup('notifications'),
-    patchForNotifications,
-    { apply: APPLY },
+    patchNotification,
+    { apply },
   );
-
-  console.log(`\nDone. Total patched: ${patched}/${total} comments, ${notificationsPatched}/${notificationsTotal} notifications`);
+  return { comments, notifications };
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (isMain(import.meta.url)) await runBackfill({ meta, run });

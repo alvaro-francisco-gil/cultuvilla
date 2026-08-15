@@ -83,6 +83,34 @@ jobs:
         if: ${{ inputs.firebase_alias != 'dev' }}
         run: node scripts/check-dev-conformance.mjs --env ${{ inputs.firebase_alias }}
 
+      # Auto-apply gate — beta/prod only (same reason as above). Runs every
+      # backfill that opted into `autoApply` for this env and has no marker
+      # yet. `validateMeta` only accepts that opt-in on an idempotent backfill,
+      # so this is safe to run on every deploy; with nothing opted in it is a
+      # no-op that prints one line. Runs BEFORE the verify gate so a backfill
+      # that can apply itself satisfies the gate instead of blocking on a human.
+      - name: Auto-apply opted-in backfills
+        if: ${{ inputs.firebase_alias != 'dev' }}
+        run: node scripts/backfills-cli.mjs auto-apply --env ${{ inputs.firebase_alias }} --confirm --apply
+
+      # Backfill gate — beta/prod only. A code change deploys automatically
+      # when it reaches an env; the data migration it depends on does NOT. This
+      # fails the deploy when a `pre-deploy` backfill has no completion marker
+      # for the target env — i.e. we are about to ship converters that cannot
+      # read this env's data. It is the machine-checkable version of the
+      # CHANGELOG `**Migration:**` marker, which was a human convention with no
+      # enforcement. `post-deploy` backfills are reported as a warning instead:
+      # blocking on them would deadlock, since they cannot run until the deploy
+      # they would be blocking has happened.
+      #
+      # Unblock a failure by running the named backfill against this env —
+      # Actions → "Run Backfill" (run-backfill.yml), which needs no local
+      # credentials. Skipped for dev for the same reason as the conformance
+      # gate above.
+      - name: Backfill gate — required migrations have run on the target env
+        if: ${{ inputs.firebase_alias != 'dev' }}
+        run: node scripts/backfills-cli.mjs verify --env ${{ inputs.firebase_alias }}
+
       # Custom-token signing gate — all envs. createCustomToken() signs via the
       # IAM Credentials API as the functions runtime SA, which therefore needs
       # `iam.serviceAccounts.signBlob` on ITSELF. The Firebase CLI does not grant

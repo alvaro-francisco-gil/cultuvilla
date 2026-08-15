@@ -913,6 +913,16 @@ service cloud.firestore {
         && resource.data.userId == request.auth.uid;
     }
 
+    // _admin/** is server-only operational state: backfill completion markers
+    // at _admin/backfills/markers/{id}, and anything the registry adds later.
+    // The Admin SDK bypasses rules, so the backfill harness writes these fine;
+    // clients must never read or write them. Default-deny already blocks an
+    // unmatched path — this explicit rule makes the invariant assertable and
+    // stops a future broad rule from accidentally exposing operational state.
+    match /_admin/{document=**} {
+      allow read, write: if false;
+    }
+
     // Public read-only app config (force-update gate). Written by admin/seed
     // script via the admin SDK, never by clients.
     match /config/{docId} {
