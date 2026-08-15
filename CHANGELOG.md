@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.18.0 — 2026-08-15
+
 ### Security
 - Locked the document fields that Firestore rules derive authority from. A guardrail audit found five places where a rule granted access based on a field the client could rewrite; no UI offered these writes, so only the rules could catch them. Closed: a person doc could point `userId` at another account and hijack that account's `displayName` via `syncPersonDenormalization`; an approved peña could flip `type` to `ayuntamiento` (a per-village singleton) or move itself to another pueblo; a village admin could self-appoint as `community.organizerId`, which `changeVillageMemberRole` then refuses to demote (an irreversible admin lock), rewrite the INE identity fields, or deactivate the community; a comment could carry a foreign `municipalityId` and so sit outside the reach of the admins who moderate its entity; a waitlisted attendee could self-promote to `confirmed` past `maxAttendees`; and the creator of a place/barrio/cartel could reassign `proposedBy` (plus move a cartel between villages).
 
@@ -31,13 +33,6 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 **Migration:** the gate reads IAM as the WIF deployer service account, which needs `roles/iam.serviceAccountViewer` — added to `scripts/setup-ci-deploy-wif.sh` for new environments, but **existing envs must be granted manually before this reaches them**, or the deploy fails on the new gate step:
 `gcloud projects add-iam-policy-binding <project-id> --member="serviceAccount:gha-deployer@<project-id>.iam.gserviceaccount.com" --role="roles/iam.serviceAccountViewer" --condition=None` (per env: `villa-events`, `cultuvilla-beta`, `cultuvilla-prod`).
 
-### Fixed
-- `scripts/seed-app-version-config.mjs` defaulted `latest` to a **hardcoded `0.1.0`** while `app.config.ts` was at `0.17.0` — running it without `--latest` announced a 16-versions-stale release as newest. It now reads the version from `app.config.ts`, the documented source of truth, via a shared helper that `check-beta-version-bump.mjs` also uses.
-- The same script wrote `config/appVersion` whole (`merge: false`), so omitting `--min` silently reset `minSupported` to `0.0.0` — un-walling every client the gate was deliberately blocking. Omitting it now **preserves** the stored value; only an explicit `--min` moves the wall. Harmless while the gate is dormant at `0.0.0`, latent once it isn't.
-- It also gained `--dry-run`, so the resolved values can be previewed against the stored doc before writing.
-- `scripts/backfill-barrio-resident-count.mjs` ignored its own `--apply` flag and wrote on every invocation — there was no dry run. It now honours `--apply` like every other backfill.
-- A **private persona no longer disappears from their own creator's view of the cemetery**. The buried list is read with two queries — the public burials, plus the caller's own — and merged, because Firestore evaluates a read rule per matched document and so rejects a single unfiltered query outright rather than filtering it. The creator now sees their relative among the difuntos, marked with a lock so it's clear the row is theirs alone; private still means invisible to everyone else here, since the cemetery has no function-owned projection to list names from. Adds a `burialPlace.placeId + createdBy` composite index.
-
 ### Changed
 - **One definition of "may I edit this?"** for all five entity kinds. `useEntityCapabilities().canEdit(creatorId, organizerUserIds?)` is now the single predicate — admin, author, or named organizer — and both the `useEventOrganizer` hook and the hand-rolled check on the article screen are gone. Each kind used to answer the question its own way, and two of them answered it differently from the server.
 - The person card (a persona with no account, opened from the village tab) was rebuilt as an encyclopedia entry: the name owns the top of the screen (the nav bar no longer repeats it), then a portrait photo on the left with the facts beside it — **Nacimiento**, **Pueblo**, **Barrio** and **Oficios**, each a muted label with its value underneath. Birthplace, pueblo and barrio are new to this screen: the ids stored on the person are resolved to municipality and barrio names. Oficios is now one comma-separated line instead of a row of rounded chips.
@@ -53,6 +48,12 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 - Org member and event attendee rosters now open the tapped person's profile, like the villager roster does. Their destructive controls (remove from org / remove attendee) and the org promote/demote action moved behind an "Editar" toggle on the section heading, so they are hidden while simply reading a roster.
 
 ### Fixed
+
+- `scripts/seed-app-version-config.mjs` defaulted `latest` to a **hardcoded `0.1.0`** while `app.config.ts` was at `0.17.0` — running it without `--latest` announced a 16-versions-stale release as newest. It now reads the version from `app.config.ts`, the documented source of truth, via a shared helper that `check-beta-version-bump.mjs` also uses.
+- The same script wrote `config/appVersion` whole (`merge: false`), so omitting `--min` silently reset `minSupported` to `0.0.0` — un-walling every client the gate was deliberately blocking. Omitting it now **preserves** the stored value; only an explicit `--min` moves the wall. Harmless while the gate is dormant at `0.0.0`, latent once it isn't.
+- It also gained `--dry-run`, so the resolved values can be previewed against the stored doc before writing.
+- `scripts/backfill-barrio-resident-count.mjs` ignored its own `--apply` flag and wrote on every invocation — there was no dry run. It now honours `--apply` like every other backfill.
+- A **private persona no longer disappears from their own creator's view of the cemetery**. The buried list is read with two queries — the public burials, plus the caller's own — and merged, because Firestore evaluates a read rule per matched document and so rejects a single unfiltered query outright rather than filtering it. The creator now sees their relative among the difuntos, marked with a lock so it's clear the row is theirs alone; private still means invisible to everyone else here, since the cemetery has no function-owned projection to list names from. Adds a `burialPlace.placeId + createdBy` composite index.
 
 - **Village admins can now edit the articles in their pueblo**, not only hide them. [docs/decisions/event-news-ownership-and-single-date.md](docs/decisions/event-news-ownership-and-single-date.md) has always specified one control predicate for every entity — author, named organizer, village admin, app admin — but the news update rule was the one place that left the admins out, so an admin could moderate an article without being able to fix a typo in it. Note this is genuine new authority: unlike hiding, a content edit leaves no `moderationEvents` trail.
 
