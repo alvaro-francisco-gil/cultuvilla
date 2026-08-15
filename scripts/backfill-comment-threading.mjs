@@ -24,10 +24,9 @@ export const meta = {
   kind: 'backfill',
   description:
     'Add comments.parentCommentId/replyCount and notifications.entityKind/entityId so the strict converters can read pre-threading docs',
-  // Already applied to every env before the registry existed, so it gates
-  // nothing now. Authored today it would be 'pre-deploy': the converters that
-  // require these fields cannot read a doc that is missing them.
-  phase: 'none',
+  // The converters that require these fields cannot read a doc missing them,
+  // so this must land before the code that reads it does.
+  phase: 'pre-deploy',
   envs: ['dev', 'beta', 'prod'],
   idempotent: true,
   owner: 'alvaro',
