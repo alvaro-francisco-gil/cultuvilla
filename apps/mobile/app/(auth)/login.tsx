@@ -7,6 +7,7 @@ import {
   OrDivider,
 } from '../../components/auth';
 import { useAuth } from '../../lib/auth/useAuth';
+import { authErrorMessage } from '../../lib/auth/authErrorMessage';
 import { useT } from '../../lib/i18n';
 
 type Step = 'email' | 'code';
@@ -29,7 +30,7 @@ export default function LoginScreen() {
       await sendOtpCode(email);
       setStep('code');
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('auth.error.unknown'));
+      setError(authErrorMessage(e, t('auth.error.unknown')));
     } finally {
       setSendLoading(false);
     }
@@ -42,7 +43,7 @@ export default function LoginScreen() {
       await verifyOtpCode(email, code);
       // AuthGate (app/_layout.tsx) picks up the auth state change and routes.
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('auth.error.unknown'));
+      setError(authErrorMessage(e, t('auth.error.unknown')));
     } finally {
       setVerifyLoading(false);
     }
@@ -63,7 +64,7 @@ export default function LoginScreen() {
     try {
       await signInWithGoogle();
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('auth.error.unknown'));
+      setError(authErrorMessage(e, t('auth.error.unknown')));
     } finally {
       setGoogleLoading(false);
     }

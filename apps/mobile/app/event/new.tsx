@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -224,6 +224,10 @@ export default function NewEventScreen() {
     };
   }, [editMode, user, villageId, profile?.activeMunicipalityId]);
 
+  // Survives a failed cover upload so the retry patches the event that was
+  // already created instead of creating another one. See the create branch.
+  const createdEventIdRef = useRef<string | null>(null);
+
   const { fire: submit, isPending } = useCallable({
     callable: async () => {
       if (!municipalityId || !user || !startDate) return;
@@ -261,23 +265,33 @@ export default function NewEventScreen() {
       }
 
       // ── Create ────────────────────────────────────────────────────────────
-      const newId = await createEvent({
-        title: title.trim(),
-        description: description.trim(),
-        startDate,
-        endDate,
-        location,
-        maxAttendees: maxAttendeesValue,
-        telephoneRequired,
-        requiresPayment,
-        status: 'published',
-        organizerUserIds,
-        organizerOrgIds,
-        createdBy: user.uid,
-        municipalityId,
-        villageName: municipalityName,
-        villageCoordinates: municipalityCoordinates,
-      });
+      // Creating the event and uploading its cover are two round-trips, and the
+      // upload is the one that fails on a weak link (a 5 MB image outlives the
+      // Storage SDK's own retry budget). The event exists by then, so a retry
+      // has to finish *that* event — re-running createEvent would leave the
+      // user with a duplicate for every failed attempt. The id survives in a
+      // ref for exactly as long as the form does.
+      let newId = createdEventIdRef.current;
+      if (!newId) {
+        newId = await createEvent({
+          title: title.trim(),
+          description: description.trim(),
+          startDate,
+          endDate,
+          location,
+          maxAttendees: maxAttendeesValue,
+          telephoneRequired,
+          requiresPayment,
+          status: 'published',
+          organizerUserIds,
+          organizerOrgIds,
+          createdBy: user.uid,
+          municipalityId,
+          villageName: municipalityName,
+          villageCoordinates: municipalityCoordinates,
+        });
+        createdEventIdRef.current = newId;
+      }
       if (cover) {
         const url = await uploadEventImage(municipalityId, newId, {
           blob: cover.blob,

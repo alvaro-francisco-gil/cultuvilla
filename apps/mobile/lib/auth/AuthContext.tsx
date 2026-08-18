@@ -38,6 +38,12 @@ import {
   isSuccessResponse,
 } from '@react-native-google-signin/google-signin';
 import { clearPendingIntent } from './pendingIntent';
+import {
+  clearPendingToken,
+  getPendingToken,
+  rememberPendingToken,
+  shouldRetainToken,
+} from './otpTokenCache';
 import { fetchUserIdHash } from '../observability/errorBridge';
 
 declare const __DEV__: boolean;
@@ -355,8 +361,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const verifyOtpCode = async (email: string, code: string): Promise<void> => {
     const trimmed = email.trim();
     if (!trimmed) throw new Error('email-required');
-    const token = await verifyAuthOtpCode(trimmed, code);
-    await signInWithCustomToken(getAuth(), token);
+    // A token left over from a sign-in that died mid-flight is reused instead of
+    // spending another OTP — see otpTokenCache for why the code is already gone.
+    const token = getPendingToken(trimmed) ?? (await verifyAuthOtpCode(trimmed, code));
+    rememberPendingToken(trimmed, token);
+    try {
+      await signInWithCustomToken(getAuth(), token);
+    } catch (err) {
+      if (!shouldRetainToken(err)) clearPendingToken();
+      throw err;
+    }
+    clearPendingToken();
   };
 
   // Still used by finish.tsx to distinguish a genuine reauth email link from
@@ -441,6 +456,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     await clearPendingIntent();
+    // Never let a half-spent sign-in credential outlive the session it belongs to.
+    clearPendingToken();
     await AsyncStorage.removeItem(PENDING_REAUTH_KEY);
   };
 
