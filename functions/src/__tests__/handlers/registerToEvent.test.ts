@@ -2,10 +2,30 @@
 // Runs against the Firestore + Auth emulators via firebase-admin and uses
 // firebase-functions-test to wrap the v2 callable.
 
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import * as admin from 'firebase-admin';
 import functionsTestFactory from 'firebase-functions-test';
 import { resetEmulators } from '../helpers/firestoreEmulator';
+
+vi.mock('../../auth/secret', () => ({ RESEND_API_KEY: { value: () => 'TEST_RESEND_KEY' } }));
+
+interface SendCallArgs {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}
+
+const sendMock = vi.fn((_args: SendCallArgs) =>
+  Promise.resolve({ data: { id: 'test-email-id' }, error: null }),
+);
+
+vi.mock('resend', () => ({
+  Resend: vi.fn(function ResendMock(this: { emails: { send: typeof sendMock } }) {
+    this.emails = { send: sendMock };
+  }),
+}));
+
 import { registerToEvent } from '../../events/registerToEvent';
 
 const ft = functionsTestFactory({ projectId: process.env.GCLOUD_PROJECT || 'cultuvilla-test' });
@@ -15,9 +35,13 @@ const EVENT_ID = 'e1';
 const USER_ID = 'alice';
 const OTHER_USER_ID = 'visitor';
 
-async function seedEvent(opts: { maxAttendees: number | null }): Promise<void> {
+async function seedEvent(opts: {
+  maxAttendees: number | null;
+  signupFields?: unknown[];
+}): Promise<void> {
   const now = new Date();
   await admin.firestore().doc(`events/${EVENT_ID}`).set({
+    signupFields: opts.signupFields ?? [],
     title: 'Fiesta',
     description: 'Una fiesta',
     startDate: now,
@@ -50,6 +74,19 @@ async function seedMembership(userId: string): Promise<void> {
     joinedAt: new Date(),
     profileAnswers: {},
     profileCompletedAt: null,
+  });
+}
+
+async function seedUser(userId: string, email: string): Promise<void> {
+  await admin.firestore().doc(`users/${userId}`).set({
+    displayName: userId,
+    email,
+    telephone: null,
+    activeMunicipalityId: MUNICIPALITY_ID,
+    personId: null,
+    createdAt: new Date(),
+    termsAcceptedAt: new Date(),
+    termsVersion: '1.0.0',
   });
 }
 
@@ -96,6 +133,7 @@ describe('registerToEvent (callable)', () => {
 
   beforeEach(async () => {
     await resetEmulators();
+    sendMock.mockClear();
   });
 
   afterAll(() => {
@@ -251,5 +289,220 @@ describe('registerToEvent (callable)', () => {
     const eventDoc = await admin.firestore().doc(`events/${EVENT_ID}`).get();
     expect(eventDoc.data()?.confirmedCount).toBe(2);
     expect(eventDoc.data()?.totalCount).toBe(2);
+  });
+
+  describe('confirmation email', () => {
+    function onlySentEmail(): SendCallArgs {
+      expect(sendMock).toHaveBeenCalledTimes(1);
+      return sendMock.mock.calls[0][0];
+    }
+
+    it('sends one email for the whole signup, not one per registrant', async () => {
+      await seedEvent({ maxAttendees: 10 });
+      await seedUser(USER_ID, 'ana@example.com');
+      await callRegister({
+        uid: USER_ID,
+        data: {
+          eventId: EVENT_ID,
+          registrants: [
+            { personId: 'p1', name: 'Ana' },
+            { personId: 'p2', name: 'Bea' },
+          ],
+        },
+      });
+
+      expect(sendMock).toHaveBeenCalledTimes(1);
+      const sent = onlySentEmail();
+      expect(sent.to).toBe('ana@example.com');
+      expect(sent.subject).toContain('Fiesta');
+      expect(sent.text).toContain('Ana');
+      expect(sent.text).toContain('Bea');
+    });
+
+    it('reports the post-signup capacity, not the pre-signup one', async () => {
+      await seedEvent({ maxAttendees: 10 });
+      await seedUser(USER_ID, 'ana@example.com');
+      await seedExistingReg('r0', { userId: OTHER_USER_ID, status: 'confirmed', position: 1 });
+      await callRegister({
+        uid: USER_ID,
+        data: { eventId: EVENT_ID, registrants: [{ personId: 'p1', name: 'Ana' }] },
+      });
+
+      expect(onlySentEmail().text).toContain('2 de 10 plazas ocupadas');
+    });
+
+    it('tells a waitlisted registrant their queue position', async () => {
+      await seedEvent({ maxAttendees: 1 });
+      await seedUser(USER_ID, 'ana@example.com');
+      await callRegister({
+        uid: USER_ID,
+        data: {
+          eventId: EVENT_ID,
+          registrants: [
+            { personId: 'p1', name: 'Ana' },
+            { personId: 'p2', name: 'Bea' },
+          ],
+        },
+      });
+
+      const sent = onlySentEmail();
+      expect(sent.text).toContain('Ana — plaza confirmada');
+      expect(sent.text).toContain('Bea — en lista de espera (nº 2)');
+    });
+
+    it('skips the email when the user has no address on file', async () => {
+      await seedEvent({ maxAttendees: 10 });
+      await callRegister({
+        uid: USER_ID,
+        data: { eventId: EVENT_ID, registrants: [{ personId: 'p1', name: 'Ana' }] },
+      });
+
+      expect(sendMock).not.toHaveBeenCalled();
+    });
+
+    it('still registers the user when the mail provider fails', async () => {
+      await seedEvent({ maxAttendees: 10 });
+      await seedUser(USER_ID, 'ana@example.com');
+      sendMock.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'provider down' },
+      } as unknown as Awaited<ReturnType<typeof sendMock>>);
+
+      const result = await callRegister({
+        uid: USER_ID,
+        data: { eventId: EVENT_ID, registrants: [{ personId: 'p1', name: 'Ana' }] },
+      });
+
+      expect(result.registrations).toHaveLength(1);
+      const regs = await admin.firestore().collection(`events/${EVENT_ID}/registrations`).get();
+      expect(regs.size).toBe(1);
+    });
+  });
+  describe('custom signup fields', () => {
+    const SIZE = { id: 'size', label: 'Talla', type: 'select', required: true, options: ['S', 'M'] };
+    const NOTE = { id: 'note', label: 'Alergias', type: 'text', required: false, options: [] };
+
+    async function privateDocs(): Promise<Record<string, unknown>[]> {
+      const snap = await admin.firestore().collection(`events/${EVENT_ID}/registrationPrivate`).get();
+      return snap.docs.map((d) => d.data());
+    }
+
+    it('stores each registrant\u2019s answers in the organizer-only private doc', async () => {
+      await seedEvent({ maxAttendees: 10, signupFields: [SIZE, NOTE] });
+      const res = await callRegister({
+        uid: USER_ID,
+        data: {
+          eventId: EVENT_ID,
+          registrants: [
+            { personId: 'p1', name: 'Ana', answers: { size: 'M', note: 'ninguna' } },
+            { personId: 'p2', name: 'Bea', answers: { size: 'S' } },
+          ],
+        },
+      });
+
+      const regId = res.registrations[0]?.id ?? '';
+      const priv = await admin
+        .firestore()
+        .doc(`events/${EVENT_ID}/registrationPrivate/${regId}`)
+        .get();
+      expect(priv.data()).toEqual({
+        name: 'Ana',
+        phone: null,
+        answers: { size: 'M', note: 'ninguna' },
+      });
+
+      // Per-attendee, not per-signup: the second registrant has their own answers.
+      const all = await privateDocs();
+      expect(all).toHaveLength(2);
+      expect(all.map((d) => (d.answers as Record<string, unknown>).size).sort()).toEqual(['M', 'S']);
+    });
+
+    it('keeps answers off the public registration doc', async () => {
+      await seedEvent({ maxAttendees: 10, signupFields: [SIZE] });
+      const res = await callRegister({
+        uid: USER_ID,
+        data: { eventId: EVENT_ID, registrants: [{ personId: 'p1', name: 'Ana', answers: { size: 'M' } }] },
+      });
+      const reg = await admin
+        .firestore()
+        .doc(`events/${EVENT_ID}/registrations/${res.registrations[0]?.id ?? ''}`)
+        .get();
+      expect(reg.data()).not.toHaveProperty('answers');
+    });
+
+    it('rejects a missing required answer and writes nothing', async () => {
+      await seedEvent({ maxAttendees: 10, signupFields: [SIZE] });
+      await expect(
+        callRegister({
+          uid: USER_ID,
+          data: { eventId: EVENT_ID, registrants: [{ personId: 'p1', name: 'Ana' }] },
+        }),
+      ).rejects.toThrow(/obligatorias|v\u00e1lida/i);
+
+      const regs = await admin.firestore().collection(`events/${EVENT_ID}/registrations`).get();
+      expect(regs.size).toBe(0);
+    });
+
+    it('rejects a select value that is not one of the declared options', async () => {
+      await seedEvent({ maxAttendees: 10, signupFields: [SIZE] });
+      await expect(
+        callRegister({
+          uid: USER_ID,
+          data: {
+            eventId: EVENT_ID,
+            registrants: [{ personId: 'p1', name: 'Ana', answers: { size: 'XXL' } }],
+          },
+        }),
+      ).rejects.toThrow(/obligatorias|v\u00e1lida/i);
+    });
+
+    it('rejects answers for a field the event does not declare', async () => {
+      await seedEvent({ maxAttendees: 10, signupFields: [] });
+      await expect(
+        callRegister({
+          uid: USER_ID,
+          data: {
+            eventId: EVENT_ID,
+            registrants: [{ personId: 'p1', name: 'Ana', answers: { ghost: 'x' } }],
+          },
+        }),
+      ).rejects.toThrow(/obligatorias|v\u00e1lida/i);
+    });
+
+    it('rejects a non-primitive answer value at the input-shape gate', async () => {
+      await seedEvent({ maxAttendees: 10, signupFields: [NOTE] });
+      await expect(
+        callRegister({
+          uid: USER_ID,
+          data: {
+            eventId: EVENT_ID,
+            registrants: [{ personId: 'p1', name: 'Ana', answers: { note: { nested: true } } }],
+          },
+        }),
+      ).rejects.toThrow(/Respuestas inv\u00e1lidas/i);
+    });
+
+    it('writes no private doc when there is neither a phone nor an answer', async () => {
+      await seedEvent({ maxAttendees: 10, signupFields: [NOTE] });
+      await callRegister({
+        uid: USER_ID,
+        data: { eventId: EVENT_ID, registrants: [{ personId: 'p1', name: 'Ana' }] },
+      });
+      expect(await privateDocs()).toHaveLength(0);
+    });
+
+    it('stores the phone and the answers in the same private doc', async () => {
+      await seedEvent({ maxAttendees: 10, signupFields: [SIZE] });
+      await callRegister({
+        uid: USER_ID,
+        data: {
+          eventId: EVENT_ID,
+          registrants: [{ personId: 'p1', name: 'Ana', phone: '+34600111222', answers: { size: 'S' } }],
+        },
+      });
+      expect(await privateDocs()).toEqual([
+        { name: 'Ana', phone: '+34600111222', answers: { size: 'S' } },
+      ]);
+    });
   });
 });

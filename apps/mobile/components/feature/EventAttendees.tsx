@@ -10,43 +10,73 @@ import { Button } from '../primitives/Button';
 import { Avatar } from '../primitives/Avatar';
 import { DetailSectionHeading } from './DetailSectionHeading';
 import { SectionEditToggle } from './SectionEditToggle';
+import { RosterExportButton } from './RosterExportButton';
 import {
   getEventRegistrations,
-  getRegistrationPhone,
+  getRegistrationPrivate,
   cancelRegistration,
   setRegistrationPaid,
 } from '@cultuvilla/shared/services/registrationService';
 import { getPerson } from '@cultuvilla/shared/services/personService';
 import type { RegistrationData } from '@cultuvilla/shared/models/event/RegistrationDataModel';
+import type {
+  SignupAnswers,
+  SignupAnswerValue,
+  SignupFieldSpec,
+} from '@cultuvilla/shared/models/event/SignupFieldModel';
 import { colors, iconSizes } from '@cultuvilla/shared/design-system';
+import { formatDate } from '@cultuvilla/shared/utils/format';
 import { useT } from '../../lib/i18n';
 import { showConfirm } from '../../lib/dialogs';
 
 type Row = RegistrationData & { id: string };
 
+// Answers are stored as primitives (a date as its ISO string), so rendering
+// goes through the locale formatter rather than String() for dates and yes/no
+// for the checkbox type.
+function formatAnswer(value: string | number | boolean, t: (key: string) => string): string {
+  if (typeof value === 'boolean') return value ? t('common.yes') : t('common.no');
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return formatDate(parsed);
+  }
+  return String(value);
+}
+
 type AttendeePerson = { photoURL: string | null; userId: string | null };
 
 /**
  * Organizer-only attendee roster shown inline on the event detail screen: a
- * circular profile photo (from the attendee's person, initials fallback) and
- * the name, which opens that attendee's profile. Marking paid and calling (only
+ * circular profile photo (from the attendee's person, initials fallback), the
+ * name (which opens that attendee's profile) and the moment they signed up —
+ * the roster is ordered by that same moment, so the timestamp doubles as the
+ * queue position an organizer can point at. Marking paid and calling (only
  * when the event required a phone) are always available — they're the running
  * ops of an event; tapping call opens a dialog with the number to dial.
  * Removing an attendee is destructive, so the trash icons stay hidden until the
- * heading's "Editar" toggle is on.
+ * heading's "Editar" toggle is on — and the toggle itself only appears once
+ * there is at least one attendee to edit.
  */
 export function EventAttendees({
   eventId,
+  eventTitle,
+  eventDate,
   telephoneRequired,
   requiresPayment,
+  signupFields = [],
 }: {
   eventId: string;
+  eventTitle: string;
+  eventDate: Date | null;
   telephoneRequired: boolean;
   requiresPayment: boolean;
+  /** The event's custom sign-up fields; answers are listed under each row. */
+  signupFields?: SignupFieldSpec[];
 }) {
   const { t } = useT();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [phones, setPhones] = useState<Record<string, string | null>>({});
+  const [answers, setAnswers] = useState<Record<string, SignupAnswers>>({});
   const [people, setPeople] = useState<Record<string, AttendeePerson>>({});
   const [callTarget, setCallTarget] = useState<{ name: string; phone: string } | null>(null);
   const [editing, setEditing] = useState(false);
@@ -67,13 +97,17 @@ export function EventAttendees({
       }),
     );
     setPeople(Object.fromEntries(personEntries));
-    if (telephoneRequired) {
+    // One gated doc per registration carries both the phone and the custom
+    // answers, so a single fan-out covers both — skip it when the event
+    // collects neither.
+    if (telephoneRequired || signupFields.length > 0) {
       const entries = await Promise.all(
-        regs.map(async (r) => [r.id, await getRegistrationPhone(eventId, r.id)] as const),
+        regs.map(async (r) => [r.id, await getRegistrationPrivate(eventId, r.id)] as const),
       );
-      setPhones(Object.fromEntries(entries));
+      setPhones(Object.fromEntries(entries.map(([id, p]) => [id, p?.phone ?? null])));
+      setAnswers(Object.fromEntries(entries.map(([id, p]) => [id, p?.answers ?? {}])));
     }
-  }, [eventId, telephoneRequired]);
+  }, [eventId, telephoneRequired, signupFields.length]);
 
   useEffect(() => {
     void load();
@@ -87,11 +121,14 @@ export function EventAttendees({
     [eventId, load],
   );
 
-  // getEventRegistrations already orders by `position`, so the split keeps each
-  // section's queue order. Waitlist promotion is automatic (a Cloud Function
-  // fires when a confirmed reg is removed) — there is no manual promote action.
+  // getEventRegistrations already orders by `registeredAt`, so the split keeps
+  // each section in sign-up order. Waitlist promotion is automatic (a Cloud
+  // Function fires when a confirmed reg is removed) — no manual promote action.
   const confirmed = (rows ?? []).filter((r) => r.status === 'confirmed');
   const waitlisted = (rows ?? []).filter((r) => r.status === 'waitlisted');
+  // Nothing to edit with an empty roster, so the toggle only appears once
+  // someone has signed up.
+  const hasAttendees = confirmed.length + waitlisted.length > 0;
 
   // Account holders get the richer /user profile; dependent personas open
   // their read-only person card. A registration with no resolvable person
@@ -104,6 +141,9 @@ export function EventAttendees({
 
   const renderRow = (r: Row) => {
     const href = profileHref(r);
+    // registeredAt is a required field on every stored registration; the guard
+    // is for partially-mocked rows in tests, not for real data.
+    const signedUpAt = r.registeredAt ? formatDate(r.registeredAt, 'datetime') : null;
     const identity = (
       <>
         <Avatar
@@ -111,13 +151,30 @@ export function EventAttendees({
           size={36}
           initials={r.name.slice(0, 1).toUpperCase()}
         />
-        <Text numberOfLines={1} className="flex-1">
-          {r.name}
-        </Text>
+        <VStack gap={0} className="flex-1">
+          <Text numberOfLines={1}>{r.name}</Text>
+          {signedUpAt ? (
+            <Text
+              testID={`attendee-signed-up-${r.id}`}
+              variant="bodySm"
+              tone="muted"
+              numberOfLines={1}
+              accessibilityLabel={t('event.signedUpAt', { date: signedUpAt })}
+            >
+              {signedUpAt}
+            </Text>
+          ) : null}
+        </VStack>
       </>
     );
-    return (
-    <HStack key={r.id} gap={3} align="center" className="py-2">
+    // Only the fields this attendee actually answered; an optional field left
+    // blank has no entry and simply doesn't render.
+    const given = signupFields
+      .map((f) => ({ field: f, value: answers[r.id]?.[f.id] }))
+      .filter((a): a is { field: SignupFieldSpec; value: SignupAnswerValue } => a.value !== undefined);
+
+    const row = (
+    <HStack gap={3} align="center" className="py-2">
       {href ? (
         <Pressable
           testID={`attendee-profile-${r.id}`}
@@ -174,17 +231,45 @@ export function EventAttendees({
       ) : null}
     </HStack>
     );
+
+    if (given.length === 0) return <VStack key={r.id}>{row}</VStack>;
+    return (
+      <VStack key={r.id}>
+        {row}
+        <VStack gap={0} className="pl-12 pb-2">
+          {given.map(({ field, value }) => (
+            <Text key={field.id} variant="caption" tone="muted" testID={`answer-${r.id}-${field.id}`}>
+              {field.label}: {formatAnswer(value, t)}
+            </Text>
+          ))}
+        </VStack>
+      </VStack>
+    );
   };
 
   return (
     <VStack gap={2}>
       <DetailSectionHeading
         action={
-          <SectionEditToggle
-            testID="attendees-edit-toggle"
-            editing={editing}
-            onToggle={() => setEditing((e) => !e)}
-          />
+          hasAttendees ? (
+            <HStack gap={4} align="center">
+              <RosterExportButton
+                eventTitle={eventTitle}
+                eventDate={eventDate}
+                registrations={rows ?? []}
+                phones={phones}
+                telephoneRequired={telephoneRequired}
+                requiresPayment={requiresPayment}
+                signupFields={signupFields}
+                answers={answers}
+              />
+              <SectionEditToggle
+                testID="attendees-edit-toggle"
+                editing={editing}
+                onToggle={() => setEditing((e) => !e)}
+              />
+            </HStack>
+          ) : undefined
         }
       >
         {confirmed.length > 0 ? `${t('event.attendees')} (${confirmed.length})` : t('event.attendees')}

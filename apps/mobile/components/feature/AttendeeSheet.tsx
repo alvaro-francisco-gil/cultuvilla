@@ -1,12 +1,25 @@
-import { useEffect, useState } from 'react';
-import { Modal, Pressable as RNPressable, ScrollView, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Modal,
+  Pressable as RNPressable,
+  ScrollView,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../primitives/Button';
 import { Text } from '../primitives/Text';
 import { VStack } from '../primitives/VStack';
 import { HStack } from '../primitives/HStack';
 import { PhoneField } from './PhoneField';
+import { SignupAnswerFields } from './SignupAnswerFields';
 import type { RegistrationStatus } from '@cultuvilla/shared/models/event/RegistrationDataModel';
+import {
+  validateSignupAnswers,
+  type SignupAnswers,
+  type SignupAnswerValue,
+  type SignupFieldSpec,
+} from '@cultuvilla/shared/models/event/SignupFieldModel';
 import {
   DEFAULT_PHONE_COUNTRY,
   formatPhoneE164,
@@ -27,13 +40,22 @@ export interface AttendeeSheetProps {
   /** The user's personas — own persona first, then personas a cargo. */
   attendees: AttendeeOption[];
   telephoneRequired: boolean;
+  /** The event's custom sign-up fields, asked once per ticked persona. */
+  signupFields?: SignupFieldSpec[];
   busy: boolean;
   /** Personas to pre-tick (e.g. a dependent just created via onCreateNew). */
   autoSelectIds?: string[];
   onClose: () => void;
   onCreateNew: () => void;
-  /** Reports the ticked persona ids (in attendee order) and the shared phone. */
-  onConfirm: (selectedIds: string[], phone?: string) => void;
+  /**
+   * Reports the ticked persona ids (in attendee order), the shared phone, and
+   * each newly-ticked persona's answers to the event's custom fields.
+   */
+  onConfirm: (
+    selectedIds: string[],
+    phone?: string,
+    answersByPersonId?: Record<string, SignupAnswers>,
+  ) => void;
 }
 
 /**
@@ -42,6 +64,10 @@ export interface AttendeeSheetProps {
  * (or create a new one). Confirm reports the ticked set; the parent diffs it
  * against the registered set to decide what to register vs cancel.
  *
+ * The card grows with its content up to 90% of the viewport, so a long persona
+ * list (or one with custom sign-up fields expanded) gets the room it needs
+ * instead of being squeezed into a fixed-height scroll box.
+ *
  * Styles live on `style`/`className` per the existing modal pattern; the Modal
  * + window-confirm fallbacks keep it working on the RN-Web build.
  */
@@ -49,6 +75,7 @@ export function AttendeeSheet({
   visible,
   attendees,
   telephoneRequired,
+  signupFields = [],
   busy,
   autoSelectIds,
   onClose,
@@ -57,7 +84,15 @@ export function AttendeeSheet({
 }: AttendeeSheetProps) {
   const { t } = useT();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const listRef = useRef<ScrollView>(null);
+  // Row offsets inside the scroll list, so a rejected confirm can bring the
+  // offending persona's question into view instead of leaving the error
+  // off-screen below the fold.
+  const rowOffsets = useRef<Record<string, number>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Custom answers are per persona, unlike the single shared phone below.
+  const [answers, setAnswers] = useState<Record<string, Record<string, SignupAnswerValue>>>({});
   const [phone, setPhone] = useState('');
   const [phoneCountry, setPhoneCountry] = useState<PhoneCountry>(DEFAULT_PHONE_COUNTRY);
   // Whether the user has pressed Confirmar at least once. The invalid-phone
@@ -72,6 +107,7 @@ export function AttendeeSheet({
   useEffect(() => {
     if (visible) {
       setSelected(new Set(attendees.filter((a) => a.status).map((a) => a.id)));
+      setAnswers({});
       setPhone('');
       setPhoneCountry(DEFAULT_PHONE_COUNTRY);
       setConfirmAttempted(false);
@@ -104,6 +140,20 @@ export function AttendeeSheet({
 
   const selectedInOrder = attendees.filter((a) => selected.has(a.id)).map((a) => a.id);
   const hasNewSelection = selectedInOrder.some((id) => !registeredIds.has(id));
+  // Only personas being newly registered answer; someone already signed up
+  // isn't re-asked (their answers were collected when they registered).
+  const newlySelected = selectedInOrder.filter((id) => !registeredIds.has(id));
+
+  // Same validator the Cloud Function runs, so the button and the server agree
+  // on what counts as a complete answer set.
+  const validationByPersonId = new Map(
+    newlySelected.map((id) => [id, validateSignupAnswers(signupFields, answers[id] ?? {})]),
+  );
+  const invalidIdsFor = (personId: string): string[] => {
+    const result = validationByPersonId.get(personId);
+    return result && !result.ok ? [result.fieldId] : [];
+  };
+  const answersValid = [...validationByPersonId.values()].every((r) => r.ok);
   const changed =
     selected.size !== registeredIds.size || selectedInOrder.some((id) => !registeredIds.has(id));
   const needsPhone = telephoneRequired && hasNewSelection;
@@ -116,11 +166,30 @@ export function AttendeeSheet({
 
   function handleConfirm() {
     if (!canConfirm) return;
-    if (needsPhone && !phoneValid) {
+    if ((needsPhone && !phoneValid) || !answersValid) {
       setConfirmAttempted(true);
+      scrollToFirstInvalidAnswer();
       return;
     }
-    onConfirm(selectedInOrder, needsPhone ? formatPhoneE164(phone, phoneCountry.dialCode) : undefined);
+    // Personas with nothing to report are left out entirely, so an event with
+    // no custom fields reports an empty map rather than one empty entry each.
+    const collected: Record<string, SignupAnswers> = {};
+    for (const [personId, result] of validationByPersonId) {
+      if (result.ok && Object.keys(result.value).length > 0) collected[personId] = result.value;
+    }
+    onConfirm(
+      selectedInOrder,
+      needsPhone ? formatPhoneE164(phone, phoneCountry.dialCode) : undefined,
+      collected,
+    );
+  }
+
+  function scrollToFirstInvalidAnswer() {
+    const firstInvalid = newlySelected.find((id) => !validationByPersonId.get(id)?.ok);
+    if (firstInvalid === undefined) return;
+    const y = rowOffsets.current[firstInvalid];
+    if (y === undefined) return;
+    listRef.current?.scrollTo({ y: Math.max(0, y - 8), animated: true });
   }
 
   return (
@@ -145,18 +214,28 @@ export function AttendeeSheet({
         <RNPressable
           onPress={() => {}}
           className="rounded-t-2xl bg-surface-elevated p-5 border-t border-subtle"
-          style={{ paddingBottom: insets.bottom + 20 }}
+          style={{ paddingBottom: insets.bottom + 20, maxHeight: windowHeight * 0.9 }}
         >
-          <VStack gap={3}>
+          <VStack gap={3} className="shrink">
             <Text variant="h3">{t('event.register.attendeesTitle')}</Text>
 
-            <ScrollView style={{ maxHeight: 320 }}>
+            <ScrollView ref={listRef} style={{ flexShrink: 1 }} testID="attendee-list">
               <VStack gap={2}>
                 {attendees.map((a) => {
                   const isSelected = selected.has(a.id);
+                  // Fields are asked per attendee, so the group hangs off this
+                  // persona's row and only while they are newly ticked.
+                  const showFields =
+                    isSelected && !registeredIds.has(a.id) && signupFields.length > 0;
                   return (
-                    <RNPressable
+                    <View
                       key={a.id}
+                      testID={`attendee-row-wrap-${a.id}`}
+                      onLayout={(e) => {
+                        rowOffsets.current[a.id] = e.nativeEvent.layout.y;
+                      }}
+                    >
+                    <RNPressable
                       testID={`attendee-row-${a.id}`}
                       onPress={() => toggle(a.id)}
                       accessibilityRole="checkbox"
@@ -177,6 +256,21 @@ export function AttendeeSheet({
                         </Text>
                       ) : null}
                     </RNPressable>
+                    {showFields ? (
+                      <SignupAnswerFields
+                        fields={signupFields}
+                        values={answers[a.id] ?? {}}
+                        onChange={(fieldId, value) =>
+                          setAnswers((prev) => ({
+                            ...prev,
+                            [a.id]: { ...prev[a.id], [fieldId]: value },
+                          }))
+                        }
+                        invalidIds={confirmAttempted ? invalidIdsFor(a.id) : []}
+                        testIDPrefix={`attendee-answer-${a.id}`}
+                      />
+                    ) : null}
+                    </View>
                   );
                 })}
 

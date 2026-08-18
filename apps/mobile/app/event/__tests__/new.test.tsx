@@ -2,6 +2,8 @@
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import NewEventScreen from '../new';
 import { pickImageAsBlob } from '../../../lib/images';
+import { createEvent, updateEvent } from '@cultuvilla/shared/services/eventService';
+import { uploadEventImage } from '@cultuvilla/shared/services/imageService';
 
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../lib/auth/useAuth', () => ({
@@ -136,6 +138,25 @@ describe('NewEventScreen stepper', () => {
     expect(toggle.props.accessibilityState.checked).toBe(true);
   });
 
+  it('puts the sign-up questions in their own step after the details', async () => {
+    const { getByText, getByLabelText, getByTestId, queryByTestId } = render(<NewEventScreen />);
+    await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
+    fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('startDate')).toBeTruthy());
+    fireEvent.press(getByTestId('startDate'));
+    fireEvent.press(getByTestId('location-field'));
+    fireEvent.press(getByText('common.stepper.next'));
+    // Details: toggles and organizers, but no question builder.
+    await waitFor(() => expect(getByTestId('telephone-required')).toBeTruthy());
+    expect(queryByTestId('signup-question-add')).toBeNull();
+
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('signup-question-add')).toBeTruthy());
+    // Last step: the primary button submits instead of advancing.
+    expect(getByTestId('event-form-primary')).toHaveTextContent('event.createEvent');
+  });
+
   // Regression: the cover picker must go through lib/images.pickImageAsBlob,
   // which reads the URI via XMLHttpRequest, not the global winter `fetch`.
   it('picks the cover image via the shared pickImageAsBlob helper', async () => {
@@ -160,5 +181,97 @@ describe('NewEventScreen stepper', () => {
     const iso = getByTestId('startDate-value').props.children as string;
     expect(iso).not.toBe(''); // not the empty placeholder
     expect(new Date(iso).getMinutes() % 5).toBe(0);
+  });
+});
+
+// The cover upload is a second round-trip after createEvent, and it is the one
+// that dies on a weak link. These pin the ordering and, critically, that a retry
+// finishes the event already created instead of creating another one.
+describe('NewEventScreen cover upload', () => {
+  const COVER = {
+    blob: { type: 'image/jpeg' },
+    filename: 'pic.jpg',
+    contentType: 'image/jpeg',
+    previewUri: 'file:///tmp/pic.jpg',
+  };
+
+  beforeEach(() => {
+    // Clear only what these tests assert on. `jest.clearAllMocks()` would also
+    // wipe the module-level resolved values (memberships, municipality) the
+    // screen needs to finish loading.
+    (createEvent as jest.Mock).mockReset();
+    (updateEvent as jest.Mock).mockReset();
+    (uploadEventImage as jest.Mock).mockReset();
+    (pickImageAsBlob as jest.Mock).mockReset();
+    (createEvent as jest.Mock).mockResolvedValue('e-1');
+    (updateEvent as jest.Mock).mockResolvedValue(undefined);
+    (pickImageAsBlob as jest.Mock).mockResolvedValue(COVER);
+  });
+
+  async function fillFormAndSubmit(utils: ReturnType<typeof render>, withCover: boolean) {
+    const { getByText, getByLabelText, getByTestId } = utils;
+    await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
+    if (withCover) {
+      fireEvent.press(getByLabelText('event.addImage'));
+      await waitFor(() => expect(pickImageAsBlob).toHaveBeenCalled());
+    }
+    fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('startDate')).toBeTruthy());
+    fireEvent.press(getByTestId('startDate'));
+    fireEvent.press(getByTestId('location-field'));
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('organizer-picker')).toBeTruthy());
+    // Sign-up questions are the last step; nothing to fill in, just walk past it.
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('signup-question-add')).toBeTruthy());
+    fireEvent.press(getByTestId('event-form-primary'));
+  }
+
+  it('uploads the cover under the new event, then patches imageURL', async () => {
+    (uploadEventImage as jest.Mock).mockResolvedValue('https://cdn.test/cover.jpg');
+    await fillFormAndSubmit(render(<NewEventScreen />), true);
+
+    await waitFor(() => expect(uploadEventImage).toHaveBeenCalled());
+    expect(createEvent).toHaveBeenCalledTimes(1);
+    expect(uploadEventImage).toHaveBeenCalledWith(
+      'm-1',
+      'e-1',
+      expect.objectContaining({ filename: 'cover.jpg', contentType: 'image/jpeg' }),
+    );
+    expect(updateEvent).toHaveBeenCalledWith('e-1', { imageURL: 'https://cdn.test/cover.jpg' });
+  });
+
+  // The regression: before the event id was stashed, a failed upload left the
+  // event created but unnavigated, and pressing the button again ran createEvent
+  // a second time — one duplicate event per retry.
+  it('does not create a second event when the cover upload fails and the user retries', async () => {
+    (uploadEventImage as jest.Mock)
+      .mockRejectedValueOnce(
+        Object.assign(new Error('Firebase Storage: Max retry time exceeded'), {
+          code: 'storage/retry-limit-exceeded',
+        }),
+      )
+      .mockResolvedValueOnce('https://cdn.test/cover.jpg');
+
+    const utils = render(<NewEventScreen />);
+    await fillFormAndSubmit(utils, true);
+    await waitFor(() => expect(uploadEventImage).toHaveBeenCalledTimes(1));
+    expect(createEvent).toHaveBeenCalledTimes(1);
+
+    // Retry from the still-open form.
+    fireEvent.press(utils.getByTestId('event-form-primary'));
+
+    await waitFor(() => expect(uploadEventImage).toHaveBeenCalledTimes(2));
+    expect(createEvent).toHaveBeenCalledTimes(1);
+    expect(uploadEventImage).toHaveBeenLastCalledWith('m-1', 'e-1', expect.anything());
+    expect(updateEvent).toHaveBeenCalledWith('e-1', { imageURL: 'https://cdn.test/cover.jpg' });
+  });
+
+  it('skips the upload entirely when no cover was picked', async () => {
+    await fillFormAndSubmit(render(<NewEventScreen />), false);
+
+    await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
+    expect(uploadEventImage).not.toHaveBeenCalled();
   });
 });

@@ -55,6 +55,48 @@ describe('validateRegisterInput', () => {
     });
     expect(r.registrants[0].name).toBe('Ana');
   });
+
+  // Shape only — whether an answer matches its declared field type needs the
+  // event, which this helper never loads (registerToEvent does that check).
+  it('passes primitive answers through and omits an empty map', () => {
+    const r = validateRegisterInput({
+      eventId: 'e1',
+      registrants: [
+        { personId: 'p1', name: 'Ana', answers: { a: 'x', b: 2, c: true } },
+        { personId: 'p2', name: 'Bea', answers: {} },
+      ],
+    });
+    expect(r.registrants[0].answers).toEqual({ a: 'x', b: 2, c: true });
+    expect(r.registrants[1].answers).toBeUndefined();
+  });
+
+  it('rejects a non-object answers payload', () => {
+    expect(() =>
+      validateRegisterInput({
+        eventId: 'e1',
+        registrants: [{ personId: 'p1', name: 'Ana', answers: ['x'] as unknown as Record<string, unknown> }],
+      }),
+    ).toThrow(/Respuestas inválidas/);
+  });
+
+  it('rejects a nested object as an answer value', () => {
+    expect(() =>
+      validateRegisterInput({
+        eventId: 'e1',
+        registrants: [{ personId: 'p1', name: 'Ana', answers: { a: { deep: 1 } } }],
+      }),
+    ).toThrow(/Respuestas inválidas/);
+  });
+
+  it('rejects more answers than an event could ever declare', () => {
+    const answers = Object.fromEntries(Array.from({ length: 11 }, (_, i) => [`f${String(i)}`, 'x']));
+    expect(() =>
+      validateRegisterInput({
+        eventId: 'e1',
+        registrants: [{ personId: 'p1', name: 'Ana', answers }],
+      }),
+    ).toThrow(/Demasiadas respuestas/);
+  });
 });
 
 describe('computeStatuses', () => {

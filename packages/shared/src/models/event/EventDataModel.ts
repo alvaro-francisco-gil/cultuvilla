@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { LocationDataSchema, LatLngSchema, type LatLng } from '../core/LocationDataModel';
+import { SignupFieldsSchema, type SignupFieldSpec } from './SignupFieldModel';
 
 // Events publish on create — there is no `draft` state.
 export const EventStatusSchema = z.enum(['published', 'cancelled', 'completed']);
@@ -25,6 +26,12 @@ export const EventDataSchema = z.object({
   // docs created before this field parse instead of throwing the strict
   // converter (existing dev docs are backfilled to false in this same change).
   requiresPayment: z.boolean().default(false),
+  // Creator-defined per-attendee questions asked at sign-up (t-shirt size, DNI,
+  // …). Answers never land here or on the public registration doc — they go to
+  // the organizer-gated registrationPrivate doc. `.default([])` so events
+  // created before this field parse through the strict converter (existing dev
+  // docs are backfilled to [] in this same change).
+  signupFields: SignupFieldsSchema,
   status: EventStatusSchema,
   organizerUserIds: z.array(z.string()),
   organizerOrgIds: z.array(z.string()),
@@ -70,6 +77,7 @@ export interface EventDataInput {
   maxAttendees?: number | null;
   telephoneRequired?: boolean;
   requiresPayment?: boolean;
+  signupFields?: SignupFieldSpec[];
   status?: EventStatus;
   organizerUserIds: string[];
   organizerOrgIds: string[];
@@ -95,6 +103,7 @@ export function buildEventData(input: EventDataInput): EventData {
     maxAttendees: input.maxAttendees ?? null,
     telephoneRequired: input.telephoneRequired ?? false,
     requiresPayment: input.requiresPayment ?? false,
+    signupFields: input.signupFields ?? [],
     status: input.status ?? 'published',
     organizerUserIds: input.organizerUserIds,
     organizerOrgIds: input.organizerOrgIds,
@@ -122,7 +131,8 @@ export function isEventSignupOpen(event: EventData): boolean {
   return event.status === 'published';
 }
 
-const EVENT_TZ = 'Europe/Madrid';
+/** The wall clock every event date is authored and displayed in. */
+export const EVENT_TZ = 'Europe/Madrid';
 function madridDayKey(d: Date): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: EVENT_TZ, year: 'numeric', month: '2-digit', day: '2-digit',

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -13,6 +13,7 @@ import { EventCoverPicker } from '../../components/feature/EventCoverPicker';
 import { EventLocationField } from '../../components/feature/EventLocationField';
 import { MyVillagePicker, type VillageOption } from '../../components/feature/MyVillagePicker';
 import { OrganizerPicker } from '../../components/feature/OrganizerPicker';
+import { SignupQuestionsEditor } from '../../components/feature/signup/SignupQuestionsEditor';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 import { useCallable } from '../../lib/useCallable';
@@ -27,6 +28,10 @@ import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
 import { uploadEventImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 import { buildLocationData } from '@cultuvilla/shared/models/core/LocationDataModel';
+import {
+  isUsableSignupField,
+  type SignupFieldSpec,
+} from '@cultuvilla/shared/models/event/SignupFieldModel';
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 import { Stepper, type StepConfig } from '../../components/feature/Stepper';
 import { DeleteHeaderButton } from '../../components/feature/DeleteHeaderButton';
@@ -103,6 +108,8 @@ export default function NewEventScreen() {
   const [maxAttendees, setMaxAttendees] = useState('');
   const [telephoneRequired, setTelephoneRequired] = useState(false);
   const [requiresPayment, setRequiresPayment] = useState(false);
+  const [signupFields, setSignupFields] = useState<SignupFieldSpec[]>([]);
+  const [lockedFieldCount, setLockedFieldCount] = useState(0);
   const [cover, setCover] = useState<UploadableImage | null>(null);
 
   // Picking a location auto-selects the nearest joined village (create mode,
@@ -162,6 +169,11 @@ export default function NewEventScreen() {
         setMaxAttendees(ev.maxAttendees != null ? String(ev.maxAttendees) : '');
         setTelephoneRequired(!!ev.telephoneRequired);
         setRequiresPayment(!!ev.requiresPayment);
+        setSignupFields(ev.signupFields ?? []);
+        // Answers already collected are keyed by these ids, so once the event
+        // has sign-ups the existing rows are frozen and only new ones can be
+        // added. firestore.rules enforces the size half of the same invariant.
+        setLockedFieldCount(ev.totalCount > 0 ? (ev.signupFields ?? []).length : 0);
         setOrganizerUserIds(ev.organizerUserIds ?? []);
         setCreatedBy(ev.createdBy);
         setOrganizerOrgIds(ev.organizerOrgIds ?? []);
@@ -224,6 +236,10 @@ export default function NewEventScreen() {
     };
   }, [editMode, user, villageId, profile?.activeMunicipalityId]);
 
+  // Survives a failed cover upload so the retry patches the event that was
+  // already created instead of creating another one. See the create branch.
+  const createdEventIdRef = useRef<string | null>(null);
+
   const { fire: submit, isPending } = useCallable({
     callable: async () => {
       if (!municipalityId || !user || !startDate) return;
@@ -234,6 +250,18 @@ export default function NewEventScreen() {
         displayName: locationName.trim() || municipalityName,
       });
       const maxAttendeesValue = maxAttendees.trim() ? Number(maxAttendees) : null;
+      // Half-finished rows (no label yet, or a select with no options to pick)
+      // would be unanswerable, so they never reach the event doc. Locked rows
+      // are kept verbatim — dropping one would break the additive-only rule.
+      const usableSignupFields = signupFields
+        .map((f) => ({
+          ...f,
+          label: f.label.trim(),
+          // The options editor appends an empty row as you type; a blank option
+          // is unanswerable and fails the model's `min(1)` on read.
+          options: f.options.map((o) => o.trim()).filter((o) => o.length > 0),
+        }))
+        .filter((f, i) => i < lockedFieldCount || (f.label.length > 0 && isUsableSignupField(f)));
 
       // ── Edit: patch the existing event; only touch the cover if replaced ──
       if (editMode && eventId) {
@@ -246,6 +274,7 @@ export default function NewEventScreen() {
           maxAttendees: maxAttendeesValue,
           telephoneRequired,
           requiresPayment,
+          signupFields: usableSignupFields,
           organizerUserIds,
           organizerOrgIds,
         });
@@ -261,23 +290,34 @@ export default function NewEventScreen() {
       }
 
       // ── Create ────────────────────────────────────────────────────────────
-      const newId = await createEvent({
-        title: title.trim(),
-        description: description.trim(),
-        startDate,
-        endDate,
-        location,
-        maxAttendees: maxAttendeesValue,
-        telephoneRequired,
-        requiresPayment,
-        status: 'published',
-        organizerUserIds,
-        organizerOrgIds,
-        createdBy: user.uid,
-        municipalityId,
-        villageName: municipalityName,
-        villageCoordinates: municipalityCoordinates,
-      });
+      // Creating the event and uploading its cover are two round-trips, and the
+      // upload is the one that fails on a weak link (a 5 MB image outlives the
+      // Storage SDK's own retry budget). The event exists by then, so a retry
+      // has to finish *that* event — re-running createEvent would leave the
+      // user with a duplicate for every failed attempt. The id survives in a
+      // ref for exactly as long as the form does.
+      let newId = createdEventIdRef.current;
+      if (!newId) {
+        newId = await createEvent({
+          title: title.trim(),
+          description: description.trim(),
+          startDate,
+          endDate,
+          location,
+          maxAttendees: maxAttendeesValue,
+          telephoneRequired,
+          requiresPayment,
+          signupFields: usableSignupFields,
+          status: 'published',
+          organizerUserIds,
+          organizerOrgIds,
+          createdBy: user.uid,
+          municipalityId,
+          villageName: municipalityName,
+          villageCoordinates: municipalityCoordinates,
+        });
+        createdEventIdRef.current = newId;
+      }
       if (cover) {
         const url = await uploadEventImage(municipalityId, newId, {
           blob: cover.blob,
@@ -484,6 +524,21 @@ export default function NewEventScreen() {
             </HStack>
           </HStack>
         </>,
+      ),
+    },
+    {
+      key: 'questions',
+      title: t('event.stepQuestions'),
+      icon: 'help-circle-outline',
+      // Half-finished questions are dropped on submit rather than blocking the
+      // step: they are optional extras, and a creator who opened the step and
+      // changed their mind shouldn't be trapped in it.
+      render: () => stepBody(
+        <SignupQuestionsEditor
+          value={signupFields}
+          onChange={setSignupFields}
+          lockedCount={lockedFieldCount}
+        />,
       ),
     },
   ];

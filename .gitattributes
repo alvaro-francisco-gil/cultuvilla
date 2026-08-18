@@ -1,0 +1,9 @@
+# Two branches appending their own bullets under `## [Unreleased]` is the
+# single most common conflict in this repo, and it is never a real one — the
+# sides touch adjacent lines, not the same one. `union` keeps both.
+#
+# It is a resolve-then-eyeball tool, not a silent fix: bullets can interleave
+# oddly and a section heading (`### Fixed`) can end up duplicated when both
+# sides opened one. Read the merged `[Unreleased]` block before committing and
+# fold any duplicate headings together.
+CHANGELOG.md merge=union

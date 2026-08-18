@@ -9,16 +9,29 @@ import {
 import { createAnalyticsBackend } from './analytics';
 import { sendClientError } from './errorBridge';
 import { attachGlobalHandlers } from './globalHandlers';
+import { getCurrentRoute } from './currentRoute';
+import { getRunningVersion } from '../appVersion';
 
 let booted = false;
 
+// FirebaseError carries the machine-readable reason ('permission-denied',
+// 'unavailable') on `code`; the human message alone cannot be classified.
+function errorCodeOf(error: unknown): string | undefined {
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === 'string' ? code : undefined;
+}
+
 function toErrorPayload(error: unknown, context: Record<string, unknown>): Record<string, unknown> {
   const e = error instanceof Error ? error : new Error(String(error));
+  // The defaults come first so an explicit context value always wins.
   return {
     message: e.message,
     name: e.name,
+    code: errorCodeOf(error),
     stack: e.stack,
     platform: Platform.OS,
+    appVersion: getRunningVersion(),
+    route: getCurrentRoute(),
     ...context,
   };
 }

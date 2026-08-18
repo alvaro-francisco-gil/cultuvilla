@@ -33,6 +33,13 @@ function generateCode(): string {
   return randomInt(0, 1_000_000).toString().padStart(6, '0');
 }
 
+// Set by the Functions emulator runtime itself — it cannot be true in deployed
+// Functions, so this is a guard by physics rather than by configuration. Read at
+// call time (not module load) so tests can toggle it.
+function isFunctionsEmulator(): boolean {
+  return process.env.FUNCTIONS_EMULATOR === 'true';
+}
+
 /** Core logic, separated from the onCall envelope so it is unit-testable. */
 export async function runSendAuthOtpCode(
   data: SendAuthOtpCodeData | undefined,
@@ -56,6 +63,13 @@ export async function runSendAuthOtpCode(
 
   const code = generateCode();
   const db = getFirestore();
+  // Locally there is no Resend key and no mailbox to read it from, so the send
+  // below throws and the sign-in flow cannot be completed by any means — not by
+  // hand against a dev client, not by an E2E driver. Under the emulator the code
+  // is kept in plaintext on the doc (and logged) instead of emailed.
+  // `authOtpCodes` is Admin-SDK-only and unreadable by clients, the field is
+  // never written outside the emulator, and verification ignores it entirely.
+  const emulator = isFunctionsEmulator();
   await db
     .collection(OTP_COLLECTION)
     .doc(bucketId)
@@ -64,7 +78,13 @@ export async function runSendAuthOtpCode(
       expiresAt: Timestamp.fromMillis(Date.now() + OTP_EXPIRY_MS),
       attempts: 0,
       createdAt: Timestamp.now(),
+      ...(emulator ? { emulatorCode: code } : {}),
     });
+
+  if (emulator) {
+    logger.info('auth otp code issued (emulator, not emailed)', { handler, bucketId, code });
+    return { ok: true };
+  }
 
   const timestamp = new Date().toISOString();
   const subject = `${AUTH_OTP_EMAIL_SUBJECT_PREFIX} · ${timestamp}`;

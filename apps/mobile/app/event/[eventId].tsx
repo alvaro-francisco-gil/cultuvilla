@@ -138,6 +138,7 @@ export default function EventDetailScreen() {
             personId={person.id}
             name={personName}
             telephoneRequired={!!event.telephoneRequired}
+            signupFields={event.signupFields}
             villageId={event.municipalityId}
           />
         ) : null
@@ -219,8 +220,11 @@ export default function EventDetailScreen() {
           {canOrganize ? (
             <EventAttendees
               eventId={event.id}
+              eventTitle={event.title}
+              eventDate={event.startDate}
               telephoneRequired={!!event.telephoneRequired}
               requiresPayment={!!event.requiresPayment}
+              signupFields={event.signupFields}
             />
           ) : null}
           {!user && (

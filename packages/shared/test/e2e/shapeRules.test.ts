@@ -322,6 +322,7 @@ describe('shape enforcement — /events/{eventId}', () => {
     maxAttendees: null,
     telephoneRequired: false,
     requiresPayment: false,
+    signupFields: [],
     status: 'published' as const,
     organizerUserIds: ['alice'],
     organizerOrgIds: [],
@@ -375,6 +376,38 @@ describe('shape enforcement — /events/{eventId}', () => {
     await assertFails(
       setDoc(doc(alice, 'events/e1'), { ...validEvent, requiresPayment: 'yes' }),
     );
+  });
+
+  it('accepts a signupFields list and rejects a non-list', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertSucceeds(
+      setDoc(doc(alice, 'events/e1'), {
+        ...validEvent,
+        signupFields: [{ id: 'f1', label: 'Talla', type: 'select', required: true, options: ['M'] }],
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'events/e2'), { ...validEvent, signupFields: 'talla' }),
+    );
+  });
+
+  it('rejects more than ten signupFields', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    const eleven = Array.from({ length: 11 }, (_, i) => ({
+      id: `f${String(i)}`, label: 'X', type: 'text', required: false, options: [],
+    }));
+    await assertFails(
+      setDoc(doc(alice, 'events/e1'), { ...validEvent, signupFields: eleven }),
+    );
+  });
+
+  it('rejects an event created without signupFields', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    const { signupFields: _omitted, ...withoutFields } = validEvent;
+    await assertFails(setDoc(doc(alice, 'events/e1'), withoutFields));
   });
 
   it('accepts a multi-day endDate >= startDate', async () => {

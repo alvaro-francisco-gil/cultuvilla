@@ -71,7 +71,8 @@
       "sent": "Código enviado a {email}. Revisa tu correo, incluida la carpeta de spam.",
       "codeLabel": "Código de 6 dígitos",
       "verify": "Verificar código",
-      "resend": "Reenviar código"
+      "resend": "Reenviar código",
+      "changeEmail": "Usar otro correo"
     },
     "error": {
       "unknown": "Algo salió mal"
@@ -484,10 +485,6 @@
     "builder": {
       "addQuestion": "Añadir pregunta",
       "addPredefined": "Añadir campo predefinido",
-      "questionLabel": "Pregunta",
-      "required": "Obligatoria",
-      "addOption": "Añadir opción",
-      "optionPlaceholder": "Opción",
       "source": "Origen",
       "sourceBarrios": "Barrios",
       "sourcePlaces": "Lugares",
@@ -495,22 +492,27 @@
       "sourceEvents": "Eventos",
       "sourceFestivalPosters": "Carteles",
       "sourceNews": "Artículos",
-      "moveUp": "Subir",
-      "moveDown": "Bajar",
-      "locked": "En uso",
       "deletedEntity": "(eliminado)",
-      "emptyLabel": "Escribe el texto de la pregunta",
-      "needsOptions": "Añade al menos una opción",
-      "untitledQuestion": "Pregunta sin título",
-      "typeSheetTitle": "Tipo de pregunta",
       "headerDescription": "Crea el cuestionario que responderán los vecinos.",
       "optionsManual": "Opciones manuales",
       "allowMultiple": "Permitir varias respuestas",
-      "optionsCount": "{count, plural, one {# opción} other {# opciones}}",
       "elementsHeading": "Elementos del pueblo",
       "deleteAnsweredTitle": "Eliminar pregunta",
       "deleteAnsweredBody": "{count, plural, one {# vecino ha respondido} other {# vecinos han respondido}} esta pregunta. Si la eliminas, se borrarán sus respuestas."
     }
+  },
+  "questions": {
+    "required": "Obligatoria",
+    "moveUp": "Subir",
+    "moveDown": "Bajar",
+    "locked": "En uso",
+    "untitled": "Pregunta sin título",
+    "typeSheetTitle": "Tipo de pregunta",
+    "emptyLabel": "Escribe el texto de la pregunta",
+    "needsOptions": "Añade al menos una opción",
+    "addOption": "Añadir opción",
+    "optionPlaceholder": "Opción",
+    "optionsCount": "{count, plural, one {# opción} other {# opciones}}"
   },
   "event": {
     "title": "Título",
@@ -524,6 +526,19 @@
     "unlimited": "Sin límite",
     "telephoneRequired": "Teléfono requerido",
     "requiresPayment": "Se paga en el evento",
+    "signupFields": {
+      "headerTitle": "Formulario (opcional)",
+      "headerDescription": "Preguntas extra que responderá cada persona al inscribirse.",
+      "add": "Añadir pregunta",
+      "lockedNotice": "Este evento ya tiene inscripciones: las preguntas existentes no se pueden eliminar ni cambiar de tipo, pero puedes añadir nuevas.",
+      "type": {
+        "text": "Texto",
+        "number": "Número",
+        "date": "Fecha",
+        "select": "Opciones",
+        "checkbox": "Sí/No"
+      }
+    },
     "paid": "Pagado",
     "signUp": "Inscribirse",
     "cancelSignUp": "Cancelar inscripción",
@@ -533,7 +548,16 @@
     "confirmed": "Confirmado",
     "waitlisted": "En lista de espera",
     "attendees": "Asistentes",
+    "export": {
+      "action": "Exportar asistentes",
+      "title": "Exportar asistentes",
+      "body": "Se descargará la lista completa ({count} personas), incluida la lista de espera.",
+      "excel": "Descargar Excel (.xlsx)",
+      "csv": "Descargar CSV",
+      "error": "No se pudo generar el archivo. Inténtalo de nuevo."
+    },
     "attendeesEmpty": "Aún no hay asistentes",
+    "signedUpAt": "Apuntado el {date}",
     "removeAttendeeTitle": "Quitar asistente",
     "removeAttendeeBody": "¿Seguro que quieres quitar a {name} de este evento?",
     "removeAttendeeConfirm": "Quitar",
@@ -555,6 +579,7 @@
     "stepBasics": "Lo básico",
     "stepWhen": "Cuándo y dónde",
     "stepDetails": "Detalles",
+    "stepQuestions": "Preguntas",
     "locationName": "Lugar",
     "village": "Pueblo",
     "villageAutoHint": "Detectado por la ubicación",
@@ -610,7 +635,8 @@
       "attendeesTitle": "¿A quién quieres apuntar?",
       "createPersona": "Crear una nueva persona",
       "confirm": "Confirmar",
-      "cancelManyBody": "Vas a cancelar la inscripción de las personas que has desmarcado. ¿Continuar?"
+      "cancelManyBody": "Vas a cancelar la inscripción de las personas que has desmarcado. ¿Continuar?",
+      "answerRequired": "Completa esta pregunta"
     }
   },
   "organization": {
@@ -792,6 +818,8 @@
       "submit": "Crear perfil",
       "requiredFields": "Nombre, ambos apellidos y fecha de nacimiento son obligatorios.",
       "error": "No se pudo guardar el perfil",
+      "abandonTitle": "¿Salir del registro?",
+      "abandonBody": "Has iniciado sesión como {email}. Si no es tu correo, sal y vuelve a empezar con el correcto.",
       "acceptPrefix": "Acepto los",
       "acceptRequired": "Debes aceptar los términos para continuar.",
       "minAge": "Debes tener al menos 14 años para registrarte."

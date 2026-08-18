@@ -38,6 +38,12 @@ import {
   isSuccessResponse,
 } from '@react-native-google-signin/google-signin';
 import { clearPendingIntent } from './pendingIntent';
+import {
+  clearPendingToken,
+  getPendingToken,
+  rememberPendingToken,
+  shouldRetainToken,
+} from './otpTokenCache';
 import { fetchUserIdHash } from '../observability/errorBridge';
 
 declare const __DEV__: boolean;
@@ -166,6 +172,12 @@ export interface AuthContextValue {
    */
   canChangeEmail: boolean;
   signOut: () => Promise<void>;
+  /**
+   * Escape hatch out of the onboarding gate. Signs out, and when the account
+   * has no profile doc yet it deletes the Auth user too — see the
+   * implementation for why an abandoned sign-up must not be left behind.
+   */
+  abandonSignUp: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
@@ -349,8 +361,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const verifyOtpCode = async (email: string, code: string): Promise<void> => {
     const trimmed = email.trim();
     if (!trimmed) throw new Error('email-required');
-    const token = await verifyAuthOtpCode(trimmed, code);
-    await signInWithCustomToken(getAuth(), token);
+    // A token left over from a sign-in that died mid-flight is reused instead of
+    // spending another OTP — see otpTokenCache for why the code is already gone.
+    const token = getPendingToken(trimmed) ?? (await verifyAuthOtpCode(trimmed, code));
+    rememberPendingToken(trimmed, token);
+    try {
+      await signInWithCustomToken(getAuth(), token);
+    } catch (err) {
+      if (!shouldRetainToken(err)) clearPendingToken();
+      throw err;
+    }
+    clearPendingToken();
   };
 
   // Still used by finish.tsx to distinguish a genuine reauth email link from
@@ -422,7 +443,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // so change-email is disabled unless every provider is email-based.
   const canChangeEmail = isEmailOnlyAccount(user);
 
-  const signOut = async (): Promise<void> => {
+  const teardownSession = async (): Promise<void> => {
     // Tear down every registered Firestore listener BEFORE auth flips closed,
     // so no listener fires a final permission-denied snapshot at the moment
     // the rules flip. See packages/shared/src/services/listenerManager.ts.
@@ -435,7 +456,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     await clearPendingIntent();
+    // Never let a half-spent sign-in credential outlive the session it belongs to.
+    clearPendingToken();
     await AsyncStorage.removeItem(PENDING_REAUTH_KEY);
+  };
+
+  const signOut = async (): Promise<void> => {
+    await teardownSession();
+    await fbSignOut(getAuth());
+  };
+
+  // Signing in with the wrong address used to be a one-way door: AuthGate
+  // redirects a user with no personId to /(onboarding)/complete-profile and
+  // nowhere else, so settings (the only sign-out) was unreachable and the sole
+  // way forward was creating the very account you didn't want. This is the
+  // reverse gear for that screen.
+  //
+  // verifyAuthOtpCode creates the Auth user on first verify, so an account with
+  // no profile doc was created by this very sign-in and nobody else owns that
+  // address yet — delete it rather than leave a squatter that would keep
+  // intercepting the real owner's codes. The custom-token credential is
+  // seconds old, so delete() won't demand a re-auth; if it does anyway, a plain
+  // sign-out still gets the user unstuck, which is the point of the button.
+  const abandonSignUp = async (): Promise<void> => {
+    const currentUser = getAuth().currentUser;
+    // profileChecked guards against a mid-load `profile === null` reading as
+    // "brand new account" and deleting a real one.
+    const disposable = currentUser !== null && profileChecked && profile === null;
+    await teardownSession();
+    if (disposable && currentUser) {
+      try {
+        await currentUser.delete();
+        return;
+      } catch {
+        // Fall through to a plain sign-out.
+      }
+    }
     await fbSignOut(getAuth());
   };
 
@@ -458,6 +514,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearPendingReauth,
         canChangeEmail,
         signOut,
+        abandonSignUp,
       }}
     >
       {children}

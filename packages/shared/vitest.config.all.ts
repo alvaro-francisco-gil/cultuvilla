@@ -27,6 +27,7 @@ export default defineConfig({
       'test/services/**/*.test.ts',
       'test/firebase/**/*.test.ts',
       'test/eslint/**/*.test.ts',
+      'test/export/**/*.test.ts',
       'test/design-system/**/*.test.ts',
       'test/utils/**/*.test.ts',
       'test/validation/**/*.test.ts',

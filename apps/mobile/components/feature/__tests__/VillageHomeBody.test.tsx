@@ -209,6 +209,7 @@ describe('VillageHomeBody', () => {
       maxAttendees: null,
       telephoneRequired: false,
       requiresPayment: false,
+      signupFields: [],
       status: 'published',
       organizerUserIds: ['u1'],
       organizerOrgIds: [],

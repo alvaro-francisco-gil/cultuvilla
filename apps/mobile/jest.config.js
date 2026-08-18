@@ -1,3 +1,11 @@
+const path = require('node:path');
+
+// ExcelJS (used by the roster export) pulls uuid@8, whose "browser" field
+// points at an ESM build that jest's CJS runtime can't parse. Point jest at
+// uuid's CJS entry instead; the web bundle is unaffected (Metro takes ExcelJS's
+// prebundled browser dist).
+const uuidCjs = require.resolve('uuid', { paths: [path.dirname(require.resolve('exceljs'))] });
+
 module.exports = {
   preset: 'jest-expo',
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
@@ -24,6 +32,7 @@ module.exports = {
     // @cultuvilla/i18n's entry is index.ts at the package root (no src/ dir).
     '^@cultuvilla/i18n$': '<rootDir>/../../packages/i18n/index',
     '^@cultuvilla/i18n/(.*)$': '<rootDir>/../../packages/i18n/$1',
+    '^uuid$': uuidCjs,
   },
   // Report-only coverage (docs/plans/ongoing/testing-enhancement.md, D4): only
   // collected with `pnpm app:test:coverage` (jest --coverage); no gate yet.

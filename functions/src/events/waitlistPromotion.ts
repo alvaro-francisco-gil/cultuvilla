@@ -7,6 +7,8 @@ import {
   userNotificationsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
 import { buildNotificationData } from '@cultuvilla/shared/models';
+import { RESEND_API_KEY } from '../auth/secret';
+import { sendRegistrationEmail } from './sendRegistrationEmail';
 
 const db = getFirestore();
 
@@ -16,7 +18,7 @@ const db = getFirestore();
  * Watches top-level /events/{eventId}/registrations/{regId}.
  */
 export const onRegistrationDeleted = onDocumentDeleted(
-  'events/{eventId}/registrations/{regId}',
+  { document: 'events/{eventId}/registrations/{regId}', secrets: [RESEND_API_KEY] },
   async (event) => {
     const { eventId } = event.params;
     // The trigger framework hands us a raw DocumentSnapshot (no converter),
@@ -35,6 +37,7 @@ export const onRegistrationDeleted = onDocumentDeleted(
     if (!eventData) return;
 
     let promoted = false;
+    let promotedAttendee: { userId: string; name: string; position: number } | null = null;
     if (deletedStatus === 'confirmed' && eventData.maxAttendees) {
       // Eventarc delivers at-least-once, so this handler can run twice for the
       // same deletion. Only promote when the event is genuinely under capacity:
@@ -55,6 +58,11 @@ export const onRegistrationDeleted = onDocumentDeleted(
           // update() bypasses the converter, partial shape is accepted.
           await nextInLine.ref.update({ status: 'confirmed' });
           promoted = true;
+          promotedAttendee = {
+            userId: nextData.userId,
+            name: nextData.name,
+            position: nextData.position,
+          };
 
           // Deterministic notification id (one per user+event) so a redelivered
           // promotion overwrites rather than appending a duplicate. Typed
@@ -86,6 +94,23 @@ export const onRegistrationDeleted = onDocumentDeleted(
       confirmedCount: confirmedSnap.data().count,
       totalCount: totalSnap.data().count,
     });
+
+    if (promotedAttendee) {
+      await sendRegistrationEmail({
+        userId: promotedAttendee.userId,
+        eventId,
+        event: eventData,
+        attendees: [
+          {
+            name: promotedAttendee.name,
+            status: 'confirmed',
+            position: promotedAttendee.position,
+          },
+        ],
+        confirmedCount: confirmedSnap.data().count,
+        kind: 'waitlist_promotion',
+      });
+    }
 
     logger.info('Registration deleted handled', {
       handler: 'onRegistrationDeleted',

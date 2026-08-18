@@ -4,6 +4,76 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.20.0 — 2026-08-18
+
+### Added
+
+- **Sign-up questions get their own step at the end of the event form, built like the census.** The question list moved out of *Detalles* (where it sat under the telephone/payment toggles and grew to ten stacked rows) into a final *Preguntas* step of the event stepper. It now uses the same forms-builder presentation as the village census builder: numbered question cards, one expanded at a time, a bottom sheet for the question type, and the shared options editor. The card chrome (`QuestionCardShell`), the type sheet (`TypeSheet`) and `OptionsEditor` live in `components/feature/questions/` and are shared by both builders — the census builder was refactored onto them in the same change, so the two screens can't drift apart again. Locked questions (an event that already has sign-ups) now also refuse reordering, not just removal and retyping, since the additive-only rule compares the list by position.
+
+- **The attendee roster shows when each person signed up.** Every registration already stored `registeredAt`; the organizer roster on the event detail screen now renders it under each name, so "who was first" is answerable without exporting anything. The roster is also ordered by that field instead of by `position` — `position` is derived from the registration count at write time, so a cancellation frees a number that a later sign-up reuses and waitlist promotion never renumbers, which made the displayed order drift from the real sign-up order. No schema change and no backfill: the field has always been written by `registerToEvent`.
+- **Export an event's attendee list to Excel or CSV.** The organizer-only roster on an event now has a download control that produces the full list — confirmed and waitlisted — as a branded `.xlsx` (default) or a plain `.csv`. The workbook carries the Cultuvilla logo, a title/date header, a frozen filterable header row, real date cells (sortable in Excel, not text), banded rows, and a confirmed/waitlist/total tally. Rows are numbered by the sheet (not by the registration's stored `position`, which a cancellation can hand to a later sign-up), and columns adapt to the event: teléfono only when the event collected phone numbers, pagado only when it requires payment. The CSV is UTF-8-BOM + semicolon-delimited so Spanish Excel opens it with accents and columns intact. The event's custom sign-up questions come along as trailing columns, one per question, typed from the question spec so a number sorts as a number and a yes/no reads as Sí/No — the answers were already fetched to render the roster, so no extra reads. Columns are keyed by the question's stable id, so relabeling a question keeps the answers collected under it, and repeated labels are disambiguated rather than printed twice. Web-only for now — saving a file on iOS/Android needs the native share/file-system modules the app does not ship yet.
+
+- **Confirmation email when you sign up for an event.** Signing up now sends a branded email with the event flyer, title, date, place and pueblo, the list of personas you registered (each marked confirmed or waitlisted with its queue number), and how full the event is — "3 de 50 plazas ocupadas", or a headcount when the event is uncapped. One email per signup, not one per persona. A waitlisted attendee who is later promoted gets the same email with a "se ha liberado una plaza" lead.
+  - Sent through Resend on the existing `hola@acceso.cultuvilla.es` sender, reusing the `RESEND_API_KEY` secret the auth emails already use — no new provider, credential or domain.
+  - Best-effort by design: the send happens *after* the registration transaction commits (a send inside it would repeat on every Firestore retry), and any failure is logged and swallowed. A bounced email never costs you your place, and the in-app notification remains the durable record.
+  - Walk-in attendees added by an organizer get no email — they have no account and no address on file.
+  - The flyer is a remote image, which Outlook and Apple Mail block by default; every fact in the email is repeated as text, so it reads completely with images off.
+
+- **The signup email reaches people who signed up before it existed.** A one-off registered job (`existing-signup-emails`) walks every published event that has not finished yet, groups its existing registrations per user, and sends each of them the same branded email the live sign-up path now sends — reframed as a reminder ("Recordatorio de inscripción: …", lead "Te recordamos que estás apuntado a este evento") rather than a confirmation, since the sign-up itself may be weeks old. One email per user per event, listing all the personas they registered; waitlisted personas keep their queue position. Events already over are skipped, walk-ins and users with no address on file are skipped.
+  - Emails cannot be unsent, so the job is dry-run by default (it prints every recipient it would mail) and records each successful send at `_admin/emailSends/existing-signup-emails/{eventId}__{userId}`. A re-run after a crash resumes without mailing anyone twice, and it is never auto-applied by a deploy.
+  - The email template moved from `functions/src/events/` to `@cultuvilla/shared/email` so the Cloud Function and the script render the identical mail from one source; `eventWebUrl` moved with it.
+  - **Migration:** per env, `pnpm backfills:run --id=existing-signup-emails --env=<env> --confirm --apply` (or Actions → "Run Backfill"). The runner needs `roles/secretmanager.secretAccessor` on that project's `RESEND_API_KEY`, which is how the script reads the sending key.
+
+- **Custom sign-up questions on an event.** The creator can define up to 10 typed
+  questions (text, number, date, single-choice, yes/no) in the event form, and
+  every person signed up answers them — a DNI per runner, a t-shirt size per
+  attendee. Questions are per-attendee, unlike the event's single shared phone,
+  so ticking three personas asks three times. Answers are PII, so they never
+  touch the world-readable registration doc: they land in the organizer-gated
+  `events/{id}/registrationPrivate/{regId}` alongside the phone, and the
+  organizer sees them under each name in the attendee roster.
+
+  The `registrationContacts` subcollection is renamed `registrationPrivate` and
+  now carries `{ name, phone, answers }` — it was already keyed per
+  registration, so this merges two gated docs into the one the name now
+  describes. Validation lives in a single shared validator
+  (`validateSignupAnswers`) run both by the sign-up sheet and, authoritatively,
+  inside the `registerToEvent` / `addWalkInRegistration` transactions.
+
+  Once an event has sign-ups its question list is additive-only — existing
+  questions can be relabelled but not removed or retyped, since the collected
+  answers are keyed by their ids. Firestore rules enforce the size half of that
+  (rules have no loops); the edit form enforces the rest.
+
+  **Migration:** run in this order, per env —
+  `pnpm backfills:run --id=event-signup-fields --env=<env> --confirm --apply` and
+  `pnpm backfills:run --id=registration-private-merge --env=<env> --confirm --apply`
+  (both `pre-deploy`: the promotion blocks until they have run), then **after**
+  the deploy
+  `pnpm backfills:run --id=registration-contacts-drop --env=<env> --confirm --apply`,
+  which re-copies anything the old function wrote during the deploy window and
+  then deletes `registrationContacts`. Applied to dev; the post-deploy drop is
+  deliberately still pending there until this ships.
+
+### Changed
+
+- **The mobile app is pinned to its own EAS account and project** (`cultuvilla.app` / `53188e5f…`) instead of resolving from `EAS_PROJECT_ID`. An env var is machine-global, and the same machines check out `ordago-apps`, whose Expo config owns `ordago-apps` — a stray export would have silently built one repo into the other's EAS project. `owner` + `projectId` as literals make the routing per-repo by construction, and a new test asserts the env indirection cannot come back.
+- The three `apple-app-site-association` files now carry the real Apple Team ID (`78RB67NT38`) in place of `REPLACE_TEAM_ID`. The Android `assetlinks.json` fingerprints stay placeholders — they need Google's Play App Signing certificate, which does not exist until the first Play upload. Deep links remain web-only until the apps are actually released.
+- **A production error now says what failed, where, and on which build.** Prod client errors arrived with an unusable payload: both global capture paths passed an empty context, so `route`, `appVersion` and `operation_id` — all long since allowlisted — were always absent, and `error.code` was never captured at all. Nine Firestore denials were logged with no way to tell which query produced them. Three changes: the adapter now fills in `code`, `route` and `appVersion` on every capture (an explicit context value still wins); `withFirestoreErrorLog` reports its call-site label in production instead of being a `__DEV__`-only `console.warn`; and `logClientError` keeps `error.code`, `operation` and `surface`. The label matters specifically because a Firestore permission denial deliberately carries no collection or document path — naming the rule that refused would itself leak it — so every such error is identical by construction and only the call site can identify it. The error boundary's marker moved from `route: 'boundary'` to `surface: 'boundary'`, which had been overwriting the very screen that crashed.
+
+### Fixed
+
+- **The "¿A quién quieres apuntar?" sheet now grows with its content.** Its persona list was capped at a fixed 320px scroll box regardless of screen size, so an event with custom sign-up questions (asked once per ticked persona) left the user scrolling a tiny window on a tall phone. The card now sizes to its content up to 90% of the viewport, and the list takes whatever room is left. A rejected **Confirmar** also scrolls the first persona with a missing required answer into view, instead of leaving the error off-screen below the fold.
+- **Signing in with the wrong email is no longer a one-way door.** Verifying an OTP code creates the Firebase Auth account for whatever address was typed, and `AuthGate` routes an account with no `personId` to `/(onboarding)/complete-profile` and to no other screen — a screen that had no back button and no sign-out. The only way forward was to finish creating the account you were trying not to create. Three changes: the OTP code step now offers **"Usar otro correo"** so a typo can be corrected before it becomes an account; the onboarding screen carries a sign-out action; and taking that exit deletes the Auth user when it has no profile doc yet (that account was created by this very sign-in, so leaving it behind would squat on the address and keep intercepting the real owner's codes). Falls back to a plain sign-out if the delete is refused.
+- The attendee roster's "Editar" toggle no longer appears on an event with no sign-ups — there was nothing to edit, so the toggle only shows once at least one person (confirmed or waitlisted) is on the list.
+
+- **Three latent failures on a weak connection.** All three predate v0.19.0 and are unrelated to that release; a bad connection is what made them visible.
+  - **Signup could strand a real account.** `verifyAuthOtpCode` deletes the OTP inside the transaction that validates it, then creates the user and mints a custom token — so if `signInWithCustomToken` died on the network afterwards, the code was spent and the account existed, but the user saw an error. (Signing in again worked, which is what made it look like a phantom bug.) The minted token is now held in memory and reused by the retry instead of demanding a fresh code; it is discarded when the server rejects it, and on sign-out.
+  - **Auth and Storage failures showed raw SDK strings.** `classifyCallableError` only knew HttpsError codes, so `auth/network-request-failed` fell through to "Algo ha fallado" — and the login screen bypassed the classifier entirely, rendering `Firebase: Error (auth/network-request-failed).` at the user. Namespaced `auth/*` and `storage/*` codes are now classified, and the auth screens route through a shared helper that prefers classified copy, keeps server-authored Spanish (e.g. "Código incorrecto o caducado."), and never renders a developer string.
+  - **A failed event-cover upload created duplicate events.** Creating an event and uploading its cover are two round-trips; when the upload failed, the event already existed but the form stayed open, and pressing the button again ran `createEvent` a second time — one duplicate per retry. The new event's id is now held for the life of the form, so a retry finishes that event.
+
+- `formatDate` now takes an optional IANA time zone. Cloud Functions run in UTC, so any date they rendered was one or two hours off the Spanish wall clock; the registration email passes `Europe/Madrid` (now exported as `EVENT_TZ`) explicitly. Client callers are unaffected — the device zone is already correct, and the parameter is optional.
+
 ## v0.19.0 — 2026-08-15
 
 ### Changed
