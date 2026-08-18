@@ -20,7 +20,7 @@ vi.mock('firebase/firestore', async (importOriginal) => {
     collection: vi.fn(() => ({ withConverter: () => ({ __collection: 'registrations' }) })),
     orderBy: vi.fn((field: string, direction: string) => ({ __orderBy: field, direction })),
     query: vi.fn((ref: unknown, ...constraints: unknown[]) => ({ ref, constraints })),
-    getDocs: vi.fn(async () => ({ docs: [] })),
+    getDocs: vi.fn(() => Promise.resolve({ docs: [] })),
   };
 });
 
