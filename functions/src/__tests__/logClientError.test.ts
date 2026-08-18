@@ -30,6 +30,23 @@ describe('runLogClientError', () => {
     expect(String(attrs['error.message'])).toContain('<email>');
   });
 
+  it('keeps the error code and the call-site operation label', () => {
+    errorSpy.mockClear();
+    runLogClientError('user-xyz', {
+      message: 'Missing or insufficient permissions.',
+      name: 'FirebaseError',
+      code: 'permission-denied',
+      operation: 'profile:getPersonsByCreator',
+      surface: 'boundary',
+    });
+    const [, attrs] = errorSpy.mock.calls[0];
+    // A Firestore denial carries no path, so the code classifies it and the
+    // operation label is the only thing naming which query was refused.
+    expect(attrs['error.code']).toBe('permission-denied');
+    expect(attrs.operation).toBe('profile:getPersonsByCreator');
+    expect(attrs.surface).toBe('boundary');
+  });
+
   it('drops keys outside the allowlist', () => {
     errorSpy.mockClear();
     runLogClientError('user-xyz', { message: 'x', email: 'ana@example.com', secret: 'nope' });

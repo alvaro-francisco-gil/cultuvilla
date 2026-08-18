@@ -86,6 +86,15 @@ describe('observability port', () => {
     });
   });
 
+  // withFirestoreErrorLog reports the call site under `operation`; if the key
+  // ever falls out of the allowlist the label is silently dropped and a
+  // Firestore denial becomes unattributable again.
+  it('carries the operation label through the allowlist', () => {
+    observability.captureError(new Error('denied'), { operation: 'profile:getPersonsByCreator' });
+    const [, ctx] = adapter.calls.captureError[adapter.calls.captureError.length - 1];
+    expect((ctx as Record<string, unknown>).operation).toBe('profile:getPersonsByCreator');
+  });
+
   it('captureError flows even when analytics consent is denied', () => {
     observability.setConsent({ analytics: false });
     observability.captureError(new Error('boom'), { route: '/x', leaked: 'y' });
