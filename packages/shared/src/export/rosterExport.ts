@@ -78,7 +78,7 @@ const ANSWER_COLUMN_TYPE: Record<SignupFieldType, RosterColumnType> = {
 function dedupeHeader(label: string, used: Map<string, number>): string {
   const seen = used.get(label) ?? 0;
   used.set(label, seen + 1);
-  return seen === 0 ? label : `${label} (${seen + 1})`;
+  return seen === 0 ? label : `${label} (${String(seen + 1)})`;
 }
 
 /**
@@ -88,7 +88,7 @@ function dedupeHeader(label: string, used: Map<string, number>): string {
  * the worse failure.
  */
 function answerCell(value: SignupAnswerValue | undefined, type: RosterColumnType): RosterCell {
-  if (value === undefined || value === null || value === '') return null;
+  if (value === undefined || value === '') return null;
   if (type === 'boolean') return typeof value === 'boolean' ? value : Boolean(value);
   if (type === 'number') {
     const n = typeof value === 'number' ? value : Number(value);

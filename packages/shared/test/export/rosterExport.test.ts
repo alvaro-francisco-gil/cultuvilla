@@ -226,8 +226,8 @@ describe('buildRosterExport with custom sign-up questions', () => {
     });
     const [header, row] = toCsv(model).trim().split('\r\n');
 
-    expect(header?.endsWith('Bus')).toBe(true);
-    expect(row?.endsWith('No')).toBe(true);
+    expect(header.endsWith('Bus')).toBe(true);
+    expect(row.endsWith('No')).toBe(true);
   });
 });
 
