@@ -13,7 +13,7 @@ import { EventCoverPicker } from '../../components/feature/EventCoverPicker';
 import { EventLocationField } from '../../components/feature/EventLocationField';
 import { MyVillagePicker, type VillageOption } from '../../components/feature/MyVillagePicker';
 import { OrganizerPicker } from '../../components/feature/OrganizerPicker';
-import { SignupFieldsEditor } from '../../components/feature/SignupFieldsEditor';
+import { SignupQuestionsEditor } from '../../components/feature/signup/SignupQuestionsEditor';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 import { useCallable } from '../../lib/useCallable';
@@ -254,7 +254,13 @@ export default function NewEventScreen() {
       // would be unanswerable, so they never reach the event doc. Locked rows
       // are kept verbatim — dropping one would break the additive-only rule.
       const usableSignupFields = signupFields
-        .map((f) => ({ ...f, label: f.label.trim() }))
+        .map((f) => ({
+          ...f,
+          label: f.label.trim(),
+          // The options editor appends an empty row as you type; a blank option
+          // is unanswerable and fails the model's `min(1)` on read.
+          options: f.options.map((o) => o.trim()).filter((o) => o.length > 0),
+        }))
         .filter((f, i) => i < lockedFieldCount || (f.label.length > 0 && isUsableSignupField(f)));
 
       // ── Edit: patch the existing event; only touch the cover if replaced ──
@@ -517,12 +523,22 @@ export default function NewEventScreen() {
               />
             </HStack>
           </HStack>
-          <SignupFieldsEditor
-            value={signupFields}
-            onChange={setSignupFields}
-            lockedCount={lockedFieldCount}
-          />
         </>,
+      ),
+    },
+    {
+      key: 'questions',
+      title: t('event.stepQuestions'),
+      icon: 'help-circle-outline',
+      // Half-finished questions are dropped on submit rather than blocking the
+      // step: they are optional extras, and a creator who opened the step and
+      // changed their mind shouldn't be trapped in it.
+      render: () => stepBody(
+        <SignupQuestionsEditor
+          value={signupFields}
+          onChange={setSignupFields}
+          lockedCount={lockedFieldCount}
+        />,
       ),
     },
   ];

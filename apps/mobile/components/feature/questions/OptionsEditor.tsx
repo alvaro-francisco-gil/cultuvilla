@@ -30,7 +30,7 @@ export function OptionsEditor({
             <Input
               value={opt}
               onChangeText={(v) => onChange(options.map((o, j) => (j === i ? v : o)))}
-              placeholder={t('censo.builder.optionPlaceholder')}
+              placeholder={t('questions.optionPlaceholder')}
             />
           </View>
           <Pressable
@@ -46,7 +46,7 @@ export function OptionsEditor({
       <Pressable onPress={() => onChange([...options, ''])} className="py-2">
         <HStack gap={2} align="center">
           <Ionicons name={glyph} size={20} color="#d1d5db" />
-          <Text tone="muted">{t('censo.builder.addOption')}</Text>
+          <Text tone="muted">{t('questions.addOption')}</Text>
         </HStack>
       </Pressable>
     </VStack>

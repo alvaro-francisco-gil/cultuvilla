@@ -194,12 +194,17 @@ read it already performs.
 
 ### 7. Create/edit UI
 
-`apps/mobile/app/event/new.tsx` handles both create and edit. A new
-`SignupFieldsEditor` component lands in `stepDetails` beside the
-`telephoneRequired` / `requiresPayment` toggles: an add/remove/reorder list of
-rows (label, type, required toggle, options editor when `select`). Raw
-`useState` per house style. In edit mode with `totalCount > 0`, existing rows
-lock `type` and disable removal, matching the rules gate.
+`apps/mobile/app/event/new.tsx` handles both create and edit. The questions get
+their **own final step** (`stepQuestions`) rather than sharing `stepDetails`
+with the `telephoneRequired` / `requiresPayment` toggles — the list grows to ten
+cards and buried it below the toggles it was easy to miss.
+
+`SignupQuestionsEditor` reuses the census schema builder's presentation through
+the shared components in `components/feature/questions/` (`QuestionCardShell`,
+`TypeSheet`, `OptionsEditor`): a stack of question cards, one expanded at a
+time, with a bottom sheet for the type. Raw `useState` per house style. In edit
+mode with `totalCount > 0`, existing rows lock `type`, position and removal,
+matching the rules gate and `isAdditiveSignupFieldChange`.
 
 ### 8. Sign-up UI
 
@@ -243,9 +248,10 @@ and invalid-value errors) in `packages/i18n/messages/es.json`.
 
 - `packages/shared/src/models/event/SignupFieldModel.ts`
 - `packages/shared/test/models/signupField.test.ts`
-- `apps/mobile/components/feature/SignupFieldsEditor.tsx`
+- `apps/mobile/components/feature/signup/SignupQuestionsEditor.tsx`
 - `apps/mobile/components/feature/SignupAnswerFields.tsx`
-- `apps/mobile/components/feature/__tests__/SignupFieldsEditor.test.tsx`
+- `apps/mobile/components/feature/signup/__tests__/SignupQuestionsEditor.test.tsx`
+- `apps/mobile/components/feature/questions/{QuestionCardShell,TypeSheet,OptionsEditor}.tsx` (the last moved out of `censo/`)
 - `scripts/backfill-event-signup-fields.mjs`
 - `scripts/backfill-registration-private-merge.mjs`
 - `scripts/backfill-registration-contacts-drop.mjs`
@@ -303,7 +309,7 @@ and invalid-value errors) in `packages/i18n/messages/es.json`.
 
 ### Stage 5 — UI
 
-- [x] `SignupFieldsEditor` + wire into `new.tsx` `stepDetails` and both payloads
+- [x] `SignupQuestionsEditor` + wire into `new.tsx` as the final `stepQuestions`, and both payloads
 - [x] `SignupAnswerFields` + per-persona rendering in `AttendeeSheet`, required-gating on confirm
 - [x] `RegisterFab`: thread `answers` per registrant
 - [x] `EventAttendees`: read-only answer display from the merged doc
