@@ -61,6 +61,56 @@ describe('classifyCallableError', () => {
     });
   });
 
+  // Auth and Storage SDK errors reach the same UI as callable rejections. Before
+  // these were mapped, a signup on a flaky connection surfaced the raw string
+  // "Firebase: Error (auth/network-request-failed)." to the user.
+  describe('by namespaced Firebase SDK code', () => {
+    it.each([
+      ['auth/network-request-failed', 'network'],
+      ['auth/timeout', 'network'],
+      ['auth/user-disabled', 'permission'],
+      ['auth/requires-recent-login', 'permission'],
+      ['storage/retry-limit-exceeded', 'network'],
+      ['storage/canceled', 'network'],
+      ['storage/server-file-wrong-size', 'network'],
+      ['storage/unauthorized', 'permission'],
+      ['storage/unauthenticated', 'permission'],
+      ['storage/quota-exceeded', 'capacity'],
+    ] as const)('maps "%s" -> %s', (code, expected) => {
+      expect(classifyCallableError(makeHttpsError(code, 'Firebase: Error (' + code + ').')).kind)
+        .toBe(expected);
+    });
+
+    it('reports the namespace-stripped code as matchedCode', () => {
+      const result = classifyCallableError(makeHttpsError('auth/network-request-failed', 'm'));
+      expect(result.matchedCode).toBe('network-request-failed');
+    });
+
+    // The whole reason the namespaced table is keyed on the full code: the bare
+    // segment of an auth code must never be resolved through the HttpsError map.
+    it('does not resolve an auth code through the HttpsError table', () => {
+      // 'auth/internal-error' strips to 'internal-error', which is NOT the
+      // HttpsError 'internal'. It must stay unclassified, not be mis-bucketed.
+      expect(classifyCallableError(makeHttpsError('auth/internal-error', 'opaque')).kind)
+        .toBe('unknown');
+    });
+
+    it('still classifies an unmapped auth code by its message when it looks network-y', () => {
+      const result = classifyCallableError(
+        makeHttpsError('auth/some-future-code', 'A network request failed'),
+      );
+      expect(result.kind).toBe('network');
+    });
+
+    it('classifies the hyphenated code spelling when it only appears in the message', () => {
+      // The SDK sometimes drops `code` and leaves the code inside the message.
+      const result = classifyCallableError(
+        new Error('Firebase: Error (auth/network-request-failed).'),
+      );
+      expect(result.kind).toBe('network');
+    });
+  });
+
   describe('capacity message wins over a stale-state code', () => {
     it('classifies a "lleno" message as capacity even when code is failed-precondition', () => {
       // This is currently the behaviour because the code matcher returns
