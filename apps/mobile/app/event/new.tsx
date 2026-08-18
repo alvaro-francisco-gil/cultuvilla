@@ -13,6 +13,7 @@ import { EventCoverPicker } from '../../components/feature/EventCoverPicker';
 import { EventLocationField } from '../../components/feature/EventLocationField';
 import { MyVillagePicker, type VillageOption } from '../../components/feature/MyVillagePicker';
 import { OrganizerPicker } from '../../components/feature/OrganizerPicker';
+import { SignupFieldsEditor } from '../../components/feature/SignupFieldsEditor';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 import { useCallable } from '../../lib/useCallable';
@@ -27,6 +28,10 @@ import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
 import { uploadEventImage } from '@cultuvilla/shared/services/imageService';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 import { buildLocationData } from '@cultuvilla/shared/models/core/LocationDataModel';
+import {
+  isUsableSignupField,
+  type SignupFieldSpec,
+} from '@cultuvilla/shared/models/event/SignupFieldModel';
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 import { Stepper, type StepConfig } from '../../components/feature/Stepper';
 import { DeleteHeaderButton } from '../../components/feature/DeleteHeaderButton';
@@ -103,6 +108,8 @@ export default function NewEventScreen() {
   const [maxAttendees, setMaxAttendees] = useState('');
   const [telephoneRequired, setTelephoneRequired] = useState(false);
   const [requiresPayment, setRequiresPayment] = useState(false);
+  const [signupFields, setSignupFields] = useState<SignupFieldSpec[]>([]);
+  const [lockedFieldCount, setLockedFieldCount] = useState(0);
   const [cover, setCover] = useState<UploadableImage | null>(null);
 
   // Picking a location auto-selects the nearest joined village (create mode,
@@ -162,6 +169,11 @@ export default function NewEventScreen() {
         setMaxAttendees(ev.maxAttendees != null ? String(ev.maxAttendees) : '');
         setTelephoneRequired(!!ev.telephoneRequired);
         setRequiresPayment(!!ev.requiresPayment);
+        setSignupFields(ev.signupFields ?? []);
+        // Answers already collected are keyed by these ids, so once the event
+        // has sign-ups the existing rows are frozen and only new ones can be
+        // added. firestore.rules enforces the size half of the same invariant.
+        setLockedFieldCount(ev.totalCount > 0 ? (ev.signupFields ?? []).length : 0);
         setOrganizerUserIds(ev.organizerUserIds ?? []);
         setCreatedBy(ev.createdBy);
         setOrganizerOrgIds(ev.organizerOrgIds ?? []);
@@ -238,6 +250,12 @@ export default function NewEventScreen() {
         displayName: locationName.trim() || municipalityName,
       });
       const maxAttendeesValue = maxAttendees.trim() ? Number(maxAttendees) : null;
+      // Half-finished rows (no label yet, or a select with no options to pick)
+      // would be unanswerable, so they never reach the event doc. Locked rows
+      // are kept verbatim — dropping one would break the additive-only rule.
+      const usableSignupFields = signupFields
+        .map((f) => ({ ...f, label: f.label.trim() }))
+        .filter((f, i) => i < lockedFieldCount || (f.label.length > 0 && isUsableSignupField(f)));
 
       // ── Edit: patch the existing event; only touch the cover if replaced ──
       if (editMode && eventId) {
@@ -250,6 +268,7 @@ export default function NewEventScreen() {
           maxAttendees: maxAttendeesValue,
           telephoneRequired,
           requiresPayment,
+          signupFields: usableSignupFields,
           organizerUserIds,
           organizerOrgIds,
         });
@@ -282,6 +301,7 @@ export default function NewEventScreen() {
           maxAttendees: maxAttendeesValue,
           telephoneRequired,
           requiresPayment,
+          signupFields: usableSignupFields,
           status: 'published',
           organizerUserIds,
           organizerOrgIds,
@@ -497,6 +517,11 @@ export default function NewEventScreen() {
               />
             </HStack>
           </HStack>
+          <SignupFieldsEditor
+            value={signupFields}
+            onChange={setSignupFields}
+            lockedCount={lockedFieldCount}
+          />
         </>,
       ),
     },

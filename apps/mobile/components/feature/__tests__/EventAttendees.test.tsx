@@ -3,7 +3,7 @@ import { EventAttendees } from '../EventAttendees';
 import { getPerson } from '@cultuvilla/shared/services/personService';
 import {
   getEventRegistrations,
-  getRegistrationPhone,
+  getRegistrationPrivate,
   cancelRegistration,
   setRegistrationPaid,
 } from '@cultuvilla/shared/services/registrationService';
@@ -15,7 +15,7 @@ jest.mock('../../../lib/dialogs', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/registrationService', () => ({
   getEventRegistrations: jest.fn(),
-  getRegistrationPhone: jest.fn(),
+  getRegistrationPrivate: jest.fn(),
   cancelRegistration: jest.fn().mockResolvedValue(undefined),
   setRegistrationPaid: jest.fn().mockResolvedValue(undefined),
 }));
@@ -27,7 +27,7 @@ const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(...a) } }));
 
 const mockGet = getEventRegistrations as jest.Mock;
-const mockPhone = getRegistrationPhone as jest.Mock;
+const mockPrivate = getRegistrationPrivate as jest.Mock;
 const mockCancel = cancelRegistration as jest.Mock;
 const mockGetPerson = getPerson as jest.Mock;
 
@@ -60,7 +60,7 @@ describe('EventAttendees', () => {
 
   it('shows a call action that reveals the number in a dialog when telephone was required', async () => {
     mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana', status: 'confirmed' }]);
-    mockPhone.mockResolvedValue('600111222');
+    mockPrivate.mockResolvedValue({ phone: '600111222', answers: {} });
     const { getByText, getByTestId, queryByText } = render(
       <EventAttendees eventId="e1" eventTitle="Fiesta" eventDate={new Date("2026-06-24T20:00:00Z")} telephoneRequired requiresPayment={false} />,
     );
@@ -77,7 +77,7 @@ describe('EventAttendees', () => {
       <EventAttendees eventId="e1" eventTitle="Fiesta" eventDate={new Date("2026-06-24T20:00:00Z")} telephoneRequired={false} requiresPayment={false} />,
     );
     await waitFor(() => getByText('Ana'));
-    expect(mockPhone).not.toHaveBeenCalled();
+    expect(mockPrivate).not.toHaveBeenCalled();
     expect(queryByTestId('call-attendee-r1')).toBeNull();
   });
 

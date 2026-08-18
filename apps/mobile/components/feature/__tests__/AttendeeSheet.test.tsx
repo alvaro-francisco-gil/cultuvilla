@@ -49,7 +49,7 @@ describe('AttendeeSheet', () => {
     );
     fireEvent.press(getByTestId('attendee-row-dep1')); // tick the dependent
     fireEvent.press(getByTestId('attendee-confirm'));
-    expect(onConfirm).toHaveBeenCalledWith(['self', 'dep1'], undefined);
+    expect(onConfirm).toHaveBeenCalledWith(['self', 'dep1'], undefined, {});
   });
 
   it('gates confirm behind a valid phone on telephoneRequired events with a new attendee', () => {
@@ -80,7 +80,7 @@ describe('AttendeeSheet', () => {
     // A valid number is reported to the parent in E.164 form (with the +34 prefix).
     fireEvent.changeText(phone, '600111222');
     fireEvent.press(getByTestId('attendee-confirm'));
-    expect(onConfirm).toHaveBeenCalledWith(['self'], '+34600111222');
+    expect(onConfirm).toHaveBeenCalledWith(['self'], '+34600111222', {});
   });
 
   it('shows the invalid-phone error only after Confirmar is pressed, not while typing', () => {
@@ -126,7 +126,83 @@ describe('AttendeeSheet', () => {
     fireEvent.press(getByTestId('attendee-phone-option-FR'));
 
     fireEvent.press(getByTestId('attendee-confirm'));
-    expect(onConfirm).toHaveBeenCalledWith(['self'], '+3312345');
+    expect(onConfirm).toHaveBeenCalledWith(['self'], '+3312345', {});
+  });
+
+  describe('custom signup fields', () => {
+    const fields = [
+      { id: 'size', label: 'Talla', type: 'select' as const, required: true, options: ['S', 'M'] },
+      { id: 'note', label: 'Alergias', type: 'text' as const, required: false, options: [] },
+    ];
+
+    it('asks the fields once per newly-ticked persona, not for already-registered ones', () => {
+      const { getByTestId, queryByTestId } = render(
+        <AttendeeSheet
+          {...baseProps}
+          signupFields={fields}
+          attendees={[
+            { id: 'self', name: 'Ana', status: 'confirmed' },
+            { id: 'dep1', name: 'Hijo' },
+          ]}
+        />,
+      );
+      // 'self' is already registered — their answers were collected back then.
+      expect(queryByTestId('attendee-answer-self-size')).toBeNull();
+      expect(queryByTestId('attendee-answer-dep1-size')).toBeNull();
+
+      fireEvent.press(getByTestId('attendee-row-dep1'));
+      expect(getByTestId('attendee-answer-dep1-size-S')).toBeTruthy();
+      expect(getByTestId('attendee-answer-dep1-note')).toBeTruthy();
+      expect(queryByTestId('attendee-answer-self-size-S')).toBeNull();
+    });
+
+    it('blocks confirm until every required field is answered, then reports per persona', () => {
+      const onConfirm = jest.fn();
+      const { getByTestId, getByText } = render(
+        <AttendeeSheet
+          {...baseProps}
+          signupFields={fields}
+          onConfirm={onConfirm}
+          attendees={[{ id: 'self', name: 'Ana' }]}
+        />,
+      );
+      fireEvent.press(getByTestId('attendee-row-self'));
+
+      fireEvent.press(getByTestId('attendee-confirm'));
+      expect(onConfirm).not.toHaveBeenCalled();
+      expect(getByText('event.register.answerRequired')).toBeTruthy();
+
+      fireEvent.press(getByTestId('attendee-answer-self-size-M'));
+      fireEvent.changeText(getByTestId('attendee-answer-self-note'), 'ninguna');
+      fireEvent.press(getByTestId('attendee-confirm'));
+      expect(onConfirm).toHaveBeenCalledWith(['self'], undefined, {
+        self: { size: 'M', note: 'ninguna' },
+      });
+    });
+
+    it('keeps each persona’s answers separate', () => {
+      const onConfirm = jest.fn();
+      const { getByTestId } = render(
+        <AttendeeSheet
+          {...baseProps}
+          signupFields={fields}
+          onConfirm={onConfirm}
+          attendees={[
+            { id: 'self', name: 'Ana' },
+            { id: 'dep1', name: 'Hijo' },
+          ]}
+        />,
+      );
+      fireEvent.press(getByTestId('attendee-row-self'));
+      fireEvent.press(getByTestId('attendee-row-dep1'));
+      fireEvent.press(getByTestId('attendee-answer-self-size-S'));
+      fireEvent.press(getByTestId('attendee-answer-dep1-size-M'));
+      fireEvent.press(getByTestId('attendee-confirm'));
+      expect(onConfirm).toHaveBeenCalledWith(['self', 'dep1'], undefined, {
+        self: { size: 'S' },
+        dep1: { size: 'M' },
+      });
+    });
   });
 
   it('routes to persona creation via onCreateNew', () => {
@@ -152,6 +228,6 @@ describe('AttendeeSheet', () => {
       />,
     );
     fireEvent.press(getByTestId('attendee-confirm'));
-    expect(onConfirm).toHaveBeenCalledWith(['self', 'dep1'], undefined);
+    expect(onConfirm).toHaveBeenCalledWith(['self', 'dep1'], undefined, {});
   });
 });

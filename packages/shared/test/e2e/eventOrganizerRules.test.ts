@@ -18,23 +18,23 @@ async function seed() {
     await setDoc(doc(db, `events/${E}/registrations/r1`), {
       userId: 'alice', personId: 'p', name: 'Alice', status: 'confirmed', position: 1, registeredAt: new Date(), checkedInAt: null, paidAt: null,
     });
-    await setDoc(doc(db, `events/${E}/registrationContacts/r1`), { phone: '600', name: 'Alice' });
+    await setDoc(doc(db, `events/${E}/registrationPrivate/r1`), { phone: '600', name: 'Alice', answers: { f1: 'M' } });
   });
 }
 
 beforeEach(async () => { await seed(); });
 
 describe('firestore.rules — event organizer (contacts, check-in, removal)', () => {
-  it('event organizer (in organizerUserIds) can read a registrationContact; a stranger cannot', async () => {
+  it('event organizer (in organizerUserIds) can read a registrationPrivate doc; a stranger cannot', async () => {
     const boss = asUser(getEnv(), 'boss');
-    await assertSucceeds(getDoc(doc(boss, `events/${E}/registrationContacts/r1`)));
+    await assertSucceeds(getDoc(doc(boss, `events/${E}/registrationPrivate/r1`)));
     const stranger = asUser(getEnv(), 'stranger');
-    await assertFails(getDoc(doc(stranger, `events/${E}/registrationContacts/r1`)));
+    await assertFails(getDoc(doc(stranger, `events/${E}/registrationPrivate/r1`)));
   });
 
-  it('village admin can read a registrationContact', async () => {
+  it('village admin can read a registrationPrivate doc', async () => {
     const vb = asUser(getEnv(), 'villageboss');
-    await assertSucceeds(getDoc(doc(vb, `events/${E}/registrationContacts/r1`)));
+    await assertSucceeds(getDoc(doc(vb, `events/${E}/registrationPrivate/r1`)));
   });
 
   it('organizer can check in a registration; a stranger cannot', async () => {
@@ -56,9 +56,9 @@ describe('firestore.rules — event organizer (contacts, check-in, removal)', ()
     await assertSucceeds(deleteDoc(doc(boss, `events/${E}/registrations/r1`)));
   });
 
-  it('nobody can write a registrationContact from the client', async () => {
+  it('nobody can write a registrationPrivate doc from the client', async () => {
     const boss = asUser(getEnv(), 'boss');
-    await assertFails(setDoc(doc(boss, `events/${E}/registrationContacts/r2`), { phone: '1' }));
+    await assertFails(setDoc(doc(boss, `events/${E}/registrationPrivate/r2`), { phone: '1' }));
   });
 
   it('organizer can mark a registration paid; a stranger cannot', async () => {
@@ -76,5 +76,41 @@ describe('firestore.rules — event organizer (contacts, check-in, removal)', ()
   it('village admin can mark a registration paid', async () => {
     const vb = asUser(getEnv(), 'villageboss');
     await assertSucceeds(updateDoc(doc(vb, `events/${E}/registrations/r1`), { paidAt: new Date() }));
+  });
+});
+
+// Once answers exist they are keyed by the current field ids, so the list may
+// only grow. Rules enforce the size half of that (no loops for per-entry
+// checks) — see isAdditiveSignupFieldsChange in firestore.rules.
+describe('firestore.rules — signupFields are additive once an event has signups', () => {
+  const field = (id: string) => ({ id, label: 'Talla', type: 'text', required: false, options: [] });
+
+  async function seedEventWith(totalCount: number, signupFields: unknown[]) {
+    await getEnv().withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `events/${E}`), {
+        organizerUserIds: ['boss'], organizerOrgIds: [], municipalityId: M,
+        createdBy: 'boss', totalCount, signupFields,
+      });
+    });
+  }
+
+  it('lets an organizer add a field to an event that has signups', async () => {
+    await seedEventWith(1, [field('a')]);
+    const boss = asUser(getEnv(), 'boss');
+    await assertSucceeds(
+      updateDoc(doc(boss, `events/${E}`), { signupFields: [field('a'), field('b')] }),
+    );
+  });
+
+  it('blocks removing a field once the event has signups', async () => {
+    await seedEventWith(1, [field('a'), field('b')]);
+    const boss = asUser(getEnv(), 'boss');
+    await assertFails(updateDoc(doc(boss, `events/${E}`), { signupFields: [field('a')] }));
+  });
+
+  it('allows removing a field while the event still has no signups', async () => {
+    await seedEventWith(0, [field('a'), field('b')]);
+    const boss = asUser(getEnv(), 'boss');
+    await assertSucceeds(updateDoc(doc(boss, `events/${E}`), { signupFields: [field('a')] }));
   });
 });

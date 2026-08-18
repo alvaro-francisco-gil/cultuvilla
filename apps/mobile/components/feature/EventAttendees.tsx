@@ -13,18 +13,35 @@ import { SectionEditToggle } from './SectionEditToggle';
 import { RosterExportButton } from './RosterExportButton';
 import {
   getEventRegistrations,
-  getRegistrationPhone,
+  getRegistrationPrivate,
   cancelRegistration,
   setRegistrationPaid,
 } from '@cultuvilla/shared/services/registrationService';
 import { getPerson } from '@cultuvilla/shared/services/personService';
 import type { RegistrationData } from '@cultuvilla/shared/models/event/RegistrationDataModel';
+import type {
+  SignupAnswers,
+  SignupAnswerValue,
+  SignupFieldSpec,
+} from '@cultuvilla/shared/models/event/SignupFieldModel';
 import { colors, iconSizes } from '@cultuvilla/shared/design-system';
 import { formatDate } from '@cultuvilla/shared/utils/format';
 import { useT } from '../../lib/i18n';
 import { showConfirm } from '../../lib/dialogs';
 
 type Row = RegistrationData & { id: string };
+
+// Answers are stored as primitives (a date as its ISO string), so rendering
+// goes through the locale formatter rather than String() for dates and yes/no
+// for the checkbox type.
+function formatAnswer(value: string | number | boolean, t: (key: string) => string): string {
+  if (typeof value === 'boolean') return value ? t('common.yes') : t('common.no');
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return formatDate(parsed);
+  }
+  return String(value);
+}
 
 type AttendeePerson = { photoURL: string | null; userId: string | null };
 
@@ -46,16 +63,20 @@ export function EventAttendees({
   eventDate,
   telephoneRequired,
   requiresPayment,
+  signupFields = [],
 }: {
   eventId: string;
   eventTitle: string;
   eventDate: Date | null;
   telephoneRequired: boolean;
   requiresPayment: boolean;
+  /** The event's custom sign-up fields; answers are listed under each row. */
+  signupFields?: SignupFieldSpec[];
 }) {
   const { t } = useT();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [phones, setPhones] = useState<Record<string, string | null>>({});
+  const [answers, setAnswers] = useState<Record<string, SignupAnswers>>({});
   const [people, setPeople] = useState<Record<string, AttendeePerson>>({});
   const [callTarget, setCallTarget] = useState<{ name: string; phone: string } | null>(null);
   const [editing, setEditing] = useState(false);
@@ -76,13 +97,17 @@ export function EventAttendees({
       }),
     );
     setPeople(Object.fromEntries(personEntries));
-    if (telephoneRequired) {
+    // One gated doc per registration carries both the phone and the custom
+    // answers, so a single fan-out covers both — skip it when the event
+    // collects neither.
+    if (telephoneRequired || signupFields.length > 0) {
       const entries = await Promise.all(
-        regs.map(async (r) => [r.id, await getRegistrationPhone(eventId, r.id)] as const),
+        regs.map(async (r) => [r.id, await getRegistrationPrivate(eventId, r.id)] as const),
       );
-      setPhones(Object.fromEntries(entries));
+      setPhones(Object.fromEntries(entries.map(([id, p]) => [id, p?.phone ?? null])));
+      setAnswers(Object.fromEntries(entries.map(([id, p]) => [id, p?.answers ?? {}])));
     }
-  }, [eventId, telephoneRequired]);
+  }, [eventId, telephoneRequired, signupFields.length]);
 
   useEffect(() => {
     void load();
@@ -142,8 +167,14 @@ export function EventAttendees({
         </VStack>
       </>
     );
-    return (
-    <HStack key={r.id} gap={3} align="center" className="py-2">
+    // Only the fields this attendee actually answered; an optional field left
+    // blank has no entry and simply doesn't render.
+    const given = signupFields
+      .map((f) => ({ field: f, value: answers[r.id]?.[f.id] }))
+      .filter((a): a is { field: SignupFieldSpec; value: SignupAnswerValue } => a.value !== undefined);
+
+    const row = (
+    <HStack gap={3} align="center" className="py-2">
       {href ? (
         <Pressable
           testID={`attendee-profile-${r.id}`}
@@ -199,6 +230,20 @@ export function EventAttendees({
         </Pressable>
       ) : null}
     </HStack>
+    );
+
+    if (given.length === 0) return <VStack key={r.id}>{row}</VStack>;
+    return (
+      <VStack key={r.id}>
+        {row}
+        <VStack gap={0} className="pl-12 pb-2">
+          {given.map(({ field, value }) => (
+            <Text key={field.id} variant="caption" tone="muted" testID={`answer-${r.id}-${field.id}`}>
+              {field.label}: {formatAnswer(value, t)}
+            </Text>
+          ))}
+        </VStack>
+      </VStack>
     );
   };
 

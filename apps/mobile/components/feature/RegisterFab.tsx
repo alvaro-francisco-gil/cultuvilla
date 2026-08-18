@@ -10,6 +10,7 @@ import {
   registerToEvent,
 } from '@cultuvilla/shared/services/registrationService';
 import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
+import type { SignupAnswers, SignupFieldSpec } from '@cultuvilla/shared/models/event/SignupFieldModel';
 import { buildNameWithNickname, type PersonData } from '@cultuvilla/shared/models/person';
 import { useT } from '../../lib/i18n';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
@@ -25,6 +26,8 @@ export interface RegisterFabProps {
   name: string;
   /** When true, adding new attendees first requires a shared phone. */
   telephoneRequired: boolean;
+  /** The event's custom sign-up fields, answered once per new attendee. */
+  signupFields?: SignupFieldSpec[];
   /** The event's municipality — threaded into signup observability events. */
   villageId?: string;
 }
@@ -40,7 +43,7 @@ type PersonDoc = PersonData & { id: string };
  *
  * Styles live on `style` (never `className`) so the pill renders on RN-Web.
  */
-export function RegisterFab({ eventId, userId, personId, name, telephoneRequired, villageId }: RegisterFabProps) {
+export function RegisterFab({ eventId, userId, personId, name, telephoneRequired, signupFields, villageId }: RegisterFabProps) {
   const { t } = useT();
   const [registrations, setRegistrations] = useState<Map<string, AttendeeRegistration>>(new Map());
   const [dependents, setDependents] = useState<PersonDoc[]>([]);
@@ -95,13 +98,24 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
   ];
   const names = new Map(attendees.map((a) => [a.id, a.name]));
 
-  async function applyDiff(diff: AttendeeDiff, phone?: string) {
+  async function applyDiff(
+    diff: AttendeeDiff,
+    phone?: string,
+    answersByPersonId?: Record<string, SignupAnswers>,
+  ) {
     setBusy(true);
     let succeeded = false;
     try {
       const next = new Map(registrations);
       if (diff.toAdd.length > 0) {
-        const registrants = diff.toAdd.map((a) => ({ ...a, ...(phone ? { phone } : {}) }));
+        const registrants = diff.toAdd.map((a) => {
+          const answers = answersByPersonId?.[a.personId];
+          return {
+            ...a,
+            ...(phone ? { phone } : {}),
+            ...(answers && Object.keys(answers).length > 0 ? { answers } : {}),
+          };
+        });
         const summaries = await registerToEvent(eventId, registrants);
         succeeded = true;
         summaries.forEach((s, i) => {
@@ -128,7 +142,11 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
     }
   }
 
-  function handleConfirm(selectedIds: string[], phone?: string) {
+  function handleConfirm(
+    selectedIds: string[],
+    phone?: string,
+    answersByPersonId?: Record<string, SignupAnswers>,
+  ) {
     const diff = computeRegistrationDiff(new Set(selectedIds), registrations, names);
     if (diff.toAdd.length === 0 && diff.toCancelRegIds.length === 0) {
       setSheetOpen(false);
@@ -136,12 +154,12 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
     }
     if (diff.toCancelRegIds.length > 0) {
       // One combined confirm covers all removals.
-      showConfirm(t('event.register.cancelTitle'), t('event.register.cancelManyBody'), () => void applyDiff(diff, phone), {
+      showConfirm(t('event.register.cancelTitle'), t('event.register.cancelManyBody'), () => void applyDiff(diff, phone, answersByPersonId), {
         confirmText: t('event.register.cancelConfirm'),
         cancelText: t('common.cancel'),
       });
     } else {
-      void applyDiff(diff, phone);
+      void applyDiff(diff, phone, answersByPersonId);
     }
   }
 
@@ -218,6 +236,7 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
         visible={sheetOpen}
         attendees={attendees}
         telephoneRequired={telephoneRequired}
+        signupFields={signupFields}
         busy={busy}
         autoSelectIds={autoSelectIds}
         onClose={() => setSheetOpen(false)}

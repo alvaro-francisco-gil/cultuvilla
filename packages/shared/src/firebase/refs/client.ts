@@ -33,11 +33,13 @@ export const eventRegistrationsCollection = (db: Firestore, eventId: string) =>
 export const eventRegistrationDoc = (db: Firestore, eventId: string, registrationId: string) =>
   doc(db, 'events', eventId, 'registrations', registrationId).withConverter(registrationConverterClient);
 
-// Organizer-only contact info (phone) keyed by registration id. No converter:
-// the payload is a small untyped `{ phone, name }` and the subcollection has no
-// shared model. The factory exists so call sites stay off raw `doc(getDb(), …)`.
-export const eventRegistrationContactDoc = (db: Firestore, eventId: string, registrationId: string) =>
-  doc(db, 'events', eventId, 'registrationContacts', registrationId);
+// Organizer-only private data for one registration: the phone (when the event
+// sets telephoneRequired) plus the answers to the event's custom signupFields.
+// Both are PII the public registration doc must never carry. No converter: the
+// answer map is shaped by the event's field specs, not by a fixed model. The
+// factory exists so call sites stay off raw `doc(getDb(), …)`.
+export const eventRegistrationPrivateDoc = (db: Firestore, eventId: string, registrationId: string) =>
+  doc(db, 'events', eventId, 'registrationPrivate', registrationId);
 
 // ── Municipality domain ────────────────────────────────────────────────────
 
