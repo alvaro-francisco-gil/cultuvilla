@@ -19,6 +19,7 @@ import {
 import { getPerson } from '@cultuvilla/shared/services/personService';
 import type { RegistrationData } from '@cultuvilla/shared/models/event/RegistrationDataModel';
 import { colors, iconSizes } from '@cultuvilla/shared/design-system';
+import { formatDate } from '@cultuvilla/shared/utils/format';
 import { useT } from '../../lib/i18n';
 import { showConfirm } from '../../lib/dialogs';
 
@@ -28,8 +29,10 @@ type AttendeePerson = { photoURL: string | null; userId: string | null };
 
 /**
  * Organizer-only attendee roster shown inline on the event detail screen: a
- * circular profile photo (from the attendee's person, initials fallback) and
- * the name, which opens that attendee's profile. Marking paid and calling (only
+ * circular profile photo (from the attendee's person, initials fallback), the
+ * name (which opens that attendee's profile) and the moment they signed up —
+ * the roster is ordered by that same moment, so the timestamp doubles as the
+ * queue position an organizer can point at. Marking paid and calling (only
  * when the event required a phone) are always available — they're the running
  * ops of an event; tapping call opens a dialog with the number to dial.
  * Removing an attendee is destructive, so the trash icons stay hidden until the
@@ -87,9 +90,9 @@ export function EventAttendees({
     [eventId, load],
   );
 
-  // getEventRegistrations already orders by `position`, so the split keeps each
-  // section's queue order. Waitlist promotion is automatic (a Cloud Function
-  // fires when a confirmed reg is removed) — there is no manual promote action.
+  // getEventRegistrations already orders by `registeredAt`, so the split keeps
+  // each section in sign-up order. Waitlist promotion is automatic (a Cloud
+  // Function fires when a confirmed reg is removed) — no manual promote action.
   const confirmed = (rows ?? []).filter((r) => r.status === 'confirmed');
   const waitlisted = (rows ?? []).filter((r) => r.status === 'waitlisted');
 
@@ -104,6 +107,9 @@ export function EventAttendees({
 
   const renderRow = (r: Row) => {
     const href = profileHref(r);
+    // registeredAt is a required field on every stored registration; the guard
+    // is for partially-mocked rows in tests, not for real data.
+    const signedUpAt = r.registeredAt ? formatDate(r.registeredAt, 'datetime') : null;
     const identity = (
       <>
         <Avatar
@@ -111,9 +117,20 @@ export function EventAttendees({
           size={36}
           initials={r.name.slice(0, 1).toUpperCase()}
         />
-        <Text numberOfLines={1} className="flex-1">
-          {r.name}
-        </Text>
+        <VStack gap={0} className="flex-1">
+          <Text numberOfLines={1}>{r.name}</Text>
+          {signedUpAt ? (
+            <Text
+              testID={`attendee-signed-up-${r.id}`}
+              variant="bodySm"
+              tone="muted"
+              numberOfLines={1}
+              accessibilityLabel={t('event.signedUpAt', { date: signedUpAt })}
+            >
+              {signedUpAt}
+            </Text>
+          ) : null}
+        </VStack>
       </>
     );
     return (

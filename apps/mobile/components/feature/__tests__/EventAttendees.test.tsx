@@ -95,6 +95,36 @@ describe('EventAttendees', () => {
     getByTestId('remove-attendee-r2');
   });
 
+  it('shows when each attendee signed up, in the order the service returned', async () => {
+    // The service already sorts by registeredAt; the component must not
+    // reshuffle the rows, so the rendered timestamps stay monotonic.
+    mockGet.mockResolvedValue([
+      {
+        id: 'r1',
+        personId: 'p1',
+        name: 'Ana',
+        status: 'confirmed',
+        registeredAt: new Date(2025, 2, 11, 9, 15),
+      },
+      {
+        id: 'r2',
+        personId: 'p2',
+        name: 'Luis',
+        status: 'confirmed',
+        registeredAt: new Date(2025, 2, 14, 18, 42),
+      },
+    ]);
+    const { getByTestId } = render(
+      <EventAttendees eventId="e1" telephoneRequired={false} requiresPayment={false} />,
+    );
+    await waitFor(() => getByTestId('attendee-signed-up-r1'));
+    expect(getByTestId('attendee-signed-up-r1').props.children).toContain('11');
+    expect(getByTestId('attendee-signed-up-r2').props.children).toContain('14');
+    expect(getByTestId('attendee-signed-up-r1').props.accessibilityLabel).toContain(
+      'event.signedUpAt',
+    );
+  });
+
   it('hides the waiting-list section when nobody is waitlisted', async () => {
     mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana', status: 'confirmed' }]);
     const { getByText, queryByText } = render(
