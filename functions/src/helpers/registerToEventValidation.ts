@@ -4,6 +4,31 @@ export interface RegistrantInput {
   personId: string;
   name: string;
   phone?: string;
+  /** Raw answers to the event's custom signupFields. Only shape-checked here —
+   * the event isn't loaded in this helper, so validating a value against its
+   * declared type happens in registerToEvent, inside the transaction. */
+  answers?: Record<string, unknown>;
+}
+
+/** Mirrors MAX_SIGNUP_FIELDS; an event can never declare more than this. */
+const MAX_ANSWERS_PER_REGISTRANT = 10;
+
+function cleanAnswers(raw: unknown): Record<string, unknown> | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new HttpsError('invalid-argument', 'Respuestas inválidas.');
+  }
+  const entries = Object.entries(raw as Record<string, unknown>);
+  if (entries.length > MAX_ANSWERS_PER_REGISTRANT) {
+    throw new HttpsError('invalid-argument', 'Demasiadas respuestas.');
+  }
+  for (const [, value] of entries) {
+    const t = typeof value;
+    if (t !== 'string' && t !== 'number' && t !== 'boolean') {
+      throw new HttpsError('invalid-argument', 'Respuestas inválidas.');
+    }
+  }
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 }
 
 export interface RegisterToEventData {
@@ -47,7 +72,13 @@ export function validateRegisterInput(data: RegisterToEventData | undefined): Va
       throw new HttpsError('invalid-argument', 'name requerido en cada asistente.');
     }
     const phone = typeof reg.phone === 'string' && reg.phone.trim() ? reg.phone.trim() : undefined;
-    cleaned.push({ personId: reg.personId, name: reg.name.trim(), ...(phone ? { phone } : {}) });
+    const answers = cleanAnswers(reg.answers);
+    cleaned.push({
+      personId: reg.personId,
+      name: reg.name.trim(),
+      ...(phone ? { phone } : {}),
+      ...(answers ? { answers } : {}),
+    });
   }
   return { eventId: data.eventId, registrants: cleaned };
 }

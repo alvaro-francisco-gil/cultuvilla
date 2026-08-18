@@ -525,6 +525,22 @@
     "unlimited": "Sin límite",
     "telephoneRequired": "Teléfono requerido",
     "requiresPayment": "Se paga en el evento",
+    "signupFields": {
+      "title": "Preguntas adicionales al inscribirse",
+      "label": "Pregunta",
+      "add": "Añadir pregunta",
+      "addOption": "Añadir opción",
+      "optionPlaceholder": "Nueva opción",
+      "required": "Obligatoria",
+      "lockedNotice": "Este evento ya tiene inscripciones: las preguntas existentes no se pueden eliminar ni cambiar de tipo, pero puedes añadir nuevas.",
+      "type": {
+        "text": "Texto",
+        "number": "Número",
+        "date": "Fecha",
+        "select": "Opciones",
+        "checkbox": "Sí/No"
+      }
+    },
     "paid": "Pagado",
     "signUp": "Inscribirse",
     "cancelSignUp": "Cancelar inscripción",
@@ -620,7 +636,8 @@
       "attendeesTitle": "¿A quién quieres apuntar?",
       "createPersona": "Crear una nueva persona",
       "confirm": "Confirmar",
-      "cancelManyBody": "Vas a cancelar la inscripción de las personas que has desmarcado. ¿Continuar?"
+      "cancelManyBody": "Vas a cancelar la inscripción de las personas que has desmarcado. ¿Continuar?",
+      "answerRequired": "Completa esta pregunta"
     }
   },
   "organization": {
