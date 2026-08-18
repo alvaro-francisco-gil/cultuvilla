@@ -77,7 +77,10 @@ export async function buildRosterWorkbook(model: RosterExportModel): Promise<Arr
     row.eachCell({ includeEmpty: true }, (cell, columnNumber) => {
       const column = model.columns[columnNumber - 1];
       if (!column) return;
-      if (column.type === 'date') cell.numFmt = DATE_FORMAT;
+      // Guarded on the value, not just the column: a date answer that failed to
+      // parse falls back to text, and stamping a date format on a string cell
+      // makes Excel render it as garbage.
+      if (column.type === 'date' && cell.value instanceof Date) cell.numFmt = DATE_FORMAT;
       // Phone numbers are text: Excel would otherwise eat the leading zero of
       // a landline and render long numbers in scientific notation.
       if (column.key === 'phone') cell.alignment = { horizontal: 'left' };

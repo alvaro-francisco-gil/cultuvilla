@@ -79,6 +79,27 @@ describe('RosterExportButton', () => {
     expect(mockBuildWorkbook).not.toHaveBeenCalled();
   });
 
+  it('carries the event questions and each attendee answer into the file', async () => {
+    render(
+      <RosterExportButton
+        {...props}
+        signupFields={[
+          { id: 'f1', label: 'Talla', type: 'text', required: true, options: [] },
+          { id: 'f2', label: 'Bus', type: 'checkbox', required: false, options: [] },
+        ]}
+        answers={{ r1: { f1: 'M', f2: true } }}
+      />,
+    );
+    fireEvent.press(screen.getByTestId('export-roster'));
+    fireEvent.press(screen.getByTestId('export-roster-csv'));
+
+    await waitFor(() => expect(mockDownload).toHaveBeenCalled());
+    const [contents] = mockDownload.mock.calls[0]!;
+    const [header, row] = (contents as string).trim().split('\r\n');
+    expect(header).toContain('Talla;Bus');
+    expect(row).toContain('M;Sí');
+  });
+
   it('surfaces an error instead of a silent no-op when generation fails', async () => {
     mockBuildWorkbook.mockRejectedValue(new Error('boom'));
     render(<RosterExportButton {...props} />);

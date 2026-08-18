@@ -260,6 +260,8 @@ export function EventAttendees({
                 phones={phones}
                 telephoneRequired={telephoneRequired}
                 requiresPayment={requiresPayment}
+                signupFields={signupFields}
+                answers={answers}
               />
               <SectionEditToggle
                 testID="attendees-edit-toggle"

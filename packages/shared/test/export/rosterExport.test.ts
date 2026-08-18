@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildRosterExport, toCsv } from '../../src/export/rosterExport';
 import type { RegistrationData } from '../../src/models/event/RegistrationDataModel';
+import type { SignupFieldSpec } from '../../src/models/event/SignupFieldModel';
 
 type Row = RegistrationData & { id: string };
 
@@ -108,6 +109,125 @@ describe('buildRosterExport', () => {
     expect(model.fileName).toBe('asistentes-verbena-penas-2026-canon');
     // The human-facing title keeps the original text.
     expect(model.title).toBe('Verbena: peñas [2026] / cañón?');
+  });
+});
+
+describe('buildRosterExport with custom sign-up questions', () => {
+  const field = (o: Partial<SignupFieldSpec> & { id: string }): SignupFieldSpec => ({
+    label: 'Pregunta',
+    type: 'text',
+    required: false,
+    options: [],
+    ...o,
+  });
+
+  it('appends one column per question, after the fixed columns', () => {
+    const model = buildRosterExport({
+      ...base,
+      registrations: [reg()],
+      signupFields: [field({ id: 'f1', label: 'Talla' }), field({ id: 'f2', label: 'DNI' })],
+      answers: { r1: { f1: 'M', f2: '12345678Z' } },
+    });
+
+    expect(model.columns.map((c) => c.header).slice(-2)).toEqual(['Talla', 'DNI']);
+    expect(model.rows[0].slice(-2)).toEqual(['M', '12345678Z']);
+  });
+
+  it('keys answers by field id so a relabeled question keeps its data', () => {
+    const model = buildRosterExport({
+      ...base,
+      registrations: [reg()],
+      signupFields: [field({ id: 'f1', label: 'Talla de camiseta' })],
+      answers: { r1: { f1: 'L' } },
+    });
+
+    expect(model.columns.at(-1)?.header).toBe('Talla de camiseta');
+    expect(model.rows[0].at(-1)).toBe('L');
+  });
+
+  it('types each answer column from its field spec', () => {
+    const model = buildRosterExport({
+      ...base,
+      registrations: [reg()],
+      signupFields: [
+        field({ id: 'n', label: 'Acompañantes', type: 'number' }),
+        field({ id: 'd', label: 'Llegada', type: 'date' }),
+        field({ id: 'c', label: 'Bus', type: 'checkbox' }),
+        field({ id: 's', label: 'Menú', type: 'select', options: ['Vegano'] }),
+      ],
+      answers: { r1: { n: 2, d: '2026-06-24', c: true, s: 'Vegano' } },
+    });
+
+    expect(model.columns.slice(-4).map((c) => c.type)).toEqual([
+      'number',
+      'date',
+      'boolean',
+      'text',
+    ]);
+    const [n, d, c, sel] = model.rows[0].slice(-4);
+    expect(n).toBe(2);
+    expect(d).toBeInstanceOf(Date);
+    expect(c).toBe(true);
+    expect(sel).toBe('Vegano');
+  });
+
+  it('leaves an unanswered question blank rather than shifting the row', () => {
+    const model = buildRosterExport({
+      ...base,
+      registrations: [reg(), reg({ id: 'r2', name: 'Luis' })],
+      signupFields: [field({ id: 'f1', label: 'Talla' }), field({ id: 'f2', label: 'DNI' })],
+      answers: { r1: { f2: '12345678Z' } },
+    });
+
+    expect(model.rows[0].slice(-2)).toEqual([null, '12345678Z']);
+    // A registration with no private doc at all still gets both cells.
+    expect(model.rows[1].slice(-2)).toEqual([null, null]);
+    expect(model.rows[1]).toHaveLength(model.columns.length);
+  });
+
+  it('disambiguates repeated question labels', () => {
+    const model = buildRosterExport({
+      ...base,
+      registrations: [reg()],
+      signupFields: [field({ id: 'a', label: 'Talla' }), field({ id: 'b', label: 'Talla' })],
+      answers: { r1: { a: 'M', b: 'L' } },
+    });
+
+    expect(model.columns.map((c) => c.header).slice(-2)).toEqual(['Talla', 'Talla (2)']);
+  });
+
+  it('keeps an uncoercible answer as text instead of dropping it', () => {
+    const model = buildRosterExport({
+      ...base,
+      registrations: [reg()],
+      signupFields: [
+        field({ id: 'n', label: 'Acompañantes', type: 'number' }),
+        field({ id: 'd', label: 'Llegada', type: 'date' }),
+      ],
+      answers: { r1: { n: 'muchos', d: 'el sábado' } },
+    });
+
+    expect(model.rows[0].slice(-2)).toEqual(['muchos', 'el sábado']);
+  });
+
+  it('adds no columns when the event asks no questions', () => {
+    const without = buildRosterExport({ ...base, registrations: [reg()] });
+    const empty = buildRosterExport({ ...base, registrations: [reg()], signupFields: [] });
+
+    expect(empty.columns).toEqual(without.columns);
+  });
+
+  it('carries the answer columns into the CSV', () => {
+    const model = buildRosterExport({
+      ...base,
+      registrations: [reg()],
+      signupFields: [field({ id: 'c', label: 'Bus', type: 'checkbox' })],
+      answers: { r1: { c: false } },
+    });
+    const [header, row] = toCsv(model).trim().split('\r\n');
+
+    expect(header?.endsWith('Bus')).toBe(true);
+    expect(row?.endsWith('No')).toBe(true);
   });
 });
 
