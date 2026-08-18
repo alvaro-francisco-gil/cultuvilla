@@ -36,6 +36,7 @@ export const ALLOWED_CONTEXT_KEYS = [
   'platform',
   'route',
   'operation_id',
+  'operation',
   'entityKind',
   'entityId',
   'surface',
