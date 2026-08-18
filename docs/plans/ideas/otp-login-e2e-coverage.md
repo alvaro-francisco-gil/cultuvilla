@@ -4,7 +4,12 @@
 
 ## Context
 
-Every existing E2E spec (`apps/mobile/e2e/flows/*.spec.ts`) bypasses the login screen entirely via `apps/mobile/e2e/lib/fixtureLogin.ts`, which calls a test-only seam (`window.__cultuvillaE2E.login`) that signs in directly via `signInWithEmailAndPassword` against the emulator — no UI typing, no Google popup, no email code. This predates the OTP-code sign-in flow (`docs/decisions/otp-email-signin.md` once written) and isn't specific to it; the magic-link flow it replaced was equally untested end-to-end.
+Every existing E2E spec (`apps/mobile/e2e/flows/*.spec.ts`) bypasses the login screen entirely via `apps/mobile/e2e/lib/fixtureLogin.ts`, which calls a test-only seam (`window.__cultuvillaE2E.login`) that signs in directly via `signInWithEmailAndPassword` against the emulator — no UI typing, no Google popup, no email code. This predates the OTP-code sign-in flow (see [otp-email-signin](../../decisions/otp-email-signin.md)) and isn't specific to it; the magic-link flow it replaced was equally untested end-to-end.
+
+The gap is not academic: the OTP flow shipped in v0.17.0 and failed on every attempt in
+production until v0.18.0 (the runtime service account could not sign custom tokens) — no
+suite caught it because the Auth emulator stubs signing. A deploy-time gate now covers
+that specific hole; end-to-end coverage of the screen itself is still missing.
 
 Testing the real OTP flow is harder than it sounds: `authOtpCodes` only ever stores a hash of the code (`codeHash`), never the plaintext, so a test can't just read it out of the emulator's Firestore.
 
