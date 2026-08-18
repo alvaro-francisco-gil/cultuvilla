@@ -527,6 +527,7 @@
     "telephoneRequired": "Teléfono requerido",
     "requiresPayment": "Se paga en el evento",
     "signupFields": {
+      "headerTitle": "Formulario (opcional)",
       "headerDescription": "Preguntas extra que responderá cada persona al inscribirse.",
       "add": "Añadir pregunta",
       "lockedNotice": "Este evento ya tiene inscripciones: las preguntas existentes no se pueden eliminar ni cambiar de tipo, pero puedes añadir nuevas.",

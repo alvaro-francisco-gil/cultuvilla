@@ -98,9 +98,14 @@ export function SignupQuestionsEditor({
 
   return (
     <VStack gap={3}>
-      <Text variant="h2" style={{ color: '#566047' }} className="px-1">
-        {t('event.signupFields.headerDescription')}
-      </Text>
+      <VStack gap={1} className="px-1">
+        <Text variant="h2" style={{ color: '#566047' }}>
+          {t('event.signupFields.headerTitle')}
+        </Text>
+        <Text variant="bodySm" tone="muted">
+          {t('event.signupFields.headerDescription')}
+        </Text>
+      </VStack>
 
       {value.map((field, index) => {
         const locked = index < lockedCount;
