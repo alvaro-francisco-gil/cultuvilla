@@ -18,6 +18,14 @@
     "./models": {
       "types": "./dist/models/index.d.ts",
       "default": "./dist/models/index.js"
+    },
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "default": "./dist/utils/index.js"
+    },
+    "./email": {
+      "types": "./dist/email/index.d.ts",
+      "default": "./dist/email/index.js"
     }
   },
   "main": "dist/index.js",

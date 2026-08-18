@@ -16,21 +16,32 @@ import { getDb, getFirebaseFunctions } from '../firebase';
 import {
   eventRegistrationsCollection,
   eventRegistrationDoc,
-  eventRegistrationContactDoc,
+  eventRegistrationPrivateDoc,
 } from '../firebase/refs/client';
 import { registrationConverterClient } from '../firebase/converters/registrationConverter.client';
 import type {
   RegistrationData,
   RegistrationStatus,
 } from '../models/event/RegistrationDataModel';
+import type { SignupAnswers } from '../models/event/SignupFieldModel';
 
 export interface RegisterInput {
   personId: string;
   name: string;
-  /** Collected when the event has `telephoneRequired`; stored in the
-   * organizer-only registrationContacts subcollection, never on the public
-   * registration doc. */
+  /** Collected when the event has `telephoneRequired`. */
   phone?: string;
+  /** Answers to the event's custom `signupFields`, keyed by field id. */
+  answers?: SignupAnswers;
+}
+
+/**
+ * The organizer-only half of a registration. Both the phone and the custom
+ * answers are PII, so they live in `registrationPrivate/{regId}` rather than on
+ * the world-readable registration doc.
+ */
+export interface RegistrationPrivateData {
+  phone: string | null;
+  answers: SignupAnswers;
 }
 
 export interface RegistrationSummary {
@@ -51,10 +62,15 @@ export function determineRegistrationStatus(
   return currentConfirmedCount < maxAttendees ? 'confirmed' : 'waitlisted';
 }
 
+// Ordered by sign-up moment rather than `position`: `position` is derived from
+// the registration count at write time, so a cancellation frees a number that a
+// later sign-up reuses, and waitlist promotion never renumbers. `registeredAt`
+// is the honest queue order and needs no composite index (single-field sort on
+// a subcollection).
 export async function getEventRegistrations(
   eventId: string,
 ): Promise<(RegistrationData & { id: string })[]> {
-  const q = query(eventRegistrationsCollection(getDb(), eventId), orderBy('position', 'asc'));
+  const q = query(eventRegistrationsCollection(getDb(), eventId), orderBy('registeredAt', 'asc'));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
@@ -136,6 +152,7 @@ interface AddWalkInCallableData {
   eventId: string;
   name: string;
   phone?: string;
+  answers?: SignupAnswers;
 }
 interface AddWalkInCallableResult {
   registration: RegistrationSummary;
@@ -148,20 +165,27 @@ export async function addWalkInRegistration(
   eventId: string,
   name: string,
   phone?: string,
+  answers?: SignupAnswers,
 ): Promise<RegistrationSummary> {
   const callable = httpsCallable<AddWalkInCallableData, AddWalkInCallableResult>(
     getFirebaseFunctions(),
     'addWalkInRegistration',
   );
-  const res = await callable({ eventId, name, phone });
+  const res = await callable({ eventId, name, phone, answers });
   return res.data.registration;
 }
 
-// Organizer-only read of a registrant's phone (the registration doc itself is
-// public, so the phone lives in a separately-gated subcollection).
-export async function getRegistrationPhone(eventId: string, regId: string): Promise<string | null> {
-  const snap = await getDoc(eventRegistrationContactDoc(getDb(), eventId, regId));
-  return snap.exists() ? ((snap.data() as { phone?: string }).phone ?? null) : null;
+// Organizer-only read of a registrant's private data (phone + custom answers).
+// Returns null when the registration collected neither — the doc is only
+// written when there is something to put in it.
+export async function getRegistrationPrivate(
+  eventId: string,
+  regId: string,
+): Promise<RegistrationPrivateData | null> {
+  const snap = await getDoc(eventRegistrationPrivateDoc(getDb(), eventId, regId));
+  if (!snap.exists()) return null;
+  const data = snap.data() as { phone?: string | null; answers?: SignupAnswers };
+  return { phone: data.phone ?? null, answers: data.answers ?? {} };
 }
 
 export async function getUserRegistrationsAcrossEvents(

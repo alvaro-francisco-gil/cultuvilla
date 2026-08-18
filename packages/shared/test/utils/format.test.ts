@@ -31,6 +31,21 @@ describe('formatDate', () => {
     expect(formatDate(d, 'datetime')).toMatch(/2026/);
     expect(formatDate(d, 'datetime')).toMatch(/\d{1,2}:\d{2}/);
   });
+
+  // Cloud Functions run in UTC, so callers there must pass the event's zone
+  // explicitly or the rendered time drifts an hour or two off the wall clock.
+  it('renders the given IANA zone rather than the ambient one', () => {
+    const summerNoonUtc = new Date('2026-07-15T12:00:00Z');
+    expect(formatDate(summerNoonUtc, 'time', 'UTC')).toMatch(/12:00/);
+    // Europe/Madrid is UTC+2 in July.
+    expect(formatDate(summerNoonUtc, 'time', 'Europe/Madrid')).toMatch(/14:00/);
+  });
+
+  it('crosses the calendar day when the zone demands it', () => {
+    const lateUtc = new Date('2026-07-15T23:30:00Z');
+    expect(formatDate(lateUtc, 'short', 'UTC')).toContain('15');
+    expect(formatDate(lateUtc, 'short', 'Europe/Madrid')).toContain('16');
+  });
 });
 
 describe('formatPrice', () => {

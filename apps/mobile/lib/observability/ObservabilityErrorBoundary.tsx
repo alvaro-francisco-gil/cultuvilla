@@ -17,7 +17,9 @@ export class ObservabilityErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: unknown): void {
-    observability.captureError(error, { route: 'boundary' });
+    // `surface`, not `route`: the adapter fills in the real route, and
+    // labelling this 'boundary' there would discard the screen that crashed.
+    observability.captureError(error, { surface: 'boundary' });
   }
 
   render(): React.ReactNode {

@@ -21,6 +21,7 @@
       "channel": "beta"
     },
     "production": {
+      "environment": "production",
       "env": { "APP_ENV": "prod" },
       "channel": "production",
       "autoIncrement": true

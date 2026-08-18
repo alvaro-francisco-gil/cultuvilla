@@ -341,10 +341,26 @@ service cloud.firestore {
           && d.residentCount == 0;
     }
 
+    // Once an event has sign-ups, its signupFields list is additive-only: the
+    // answers already collected are keyed by the existing field ids, so
+    // dropping or reordering a field strands them against the wrong spec.
+    //
+    // Rules have no loops, so only the size half of that invariant is
+    // expressible here; "entry i keeps its id and type" is enforced by
+    // isAdditiveSignupFieldChange in SignupFieldModel, applied by the edit
+    // form. That gap is deliberate and bounded: event update is already
+    // organizer-gated, so the only actor who can violate it is the organizer,
+    // and the only data harmed is the answers on their own event.
+    function isAdditiveSignupFieldsChange(before, after) {
+      return before.get('totalCount', 0) == 0
+          || after.get('signupFields', []).size() >= before.get('signupFields', []).size();
+    }
+
     function isValidEventCreate(d) {
       return d.keys().hasOnly([
               'title', 'description', 'startDate', 'endDate', 'endBoundary', 'location',
               'imageURL', 'maxAttendees', 'telephoneRequired', 'requiresPayment',
+              'signupFields',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
               'villageCoverImage', 'villageCoordinates',
@@ -354,6 +370,7 @@ service cloud.firestore {
           && d.keys().hasAll([
               'title', 'description', 'startDate', 'endDate', 'endBoundary', 'location',
               'imageURL', 'maxAttendees', 'telephoneRequired', 'requiresPayment',
+              'signupFields',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
               'villageCoverImage', 'villageCoordinates',
@@ -375,6 +392,12 @@ service cloud.firestore {
           && isNumberOrNull(d.maxAttendees)
           && isBool(d.telephoneRequired)
           && isBool(d.requiresPayment)
+          // Creator-defined sign-up questions. Rules can check the container
+          // (a list, within the cap that SignupFieldModel also enforces); the
+          // per-entry shape is validated by the strict Zod converter on read
+          // and by the create form on write.
+          && d.signupFields is list
+          && d.signupFields.size() <= 10
           && d.status in ['published', 'cancelled', 'completed']
           && d.organizerUserIds is list
           && d.organizerOrgIds is list
@@ -763,7 +786,8 @@ service cloud.firestore {
       )
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.municipalityId == resource.data.municipalityId
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['commentCount', 'readCount']);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['commentCount', 'readCount'])
+        && isAdditiveSignupFieldsChange(resource.data, request.resource.data);
       allow delete: if isOwner(resource.data.createdBy)
         || (request.auth.uid in resource.data.organizerUserIds)
         || isVillageAdmin(resource.data.municipalityId)
@@ -798,9 +822,11 @@ service cloud.firestore {
           || isEventOrganizer(eventId);
       }
 
-      // Organizer-only attendee phone contacts (the registration doc itself is
-      // public, so phones live here). Written only by callables (admin SDK).
-      match /registrationContacts/{regId} {
+      // Organizer-only private data per registration: the attendee's phone and
+      // their answers to the event's custom signupFields. The registration doc
+      // itself is world-readable, so all PII lives here instead. Written only
+      // by callables (admin SDK); no client write is ever trusted.
+      match /registrationPrivate/{regId} {
         allow read: if isEventOrganizer(eventId);
         allow write: if false;
       }

@@ -4,11 +4,12 @@ import { getFirestore } from 'firebase-admin/firestore';
 import {
   eventDoc,
   eventRegistrationsCollection,
-  eventRegistrationContactDoc,
+  eventRegistrationPrivateDoc,
   municipalityMemberDoc,
   adminDoc,
 } from '@cultuvilla/shared/firebase/refs/admin';
-import type { RegistrationData } from '@cultuvilla/shared';
+import type { RegistrationData } from '@cultuvilla/shared/models';
+import { validateSignupAnswers } from '@cultuvilla/shared/models';
 import { computeStatuses } from '../helpers/registerToEventValidation';
 import { isWalkInAuthorized } from '../helpers/walkInAuthorization';
 
@@ -18,6 +19,8 @@ interface AddWalkInData {
   eventId?: string;
   name?: string;
   phone?: string;
+  /** The organizer fills the event's custom fields on the walk-in's behalf. */
+  answers?: Record<string, unknown>;
 }
 
 interface AddWalkInResult {
@@ -76,6 +79,22 @@ export const addWalkInRegistration = onCall<AddWalkInData, Promise<AddWalkInResu
         throw new HttpsError('permission-denied', 'Solo un organizador puede añadir asistentes.');
       }
 
+      const answersResult = validateSignupAnswers(eventData.signupFields, request.data.answers);
+      if (!answersResult.ok) {
+        logger.info('Rejected walk-in answers', {
+          handler: 'addWalkInRegistration',
+          eventId,
+          uid,
+          fieldId: answersResult.fieldId,
+          reason: answersResult.reason,
+        });
+        throw new HttpsError(
+          'invalid-argument',
+          'Faltan respuestas obligatorias o alguna no es válida.',
+        );
+      }
+      const answers = answersResult.value;
+
       const [confirmedSnap, totalSnap] = await Promise.all([
         tx.get(regsCol.where('status', '==', 'confirmed')),
         tx.get(regsCol),
@@ -100,10 +119,11 @@ export const addWalkInRegistration = onCall<AddWalkInData, Promise<AddWalkInResu
         paidAt: null,
       };
       tx.set(newRef, reg);
-      if (phone) {
-        tx.set(eventRegistrationContactDoc(db, eventId, newRef.id), {
-          phone,
+      if (phone || Object.keys(answers).length > 0) {
+        tx.set(eventRegistrationPrivateDoc(db, eventId, newRef.id), {
           name,
+          phone: phone ?? null,
+          answers,
         });
       }
       tx.update(eventRef, {

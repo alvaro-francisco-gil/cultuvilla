@@ -6,6 +6,11 @@ jest.mock('@firebase/auth', () => ({
   getAuth: () => ({ currentUser: { uid: 'test-uid' } }),
 }));
 
+const mockCaptureError = jest.fn();
+jest.mock('@cultuvilla/shared', () => ({
+  observability: { captureError: (...a: unknown[]) => mockCaptureError(...a) },
+}));
+
 declare const globalThis: { __DEV__?: boolean } & typeof global;
 
 describe('withFirestoreErrorLog', () => {
@@ -13,6 +18,7 @@ describe('withFirestoreErrorLog', () => {
 
   beforeEach(() => {
     globalThis.__DEV__ = true;
+    mockCaptureError.mockClear();
     warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
@@ -39,6 +45,7 @@ describe('withFirestoreErrorLog', () => {
     expect(line).toContain('label=test:deny');
     expect(line).toContain('code=permission-denied');
     expect(line).toContain('uid=test-uid');
+    expect(mockCaptureError).toHaveBeenCalledWith(err, { operation: 'test:deny' });
   });
 
   it('does not log for non-Firebase errors but still rethrows', async () => {
@@ -51,7 +58,9 @@ describe('withFirestoreErrorLog', () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it('is a pass-through when __DEV__ is false', async () => {
+  // The label is the only thing that can name an otherwise opaque Firestore
+  // denial, so production must report it even though it stays off the console.
+  it('reports the label in production without writing to the console', async () => {
     globalThis.__DEV__ = false;
     const err = new FirebaseError('permission-denied', 'denied');
     await expect(
@@ -60,5 +69,17 @@ describe('withFirestoreErrorLog', () => {
       }),
     ).rejects.toBe(err);
     expect(warn).not.toHaveBeenCalled();
+    expect(mockCaptureError).toHaveBeenCalledWith(err, { operation: 'test:prod' });
+  });
+
+  it('does not report errors that are not permission denials', async () => {
+    globalThis.__DEV__ = false;
+    const err = new FirebaseError('unavailable', 'offline');
+    await expect(
+      withFirestoreErrorLog('test:offline', async () => {
+        throw err;
+      }),
+    ).rejects.toBe(err);
+    expect(mockCaptureError).not.toHaveBeenCalled();
   });
 });

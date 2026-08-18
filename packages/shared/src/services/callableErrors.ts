@@ -40,7 +40,7 @@ export interface ClassifiedCallableError {
 //
 // `functions/<code>` is the prefixed form seen on the client when an
 // HttpsError reaches the SDK; we strip the prefix before lookup.
-const CODE_TO_KIND: Record<string, CallableErrorKind> = {
+const CODE_TO_KIND: Record<string, CallableErrorKind | undefined> = {
   unauthenticated: 'permission',
   'permission-denied': 'permission',
 
@@ -61,6 +61,33 @@ const CODE_TO_KIND: Record<string, CallableErrorKind> = {
   // to the message-pattern stage, then 'unknown'.
 };
 
+// Namespaced Firebase SDK codes. These are NOT HttpsError codes — they come
+// from the Auth and Storage SDKs, whose failures reach the same UI surfaces as
+// callable rejections (sign-in, image upload). Keyed on the FULL namespaced
+// code because the bare segment is ambiguous: `auth/internal-error` is not the
+// HttpsError `internal`, so stripping first would silently mis-bucket.
+//
+// Only codes with an unambiguous user-facing meaning are listed; anything else
+// falls through to the message stage, then 'unknown'.
+const NAMESPACED_CODE_TO_KIND: Record<string, CallableErrorKind | undefined> = {
+  // Auth. `network-request-failed` is what a flaky connection throws during OTP
+  // sign-in; unmapped, it reached the login screen as the raw developer string
+  // "Firebase: Error (auth/network-request-failed)."
+  'auth/network-request-failed': 'network',
+  'auth/timeout': 'network',
+  'auth/user-disabled': 'permission',
+  'auth/requires-recent-login': 'permission',
+
+  // Storage. A cover image uploading over a weak link exhausts the SDK's own
+  // retry budget and throws `retry-limit-exceeded`.
+  'storage/retry-limit-exceeded': 'network',
+  'storage/canceled': 'network',
+  'storage/server-file-wrong-size': 'network',
+  'storage/unauthorized': 'permission',
+  'storage/unauthenticated': 'permission',
+  'storage/quota-exceeded': 'capacity',
+};
+
 // Message-pattern overrides. Used when the code path didn't match (e.g. the
 // error came from a plain `throw new Error(...)` in a service helper, or the
 // SDK lost the code on the way). Order matters — first match wins.
@@ -79,7 +106,10 @@ const PATTERNS: readonly Pattern[] = [
 
   // Plain network-y strings the SDK sometimes surfaces without a code.
   { match: /failed to fetch/i, kind: 'network' },
-  { match: /network request failed/i, kind: 'network' },
+  // Matches the prose spelling and the hyphenated code spelling that leaks into
+  // messages as "Firebase: Error (auth/network-request-failed)." — the code
+  // itself is sometimes dropped by the SDK, leaving only the message.
+  { match: /network[- ]request[- ]failed/i, kind: 'network' },
   { match: /load failed/i, kind: 'network' },
 
   // Stale-state Spanish phrasing common to cultuvilla callables.
@@ -121,23 +151,27 @@ const HEADLINES: Record<CallableErrorKind, { headline: string; detail: string }>
 };
 
 export function classifyCallableError(error: unknown): ClassifiedCallableError {
-  const code = extractCode(error);
+  const rawCode = extractRawCode(error);
   const message = extractMessage(error);
 
-  const kind = classifyCode(code) ?? classifyMessage(message);
+  const kind = classifyCode(rawCode) ?? classifyMessage(message);
   const { headline, detail } = HEADLINES[kind];
-  return { kind, headline, detail, matchedCode: code, matchedMessage: message };
+  // `matchedCode` stays the namespace-stripped form so it reads the same for
+  // 'functions/permission-denied' and a server-side 'permission-denied'.
+  return { kind, headline, detail, matchedCode: stripNamespace(rawCode), matchedMessage: message };
 }
 
-function extractCode(error: unknown): string {
+function extractRawCode(error: unknown): string {
   if (!error || typeof error !== 'object') return '';
   const anyErr = error as { code?: unknown };
-  if (typeof anyErr.code !== 'string') return '';
-  // Firebase client surfaces HttpsError codes as 'functions/permission-denied';
-  // server-side they're just 'permission-denied'. Normalize.
-  const raw = anyErr.code;
-  const idx = raw.indexOf('/');
-  return idx >= 0 ? raw.slice(idx + 1) : raw;
+  return typeof anyErr.code === 'string' ? anyErr.code : '';
+}
+
+// Firebase client surfaces HttpsError codes as 'functions/permission-denied';
+// server-side they're just 'permission-denied'.
+function stripNamespace(code: string): string {
+  const idx = code.indexOf('/');
+  return idx >= 0 ? code.slice(idx + 1) : code;
 }
 
 function extractMessage(error: unknown): string {
@@ -158,9 +192,11 @@ function extractMessage(error: unknown): string {
   }
 }
 
-function classifyCode(code: string): CallableErrorKind | null {
-  if (!code) return null;
-  return CODE_TO_KIND[code] ?? null;
+// The namespaced lookup runs first: an SDK code like 'auth/timeout' must not be
+// resolved through the HttpsError table on its bare segment.
+function classifyCode(rawCode: string): CallableErrorKind | null {
+  if (!rawCode) return null;
+  return NAMESPACED_CODE_TO_KIND[rawCode] ?? CODE_TO_KIND[stripNamespace(rawCode)] ?? null;
 }
 
 function classifyMessage(message: string): CallableErrorKind {
@@ -174,14 +210,3 @@ function classifyMessage(message: string): CallableErrorKind {
   }
   return 'unknown';
 }
-
-/** Exposed for unit tests; not part of the public API. */
-export const _internals = {
-  CODE_TO_KIND,
-  PATTERNS,
-  HEADLINES,
-  classifyCode,
-  classifyMessage,
-  extractCode,
-  extractMessage,
-};

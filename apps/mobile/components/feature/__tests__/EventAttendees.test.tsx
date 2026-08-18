@@ -3,7 +3,7 @@ import { EventAttendees } from '../EventAttendees';
 import { getPerson } from '@cultuvilla/shared/services/personService';
 import {
   getEventRegistrations,
-  getRegistrationPhone,
+  getRegistrationPrivate,
   cancelRegistration,
   setRegistrationPaid,
 } from '@cultuvilla/shared/services/registrationService';
@@ -15,7 +15,7 @@ jest.mock('../../../lib/dialogs', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/registrationService', () => ({
   getEventRegistrations: jest.fn(),
-  getRegistrationPhone: jest.fn(),
+  getRegistrationPrivate: jest.fn(),
   cancelRegistration: jest.fn().mockResolvedValue(undefined),
   setRegistrationPaid: jest.fn().mockResolvedValue(undefined),
 }));
@@ -27,7 +27,7 @@ const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(...a) } }));
 
 const mockGet = getEventRegistrations as jest.Mock;
-const mockPhone = getRegistrationPhone as jest.Mock;
+const mockPrivate = getRegistrationPrivate as jest.Mock;
 const mockCancel = cancelRegistration as jest.Mock;
 const mockGetPerson = getPerson as jest.Mock;
 
@@ -41,11 +41,28 @@ describe('EventAttendees', () => {
     mockGetPerson.mockResolvedValue({ id: 'p1', photoURL: null, userId: null });
   });
 
+  it('hides the edit toggle until there is at least one attendee', async () => {
+    mockGet.mockResolvedValue([]);
+    const { getByText, queryByTestId } = render(
+      <EventAttendees eventId="e1" eventTitle="Fiesta" eventDate={new Date("2026-06-24T20:00:00Z")} telephoneRequired={false} requiresPayment={false} />,
+    );
+    await waitFor(() => getByText('event.attendeesEmpty'));
+    expect(queryByTestId('attendees-edit-toggle')).toBeNull();
+  });
+
+  it('shows the edit toggle when only the waitlist has entries', async () => {
+    mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana', status: 'waitlisted' }]);
+    const { getByTestId } = render(
+      <EventAttendees eventId="e1" eventTitle="Fiesta" eventDate={new Date("2026-06-24T20:00:00Z")} telephoneRequired={false} requiresPayment={false} />,
+    );
+    await waitFor(() => getByTestId('attendees-edit-toggle'));
+  });
+
   it('shows a call action that reveals the number in a dialog when telephone was required', async () => {
     mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana', status: 'confirmed' }]);
-    mockPhone.mockResolvedValue('600111222');
+    mockPrivate.mockResolvedValue({ phone: '600111222', answers: {} });
     const { getByText, getByTestId, queryByText } = render(
-      <EventAttendees eventId="e1" telephoneRequired requiresPayment={false} />,
+      <EventAttendees eventId="e1" eventTitle="Fiesta" eventDate={new Date("2026-06-24T20:00:00Z")} telephoneRequired requiresPayment={false} />,
     );
     await waitFor(() => getByTestId('call-attendee-r1'));
     // Number is not shown inline until the call dialog is opened.
@@ -57,17 +74,17 @@ describe('EventAttendees', () => {
   it('shows no call action when telephone was not required', async () => {
     mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana', status: 'confirmed' }]);
     const { getByText, queryByTestId } = render(
-      <EventAttendees eventId="e1" telephoneRequired={false} requiresPayment={false} />,
+      <EventAttendees eventId="e1" eventTitle="Fiesta" eventDate={new Date("2026-06-24T20:00:00Z")} telephoneRequired={false} requiresPayment={false} />,
     );
     await waitFor(() => getByText('Ana'));
-    expect(mockPhone).not.toHaveBeenCalled();
+    expect(mockPrivate).not.toHaveBeenCalled();
     expect(queryByTestId('call-attendee-r1')).toBeNull();
   });
 
   it('removes an attendee then reloads', async () => {
     mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana', status: 'confirmed' }]);
     const { getByTestId } = render(
-      <EventAttendees eventId="e1" telephoneRequired={false} requiresPayment={false} />,
+      <EventAttendees eventId="e1" eventTitle="Fiesta" eventDate={new Date("2026-06-24T20:00:00Z")} telephoneRequired={false} requiresPayment={false} />,
     );
     await waitFor(() => getByTestId('attendee-profile-r1'));
     enterEditMode();
@@ -82,7 +99,7 @@ describe('EventAttendees', () => {
       { id: 'r2', personId: 'p2', name: 'Luis', status: 'waitlisted' },
     ]);
     const { getByText, getByTestId } = render(
-      <EventAttendees eventId="e1" telephoneRequired={false} requiresPayment={false} />,
+      <EventAttendees eventId="e1" eventTitle="Fiesta" eventDate={new Date("2026-06-24T20:00:00Z")} telephoneRequired={false} requiresPayment={false} />,
     );
     // The waitlist heading only appears when someone is waitlisted.
     await waitFor(() => getByText('event.waitlist (1)'));
@@ -95,10 +112,40 @@ describe('EventAttendees', () => {
     getByTestId('remove-attendee-r2');
   });
 
+  it('shows when each attendee signed up, in the order the service returned', async () => {
+    // The service already sorts by registeredAt; the component must not
+    // reshuffle the rows, so the rendered timestamps stay monotonic.
+    mockGet.mockResolvedValue([
+      {
+        id: 'r1',
+        personId: 'p1',
+        name: 'Ana',
+        status: 'confirmed',
+        registeredAt: new Date(2025, 2, 11, 9, 15),
+      },
+      {
+        id: 'r2',
+        personId: 'p2',
+        name: 'Luis',
+        status: 'confirmed',
+        registeredAt: new Date(2025, 2, 14, 18, 42),
+      },
+    ]);
+    const { getByTestId } = render(
+      <EventAttendees eventId="e1" eventTitle="Fiesta" eventDate={new Date("2026-06-24T20:00:00Z")} telephoneRequired={false} requiresPayment={false} />,
+    );
+    await waitFor(() => getByTestId('attendee-signed-up-r1'));
+    expect(getByTestId('attendee-signed-up-r1').props.children).toContain('11');
+    expect(getByTestId('attendee-signed-up-r2').props.children).toContain('14');
+    expect(getByTestId('attendee-signed-up-r1').props.accessibilityLabel).toContain(
+      'event.signedUpAt',
+    );
+  });
+
   it('hides the waiting-list section when nobody is waitlisted', async () => {
     mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana', status: 'confirmed' }]);
     const { getByText, queryByText } = render(
-      <EventAttendees eventId="e1" telephoneRequired={false} requiresPayment={false} />,
+      <EventAttendees eventId="e1" eventTitle="Fiesta" eventDate={new Date("2026-06-24T20:00:00Z")} telephoneRequired={false} requiresPayment={false} />,
     );
     await waitFor(() => getByText('Ana'));
     expect(queryByText('event.waitlist (0)')).toBeNull();
@@ -107,7 +154,7 @@ describe('EventAttendees', () => {
   it('toggles setRegistrationPaid when the paid checkbox is pressed (requiresPayment)', async () => {
     mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana', status: 'confirmed', paidAt: null }]);
     const { getByTestId } = render(
-      <EventAttendees eventId="e1" telephoneRequired={false} requiresPayment />,
+      <EventAttendees eventId="e1" eventTitle="Fiesta" eventDate={new Date("2026-06-24T20:00:00Z")} telephoneRequired={false} requiresPayment />,
     );
     await waitFor(() => getByTestId('paid-attendee-r1'));
     fireEvent.press(getByTestId('paid-attendee-r1'));
@@ -117,7 +164,7 @@ describe('EventAttendees', () => {
   it('hides the paid checkbox when requiresPayment is false', async () => {
     mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana', status: 'confirmed', paidAt: null }]);
     const { queryByTestId, getByText } = render(
-      <EventAttendees eventId="e1" telephoneRequired={false} requiresPayment={false} />,
+      <EventAttendees eventId="e1" eventTitle="Fiesta" eventDate={new Date("2026-06-24T20:00:00Z")} telephoneRequired={false} requiresPayment={false} />,
     );
     await waitFor(() => getByText('Ana'));
     expect(queryByTestId('paid-attendee-r1')).toBeNull();
@@ -126,7 +173,7 @@ describe('EventAttendees', () => {
   it('hides the remove action until edit mode is on', async () => {
     mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana', status: 'confirmed' }]);
     const { getByTestId, queryByTestId } = render(
-      <EventAttendees eventId="e1" telephoneRequired={false} requiresPayment={false} />,
+      <EventAttendees eventId="e1" eventTitle="Fiesta" eventDate={new Date("2026-06-24T20:00:00Z")} telephoneRequired={false} requiresPayment={false} />,
     );
     await waitFor(() => getByTestId('attendee-profile-r1'));
     expect(queryByTestId('remove-attendee-r1')).toBeNull();
@@ -139,7 +186,7 @@ describe('EventAttendees', () => {
   it('opens the person card for an attendee with no account', async () => {
     mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana', status: 'confirmed' }]);
     const { getByTestId } = render(
-      <EventAttendees eventId="e1" telephoneRequired={false} requiresPayment={false} />,
+      <EventAttendees eventId="e1" eventTitle="Fiesta" eventDate={new Date("2026-06-24T20:00:00Z")} telephoneRequired={false} requiresPayment={false} />,
     );
     await waitFor(() => getByTestId('attendee-profile-r1'));
     fireEvent.press(getByTestId('attendee-profile-r1'));
@@ -150,7 +197,7 @@ describe('EventAttendees', () => {
     mockGetPerson.mockResolvedValue({ id: 'p1', photoURL: null, userId: 'u1' });
     mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana', status: 'confirmed' }]);
     const { getByTestId } = render(
-      <EventAttendees eventId="e1" telephoneRequired={false} requiresPayment={false} />,
+      <EventAttendees eventId="e1" eventTitle="Fiesta" eventDate={new Date("2026-06-24T20:00:00Z")} telephoneRequired={false} requiresPayment={false} />,
     );
     await waitFor(() => getByTestId('attendee-profile-r1'));
     fireEvent.press(getByTestId('attendee-profile-r1'));
@@ -161,7 +208,7 @@ describe('EventAttendees', () => {
     mockGetPerson.mockResolvedValue(null);
     mockGet.mockResolvedValue([{ id: 'r1', personId: null, name: 'Ana', status: 'confirmed' }]);
     const { getByText, queryByTestId } = render(
-      <EventAttendees eventId="e1" telephoneRequired={false} requiresPayment={false} />,
+      <EventAttendees eventId="e1" eventTitle="Fiesta" eventDate={new Date("2026-06-24T20:00:00Z")} telephoneRequired={false} requiresPayment={false} />,
     );
     await waitFor(() => getByText('Ana'));
     expect(queryByTestId('attendee-profile-r1')).toBeNull();

@@ -38,12 +38,18 @@ jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
+const mockAbandonSignUp = jest.fn().mockResolvedValue(undefined);
 jest.mock('../../../lib/auth/useAuth', () => ({
   useAuth: () => ({
     user: { uid: 'uid-1', email: 'a@b.test', displayName: null },
     profile: null,
     refreshProfile: jest.fn().mockResolvedValue(undefined),
+    abandonSignUp: mockAbandonSignUp,
   }),
+}));
+// Auto-accept the confirm so the escape hatch can be exercised headlessly.
+jest.mock('../../../lib/dialogs', () => ({
+  showConfirm: jest.fn((_title: string, _body: string, onConfirm: () => void) => onConfirm()),
 }));
 jest.mock('expo-router', () => ({
   router: { replace: jest.fn(), push: jest.fn() },
@@ -78,6 +84,8 @@ jest.mock('../../../lib/i18n', () => ({
         'profile.personForm.village': 'Tu pueblo (opcional)',
         'profile.personForm.barrio': 'Barrio (opcional)',
         'profile.personForm.wholeVillage': 'Todo el pueblo',
+        'auth.signOut': 'Cerrar sesión',
+        'common.cancel': 'Cancelar',
         'common.stepper.next': 'Siguiente',
         'common.stepper.back': 'Atrás',
       };
@@ -262,5 +270,13 @@ describe('CompleteProfileScreen', () => {
     const thisYear = new Date().getFullYear();
     expect(queryByTestId(`birthday-year-option-${thisYear}`)).toBeNull();
     expect(queryByTestId(`birthday-year-option-${thisYear - 20}`)).not.toBeNull();
+  });
+
+  it('offers a sign-out escape hatch — the screen is the only route a wrong-email sign-in can reach', () => {
+    const { getByTestId } = render(<CompleteProfileScreen />);
+
+    fireEvent.press(getByTestId('onboarding-abandon'));
+
+    expect(mockAbandonSignUp).toHaveBeenCalledTimes(1);
   });
 });
