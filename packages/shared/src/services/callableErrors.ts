@@ -210,16 +210,3 @@ function classifyMessage(message: string): CallableErrorKind {
   }
   return 'unknown';
 }
-
-/** Exposed for unit tests; not part of the public API. */
-export const _internals = {
-  CODE_TO_KIND,
-  NAMESPACED_CODE_TO_KIND,
-  PATTERNS,
-  HEADLINES,
-  classifyCode,
-  classifyMessage,
-  extractRawCode,
-  extractMessage,
-  stripNamespace,
-};
