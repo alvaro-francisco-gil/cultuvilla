@@ -219,6 +219,8 @@ export default function EventDetailScreen() {
           {canOrganize ? (
             <EventAttendees
               eventId={event.id}
+              eventTitle={event.title}
+              eventDate={event.startDate}
               telephoneRequired={!!event.telephoneRequired}
               requiresPayment={!!event.requiresPayment}
             />
