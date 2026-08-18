@@ -2,7 +2,8 @@
 // real emulator (rate-limit doc + authOtpCodes doc); only the Resend secret
 // and the `resend` package itself are mocked so no network send happens.
 
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+import { createHash } from 'crypto';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import functionsTestFactory from 'firebase-functions-test';
 import { getFirestore } from 'firebase-admin/firestore';
 import { resetEmulators } from '../helpers/firestoreEmulator';
@@ -27,6 +28,7 @@ vi.mock('resend', () => ({
 }));
 
 import { sendAuthOtpCode } from '../../auth/sendAuthOtpCode';
+import { runVerifyAuthOtpCode } from '../../auth/verifyAuthOtpCode';
 
 const ft = functionsTestFactory({ projectId: process.env.GCLOUD_PROJECT || 'cultuvilla-test' });
 
@@ -91,6 +93,48 @@ describe('sendAuthOtpCode (callable)', () => {
     expect(sendMock).toHaveBeenCalledTimes(5);
   });
 
+  // Under the Functions emulator there is no Resend key and no mailbox, so the
+  // code is written back onto the doc instead of emailed — this is what makes the
+  // flow completable locally at all (by hand, or by a future E2E driver).
+  describe('under the Functions emulator', () => {
+    beforeEach(() => {
+      vi.stubEnv('FUNCTIONS_EMULATOR', 'true');
+    });
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('skips the send and exposes the plaintext code on the doc', async () => {
+      const result = await callSend({ email: 'dave@example.com' });
+      expect(result.ok).toBe(true);
+      expect(sendMock).not.toHaveBeenCalled();
+
+      const bucketId = bucketIdFor('dave@example.com');
+      const doc = await getFirestore().collection('authOtpCodes').doc(bucketId).get();
+      const data = doc.data() as { codeHash: string; emulatorCode: string };
+      expect(data.emulatorCode).toMatch(/^\d{6}$/);
+      expect(data.codeHash).toBe(createHash('sha256').update(data.emulatorCode).digest('hex'));
+    });
+
+    it('issues a code that actually verifies, completing the flow end to end', async () => {
+      await callSend({ email: 'erin@example.com' });
+      const bucketId = bucketIdFor('erin@example.com');
+      const doc = await getFirestore().collection('authOtpCodes').doc(bucketId).get();
+      const { emulatorCode } = doc.data() as { emulatorCode: string };
+
+      const { token } = await runVerifyAuthOtpCode({ email: 'erin@example.com', code: emulatorCode });
+      expect(typeof token).toBe('string');
+      expect(token.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('never writes the plaintext code when not running under the emulator', async () => {
+    await callSend({ email: 'frank@example.com' });
+    const bucketId = bucketIdFor('frank@example.com');
+    const doc = await getFirestore().collection('authOtpCodes').doc(bucketId).get();
+    expect(doc.data()).not.toHaveProperty('emulatorCode');
+  });
+
   it('overwrites a prior pending code for the same email', async () => {
     await callSend({ email: 'carol@example.com' });
     const firstCode = sendMock.mock.calls[0][0].text.match(/Tu código de acceso: (\d{6})/)?.[1];
@@ -100,7 +144,6 @@ describe('sendAuthOtpCode (callable)', () => {
     const bucketId = bucketIdFor('carol@example.com');
     const doc = await getFirestore().collection('authOtpCodes').doc(bucketId).get();
     const data = doc.data() as { codeHash: string };
-    const { createHash } = await import('crypto');
     expect(data.codeHash).toBe(createHash('sha256').update(secondCode ?? '').digest('hex'));
     expect(data.codeHash).not.toBe(createHash('sha256').update(firstCode ?? '').digest('hex'));
   });
