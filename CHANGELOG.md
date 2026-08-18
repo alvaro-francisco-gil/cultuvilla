@@ -4,6 +4,10 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Fixed
+
+- **Signing in with the wrong email is no longer a one-way door.** Verifying an OTP code creates the Firebase Auth account for whatever address was typed, and `AuthGate` routes an account with no `personId` to `/(onboarding)/complete-profile` and to no other screen — a screen that had no back button and no sign-out. The only way forward was to finish creating the account you were trying not to create. Three changes: the OTP code step now offers **"Usar otro correo"** so a typo can be corrected before it becomes an account; the onboarding screen carries a sign-out action; and taking that exit deletes the Auth user when it has no profile doc yet (that account was created by this very sign-in, so leaving it behind would squat on the address and keep intercepting the real owner's codes). Falls back to a plain sign-out if the delete is refused.
+
 ## v0.19.0 — 2026-08-15
 
 ### Changed
