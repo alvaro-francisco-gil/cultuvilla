@@ -138,6 +138,25 @@ describe('NewEventScreen stepper', () => {
     expect(toggle.props.accessibilityState.checked).toBe(true);
   });
 
+  it('puts the sign-up questions in their own step after the details', async () => {
+    const { getByText, getByLabelText, getByTestId, queryByTestId } = render(<NewEventScreen />);
+    await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
+    fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('startDate')).toBeTruthy());
+    fireEvent.press(getByTestId('startDate'));
+    fireEvent.press(getByTestId('location-field'));
+    fireEvent.press(getByText('common.stepper.next'));
+    // Details: toggles and organizers, but no question builder.
+    await waitFor(() => expect(getByTestId('telephone-required')).toBeTruthy());
+    expect(queryByTestId('signup-question-add')).toBeNull();
+
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('signup-question-add')).toBeTruthy());
+    // Last step: the primary button submits instead of advancing.
+    expect(getByTestId('event-form-primary')).toHaveTextContent('event.createEvent');
+  });
+
   // Regression: the cover picker must go through lib/images.pickImageAsBlob,
   // which reads the URI via XMLHttpRequest, not the global winter `fetch`.
   it('picks the cover image via the shared pickImageAsBlob helper', async () => {
@@ -203,6 +222,9 @@ describe('NewEventScreen cover upload', () => {
     fireEvent.press(getByTestId('location-field'));
     fireEvent.press(getByText('common.stepper.next'));
     await waitFor(() => expect(getByTestId('organizer-picker')).toBeTruthy());
+    // Sign-up questions are the last step; nothing to fill in, just walk past it.
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('signup-question-add')).toBeTruthy());
     fireEvent.press(getByTestId('event-form-primary'));
   }
 
