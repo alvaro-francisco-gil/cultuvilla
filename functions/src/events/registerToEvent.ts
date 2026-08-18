@@ -13,6 +13,9 @@ import {
   validateRegisterInput,
   type RegisterToEventData,
 } from '../helpers/registerToEventValidation';
+import { RESEND_API_KEY } from '../auth/secret';
+import { sendRegistrationEmail } from './sendRegistrationEmail';
+import type { RegistrationEmailAttendee } from './registrationEmailTemplate';
 
 const db = getFirestore();
 
@@ -28,7 +31,7 @@ interface RegisterToEventResult {
 }
 
 export const registerToEvent = onCall<RegisterToEventData, Promise<RegisterToEventResult>>(
-  { region: 'us-central1', cors: true },
+  { region: 'us-central1', cors: true, secrets: [RESEND_API_KEY] },
   async (request) => {
     const auth = request.auth;
     if (!auth) {
@@ -41,7 +44,7 @@ export const registerToEvent = onCall<RegisterToEventData, Promise<RegisterToEve
     const eventRef = eventDoc(db, eventId);
     const regsCol = eventRegistrationsCollection(db, eventId);
 
-    return db.runTransaction(async (tx) => {
+    const committed = await db.runTransaction(async (tx) => {
       const eventSnap = await tx.get(eventRef);
       if (!eventSnap.exists) {
         throw new HttpsError('not-found', 'El evento no existe.');
@@ -72,6 +75,7 @@ export const registerToEvent = onCall<RegisterToEventData, Promise<RegisterToEve
       });
 
       const summaries: RegistrationSummary[] = [];
+      const attendees: RegistrationEmailAttendee[] = [];
       // Converter rejects FieldValue sentinels on tx.set, so registeredAt is a
       // plain Date computed once per transaction (admin SDK will store it as a
       // Timestamp via the converter's toFirestore step).
@@ -100,6 +104,7 @@ export const registerToEvent = onCall<RegisterToEventData, Promise<RegisterToEve
           });
         }
         summaries.push({ id: newRef.id, status, position, isMember });
+        attendees.push({ name: registrant.name, status, position });
       });
 
       // Maintain denormalized counters on the event doc so feeds and detail
@@ -123,7 +128,27 @@ export const registerToEvent = onCall<RegisterToEventData, Promise<RegisterToEve
         waitlistedAdded: summaries.filter((s) => s.status === 'waitlisted').length,
       });
 
-      return { registrations: summaries };
+      return {
+        registrations: summaries,
+        attendees,
+        event: eventData,
+        confirmedCount: confirmedSnap.size + newConfirmed,
+      };
     });
+
+    // Deliberately outside the transaction: Firestore retries the callback on
+    // contention, and a send inside it would go out once per retry. Failures
+    // are swallowed and logged by sendRegistrationEmail — a bounced email must
+    // not undo a completed registration.
+    await sendRegistrationEmail({
+      userId,
+      eventId,
+      event: committed.event,
+      attendees: committed.attendees,
+      confirmedCount: committed.confirmedCount,
+      kind: 'registration',
+    });
+
+    return { registrations: committed.registrations };
   },
 );
