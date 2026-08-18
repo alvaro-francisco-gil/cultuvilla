@@ -121,7 +121,7 @@ export function buildRosterExport(input: RosterExportInput): RosterExportModel {
 }
 
 function renderCell(value: RosterCell, type: RosterColumnType): string {
-  if (value === null || value === undefined) return '';
+  if (value === null) return '';
   if (type === 'date' && value instanceof Date) return formatDate(value, 'datetime');
   if (type === 'boolean') return value ? 'Sí' : 'No';
   return String(value);
@@ -142,7 +142,7 @@ export function toCsv(model: RosterExportModel, options: { delimiter?: string; b
   const lines = [
     model.columns.map((c) => escape(c.header)).join(delimiter),
     ...model.rows.map((row) =>
-      row.map((cell, i) => escape(renderCell(cell, model.columns[i]!.type))).join(delimiter),
+      row.map((cell, i) => escape(renderCell(cell, model.columns[i].type))).join(delimiter),
     ),
   ];
 

@@ -39,8 +39,8 @@ describe('buildRosterExport', () => {
     });
 
     expect(model.rows).toHaveLength(2);
-    expect(model.rows[0]!.slice(0, 4)).toEqual([1, 'Ana Pérez', 'Confirmado', true]);
-    expect(model.rows[1]!.slice(0, 4)).toEqual([2, 'Luis', 'Lista de espera', false]);
+    expect(model.rows[0].slice(0, 4)).toEqual([1, 'Ana Pérez', 'Confirmado', true]);
+    expect(model.rows[1].slice(0, 4)).toEqual([2, 'Luis', 'Lista de espera', false]);
     expect(model.totals).toEqual({ confirmed: 1, waitlisted: 1, total: 2 });
   });
 
@@ -68,16 +68,16 @@ describe('buildRosterExport', () => {
       phones: { r1: '600111222' },
     });
 
-    expect(model.rows[0]![4]).toBe('600111222');
-    expect(model.rows[1]![4]).toBeNull();
+    expect(model.rows[0][4]).toBe('600111222');
+    expect(model.rows[1][4]).toBeNull();
   });
 
   it('keeps dates as Date cells so the xlsx writer can format them natively', () => {
     const checkedInAt = new Date('2026-06-24T20:15:00Z');
     const model = buildRosterExport({ ...base, registrations: [reg({ checkedInAt })] });
 
-    expect(model.rows[0]![4]).toBeInstanceOf(Date);
-    expect(model.rows[0]![5]).toBe(checkedInAt);
+    expect(model.rows[0][4]).toBeInstanceOf(Date);
+    expect(model.rows[0][5]).toBe(checkedInAt);
   });
 
   it('strips accents and punctuation Excel rejects from the sheet and file name', () => {
@@ -105,7 +105,7 @@ describe('toCsv', () => {
 
   it('renders booleans, dates and empty cells as es-ES text', () => {
     const csv = toCsv(buildRosterExport({ ...base, registrations: [reg()] }));
-    const cells = csv.split('\r\n')[1]!.split(';');
+    const cells = csv.split('\r\n')[1].split(';');
 
     expect(cells[3]).toBe('Sí');
     expect(cells[4]).toMatch(/^2 de julio de 2026/);
