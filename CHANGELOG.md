@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.20.0 — 2026-08-18
+
 ### Added
 
 - **Sign-up questions get their own step at the end of the event form, built like the census.** The question list moved out of *Detalles* (where it sat under the telephone/payment toggles and grew to ten stacked rows) into a final *Preguntas* step of the event stepper. It now uses the same forms-builder presentation as the village census builder: numbered question cards, one expanded at a time, a bottom sheet for the question type, and the shared options editor. The card chrome (`QuestionCardShell`), the type sheet (`TypeSheet`) and `OptionsEditor` live in `components/feature/questions/` and are shared by both builders — the census builder was refactored onto them in the same change, so the two screens can't drift apart again. Locked questions (an event that already has sign-ups) now also refuse reordering, not just removal and retyping, since the additive-only rule compares the list by position.
