@@ -1,3 +1,4 @@
+import { ScrollView } from 'react-native';
 import { render, fireEvent } from '@testing-library/react-native';
 import { AttendeeSheet } from '../AttendeeSheet';
 
@@ -178,6 +179,28 @@ describe('AttendeeSheet', () => {
       expect(onConfirm).toHaveBeenCalledWith(['self'], undefined, {
         self: { size: 'M', note: 'ninguna' },
       });
+    });
+
+    it('scrolls the first persona with a missing answer into view on a rejected confirm', () => {
+      const scrollTo = jest.spyOn(ScrollView.prototype, 'scrollTo').mockImplementation(() => {});
+      const { getByTestId } = render(
+        <AttendeeSheet
+          {...baseProps}
+          signupFields={fields}
+          attendees={[
+            { id: 'self', name: 'Ana', status: 'confirmed' },
+            { id: 'dep1', name: 'Hijo' },
+          ]}
+        />,
+      );
+      fireEvent.press(getByTestId('attendee-row-dep1'));
+      fireEvent(getByTestId('attendee-row-wrap-dep1'), 'layout', {
+        nativeEvent: { layout: { x: 0, y: 240, width: 300, height: 120 } },
+      });
+
+      fireEvent.press(getByTestId('attendee-confirm'));
+      expect(scrollTo).toHaveBeenCalledWith({ y: 232, animated: true });
+      scrollTo.mockRestore();
     });
 
     it('keeps each persona’s answers separate', () => {
