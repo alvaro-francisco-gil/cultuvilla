@@ -180,14 +180,14 @@ describe('isAdditiveSignupFieldChange', () => {
   });
 
   it('allows relabelling and toggling required in place', () => {
-    const after = [field({ id: 'a', label: 'Nuevo', required: true }), before[1]!];
+    const after = [field({ id: 'a', label: 'Nuevo', required: true }), before[1]];
     expect(isAdditiveSignupFieldChange(before, after)).toBe(true);
   });
 
   it('rejects removing, reordering, or retyping an existing field', () => {
-    expect(isAdditiveSignupFieldChange(before, [before[0]!])).toBe(false);
-    expect(isAdditiveSignupFieldChange(before, [before[1]!, before[0]!])).toBe(false);
-    expect(isAdditiveSignupFieldChange(before, [field({ id: 'a', type: 'date' }), before[1]!])).toBe(
+    expect(isAdditiveSignupFieldChange(before, [before[0]])).toBe(false);
+    expect(isAdditiveSignupFieldChange(before, [before[1], before[0]])).toBe(false);
+    expect(isAdditiveSignupFieldChange(before, [field({ id: 'a', type: 'date' }), before[1]])).toBe(
       false,
     );
   });

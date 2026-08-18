@@ -1,7 +1,34 @@
 # Event Signup Parameters — Custom Sign-up Fields
 
-> **Status:** Ready to implement. Open questions resolved (see *Decisions*); see
-> *Out of scope* for what was deliberately rejected.
+## Status
+
+- **Updated:** 2026-08-18
+- **Stage:** implementation complete on the branch; awaiting PR review + merge
+- **Branch:** `feat/event-signup-fields` (worktree `.claude/worktrees/event-signup-fields`)
+- **Done:** all six stages — model + validator, refs/rules, functions, service,
+  UI (editor, per-attendee sheet, organizer roster), backfills, docs. Shared
+  vitest, rules e2e (330), functions (202) and mobile jest all green; dev
+  backfilled and `check:dev-conformance` PASS.
+- **Next:** open the PR, then run `registration-contacts-drop` per env **after**
+  each deploy lands.
+- **Blockers:** none.
+- **Handoff:** the post-deploy drop is deliberately *not* run anywhere yet,
+  including dev — the currently-deployed function still writes
+  `registrationContacts`, so deleting before the deploy would lose phones
+  collected in between. Run it once the new functions are live in that env.
+  Rules cannot express per-entry field immutability (no loops); see Design §4
+  for why the client-side half is proportionate, and flag it in review.
+
+## Rollout status
+
+| Step | Dev | Beta | Prod |
+|---|---|---|---|
+| Code deployed | ⬜ | ⬜ | ⬜ |
+| `event-signup-fields` (pre-deploy) | ✅ | ⬜ | ⬜ |
+| `registration-private-merge` (pre-deploy) | ✅ | ⬜ | ⬜ |
+| `registration-contacts-drop` (post-deploy) | ⬜ | ⬜ | ⬜ |
+
+Legend: ⬜ pending · ⏳ in progress · ✅ done · ⚠️ blocked (note inline)
 
 ---
 
@@ -252,43 +279,43 @@ and invalid-value errors) in `packages/i18n/messages/es.json`.
 
 ### Stage 1 — Model + validator (pure, fully testable)
 
-- [ ] `SignupFieldModel.ts`: spec/answer schemas, caps, `validateSignupAnswers`
-- [ ] `signupFields` on `EventDataSchema` / `EventDataInput` / `buildEventData`
-- [ ] vitest: schema round-trip, required missing, type mismatch, select not in options, cap enforcement, `buildEventData` defaults `[]`
+- [x] `SignupFieldModel.ts`: spec/answer schemas, caps, `validateSignupAnswers`
+- [x] `signupFields` on `EventDataSchema` / `EventDataInput` / `buildEventData`
+- [x] vitest: schema round-trip, required missing, type mismatch, select not in options, cap enforcement, `buildEventData` defaults `[]`
 
 ### Stage 2 — Storage + rules
 
-- [ ] `eventRegistrationPrivateDoc` refs (client + admin); delete the contact refs
-- [ ] `firestore.rules`: `signupFields` in create validation, size-monotonic update gate, `registrationPrivate` block replacing `registrationContacts`
-- [ ] rules e2e: organizer reads / stranger denied / client write denied; create with `signupFields`; shrink-after-signup denied, grow allowed
+- [x] `eventRegistrationPrivateDoc` refs (client + admin); delete the contact refs
+- [x] `firestore.rules`: `signupFields` in create validation, size-monotonic update gate, `registrationPrivate` block replacing `registrationContacts`
+- [x] rules e2e: organizer reads / stranger denied / client write denied; create with `signupFields`; shrink-after-signup denied, grow allowed
 
 ### Stage 3 — Functions
 
-- [ ] `RegistrantInput.answers` shape validation
-- [ ] `registerToEvent`: semantic validation in-transaction, private-doc write on `phone || answers`
-- [ ] `addWalkInRegistration`: same path
-- [ ] functions tests: answers persisted, missing required rejected, walk-in with answers
+- [x] `RegistrantInput.answers` shape validation
+- [x] `registerToEvent`: semantic validation in-transaction, private-doc write on `phone || answers`
+- [x] `addWalkInRegistration`: same path
+- [x] functions tests: answers persisted, missing required rejected, walk-in with answers
 
 ### Stage 4 — Service
 
-- [ ] `RegisterInput.answers`; `getRegistrationPrivate` replacing `getRegistrationPhone`
-- [ ] update `_services-map.md`
+- [x] `RegisterInput.answers`; `getRegistrationPrivate` replacing `getRegistrationPhone`
+- [x] update `_services-map.md`
 
 ### Stage 5 — UI
 
-- [ ] `SignupFieldsEditor` + wire into `new.tsx` `stepDetails` and both payloads
-- [ ] `SignupAnswerFields` + per-persona rendering in `AttendeeSheet`, required-gating on confirm
-- [ ] `RegisterFab`: thread `answers` per registrant
-- [ ] `EventAttendees`: read-only answer display from the merged doc
-- [ ] i18n strings
-- [ ] jest: editor add/remove/lock, sheet blocks confirm on missing required
+- [x] `SignupFieldsEditor` + wire into `new.tsx` `stepDetails` and both payloads
+- [x] `SignupAnswerFields` + per-persona rendering in `AttendeeSheet`, required-gating on confirm
+- [x] `RegisterFab`: thread `answers` per registrant
+- [x] `EventAttendees`: read-only answer display from the merged doc
+- [x] i18n strings
+- [x] jest: editor add/remove/lock, sheet blocks confirm on missing required
 
 ### Stage 6 — Migration + docs
 
-- [ ] the three backfill scripts, registered on the harness
-- [ ] run all three against dev; `pnpm check:dev-conformance` before and after
-- [ ] CHANGELOG entry with `**Migration:**` marker
-- [ ] PR flags the rules-level immutability gap (Design §4)
+- [x] the three backfill scripts, registered on the harness
+- [x] run the two pre-deploy backfills against dev; `pnpm check:dev-conformance` before and after (the post-deploy drop waits for the deploy — see Status)
+- [x] CHANGELOG entry with `**Migration:**` marker
+- [x] PR flags the rules-level immutability gap (Design §4)
 
 ---
 

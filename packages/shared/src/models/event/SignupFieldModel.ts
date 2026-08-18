@@ -167,8 +167,9 @@ export function isAdditiveSignupFieldChange(
   after: SignupFieldSpec[],
 ): boolean {
   if (after.length < before.length) return false;
-  return before.every((prev, i) => {
-    const next = after[i];
-    return next !== undefined && next.id === prev.id && next.type === prev.type;
-  });
+  // Compared as joined keys rather than by index: identity is (id, type), and
+  // the leading slice of `after` must reproduce `before` exactly — same fields,
+  // same order, same types. Anything appended past that is free.
+  const identity = (fields: SignupFieldSpec[]) => fields.map((f) => `${f.id}:${f.type}`).join('|');
+  return identity(before) === identity(after.slice(0, before.length));
 }

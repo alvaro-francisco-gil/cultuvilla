@@ -35,9 +35,13 @@ const EVENT_ID = 'e1';
 const USER_ID = 'alice';
 const OTHER_USER_ID = 'visitor';
 
-async function seedEvent(opts: { maxAttendees: number | null }): Promise<void> {
+async function seedEvent(opts: {
+  maxAttendees: number | null;
+  signupFields?: unknown[];
+}): Promise<void> {
   const now = new Date();
   await admin.firestore().doc(`events/${EVENT_ID}`).set({
+    signupFields: opts.signupFields ?? [],
     title: 'Fiesta',
     description: 'Una fiesta',
     startDate: now,
@@ -372,6 +376,133 @@ describe('registerToEvent (callable)', () => {
       expect(result.registrations).toHaveLength(1);
       const regs = await admin.firestore().collection(`events/${EVENT_ID}/registrations`).get();
       expect(regs.size).toBe(1);
+    });
+  });
+  describe('custom signup fields', () => {
+    const SIZE = { id: 'size', label: 'Talla', type: 'select', required: true, options: ['S', 'M'] };
+    const NOTE = { id: 'note', label: 'Alergias', type: 'text', required: false, options: [] };
+
+    async function privateDocs(): Promise<Record<string, unknown>[]> {
+      const snap = await admin.firestore().collection(`events/${EVENT_ID}/registrationPrivate`).get();
+      return snap.docs.map((d) => d.data());
+    }
+
+    it('stores each registrant\u2019s answers in the organizer-only private doc', async () => {
+      await seedEvent({ maxAttendees: 10, signupFields: [SIZE, NOTE] });
+      const res = await callRegister({
+        uid: USER_ID,
+        data: {
+          eventId: EVENT_ID,
+          registrants: [
+            { personId: 'p1', name: 'Ana', answers: { size: 'M', note: 'ninguna' } },
+            { personId: 'p2', name: 'Bea', answers: { size: 'S' } },
+          ],
+        },
+      });
+
+      const regId = res.registrations[0]?.id ?? '';
+      const priv = await admin
+        .firestore()
+        .doc(`events/${EVENT_ID}/registrationPrivate/${regId}`)
+        .get();
+      expect(priv.data()).toEqual({
+        name: 'Ana',
+        phone: null,
+        answers: { size: 'M', note: 'ninguna' },
+      });
+
+      // Per-attendee, not per-signup: the second registrant has their own answers.
+      const all = await privateDocs();
+      expect(all).toHaveLength(2);
+      expect(all.map((d) => (d.answers as Record<string, unknown>).size).sort()).toEqual(['M', 'S']);
+    });
+
+    it('keeps answers off the public registration doc', async () => {
+      await seedEvent({ maxAttendees: 10, signupFields: [SIZE] });
+      const res = await callRegister({
+        uid: USER_ID,
+        data: { eventId: EVENT_ID, registrants: [{ personId: 'p1', name: 'Ana', answers: { size: 'M' } }] },
+      });
+      const reg = await admin
+        .firestore()
+        .doc(`events/${EVENT_ID}/registrations/${res.registrations[0]?.id ?? ''}`)
+        .get();
+      expect(reg.data()).not.toHaveProperty('answers');
+    });
+
+    it('rejects a missing required answer and writes nothing', async () => {
+      await seedEvent({ maxAttendees: 10, signupFields: [SIZE] });
+      await expect(
+        callRegister({
+          uid: USER_ID,
+          data: { eventId: EVENT_ID, registrants: [{ personId: 'p1', name: 'Ana' }] },
+        }),
+      ).rejects.toThrow(/obligatorias|v\u00e1lida/i);
+
+      const regs = await admin.firestore().collection(`events/${EVENT_ID}/registrations`).get();
+      expect(regs.size).toBe(0);
+    });
+
+    it('rejects a select value that is not one of the declared options', async () => {
+      await seedEvent({ maxAttendees: 10, signupFields: [SIZE] });
+      await expect(
+        callRegister({
+          uid: USER_ID,
+          data: {
+            eventId: EVENT_ID,
+            registrants: [{ personId: 'p1', name: 'Ana', answers: { size: 'XXL' } }],
+          },
+        }),
+      ).rejects.toThrow(/obligatorias|v\u00e1lida/i);
+    });
+
+    it('rejects answers for a field the event does not declare', async () => {
+      await seedEvent({ maxAttendees: 10, signupFields: [] });
+      await expect(
+        callRegister({
+          uid: USER_ID,
+          data: {
+            eventId: EVENT_ID,
+            registrants: [{ personId: 'p1', name: 'Ana', answers: { ghost: 'x' } }],
+          },
+        }),
+      ).rejects.toThrow(/obligatorias|v\u00e1lida/i);
+    });
+
+    it('rejects a non-primitive answer value at the input-shape gate', async () => {
+      await seedEvent({ maxAttendees: 10, signupFields: [NOTE] });
+      await expect(
+        callRegister({
+          uid: USER_ID,
+          data: {
+            eventId: EVENT_ID,
+            registrants: [{ personId: 'p1', name: 'Ana', answers: { note: { nested: true } } }],
+          },
+        }),
+      ).rejects.toThrow(/Respuestas inv\u00e1lidas/i);
+    });
+
+    it('writes no private doc when there is neither a phone nor an answer', async () => {
+      await seedEvent({ maxAttendees: 10, signupFields: [NOTE] });
+      await callRegister({
+        uid: USER_ID,
+        data: { eventId: EVENT_ID, registrants: [{ personId: 'p1', name: 'Ana' }] },
+      });
+      expect(await privateDocs()).toHaveLength(0);
+    });
+
+    it('stores the phone and the answers in the same private doc', async () => {
+      await seedEvent({ maxAttendees: 10, signupFields: [SIZE] });
+      await callRegister({
+        uid: USER_ID,
+        data: {
+          eventId: EVENT_ID,
+          registrants: [{ personId: 'p1', name: 'Ana', phone: '+34600111222', answers: { size: 'S' } }],
+        },
+      });
+      expect(await privateDocs()).toEqual([
+        { name: 'Ana', phone: '+34600111222', answers: { size: 'S' } },
+      ]);
     });
   });
 });

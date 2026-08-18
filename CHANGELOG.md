@@ -15,6 +15,37 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   - Walk-in attendees added by an organizer get no email — they have no account and no address on file.
   - The flyer is a remote image, which Outlook and Apple Mail block by default; every fact in the email is repeated as text, so it reads completely with images off.
 
+- **Custom sign-up questions on an event.** The creator can define up to 10 typed
+  questions (text, number, date, single-choice, yes/no) in the event form, and
+  every person signed up answers them — a DNI per runner, a t-shirt size per
+  attendee. Questions are per-attendee, unlike the event's single shared phone,
+  so ticking three personas asks three times. Answers are PII, so they never
+  touch the world-readable registration doc: they land in the organizer-gated
+  `events/{id}/registrationPrivate/{regId}` alongside the phone, and the
+  organizer sees them under each name in the attendee roster.
+
+  The `registrationContacts` subcollection is renamed `registrationPrivate` and
+  now carries `{ name, phone, answers }` — it was already keyed per
+  registration, so this merges two gated docs into the one the name now
+  describes. Validation lives in a single shared validator
+  (`validateSignupAnswers`) run both by the sign-up sheet and, authoritatively,
+  inside the `registerToEvent` / `addWalkInRegistration` transactions.
+
+  Once an event has sign-ups its question list is additive-only — existing
+  questions can be relabelled but not removed or retyped, since the collected
+  answers are keyed by their ids. Firestore rules enforce the size half of that
+  (rules have no loops); the edit form enforces the rest.
+
+  **Migration:** run in this order, per env —
+  `pnpm backfills:run --id=event-signup-fields --env=<env> --confirm --apply` and
+  `pnpm backfills:run --id=registration-private-merge --env=<env> --confirm --apply`
+  (both `pre-deploy`: the promotion blocks until they have run), then **after**
+  the deploy
+  `pnpm backfills:run --id=registration-contacts-drop --env=<env> --confirm --apply`,
+  which re-copies anything the old function wrote during the deploy window and
+  then deletes `registrationContacts`. Applied to dev; the post-deploy drop is
+  deliberately still pending there until this ships.
+
 ### Changed
 
 - **The mobile app is pinned to its own EAS account and project** (`cultuvilla.app` / `53188e5f…`) instead of resolving from `EAS_PROJECT_ID`. An env var is machine-global, and the same machines check out `ordago-apps`, whose Expo config owns `ordago-apps` — a stray export would have silently built one repo into the other's EAS project. `owner` + `projectId` as literals make the routing per-repo by construction, and a new test asserts the env indirection cannot come back.
