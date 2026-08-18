@@ -10,6 +10,7 @@ import { Button } from '../primitives/Button';
 import { Avatar } from '../primitives/Avatar';
 import { DetailSectionHeading } from './DetailSectionHeading';
 import { SectionEditToggle } from './SectionEditToggle';
+import { RosterExportButton } from './RosterExportButton';
 import {
   getEventRegistrations,
   getRegistrationPhone,
@@ -41,10 +42,14 @@ type AttendeePerson = { photoURL: string | null; userId: string | null };
  */
 export function EventAttendees({
   eventId,
+  eventTitle,
+  eventDate,
   telephoneRequired,
   requiresPayment,
 }: {
   eventId: string;
+  eventTitle: string;
+  eventDate: Date | null;
   telephoneRequired: boolean;
   requiresPayment: boolean;
 }) {
@@ -202,11 +207,21 @@ export function EventAttendees({
       <DetailSectionHeading
         action={
           hasAttendees ? (
-            <SectionEditToggle
-              testID="attendees-edit-toggle"
-              editing={editing}
-              onToggle={() => setEditing((e) => !e)}
-            />
+            <HStack gap={4} align="center">
+              <RosterExportButton
+                eventTitle={eventTitle}
+                eventDate={eventDate}
+                registrations={rows ?? []}
+                phones={phones}
+                telephoneRequired={telephoneRequired}
+                requiresPayment={requiresPayment}
+              />
+              <SectionEditToggle
+                testID="attendees-edit-toggle"
+                editing={editing}
+                onToggle={() => setEditing((e) => !e)}
+              />
+            </HStack>
           ) : undefined
         }
       >

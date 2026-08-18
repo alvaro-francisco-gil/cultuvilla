@@ -1,0 +1,97 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { RosterExportButton } from '../RosterExportButton';
+import { downloadFile } from '../../../lib/export/downloadFile';
+
+jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+// Mutable so one test can render the component as it behaves off the web build.
+const platform = { canDownloadFile: true };
+jest.mock('../../../lib/export/downloadFile', () => ({
+  get canDownloadFile() {
+    return platform.canDownloadFile;
+  },
+  downloadFile: jest.fn(),
+}));
+const mockBuildWorkbook = jest.fn();
+jest.mock('../../../lib/export/rosterWorkbook', () => ({
+  __esModule: true,
+  XLSX_MIME: 'application/xlsx-test',
+  buildRosterWorkbook: (...args: unknown[]) => mockBuildWorkbook(...args),
+}));
+
+const mockDownload = downloadFile as jest.Mock;
+
+const registration = {
+  id: 'r1',
+  userId: 'u1',
+  personId: 'p1',
+  name: 'Ana Pérez',
+  status: 'confirmed' as const,
+  position: 1,
+  registeredAt: new Date('2026-07-02T10:30:00Z'),
+  isMember: true,
+  checkedInAt: null,
+  paidAt: null,
+};
+
+const props = {
+  eventTitle: 'Fiesta de San Juan',
+  eventDate: new Date('2026-06-24T20:00:00Z'),
+  registrations: [registration],
+  phones: {},
+  telephoneRequired: false,
+  requiresPayment: false,
+};
+
+describe('RosterExportButton', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    platform.canDownloadFile = true;
+    mockBuildWorkbook.mockResolvedValue(new ArrayBuffer(8));
+  });
+
+  it('renders nothing when there is nobody signed up', () => {
+    render(<RosterExportButton {...props} registrations={[]} />);
+    expect(screen.queryByTestId('export-roster')).toBeNull();
+  });
+
+  it('downloads a branded .xlsx by default', async () => {
+    render(<RosterExportButton {...props} />);
+    fireEvent.press(screen.getByTestId('export-roster'));
+    fireEvent.press(screen.getByTestId('export-roster-xlsx'));
+
+    await waitFor(() => expect(mockDownload).toHaveBeenCalled());
+    const [, fileName, mime] = mockDownload.mock.calls[0]!;
+    expect(fileName).toBe('asistentes-fiesta-de-san-juan.xlsx');
+    expect(mime).toBe('application/xlsx-test');
+    expect(mockBuildWorkbook).toHaveBeenCalledTimes(1);
+  });
+
+  it('downloads a UTF-8 CSV when CSV is chosen, without building a workbook', async () => {
+    render(<RosterExportButton {...props} />);
+    fireEvent.press(screen.getByTestId('export-roster'));
+    fireEvent.press(screen.getByTestId('export-roster-csv'));
+
+    await waitFor(() => expect(mockDownload).toHaveBeenCalled());
+    const [contents, fileName, mime] = mockDownload.mock.calls[0]!;
+    expect(fileName).toBe('asistentes-fiesta-de-san-juan.csv');
+    expect(mime).toBe('text/csv;charset=utf-8');
+    expect(contents).toContain('Ana Pérez');
+    expect(mockBuildWorkbook).not.toHaveBeenCalled();
+  });
+
+  it('surfaces an error instead of a silent no-op when generation fails', async () => {
+    mockBuildWorkbook.mockRejectedValue(new Error('boom'));
+    render(<RosterExportButton {...props} />);
+    fireEvent.press(screen.getByTestId('export-roster'));
+    fireEvent.press(screen.getByTestId('export-roster-xlsx'));
+
+    await waitFor(() => screen.getByText('event.export.error'));
+    expect(mockDownload).not.toHaveBeenCalled();
+  });
+
+  it('is web-only — the control is absent when downloads are unavailable', () => {
+    platform.canDownloadFile = false;
+    render(<RosterExportButton {...props} />);
+    expect(screen.queryByTestId('export-roster')).toBeNull();
+  });
+});
