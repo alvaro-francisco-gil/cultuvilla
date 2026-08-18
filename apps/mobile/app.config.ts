@@ -103,6 +103,11 @@ const firebaseConfigPerEnv: Record<Env, FirebaseOptions> = {
 const config: ExpoConfig = {
   name: namePerEnv[env],
   slug: 'cultuvilla',
+  // Pinned, not env-derived: an env var is machine-global, and the dev machines
+  // also check out ordago-apps (owner `ordago-apps`). A stray EAS_PROJECT_ID in
+  // the shell would silently build one repo into the other's EAS project; owner
+  // + projectId in the file make the routing per-repo by construction.
+  owner: 'cultuvilla.app',
   version: '0.19.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
@@ -174,7 +179,7 @@ const config: ExpoConfig = {
           }
         : null,
     eas: {
-      projectId: process.env['EAS_PROJECT_ID'] ?? '',
+      projectId: '53188e5f-c5a1-4b1c-a009-44108826d54d',
     },
   },
   plugins: [

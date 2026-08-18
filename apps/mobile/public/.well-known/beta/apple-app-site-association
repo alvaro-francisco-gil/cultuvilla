@@ -3,7 +3,7 @@
     "apps": [],
     "details": [
       {
-        "appID": "REPLACE_TEAM_ID.com.cultuvilla.app.beta",
+        "appID": "78RB67NT38.com.cultuvilla.app.beta",
         "paths": ["/event/*", "/news/*", "/village/*", "/o/*"]
       }
     ]
