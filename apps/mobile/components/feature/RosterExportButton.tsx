@@ -8,6 +8,10 @@ import { Pressable } from '../primitives/Pressable';
 import { Button } from '../primitives/Button';
 import { buildRosterExport, toCsv } from '@cultuvilla/shared/export/rosterExport';
 import type { RegistrationData } from '@cultuvilla/shared/models/event/RegistrationDataModel';
+import type {
+  SignupAnswers,
+  SignupFieldSpec,
+} from '@cultuvilla/shared/models/event/SignupFieldModel';
 import { colors, iconSizes } from '@cultuvilla/shared/design-system';
 import { useT } from '../../lib/i18n';
 import { canDownloadFile, downloadFile } from '../../lib/export/downloadFile';
@@ -23,6 +27,10 @@ export interface RosterExportButtonProps {
   phones: Record<string, string | null>;
   telephoneRequired: boolean;
   requiresPayment: boolean;
+  /** The event's custom questions; each becomes a trailing column. */
+  signupFields?: SignupFieldSpec[];
+  /** Registration id -> that attendee's answers. */
+  answers?: Record<string, SignupAnswers>;
 }
 
 /**
@@ -39,7 +47,16 @@ export function RosterExportButton(props: RosterExportButtonProps) {
   const [busy, setBusy] = useState<'xlsx' | 'csv' | null>(null);
   const [failed, setFailed] = useState(false);
 
-  const { eventTitle, eventDate, registrations, phones, telephoneRequired, requiresPayment } = props;
+  const {
+    eventTitle,
+    eventDate,
+    registrations,
+    phones,
+    telephoneRequired,
+    requiresPayment,
+    signupFields,
+    answers,
+  } = props;
 
   const run = useCallback(
     async (format: 'xlsx' | 'csv') => {
@@ -53,6 +70,8 @@ export function RosterExportButton(props: RosterExportButtonProps) {
           phones,
           telephoneRequired,
           requiresPayment,
+          signupFields,
+          answers,
         });
         if (format === 'csv') {
           downloadFile(toCsv(model), `${model.fileName}.csv`, 'text/csv;charset=utf-8');
@@ -69,7 +88,16 @@ export function RosterExportButton(props: RosterExportButtonProps) {
         setBusy(null);
       }
     },
-    [eventTitle, eventDate, registrations, phones, telephoneRequired, requiresPayment],
+    [
+      eventTitle,
+      eventDate,
+      registrations,
+      phones,
+      telephoneRequired,
+      requiresPayment,
+      signupFields,
+      answers,
+    ],
   );
 
   if (!canDownloadFile || registrations.length === 0) return null;

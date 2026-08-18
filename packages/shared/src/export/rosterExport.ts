@@ -9,6 +9,12 @@
  */
 import { formatDate } from '../utils/format';
 import type { RegistrationData } from '../models/event/RegistrationDataModel';
+import type {
+  SignupAnswers,
+  SignupAnswerValue,
+  SignupFieldSpec,
+  SignupFieldType,
+} from '../models/event/SignupFieldModel';
 
 export type RosterCell = string | number | boolean | Date | null;
 
@@ -44,8 +50,58 @@ export interface RosterExportInput {
   phones?: Record<string, string | null>;
   telephoneRequired: boolean;
   requiresPayment: boolean;
+  /** The event's creator-defined questions; each becomes a trailing column. */
+  signupFields?: SignupFieldSpec[];
+  /** Registration id -> that attendee's answers, keyed by field id. */
+  answers?: Record<string, SignupAnswers>;
   /** Injected so the export is deterministic under test. */
   generatedAt?: Date;
+}
+
+/**
+ * A question's answer column is typed from its spec so Excel can sort it:
+ * 'select' is a constrained string and 'checkbox' a real boolean.
+ */
+const ANSWER_COLUMN_TYPE: Record<SignupFieldType, RosterColumnType> = {
+  text: 'text',
+  number: 'number',
+  date: 'date',
+  select: 'text',
+  checkbox: 'boolean',
+};
+
+/**
+ * Two questions may legally carry the same label, which would print two
+ * identical headers; disambiguate the repeats rather than silently shipping an
+ * unreadable sheet.
+ */
+function dedupeHeader(label: string, used: Map<string, number>): string {
+  const seen = used.get(label) ?? 0;
+  used.set(label, seen + 1);
+  return seen === 0 ? label : `${label} (${String(seen + 1)})`;
+}
+
+/**
+ * Answers are stored as flat primitives, so coerce to the column's type rather
+ * than trusting the stored shape. A value that can't be coerced is kept as
+ * text: dropping an organizer's collected data to keep a column pure would be
+ * the worse failure.
+ */
+function answerCell(value: SignupAnswerValue | undefined, type: RosterColumnType): RosterCell {
+  if (value === undefined || value === '') return null;
+  if (type === 'boolean') return typeof value === 'boolean' ? value : Boolean(value);
+  if (type === 'number') {
+    const n = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(n) ? n : String(value);
+  }
+  if (type === 'date') {
+    // Written as an ISO string by the date picker and re-checked in
+    // validateSignupAnswers, so this parses for any answer that went through
+    // the sign-up path.
+    const d = typeof value === 'string' ? new Date(value) : null;
+    return d && !Number.isNaN(d.getTime()) ? d : String(value);
+  }
+  return String(value);
 }
 
 const STATUS_LABEL: Record<RegistrationData['status'], string> = {
@@ -75,6 +131,8 @@ export function buildRosterExport(input: RosterExportInput): RosterExportModel {
     phones = {},
     telephoneRequired,
     requiresPayment,
+    signupFields = [],
+    answers = {},
     generatedAt = new Date(),
   } = input;
 
@@ -93,12 +151,30 @@ export function buildRosterExport(input: RosterExportInput): RosterExportModel {
   columns.push({ key: 'checkedInAt', header: 'Check-in', type: 'date', width: 20 });
   if (requiresPayment) columns.push({ key: 'paidAt', header: 'Pagado', type: 'date', width: 20 });
 
+  // Question columns trail the fixed ones, in the creator's declared order, so
+  // adding a question never shifts the columns an organizer already reads.
+  const usedHeaders = new Map<string, number>();
+  for (const field of signupFields) {
+    columns.push({
+      key: `answer:${field.id}`,
+      header: dedupeHeader(field.label, usedHeaders),
+      type: ANSWER_COLUMN_TYPE[field.type],
+      width: field.type === 'checkbox' ? 12 : 24,
+    });
+  }
+
   const rows = registrations.map((r, index) => {
     const cells: RosterCell[] = [index + 1, r.name, STATUS_LABEL[r.status], r.isMember];
     if (telephoneRequired) cells.push(phones[r.id] ?? null);
     cells.push(r.registeredAt);
     cells.push(r.checkedInAt);
     if (requiresPayment) cells.push(r.paidAt);
+    // Keyed by the stable field id, so a relabeled question keeps the answers
+    // already collected under it.
+    const given = answers[r.id] ?? {};
+    for (const field of signupFields) {
+      cells.push(answerCell(given[field.id], ANSWER_COLUMN_TYPE[field.type]));
+    }
     return cells;
   });
 
