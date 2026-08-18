@@ -48,6 +48,15 @@ export default function LoginScreen() {
     }
   }
 
+  // A typo in the address is only visible once the code screen names it, so
+  // the code step must be able to go back — otherwise the only way out of a
+  // wrong email is to verify it and get stuck behind the onboarding gate.
+  function onChangeEmail() {
+    setError(null);
+    setCode('');
+    setStep('email');
+  }
+
   async function onGoogle() {
     setError(null);
     setGoogleLoading(true);
@@ -83,6 +92,9 @@ export default function LoginScreen() {
           </Button>
           <Button variant="ghost" onPress={onSendCode} loading={sendLoading} fullWidth testID="login-resend-code">
             {t('auth.otp.resend')}
+          </Button>
+          <Button variant="ghost" onPress={onChangeEmail} fullWidth testID="login-change-email">
+            {t('auth.otp.changeEmail')}
           </Button>
         </VStack>
       </AuthCard>

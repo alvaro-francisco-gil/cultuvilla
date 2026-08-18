@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
-import { Screen, VillagePicker, BarrioPicker, Checkbox, Text } from '../../components/primitives';
+import { Ionicons } from '@expo/vector-icons';
+import { iconSizes } from '@cultuvilla/shared/design-system';
+import { Screen, VillagePicker, BarrioPicker, Checkbox, Text, Pressable } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { PersonForm } from '../../components/feature/PersonForm';
 import type { PersonFormPhoto, PersonFormValues } from '../../components/feature/PersonForm';
@@ -24,6 +26,7 @@ import { buildResidenceLinks } from '@cultuvilla/shared/models/person';
 import type { MunicipalityLink, PartialDate } from '@cultuvilla/shared/models/person';
 import { CURRENT_TERMS_VERSION, MIN_SELF_REGISTRATION_AGE } from '@cultuvilla/shared/models/user';
 import { readPendingVillage, clearPendingVillage } from '../../lib/auth/pendingVillage';
+import { showConfirm } from '../../lib/dialogs';
 import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 
 function toPartialDate(d: Date | null): PartialDate | null {
@@ -32,7 +35,7 @@ function toPartialDate(d: Date | null): PartialDate | null {
 }
 
 export default function CompleteProfileScreen() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, abandonSignUp } = useAuth();
   const { t } = useT();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +60,18 @@ export default function CompleteProfileScreen() {
     // Seed once, on mount, for a fresh profile-less user.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // AuthGate routes a user with no personId here and to nowhere else, so this
+  // is the only place a wrong-email sign-in can be undone — without it the sole
+  // way forward is creating the account you were trying not to create.
+  function onAbandon() {
+    showConfirm(
+      t('onboarding.completeProfile.abandonTitle'),
+      t('onboarding.completeProfile.abandonBody', { email: user?.email ?? '' }),
+      () => void abandonSignUp(),
+      { confirmText: t('auth.signOut'), cancelText: t('common.cancel') },
+    );
+  }
 
   function handleVillageChange(id: string | null) {
     setMunicipalityId(id);
@@ -163,7 +178,22 @@ export default function CompleteProfileScreen() {
 
   return (
     <Screen padded={false} bottomInset={false} topInset={false}>
-      <ScreenHeader accent hideBack title={t('onboarding.completeProfile.title')} />
+      <ScreenHeader
+        accent
+        hideBack
+        title={t('onboarding.completeProfile.title')}
+        rightSlot={
+          <Pressable
+            onPress={onAbandon}
+            accessibilityLabel={t('auth.signOut')}
+            testID="onboarding-abandon"
+            className="p-1 -mr-1"
+          >
+            {/* Same ink as the header's back chevron (ScreenHeader accent). */}
+            <Ionicons name="log-out-outline" size={iconSizes.lg} color="#f9f0e8" />
+          </Pressable>
+        }
+      />
       <PersonForm
         requireFullName
         selfProfile

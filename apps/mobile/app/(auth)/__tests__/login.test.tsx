@@ -75,6 +75,24 @@ describe('<LoginScreen>', () => {
     await waitFor(() => expect(mockSendOtpCode).toHaveBeenCalledTimes(2));
   });
 
+  it('goes back to the email step so a typo can be corrected before verifying', async () => {
+    mockSendOtpCode.mockResolvedValue(undefined);
+    const { getByTestId, queryByTestId } = render(<LoginScreen />);
+
+    fireEvent.press(getByTestId('login-submit'));
+    await waitFor(() => expect(getByTestId('login-code-input')).toBeTruthy());
+    fireEvent.changeText(getByTestId('login-code-input'), '123456');
+
+    fireEvent.press(getByTestId('login-change-email'));
+
+    // Back on the email step, with the stale code discarded.
+    await waitFor(() => expect(getByTestId('login-submit')).toBeTruthy());
+    expect(queryByTestId('login-code-input')).toBeNull();
+    fireEvent.press(getByTestId('login-submit'));
+    await waitFor(() => expect(getByTestId('login-code-input')).toBeTruthy());
+    expect(getByTestId('login-code-input').props.value).toBe('');
+  });
+
   it('calls signInWithGoogle from the Google button', async () => {
     mockSignInWithGoogle.mockResolvedValue(undefined);
     const { getByTestId } = render(<LoginScreen />);

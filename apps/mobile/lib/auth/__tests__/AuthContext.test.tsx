@@ -1,4 +1,5 @@
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { signOut as fbSignOut } from 'firebase/auth';
 import { AuthProvider } from '../AuthContext';
 import { useAuth } from '../useAuth';
 import { observability } from '@cultuvilla/shared';
@@ -7,7 +8,13 @@ import { fetchUserIdHash } from '../../observability/errorBridge';
 const FAKE_UID = 'user-raw-uid-123';
 const FAKE_HASH = 'a'.repeat(64);
 
-let mockAuthUser: { uid: string; email: string | null } | null = { uid: FAKE_UID, email: 'a@b.com' };
+interface MockAuthUser {
+  uid: string;
+  email: string | null;
+  delete?: jest.Mock;
+}
+
+let mockAuthUser: MockAuthUser | null = { uid: FAKE_UID, email: 'a@b.com' };
 
 jest.mock('@cultuvilla/shared/firebase', () => ({
   getAuth: () => ({
@@ -40,6 +47,8 @@ jest.mock('firebase/auth', () => ({
   signOut: jest.fn(),
 }));
 
+import { getUserProfile } from '@cultuvilla/shared/services/userService';
+
 jest.mock('@cultuvilla/shared/services/userService', () => ({
   getUserProfile: jest.fn().mockResolvedValue({ activeMunicipalityId: 'm1' }),
   setActiveMunicipality: jest.fn(),
@@ -67,7 +76,8 @@ jest.mock('@cultuvilla/shared', () => ({
 describe('AuthProvider', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockAuthUser = { uid: FAKE_UID, email: 'a@b.com' };
+    mockAuthUser = { uid: FAKE_UID, email: 'a@b.com', delete: jest.fn().mockResolvedValue(undefined) };
+    (getUserProfile as jest.Mock).mockResolvedValue({ activeMunicipalityId: 'm1' });
   });
 
   it('exposes a null user before sign-in', () => {
@@ -116,5 +126,57 @@ describe('AuthProvider', () => {
         expect(arg.uid).not.toBe(FAKE_UID);
       }
     }
+  });
+});
+
+describe('abandonSignUp', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // An earlier test leaves fetchUserIdHash reassigning mockAuthUser mid-fetch.
+    (fetchUserIdHash as jest.Mock).mockResolvedValue(FAKE_HASH);
+    mockAuthUser = { uid: FAKE_UID, email: 'wrong@b.com', delete: jest.fn().mockResolvedValue(undefined) };
+    (getUserProfile as jest.Mock).mockResolvedValue({ activeMunicipalityId: 'm1' });
+  });
+
+  it('deletes the account when no profile doc exists yet', async () => {
+    // No profile == the Auth user was created by this very sign-in
+    // (verifyAuthOtpCode), so nobody else owns that address.
+    (getUserProfile as jest.Mock).mockResolvedValue(null);
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+    await waitFor(() => expect(result.current.profileChecked).toBe(true));
+
+    const deleteFn = mockAuthUser!.delete!;
+    await act(async () => {
+      await result.current.abandonSignUp();
+    });
+
+    expect(deleteFn).toHaveBeenCalledTimes(1);
+    expect(fbSignOut).not.toHaveBeenCalled();
+  });
+
+  it('only signs out when the account already has a profile', async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+
+    const deleteFn = mockAuthUser!.delete!;
+    await act(async () => {
+      await result.current.abandonSignUp();
+    });
+
+    expect(deleteFn).not.toHaveBeenCalled();
+    expect(fbSignOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to a plain sign-out when the delete is refused', async () => {
+    (getUserProfile as jest.Mock).mockResolvedValue(null);
+    mockAuthUser!.delete = jest.fn().mockRejectedValue(new Error('auth/requires-recent-login'));
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+    await waitFor(() => expect(result.current.profileChecked).toBe(true));
+
+    await act(async () => {
+      await result.current.abandonSignUp();
+    });
+
+    expect(fbSignOut).toHaveBeenCalledTimes(1);
   });
 });

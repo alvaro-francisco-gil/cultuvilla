@@ -71,7 +71,8 @@
       "sent": "Código enviado a {email}. Revisa tu correo, incluida la carpeta de spam.",
       "codeLabel": "Código de 6 dígitos",
       "verify": "Verificar código",
-      "resend": "Reenviar código"
+      "resend": "Reenviar código",
+      "changeEmail": "Usar otro correo"
     },
     "error": {
       "unknown": "Algo salió mal"
@@ -792,6 +793,8 @@
       "submit": "Crear perfil",
       "requiredFields": "Nombre, ambos apellidos y fecha de nacimiento son obligatorios.",
       "error": "No se pudo guardar el perfil",
+      "abandonTitle": "¿Salir del registro?",
+      "abandonBody": "Has iniciado sesión como {email}. Si no es tu correo, sal y vuelve a empezar con el correcto.",
       "acceptPrefix": "Acepto los",
       "acceptRequired": "Debes aceptar los términos para continuar.",
       "minAge": "Debes tener al menos 14 años para registrarte."
