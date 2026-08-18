@@ -60,6 +60,9 @@ SA_ROLES=(
   # scheduled functions (completeExpiredEvents) create/update Cloud Scheduler jobs.
   roles/cloudscheduler.admin
   roles/iam.serviceAccountUser
+  # read-only IAM inspection for the pre-deploy custom-token signing gate
+  # (scripts/check-custom-token-signing.mjs needs serviceAccounts.getIamPolicy).
+  roles/iam.serviceAccountViewer
   roles/serviceusage.serviceUsageConsumer
 )
 

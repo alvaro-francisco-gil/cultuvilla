@@ -2,8 +2,9 @@
 /**
  * fetch-municipalities.mjs
  *
- * Queries Wikidata for every Spanish municipality (Q2074737) with an
- * INE code (P772) and writes the result to scripts/data/municipalities-es.json.
+ * Queries Wikidata for every Spanish municipality (Q2074737 and its subclasses)
+ * with an INE code (P772) and writes the result to
+ * scripts/data/municipalities-es.json.
  *
  * Province + comunidadAutonoma are derived from the first two digits of the
  * INE code (the standard Spanish province code), against a hardcoded table —
@@ -85,26 +86,54 @@ const PROVINCES = {
 
 // ── SPARQL ────────────────────────────────────────────────────────────────────
 
+// Two things here are load-bearing:
+//
+// 1. P279* — most municipalities are typed with a regional subclass ("municipio
+//    de La Rioja", "concello", "concejo"), NOT with Q2074737 directly. Matching
+//    P31 alone silently dropped ~2,000 of them, entire provinces at a time
+//    (La Rioja: 7 of 174; A Coruña: 1 of 93).
+// 2. Q16532593 (ciudad autónoma de España) — Ceuta is typed ONLY as an
+//    autonomous city, never as a municipality, so the municipality branch alone
+//    misses it. Melilla is only present because it happens to carry both.
 const SPARQL = `
 SELECT ?muni ?muniLabel ?ine WHERE {
-  ?muni wdt:P31 wd:Q2074737 .
+  VALUES ?rootClass { wd:Q2074737 wd:Q16532593 }
+  ?muni wdt:P31/wdt:P279* ?rootClass .
   ?muni wdt:P772 ?ine .
   SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
 }
 `.trim();
 
-async function fetchSparql() {
-  const url = 'https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(SPARQL);
-  const res = await fetch(url, {
-    headers: { 'User-Agent': USER_AGENT, Accept: 'application/sparql-results+json' },
-  });
-  if (!res.ok) throw new Error(`SPARQL ${res.status} ${res.statusText}`);
-  const json = await res.json();
-  return json.results.bindings.map(b => ({
-    qid: b.muni.value.split('/').pop(),
-    name: b.muniLabel?.value ?? '',
-    ine: b.ine.value,
-  }));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// WDQS truncates the response body under load, which surfaces as a JSON parse
+// error on a 200 rather than an HTTP failure — so retry on parse errors too.
+async function fetchSparql(attempts = 4) {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const res = await fetch('https://query.wikidata.org/sparql', {
+        method: 'POST',
+        headers: {
+          'User-Agent': USER_AGENT,
+          Accept: 'application/sparql-results+json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({ query: SPARQL }),
+      });
+      if (!res.ok) throw new Error(`SPARQL ${res.status} ${res.statusText}`);
+      const json = JSON.parse(await res.text());
+      return json.results.bindings.map(b => ({
+        qid: b.muni.value.split('/').pop(),
+        name: b.muniLabel?.value ?? '',
+        ine: b.ine.value,
+      }));
+    } catch (err) {
+      if (attempt === attempts) throw err;
+      const backoff = attempt * 5000;
+      console.log(`  attempt ${attempt}/${attempts} failed (${err.message}); retrying in ${backoff / 1000}s...`);
+      await sleep(backoff);
+    }
+  }
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
@@ -152,10 +181,53 @@ async function main() {
     for (const r of unknownProvince.slice(0, 5)) console.log(`    ${r.ine}  ${r.name}`);
   }
 
-  // Sanity: Spain has 8,131 municipios as of 2024
+  // Sanity: Spain has 8,131 municipios as of 2024. Wikidata also carries some
+  // dissolved/merged municipalities, so a small surplus is expected; a shortfall
+  // is not — it means the query is dropping real municipalities, which is how
+  // the P279* regression went unnoticed. Bail instead of writing a partial file.
   const EXPECTED = 8131;
+  const TOLERANCE = 100;
   const gap = EXPECTED - entries.length;
   console.log(`  Expected ~${EXPECTED}, got ${entries.length} (gap: ${gap}).`);
+
+  if (entries.length < EXPECTED - TOLERANCE) {
+    console.error(
+      `\nFAIL: only ${entries.length} municipalities — ${gap} short of the expected ${EXPECTED}.\n` +
+        `  Refusing to write a partial dataset. The query is dropping municipalities;\n` +
+        `  check the P31/P279* class traversal before re-running.`,
+    );
+    process.exit(1);
+  }
+  if (entries.length > EXPECTED + TOLERANCE) {
+    console.log(
+      `  WARN: ${entries.length - EXPECTED} more than expected — likely dissolved/merged municipalities.`,
+    );
+  }
+
+  // Per-province coverage, so a regionally-lopsided regression is visible at a
+  // glance. Ceuta and Melilla are genuinely one municipality each — every other
+  // province having a handful means the query lost a whole class of them.
+  const SINGLE_MUNICIPALITY_PROVINCES = new Set(['Ceuta', 'Melilla']);
+  const byProvince = new Map();
+  for (const e of entries) byProvince.set(e.province, (byProvince.get(e.province) ?? 0) + 1);
+  const thin = [...byProvince.entries()].filter(
+    ([prov, n]) => n < 10 && !SINGLE_MUNICIPALITY_PROVINCES.has(prov),
+  );
+  if (thin.length) {
+    console.log(`  WARN: ${thin.length} province(s) with fewer than 10 municipalities:`);
+    for (const [prov, n] of thin) console.log(`    ${prov}: ${n}`);
+  }
+
+  // A province with ZERO entries never lands in byProvince, so the thin check
+  // above cannot see it — this is how Ceuta stayed missing unnoticed.
+  const empty = Object.values(PROVINCES)
+    .map(([prov]) => prov)
+    .filter(prov => !byProvince.has(prov));
+  if (empty.length) {
+    console.error(`\nFAIL: ${empty.length} province(s) with no municipalities at all:`);
+    for (const prov of empty) console.error(`    ${prov}`);
+    process.exit(1);
+  }
 
   if (DRY_RUN) {
     console.log('\n--dry-run: not writing JSON. Sample:');

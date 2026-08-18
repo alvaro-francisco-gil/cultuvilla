@@ -8,7 +8,10 @@ import {
   newsDoc,
   municipalityPlaceDoc,
   municipalityBarrioDoc,
+  userNotificationsCollection,
+  commentDoc,
 } from '@cultuvilla/shared/firebase/refs/admin';
+import { buildNotificationData, type EntityKind } from '@cultuvilla/shared/models';
 
 const db = getFirestore();
 
@@ -65,6 +68,8 @@ export const syncEntityCommentCount = onDocumentWritten(
     const entityKind = d['entityKind'] as string;
     const entityId = d['entityId'] as string;
     const municipalityId = d['municipalityId'] as string;
+    const parentCommentId = (d['parentCommentId'] as string | null | undefined) ?? null;
+
     const result = await applyToParent(
       entityKind,
       entityId,
@@ -82,6 +87,68 @@ export const syncEntityCommentCount = onDocumentWritten(
       logger.info('comment count updated', {
         handler: 'syncEntityCommentCount', entityKind, entityId, delta,
       });
+    }
+
+    if (parentCommentId) {
+      try {
+        await commentDoc(db, parentCommentId).update('replyCount', FieldValue.increment(delta));
+      } catch (err) {
+        if (!isNotFound(err)) throw err;
+        // parent comment already deleted (cascade in flight) — no-op
+      }
+    }
+
+    if (parentCommentId && delta === 1) {
+      try {
+        const parentSnap = await commentDoc(db, parentCommentId).get();
+        const parentAuthorUserId = parentSnap.get('authorUserId') as string | undefined;
+        const replyAuthorUserId = d['authorUserId'] as string;
+        if (parentAuthorUserId && parentAuthorUserId !== replyAuthorUserId) {
+          await userNotificationsCollection(db, parentAuthorUserId)
+            .doc()
+            .set(
+              buildNotificationData({
+                type: 'comment_reply',
+                title: 'Nueva respuesta a tu comentario',
+                body: (d['body'] as string).slice(0, 200),
+                entityKind: entityKind as EntityKind,
+                entityId,
+                municipalityId,
+              }),
+            );
+        }
+      } catch (err) {
+        if (!isNotFound(err)) throw err;
+        // parent comment already deleted (cascade in flight) — no-op
+      }
+    }
+
+    // Cascade-delete replies when a top-level comment is deleted. This only
+    // deletes the reply docs — it does NOT touch commentCount for them.
+    // Firestore re-fires syncEntityCommentCount for each deleted reply doc
+    // (triggers fire for every write, including ones made by our own batch),
+    // and that invocation's own unconditional applyToParent call above
+    // handles its commentCount decrement. Every comment doc's commentCount
+    // decrement is owned by that doc's own trigger invocation — this keeps
+    // the property idempotent under any interleaving.
+    const MAX_BATCH_SIZE = 500;
+    if (delta === -1 && !parentCommentId) {
+      const commentId = event.params.commentId;
+      const repliesSnap = await db
+        .collection('comments')
+        .where('parentCommentId', '==', commentId)
+        .get();
+      if (!repliesSnap.empty) {
+        for (let i = 0; i < repliesSnap.docs.length; i += MAX_BATCH_SIZE) {
+          const chunk = repliesSnap.docs.slice(i, i + MAX_BATCH_SIZE);
+          const batch = db.batch();
+          for (const replyDoc of chunk) batch.delete(replyDoc.ref);
+          await batch.commit();
+        }
+        logger.info('cascade-deleted replies for removed comment', {
+          handler: 'syncEntityCommentCount', commentId, count: repliesSnap.size,
+        });
+      }
     }
   },
 );

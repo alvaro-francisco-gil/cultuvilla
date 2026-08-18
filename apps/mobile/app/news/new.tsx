@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@cultuvilla/shared/design-system';
 import { Screen, VStack, Text, Input, Button, FieldLabel, ImagePickerField, Pressable } from '../../components/primitives';
@@ -16,6 +16,7 @@ import {
 } from '../../components/feature/BlockEditor';
 import { pickImageWithSize } from '../../lib/images';
 import { useAuth } from '../../lib/auth/useAuth';
+import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
 import { useT } from '../../lib/i18n';
 import { useCallable } from '../../lib/useCallable';
 import { useMentionSources } from '../../lib/useMentionSources';
@@ -171,7 +172,9 @@ export default function NewNewsScreen() {
   // shown in both modes — just without the creator lock outside of create.
   const [editMunicipalityId, setEditMunicipalityId] = useState<string | null>(null);
   const municipalityId = editMode ? editMunicipalityId : (villageId ?? profile?.activeMunicipalityId ?? null);
+  const { canEdit, loading: capLoading } = useEntityCapabilities(municipalityId ?? undefined);
   const [organizerUserIds, setOrganizerUserIds] = useState<string[]>([]);
+  const [createdBy, setCreatedBy] = useState<string | null>(null);
   const [organizerOrgIds, setOrganizerOrgIds] = useState<string[]>([]);
 
   const { candidates } = useMentionSources(municipalityId, newsId);
@@ -196,6 +199,7 @@ export default function NewNewsScreen() {
       setCategory(post.category);
       setEditMunicipalityId(post.municipalityId);
       setOrganizerUserIds(post.organizerUserIds);
+      setCreatedBy(post.createdBy);
       setOrganizerOrgIds(post.organizerOrgIds);
 
       // Cover: dedicated coverImage, else legacy images[0].
@@ -345,12 +349,18 @@ export default function NewNewsScreen() {
 
   const headerTitle = editMode ? t('news.compose.editTitle') : t('news.compose.title');
 
-  // Hard delete via the cascading callable. Reaching edit mode implies the
-  // caller is the author (or a co-organizer / admin who deep-linked here).
+  // Hard delete via the cascading callable; the guard below is what makes
+  // "reaching edit mode" mean author, co-organizer or admin.
   const remove = () => {
     if (!newsId) return;
     return deleteNewsPost(newsId).then(() => router.replace('/(tabs)'));
   };
+
+  // Editing is gated exactly like every other entity's edit screen (and like
+  // the news update rules); anyone else who deep-links here goes to the article.
+  if (editMode && !loading && !capLoading && !canEdit(createdBy, organizerUserIds)) {
+    return <Redirect href={`/news/${newsId}`} />;
+  }
 
   if (loading) {
     return (

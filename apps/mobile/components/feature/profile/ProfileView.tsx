@@ -104,7 +104,7 @@ export function ProfileView({
       {isSelf && selfPerson ? (
         <HStack gap={3} className="px-4 pt-2 pb-2">
           <Pressable
-            onPress={() => router.push(`/person/${selfPerson.id}`)}
+            onPress={() => router.push(`/person/${selfPerson.id}?edit=1`)}
             accessibilityLabel={t('profile.actions.edit')}
             className="flex-1 flex-row items-center justify-center bg-surface"
             style={{
@@ -160,7 +160,7 @@ export function ProfileView({
               personas={otherPersonas}
               addLabel={t('profile.personasSection.add')}
               emptyLabel={t('profile.personasSection.empty')}
-              onPressPersona={(id) => router.push(`/person/${id}`)}
+              onPressPersona={(id) => router.push(`/person/${id}?edit=1`)}
               onPressAdd={() => router.push('/person/new')}
               showAdd
             />

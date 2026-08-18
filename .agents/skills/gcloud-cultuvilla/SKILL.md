@@ -42,6 +42,69 @@ For beta/prod, add `--project=cultuvilla-beta` or `--project=cultuvilla-prod` ex
 - Dev deploys are fine ad-hoc — use the `firestore-deploy` skill.
 - Beta/prod deploys: defer to CI when it's wired up, or require explicit user confirmation. Don't run them silently.
 
+## Runtime-SA IAM prerequisites
+
+Some Cloud Functions need IAM the Firebase CLI does **not** grant for you. The CLI
+auto-grants secret accessor bindings on deploy (see Secret Manager below), which
+makes it easy to assume it handles everything — it does not. These are per-project
+facts: a new environment starts without them, and nothing in a `firebase deploy`
+will tell you they're missing.
+
+Functions declare no custom `serviceAccount`, so they all run as the **Compute
+Engine default SA**, `<project-number>-compute@developer.gserviceaccount.com`.
+
+### Custom-token signing (`roles/iam.serviceAccountTokenCreator` on itself)
+
+`getAuth().createCustomToken(uid)` does **not** sign locally — the admin SDK calls
+the IAM Credentials API to sign the JWT *as the caller's own identity*, so the
+runtime SA needs `iam.serviceAccounts.signBlob` **on itself**. Without it every
+call fails at runtime:
+
+```
+FirebaseAuthError: Permission 'iam.serviceAccounts.signBlob' denied on resource
+errorInfo: { code: 'auth/insufficient-permission' }
+```
+
+**This is not theoretical.** Email-code sign-in (`verifyAuthOtpCode`) shipped to
+production without the binding and failed 100% of attempts for the entire life of
+the feature: the OTP email sent fine, the code matched fine, then
+`createCustomToken` threw a 500. Nothing caught it, because the Auth emulator
+stubs custom-token signing and never touches IAM — the whole test suite passes
+against a broken project. Note that `roles/iam.serviceAccountTokenCreator` granted
+to `firebase-adminsdk-fbsvc@` (which Firebase does set up) does **not** help; the
+role must be held by the SA that actually runs the functions.
+
+Grant per project — `--member` and the target SA are deliberately the same
+identity (self-binding):
+
+```bash
+gcloud iam service-accounts add-iam-policy-binding \
+  <project-number>-compute@developer.gserviceaccount.com \
+  --member="serviceAccount:<project-number>-compute@developer.gserviceaccount.com" \
+  --role="roles/iam.serviceAccountTokenCreator" --project=<project-id>
+```
+
+Project numbers: dev `790546266005`, beta `336400380436`, prod `34340110439`.
+Takes effect within a minute or two — no redeploy needed.
+
+**Verify (any env):**
+
+```bash
+node scripts/check-custom-token-signing.mjs --env dev|beta|prod
+```
+
+That script is also a **pre-deploy gate** in
+[.github/workflows/deploy-firebase.yml](../../../.github/workflows/deploy-firebase.yml),
+running for every env before the first `firebase deploy`, so a project missing the
+binding blocks the pipeline instead of shipping a broken auth path. The wiring is
+locked in by `packages/shared/test/ci/customTokenSigningGate.test.ts`. The gate
+reads IAM via the WIF deployer SA, which needs `roles/iam.serviceAccountViewer`
+(granted by `scripts/setup-ci-deploy-wif.sh`).
+
+**When adding a function that mints custom tokens**, this binding is a
+prerequisite in every env — check it before assuming a signing failure is a code
+bug.
+
 ## Secret Manager
 
 Cultuvilla uses Secret Manager (enabled on `villa-events`). Cloud Functions read

@@ -195,7 +195,10 @@ async function main() {
   }
 
   // Drift guard: a live root collection nobody registered for conformance.
-  const registered = new Set(REGISTRY.map((e) => e.name));
+  // `_admin` is server-only operational state (backfill completion markers —
+  // see scripts/lib/backfill-registry.mjs), not domain data: it has no model,
+  // no converter, and no client reader, so there is nothing to conform.
+  const registered = new Set([...REGISTRY.map((e) => e.name), '_admin']);
   const liveRoots = await db.listCollections();
   const unregistered = liveRoots.map((c) => c.id).filter((id) => !registered.has(id));
   if (unregistered.length > 0) {

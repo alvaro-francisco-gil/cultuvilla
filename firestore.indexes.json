@@ -107,10 +107,35 @@
       ]
     },
     {
+      "collectionGroup": "persons",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "burialPlace.placeId", "order": "ASCENDING" },
+        { "fieldPath": "isPublic", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "persons",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "burialPlace.placeId", "order": "ASCENDING" },
+        { "fieldPath": "createdBy", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "municipalityPeople",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "municipalityId", "order": "ASCENDING" },
+        { "fieldPath": "sortName", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "municipalityPeople",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "municipalityId", "order": "ASCENDING" },
+        { "fieldPath": "barrioId", "order": "ASCENDING" },
         { "fieldPath": "sortName", "order": "ASCENDING" }
       ]
     },
@@ -251,6 +276,7 @@
       "fields": [
         { "fieldPath": "entityKind", "order": "ASCENDING" },
         { "fieldPath": "entityId", "order": "ASCENDING" },
+        { "fieldPath": "parentCommentId", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "ASCENDING" }
       ]
     }

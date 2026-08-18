@@ -166,8 +166,21 @@ export function useVillageHome(municipalityId: string | null) {
       commit((s) => ({ ...s, sectionStatus: { ...s.sectionStatus, [key]: status } }));
 
     const loadChrome = async () => {
+      // The people directory is fetched on its own, NOT inside the Promise.all
+      // below. Its rows go through a strict converter, so one doc that predates
+      // a schema field throws — and sharing a Promise.all would take membership,
+      // admin rights and censo answers down with the count, silently rendering
+      // the village as if you weren't a member. Losing just the stat is the
+      // acceptable failure; losing your membership is not.
+      const peopleCount = await withFirestoreErrorLog(
+        'villageHome:getMunicipalityPeople',
+        () => getMunicipalityPeople(municipalityId),
+      )
+        .then((people) => people.length)
+        .catch(() => null);
+
       try {
-        const [isAdmin, myReqs, members, people] = await Promise.all([
+        const [isAdmin, myReqs, members] = await Promise.all([
           uid
             ? withFirestoreErrorLog('villageHome:isVillageAdmin', () =>
                 isVillageAdmin(municipalityId, uid),
@@ -181,15 +194,12 @@ export function useVillageHome(municipalityId: string | null) {
           withFirestoreErrorLog('villageHome:getVillageMembers', () =>
             getVillageMembers(municipalityId),
           ),
-          withFirestoreErrorLog('villageHome:getMunicipalityPeople', () =>
-            getMunicipalityPeople(municipalityId),
-          ),
         ]);
         commit((s) => ({
           ...s,
           villageAdmin: isAdmin,
           isMember: uid != null && members.some((m) => m.userId === uid),
-          peopleCount: people.length,
+          peopleCount,
           pendingOrganizerRequest: myReqs.some(
             (r) => r.municipalityId === municipalityId && r.status === 'pending',
           ),
@@ -199,6 +209,7 @@ export function useVillageHome(municipalityId: string | null) {
       } catch {
         // Chrome degrades silently to the non-member view; the error is already
         // logged by withFirestoreErrorLog and must not take down the tab.
+        commit((s) => ({ ...s, peopleCount }));
       }
     };
 

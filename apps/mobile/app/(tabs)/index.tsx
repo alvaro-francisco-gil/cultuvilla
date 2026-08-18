@@ -67,7 +67,17 @@ function inDatePreset(d: Date, preset: DatePreset): boolean {
   return d >= start && d < end;
 }
 
-const TABS: FeedTab[] = ['eventos', 'noticias'];
+// Feed tab order — the single source of truth. The toggle labels, the pager
+// pages, the default tab and the swipe→tab mapping all derive from this array,
+// so reordering the feed is a one-line edit here. TABS[0] is what the screen
+// opens on.
+// `as const` keeps this a tuple so TABS[0] is a known tab, not `FeedTab | undefined`.
+const TABS = ['eventos', 'noticias'] as const satisfies readonly FeedTab[];
+
+const TAB_LABEL_KEY: Record<FeedTab, string> = {
+  eventos: 'feed.tab.events',
+  noticias: 'feed.tab.news',
+};
 
 export default function FeedScreen() {
   const { t } = useT();
@@ -97,7 +107,7 @@ export default function FeedScreen() {
   const [newsError, setNewsError] = useState<string | null>(null);
   const [newsRefreshing, setNewsRefreshing] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<FeedTab>('eventos');
+  const [activeTab, setActiveTab] = useState<FeedTab>(TABS[0]);
 
   const [villages, setVillages] = useState<Village[]>([]);
 
@@ -254,7 +264,7 @@ export default function FeedScreen() {
   function onPagerScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
     if (width === 0) return;
     const page = Math.round(e.nativeEvent.contentOffset.x / width);
-    const tab = TABS[page] ?? 'eventos';
+    const tab = TABS[page] ?? TABS[0];
     setActiveTab((prev) => (prev === tab ? prev : tab));
   }
 
@@ -300,10 +310,7 @@ export default function FeedScreen() {
       <SegmentedToggle<FeedTab>
         value={activeTab}
         onChange={goToTab}
-        options={[
-          { value: 'eventos', label: t('feed.tab.events') },
-          { value: 'noticias', label: t('feed.tab.news') },
-        ]}
+        options={TABS.map((tab) => ({ value: tab, label: t(TAB_LABEL_KEY[tab]) }))}
       />
     </View>
   );
@@ -554,8 +561,11 @@ export default function FeedScreen() {
           // below something to resolve against. No-op on native.
           contentContainerStyle={webSpread({ height: '100%' as const })}
         >
-          <View style={{ width, ...webSpread({ height: '100%' as const }) }}>{eventsPage}</View>
-          <View style={{ width, ...webSpread({ height: '100%' as const }) }}>{newsPage}</View>
+          {TABS.map((tab) => (
+            <View key={tab} style={{ width, ...webSpread({ height: '100%' as const }) }}>
+              {tab === 'eventos' ? eventsPage : newsPage}
+            </View>
+          ))}
         </ScrollView>
 
         {/* Floating overlay — the toggle and filter bar both sit above the feed

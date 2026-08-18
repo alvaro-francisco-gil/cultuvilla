@@ -205,9 +205,10 @@ Header ≤ 100 chars. Direct-to-`develop` is fine for small self-contained chang
 - **Set the version in the `develop → beta` promotion PR** (beta = release candidate); it rides unchanged into `main`. Build numbers auto-increment (EAS `appVersionSource: remote`). **CI enforces this**: `.github/workflows/version-gate.yml` fails any PR targeting `beta` whose `app.config.ts` `version` isn't strictly greater than beta's, so the bump can't be forgotten. Use the `prepare-release` skill to do it.
 - **The version-bump commit message is the bare version string** — `0.10.0`, not `chore(release): 0.10.0`. commitlint (`commitlint.config.cjs`) has an `ignores` rule that exempts exactly a `X.Y.Z` header; every other commit still follows conventional commits. The bump commit contents are `apps/mobile/app.config.ts` + `apps/mobile/package.json` + the `CHANGELOG.md` stamp.
 - **Force-update gate is dormant pre-release.** `config/appVersion.minSupported` is `0.0.0` (never blocks) while unreleased; keep `latest` in step with the current `app.config.ts` version. Only raise `minSupported` above `0.0.0` once real store clients exist.
+- **`config/appVersion` is written from CI, not from a laptop.** It is a Firestore doc, so it is the one release step that is neither a code deploy (automatic on merge) nor a data migration (the backfill registry). Use **Actions → "Set App Version"** ([set-app-version.yml](.github/workflows/set-app-version.yml)) — keyless via WIF, dry-run by default. Blank `latest` means "the current `app.config.ts` version"; blank `min_supported` **preserves** whatever is stored, so a routine release can never accidentally un-wall the fleet. Locally the same script is `node scripts/seed-app-version-config.mjs --env=<env> [--latest=] [--min=] [--dry-run] [--confirm]`.
 - **Tag `vX.Y.Z` on the `main` merge commit** and push it.
 - **CHANGELOG:** on a cut release, stamp the version into the section heading (`## vX.Y.Z — YYYY-MM-DD`).
-- **Force-update gate:** clients read `config/appVersion` on launch (`appConfigService`) and block/nudge via `resolveVersionGate`. When you ship a client-breaking backend change (see *No retrocompat shims*), bump that doc's `minSupported` to the version carrying the client fix, at release time.
+- **Force-update gate:** clients read `config/appVersion` on launch (`appConfigService`) and block/nudge via `resolveVersionGate`. When you ship a client-breaking backend change (see *No retrocompat shims*), bump that doc's `minSupported` to the version carrying the client fix, at release time — that is the one case where you pass an explicit `min_supported`, since moving the wall is a deliberate product decision and never a side effect.
 
 ### Delete > deprecate
 
@@ -219,7 +220,8 @@ When changing the shape of data already in Firestore, surface the migration expl
 
 - Note the affected docs and field(s) in the commit body and the PR description.
 - Add a backfill script under `scripts/` when the change can't be expressed as a Cloud Function trigger.
-- **Mark it in the CHANGELOG so beta/prod don't forget it.** When a change needs a backfill run against an env, put a `**Migration:**` marker inline in that `[Unreleased]` CHANGELOG entry, naming the script (e.g. `**Migration:** existing rows are purged by re-running \`scripts/backfill-municipality-people.mjs\` (per env)`). This marker is the single source of truth for "a backfill is pending": the `prepare-release` skill greps the stamped version block for `**Migration:**` and emits a per-env backfill checklist into the `develop → beta` / `beta → main` promotion PRs. Code deploys automatically on promotion; a backfill does not — the marker is what carries it across.
+- **Register the backfill so the deploy can enforce it** — see *Backfills* below. A registered backfill declares a `phase`, and `pre-deploy` ones block the promotion until they have actually run against the target env. That, not a doc, is what makes "a backfill is pending" a checkable fact: the completion marker at `_admin/backfills/markers/{id}.{env}` is the source of truth.
+- **Also mark it in the CHANGELOG.** Put a `**Migration:**` marker inline in that `[Unreleased]` entry naming the script (e.g. `**Migration:** existing rows are purged by re-running \`scripts/backfill-municipality-people.mjs\` (per env)`). The `prepare-release` skill greps the stamped version block for `**Migration:**` and emits a per-env checklist into the `develop → beta` / `beta → main` promotion PRs. The registry is the *enforcement*; this marker is the human-readable release story that says which data moved and why.
 - Don't leave dual-read code, shim re-exports, or `// removed: …` comments. Pairs with the `### Delete > deprecate` rule above.
 - If the change breaks older store clients, raise `config/appVersion.minSupported` to the fixed version at release time (see *Versioning & releases*).
 
@@ -230,9 +232,89 @@ Only add a compatibility layer when the user explicitly asks for one (e.g. when 
 Reads route through a **strict** Zod converter ([makeConverter](packages/shared/src/firebase/converters/makeConverter.ts) → `schema.parse`), so a doc missing a newly-added field makes the converter *throw* and crashes whatever screen reads that collection. When a feature adds or tightens a model field, backfill the existing dev docs (`villa-events`) in the same change — don't leave the field optional just to tolerate stale data (that's a retrocompat shim; see above).
 
 - **Dev backfill is autonomous — no confirmation needed.** Dev (`villa-events`) is safe to mutate; an agent implementing a feature may write and run the backfill script directly. Beta/prod stay off-limits (CI / explicit user instruction only — see `firebase-admin-dev` skill).
-- Write the backfill as a one-off, idempotent `scripts/backfill-<thing>.mjs` (mirror `scripts/backfill-municipality-namelower.mjs`): project-id guard, only patch docs missing the field, set the same default the model builder uses.
+- Write the backfill as a one-off, idempotent `scripts/backfill-<thing>.mjs` **registered on the harness** (mirror `scripts/backfill-municipality-namelower.mjs`): only patch docs missing the field, set the same default the model builder uses, and give it `phase: 'pre-deploy'` so the promotion to beta/prod blocks until it has run there. See *Backfills* above.
 - Verify with **`pnpm check:dev-conformance`** ([scripts/check-dev-conformance.mjs](scripts/check-dev-conformance.mjs)) — it walks every dev collection through its converter and reports nonconforming docs. Run it before and after the backfill. It needs credentials, so it is **not** part of the `pnpm check` CI gate; run it manually against dev after schema changes.
-- **Beta/prod are gated automatically.** Every `develop → beta` and `beta → main` deploy runs this same check against the target env's live data (via the WIF service account) *before* any `firebase deploy` — a schema promoted without its backfill fails the deploy instead of shipping a converter crash. See the "Conformance gate" step in [.github/workflows/deploy-firebase.yml](.github/workflows/deploy-firebase.yml); the wiring is locked in by [packages/shared/test/ci/conformanceGate.test.ts](packages/shared/test/ci/conformanceGate.test.ts). So the practical rule is: backfill the target env before promoting, or the promotion's deploy will block.
+- **Beta/prod are gated automatically, twice.** Every `develop → beta` and `beta → main` deploy runs, *before* any `firebase deploy` and against the target env's live data (via the WIF service account): the **conformance gate** (this same check — does the stored data parse under the shipped converters?) and the **backfill gate** (`pnpm backfills:verify` — has every `pre-deploy` backfill actually run here?). Either one failing blocks the whole promotion instead of shipping a converter crash. See the "Conformance gate" and "Backfill gate" steps in [.github/workflows/deploy-firebase.yml](.github/workflows/deploy-firebase.yml); the wiring is locked in by [conformanceGate.test.ts](packages/shared/test/ci/conformanceGate.test.ts) and [backfillGate.test.ts](packages/shared/test/ci/backfillGate.test.ts). So the practical rule is: backfill the target env before promoting, or the promotion's deploy will block.
+
+- **Backfill the source before the projection, then the projection again.** A projection trigger (`syncMunicipalityPeople`, `syncPersonDenormalization`, …) writes its read model with a full `set()`, not a merge. On beta/prod the *currently deployed* trigger predates the new field, so patching the source collection fires it and it rewrites every projected row **without** the field — silently undoing a projection backfill you already ran. Backfilling `persons.isPublic` on beta wiped the `municipalityPeople.isPublic`/`barrioId` rows it had just written. The deploy can't go first (the gates block on the un-backfilled data), so the order is: **source collection first → let the old trigger clobber → re-run the projection backfills → verify conformance → promote.** Re-check conformance immediately before merging the promotion PR: any write to the source in between re-clobbers the projection until the new trigger is deployed.
+
+### Backfills
+
+A backfill is a script that mutates existing Firestore data to match a schema
+change. **Code deploys on merge; data does not** — so every backfill is
+registered, and the deploy verifies it actually ran against the env being
+promoted to.
+
+Registered backfills live under `scripts/` as a `.mjs` exporting `meta` + `run`:
+
+```js
+import { isMain, runBackfill } from './lib/backfill-harness.mjs';
+import { backfillCollection } from './lib/backfill.mjs';
+
+export const meta = {
+  id: 'barrio-resident-count',   // kebab-case; == _admin/backfills/markers/{id}
+  kind: 'backfill',              // backfill | cleanup | migration | audit
+  description: 'why this exists, in one line',
+  phase: 'pre-deploy',           // pre-deploy | post-deploy | none
+  envs: ['dev', 'beta', 'prod'],
+  idempotent: true,
+  owner: 'alvaro',
+  autoApply: [],                 // envs the deploy may run this on unattended
+};
+
+export async function run({ db, apply, log }) {
+  // must honour `apply` — without it the run is a dry run and writes nothing
+  return await backfillCollection(db, 'label', db.collection('x'), patchFor, { apply });
+}
+
+if (isMain(import.meta.url)) await runBackfill({ meta, run });
+```
+
+**`phase` is the load-bearing field**, and it is about ordering around the
+deploy, not about a version. The strict Zod converters make it bidirectional:
+
+| phase | meaning | deploy behaviour |
+|---|---|---|
+| `pre-deploy` | new code can't read old data (adding a required field) | **blocks** the deploy until the marker exists |
+| `post-deploy` | old code can't read new data (dropping a field) | **warns** — blocking would deadlock |
+| `none` | never gates (audits; one-offs already run everywhere) | ignored |
+
+**The marker is the source of truth.** A successful `--apply` writes
+`_admin/backfills/markers/{id}.{env}` with `{ completedAt, gitSha, actor, counts }`.
+`_admin/**` is denied to all clients in `firestore.rules` (the Admin SDK bypasses
+rules); a client-writable marker would let anyone wave a nonconforming schema
+through the gate.
+
+**Running one needs no local credentials.** Beta/prod enforce
+`iam.disableServiceAccountKeyCreation`, so there is no key to hand out. Use
+**Actions → "Run Backfill"** ([run-backfill.yml](.github/workflows/run-backfill.yml)),
+which authenticates keylessly via the same WIF service account the deploy uses.
+It is dry-run by default, always dry-runs before applying, and is dispatchable
+via the GitHub API — so an agent can drive a migration it has no credentials
+for. Locally, dev is autonomous; beta/prod need `--confirm`.
+
+```bash
+pnpm backfills:list                                   # the registry (no credentials needed)
+pnpm backfills:verify --env=beta                      # what the deploy gate checks
+pnpm backfills:run --id=<id> --env=dev                # dry run
+pnpm backfills:run --id=<id> --env=dev --apply        # writes + records the marker
+pnpm backfills:test                                   # registry unit tests
+```
+
+**Gotchas.**
+
+- **`_admin` paths need an EVEN number of segments.** `_admin/backfills/markers/{id}`
+  (4) is a document; `_admin/backfills/{id}` (3) is a collection and `db.doc()`
+  throws on it at runtime.
+- **Discovery imports every registered module**, so the `isMain(import.meta.url)`
+  guard is what stops `backfills:list` from *running* all of them. It is covered
+  by a test that fails if the guard is dropped.
+- **`autoApply` opts a backfill into running unattended on every deploy.** Only
+  for provably additive, idempotent work — `validateMeta` rejects the opt-in on
+  a non-idempotent backfill.
+- **Legacy scripts** (~25 of them) predate the registry and are not on it.
+  `pnpm backfills:lint` warns about them in CI without failing. Convert
+  opportunistically; register anything new.
 
 ### Comments
 
@@ -247,6 +329,7 @@ pnpm check            # lint + typecheck + test + build (CI gate)
 pnpm lint             # eslint --max-warnings 0 in packages/shared + functions
 pnpm typecheck        # tsc --noEmit in shared, functions, i18n, mobile
 pnpm test             # vitest (shared) + jest (mobile) + functions, under emulators
+pnpm backfills:list   # registered data migrations (see Backfills)
 ```
 
 Pre-commit (Husky + lint-staged) currently only formats `*.{json,md,yml,yaml}`; commit-msg runs commitlint. The lint/typecheck/test gate runs via `pnpm check` and in CI, not on commit.

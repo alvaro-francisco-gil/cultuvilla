@@ -56,7 +56,7 @@ export default function PlaceDetailScreen() {
   const [editingDeathDate, setEditingDeathDate] = useState<PartialDate | null>(null);
   const [savingBurial, setSavingBurial] = useState(false);
   const [loading, setLoading] = useState(true);
-  const { canManage, uid } = useEntityCapabilities(villageId);
+  const { canManage, canEdit, uid } = useEntityCapabilities(villageId);
   const insets = useSafeAreaInsets();
 
   const load = useCallback(async () => {
@@ -65,12 +65,12 @@ export default function PlaceDetailScreen() {
       const p = await getPlace(villageId, placeId);
       setPlace(p);
       if (p?.kind === 'cemetery') {
-        setBuried(await getPersonsByBurialPlace(placeId));
+        setBuried(await getPersonsByBurialPlace(placeId, uid));
       }
     } finally {
       setLoading(false);
     }
-  }, [villageId, placeId]);
+  }, [villageId, placeId, uid]);
 
   useFocusEffect(
     useCallback(() => {
@@ -90,7 +90,7 @@ export default function PlaceDetailScreen() {
 
   const actions: EntityDetailAction[] = place
     ? [
-        ...(canManage
+        ...(canEdit(place.proposedBy)
           ? [
               {
                 icon: 'create-outline' as const,
@@ -197,6 +197,18 @@ export default function PlaceDetailScreen() {
                           <Text numberOfLines={1} className="flex-1">
                             {name}
                           </Text>
+                          {p.isPublic ? null : (
+                            // Only the creator's own query returns a private
+                            // persona, so this row is invisible to everyone
+                            // else — the lock says so rather than leaving them
+                            // to wonder why nobody mentions seeing it.
+                            <Ionicons
+                              testID={`buried-person-private-${p.id}`}
+                              name="lock-closed-outline"
+                              size={iconSizes.sm}
+                              color={colors.light.fg.muted}
+                            />
+                          )}
                           {date ? (
                             <Text
                               testID={`buried-person-date-${p.id}`}

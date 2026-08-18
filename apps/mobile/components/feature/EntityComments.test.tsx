@@ -1,7 +1,12 @@
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { Platform } from 'react-native';
 import { EntityComments } from './EntityComments';
-import { addComment, deleteComment, getComments } from '@cultuvilla/shared/services/commentsService';
+import {
+  addComment,
+  deleteComment,
+  getComments,
+  getReplies,
+} from '@cultuvilla/shared/services/commentsService';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 import { getUserProfile } from '@cultuvilla/shared/services/userService';
 
@@ -9,6 +14,7 @@ jest.mock('@cultuvilla/shared/services/commentsService', () => ({
   addComment: jest.fn(),
   deleteComment: jest.fn().mockResolvedValue(undefined),
   getComments: jest.fn(),
+  getReplies: jest.fn(),
 }));
 jest.mock('@cultuvilla/shared/services/personService', () => ({
   getPersonByUserId: jest.fn(),
@@ -31,7 +37,7 @@ jest.mock('../../lib/auth/RegisterGateContext', () => ({
 jest.mock('../../lib/i18n', () => ({
   useT: () => ({
     locale: 'es',
-    t: (key: string) => {
+    t: (key: string, params?: Record<string, unknown>) => {
       const table: Record<string, string> = {
         'comments.sectionTitle': 'Comentarios',
         'comments.placeholder': 'Escribe un comentario…',
@@ -39,20 +45,29 @@ jest.mock('../../lib/i18n', () => ({
         'comments.signInToComment': 'Inicia sesión para comentar',
         'comments.delete': 'Eliminar',
         'comments.anonymousAuthor': 'Usuario',
+        'comments.reply': 'Responder',
+        'comments.replyPlaceholder': 'Escribe una respuesta…',
+        'comments.hideReplies': 'Ocultar respuestas',
+        'comments.cancelReply': 'Cancelar respuesta',
       };
+      if (key === 'comments.viewReplies') return `Ver ${params?.count ?? ''} respuestas`;
+      if (key === 'comments.replyingTo') return `Respondiendo a ${String(params?.name ?? '')}`;
       return table[key] ?? key;
     },
   }),
 }));
 jest.mock('expo-router', () => ({
   usePathname: () => '/event/e-1',
+  router: { push: jest.fn() },
 }));
+const { router: mockRouter } = jest.requireMock('expo-router');
 
 const getPersonByUserIdMock = getPersonByUserId as jest.Mock;
 const getUserProfileMock = getUserProfile as jest.Mock;
 const getCommentsMock = getComments as jest.Mock;
 const addCommentMock = addComment as jest.Mock;
 const deleteCommentMock = deleteComment as jest.Mock;
+const getRepliesMock = getReplies as jest.Mock;
 
 const BASE_PROPS = {
   entityKind: 'event' as const,
@@ -95,10 +110,26 @@ describe('<EntityComments>', () => {
       },
     ]);
     const { findByText } = render(<EntityComments {...BASE_PROPS} />);
-    // Name + body share one Text node (Instagram-style inline), so match the
-    // body as a substring rather than an exact text node.
-    expect(await findByText(/Qué buena idea/)).toBeTruthy();
+    expect(await findByText('Qué buena idea')).toBeTruthy();
     expect(await findByText('Ana Gil')).toBeTruthy();
+    // The age of the comment sits next to the name, in its compact form.
+    expect(await findByText('ahora')).toBeTruthy();
+  });
+
+  it('hides the send affordance until the composer has something to send', async () => {
+    getCommentsMock.mockResolvedValue([]);
+    const { findByPlaceholderText, queryByTestId, getByTestId } = render(
+      <EntityComments {...BASE_PROPS} />,
+    );
+    const input = await findByPlaceholderText('Escribe un comentario…');
+    expect(queryByTestId('comment-send')).toBeNull();
+
+    fireEvent.changeText(input, 'Hola');
+    expect(getByTestId('comment-send')).toBeTruthy();
+
+    // Whitespace alone is not something to send.
+    fireEvent.changeText(input, '   ');
+    expect(queryByTestId('comment-send')).toBeNull();
   });
 
   it('uses the public user display name while a new author persona is unavailable', async () => {
@@ -125,13 +156,14 @@ describe('<EntityComments>', () => {
   it('optimistically appends a sent comment and clears the input', async () => {
     getCommentsMock.mockResolvedValue([]);
     addCommentMock.mockResolvedValue('c-new');
-    const { findByPlaceholderText, findByText, getByText } = render(
+    const { findByPlaceholderText, findByText, getByTestId } = render(
       <EntityComments {...BASE_PROPS} />,
     );
     const input = await findByPlaceholderText('Escribe un comentario…');
     fireEvent.changeText(input, 'Un comentario nuevo');
+    // The send affordance only appears once there is something to send.
     await act(async () => {
-      fireEvent.press(getByText('Enviar'));
+      fireEvent.press(getByTestId('comment-send'));
     });
 
     await waitFor(() => expect(addCommentMock).toHaveBeenCalledWith({
@@ -200,5 +232,249 @@ describe('<EntityComments>', () => {
 
     expect(mockRequireAuth).toHaveBeenCalledWith('/event/e-1', 'guest.comment');
     expect(addCommentMock).not.toHaveBeenCalled();
+  });
+
+  it('reuses the single composer for replies, marking who is being replied to', async () => {
+    getCommentsMock.mockResolvedValue([
+      {
+        id: 'c-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-2',
+        body: 'Comentario original',
+        createdAt: new Date(),
+        parentCommentId: null,
+        replyCount: 0,
+      },
+    ]);
+    addCommentMock.mockResolvedValue('r-new');
+    getRepliesMock.mockResolvedValue([]);
+
+    const { findByText, findByPlaceholderText, getByTestId, queryByText, queryByPlaceholderText } =
+      render(<EntityComments {...BASE_PROPS} />);
+    await findByText('Comentario original');
+
+    // No second field appears — the one composer switches into reply mode.
+    fireEvent.press(await findByText('Responder'));
+    expect(await findByText('Respondiendo a Ana Gil')).toBeTruthy();
+    expect(queryByPlaceholderText('Escribe un comentario…')).toBeNull();
+
+    const input = await findByPlaceholderText('Escribe una respuesta…');
+    fireEvent.changeText(input, 'Una respuesta');
+    await act(async () => {
+      fireEvent.press(getByTestId('comment-send'));
+    });
+
+    await waitFor(() =>
+      expect(addCommentMock).toHaveBeenCalledWith({
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-1',
+        body: 'Una respuesta',
+        parentCommentId: 'c-1',
+      }),
+    );
+    // Sending drops back to composing a top-level comment.
+    await waitFor(() => expect(queryByText('Respondiendo a Ana Gil')).toBeNull());
+  });
+
+  it('cancels reply mode and posts a top-level comment instead', async () => {
+    getCommentsMock.mockResolvedValue([
+      {
+        id: 'c-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-2',
+        body: 'Comentario original',
+        createdAt: new Date(),
+        parentCommentId: null,
+        replyCount: 0,
+      },
+    ]);
+    addCommentMock.mockResolvedValue('c-new');
+
+    const { findByText, findByPlaceholderText, getByTestId, queryByText } = render(
+      <EntityComments {...BASE_PROPS} />,
+    );
+    await findByText('Comentario original');
+    fireEvent.press(await findByText('Responder'));
+    fireEvent.press(getByTestId('comment-reply-cancel'));
+    expect(queryByText('Respondiendo a Ana Gil')).toBeNull();
+
+    fireEvent.changeText(await findByPlaceholderText('Escribe un comentario…'), 'Un comentario');
+    await act(async () => {
+      fireEvent.press(getByTestId('comment-send'));
+    });
+
+    await waitFor(() =>
+      expect(addCommentMock).toHaveBeenCalledWith({
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-1',
+        body: 'Un comentario',
+      }),
+    );
+  });
+
+  it('shows a "view replies" toggle and loads/renders replies on press', async () => {
+    getCommentsMock.mockResolvedValue([
+      {
+        id: 'c-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-2',
+        body: 'Comentario original',
+        createdAt: new Date(),
+        parentCommentId: null,
+        replyCount: 2,
+      },
+    ]);
+    getRepliesMock.mockResolvedValue([
+      {
+        id: 'r-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-3',
+        body: 'Una respuesta existente',
+        createdAt: new Date(),
+        parentCommentId: 'c-1',
+        replyCount: 0,
+      },
+    ]);
+
+    const { findByText } = render(<EntityComments {...BASE_PROPS} />);
+    await findByText(/Comentario original/);
+
+    const toggle = await findByText('Ver 2 respuestas');
+    await act(async () => {
+      fireEvent.press(toggle);
+    });
+
+    expect(getRepliesMock).toHaveBeenCalledWith('event', 'e-1', 'c-1');
+    expect(await findByText(/Una respuesta existente/)).toBeTruthy();
+  });
+
+  it('does not render a reply action on a reply row (one level of nesting only)', async () => {
+    getCommentsMock.mockResolvedValue([
+      {
+        id: 'c-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-2',
+        body: 'Comentario original',
+        createdAt: new Date(),
+        parentCommentId: null,
+        replyCount: 1,
+      },
+    ]);
+    getRepliesMock.mockResolvedValue([
+      {
+        id: 'r-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-3',
+        body: 'Una respuesta existente',
+        createdAt: new Date(),
+        parentCommentId: 'c-1',
+        replyCount: 0,
+      },
+    ]);
+
+    const { findByText, getAllByText } = render(<EntityComments {...BASE_PROPS} />);
+    await findByText(/Comentario original/);
+
+    await act(async () => {
+      fireEvent.press(await findByText('Ver 1 respuestas'));
+    });
+    await findByText(/Una respuesta existente/);
+
+    // Only the top-level comment's "Responder" affordance should exist —
+    // the reply row must not render its own.
+    expect(getAllByText('Responder')).toHaveLength(1);
+  });
+
+  it('opens the author profile from a comment name and avatar', async () => {
+    getCommentsMock.mockResolvedValue([
+      {
+        id: 'c-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-2',
+        body: 'Qué buena idea',
+        createdAt: new Date(),
+      },
+    ]);
+    const { findByTestId } = render(<EntityComments {...BASE_PROPS} />);
+
+    fireEvent.press(await findByTestId('comment-author-c-1'));
+    expect(mockRouter.push).toHaveBeenCalledWith('/user/uid-2');
+
+    mockRouter.push.mockClear();
+    fireEvent.press(await findByTestId('comment-author-avatar-c-1'));
+    expect(mockRouter.push).toHaveBeenCalledWith('/user/uid-2');
+  });
+
+  it('opens the author profile from a reply', async () => {
+    getCommentsMock.mockResolvedValue([
+      {
+        id: 'c-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-2',
+        body: 'Comentario original',
+        createdAt: new Date(),
+        parentCommentId: null,
+        replyCount: 1,
+      },
+    ]);
+    getRepliesMock.mockResolvedValue([
+      {
+        id: 'r-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-3',
+        body: 'Una respuesta existente',
+        createdAt: new Date(),
+        parentCommentId: 'c-1',
+        replyCount: 0,
+      },
+    ]);
+    const { findByText, findByTestId } = render(<EntityComments {...BASE_PROPS} />);
+    await findByText(/Comentario original/);
+    await act(async () => {
+      fireEvent.press(await findByText('Ver 1 respuestas'));
+    });
+
+    fireEvent.press(await findByTestId('comment-author-r-1'));
+    expect(mockRouter.push).toHaveBeenCalledWith('/user/uid-3');
+  });
+
+  it('leaves a deleted author inert instead of routing to a tombstone uid', async () => {
+    getCommentsMock.mockResolvedValue([
+      {
+        id: 'c-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'deleted-user',
+        body: 'Comentario huérfano',
+        createdAt: new Date(),
+      },
+    ]);
+    const { findByText, queryByTestId } = render(<EntityComments {...BASE_PROPS} />);
+    await findByText(/Comentario huérfano/);
+    expect(queryByTestId('comment-author-c-1')).toBeNull();
+    expect(queryByTestId('comment-author-avatar-c-1')).toBeNull();
   });
 });

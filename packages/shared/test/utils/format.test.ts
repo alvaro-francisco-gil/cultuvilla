@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   formatDate,
   formatPrice,
+  formatCompactRelativeTime,
   formatRelativeTime,
   monthLongLabels,
   monthShortLabels,
@@ -95,5 +96,35 @@ describe('formatRelativeTime', () => {
   it('says "mañana" when ~1 day in the future', () => {
     const tomorrow = new Date(NOW.getTime() + 24 * 60 * 60 * 1000);
     expect(formatRelativeTime(tomorrow, NOW)).toMatch(/mañana/i);
+  });
+});
+
+describe('formatCompactRelativeTime', () => {
+  const NOW = new Date('2026-05-19T12:00:00.000Z');
+  const ago = (ms: number) => new Date(NOW.getTime() - ms);
+  const SECOND = 1000;
+  const MINUTE = 60 * SECOND;
+  const HOUR = 60 * MINUTE;
+  const DAY = 24 * HOUR;
+
+  it.each([
+    [500, 'ahora'],
+    [5 * SECOND, '5s'],
+    [3 * MINUTE, '3min'],
+    [4 * HOUR, '4h'],
+    [3 * DAY, '3d'],
+    [8 * DAY, '1sem'],
+    [40 * DAY, '1mes'],
+    [400 * DAY, '1a'],
+  ])('renders %i ms ago as "%s"', (elapsed, expected) => {
+    expect(formatCompactRelativeTime(ago(elapsed), NOW)).toBe(expected);
+  });
+
+  it('truncates rather than rounds up, so nothing ages early', () => {
+    expect(formatCompactRelativeTime(ago(119 * MINUTE), NOW)).toBe('1h');
+  });
+
+  it('formats future dates by magnitude, without a direction prefix', () => {
+    expect(formatCompactRelativeTime(new Date(NOW.getTime() + 2 * HOUR), NOW)).toBe('2h');
   });
 });

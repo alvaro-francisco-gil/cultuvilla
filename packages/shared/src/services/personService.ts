@@ -73,7 +73,7 @@ export async function deletePerson(personId: string): Promise<void> {
  * the entry for `municipalityId` directly (the caller owns their person doc).
  * `barrioId` null = "Todo el pueblo" (whole village). Written via
  * `buildResidenceLinks`, the single constructor of the exact
- * `{ municipalityId, barrioId }` shape `getPersonsByBarrio` matches on. No-op
+ * `{ municipalityId, barrioId }` shape the directory projection reads. No-op
  * when the user has no linked person.
  */
 export async function updateResidenceBarrio(
@@ -89,33 +89,39 @@ export async function updateResidenceBarrio(
   });
 }
 
-/** People linked to a given barrio (residence link in `municipalityLinks`). */
-export async function getPersonsByBarrio(
-  municipalityId: string,
-  barrioId: string,
-): Promise<(PersonData & { id: string })[]> {
-  const q = query(
-    personsCollection(getDb()),
-    where('municipalityLinks', 'array-contains', { municipalityId, barrioId }),
-  );
-  const snap = await getDocs(q);
-  return snap.docs
-    .map((d) => ({ id: d.id, ...d.data() }))
-    .sort((a, b) => buildDisplayName(a).localeCompare(buildDisplayName(b)));
-}
-
 /**
  * People buried in a given place (cemetery), via `burialPlace.placeId`.
  * Intentionally not scoped by municipality: `placeId` is a Firestore
  * auto-id from `/municipalities/{id}/places/`, so it is globally unique
  * and a bare `placeId` match cannot collide across villages.
+ *
+ * Two queries, not one, because the persons read rule is evaluated per matched
+ * document: a query that could match a doc the caller may not read is rejected
+ * outright rather than filtered. So each query pins one of the rule's branches —
+ * `isPublic == true` for what anyone may read, `createdBy == viewerUid` for the
+ * caller's own personas — and the results are merged here.
+ *
+ * Without the second query a private persona was missing even for the person who
+ * created it, so their own relative silently vanished from the cemetery they had
+ * just been buried in. Private still means invisible to *others* here: unlike the
+ * pueblo and barrio rosters, which list everyone and only gate opening the card,
+ * the cemetery has no function-owned projection to read names from (the people
+ * directory deliberately excludes the deceased).
  */
 export async function getPersonsByBurialPlace(
   placeId: string,
+  viewerUid?: string | null,
 ): Promise<(PersonData & { id: string })[]> {
-  const q = query(personsCollection(getDb()), where('burialPlace.placeId', '==', placeId));
-  const snap = await getDocs(q);
-  return snap.docs
-    .map((d) => ({ id: d.id, ...d.data() }))
-    .sort((a, b) => buildDisplayName(a).localeCompare(buildDisplayName(b)));
+  const buriedHere = where('burialPlace.placeId', '==', placeId);
+  const snaps = await Promise.all([
+    getDocs(query(personsCollection(getDb()), buriedHere, where('isPublic', '==', true))),
+    viewerUid
+      ? getDocs(query(personsCollection(getDb()), buriedHere, where('createdBy', '==', viewerUid)))
+      : null,
+  ]);
+  const byId = new Map<string, PersonData & { id: string }>();
+  for (const snap of snaps) {
+    for (const d of snap?.docs ?? []) byId.set(d.id, { id: d.id, ...d.data() });
+  }
+  return [...byId.values()].sort((a, b) => buildDisplayName(a).localeCompare(buildDisplayName(b)));
 }

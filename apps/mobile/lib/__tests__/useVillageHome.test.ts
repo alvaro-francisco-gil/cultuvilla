@@ -1,5 +1,6 @@
 import { renderHook, waitFor, act } from '@testing-library/react-native';
 import { getEventsByMunicipality } from '@cultuvilla/shared/services/eventService';
+import { getMunicipalityPeople } from '@cultuvilla/shared/services/municipalityPersonService';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { useVillageHome } from '../useVillageHome';
 
@@ -65,6 +66,21 @@ describe('useVillageHome', () => {
     await waitFor(() => expect(result.current.barrios).toHaveLength(1));
     await waitFor(() => expect(result.current.festivalPosters).toHaveLength(1));
     await waitFor(() => expect(result.current.sectionStatus.events).toBe('ready'));
+  });
+
+  // Regression: the people directory used to share a Promise.all with the
+  // membership fetches. Its rows go through a strict converter, so a single doc
+  // predating a newly-added field threw and took isMember/villageAdmin down with
+  // the count — the village silently rendered as if you weren't a member.
+  it('keeps membership state when the people directory fails to load', async () => {
+    (getMunicipalityPeople as jest.Mock).mockRejectedValueOnce(
+      new Error('Invalid input: expected boolean, received undefined'),
+    );
+
+    const { result } = renderHook(() => useVillageHome('m1'));
+
+    await waitFor(() => expect(result.current.isMember).toBe(true));
+    expect(result.current.peopleCount).toBeNull();
   });
 
   it('fetches published + completed events and orders upcoming before past', async () => {

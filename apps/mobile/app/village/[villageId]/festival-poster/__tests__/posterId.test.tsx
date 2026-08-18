@@ -12,10 +12,10 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('../../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../../../lib/auth/useEntityCapabilities', () => ({
-  useEntityCapabilities: () => ({ canManage: false, canApprove: false, uid: null, loading: false }),
+  useEntityCapabilities: jest.fn(),
 }));
 jest.mock('@cultuvilla/shared/services/festivalPosterService', () => ({
-  getFestivalPoster: jest.fn().mockResolvedValue({ id: 'p1', title: 'Fiestas 2026', year: 2026, images: ['https://example.com/a.jpg', 'https://example.com/b.jpg'], startsAt: null, endsAt: null, contributorUserIds: ['u1'], contributorOrgIds: ['o1'] }),
+  getFestivalPoster: jest.fn().mockResolvedValue({ id: 'p1', municipalityId: 'm1', proposedBy: 'creator', title: 'Fiestas 2026', year: 2026, images: ['https://example.com/a.jpg', 'https://example.com/b.jpg'], startsAt: null, endsAt: null, contributorUserIds: ['u1'], contributorOrgIds: ['o1'], status: 'active' }),
 }));
 jest.mock('@cultuvilla/shared/utils', () => ({ formatFestivalPosterDates: () => 'del 1 al 5' }));
 // NaturalImage reads Image.getSize (unmocked under jest-expo); the screen test
@@ -25,9 +25,38 @@ jest.mock('../../../../../components/feature/EntityComments', () => ({ EntityCom
 jest.mock('../../../../../components/feature/EntityContributors', () => ({ EntityContributors: () => null }));
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 
+import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
+
+function mockCaps(canEdit: boolean, uid: string | null) {
+  (useEntityCapabilities as jest.Mock).mockReturnValue({
+    canManage: false,
+    canApprove: false,
+    uid,
+    loading: false,
+    canEdit: jest.fn(() => canEdit),
+    canDelete: jest.fn(() => canEdit),
+  });
+}
+
 describe('FestivalPosterDetailScreen', () => {
+  beforeEach(() => jest.clearAllMocks());
+
   it('renders the poster title once loaded', async () => {
+    mockCaps(false, null);
     const { getByText } = render(<FestivalPosterDetailScreen />);
     await waitFor(() => getByText('Fiestas 2026'));
+  });
+
+  it('shows the edit action to the poster’s creator', async () => {
+    mockCaps(true, 'creator');
+    const { findByLabelText } = render(<FestivalPosterDetailScreen />);
+    expect(await findByLabelText('common.edit')).toBeTruthy();
+  });
+
+  it('hides the edit action from an unrelated viewer', async () => {
+    mockCaps(false, 'someone-else');
+    const { getByText, queryByLabelText } = render(<FestivalPosterDetailScreen />);
+    await waitFor(() => getByText('Fiestas 2026'));
+    expect(queryByLabelText('common.edit')).toBeNull();
   });
 });

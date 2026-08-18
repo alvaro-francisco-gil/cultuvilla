@@ -10,6 +10,7 @@ import {
   Input,
   Pressable,
   Text,
+  Toggle,
   VStack,
   VillagePicker,
 } from '../primitives';
@@ -38,6 +39,9 @@ export interface PersonFormValues {
    * the "otro" input. Free-text entries are recorded via recordOccupation
    * by the caller on submit. */
   occupations: string[];
+  /** Whether anyone may open this persona's card. Only meaningful for a
+   * dependent persona — an account holder's own persona is always public. */
+  isPublic: boolean;
 }
 
 /** Avatar photo picked in the form. Aliases the shared UploadableImage so the
@@ -118,6 +122,8 @@ export function PersonForm({
   const [nickname, setNickname] = useState(initial?.nickname ?? '');
   const [sex, setSex] = useState<Sex | null>(initial?.sex ?? null);
   const [birthday, setBirthday] = useState<Date | null>(initial?.birthday ?? null);
+  // New personas default to public; editing keeps whatever the doc says.
+  const [isPublic, setIsPublic] = useState(initial?.isPublic ?? true);
   const [birthPlace, setBirthPlace] = useState<string | null>(
     initial?.birthPlaceMunicipalityId ?? null
   );
@@ -168,6 +174,9 @@ export function PersonForm({
         birthPlaceMunicipalityId: birthPlace,
         biography,
         occupations: [...selectedCatalog.filter((k) => k !== 'otro'), ...customOccupations],
+        // An account persona is public by contract (firestore.rules rejects
+        // anything else), so the form never sends false for one.
+        isPublic: selfProfile ? true : isPublic,
       },
       photo
     );
@@ -259,6 +268,28 @@ export function PersonForm({
                 })}
               </HStack>
             </VStack>
+            {selfProfile ? null : (
+              <VStack gap={2}>
+                <FieldLabel>{t('profile.personForm.visibilityLabel')}</FieldLabel>
+                <Toggle
+                  value={isPublic}
+                  onValueChange={setIsPublic}
+                  label={t(
+                    isPublic
+                      ? 'profile.personForm.visibilityPublic'
+                      : 'profile.personForm.visibilityPrivate',
+                  )}
+                  testID="person-is-public"
+                />
+                <Text tone="muted" variant="bodySm">
+                  {t(
+                    isPublic
+                      ? 'profile.personForm.visibilityPublicHint'
+                      : 'profile.personForm.visibilityPrivateHint',
+                  )}
+                </Text>
+              </VStack>
+            )}
             {renderConsent?.()}
           </>,
         ),

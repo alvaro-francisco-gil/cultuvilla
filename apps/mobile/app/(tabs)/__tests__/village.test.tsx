@@ -13,6 +13,10 @@ import {
 import { buildOrganizationData } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
 import { buildFestivalPosterData } from '@cultuvilla/shared/models/festivalPoster/FestivalPosterDataModel';
 import { getFestivalPosters } from '@cultuvilla/shared/services/festivalPosterService';
+import { getEventsByMunicipality } from '@cultuvilla/shared/services/eventService';
+import { getHomeFeed } from '@cultuvilla/shared/services/newsService';
+import { buildEventData } from '@cultuvilla/shared/models/event/EventDataModel';
+import { buildNewsPostData } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getMunicipality: jest.fn(),
@@ -105,6 +109,8 @@ jest.mock('../../../lib/i18n', () => ({
         'village.noOrganizer.pending': 'Tu solicitud de administrador está pendiente de revisión',
         'village.admin.open': 'Administrar pueblo',
         'village.festivalPosters.title': 'Carteles de fiestas',
+        'village.newsFeed.title': 'Artículos',
+        'village.events.label': 'Eventos del pueblo',
       };
       return map[key] ?? key;
     },
@@ -226,6 +232,52 @@ describe('VillageTabScreen', () => {
       const { findByText } = render(<VillageTabScreen />);
       fireEvent.press(await findByText('Peña La Juerga', undefined, { timeout: 5000 }));
       expect(router.push).toHaveBeenCalledWith('/o/org2');
+    });
+  });
+
+  describe('section order', () => {
+    const event = {
+      ...buildEventData({
+        title: 'Verbena',
+        description: 'x',
+        startDate: new Date('2099-06-15T18:00:00Z'),
+        location: { coordinates: { lat: 40.4, lng: -3.7 }, displayName: 'Plaza Mayor' },
+        organizerUserIds: ['uid-1'],
+        organizerOrgIds: [],
+        createdBy: 'uid-1',
+        municipalityId: 'mun1',
+        villageName: 'Sotos de Mayorga',
+        villageCoordinates: { lat: 40.4, lng: -3.7 },
+      }),
+      id: 'event1',
+    };
+    const post = {
+      ...buildNewsPostData({
+        municipalityId: 'mun1',
+        createdBy: 'uid-1',
+        organizerUserIds: ['uid-1'],
+        title: 'Corte de agua',
+        body: 'x',
+        category: 'fiesta',
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+        updatedAt: new Date('2026-01-01T00:00:00Z'),
+      }),
+      id: 'news1',
+    };
+
+    beforeEach(() => {
+      (getMunicipality as jest.Mock).mockResolvedValue(activeMuni);
+      (getEventsByMunicipality as jest.Mock).mockResolvedValue([event]);
+      (getHomeFeed as jest.Mock).mockResolvedValue([post]);
+    });
+
+    // Eventos leads the village home. Both sections render only when
+    // non-empty, hence the fixtures.
+    it('renders Eventos above Artículos', async () => {
+      const { findByText, getAllByText } = render(<VillageTabScreen />);
+      await findByText('Artículos', undefined, { timeout: 5000 });
+      const titles = getAllByText(/^(Artículos|Eventos del pueblo)$/).map((n) => n.props.children);
+      expect(titles).toEqual(['Eventos del pueblo', 'Artículos']);
     });
   });
 

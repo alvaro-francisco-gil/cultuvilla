@@ -60,33 +60,19 @@ vi.mock('firebase/firestore', () => {
   };
 });
 
-import { getPersonsByBarrio, getPersonsByBurialPlace } from '../../src/services/personService';
+import { getPersonsByBurialPlace } from '../../src/services/personService';
 
 function person(extra: Record<string, any>) {
   return {
     givenName: 'A', middleNames: [], firstSurname: null, secondSurname: null, nickname: null,
     sex: null, birthday: null, deathDate: null, birthPlace: null, burialPlace: null,
     municipalityLinks: [], occupations: [], biography: null,
-    photoURL: null, userId: null, createdBy: 'u1', ...extra,
+    photoURL: null, userId: null, isPublic: true, createdBy: 'u1', ...extra,
   };
 }
 
 beforeEach(() => {
   store = {};
-});
-
-describe('getPersonsByBarrio', () => {
-  it('returns only people whose municipalityLinks include the exact {municipalityId, barrioId}', async () => {
-    store['persons/p1'] = person({ givenName: 'Ana', municipalityLinks: [{ municipalityId: 'm1', barrioId: 'b1' }] });
-    store['persons/p2'] = person({ givenName: 'Beto', municipalityLinks: [{ municipalityId: 'm1', barrioId: 'b2' }] });
-    store['persons/p3'] = person({ givenName: 'Carla', municipalityLinks: [{ municipalityId: 'm1', barrioId: 'b1' }] });
-    const res = await getPersonsByBarrio('m1', 'b1');
-    expect(res.map((p) => p.id)).toEqual(['p1', 'p3']); // sorted by display name: Ana, Carla
-  });
-
-  it('returns an empty array when nobody is linked', async () => {
-    expect(await getPersonsByBarrio('m1', 'bX')).toEqual([]);
-  });
 });
 
 describe('getPersonsByBurialPlace', () => {
@@ -96,5 +82,50 @@ describe('getPersonsByBurialPlace', () => {
     store['persons/p3'] = person({ givenName: 'Bea', burialPlace: { municipalityId: 'm1', placeId: 'c2' } });
     const res = await getPersonsByBurialPlace('c1');
     expect(res.map((p) => p.id)).toEqual(['p2', 'p1']); // Aldo before Zoe
+  });
+
+  it('hides a private persona from a signed-out visitor', async () => {
+    store['persons/p1'] = person({ givenName: 'Aldo', burialPlace: { municipalityId: 'm1', placeId: 'c1' } });
+    store['persons/p2'] = person({
+      givenName: 'Zoe',
+      isPublic: false,
+      burialPlace: { municipalityId: 'm1', placeId: 'c1' },
+    });
+    const res = await getPersonsByBurialPlace('c1');
+    expect(res.map((p) => p.id)).toEqual(['p1']);
+  });
+
+  it('hides a private persona from everyone but its creator', async () => {
+    store['persons/p1'] = person({ givenName: 'Aldo', burialPlace: { municipalityId: 'm1', placeId: 'c1' } });
+    store['persons/p2'] = person({
+      givenName: 'Zoe',
+      isPublic: false,
+      createdBy: 'creator',
+      burialPlace: { municipalityId: 'm1', placeId: 'c1' },
+    });
+    const stranger = await getPersonsByBurialPlace('c1', 'someone-else');
+    expect(stranger.map((p) => p.id)).toEqual(['p1']);
+  });
+
+  it('shows the creator their own private persona among the buried', async () => {
+    store['persons/p1'] = person({ givenName: 'Aldo', burialPlace: { municipalityId: 'm1', placeId: 'c1' } });
+    store['persons/p2'] = person({
+      givenName: 'Zoe',
+      isPublic: false,
+      createdBy: 'creator',
+      burialPlace: { municipalityId: 'm1', placeId: 'c1' },
+    });
+    const res = await getPersonsByBurialPlace('c1', 'creator');
+    expect(res.map((p) => p.id)).toEqual(['p1', 'p2']);
+  });
+
+  it('returns a persona once when both queries match it', async () => {
+    store['persons/p1'] = person({
+      givenName: 'Aldo',
+      createdBy: 'creator',
+      burialPlace: { municipalityId: 'm1', placeId: 'c1' },
+    });
+    const res = await getPersonsByBurialPlace('c1', 'creator');
+    expect(res.map((p) => p.id)).toEqual(['p1']);
   });
 });

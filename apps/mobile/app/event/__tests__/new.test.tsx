@@ -45,8 +45,15 @@ jest.mock('@cultuvilla/shared/services/eventService', () => ({
 jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadEventImage: jest.fn(),
 }));
-jest.mock('../../../lib/events/useEventOrganizer', () => ({
-  useEventOrganizer: () => ({ canOrganize: true, loading: false }),
+jest.mock('../../../lib/auth/useEntityCapabilities', () => ({
+  useEntityCapabilities: () => ({
+    canManage: true,
+    canApprove: true,
+    uid: 'u1',
+    loading: false,
+    canEdit: () => true,
+    canDelete: () => true,
+  }),
 }));
 
 // Surface-level stubs for the composed step components.
