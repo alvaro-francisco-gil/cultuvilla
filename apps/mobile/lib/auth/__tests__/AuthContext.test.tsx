@@ -4,6 +4,9 @@ import { AuthProvider } from '../AuthContext';
 import { useAuth } from '../useAuth';
 import { observability } from '@cultuvilla/shared';
 import { fetchUserIdHash } from '../../observability/errorBridge';
+import { signInWithCustomToken } from 'firebase/auth';
+import { verifyAuthOtpCode } from '@cultuvilla/shared/services/authEmailService';
+import { clearPendingToken } from '../otpTokenCache';
 
 const FAKE_UID = 'user-raw-uid-123';
 const FAKE_HASH = 'a'.repeat(64);
@@ -43,6 +46,7 @@ jest.mock('firebase/auth', () => ({
     }
   },
   signInWithCredential: jest.fn(),
+  signInWithCustomToken: jest.fn(),
   signInWithPopup: jest.fn(),
   signOut: jest.fn(),
 }));
@@ -57,6 +61,12 @@ jest.mock('@cultuvilla/shared/services/userService', () => ({
 
 jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
   getUserMemberships: jest.fn().mockResolvedValue([]),
+}));
+
+jest.mock('@cultuvilla/shared/services/authEmailService', () => ({
+  sendAuthSignInEmail: jest.fn(),
+  sendAuthOtpCode: jest.fn(),
+  verifyAuthOtpCode: jest.fn(),
 }));
 
 jest.mock('@cultuvilla/shared/services/listenerManager', () => ({
@@ -178,5 +188,87 @@ describe('abandonSignUp', () => {
     });
 
     expect(fbSignOut).toHaveBeenCalledTimes(1);
+  });
+});
+
+// The signup bug: `verifyAuthOtpCode` deletes the OTP inside the transaction
+// that validates it, then creates the user and mints a token. So when the
+// sign-in that follows dies on a flaky connection, the code is already spent
+// and the account already exists — the user saw an error but was in fact
+// registered, which is why signing in again worked.
+describe('verifyOtpCode on a flaky connection', () => {
+  const EMAIL = 'nueva@example.com';
+  const networkError = () =>
+    Object.assign(new Error('Firebase: Error (auth/network-request-failed).'), {
+      code: 'auth/network-request-failed',
+    });
+
+  function renderAuth() {
+    return renderHook(() => useAuth(), { wrapper: AuthProvider });
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    clearPendingToken();
+    mockAuthUser = null;
+    (verifyAuthOtpCode as jest.Mock).mockResolvedValue('custom-token-1');
+  });
+
+  it('does not spend a second code when sign-in fails on the network', async () => {
+    (signInWithCustomToken as jest.Mock).mockRejectedValueOnce(networkError());
+    const { result } = renderAuth();
+
+    await expect(result.current.verifyOtpCode(EMAIL, '123456')).rejects.toThrow();
+    expect(verifyAuthOtpCode).toHaveBeenCalledTimes(1);
+
+    // The retry reuses the token already minted rather than demanding a fresh
+    // code the user does not have.
+    (signInWithCustomToken as jest.Mock).mockResolvedValueOnce(undefined);
+    await result.current.verifyOtpCode(EMAIL, '123456');
+
+    expect(verifyAuthOtpCode).toHaveBeenCalledTimes(1);
+    expect(signInWithCustomToken).toHaveBeenCalledTimes(2);
+    expect((signInWithCustomToken as jest.Mock).mock.calls[1][1]).toBe('custom-token-1');
+  });
+
+  it('discards a token the server rejected, so the retry asks for a new code', async () => {
+    (signInWithCustomToken as jest.Mock).mockRejectedValueOnce(
+      Object.assign(new Error('bad token'), { code: 'auth/invalid-custom-token' }),
+    );
+    const { result } = renderAuth();
+
+    await expect(result.current.verifyOtpCode(EMAIL, '123456')).rejects.toThrow();
+
+    (signInWithCustomToken as jest.Mock).mockResolvedValueOnce(undefined);
+    (verifyAuthOtpCode as jest.Mock).mockResolvedValueOnce('custom-token-2');
+    await result.current.verifyOtpCode(EMAIL, '654321');
+
+    expect(verifyAuthOtpCode).toHaveBeenCalledTimes(2);
+    expect((signInWithCustomToken as jest.Mock).mock.calls[1][1]).toBe('custom-token-2');
+  });
+
+  it('clears the token once sign-in succeeds', async () => {
+    (signInWithCustomToken as jest.Mock).mockResolvedValue(undefined);
+    const { result } = renderAuth();
+
+    await result.current.verifyOtpCode(EMAIL, '123456');
+    await result.current.verifyOtpCode(EMAIL, '999999');
+
+    // A second sign-in is a genuinely new attempt, not a retry of the first.
+    expect(verifyAuthOtpCode).toHaveBeenCalledTimes(2);
+  });
+
+  it('never hands one account\'s token to a different email', async () => {
+    (signInWithCustomToken as jest.Mock).mockRejectedValueOnce(networkError());
+    const { result } = renderAuth();
+
+    await expect(result.current.verifyOtpCode(EMAIL, '123456')).rejects.toThrow();
+
+    (signInWithCustomToken as jest.Mock).mockResolvedValueOnce(undefined);
+    (verifyAuthOtpCode as jest.Mock).mockResolvedValueOnce('custom-token-other');
+    await result.current.verifyOtpCode('otro@example.com', '123456');
+
+    expect(verifyAuthOtpCode).toHaveBeenCalledTimes(2);
+    expect((signInWithCustomToken as jest.Mock).mock.calls[1][1]).toBe('custom-token-other');
   });
 });
