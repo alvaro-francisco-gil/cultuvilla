@@ -11,6 +11,7 @@
     "web": "expo start --web",
     "web:build": "expo export --platform web",
     "test": "jest",
+    "eas-build-post-install": "pnpm --filter @cultuvilla/shared build",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "typecheck": "tsc --noEmit",
