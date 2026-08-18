@@ -79,7 +79,11 @@ export function buildRosterExport(input: RosterExportInput): RosterExportModel {
   } = input;
 
   const columns: RosterColumn[] = [
-    { key: 'position', header: 'Nº', type: 'number', width: 6 },
+    // A plain row counter, not the registration's stored `position`: that field
+    // is derived from the registration count at write time, so a cancellation
+    // frees a number a later sign-up reuses. Numbering the exported rows keeps
+    // "Nº 4" meaning the fourth row of this sheet.
+    { key: 'row', header: 'Nº', type: 'number', width: 6 },
     { key: 'name', header: 'Nombre', type: 'text', width: 32 },
     { key: 'status', header: 'Estado', type: 'text', width: 16 },
     { key: 'isMember', header: 'Del pueblo', type: 'boolean', width: 12 },
@@ -89,8 +93,8 @@ export function buildRosterExport(input: RosterExportInput): RosterExportModel {
   columns.push({ key: 'checkedInAt', header: 'Check-in', type: 'date', width: 20 });
   if (requiresPayment) columns.push({ key: 'paidAt', header: 'Pagado', type: 'date', width: 20 });
 
-  const rows = registrations.map((r) => {
-    const cells: RosterCell[] = [r.position, r.name, STATUS_LABEL[r.status], r.isMember];
+  const rows = registrations.map((r, index) => {
+    const cells: RosterCell[] = [index + 1, r.name, STATUS_LABEL[r.status], r.isMember];
     if (telephoneRequired) cells.push(phones[r.id] ?? null);
     cells.push(r.registeredAt);
     cells.push(r.checkedInAt);
@@ -142,7 +146,9 @@ export function toCsv(model: RosterExportModel, options: { delimiter?: string; b
   const lines = [
     model.columns.map((c) => escape(c.header)).join(delimiter),
     ...model.rows.map((row) =>
-      row.map((cell, i) => escape(renderCell(cell, model.columns[i].type))).join(delimiter),
+      // Iterate the columns, not the row: the column list is what defines the
+      // cell order, and it keeps the indexing safe under noUncheckedIndexedAccess.
+      model.columns.map((column, i) => escape(renderCell(row[i] ?? null, column.type))).join(delimiter),
     ),
   ];
 

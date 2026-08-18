@@ -44,6 +44,22 @@ describe('buildRosterExport', () => {
     expect(model.totals).toEqual({ confirmed: 1, waitlisted: 1, total: 2 });
   });
 
+  // `position` is derived from the registration count at write time, so a
+  // cancellation frees a number the next sign-up reuses — two rows can carry
+  // the same one. The sheet numbers its own rows instead.
+  it('numbers rows sequentially rather than echoing the stored position', () => {
+    const model = buildRosterExport({
+      ...base,
+      registrations: [
+        reg({ id: 'r1', name: 'Ana', position: 7 }),
+        reg({ id: 'r2', name: 'Luis', position: 7 }),
+        reg({ id: 'r3', name: 'Marta', position: 3 }),
+      ],
+    });
+
+    expect(model.rows.map((row) => row[0])).toEqual([1, 2, 3]);
+  });
+
   it('omits the phone column unless the event collected phones', () => {
     const keys = (telephoneRequired: boolean) =>
       buildRosterExport({ ...base, telephoneRequired, registrations: [reg()] }).columns.map((c) => c.key);
