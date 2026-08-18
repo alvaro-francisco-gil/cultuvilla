@@ -15,6 +15,7 @@ import { resolveAuthRoute, resolveIntentResume } from '../lib/auth/authRoute';
 import { RegisterGateProvider, useRegisterGate } from '../lib/auth/RegisterGateContext';
 import { GuestActiveVillageProvider } from '../lib/village/GuestActiveVillageContext';
 import { useDeepLinkRouter } from '../lib/deeplink/useDeepLinkRouter';
+import { useRouteTracking } from '../lib/observability/useRouteTracking';
 import { CropperHost } from '../lib/imageCrop';
 import { ActivityIndicator, View } from 'react-native';
 
@@ -64,6 +65,7 @@ export default function RootLayout() {
 function AuthGate() {
   const { user, loading, profile, profileChecked } = useAuth();
   const segments = useSegments();
+  useRouteTracking();
   useDeepLinkRouter();
   const { pendingIntent, clearPending } = useRegisterGate();
 

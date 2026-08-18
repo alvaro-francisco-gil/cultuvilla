@@ -5,11 +5,14 @@ import { getFirebaseFunctions } from '@cultuvilla/shared/firebase';
 export type ClientErrorPayload = {
   message?: string;
   name?: string;
+  code?: string;
   stack?: string;
   route?: string;
   appVersion?: string;
   platform?: string;
+  operation?: string;
   operation_id?: string;
+  surface?: string;
 };
 
 const memHashCache = new Map<string, string>();

@@ -14,11 +14,19 @@ function pickClientErrorAttrs(uid: string, data: unknown): Record<string, unknow
     'user.id': uid, // raw here; hashed by transformAttrs inside log.error
     'error.message': typeof d.message === 'string' ? redactPII(d.message.slice(0, 500)) : undefined,
     'error.name': str(d.name),
+    // The machine-readable reason ('permission-denied', 'unavailable'); the
+    // message alone is not classifiable, and for Firestore denials it is
+    // identical for every rule that could have rejected the call.
+    'error.code': str(d.code),
     'error.stack': str(d.stack),
     route: str(d.route),
     appVersion: str(d.appVersion),
     platform: str(d.platform),
+    // The call site that produced the error (see withFirestoreErrorLog) —
+    // the only thing that can name an otherwise opaque Firestore denial.
+    operation: str(d.operation),
     operation_id: str(d.operation_id),
+    surface: str(d.surface),
   };
 }
 
