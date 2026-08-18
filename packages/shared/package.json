@@ -18,6 +18,10 @@
     "./models": {
       "types": "./dist/models/index.d.ts",
       "default": "./dist/models/index.js"
+    },
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "default": "./dist/utils/index.js"
     }
   },
   "main": "dist/index.js",
