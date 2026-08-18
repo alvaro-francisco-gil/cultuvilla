@@ -16,7 +16,7 @@ import {
 } from '../helpers/registerToEventValidation';
 import { RESEND_API_KEY } from '../auth/secret';
 import { sendRegistrationEmail } from './sendRegistrationEmail';
-import type { RegistrationEmailAttendee } from './registrationEmailTemplate';
+import type { RegistrationEmailAttendee } from '@cultuvilla/shared/email';
 
 const db = getFirestore();
 
