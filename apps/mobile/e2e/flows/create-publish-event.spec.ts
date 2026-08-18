@@ -3,7 +3,7 @@ import { fixtures } from '../lib/fixtures';
 import { fixtureLogin } from '../lib/fixtureLogin';
 import { findEvent, waitFor } from '../lib/emulatorState';
 
-// An organizer creates an event through the 3-step wizard and it publishes. The
+// An organizer creates an event through the 4-step wizard and it publishes. The
 // location picker centres on the device's GPS position and confirms in one tap,
 // so we grant Playwright a fake geolocation instead of driving the map search
 // (which needs a Google key the emulator CI job doesn't carry). The strong
@@ -49,7 +49,10 @@ test.describe('create & publish an event', () => {
 
     await page.getByTestId('event-form-primary').click();
 
-    // Step 3 — details are all optional; submit.
+    // Step 3 — details are all optional; advance.
+    await page.getByTestId('event-form-primary').click();
+
+    // Step 4 — sign-up questions are optional; submit.
     await page.getByTestId('event-form-primary').click();
 
     // Strong assertion: a published event exists in the organizer's village.
