@@ -117,7 +117,7 @@ React Context for cross-tree state (auth, village). No global store. No query ca
 
 ### Styling
 
-Tailwind v4 via NativeWind v4, with a JS-based `tailwind.config.ts` ([apps/mobile/tailwind.config.ts](apps/mobile/tailwind.config.ts)).
+Tailwind v3 via NativeWind v4, with a JS-based `tailwind.config.ts` ([apps/mobile/tailwind.config.ts](apps/mobile/tailwind.config.ts)).
 **Design tokens live in `@cultuvilla/shared/design-system`** and feed
 Tailwind's `backgroundColor` / `textColor` / `borderColor` / `boxShadow` /
 `borderRadius` / `spacing` / `fontSize` / `zIndex` extensions. New code
@@ -360,7 +360,7 @@ It assumes `pnpm seed:dev` has been run (so the requester + approver users exist
 
 ### Mobile app
 
-Mobile code lives in [`apps/mobile/`](apps/mobile/). It is an Expo SDK 54 / Expo Router v4 / NativeWind v4 React Native app that consumes `@cultuvilla/shared` and `@cultuvilla/i18n` from the monorepo.
+Mobile code lives in [`apps/mobile/`](apps/mobile/). It is an Expo SDK 56 / Expo Router 56 / NativeWind v4 React Native app that consumes `@cultuvilla/shared` and `@cultuvilla/i18n` from the monorepo.
 
 **Boot**
 
