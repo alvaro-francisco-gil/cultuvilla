@@ -122,7 +122,8 @@ export function isEventSignupOpen(event: EventData): boolean {
   return event.status === 'published';
 }
 
-const EVENT_TZ = 'Europe/Madrid';
+/** The wall clock every event date is authored and displayed in. */
+export const EVENT_TZ = 'Europe/Madrid';
 function madridDayKey(d: Date): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: EVENT_TZ, year: 'numeric', month: '2-digit', day: '2-digit',

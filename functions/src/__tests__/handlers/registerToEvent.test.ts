@@ -2,10 +2,30 @@
 // Runs against the Firestore + Auth emulators via firebase-admin and uses
 // firebase-functions-test to wrap the v2 callable.
 
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import * as admin from 'firebase-admin';
 import functionsTestFactory from 'firebase-functions-test';
 import { resetEmulators } from '../helpers/firestoreEmulator';
+
+vi.mock('../../auth/secret', () => ({ RESEND_API_KEY: { value: () => 'TEST_RESEND_KEY' } }));
+
+interface SendCallArgs {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}
+
+const sendMock = vi.fn((_args: SendCallArgs) =>
+  Promise.resolve({ data: { id: 'test-email-id' }, error: null }),
+);
+
+vi.mock('resend', () => ({
+  Resend: vi.fn(function ResendMock(this: { emails: { send: typeof sendMock } }) {
+    this.emails = { send: sendMock };
+  }),
+}));
+
 import { registerToEvent } from '../../events/registerToEvent';
 
 const ft = functionsTestFactory({ projectId: process.env.GCLOUD_PROJECT || 'cultuvilla-test' });
@@ -53,6 +73,19 @@ async function seedMembership(userId: string): Promise<void> {
   });
 }
 
+async function seedUser(userId: string, email: string): Promise<void> {
+  await admin.firestore().doc(`users/${userId}`).set({
+    displayName: userId,
+    email,
+    telephone: null,
+    activeMunicipalityId: MUNICIPALITY_ID,
+    personId: null,
+    createdAt: new Date(),
+    termsAcceptedAt: new Date(),
+    termsVersion: '1.0.0',
+  });
+}
+
 async function seedExistingReg(
   id: string,
   opts: { userId: string; status: 'confirmed' | 'waitlisted'; position: number },
@@ -96,6 +129,7 @@ describe('registerToEvent (callable)', () => {
 
   beforeEach(async () => {
     await resetEmulators();
+    sendMock.mockClear();
   });
 
   afterAll(() => {
@@ -251,5 +285,93 @@ describe('registerToEvent (callable)', () => {
     const eventDoc = await admin.firestore().doc(`events/${EVENT_ID}`).get();
     expect(eventDoc.data()?.confirmedCount).toBe(2);
     expect(eventDoc.data()?.totalCount).toBe(2);
+  });
+
+  describe('confirmation email', () => {
+    function onlySentEmail(): SendCallArgs {
+      expect(sendMock).toHaveBeenCalledTimes(1);
+      return sendMock.mock.calls[0][0];
+    }
+
+    it('sends one email for the whole signup, not one per registrant', async () => {
+      await seedEvent({ maxAttendees: 10 });
+      await seedUser(USER_ID, 'ana@example.com');
+      await callRegister({
+        uid: USER_ID,
+        data: {
+          eventId: EVENT_ID,
+          registrants: [
+            { personId: 'p1', name: 'Ana' },
+            { personId: 'p2', name: 'Bea' },
+          ],
+        },
+      });
+
+      expect(sendMock).toHaveBeenCalledTimes(1);
+      const sent = onlySentEmail();
+      expect(sent.to).toBe('ana@example.com');
+      expect(sent.subject).toContain('Fiesta');
+      expect(sent.text).toContain('Ana');
+      expect(sent.text).toContain('Bea');
+    });
+
+    it('reports the post-signup capacity, not the pre-signup one', async () => {
+      await seedEvent({ maxAttendees: 10 });
+      await seedUser(USER_ID, 'ana@example.com');
+      await seedExistingReg('r0', { userId: OTHER_USER_ID, status: 'confirmed', position: 1 });
+      await callRegister({
+        uid: USER_ID,
+        data: { eventId: EVENT_ID, registrants: [{ personId: 'p1', name: 'Ana' }] },
+      });
+
+      expect(onlySentEmail().text).toContain('2 de 10 plazas ocupadas');
+    });
+
+    it('tells a waitlisted registrant their queue position', async () => {
+      await seedEvent({ maxAttendees: 1 });
+      await seedUser(USER_ID, 'ana@example.com');
+      await callRegister({
+        uid: USER_ID,
+        data: {
+          eventId: EVENT_ID,
+          registrants: [
+            { personId: 'p1', name: 'Ana' },
+            { personId: 'p2', name: 'Bea' },
+          ],
+        },
+      });
+
+      const sent = onlySentEmail();
+      expect(sent.text).toContain('Ana — plaza confirmada');
+      expect(sent.text).toContain('Bea — en lista de espera (nº 2)');
+    });
+
+    it('skips the email when the user has no address on file', async () => {
+      await seedEvent({ maxAttendees: 10 });
+      await callRegister({
+        uid: USER_ID,
+        data: { eventId: EVENT_ID, registrants: [{ personId: 'p1', name: 'Ana' }] },
+      });
+
+      expect(sendMock).not.toHaveBeenCalled();
+    });
+
+    it('still registers the user when the mail provider fails', async () => {
+      await seedEvent({ maxAttendees: 10 });
+      await seedUser(USER_ID, 'ana@example.com');
+      sendMock.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'provider down' },
+      } as unknown as Awaited<ReturnType<typeof sendMock>>);
+
+      const result = await callRegister({
+        uid: USER_ID,
+        data: { eventId: EVENT_ID, registrants: [{ personId: 'p1', name: 'Ana' }] },
+      });
+
+      expect(result.registrations).toHaveLength(1);
+      const regs = await admin.firestore().collection(`events/${EVENT_ID}/registrations`).get();
+      expect(regs.size).toBe(1);
+    });
   });
 });

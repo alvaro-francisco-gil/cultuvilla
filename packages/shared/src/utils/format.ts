@@ -10,10 +10,17 @@ const LOCALE = 'es-ES';
 
 export type DateStyle = 'short' | 'dayMonth' | 'monthYear' | 'long' | 'time' | 'datetime';
 
-export function formatDate(date: Date, style: DateStyle = 'short'): string {
+/**
+ * `timeZone` is an IANA zone (e.g. `Europe/Madrid`). Omit it in client code —
+ * the device zone is already the user's. Pass it explicitly from Cloud
+ * Functions, which run in UTC and would otherwise print event times shifted
+ * one or two hours off the Spanish wall clock.
+ */
+export function formatDate(date: Date, style: DateStyle = 'short', timeZone?: string): string {
+  const tz = timeZone ? { timeZone } : {};
   switch (style) {
     case 'short':
-      return new Intl.DateTimeFormat(LOCALE, {
+      return new Intl.DateTimeFormat(LOCALE, { ...tz,
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -21,7 +28,7 @@ export function formatDate(date: Date, style: DateStyle = 'short'): string {
     // Day + month name, no year: "2 de Julio". The month is capitalised (Intl
     // gives lowercase "julio") for the app's display style.
     case 'dayMonth': {
-      const parts = new Intl.DateTimeFormat(LOCALE, {
+      const parts = new Intl.DateTimeFormat(LOCALE, { ...tz,
         day: 'numeric',
         month: 'long',
       }).formatToParts(date);
@@ -33,26 +40,26 @@ export function formatDate(date: Date, style: DateStyle = 'short'): string {
     // 'numeric' } inserts a literal " de " between them (es-ES grammar); we
     // drop literals and join with a single space for the poster's display style.
     case 'monthYear': {
-      const parts = new Intl.DateTimeFormat(LOCALE, { month: 'long', year: 'numeric' }).formatToParts(date);
+      const parts = new Intl.DateTimeFormat(LOCALE, { ...tz, month: 'long', year: 'numeric' }).formatToParts(date);
       return parts
         .filter((p) => p.type !== 'literal')
         .map((p) => (p.type === 'month' ? p.value.charAt(0).toUpperCase() + p.value.slice(1) : p.value))
         .join(' ');
     }
     case 'long':
-      return new Intl.DateTimeFormat(LOCALE, {
+      return new Intl.DateTimeFormat(LOCALE, { ...tz,
         weekday: 'long',
         day: 'numeric',
         month: 'long',
         year: 'numeric',
       }).format(date);
     case 'time':
-      return new Intl.DateTimeFormat(LOCALE, {
+      return new Intl.DateTimeFormat(LOCALE, { ...tz,
         hour: '2-digit',
         minute: '2-digit',
       }).format(date);
     case 'datetime':
-      return new Intl.DateTimeFormat(LOCALE, {
+      return new Intl.DateTimeFormat(LOCALE, { ...tz,
         day: 'numeric',
         month: 'long',
         year: 'numeric',
