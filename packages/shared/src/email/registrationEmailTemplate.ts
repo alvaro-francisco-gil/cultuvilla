@@ -1,6 +1,9 @@
 /**
  * Branded HTML/text templates for the event-registration confirmation email,
- * sent via Resend. Same constraints as the auth templates
+ * sent via Resend. Lives in the shared package because two callers render it:
+ * the `registerToEvent` / waitlist-promotion Cloud Functions, and the
+ * `existing-signup-emails` backfill script, which runs outside the functions
+ * bundle. Same constraints as the auth templates
  * (functions/src/auth/authEmailTemplate.ts): hand-written table-based HTML with
  * inline styles, no external CSS/JS, so it survives Gmail/Outlook/Apple Mail's
  * markup stripping.
@@ -30,8 +33,11 @@ export interface RegistrationEmailContent {
    * 'registration' — the user just signed up. 'waitlist_promotion' — a slot
    * freed up and they moved off the waitlist; same layout, different lead so
    * the reader knows why they got a second email about the same event.
+   * 'existing_registration' — a retroactive send to someone who signed up
+   * before the confirmation email existed; framed as a reminder, because
+   * "Inscripción confirmada" would read as a duplicate weeks after the fact.
    */
-  kind: 'registration' | 'waitlist_promotion';
+  kind: 'registration' | 'waitlist_promotion' | 'existing_registration';
   eventTitle: string;
   /** Absolute https URL to the event's web route. */
   eventUrl: string;
@@ -56,21 +62,37 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-export const REGISTRATION_EMAIL_SUBJECT_PREFIX = 'Inscripción confirmada';
-export const PROMOTION_EMAIL_SUBJECT_PREFIX = '¡Plaza confirmada!';
-
-export function registrationEmailSubject(content: RegistrationEmailContent): string {
-  const prefix =
-    content.kind === 'waitlist_promotion'
-      ? PROMOTION_EMAIL_SUBJECT_PREFIX
-      : REGISTRATION_EMAIL_SUBJECT_PREFIX;
-  return `${prefix}: ${content.eventTitle}`;
+/**
+ * Absolute URL of the event's web route. Hosting serves the app at
+ * `<projectId>.web.app` in every env (see .firebaserc), so the project the
+ * caller is running against picks the right host without extra config.
+ */
+export function eventWebUrl(eventId: string, projectId: string | undefined): string {
+  return `https://${projectId ?? 'villa-events'}.web.app/event/${encodeURIComponent(eventId)}`;
 }
 
+export const REGISTRATION_EMAIL_SUBJECT_PREFIX = 'Inscripción confirmada';
+export const PROMOTION_EMAIL_SUBJECT_PREFIX = '¡Plaza confirmada!';
+export const REMINDER_EMAIL_SUBJECT_PREFIX = 'Recordatorio de inscripción';
+
+const SUBJECT_PREFIXES: Record<RegistrationEmailContent['kind'], string> = {
+  registration: REGISTRATION_EMAIL_SUBJECT_PREFIX,
+  waitlist_promotion: PROMOTION_EMAIL_SUBJECT_PREFIX,
+  existing_registration: REMINDER_EMAIL_SUBJECT_PREFIX,
+};
+
+export function registrationEmailSubject(content: RegistrationEmailContent): string {
+  return `${SUBJECT_PREFIXES[content.kind]}: ${content.eventTitle}`;
+}
+
+const LEAD_LINES: Record<RegistrationEmailContent['kind'], string | null> = {
+  registration: null,
+  waitlist_promotion: 'Se ha liberado una plaza y ya tienes sitio en este evento.',
+  existing_registration: 'Te recordamos que estás apuntado a este evento.',
+};
+
 function leadLine(content: RegistrationEmailContent): string | null {
-  return content.kind === 'waitlist_promotion'
-    ? 'Se ha liberado una plaza y ya tienes sitio en este evento.'
-    : null;
+  return LEAD_LINES[content.kind];
 }
 
 /** "3 de 50 plazas ocupadas", or "3 personas apuntadas" when uncapped. */

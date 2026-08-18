@@ -17,12 +17,13 @@ import { formatDate } from '@cultuvilla/shared/utils';
 import { Resend } from 'resend';
 import { RESEND_API_KEY } from '../auth/secret';
 import {
+  eventWebUrl,
   registrationEmailSubject,
   renderRegistrationEmailHtml,
   renderRegistrationEmailText,
   type RegistrationEmailAttendee,
   type RegistrationEmailContent,
-} from './registrationEmailTemplate';
+} from '@cultuvilla/shared/email';
 
 const db = getFirestore();
 
@@ -43,15 +44,6 @@ export interface SendRegistrationEmailArgs {
    */
   confirmedCount: number;
   kind: RegistrationEmailContent['kind'];
-}
-
-/**
- * Absolute URL of the event's web route. Hosting serves the app at
- * `<projectId>.web.app` in every env (see .firebaserc), so the project the
- * function is running in picks the right host without extra config.
- */
-export function eventWebUrl(eventId: string, projectId: string | undefined): string {
-  return `https://${projectId ?? 'villa-events'}.web.app/event/${encodeURIComponent(eventId)}`;
 }
 
 export async function sendRegistrationEmail(args: SendRegistrationEmailArgs): Promise<void> {
