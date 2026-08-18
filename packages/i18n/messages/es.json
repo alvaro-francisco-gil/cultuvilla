@@ -535,6 +535,7 @@
     "waitlisted": "En lista de espera",
     "attendees": "Asistentes",
     "attendeesEmpty": "Aún no hay asistentes",
+    "signedUpAt": "Apuntado el {date}",
     "removeAttendeeTitle": "Quitar asistente",
     "removeAttendeeBody": "¿Seguro que quieres quitar a {name} de este evento?",
     "removeAttendeeConfirm": "Quitar",

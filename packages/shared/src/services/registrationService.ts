@@ -51,10 +51,15 @@ export function determineRegistrationStatus(
   return currentConfirmedCount < maxAttendees ? 'confirmed' : 'waitlisted';
 }
 
+// Ordered by sign-up moment rather than `position`: `position` is derived from
+// the registration count at write time, so a cancellation frees a number that a
+// later sign-up reuses, and waitlist promotion never renumbers. `registeredAt`
+// is the honest queue order and needs no composite index (single-field sort on
+// a subcollection).
 export async function getEventRegistrations(
   eventId: string,
 ): Promise<(RegistrationData & { id: string })[]> {
-  const q = query(eventRegistrationsCollection(getDb(), eventId), orderBy('position', 'asc'));
+  const q = query(eventRegistrationsCollection(getDb(), eventId), orderBy('registeredAt', 'asc'));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
