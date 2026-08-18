@@ -41,6 +41,23 @@ describe('EventAttendees', () => {
     mockGetPerson.mockResolvedValue({ id: 'p1', photoURL: null, userId: null });
   });
 
+  it('hides the edit toggle until there is at least one attendee', async () => {
+    mockGet.mockResolvedValue([]);
+    const { getByText, queryByTestId } = render(
+      <EventAttendees eventId="e1" telephoneRequired={false} requiresPayment={false} />,
+    );
+    await waitFor(() => getByText('event.attendeesEmpty'));
+    expect(queryByTestId('attendees-edit-toggle')).toBeNull();
+  });
+
+  it('shows the edit toggle when only the waitlist has entries', async () => {
+    mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana', status: 'waitlisted' }]);
+    const { getByTestId } = render(
+      <EventAttendees eventId="e1" telephoneRequired={false} requiresPayment={false} />,
+    );
+    await waitFor(() => getByTestId('attendees-edit-toggle'));
+  });
+
   it('shows a call action that reveals the number in a dialog when telephone was required', async () => {
     mockGet.mockResolvedValue([{ id: 'r1', personId: 'p1', name: 'Ana', status: 'confirmed' }]);
     mockPhone.mockResolvedValue('600111222');

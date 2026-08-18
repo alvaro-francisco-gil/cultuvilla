@@ -36,7 +36,8 @@ type AttendeePerson = { photoURL: string | null; userId: string | null };
  * when the event required a phone) are always available — they're the running
  * ops of an event; tapping call opens a dialog with the number to dial.
  * Removing an attendee is destructive, so the trash icons stay hidden until the
- * heading's "Editar" toggle is on.
+ * heading's "Editar" toggle is on — and the toggle itself only appears once
+ * there is at least one attendee to edit.
  */
 export function EventAttendees({
   eventId,
@@ -95,6 +96,9 @@ export function EventAttendees({
   // Function fires when a confirmed reg is removed) — no manual promote action.
   const confirmed = (rows ?? []).filter((r) => r.status === 'confirmed');
   const waitlisted = (rows ?? []).filter((r) => r.status === 'waitlisted');
+  // Nothing to edit with an empty roster, so the toggle only appears once
+  // someone has signed up.
+  const hasAttendees = confirmed.length + waitlisted.length > 0;
 
   // Account holders get the richer /user profile; dependent personas open
   // their read-only person card. A registration with no resolvable person
@@ -197,11 +201,13 @@ export function EventAttendees({
     <VStack gap={2}>
       <DetailSectionHeading
         action={
-          <SectionEditToggle
-            testID="attendees-edit-toggle"
-            editing={editing}
-            onToggle={() => setEditing((e) => !e)}
-          />
+          hasAttendees ? (
+            <SectionEditToggle
+              testID="attendees-edit-toggle"
+              editing={editing}
+              onToggle={() => setEditing((e) => !e)}
+            />
+          ) : undefined
         }
       >
         {confirmed.length > 0 ? `${t('event.attendees')} (${confirmed.length})` : t('event.attendees')}
