@@ -17,6 +17,11 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   - Walk-in attendees added by an organizer get no email — they have no account and no address on file.
   - The flyer is a remote image, which Outlook and Apple Mail block by default; every fact in the email is repeated as text, so it reads completely with images off.
 
+- **The signup email reaches people who signed up before it existed.** A one-off registered job (`existing-signup-emails`) walks every published event that has not finished yet, groups its existing registrations per user, and sends each of them the same branded email the live sign-up path now sends — reframed as a reminder ("Recordatorio de inscripción: …", lead "Te recordamos que estás apuntado a este evento") rather than a confirmation, since the sign-up itself may be weeks old. One email per user per event, listing all the personas they registered; waitlisted personas keep their queue position. Events already over are skipped, walk-ins and users with no address on file are skipped.
+  - Emails cannot be unsent, so the job is dry-run by default (it prints every recipient it would mail) and records each successful send at `_admin/emailSends/existing-signup-emails/{eventId}__{userId}`. A re-run after a crash resumes without mailing anyone twice, and it is never auto-applied by a deploy.
+  - The email template moved from `functions/src/events/` to `@cultuvilla/shared/email` so the Cloud Function and the script render the identical mail from one source; `eventWebUrl` moved with it.
+  - **Migration:** per env, `pnpm backfills:run --id=existing-signup-emails --env=<env> --confirm --apply` (or Actions → "Run Backfill"). The runner needs `roles/secretmanager.secretAccessor` on that project's `RESEND_API_KEY`, which is how the script reads the sending key.
+
 - **Custom sign-up questions on an event.** The creator can define up to 10 typed
   questions (text, number, date, single-choice, yes/no) in the event form, and
   every person signed up answers them — a DNI per runner, a t-shirt size per
