@@ -1,5 +1,11 @@
-import { useEffect, useState } from 'react';
-import { Modal, Pressable as RNPressable, ScrollView, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Modal,
+  Pressable as RNPressable,
+  ScrollView,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../primitives/Button';
 import { Text } from '../primitives/Text';
@@ -58,6 +64,10 @@ export interface AttendeeSheetProps {
  * (or create a new one). Confirm reports the ticked set; the parent diffs it
  * against the registered set to decide what to register vs cancel.
  *
+ * The card grows with its content up to 90% of the viewport, so a long persona
+ * list (or one with custom sign-up fields expanded) gets the room it needs
+ * instead of being squeezed into a fixed-height scroll box.
+ *
  * Styles live on `style`/`className` per the existing modal pattern; the Modal
  * + window-confirm fallbacks keep it working on the RN-Web build.
  */
@@ -74,6 +84,12 @@ export function AttendeeSheet({
 }: AttendeeSheetProps) {
   const { t } = useT();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const listRef = useRef<ScrollView>(null);
+  // Row offsets inside the scroll list, so a rejected confirm can bring the
+  // offending persona's question into view instead of leaving the error
+  // off-screen below the fold.
+  const rowOffsets = useRef<Record<string, number>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
   // Custom answers are per persona, unlike the single shared phone below.
   const [answers, setAnswers] = useState<Record<string, Record<string, SignupAnswerValue>>>({});
@@ -152,6 +168,7 @@ export function AttendeeSheet({
     if (!canConfirm) return;
     if ((needsPhone && !phoneValid) || !answersValid) {
       setConfirmAttempted(true);
+      scrollToFirstInvalidAnswer();
       return;
     }
     // Personas with nothing to report are left out entirely, so an event with
@@ -165,6 +182,14 @@ export function AttendeeSheet({
       needsPhone ? formatPhoneE164(phone, phoneCountry.dialCode) : undefined,
       collected,
     );
+  }
+
+  function scrollToFirstInvalidAnswer() {
+    const firstInvalid = newlySelected.find((id) => !validationByPersonId.get(id)?.ok);
+    if (firstInvalid === undefined) return;
+    const y = rowOffsets.current[firstInvalid];
+    if (y === undefined) return;
+    listRef.current?.scrollTo({ y: Math.max(0, y - 8), animated: true });
   }
 
   return (
@@ -189,12 +214,12 @@ export function AttendeeSheet({
         <RNPressable
           onPress={() => {}}
           className="rounded-t-2xl bg-surface-elevated p-5 border-t border-subtle"
-          style={{ paddingBottom: insets.bottom + 20 }}
+          style={{ paddingBottom: insets.bottom + 20, maxHeight: windowHeight * 0.9 }}
         >
-          <VStack gap={3}>
+          <VStack gap={3} className="shrink">
             <Text variant="h3">{t('event.register.attendeesTitle')}</Text>
 
-            <ScrollView style={{ maxHeight: 320 }}>
+            <ScrollView ref={listRef} style={{ flexShrink: 1 }} testID="attendee-list">
               <VStack gap={2}>
                 {attendees.map((a) => {
                   const isSelected = selected.has(a.id);
@@ -203,7 +228,13 @@ export function AttendeeSheet({
                   const showFields =
                     isSelected && !registeredIds.has(a.id) && signupFields.length > 0;
                   return (
-                    <VStack key={a.id} gap={0}>
+                    <View
+                      key={a.id}
+                      testID={`attendee-row-wrap-${a.id}`}
+                      onLayout={(e) => {
+                        rowOffsets.current[a.id] = e.nativeEvent.layout.y;
+                      }}
+                    >
                     <RNPressable
                       testID={`attendee-row-${a.id}`}
                       onPress={() => toggle(a.id)}
@@ -239,7 +270,7 @@ export function AttendeeSheet({
                         testIDPrefix={`attendee-answer-${a.id}`}
                       />
                     ) : null}
-                    </VStack>
+                    </View>
                   );
                 })}
 
