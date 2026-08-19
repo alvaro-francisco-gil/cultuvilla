@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from '../primitives/Pressable';
 import { Text } from '../primitives/Text';
 import { TopCropImage } from '../primitives/TopCropImage';
+import { CornerRibbon, type CornerRibbonProps } from './CornerRibbon';
 import { iconSizes } from '@cultuvilla/shared/design-system';
 
 /**
@@ -29,6 +30,12 @@ export type FeedCardProps = {
   fallbackIcon: keyof typeof Ionicons.glyphMap;
   /** Optional pill shown over the top-left of the image (e.g. "En curso"). */
   badge?: string | null;
+  /**
+   * Optional diagonal band across the top-left corner, marking the viewer's own
+   * relationship to the item (e.g. "Apuntado"). It occupies the same corner as
+   * `badge`, so a card should not carry both.
+   */
+  cornerRibbon?: CornerRibbonProps | null;
   /** Optional icon + count pill shown in the image's top-right corner. */
   statBadge?: {
     icon: keyof typeof Ionicons.glyphMap;
@@ -54,6 +61,7 @@ export function FeedCard({
   metaRight,
   fallbackIcon,
   badge = null,
+  cornerRibbon = null,
   statBadge,
   commentCount,
   onPress,
@@ -74,6 +82,8 @@ export function FeedCard({
               <Ionicons name={fallbackIcon} size={64} color="#ffffff" />
             </View>
           )}
+
+          {cornerRibbon ? <CornerRibbon {...cornerRibbon} /> : null}
 
           {/* Bottom scrim keeps the overlaid text legible against any photo. */}
           <View
