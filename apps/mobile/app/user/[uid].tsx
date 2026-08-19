@@ -24,7 +24,8 @@ export default function UserProfileScreen() {
     void (async () => {
       const [profile, person] = await Promise.all([
         getUserProfile(uid),
-        getPersonByUserId(uid),
+        // Best-effort: the header falls back to the user doc's displayName.
+        getPersonByUserId(uid).catch(() => null),
       ]);
       if (cancelled) return;
       if (!profile) setNotFound(true);

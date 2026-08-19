@@ -301,9 +301,10 @@ describe('ProfileScreen — change photo', () => {
 
     const { getByTestId } = render(<ProfileScreen />);
 
-    // Wait for the initial load to populate selfPerson.
+    // Wait for the initial load to populate selfPerson. The self variant passes
+    // the viewer uid so the owner's own private persona still resolves.
     await waitFor(() => {
-      expect(personService.getPersonByUserId).toHaveBeenCalledWith('uid-1');
+      expect(personService.getPersonByUserId).toHaveBeenCalledWith('uid-1', 'uid-1');
     });
 
     await act(async () => {

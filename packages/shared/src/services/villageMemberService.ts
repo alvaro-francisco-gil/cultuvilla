@@ -63,7 +63,7 @@ export async function joinVillage(
   barrioId: string | null = null,
 ): Promise<void> {
   const db = getDb();
-  const person = await getPersonByUserId(userId);
+  const person = await getPersonByUserId(userId, userId);
 
   const batch = writeBatch(db);
   batch.set(
@@ -123,7 +123,7 @@ export async function ensureVillageMembership(
  */
 export async function leaveVillage(municipalityId: string, userId: string): Promise<void> {
   const db = getDb();
-  const person = await getPersonByUserId(userId);
+  const person = await getPersonByUserId(userId, userId);
 
   const batch = writeBatch(db);
   batch.delete(municipalityMemberDoc(db, municipalityId, userId));

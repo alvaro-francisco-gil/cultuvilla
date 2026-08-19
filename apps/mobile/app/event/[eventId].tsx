@@ -61,7 +61,7 @@ export default function EventDetailScreen() {
     const e = await getEvent(eventId);
     setEvent(e);
     if (e?.municipalityId) setVillage(await getMunicipality(e.municipalityId));
-    if (user) setPerson(await getPersonByUserId(user.uid));
+    if (user) setPerson(await getPersonByUserId(user.uid, user.uid));
   }, [eventId, user]);
 
   useEffect(() => {
