@@ -1,6 +1,6 @@
 import { getMessages } from '@cultuvilla/i18n';
-import { createI18n } from '../../lib/i18n';
-import { registrationRibbonProps } from './EventCard';
+import { createI18n } from '../../../lib/i18n';
+import { registrationRibbonProps } from '../EventCard';
 import type { RegistrationRibbon } from '@cultuvilla/shared/models/event/RegistrationRibbonModel';
 
 // The real catalog, so a renamed or missing key fails here rather than shipping
