@@ -337,7 +337,8 @@
         "description": "Descripción",
         "addImage": "Añadir imagen",
         "removeImage": "Quitar imagen",
-        "kindLabel": "Tipo",
+        "location": "Ubicación",
+      "kindLabel": "Tipo",
         "kind": {
           "cemetery": "Cementerio",
           "church": "Iglesia",

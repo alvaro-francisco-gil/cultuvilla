@@ -270,12 +270,12 @@ service cloud.firestore {
 
     function isValidPlaceCreate(d) {
       return d.keys().hasOnly([
-              'name', 'kind', 'description', 'municipalityId', 'images',
+              'name', 'kind', 'description', 'municipalityId', 'coordinates', 'locationLabel', 'images',
               'createdAt', 'status', 'proposedBy', 'contributorUserIds', 'contributorOrgIds', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount', 'burialCount',
             ])
           && d.keys().hasAll([
-              'name', 'kind', 'description', 'municipalityId', 'images',
+              'name', 'kind', 'description', 'municipalityId', 'coordinates', 'locationLabel', 'images',
               'createdAt', 'status', 'proposedBy', 'contributorUserIds', 'contributorOrgIds', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount', 'burialCount',
             ])
@@ -283,6 +283,11 @@ service cloud.firestore {
           && d.kind in ['cemetery', 'church', 'hermitage', 'plaza', 'town_hall', 'otros']
           && isStringOrNull(d.description)
           && isString(d.municipalityId)
+          && isLatLngOrNull(d.coordinates)
+          // A label is only meaningful next to a pin: without one there is no
+          // map and no directions, just an orphan string on the detail screen.
+          && isStringOrNull(d.locationLabel)
+          && (d.coordinates != null || d.locationLabel == null)
           && isList(d.images) && d.images.size() <= 5
           && isTimestamp(d.createdAt)
           && d.status == 'active'
