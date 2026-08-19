@@ -157,6 +157,37 @@ describe('NewEventScreen stepper', () => {
     expect(getByTestId('event-form-primary')).toHaveTextContent('event.createEvent');
   });
 
+  // The group-size selector arrived with group sign-ups after this screen
+  // learned to hide the sign-up-only controls, so it has to sit behind the same
+  // toggle: a group size is meaningless on an event that takes no sign-ups.
+  it('hides every sign-up-only control, group size included, when sign-ups are off', async () => {
+    const { getByText, getByLabelText, getByTestId, queryByTestId } = render(<NewEventScreen />);
+    await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
+    fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('startDate')).toBeTruthy());
+    fireEvent.press(getByTestId('startDate'));
+    fireEvent.press(getByTestId('location-field'));
+    fireEvent.press(getByText('common.stepper.next'));
+
+    // Sign-ups default on: the whole sign-up block is present, the note is not.
+    const signupEnabled = await waitFor(() => getByTestId('signup-enabled'));
+    expect(getByTestId('telephone-required')).toBeTruthy();
+    expect(getByTestId('requires-payment')).toBeTruthy();
+    expect(getByTestId('group-size-2')).toBeTruthy();
+    expect(queryByTestId('signup-info')).toBeNull();
+
+    fireEvent.press(signupEnabled);
+
+    expect(queryByTestId('telephone-required')).toBeNull();
+    expect(queryByTestId('requires-payment')).toBeNull();
+    expect(queryByTestId('group-size-2')).toBeNull();
+    // The organizer's note takes their place...
+    expect(getByTestId('signup-info')).toBeTruthy();
+    // ...and Preguntas drops out, making Detalles the final step.
+    expect(getByTestId('event-form-primary')).toHaveTextContent('event.createEvent');
+  });
+
   // Regression: the cover picker must go through lib/images.pickImageAsBlob,
   // which reads the URI via XMLHttpRequest, not the global winter `fetch`.
   it('picks the cover image via the shared pickImageAsBlob helper', async () => {
