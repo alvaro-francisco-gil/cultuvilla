@@ -176,19 +176,33 @@ export default function PlaceEditScreen() {
             typeValue={kind}
             onChangeType={(v) => setKind(v as PlaceKind)}
             footer={
-              <LocationField
-                label={t('village.admin.places.location')}
-                value={coordinates}
-                displayName={locationLabel}
-                onChange={(c, address) => {
-                  setCoordinates(c);
-                  setLocationLabel(address);
-                }}
-                onClear={() => {
-                  setCoordinates(null);
-                  setLocationLabel('');
-                }}
-              />
+              <>
+                <LocationField
+                  label={t('village.admin.places.location')}
+                  value={coordinates}
+                  displayName={locationLabel}
+                  onChange={(c, address) => {
+                    setCoordinates(c);
+                    setLocationLabel(address);
+                  }}
+                  onClear={() => {
+                    setCoordinates(null);
+                    setLocationLabel('');
+                  }}
+                />
+                {uid ? (
+                  <OrganizerPicker
+                    municipalityId={villageId}
+                    selectedUserIds={contributorUserIds}
+                    selectedOrgIds={contributorOrgIds}
+                    onChangeUsers={setContributorUserIds}
+                    onChangeOrgs={setContributorOrgIds}
+                    peopleLabel={t('village.contributors.peopleLabel')}
+                    addPersonLabel={t('village.contributors.addPerson')}
+                    selectPeopleTitle={t('village.contributors.selectPeople')}
+                  />
+                ) : null}
+              </>
             }
             submitLabel={t('common.save')}
             submitTestID="place-edit-submit"
@@ -196,18 +210,6 @@ export default function PlaceEditScreen() {
             saving={saving}
             disabled={!name.trim()}
           />
-          {uid ? (
-            <OrganizerPicker
-              municipalityId={villageId}
-              selectedUserIds={contributorUserIds}
-              selectedOrgIds={contributorOrgIds}
-              onChangeUsers={setContributorUserIds}
-              onChangeOrgs={setContributorOrgIds}
-              peopleLabel={t('village.contributors.peopleLabel')}
-              addPersonLabel={t('village.contributors.addPerson')}
-              selectPeopleTitle={t('village.contributors.selectPeople')}
-            />
-          ) : null}
         </ScrollView>
       )}
     </Screen>
