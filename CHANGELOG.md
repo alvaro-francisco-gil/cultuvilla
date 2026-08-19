@@ -4,6 +4,13 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+
+- **Events you are signed up for are marked in the feed.** An event card now carries a diagonal ribbon across the top-left corner of its image when the viewer has registrations on it — "Apuntado", or "Apuntados ×3" when they signed up personas too. Waitlisted registrations take the secondary olive instead of the accent terracotta and read "En espera", so a queued place can't be mistaken for a confirmed one. When a household is split across both, the band splits with it: two lines, terracotta over olive, each carrying its own count, because a single merged total would leave the reader unable to tell who is in and who is waiting.
+  - The ribbon's geometry is fixed for every state (`CornerRibbon`). Growing the corner to fit a longer label would give neighbouring cards differently-sized triangles and make a scrolling column look broken, so the band is constant and the labels are sized to the ~116px chord it exposes.
+  - The count is people, not accounts, and it doesn't distinguish "you and two children" from "two children without you" — the detail screen is where you see who is on the list.
+  - **Reads:** one collection-group query per session, held in a context (`MyRegistrationsProvider`) that cards look up synchronously — never a query per card. `getUserRegistrationTallies` caps it at the 100 most recent registrations, since they accumulate for the life of the account while the feed only ever shows upcoming events. No new index (the `userId + registeredAt` collection-group index already existed), no trigger, no backfill.
+
 ### Fixed
 
 - **Commenters keep their name instead of collapsing to "Usuario".** Author names were resolved for every uid on screen in a single `Promise.all`, so one failed lookup rejected the whole batch and *every* comment in the thread fell back to the anonymous label — with no retry. The two sources now fail independently and per author: `persons` (a query whose read rule is evaluated per matched document, so a single private persona denies it for that viewer) supplies the freshest name and the avatar, and the world-readable `users/{uid}.displayName` projection is the dependable fallback. A person whose name fields are all blank no longer wins over that projection (it used to render an empty name), and a comment from a deleted account is now labelled "Usuario eliminado" like everywhere else. While a name is still in flight the row shows a placeholder bar rather than flashing "Usuario" and then correcting itself.

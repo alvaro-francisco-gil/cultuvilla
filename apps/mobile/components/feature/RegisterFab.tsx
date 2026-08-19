@@ -13,6 +13,7 @@ import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
 import type { SignupAnswers, SignupFieldSpec } from '@cultuvilla/shared/models/event/SignupFieldModel';
 import { buildNameWithNickname, type PersonData } from '@cultuvilla/shared/models/person';
 import { useT } from '../../lib/i18n';
+import { useMyRegistrations } from '../../lib/registrations/MyRegistrationsContext';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
 import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 
@@ -45,6 +46,7 @@ type PersonDoc = PersonData & { id: string };
  */
 export function RegisterFab({ eventId, userId, personId, name, telephoneRequired, signupFields, villageId }: RegisterFabProps) {
   const { t } = useT();
+  const { refresh: refreshRegistrations } = useMyRegistrations();
   const [registrations, setRegistrations] = useState<Map<string, AttendeeRegistration>>(new Map());
   const [dependents, setDependents] = useState<PersonDoc[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -134,6 +136,9 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
       setRegistrations(next);
       setAutoSelectIds([]);
       setSheetOpen(false);
+      // Keep the feed's "apuntado" ribbons honest without waiting for the next
+      // focus refresh.
+      refreshRegistrations();
     } catch (e) {
       if (!succeeded) observability.trackEvent(OBSERVABILITY_EVENTS.EVENT_SIGNUP_ERROR, { villageId });
       showAlert(e instanceof Error ? e.message : 'unknown', t('event.register.error'));

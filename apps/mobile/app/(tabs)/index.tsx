@@ -27,6 +27,7 @@ import { PullSpinner } from '../../components/feature/PullSpinner';
 import { AppHeader } from '../../components/layout/AppHeader';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
+import { useMyRegistrations } from '../../lib/registrations/MyRegistrationsContext';
 import { useT } from '../../lib/i18n';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
 import { webSpread } from '../../lib/platform';
@@ -83,6 +84,7 @@ export default function FeedScreen() {
   const { t } = useT();
   const { profile } = useAuth();
   const gate = useRegisterGate();
+  const { ribbonFor, refresh: refreshRegistrations } = useMyRegistrations();
   const activeMunicipalityId = profile?.activeMunicipalityId ?? null;
 
   // Guests can browse the feed, but creating an event/article requires auth.
@@ -175,6 +177,9 @@ export default function FeedScreen() {
   useFocusEffect(
     useCallback(() => {
       void load();
+      // Signing up happens on the event screen, so the tallies behind the
+      // "apuntado" ribbons are stale by the time the user comes back here.
+      refreshRegistrations();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
   );
@@ -460,6 +465,7 @@ export default function FeedScreen() {
               commentCount: item.commentCount,
               confirmedCount: item.confirmedCount,
             }}
+            registration={ribbonFor(item.id)}
             onPress={(id) => {
               if (search.trim().length > 0) {
                 observability.trackEvent(OBSERVABILITY_EVENTS.SEARCH_RESULT_SELECTED, { surface: 'home_feed' });
