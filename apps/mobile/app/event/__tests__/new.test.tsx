@@ -108,9 +108,12 @@ describe('NewEventScreen stepper', () => {
     expect(getByTestId('village-picker')).toBeTruthy();
   });
 
-  it('reaches the details step (OrganizerPicker) once date + location are set', async () => {
-    const { getByText, getByLabelText, getByTestId } = render(<NewEventScreen />);
+  // Who is behind the event is part of "lo básico", not a detail: the picker
+  // sits with title/description, and the Detalles step no longer carries it.
+  it('offers the organizer/groups picker on the first step', async () => {
+    const { getByText, getByLabelText, getByTestId, queryByTestId } = render(<NewEventScreen />);
     await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
+    expect(getByTestId('organizer-picker')).toBeTruthy();
     fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
     fireEvent.changeText(getByLabelText('event.description'), 'Desc');
     fireEvent.press(getByText('common.stepper.next'));
@@ -119,7 +122,8 @@ describe('NewEventScreen stepper', () => {
     fireEvent.press(getByTestId('startDate'));
     fireEvent.press(getByTestId('location-field'));
     fireEvent.press(getByText('common.stepper.next'));
-    await waitFor(() => expect(getByTestId('organizer-picker')).toBeTruthy());
+    await waitFor(() => expect(getByTestId('signup-enabled')).toBeTruthy());
+    expect(queryByTestId('organizer-picker')).toBeNull();
   });
 
   it('toggles "teléfono requerido" in the details step', async () => {
@@ -188,6 +192,34 @@ describe('NewEventScreen stepper', () => {
     expect(getByTestId('event-form-primary')).toHaveTextContent('event.createEvent');
   });
 
+  // The Detalles step used to spell out how sign-ups and group sign-ups work in
+  // paragraphs under each control, which pushed the controls themselves off
+  // screen. The wording is unchanged — it just lives behind an "ⓘ" now.
+  it('parks the sign-up and group-size explanations behind info tooltips', async () => {
+    const { getByText, getByLabelText, getByTestId, queryByText } = render(<NewEventScreen />);
+    await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
+    fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('startDate')).toBeTruthy());
+    fireEvent.press(getByTestId('startDate'));
+    fireEvent.press(getByTestId('location-field'));
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('signup-enabled')).toBeTruthy());
+
+    // Nothing is spelled out until asked for.
+    expect(queryByText('event.signupEnabledHint')).toBeNull();
+    expect(queryByText('event.signupGroupSizeHelp')).toBeNull();
+    expect(queryByText('event.attendeesPublicHint')).toBeNull();
+
+    fireEvent.press(getByTestId('signup-group-size-info'));
+    expect(getByText('event.signupGroupSizeHelp')).toBeTruthy();
+    fireEvent.press(getByTestId('signup-group-size-info-close'));
+    await waitFor(() => expect(queryByText('event.signupGroupSizeHelp')).toBeNull());
+
+    fireEvent.press(getByTestId('signup-enabled-info'));
+    expect(getByText('event.signupEnabledHint')).toBeTruthy();
+  });
+
   // Regression: the cover picker must go through lib/images.pickImageAsBlob,
   // which reads the URI via XMLHttpRequest, not the global winter `fetch`.
   it('picks the cover image via the shared pickImageAsBlob helper', async () => {
@@ -252,7 +284,7 @@ describe('NewEventScreen cover upload', () => {
     fireEvent.press(getByTestId('startDate'));
     fireEvent.press(getByTestId('location-field'));
     fireEvent.press(getByText('common.stepper.next'));
-    await waitFor(() => expect(getByTestId('organizer-picker')).toBeTruthy());
+    await waitFor(() => expect(getByTestId('signup-enabled')).toBeTruthy());
     // Sign-up questions are the last step; nothing to fill in, just walk past it.
     fireEvent.press(getByText('common.stepper.next'));
     await waitFor(() => expect(getByTestId('signup-question-add')).toBeTruthy());
