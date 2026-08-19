@@ -323,6 +323,7 @@ describe('shape enforcement — /events/{eventId}', () => {
     telephoneRequired: false,
     requiresPayment: false,
     signupFields: [], attendeesVisibility: 'members', signupGroupSize: 1,
+    signupEnabled: true, signupInfo: null,
     status: 'published' as const,
     organizerUserIds: ['alice'],
     organizerOrgIds: [],
@@ -429,6 +430,45 @@ describe('shape enforcement — /events/{eventId}', () => {
     await assertFails(
       setDoc(doc(alice, 'events/e1'), { ...validEvent, signupFields: eleven }),
     );
+  });
+
+  it('accepts an event with in-app sign-ups off and an explanatory note', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertSucceeds(
+      setDoc(doc(alice, 'events/e1'), {
+        ...validEvent,
+        signupEnabled: false,
+        signupInfo: 'Inscripciones en el ayuntamiento',
+      }),
+    );
+  });
+
+  it('rejects wrong type on signupEnabled', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, 'events/e1'), { ...validEvent, signupEnabled: 'no' }),
+    );
+  });
+
+  it('rejects a signupInfo longer than 200 characters', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, 'events/e1'), {
+        ...validEvent,
+        signupEnabled: false,
+        signupInfo: 'a'.repeat(201),
+      }),
+    );
+  });
+
+  it('rejects an event created without signupEnabled', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    const { signupEnabled: _omitted, ...withoutFlag } = validEvent;
+    await assertFails(setDoc(doc(alice, 'events/e1'), withoutFlag));
   });
 
   it('rejects an event created without signupFields', async () => {

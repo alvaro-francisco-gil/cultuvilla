@@ -43,10 +43,23 @@ export const EventFormSchema = z
         .min(1, 'Mínimo 1')
         .max(MAX_SIGNUP_GROUP_SIZE, `Máximo ${String(MAX_SIGNUP_GROUP_SIZE)}`),
     ),
+    // Off = the event takes no sign-ups through the app. `signupInfo` then
+    // carries the organizer's explanation of what to do instead.
+    signupEnabled: z.boolean().default(true),
+    signupInfo: z.preprocess(
+      (v) => emptyToNull(typeof v === 'string' ? v.trim() : v),
+      z.string().max(200, 'Máximo 200 caracteres').nullable(),
+    ).default(null),
   })
   .refine((v) => v.endDate == null || v.endDate >= v.startDate, {
     message: 'La fecha de fin no puede ser anterior a la de inicio',
     path: ['endDate'],
+  })
+  // A note about signing up elsewhere is meaningless while the app still takes
+  // sign-ups — reject it rather than storing a line no screen will ever show.
+  .refine((v) => !v.signupEnabled || v.signupInfo == null, {
+    message: 'La nota de inscripción solo aplica si las inscripciones por la app están desactivadas',
+    path: ['signupInfo'],
   });
 
 export type EventFormInput = z.input<typeof EventFormSchema>;

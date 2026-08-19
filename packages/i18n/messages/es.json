@@ -529,6 +529,12 @@
     "requiresPayment": "Se paga en el evento",
     "attendeesPublic": "Lista de asistentes visible",
     "attendeesPublicHint": "Quien sea del pueblo podrá ver quién se ha apuntado. Los datos de contacto y las respuestas del formulario siguen siendo solo para ti.",
+    "signupEnabled": "Inscripciones por la app",
+    "signupEnabledHint": "Desactívalo si el evento es de entrada libre o si las inscripciones se hacen por otro sitio.",
+    "signupInfo": "¿Cómo se apunta la gente?",
+    "signupInfoPlaceholder": "Ej.: entrada libre, o inscripciones en el ayuntamiento",
+    "signupClosedLabel": "Inscripciones",
+    "signupClosedDefault": "Este evento no requiere inscripción por la app.",
     "signupFields": {
       "headerTitle": "Formulario (opcional)",
       "headerDescription": "Preguntas extra que responderá cada persona al inscribirse.",

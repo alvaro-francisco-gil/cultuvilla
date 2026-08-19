@@ -78,6 +78,9 @@ describe('buildEventData', () => {
     // Seeing who is going is what drives sign-ups in a pueblo, so a new event
     // shows its roster to fellow villagers unless the organizer opts out.
     expect(built.attendeesVisibility).toBe('members');
+    // In-app sign-ups are on unless the organizer turns them off.
+    expect(built.signupEnabled).toBe(true);
+    expect(built.signupInfo).toBeNull();
     expect('reactionCounts' in built).toBe(false);
     expect(() => EventDataSchema.parse(built)).not.toThrow();
   });
@@ -187,6 +190,15 @@ describe('isEventSignupOpen', () => {
     expect(isEventSignupOpen({ ...base, status: 'published' })).toBe(true);
     expect(isEventSignupOpen({ ...base, status: 'cancelled' })).toBe(false);
     expect(isEventSignupOpen({ ...base, status: 'completed' })).toBe(false);
+  });
+
+  it('returns false when the organizer turned off in-app sign-ups', () => {
+    expect(isEventSignupOpen({ ...base, status: 'published', signupEnabled: false })).toBe(false);
+  });
+
+  it('defaults signupEnabled to true and signupInfo to null on legacy docs', () => {
+    expect(base.signupEnabled).toBe(true);
+    expect(base.signupInfo).toBeNull();
   });
 });
 

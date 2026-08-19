@@ -212,6 +212,8 @@ describe('VillageHomeBody', () => {
       signupFields: [],
     attendeesVisibility: 'members' as const,
     signupGroupSize: 1,
+    signupEnabled: true,
+    signupInfo: null,
       status: 'published',
       organizerUserIds: ['u1'],
       organizerOrgIds: [],

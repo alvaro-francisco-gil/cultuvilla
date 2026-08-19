@@ -80,6 +80,12 @@ export const registerToEvent = onCall<RegisterToEventData, Promise<RegisterToEve
       if (!eventData) {
         throw new HttpsError('not-found', 'El evento no existe.');
       }
+      // Events can opt out of in-app sign-ups entirely (signupEnabled false):
+      // entrada libre, or a list kept off-app. The FAB is hidden client-side;
+      // this is the enforcement, since registrations are callable-only.
+      if (!eventData.signupEnabled) {
+        throw new HttpsError('failed-precondition', 'Este evento no admite inscripciones por la app.');
+      }
       const maxAttendees = eventData.maxAttendees;
       const municipalityId = eventData.municipalityId;
       if (!municipalityId) {
