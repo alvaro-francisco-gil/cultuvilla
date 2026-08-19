@@ -15,7 +15,7 @@ export function buildGeocodeUrl(query: string, apiKey: string): string {
  * which is what we want for a human label ("Calle Mayor 3, Abadía" over "España").
  */
 export function buildReverseGeocodeUrl(lat: number, lng: number, apiKey: string): string {
-  const q = new URLSearchParams({ latlng: `${lat},${lng}`, region: 'es', language: 'es', key: apiKey });
+  const q = new URLSearchParams({ latlng: [lat, lng].join(','), region: 'es', language: 'es', key: apiKey });
   return `https://maps.googleapis.com/maps/api/geocode/json?${q.toString()}`;
 }
 

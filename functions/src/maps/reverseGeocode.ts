@@ -15,9 +15,12 @@ export async function runReverseGeocode(lat: unknown, lng: unknown): Promise<str
     logger.error('reverseGeocode upstream error', { handler, status: resp.status });
     return null;
   }
-  const [closest] = mapGeocodeResponse(await resp.json());
-  logger.info('reverse geocode', { handler, found: closest != null });
-  return closest?.label ?? null;
+  // Google orders results most-specific first, so the head is the street-level
+  // name we want rather than "España".
+  const results = mapGeocodeResponse(await resp.json());
+  const label = results.length > 0 ? results[0].label : null;
+  logger.info('reverse geocode', { handler, found: label !== null });
+  return label;
 }
 
 interface ReverseGeocodeData {

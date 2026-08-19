@@ -26,6 +26,7 @@ async function seedMunicipality(communityActive: boolean): Promise<void> {
       comunidadAutonoma: 'Madrid',
       codigoINE: '28000',
       coordinates: null,
+      locationLabel: null,
       mapZoom: null,
       createdAt: now,
       escudoUrl: null,
@@ -138,12 +139,14 @@ describe('startVillage (callable)', () => {
       data: {
         municipalityId: MUNICIPALITY_ID,
         coordinates: { lat: 40.4, lng: -3.7 },
+        locationLabel: 'Plaza Mayor, Villarriba',
         mapZoom: 14,
       },
     });
 
     const muniDoc = await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}`).get();
     expect(muniDoc.data()?.coordinates).toBeNull();
+    expect(muniDoc.data()?.locationLabel).toBeNull();
     expect(muniDoc.data()?.mapZoom).toBeNull();
   });
 
@@ -159,6 +162,7 @@ describe('startVillage (callable)', () => {
         comunidadAutonoma: 'Madrid',
         codigoINE: '28000',
         coordinates: null,
+        locationLabel: null,
         mapZoom: null,
         createdAt: now,
         escudoUrl: null,

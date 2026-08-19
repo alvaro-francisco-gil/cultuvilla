@@ -38,6 +38,7 @@ async function seedMunicipality(municipalityId: string, organizerId: string | nu
       comunidadAutonoma: 'Castilla y León',
       codigoINE: '42001',
       coordinates: null,
+      locationLabel: null,
       mapZoom: null,
       createdAt: new Date(),
       escudoUrl: null,
