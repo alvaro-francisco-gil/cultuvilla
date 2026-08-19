@@ -65,8 +65,8 @@ jest.mock('../../../components/feature/OrganizerPicker', () => ({
     return <View testID="organizer-picker" />;
   },
 }));
-jest.mock('../../../components/feature/EventLocationField', () => ({
-  EventLocationField: ({ onChange }: { onChange: (c: { lat: number; lng: number }, a: string) => void }) => {
+jest.mock('../../../components/feature/LocationField', () => ({
+  LocationField: ({ onChange }: { onChange: (c: { lat: number; lng: number }, a: string) => void }) => {
     const { Pressable } = require('react-native');
     return (
       <Pressable testID="location-field" onPress={() => onChange({ lat: 1, lng: 2 }, 'Plaza Mayor')} />
