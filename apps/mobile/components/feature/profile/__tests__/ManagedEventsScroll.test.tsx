@@ -16,6 +16,7 @@ function makeEvent(over: Partial<ManagedEvent> & { id: string }): ManagedEvent {
     telephoneRequired: false,
     requiresPayment: false,
     signupFields: [],
+    attendeesVisibility: 'members' as const,
     status: over.status ?? 'published',
     organizerUserIds: ['uid-1'],
     organizerOrgIds: [],

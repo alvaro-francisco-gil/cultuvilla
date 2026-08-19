@@ -210,6 +210,7 @@ describe('VillageHomeBody', () => {
       telephoneRequired: false,
       requiresPayment: false,
       signupFields: [],
+    attendeesVisibility: 'members' as const,
       status: 'published',
       organizerUserIds: ['u1'],
       organizerOrgIds: [],
