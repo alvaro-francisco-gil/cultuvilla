@@ -20,6 +20,11 @@ jest.mock('@cultuvilla/shared/services/personService', () => ({
 jest.mock('../../../lib/i18n', () => ({
   useT: () => ({ locale: 'es', t: (key: string) => key }),
 }));
+// LiveAvatar renders through useOwnerSummary, which reads the signed-in viewer
+// to resolve the owner's persona photo.
+jest.mock('../../../lib/auth/useAuth', () => ({
+  useAuth: () => ({ user: { uid: 'viewer-9' } }),
+}));
 
 const mockUseFirestoreDoc = useFirestoreDoc as jest.Mock;
 
