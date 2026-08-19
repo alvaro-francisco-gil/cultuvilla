@@ -526,6 +526,8 @@
     "unlimited": "Sin límite",
     "telephoneRequired": "Teléfono requerido",
     "requiresPayment": "Se paga en el evento",
+    "attendeesPublic": "Lista de asistentes visible",
+    "attendeesPublicHint": "Quien sea del pueblo podrá ver quién se ha apuntado. Los datos de contacto y las respuestas del formulario siguen siendo solo para ti.",
     "signupFields": {
       "headerTitle": "Formulario (opcional)",
       "headerDescription": "Preguntas extra que responderá cada persona al inscribirse.",
@@ -557,6 +559,7 @@
       "error": "No se pudo generar el archivo. Inténtalo de nuevo."
     },
     "attendeesEmpty": "Aún no hay asistentes",
+    "attendeePrivate": "Perfil privado",
     "signedUpAt": "Apuntado el {date}",
     "removeAttendeeTitle": "Quitar asistente",
     "removeAttendeeBody": "¿Seguro que quieres quitar a {name} de este evento?",

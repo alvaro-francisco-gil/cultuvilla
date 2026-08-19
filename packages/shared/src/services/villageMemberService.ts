@@ -135,21 +135,33 @@ export async function leaveVillage(municipalityId: string, userId: string): Prom
   await batch.commit();
 }
 
+/**
+ * Membership and authority in one read. `null` = not a member. Prefer this
+ * over calling isVillageMember + isVillageAdmin, which read the same doc twice
+ * to answer two halves of the same question (useEntityCapabilities needs both
+ * on every entity screen).
+ */
+export async function getVillageMemberRole(
+  municipalityId: string,
+  userId: string,
+): Promise<VillageMemberRole | null> {
+  const snap = await getDoc(municipalityMemberDoc(getDb(), municipalityId, userId));
+  if (!snap.exists()) return null;
+  return snap.data().role;
+}
+
 export async function isVillageMember(
   municipalityId: string,
   userId: string,
 ): Promise<boolean> {
-  const snap = await getDoc(municipalityMemberDoc(getDb(), municipalityId, userId));
-  return snap.exists();
+  return (await getVillageMemberRole(municipalityId, userId)) !== null;
 }
 
 export async function isVillageAdmin(
   municipalityId: string,
   userId: string,
 ): Promise<boolean> {
-  const snap = await getDoc(municipalityMemberDoc(getDb(), municipalityId, userId));
-  if (!snap.exists()) return false;
-  return snap.data().role === 'admin';
+  return (await getVillageMemberRole(municipalityId, userId)) === 'admin';
 }
 
 /**
