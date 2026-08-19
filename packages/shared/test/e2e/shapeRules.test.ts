@@ -322,7 +322,7 @@ describe('shape enforcement — /events/{eventId}', () => {
     maxAttendees: null,
     telephoneRequired: false,
     requiresPayment: false,
-    signupFields: [], attendeesVisibility: 'members',
+    signupFields: [], attendeesVisibility: 'members', signupGroupSize: 1,
     status: 'published' as const,
     organizerUserIds: ['alice'],
     organizerOrgIds: [],
@@ -344,6 +344,34 @@ describe('shape enforcement — /events/{eventId}', () => {
     await seedMember('m1', 'alice');
     const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(setDoc(doc(alice, 'events/e1'), validEvent));
+  });
+
+  it('accepts every allowed signupGroupSize', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    for (const size of [1, 2, 3, 4]) {
+      await assertSucceeds(
+        setDoc(doc(alice, `events/e-size-${String(size)}`), { ...validEvent, signupGroupSize: size }),
+      );
+    }
+  });
+
+  it('rejects a signupGroupSize outside 1..4 or of the wrong type', async () => {
+    // Groups are seated atomically, so an unbounded size makes a capped event
+    // unfillable — the cap is enforced here as well as in the model.
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    for (const size of [0, 5, 2.5, '2', null]) {
+      await assertFails(setDoc(doc(alice, 'events/e1'), { ...validEvent, signupGroupSize: size }));
+    }
+  });
+
+  it('rejects an event created without signupGroupSize', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    const withoutSize: Record<string, unknown> = { ...validEvent };
+    delete withoutSize.signupGroupSize;
+    await assertFails(setDoc(doc(alice, 'events/e1'), withoutSize));
   });
 
   it('rejects an unknown field', async () => {

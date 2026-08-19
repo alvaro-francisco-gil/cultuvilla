@@ -81,7 +81,7 @@ function validEvent(overrides: Record<string, unknown> = {}) {
     maxAttendees: null,
     telephoneRequired: false,
     requiresPayment: false,
-    signupFields: [], attendeesVisibility: 'members',
+    signupFields: [], attendeesVisibility: 'members', signupGroupSize: 1,
     status: 'published',
     organizerUserIds: ['alice'],
     organizerOrgIds: [],
