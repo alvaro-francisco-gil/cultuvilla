@@ -226,7 +226,12 @@
   "me": {
     "registrations": {
       "title": "Mis inscripciones",
-      "empty": "Aún no te has inscrito a ningún evento"
+      "tab": {
+        "upcoming": "Próximos",
+        "past": "Pasados"
+      },
+      "emptyUpcoming": "Aún no te has inscrito a ningún evento",
+      "emptyPast": "Todavía no has asistido a ningún evento"
     },
     "villages": {
       "empty": "Aún no perteneces a ningún pueblo",
