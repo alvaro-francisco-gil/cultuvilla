@@ -4,6 +4,10 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Fixed
+
+- **Commenters keep their name instead of collapsing to "Usuario".** Author names were resolved for every uid on screen in a single `Promise.all`, so one failed lookup rejected the whole batch and *every* comment in the thread fell back to the anonymous label — with no retry. The two sources now fail independently and per author: `persons` (a query whose read rule is evaluated per matched document, so a single private persona denies it for that viewer) supplies the freshest name and the avatar, and the world-readable `users/{uid}.displayName` projection is the dependable fallback. A person whose name fields are all blank no longer wins over that projection (it used to render an empty name), and a comment from a deleted account is now labelled "Usuario eliminado" like everywhere else. While a name is still in flight the row shows a placeholder bar rather than flashing "Usuario" and then correcting itself.
+
 ## v0.20.0 — 2026-08-18
 
 ### Added
