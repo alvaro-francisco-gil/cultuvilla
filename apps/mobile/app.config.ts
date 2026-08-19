@@ -128,6 +128,20 @@ const config: ExpoConfig = {
   },
   android: {
     package: bundleIdPerEnv[env],
+    // Every permission in the manifest has to be justified in the Play Console
+    // Data Safety form, and background location additionally needs a written
+    // declaration plus a video review. expo-location and expo-image-picker each
+    // pull in more than we use, so strip what no screen actually calls: the app
+    // only reads a coarse/fine location once (to drop the village pin) and picks
+    // an existing image from the library — it never records, never uses the
+    // camera, and never tracks location in the background.
+    blockedPermissions: [
+      'android.permission.ACCESS_BACKGROUND_LOCATION',
+      'android.permission.CAMERA',
+      'android.permission.RECORD_AUDIO',
+      'android.permission.READ_EXTERNAL_STORAGE',
+      'android.permission.WRITE_EXTERNAL_STORAGE',
+    ],
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#ffffff',
