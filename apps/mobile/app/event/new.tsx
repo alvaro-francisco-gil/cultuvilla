@@ -659,8 +659,8 @@ export default function NewEventScreen() {
               {t('event.signupGroupSizeLocked')}
             </Text>
           ) : null}
-          </>
-          ) : null}
+          {/* Governs who can see the sign-up list, so it belongs to sign-ups:
+              with them off there is no list for it to be about. */}
           <ToggleField
             label={t('event.attendeesPublic')}
             help={t('event.attendeesPublicHint')}
@@ -668,6 +668,8 @@ export default function NewEventScreen() {
             onValueChange={setAttendeesPublic}
             testID="attendees-public"
           />
+          </>
+          ) : null}
         </>,
       ),
     },

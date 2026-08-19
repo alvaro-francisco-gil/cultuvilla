@@ -179,6 +179,7 @@ describe('NewEventScreen stepper', () => {
     expect(getByTestId('telephone-required')).toBeTruthy();
     expect(getByTestId('requires-payment')).toBeTruthy();
     expect(getByTestId('signup-group-size')).toBeTruthy();
+    expect(getByTestId('attendees-public')).toBeTruthy();
     expect(queryByTestId('signup-info')).toBeNull();
 
     fireEvent.press(signupEnabled);
@@ -186,6 +187,9 @@ describe('NewEventScreen stepper', () => {
     expect(queryByTestId('telephone-required')).toBeNull();
     expect(queryByTestId('requires-payment')).toBeNull();
     expect(queryByTestId('signup-group-size')).toBeNull();
+    // The attendee-list toggle governs who can see the sign-up list, so it goes
+    // with them: with sign-ups off there is no list for it to be about.
+    expect(queryByTestId('attendees-public')).toBeNull();
     // The organizer's note takes their place...
     expect(getByTestId('signup-info')).toBeTruthy();
     // ...and Preguntas drops out, making Detalles the final step.
