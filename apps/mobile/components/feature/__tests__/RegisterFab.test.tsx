@@ -74,6 +74,7 @@ const baseProps = {
   userId: 'u1',
   personId: 'p1',
   name: 'Ana',
+  eventTitle: 'Fiestas de San Juan',
   telephoneRequired: false,
 };
 
@@ -270,21 +271,24 @@ describe('RegisterFab', () => {
 describe('RegisterFab — group sign-up', () => {
   const groupProps = { ...baseProps, groupSize: 2 };
 
-  it('refuses to confirm until the group is exactly full', async () => {
+  it('pre-ticks the caller and refuses to confirm until the group is exactly full', async () => {
     mockGetPersonsByCreator.mockResolvedValue([dep]);
     const { getByTestId } = render(<RegisterFab {...groupProps} />);
     await waitFor(() => expect(getByTestId('register-fab')).toBeTruthy());
     fireEvent.press(getByTestId('register-fab'));
 
-    // One of two seats filled — still short, so confirm stays disabled.
-    fireEvent.press(getByTestId('group-row-p1'));
+    // The booker's own persona is seated without a tap — one of two seats
+    // filled, so confirm stays disabled.
+    await waitFor(() =>
+      expect(getByTestId('group-row-p1').props.accessibilityState.checked).toBe(true),
+    );
     expect(getByTestId('group-confirm').props.accessibilityState.disabled).toBe(true);
 
     fireEvent.press(getByTestId('group-row-p2'));
     expect(getByTestId('group-confirm').props.accessibilityState.disabled).toBe(false);
   });
 
-  it('books a persona plus an open seat and shares the claim link', async () => {
+  it('books a persona plus an open seat and lands on the summary, not a share sheet', async () => {
     mockRegisterToEvent.mockResolvedValue({
       registrations: [
         { id: 'rA', status: 'confirmed', position: 1, isMember: true },
@@ -292,13 +296,25 @@ describe('RegisterFab — group sign-up', () => {
       ],
       openSeats: [{ registrationId: 'rB', token: 'tok_xyz' }],
     });
+    // Empty on the first load (nothing booked yet), the booked group after.
+    mockGetUserRegistrations.mockResolvedValue([
+      { id: 'rA', personId: 'p1', name: 'Ana', status: 'confirmed', isOpenSeat: false },
+      { id: 'rB', personId: '', name: 'Plaza libre', status: 'confirmed', isOpenSeat: true },
+    ]);
+    mockGetUserRegistrations.mockResolvedValueOnce([]);
+    (getMySeatTokens as jest.Mock).mockResolvedValue([
+      { token: 'tok_xyz', registrationId: 'rB', consumed: false },
+    ]);
     const { getByTestId } = render(<RegisterFab {...groupProps} />);
     await waitFor(() => expect(getByTestId('register-fab')).toBeTruthy());
     fireEvent.press(getByTestId('register-fab'));
 
-    fireEvent.press(getByTestId('group-row-p1'));
-    fireEvent.press(getByTestId('group-open-seat-plus'));
-    expect(getByTestId('group-open-seat-count').props.children).toBe('1');
+    // Own persona is already ticked; the open seat is a row, not a counter.
+    await waitFor(() =>
+      expect(getByTestId('group-row-p1').props.accessibilityState.checked).toBe(true),
+    );
+    fireEvent.press(getByTestId('group-open-seat-0'));
+    expect(getByTestId('group-open-seat-0').props.accessibilityState.checked).toBe(true);
 
     fireEvent.press(getByTestId('group-confirm'));
 
@@ -309,10 +325,10 @@ describe('RegisterFab — group sign-up', () => {
         1,
       ),
     );
-    // A link nobody sends is a seat nobody takes, so the share sheet opens
-    // straight after booking.
-    await waitFor(() => expect(mockShareDeepLink).toHaveBeenCalled());
-    expect(mockShareDeepLink.mock.calls[0][0].url).toContain('/event/e1/claim/tok_xyz');
+    // The OS share sheet is no longer fired unasked — the summary's send-link
+    // row is where the user chooses to hand the seat over.
+    await waitFor(() => expect(getByTestId('group-summary')).toBeTruthy());
+    expect(mockShareDeepLink).not.toHaveBeenCalled();
   });
 
   it('will not let the group overflow its size', async () => {
@@ -321,11 +337,27 @@ describe('RegisterFab — group sign-up', () => {
     await waitFor(() => expect(getByTestId('register-fab')).toBeTruthy());
     fireEvent.press(getByTestId('register-fab'));
 
-    fireEvent.press(getByTestId('group-row-p1'));
+    await waitFor(() =>
+      expect(getByTestId('group-row-p1').props.accessibilityState.checked).toBe(true),
+    );
     fireEvent.press(getByTestId('group-row-p2'));
-    // Group already full: the open-seat stepper must refuse a third seat.
-    fireEvent.press(getByTestId('group-open-seat-plus'));
-    expect(getByTestId('group-open-seat-count').props.children).toBe('0');
+    // Group already full: ticking the open-seat row must refuse a third seat.
+    fireEvent.press(getByTestId('group-open-seat-0'));
+    expect(getByTestId('group-open-seat-0').props.accessibilityState.checked).toBe(false);
+  });
+
+  it('offers one open-seat row short of the group size', async () => {
+    const { getByTestId, queryByTestId } = render(
+      <RegisterFab {...baseProps} groupSize={3} />,
+    );
+    await waitFor(() => expect(getByTestId('register-fab')).toBeTruthy());
+    fireEvent.press(getByTestId('register-fab'));
+
+    // The booker occupies the third seat, so a group of pure open seats is
+    // unreachable by construction.
+    expect(getByTestId('group-open-seat-0')).toBeTruthy();
+    expect(getByTestId('group-open-seat-1')).toBeTruthy();
+    expect(queryByTestId('group-open-seat-2')).toBeNull();
   });
 
   it('shows the existing group with a share link instead of the builder', async () => {
@@ -345,6 +377,12 @@ describe('RegisterFab — group sign-up', () => {
     expect(getByTestId('group-share-rB')).toBeTruthy();
     // The claimed seat has no link to hand out.
     expect(queryByTestId('group-share-rA')).toBeNull();
+
+    // The invite copy reads "…una plaza en «{name}»", so the slot is the event.
+    fireEvent.press(getByTestId('group-share-rB'));
+    await waitFor(() => expect(mockShareDeepLink).toHaveBeenCalled());
+    expect(mockShareDeepLink.mock.calls[0][0].url).toContain('/event/e1/claim/tok_xyz');
+    expect(mockShareDeepLink.mock.calls[0][1]).toBe('Fiestas de San Juan');
   });
 
   it('keeps a seat a guest has claimed in the owner’s group summary', async () => {

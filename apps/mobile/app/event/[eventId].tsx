@@ -137,6 +137,7 @@ export default function EventDetailScreen() {
             userId={user.uid}
             personId={person.id}
             name={personName}
+            eventTitle={event.title}
             telephoneRequired={!!event.telephoneRequired}
             signupFields={event.signupFields}
             villageId={event.municipalityId}

@@ -35,6 +35,8 @@ export interface RegisterFabProps {
   personId: string;
   /** The caller's own display name. */
   name: string;
+  /** The event's title — what a shared seat-claim link names in its message. */
+  eventTitle: string;
   /** When true, adding new attendees first requires a shared phone. */
   telephoneRequired: boolean;
   /** The event's custom sign-up fields, answered once per new attendee. */
@@ -56,7 +58,7 @@ type PersonDoc = PersonData & { id: string };
  *
  * Styles live on `style` (never `className`) so the pill renders on RN-Web.
  */
-export function RegisterFab({ eventId, userId, personId, name, telephoneRequired, signupFields, villageId, groupSize = 1 }: RegisterFabProps) {
+export function RegisterFab({ eventId, userId, personId, name, eventTitle, telephoneRequired, signupFields, villageId, groupSize = 1 }: RegisterFabProps) {
   const { t } = useT();
   const { refresh: refreshRegistrations } = useMyRegistrations();
   const shareDeepLink = useShareDeepLink();
@@ -221,11 +223,11 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
       setAutoSelectIds([]);
       await load();
       refreshRegistrations();
-      // Straight into the share sheet for the first open seat: a link nobody
-      // sends is a seat nobody takes, and the user is holding it either way.
-      const firstToken = result.openSeats[0]?.token;
-      if (firstToken) await shareSeat(firstToken);
-      else setSheetOpen(false);
+      // Booking an open seat leaves the sheet on its summary, where every
+      // unclaimed seat carries its own send-link row. Firing the OS share sheet
+      // unasked hijacked the moment the booking was confirmed and gave no way
+      // back to the other seats' links.
+      if (result.openSeats.length === 0) setSheetOpen(false);
     } catch (e) {
       if (!succeeded) observability.trackEvent(OBSERVABILITY_EVENTS.EVENT_SIGNUP_ERROR, { villageId });
       showAlert(e instanceof Error ? e.message : 'unknown', t('event.register.error'));
@@ -235,7 +237,9 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
   }
 
   async function shareSeat(token: string) {
-    await shareDeepLink(getSeatClaimLink(eventId, token), name);
+    // `deeplink.share.event.invite` reads "Te he guardado una plaza en «{name}»",
+    // so the slot is the event, not whoever is sending it.
+    await shareDeepLink(getSeatClaimLink(eventId, token), eventTitle);
   }
 
   function handleCancelGroup(regId: string) {
@@ -351,6 +355,7 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
           visible={sheetOpen}
           groupSize={groupSize}
           attendees={attendees}
+          ownPersonId={personId}
           mySeats={mySeats}
           telephoneRequired={telephoneRequired}
           signupFields={signupFields}

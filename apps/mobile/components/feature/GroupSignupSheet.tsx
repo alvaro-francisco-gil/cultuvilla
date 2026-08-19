@@ -7,6 +7,8 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, iconSizes } from '@cultuvilla/shared/design-system';
 import { Button } from '../primitives/Button';
 import { Text } from '../primitives/Text';
 import { VStack } from '../primitives/VStack';
@@ -29,6 +31,8 @@ import {
 } from '@cultuvilla/shared/utils';
 import { useT } from '../../lib/i18n';
 
+const ACCENT = colors.light.fg.accent;
+
 /** One seat the caller already holds on this event. */
 export interface MyGroupSeat {
   regId: string;
@@ -45,6 +49,8 @@ export interface GroupSignupSheetProps {
   groupSize: number;
   /** The caller's personas — own persona first, then personas a cargo. */
   attendees: AttendeeOption[];
+  /** The caller's own persona id — pre-ticked, since a group without them is a stranger's booking. */
+  ownPersonId: string;
   /** Seats the caller already holds; non-empty switches the sheet to summary. */
   mySeats: MyGroupSeat[];
   telephoneRequired: boolean;
@@ -70,14 +76,16 @@ export interface GroupSignupSheetProps {
  * Two modes, and which one you get depends only on whether you already hold
  * seats:
  *
- * **Builder** — pick exactly `groupSize` seats. Each is either a persona you
- * own or an *open seat*: a held place carrying a link you send to whoever is
- * coming with you. Confirming books the whole group in one call, which is what
+ * **Builder** — pick exactly `groupSize` seats, your own persona already
+ * ticked. Each seat is either a persona you own or an *open seat*: a held place
+ * carrying a link you send to whoever is coming with you. Open seats are rows
+ * you tick like any persona, so "me + a friend" is two ticks rather than a tick
+ * and a counter. Confirming books the whole group in one call, which is what
  * lets the server seat it atomically — a pareja is never split across the
  * capacity boundary.
  *
- * **Summary** — your group as it stands, with a share link on each seat nobody
- * has claimed yet, and one action to cancel the group. There is no partial
+ * **Summary** — your group as it stands, each unclaimed seat carrying a
+ * full-width row that sends its link, and one action to cancel the group. There is no partial
  * edit here on purpose: a group cannot shrink below its required size, so
  * "remove one seat" is not an operation the event admits. To change who is
  * coming, cancel and rebook, or have the guest give their seat back (which
@@ -87,6 +95,7 @@ export function GroupSignupSheet({
   visible,
   groupSize,
   attendees,
+  ownPersonId,
   mySeats,
   telephoneRequired,
   signupFields = [],
@@ -112,15 +121,23 @@ export function GroupSignupSheet({
 
   const hasGroup = mySeats.length > 0;
 
+  // The booker is always in their own group, so their persona starts ticked —
+  // it is the one seat the sheet can fill without asking. Still untickable, in
+  // case they are booking for two personas a cargo rather than themselves.
+  const ownIsBookable = attendees.some((a) => a.id === ownPersonId && a.status === undefined);
+
   useEffect(() => {
     if (visible) {
-      setSelected(new Set());
+      setSelected(ownIsBookable ? new Set([ownPersonId]) : new Set());
       setOpenSeats(0);
       setAnswers({});
       setPhone('');
       setPhoneCountry(DEFAULT_PHONE_COUNTRY);
       setConfirmAttempted(false);
     }
+    // Re-seed only on open — a persona list arriving mid-session must not wipe
+    // ticks the user has already made.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const autoKey = (autoSelectIds ?? []).join(',');
@@ -137,6 +154,22 @@ export function GroupSignupSheet({
   const selectedInOrder = attendees.filter((a) => selected.has(a.id)).map((a) => a.id);
   const filled = selectedInOrder.length + openSeats;
   const remaining = groupSize - filled;
+
+  // At most one seat short of the group: the booker occupies the other, so a
+  // group of pure open seats is unreachable by construction rather than by a
+  // check on confirm.
+  const maxOpenSeats = groupSize - 1;
+
+  function toggleOpenSeat(index: number) {
+    // Ticks are contiguous — a row's state is "index < openSeats" — so tapping
+    // row i either trims the count back to i or extends it to i + 1, whichever
+    // the group still has room for.
+    setOpenSeats((n) => {
+      if (index < n) return index;
+      const delta = index + 1 - n;
+      return delta <= remaining ? index + 1 : n;
+    });
+  }
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -216,32 +249,50 @@ export function GroupSignupSheet({
                   {t('event.group.summaryHelp')}
                 </Text>
                 {mySeats.map((seat) => (
-                  <HStack
+                  <VStack
                     key={seat.regId}
-                    gap={3}
-                    className="items-center rounded-lg border border-subtle p-3"
+                    gap={0}
+                    className="rounded-lg border border-subtle overflow-hidden"
                     testID={`group-seat-${seat.regId}`}
                   >
-                    <VStack gap={0} className="flex-1">
+                    <VStack gap={0} className="p-3">
                       <Text numberOfLines={1}>
                         {seat.isOpenSeat ? t('event.group.openSeat') : seat.name}
                       </Text>
-                      <Text variant="caption" tone={seat.status === 'waitlisted' ? 'muted' : 'success'}>
+                      <Text
+                        variant="caption"
+                        tone={seat.status === 'waitlisted' ? 'muted' : 'success'}
+                      >
                         {seat.status === 'waitlisted'
                           ? t('event.register.waitlisted')
                           : t('event.register.signedUp')}
                       </Text>
                     </VStack>
+                    {/* The link is the whole point of an unclaimed seat, so it
+                        gets a full row of its own rather than a button
+                        squeezed against the seat's name. */}
                     {seat.isOpenSeat && seat.token ? (
-                      <Button
-                        variant="secondary"
+                      <RNPressable
                         onPress={() => onShareSeat(seat.token as string)}
                         testID={`group-share-${seat.regId}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('event.group.sendLink')}
+                        className="flex-row items-center border-t border-subtle bg-surface p-3"
                       >
-                        {t('event.group.share')}
-                      </Button>
+                        <HStack gap={3} className="items-center flex-1">
+                          <Ionicons
+                            name="paper-plane-outline"
+                            size={iconSizes.sm}
+                            color={ACCENT}
+                          />
+                          <Text className="flex-1" style={{ color: ACCENT, fontWeight: '600' }}>
+                            {t('event.group.sendLink')}
+                          </Text>
+                        </HStack>
+                        <Ionicons name="chevron-forward" size={iconSizes.sm} color={ACCENT} />
+                      </RNPressable>
                     ) : null}
-                  </HStack>
+                  </VStack>
                 ))}
                 <Button
                   variant="danger"
@@ -334,43 +385,41 @@ export function GroupSignupSheet({
                       </HStack>
                     </RNPressable>
 
-                    {/* Open seats: held places you hand to someone by link. */}
-                    <HStack
-                      gap={3}
-                      className="items-center rounded-lg border border-dashed border-subtle p-3"
-                    >
-                      <VStack gap={0} className="flex-1">
-                        <Text>{t('event.group.inviteSeat')}</Text>
-                        <Text variant="caption" tone="muted">
-                          {t('event.group.inviteSeatHelp')}
-                        </Text>
-                      </VStack>
-                      <HStack gap={3} className="items-center">
+                    {/* Open seats: held places you hand to someone by link.
+                        Tickable rows rather than a counter, so a seat for a
+                        friend reads exactly like a seat for a persona. */}
+                    {Array.from({ length: maxOpenSeats }, (_, index) => {
+                      const isTicked = index < openSeats;
+                      const label =
+                        index === 0
+                          ? t('event.group.inviteSeat')
+                          : t('event.group.inviteSeatMore');
+                      return (
                         <RNPressable
-                          testID="group-open-seat-minus"
-                          accessibilityRole="button"
-                          accessibilityLabel={t('event.group.inviteSeatLess')}
-                          disabled={openSeats === 0}
-                          onPress={() => setOpenSeats((n) => Math.max(0, n - 1))}
+                          key={`open-seat-${index}`}
+                          testID={`group-open-seat-${index}`}
+                          onPress={() => toggleOpenSeat(index)}
+                          accessibilityRole="checkbox"
+                          accessibilityState={{ checked: isTicked }}
+                          accessibilityLabel={label}
+                          className={`flex-row items-center rounded-lg border border-dashed p-3 ${
+                            isTicked ? 'border-accent bg-surface' : 'border-subtle'
+                          }`}
                         >
-                          <Text style={{ fontSize: 22 }} tone={openSeats === 0 ? 'muted' : undefined}>
-                            −
-                          </Text>
+                          <HStack gap={3} className="items-center flex-1">
+                            <Text style={{ fontSize: 18 }}>{isTicked ? '☑' : '☐'}</Text>
+                            <VStack gap={0} className="flex-1">
+                              <Text>{label}</Text>
+                              {index === 0 ? (
+                                <Text variant="caption" tone="muted">
+                                  {t('event.group.inviteSeatHelp')}
+                                </Text>
+                              ) : null}
+                            </VStack>
+                          </HStack>
                         </RNPressable>
-                        <Text testID="group-open-seat-count">{String(openSeats)}</Text>
-                        <RNPressable
-                          testID="group-open-seat-plus"
-                          accessibilityRole="button"
-                          accessibilityLabel={t('event.group.inviteSeatMore')}
-                          disabled={remaining === 0}
-                          onPress={() => setOpenSeats((n) => (remaining > 0 ? n + 1 : n))}
-                        >
-                          <Text style={{ fontSize: 22 }} tone={remaining === 0 ? 'muted' : undefined}>
-                            ＋
-                          </Text>
-                        </RNPressable>
-                      </HStack>
-                    </HStack>
+                      );
+                    })}
                   </VStack>
                 </ScrollView>
 
