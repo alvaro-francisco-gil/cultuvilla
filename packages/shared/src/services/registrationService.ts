@@ -9,6 +9,7 @@ import {
   where,
   collectionGroup,
   getCountFromServer,
+  limit as fsLimit,
   serverTimestamp,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
@@ -23,6 +24,10 @@ import type {
   RegistrationData,
   RegistrationStatus,
 } from '../models/event/RegistrationDataModel';
+import {
+  tallyRegistrationsByEvent,
+  type RegistrationTally,
+} from '../models/event/RegistrationRibbonModel';
 import type { SignupAnswers } from '../models/event/SignupFieldModel';
 
 export interface RegisterInput {
@@ -188,8 +193,15 @@ export async function getRegistrationPrivate(
   return { phone: data.phone ?? null, answers: data.answers ?? {} };
 }
 
+/**
+ * `max` caps how far back the query reads. Registrations accumulate for the
+ * life of the account while every surface that consumes them only cares about
+ * upcoming events, so an unbounded read grows the bill for data nothing
+ * renders. Omit it to read the whole history.
+ */
 export async function getUserRegistrationsAcrossEvents(
   userId: string,
+  max?: number,
 ): Promise<(RegistrationData & { id: string; eventPath: string })[]> {
   // collectionGroup doesn't carry the per-collection converter from the ref
   // factory, so we attach it explicitly here.
@@ -198,6 +210,7 @@ export async function getUserRegistrationsAcrossEvents(
     cg,
     where('userId', '==', userId),
     orderBy('registeredAt', 'desc'),
+    ...(max != null ? [fsLimit(max)] : []),
   );
   const snap = await getDocs(q);
   return snap.docs.map((d) => {
@@ -205,4 +218,22 @@ export async function getUserRegistrationsAcrossEvents(
     const eventPath = pathSegments.slice(0, 2).join('/');
     return { id: d.id, ...d.data(), eventPath };
   });
+}
+
+/**
+ * How many of the user's registrations sit in each status, per event — the one
+ * read behind the "apuntado" ribbon on feed cards.
+ *
+ * Deliberately a single collection-group query for the whole feed rather than
+ * a per-card lookup: the caller holds the result for the session and does a
+ * synchronous map lookup per card.
+ */
+export async function getUserRegistrationTallies(
+  userId: string,
+  max = 100,
+): Promise<Map<string, RegistrationTally>> {
+  const rows = await getUserRegistrationsAcrossEvents(userId, max);
+  return tallyRegistrationsByEvent(
+    rows.map((r) => ({ eventId: r.eventPath.split('/')[1] ?? '', status: r.status })),
+  );
 }
