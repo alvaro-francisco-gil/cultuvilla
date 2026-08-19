@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_SIGNUP_GROUP_SIZE } from './EventDataModel';
 
 const emptyToNull = (v: unknown): unknown =>
   v === '' || v == null || (typeof v === 'string' && v.trim() === '') ? null : v;
@@ -33,6 +34,15 @@ export const EventFormSchema = z
     maxAttendees: optionalPositiveInt,
     telephoneRequired: z.boolean().default(false),
     requiresPayment: z.boolean().default(false),
+    // 1 = ordinary individual sign-up; 2-4 seats people together in groups.
+    signupGroupSize: z.preprocess(
+      (v) => (v === '' || v == null ? 1 : v),
+      z.coerce
+        .number()
+        .int('Debe ser un número entero')
+        .min(1, 'Mínimo 1')
+        .max(MAX_SIGNUP_GROUP_SIZE, `Máximo ${String(MAX_SIGNUP_GROUP_SIZE)}`),
+    ),
   })
   .refine((v) => v.endDate == null || v.endDate >= v.startDate, {
     message: 'La fecha de fin no puede ser anterior a la de inicio',

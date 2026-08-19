@@ -123,6 +123,13 @@ export const addWalkInRegistration = onCall<AddWalkInData, Promise<AddWalkInResu
         photoURL: null,
         personUserId: null,
         isPersonPublic: true,
+        // A walk-in is the organizer's override at the door, so it is never
+        // part of a group even on an event that requires them: the person is
+        // already standing there, and refusing them for want of a partner
+        // would be the rule serving itself.
+        groupId: null,
+        groupOwnerId: null,
+        isOpenSeat: false,
       };
       tx.set(newRef, reg);
       if (phone || Object.keys(answers).length > 0) {

@@ -3,7 +3,6 @@ import {
   getDoc,
   getDocs,
   updateDoc,
-  deleteDoc,
   query,
   orderBy,
   where,
@@ -16,8 +15,8 @@ import { httpsCallable } from 'firebase/functions';
 import { getDb, getFirebaseFunctions } from '../firebase';
 import {
   eventRegistrationsCollection,
-  eventRegistrationDoc,
   eventRegistrationPrivateDoc,
+  eventSeatTokensCollection,
 } from '../firebase/refs/client';
 import { registrationConverterClient } from '../firebase/converters/registrationConverter.client';
 import type {
@@ -100,29 +99,127 @@ export async function getUserRegistrations(
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+/**
+ * Every seat of every group the caller booked on this event — including seats a
+ * guest has since claimed, where `userId` is now the guest's. Rules scope the
+ * read to `groupOwnerId`, so that filter is load-bearing rather than a
+ * convenience: an unfiltered query is rejected.
+ */
+export async function getGroupRegistrations(
+  eventId: string,
+  userId: string,
+): Promise<(RegistrationData & { id: string })[]> {
+  const q = query(eventRegistrationsCollection(getDb(), eventId), where('groupOwnerId', '==', userId));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
 interface RegisterToEventCallableData {
   eventId: string;
   registrants: RegisterInput[];
+  openSeats?: number;
 }
 
-interface RegisterToEventCallableResult {
+/** A held seat nobody has taken yet, plus the secret that lets someone take it. */
+export interface OpenSeatSummary {
+  registrationId: string;
+  token: string;
+}
+
+export interface RegisterToEventResult {
   registrations: RegistrationSummary[];
+  openSeats: OpenSeatSummary[];
 }
 
+/**
+ * `openSeats` only applies to an event with `signupGroupSize > 1`, where
+ * `registrants.length + openSeats` must equal that size exactly — one group per
+ * call. Each open seat comes back with a single-use claim token to share.
+ */
 export async function registerToEvent(
   eventId: string,
   registrants: RegisterInput[],
-): Promise<RegistrationSummary[]> {
-  const callable = httpsCallable<RegisterToEventCallableData, RegisterToEventCallableResult>(
+  openSeats = 0,
+): Promise<RegisterToEventResult> {
+  const callable = httpsCallable<RegisterToEventCallableData, RegisterToEventResult>(
     getFirebaseFunctions(),
     'registerToEvent',
   );
-  const res = await callable({ eventId, registrants });
-  return res.data.registrations;
+  const res = await callable({ eventId, registrants, openSeats });
+  return res.data;
 }
 
-export async function cancelRegistration(eventId: string, regId: string): Promise<void> {
-  await deleteDoc(eventRegistrationDoc(getDb(), eventId, regId));
+export interface CancelRegistrationResult {
+  /**
+   * `delete-group` when the whole group went with it (the group owner or an
+   * organizer cancelled); `release-seat` when a guest handed their seat back
+   * and it is claimable again; `delete-solo` for an ordinary registration.
+   */
+  action: 'delete-solo' | 'delete-group' | 'release-seat';
+  removedRegistrationIds: string[];
+}
+
+/**
+ * Cancels a registration. Goes through a callable rather than a direct delete
+ * because a group is atomic — see functions/src/events/cancelRegistration.ts.
+ * `firestore.rules` denies client deletes on registrations outright.
+ */
+export async function cancelRegistration(
+  eventId: string,
+  regId: string,
+): Promise<CancelRegistrationResult> {
+  const callable = httpsCallable<
+    { eventId: string; registrationId: string },
+    CancelRegistrationResult
+  >(getFirebaseFunctions(), 'cancelRegistration');
+  const res = await callable({ eventId, registrationId: regId });
+  return res.data;
+}
+
+export interface ClaimSeatInput {
+  personId: string;
+  name: string;
+  phone?: string;
+  answers?: SignupAnswers;
+}
+
+export interface ClaimSeatResult {
+  registrationId: string;
+  status: RegistrationStatus;
+  eventId: string;
+}
+
+/** Turns a held open seat into the caller's own registration. */
+export async function claimEventSeat(
+  eventId: string,
+  token: string,
+  input: ClaimSeatInput,
+): Promise<ClaimSeatResult> {
+  const callable = httpsCallable<
+    { eventId: string; token: string } & ClaimSeatInput,
+    ClaimSeatResult
+  >(getFirebaseFunctions(), 'claimEventSeat');
+  const res = await callable({ eventId, token, ...input });
+  return res.data;
+}
+
+/**
+ * The caller's own outstanding claim links for an event, so the sign-up sheet
+ * can re-offer a link after the app is closed and reopened. Rules scope reads
+ * to the token's creator, so the `createdBy` filter is load-bearing, not a
+ * convenience — an unfiltered query is rejected outright.
+ */
+export async function getMySeatTokens(
+  eventId: string,
+  userId: string,
+): Promise<{ token: string; registrationId: string; consumed: boolean }[]> {
+  const q = query(eventSeatTokensCollection(getDb(), eventId), where('createdBy', '==', userId));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({
+    token: d.id,
+    registrationId: d.data().registrationId,
+    consumed: d.data().consumedAt !== null,
+  }));
 }
 
 // Organizer toggles attendance. updateDoc bypasses the converter, so the

@@ -13,6 +13,7 @@ import {
   getUserViewLink,
   getPlaceViewLink,
   getBarrioViewLink,
+  getSeatClaimLink,
   parseLink,
   buildShareMessage,
 } from '../../src/services/deepLinkService';
@@ -307,5 +308,44 @@ describe('deepLinkService.buildShareMessage', () => {
     expect(buildShareMessage(link, t, 'María García')).toBe(
       `Mira el perfil de María García: ${link.url}`,
     );
+  });
+});
+
+describe('seat-claim links', () => {
+  it('builds the claim URL from the event and the token', () => {
+    expect(getSeatClaimLink('evt_123', 'tok_abc')).toEqual({
+      url: 'https://example.test.app/event/evt_123/claim/tok_abc',
+      kind: 'invite',
+      resource: 'event',
+      id: 'evt_123',
+      token: 'tok_abc',
+    });
+  });
+
+  it('refuses to build a link without a token', () => {
+    expect(() => getSeatClaimLink('evt_123', '')).toThrow(/token/);
+  });
+
+  it('round-trips through parseLink', () => {
+    const link = getSeatClaimLink('evt_123', 'tok_abc');
+    expect(parseLink(link.url)).toEqual({
+      kind: 'invite',
+      resource: 'event',
+      id: 'evt_123',
+      token: 'tok_abc',
+    });
+  });
+
+  it('parses the custom-scheme form too', () => {
+    expect(parseLink('cultuvilla://event/evt_123/claim/tok_abc')).toEqual({
+      kind: 'invite',
+      resource: 'event',
+      id: 'evt_123',
+      token: 'tok_abc',
+    });
+  });
+
+  it('does not mistake an unrelated four-segment event path for a claim', () => {
+    expect(parseLink('https://example.test.app/event/evt_123/other/x')).toBeNull();
   });
 });

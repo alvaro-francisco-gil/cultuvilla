@@ -34,6 +34,9 @@ const registration = {
   photoURL: null,
   personUserId: null,
   isPersonPublic: true,
+  groupId: null,
+  groupOwnerId: null,
+  isOpenSeat: false,
 };
 
 const props = {

@@ -4,6 +4,7 @@ import {
   RegistrationDataSchema,
   RegistrationStatusSchema,
   buildRegistrationData,
+  OPEN_SEAT_NAME,
 } from '../../../src/models/event/RegistrationDataModel';
 
 const validRegistration = {
@@ -131,5 +132,50 @@ describe('roster denormalization', () => {
       isPersonPublic: false,
     });
     expect(built.isPersonPublic).toBe(false);
+  });
+});
+
+describe('buildRegistrationData — group fields', () => {
+  it('defaults an ordinary registration to no group at all', () => {
+    const reg = buildRegistrationData({
+      userId: 'u1',
+      personId: 'p1',
+      name: 'Ana',
+      status: 'confirmed',
+      position: 1,
+    });
+    expect(reg.groupId).toBeNull();
+    expect(reg.groupOwnerId).toBeNull();
+    expect(reg.isOpenSeat).toBe(false);
+  });
+
+  it('carries group membership and the open-seat flag through', () => {
+    const seat = buildRegistrationData({
+      userId: 'u1',
+      personId: '',
+      name: OPEN_SEAT_NAME,
+      status: 'confirmed',
+      position: 2,
+      groupId: 'g1',
+      groupOwnerId: 'u1',
+      isOpenSeat: true,
+    });
+    expect(seat).toMatchObject({ groupId: 'g1', groupOwnerId: 'u1', isOpenSeat: true });
+  });
+
+  it('parses a stored registration written before group sign-ups existed', () => {
+    // The strict converter runs schema.parse on every read, so a doc missing
+    // these keys must default rather than throw and take the roster down.
+    const parsed = RegistrationDataSchema.parse({
+      userId: 'u1',
+      personId: 'p1',
+      name: 'Ana',
+      status: 'confirmed',
+      position: 1,
+      registeredAt: new Date(),
+      isMember: false,
+      checkedInAt: null,
+    });
+    expect(parsed).toMatchObject({ groupId: null, groupOwnerId: null, isOpenSeat: false });
   });
 });

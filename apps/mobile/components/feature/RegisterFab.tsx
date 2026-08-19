@@ -3,12 +3,22 @@ import { Animated, Pressable as RNPressable, Text } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { showAlert, showConfirm } from '../../lib/dialogs';
 import { AttendeeSheet, type AttendeeOption } from './AttendeeSheet';
-import { computeRegistrationDiff, type AttendeeDiff, type AttendeeRegistration } from './attendeeDiff';
+import { GroupSignupSheet, type MyGroupSeat } from './GroupSignupSheet';
+import {
+  computeRegistrationDiff,
+  indexRegistrationsByPerson,
+  type AttendeeDiff,
+  type AttendeeRegistration,
+} from './attendeeDiff';
 import {
   cancelRegistration,
+  getGroupRegistrations,
+  getMySeatTokens,
   getUserRegistrations,
   registerToEvent,
 } from '@cultuvilla/shared/services/registrationService';
+import { getSeatClaimLink } from '@cultuvilla/shared/services/deepLinkService';
+import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
 import type { SignupAnswers, SignupFieldSpec } from '@cultuvilla/shared/models/event/SignupFieldModel';
 import { buildNameWithNickname, type PersonData } from '@cultuvilla/shared/models/person';
@@ -31,6 +41,8 @@ export interface RegisterFabProps {
   signupFields?: SignupFieldSpec[];
   /** The event's municipality — threaded into signup observability events. */
   villageId?: string;
+  /** `signupGroupSize`: > 1 switches the FAB to the group sign-up sheet. */
+  groupSize?: number;
 }
 
 type PersonDoc = PersonData & { id: string };
@@ -44,15 +56,18 @@ type PersonDoc = PersonData & { id: string };
  *
  * Styles live on `style` (never `className`) so the pill renders on RN-Web.
  */
-export function RegisterFab({ eventId, userId, personId, name, telephoneRequired, signupFields, villageId }: RegisterFabProps) {
+export function RegisterFab({ eventId, userId, personId, name, telephoneRequired, signupFields, villageId, groupSize = 1 }: RegisterFabProps) {
   const { t } = useT();
   const { refresh: refreshRegistrations } = useMyRegistrations();
+  const shareDeepLink = useShareDeepLink();
   const [registrations, setRegistrations] = useState<Map<string, AttendeeRegistration>>(new Map());
   const [dependents, setDependents] = useState<PersonDoc[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [autoSelectIds, setAutoSelectIds] = useState<string[]>([]);
+  const [mySeats, setMySeats] = useState<MyGroupSeat[]>([]);
   const knownDepIds = useRef<Set<string>>(new Set());
+  const isGroupEvent = groupSize > 1;
 
   // Load the caller's registrations + personas a cargo. Runs on focus so a
   // dependent created via /person/new shows up on return.
@@ -68,9 +83,42 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
     ]);
 
     if (regsResult.status === 'fulfilled') {
-      const map = new Map<string, AttendeeRegistration>();
-      regsResult.value.forEach((r) => map.set(r.personId, { regId: r.id, status: r.status }));
-      setRegistrations(map);
+      // Open seats are deliberately kept out of this map — see
+      // indexRegistrationsByPerson.
+      setRegistrations(indexRegistrationsByPerson(regsResult.value));
+
+      if (isGroupEvent) {
+        // Two reads, unioned by doc id. A claimed seat's `userId` is the
+        // guest's, so getUserRegistrations alone would drop it from the
+        // owner's group; getGroupRegistrations catches every seat they booked.
+        // Both are best-effort — the seat list must survive either failing.
+        const [groupSeats, tokens] = await Promise.allSettled([
+          withFirestoreErrorLog('event:getGroupRegistrations', () =>
+            getGroupRegistrations(eventId, userId),
+          ),
+          getMySeatTokens(eventId, userId),
+        ]);
+        const tokenByReg =
+          tokens.status === 'fulfilled'
+            ? new Map(
+                tokens.value.filter((tk) => !tk.consumed).map((tk) => [tk.registrationId, tk.token]),
+              )
+            : new Map<string, string>();
+
+        const byId = new Map(regsResult.value.map((r) => [r.id, r]));
+        if (groupSeats.status === 'fulfilled') {
+          for (const r of groupSeats.value) byId.set(r.id, r);
+        }
+        setMySeats(
+          [...byId.values()].map((r) => ({
+            regId: r.id,
+            name: r.name,
+            status: r.status,
+            isOpenSeat: r.isOpenSeat,
+            ...(tokenByReg.has(r.id) ? { token: tokenByReg.get(r.id) as string } : {}),
+          })),
+        );
+      }
     }
 
     if (depsResult.status === 'fulfilled') {
@@ -82,7 +130,7 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
       knownDepIds.current = new Set(filtered.map((d) => d.id));
       setDependents(filtered);
     }
-  }, [eventId, userId, personId]);
+  }, [eventId, userId, personId, isGroupEvent]);
 
   useFocusEffect(
     useCallback(() => {
@@ -118,7 +166,7 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
             ...(answers && Object.keys(answers).length > 0 ? { answers } : {}),
           };
         });
-        const summaries = await registerToEvent(eventId, registrants);
+        const { registrations: summaries } = await registerToEvent(eventId, registrants);
         succeeded = true;
         summaries.forEach((s, i) => {
           const pid = diff.toAdd[i]?.personId;
@@ -145,6 +193,67 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
     } finally {
       setBusy(false);
     }
+  }
+
+  async function applyGroup(
+    selectedIds: string[],
+    openSeats: number,
+    phone?: string,
+    answersByPersonId?: Record<string, SignupAnswers>,
+  ) {
+    setBusy(true);
+    let succeeded = false;
+    try {
+      const registrants = selectedIds.map((pid) => {
+        const answers = answersByPersonId?.[pid];
+        return {
+          personId: pid,
+          name: names.get(pid) ?? '',
+          ...(phone ? { phone } : {}),
+          ...(answers && Object.keys(answers).length > 0 ? { answers } : {}),
+        };
+      });
+      // One call for the whole group — that is what lets the server seat it
+      // atomically instead of racing seat by seat against the capacity.
+      const result = await registerToEvent(eventId, registrants, openSeats);
+      succeeded = true;
+      observability.trackEvent(OBSERVABILITY_EVENTS.EVENT_SIGNUP_SUCCESS, { villageId });
+      setAutoSelectIds([]);
+      await load();
+      refreshRegistrations();
+      // Straight into the share sheet for the first open seat: a link nobody
+      // sends is a seat nobody takes, and the user is holding it either way.
+      const firstToken = result.openSeats[0]?.token;
+      if (firstToken) await shareSeat(firstToken);
+      else setSheetOpen(false);
+    } catch (e) {
+      if (!succeeded) observability.trackEvent(OBSERVABILITY_EVENTS.EVENT_SIGNUP_ERROR, { villageId });
+      showAlert(e instanceof Error ? e.message : 'unknown', t('event.register.error'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function shareSeat(token: string) {
+    await shareDeepLink(getSeatClaimLink(eventId, token), name);
+  }
+
+  function handleCancelGroup(regId: string) {
+    showConfirm(t('event.group.cancelTitle'), t('event.group.cancelBody'), () => {
+      void (async () => {
+        setBusy(true);
+        try {
+          await cancelRegistration(eventId, regId);
+          await load();
+          refreshRegistrations();
+          setSheetOpen(false);
+        } catch (e) {
+          showAlert(e instanceof Error ? e.message : 'unknown', t('event.register.error'));
+        } finally {
+          setBusy(false);
+        }
+      })();
+    }, { confirmText: t('event.register.cancelConfirm'), cancelText: t('common.cancel') });
   }
 
   function handleConfirm(
@@ -237,17 +346,37 @@ export function RegisterFab({ eventId, userId, personId, name, telephoneRequired
         ))}
       </Animated.View>
 
-      <AttendeeSheet
-        visible={sheetOpen}
-        attendees={attendees}
-        telephoneRequired={telephoneRequired}
-        signupFields={signupFields}
-        busy={busy}
-        autoSelectIds={autoSelectIds}
-        onClose={() => setSheetOpen(false)}
-        onCreateNew={() => router.push('/person/new')}
-        onConfirm={handleConfirm}
-      />
+      {isGroupEvent ? (
+        <GroupSignupSheet
+          visible={sheetOpen}
+          groupSize={groupSize}
+          attendees={attendees}
+          mySeats={mySeats}
+          telephoneRequired={telephoneRequired}
+          signupFields={signupFields}
+          busy={busy}
+          autoSelectIds={autoSelectIds}
+          onClose={() => setSheetOpen(false)}
+          onCreateNew={() => router.push('/person/new')}
+          onShareSeat={(token) => void shareSeat(token)}
+          onCancelGroup={handleCancelGroup}
+          onConfirm={(ids, openSeats, phone, answers) =>
+            void applyGroup(ids, openSeats, phone, answers)
+          }
+        />
+      ) : (
+        <AttendeeSheet
+          visible={sheetOpen}
+          attendees={attendees}
+          telephoneRequired={telephoneRequired}
+          signupFields={signupFields}
+          busy={busy}
+          autoSelectIds={autoSelectIds}
+          onClose={() => setSheetOpen(false)}
+          onCreateNew={() => router.push('/person/new')}
+          onConfirm={handleConfirm}
+        />
+      )}
     </>
   );
 }

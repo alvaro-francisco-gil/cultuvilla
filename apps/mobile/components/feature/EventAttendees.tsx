@@ -73,6 +73,7 @@ export function EventAttendees({
   telephoneRequired,
   requiresPayment,
   signupFields = [],
+  groupSize = 1,
   canManage,
 }: {
   eventId: string;
@@ -82,6 +83,8 @@ export function EventAttendees({
   requiresPayment: boolean;
   /** The event's custom sign-up fields; answers are listed under each row. */
   signupFields?: SignupFieldSpec[];
+  /** `signupGroupSize`: > 1 means rows can be unclaimed open seats. */
+  groupSize?: number;
   /** Organizer set / village admin / app admin: unlocks the ops affordances. */
   canManage: boolean;
 }) {
@@ -142,6 +145,8 @@ export function EventAttendees({
   // their read-only person card. A walk-in (no person, no account) and an
   // anonymized row simply aren't tappable.
   const profileHref = (r: Row) => {
+    // An open seat has no person behind it yet; there is nowhere to go.
+    if (r.isOpenSeat) return null;
     if (isAnonymous(r)) return null;
     if (r.personUserId) return `/user/${r.personUserId}`;
     return r.personId ? `/person/${r.personId}` : null;
@@ -150,16 +155,20 @@ export function EventAttendees({
   const renderRow = (r: Row) => {
     const href = profileHref(r);
     const anonymous = isAnonymous(r);
-    const displayName = anonymous ? t('event.attendeePrivate') : r.name;
+    const displayName = r.isOpenSeat
+      ? t('event.group.openSeat')
+      : anonymous
+        ? t('event.attendeePrivate')
+        : r.name;
     // registeredAt is a required field on every stored registration; the guard
     // is for partially-mocked rows in tests, not for real data.
     const signedUpAt = r.registeredAt ? formatDate(r.registeredAt, 'datetime') : null;
     const identity = (
       <>
         <Avatar
-          uri={anonymous ? null : r.photoURL}
+          uri={anonymous || r.isOpenSeat ? null : r.photoURL}
           size={36}
-          initials={anonymous ? '·' : displayName.slice(0, 1).toUpperCase()}
+          initials={anonymous || r.isOpenSeat ? '·' : displayName.slice(0, 1).toUpperCase()}
         />
         <VStack gap={0} className="flex-1">
           <Text numberOfLines={1} tone={anonymous ? 'muted' : undefined}>
@@ -286,6 +295,11 @@ export function EventAttendees({
       >
         {confirmed.length > 0 ? `${t('event.attendees')} (${confirmed.length})` : t('event.attendees')}
       </DetailSectionHeading>
+      {groupSize > 1 ? (
+        <Text tone="muted" variant="bodySm" testID="attendees-group-note">
+          {t('event.group.rosterNote', { count: groupSize })}
+        </Text>
+      ) : null}
       {rows && confirmed.length === 0 ? (
         <Text tone="muted" variant="bodySm">
           {t('event.attendeesEmpty')}

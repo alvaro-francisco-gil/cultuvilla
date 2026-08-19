@@ -49,11 +49,14 @@ describe('firestore.rules — event organizer (contacts, check-in, removal)', ()
     await assertSucceeds(updateDoc(doc(alice, `events/${E}/registrations/r1`), { checkedInAt: new Date() }));
   });
 
-  it('organizer can remove a registration; a stranger cannot', async () => {
-    const stranger = asUser(getEnv(), 'stranger');
-    await assertFails(deleteDoc(doc(stranger, `events/${E}/registrations/r1`)));
-    const boss = asUser(getEnv(), 'boss');
-    await assertSucceeds(deleteDoc(doc(boss, `events/${E}/registrations/r1`)));
+  it('nobody deletes a registration from the client — not even the organizer', async () => {
+    // Cancellation moved into the cancelRegistration callable: a group is
+    // atomic, and rules can neither read the sibling seats nor require the
+    // companion deletes, so no client delete can be trusted.
+    for (const uid of ['stranger', 'alice', 'boss', 'villageboss']) {
+      const db = asUser(getEnv(), uid);
+      await assertFails(deleteDoc(doc(db, `events/${E}/registrations/r1`)));
+    }
   });
 
   it('nobody can write a registrationPrivate doc from the client', async () => {

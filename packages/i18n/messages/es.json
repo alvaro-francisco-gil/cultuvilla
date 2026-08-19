@@ -619,6 +619,38 @@
       "requestOrganizer": "Solicitar administrar este pueblo",
       "browseOrgs": "Ver grupos"
     },
+    "signupGroupSize": "Inscripción por grupos",
+    "signupGroupSizeHelp": "Cuántas personas se apuntan juntas. Se confirman o esperan siempre en bloque.",
+    "signupGroupSizeSolo": "Individual",
+    "signupGroupSizeLocked": "No se puede cambiar: ya hay gente apuntada.",
+    "group": {
+      "title": "{count, plural, one {Apúntate} other {Apuntaos en grupo de #}}",
+      "remaining": "{count, plural, one {Queda # plaza por asignar} other {Quedan # plazas por asignar}}",
+      "complete": "Grupo completo. Ya puedes confirmar.",
+      "inviteSeat": "Invitar a alguien",
+      "inviteSeatHelp": "Guarda la plaza y comparte un enlace para que la ocupe.",
+      "inviteSeatMore": "Añadir una plaza por invitación",
+      "inviteSeatLess": "Quitar una plaza por invitación",
+      "openSeat": "Plaza libre",
+      "share": "Compartir",
+      "summaryHelp": "Tu grupo en este evento. Comparte el enlace de las plazas libres.",
+      "cancel": "Cancelar el grupo",
+      "cancelTitle": "Cancelar el grupo",
+      "cancelBody": "Se cancelarán todas las plazas del grupo, incluidas las que ya haya ocupado alguien.",
+      "rosterNote": "Este evento se apunta en grupos de {count}."
+    },
+    "claim": {
+      "title": "Ocupar una plaza",
+      "intro": "Te han guardado una plaza en este evento, que se apunta en grupos de {count}.",
+      "claimingAs": "Ocuparás la plaza como {name}.",
+      "confirm": "Ocupar la plaza",
+      "signIn": "Entrar para ocupar la plaza",
+      "authReason": "Entra para ocupar la plaza que te han guardado",
+      "invalid": "Esta invitación no es válida o ya se ha usado.",
+      "successTitle": "¡Plaza ocupada!",
+      "successBody": "Ya estás apuntado a «{title}».",
+      "goToEvent": "Ver el evento"
+    },
     "register": {
       "cta": "Apuntarme",
       "done": "¡Apuntado!",
@@ -995,7 +1027,10 @@
   },
   "deeplink": {
     "share": {
-      "event": { "view": "Mira «{name}» en Cultuvilla: {url}" },
+      "event": {
+        "view": "Mira «{name}» en Cultuvilla: {url}",
+        "invite": "Te he guardado una plaza en «{name}» en Cultuvilla: {url}"
+      },
       "news": { "view": "Mira «{name}» en Cultuvilla: {url}" },
       "village": { "view": "Mira {name} en Cultuvilla: {url}" },
       "organization": {

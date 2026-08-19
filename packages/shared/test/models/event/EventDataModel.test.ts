@@ -6,6 +6,8 @@ import {
   isEventSignupOpen,
   isEventOngoing,
   isStartDayOver,
+  isGroupSignupEvent,
+  MAX_SIGNUP_GROUP_SIZE,
 } from '../../../src/models/event/EventDataModel';
 
 const validEvent = {
@@ -262,5 +264,46 @@ describe('attendeesVisibility', () => {
     expect(() =>
       EventDataSchema.parse({ ...validEvent, attendeesVisibility: 'public' }),
     ).toThrow();
+  });
+});
+
+function baseEventInput() {
+  return {
+    title: 'X',
+    description: 'Y',
+    startDate: new Date('2026-06-15T18:00:00Z'),
+    location: { coordinates: { lat: 1, lng: 2 }, displayName: 'Plaza' },
+    organizerUserIds: ['u'],
+    organizerOrgIds: [],
+    createdBy: 'u',
+    municipalityId: 'm',
+    villageName: 'M',
+    villageCoordinates: { lat: 1, lng: 2 },
+  };
+}
+
+describe('signupGroupSize', () => {
+  it('defaults to individual sign-up', () => {
+    const event = buildEventData(baseEventInput());
+    expect(event.signupGroupSize).toBe(1);
+    expect(isGroupSignupEvent(event)).toBe(false);
+  });
+
+  it('carries a group size through and reports it as a group event', () => {
+    const event = buildEventData({ ...baseEventInput(), signupGroupSize: 2 });
+    expect(event.signupGroupSize).toBe(2);
+    expect(isGroupSignupEvent(event)).toBe(true);
+  });
+
+  it('parses an event stored before group sign-ups existed', () => {
+    const { signupGroupSize: _omitted, ...stored } = buildEventData(baseEventInput());
+    expect(EventDataSchema.parse(stored).signupGroupSize).toBe(1);
+  });
+
+  it('rejects a group size past the cap or below one', () => {
+    const stored = buildEventData(baseEventInput());
+    for (const size of [0, MAX_SIGNUP_GROUP_SIZE + 1, 2.5]) {
+      expect(() => EventDataSchema.parse({ ...stored, signupGroupSize: size })).toThrow();
+    }
   });
 });
