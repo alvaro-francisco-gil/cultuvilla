@@ -38,8 +38,9 @@ import { DeleteHeaderButton } from '../../components/feature/DeleteHeaderButton'
 import { roundUpToMinuteStep } from '../../lib/date/clockGrid';
 import { MAX_SIGNUP_GROUP_SIZE } from '@cultuvilla/shared/models/event/EventDataModel';
 
-/** 1 (solo) plus every allowed group size — parejas, tríos, grupos de cuatro. */
-const GROUP_SIZE_CHOICES = Array.from({ length: MAX_SIGNUP_GROUP_SIZE }, (_, i) => i + 1);
+/** Every real group size — parejas, tríos, grupos de cuatro. Size 1 isn't a
+ *  choice here: it's what the "inscripción por grupos" toggle being off means. */
+const GROUP_SIZE_CHOICES = Array.from({ length: MAX_SIGNUP_GROUP_SIZE - 1 }, (_, i) => i + 2);
 
 /** Nearest joined village to a coordinate (by great-circle distance), or null. */
 function nearestVillage(c: LatLng, villages: VillageOption[]): VillageOption | null {
@@ -69,35 +70,47 @@ function stepBody(children: React.ReactNode) {
 }
 
 /**
- * Label + yes/no switch on one line, with the field's explanation parked behind
- * an "ⓘ" instead of a paragraph under the row. The Detalles step is a list of
- * decisions; spelling each one out inline pushed the controls below the fold.
+ * A yes/no field, laid out exactly like `Input`: `FieldLabel` on its own line,
+ * control underneath (see the primitive's `VStack gap={1}`). Every control in
+ * the form reads the same way down the left edge, rather than switches being
+ * right-aligned rows and text fields being stacked ones.
+ *
+ * The field's explanation lives behind an "ⓘ" instead of a paragraph under the
+ * control — the Detalles step is a list of decisions, and spelling each one out
+ * inline pushed the controls themselves below the fold.
  */
-function ToggleRow({
+function ToggleField({
   label,
   help,
   value,
   onValueChange,
+  disabled,
   testID,
 }: {
   label: string;
   help?: string;
   value: boolean;
   onValueChange: (next: boolean) => void;
+  disabled?: boolean;
   testID: string;
 }) {
   const { t } = useT();
   return (
-    <HStack className="items-center justify-between py-1">
-      <HStack gap={1} className="flex-1 items-center">
-        <Text>{label}</Text>
+    <VStack gap={1}>
+      <HStack gap={1} className="items-center">
+        <FieldLabel>{label}</FieldLabel>
         {help ? <InfoTooltip title={label} text={help} testID={`${testID}-info`} /> : null}
       </HStack>
       <HStack gap={2} className="items-center">
+        <Toggle
+          value={value}
+          onValueChange={onValueChange}
+          disabled={disabled}
+          testID={testID}
+        />
         <Text tone="muted">{value ? t('common.yes') : t('common.no')}</Text>
-        <Toggle value={value} onValueChange={onValueChange} testID={testID} />
       </HStack>
-    </HStack>
+    </VStack>
   );
 }
 
@@ -474,6 +487,17 @@ export default function NewEventScreen() {
       render: () => stepBody(
         <>
           <Input label={t('event.title')} value={title} onChangeText={setTitle} testID="event-title" />
+          <VStack gap={1}>
+            <FieldLabel>{t('event.imageLabel')}</FieldLabel>
+            <EventCoverPicker
+              uri={cover?.previewUri ?? existingImageURL}
+              label={cover || existingImageURL ? t('event.changeImage') : t('event.addImage')}
+              onPress={async () => {
+                const n = await pickImageAsBlob();
+                if (n) setCover(n);
+              }}
+            />
+          </VStack>
           <Input
             label={t('event.description')}
             value={description}
@@ -491,15 +515,6 @@ export default function NewEventScreen() {
               onChangeOrgs={setOrganizerOrgIds}
             />
           ) : null}
-          <FieldLabel>{t('event.imageLabel')}</FieldLabel>
-          <EventCoverPicker
-            uri={cover?.previewUri ?? existingImageURL}
-            label={cover || existingImageURL ? t('event.changeImage') : t('event.addImage')}
-            onPress={async () => {
-              const n = await pickImageAsBlob();
-              if (n) setCover(n);
-            }}
-          />
         </>,
       ),
     },
@@ -561,7 +576,7 @@ export default function NewEventScreen() {
       icon: 'options-outline',
       render: () => stepBody(
         <>
-          <ToggleRow
+          <ToggleField
             label={t('event.signupEnabled')}
             help={t('event.signupEnabledHint')}
             value={signupEnabled}
@@ -586,66 +601,75 @@ export default function NewEventScreen() {
             onChangeText={setMaxAttendees}
             keyboardType="numeric"
           />
-          <ToggleRow
+          <ToggleField
             label={t('event.telephoneRequired')}
             value={telephoneRequired}
             onValueChange={setTelephoneRequired}
             testID="telephone-required"
           />
-          <ToggleRow
+          <ToggleField
             label={t('event.requiresPayment')}
             value={requiresPayment}
             onValueChange={setRequiresPayment}
             testID="requires-payment"
           />
-          <VStack gap={1} className="py-1">
-            <HStack gap={1} className="items-center">
-              <Text>{t('event.signupGroupSize')}</Text>
-              <InfoTooltip
-                title={t('event.signupGroupSize')}
-                text={t('event.signupGroupSizeHelp')}
-                testID="signup-group-size-info"
-              />
-            </HStack>
-            <HStack gap={2} className="items-center">
-              {GROUP_SIZE_CHOICES.map((size) => {
-                const active = signupGroupSize === size;
-                return (
-                  <Pressable
-                    key={size}
-                    testID={`group-size-${String(size)}`}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: active, disabled: groupSizeLocked }}
-                    disabled={groupSizeLocked}
-                    onPress={() => setSignupGroupSize(size)}
-                    className={`flex-1 items-center rounded-lg border py-2 ${
-                      active ? 'border-accent bg-surface' : 'border-subtle'
-                    } ${groupSizeLocked ? 'opacity-50' : ''}`}
-                  >
-                    <Text tone={active ? undefined : 'muted'}>
-                      {size === 1 ? t('event.signupGroupSizeSolo') : String(size)}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </HStack>
-            {/* Not tucked into the tooltip: this one explains why the control
-                in front of you is dead, so it has to be visible. */}
-            {groupSizeLocked ? (
-              <Text variant="bodySm" tone="muted">
-                {t('event.signupGroupSizeLocked')}
-              </Text>
-            ) : null}
-          </VStack>
-          </>
+          {/* Group sign-up is a yes/no first and a size second. Folding "1" into
+              the size row made the common case (ordinary individual sign-up)
+              look like a setting you had to understand before you could skip
+              it. Turning it on picks the smallest real group; turning it off
+              returns the event to 1. */}
+          <ToggleField
+            label={t('event.signupGroupSize')}
+            help={t('event.signupGroupSizeHelp')}
+            value={signupGroupSize > 1}
+            onValueChange={(on) => setSignupGroupSize(on ? GROUP_SIZE_CHOICES[0]! : 1)}
+            disabled={groupSizeLocked}
+            testID="signup-group-size"
+          />
+          {signupGroupSize > 1 ? (
+            <VStack gap={1}>
+              <FieldLabel>{t('event.signupGroupSizeCount')}</FieldLabel>
+              <HStack gap={2} className="items-center">
+                {GROUP_SIZE_CHOICES.map((size) => {
+                  const active = signupGroupSize === size;
+                  return (
+                    <Pressable
+                      key={size}
+                      testID={`group-size-${String(size)}`}
+                      accessibilityRole="radio"
+                      accessibilityLabel={`${t('event.signupGroupSizeCount')}: ${String(size)}`}
+                      accessibilityState={{ selected: active, disabled: groupSizeLocked }}
+                      disabled={groupSizeLocked}
+                      onPress={() => setSignupGroupSize(size)}
+                      className={`flex-1 items-center rounded-lg border py-2 ${
+                        active ? 'border-accent bg-surface' : 'border-subtle'
+                      } ${groupSizeLocked ? 'opacity-50' : ''}`}
+                    >
+                      <Text tone={active ? undefined : 'muted'}>{size}</Text>
+                    </Pressable>
+                  );
+                })}
+              </HStack>
+            </VStack>
           ) : null}
-          <ToggleRow
+          {/* Not tucked into the tooltip: this one explains why the control
+              in front of you is dead, so it has to be visible. */}
+          {groupSizeLocked ? (
+            <Text variant="bodySm" tone="muted">
+              {t('event.signupGroupSizeLocked')}
+            </Text>
+          ) : null}
+          {/* Governs who can see the sign-up list, so it belongs to sign-ups:
+              with them off there is no list for it to be about. */}
+          <ToggleField
             label={t('event.attendeesPublic')}
             help={t('event.attendeesPublicHint')}
             value={attendeesPublic}
             onValueChange={setAttendeesPublic}
             testID="attendees-public"
           />
+          </>
+          ) : null}
         </>,
       ),
     },

@@ -178,18 +178,56 @@ describe('NewEventScreen stepper', () => {
     const signupEnabled = await waitFor(() => getByTestId('signup-enabled'));
     expect(getByTestId('telephone-required')).toBeTruthy();
     expect(getByTestId('requires-payment')).toBeTruthy();
-    expect(getByTestId('group-size-2')).toBeTruthy();
+    expect(getByTestId('signup-group-size')).toBeTruthy();
+    expect(getByTestId('attendees-public')).toBeTruthy();
     expect(queryByTestId('signup-info')).toBeNull();
 
     fireEvent.press(signupEnabled);
 
     expect(queryByTestId('telephone-required')).toBeNull();
     expect(queryByTestId('requires-payment')).toBeNull();
-    expect(queryByTestId('group-size-2')).toBeNull();
+    expect(queryByTestId('signup-group-size')).toBeNull();
+    // The attendee-list toggle governs who can see the sign-up list, so it goes
+    // with them: with sign-ups off there is no list for it to be about.
+    expect(queryByTestId('attendees-public')).toBeNull();
     // The organizer's note takes their place...
     expect(getByTestId('signup-info')).toBeTruthy();
     // ...and Preguntas drops out, making Detalles the final step.
     expect(getByTestId('event-form-primary')).toHaveTextContent('event.createEvent');
+  });
+
+  // Group sign-up is a yes/no first and a size second. Folding "1" into the size
+  // row made ordinary individual sign-up — the common case — look like a setting
+  // you had to understand before you could skip it.
+  it('asks whether sign-ups are by group before asking how big a group is', async () => {
+    const { getByText, getByLabelText, getByTestId, queryByTestId } = render(<NewEventScreen />);
+    await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
+    fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('startDate')).toBeTruthy());
+    fireEvent.press(getByTestId('startDate'));
+    fireEvent.press(getByTestId('location-field'));
+    fireEvent.press(getByText('common.stepper.next'));
+
+    // Off by default: the toggle is there, no size to pick, and no "1" choice.
+    const groupToggle = await waitFor(() => getByTestId('signup-group-size'));
+    expect(groupToggle.props.accessibilityState.checked).toBe(false);
+    expect(queryByTestId('group-size-1')).toBeNull();
+    expect(queryByTestId('group-size-2')).toBeNull();
+
+    // On: the sizes appear, smallest real group pre-selected.
+    fireEvent.press(groupToggle);
+    expect(getByTestId('group-size-2').props.accessibilityState.selected).toBe(true);
+    expect(getByTestId('group-size-4')).toBeTruthy();
+    expect(queryByTestId('group-size-1')).toBeNull();
+
+    fireEvent.press(getByTestId('group-size-4'));
+    expect(getByTestId('group-size-4').props.accessibilityState.selected).toBe(true);
+
+    // Off again: the sizes go away and the event is back to individual sign-up.
+    fireEvent.press(groupToggle);
+    expect(queryByTestId('group-size-2')).toBeNull();
+    expect(getByTestId('signup-group-size').props.accessibilityState.checked).toBe(false);
   });
 
   // The Detalles step used to spell out how sign-ups and group sign-ups work in

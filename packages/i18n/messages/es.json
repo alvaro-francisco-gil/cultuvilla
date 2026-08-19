@@ -628,7 +628,7 @@
     },
     "signupGroupSize": "Inscripción por grupos",
     "signupGroupSizeHelp": "Cuántas personas se apuntan juntas. Se confirman o esperan siempre en bloque.",
-    "signupGroupSizeSolo": "Individual",
+    "signupGroupSizeCount": "Personas por grupo",
     "signupGroupSizeLocked": "No se puede cambiar: ya hay gente apuntada.",
     "group": {
       "title": "{count, plural, one {Apúntate} other {Apuntaos en grupo de #}}",
