@@ -329,7 +329,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
                 resizeMode="cover"
               />
               {village.locationLabel ? (
-                <Text variant="bodySm" tone="muted" className="mt-1">
+                <Text variant="bodySm" tone="muted" className="mt-1 text-right">
                   {village.locationLabel}
                 </Text>
               ) : null}
