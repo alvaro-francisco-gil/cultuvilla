@@ -2,7 +2,7 @@
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import NewEventScreen from '../new';
 import { pickImageAsBlob } from '../../../lib/images';
-import { createEvent, updateEvent } from '@cultuvilla/shared/services/eventService';
+import { createEvent, updateEvent, getEvent } from '@cultuvilla/shared/services/eventService';
 import { uploadEventImage } from '@cultuvilla/shared/services/imageService';
 
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
@@ -12,9 +12,14 @@ jest.mock('../../../lib/auth/useAuth', () => ({
 jest.mock('../../../lib/firestoreErrorLog', () => ({
   withFirestoreErrorLog: (_label: string, fn: () => unknown) => fn(),
 }));
+const mockParams: { eventId?: string; villageId?: string } = {};
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn() },
-  useLocalSearchParams: () => ({}),
+  useLocalSearchParams: () => mockParams,
+  Redirect: ({ href }: { href: string }) => {
+    const { Text } = require('react-native');
+    return <Text testID="redirect">{href}</Text>;
+  },
 }));
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
@@ -58,9 +63,12 @@ jest.mock('../../../lib/auth/useEntityCapabilities', () => ({
   }),
 }));
 
-// Surface-level stubs for the composed step components.
+// Surface-level stubs for the composed step components. The organizer picker
+// records its props: what the screen tells it to lock is the contract under test.
+const mockOrganizerProps: { current: { lockedUserId?: string } | null } = { current: null };
 jest.mock('../../../components/feature/OrganizerPicker', () => ({
-  OrganizerPicker: () => {
+  OrganizerPicker: (props: { lockedUserId?: string }) => {
+    mockOrganizerProps.current = props;
     const { View } = require('react-native');
     return <View testID="organizer-picker" />;
   },
@@ -374,5 +382,63 @@ describe('NewEventScreen cover upload', () => {
 
     await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
     expect(uploadEventImage).not.toHaveBeenCalled();
+  });
+});
+
+// Editing an event you don't organize is a real case: `canEdit` lets a village
+// admin in. The screen deliberately does not seed them into organizerUserIds —
+// but the picker force-inserts whatever `lockedUserId` it is handed the moment
+// its sheet is confirmed, so handing it the current user in edit mode silently
+// made the admin an organizer of someone else's event (and organizerUserIds is
+// its own clause in the event's update/delete rules, so the rights outlive the
+// admin role). Same reasoning, and the same fix, as apps/mobile/app/news/new.tsx.
+describe('NewEventScreen edit mode', () => {
+  const OTHERS_EVENT = {
+    id: 'e-9',
+    municipalityId: 'm-1',
+    villageName: 'Pueblo',
+    villageCoordinates: { lat: 1, lng: 2 },
+    title: 'Verbena',
+    description: 'Ajena',
+    startDate: new Date('2026-08-01T18:00'),
+    endDate: null,
+    location: { coordinates: { lat: 1, lng: 2 }, displayName: 'Plaza' },
+    maxAttendees: null,
+    telephoneRequired: false,
+    requiresPayment: false,
+    signupGroupSize: 1,
+    signupEnabled: true,
+    signupInfo: null,
+    attendeesVisibility: 'members' as const,
+    signupFields: [],
+    totalCount: 0,
+    // Neither the creator nor an organizer is the signed-in uid-1.
+    organizerUserIds: ['uid-2'],
+    organizerOrgIds: [],
+    createdBy: 'uid-2',
+    imageURL: null,
+  };
+
+  beforeEach(() => {
+    mockParams.eventId = 'e-9';
+    mockOrganizerProps.current = null;
+    (getEvent as jest.Mock).mockResolvedValue(OTHERS_EVENT);
+  });
+
+  afterEach(() => {
+    delete mockParams.eventId;
+  });
+
+  it('does not lock the editor into the organizer set of an event they do not organize', async () => {
+    const { getByTestId } = render(<NewEventScreen />);
+    await waitFor(() => expect(getByTestId('organizer-picker')).toBeTruthy());
+    // No lockedUserId => confirming the picker's sheet can't force-add the editor.
+    expect(mockOrganizerProps.current?.lockedUserId).toBeUndefined();
+  });
+
+  it('leaves the loaded organizer list untouched', async () => {
+    const { getByTestId } = render(<NewEventScreen />);
+    await waitFor(() => expect(getByTestId('organizer-picker')).toBeTruthy());
+    expect(mockOrganizerProps.current).toMatchObject({ selectedUserIds: ['uid-2'] });
   });
 });
