@@ -9,6 +9,9 @@ import {
 import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
 import { observability } from '@cultuvilla/shared';
 
+jest.mock('../../../lib/registrations/MyRegistrationsContext', () => ({
+  useMyRegistrations: () => ({ ribbonFor: () => null, refresh: jest.fn() }),
+}));
 jest.mock('@cultuvilla/shared', () => ({
   ...jest.requireActual('@cultuvilla/shared'),
   observability: { trackEvent: jest.fn() },

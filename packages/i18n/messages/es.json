@@ -640,6 +640,14 @@
       "confirm": "Confirmar",
       "cancelManyBody": "Vas a cancelar la inscripción de las personas que has desmarcado. ¿Continuar?",
       "answerRequired": "Completa esta pregunta"
+    },
+    "ribbon": {
+      "confirmed": "Apuntado",
+      "confirmedMany": "Apuntados ×{count}",
+      "confirmedCount": "Apuntado ×{count}",
+      "waitlisted": "En espera",
+      "waitlistedMany": "En espera ×{count}",
+      "waitlistedCount": "En espera ×{count}"
     }
   },
   "organization": {
