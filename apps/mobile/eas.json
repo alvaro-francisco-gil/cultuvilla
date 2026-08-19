@@ -13,21 +13,51 @@
     "preview-dev": {
       "distribution": "internal",
       "env": { "APP_ENV": "dev" },
-      "channel": "dev"
+      "channel": "dev",
+      "android": { "buildType": "apk" }
     },
     "preview-beta": {
       "distribution": "internal",
       "env": { "APP_ENV": "beta" },
-      "channel": "beta"
+      "channel": "beta",
+      "android": { "buildType": "apk" }
     },
     "production": {
       "environment": "production",
       "env": { "APP_ENV": "prod" },
       "channel": "production",
-      "autoIncrement": true
+      "autoIncrement": true,
+      "android": { "buildType": "app-bundle" }
     }
   },
   "submit": {
-    "production": {}
+    "internal": {
+      "android": {
+        "track": "internal",
+        "applicationId": "com.cultuvilla.app",
+        "serviceAccountKeyPath": "./google-play-service-account.json",
+        "releaseStatus": "completed"
+      }
+    },
+    "closed": {
+      "android": {
+        "track": "alpha",
+        "applicationId": "com.cultuvilla.app",
+        "serviceAccountKeyPath": "./google-play-service-account.json",
+        "releaseStatus": "completed"
+      }
+    },
+    "production": {
+      "android": {
+        "track": "production",
+        "applicationId": "com.cultuvilla.app",
+        "serviceAccountKeyPath": "./google-play-service-account.json",
+        "releaseStatus": "completed"
+      },
+      "ios": {
+        "bundleIdentifier": "com.cultuvilla.app",
+        "language": "es-ES"
+      }
+    }
   }
 }
