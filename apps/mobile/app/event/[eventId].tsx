@@ -131,7 +131,7 @@ export default function EventDetailScreen() {
       onRefresh={load}
       scrollContentClassName="pb-24"
       fab={
-        event && person && user ? (
+        event && person && user && event.signupEnabled !== false ? (
           <RegisterFab
             eventId={event.id}
             userId={user.uid}
@@ -239,7 +239,15 @@ export default function EventDetailScreen() {
               {t('guest.eventCta')}
             </Button>
           )}
-          {!person && user ? <Text tone="muted">{t('event.register.needsPerson')}</Text> : null}
+          {event.signupEnabled === false ? (
+            <VStack gap={2}>
+              <DetailSectionHeading>{t('event.signupClosedLabel')}</DetailSectionHeading>
+              <Text tone="muted">{event.signupInfo ?? t('event.signupClosedDefault')}</Text>
+            </VStack>
+          ) : null}
+          {!person && user && event.signupEnabled !== false ? (
+            <Text tone="muted">{t('event.register.needsPerson')}</Text>
+          ) : null}
           <EntityComments
             key={event.id}
             entityKind="event"

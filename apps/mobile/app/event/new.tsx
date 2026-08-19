@@ -116,6 +116,11 @@ export default function NewEventScreen() {
   // already booked were seated against the old size (firestore.rules enforces
   // the same, see isFrozenGroupSizeChange).
   const [signupGroupSize, setSignupGroupSize] = useState(1);
+  // Off = the event takes no sign-ups through the app (entrada libre, or a list
+  // kept elsewhere). `signupInfo` then replaces the sign-up button on the
+  // detail screen.
+  const [signupEnabled, setSignupEnabled] = useState(true);
+  const [signupInfo, setSignupInfo] = useState('');
   // Default on: in a pueblo, seeing who is going is what drives sign-ups.
   const [attendeesPublic, setAttendeesPublic] = useState(true);
   const [signupFields, setSignupFields] = useState<SignupFieldSpec[]>([]);
@@ -181,6 +186,8 @@ export default function NewEventScreen() {
         setTelephoneRequired(!!ev.telephoneRequired);
         setRequiresPayment(!!ev.requiresPayment);
         setSignupGroupSize(ev.signupGroupSize);
+        setSignupEnabled(ev.signupEnabled !== false);
+        setSignupInfo(ev.signupInfo ?? '');
         setAttendeesPublic(ev.attendeesVisibility !== 'organizers');
         setSignupFields(ev.signupFields ?? []);
         // Answers already collected are keyed by these ids, so once the event
@@ -277,6 +284,10 @@ export default function NewEventScreen() {
         }))
         .filter((f, i) => i < lockedFieldCount || (f.label.length > 0 && isUsableSignupField(f)));
 
+      // A note about signing up elsewhere is only meaningful with in-app
+      // sign-ups off; EventFormSchema rejects the other combination.
+      const signupInfoValue = signupInfo.trim() ? signupInfo.trim() : null;
+
       // ── Edit: patch the existing event; only touch the cover if replaced ──
       if (editMode && eventId) {
         await updateEvent(eventId, {
@@ -288,6 +299,8 @@ export default function NewEventScreen() {
           maxAttendees: maxAttendeesValue,
           telephoneRequired,
           requiresPayment,
+          signupEnabled,
+          signupInfo: signupEnabled ? null : signupInfoValue,
           attendeesVisibility: attendeesPublic ? ('members' as const) : ('organizers' as const),
           signupFields: usableSignupFields,
           signupGroupSize,
@@ -323,6 +336,8 @@ export default function NewEventScreen() {
           maxAttendees: maxAttendeesValue,
           telephoneRequired,
           requiresPayment,
+          signupEnabled,
+          signupInfo: signupEnabled ? null : signupInfoValue,
           attendeesVisibility: attendeesPublic ? ('members' as const) : ('organizers' as const),
           signupFields: usableSignupFields,
           signupGroupSize,
@@ -513,6 +528,32 @@ export default function NewEventScreen() {
               onChangeOrgs={setOrganizerOrgIds}
             />
           ) : null}
+          <HStack className="items-center justify-between py-1">
+            <Text className="flex-1">{t('event.signupEnabled')}</Text>
+            <HStack gap={2} className="items-center">
+              <Text tone="muted">{signupEnabled ? t('common.yes') : t('common.no')}</Text>
+              <Toggle
+                value={signupEnabled}
+                onValueChange={setSignupEnabled}
+                testID="signup-enabled"
+              />
+            </HStack>
+          </HStack>
+          <Text variant="caption" tone="muted">
+            {t('event.signupEnabledHint')}
+          </Text>
+          {!signupEnabled ? (
+            <Input
+              label={t('event.signupInfo')}
+              value={signupInfo}
+              onChangeText={setSignupInfo}
+              placeholder={t('event.signupInfoPlaceholder')}
+              maxLength={200}
+              testID="signup-info"
+            />
+          ) : null}
+          {signupEnabled ? (
+          <>
           <Input
             label={t('event.maxAttendees')}
             value={maxAttendees}
@@ -574,6 +615,8 @@ export default function NewEventScreen() {
               </Text>
             ) : null}
           </VStack>
+          </>
+          ) : null}
           <HStack className="items-center justify-between py-1">
             <Text className="flex-1">{t('event.attendeesPublic')}</Text>
             <HStack gap={2} className="items-center">
@@ -591,7 +634,9 @@ export default function NewEventScreen() {
         </>,
       ),
     },
-    {
+    // Custom sign-up questions are asked at sign-up time, so the step is
+    // meaningless — and its answers unreachable — with in-app sign-ups off.
+    ...(signupEnabled ? ([{
       key: 'questions',
       title: t('event.stepQuestions'),
       icon: 'help-circle-outline',
@@ -605,7 +650,7 @@ export default function NewEventScreen() {
           lockedCount={lockedFieldCount}
         />,
       ),
-    },
+    }] as StepConfig[]) : []),
   ];
 
   // bottomInset={false}: the Stepper's own bottom nav bar applies the safe-area inset.

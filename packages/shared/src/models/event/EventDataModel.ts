@@ -50,6 +50,17 @@ export const EventDataSchema = z.object({
   // created before this field parse through the strict converter (existing dev
   // docs are backfilled to [] in this same change).
   signupFields: SignupFieldsSchema,
+  // False for events that simply happen — a verbena you walk into, or one whose
+  // sign-up is run off-app (at the ayuntamiento, by phone, on a paper list).
+  // The detail screen then hides the sign-up FAB and registerToEvent refuses,
+  // so the roster stays empty except for organizer-added walk-ins. `.default(true)`
+  // so events created before this field parse through the strict converter
+  // (existing docs are backfilled in this same change).
+  signupEnabled: z.boolean().default(true),
+  // Free-text line shown in place of the sign-up button when signupEnabled is
+  // false ("Entrada libre", "Inscripciones en el bar Paco", a URL). Null means
+  // the UI falls back to a generic "no requiere inscripción" string.
+  signupInfo: z.string().nullable().default(null),
   // `.default('members')` so events created before this field parse through
   // the strict converter (existing docs are backfilled in this same change).
   // firestore.rules reads the same default via `data.get(...)`, so the stored
@@ -111,6 +122,8 @@ export interface EventDataInput {
   telephoneRequired?: boolean;
   requiresPayment?: boolean;
   signupFields?: SignupFieldSpec[];
+  signupEnabled?: boolean;
+  signupInfo?: string | null;
   attendeesVisibility?: AttendeesVisibility;
   signupGroupSize?: number;
   status?: EventStatus;
@@ -139,6 +152,8 @@ export function buildEventData(input: EventDataInput): EventData {
     telephoneRequired: input.telephoneRequired ?? false,
     requiresPayment: input.requiresPayment ?? false,
     signupFields: input.signupFields ?? [],
+    signupEnabled: input.signupEnabled ?? true,
+    signupInfo: input.signupInfo ?? null,
     attendeesVisibility: input.attendeesVisibility ?? 'members',
     signupGroupSize: input.signupGroupSize ?? 1,
     status: input.status ?? 'published',
@@ -169,8 +184,10 @@ export function isEventFull(event: EventData, confirmedCount: number): boolean {
   return confirmedCount >= event.maxAttendees;
 }
 
-export function isEventSignupOpen(event: EventData): boolean {
-  return event.status === 'published';
+export function isEventSignupOpen(
+  event: Pick<EventData, 'status' | 'signupEnabled'>,
+): boolean {
+  return event.status === 'published' && event.signupEnabled;
 }
 
 /** The wall clock every event date is authored and displayed in. */

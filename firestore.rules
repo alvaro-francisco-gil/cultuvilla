@@ -387,7 +387,7 @@ service cloud.firestore {
       return d.keys().hasOnly([
               'title', 'description', 'startDate', 'endDate', 'endBoundary', 'location',
               'imageURL', 'maxAttendees', 'telephoneRequired', 'requiresPayment',
-              'signupFields', 'attendeesVisibility', 'signupGroupSize',
+              'signupFields', 'signupEnabled', 'signupInfo', 'attendeesVisibility', 'signupGroupSize',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
               'villageCoverImage', 'villageCoordinates',
@@ -397,7 +397,7 @@ service cloud.firestore {
           && d.keys().hasAll([
               'title', 'description', 'startDate', 'endDate', 'endBoundary', 'location',
               'imageURL', 'maxAttendees', 'telephoneRequired', 'requiresPayment',
-              'signupFields', 'attendeesVisibility', 'signupGroupSize',
+              'signupFields', 'signupEnabled', 'signupInfo', 'attendeesVisibility', 'signupGroupSize',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
               'villageCoverImage', 'villageCoordinates',
@@ -425,6 +425,11 @@ service cloud.firestore {
           // and by the create form on write.
           && d.signupFields is list
           && d.signupFields.size() <= 10
+          // False = the event takes no in-app sign-ups; signupInfo is the
+          // organizer's free-text alternative shown in the button's place.
+          && isBool(d.signupEnabled)
+          && isStringOrNull(d.signupInfo)
+          && (d.signupInfo == null || d.signupInfo.size() <= 200)
           // Who may read this event's roster. Not world-readable by design —
           // see AttendeesVisibilitySchema and the registrations read rule.
           && d.attendeesVisibility in ['members', 'organizers']
