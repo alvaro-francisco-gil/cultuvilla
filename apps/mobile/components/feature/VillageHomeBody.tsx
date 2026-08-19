@@ -328,6 +328,11 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
                 style={{ width: '100%', aspectRatio: 2.5, borderRadius: 16 }}
                 resizeMode="cover"
               />
+              {village.locationLabel ? (
+                <Text variant="bodySm" tone="muted" className="mt-1">
+                  {village.locationLabel}
+                </Text>
+              ) : null}
             </Pressable>
           </View>
         ) : null}

@@ -35,6 +35,7 @@ export async function seedVillage(v, adminUid) {
     comunidadAutonoma: v.comunidadAutonoma,
     codigoINE: v.codigoINE,
     coordinates: coords,
+    locationLabel: v.locationLabel ?? `${v.name}, ${v.province}`,
     escudoUrl,
     escudoThumbUrl: escudoUrl,
   });

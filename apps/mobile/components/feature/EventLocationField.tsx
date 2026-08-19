@@ -4,29 +4,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { colors } from '@cultuvilla/shared/design-system';
-import { geocodeSearch, staticMapUrl, MAP_ZOOM_DEFAULT } from '@cultuvilla/shared/services/mapsService';
+import {
+  geocodeSearch,
+  reverseGeocode,
+  staticMapUrl,
+  MAP_ZOOM_DEFAULT,
+} from '@cultuvilla/shared/services/mapsService';
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 import { Text, Button, Pressable, FieldLabel } from '../primitives';
 import { useT } from '../../lib/i18n';
 import { showAlert } from '../../lib/dialogs';
-import { initialLocationState, locationReducer, coordLabel } from './locationPickerState';
+import { initialLocationState, locationReducer } from './locationPickerState';
 
 const ACCENT = colors.light.fg.accent;
 const MAP_ZOOM = MAP_ZOOM_DEFAULT ?? 15;
-
-/** Best-effort reverse geocode via the device geocoder (native only). */
-async function reverseGeocode(coords: LatLng): Promise<string> {
-  try {
-    const [a] = await Location.reverseGeocodeAsync({ latitude: coords.lat, longitude: coords.lng });
-    if (a) {
-      const line = [a.street ?? a.name, a.city ?? a.subregion].filter(Boolean).join(', ');
-      if (line) return line;
-    }
-  } catch {
-    /* unsupported (e.g. web) or no match — fall through */
-  }
-  return coordLabel(coords);
-}
 
 /**
  * Trigger + full-screen location picker, modeled on the ordago-apps
@@ -52,7 +43,11 @@ export function EventLocationField({
 }) {
   const { t } = useT();
   const [open, setOpen] = useState(false);
-  const [state, dispatch] = useReducer(locationReducer, value, initialLocationState);
+  const [state, dispatch] = useReducer(
+    locationReducer,
+    { coords: value, label: displayName },
+    initialLocationState,
+  );
   const [locating, setLocating] = useState(false);
   const seededRef = useRef(false);
 
@@ -67,7 +62,8 @@ export function EventLocationField({
       const pos = await Location.getCurrentPositionAsync({});
       const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       dispatch({ type: 'gpsResult', coords });
-      dispatch({ type: 'resolvedAddress', label: await reverseGeocode(coords) });
+      const label = await reverseGeocode(coords.lat, coords.lng);
+      if (label) dispatch({ type: 'resolvedAddress', label });
     } catch {
       if (!silent) showAlert(t('village.admin.community.locationGpsFailed'));
     } finally {
@@ -83,7 +79,12 @@ export function EventLocationField({
     seededRef.current = true;
     if (state.coords) {
       if (displayName) dispatch({ type: 'resolvedAddress', label: displayName });
-      else void reverseGeocode(state.coords).then((l) => dispatch({ type: 'resolvedAddress', label: l }));
+      else {
+        const { lat, lng } = state.coords;
+        void reverseGeocode(lat, lng).then((l) => {
+          if (l) dispatch({ type: 'resolvedAddress', label: l });
+        });
+      }
     } else {
       void locate(true);
     }
@@ -112,7 +113,9 @@ export function EventLocationField({
 
   function confirm() {
     if (!state.coords) return;
-    onChange(state.coords, state.query.trim() || coordLabel(state.coords));
+    // An empty label is handed up as-is; the form falls back to the village
+    // name. Never persist a coordinate pair as the location's name.
+    onChange(state.coords, state.query.trim());
     setOpen(false);
   }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mapGeocodeResponse, buildGeocodeUrl } from '../../maps/geocode';
+import { mapGeocodeResponse, buildGeocodeUrl, buildReverseGeocodeUrl } from '../../maps/geocode';
 
 const SAMPLE = {
   status: 'OK',
@@ -30,6 +30,18 @@ describe('buildGeocodeUrl', () => {
     const url = buildGeocodeUrl('Abadía', 'KEY');
     expect(url).toContain('https://maps.googleapis.com/maps/api/geocode/json?');
     expect(url).toContain('address=Abad%C3%ADa');
+    expect(url).toContain('region=es');
+    expect(url).toContain('language=es');
+    expect(url).toContain('key=KEY');
+  });
+});
+
+describe('buildReverseGeocodeUrl', () => {
+  it('sends latlng (not address) and keeps the Spain/Spanish bias', () => {
+    const url = buildReverseGeocodeUrl(40.2891, -5.9876, 'KEY');
+    expect(url).toContain('https://maps.googleapis.com/maps/api/geocode/json?');
+    expect(url).toContain('latlng=40.2891%2C-5.9876');
+    expect(url).not.toContain('address=');
     expect(url).toContain('region=es');
     expect(url).toContain('language=es');
     expect(url).toContain('key=KEY');

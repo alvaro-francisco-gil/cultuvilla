@@ -122,6 +122,7 @@ async function main() {
         comunidadAutonoma: entry.comunidadAutonoma,
         codigoINE: entry.codigoINE,
         coordinates: null,
+        locationLabel: null,
         mapZoom: null,
         escudoUrl: null,
         escudoThumbUrl: null,

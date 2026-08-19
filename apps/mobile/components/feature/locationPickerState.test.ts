@@ -1,6 +1,6 @@
 import { initialLocationState, locationReducer } from './locationPickerState';
 
-const base = initialLocationState(null);
+const base = initialLocationState({ coords: null, label: '' });
 
 describe('locationReducer', () => {
   it('setQuery updates query and marks searching', () => {
@@ -43,6 +43,41 @@ describe('locationReducer', () => {
   });
 
   it('seeds initial coords', () => {
-    expect(initialLocationState({ lat: 1, lng: 2 }).coords).toEqual({ lat: 1, lng: 2 });
+    expect(initialLocationState({ coords: { lat: 1, lng: 2 }, label: '' }).coords).toEqual({ lat: 1, lng: 2 });
+  });
+});
+
+// A coordinate pair rendered as text is what this picker must never show: it
+// used to seed the field with `lat, lng` and persist that as the location's name.
+const looksLikeCoordinates = (s: string) => /-?\d+\.\d{3,}/.test(s);
+
+describe('location naming', () => {
+  it('seeds the field with the saved name, not the coordinates', () => {
+    const s = initialLocationState({ coords: { lat: 40.28911, lng: -5.98762 }, label: 'Plaza Mayor, Abadía' });
+    expect(s.query).toBe('Plaza Mayor, Abadía');
+    expect(s.selected).toBe(true);
+  });
+
+  it('leaves the field empty when the saved location has no name yet', () => {
+    expect(initialLocationState({ coords: { lat: 40.28911, lng: -5.98762 }, label: '' }).query).toBe('');
+  });
+
+  it('never puts a coordinate string in the field after a GPS pick', () => {
+    const s = locationReducer(base, { type: 'gpsResult', coords: { lat: 40.28911, lng: -5.98762 } });
+    expect(looksLikeCoordinates(s.query)).toBe(false);
+  });
+
+  it('fills the name once the address resolves', () => {
+    const gps = locationReducer(base, { type: 'gpsResult', coords: { lat: 40.28911, lng: -5.98762 } });
+    const s = locationReducer(gps, { type: 'resolvedAddress', label: 'Calle Mayor 3, Abadía' });
+    expect(s.query).toBe('Calle Mayor 3, Abadía');
+    expect(s.selected).toBe(true);
+  });
+
+  it('clearing the query keeps the coordinate but drops the name', () => {
+    const seeded = initialLocationState({ coords: { lat: 40.28911, lng: -5.98762 }, label: 'Plaza Mayor' });
+    const s = locationReducer(seeded, { type: 'clearQuery' });
+    expect(s.coords).toEqual({ lat: 40.28911, lng: -5.98762 });
+    expect(s.query).toBe('');
   });
 });

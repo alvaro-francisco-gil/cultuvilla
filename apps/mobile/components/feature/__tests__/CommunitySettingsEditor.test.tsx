@@ -23,6 +23,7 @@ const mockVillage = {
   escudoThumbUrl: null,
   escudoManualUrl: null,
   coordinates: null,
+  locationLabel: null,
   mapZoom: null,
   communityActive: true,
   community: { description: 'hola', organizerId: 'u1', profileForm: null, activatedAt: new Date() },
@@ -39,12 +40,24 @@ jest.mock('../../../lib/dialogs', () => ({ showAlert: jest.fn() }));
 jest.mock('../../../lib/images', () => ({ pickImageAsBlob: jest.fn() }));
 // Stub the picker with a button that fires onChange with a fixed coordinate.
 jest.mock('../LocationPicker', () => ({
-  LocationPicker: ({ onChange }: { onChange: (c: { lat: number; lng: number }) => void }) => {
+  LocationPicker: ({
+    onChange,
+  }: {
+    onChange: (c: { lat: number; lng: number } | null, label: string) => void;
+  }) => {
     const { Text, Pressable } = require('react-native');
     return (
-      <Pressable accessibilityLabel="pick-loc" onPress={() => onChange({ lat: 40.4, lng: -3.7 })}>
-        <Text>PICK</Text>
-      </Pressable>
+      <>
+        <Pressable
+          accessibilityLabel="pick-loc"
+          onPress={() => onChange({ lat: 40.4, lng: -3.7 }, 'Plaza Mayor, Villa')}
+        >
+          <Text>PICK</Text>
+        </Pressable>
+        <Pressable accessibilityLabel="pick-loc-unnamed" onPress={() => onChange({ lat: 40.4, lng: -3.7 }, '')}>
+          <Text>PICK UNNAMED</Text>
+        </Pressable>
+      </>
     );
   },
 }));
@@ -67,6 +80,30 @@ describe('CommunitySettingsEditor location persistence', () => {
       expect(updateMunicipality).toHaveBeenCalledWith(
         'm1',
         expect.objectContaining({ coordinates: { lat: 40.4, lng: -3.7 } }),
+      );
+    });
+  });
+
+  it('stores the location name alongside the coordinate', async () => {
+    const { getByLabelText } = render(<CommunitySettingsEditor villageId="m1" />);
+    fireEvent.press(await waitFor(() => getByLabelText('pick-loc')));
+
+    await waitFor(() => {
+      expect(updateMunicipality).toHaveBeenCalledWith(
+        'm1',
+        expect.objectContaining({ locationLabel: 'Plaza Mayor, Villa' }),
+      );
+    });
+  });
+
+  it('stores null rather than a placeholder when the pick has no resolved name', async () => {
+    const { getByLabelText } = render(<CommunitySettingsEditor villageId="m1" />);
+    fireEvent.press(await waitFor(() => getByLabelText('pick-loc-unnamed')));
+
+    await waitFor(() => {
+      expect(updateMunicipality).toHaveBeenCalledWith(
+        'm1',
+        expect.objectContaining({ locationLabel: null }),
       );
     });
   });
