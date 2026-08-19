@@ -322,7 +322,7 @@ describe('shape enforcement — /events/{eventId}', () => {
     maxAttendees: null,
     telephoneRequired: false,
     requiresPayment: false,
-    signupFields: [],
+    signupFields: [], attendeesVisibility: 'members',
     status: 'published' as const,
     organizerUserIds: ['alice'],
     organizerOrgIds: [],

@@ -47,6 +47,19 @@ service cloud.firestore {
       );
     }
 
+    // The attendee roster is a pueblo-wide read, not a public one: a member of
+    // the event's village may see who is going, unless the organizer set the
+    // event to `organizers`. Deliberately touches no `resource` field, so a
+    // list query over the subcollection is evaluated once (and passes or fails
+    // as a whole) rather than per document.
+    // `.get(key, default)` mirrors AttendeesVisibilitySchema's `.default()`,
+    // so events written before the field existed behave as `members`.
+    function isRosterVisibleToVillage(eventId) {
+      let event = get(/databases/$(database)/documents/events/$(eventId)).data;
+      return event.get('attendeesVisibility', 'members') == 'members'
+        && isVillageMember(event.municipalityId);
+    }
+
     // ── Shape validation helpers ─────────────────────────────────────────
     // These mirror the Zod schemas in packages/shared/src/models/*. Any
     // change to a model must update the matching helper here. The CI grep
@@ -360,7 +373,7 @@ service cloud.firestore {
       return d.keys().hasOnly([
               'title', 'description', 'startDate', 'endDate', 'endBoundary', 'location',
               'imageURL', 'maxAttendees', 'telephoneRequired', 'requiresPayment',
-              'signupFields',
+              'signupFields', 'attendeesVisibility',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
               'villageCoverImage', 'villageCoordinates',
@@ -370,7 +383,7 @@ service cloud.firestore {
           && d.keys().hasAll([
               'title', 'description', 'startDate', 'endDate', 'endBoundary', 'location',
               'imageURL', 'maxAttendees', 'telephoneRequired', 'requiresPayment',
-              'signupFields',
+              'signupFields', 'attendeesVisibility',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
               'villageCoverImage', 'villageCoordinates',
@@ -398,6 +411,9 @@ service cloud.firestore {
           // and by the create form on write.
           && d.signupFields is list
           && d.signupFields.size() <= 10
+          // Who may read this event's roster. Not world-readable by design —
+          // see AttendeesVisibilitySchema and the registrations read rule.
+          && d.attendeesVisibility in ['members', 'organizers']
           && d.status in ['published', 'cancelled', 'completed']
           && d.organizerUserIds is list
           && d.organizerOrgIds is list
@@ -794,7 +810,20 @@ service cloud.firestore {
         || isAppAdmin();
 
       match /registrations/{regId} {
-        allow read: if true;
+        // A roster names real people, so it is village-scoped, never world-
+        // readable: a guest-readable list would publish the names of dependent
+        // personas (typically children) whose person doc is deliberately
+        // private. Three ways in, in cost order:
+        //   1. the organizer set / admins — always, whatever the visibility;
+        //   2. any member of the event's pueblo, when attendeesVisibility is
+        //      'members' (the default);
+        //   3. your own row — a visitor from another pueblo signs up too
+        //      (that is what `isMember: false` records) and must still be able
+        //      to read and cancel their registration. Per-document, so a list
+        //      only passes this branch when filtered on userId.
+        allow read: if isEventOrganizer(eventId)
+          || isRosterVisibleToVillage(eventId)
+          || (isAuthenticated() && resource.data.userId == request.auth.uid);
         // Creation goes through the `registerToEvent` callable (admin SDK
         // bypasses rules). Direct client writes are not trusted because the
         // capacity/waitlist decision must be made server-side in a
@@ -931,8 +960,10 @@ service cloud.firestore {
       allow list: if isAuthenticated();
     }
 
-    // Registrations remain restricted to the caller's own rows (unlike
-    // members, registration docs are not individually public).
+    // Cross-event listing stays restricted to the caller's own rows. The
+    // per-event rule above also lets a village member list one event's roster,
+    // but that is scoped by the event's municipality — a collection-group
+    // query has no event in its path to scope by, so it cannot reuse it.
 
     match /{path=**}/registrations/{regId} {
       allow list: if isAuthenticated()

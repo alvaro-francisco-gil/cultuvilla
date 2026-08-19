@@ -85,3 +85,51 @@ describe('buildRegistrationData', () => {
     expect(() => RegistrationDataSchema.parse(built)).not.toThrow();
   });
 });
+
+describe('roster denormalization', () => {
+  it('defaults the three person fields when absent (converter-safe)', () => {
+    const parsed = RegistrationDataSchema.parse(validRegistration);
+    expect(parsed.photoURL).toBeNull();
+    expect(parsed.personUserId).toBeNull();
+    // Registrations predating the field belong to personas that were public by
+    // default; the backfill sets the real value from `persons`.
+    expect(parsed.isPersonPublic).toBe(true);
+  });
+
+  it('round-trips the denormalized person fields', () => {
+    const parsed = RegistrationDataSchema.parse({
+      ...validRegistration,
+      photoURL: 'https://example.test/p.jpg',
+      personUserId: 'u-9',
+      isPersonPublic: false,
+    });
+    expect(parsed.photoURL).toBe('https://example.test/p.jpg');
+    expect(parsed.personUserId).toBe('u-9');
+    expect(parsed.isPersonPublic).toBe(false);
+  });
+
+  it('builds a walk-in with no person as public and unlinked', () => {
+    const built = buildRegistrationData({
+      userId: '',
+      personId: '',
+      name: 'Vecina de paso',
+      status: 'confirmed',
+      position: 1,
+    });
+    expect(built.photoURL).toBeNull();
+    expect(built.personUserId).toBeNull();
+    expect(built.isPersonPublic).toBe(true);
+  });
+
+  it('carries an explicit private persona through the builder', () => {
+    const built = buildRegistrationData({
+      userId: 'u-1',
+      personId: 'p-2',
+      name: 'Peque',
+      status: 'confirmed',
+      position: 2,
+      isPersonPublic: false,
+    });
+    expect(built.isPersonPublic).toBe(false);
+  });
+});

@@ -117,6 +117,12 @@ export const addWalkInRegistration = onCall<AddWalkInData, Promise<AddWalkInResu
         registeredAt: new Date(),
         checkedInAt: null,
         paidAt: null,
+        // A walk-in has no `persons` doc to denormalize from — no photo and no
+        // account to open. The name was typed by the organizer for the roster,
+        // so it is shown like any other: there is no private persona to shield.
+        photoURL: null,
+        personUserId: null,
+        isPersonPublic: true,
       };
       tx.set(newRef, reg);
       if (phone || Object.keys(answers).length > 0) {

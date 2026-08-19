@@ -108,6 +108,8 @@ export default function NewEventScreen() {
   const [maxAttendees, setMaxAttendees] = useState('');
   const [telephoneRequired, setTelephoneRequired] = useState(false);
   const [requiresPayment, setRequiresPayment] = useState(false);
+  // Default on: in a pueblo, seeing who is going is what drives sign-ups.
+  const [attendeesPublic, setAttendeesPublic] = useState(true);
   const [signupFields, setSignupFields] = useState<SignupFieldSpec[]>([]);
   const [lockedFieldCount, setLockedFieldCount] = useState(0);
   const [cover, setCover] = useState<UploadableImage | null>(null);
@@ -169,6 +171,7 @@ export default function NewEventScreen() {
         setMaxAttendees(ev.maxAttendees != null ? String(ev.maxAttendees) : '');
         setTelephoneRequired(!!ev.telephoneRequired);
         setRequiresPayment(!!ev.requiresPayment);
+        setAttendeesPublic(ev.attendeesVisibility !== 'organizers');
         setSignupFields(ev.signupFields ?? []);
         // Answers already collected are keyed by these ids, so once the event
         // has sign-ups the existing rows are frozen and only new ones can be
@@ -274,6 +277,7 @@ export default function NewEventScreen() {
           maxAttendees: maxAttendeesValue,
           telephoneRequired,
           requiresPayment,
+          attendeesVisibility: attendeesPublic ? ('members' as const) : ('organizers' as const),
           signupFields: usableSignupFields,
           organizerUserIds,
           organizerOrgIds,
@@ -307,6 +311,7 @@ export default function NewEventScreen() {
           maxAttendees: maxAttendeesValue,
           telephoneRequired,
           requiresPayment,
+          attendeesVisibility: attendeesPublic ? ('members' as const) : ('organizers' as const),
           signupFields: usableSignupFields,
           status: 'published',
           organizerUserIds,
@@ -523,6 +528,20 @@ export default function NewEventScreen() {
               />
             </HStack>
           </HStack>
+          <HStack className="items-center justify-between py-1">
+            <Text className="flex-1">{t('event.attendeesPublic')}</Text>
+            <HStack gap={2} className="items-center">
+              <Text tone="muted">{attendeesPublic ? t('common.yes') : t('common.no')}</Text>
+              <Toggle
+                value={attendeesPublic}
+                onValueChange={setAttendeesPublic}
+                testID="attendees-public"
+              />
+            </HStack>
+          </HStack>
+          <Text variant="caption" tone="muted">
+            {t('event.attendeesPublicHint')}
+          </Text>
         </>,
       ),
     },

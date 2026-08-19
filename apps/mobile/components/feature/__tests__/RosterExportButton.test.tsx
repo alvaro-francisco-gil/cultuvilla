@@ -31,6 +31,9 @@ const registration = {
   isMember: true,
   checkedInAt: null,
   paidAt: null,
+  photoURL: null,
+  personUserId: null,
+  isPersonPublic: true,
 };
 
 const props = {
