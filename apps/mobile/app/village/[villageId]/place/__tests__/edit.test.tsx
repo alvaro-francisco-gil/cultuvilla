@@ -28,7 +28,10 @@ jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadPlaceImage: jest.fn(),
   deleteImageByURL: jest.fn(),
 }));
-jest.mock('../../../../../components/feature/OrganizerPicker', () => ({ OrganizerPicker: () => null }));
+jest.mock('../../../../../components/feature/OrganizerPicker', () => {
+  const { Text } = jest.requireActual('react-native');
+  return { OrganizerPicker: () => <Text testID="mock-organizer-picker">contributors</Text> };
+});
 // The picker itself is a full-screen map + geocoder; here we only drive its
 // output, so it stands in as two buttons: "pin something" and "clear the pin".
 jest.mock('../../../../../components/feature/LocationField', () => {
@@ -198,5 +201,22 @@ describe('PlaceEditScreen location', () => {
         expect.objectContaining({ coordinates: null, locationLabel: null }),
       ),
     );
+  });
+});
+
+// Save is the last thing in the form: every field — including the
+// contributors picker, which used to hang below the button — comes first.
+describe('PlaceEditScreen layout', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (getPlace as jest.Mock).mockResolvedValue(place());
+  });
+
+  it('renders the save button after the contributors picker', async () => {
+    mockCaps({ canManage: false, uid: 'creator', canEdit: true });
+    const { findByTestId, toJSON } = render(<PlaceEditScreen />);
+    await findByTestId('mock-organizer-picker');
+    const tree = JSON.stringify(toJSON());
+    expect(tree.indexOf('mock-organizer-picker')).toBeLessThan(tree.indexOf('place-edit-submit'));
   });
 });
