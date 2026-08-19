@@ -6,6 +6,15 @@ import { SignupFieldsSchema, type SignupFieldSpec } from './SignupFieldModel';
 export const EventStatusSchema = z.enum(['published', 'cancelled', 'completed']);
 export type EventStatus = z.infer<typeof EventStatusSchema>;
 
+// Who may read the event's attendee roster. `members` = anyone who has joined
+// the event's pueblo (the default: seeing who is going is what drives sign-ups
+// in a village); `organizers` = only the organizer set + village/app admins,
+// for events where a visible list would be inappropriate. Never world-readable
+// — a roster names real people, and a guest-readable one would put dependent
+// personas (typically children) on an open URL.
+export const AttendeesVisibilitySchema = z.enum(['members', 'organizers']);
+export type AttendeesVisibility = z.infer<typeof AttendeesVisibilitySchema>;
+
 export const EventDataSchema = z.object({
   title: z.string(),
   description: z.string(),
@@ -32,6 +41,11 @@ export const EventDataSchema = z.object({
   // created before this field parse through the strict converter (existing dev
   // docs are backfilled to [] in this same change).
   signupFields: SignupFieldsSchema,
+  // `.default('members')` so events created before this field parse through
+  // the strict converter (existing docs are backfilled in this same change).
+  // firestore.rules reads the same default via `data.get(...)`, so the stored
+  // and enforced meaning of an absent field agree.
+  attendeesVisibility: AttendeesVisibilitySchema.default('members'),
   status: EventStatusSchema,
   organizerUserIds: z.array(z.string()),
   organizerOrgIds: z.array(z.string()),
@@ -78,6 +92,7 @@ export interface EventDataInput {
   telephoneRequired?: boolean;
   requiresPayment?: boolean;
   signupFields?: SignupFieldSpec[];
+  attendeesVisibility?: AttendeesVisibility;
   status?: EventStatus;
   organizerUserIds: string[];
   organizerOrgIds: string[];
@@ -104,6 +119,7 @@ export function buildEventData(input: EventDataInput): EventData {
     telephoneRequired: input.telephoneRequired ?? false,
     requiresPayment: input.requiresPayment ?? false,
     signupFields: input.signupFields ?? [],
+    attendeesVisibility: input.attendeesVisibility ?? 'members',
     status: input.status ?? 'published',
     organizerUserIds: input.organizerUserIds,
     organizerOrgIds: input.organizerOrgIds,

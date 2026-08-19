@@ -6,8 +6,9 @@ import {
   eventRegistrationsCollection,
   eventRegistrationPrivateDoc,
   municipalityMemberDoc,
+  personDoc,
 } from '@cultuvilla/shared/firebase/refs/admin';
-import type { RegistrationData, SignupAnswers } from '@cultuvilla/shared/models';
+import type { PersonData, RegistrationData, SignupAnswers } from '@cultuvilla/shared/models';
 import { validateSignupAnswers } from '@cultuvilla/shared/models';
 import {
   computeStatuses,
@@ -19,6 +20,21 @@ import { sendRegistrationEmail } from './sendRegistrationEmail';
 import type { RegistrationEmailAttendee } from '@cultuvilla/shared/email';
 
 const db = getFirestore();
+
+type PersonSnapshot = { id: string; data: () => PersonData | undefined };
+
+function tryReadPerson(snap: PersonSnapshot): PersonData | null {
+  try {
+    return snap.data() ?? null;
+  } catch (err) {
+    logger.warn('Person doc failed to parse; roster row degraded', {
+      handler: 'registerToEvent',
+      personId: snap.id,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
+}
 
 interface RegistrationSummary {
   id: string;
@@ -61,13 +77,32 @@ export const registerToEvent = onCall<RegisterToEventData, Promise<RegisterToEve
         throw new HttpsError('failed-precondition', 'El evento no tiene pueblo asociado.');
       }
 
-      const [confirmedSnap, totalSnap, memberSnap] = await Promise.all([
+      const [confirmedSnap, totalSnap, memberSnap, personSnaps] = await Promise.all([
         tx.get(regsCol.where('status', '==', 'confirmed')),
         tx.get(regsCol),
         tx.get(municipalityMemberDoc(db, municipalityId, userId)),
+        // The roster is read by the whole pueblo, so each row carries its own
+        // photo/account/privacy copy rather than making every viewer re-read
+        // `persons`. All reads must precede the writes below — Firestore
+        // transactions reject a read issued after a write.
+        Promise.all(registrants.map((r) => tx.get(personDoc(db, r.personId)))),
       ]);
 
       const isMember = memberSnap.exists;
+      // Unresolvable person => no photo, no linked account, and — the safe
+      // direction — treated as private, so a name we could not verify is
+      // never published to the pueblo. `.data()` is where the strict
+      // converter runs, so a stored doc that no longer parses throws HERE;
+      // that must degrade the roster row, not fail an otherwise valid sign-up.
+      const personDenorm = personSnaps.map((snap) => {
+        const person = snap.exists ? tryReadPerson(snap) : null;
+        if (!person) return { photoURL: null, personUserId: null, isPersonPublic: false };
+        return {
+          photoURL: person.photoURL,
+          personUserId: person.userId,
+          isPersonPublic: person.isPublic,
+        };
+      });
 
       // Semantic answer validation needs the event's field specs, so it can
       // only happen here (the input validator runs before the event is read).
@@ -117,6 +152,7 @@ export const registerToEvent = onCall<RegisterToEventData, Promise<RegisterToEve
           registeredAt,
           checkedInAt: null,
           paidAt: null,
+          ...personDenorm[i],
         };
         tx.set(newRef, reg);
         // Phone (when telephoneRequired) and custom field answers land in a
