@@ -2,6 +2,15 @@ import { z } from 'zod';
 import { LocationDataSchema, LatLngSchema, type LatLng } from '../core/LocationDataModel';
 import { SignupFieldsSchema, type SignupFieldSpec } from './SignupFieldModel';
 
+/**
+ * Upper bound on `signupGroupSize`. Groups are seated atomically, so a large
+ * group would make the capacity edge of a popular event mostly unusable (a
+ * group of 8 needs 8 free seats or it waits); 4 covers parejas, tríos and
+ * coches/mesas, which is the whole of the observed demand.
+ * Re-checked in firestore.rules — keep the two in step.
+ */
+export const MAX_SIGNUP_GROUP_SIZE = 4;
+
 // Events publish on create — there is no `draft` state.
 export const EventStatusSchema = z.enum(['published', 'cancelled', 'completed']);
 export type EventStatus = z.infer<typeof EventStatusSchema>;
@@ -46,6 +55,16 @@ export const EventDataSchema = z.object({
   // firestore.rules reads the same default via `data.get(...)`, so the stored
   // and enforced meaning of an absent field agree.
   attendeesVisibility: AttendeesVisibilitySchema.default('members'),
+  // How many people must sign up together: 1 = ordinary individual sign-up,
+  // 2 = parejas, 3-4 = small teams. A group is seated atomically — every seat
+  // is confirmed or every seat waits — so capacity can never split a pareja.
+  // A seat the creator does not fill with a persona of their own is an *open
+  // seat*: a real, held registration carrying a single-use claim token, which
+  // a friend turns into their own registration by following the link.
+  // `.default(1)` so events created before this field parse instead of
+  // throwing the strict converter (existing docs are backfilled to 1 in this
+  // same change).
+  signupGroupSize: z.number().int().min(1).max(MAX_SIGNUP_GROUP_SIZE).default(1),
   status: EventStatusSchema,
   organizerUserIds: z.array(z.string()),
   organizerOrgIds: z.array(z.string()),
@@ -93,6 +112,7 @@ export interface EventDataInput {
   requiresPayment?: boolean;
   signupFields?: SignupFieldSpec[];
   attendeesVisibility?: AttendeesVisibility;
+  signupGroupSize?: number;
   status?: EventStatus;
   organizerUserIds: string[];
   organizerOrgIds: string[];
@@ -120,6 +140,7 @@ export function buildEventData(input: EventDataInput): EventData {
     requiresPayment: input.requiresPayment ?? false,
     signupFields: input.signupFields ?? [],
     attendeesVisibility: input.attendeesVisibility ?? 'members',
+    signupGroupSize: input.signupGroupSize ?? 1,
     status: input.status ?? 'published',
     organizerUserIds: input.organizerUserIds,
     organizerOrgIds: input.organizerOrgIds,
@@ -136,6 +157,11 @@ export function buildEventData(input: EventDataInput): EventData {
     readCount: 0,
     endBoundary: eventEndBoundary({ startDate: input.startDate, endDate }),
   };
+}
+
+/** True when the event seats people in groups rather than one by one. */
+export function isGroupSignupEvent(event: Pick<EventData, 'signupGroupSize'>): boolean {
+  return event.signupGroupSize > 1;
 }
 
 export function isEventFull(event: EventData, confirmedCount: number): boolean {

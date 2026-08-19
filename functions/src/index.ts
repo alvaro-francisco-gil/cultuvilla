@@ -5,6 +5,8 @@ import './initApp';
 // Events
 export { registerToEvent } from './events/registerToEvent';
 export { addWalkInRegistration } from './events/addWalkInRegistration';
+export { claimEventSeat } from './events/claimEventSeat';
+export { cancelRegistration } from './events/cancelRegistration';
 export { completeExpiredEvents } from './events/eventCompletion';
 export { onRegistrationDeleted } from './events/waitlistPromotion';
 export { onEventUpdated } from './events/notificationTriggers';

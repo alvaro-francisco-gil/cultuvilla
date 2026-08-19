@@ -2,6 +2,7 @@
 import type { Firestore } from 'firebase-admin/firestore';
 import { eventConverterAdmin } from '../converters/eventConverter.admin';
 import { registrationConverterAdmin } from '../converters/registrationConverter.admin';
+import { seatTokenConverterAdmin } from '../converters/seatTokenConverter.admin';
 import { municipalityConverterAdmin } from '../converters/municipalityConverter.admin';
 import { barrioConverterAdmin } from '../converters/barrioConverter.admin';
 import { placeConverterAdmin } from '../converters/placeConverter.admin';
@@ -41,6 +42,15 @@ export const eventRegistrationDoc = (db: Firestore, eventId: string, registratio
 // factory exists so call sites stay off raw `db.doc(...)`.
 export const eventRegistrationPrivateDoc = (db: Firestore, eventId: string, registrationId: string) =>
   db.collection('events').doc(eventId).collection('registrationPrivate').doc(registrationId);
+
+// Claim tokens for the event's open group seats. THE DOCUMENT ID IS THE SECRET
+// — see SeatTokenModel. Never fold this collection into a query whose results
+// reach a client that isn't the group owner or an organizer.
+export const eventSeatTokensCollection = (db: Firestore, eventId: string) =>
+  db.collection('events').doc(eventId).collection('seatTokens').withConverter(seatTokenConverterAdmin);
+
+export const eventSeatTokenDoc = (db: Firestore, eventId: string, token: string) =>
+  db.collection('events').doc(eventId).collection('seatTokens').doc(token).withConverter(seatTokenConverterAdmin);
 
 // ── Municipality domain ────────────────────────────────────────────────────
 

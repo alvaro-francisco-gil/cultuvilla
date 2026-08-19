@@ -41,6 +41,24 @@ export const RegistrationDataSchema = z.object({
   // everyone but its creator, and the roster must not re-publish the name it
   // is hiding (typically a child's). Organizers always see the real name.
   isPersonPublic: z.boolean().default(true),
+  // ── Group sign-up (events with signupGroupSize > 1) ─────────────────────
+  // The seats booked together. `null` on every individual registration, which
+  // is what an event with signupGroupSize 1 produces — so ordinary sign-up is
+  // untouched by any of this. Seats sharing a groupId are seated atomically
+  // and cancelled together.
+  groupId: z.string().nullable().default(null),
+  // Who created the group and stays accountable for its unclaimed seats. On
+  // the creator's own seats this equals `userId`; on a seat someone claimed
+  // through an invite link `userId` becomes the claimer and this still points
+  // at the creator, which is how cancellation tells "the group is leaving"
+  // apart from "one guest dropped out".
+  groupOwnerId: z.string().nullable().default(null),
+  // A held-but-unfilled seat, awaiting a claim. It is a real registration —
+  // it occupies capacity and is paid for by the group owner from the moment
+  // it is created — carrying a placeholder name and no person. The claim
+  // token is NOT here: this doc is world-readable, so the secret lives in the
+  // organizer-and-owner-gated `seatTokens` subcollection.
+  isOpenSeat: z.boolean().default(false),
 });
 export type RegistrationData = z.infer<typeof RegistrationDataSchema>;
 
@@ -57,6 +75,9 @@ export interface RegistrationDataInput {
   photoURL?: string | null;
   personUserId?: string | null;
   isPersonPublic?: boolean;
+  groupId?: string | null;
+  groupOwnerId?: string | null;
+  isOpenSeat?: boolean;
 }
 
 export function buildRegistrationData(input: RegistrationDataInput): RegistrationData {
@@ -69,5 +90,11 @@ export function buildRegistrationData(input: RegistrationDataInput): Registratio
     photoURL: input.photoURL ?? null,
     personUserId: input.personUserId ?? null,
     isPersonPublic: input.isPersonPublic ?? true,
+    groupId: input.groupId ?? null,
+    groupOwnerId: input.groupOwnerId ?? null,
+    isOpenSeat: input.isOpenSeat ?? false,
   };
 }
+
+/** The placeholder shown on the roster for a seat nobody has claimed yet. */
+export const OPEN_SEAT_NAME = 'Plaza libre';

@@ -34,11 +34,20 @@ function cleanAnswers(raw: unknown): Record<string, unknown> | undefined {
 export interface RegisterToEventData {
   eventId?: string;
   registrants?: RegistrantInput[];
+  /**
+   * Seats in this group that nobody fills yet — each becomes a held open-seat
+   * registration plus a single-use claim link. Only meaningful on an event
+   * with `signupGroupSize > 1`; `registrants.length + openSeats` must equal
+   * that size exactly, which registerToEvent checks once it has read the
+   * event.
+   */
+  openSeats?: number;
 }
 
 export interface ValidRegisterInput {
   eventId: string;
   registrants: RegistrantInput[];
+  openSeats: number;
 }
 
 const MAX_REGISTRANTS_PER_CALL = 50;
@@ -80,7 +89,17 @@ export function validateRegisterInput(data: RegisterToEventData | undefined): Va
       ...(answers ? { answers } : {}),
     });
   }
-  return { eventId: data.eventId, registrants: cleaned };
+  const openSeats = data.openSeats ?? 0;
+  if (
+    typeof openSeats !== 'number' ||
+    !Number.isInteger(openSeats) ||
+    openSeats < 0 ||
+    openSeats > MAX_REGISTRANTS_PER_CALL
+  ) {
+    throw new HttpsError('invalid-argument', 'openSeats inválido.');
+  }
+
+  return { eventId: data.eventId, registrants: cleaned, openSeats };
 }
 
 export type RegistrationStatus = 'confirmed' | 'waitlisted';
@@ -96,17 +115,90 @@ export function computeStatuses(opts: {
   existingTotalCount: number;
   newCount: number;
 }): AssignedStatus[] {
-  const { maxAttendees, existingConfirmedCount, existingTotalCount, newCount } = opts;
-  const out: AssignedStatus[] = [];
-  for (let i = 0; i < newCount; i++) {
-    const position = existingTotalCount + i + 1;
-    let status: RegistrationStatus;
-    if (maxAttendees === null) {
-      status = 'confirmed';
-    } else {
-      status = existingConfirmedCount + i < maxAttendees ? 'confirmed' : 'waitlisted';
+  // An individual sign-up is a run of groups of one, so the two share an
+  // implementation: with size 1 "the whole group fits" degenerates to "this
+  // seat fits", which is exactly the original per-seat rule.
+  return computeGroupStatuses({
+    maxAttendees: opts.maxAttendees,
+    existingConfirmedCount: opts.existingConfirmedCount,
+    existingTotalCount: opts.existingTotalCount,
+    groupSizes: Array.from({ length: opts.newCount }, () => 1),
+  }).flat();
+}
+
+/**
+ * Seats whole groups against the cap. A group is **atomic**: either every seat
+ * in it is confirmed, or every seat waits. That is the entire point of
+ * `signupGroupSize` — a pareja split across the capacity boundary (one in, one
+ * on the waitlist) is precisely the outcome the setting exists to prevent.
+ *
+ * Returns one array of seat assignments per requested group, in order.
+ */
+export function computeGroupStatuses(opts: {
+  maxAttendees: number | null;
+  existingConfirmedCount: number;
+  existingTotalCount: number;
+  groupSizes: number[];
+}): AssignedStatus[][] {
+  const { maxAttendees, existingConfirmedCount, existingTotalCount, groupSizes } = opts;
+  const out: AssignedStatus[][] = [];
+  let confirmed = existingConfirmedCount;
+  let total = existingTotalCount;
+
+  for (const size of groupSizes) {
+    const fits = maxAttendees === null || confirmed + size <= maxAttendees;
+    const seats: AssignedStatus[] = [];
+    for (let i = 0; i < size; i++) {
+      seats.push({ status: fits ? 'confirmed' : 'waitlisted', position: total + i + 1 });
     }
-    out.push({ status, position });
+    total += size;
+    if (fits) confirmed += size;
+    out.push(seats);
   }
+
   return out;
+}
+
+/** One waitlisted registration, as the promotion picker needs to see it. */
+export interface WaitlistCandidate {
+  id: string;
+  position: number;
+  groupId: string | null;
+}
+
+/**
+ * Picks which waitlisted registrations to promote into `freeSeats` freed
+ * places. Ungrouped candidates are groups of one, so an event with
+ * `signupGroupSize` 1 keeps the old behaviour exactly: the single
+ * lowest-position waitlisted registration.
+ *
+ * Groups are considered in queue order and the first one that *fits* wins. A
+ * group too large for the freed space is skipped rather than allowed to block
+ * the queue — on a uniform-group-size event (the only kind that produces
+ * groups today) every group is the same size, so this never actually reorders
+ * anyone; it only stops a single freed seat from stalling promotion forever on
+ * an event whose group size was lowered after people had already signed up.
+ */
+export function selectPromotionGroup(
+  candidates: WaitlistCandidate[],
+  freeSeats: number,
+): WaitlistCandidate[] {
+  if (freeSeats <= 0) return [];
+  const queue = [...candidates].sort((a, b) => a.position - b.position);
+
+  const seen = new Set<string>();
+  for (const head of queue) {
+    // Ungrouped registrations are their own group of one; keying them by doc
+    // id keeps them from colliding with each other in `seen`.
+    const key = head.groupId ?? `solo:${head.id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const group = head.groupId
+      ? queue.filter((c) => c.groupId === head.groupId)
+      : [head];
+    if (group.length <= freeSeats) return group;
+  }
+
+  return [];
 }

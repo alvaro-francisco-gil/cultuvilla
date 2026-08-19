@@ -14,6 +14,25 @@ export interface AttendeeDiff {
 }
 
 /**
+ * Build the persona -> registration map the diff reads.
+ *
+ * Open seats are excluded on purpose: they carry no `personId` (the placeholder
+ * is `''`), so several of them would collide on one key and evict each other,
+ * and none of them corresponds to a persona the sheet can tick. They are
+ * surfaced separately as pending invitations.
+ */
+export function indexRegistrationsByPerson(
+  registrations: { id: string; personId: string; status: RegistrationStatus; isOpenSeat: boolean }[],
+): Map<string, AttendeeRegistration> {
+  const map = new Map<string, AttendeeRegistration>();
+  for (const r of registrations) {
+    if (r.isOpenSeat || !r.personId) continue;
+    map.set(r.personId, { regId: r.id, status: r.status });
+  }
+  return map;
+}
+
+/**
  * Diff the user's ticked personas against who is already registered, so the
  * caller can issue one `registerToEvent` for the additions and a
  * `cancelRegistration` per removal. Personas that are both selected and already

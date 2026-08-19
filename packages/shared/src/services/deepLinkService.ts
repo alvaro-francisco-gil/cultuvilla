@@ -17,6 +17,8 @@ export interface DeepLink {
   id: string;
   /** Parent id for resources nested under a village (place, barrio). */
   parentId?: string;
+  /** The single-use secret on a seat-claim link. */
+  token?: string;
 }
 
 const RESOURCE_TO_PATH: Record<DeepLinkResource, string> = {
@@ -54,6 +56,8 @@ type NestedResource = keyof typeof NESTED_CHILD_PATH;
 const NESTED_PARENT_PATH = 'village';
 
 const INVITE_SUFFIX = 'join';
+/** /event/<eventId>/claim/<token> — see getSeatClaimLink. */
+const SEAT_CLAIM_SEGMENT = 'claim';
 
 export function getDeepLinkHost(): string {
   const extra = Constants.expoConfig?.extra ?? {};
@@ -110,6 +114,24 @@ function buildNestedLink(resource: NestedResource, villageId: string, id: string
   };
 }
 
+/**
+ * The link that hands one held open seat to whoever opens it. Deliberately not
+ * routed through `buildLink`: the token is a secret, not an id, and folding it
+ * into the generic invite shape would invite it into share sheets and previews
+ * meant for public links.
+ */
+export const getSeatClaimLink = (eventId: string, token: string): DeepLink => {
+  if (!eventId) throw new Error('deepLinkService: eventId is required for a seat claim');
+  if (!token) throw new Error('deepLinkService: token is required for a seat claim');
+  return {
+    url: `https://${getDeepLinkHost()}/event/${eventId}/${SEAT_CLAIM_SEGMENT}/${token}`,
+    kind: 'invite',
+    resource: 'event',
+    id: eventId,
+    token,
+  };
+};
+
 export const getPlaceViewLink = (villageId: string, placeId: string): DeepLink =>
   buildNestedLink('place', villageId, placeId);
 export const getBarrioViewLink = (villageId: string, barrioId: string): DeepLink =>
@@ -121,6 +143,8 @@ export interface ParsedDeepLink {
   id: string;
   /** Parent id for resources nested under a village (place, barrio). */
   parentId?: string;
+  /** The single-use secret on a seat-claim link. */
+  token?: string;
 }
 
 const CHILD_PATH_TO_RESOURCE: { readonly [path: string]: NestedResource | undefined } = {
@@ -159,6 +183,11 @@ function interpret(segments: string[]): ParsedDeepLink | null {
       string,
       string,
     ];
+    if (parentSegment === 'event' && childSegment === SEAT_CLAIM_SEGMENT) {
+      // id stays the event: the seat is identified by the token, and the
+      // registration it fills is server-side detail the link never carries.
+      return { kind: 'invite', resource: 'event', id: parentId, token: id };
+    }
     if (parentSegment !== NESTED_PARENT_PATH) return null;
     const resource = CHILD_PATH_TO_RESOURCE[childSegment];
     if (!resource) return null;

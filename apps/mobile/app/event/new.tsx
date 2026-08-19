@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native';
 import { router, useLocalSearchParams, Redirect } from 'expo-router';
-import { Screen, Text, Input, DateTimeField, FieldLabel, Toggle, HStack, ErrorState } from '../../components/primitives';
+import { Screen, Text, Input, DateTimeField, FieldLabel, Toggle, HStack, VStack, Pressable, ErrorState } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { EventCoverPicker } from '../../components/feature/EventCoverPicker';
 import { LocationField } from '../../components/feature/LocationField';
@@ -36,6 +36,10 @@ import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 import { Stepper, type StepConfig } from '../../components/feature/Stepper';
 import { DeleteHeaderButton } from '../../components/feature/DeleteHeaderButton';
 import { roundUpToMinuteStep } from '../../lib/date/clockGrid';
+import { MAX_SIGNUP_GROUP_SIZE } from '@cultuvilla/shared/models/event/EventDataModel';
+
+/** 1 (solo) plus every allowed group size — parejas, tríos, grupos de cuatro. */
+const GROUP_SIZE_CHOICES = Array.from({ length: MAX_SIGNUP_GROUP_SIZE }, (_, i) => i + 1);
 
 /** Nearest joined village to a coordinate (by great-circle distance), or null. */
 function nearestVillage(c: LatLng, villages: VillageOption[]): VillageOption | null {
@@ -108,10 +112,15 @@ export default function NewEventScreen() {
   const [maxAttendees, setMaxAttendees] = useState('');
   const [telephoneRequired, setTelephoneRequired] = useState(false);
   const [requiresPayment, setRequiresPayment] = useState(false);
+  // 1 = ordinary individual sign-up. Frozen once anyone has signed up: seats
+  // already booked were seated against the old size (firestore.rules enforces
+  // the same, see isFrozenGroupSizeChange).
+  const [signupGroupSize, setSignupGroupSize] = useState(1);
   // Default on: in a pueblo, seeing who is going is what drives sign-ups.
   const [attendeesPublic, setAttendeesPublic] = useState(true);
   const [signupFields, setSignupFields] = useState<SignupFieldSpec[]>([]);
   const [lockedFieldCount, setLockedFieldCount] = useState(0);
+  const [groupSizeLocked, setGroupSizeLocked] = useState(false);
   const [cover, setCover] = useState<UploadableImage | null>(null);
 
   // Picking a location auto-selects the nearest joined village (create mode,
@@ -171,12 +180,14 @@ export default function NewEventScreen() {
         setMaxAttendees(ev.maxAttendees != null ? String(ev.maxAttendees) : '');
         setTelephoneRequired(!!ev.telephoneRequired);
         setRequiresPayment(!!ev.requiresPayment);
+        setSignupGroupSize(ev.signupGroupSize);
         setAttendeesPublic(ev.attendeesVisibility !== 'organizers');
         setSignupFields(ev.signupFields ?? []);
         // Answers already collected are keyed by these ids, so once the event
         // has sign-ups the existing rows are frozen and only new ones can be
         // added. firestore.rules enforces the size half of the same invariant.
         setLockedFieldCount(ev.totalCount > 0 ? (ev.signupFields ?? []).length : 0);
+        setGroupSizeLocked(ev.totalCount > 0);
         setOrganizerUserIds(ev.organizerUserIds ?? []);
         setCreatedBy(ev.createdBy);
         setOrganizerOrgIds(ev.organizerOrgIds ?? []);
@@ -279,6 +290,7 @@ export default function NewEventScreen() {
           requiresPayment,
           attendeesVisibility: attendeesPublic ? ('members' as const) : ('organizers' as const),
           signupFields: usableSignupFields,
+          signupGroupSize,
           organizerUserIds,
           organizerOrgIds,
         });
@@ -313,6 +325,7 @@ export default function NewEventScreen() {
           requiresPayment,
           attendeesVisibility: attendeesPublic ? ('members' as const) : ('organizers' as const),
           signupFields: usableSignupFields,
+          signupGroupSize,
           status: 'published',
           organizerUserIds,
           organizerOrgIds,
@@ -528,6 +541,39 @@ export default function NewEventScreen() {
               />
             </HStack>
           </HStack>
+          <VStack gap={1} className="py-1">
+            <Text className="flex-1">{t('event.signupGroupSize')}</Text>
+            <Text variant="bodySm" tone="muted">
+              {t('event.signupGroupSizeHelp')}
+            </Text>
+            <HStack gap={2} className="items-center">
+              {GROUP_SIZE_CHOICES.map((size) => {
+                const active = signupGroupSize === size;
+                return (
+                  <Pressable
+                    key={size}
+                    testID={`group-size-${String(size)}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active, disabled: groupSizeLocked }}
+                    disabled={groupSizeLocked}
+                    onPress={() => setSignupGroupSize(size)}
+                    className={`flex-1 items-center rounded-lg border py-2 ${
+                      active ? 'border-accent bg-surface' : 'border-subtle'
+                    } ${groupSizeLocked ? 'opacity-50' : ''}`}
+                  >
+                    <Text tone={active ? undefined : 'muted'}>
+                      {size === 1 ? t('event.signupGroupSizeSolo') : String(size)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </HStack>
+            {groupSizeLocked ? (
+              <Text variant="bodySm" tone="muted">
+                {t('event.signupGroupSizeLocked')}
+              </Text>
+            ) : null}
+          </VStack>
           <HStack className="items-center justify-between py-1">
             <Text className="flex-1">{t('event.attendeesPublic')}</Text>
             <HStack gap={2} className="items-center">

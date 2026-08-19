@@ -140,6 +140,7 @@ export default function EventDetailScreen() {
             telephoneRequired={!!event.telephoneRequired}
             signupFields={event.signupFields}
             villageId={event.municipalityId}
+            groupSize={event.signupGroupSize}
           />
         ) : null
       }
@@ -229,6 +230,7 @@ export default function EventDetailScreen() {
               telephoneRequired={!!event.telephoneRequired}
               requiresPayment={!!event.requiresPayment}
               signupFields={event.signupFields}
+              groupSize={event.signupGroupSize}
               canManage={canOrganize}
             />
           ) : null}
