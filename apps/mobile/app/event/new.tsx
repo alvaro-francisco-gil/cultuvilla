@@ -510,7 +510,12 @@ export default function NewEventScreen() {
               municipalityId={municipalityId}
               selectedUserIds={organizerUserIds}
               selectedOrgIds={organizerOrgIds}
-              lockedUserId={user.uid}
+              // Only while composing. `confirmUserSheet` force-inserts whatever it
+              // is handed, and in edit mode nothing requires the editor to be an
+              // organizer — a village admin fixing someone else's event would
+              // silently become one, and organizerUserIds is its own clause in
+              // the event's update/delete rules. Mirrors news/new.tsx.
+              lockedUserId={editMode ? undefined : user.uid}
               onChangeUsers={setOrganizerUserIds}
               onChangeOrgs={setOrganizerOrgIds}
             />
