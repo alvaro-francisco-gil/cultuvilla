@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native';
 import { router, useLocalSearchParams, Redirect } from 'expo-router';
-import { Screen, Text, Input, DateTimeField, FieldLabel, Toggle, HStack, VStack, Pressable, ErrorState } from '../../components/primitives';
+import { Screen, Text, Input, DateTimeField, FieldLabel, InfoTooltip, Toggle, HStack, VStack, Pressable, ErrorState } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { EventCoverPicker } from '../../components/feature/EventCoverPicker';
 import { LocationField } from '../../components/feature/LocationField';
@@ -65,6 +65,39 @@ function stepBody(children: React.ReactNode) {
     >
       {children}
     </ScrollView>
+  );
+}
+
+/**
+ * Label + yes/no switch on one line, with the field's explanation parked behind
+ * an "ⓘ" instead of a paragraph under the row. The Detalles step is a list of
+ * decisions; spelling each one out inline pushed the controls below the fold.
+ */
+function ToggleRow({
+  label,
+  help,
+  value,
+  onValueChange,
+  testID,
+}: {
+  label: string;
+  help?: string;
+  value: boolean;
+  onValueChange: (next: boolean) => void;
+  testID: string;
+}) {
+  const { t } = useT();
+  return (
+    <HStack className="items-center justify-between py-1">
+      <HStack gap={1} className="flex-1 items-center">
+        <Text>{label}</Text>
+        {help ? <InfoTooltip title={label} text={help} testID={`${testID}-info`} /> : null}
+      </HStack>
+      <HStack gap={2} className="items-center">
+        <Text tone="muted">{value ? t('common.yes') : t('common.no')}</Text>
+        <Toggle value={value} onValueChange={onValueChange} testID={testID} />
+      </HStack>
+    </HStack>
   );
 }
 
@@ -448,6 +481,16 @@ export default function NewEventScreen() {
             multiline
             numberOfLines={5}
           />
+          {municipalityId && user ? (
+            <OrganizerPicker
+              municipalityId={municipalityId}
+              selectedUserIds={organizerUserIds}
+              selectedOrgIds={organizerOrgIds}
+              lockedUserId={user.uid}
+              onChangeUsers={setOrganizerUserIds}
+              onChangeOrgs={setOrganizerOrgIds}
+            />
+          ) : null}
           <FieldLabel>{t('event.imageLabel')}</FieldLabel>
           <EventCoverPicker
             uri={cover?.previewUri ?? existingImageURL}
@@ -518,30 +561,13 @@ export default function NewEventScreen() {
       icon: 'options-outline',
       render: () => stepBody(
         <>
-          {municipalityId && user ? (
-            <OrganizerPicker
-              municipalityId={municipalityId}
-              selectedUserIds={organizerUserIds}
-              selectedOrgIds={organizerOrgIds}
-              lockedUserId={user.uid}
-              onChangeUsers={setOrganizerUserIds}
-              onChangeOrgs={setOrganizerOrgIds}
-            />
-          ) : null}
-          <HStack className="items-center justify-between py-1">
-            <Text className="flex-1">{t('event.signupEnabled')}</Text>
-            <HStack gap={2} className="items-center">
-              <Text tone="muted">{signupEnabled ? t('common.yes') : t('common.no')}</Text>
-              <Toggle
-                value={signupEnabled}
-                onValueChange={setSignupEnabled}
-                testID="signup-enabled"
-              />
-            </HStack>
-          </HStack>
-          <Text variant="caption" tone="muted">
-            {t('event.signupEnabledHint')}
-          </Text>
+          <ToggleRow
+            label={t('event.signupEnabled')}
+            help={t('event.signupEnabledHint')}
+            value={signupEnabled}
+            onValueChange={setSignupEnabled}
+            testID="signup-enabled"
+          />
           {!signupEnabled ? (
             <Input
               label={t('event.signupInfo')}
@@ -560,33 +586,27 @@ export default function NewEventScreen() {
             onChangeText={setMaxAttendees}
             keyboardType="numeric"
           />
-          <HStack className="items-center justify-between py-1">
-            <Text className="flex-1">{t('event.telephoneRequired')}</Text>
-            <HStack gap={2} className="items-center">
-              <Text tone="muted">{telephoneRequired ? t('common.yes') : t('common.no')}</Text>
-              <Toggle
-                value={telephoneRequired}
-                onValueChange={setTelephoneRequired}
-                testID="telephone-required"
-              />
-            </HStack>
-          </HStack>
-          <HStack className="items-center justify-between py-1">
-            <Text className="flex-1">{t('event.requiresPayment')}</Text>
-            <HStack gap={2} className="items-center">
-              <Text tone="muted">{requiresPayment ? t('common.yes') : t('common.no')}</Text>
-              <Toggle
-                value={requiresPayment}
-                onValueChange={setRequiresPayment}
-                testID="requires-payment"
-              />
-            </HStack>
-          </HStack>
+          <ToggleRow
+            label={t('event.telephoneRequired')}
+            value={telephoneRequired}
+            onValueChange={setTelephoneRequired}
+            testID="telephone-required"
+          />
+          <ToggleRow
+            label={t('event.requiresPayment')}
+            value={requiresPayment}
+            onValueChange={setRequiresPayment}
+            testID="requires-payment"
+          />
           <VStack gap={1} className="py-1">
-            <Text className="flex-1">{t('event.signupGroupSize')}</Text>
-            <Text variant="bodySm" tone="muted">
-              {t('event.signupGroupSizeHelp')}
-            </Text>
+            <HStack gap={1} className="items-center">
+              <Text>{t('event.signupGroupSize')}</Text>
+              <InfoTooltip
+                title={t('event.signupGroupSize')}
+                text={t('event.signupGroupSizeHelp')}
+                testID="signup-group-size-info"
+              />
+            </HStack>
             <HStack gap={2} className="items-center">
               {GROUP_SIZE_CHOICES.map((size) => {
                 const active = signupGroupSize === size;
@@ -609,6 +629,8 @@ export default function NewEventScreen() {
                 );
               })}
             </HStack>
+            {/* Not tucked into the tooltip: this one explains why the control
+                in front of you is dead, so it has to be visible. */}
             {groupSizeLocked ? (
               <Text variant="bodySm" tone="muted">
                 {t('event.signupGroupSizeLocked')}
@@ -617,20 +639,13 @@ export default function NewEventScreen() {
           </VStack>
           </>
           ) : null}
-          <HStack className="items-center justify-between py-1">
-            <Text className="flex-1">{t('event.attendeesPublic')}</Text>
-            <HStack gap={2} className="items-center">
-              <Text tone="muted">{attendeesPublic ? t('common.yes') : t('common.no')}</Text>
-              <Toggle
-                value={attendeesPublic}
-                onValueChange={setAttendeesPublic}
-                testID="attendees-public"
-              />
-            </HStack>
-          </HStack>
-          <Text variant="caption" tone="muted">
-            {t('event.attendeesPublicHint')}
-          </Text>
+          <ToggleRow
+            label={t('event.attendeesPublic')}
+            help={t('event.attendeesPublicHint')}
+            value={attendeesPublic}
+            onValueChange={setAttendeesPublic}
+            testID="attendees-public"
+          />
         </>,
       ),
     },
