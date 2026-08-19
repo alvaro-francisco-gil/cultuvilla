@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, View, Image, Linking } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import {
   Text,
@@ -13,6 +13,7 @@ import {
 } from '../primitives';
 import { ACCENT, Section, EntityCard } from './VillageSections';
 import { AddContentSheet } from './AddContentSheet';
+import { LocationMap } from './LocationMap';
 import { JoinVillageModal } from './JoinVillageModal';
 import { StatsRow } from './StatsRow';
 import { useAuth } from '../../lib/auth/useAuth';
@@ -20,11 +21,10 @@ import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { useT } from '../../lib/i18n';
-import { showConfirm } from '../../lib/dialogs';
 import { isProposalVisible } from '../../lib/proposals';
 import { joinVillage } from '@cultuvilla/shared/services/villageMemberService';
 import { getVillageViewLink } from '@cultuvilla/shared/services/deepLinkService';
-import { staticMapUrl, MAP_ZOOM_DEFAULT } from '@cultuvilla/shared/services/mapsService';
+import { MAP_ZOOM_DEFAULT } from '@cultuvilla/shared/services/mapsService';
 import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
 import type { NewsPostData } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 import { formatDate, formatFestivalPosterDates } from '@cultuvilla/shared/utils';
@@ -141,23 +141,6 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
   const censoFilled =
     censoConfigured && censoFields.every((f) => isAnswered(data.myCensoAnswers[f.key]));
   const censoFillLabel = censoFilled ? t('village.censo.edit') : t('village.censo.fill');
-
-  const openDirections = () => {
-    const c = village.coordinates;
-    if (!c) return;
-    showConfirm(
-      t('village.location.openMapsTitle'),
-      '',
-      () => {
-        void Linking.openURL(
-          `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`,
-        ).catch(() => {
-          /* best-effort */
-        });
-      },
-      { confirmText: t('village.location.open') },
-    );
-  };
 
   const onJoin = () => {
     if (!user) {
@@ -313,27 +296,11 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
             edit-village ("Detalles") step, not from here. ── */}
         {village.coordinates ? (
           <View className="px-4 pt-2">
-            <Pressable
-              onPress={openDirections}
-              accessibilityLabel={t('village.location.openMapsTitle')}
-            >
-              <Image
-                source={{
-                  uri: staticMapUrl(village.coordinates.lat, village.coordinates.lng, {
-                    zoom: village.mapZoom ?? MAP_ZOOM_DEFAULT,
-                    w: 640,
-                    h: 256,
-                  }),
-                }}
-                style={{ width: '100%', aspectRatio: 2.5, borderRadius: 16 }}
-                resizeMode="cover"
-              />
-              {village.locationLabel ? (
-                <Text variant="bodySm" tone="muted" className="mt-1 text-right">
-                  {village.locationLabel}
-                </Text>
-              ) : null}
-            </Pressable>
+            <LocationMap
+              coordinates={village.coordinates}
+              label={village.locationLabel}
+              zoom={village.mapZoom ?? MAP_ZOOM_DEFAULT}
+            />
           </View>
         ) : null}
 

@@ -10,7 +10,7 @@ import { router, useLocalSearchParams, Redirect } from 'expo-router';
 import { Screen, Text, Input, DateTimeField, FieldLabel, Toggle, HStack, ErrorState } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { EventCoverPicker } from '../../components/feature/EventCoverPicker';
-import { EventLocationField } from '../../components/feature/EventLocationField';
+import { LocationField } from '../../components/feature/LocationField';
 import { MyVillagePicker, type VillageOption } from '../../components/feature/MyVillagePicker';
 import { OrganizerPicker } from '../../components/feature/OrganizerPicker';
 import { SignupQuestionsEditor } from '../../components/feature/signup/SignupQuestionsEditor';
@@ -465,7 +465,7 @@ export default function NewEventScreen() {
             timePlaceholder={t('event.selectTime')}
             testID="endDate"
           />
-          <EventLocationField
+          <LocationField
             value={coords}
             displayName={locationName}
             onChange={handleLocationChange}

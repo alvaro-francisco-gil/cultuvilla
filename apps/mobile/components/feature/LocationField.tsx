@@ -20,25 +20,30 @@ const ACCENT = colors.light.fg.accent;
 const MAP_ZOOM = MAP_ZOOM_DEFAULT ?? 15;
 
 /**
- * Trigger + full-screen location picker, modeled on the ordago-apps
+ * Trigger + full-screen location picker used wherever an entity carries an
+ * optional pin (events, places), modeled on the ordago-apps
  * LocationPicker: a full-bleed map with a fixed centre pin, a floating search
  * field and "my location" button, and a bottom panel with the resolved address
  * and a prominent "Confirmar ubicación" button. It opens already centred on the
- * user's current location (or the event's saved one) so confirming is a single
+ * user's current location (or the entity's saved one) so confirming is a single
  * tap. Web-safe: the server `geocodeSearch` proxy + a `staticMap` image stand in
  * for a client Google key and `react-native-maps` (no web build). Colors follow
  * the app accent.
  */
-export function EventLocationField({
+export function LocationField({
   value,
   displayName,
   onChange,
+  onClear,
   label,
 }: {
   value: LatLng | null;
   displayName: string;
   /** Fired on confirm with the chosen coordinates and its address label. */
   onChange: (coords: LatLng, address: string) => void;
+  /** Makes the pin removable: when set and a coordinate is stored, the trigger
+   *  grows a clear button. Omit where the location is mandatory (events). */
+  onClear?: () => void;
   label?: string;
 }) {
   const { t } = useT();
@@ -139,6 +144,21 @@ export function EventLocationField({
         </View>
         <Ionicons name="chevron-forward" size={18} color="#64748b" />
       </Pressable>
+      {onClear && value ? (
+        <Pressable
+          onPress={onClear}
+          accessibilityRole="button"
+          accessibilityLabel={t('village.admin.community.removeLocation')}
+          hitSlop={8}
+          style={styles.clearRow}
+          testID="location-clear"
+        >
+          <Ionicons name="close-circle-outline" size={16} color={ACCENT} />
+          <Text variant="bodySm" tone="muted">
+            {t('village.admin.community.removeLocation')}
+          </Text>
+        </Pressable>
+      ) : null}
 
       <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
         <View style={styles.modal}>
@@ -251,6 +271,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   triggerInner: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
+  clearRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, alignSelf: 'flex-start' },
   triggerText: { flexShrink: 1 },
   modal: { flex: 1, backgroundColor: '#eef2f7' },
   mapImage: { width: '100%', height: '100%' },

@@ -5,11 +5,13 @@ import {
 } from '@cultuvilla/shared/services/municipalityService';
 import { deleteImageByURL, uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
 import { PLACE_KINDS, type PlaceKind } from '@cultuvilla/shared/models/municipality';
+import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 import { Stepper, type StepConfig } from '../Stepper';
 import { pickImageAsBlob } from '../../../lib/images';
 import { useT } from '../../../lib/i18n';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { ProposableForm } from './ProposableForm';
+import { LocationField } from '../LocationField';
 import { OrganizerPicker } from '../OrganizerPicker';
 
 function stepBody(children: React.ReactNode) {
@@ -47,6 +49,8 @@ export function PlacesManager({
   const [kind, setKind] = useState<PlaceKind>('cemetery');
   const [images, setImages] = useState<string[]>([]);
   const [addingImage, setAddingImage] = useState(false);
+  const [coordinates, setCoordinates] = useState<LatLng | null>(null);
+  const [locationLabel, setLocationLabel] = useState('');
   const [saving, setSaving] = useState(false);
   const [contributorUserIds, setContributorUserIds] = useState<string[]>([]);
   const [contributorOrgIds, setContributorOrgIds] = useState<string[]>([]);
@@ -78,6 +82,7 @@ export function PlacesManager({
     try {
       const input = {
         name: name.trim(), kind, description: description.trim(),
+        coordinates, locationLabel: locationLabel.trim() || null,
         municipalityId: villageId, proposedBy: uid, images,
         contributorUserIds: contributorUserIds.includes(uid) ? contributorUserIds : [uid, ...contributorUserIds],
         contributorOrgIds,
@@ -87,6 +92,8 @@ export function PlacesManager({
       setDescription('');
       setKind('cemetery');
       setImages([]);
+      setCoordinates(null);
+      setLocationLabel('');
       setContributorUserIds([]);
       setContributorOrgIds([]);
       onCreated?.();
@@ -123,6 +130,21 @@ export function PlacesManager({
             typeOptions={PLACE_KINDS.map((k) => ({ value: k, label: kindLabel(k) }))}
             typeValue={kind}
             onChangeType={(v) => setKind(v as PlaceKind)}
+            footer={
+              <LocationField
+                label={t('village.admin.places.location')}
+                value={coordinates}
+                displayName={locationLabel}
+                onChange={(c, address) => {
+                  setCoordinates(c);
+                  setLocationLabel(address);
+                }}
+                onClear={() => {
+                  setCoordinates(null);
+                  setLocationLabel('');
+                }}
+              />
+            }
             submitLabel=""
             onSubmit={() => {}}
             saving={false}
