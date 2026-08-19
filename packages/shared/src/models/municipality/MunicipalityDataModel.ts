@@ -46,6 +46,12 @@ export const MunicipalityDataSchema = z.object({
   comunidadAutonoma: z.string(),
   codigoINE: z.string(),
   coordinates: LatLngSchema.nullable(),
+  /** Human-readable name of `coordinates` ("Plaza Mayor, Abadía, Cáceres"),
+   *  captured when the organizer picks the spot. Stored rather than resolved on
+   *  read so every surface shows the same name without a geocoding round-trip —
+   *  and so the UI never has to fall back to showing the raw coordinates.
+   *  `null` when no location is set, or when it predates this field. */
+  locationLabel: z.string().nullable(),
   /** Organizer-chosen zoom level for the village location map (Google Static
    *  Maps zoom). `null` when unset; readers fall back to a default. */
   mapZoom: z.number().nullable(),
@@ -81,6 +87,7 @@ export interface MunicipalityDataInput {
   comunidadAutonoma: string;
   codigoINE: string;
   coordinates?: LatLng | null;
+  locationLabel?: string | null;
   mapZoom?: number | null;
   escudoUrl?: string | null;
   escudoThumbUrl?: string | null;
@@ -120,6 +127,7 @@ export function buildMunicipalityData(input: MunicipalityDataInput): Municipalit
     comunidadAutonoma: input.comunidadAutonoma,
     codigoINE: input.codigoINE,
     coordinates: input.coordinates ?? null,
+    locationLabel: input.locationLabel ?? null,
     mapZoom: input.mapZoom ?? null,
     createdAt: new Date(),
     escudoUrl: input.escudoUrl ?? null,

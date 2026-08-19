@@ -72,7 +72,7 @@ export const startVillage = onCall<StartVillageData, Promise<StartVillageResult>
       // tx.update bypasses the converter, so the nested community object can
       // carry a FieldValue.serverTimestamp(); the loose UpdateData<DocumentData>
       // keeps that mixed shape typecheckable. Activation never touches location —
-      // coordinates/mapZoom are set only via the admin-only edit path.
+      // coordinates/locationLabel/mapZoom are set only via the admin-only edit path.
       const update: UpdateData<DocumentData> = {
         communityActive: true,
         community: {

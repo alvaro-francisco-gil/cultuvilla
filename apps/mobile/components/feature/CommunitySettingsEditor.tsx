@@ -31,6 +31,7 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
   const [village, setVillage] = useState<MunicipalityData | null>(null);
   const [description, setDescription] = useState<string | null>(null);
   const [coords, setCoords] = useState<LatLng | null>(null);
+  const [locationLabel, setLocationLabel] = useState('');
   const [zoom, setZoom] = useState<number>(MAP_ZOOM_DEFAULT);
   const [uploadingEscudo, setUploadingEscudo] = useState(false);
 
@@ -40,6 +41,7 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
     setVillage(m);
     setDescription(m?.community?.description ?? '');
     setCoords(m?.coordinates ?? null);
+    setLocationLabel(m?.locationLabel ?? '');
     setZoom(clampMapZoom(m?.mapZoom ?? MAP_ZOOM_DEFAULT));
   }, [villageId]);
 
@@ -64,11 +66,12 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
   }
 
   const saveLocation = useCallback(
-    async (nextCoords: LatLng | null, nextZoom: number) => {
+    async (nextCoords: LatLng | null, nextZoom: number, nextLabel: string) => {
       if (!villageId) return;
       try {
         await updateMunicipality(villageId, {
           coordinates: nextCoords,
+          locationLabel: nextCoords && nextLabel !== '' ? nextLabel : null,
           mapZoom: nextCoords ? nextZoom : null,
         });
       } catch (e) {
@@ -106,14 +109,16 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
         {village ? (
           <LocationPicker
             value={coords}
-            onChange={(next) => {
+            valueLabel={locationLabel}
+            onChange={(next, label) => {
               setCoords(next);
-              void saveLocation(next, zoom);
+              setLocationLabel(label);
+              void saveLocation(next, zoom, label);
             }}
             zoom={zoom}
             onZoomChange={(z) => {
               setZoom(z);
-              void saveLocation(coords, z);
+              void saveLocation(coords, z, locationLabel);
             }}
             showUseMyLocation={false}
           />

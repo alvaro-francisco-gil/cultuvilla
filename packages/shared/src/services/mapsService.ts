@@ -64,3 +64,26 @@ export async function geocodeSearch(query: string): Promise<GeocodePlace[]> {
   const res = await geocodeFn()({ query });
   return res.data.results;
 }
+
+const reverseGeocodeFn = () =>
+  httpsCallable<{ lat: number; lng: number }, { label: string | null }>(
+    getFirebaseFunctions(),
+    'reverseGeocode',
+  );
+
+/**
+ * Human-readable address for a coordinate, via the same server-side proxy.
+ * Goes through the server (not `expo-location`'s reverse geocoder) because the
+ * device geocoder is native-only — on the web build it always fails, which is
+ * how raw coordinates used to end up stored as a location's name. Returns
+ * `null` when Google has no match or the lookup fails; callers pick their own
+ * fallback label, never a coordinate string.
+ */
+export async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
+  try {
+    const res = await reverseGeocodeFn()({ lat, lng });
+    return res.data.label;
+  } catch {
+    return null;
+  }
+}

@@ -26,6 +26,7 @@ async function seedMunicipality(organizerId: string | null = null): Promise<void
       comunidadAutonoma: 'Madrid',
       codigoINE: '28000',
       coordinates: null,
+      locationLabel: null,
       mapZoom: null,
       createdAt: now,
       escudoUrl: null,

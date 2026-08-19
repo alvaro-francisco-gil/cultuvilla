@@ -21,6 +21,7 @@ const validMunicipality = {
   comunidadAutonoma: 'Andalucía',
   codigoINE: '23050',
   coordinates: { lat: 37.85, lng: -3.35 },
+  locationLabel: 'Plaza de España, Jódar',
   mapZoom: null,
   createdAt: new Date('2026-01-01T00:00:00Z'),
   escudoUrl: null,
@@ -33,6 +34,12 @@ const validMunicipality = {
 describe('MunicipalityDataSchema', () => {
   it('parses a valid municipality with null community', () => {
     expect(() => MunicipalityDataSchema.parse(validMunicipality)).not.toThrow();
+  });
+
+  it('requires locationLabel to be present, so pre-field docs are caught by the converter', () => {
+    const { locationLabel: _omitted, ...withoutLabel } = validMunicipality;
+    expect(() => MunicipalityDataSchema.parse(withoutLabel)).toThrow();
+    expect(() => MunicipalityDataSchema.parse({ ...withoutLabel, locationLabel: null })).not.toThrow();
   });
 
   it('parses a municipality with an active community', () => {
@@ -91,6 +98,7 @@ describe('buildMunicipalityData', () => {
     });
     expect(built.nameLower).toBe(municipalitySearchKey('Ávila'));
     expect(built.coordinates).toBeNull();
+    expect(built.locationLabel).toBeNull();
     expect(built.community).toBeNull();
     expect(built.communityActive).toBe(false);
     expect(() => MunicipalityDataSchema.parse(built)).not.toThrow();
@@ -103,8 +111,10 @@ describe('buildMunicipalityData', () => {
       comunidadAutonoma: 'C',
       codigoINE: '00000',
       coordinates: { lat: 37.85, lng: -3.35 },
+      locationLabel: 'Plaza Mayor, X',
     });
     expect(built.coordinates).toEqual({ lat: 37.85, lng: -3.35 });
+    expect(built.locationLabel).toBe('Plaza Mayor, X');
   });
 });
 
