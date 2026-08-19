@@ -78,7 +78,11 @@ export function useProfileData(
     setNewsError(false);
     try {
       const [self, mine] = await Promise.all([
-        withFirestoreErrorLog('profile:getPersonByUserId', () => getPersonByUserId(uid)),
+        withFirestoreErrorLog('profile:getPersonByUserId', () =>
+          // Only the profile's own owner may read it unfiltered (a private
+          // persona is still theirs to see).
+          getPersonByUserId(uid, variant === 'self' ? uid : null),
+        ),
         withFirestoreErrorLog('profile:getPersonsByCreator', () => getPersonsByCreator(uid)),
       ]);
       setSelfPerson(self);

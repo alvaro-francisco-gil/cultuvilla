@@ -37,10 +37,34 @@ export async function getPersonsByCreator(
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+/**
+ * The persona linked to a user account, or null.
+ *
+ * The persons read rule is evaluated per matched document, so a `userId ==` list
+ * query that could match a *private* persona belonging to someone else is
+ * rejected outright — not filtered. Left unpinned, one village member with a
+ * private persona made every batch lookup reject (an empty organizer picker, a
+ * profile screen stuck loading). So the query pins a rule branch: `isPublic ==
+ * true` for anyone else's persona, and the unfiltered form only when the caller
+ * *is* that user (`resource.data.userId == request.auth.uid`), which is what
+ * keeps a caller's own private persona visible to them.
+ *
+ * Pass `viewerUid` whenever the answer must include the caller's own private
+ * persona; omitting it yields the public-only view a stranger gets.
+ */
 export async function getPersonByUserId(
   userId: string,
+  viewerUid?: string | null,
 ): Promise<(PersonData & { id: string }) | null> {
-  const q = query(personsCollection(getDb()), where('userId', '==', userId), limit(1));
+  const own = viewerUid != null && viewerUid === userId;
+  const q = own
+    ? query(personsCollection(getDb()), where('userId', '==', userId), limit(1))
+    : query(
+        personsCollection(getDb()),
+        where('userId', '==', userId),
+        where('isPublic', '==', true),
+        limit(1),
+      );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }))[0] ?? null;
 }
@@ -81,7 +105,7 @@ export async function updateResidenceBarrio(
   municipalityId: string,
   barrioId: string | null,
 ): Promise<void> {
-  const person = await getPersonByUserId(userId);
+  const person = await getPersonByUserId(userId, userId);
   if (!person) return;
   const others = person.municipalityLinks.filter((l) => l.municipalityId !== municipalityId);
   await updatePerson(person.id, {

@@ -96,9 +96,12 @@ export function OrganizerPicker({
         memberDocs.map(async (m) => {
           // Name from the (denormalized) user doc; avatar from the person doc —
           // the user doc's photoURL is frequently null (see MembersList).
+          // Per-member catch, not one Promise.all over the batch: a member
+          // whose persona is private (or any transient denial) must cost only
+          // their avatar, never the whole villager list.
           const [profile, person] = await Promise.all([
-            getUserProfile(m.userId),
-            getPersonByUserId(m.userId),
+            getUserProfile(m.userId).catch(() => null),
+            getPersonByUserId(m.userId).catch(() => null),
           ]);
           return {
             userId: m.userId,

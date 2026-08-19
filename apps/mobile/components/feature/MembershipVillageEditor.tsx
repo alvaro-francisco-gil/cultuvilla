@@ -46,14 +46,14 @@ export interface MembershipVillageEditorProps {
  */
 export function MembershipVillageEditor({ userId }: MembershipVillageEditorProps) {
   const { t } = useT();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function loadRows(): Promise<Row[]> {
     const [memberships, person] = await Promise.all([
       getUserMemberships(userId),
-      getPersonByUserId(userId),
+      getPersonByUserId(userId, user?.uid ?? null),
     ]);
     const links = person?.municipalityLinks ?? [];
     const named = await Promise.all(
