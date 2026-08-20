@@ -26,8 +26,11 @@ jobs:
   # reason. A separate job (rather than a step in the reusable workflow) keeps
   # `contents: write` scoped to prod: dev and beta keep a read-only token.
   #
-  # Idempotent: an existing tag is left alone and reported, so re-running an
-  # older prod deploy backfills a tag that was never created instead of failing.
+  # Idempotent: an existing tag is left alone and reported, so a re-run (after a
+  # transient push failure, or a re-deploy of the same commit) succeeds instead
+  # of failing on "tag already exists". Note this cannot recover a tag for a
+  # release that predates this job — a re-run uses the workflow file as it was
+  # at that commit, where the job does not exist. Those are tagged by hand, once.
   # The version comes from apps/mobile/package.json, which mirrors app.config.ts
   # — the single source of truth — so the tag cannot drift from what was built.
   tag:
