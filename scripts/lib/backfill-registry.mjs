@@ -70,6 +70,12 @@ export function validateMeta(meta) {
     fail('autoApply', 'requires idempotent: true — an unattended re-run must be a no-op');
   }
 
+  const dependsOn = meta.dependsOn ?? [];
+  if (!Array.isArray(dependsOn) || dependsOn.some((id) => typeof id !== 'string' || id.length === 0)) {
+    fail('dependsOn', 'must be an array of backfill ids');
+  }
+  if (dependsOn.includes(meta.id)) fail('dependsOn', 'cannot depend on itself');
+
   // An audit writes nothing, so it never gets a marker. Any gating phase would
   // therefore block the deploy forever with no way to satisfy it.
   if (meta.kind === 'audit' && meta.phase !== 'none') {
@@ -99,10 +105,60 @@ export function selectPostDeploy(metas, env) {
   return (metas || []).filter((m) => applicable(m, env) && m.phase === 'post-deploy');
 }
 
-/** The subset the deploy may run unattended: opted in for this env and idempotent. */
+/**
+ * Order `metas` so every backfill follows the ones it declares in `dependsOn`.
+ *
+ * WHY THIS EXISTS: discovery returns backfills sorted by `meta.id` — plain
+ * alphabetical order. That is not a safe order for a projection. A projection backfill
+ * (registration-person-denorm, the municipalityPeople rows, …) has to run AFTER
+ * the source-collection backfills, because patching a source fires the
+ * currently-deployed trigger, which rewrites the projected rows with a full
+ * `set()` and no knowledge of the new field — silently undoing projection work
+ * already done (see AGENTS.md, "Backfill the source before the projection").
+ * Alphabetical order satisfied that by luck in the 0.21.0 release; luck is not
+ * a scheduling strategy.
+ *
+ * Stable: ties keep their incoming (alphabetical) order, so an unrelated rename
+ * cannot silently reshuffle the run. Dependencies outside `metas` — not opted
+ * in, or not applicable to this env — are simply absent and impose no ordering.
+ * Throws on a cycle rather than picking an arbitrary order.
+ */
+export function topoSort(metas) {
+  const list = metas || [];
+  const byId = new Map(list.map((m) => [m.id, m]));
+  const state = new Map(); // id -> 'visiting' | 'done'
+  const out = [];
+
+  const visit = (meta, trail) => {
+    const seen = state.get(meta.id);
+    if (seen === 'done') return;
+    if (seen === 'visiting') {
+      fail('dependsOn', `has a cycle: ${[...trail, meta.id].join(' -> ')}`);
+    }
+    state.set(meta.id, 'visiting');
+    for (const depId of meta.dependsOn ?? []) {
+      const dep = byId.get(depId);
+      if (dep) visit(dep, [...trail, meta.id]);
+    }
+    state.set(meta.id, 'done');
+    out.push(meta);
+  };
+
+  for (const meta of list) visit(meta, []);
+  return out;
+}
+
+/**
+ * The subset the deploy may run unattended: opted in for this env and
+ * idempotent, in dependency order. The deploy applies these before the
+ * conformance gate reads the data, so the order here is the order the data is
+ * actually mutated in.
+ */
 export function selectAutoApplicable(metas, env) {
-  return (metas || []).filter(
-    (m) => applicable(m, env) && m.idempotent === true && Array.isArray(m.autoApply) && m.autoApply.includes(env),
+  return topoSort(
+    (metas || []).filter(
+      (m) => applicable(m, env) && m.idempotent === true && Array.isArray(m.autoApply) && m.autoApply.includes(env),
+    ),
   );
 }
 

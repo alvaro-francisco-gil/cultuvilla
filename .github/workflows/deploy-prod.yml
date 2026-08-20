@@ -18,3 +18,43 @@ jobs:
     with:
       environment: production
       firebase_alias: prod
+
+  # Tag the release once prod is actually green, so a `vX.Y.Z` tag always names
+  # a commit that shipped. AGENTS.md asks for the tag on the `main` merge
+  # commit; done by hand it is silently skipped whenever whoever cuts the
+  # release cannot push tag refs — v0.21.0 shipped untagged for exactly that
+  # reason. A separate job (rather than a step in the reusable workflow) keeps
+  # `contents: write` scoped to prod: dev and beta keep a read-only token.
+  #
+  # Idempotent: an existing tag is left alone and reported, so a re-run (after a
+  # transient push failure, or a re-deploy of the same commit) succeeds instead
+  # of failing on "tag already exists". Note this cannot recover a tag for a
+  # release that predates this job — a re-run uses the workflow file as it was
+  # at that commit, where the job does not exist. Those are tagged by hand, once.
+  # The version comes from apps/mobile/package.json, which mirrors app.config.ts
+  # — the single source of truth — so the tag cannot drift from what was built.
+  tag:
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Tag the release
+        run: |
+          version=$(node -p "require('./apps/mobile/package.json').version")
+          tag="v${version}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "Tag ${tag} already exists — leaving it untouched."
+          else
+            # actions/checkout leaves no committer identity, and `git tag -a`
+            # needs one to write the tag object.
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "${tag}" -m "${tag}" "${GITHUB_SHA}"
+            git push origin "refs/tags/${tag}"
+            echo "Tagged ${tag} at ${GITHUB_SHA}."
+          fi
+          echo "- Release tag: \`${tag}\`" >> "$GITHUB_STEP_SUMMARY"

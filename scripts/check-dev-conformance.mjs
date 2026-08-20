@@ -96,13 +96,22 @@ const REGISTRY = [
     // ~6k municipalities are INE reference data with no community and no
     // subcollections (members/joinRequests/inviteTokens/barrios/places only
     // exist once a village is activated). Skip the subcollection round-trips
-    // for inactive ones. If the parent doc fails to parse we descend anyway,
-    // so a drifted municipality never hides drift below it.
+    // for inactive ones.
+    //
+    // A parent that fails to parse is NOT descended into. It used to be, on the
+    // reasoning that a drifted municipality shouldn't hide drift below it — but
+    // the parent failure is already the finding, and the cost of that choice
+    // lands exactly when the gate is doing its job: on a missing required field
+    // every one of the ~6k reference docs throws, so every one gets 4 sequential
+    // subcollection reads. ~24k round trips turned a 6-second gate into a
+    // 30-minute job timeout during the 0.21.0 release, reported as a timeout
+    // rather than "N nonconforming docs". Fail fast and legibly instead;
+    // subcollection drift surfaces on the next run, once the parent parses.
     descend: (doc) => {
       try {
         return doc.data().communityActive === true;
       } catch {
-        return true;
+        return false;
       }
     },
     subs: [
