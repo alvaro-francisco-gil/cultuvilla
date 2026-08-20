@@ -4,11 +4,27 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.23.0 — 2026-08-20
+
+### Added
+
+- **Cualquier comentario ajeno se puede denunciar, y a su autor se le puede bloquear.** Cada comentario que no es tuyo lleva una bandera que abre una hoja con siete motivos (spam, acoso, odio, contenido sexual, violencia, información falsa, otro) y, debajo, *Bloquear a esta persona*. Denunciar no falla nunca — es una escritura directa del cliente a la nueva colección `contentReports/`, con las reglas fijando quién denuncia (tú) y en qué estado nace (`open`, nunca resuelto de antemano). Bloquear es supresión del lado del cliente: los comentarios de esa persona desaparecen de tus pantallas al instante y no se vuelven a cargar, sin que su contenido cambie para nadie más. La lista vive en `users/{uid}/blockedUsers/` y es de lectura **y** escritura exclusivamente de su dueño — una lista legible revelaría quién bloqueó a quién, que es material de acoso por sí mismo.
+  - **Ajustes → Personas bloqueadas** lista a quién has bloqueado y permite desbloquear. Un bloqueo que no se puede deshacer no es un bloqueo.
+  - **Administración → Denuncias** es la bandeja de moderación: las denuncias abiertas del pueblo activo, con *Descartar* y *Marcar como revisada*. Sólo leen y resuelven los administradores del pueblo (o de la app); ni quien denuncia ni la persona denunciada pueden leer la denuncia, así que nadie averigua quién le señaló.
+  - Esto es requisito de ambas tiendas para contenido generado por personas usuarias: el cuestionario de clasificación de contenido de Google Play lo pregunta y la guideline 1.2 de la App Store exige denuncia **y** bloqueo. Ver [docs/store/](docs/store/).
+
+- **Página pública de eliminación de cuenta** en `/legal/eliminar-cuenta`: cómo borrar tu cuenta desde la app o por correo, qué se elimina y qué se conserva. El formulario de Data safety de Google Play exige una URL web de eliminación, separada de la ruta dentro de la app (que sigue estando en Ajustes → Eliminar cuenta).
+
+### Changed
+
+- `ITSAppUsesNonExemptEncryption: false` en `app.config.ts`: la app sólo usa HTTPS/TLS estándar, así que declararlo una vez evita que App Store Connect pregunte por cumplimiento de exportación en cada build.
+
 ### Removed
 
 - **Sixteen spent one-off backfill scripts are deleted.** They predate the registry, have run in every env, and can never meaningfully run again — `migrate-to-flat.mjs` in particular targets a collection layout that no longer exists. Git keeps the history (*Delete > deprecate*), and `pnpm backfills:lint` drops from 22 warnings to 6, so the coverage check reads as signal rather than the wall of noise that trains people to skip it — the same inattention that let `autoApply: []` sit unnoticed on every backfill.
   - **Six are deliberately kept**, because they are not dead: five are the **backfill-of-record** that [denormalized-read-models.md](docs/architecture/denormalized-read-models.md) names for a live read model — the documented way to repopulate `municipalityPeople`, entity comment counts, readcount, org member count or place burial count should one ever drift — and `backfill-entity-contributors` is wired to a `package.json` script. Deleting those would delete the answer to "how do I rebuild this?", not just the code.
   - **Fixed a broken link that made the case.** `denormalized-read-models.md` pointed at `scripts/backfill-user-displayname.mjs`, which no longer exists — a script deleted at some point without updating the doc that named it, leaving that read model with no documented repopulation path at all. AGENTS.md now states the rule directly: retire one of the six only after its entry in that doc goes too.
+
 ### Fixed
 
 - **Turning in-app sign-ups off no longer leaves an orphaned roster behind.** The *Inscripciones por la app* toggle was freely flippable on an event that already had sign-ups — unlike *inscripción por grupos*, which freezes the moment anyone books — and nothing happened to the registrations. The result contradicted itself in the app: the detail screen announced that the event takes no sign-ups through the app while still listing the people who had made one, those people kept the event under *Mis inscripciones* and the "Apuntado" ribbon in the feed, and they **lost the ability to cancel** — the self-cancel button lives on the sign-up FAB, which the same flag hides, so only an organizer could still remove them.
@@ -26,18 +42,6 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   - **`autoApply` is now the documented default** for an additive, idempotent `pre-deploy` backfill, with `pnpm backfills:lint` warning (never failing) when one leaves it empty. Five older backfills are flagged and left alone — they have already run everywhere.
 - **The conformance gate fails fast instead of timing out.** It descended into a municipality's subcollections when the parent doc failed to parse, on the reasoning that a drifted parent shouldn't hide drift below it. The cost landed exactly when the gate was doing its job: a missing required field makes all ~6k INE reference docs throw, so each got four sequential subcollection reads — ~24k round trips, turning a 6-second gate into a 30-minute job timeout reported as a timeout rather than "N nonconforming docs". A parent that fails to parse is now the finding, and is not descended into.
 - **The release tag is created by CI.** `vX.Y.Z` was a manual step in the release checklist, so it was silently skipped whenever whoever cut the release could not push tag refs — `v0.21.0` shipped untagged for exactly that reason. A `tag` job in `deploy-prod.yml` now tags the commit once the prod deploy is green, reading the version from the mirrored `package.json`. It is idempotent, so a re-run after a transient push failure succeeds rather than tripping on an existing tag, and `contents: write` is scoped to that job alone — dev and beta keep a read-only token. It cannot retro-tag a release older than itself, since a re-run uses the workflow file as it stood at that commit; `v0.21.0` was tagged by hand as the one-off.
-### Added
-
-- **Cualquier comentario ajeno se puede denunciar, y a su autor se le puede bloquear.** Cada comentario que no es tuyo lleva una bandera que abre una hoja con siete motivos (spam, acoso, odio, contenido sexual, violencia, información falsa, otro) y, debajo, *Bloquear a esta persona*. Denunciar no falla nunca — es una escritura directa del cliente a la nueva colección `contentReports/`, con las reglas fijando quién denuncia (tú) y en qué estado nace (`open`, nunca resuelto de antemano). Bloquear es supresión del lado del cliente: los comentarios de esa persona desaparecen de tus pantallas al instante y no se vuelven a cargar, sin que su contenido cambie para nadie más. La lista vive en `users/{uid}/blockedUsers/` y es de lectura **y** escritura exclusivamente de su dueño — una lista legible revelaría quién bloqueó a quién, que es material de acoso por sí mismo.
-  - **Ajustes → Personas bloqueadas** lista a quién has bloqueado y permite desbloquear. Un bloqueo que no se puede deshacer no es un bloqueo.
-  - **Administración → Denuncias** es la bandeja de moderación: las denuncias abiertas del pueblo activo, con *Descartar* y *Marcar como revisada*. Sólo leen y resuelven los administradores del pueblo (o de la app); ni quien denuncia ni la persona denunciada pueden leer la denuncia, así que nadie averigua quién le señaló.
-  - Esto es requisito de ambas tiendas para contenido generado por personas usuarias: el cuestionario de clasificación de contenido de Google Play lo pregunta y la guideline 1.2 de la App Store exige denuncia **y** bloqueo. Ver [docs/store/](docs/store/).
-
-- **Página pública de eliminación de cuenta** en `/legal/eliminar-cuenta`: cómo borrar tu cuenta desde la app o por correo, qué se elimina y qué se conserva. El formulario de Data safety de Google Play exige una URL web de eliminación, separada de la ruta dentro de la app (que sigue estando en Ajustes → Eliminar cuenta).
-
-### Changed
-
-- `ITSAppUsesNonExemptEncryption: false` en `app.config.ts`: la app sólo usa HTTPS/TLS estándar, así que declararlo una vez evita que App Store Connect pregunte por cumplimiento de exportación en cada build.
 
 ## v0.21.0 — 2026-08-19
 
