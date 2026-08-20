@@ -472,6 +472,27 @@ service cloud.firestore {
           && (d.parentCommentId == null || isValidReplyParent(d.entityKind, d.entityId, d.municipalityId, d.parentCommentId));
     }
 
+    function isValidContentReportCreate(d) {
+      return d.keys().hasOnly(['municipalityId', 'targetKind', 'targetId', 'targetAuthorUserId', 'reporterUserId', 'reason', 'note', 'status', 'createdAt'])
+          && d.keys().hasAll(['municipalityId', 'targetKind', 'targetId', 'targetAuthorUserId', 'reporterUserId', 'reason', 'note', 'status', 'createdAt'])
+          && isString(d.municipalityId)
+          && d.targetKind in ['event', 'festivalPoster', 'place', 'barrio', 'organization', 'news', 'comment', 'person']
+          && isString(d.targetId)
+          && isStringOrNull(d.targetAuthorUserId)
+          && isString(d.reporterUserId)
+          && d.reason in ['spam', 'harassment', 'hate', 'sexual', 'violence', 'falseInfo', 'other']
+          && (d.note == null || (isString(d.note) && d.note.size() <= 500))
+          && d.status == 'open'
+          && isTimestamp(d.createdAt);
+    }
+
+    function isValidBlockedUserCreate(d, blockedUserId) {
+      return d.keys().hasOnly(['blockedUserId', 'createdAt'])
+          && d.keys().hasAll(['blockedUserId', 'createdAt'])
+          && d.blockedUserId == blockedUserId
+          && isTimestamp(d.createdAt);
+    }
+
     function isValidReplyParent(entityKind, entityId, municipalityId, parentCommentId) {
       let parent = get(/databases/$(database)/documents/comments/$(parentCommentId));
       return parent.data.entityKind == entityKind
@@ -603,6 +624,17 @@ service cloud.firestore {
         allow update: if isOwner(userId)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
         allow create, delete: if false;
+      }
+
+      // Per-user block list. Owner-only in BOTH directions: a readable list
+      // would disclose who blocked whom, which is itself harassment material.
+      // The doc id is the blocked uid, so blocking twice is one doc.
+      match /blockedUsers/{blockedUserId} {
+        allow read, delete: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && blockedUserId != userId
+          && isValidBlockedUserCreate(request.resource.data, blockedUserId);
+        allow update: if false;
       }
     }
 
@@ -753,6 +785,23 @@ service cloud.firestore {
     match /moderationEvents/{eventId} {
       allow read: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
       allow write: if false;
+    }
+
+    // User-filed reports about UGC (comments, news, profiles, entities). Any
+    // signed-in person may file one — a report that can fail is worse than no
+    // report — but only against themselves as reporter, and always unreviewed:
+    // `status` is the moderator's field, so the create rule pins it to 'open'.
+    // Reads are moderator-only; a reporter cannot enumerate reports, which
+    // keeps the reported person from learning who filed.
+    match /contentReports/{reportId} {
+      allow read: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
+      allow create: if isAuthenticated()
+                      && request.resource.data.reporterUserId == request.auth.uid
+                      && isValidContentReportCreate(request.resource.data);
+      allow update: if (isVillageAdmin(resource.data.municipalityId) || isAppAdmin())
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+                      && request.resource.data.status in ['open', 'reviewed', 'dismissed'];
+      allow delete: if false;
     }
 
     match /organizations/{orgId} {

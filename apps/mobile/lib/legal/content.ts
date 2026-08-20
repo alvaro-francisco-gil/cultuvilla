@@ -243,4 +243,56 @@ const terms: LegalDoc = {
   ],
 };
 
-export const LEGAL_DOCS: { terms: LegalDoc; privacy: LegalDoc } = { terms, privacy };
+/**
+ * Public account-deletion instructions. Google Play's Data safety form requires
+ * a *web* URL where a person can find out how to delete their account and their
+ * data, separate from the in-app path — this doc is that URL
+ * (https://cultuvilla.es/legal/eliminar-cuenta) and it is why the screen exists
+ * outside the signed-in area.
+ */
+const accountDeletion: LegalDoc = {
+  title: 'Eliminar tu cuenta',
+  updated,
+  version: CURRENT_TERMS_VERSION,
+  intro: [
+    'Puedes eliminar tu cuenta de Cultuvilla y los datos asociados en cualquier momento, desde la propia aplicación o escribiéndonos.',
+  ],
+  sections: [
+    {
+      heading: 'Desde la aplicación',
+      body: [
+        '• Abre el menú y entra en Ajustes.',
+        '• Pulsa "Eliminar cuenta".',
+        '• Confirma la eliminación.',
+        'La eliminación es inmediata y definitiva: no hay periodo de recuperación.',
+      ],
+    },
+    {
+      heading: 'Por correo',
+      body: [
+        'Si no puedes acceder a la aplicación, escribe a cultuvilla.app@gmail.com desde la dirección de correo de tu cuenta y la eliminaremos por ti. Responderemos en un plazo máximo de 30 días.',
+      ],
+    },
+    {
+      heading: 'Qué se elimina',
+      body: [
+        '• Tu cuenta de acceso y tu correo electrónico.',
+        '• Tu perfil de persona: nombre, fecha y lugar de nacimiento, biografía y fotografía.',
+        '• Tu pertenencia a pueblos y organizaciones, y tus inscripciones a eventos.',
+        'Tus comentarios y publicaciones dejan de estar asociados a tu identidad. El contenido que hayas publicado en nombre de una organización (eventos, noticias) sigue perteneciendo a esa organización, porque es información de la vida del pueblo que otras personas necesitan.',
+      ],
+    },
+    {
+      heading: 'Qué se conserva y durante cuánto tiempo',
+      body: [
+        'Conservamos únicamente lo que exige la normativa aplicable (por ejemplo, registros de seguridad y de auditoría) durante el plazo legalmente previsto, y después se suprime. Ver la Política de privacidad para el detalle.',
+      ],
+    },
+  ],
+};
+
+export const LEGAL_DOCS: { terms: LegalDoc; privacy: LegalDoc; accountDeletion: LegalDoc } = {
+  terms,
+  privacy,
+  accountDeletion,
+};

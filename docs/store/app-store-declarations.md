@@ -38,9 +38,11 @@ Contacts, Search History, Browsing History, Purchases, Audio Data.
 Cuestionario ASC. Todas las categorías de contenido (violencia, sexo, sustancias,
 juego, terror) en **None**. Las que sí aplican:
 
-- **User Generated Content**: Sí → obliga a declarar filtrado de contenido
-  ofensivo, mecanismo de **denuncia**, mecanismo de **bloqueo** y un contacto de
-  moderación. Ver el bloqueante en [README.md](README.md).
+- **User Generated Content**: Sí → hay que declarar el mecanismo de **denuncia**
+  (bandera en cada comentario ajeno, siete motivos), el de **bloqueo**
+  (misma hoja; se deshace en Ajustes → Personas bloqueadas), la revisión por
+  administradores (Administración → Denuncias + ocultación de contenido) y el
+  contacto de moderación `cultuvilla.app@gmail.com`.
 - **Unrestricted Web Access**: No — los enlaces externos abren el navegador del
   sistema, no hay navegador embebido sin restricciones.
 - **Frequent/Intense Contests, Gambling**: No.
@@ -70,10 +72,10 @@ Play — es correcto: Play pregunta a quién va dirigida, Apple qué contiene.
 
 ## Otros formularios
 
-- **Export Compliance**: la app usa HTTPS/TLS estándar → califica para la
-  exención. Responder "Sí, usa cifrado" + "sólo cifrado exento/estándar".
-  Fijarlo en `ITSAppUsesNonExemptEncryption: false` en `infoPlist` para no
-  contestarlo en cada build.
+- **Export Compliance**: ya declarado en el binario —
+  `ITSAppUsesNonExemptEncryption: false` en el `infoPlist` de
+  [app.config.ts](../../apps/mobile/app.config.ts), porque la app sólo usa
+  HTTPS/TLS estándar. ASC deja de preguntarlo en cada build.
 - **Content Rights**: no se usa contenido de terceros con licencia.
 - **Advertising Identifier (IDFA)**: no se usa.
 - **Sign in with Apple**: **obligatorio** si se ofrece Google Sign-In como único
@@ -83,6 +85,5 @@ Play — es correcto: Play pregunta a quién va dirigida, Apple qué contiene.
 
 ## Requisitos de iOS que hoy no están cubiertos
 
-1. Flujo de denuncia y de bloqueo de personas usuarias (guideline 1.2).
-2. Sign in with Apple, si Google Sign-In sigue en pantalla (guideline 4.8).
-3. Cuenta/buzón de revisión operativo.
+1. Sign in with Apple, si Google Sign-In sigue en pantalla (guideline 4.8).
+2. Cuenta/buzón de revisión operativo.

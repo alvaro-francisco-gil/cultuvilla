@@ -25,6 +25,8 @@ import { iconSizes, colors } from '@cultuvilla/shared/design-system';
 import type { CommentData, EntityKind } from '@cultuvilla/shared/models';
 import { ownerRoute } from '../../lib/entities/ownerRoute';
 import { resolveCommentAuthor, type CommentAuthor } from '../../lib/comments/commentAuthors';
+import { ReportSheet, type ReportTarget } from './ReportSheet';
+import { getBlockedUserIds } from '@cultuvilla/shared/services/blockedUserService';
 
 export type EntityCommentsProps = {
   entityKind: EntityKind;
@@ -131,9 +133,12 @@ export function EntityComments({
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const [repliesByParent, setRepliesByParent] = useState<Map<string, CommentDoc[]>>(new Map());
   const [loadingReplies, setLoadingReplies] = useState<Set<string>>(new Set());
+  const [blockedUserIds, setBlockedUserIds] = useState<Set<string>>(new Set());
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
   const inputRef = useRef<TextInput>(null);
 
   const me = user ? authors.get(user.uid) : undefined;
+  const visibleComments = comments.filter((c) => !blockedUserIds.has(c.authorUserId));
   const replyTarget = replyingTo ? comments.find((c) => c.id === replyingTo) : undefined;
   const replyTargetName = replyTarget ? authors.get(replyTarget.authorUserId)?.name : undefined;
 
@@ -144,6 +149,16 @@ export function EntityComments({
       setLoading(false);
     })();
   }, [entityKind, entityId]);
+
+  // Blocking is client-side suppression: the blocked author's comments stay in
+  // Firestore (their own screens are unaffected) and are filtered out here.
+  useEffect(() => {
+    if (!user) {
+      setBlockedUserIds(new Set());
+      return;
+    }
+    void getBlockedUserIds(user.uid).then((ids) => setBlockedUserIds(new Set(ids)));
+  }, [user]);
 
   // Resolve author name + photo once per uid (avoid an N+1 refetch per comment).
   useEffect(() => {
@@ -203,6 +218,22 @@ export function EntityComments({
       void deleteComment(commentId);
     });
   };
+
+  /** Reporting is only offered on somebody else's words, and only to a signed-in
+   *  person — a report needs an accountable reporter. */
+  const canReport = (authorUserId: string) =>
+    !!user && authorUserId !== user.uid && authorUserId !== DELETED_USER_UID;
+
+  const openReport = (commentId: string, authorUserId: string) =>
+    setReportTarget({
+      kind: 'comment',
+      id: commentId,
+      municipalityId,
+      authorUserId,
+    });
+
+  const onBlocked = (blockedUserId: string) =>
+    setBlockedUserIds((prev) => new Set(prev).add(blockedUserId));
 
   const onToggleReplies = (commentId: string) => {
     setExpandedReplies((prev) => {
@@ -296,9 +327,9 @@ export function EntityComments({
         <View className="items-center py-4">
           <ActivityIndicator />
         </View>
-      ) : comments.length === 0 ? null : (
+      ) : visibleComments.length === 0 ? null : (
         <VStack gap={3}>
-          {comments.map((comment) => {
+          {visibleComments.map((comment) => {
             const canDelete = comment.authorUserId === user?.uid || canModerate;
             const author = authors.get(comment.authorUserId);
             const name = author?.name;
@@ -355,6 +386,17 @@ export function EntityComments({
                       <Ionicons name="trash-outline" size={iconSizes.sm} color={colors.light.fg.muted} />
                     </Pressable>
                   ) : null}
+                  {canReport(comment.authorUserId) ? (
+                    <Pressable
+                      onPress={() => openReport(comment.id, comment.authorUserId)}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('report.title')}
+                      testID={`comment-report-${comment.id}`}
+                      className="p-1"
+                    >
+                      <Ionicons name="flag-outline" size={iconSizes.sm} color={colors.light.fg.muted} />
+                    </Pressable>
+                  ) : null}
                 </HStack>
 
                 {expandedReplies.has(comment.id) ? (
@@ -364,7 +406,9 @@ export function EntityComments({
                     </View>
                   ) : (
                     <VStack gap={2} className="pl-10">
-                      {(repliesByParent.get(comment.id) ?? []).map((reply) => {
+                      {(repliesByParent.get(comment.id) ?? [])
+                        .filter((reply) => !blockedUserIds.has(reply.authorUserId))
+                        .map((reply) => {
                         const replyAuthor = authors.get(reply.authorUserId);
                         const replyName = replyAuthor?.name;
                         const canDeleteReply = reply.authorUserId === user?.uid || canModerate;
@@ -403,6 +447,17 @@ export function EntityComments({
                                 className="p-1"
                               >
                                 <Ionicons name="trash-outline" size={iconSizes.sm} color={colors.light.fg.muted} />
+                              </Pressable>
+                            ) : null}
+                            {canReport(reply.authorUserId) ? (
+                              <Pressable
+                                onPress={() => openReport(reply.id, reply.authorUserId)}
+                                accessibilityRole="button"
+                                accessibilityLabel={t('report.title')}
+                                testID={`comment-report-${reply.id}`}
+                                className="p-1"
+                              >
+                                <Ionicons name="flag-outline" size={iconSizes.sm} color={colors.light.fg.muted} />
                               </Pressable>
                             ) : null}
                           </HStack>
@@ -470,6 +525,15 @@ export function EntityComments({
           {t('comments.signInToComment')}
         </Button>
       )}
+      {user ? (
+        <ReportSheet
+          visible={reportTarget !== null}
+          target={reportTarget}
+          reporterUserId={user.uid}
+          onClose={() => setReportTarget(null)}
+          onBlocked={onBlocked}
+        />
+      ) : null}
     </VStack>
   );
 }
