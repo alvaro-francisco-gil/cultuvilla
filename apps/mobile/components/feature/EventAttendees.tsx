@@ -17,7 +17,6 @@ import {
   cancelRegistration,
   setRegistrationPaid,
 } from '@cultuvilla/shared/services/registrationService';
-import { getPerson } from '@cultuvilla/shared/services/personService';
 import type { RegistrationData } from '@cultuvilla/shared/models/event/RegistrationDataModel';
 import type {
   SignupAnswers,
@@ -43,19 +42,29 @@ function formatAnswer(value: string | number | boolean, t: (key: string) => stri
   return String(value);
 }
 
-type AttendeePerson = { photoURL: string | null; userId: string | null };
-
 /**
- * Organizer-only attendee roster shown inline on the event detail screen: a
- * circular profile photo (from the attendee's person, initials fallback), the
- * name (which opens that attendee's profile) and the moment they signed up —
- * the roster is ordered by that same moment, so the timestamp doubles as the
- * queue position an organizer can point at. Marking paid and calling (only
- * when the event required a phone) are always available — they're the running
- * ops of an event; tapping call opens a dialog with the number to dial.
- * Removing an attendee is destructive, so the trash icons stay hidden until the
- * heading's "Editar" toggle is on — and the toggle itself only appears once
- * there is at least one attendee to edit.
+ * The event's attendee roster, shown inline on the event detail screen in one
+ * of two modes.
+ *
+ * **Read-only (`canManage: false`)** — what a fellow villager sees when the
+ * event's `attendeesVisibility` is `members`: photo, name, and the moment each
+ * person signed up (the list is ordered by that moment, so the timestamp
+ * doubles as the queue position). Nothing else. Seeing who is going is what
+ * drives sign-ups in a pueblo; the running *ops* of the event are not public.
+ *
+ * **Organizer (`canManage: true`)** — the above plus the ops: mark paid, call
+ * (when the event collected a phone), export, and remove. Removing is
+ * destructive, so the trash icons stay hidden until the heading's "Editar"
+ * toggle is on — and that toggle only appears once someone has signed up.
+ *
+ * Two things are deliberately organizer-only and must stay that way:
+ * `registrationPrivate` (phone + custom answers) is never even fetched in
+ * read-only mode, and a private persona (`isPersonPublic: false`) is counted
+ * but rendered anonymously — the person doc is already denied to other
+ * villagers, so naming them here would republish exactly what that setting
+ * hides. Payment and check-in state are hidden rather than redacted: they live
+ * on the world-readable registration doc, so this is a UI courtesy, not a
+ * security boundary.
  */
 export function EventAttendees({
   eventId,
@@ -64,6 +73,8 @@ export function EventAttendees({
   telephoneRequired,
   requiresPayment,
   signupFields = [],
+  groupSize = 1,
+  canManage,
 }: {
   eventId: string;
   eventTitle: string;
@@ -72,42 +83,37 @@ export function EventAttendees({
   requiresPayment: boolean;
   /** The event's custom sign-up fields; answers are listed under each row. */
   signupFields?: SignupFieldSpec[];
+  /** `signupGroupSize`: > 1 means rows can be unclaimed open seats. */
+  groupSize?: number;
+  /** Organizer set / village admin / app admin: unlocks the ops affordances. */
+  canManage: boolean;
 }) {
   const { t } = useT();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [phones, setPhones] = useState<Record<string, string | null>>({});
   const [answers, setAnswers] = useState<Record<string, SignupAnswers>>({});
-  const [people, setPeople] = useState<Record<string, AttendeePerson>>({});
   const [callTarget, setCallTarget] = useState<{ name: string; phone: string } | null>(null);
   const [editing, setEditing] = useState(false);
 
   const load = useCallback(async () => {
     const regs = await getEventRegistrations(eventId);
     setRows(regs);
-    // Neither the photo nor the account link is denormalised on the
-    // registration, so resolve the person per row. A missing/private person
-    // just falls back to the initials avatar and a non-tappable row.
-    const personEntries = await Promise.all(
-      regs.map(async (r) => {
-        const person = r.personId ? await getPerson(r.personId).catch(() => null) : null;
-        return [
-          r.id,
-          { photoURL: person?.photoURL ?? null, userId: person?.userId ?? null },
-        ] as const;
-      }),
-    );
-    setPeople(Object.fromEntries(personEntries));
+    // Photo, linked account and privacy are denormalized onto the registration
+    // at sign-up. They used to be a `getPerson` per row, which one organizer
+    // paid for; this list is now read by the whole pueblo, so that fan-out
+    // would be paid by every viewer on every open.
     // One gated doc per registration carries both the phone and the custom
-    // answers, so a single fan-out covers both — skip it when the event
-    // collects neither.
-    if (telephoneRequired || signupFields.length > 0) {
+    // answers, so a single fan-out covers both — skipped entirely unless the
+    // caller is an organizer AND the event actually collects something. A
+    // non-organizer is denied these by rules, so asking would only log noise.
+    if (canManage && (telephoneRequired || signupFields.length > 0)) {
       const entries = await Promise.all(
         regs.map(async (r) => [r.id, await getRegistrationPrivate(eventId, r.id)] as const),
       );
       setPhones(Object.fromEntries(entries.map(([id, p]) => [id, p?.phone ?? null])));
       setAnswers(Object.fromEntries(entries.map(([id, p]) => [id, p?.answers ?? {}])));
     }
-  }, [eventId, telephoneRequired, signupFields.length]);
+  }, [eventId, canManage, telephoneRequired, signupFields.length]);
 
   useEffect(() => {
     void load();
@@ -130,29 +136,44 @@ export function EventAttendees({
   // someone has signed up.
   const hasAttendees = confirmed.length + waitlisted.length > 0;
 
+  // A private persona is shown anonymously to everyone but an organizer, so
+  // neither its name nor its photo is rendered — and the row is never tappable,
+  // since the person doc behind it is denied to this reader anyway.
+  const isAnonymous = (r: Row) => !canManage && !r.isPersonPublic;
+
   // Account holders get the richer /user profile; dependent personas open
-  // their read-only person card. A registration with no resolvable person
-  // (deleted or unreadable) simply isn't tappable.
+  // their read-only person card. A walk-in (no person, no account) and an
+  // anonymized row simply aren't tappable.
   const profileHref = (r: Row) => {
-    const userId = people[r.id]?.userId;
-    if (userId) return `/user/${userId}`;
+    // An open seat has no person behind it yet; there is nowhere to go.
+    if (r.isOpenSeat) return null;
+    if (isAnonymous(r)) return null;
+    if (r.personUserId) return `/user/${r.personUserId}`;
     return r.personId ? `/person/${r.personId}` : null;
   };
 
   const renderRow = (r: Row) => {
     const href = profileHref(r);
+    const anonymous = isAnonymous(r);
+    const displayName = r.isOpenSeat
+      ? t('event.group.openSeat')
+      : anonymous
+        ? t('event.attendeePrivate')
+        : r.name;
     // registeredAt is a required field on every stored registration; the guard
     // is for partially-mocked rows in tests, not for real data.
     const signedUpAt = r.registeredAt ? formatDate(r.registeredAt, 'datetime') : null;
     const identity = (
       <>
         <Avatar
-          uri={people[r.id]?.photoURL ?? null}
+          uri={anonymous || r.isOpenSeat ? null : r.photoURL}
           size={36}
-          initials={r.name.slice(0, 1).toUpperCase()}
+          initials={anonymous || r.isOpenSeat ? '·' : displayName.slice(0, 1).toUpperCase()}
         />
         <VStack gap={0} className="flex-1">
-          <Text numberOfLines={1}>{r.name}</Text>
+          <Text numberOfLines={1} tone={anonymous ? 'muted' : undefined}>
+            {displayName}
+          </Text>
           {signedUpAt ? (
             <Text
               testID={`attendee-signed-up-${r.id}`}
@@ -169,7 +190,7 @@ export function EventAttendees({
     );
     // Only the fields this attendee actually answered; an optional field left
     // blank has no entry and simply doesn't render.
-    const given = signupFields
+    const given = (canManage ? signupFields : [])
       .map((f) => ({ field: f, value: answers[r.id]?.[f.id] }))
       .filter((a): a is { field: SignupFieldSpec; value: SignupAnswerValue } => a.value !== undefined);
 
@@ -180,7 +201,7 @@ export function EventAttendees({
           testID={`attendee-profile-${r.id}`}
           onPress={() => router.push(href as never)}
           accessibilityRole="button"
-          accessibilityLabel={r.name}
+          accessibilityLabel={displayName}
           className="flex-1 flex-row items-center gap-3"
         >
           {identity}
@@ -188,7 +209,7 @@ export function EventAttendees({
       ) : (
         identity
       )}
-      {requiresPayment ? (
+      {canManage && requiresPayment ? (
         <Pressable
           testID={`paid-attendee-${r.id}`}
           accessibilityRole="checkbox"
@@ -203,7 +224,7 @@ export function EventAttendees({
           />
         </Pressable>
       ) : null}
-      {telephoneRequired && phones[r.id] ? (
+      {canManage && telephoneRequired && phones[r.id] ? (
         <Pressable
           testID={`call-attendee-${r.id}`}
           accessibilityLabel={t('event.call')}
@@ -212,7 +233,7 @@ export function EventAttendees({
           <Ionicons name="call-outline" size={iconSizes.md} color={colors.light.fg.accent} />
         </Pressable>
       ) : null}
-      {editing ? (
+      {canManage && editing ? (
         <Pressable
           testID={`remove-attendee-${r.id}`}
           accessibilityLabel={t('common.delete')}
@@ -220,7 +241,7 @@ export function EventAttendees({
           onPress={() =>
             showConfirm(
               t('event.removeAttendeeTitle'),
-              t('event.removeAttendeeBody', { name: r.name }),
+              t('event.removeAttendeeBody', { name: displayName }),
               () => void cancelRegistration(eventId, r.id).then(load),
               { confirmText: t('event.removeAttendeeConfirm'), cancelText: t('common.cancel') },
             )
@@ -251,7 +272,7 @@ export function EventAttendees({
     <VStack gap={2}>
       <DetailSectionHeading
         action={
-          hasAttendees ? (
+          canManage && hasAttendees ? (
             <HStack gap={4} align="center">
               <RosterExportButton
                 eventTitle={eventTitle}
@@ -274,6 +295,11 @@ export function EventAttendees({
       >
         {confirmed.length > 0 ? `${t('event.attendees')} (${confirmed.length})` : t('event.attendees')}
       </DetailSectionHeading>
+      {groupSize > 1 ? (
+        <Text tone="muted" variant="bodySm" testID="attendees-group-note">
+          {t('event.group.rosterNote', { count: groupSize })}
+        </Text>
+      ) : null}
       {rows && confirmed.length === 0 ? (
         <Text tone="muted" variant="bodySm">
           {t('event.attendeesEmpty')}

@@ -210,4 +210,49 @@ describe('firestore.rules — /persons/{personId}', () => {
       );
     });
   });
+  // The picker sheets (OrganizerPicker, inbox requesters, third-party profile)
+  // resolve a villager's persona by `userId`. A member who marked their persona
+  // private makes the unfiltered lookup illegal — the service must pin the
+  // public branch for anyone but the person themselves.
+  describe('lookup by userId', () => {
+    async function seedLinkedPersons() {
+      await seed(getEnv(), async (ctx) => {
+        const db = ctx.firestore();
+        await setDoc(doc(db, 'persons/linked-private'), {
+          ...personData({ createdBy: OTHER, userId: OTHER, isPublic: false }),
+          createdAt: new Date(),
+        });
+      });
+    }
+
+    it('an unfiltered lookup of a private persona is denied', async () => {
+      await seedLinkedPersons();
+      const db = asUser(getEnv(), OWNER);
+      await assertFails(
+        getDocs(query(collection(db, 'persons'), where('userId', '==', OTHER))),
+      );
+    });
+
+    it('the same lookup pinned to the public branch is allowed', async () => {
+      await seedLinkedPersons();
+      const db = asUser(getEnv(), OWNER);
+      await assertSucceeds(
+        getDocs(
+          query(
+            collection(db, 'persons'),
+            where('userId', '==', OTHER),
+            where('isPublic', '==', true),
+          ),
+        ),
+      );
+    });
+
+    it('a user may look up their own persona unfiltered, private included', async () => {
+      await seedLinkedPersons();
+      const db = asUser(getEnv(), OTHER);
+      await assertSucceeds(
+        getDocs(query(collection(db, 'persons'), where('userId', '==', OTHER))),
+      );
+    });
+  });
 });

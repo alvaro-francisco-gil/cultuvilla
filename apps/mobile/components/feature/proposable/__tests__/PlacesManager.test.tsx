@@ -18,6 +18,17 @@ jest.mock('../../../../lib/images', () => ({ pickImageAsBlob: jest.fn() }));
 jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({ useEntityCapabilities: jest.fn() }));
 jest.mock('../../OrganizerPicker', () => ({ OrganizerPicker: () => null }));
+// Stands in for the full-screen map picker — one button that reports a pick.
+jest.mock('../../LocationField', () => {
+  const { Text, Pressable } = jest.requireActual('react-native');
+  return {
+    LocationField: ({ onChange }: { onChange: (c: { lat: number; lng: number }, a: string) => void }) => (
+      <Pressable testID="mock-pick-location" onPress={() => onChange({ lat: 40.03, lng: -3.6 }, 'Plaza Mayor 1')}>
+        <Text>pick</Text>
+      </Pressable>
+    ),
+  };
+});
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -43,7 +54,7 @@ describe('<PlacesManager>', () => {
     await waitFor(() =>
       expect(createPlace).toHaveBeenCalledWith(
         'm1',
-        { name: 'Fuente', kind: 'cemetery', description: '', municipalityId: 'm1', proposedBy: 'alice', images: [], contributorUserIds: ['alice'], contributorOrgIds: [] },
+        { name: 'Fuente', kind: 'cemetery', description: '', coordinates: null, locationLabel: null, municipalityId: 'm1', proposedBy: 'alice', images: [], contributorUserIds: ['alice'], contributorOrgIds: [] },
         'new-id',
       ),
     );
@@ -58,7 +69,7 @@ describe('<PlacesManager>', () => {
     await waitFor(() =>
       expect(createPlace).toHaveBeenCalledWith(
         'm1',
-        { name: 'Iglesia', kind: 'cemetery', description: '', municipalityId: 'm1', proposedBy: 'boss', images: [], contributorUserIds: ['boss'], contributorOrgIds: [] },
+        { name: 'Iglesia', kind: 'cemetery', description: '', coordinates: null, locationLabel: null, municipalityId: 'm1', proposedBy: 'boss', images: [], contributorUserIds: ['boss'], contributorOrgIds: [] },
         'new-id',
       ),
     );
@@ -77,6 +88,24 @@ describe('<PlacesManager>', () => {
       expect(createPlace).toHaveBeenCalledWith(
         'm1',
         expect.objectContaining({ images: ['https://example.com/place.jpg'] }),
+        'new-id',
+      ),
+    );
+  });
+
+  it('carries an optional pin and its resolved name into the create payload', async () => {
+    const { getByTestId, getByText } = render(<PlacesManager villageId="m1" />);
+    fireEvent.changeText(getByTestId('place-name-input'), 'Ermita');
+    fireEvent.press(getByTestId('mock-pick-location'));
+    fireEvent.press(getByText('common.stepper.next'));
+    fireEvent.press(getByTestId('place-submit'));
+    await waitFor(() =>
+      expect(createPlace).toHaveBeenCalledWith(
+        'm1',
+        expect.objectContaining({
+          coordinates: { lat: 40.03, lng: -3.6 },
+          locationLabel: 'Plaza Mayor 1',
+        }),
         'new-id',
       ),
     );

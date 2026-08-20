@@ -8,6 +8,7 @@ import { useT } from '../../lib/i18n';
 import { showAlert } from '../../lib/dialogs';
 import {
   geocodeSearch,
+  reverseGeocode,
   staticMapUrl,
   clampMapZoom,
   MAP_ZOOM_MIN,
@@ -21,6 +22,7 @@ const ACCENT = '#bb5d3a';
 
 export function LocationPicker({
   value,
+  valueLabel,
   onChange,
   zoom,
   onZoomChange,
@@ -29,7 +31,12 @@ export function LocationPicker({
   showPreview = true,
 }: {
   value: LatLng | null;
-  onChange: (c: LatLng | null) => void;
+  /** Saved name of `value`, shown in the field. Empty when the location has no
+   *  name yet — the field then shows its placeholder, never the coordinates. */
+  valueLabel: string;
+  /** Fired with the picked coordinate and its name (empty string when cleared,
+   *  or while a GPS pick is still resolving its address). */
+  onChange: (c: LatLng | null, label: string) => void;
   zoom: number;
   onZoomChange: (z: number) => void;
   /** Heading shown above the search field. Defaults to the generic "Ubicación". */
@@ -44,14 +51,21 @@ export function LocationPicker({
   showPreview?: boolean;
 }) {
   const { t } = useT();
-  const [state, dispatch] = useReducer(locationReducer, value, initialLocationState);
+  const [state, dispatch] = useReducer(
+    locationReducer,
+    { coords: value, label: valueLabel },
+    initialLocationState,
+  );
 
-  // Push coord changes up to the parent form.
+  // Push committed picks up to the parent form. Gated on `selected` so a
+  // half-typed query never overwrites the saved name; `query` is in the deps so
+  // an address that resolves after the coordinate (GPS) still propagates.
   useEffect(() => {
-    onChange(state.coords);
+    if (!state.selected && state.coords) return;
+    onChange(state.coords, state.selected ? state.query : '');
     // onChange identity is stable enough for this controlled-ish usage.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.coords]);
+  }, [state.coords, state.selected, state.query]);
 
   // Debounced geocoding whenever the user is typing a (non-committed) query.
   useEffect(() => {
@@ -80,7 +94,10 @@ export function LocationPicker({
         return;
       }
       const pos = await Location.getCurrentPositionAsync({});
-      dispatch({ type: 'gpsResult', coords: { lat: pos.coords.latitude, lng: pos.coords.longitude } });
+      const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      dispatch({ type: 'gpsResult', coords });
+      const label = await reverseGeocode(coords.lat, coords.lng);
+      if (label) dispatch({ type: 'resolvedAddress', label });
     } catch {
       showAlert(t('village.admin.community.locationGpsFailed'));
     }

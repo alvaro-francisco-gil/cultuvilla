@@ -162,6 +162,7 @@ export async function updateMunicipality(
       | 'comunidadAutonoma'
       | 'codigoINE'
       | 'coordinates'
+      | 'locationLabel'
       | 'mapZoom'
       | 'escudoManualUrl'
     >

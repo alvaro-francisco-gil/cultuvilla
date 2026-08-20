@@ -2,7 +2,7 @@
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import NewEventScreen from '../new';
 import { pickImageAsBlob } from '../../../lib/images';
-import { createEvent, updateEvent } from '@cultuvilla/shared/services/eventService';
+import { createEvent, updateEvent, getEvent } from '@cultuvilla/shared/services/eventService';
 import { uploadEventImage } from '@cultuvilla/shared/services/imageService';
 
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
@@ -12,9 +12,14 @@ jest.mock('../../../lib/auth/useAuth', () => ({
 jest.mock('../../../lib/firestoreErrorLog', () => ({
   withFirestoreErrorLog: (_label: string, fn: () => unknown) => fn(),
 }));
+const mockParams: { eventId?: string; villageId?: string } = {};
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn() },
-  useLocalSearchParams: () => ({}),
+  useLocalSearchParams: () => mockParams,
+  Redirect: ({ href }: { href: string }) => {
+    const { Text } = require('react-native');
+    return <Text testID="redirect">{href}</Text>;
+  },
 }));
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
@@ -58,15 +63,18 @@ jest.mock('../../../lib/auth/useEntityCapabilities', () => ({
   }),
 }));
 
-// Surface-level stubs for the composed step components.
+// Surface-level stubs for the composed step components. The organizer picker
+// records its props: what the screen tells it to lock is the contract under test.
+const mockOrganizerProps: { current: { lockedUserId?: string } | null } = { current: null };
 jest.mock('../../../components/feature/OrganizerPicker', () => ({
-  OrganizerPicker: () => {
+  OrganizerPicker: (props: { lockedUserId?: string }) => {
+    mockOrganizerProps.current = props;
     const { View } = require('react-native');
     return <View testID="organizer-picker" />;
   },
 }));
-jest.mock('../../../components/feature/EventLocationField', () => ({
-  EventLocationField: ({ onChange }: { onChange: (c: { lat: number; lng: number }, a: string) => void }) => {
+jest.mock('../../../components/feature/LocationField', () => ({
+  LocationField: ({ onChange }: { onChange: (c: { lat: number; lng: number }, a: string) => void }) => {
     const { Pressable } = require('react-native');
     return (
       <Pressable testID="location-field" onPress={() => onChange({ lat: 1, lng: 2 }, 'Plaza Mayor')} />
@@ -108,9 +116,12 @@ describe('NewEventScreen stepper', () => {
     expect(getByTestId('village-picker')).toBeTruthy();
   });
 
-  it('reaches the details step (OrganizerPicker) once date + location are set', async () => {
-    const { getByText, getByLabelText, getByTestId } = render(<NewEventScreen />);
+  // Who is behind the event is part of "lo básico", not a detail: the picker
+  // sits with title/description, and the Detalles step no longer carries it.
+  it('offers the organizer/groups picker on the first step', async () => {
+    const { getByText, getByLabelText, getByTestId, queryByTestId } = render(<NewEventScreen />);
     await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
+    expect(getByTestId('organizer-picker')).toBeTruthy();
     fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
     fireEvent.changeText(getByLabelText('event.description'), 'Desc');
     fireEvent.press(getByText('common.stepper.next'));
@@ -119,7 +130,8 @@ describe('NewEventScreen stepper', () => {
     fireEvent.press(getByTestId('startDate'));
     fireEvent.press(getByTestId('location-field'));
     fireEvent.press(getByText('common.stepper.next'));
-    await waitFor(() => expect(getByTestId('organizer-picker')).toBeTruthy());
+    await waitFor(() => expect(getByTestId('signup-enabled')).toBeTruthy());
+    expect(queryByTestId('organizer-picker')).toBeNull();
   });
 
   it('toggles "teléfono requerido" in the details step', async () => {
@@ -155,6 +167,103 @@ describe('NewEventScreen stepper', () => {
     await waitFor(() => expect(getByTestId('signup-question-add')).toBeTruthy());
     // Last step: the primary button submits instead of advancing.
     expect(getByTestId('event-form-primary')).toHaveTextContent('event.createEvent');
+  });
+
+  // The group-size selector arrived with group sign-ups after this screen
+  // learned to hide the sign-up-only controls, so it has to sit behind the same
+  // toggle: a group size is meaningless on an event that takes no sign-ups.
+  it('hides every sign-up-only control, group size included, when sign-ups are off', async () => {
+    const { getByText, getByLabelText, getByTestId, queryByTestId } = render(<NewEventScreen />);
+    await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
+    fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('startDate')).toBeTruthy());
+    fireEvent.press(getByTestId('startDate'));
+    fireEvent.press(getByTestId('location-field'));
+    fireEvent.press(getByText('common.stepper.next'));
+
+    // Sign-ups default on: the whole sign-up block is present, the note is not.
+    const signupEnabled = await waitFor(() => getByTestId('signup-enabled'));
+    expect(getByTestId('telephone-required')).toBeTruthy();
+    expect(getByTestId('requires-payment')).toBeTruthy();
+    expect(getByTestId('signup-group-size')).toBeTruthy();
+    expect(getByTestId('attendees-public')).toBeTruthy();
+    expect(queryByTestId('signup-info')).toBeNull();
+
+    fireEvent.press(signupEnabled);
+
+    expect(queryByTestId('telephone-required')).toBeNull();
+    expect(queryByTestId('requires-payment')).toBeNull();
+    expect(queryByTestId('signup-group-size')).toBeNull();
+    // The attendee-list toggle governs who can see the sign-up list, so it goes
+    // with them: with sign-ups off there is no list for it to be about.
+    expect(queryByTestId('attendees-public')).toBeNull();
+    // The organizer's note takes their place...
+    expect(getByTestId('signup-info')).toBeTruthy();
+    // ...and Preguntas drops out, making Detalles the final step.
+    expect(getByTestId('event-form-primary')).toHaveTextContent('event.createEvent');
+  });
+
+  // Group sign-up is a yes/no first and a size second. Folding "1" into the size
+  // row made ordinary individual sign-up — the common case — look like a setting
+  // you had to understand before you could skip it.
+  it('asks whether sign-ups are by group before asking how big a group is', async () => {
+    const { getByText, getByLabelText, getByTestId, queryByTestId } = render(<NewEventScreen />);
+    await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
+    fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('startDate')).toBeTruthy());
+    fireEvent.press(getByTestId('startDate'));
+    fireEvent.press(getByTestId('location-field'));
+    fireEvent.press(getByText('common.stepper.next'));
+
+    // Off by default: the toggle is there, no size to pick, and no "1" choice.
+    const groupToggle = await waitFor(() => getByTestId('signup-group-size'));
+    expect(groupToggle.props.accessibilityState.checked).toBe(false);
+    expect(queryByTestId('group-size-1')).toBeNull();
+    expect(queryByTestId('group-size-2')).toBeNull();
+
+    // On: the sizes appear, smallest real group pre-selected.
+    fireEvent.press(groupToggle);
+    expect(getByTestId('group-size-2').props.accessibilityState.selected).toBe(true);
+    expect(getByTestId('group-size-4')).toBeTruthy();
+    expect(queryByTestId('group-size-1')).toBeNull();
+
+    fireEvent.press(getByTestId('group-size-4'));
+    expect(getByTestId('group-size-4').props.accessibilityState.selected).toBe(true);
+
+    // Off again: the sizes go away and the event is back to individual sign-up.
+    fireEvent.press(groupToggle);
+    expect(queryByTestId('group-size-2')).toBeNull();
+    expect(getByTestId('signup-group-size').props.accessibilityState.checked).toBe(false);
+  });
+
+  // The Detalles step used to spell out how sign-ups and group sign-ups work in
+  // paragraphs under each control, which pushed the controls themselves off
+  // screen. The wording is unchanged — it just lives behind an "ⓘ" now.
+  it('parks the sign-up and group-size explanations behind info tooltips', async () => {
+    const { getByText, getByLabelText, getByTestId, queryByText } = render(<NewEventScreen />);
+    await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
+    fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('startDate')).toBeTruthy());
+    fireEvent.press(getByTestId('startDate'));
+    fireEvent.press(getByTestId('location-field'));
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('signup-enabled')).toBeTruthy());
+
+    // Nothing is spelled out until asked for.
+    expect(queryByText('event.signupEnabledHint')).toBeNull();
+    expect(queryByText('event.signupGroupSizeHelp')).toBeNull();
+    expect(queryByText('event.attendeesPublicHint')).toBeNull();
+
+    fireEvent.press(getByTestId('signup-group-size-info'));
+    expect(getByText('event.signupGroupSizeHelp')).toBeTruthy();
+    fireEvent.press(getByTestId('signup-group-size-info-close'));
+    await waitFor(() => expect(queryByText('event.signupGroupSizeHelp')).toBeNull());
+
+    fireEvent.press(getByTestId('signup-enabled-info'));
+    expect(getByText('event.signupEnabledHint')).toBeTruthy();
   });
 
   // Regression: the cover picker must go through lib/images.pickImageAsBlob,
@@ -221,7 +330,7 @@ describe('NewEventScreen cover upload', () => {
     fireEvent.press(getByTestId('startDate'));
     fireEvent.press(getByTestId('location-field'));
     fireEvent.press(getByText('common.stepper.next'));
-    await waitFor(() => expect(getByTestId('organizer-picker')).toBeTruthy());
+    await waitFor(() => expect(getByTestId('signup-enabled')).toBeTruthy());
     // Sign-up questions are the last step; nothing to fill in, just walk past it.
     fireEvent.press(getByText('common.stepper.next'));
     await waitFor(() => expect(getByTestId('signup-question-add')).toBeTruthy());
@@ -273,5 +382,63 @@ describe('NewEventScreen cover upload', () => {
 
     await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
     expect(uploadEventImage).not.toHaveBeenCalled();
+  });
+});
+
+// Editing an event you don't organize is a real case: `canEdit` lets a village
+// admin in. The screen deliberately does not seed them into organizerUserIds —
+// but the picker force-inserts whatever `lockedUserId` it is handed the moment
+// its sheet is confirmed, so handing it the current user in edit mode silently
+// made the admin an organizer of someone else's event (and organizerUserIds is
+// its own clause in the event's update/delete rules, so the rights outlive the
+// admin role). Same reasoning, and the same fix, as apps/mobile/app/news/new.tsx.
+describe('NewEventScreen edit mode', () => {
+  const OTHERS_EVENT = {
+    id: 'e-9',
+    municipalityId: 'm-1',
+    villageName: 'Pueblo',
+    villageCoordinates: { lat: 1, lng: 2 },
+    title: 'Verbena',
+    description: 'Ajena',
+    startDate: new Date('2026-08-01T18:00'),
+    endDate: null,
+    location: { coordinates: { lat: 1, lng: 2 }, displayName: 'Plaza' },
+    maxAttendees: null,
+    telephoneRequired: false,
+    requiresPayment: false,
+    signupGroupSize: 1,
+    signupEnabled: true,
+    signupInfo: null,
+    attendeesVisibility: 'members' as const,
+    signupFields: [],
+    totalCount: 0,
+    // Neither the creator nor an organizer is the signed-in uid-1.
+    organizerUserIds: ['uid-2'],
+    organizerOrgIds: [],
+    createdBy: 'uid-2',
+    imageURL: null,
+  };
+
+  beforeEach(() => {
+    mockParams.eventId = 'e-9';
+    mockOrganizerProps.current = null;
+    (getEvent as jest.Mock).mockResolvedValue(OTHERS_EVENT);
+  });
+
+  afterEach(() => {
+    delete mockParams.eventId;
+  });
+
+  it('does not lock the editor into the organizer set of an event they do not organize', async () => {
+    const { getByTestId } = render(<NewEventScreen />);
+    await waitFor(() => expect(getByTestId('organizer-picker')).toBeTruthy());
+    // No lockedUserId => confirming the picker's sheet can't force-add the editor.
+    expect(mockOrganizerProps.current?.lockedUserId).toBeUndefined();
+  });
+
+  it('leaves the loaded organizer list untouched', async () => {
+    const { getByTestId } = render(<NewEventScreen />);
+    await waitFor(() => expect(getByTestId('organizer-picker')).toBeTruthy());
+    expect(mockOrganizerProps.current).toMatchObject({ selectedUserIds: ['uid-2'] });
   });
 });

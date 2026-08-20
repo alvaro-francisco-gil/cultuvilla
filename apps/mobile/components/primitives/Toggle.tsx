@@ -7,6 +7,8 @@ export interface ToggleProps {
   value: boolean;
   onValueChange: (next: boolean) => void;
   label?: string;
+  /** Frozen: still shows its value, but can't be flipped (dimmed). */
+  disabled?: boolean;
   testID?: string;
 }
 
@@ -16,15 +18,16 @@ export interface ToggleProps {
 //   bg-accent  — active track  (same as Button primary)
 //   bg-subtle  — inactive track (same as Button secondary / Input border)
 //   bg-surface — thumb  (same as Input background)
-export function Toggle({ value, onValueChange, label, testID }: ToggleProps) {
+export function Toggle({ value, onValueChange, label, disabled = false, testID }: ToggleProps) {
   return (
     <Pressable
       testID={testID}
       accessibilityRole="switch"
-      accessibilityState={{ checked: value }}
+      accessibilityState={{ checked: value, disabled }}
+      disabled={disabled}
       onPress={() => onValueChange(!value)}
     >
-      <HStack gap={2} align="center">
+      <HStack gap={2} align="center" className={disabled ? 'opacity-50' : ''}>
         <View
           className={`w-12 h-7 rounded-full px-1 justify-center ${
             value ? 'bg-accent' : 'bg-subtle'

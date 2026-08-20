@@ -28,10 +28,36 @@ jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadPlaceImage: jest.fn(),
   deleteImageByURL: jest.fn(),
 }));
-jest.mock('../../../../../components/feature/OrganizerPicker', () => ({ OrganizerPicker: () => null }));
+jest.mock('../../../../../components/feature/OrganizerPicker', () => {
+  const { Text } = jest.requireActual('react-native');
+  return { OrganizerPicker: () => <Text testID="mock-organizer-picker">contributors</Text> };
+});
+// The picker itself is a full-screen map + geocoder; here we only drive its
+// output, so it stands in as two buttons: "pin something" and "clear the pin".
+jest.mock('../../../../../components/feature/LocationField', () => {
+  const { Text, Pressable } = jest.requireActual('react-native');
+  return {
+    LocationField: ({
+      onChange,
+      onClear,
+    }: {
+      onChange: (c: { lat: number; lng: number }, a: string) => void;
+      onClear?: () => void;
+    }) => (
+      <>
+        <Pressable testID="mock-pick-location" onPress={() => onChange({ lat: 40.03, lng: -3.6 }, 'Calle Real 4')}>
+          <Text>pick</Text>
+        </Pressable>
+        <Pressable testID="mock-clear-location" onPress={() => onClear?.()}>
+          <Text>clear</Text>
+        </Pressable>
+      </>
+    ),
+  };
+});
 
 import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
-import { getPlace, deletePlace } from '@cultuvilla/shared/services/municipalityService';
+import { getPlace, deletePlace, updatePlace } from '@cultuvilla/shared/services/municipalityService';
 import { hideContent } from '@cultuvilla/shared/services/moderationService';
 
 const place = (over: Record<string, unknown> = {}) => ({
@@ -44,6 +70,8 @@ const place = (over: Record<string, unknown> = {}) => ({
   proposedBy: 'creator',
   contributorUserIds: [],
   contributorOrgIds: [],
+  coordinates: null,
+  locationLabel: null,
   status: 'active',
   ...over,
 });
@@ -128,5 +156,67 @@ describe('PlaceEditScreen delete routing', () => {
       expect(hideContent).toHaveBeenCalledWith({ collection: 'places', docId: 'p1', municipalityId: 'm1' }),
     );
     expect(deletePlace).not.toHaveBeenCalled();
+  });
+});
+
+// A place's pin is optional and editable: pinning one saves the coordinate
+// with the address the picker resolved, and clearing it takes the address with
+// it so no orphan label survives on the doc.
+describe('PlaceEditScreen location', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (getPlace as jest.Mock).mockResolvedValue(place());
+    (updatePlace as jest.Mock).mockResolvedValue(undefined);
+  });
+
+  it('saves the picked coordinate together with its resolved name', async () => {
+    mockCaps({ canManage: false, uid: 'creator', canEdit: true });
+    const { findByTestId, getByTestId } = render(<PlaceEditScreen />);
+    fireEvent.press(await findByTestId('mock-pick-location'));
+    fireEvent.press(getByTestId('place-edit-submit'));
+    await waitFor(() =>
+      expect(updatePlace).toHaveBeenCalledWith(
+        'm1',
+        'p1',
+        expect.objectContaining({
+          coordinates: { lat: 40.03, lng: -3.6 },
+          locationLabel: 'Calle Real 4',
+        }),
+      ),
+    );
+  });
+
+  it('clears the saved name along with the pin', async () => {
+    (getPlace as jest.Mock).mockResolvedValue(
+      place({ coordinates: { lat: 40.03, lng: -3.6 }, locationLabel: 'Calle Real 4' }),
+    );
+    mockCaps({ canManage: false, uid: 'creator', canEdit: true });
+    const { findByTestId, getByTestId } = render(<PlaceEditScreen />);
+    fireEvent.press(await findByTestId('mock-clear-location'));
+    fireEvent.press(getByTestId('place-edit-submit'));
+    await waitFor(() =>
+      expect(updatePlace).toHaveBeenCalledWith(
+        'm1',
+        'p1',
+        expect.objectContaining({ coordinates: null, locationLabel: null }),
+      ),
+    );
+  });
+});
+
+// Save is the last thing in the form: every field — including the
+// contributors picker, which used to hang below the button — comes first.
+describe('PlaceEditScreen layout', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (getPlace as jest.Mock).mockResolvedValue(place());
+  });
+
+  it('renders the save button after the contributors picker', async () => {
+    mockCaps({ canManage: false, uid: 'creator', canEdit: true });
+    const { findByTestId, toJSON } = render(<PlaceEditScreen />);
+    await findByTestId('mock-organizer-picker');
+    const tree = JSON.stringify(toJSON());
+    expect(tree.indexOf('mock-organizer-picker')).toBeLessThan(tree.indexOf('place-edit-submit'));
   });
 });

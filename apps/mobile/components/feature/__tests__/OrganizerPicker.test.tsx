@@ -169,4 +169,31 @@ describe('<OrganizerPicker>', () => {
     // Also verify the locked chip still renders
     expect(getByTestId(`chip-user-${CREATOR_ID}`)).toBeTruthy();
   });
+
+  it('still lists every villager when one member\'s person lookup is denied', async () => {
+    // A member who marked their persona private makes getPersonByUserId reject
+    // with permission-denied. One rejection must not empty the whole sheet.
+    mockGetPersonByUserId.mockImplementation(async (uid: string) => {
+      if (uid === OTHER_USER_ID) throw new Error('permission-denied');
+      return { photoURL: null };
+    });
+    const { getByTestId } = render(
+      <OrganizerPicker
+        municipalityId={MUNICIPALITY_ID}
+        selectedUserIds={[CREATOR_ID]}
+        selectedOrgIds={[]}
+        lockedUserId={CREATOR_ID}
+        onChangeUsers={jest.fn()}
+        onChangeOrgs={jest.fn()}
+      />,
+    );
+    await waitFor(() => {
+      expect(getByTestId('add-user-btn')).toBeTruthy();
+    });
+    fireEvent.press(getByTestId('add-user-btn'));
+    await waitFor(() => {
+      expect(getByTestId(`villager-row-${OTHER_USER_ID}`)).toBeTruthy();
+    });
+    expect(getByTestId(`villager-row-${CREATOR_ID}`)).toBeTruthy();
+  });
 });

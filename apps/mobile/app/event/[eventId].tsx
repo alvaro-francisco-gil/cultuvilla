@@ -48,7 +48,7 @@ export default function EventDetailScreen() {
   const [event, setEvent] = useState<EventDoc | null>(null);
   const [person, setPerson] = useState<PersonDoc | null>(null);
   const [village, setVillage] = useState<VillageDoc | null>(null);
-  const { canManage, canEdit } = useEntityCapabilities(event?.municipalityId);
+  const { canManage, canEdit, isMember } = useEntityCapabilities(event?.municipalityId);
   // Organizing an event IS editing it: author, named organizer, or an admin of
   // the event's pueblo — the same three identities every entity kind accepts.
   const canOrganize = canEdit(event?.createdBy, event?.organizerUserIds);
@@ -61,7 +61,7 @@ export default function EventDetailScreen() {
     const e = await getEvent(eventId);
     setEvent(e);
     if (e?.municipalityId) setVillage(await getMunicipality(e.municipalityId));
-    if (user) setPerson(await getPersonByUserId(user.uid));
+    if (user) setPerson(await getPersonByUserId(user.uid, user.uid));
   }, [eventId, user]);
 
   useEffect(() => {
@@ -131,15 +131,17 @@ export default function EventDetailScreen() {
       onRefresh={load}
       scrollContentClassName="pb-24"
       fab={
-        event && person && user ? (
+        event && person && user && event.signupEnabled !== false ? (
           <RegisterFab
             eventId={event.id}
             userId={user.uid}
             personId={person.id}
             name={personName}
+            eventTitle={event.title}
             telephoneRequired={!!event.telephoneRequired}
             signupFields={event.signupFields}
             villageId={event.municipalityId}
+            groupSize={event.signupGroupSize}
           />
         ) : null
       }
@@ -217,7 +219,11 @@ export default function EventDetailScreen() {
               <Text>{event.description}</Text>
             </VStack>
           ) : null}
-          {canOrganize ? (
+          {/* An organizer always sees the roster; a fellow villager sees it
+              read-only unless the organizer restricted the event. The same
+              condition is enforced in firestore.rules — this only avoids
+              rendering a list the reader would be denied. */}
+          {canOrganize || (isMember && event.attendeesVisibility === 'members') ? (
             <EventAttendees
               eventId={event.id}
               eventTitle={event.title}
@@ -225,6 +231,8 @@ export default function EventDetailScreen() {
               telephoneRequired={!!event.telephoneRequired}
               requiresPayment={!!event.requiresPayment}
               signupFields={event.signupFields}
+              groupSize={event.signupGroupSize}
+              canManage={canOrganize}
             />
           ) : null}
           {!user && (
@@ -232,7 +240,15 @@ export default function EventDetailScreen() {
               {t('guest.eventCta')}
             </Button>
           )}
-          {!person && user ? <Text tone="muted">{t('event.register.needsPerson')}</Text> : null}
+          {event.signupEnabled === false ? (
+            <VStack gap={2}>
+              <DetailSectionHeading>{t('event.signupClosedLabel')}</DetailSectionHeading>
+              <Text tone="muted">{event.signupInfo ?? t('event.signupClosedDefault')}</Text>
+            </VStack>
+          ) : null}
+          {!person && user && event.signupEnabled !== false ? (
+            <Text tone="muted">{t('event.register.needsPerson')}</Text>
+          ) : null}
           <EntityComments
             key={event.id}
             entityKind="event"

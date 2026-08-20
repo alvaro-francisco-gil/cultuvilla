@@ -98,7 +98,7 @@ export default function CompleteProfileScreen() {
       if (profile?.personId) {
         personId = profile.personId;
       } else {
-        const existing = await getPersonByUserId(user.uid);
+        const existing = await getPersonByUserId(user.uid, user.uid);
         personId = existing
           ? existing.id
           : await createPerson({

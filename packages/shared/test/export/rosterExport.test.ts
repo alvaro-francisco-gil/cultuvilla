@@ -17,6 +17,9 @@ function reg(overrides: Partial<Row> = {}): Row {
     isMember: true,
     checkedInAt: null,
     paidAt: null,
+    groupId: null,
+    groupOwnerId: null,
+    isOpenSeat: false,
     ...overrides,
   };
 }
@@ -263,5 +266,46 @@ describe('toCsv', () => {
     });
 
     expect(csv.startsWith('Nº,Nombre,')).toBe(true);
+  });
+});
+
+describe('buildRosterExport — group sign-ups', () => {
+  it('omits the Grupo column on an ordinary roster', () => {
+    const model = buildRosterExport({ ...base, registrations: [reg()] });
+    expect(model.columns.map((c) => c.key)).not.toContain('group');
+  });
+
+  it('numbers groups 1..N in first-appearance order rather than leaking ids', () => {
+    const model = buildRosterExport({
+      ...base,
+      registrations: [
+        reg({ id: 'r1', groupId: 'aaaaaaaaaaaaaaaaaaaa', groupOwnerId: 'u1' }),
+        reg({ id: 'r2', name: 'Luis', position: 2, groupId: 'aaaaaaaaaaaaaaaaaaaa', groupOwnerId: 'u1' }),
+        reg({ id: 'r3', name: 'Eva', position: 3, groupId: 'bbbbbbbbbbbbbbbbbbbb', groupOwnerId: 'u2' }),
+      ],
+    });
+    const groupIdx = model.columns.findIndex((c) => c.key === 'group');
+    expect(groupIdx).toBeGreaterThan(-1);
+    expect(model.rows.map((r) => r[groupIdx])).toEqual(['1', '1', '2']);
+  });
+
+  it('names an unclaimed seat rather than exporting a blank row', () => {
+    const model = buildRosterExport({
+      ...base,
+      registrations: [
+        reg({ id: 'r1', groupId: 'g1', groupOwnerId: 'u1' }),
+        reg({
+          id: 'r2',
+          name: '',
+          personId: '',
+          position: 2,
+          groupId: 'g1',
+          groupOwnerId: 'u1',
+          isOpenSeat: true,
+        }),
+      ],
+    });
+    const nameIdx = model.columns.findIndex((c) => c.key === 'name');
+    expect(model.rows[1][nameIdx]).toBe('Plaza libre');
   });
 });

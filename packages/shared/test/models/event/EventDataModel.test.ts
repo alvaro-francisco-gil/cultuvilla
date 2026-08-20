@@ -6,6 +6,8 @@ import {
   isEventSignupOpen,
   isEventOngoing,
   isStartDayOver,
+  isGroupSignupEvent,
+  MAX_SIGNUP_GROUP_SIZE,
 } from '../../../src/models/event/EventDataModel';
 
 const validEvent = {
@@ -73,6 +75,12 @@ describe('buildEventData', () => {
     expect(built.endBoundary).toEqual(new Date('2026-06-15T18:00:00Z'));
     expect(built.readCount).toBe(0);
     expect(built.commentCount).toBe(0);
+    // Seeing who is going is what drives sign-ups in a pueblo, so a new event
+    // shows its roster to fellow villagers unless the organizer opts out.
+    expect(built.attendeesVisibility).toBe('members');
+    // In-app sign-ups are on unless the organizer turns them off.
+    expect(built.signupEnabled).toBe(true);
+    expect(built.signupInfo).toBeNull();
     expect('reactionCounts' in built).toBe(false);
     expect(() => EventDataSchema.parse(built)).not.toThrow();
   });
@@ -183,6 +191,15 @@ describe('isEventSignupOpen', () => {
     expect(isEventSignupOpen({ ...base, status: 'cancelled' })).toBe(false);
     expect(isEventSignupOpen({ ...base, status: 'completed' })).toBe(false);
   });
+
+  it('returns false when the organizer turned off in-app sign-ups', () => {
+    expect(isEventSignupOpen({ ...base, status: 'published', signupEnabled: false })).toBe(false);
+  });
+
+  it('defaults signupEnabled to true and signupInfo to null on legacy docs', () => {
+    expect(base.signupEnabled).toBe(true);
+    expect(base.signupInfo).toBeNull();
+  });
 });
 
 describe('isEventOngoing', () => {
@@ -224,5 +241,81 @@ describe('isStartDayOver', () => {
   });
   it('true next Madrid day', () => {
     expect(isStartDayOver(new Date('2026-06-15T08:00:00Z'), new Date('2026-06-15T23:30:00Z'))).toBe(true);
+  });
+});
+
+describe('attendeesVisibility', () => {
+  it('defaults to members when the field is absent (converter-safe)', () => {
+    const built = buildEventData({
+      title: 'X', description: 'Y',
+      startDate: new Date('2026-06-15T18:00:00Z'),
+      location: { coordinates: { lat: 1, lng: 2 }, displayName: 'Plaza' },
+      organizerUserIds: ['u'], organizerOrgIds: [], createdBy: 'u',
+      municipalityId: 'm', villageName: 'M',
+      villageCoordinates: { lat: 1, lng: 2 },
+    });
+    const { attendeesVisibility: _v, ...withoutField } = built;
+    expect(EventDataSchema.parse(withoutField).attendeesVisibility).toBe('members');
+  });
+
+  it('carries an organizer-only roster through the builder', () => {
+    const built = buildEventData({
+      title: 'X', description: 'Y',
+      startDate: new Date('2026-06-15T18:00:00Z'),
+      location: { coordinates: { lat: 1, lng: 2 }, displayName: 'Plaza' },
+      organizerUserIds: ['u'], organizerOrgIds: [], createdBy: 'u',
+      municipalityId: 'm', villageName: 'M',
+      villageCoordinates: { lat: 1, lng: 2 },
+      attendeesVisibility: 'organizers',
+    });
+    expect(built.attendeesVisibility).toBe('organizers');
+    expect(() => EventDataSchema.parse(built)).not.toThrow();
+  });
+
+  it('rejects an unknown visibility value', () => {
+    expect(() =>
+      EventDataSchema.parse({ ...validEvent, attendeesVisibility: 'public' }),
+    ).toThrow();
+  });
+});
+
+function baseEventInput() {
+  return {
+    title: 'X',
+    description: 'Y',
+    startDate: new Date('2026-06-15T18:00:00Z'),
+    location: { coordinates: { lat: 1, lng: 2 }, displayName: 'Plaza' },
+    organizerUserIds: ['u'],
+    organizerOrgIds: [],
+    createdBy: 'u',
+    municipalityId: 'm',
+    villageName: 'M',
+    villageCoordinates: { lat: 1, lng: 2 },
+  };
+}
+
+describe('signupGroupSize', () => {
+  it('defaults to individual sign-up', () => {
+    const event = buildEventData(baseEventInput());
+    expect(event.signupGroupSize).toBe(1);
+    expect(isGroupSignupEvent(event)).toBe(false);
+  });
+
+  it('carries a group size through and reports it as a group event', () => {
+    const event = buildEventData({ ...baseEventInput(), signupGroupSize: 2 });
+    expect(event.signupGroupSize).toBe(2);
+    expect(isGroupSignupEvent(event)).toBe(true);
+  });
+
+  it('parses an event stored before group sign-ups existed', () => {
+    const { signupGroupSize: _omitted, ...stored } = buildEventData(baseEventInput());
+    expect(EventDataSchema.parse(stored).signupGroupSize).toBe(1);
+  });
+
+  it('rejects a group size past the cap or below one', () => {
+    const stored = buildEventData(baseEventInput());
+    for (const size of [0, MAX_SIGNUP_GROUP_SIZE + 1, 2.5]) {
+      expect(() => EventDataSchema.parse({ ...stored, signupGroupSize: size })).toThrow();
+    }
   });
 });

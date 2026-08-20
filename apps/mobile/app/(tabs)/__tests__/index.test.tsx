@@ -33,6 +33,10 @@ jest.mock('expo-router', () => {
     useFocusEffect: (cb: () => void) => react.useEffect(cb, []),
   };
 });
+const mockRibbonFor = jest.fn((_eventId: string) => null as unknown);
+jest.mock('../../../lib/registrations/MyRegistrationsContext', () => ({
+  useMyRegistrations: () => ({ ribbonFor: (id: string) => mockRibbonFor(id), refresh: jest.fn() }),
+}));
 jest.mock('../../../lib/auth/useAuth', () => ({
   useAuth: () => ({
     user: { uid: 'uid-1' },
@@ -56,6 +60,7 @@ jest.mock('../../../lib/i18n', () => ({
       const map: Record<string, string> = {
         'feed.tab.events': 'Eventos',
         'feed.tab.news': 'Artículos',
+        'event.ribbon.confirmed': 'Apuntado',
       };
       return map[key] ?? key;
     },
@@ -97,6 +102,7 @@ const post = {
 describe('FeedScreen tab order', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRibbonFor.mockReturnValue(null);
     (getUpcomingFeed as jest.Mock).mockResolvedValue({ events: [event] });
     (getAllVillagesFeed as jest.Mock).mockResolvedValue([post]);
   });
@@ -114,5 +120,30 @@ describe('FeedScreen tab order', () => {
     // halves at once: Eventos is the landing tab, and its page renders first.
     expect(await findByText('Verbena', undefined, { timeout: 5000 })).toBeTruthy();
     expect(queryByText('Corte de agua')).toBeNull();
+  });
+});
+
+// The ribbon's own states are covered by EventCard.test.tsx; what this pins is
+// the wiring — the feed asks the registrations context about each event it
+// renders, and hands the answer to the card.
+describe('FeedScreen sign-up ribbon', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockRibbonFor.mockReturnValue(null);
+    (getUpcomingFeed as jest.Mock).mockResolvedValue({ events: [event] });
+    (getAllVillagesFeed as jest.Mock).mockResolvedValue([]);
+  });
+
+  it('marks an event the viewer is signed up for', async () => {
+    mockRibbonFor.mockReturnValue({ kind: 'confirmed', count: 1 });
+    const { findByText } = render(<FeedScreen />);
+    expect(await findByText('Apuntado', undefined, { timeout: 5000 })).toBeTruthy();
+    expect(mockRibbonFor).toHaveBeenCalledWith('event1');
+  });
+
+  it('leaves an event the viewer has no registrations on unmarked', async () => {
+    const { findByText, queryByText } = render(<FeedScreen />);
+    await findByText('Verbena', undefined, { timeout: 5000 });
+    expect(queryByText('Apuntado')).toBeNull();
   });
 });

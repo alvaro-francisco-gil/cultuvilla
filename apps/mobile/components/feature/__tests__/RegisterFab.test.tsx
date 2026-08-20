@@ -4,11 +4,16 @@ import { RegisterFab } from '../RegisterFab';
 import {
   getUserRegistrations,
   registerToEvent,
+  getMySeatTokens,
+  getGroupRegistrations,
   cancelRegistration,
 } from '@cultuvilla/shared/services/registrationService';
 import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
 import { observability } from '@cultuvilla/shared';
 
+jest.mock('../../../lib/registrations/MyRegistrationsContext', () => ({
+  useMyRegistrations: () => ({ ribbonFor: () => null, refresh: jest.fn() }),
+}));
 jest.mock('@cultuvilla/shared', () => ({
   ...jest.requireActual('@cultuvilla/shared'),
   observability: { trackEvent: jest.fn() },
@@ -34,7 +39,22 @@ jest.mock('@cultuvilla/shared/services/registrationService', () => ({
   getUserRegistrations: jest.fn(),
   registerToEvent: jest.fn(),
   cancelRegistration: jest.fn(),
+  getMySeatTokens: jest.fn(),
+  getGroupRegistrations: jest.fn(),
 }));
+jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({
+  getSeatClaimLink: (eventId: string, token: string) => ({
+    url: `https://x.test/event/${eventId}/claim/${token}`,
+    kind: 'invite',
+    resource: 'event',
+    id: eventId,
+    token,
+  }),
+}));
+jest.mock('../../../lib/deeplink/useShareDeepLink', () => ({
+  useShareDeepLink: () => mockShareDeepLink,
+}));
+const mockShareDeepLink = jest.fn().mockResolvedValue(undefined);
 jest.mock('@cultuvilla/shared/services/personService', () => ({
   getPersonsByCreator: jest.fn(),
 }));
@@ -44,11 +64,17 @@ const mockRegisterToEvent = registerToEvent as jest.Mock;
 const mockCancelRegistration = cancelRegistration as jest.Mock;
 const mockGetPersonsByCreator = getPersonsByCreator as jest.Mock;
 
+/** registerToEvent resolves { registrations, openSeats } since group sign-ups. */
+function wrapRegs(registrations: unknown[]) {
+  return { registrations, openSeats: [] };
+}
+
 const baseProps = {
   eventId: 'e1',
   userId: 'u1',
   personId: 'p1',
   name: 'Ana',
+  eventTitle: 'Fiestas de San Juan',
   telephoneRequired: false,
 };
 
@@ -67,6 +93,9 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockGetUserRegistrations.mockResolvedValue([]);
   mockGetPersonsByCreator.mockResolvedValue([]);
+  (getMySeatTokens as jest.Mock).mockResolvedValue([]);
+  (getGroupRegistrations as jest.Mock).mockResolvedValue([]);
+  mockShareDeepLink.mockClear();
   (observability.trackEvent as jest.Mock).mockClear();
 });
 
@@ -110,10 +139,10 @@ describe('RegisterFab', () => {
 
   it('registers newly-selected personas (self + dependent) in one call', async () => {
     mockGetPersonsByCreator.mockResolvedValue([dep]);
-    mockRegisterToEvent.mockResolvedValue([
+    mockRegisterToEvent.mockResolvedValue(wrapRegs([
       { id: 'rA', status: 'confirmed', position: 1, isMember: true },
       { id: 'rB', status: 'confirmed', position: 2, isMember: false },
-    ]);
+    ]));
     const { getByTestId, getByText } = render(<RegisterFab {...baseProps} />);
     await waitFor(() => expect(getByText('event.register.cta')).toBeTruthy());
 
@@ -204,7 +233,7 @@ describe('RegisterFab', () => {
   });
 
   it('threads the villageId prop into the success event', async () => {
-    mockRegisterToEvent.mockResolvedValue([{ id: 'rA', status: 'confirmed', position: 1, isMember: true }]);
+    mockRegisterToEvent.mockResolvedValue(wrapRegs([{ id: 'rA', status: 'confirmed', position: 1, isMember: true }]));
     const { getByTestId, getByText } = render(<RegisterFab {...baseProps} villageId="m1" />);
     await waitFor(() => expect(getByText('event.register.cta')).toBeTruthy());
 
@@ -223,7 +252,7 @@ describe('RegisterFab', () => {
   it('does not fire EVENT_SIGNUP_ERROR when signup succeeds but a later cancel fails', async () => {
     mockGetUserRegistrations.mockResolvedValue([{ id: 'rB', personId: 'p2', status: 'confirmed' }]);
     mockGetPersonsByCreator.mockResolvedValue([dep]);
-    mockRegisterToEvent.mockResolvedValue([{ id: 'rA', status: 'confirmed', position: 1, isMember: true }]);
+    mockRegisterToEvent.mockResolvedValue(wrapRegs([{ id: 'rA', status: 'confirmed', position: 1, isMember: true }]));
     mockCancelRegistration.mockRejectedValue(new Error('cancel failed'));
     const { getByTestId, getByText } = render(<RegisterFab {...baseProps} />);
     await waitFor(() => expect(getByText('event.register.signedUpCount')).toBeTruthy());
@@ -236,5 +265,171 @@ describe('RegisterFab', () => {
     await waitFor(() => expect(mockCancelRegistration).toHaveBeenCalled());
     expect(observability.trackEvent).toHaveBeenCalledWith('event.signup.success', { villageId: undefined });
     expect(observability.trackEvent).not.toHaveBeenCalledWith('event.signup.error', expect.anything());
+  });
+});
+
+describe('RegisterFab — group sign-up', () => {
+  const groupProps = { ...baseProps, groupSize: 2 };
+
+  it('pre-ticks the caller and refuses to confirm until the group is exactly full', async () => {
+    mockGetPersonsByCreator.mockResolvedValue([dep]);
+    const { getByTestId } = render(<RegisterFab {...groupProps} />);
+    await waitFor(() => expect(getByTestId('register-fab')).toBeTruthy());
+    fireEvent.press(getByTestId('register-fab'));
+
+    // The booker's own persona is seated without a tap — one of two seats
+    // filled, so confirm stays disabled.
+    await waitFor(() =>
+      expect(getByTestId('group-row-p1').props.accessibilityState.checked).toBe(true),
+    );
+    expect(getByTestId('group-confirm').props.accessibilityState.disabled).toBe(true);
+
+    fireEvent.press(getByTestId('group-row-p2'));
+    expect(getByTestId('group-confirm').props.accessibilityState.disabled).toBe(false);
+  });
+
+  it('books a persona plus an open seat and lands on the summary, not a share sheet', async () => {
+    mockRegisterToEvent.mockResolvedValue({
+      registrations: [
+        { id: 'rA', status: 'confirmed', position: 1, isMember: true },
+        { id: 'rB', status: 'confirmed', position: 2, isMember: false },
+      ],
+      openSeats: [{ registrationId: 'rB', token: 'tok_xyz' }],
+    });
+    // Empty on the first load (nothing booked yet), the booked group after.
+    mockGetUserRegistrations.mockResolvedValue([
+      { id: 'rA', personId: 'p1', name: 'Ana', status: 'confirmed', isOpenSeat: false },
+      { id: 'rB', personId: '', name: 'Plaza libre', status: 'confirmed', isOpenSeat: true },
+    ]);
+    mockGetUserRegistrations.mockResolvedValueOnce([]);
+    (getMySeatTokens as jest.Mock).mockResolvedValue([
+      { token: 'tok_xyz', registrationId: 'rB', consumed: false },
+    ]);
+    const { getByTestId } = render(<RegisterFab {...groupProps} />);
+    await waitFor(() => expect(getByTestId('register-fab')).toBeTruthy());
+    fireEvent.press(getByTestId('register-fab'));
+
+    // Own persona is already ticked; the open seat is a row, not a counter.
+    await waitFor(() =>
+      expect(getByTestId('group-row-p1').props.accessibilityState.checked).toBe(true),
+    );
+    fireEvent.press(getByTestId('group-open-seat-0'));
+    expect(getByTestId('group-open-seat-0').props.accessibilityState.checked).toBe(true);
+
+    fireEvent.press(getByTestId('group-confirm'));
+
+    await waitFor(() =>
+      expect(mockRegisterToEvent).toHaveBeenCalledWith(
+        'e1',
+        [{ personId: 'p1', name: 'Ana' }],
+        1,
+      ),
+    );
+    // The OS share sheet is no longer fired unasked — the summary's send-link
+    // row is where the user chooses to hand the seat over.
+    await waitFor(() => expect(getByTestId('group-summary')).toBeTruthy());
+    expect(mockShareDeepLink).not.toHaveBeenCalled();
+  });
+
+  it('will not let the group overflow its size', async () => {
+    mockGetPersonsByCreator.mockResolvedValue([dep]);
+    const { getByTestId } = render(<RegisterFab {...groupProps} />);
+    await waitFor(() => expect(getByTestId('register-fab')).toBeTruthy());
+    fireEvent.press(getByTestId('register-fab'));
+
+    await waitFor(() =>
+      expect(getByTestId('group-row-p1').props.accessibilityState.checked).toBe(true),
+    );
+    fireEvent.press(getByTestId('group-row-p2'));
+    // Group already full: ticking the open-seat row must refuse a third seat.
+    fireEvent.press(getByTestId('group-open-seat-0'));
+    expect(getByTestId('group-open-seat-0').props.accessibilityState.checked).toBe(false);
+  });
+
+  it('offers one open-seat row short of the group size', async () => {
+    const { getByTestId, queryByTestId } = render(
+      <RegisterFab {...baseProps} groupSize={3} />,
+    );
+    await waitFor(() => expect(getByTestId('register-fab')).toBeTruthy());
+    fireEvent.press(getByTestId('register-fab'));
+
+    // The booker occupies the third seat, so a group of pure open seats is
+    // unreachable by construction.
+    expect(getByTestId('group-open-seat-0')).toBeTruthy();
+    expect(getByTestId('group-open-seat-1')).toBeTruthy();
+    expect(queryByTestId('group-open-seat-2')).toBeNull();
+  });
+
+  it('shows the existing group with a share link instead of the builder', async () => {
+    mockGetUserRegistrations.mockResolvedValue([
+      { id: 'rA', personId: 'p1', name: 'Ana', status: 'confirmed', isOpenSeat: false },
+      { id: 'rB', personId: '', name: 'Plaza libre', status: 'confirmed', isOpenSeat: true },
+    ]);
+    (getMySeatTokens as jest.Mock).mockResolvedValue([
+      { token: 'tok_xyz', registrationId: 'rB', consumed: false },
+    ]);
+    const { getByTestId, queryByTestId } = render(<RegisterFab {...groupProps} />);
+    await waitFor(() => expect(getByTestId('register-fab')).toBeTruthy());
+    fireEvent.press(getByTestId('register-fab'));
+
+    await waitFor(() => expect(getByTestId('group-summary')).toBeTruthy());
+    expect(queryByTestId('group-confirm')).toBeNull();
+    expect(getByTestId('group-share-rB')).toBeTruthy();
+    // The claimed seat has no link to hand out.
+    expect(queryByTestId('group-share-rA')).toBeNull();
+
+    // The invite copy reads "…una plaza en «{name}»", so the slot is the event.
+    fireEvent.press(getByTestId('group-share-rB'));
+    await waitFor(() => expect(mockShareDeepLink).toHaveBeenCalled());
+    expect(mockShareDeepLink.mock.calls[0][0].url).toContain('/event/e1/claim/tok_xyz');
+    expect(mockShareDeepLink.mock.calls[0][1]).toBe('Fiestas de San Juan');
+  });
+
+  it('keeps a seat a guest has claimed in the owner’s group summary', async () => {
+    // Claiming moves `userId` to the guest, so the owner's own-registration
+    // query no longer returns that seat — the groupOwnerId read is what keeps
+    // the group whole on screen.
+    mockGetUserRegistrations.mockResolvedValue([
+      { id: 'rA', personId: 'p1', name: 'Ana', status: 'confirmed', isOpenSeat: false },
+    ]);
+    (getGroupRegistrations as jest.Mock).mockResolvedValue([
+      { id: 'rA', personId: 'p1', name: 'Ana', status: 'confirmed', isOpenSeat: false },
+      { id: 'rB', personId: 'p9', name: 'Bruno', status: 'confirmed', isOpenSeat: false },
+    ]);
+    const { getByTestId } = render(<RegisterFab {...groupProps} />);
+    await waitFor(() => expect(getByTestId('register-fab')).toBeTruthy());
+    fireEvent.press(getByTestId('register-fab'));
+
+    await waitFor(() => expect(getByTestId('group-seat-rA')).toBeTruthy());
+    expect(getByTestId('group-seat-rB')).toBeTruthy();
+  });
+
+  it('still shows the group when the groupOwnerId read is denied', async () => {
+    mockGetUserRegistrations.mockResolvedValue([
+      { id: 'rA', personId: 'p1', name: 'Ana', status: 'confirmed', isOpenSeat: false },
+    ]);
+    (getGroupRegistrations as jest.Mock).mockRejectedValue(new Error('permission-denied'));
+    const { getByTestId } = render(<RegisterFab {...groupProps} />);
+    await waitFor(() => expect(getByTestId('register-fab')).toBeTruthy());
+    fireEvent.press(getByTestId('register-fab'));
+
+    await waitFor(() => expect(getByTestId('group-seat-rA')).toBeTruthy());
+  });
+
+  it('cancels the whole group from the summary', async () => {
+    mockGetUserRegistrations.mockResolvedValue([
+      { id: 'rA', personId: 'p1', name: 'Ana', status: 'confirmed', isOpenSeat: false },
+      { id: 'rB', personId: '', name: 'Plaza libre', status: 'confirmed', isOpenSeat: true },
+    ]);
+    mockCancelRegistration.mockResolvedValue({ action: 'delete-group', removedRegistrationIds: ['rA', 'rB'] });
+    const { getByTestId } = render(<RegisterFab {...groupProps} />);
+    await waitFor(() => expect(getByTestId('register-fab')).toBeTruthy());
+    fireEvent.press(getByTestId('register-fab'));
+
+    await waitFor(() => expect(getByTestId('group-cancel')).toBeTruthy());
+    fireEvent.press(getByTestId('group-cancel'));
+
+    // One call with any seat of the group — the server cascades from there.
+    await waitFor(() => expect(mockCancelRegistration).toHaveBeenCalledWith('e1', 'rA'));
   });
 });

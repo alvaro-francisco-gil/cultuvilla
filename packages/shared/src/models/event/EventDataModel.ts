@@ -2,9 +2,27 @@ import { z } from 'zod';
 import { LocationDataSchema, LatLngSchema, type LatLng } from '../core/LocationDataModel';
 import { SignupFieldsSchema, type SignupFieldSpec } from './SignupFieldModel';
 
+/**
+ * Upper bound on `signupGroupSize`. Groups are seated atomically, so a large
+ * group would make the capacity edge of a popular event mostly unusable (a
+ * group of 8 needs 8 free seats or it waits); 4 covers parejas, tríos and
+ * coches/mesas, which is the whole of the observed demand.
+ * Re-checked in firestore.rules — keep the two in step.
+ */
+export const MAX_SIGNUP_GROUP_SIZE = 4;
+
 // Events publish on create — there is no `draft` state.
 export const EventStatusSchema = z.enum(['published', 'cancelled', 'completed']);
 export type EventStatus = z.infer<typeof EventStatusSchema>;
+
+// Who may read the event's attendee roster. `members` = anyone who has joined
+// the event's pueblo (the default: seeing who is going is what drives sign-ups
+// in a village); `organizers` = only the organizer set + village/app admins,
+// for events where a visible list would be inappropriate. Never world-readable
+// — a roster names real people, and a guest-readable one would put dependent
+// personas (typically children) on an open URL.
+export const AttendeesVisibilitySchema = z.enum(['members', 'organizers']);
+export type AttendeesVisibility = z.infer<typeof AttendeesVisibilitySchema>;
 
 export const EventDataSchema = z.object({
   title: z.string(),
@@ -32,6 +50,32 @@ export const EventDataSchema = z.object({
   // created before this field parse through the strict converter (existing dev
   // docs are backfilled to [] in this same change).
   signupFields: SignupFieldsSchema,
+  // False for events that simply happen — a verbena you walk into, or one whose
+  // sign-up is run off-app (at the ayuntamiento, by phone, on a paper list).
+  // The detail screen then hides the sign-up FAB and registerToEvent refuses,
+  // so the roster stays empty except for organizer-added walk-ins. `.default(true)`
+  // so events created before this field parse through the strict converter
+  // (existing docs are backfilled in this same change).
+  signupEnabled: z.boolean().default(true),
+  // Free-text line shown in place of the sign-up button when signupEnabled is
+  // false ("Entrada libre", "Inscripciones en el bar Paco", a URL). Null means
+  // the UI falls back to a generic "no requiere inscripción" string.
+  signupInfo: z.string().nullable().default(null),
+  // `.default('members')` so events created before this field parse through
+  // the strict converter (existing docs are backfilled in this same change).
+  // firestore.rules reads the same default via `data.get(...)`, so the stored
+  // and enforced meaning of an absent field agree.
+  attendeesVisibility: AttendeesVisibilitySchema.default('members'),
+  // How many people must sign up together: 1 = ordinary individual sign-up,
+  // 2 = parejas, 3-4 = small teams. A group is seated atomically — every seat
+  // is confirmed or every seat waits — so capacity can never split a pareja.
+  // A seat the creator does not fill with a persona of their own is an *open
+  // seat*: a real, held registration carrying a single-use claim token, which
+  // a friend turns into their own registration by following the link.
+  // `.default(1)` so events created before this field parse instead of
+  // throwing the strict converter (existing docs are backfilled to 1 in this
+  // same change).
+  signupGroupSize: z.number().int().min(1).max(MAX_SIGNUP_GROUP_SIZE).default(1),
   status: EventStatusSchema,
   organizerUserIds: z.array(z.string()),
   organizerOrgIds: z.array(z.string()),
@@ -78,6 +122,10 @@ export interface EventDataInput {
   telephoneRequired?: boolean;
   requiresPayment?: boolean;
   signupFields?: SignupFieldSpec[];
+  signupEnabled?: boolean;
+  signupInfo?: string | null;
+  attendeesVisibility?: AttendeesVisibility;
+  signupGroupSize?: number;
   status?: EventStatus;
   organizerUserIds: string[];
   organizerOrgIds: string[];
@@ -104,6 +152,10 @@ export function buildEventData(input: EventDataInput): EventData {
     telephoneRequired: input.telephoneRequired ?? false,
     requiresPayment: input.requiresPayment ?? false,
     signupFields: input.signupFields ?? [],
+    signupEnabled: input.signupEnabled ?? true,
+    signupInfo: input.signupInfo ?? null,
+    attendeesVisibility: input.attendeesVisibility ?? 'members',
+    signupGroupSize: input.signupGroupSize ?? 1,
     status: input.status ?? 'published',
     organizerUserIds: input.organizerUserIds,
     organizerOrgIds: input.organizerOrgIds,
@@ -122,13 +174,20 @@ export function buildEventData(input: EventDataInput): EventData {
   };
 }
 
+/** True when the event seats people in groups rather than one by one. */
+export function isGroupSignupEvent(event: Pick<EventData, 'signupGroupSize'>): boolean {
+  return event.signupGroupSize > 1;
+}
+
 export function isEventFull(event: EventData, confirmedCount: number): boolean {
   if (event.maxAttendees === null) return false;
   return confirmedCount >= event.maxAttendees;
 }
 
-export function isEventSignupOpen(event: EventData): boolean {
-  return event.status === 'published';
+export function isEventSignupOpen(
+  event: Pick<EventData, 'status' | 'signupEnabled'>,
+): boolean {
+  return event.status === 'published' && event.signupEnabled;
 }
 
 /** The wall clock every event date is authored and displayed in. */

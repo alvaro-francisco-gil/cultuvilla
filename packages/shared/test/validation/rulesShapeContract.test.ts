@@ -49,7 +49,7 @@ const SHAPE_CONTRACTS: ShapeContract[] = [
     label: 'places (create) — isValidPlaceCreate',
     build: () => buildPlaceData({ name: 'Cementerio Viejo', kind: 'cemetery', municipalityId: 'm1' }),
     ruleKeys: [
-      'name', 'kind', 'description', 'municipalityId', 'images',
+      'name', 'kind', 'description', 'municipalityId', 'coordinates', 'locationLabel', 'images',
       'createdAt', 'status', 'proposedBy', 'contributorUserIds', 'contributorOrgIds', 'hiddenBy', 'hiddenAt', 'hiddenReason',
       'commentCount', 'readCount', 'burialCount',
     ],

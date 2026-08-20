@@ -5,6 +5,8 @@ import './initApp';
 // Events
 export { registerToEvent } from './events/registerToEvent';
 export { addWalkInRegistration } from './events/addWalkInRegistration';
+export { claimEventSeat } from './events/claimEventSeat';
+export { cancelRegistration } from './events/cancelRegistration';
 export { completeExpiredEvents } from './events/eventCompletion';
 export { onRegistrationDeleted } from './events/waitlistPromotion';
 export { onEventUpdated } from './events/notificationTriggers';
@@ -55,6 +57,7 @@ export { ogRenderer } from './og/render';
 // Maps (Google Static Maps proxy + geocoding — key stays server-side)
 export { staticMap } from './maps/staticMap';
 export { geocodeSearch } from './maps/geocodeSearch';
+export { reverseGeocode } from './maps/reverseGeocode';
 
 // Auth (branded sign-in email delivery via Resend)
 // sendAuthSignInEmail/completeReauth's link mechanism is used only by the

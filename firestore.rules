@@ -47,6 +47,19 @@ service cloud.firestore {
       );
     }
 
+    // The attendee roster is a pueblo-wide read, not a public one: a member of
+    // the event's village may see who is going, unless the organizer set the
+    // event to `organizers`. Deliberately touches no `resource` field, so a
+    // list query over the subcollection is evaluated once (and passes or fails
+    // as a whole) rather than per document.
+    // `.get(key, default)` mirrors AttendeesVisibilitySchema's `.default()`,
+    // so events written before the field existed behave as `members`.
+    function isRosterVisibleToVillage(eventId) {
+      let event = get(/databases/$(database)/documents/events/$(eventId)).data;
+      return event.get('attendeesVisibility', 'members') == 'members'
+        && isVillageMember(event.municipalityId);
+    }
+
     // ── Shape validation helpers ─────────────────────────────────────────
     // These mirror the Zod schemas in packages/shared/src/models/*. Any
     // change to a model must update the matching helper here. The CI grep
@@ -257,12 +270,12 @@ service cloud.firestore {
 
     function isValidPlaceCreate(d) {
       return d.keys().hasOnly([
-              'name', 'kind', 'description', 'municipalityId', 'images',
+              'name', 'kind', 'description', 'municipalityId', 'coordinates', 'locationLabel', 'images',
               'createdAt', 'status', 'proposedBy', 'contributorUserIds', 'contributorOrgIds', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount', 'burialCount',
             ])
           && d.keys().hasAll([
-              'name', 'kind', 'description', 'municipalityId', 'images',
+              'name', 'kind', 'description', 'municipalityId', 'coordinates', 'locationLabel', 'images',
               'createdAt', 'status', 'proposedBy', 'contributorUserIds', 'contributorOrgIds', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount', 'burialCount',
             ])
@@ -270,6 +283,11 @@ service cloud.firestore {
           && d.kind in ['cemetery', 'church', 'hermitage', 'plaza', 'town_hall', 'otros']
           && isStringOrNull(d.description)
           && isString(d.municipalityId)
+          && isLatLngOrNull(d.coordinates)
+          // A label is only meaningful next to a pin: without one there is no
+          // map and no directions, just an orphan string on the detail screen.
+          && isStringOrNull(d.locationLabel)
+          && (d.coordinates != null || d.locationLabel == null)
           && isList(d.images) && d.images.size() <= 5
           && isTimestamp(d.createdAt)
           && d.status == 'active'
@@ -356,11 +374,20 @@ service cloud.firestore {
           || after.get('signupFields', []).size() >= before.get('signupFields', []).size();
     }
 
+    // Group size is frozen the moment anyone signs up. Seats already booked
+    // were sized and seated against the old value, so lowering it would strand
+    // over-sized groups and raising it would leave existing ones short — and
+    // neither the client nor rules can re-seat them.
+    function isFrozenGroupSizeChange(before, after) {
+      return before.get('totalCount', 0) == 0
+          || after.get('signupGroupSize', 1) == before.get('signupGroupSize', 1);
+    }
+
     function isValidEventCreate(d) {
       return d.keys().hasOnly([
               'title', 'description', 'startDate', 'endDate', 'endBoundary', 'location',
               'imageURL', 'maxAttendees', 'telephoneRequired', 'requiresPayment',
-              'signupFields',
+              'signupFields', 'signupEnabled', 'signupInfo', 'attendeesVisibility', 'signupGroupSize',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
               'villageCoverImage', 'villageCoordinates',
@@ -370,7 +397,7 @@ service cloud.firestore {
           && d.keys().hasAll([
               'title', 'description', 'startDate', 'endDate', 'endBoundary', 'location',
               'imageURL', 'maxAttendees', 'telephoneRequired', 'requiresPayment',
-              'signupFields',
+              'signupFields', 'signupEnabled', 'signupInfo', 'attendeesVisibility', 'signupGroupSize',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
               'villageCoverImage', 'villageCoordinates',
@@ -398,6 +425,20 @@ service cloud.firestore {
           // and by the create form on write.
           && d.signupFields is list
           && d.signupFields.size() <= 10
+          // False = the event takes no in-app sign-ups; signupInfo is the
+          // organizer's free-text alternative shown in the button's place.
+          && isBool(d.signupEnabled)
+          && isStringOrNull(d.signupInfo)
+          && (d.signupInfo == null || d.signupInfo.size() <= 200)
+          // Who may read this event's roster. Not world-readable by design —
+          // see AttendeesVisibilitySchema and the registrations read rule.
+          && d.attendeesVisibility in ['members', 'organizers']
+          // How many people sign up together. Capped here as well as in
+          // MAX_SIGNUP_GROUP_SIZE — groups are seated atomically, so an
+          // unbounded size would make a capped event unfillable.
+          && d.signupGroupSize is int
+          && d.signupGroupSize >= 1
+          && d.signupGroupSize <= 4
           && d.status in ['published', 'cancelled', 'completed']
           && d.organizerUserIds is list
           && d.organizerOrgIds is list
@@ -787,14 +828,34 @@ service cloud.firestore {
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.municipalityId == resource.data.municipalityId
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['commentCount', 'readCount'])
-        && isAdditiveSignupFieldsChange(resource.data, request.resource.data);
+        && isAdditiveSignupFieldsChange(resource.data, request.resource.data)
+        && isFrozenGroupSizeChange(resource.data, request.resource.data);
       allow delete: if isOwner(resource.data.createdBy)
         || (request.auth.uid in resource.data.organizerUserIds)
         || isVillageAdmin(resource.data.municipalityId)
         || isAppAdmin();
 
       match /registrations/{regId} {
-        allow read: if true;
+        // A roster names real people, so it is village-scoped, never world-
+        // readable: a guest-readable list would publish the names of dependent
+        // personas (typically children) whose person doc is deliberately
+        // private. Three ways in, in cost order:
+        //   1. the organizer set / admins — always, whatever the visibility;
+        //   2. any member of the event's pueblo, when attendeesVisibility is
+        //      'members' (the default);
+        //   3. your own row — a visitor from another pueblo signs up too
+        //      (that is what `isMember: false` records) and must still be able
+        //      to read and cancel their registration. Per-document, so a list
+        //      only passes this branch when filtered on userId.
+        //   4. seats you booked — once a guest claims an open seat `userId`
+        //      moves to them, but you are still accountable for the seat and
+        //      still the one who can cancel the group, so you must be able to
+        //      see it. Per-document, so a list only passes this branch when
+        //      filtered on groupOwnerId.
+        allow read: if isEventOrganizer(eventId)
+          || isRosterVisibleToVillage(eventId)
+          || (isAuthenticated() && resource.data.userId == request.auth.uid)
+          || (isAuthenticated() && resource.data.groupOwnerId == request.auth.uid);
         // Creation goes through the `registerToEvent` callable (admin SDK
         // bypasses rules). Direct client writes are not trusted because the
         // capacity/waitlist decision must be made server-side in a
@@ -815,11 +876,31 @@ service cloud.firestore {
           // identity fields are likewise not the registrant's to restate.
           !request.resource.data.diff(resource.data).affectedKeys().hasAny([
             'paidAt', 'status', 'position', 'isMember', 'userId', 'personId',
+            // Group membership is the seating decision's output too. Writable
+            // by the holder, an attendee could detach their seat from its
+            // group (escaping the cascade) or mark an occupied seat open and
+            // hand it to a stranger.
+            'groupId', 'groupOwnerId', 'isOpenSeat',
           ])
           || isEventOrganizer(eventId)
         );
-        allow delete: if (isAuthenticated() && resource.data.userId == request.auth.uid)
-          || isEventOrganizer(eventId);
+        // Cancellation goes through the `cancelRegistration` callable. A group
+        // is atomic, so removing one seat must take the whole group or none of
+        // it — rules can neither read the sibling seats nor require that the
+        // companion deletes accompany this one, so no client delete can be
+        // trusted. See functions/src/events/cancelRegistration.ts.
+        allow delete: if false;
+      }
+
+      // Claim tokens for open group seats. THE DOCUMENT ID IS THE SECRET, so
+      // reading one is enough to take the seat it names: the group owner may
+      // re-read their own (to re-share the link) and organizers may audit, and
+      // nobody else gets near them. Writes are callable-only — minting a token
+      // is minting an authorization.
+      match /seatTokens/{tokenId} {
+        allow read: if isAuthenticated()
+          && (resource.data.createdBy == request.auth.uid || isEventOrganizer(eventId));
+        allow write: if false;
       }
 
       // Organizer-only private data per registration: the attendee's phone and
@@ -931,8 +1012,10 @@ service cloud.firestore {
       allow list: if isAuthenticated();
     }
 
-    // Registrations remain restricted to the caller's own rows (unlike
-    // members, registration docs are not individually public).
+    // Cross-event listing stays restricted to the caller's own rows. The
+    // per-event rule above also lets a village member list one event's roster,
+    // but that is scoped by the event's municipality — a collection-group
+    // query has no event in its path to scope by, so it cannot reuse it.
 
     match /{path=**}/registrations/{regId} {
       allow list: if isAuthenticated()

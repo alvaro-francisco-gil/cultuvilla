@@ -4,55 +4,55 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { colors } from '@cultuvilla/shared/design-system';
-import { geocodeSearch, staticMapUrl, MAP_ZOOM_DEFAULT } from '@cultuvilla/shared/services/mapsService';
+import {
+  geocodeSearch,
+  reverseGeocode,
+  staticMapUrl,
+  MAP_ZOOM_DEFAULT,
+} from '@cultuvilla/shared/services/mapsService';
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 import { Text, Button, Pressable, FieldLabel } from '../primitives';
 import { useT } from '../../lib/i18n';
 import { showAlert } from '../../lib/dialogs';
-import { initialLocationState, locationReducer, coordLabel } from './locationPickerState';
+import { initialLocationState, locationReducer } from './locationPickerState';
 
 const ACCENT = colors.light.fg.accent;
 const MAP_ZOOM = MAP_ZOOM_DEFAULT ?? 15;
 
-/** Best-effort reverse geocode via the device geocoder (native only). */
-async function reverseGeocode(coords: LatLng): Promise<string> {
-  try {
-    const [a] = await Location.reverseGeocodeAsync({ latitude: coords.lat, longitude: coords.lng });
-    if (a) {
-      const line = [a.street ?? a.name, a.city ?? a.subregion].filter(Boolean).join(', ');
-      if (line) return line;
-    }
-  } catch {
-    /* unsupported (e.g. web) or no match — fall through */
-  }
-  return coordLabel(coords);
-}
-
 /**
- * Trigger + full-screen location picker, modeled on the ordago-apps
+ * Trigger + full-screen location picker used wherever an entity carries an
+ * optional pin (events, places), modeled on the ordago-apps
  * LocationPicker: a full-bleed map with a fixed centre pin, a floating search
  * field and "my location" button, and a bottom panel with the resolved address
  * and a prominent "Confirmar ubicación" button. It opens already centred on the
- * user's current location (or the event's saved one) so confirming is a single
+ * user's current location (or the entity's saved one) so confirming is a single
  * tap. Web-safe: the server `geocodeSearch` proxy + a `staticMap` image stand in
  * for a client Google key and `react-native-maps` (no web build). Colors follow
  * the app accent.
  */
-export function EventLocationField({
+export function LocationField({
   value,
   displayName,
   onChange,
+  onClear,
   label,
 }: {
   value: LatLng | null;
   displayName: string;
   /** Fired on confirm with the chosen coordinates and its address label. */
   onChange: (coords: LatLng, address: string) => void;
+  /** Makes the pin removable: when set and a coordinate is stored, the trigger
+   *  grows a clear button. Omit where the location is mandatory (events). */
+  onClear?: () => void;
   label?: string;
 }) {
   const { t } = useT();
   const [open, setOpen] = useState(false);
-  const [state, dispatch] = useReducer(locationReducer, value, initialLocationState);
+  const [state, dispatch] = useReducer(
+    locationReducer,
+    { coords: value, label: displayName },
+    initialLocationState,
+  );
   const [locating, setLocating] = useState(false);
   const seededRef = useRef(false);
 
@@ -67,7 +67,8 @@ export function EventLocationField({
       const pos = await Location.getCurrentPositionAsync({});
       const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       dispatch({ type: 'gpsResult', coords });
-      dispatch({ type: 'resolvedAddress', label: await reverseGeocode(coords) });
+      const label = await reverseGeocode(coords.lat, coords.lng);
+      if (label) dispatch({ type: 'resolvedAddress', label });
     } catch {
       if (!silent) showAlert(t('village.admin.community.locationGpsFailed'));
     } finally {
@@ -83,7 +84,12 @@ export function EventLocationField({
     seededRef.current = true;
     if (state.coords) {
       if (displayName) dispatch({ type: 'resolvedAddress', label: displayName });
-      else void reverseGeocode(state.coords).then((l) => dispatch({ type: 'resolvedAddress', label: l }));
+      else {
+        const { lat, lng } = state.coords;
+        void reverseGeocode(lat, lng).then((l) => {
+          if (l) dispatch({ type: 'resolvedAddress', label: l });
+        });
+      }
     } else {
       void locate(true);
     }
@@ -112,7 +118,9 @@ export function EventLocationField({
 
   function confirm() {
     if (!state.coords) return;
-    onChange(state.coords, state.query.trim() || coordLabel(state.coords));
+    // An empty label is handed up as-is; the form falls back to the village
+    // name. Never persist a coordinate pair as the location's name.
+    onChange(state.coords, state.query.trim());
     setOpen(false);
   }
 
@@ -136,6 +144,21 @@ export function EventLocationField({
         </View>
         <Ionicons name="chevron-forward" size={18} color="#64748b" />
       </Pressable>
+      {onClear && value ? (
+        <Pressable
+          onPress={onClear}
+          accessibilityRole="button"
+          accessibilityLabel={t('village.admin.community.removeLocation')}
+          hitSlop={8}
+          style={styles.clearRow}
+          testID="location-clear"
+        >
+          <Ionicons name="close-circle-outline" size={16} color={ACCENT} />
+          <Text variant="bodySm" tone="muted">
+            {t('village.admin.community.removeLocation')}
+          </Text>
+        </Pressable>
+      ) : null}
 
       <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
         <View style={styles.modal}>
@@ -248,6 +271,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   triggerInner: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
+  clearRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, alignSelf: 'flex-start' },
   triggerText: { flexShrink: 1 },
   modal: { flex: 1, backgroundColor: '#eef2f7' },
   mapImage: { width: '100%', height: '100%' },
