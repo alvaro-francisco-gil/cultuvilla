@@ -18,6 +18,7 @@ import { useAuth } from '../../lib/auth/useAuth';
 import { useT } from '../../lib/i18n';
 import { useCallable } from '../../lib/useCallable';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
+import { showConfirm } from '../../lib/dialogs';
 import { pickImageAsBlob } from '../../lib/images';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
@@ -172,6 +173,11 @@ export default function NewEventScreen() {
   const [signupFields, setSignupFields] = useState<SignupFieldSpec[]>([]);
   const [lockedFieldCount, setLockedFieldCount] = useState(0);
   const [groupSizeLocked, setGroupSizeLocked] = useState(false);
+  // What saving with sign-ups switched off would destroy: how many
+  // registrations the event carries, and whether it took sign-ups when the
+  // form opened (flipping the flag off is only destructive from that state).
+  const [existingSignupCount, setExistingSignupCount] = useState(0);
+  const [signupWasEnabled, setSignupWasEnabled] = useState(false);
   const [cover, setCover] = useState<UploadableImage | null>(null);
 
   // Picking a location auto-selects the nearest joined village (create mode,
@@ -241,6 +247,8 @@ export default function NewEventScreen() {
         // added. firestore.rules enforces the size half of the same invariant.
         setLockedFieldCount(ev.totalCount > 0 ? (ev.signupFields ?? []).length : 0);
         setGroupSizeLocked(ev.totalCount > 0);
+        setExistingSignupCount(ev.totalCount);
+        setSignupWasEnabled(ev.signupEnabled !== false);
         setOrganizerUserIds(ev.organizerUserIds ?? []);
         setCreatedBy(ev.createdBy);
         setOrganizerOrgIds(ev.organizerOrgIds ?? []);
@@ -424,6 +432,23 @@ export default function NewEventScreen() {
   // must leave the event — returning to its detail would re-show the (still
   // existing) cancelled doc and read as "delete didn't work". Reaching edit mode
   // already implies organizer rights.
+  // Turning sign-ups off wipes the event's roster and notifies everyone on it
+  // (the `onEventUpdated` trigger does the deleting). That is not something to
+  // discover afterwards, so the count is named before the save goes through.
+  const signupsWouldBeWiped = editMode && signupWasEnabled && !signupEnabled && existingSignupCount > 0;
+  const handleComplete = () => {
+    if (!signupsWouldBeWiped) {
+      void submit();
+      return;
+    }
+    showConfirm(
+      t('event.signupDisableTitle'),
+      t('event.signupDisableBody', { count: existingSignupCount }),
+      () => void submit(),
+      { confirmText: t('event.signupDisableConfirm'), cancelText: t('common.cancel') },
+    );
+  };
+
   const deleteEvent = () => {
     if (!eventId) return;
     return updateEventStatus(eventId, 'cancelled').then(() => router.replace('/(tabs)'));
@@ -721,7 +746,7 @@ export default function NewEventScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Stepper
           steps={steps}
-          onComplete={() => void submit()}
+          onComplete={handleComplete}
           submitLabel={editMode ? t('common.save') : t('event.createEvent')}
           loading={isPending}
           allStepsReachable={editMode}

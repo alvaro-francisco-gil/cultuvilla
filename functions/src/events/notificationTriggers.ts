@@ -1,7 +1,10 @@
 import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
+import { logger } from 'firebase-functions/v2';
 import { getFirestore } from 'firebase-admin/firestore';
 import {
+  eventRegistrationPrivateDoc,
   eventRegistrationsCollection,
+  eventSeatTokensCollection,
   userNotificationsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
 import { buildNotificationData } from '@cultuvilla/shared/models';
@@ -83,6 +86,57 @@ export const onEventUpdated = onDocumentUpdated(
         );
       }
       await batch.commit();
+    }
+
+    // ── In-app sign-ups turned off on an event that already had some ────────
+    // The registrations cannot simply stay: the event now tells everyone it
+    // takes no sign-ups through the app, while still showing a roster of
+    // people who made one — and those people lose their own cancel button with
+    // the flag (it lives on the sign-up FAB, which the detail screen hides),
+    // so leaving the rows behind traps them in a list only an organizer can
+    // edit. The organizer confirms the count in the form before saving; this
+    // makes it true whichever client flipped the flag.
+    if (before['signupEnabled'] !== false && after['signupEnabled'] === false) {
+      const regs = await eventRegistrationsCollection(db, eventId).get();
+      if (!regs.empty) {
+        // Unconsumed group-invite links point at seats that no longer exist.
+        const tokens = await eventSeatTokensCollection(db, eventId).get();
+        const userIds = new Set(regs.docs.map((r) => r.data().userId));
+
+        const writer = db.bulkWriter();
+        for (const reg of regs.docs) {
+          void writer.delete(reg.ref);
+          void writer.delete(eventRegistrationPrivateDoc(db, eventId, reg.id));
+        }
+        for (const token of tokens.docs) void writer.delete(token.ref);
+        for (const userId of userIds) {
+          // Deterministic id: Eventarc delivers at least once, so a redelivered
+          // flip must overwrite this notification rather than append a second.
+          void writer.set(
+            userNotificationsCollection(db, userId).doc(`signups_disabled_${eventId}`),
+            buildNotificationData({
+              type: 'signups_disabled',
+              title: 'Inscripción eliminada',
+              body: `El organizador de "${afterTitle ?? ''}" ha desactivado las inscripciones por la app. Habla con quien organiza el evento si quieres asistir.`,
+              eventId,
+              municipalityId,
+            }),
+          );
+        }
+        // BulkWriter rather than a batch: a popular event can hold more
+        // registrations than a batch's 500 writes, and each one costs two
+        // (the registration and its private doc).
+        await writer.close();
+
+        logger.info('Sign-ups disabled, registrations swept', {
+          handler: 'onEventUpdated',
+          eventId,
+          municipalityId,
+          removedCount: regs.size,
+          notifiedCount: userIds.size,
+          removedTokenCount: tokens.size,
+        });
+      }
     }
   },
 );

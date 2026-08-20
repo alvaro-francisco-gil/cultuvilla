@@ -4,6 +4,7 @@ import NewEventScreen from '../new';
 import { pickImageAsBlob } from '../../../lib/images';
 import { createEvent, updateEvent, getEvent } from '@cultuvilla/shared/services/eventService';
 import { uploadEventImage } from '@cultuvilla/shared/services/imageService';
+import { showConfirm } from '../../../lib/dialogs';
 
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../lib/auth/useAuth', () => ({
@@ -26,6 +27,7 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('../../../lib/images', () => ({ pickImageAsBlob: jest.fn() }));
+jest.mock('../../../lib/dialogs', () => ({ showConfirm: jest.fn() }));
 
 // The event's village now comes from the user's joined villages.
 jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
@@ -440,5 +442,95 @@ describe('NewEventScreen edit mode', () => {
     const { getByTestId } = render(<NewEventScreen />);
     await waitFor(() => expect(getByTestId('organizer-picker')).toBeTruthy());
     expect(mockOrganizerProps.current).toMatchObject({ selectedUserIds: ['uid-2'] });
+  });
+});
+
+// Turning in-app sign-ups off on an event that already has some is destructive:
+// the onEventUpdated trigger deletes every registration and notifies everyone
+// on the roster. The count has to be named before the save, not discovered
+// after it.
+describe('NewEventScreen — disabling sign-ups on an event with registrations', () => {
+  const SIGNED_UP_EVENT = {
+    id: 'e-8',
+    municipalityId: 'm-1',
+    villageName: 'Pueblo',
+    villageCoordinates: { lat: 1, lng: 2 },
+    title: 'Carrera popular',
+    description: 'Desc',
+    startDate: new Date('2026-08-01T18:00'),
+    endDate: null,
+    location: { coordinates: { lat: 1, lng: 2 }, displayName: 'Plaza' },
+    maxAttendees: null,
+    telephoneRequired: false,
+    requiresPayment: false,
+    signupGroupSize: 1,
+    signupEnabled: true,
+    signupInfo: null,
+    attendeesVisibility: 'members' as const,
+    signupFields: [],
+    totalCount: 3,
+    organizerUserIds: ['uid-1'],
+    organizerOrgIds: [],
+    createdBy: 'uid-1',
+    imageURL: null,
+  };
+
+  beforeEach(() => {
+    mockParams.eventId = 'e-8';
+    (showConfirm as jest.Mock).mockClear();
+    (updateEvent as jest.Mock).mockClear();
+    (getEvent as jest.Mock).mockResolvedValue(SIGNED_UP_EVENT);
+  });
+
+  afterEach(() => {
+    delete mockParams.eventId;
+  });
+
+  /** Walks the edit form to its last step with the sign-up toggle switched off. */
+  async function openDetailsAndDisableSignups(
+    view: ReturnType<typeof render>,
+  ): Promise<void> {
+    const { getByText, getByTestId } = view;
+    await waitFor(() => expect(getByTestId('organizer-picker')).toBeTruthy());
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('startDate')).toBeTruthy());
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('signup-enabled')).toBeTruthy());
+    // Off also drops the Preguntas step, so Detalles becomes the last one and
+    // its primary button is the save.
+    fireEvent.press(getByTestId('signup-enabled'));
+  }
+
+  it('asks for confirmation instead of saving straight away', async () => {
+    const view = render(<NewEventScreen />);
+    await openDetailsAndDisableSignups(view);
+    fireEvent.press(view.getByTestId('event-form-primary'));
+
+    expect(showConfirm).toHaveBeenCalledTimes(1);
+    expect(updateEvent).not.toHaveBeenCalled();
+    // The dialog names how many sign-ups are about to go.
+    expect((showConfirm as jest.Mock).mock.calls[0][1]).toBe('event.signupDisableBody');
+  });
+
+  it('saves once the organizer confirms', async () => {
+    const view = render(<NewEventScreen />);
+    await openDetailsAndDisableSignups(view);
+    fireEvent.press(view.getByTestId('event-form-primary'));
+
+    const onConfirm = (showConfirm as jest.Mock).mock.calls[0][2] as () => void;
+    onConfirm();
+
+    await waitFor(() => expect(updateEvent).toHaveBeenCalledTimes(1));
+    expect((updateEvent as jest.Mock).mock.calls[0][1]).toMatchObject({ signupEnabled: false });
+  });
+
+  it('saves without a dialog when the event has no sign-ups yet', async () => {
+    (getEvent as jest.Mock).mockResolvedValue({ ...SIGNED_UP_EVENT, totalCount: 0 });
+    const view = render(<NewEventScreen />);
+    await openDetailsAndDisableSignups(view);
+    fireEvent.press(view.getByTestId('event-form-primary'));
+
+    expect(showConfirm).not.toHaveBeenCalled();
+    await waitFor(() => expect(updateEvent).toHaveBeenCalledTimes(1));
   });
 });
