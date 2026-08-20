@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.22.0 — 2026-08-20
+
 ### Changed
 
 - **A promotion no longer stops to have its migrations run by hand.** Shipping v0.21.0 took twelve manual "Run Backfill" dispatches, two cancelled deploys and a 30-minute hang, for six migrations that were all purely additive. Every piece needed to avoid that already existed — `autoApply` was built, validated and wired into the deploy — but it sat **after** the conformance gate, which reads exactly the documents auto-apply was about to write. The gate failed first and the deploy died before reaching it, so the mechanism was unreachable for every schema change it was designed to absorb, and every registered backfill had quietly settled on `autoApply: []`. Auto-apply now runs **first, before both gates**, and the six 0.21.0 backfills opt in. The ordering is locked by a test, because it is invisible in a diff and fatal to get wrong.
