@@ -39,7 +39,12 @@ export const onRegistrationDeleted = onDocumentDeleted(
 
     let promoted = false;
     const promotedAttendees: { userId: string; name: string; position: number }[] = [];
-    if (deletedStatus === 'confirmed' && eventData.maxAttendees) {
+    // `signupEnabled` false means the event no longer takes sign-ups through
+    // the app, and onEventUpdated is deleting the whole roster — promoting a
+    // waitlisted seat into that would email someone a place that is being
+    // removed in the same sweep (and may already be gone, which `update()`
+    // rejects). Counters below still run: they must reach zero.
+    if (deletedStatus === 'confirmed' && eventData.maxAttendees && eventData.signupEnabled) {
       // Eventarc delivers at-least-once, so this handler can run twice for the
       // same deletion. Only promote into space that is genuinely free: a
       // redelivery (whose freed seat was already refilled) computes zero free

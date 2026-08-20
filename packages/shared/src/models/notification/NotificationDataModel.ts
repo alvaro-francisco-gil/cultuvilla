@@ -9,6 +9,10 @@ export const NotificationTypeSchema = z.enum([
   'seat_released',
   'event_cancelled',
   'event_updated',
+  // The organizer turned in-app sign-ups off on an event that already had
+  // them, which deletes every registration on it (see onEventUpdated). Sent to
+  // each person who was signed up.
+  'signups_disabled',
   'org_approved',
   'org_rejected',
   'organizer_request_created',
