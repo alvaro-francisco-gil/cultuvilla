@@ -7,6 +7,7 @@ import {
   selectAutoApplicable,
   selectPostDeploy,
   selectPreDeploy,
+  topoSort,
   validateMeta,
 } from '../lib/backfill-registry.mjs';
 
@@ -85,6 +86,60 @@ describe('validateMeta', () => {
     invalid({ kind: 'audit', phase: 'post-deploy' }, /audit/);
     assert.doesNotThrow(() => validateMeta(meta({ kind: 'audit', phase: 'none' })));
   });
+
+  it('accepts a missing dependsOn as empty', () => {
+    const { autoApply, ...rest } = base;
+    assert.doesNotThrow(() => validateMeta({ ...rest, autoApply }));
+  });
+
+  it('rejects a dependsOn that is not a list of ids', () => {
+    invalid({ dependsOn: 'other' }, /array of backfill ids/);
+    invalid({ dependsOn: [42] }, /array of backfill ids/);
+    invalid({ dependsOn: [''] }, /array of backfill ids/);
+  });
+
+  it('rejects a self-dependency', () => {
+    invalid({ dependsOn: ['sample-backfill'] }, /cannot depend on itself/);
+  });
+});
+
+describe('topoSort', () => {
+  const ordered = (list) => topoSort(list).map((m) => m.id);
+
+  it('puts a dependency before its dependent', () => {
+    // The projection case: `denorm` writes rows that `source` also writes, so
+    // running it first would have its work clobbered by the live old trigger.
+    const out = ordered([meta({ id: 'denorm', dependsOn: ['source'] }), meta({ id: 'source' })]);
+    assert.deepEqual(out, ['source', 'denorm']);
+  });
+
+  it('is stable for independent backfills — ties keep incoming order', () => {
+    // Otherwise renaming an unrelated backfill silently reshuffles the run.
+    const out = ordered([meta({ id: 'c' }), meta({ id: 'a' }), meta({ id: 'b' })]);
+    assert.deepEqual(out, ['c', 'a', 'b']);
+  });
+
+  it('resolves a transitive chain', () => {
+    const out = ordered([
+      meta({ id: 'third', dependsOn: ['second'] }),
+      meta({ id: 'second', dependsOn: ['first'] }),
+      meta({ id: 'first' }),
+    ]);
+    assert.deepEqual(out, ['first', 'second', 'third']);
+  });
+
+  it('ignores a dependency that is not in the selected set', () => {
+    // A dep that is not opted in for this env simply imposes no ordering — it
+    // must not drag an unselected backfill into the run.
+    assert.deepEqual(ordered([meta({ id: 'only', dependsOn: ['absent'] })]), ['only']);
+  });
+
+  it('throws on a cycle rather than picking an arbitrary order', () => {
+    assert.throws(
+      () => topoSort([meta({ id: 'a', dependsOn: ['b'] }), meta({ id: 'b', dependsOn: ['a'] })]),
+      /cycle/,
+    );
+  });
 });
 
 describe('selectors', () => {
@@ -112,6 +167,17 @@ describe('selectors', () => {
       const selected = [...selectPreDeploy(registry, env), ...selectPostDeploy(registry, env), ...selectAutoApplicable(registry, env)];
       assert.equal(selected.some((m) => m.kind === 'audit'), false);
     }
+  });
+
+  it('returns auto-applicable backfills in dependency order', () => {
+    const chained = [
+      meta({ id: 'projection', phase: 'none', autoApply: ['beta'], dependsOn: ['source'] }),
+      meta({ id: 'source', phase: 'none', autoApply: ['beta'] }),
+    ];
+    assert.deepEqual(
+      selectAutoApplicable(chained, 'beta').map((m) => m.id),
+      ['source', 'projection'],
+    );
   });
 
   it('selects auto-applicable backfills only for their opted-in env', () => {

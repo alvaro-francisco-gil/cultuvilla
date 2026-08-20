@@ -67,6 +67,21 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
 
+      # Auto-apply opted-in backfills — beta/prod only. Runs every backfill
+      # that opted into `autoApply` for this env and has no marker yet, in
+      # dependency order (`dependsOn`). `validateMeta` only accepts that opt-in
+      # on an idempotent backfill, so this is safe to run on every deploy; with
+      # nothing opted in it is a no-op that prints one line.
+      #
+      # RUNS FIRST, BEFORE BOTH GATES. It writes the very data the conformance
+      # gate reads, so sitting after that gate made it unreachable: the gate
+      # failed on exactly the docs auto-apply was about to fix, and the deploy
+      # died before reaching it. A migration that can apply itself must do so
+      # before anything inspects the data. Order is locked by backfillGate.test.ts.
+      - name: Auto-apply opted-in backfills
+        if: ${{ inputs.firebase_alias != 'dev' }}
+        run: node scripts/backfills-cli.mjs auto-apply --env ${{ inputs.firebase_alias }} --confirm --apply
+
       # Data-conformance gate — beta/prod only. Before shipping any schema
       # change, walk the TARGET env's live Firestore docs through the Zod
       # converters in THIS build (the exact `schema.parse` the app runs on
@@ -82,16 +97,6 @@ jobs:
       - name: Conformance gate — live data matches shipped schema
         if: ${{ inputs.firebase_alias != 'dev' }}
         run: node scripts/check-dev-conformance.mjs --env ${{ inputs.firebase_alias }}
-
-      # Auto-apply gate — beta/prod only (same reason as above). Runs every
-      # backfill that opted into `autoApply` for this env and has no marker
-      # yet. `validateMeta` only accepts that opt-in on an idempotent backfill,
-      # so this is safe to run on every deploy; with nothing opted in it is a
-      # no-op that prints one line. Runs BEFORE the verify gate so a backfill
-      # that can apply itself satisfies the gate instead of blocking on a human.
-      - name: Auto-apply opted-in backfills
-        if: ${{ inputs.firebase_alias != 'dev' }}
-        run: node scripts/backfills-cli.mjs auto-apply --env ${{ inputs.firebase_alias }} --confirm --apply
 
       # Backfill gate — beta/prod only. A code change deploys automatically
       # when it reaches an env; the data migration it depends on does NOT. This

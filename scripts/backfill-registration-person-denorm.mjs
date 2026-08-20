@@ -33,7 +33,14 @@ export const meta = {
   envs: ['dev', 'beta', 'prod'],
   idempotent: true,
   owner: 'alvaro',
-  autoApply: [],
+  autoApply: ['dev', 'beta', 'prod'],
+  // Projection: it writes registrations from persons, and event-group-signup
+  // writes registrations too. Patching a source fires the currently-deployed
+  // trigger, which rewrites projected rows with a full `set()` that predates
+  // these fields — so this has to land after the source backfills, not
+  // alongside them. Alphabetical order happens to put it last today; that is a
+  // coincidence, and this is the declaration that survives a rename.
+  dependsOn: ['event-group-signup', 'event-attendees-visibility'],
 };
 
 // A walk-in has no person doc at all (empty personId) — its name was typed by

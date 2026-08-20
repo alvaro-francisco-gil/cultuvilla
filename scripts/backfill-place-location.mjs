@@ -26,7 +26,7 @@ export const meta = {
   idempotent: true,
   owner: 'alvaro',
   // Provably additive — it only fills in absent keys, never overwrites a pin.
-  autoApply: [],
+  autoApply: ['dev', 'beta', 'prod'],
 };
 
 function patchFor(data) {
