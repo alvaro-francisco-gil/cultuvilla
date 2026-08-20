@@ -7,6 +7,8 @@ import {
   getComments,
   getReplies,
 } from '@cultuvilla/shared/services/commentsService';
+import { createContentReport } from '@cultuvilla/shared/services/contentReportService';
+import { blockUser, getBlockedUserIds } from '@cultuvilla/shared/services/blockedUserService';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 import { getUserProfile } from '@cultuvilla/shared/services/userService';
 
@@ -15,6 +17,13 @@ jest.mock('@cultuvilla/shared/services/commentsService', () => ({
   deleteComment: jest.fn().mockResolvedValue(undefined),
   getComments: jest.fn(),
   getReplies: jest.fn(),
+}));
+jest.mock('@cultuvilla/shared/services/contentReportService', () => ({
+  createContentReport: jest.fn().mockResolvedValue('rep-1'),
+}));
+jest.mock('@cultuvilla/shared/services/blockedUserService', () => ({
+  blockUser: jest.fn().mockResolvedValue(undefined),
+  getBlockedUserIds: jest.fn().mockResolvedValue([]),
 }));
 jest.mock('@cultuvilla/shared/services/personService', () => ({
   getPersonByUserId: jest.fn(),
@@ -50,6 +59,14 @@ jest.mock('../../lib/i18n', () => ({
         'comments.replyPlaceholder': 'Escribe una respuesta…',
         'comments.hideReplies': 'Ocultar respuestas',
         'comments.cancelReply': 'Cancelar respuesta',
+        'report.title': 'Denunciar',
+        'report.subtitle': 'Cuéntanos qué pasa',
+        'report.sent': 'Denuncia recibida',
+        'report.close': 'Cerrar',
+        'report.reason.harassment': 'Acoso o insultos',
+        'report.blockUser': 'Bloquear a esta persona',
+        'report.blockHint': 'No verás sus comentarios',
+        'report.blockDone': 'Persona bloqueada',
       };
       if (key === 'comments.viewReplies') return `Ver ${params?.count ?? ''} respuestas`;
       if (key === 'comments.replyingTo') return `Respondiendo a ${String(params?.name ?? '')}`;
@@ -69,6 +86,9 @@ const getCommentsMock = getComments as jest.Mock;
 const addCommentMock = addComment as jest.Mock;
 const deleteCommentMock = deleteComment as jest.Mock;
 const getRepliesMock = getReplies as jest.Mock;
+const createContentReportMock = createContentReport as jest.Mock;
+const blockUserMock = blockUser as jest.Mock;
+const getBlockedUserIdsMock = getBlockedUserIds as jest.Mock;
 
 const BASE_PROPS = {
   entityKind: 'event' as const,
@@ -87,6 +107,7 @@ describe('<EntityComments>', () => {
       secondSurname: null,
     });
     getUserProfileMock.mockResolvedValue(null);
+    getBlockedUserIdsMock.mockResolvedValue([]);
   });
 
   it('renders nothing in place of the comment list when there are no comments', async () => {
@@ -577,5 +598,78 @@ describe('<EntityComments>', () => {
     await findByText(/Comentario huérfano/);
     expect(queryByTestId('comment-author-c-1')).toBeNull();
     expect(queryByTestId('comment-author-avatar-c-1')).toBeNull();
+  });
+
+  describe('reporting and blocking', () => {
+    const otherComment = {
+      id: 'c-1',
+      entityKind: 'event',
+      entityId: 'e-1',
+      municipalityId: 'm-1',
+      authorUserId: 'uid-2',
+      body: 'Comentario ajeno',
+      createdAt: new Date(),
+      parentCommentId: null,
+      replyCount: 0,
+    };
+
+    it('offers no report affordance on your own comment', async () => {
+      getCommentsMock.mockResolvedValue([{ ...otherComment, authorUserId: 'uid-1' }]);
+      const { findByText, queryByTestId } = render(<EntityComments {...BASE_PROPS} />);
+      await findByText('Comentario ajeno');
+      expect(queryByTestId('comment-report-c-1')).toBeNull();
+    });
+
+    it('offers no report affordance to a signed-out visitor', async () => {
+      mockUser = null;
+      getCommentsMock.mockResolvedValue([otherComment]);
+      const { findByText, queryByTestId } = render(<EntityComments {...BASE_PROPS} />);
+      await findByText('Comentario ajeno');
+      expect(queryByTestId('comment-report-c-1')).toBeNull();
+    });
+
+    it('files a report carrying the comment, its author and the reporter', async () => {
+      getCommentsMock.mockResolvedValue([otherComment]);
+      const { findByText, getByTestId, findByTestId } = render(<EntityComments {...BASE_PROPS} />);
+      await findByText('Comentario ajeno');
+
+      fireEvent.press(getByTestId('comment-report-c-1'));
+      fireEvent.press(await findByTestId('report-reason-harassment'));
+
+      await waitFor(() =>
+        expect(createContentReportMock).toHaveBeenCalledWith({
+          municipalityId: 'm-1',
+          targetKind: 'comment',
+          targetId: 'c-1',
+          targetAuthorUserId: 'uid-2',
+          reporterUserId: 'uid-1',
+          reason: 'harassment',
+        }),
+      );
+      expect(await findByText('Denuncia recibida')).toBeTruthy();
+    });
+
+    it('blocking the author hides their comment straight away', async () => {
+      getCommentsMock.mockResolvedValue([otherComment]);
+      const { findByText, getByTestId, findByTestId, queryByText } = render(
+        <EntityComments {...BASE_PROPS} />,
+      );
+      await findByText('Comentario ajeno');
+
+      fireEvent.press(getByTestId('comment-report-c-1'));
+      fireEvent.press(await findByTestId('report-block-user'));
+
+      await waitFor(() => expect(blockUserMock).toHaveBeenCalledWith('uid-1', 'uid-2'));
+      await waitFor(() => expect(queryByText('Comentario ajeno')).toBeNull());
+    });
+
+    it('a previously blocked author is filtered out on load', async () => {
+      getBlockedUserIdsMock.mockResolvedValue(['uid-2']);
+      getCommentsMock.mockResolvedValue([otherComment]);
+      const { findByText, queryByText } = render(<EntityComments {...BASE_PROPS} />);
+      await findByText('Comentarios');
+      await waitFor(() => expect(getBlockedUserIdsMock).toHaveBeenCalledWith('uid-1'));
+      expect(queryByText('Comentario ajeno')).toBeNull();
+    });
   });
 });

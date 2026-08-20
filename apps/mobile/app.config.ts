@@ -108,7 +108,7 @@ const config: ExpoConfig = {
   // the shell would silently build one repo into the other's EAS project; owner
   // + projectId in the file make the routing per-repo by construction.
   owner: 'cultuvilla.app',
-  version: '0.22.0',
+  version: '0.23.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   scheme: 'cultuvilla',
@@ -118,6 +118,9 @@ const config: ExpoConfig = {
     supportsTablet: true,
     associatedDomains: [`applinks:${deepLinkHostPerEnv[env]}`],
     infoPlist: {
+      // Only standard HTTPS/TLS — declaring the exemption here stops App Store
+      // Connect asking for an export-compliance answer on every single build.
+      ITSAppUsesNonExemptEncryption: false,
       NSLocationWhenInUseUsageDescription:
         'Cultuvilla usa tu ubicación para fijar la del pueblo en el mapa.',
       // expo-image-picker reads the photo library to pick + crop avatars/escudos;

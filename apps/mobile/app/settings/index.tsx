@@ -67,6 +67,20 @@ export default function SettingsScreen() {
             </Pressable>
           </Card>
         </VStack>
+
+        <VStack gap={2}>
+          <Text variant="caption" tone="muted" className="uppercase">
+            {t('settings.section.safety')}
+          </Text>
+          <Card variant="flat" className="p-0">
+            <Pressable onPress={() => router.push('/settings/blocked')} className="px-4 py-3">
+              <HStack justify="between" align="center">
+                <Text>{t('settings.blocked.label')}</Text>
+                <Ionicons name="chevron-forward" size={iconSizes.sm} color="#cbd5e1" />
+              </HStack>
+            </Pressable>
+          </Card>
+        </VStack>
       </VStack>
     </Screen>
   );

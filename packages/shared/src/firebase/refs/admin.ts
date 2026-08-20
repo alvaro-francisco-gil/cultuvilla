@@ -22,6 +22,8 @@ import { membershipEventConverterAdmin } from '../converters/membershipEventConv
 import { moderationEventConverterAdmin } from '../converters/moderationEventConverter.admin';
 import { festivalPosterConverterAdmin } from '../converters/festivalPosterConverter.admin';
 import { municipalityPersonConverterAdmin } from '../converters/municipalityPersonConverter.admin';
+import { contentReportConverterAdmin } from '../converters/contentReportConverter.admin';
+import { blockedUserConverterAdmin } from '../converters/blockedUserConverter.admin';
 
 export const eventsCollection = (db: Firestore) =>
   db.collection('events').withConverter(eventConverterAdmin);
@@ -192,3 +194,17 @@ export const adminsCollection = (db: Firestore) =>
 
 export const adminDoc = (db: Firestore, userId: string) =>
   db.collection('admins').doc(userId).withConverter(adminConverterAdmin);
+
+// ── UGC safety: reports + per-user block lists ───────────────────────────
+
+export const contentReportsCollection = (db: Firestore) =>
+  db.collection('contentReports').withConverter(contentReportConverterAdmin);
+
+export const contentReportDoc = (db: Firestore, reportId: string) =>
+  db.collection('contentReports').doc(reportId).withConverter(contentReportConverterAdmin);
+
+export const userBlockedUsersCollection = (db: Firestore, userId: string) =>
+  db.collection('users').doc(userId).collection('blockedUsers').withConverter(blockedUserConverterAdmin);
+
+export const userBlockedUserDoc = (db: Firestore, userId: string, blockedUserId: string) =>
+  db.collection('users').doc(userId).collection('blockedUsers').doc(blockedUserId).withConverter(blockedUserConverterAdmin);

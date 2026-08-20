@@ -66,12 +66,16 @@ Cuestionario (IARC). Respuestas que se derivan del código:
   es visible para otras personas usuarias.
 - Violencia, sexo, lenguaje soez, drogas, apuestas, compras: **No**.
 
-> ⚠️ **Bloqueante.** El cuestionario pregunta por las herramientas de moderación
-> de UGC. Hoy sólo existe la vía de administración
-> (`setContentVisibility`); **no hay flujo de denuncia ni de bloqueo para la
-> persona usuaria**, aunque las cadenas `comments.report*` ya están en
-> [packages/i18n/messages/es.json](../../packages/i18n/messages/es.json). Hay que
-> implementarlo antes del despliegue en producción.
+**Herramientas de moderación** (lo que el cuestionario pregunta a continuación):
+
+- **Denuncia dentro de la app**: sí — bandera en cada comentario ajeno, siete
+  motivos, escribe en `contentReports/`.
+- **Bloqueo de personas usuarias**: sí — desde la misma hoja; se deshace en
+  Ajustes → Personas bloqueadas.
+- **Revisión por parte de administradores**: sí — Administración → Denuncias
+  (cola de denuncias abiertas del pueblo) y ocultación de contenido vía
+  `setContentVisibility`, con registro de auditoría en `moderationEvents/`.
+- **Contacto de moderación**: `cultuvilla.app@gmail.com`.
 
 ## Target audience and content
 
@@ -105,9 +109,7 @@ Prácticas de seguridad a declarar:
 - **Cifrado en tránsito**: sí (HTTPS/Firebase en todo el camino).
 - **Se puede solicitar la eliminación de los datos**: sí — Ajustes → Eliminar
   cuenta (callable `deleteAccount`, borrado RGPD).
-- **URL de solicitud de eliminación**: ⚠️ pendiente. Publicar
-  `https://cultuvilla.es/legal/eliminar-cuenta` o apuntar a la sección de
-  derechos de la política de privacidad.
+- **URL de solicitud de eliminación**: `https://cultuvilla.es/legal/eliminar-cuenta`.
 - **Sin SDK de analítica de terceros en nativo**: el backend de analítica de
   `apps/mobile/lib/observability/analytics.ts` es hoy un no-op; los errores van
   a Cloud Logging propio. Si se activa `@react-native-firebase/analytics`,
