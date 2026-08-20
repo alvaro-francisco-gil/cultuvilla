@@ -207,7 +207,7 @@ Header ≤ 100 chars. Direct-to-`develop` is fine for small self-contained chang
 - **The version-bump commit message is the bare version string** — `0.10.0`, not `chore(release): 0.10.0`. commitlint (`commitlint.config.cjs`) has an `ignores` rule that exempts exactly a `X.Y.Z` header; every other commit still follows conventional commits. The bump commit contents are `apps/mobile/app.config.ts` + `apps/mobile/package.json` + the `CHANGELOG.md` stamp.
 - **Force-update gate is dormant pre-release.** `config/appVersion.minSupported` is `0.0.0` (never blocks) while unreleased; keep `latest` in step with the current `app.config.ts` version. Only raise `minSupported` above `0.0.0` once real store clients exist.
 - **`config/appVersion` is written from CI, not from a laptop.** It is a Firestore doc, so it is the one release step that is neither a code deploy (automatic on merge) nor a data migration (the backfill registry). Use **Actions → "Set App Version"** ([set-app-version.yml](.github/workflows/set-app-version.yml)) — keyless via WIF, dry-run by default. Blank `latest` means "the current `app.config.ts` version"; blank `min_supported` **preserves** whatever is stored, so a routine release can never accidentally un-wall the fleet. Locally the same script is `node scripts/seed-app-version-config.mjs --env=<env> [--latest=] [--min=] [--dry-run] [--confirm]`.
-- **Tag `vX.Y.Z` on the `main` merge commit** and push it.
+- **The `vX.Y.Z` tag is created by CI**, by the `tag` job in [deploy-prod.yml](.github/workflows/deploy-prod.yml), once the prod deploy is green — so a tag always names a commit that actually shipped. Don't tag by hand. It reads the version from `apps/mobile/package.json` and is idempotent, so re-running an older prod deploy backfills a tag that was never created (this is how `v0.21.0` was recovered after it shipped untagged).
 - **CHANGELOG:** on a cut release, stamp the version into the section heading (`## vX.Y.Z — YYYY-MM-DD`).
 - **Force-update gate:** clients read `config/appVersion` on launch (`appConfigService`) and block/nudge via `resolveVersionGate`. When you ship a client-breaking backend change (see *No retrocompat shims*), bump that doc's `minSupported` to the version carrying the client fix, at release time — that is the one case where you pass an explicit `min_supported`, since moving the wall is a deliberate product decision and never a side effect.
 
@@ -260,7 +260,8 @@ export const meta = {
   envs: ['dev', 'beta', 'prod'],
   idempotent: true,
   owner: 'alvaro',
-  autoApply: [],                 // envs the deploy may run this on unattended
+  autoApply: ['dev', 'beta', 'prod'], // envs the deploy runs this on unattended
+  dependsOn: [],                 // ids that must run BEFORE this one
 };
 
 export async function run({ db, apply, log }) {
@@ -279,6 +280,25 @@ deploy, not about a version. The strict Zod converters make it bidirectional:
 | `pre-deploy` | new code can't read old data (adding a required field) | **blocks** the deploy until the marker exists |
 | `post-deploy` | old code can't read new data (dropping a field) | **warns** — blocking would deadlock |
 | `none` | never gates (audits; one-offs already run everywhere) | ignored |
+
+**`autoApply` is the default for an additive, idempotent `pre-deploy` backfill
+— not the exception.** The deploy applies opted-in backfills itself, first,
+before both gates, so the migration and the code that needs it land in one
+green run. Leaving it empty means every promotion stops until a human dispatches
+"Run Backfill" per env — and it stops *badly*: the deploy fails at the gate,
+someone runs the script, someone re-runs the deploy. The 0.21.0 release did that
+twelve times for six purely additive migrations. `pnpm backfills:lint` warns
+about an idempotent `pre-deploy` backfill with an empty `autoApply`. Opt out
+deliberately (destructive, non-idempotent, or needs a human reading the diff),
+not by default.
+
+**`dependsOn` declares run order.** Without it, auto-apply runs in `meta.id`
+alphabetical order, which is not a safe order for a **projection**. A backfill
+that writes a read model must declare the source-collection backfills it
+follows — patching a source fires the currently-deployed trigger, which rewrites
+projected rows with a full `set()` that predates the new field and silently
+undoes projection work already done. `registration-person-denorm` is the worked
+example. A cycle is an error, not a coin flip.
 
 **The marker is the source of truth.** A successful `--apply` writes
 `_admin/backfills/markers/{id}.{env}` with `{ completedAt, gitSha, actor, counts }`.
@@ -312,7 +332,16 @@ pnpm backfills:test                                   # registry unit tests
   by a test that fails if the guard is dropped.
 - **`autoApply` opts a backfill into running unattended on every deploy.** Only
   for provably additive, idempotent work — `validateMeta` rejects the opt-in on
-  a non-idempotent backfill.
+  a non-idempotent backfill. It runs **before both gates**, since it writes the
+  data the conformance gate reads; that ordering is locked by
+  [backfillGate.test.ts](packages/shared/test/ci/backfillGate.test.ts).
+- **A backfill only reaches beta/prod once its script is on that branch.** The
+  `beta` / `production` GitHub Environments are branch-restricted, so
+  `run-backfill.yml` must be dispatched with `ref: beta` / `ref: main` — a
+  dispatch from `develop` is rejected in ~2s before any step runs. That is the
+  circularity `autoApply` dissolves: the deploy already runs on the right branch
+  with the right credentials, so a self-applying migration never needs a
+  manual dispatch at all.
 - **Legacy scripts** (~25 of them) predate the registry and are not on it.
   `pnpm backfills:lint` warns about them in CI without failing. Convert
   opportunistically; register anything new.
