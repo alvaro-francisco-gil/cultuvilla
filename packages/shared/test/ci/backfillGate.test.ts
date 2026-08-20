@@ -60,6 +60,51 @@ describe('deploy backfill gate invariant', () => {
     expect(autoPos, 'auto-apply step not found').toBeGreaterThanOrEqual(0);
     expect(autoPos).toBeLessThan(verifyPos);
   });
+
+  it('auto-applies BEFORE the conformance gate, not just before the verify gate', () => {
+    // The ordering bug this locks out: auto-apply used to sit between the two
+    // gates, which made it unreachable. The conformance gate reads exactly the
+    // docs auto-apply was about to fix, so it failed first and the deploy died
+    // before the migration could run — the mechanism was inert for every
+    // schema change it was built to absorb. A migration that can apply itself
+    // has to do so before anything inspects the data.
+    const autoPos = deployWorkflow.indexOf('backfills-cli.mjs auto-apply');
+    const conformancePos = deployWorkflow.indexOf('check-dev-conformance.mjs');
+    expect(autoPos, 'auto-apply step not found').toBeGreaterThanOrEqual(0);
+    expect(conformancePos, 'conformance gate step not found').toBeGreaterThanOrEqual(0);
+    expect(autoPos).toBeLessThan(conformancePos);
+  });
+});
+
+describe('release tag invariant', () => {
+  const prodWorkflow = read('.github/workflows/deploy-prod.yml');
+
+  it('tags the release from the prod deploy, not by hand', () => {
+    // v0.21.0 shipped untagged because the tag was a manual step and whoever
+    // cut the release could not push tag refs. CI holds the credential.
+    expect(prodWorkflow).toContain('git push origin "refs/tags/${tag}"');
+  });
+
+  it('tags only after the deploy job succeeds, so a tag names a shipped commit', () => {
+    expect(prodWorkflow).toMatch(/tag:\s*\n\s*needs: deploy/);
+  });
+
+  it('is idempotent — an existing tag is left alone rather than failing the run', () => {
+    // So re-running an older prod deploy backfills a missing tag.
+    expect(prodWorkflow).toContain('git ls-remote --exit-code --tags origin');
+  });
+
+  it('reads the version from the mirrored package.json, never a hardcoded literal', () => {
+    expect(prodWorkflow).toContain("require('./apps/mobile/package.json').version");
+  });
+
+  it('grants contents: write only to the tag job, leaving the deploy read-only', () => {
+    // dev/beta call the same reusable deploy workflow; none of them should gain
+    // push rights just because prod needs to write one ref.
+    const tagJob = prodWorkflow.slice(prodWorkflow.indexOf('  tag:'));
+    expect(tagJob).toContain('contents: write');
+    expect(read('.github/workflows/deploy-firebase.yml')).not.toContain('contents: write');
+  });
 });
 
 describe('run-backfill endpoint invariant', () => {

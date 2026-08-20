@@ -26,7 +26,7 @@ export const meta = {
   envs: ['dev', 'beta', 'prod'],
   idempotent: true,
   owner: 'alvaro',
-  autoApply: [],
+  autoApply: ['dev', 'beta', 'prod'],
 };
 
 function patchFor(data) {

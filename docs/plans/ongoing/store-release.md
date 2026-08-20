@@ -64,71 +64,20 @@ in — that is what makes a shared `https://cultuvilla.es/event/...` link open t
 app instead of the browser. `dev` and `beta` still carry placeholders; fill each
 one when that build is first distributed.
 
-## Store listing (es-ES)
+## Store listing, declarations, assets
 
-**Nombre**: `Cultuvilla`
+Moved out of this runbook into [docs/store/](../../store/) so the same answers
+serve both consoles and stay reviewable in git:
 
-**Descripción corta** (≤ 80 caracteres):
+- [docs/store/listing-es-ES.md](../../store/listing-es-ES.md) — nombre, descripciones, categoría, keywords.
+- [docs/store/play-declarations.md](../../store/play-declarations.md) — todo el checklist de **App content**: privacy policy, app access, ads, content rating, target audience, data safety, government apps, financial features, health.
+- [docs/store/app-store-declarations.md](../../store/app-store-declarations.md) — App Privacy labels, age rating, notas de revisión, export compliance.
+- [docs/store/assets.md](../../store/assets.md) — icono, feature graphic, capturas.
 
-> La vida de tu pueblo: fiestas, eventos, peñas y vecinos, todo en un sitio.
-
-**Descripción completa** (≤ 4000 caracteres):
-
-> Cultuvilla reúne en una sola aplicación todo lo que pasa en tu pueblo.
->
-> Descubre las fiestas, los eventos y los carteles de tu municipio, apúntate con
-> un toque y lleva también la inscripción de tu familia. Consulta las peñas y
-> asociaciones del pueblo, únete a las que te interesen y sigue sus
-> publicaciones.
->
-> **Qué puedes hacer**
->
-> • Ver el calendario de eventos y fiestas de tu pueblo
-> • Apuntarte a un evento, y apuntar a las personas a tu cargo
-> • Descubrir las peñas, asociaciones y ayuntamientos del municipio
-> • Leer las noticias y los avisos publicados por los organizadores
-> • Explorar los barrios, los lugares y las personas del pueblo
-> • Compartir cualquier evento o noticia con quien quieras
->
-> **Para asociaciones y ayuntamientos**
->
-> Publica tus eventos y noticias, gestiona quién forma parte de tu organización y
-> llega a todos los vecinos sin depender de un grupo de mensajería.
->
-> Cultuvilla es gratis y está hecha para los pueblos de España.
-
-**Categoría**: Estilo de vida · **Etiquetas**: eventos, comunidad, pueblo
-**Política de privacidad**: `https://cultuvilla.es/legal/privacy`
-
-### Gráficos que hay que producir
-
-- Icono: 512×512 PNG (32-bit, sin transparencia) — derivar de `apps/mobile/assets/icon.png`
-- Gráfico de funciones: 1024×500 PNG/JPG
-- Capturas de teléfono: mínimo 2, entre 320 px y 3840 px de lado
-
-## Data safety form
-
-Answers must match what the app actually does. Current behaviour:
-
-| Data type | Collected | Shared | Why | Optional |
-|---|---|---|---|---|
-| Name | Yes | No | Account + the village census (`persons`) | No |
-| Email address | Yes | No | Authentication | No |
-| Photos | Yes | No | Profile picture, village escudo, event and news images | Yes |
-| Approximate/precise location | Yes | No | One-off, to place a village pin on the map | Yes |
-| App activity (event sign-ups) | Yes | No | App functionality | No |
-
-- Data is **encrypted in transit** (Firebase, HTTPS everywhere).
-- Users **can request deletion** — Settings → Delete account (`deleteAccount`
-  callable) performs an RGPD erasure. Declare the in-app path.
-- No advertising, no analytics SDK sharing data with third parties, no data
-  broker sale.
-- `blockedPermissions` in `apps/mobile/app.config.ts` keeps camera, microphone,
-  background location and legacy storage out of the manifest — if you ever remove
-  one of those blocks, this table and the form must change with it.
-
-Content rating questionnaire: user-generated content is present (news, comments),
-so declare it and point to the in-app report flow.
+Dos bloqueantes que salen de ahí y afectan al calendario de este runbook: **no
+hay flujo de denuncia/bloqueo de UGC** (lo piden el content rating de Play y la
+guideline 1.2 de Apple) y **no hay cuenta de revisión utilizable** (el login es
+OTP por email o Google).
 
 ## Repo knobs this runbook feeds
 
