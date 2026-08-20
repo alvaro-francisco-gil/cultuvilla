@@ -84,13 +84,25 @@
     "profileEntry": "Administración",
     "hub": {
       "organizerRequests": "Solicitudes de administrador",
-      "organizerRequestsHint": "Revisar pendientes"
+      "organizerRequestsHint": "Revisar pendientes",
+      "reports": "Denuncias",
+      "reportsHint": "Contenido denunciado por las personas usuarias"
     },
     "organizerRequests": {
       "title": "Solicitudes de administrador",
       "empty": "No hay solicitudes pendientes",
       "approve": "Aprobar",
       "reject": "Rechazar"
+    },
+    "reports": {
+      "title": "Denuncias",
+      "empty": "No hay denuncias pendientes.",
+      "openTab": "Pendientes",
+      "reviewedTab": "Revisadas",
+      "markReviewed": "Marcar como revisada",
+      "dismiss": "Descartar",
+      "target": "{kind} · {id}",
+      "noVillage": "Elige un pueblo activo para ver sus denuncias."
     }
   },
   "occupations": {
@@ -1024,11 +1036,26 @@
     "comments": {
       "title": "Comentarios",
       "placeholder": "Añade un comentario…",
-      "send": "Enviar",
-      "report": "Reportar",
-      "reportConfirm": "¿Reportar este comentario?",
-      "reportSent": "Reporte enviado."
+      "send": "Enviar"
     }
+  },
+  "report": {
+    "title": "Denunciar",
+    "subtitle": "Cuéntanos qué pasa con este contenido. Lo revisarán los administradores del pueblo.",
+    "sent": "Gracias. Hemos recibido tu denuncia y la revisaremos.",
+    "close": "Cerrar",
+    "reason": {
+      "spam": "Spam o publicidad",
+      "harassment": "Acoso o insultos",
+      "hate": "Odio o discriminación",
+      "sexual": "Contenido sexual",
+      "violence": "Violencia o amenazas",
+      "falseInfo": "Información falsa",
+      "other": "Otro motivo"
+    },
+    "blockUser": "Bloquear a esta persona",
+    "blockHint": "No volverás a ver sus comentarios.",
+    "blockDone": "Persona bloqueada. Ya no verás sus comentarios."
   },
   "descarga": {
     "tagline": "La agenda de tu pueblo, en tu bolsillo.",
@@ -1067,7 +1094,15 @@
   "settings": {
     "title": "Ajustes",
     "section": {
-      "account": "Cuenta"
+      "account": "Cuenta",
+      "safety": "Seguridad"
+    },
+    "blocked": {
+      "label": "Personas bloqueadas",
+      "title": "Personas bloqueadas",
+      "empty": "No has bloqueado a nadie.",
+      "hint": "No ves los comentarios de estas personas. Puedes desbloquearlas cuando quieras.",
+      "unblock": "Desbloquear"
     },
     "changeEmail": {
       "title": "Cambiar correo",

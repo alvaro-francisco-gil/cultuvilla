@@ -6,7 +6,7 @@ import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { useT } from '../../lib/i18n';
 
 type CardSpec = {
-  href: '/admin/organizer-requests';
+  href: '/admin/organizer-requests' | '/admin/reports';
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   hint: string;
@@ -20,6 +20,12 @@ export default function AdminHubScreen() {
       icon: 'person-add-outline',
       title: t('admin.hub.organizerRequests'),
       hint: t('admin.hub.organizerRequestsHint'),
+    },
+    {
+      href: '/admin/reports',
+      icon: 'flag-outline',
+      title: t('admin.hub.reports'),
+      hint: t('admin.hub.reportsHint'),
     },
   ];
 

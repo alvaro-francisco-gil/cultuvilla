@@ -32,16 +32,21 @@ binary's behaviour, and a mismatch gets the app pulled, not warned. So:
 - The privacy policy ([../legal/politica-de-privacidad.md](../legal/politica-de-privacidad.md),
   served at `/legal/privacy`) must be a superset of both forms.
 
-## Known blockers before production
+## Status of the store-side blockers
 
-- **No in-app report/block flow.** Comments and news are user-generated
-  (`EntityComments`), and `packages/i18n/messages/es.json` already carries
-  `comments.report*` strings, but **no screen renders them** — the only
-  moderation path is the admin-side `setContentVisibility` callable. Apple
-  guideline 1.2 requires a report mechanism *and* a block-user mechanism for UGC
-  apps, and Play's content rating questionnaire asks for it directly. This must
-  ship before the App Store submission and before the Play production rollout.
-- **No public account-deletion URL.** Deletion works in-app
-  (Settings → Delete account → `deleteAccount`), but Play's Data safety form
-  also wants a web URL. Either publish a `/legal/eliminar-cuenta` page on
-  `cultuvilla.es` or point at the privacy policy's rights section.
+- ✅ **In-app reporting and blocking shipped.** Every comment that is not yours
+  carries a report affordance (seven reasons) and a *block this person* row;
+  blocked authors vanish from your screens, Ajustes → Personas bloqueadas
+  unblocks them, and Administración → Denuncias is the moderator queue. Answer
+  Play's content-rating UGC questions and Apple's guideline 1.2 with this.
+- ✅ **Public account-deletion URL:** `https://cultuvilla.es/legal/eliminar-cuenta`.
+  Paste it into Play's Data safety form; the in-app path (Ajustes → Eliminar
+  cuenta) still exists and is what Apple looks for.
+- ✅ **Export compliance** is declared in the binary
+  (`ITSAppUsesNonExemptEncryption: false`), so ASC stops asking per build.
+- ⚠️ **Reviewer account — still external, still needed.** Sign-in is an email
+  OTP or Google, so no credential in a form is usable on its own. Create the
+  review mailbox and hand over its password; see
+  [play-declarations.md](play-declarations.md#app-access-sign-in-details).
+- ⚠️ **Sign in with Apple** (guideline 4.8) before the first iOS submission,
+  while Google Sign-In is on the login screen.
