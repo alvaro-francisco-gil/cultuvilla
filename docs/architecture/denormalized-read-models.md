@@ -138,8 +138,10 @@ without joining the persons collection.
   before the client's onboarding flow has finished creating the user doc.
 - **Rules:** `firestore.rules` blocks clients from writing `displayName` on
   `users/{uid}` for both create and update.
-- **Backfill:** [scripts/backfill-user-displayname.mjs](../../scripts/backfill-user-displayname.mjs)
-  reconciles existing user docs whose persons predate the trigger.
+- **Backfill:** none available — `scripts/backfill-user-displayname.mjs` reconciled
+  user docs whose persons predated the trigger, but it has been deleted and this
+  entry linked at nothing. If these ever drift, the reconciliation has to be
+  rewritten; the trigger's `set(merge:true)` repairs a doc on the next person write.
 - **Delete behavior:** the trigger leaves `users/{uid}.displayName` intact on
   person delete — the user's name is still a useful last-known value; an
   explicit account flow can clear it later if needed.

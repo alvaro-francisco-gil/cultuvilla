@@ -4,6 +4,12 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Removed
+
+- **Sixteen spent one-off backfill scripts are deleted.** They predate the registry, have run in every env, and can never meaningfully run again — `migrate-to-flat.mjs` in particular targets a collection layout that no longer exists. Git keeps the history (*Delete > deprecate*), and `pnpm backfills:lint` drops from 22 warnings to 6, so the coverage check reads as signal rather than the wall of noise that trains people to skip it — the same inattention that let `autoApply: []` sit unnoticed on every backfill.
+  - **Six are deliberately kept**, because they are not dead: five are the **backfill-of-record** that [denormalized-read-models.md](docs/architecture/denormalized-read-models.md) names for a live read model — the documented way to repopulate `municipalityPeople`, entity comment counts, readcount, org member count or place burial count should one ever drift — and `backfill-entity-contributors` is wired to a `package.json` script. Deleting those would delete the answer to "how do I rebuild this?", not just the code.
+  - **Fixed a broken link that made the case.** `denormalized-read-models.md` pointed at `scripts/backfill-user-displayname.mjs`, which no longer exists — a script deleted at some point without updating the doc that named it, leaving that read model with no documented repopulation path at all. AGENTS.md now states the rule directly: retire one of the six only after its entry in that doc goes too.
+
 ## v0.22.0 — 2026-08-20
 
 ### Changed

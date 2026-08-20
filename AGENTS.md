@@ -342,9 +342,15 @@ pnpm backfills:test                                   # registry unit tests
   circularity `autoApply` dissolves: the deploy already runs on the right branch
   with the right credentials, so a self-applying migration never needs a
   manual dispatch at all.
-- **Legacy scripts** (~25 of them) predate the registry and are not on it.
+- **Six legacy scripts** predate the registry and are not on it.
   `pnpm backfills:lint` warns about them in CI without failing. Convert
-  opportunistically; register anything new.
+  opportunistically; register anything new. The other ~16 were spent one-offs
+  and have been deleted (*Delete > deprecate*) — what survives is the set with a
+  live pointer: five are the **backfill-of-record** named in
+  [denormalized-read-models.md](docs/architecture/denormalized-read-models.md)
+  for a read model that could still drift, and one is wired to a `package.json`
+  script. Deleting those would throw away the answer to "how do I repopulate
+  this?", so retire one only after its entry in that doc goes too.
 
 ### Comments
 

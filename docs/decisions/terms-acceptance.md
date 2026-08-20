@@ -47,7 +47,7 @@ lawful basis, and — in practice — a captured acceptance. Auth is passwordles
 
 - New required `users` fields go through the strict Zod converter, so any schema
   addition must backfill existing docs (done here via
-  `scripts/backfill-terms-acceptance.mjs`) and extend the `users` firestore.rules
+  `scripts/backfill-terms-acceptance.mjs`, since retired) and extend the `users` firestore.rules
   create/update/onboarding-merge allowlists — all in the same change.
 - Never inline the version literal; read `CURRENT_TERMS_VERSION`.
 - The `docs/legal/*.md` files are the source of truth; the content module transcribes
