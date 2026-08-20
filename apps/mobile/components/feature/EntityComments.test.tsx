@@ -45,6 +45,7 @@ jest.mock('../../lib/i18n', () => ({
         'comments.signInToComment': 'Inicia sesión para comentar',
         'comments.delete': 'Eliminar',
         'comments.anonymousAuthor': 'Usuario',
+        'settings.deletedUser': 'Usuario eliminado',
         'comments.reply': 'Responder',
         'comments.replyPlaceholder': 'Escribe una respuesta…',
         'comments.hideReplies': 'Ocultar respuestas',
@@ -150,6 +151,106 @@ describe('<EntityComments>', () => {
     const { findByText, queryByText } = render(<EntityComments {...BASE_PROPS} />);
 
     expect(await findByText('Bea Ruiz')).toBeTruthy();
+    expect(queryByText(/^Usuario$/)).toBeNull();
+  });
+
+  it('keeps the other authors named when one author lookup is denied', async () => {
+    // The persons read rule is evaluated per matched document, so one private
+    // persona denies that whole query — it must not cost the rest of the thread
+    // its names, which is how everyone used to collapse to "Usuario".
+    getPersonByUserIdMock.mockImplementation(async (uid: string) => {
+      if (uid === 'uid-3') {
+        throw Object.assign(new Error('Missing or insufficient permissions.'), {
+          code: 'permission-denied',
+        });
+      }
+      return { givenName: 'Ana', middleNames: [], firstSurname: 'Gil', secondSurname: null };
+    });
+    getUserProfileMock.mockImplementation(async (uid: string) =>
+      uid === 'uid-3' ? { id: uid, displayName: 'Bea Ruiz' } : null,
+    );
+    getCommentsMock.mockResolvedValue([
+      {
+        id: 'c-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-2',
+        body: 'Primero',
+        createdAt: new Date(),
+      },
+      {
+        id: 'c-2',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-3',
+        body: 'Segundo',
+        createdAt: new Date(),
+      },
+    ]);
+
+    const { findByText, queryByText } = render(<EntityComments {...BASE_PROPS} />);
+
+    expect(await findByText('Ana Gil')).toBeTruthy();
+    expect(await findByText('Bea Ruiz')).toBeTruthy();
+    expect(queryByText(/^Usuario$/)).toBeNull();
+  });
+
+  it('shows a placeholder rather than the anonymous fallback while a name resolves', async () => {
+    let resolvePerson: (value: unknown) => void = () => {};
+    // Only the comment author's lookup is held open — the signed-in user's own
+    // lookup (the composer avatar) resolves straight away.
+    getPersonByUserIdMock.mockImplementation(async (uid: string) => {
+      if (uid !== 'uid-2') return null;
+      return new Promise((resolve) => {
+        resolvePerson = resolve;
+      });
+    });
+    getCommentsMock.mockResolvedValue([
+      {
+        id: 'c-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'uid-2',
+        body: 'Qué buena idea',
+        createdAt: new Date(),
+      },
+    ]);
+
+    const { findByText, findByTestId, queryByText, queryByTestId } = render(
+      <EntityComments {...BASE_PROPS} />,
+    );
+
+    await findByText('Qué buena idea');
+    expect(await findByTestId('comment-author-pending-c-1')).toBeTruthy();
+    expect(queryByText(/^Usuario$/)).toBeNull();
+
+    await act(async () => {
+      resolvePerson({ givenName: 'Ana', middleNames: [], firstSurname: 'Gil', secondSurname: null });
+    });
+
+    expect(await findByText('Ana Gil')).toBeTruthy();
+    expect(queryByTestId('comment-author-pending-c-1')).toBeNull();
+  });
+
+  it('names a comment left by a since-deleted account', async () => {
+    getCommentsMock.mockResolvedValue([
+      {
+        id: 'c-1',
+        entityKind: 'event',
+        entityId: 'e-1',
+        municipalityId: 'm-1',
+        authorUserId: 'deleted-user',
+        body: 'Adiós',
+        createdAt: new Date(),
+      },
+    ]);
+
+    const { findByText, queryByText } = render(<EntityComments {...BASE_PROPS} />);
+
+    expect(await findByText('Usuario eliminado')).toBeTruthy();
     expect(queryByText(/^Usuario$/)).toBeNull();
   });
 

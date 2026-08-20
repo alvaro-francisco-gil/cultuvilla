@@ -16,6 +16,21 @@ describe('<Toggle>', () => {
     expect(onChange).toHaveBeenCalledWith(false);
   });
 
+  // Used by frozen settings (e.g. an event's group size once people have signed
+  // up): the value still has to be readable, it just can't be flipped.
+  it('does not fire onValueChange when disabled', () => {
+    const onChange = jest.fn();
+    const { getByTestId } = render(
+      <Toggle value={true} onValueChange={onChange} disabled testID="t3" />,
+    );
+    fireEvent.press(getByTestId('t3'));
+    expect(onChange).not.toHaveBeenCalled();
+    expect(getByTestId('t3').props.accessibilityState).toMatchObject({
+      checked: true,
+      disabled: true,
+    });
+  });
+
   it('renders label when provided', () => {
     const { getByText } = render(
       <Toggle value={false} onValueChange={jest.fn()} label="Acepto términos" />

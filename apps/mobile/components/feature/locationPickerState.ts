@@ -22,18 +22,25 @@ export type LocationAction =
   | { type: 'clearQuery' }
   | { type: 'clear' };
 
-/** Human-ish text for a raw coordinate (used when there's no place label). */
-export function coordLabel(c: LatLng): string {
-  return `${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}`;
+/** A saved location: where it is, and what it's called. */
+export interface LocationSeed {
+  coords: LatLng | null;
+  label: string;
 }
 
-export function initialLocationState(coords: LatLng | null): LocationPickerState {
+/**
+ * Seeds the picker from the saved location. The field shows the *name* — a
+ * coordinate pair is never rendered as text anywhere in the picker, because a
+ * label that reads "40.28910, -5.98760" tells the user nothing. Until a name
+ * resolves, the field stays empty and shows its placeholder.
+ */
+export function initialLocationState(seed: LocationSeed): LocationPickerState {
   return {
-    coords,
-    query: coords ? coordLabel(coords) : '',
+    coords: seed.coords,
+    query: seed.label,
     results: [],
     status: 'idle',
-    selected: coords != null,
+    selected: seed.coords != null,
   };
 }
 
@@ -58,11 +65,13 @@ export function locationReducer(state: LocationPickerState, action: LocationActi
         status: 'idle',
       };
     case 'gpsResult':
+      // The name arrives separately via `resolvedAddress` (reverse geocoding is
+      // a round-trip); blank the stale query rather than showing the raw pair.
       return {
         ...state,
         coords: action.coords,
         results: [],
-        query: coordLabel(action.coords),
+        query: '',
         selected: true,
         status: 'idle',
       };

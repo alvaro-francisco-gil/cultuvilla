@@ -118,6 +118,14 @@
       "collectionGroup": "persons",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "isPublic", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "persons",
+      "queryScope": "COLLECTION",
+      "fields": [
         { "fieldPath": "burialPlace.placeId", "order": "ASCENDING" },
         { "fieldPath": "createdBy", "order": "ASCENDING" }
       ]

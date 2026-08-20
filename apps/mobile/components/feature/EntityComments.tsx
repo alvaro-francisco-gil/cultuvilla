@@ -19,14 +19,12 @@ import {
   getComments,
   getReplies,
 } from '@cultuvilla/shared/services/commentsService';
-import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
-import { getUserProfile } from '@cultuvilla/shared/services/userService';
-import { buildDisplayName } from '@cultuvilla/shared/models/person/PersonDataModel';
 import { formatCompactRelativeTime } from '@cultuvilla/shared/utils';
 import { DELETED_USER_UID } from '@cultuvilla/shared/models/user';
 import { iconSizes, colors } from '@cultuvilla/shared/design-system';
 import type { CommentData, EntityKind } from '@cultuvilla/shared/models';
 import { ownerRoute } from '../../lib/entities/ownerRoute';
+import { resolveCommentAuthor, type CommentAuthor } from '../../lib/comments/commentAuthors';
 
 export type EntityCommentsProps = {
   entityKind: EntityKind;
@@ -38,11 +36,25 @@ export type EntityCommentsProps = {
 
 type CommentDoc = CommentData & { id: string };
 
-/** Resolved author metadata, keyed by uid (name + optional profile photo). */
-type CommentAuthor = { name: string; photoURL: string | null };
+function initialsOf(name: string | undefined): string {
+  return name?.trim().charAt(0).toUpperCase() || '+';
+}
 
-function initialsOf(name: string): string {
-  return name.trim().charAt(0).toUpperCase() || '+';
+/**
+ * An author's name arrives one round-trip after their comment does. Showing the
+ * anonymous fallback in that window made real, named people flash as "Usuario",
+ * so the pending state is a placeholder bar instead — the name that lands is
+ * always the author's own.
+ */
+function AuthorName({ name, testID }: { name: string | undefined; testID: string }) {
+  if (name === undefined) {
+    return <View className="bg-subtle rounded-sm" style={{ height: 12, width: 96 }} testID={testID} />;
+  }
+  return (
+    <Text className="font-bold flex-shrink" numberOfLines={1}>
+      {name}
+    </Text>
+  );
 }
 
 /**
@@ -123,9 +135,7 @@ export function EntityComments({
 
   const me = user ? authors.get(user.uid) : undefined;
   const replyTarget = replyingTo ? comments.find((c) => c.id === replyingTo) : undefined;
-  const replyTargetName = replyTarget
-    ? (authors.get(replyTarget.authorUserId)?.name ?? t('comments.anonymousAuthor'))
-    : null;
+  const replyTargetName = replyTarget ? authors.get(replyTarget.authorUserId)?.name : undefined;
 
   useEffect(() => {
     setLoading(true);
@@ -143,21 +153,12 @@ export function EntityComments({
       ...new Set([...comments.map((c) => c.authorUserId), ...replyAuthorIds, ...(user ? [user.uid] : [])]),
     ].filter((uid) => !authors.has(uid));
     if (unresolved.length === 0) return;
+    const labels = { deleted: t('settings.deletedUser'), fallback: t('comments.anonymousAuthor') };
     void (async () => {
+      // resolveCommentAuthor never rejects, so one unreadable author cannot cost
+      // everyone else on screen their name.
       const entries = await Promise.all(
-        unresolved.map(async (uid) => {
-          const [person, profile] = await Promise.all([
-            getPersonByUserId(uid),
-            getUserProfile(uid),
-          ]);
-          const author: CommentAuthor = {
-            name: person
-              ? buildDisplayName(person)
-              : profile?.displayName || t('comments.anonymousAuthor'),
-            photoURL: person?.photoURL ?? null,
-          };
-          return [uid, author] as const;
-        }),
+        unresolved.map(async (uid) => [uid, await resolveCommentAuthor(uid, labels)] as const),
       );
       setAuthors((prev) => {
         const next = new Map(prev);
@@ -300,13 +301,13 @@ export function EntityComments({
           {comments.map((comment) => {
             const canDelete = comment.authorUserId === user?.uid || canModerate;
             const author = authors.get(comment.authorUserId);
-            const name = author?.name ?? t('comments.anonymousAuthor');
+            const name = author?.name;
             return (
               <VStack key={comment.id} gap={1}>
                 <HStack gap={2} align="start" justify="between">
                   <AuthorLink
                     uid={comment.authorUserId}
-                    label={name}
+                    label={name ?? ''}
                     testID={`comment-author-avatar-${comment.id}`}
                   >
                     <Avatar uri={author?.photoURL ?? null} size={36} initials={initialsOf(name)} />
@@ -317,12 +318,10 @@ export function EntityComments({
                     <HStack gap={2} align="center">
                       <AuthorLink
                         uid={comment.authorUserId}
-                        label={name}
+                        label={name ?? ''}
                         testID={`comment-author-${comment.id}`}
                       >
-                        <Text className="font-bold flex-shrink" numberOfLines={1}>
-                          {name}
-                        </Text>
+                        <AuthorName name={name} testID={`comment-author-pending-${comment.id}`} />
                       </AuthorLink>
                       <Text variant="caption" tone="muted">
                         {formatCompactRelativeTime(comment.createdAt)}
@@ -367,13 +366,13 @@ export function EntityComments({
                     <VStack gap={2} className="pl-10">
                       {(repliesByParent.get(comment.id) ?? []).map((reply) => {
                         const replyAuthor = authors.get(reply.authorUserId);
-                        const replyName = replyAuthor?.name ?? t('comments.anonymousAuthor');
+                        const replyName = replyAuthor?.name;
                         const canDeleteReply = reply.authorUserId === user?.uid || canModerate;
                         return (
                           <HStack key={reply.id} gap={2} align="start" justify="between">
                             <AuthorLink
                               uid={reply.authorUserId}
-                              label={replyName}
+                              label={replyName ?? ''}
                               testID={`comment-author-avatar-${reply.id}`}
                             >
                               <Avatar uri={replyAuthor?.photoURL ?? null} size={28} initials={initialsOf(replyName)} />
@@ -382,12 +381,13 @@ export function EntityComments({
                               <HStack gap={2} align="center">
                                 <AuthorLink
                                   uid={reply.authorUserId}
-                                  label={replyName}
+                                  label={replyName ?? ''}
                                   testID={`comment-author-${reply.id}`}
                                 >
-                                  <Text className="font-bold flex-shrink" numberOfLines={1}>
-                                    {replyName}
-                                  </Text>
+                                  <AuthorName
+                                    name={replyName}
+                                    testID={`comment-author-pending-${reply.id}`}
+                                  />
                                 </AuthorLink>
                                 <Text variant="caption" tone="muted">
                                   {formatCompactRelativeTime(reply.createdAt)}
@@ -418,10 +418,10 @@ export function EntityComments({
       )}
       {user ? (
         <VStack gap={1}>
-          {replyTargetName ? (
+          {replyTarget ? (
             <HStack gap={2} align="center" justify="between" className="pl-10">
               <Text variant="caption" tone="muted" numberOfLines={1} className="flex-shrink">
-                {t('comments.replyingTo', { name: replyTargetName })}
+                {t('comments.replyingTo', { name: replyTargetName ?? '' })}
               </Text>
               <Pressable
                 onPress={() => setReplyingTo(null)}
@@ -437,7 +437,7 @@ export function EntityComments({
             <Avatar
               uri={me?.photoURL ?? null}
               size={32}
-              initials={initialsOf(me?.name ?? t('comments.anonymousAuthor'))}
+              initials={initialsOf(me?.name)}
             />
             <View className="flex-1">
               <Input
@@ -445,7 +445,7 @@ export function EntityComments({
                 value={body}
                 onChangeText={setBody}
                 placeholder={
-                  replyTargetName ? t('comments.replyPlaceholder') : t('comments.placeholder')
+                  replyTarget ? t('comments.replyPlaceholder') : t('comments.placeholder')
                 }
                 accessibilityLabel={t('comments.placeholder')}
                 testID="comment-input"

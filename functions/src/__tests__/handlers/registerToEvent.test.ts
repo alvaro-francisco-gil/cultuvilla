@@ -38,10 +38,13 @@ const OTHER_USER_ID = 'visitor';
 async function seedEvent(opts: {
   maxAttendees: number | null;
   signupFields?: unknown[];
+  signupEnabled?: boolean;
 }): Promise<void> {
   const now = new Date();
   await admin.firestore().doc(`events/${EVENT_ID}`).set({
     signupFields: opts.signupFields ?? [],
+    signupEnabled: opts.signupEnabled ?? true,
+    signupInfo: null,
     title: 'Fiesta',
     description: 'Una fiesta',
     startDate: now,
@@ -164,6 +167,20 @@ describe('registerToEvent (callable)', () => {
         data: { eventId: 'missing', registrants: [{ personId: 'p1', name: 'Ana' }] },
       }),
     ).rejects.toThrow(/no existe|not.?found/i);
+  });
+
+  // Sign-ups are hidden client-side for these events, but registrations are
+  // callable-only, so this is the enforcement that actually holds.
+  it('throws failed-precondition when the event takes no in-app sign-ups', async () => {
+    await seedEvent({ maxAttendees: null, signupEnabled: false });
+    await expect(
+      callRegister({
+        uid: USER_ID,
+        data: { eventId: EVENT_ID, registrants: [{ personId: 'p1', name: 'Ana' }] },
+      }),
+    ).rejects.toThrow(/no admite inscripciones/i);
+    const docs = await admin.firestore().collection(`events/${EVENT_ID}/registrations`).get();
+    expect(docs.size).toBe(0);
   });
 
   it('confirms all registrants when the event has no maxAttendees', async () => {

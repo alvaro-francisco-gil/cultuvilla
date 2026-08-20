@@ -43,3 +43,5 @@ export { Fab } from './Fab';
 export type { FabProps } from './Fab';
 export { BlockingOverlay } from './BlockingOverlay';
 export type { BlockingOverlayProps } from './BlockingOverlay';
+export { InfoTooltip } from './InfoTooltip';
+export type { InfoTooltipProps } from './InfoTooltip';

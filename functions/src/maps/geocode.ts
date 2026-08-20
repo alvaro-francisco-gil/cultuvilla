@@ -9,6 +9,16 @@ export function buildGeocodeUrl(query: string, apiKey: string): string {
   return `https://maps.googleapis.com/maps/api/geocode/json?${q.toString()}`;
 }
 
+/**
+ * Reverse geocoding uses the same endpoint with `latlng` instead of `address`,
+ * so the response mapping is shared. Google orders results most-specific first,
+ * which is what we want for a human label ("Calle Mayor 3, Abadía" over "España").
+ */
+export function buildReverseGeocodeUrl(lat: number, lng: number, apiKey: string): string {
+  const q = new URLSearchParams({ latlng: [lat, lng].join(','), region: 'es', language: 'es', key: apiKey });
+  return `https://maps.googleapis.com/maps/api/geocode/json?${q.toString()}`;
+}
+
 interface RawResult {
   formatted_address?: unknown;
   geometry?: { location?: { lat?: unknown; lng?: unknown } };

@@ -5,6 +5,7 @@ import { Screen } from '../../../../../components/primitives/Screen';
 import { Text } from '../../../../../components/primitives/Text';
 import { ScreenHeader } from '../../../../../components/layout/ScreenHeader';
 import { ProposableForm } from '../../../../../components/feature/proposable/ProposableForm';
+import { LocationField } from '../../../../../components/feature/LocationField';
 import { OrganizerPicker } from '../../../../../components/feature/OrganizerPicker';
 import { DeleteHeaderButton } from '../../../../../components/feature/DeleteHeaderButton';
 import { useT } from '../../../../../lib/i18n';
@@ -15,6 +16,7 @@ import { hideContent } from '@cultuvilla/shared/services/moderationService';
 import { deleteImageByURL, uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
 import { PLACE_KINDS, type PlaceKind } from '@cultuvilla/shared/models/municipality';
 import type { VisibilityStatus } from '@cultuvilla/shared/models';
+import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 
 export default function PlaceEditScreen() {
   const { villageId, placeId } = useLocalSearchParams<{ villageId: string; placeId: string }>();
@@ -25,6 +27,8 @@ export default function PlaceEditScreen() {
   const [kind, setKind] = useState<PlaceKind>('cemetery');
   const [images, setImages] = useState<string[]>([]);
   const [addingImage, setAddingImage] = useState(false);
+  const [coordinates, setCoordinates] = useState<LatLng | null>(null);
+  const [locationLabel, setLocationLabel] = useState('');
   const [loaded, setLoaded] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -43,6 +47,8 @@ export default function PlaceEditScreen() {
         setName(p.name);
         setDescription(p.description ?? '');
         setKind(p.kind);
+        setCoordinates(p.coordinates);
+        setLocationLabel(p.locationLabel ?? '');
         setImages(p.images);
         setContributorUserIds(p.contributorUserIds);
         setContributorOrgIds(p.contributorOrgIds);
@@ -113,6 +119,9 @@ export default function PlaceEditScreen() {
     try {
       await updatePlace(villageId, placeId, {
         name: name.trim(), kind, description: description.trim() || null,
+        coordinates,
+        // Clearing the pin clears its name with it — see buildPlaceData.
+        locationLabel: coordinates ? locationLabel.trim() || null : null,
         contributorUserIds, contributorOrgIds,
       });
       router.back();
@@ -166,24 +175,41 @@ export default function PlaceEditScreen() {
             typeOptions={PLACE_KINDS.map((k) => ({ value: k, label: kindLabel(k) }))}
             typeValue={kind}
             onChangeType={(v) => setKind(v as PlaceKind)}
+            footer={
+              <>
+                <LocationField
+                  label={t('village.admin.places.location')}
+                  value={coordinates}
+                  displayName={locationLabel}
+                  onChange={(c, address) => {
+                    setCoordinates(c);
+                    setLocationLabel(address);
+                  }}
+                  onClear={() => {
+                    setCoordinates(null);
+                    setLocationLabel('');
+                  }}
+                />
+                {uid ? (
+                  <OrganizerPicker
+                    municipalityId={villageId}
+                    selectedUserIds={contributorUserIds}
+                    selectedOrgIds={contributorOrgIds}
+                    onChangeUsers={setContributorUserIds}
+                    onChangeOrgs={setContributorOrgIds}
+                    peopleLabel={t('village.contributors.peopleLabel')}
+                    addPersonLabel={t('village.contributors.addPerson')}
+                    selectPeopleTitle={t('village.contributors.selectPeople')}
+                  />
+                ) : null}
+              </>
+            }
             submitLabel={t('common.save')}
             submitTestID="place-edit-submit"
             onSubmit={submit}
             saving={saving}
             disabled={!name.trim()}
           />
-          {uid ? (
-            <OrganizerPicker
-              municipalityId={villageId}
-              selectedUserIds={contributorUserIds}
-              selectedOrgIds={contributorOrgIds}
-              onChangeUsers={setContributorUserIds}
-              onChangeOrgs={setContributorOrgIds}
-              peopleLabel={t('village.contributors.peopleLabel')}
-              addPersonLabel={t('village.contributors.addPerson')}
-              selectPeopleTitle={t('village.contributors.selectPeople')}
-            />
-          ) : null}
         </ScrollView>
       )}
     </Screen>

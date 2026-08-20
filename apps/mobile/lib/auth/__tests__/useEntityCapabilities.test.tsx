@@ -1,24 +1,24 @@
 import { renderHook, waitFor } from '@testing-library/react-native';
-import { isVillageAdmin } from '@cultuvilla/shared/services/villageMemberService';
+import { getVillageMemberRole } from '@cultuvilla/shared/services/villageMemberService';
 import { useEntityCapabilities } from '../useEntityCapabilities';
 import { useAuth } from '../useAuth';
 import { useIsAppAdmin } from '../useIsAppAdmin';
 
 jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
-  isVillageAdmin: jest.fn(),
+  getVillageMemberRole: jest.fn(),
 }));
 jest.mock('../useAuth', () => ({ useAuth: jest.fn() }));
 jest.mock('../useIsAppAdmin', () => ({ useIsAppAdmin: jest.fn() }));
 
 const mockAuth = useAuth as jest.Mock;
 const mockAppAdmin = useIsAppAdmin as jest.Mock;
-const mockIsVillageAdmin = isVillageAdmin as jest.Mock;
+const mockRole = getVillageMemberRole as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockAuth.mockReturnValue({ user: { uid: 'alice' }, loading: false });
   mockAppAdmin.mockReturnValue({ isAppAdmin: false, loading: false });
-  mockIsVillageAdmin.mockResolvedValue(false);
+  mockRole.mockResolvedValue('user');
 });
 
 async function caps() {
@@ -36,7 +36,7 @@ describe('useEntityCapabilities', () => {
   });
 
   it('village admin: can manage and approve', async () => {
-    mockIsVillageAdmin.mockResolvedValue(true);
+    mockRole.mockResolvedValue('admin');
     const result = await caps();
     expect(result.current.canManage).toBe(true);
     expect(result.current.canApprove).toBe(true);
@@ -56,6 +56,48 @@ describe('useEntityCapabilities', () => {
   });
 });
 
+// `isMember` gates village-scoped reads that are open to residents but not to
+// the open web — the event attendee roster. It mirrors the `isVillageMember`
+// clause the Firestore rules use, and is broader than canManage: a plain
+// member has it, an admin has it, a non-member does not.
+describe('useEntityCapabilities.isMember', () => {
+  it('plain member of the pueblo is a member', async () => {
+    const result = await caps();
+    expect(result.current.isMember).toBe(true);
+    expect(result.current.canManage).toBe(false);
+  });
+
+  it('village admin is also a member', async () => {
+    mockRole.mockResolvedValue('admin');
+    const result = await caps();
+    expect(result.current.isMember).toBe(true);
+  });
+
+  it('someone who has not joined the pueblo is not a member', async () => {
+    mockRole.mockResolvedValue(null);
+    const result = await caps();
+    expect(result.current.isMember).toBe(false);
+  });
+
+  it('an app admin counts as a member of every pueblo', async () => {
+    mockRole.mockResolvedValue(null);
+    mockAppAdmin.mockReturnValue({ isAppAdmin: true, loading: false });
+    const result = await caps();
+    expect(result.current.isMember).toBe(true);
+  });
+
+  it('a signed-out viewer is not a member', async () => {
+    mockAuth.mockReturnValue({ user: null, loading: false });
+    const result = await caps();
+    expect(result.current.isMember).toBe(false);
+  });
+
+  it('resolves membership and authority from ONE member-doc read', async () => {
+    await caps();
+    expect(mockRole).toHaveBeenCalledTimes(1);
+  });
+});
+
 // Mirrors the `allow update` clause shared by places / barrios / festivalPosters:
 // village admin OR app admin OR the doc's creator.
 describe('useEntityCapabilities.canEdit', () => {
@@ -70,7 +112,7 @@ describe('useEntityCapabilities.canEdit', () => {
   });
 
   it('village admin can edit anything, including creator-less docs', async () => {
-    mockIsVillageAdmin.mockResolvedValue(true);
+    mockRole.mockResolvedValue('admin');
     const result = await caps();
     expect(result.current.canEdit('bob')).toBe(true);
     expect(result.current.canEdit(null)).toBe(true);
@@ -125,7 +167,7 @@ describe('useEntityCapabilities.canDelete', () => {
   });
 
   it('village admin can delete regardless of status', async () => {
-    mockIsVillageAdmin.mockResolvedValue(true);
+    mockRole.mockResolvedValue('admin');
     const result = await caps();
     expect(result.current.canDelete('bob', 'hidden')).toBe(true);
   });

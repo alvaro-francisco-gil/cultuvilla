@@ -12,6 +12,7 @@ import { Pressable } from '../../../../components/primitives/Pressable';
 import { PartialDateField } from '../../../../components/primitives/PartialDateField';
 import { NaturalImage } from '../../../../components/primitives/NaturalImage';
 import { EntityDetailScaffold } from '../../../../components/feature/EntityDetailScaffold';
+import { LocationMap } from '../../../../components/feature/LocationMap';
 import { BuryFab } from '../../../../components/feature/BuryFab';
 import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
 import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
@@ -32,6 +33,12 @@ import type { PlaceData } from '@cultuvilla/shared/models/municipality';
 import type { PersonData } from '@cultuvilla/shared/models/person';
 import { colors, iconSizes } from '@cultuvilla/shared/design-system';
 import { formatPartialDate } from '@cultuvilla/shared/utils/format';
+
+/**
+ * A place is a single building or square, so its map is framed tighter than the
+ * village-wide default — enough to see the street it sits on.
+ */
+const PLACE_MAP_ZOOM = 17;
 
 type Place = PlaceData & { id: string };
 type Person = PersonData & { id: string };
@@ -163,6 +170,12 @@ export default function PlaceDetailScreen() {
               {t(`village.admin.places.kind.${place.kind}` as never)}
             </Text>
             {place.description ? <Text>{place.description}</Text> : null}
+            <LocationMap
+              coordinates={place.coordinates}
+              label={place.locationLabel}
+              zoom={PLACE_MAP_ZOOM}
+              testID="place-location-map"
+            />
             <EntityContributors
               userIds={place.contributorUserIds}
               orgIds={place.contributorOrgIds}

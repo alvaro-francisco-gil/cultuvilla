@@ -35,6 +35,11 @@ jest.mock('../../../../../components/feature/EntityComments', () => ({ EntityCom
 jest.mock('../../../../../components/feature/EntityContributors', () => ({ EntityContributors: () => null }));
 jest.mock('../../../../../components/feature/BuryFab', () => ({ BuryFab: () => null }));
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
+// staticMapUrl reads the initialized Firebase app for its project id.
+jest.mock('@cultuvilla/shared/services/mapsService', () => ({
+  staticMapUrl: (lat: number, lng: number) => `https://maps.test/${lat},${lng}`,
+  MAP_ZOOM_DEFAULT: 13,
+}));
 
 import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
 
@@ -222,5 +227,40 @@ describe('PlaceDetailScreen', () => {
     fireEvent.press(getByTestId('buried-remove'));
 
     await waitFor(() => expect(updatePerson).toHaveBeenCalledWith('p1', { burialPlace: null }));
+  });
+});
+
+// The pin is optional, so the detail screen must read fine without one and
+// grow a tappable map when a place has been located.
+describe('PlaceDetailScreen location', () => {
+  beforeEach(() => {
+    mockCaps();
+    jest.mocked(getPersonsByBurialPlace).mockResolvedValue([]);
+  });
+
+  it('renders no map for a place nobody has pinned', async () => {
+    jest.mocked(getPlace).mockResolvedValue({
+      ...buildPlaceData({ name: 'La Plaza', kind: 'plaza', municipalityId: 'm1' }),
+      id: 'pl1',
+    });
+    const { getByText, queryByTestId } = render(<PlaceDetailScreen />);
+    await waitFor(() => getByText('La Plaza'));
+    expect(queryByTestId('place-location-map')).toBeNull();
+  });
+
+  it('renders the map and the saved location name once the place is pinned', async () => {
+    jest.mocked(getPlace).mockResolvedValue({
+      ...buildPlaceData({
+        name: 'La Plaza',
+        kind: 'plaza',
+        municipalityId: 'm1',
+        coordinates: { lat: 40.03, lng: -3.6 },
+        locationLabel: 'Plaza Mayor, Abadía',
+      }),
+      id: 'pl1',
+    });
+    const { getByText, findByTestId } = render(<PlaceDetailScreen />);
+    await findByTestId('place-location-map');
+    getByText('Plaza Mayor, Abadía');
   });
 });

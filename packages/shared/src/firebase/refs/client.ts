@@ -7,6 +7,7 @@ import { barrioConverterClient } from '../converters/barrioConverter.client';
 import { placeConverterClient } from '../converters/placeConverter.client';
 import { villageMemberConverterClient } from '../converters/villageMemberConverter.client';
 import { inviteTokenConverterClient } from '../converters/inviteTokenConverter.client';
+import { seatTokenConverterClient } from '../converters/seatTokenConverter.client';
 import { organizationConverterClient } from '../converters/organizationConverter.client';
 import { orgMemberConverterClient } from '../converters/orgMemberConverter.client';
 import { organizerRequestConverterClient } from '../converters/organizerRequestConverter.client';
@@ -40,6 +41,16 @@ export const eventRegistrationDoc = (db: Firestore, eventId: string, registratio
 // factory exists so call sites stay off raw `doc(getDb(), …)`.
 export const eventRegistrationPrivateDoc = (db: Firestore, eventId: string, registrationId: string) =>
   doc(db, 'events', eventId, 'registrationPrivate', registrationId);
+
+// Claim tokens for the event's open group seats. THE DOCUMENT ID IS THE SECRET
+// — see SeatTokenModel. Rules limit reads to the group owner and the event's
+// organizers, so the group owner can re-read their own tokens to re-share a
+// link; writes are callable-only.
+export const eventSeatTokensCollection = (db: Firestore, eventId: string) =>
+  collection(db, 'events', eventId, 'seatTokens').withConverter(seatTokenConverterClient);
+
+export const eventSeatTokenDoc = (db: Firestore, eventId: string, token: string) =>
+  doc(db, 'events', eventId, 'seatTokens', token).withConverter(seatTokenConverterClient);
 
 // ── Municipality domain ────────────────────────────────────────────────────
 

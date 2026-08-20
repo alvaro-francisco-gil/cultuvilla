@@ -1,6 +1,6 @@
 import { describe, it } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, setDoc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc, getDoc, GeoPoint } from 'firebase/firestore';
 import { useRulesTestEnv } from '../helpers/rulesTestEnv';
 import { asUser, asAnon, seed } from '../helpers/roles';
 
@@ -10,6 +10,7 @@ const M = 'm1';
 function placeDoc(proposedBy: string | null, extra: Record<string, unknown> = {}) {
   return {
     name: 'Fuente', kind: 'plaza', description: null, municipalityId: M,
+    coordinates: null, locationLabel: null,
     images: [], createdAt: new Date(), status: 'active', proposedBy, contributorUserIds: [], contributorOrgIds: [],
     hiddenBy: null, hiddenAt: null, hiddenReason: null,
     commentCount: 0, readCount: 0, burialCount: 0,
@@ -39,6 +40,43 @@ describe('firestore.rules — /municipalities/{m}/places', () => {
     await seedMember('alice');
     const alice = asUser(getEnv(), 'alice');
     await assertSucceeds(setDoc(doc(alice, `municipalities/${M}/places/p1`), placeDoc('alice')));
+  });
+
+  it('member can create a place carrying a pin and its saved name', async () => {
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertSucceeds(
+      setDoc(
+        doc(alice, `municipalities/${M}/places/p1`),
+        placeDoc('alice', {
+          coordinates: new GeoPoint(40.03, -3.6),
+          locationLabel: 'Camino de la Ermita, Abadía',
+        }),
+      ),
+    );
+  });
+
+  it('member CANNOT create a place whose coordinates are not a GeoPoint', async () => {
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(
+        doc(alice, `municipalities/${M}/places/p1`),
+        placeDoc('alice', { coordinates: { lat: 40.03, lng: -3.6 } }),
+      ),
+    );
+  });
+
+  it('member CANNOT create a place with a location name but no pin', async () => {
+    // An orphan label the UI can neither map nor navigate to.
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(
+        doc(alice, `municipalities/${M}/places/p1`),
+        placeDoc('alice', { locationLabel: 'Camino de la Ermita' }),
+      ),
+    );
   });
 
   it('member CANNOT create a place already hidden', async () => {

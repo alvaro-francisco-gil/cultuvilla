@@ -46,6 +46,12 @@ export const MunicipalityDataSchema = z.object({
   comunidadAutonoma: z.string(),
   codigoINE: z.string(),
   coordinates: LatLngSchema.nullable(),
+  /** Human-readable name of `coordinates` ("Plaza Mayor, Abadía, Cáceres"),
+   *  captured when the organizer picks the spot. Stored rather than resolved on
+   *  read so every surface shows the same name without a geocoding round-trip —
+   *  and so the UI never has to fall back to showing the raw coordinates.
+   *  `null` when no location is set, or when it predates this field. */
+  locationLabel: z.string().nullable(),
   /** Organizer-chosen zoom level for the village location map (Google Static
    *  Maps zoom). `null` when unset; readers fall back to a default. */
   mapZoom: z.number().nullable(),
@@ -81,6 +87,7 @@ export interface MunicipalityDataInput {
   comunidadAutonoma: string;
   codigoINE: string;
   coordinates?: LatLng | null;
+  locationLabel?: string | null;
   mapZoom?: number | null;
   escudoUrl?: string | null;
   escudoThumbUrl?: string | null;
@@ -120,6 +127,7 @@ export function buildMunicipalityData(input: MunicipalityDataInput): Municipalit
     comunidadAutonoma: input.comunidadAutonoma,
     codigoINE: input.codigoINE,
     coordinates: input.coordinates ?? null,
+    locationLabel: input.locationLabel ?? null,
     mapZoom: input.mapZoom ?? null,
     createdAt: new Date(),
     escudoUrl: input.escudoUrl ?? null,
@@ -222,6 +230,16 @@ export const PlaceDataSchema = z.object({
   kind: PlaceKindSchema,
   description: z.string().nullable(),
   municipalityId: z.string(),
+  /** Exact spot of the place, when someone has pinned it. Optional on purpose:
+   *  a village knows its ermita long before anyone bothers to place it on a
+   *  map, and an unpinned place must stay creatable. `null` when unset. */
+  coordinates: LatLngSchema.nullable(),
+  /** Human-readable name of `coordinates` ("Calle Real 4, Abadía"), captured
+   *  when the spot was picked. Stored rather than resolved on read so every
+   *  surface shows the same name without a geocoding round-trip, and so the UI
+   *  never falls back to showing raw coordinates. Always `null` when
+   *  `coordinates` is null. */
+  locationLabel: z.string().nullable(),
   /** Public download URLs for the place's pictures (max 5). `images[0]` is
    *  the hero/cover shown in the detail scaffold. */
   images: z.array(z.string()).max(5),
@@ -246,6 +264,8 @@ export interface PlaceDataInput {
   kind: PlaceKind;
   municipalityId: string;
   description?: string | null;
+  coordinates?: LatLng | null;
+  locationLabel?: string | null;
   images?: string[];
   proposedBy?: string | null;
   contributorUserIds?: string[];
@@ -258,6 +278,10 @@ export function buildPlaceData(input: PlaceDataInput): PlaceData {
     kind: input.kind,
     municipalityId: input.municipalityId,
     description: input.description ?? null,
+    coordinates: input.coordinates ?? null,
+    // A label without a coordinate would be an orphan string the UI can't act
+    // on (no map, no directions), so the pin is what makes the name meaningful.
+    locationLabel: input.coordinates ? (input.locationLabel ?? null) : null,
     images: input.images ?? [],
     createdAt: new Date(),
     proposedBy: input.proposedBy ?? null,

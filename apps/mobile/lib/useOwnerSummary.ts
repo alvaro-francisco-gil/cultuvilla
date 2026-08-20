@@ -14,6 +14,7 @@ import { buildDisplayName } from '@cultuvilla/shared/models/person/PersonDataMod
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 import { DELETED_USER_UID } from '@cultuvilla/shared/models/user';
 import { useT } from './i18n';
+import { useAuth } from './auth/useAuth';
 
 /**
  * Owners whose document carries a name + image we resolve live. `person`
@@ -83,6 +84,8 @@ export function useOwnerSummary(
   // A `user`'s avatar lives on their linked person doc, which is a query
   // (persons.userId == uid) rather than a doc we can subscribe to by path. We
   // resolve it once per uid and fall back to it when the user doc has no photo.
+  const { user } = useAuth();
+  const viewerUid = user?.uid ?? null;
   const [personPhotoURL, setPersonPhotoURL] = useState<string | null>(null);
   useEffect(() => {
     if (ownerType !== 'user' || !ownerId || isDeletedUser) {
@@ -91,7 +94,9 @@ export function useOwnerSummary(
     }
     let cancelled = false;
     setPersonPhotoURL(null);
-    getPersonByUserId(ownerId)
+    // Pass the viewer so the chip still resolves *their own* avatar when they
+    // marked their persona private.
+    getPersonByUserId(ownerId, viewerUid)
       .then((p) => {
         if (!cancelled) setPersonPhotoURL(p?.photoURL ?? null);
       })
@@ -101,7 +106,7 @@ export function useOwnerSummary(
     return () => {
       cancelled = true;
     };
-  }, [ownerId, ownerType, isDeletedUser]);
+  }, [ownerId, ownerType, isDeletedUser, viewerUid]);
 
   return useMemo(() => {
     if (isDeletedUser) {

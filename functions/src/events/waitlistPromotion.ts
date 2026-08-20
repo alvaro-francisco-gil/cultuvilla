@@ -7,6 +7,7 @@ import {
   userNotificationsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
 import { buildNotificationData } from '@cultuvilla/shared/models';
+import { selectPromotionGroup } from '../helpers/registerToEventValidation';
 import { RESEND_API_KEY } from '../auth/secret';
 import { sendRegistrationEmail } from './sendRegistrationEmail';
 
@@ -37,48 +38,69 @@ export const onRegistrationDeleted = onDocumentDeleted(
     if (!eventData) return;
 
     let promoted = false;
-    let promotedAttendee: { userId: string; name: string; position: number } | null = null;
+    const promotedAttendees: { userId: string; name: string; position: number }[] = [];
     if (deletedStatus === 'confirmed' && eventData.maxAttendees) {
       // Eventarc delivers at-least-once, so this handler can run twice for the
-      // same deletion. Only promote when the event is genuinely under capacity:
-      // a redelivery (whose freed slot was already refilled) finds
-      // confirmed == cap and promotes no one, so we never over-fill the event.
+      // same deletion. Only promote into space that is genuinely free: a
+      // redelivery (whose freed seat was already refilled) computes zero free
+      // seats and promotes no one, so we never over-fill the event.
       const confirmedNow = await regsCol.where('status', '==', 'confirmed').count().get();
-      if (confirmedNow.data().count < eventData.maxAttendees) {
+      const freeSeats = eventData.maxAttendees - confirmedNow.data().count;
+
+      if (freeSeats > 0) {
+        // Read the whole waitlist rather than just its head: a group is
+        // promoted whole or not at all, so the decision needs to see which
+        // seats belong together. Waitlists are small (they only exist past a
+        // capacity the organizer set), so this stays a cheap query.
         const waitlisted = await regsCol
           .where('status', '==', 'waitlisted')
           .orderBy('position', 'asc')
-          .limit(1)
           .get();
 
-        if (!waitlisted.empty) {
-          const nextInLine = waitlisted.docs[0];
-          // Converter-wrapped: typed RegistrationData.
-          const nextData = nextInLine.data();
-          // update() bypasses the converter, partial shape is accepted.
-          await nextInLine.ref.update({ status: 'confirmed' });
-          promoted = true;
-          promotedAttendee = {
-            userId: nextData.userId,
-            name: nextData.name,
-            position: nextData.position,
-          };
+        const chosen = selectPromotionGroup(
+          waitlisted.docs.map((d) => ({
+            id: d.id,
+            position: d.data().position,
+            groupId: d.data().groupId,
+          })),
+          freeSeats,
+        );
 
-          // Deterministic notification id (one per user+event) so a redelivered
-          // promotion overwrites rather than appending a duplicate. Typed
-          // converter ref — set() marshals through the schema, so createdAt is a
-          // plain Date (sentinels would be rejected).
-          await userNotificationsCollection(db, nextData.userId)
-            .doc(`waitlist_${eventId}`)
-            .set(
-              buildNotificationData({
-                type: 'waitlist_promoted',
-                title: '¡Plaza confirmada!',
-                body: `Se ha liberado una plaza en "${eventData.title}" para ${nextData.name}`,
-                eventId,
-                municipalityId: eventData.municipalityId,
-              }),
-            );
+        const byId = new Map(waitlisted.docs.map((d) => [d.id, d]));
+        for (const candidate of chosen) {
+          const doc = byId.get(candidate.id);
+          if (!doc) continue;
+          // Converter-wrapped: typed RegistrationData.
+          const nextData = doc.data();
+          // update() bypasses the converter, partial shape is accepted.
+          await doc.ref.update({ status: 'confirmed' });
+          promoted = true;
+
+          // An open seat has no one to tell — its group owner learns of the
+          // promotion through their own seat's notification.
+          if (!nextData.isOpenSeat) {
+            promotedAttendees.push({
+              userId: nextData.userId,
+              name: nextData.name,
+              position: nextData.position,
+            });
+
+            // Deterministic notification id (one per user+event) so a
+            // redelivered promotion overwrites rather than appending a
+            // duplicate. Typed converter ref — set() marshals through the
+            // schema, so createdAt is a plain Date (sentinels are rejected).
+            await userNotificationsCollection(db, nextData.userId)
+              .doc(`waitlist_${eventId}`)
+              .set(
+                buildNotificationData({
+                  type: 'waitlist_promoted',
+                  title: '¡Plaza confirmada!',
+                  body: `Se ha liberado una plaza en "${eventData.title}" para ${nextData.name}`,
+                  eventId,
+                  municipalityId: eventData.municipalityId,
+                }),
+              );
+          }
         }
       }
     }
@@ -95,16 +117,16 @@ export const onRegistrationDeleted = onDocumentDeleted(
       totalCount: totalSnap.data().count,
     });
 
-    if (promotedAttendee) {
+    for (const attendee of promotedAttendees) {
       await sendRegistrationEmail({
-        userId: promotedAttendee.userId,
+        userId: attendee.userId,
         eventId,
         event: eventData,
         attendees: [
           {
-            name: promotedAttendee.name,
+            name: attendee.name,
             status: 'confirmed',
-            position: promotedAttendee.position,
+            position: attendee.position,
           },
         ],
         confirmedCount: confirmedSnap.data().count,
@@ -117,6 +139,7 @@ export const onRegistrationDeleted = onDocumentDeleted(
       eventId,
       deletedStatus,
       promoted,
+      promotedCount: promotedAttendees.length,
       confirmedCount: confirmedSnap.data().count,
       totalCount: totalSnap.data().count,
     });

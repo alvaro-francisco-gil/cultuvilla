@@ -3,6 +3,10 @@ import { EntityKindSchema } from '../interaction/EntityKind';
 
 export const NotificationTypeSchema = z.enum([
   'waitlist_promoted',
+  // Group sign-up: somebody took an open seat the recipient booked, or gave
+  // one back. Both go to the group owner, who stays accountable for the seat.
+  'seat_claimed',
+  'seat_released',
   'event_cancelled',
   'event_updated',
   'org_approved',

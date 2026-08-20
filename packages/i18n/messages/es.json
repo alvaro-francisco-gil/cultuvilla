@@ -30,6 +30,7 @@
     "notFound": "No encontrado",
     "stepper": { "back": "Anterior", "next": "Siguiente" },
     "close": "Cerrar",
+    "moreInfo": "Más información",
     "photo": "Foto",
     "and": "y",
     "carousel": {
@@ -225,7 +226,12 @@
   "me": {
     "registrations": {
       "title": "Mis inscripciones",
-      "empty": "Aún no te has inscrito a ningún evento"
+      "tab": {
+        "upcoming": "Próximos",
+        "past": "Pasados"
+      },
+      "emptyUpcoming": "Aún no te has inscrito a ningún evento",
+      "emptyPast": "Todavía no has asistido a ningún evento"
     },
     "villages": {
       "empty": "Aún no perteneces a ningún pueblo",
@@ -337,7 +343,8 @@
         "description": "Descripción",
         "addImage": "Añadir imagen",
         "removeImage": "Quitar imagen",
-        "kindLabel": "Tipo",
+        "location": "Ubicación",
+      "kindLabel": "Tipo",
         "kind": {
           "cemetery": "Cementerio",
           "church": "Iglesia",
@@ -526,6 +533,14 @@
     "unlimited": "Sin límite",
     "telephoneRequired": "Teléfono requerido",
     "requiresPayment": "Se paga en el evento",
+    "attendeesPublic": "Lista de asistentes visible",
+    "attendeesPublicHint": "Quien sea del pueblo podrá ver quién se ha apuntado. Los datos de contacto y las respuestas del formulario siguen siendo solo para ti.",
+    "signupEnabled": "Inscripciones por la app",
+    "signupEnabledHint": "Desactívalo si el evento es de entrada libre o si las inscripciones se hacen por otro sitio.",
+    "signupInfo": "¿Cómo se apunta la gente?",
+    "signupInfoPlaceholder": "Ej.: entrada libre, o inscripciones en el ayuntamiento",
+    "signupClosedLabel": "Inscripciones",
+    "signupClosedDefault": "Este evento no requiere inscripción por la app.",
     "signupFields": {
       "headerTitle": "Formulario (opcional)",
       "headerDescription": "Preguntas extra que responderá cada persona al inscribirse.",
@@ -557,6 +572,7 @@
       "error": "No se pudo generar el archivo. Inténtalo de nuevo."
     },
     "attendeesEmpty": "Aún no hay asistentes",
+    "attendeePrivate": "Perfil privado",
     "signedUpAt": "Apuntado el {date}",
     "removeAttendeeTitle": "Quitar asistente",
     "removeAttendeeBody": "¿Seguro que quieres quitar a {name} de este evento?",
@@ -615,6 +631,37 @@
       "requestOrganizer": "Solicitar administrar este pueblo",
       "browseOrgs": "Ver grupos"
     },
+    "signupGroupSize": "Inscripción por grupos",
+    "signupGroupSizeHelp": "Cuántas personas se apuntan juntas. Se confirman o esperan siempre en bloque.",
+    "signupGroupSizeCount": "Personas por grupo",
+    "signupGroupSizeLocked": "No se puede cambiar: ya hay gente apuntada.",
+    "group": {
+      "title": "{count, plural, one {Apúntate} other {Apuntaos en grupo de #}}",
+      "remaining": "{count, plural, one {Queda # plaza por asignar} other {Quedan # plazas por asignar}}",
+      "complete": "Grupo completo. Ya puedes confirmar.",
+      "inviteSeat": "Inscribirte con otro usuario de la app",
+      "inviteSeatHelp": "Le guardas la plaza y le envías un enlace para que la ocupe.",
+      "inviteSeatMore": "Y con otro usuario más",
+      "openSeat": "Plaza libre",
+      "sendLink": "Enviar enlace",
+      "summaryHelp": "Tu grupo en este evento. Envía a cada acompañante el enlace de su plaza.",
+      "cancel": "Cancelar el grupo",
+      "cancelTitle": "Cancelar el grupo",
+      "cancelBody": "Se cancelarán todas las plazas del grupo, incluidas las que ya haya ocupado alguien.",
+      "rosterNote": "Este evento se apunta en grupos de {count}."
+    },
+    "claim": {
+      "title": "Ocupar una plaza",
+      "intro": "Te han guardado una plaza en este evento, que se apunta en grupos de {count}.",
+      "claimingAs": "Ocuparás la plaza como {name}.",
+      "confirm": "Ocupar la plaza",
+      "signIn": "Entrar para ocupar la plaza",
+      "authReason": "Entra para ocupar la plaza que te han guardado",
+      "invalid": "Esta invitación no es válida o ya se ha usado.",
+      "successTitle": "¡Plaza ocupada!",
+      "successBody": "Ya estás apuntado a «{title}».",
+      "goToEvent": "Ver el evento"
+    },
     "register": {
       "cta": "Apuntarme",
       "done": "¡Apuntado!",
@@ -637,6 +684,14 @@
       "confirm": "Confirmar",
       "cancelManyBody": "Vas a cancelar la inscripción de las personas que has desmarcado. ¿Continuar?",
       "answerRequired": "Completa esta pregunta"
+    },
+    "ribbon": {
+      "confirmed": "Apuntado",
+      "confirmedMany": "Apuntados ×{count}",
+      "confirmedCount": "Apuntado ×{count}",
+      "waitlisted": "En espera",
+      "waitlistedMany": "En espera ×{count}",
+      "waitlistedCount": "En espera ×{count}"
     }
   },
   "organization": {
@@ -983,7 +1038,10 @@
   },
   "deeplink": {
     "share": {
-      "event": { "view": "Mira «{name}» en Cultuvilla: {url}" },
+      "event": {
+        "view": "Mira «{name}» en Cultuvilla: {url}",
+        "invite": "Te he guardado una plaza en «{name}» en Cultuvilla: {url}"
+      },
       "news": { "view": "Mira «{name}» en Cultuvilla: {url}" },
       "village": { "view": "Mira {name} en Cultuvilla: {url}" },
       "organization": {

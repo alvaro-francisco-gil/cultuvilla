@@ -8,6 +8,7 @@
  * a column here adds it to both outputs.
  */
 import { formatDate } from '../utils/format';
+import { OPEN_SEAT_NAME } from '../models/event/RegistrationDataModel';
 import type { RegistrationData } from '../models/event/RegistrationDataModel';
 import type {
   SignupAnswers,
@@ -123,6 +124,19 @@ function safeName(value: string, max: number): string {
   return (cleaned || 'export').slice(0, max);
 }
 
+/**
+ * Numbers the groups on this roster 1..N in first-appearance order, so the
+ * sheet says "Grupo 3" rather than exposing a 20-character Firestore id. An
+ * empty map means the roster has no groups at all.
+ */
+function buildGroupLabels(registrations: Pick<RegistrationData, 'groupId'>[]): Map<string, string> {
+  const labels = new Map<string, string>();
+  for (const r of registrations) {
+    if (r.groupId && !labels.has(r.groupId)) labels.set(r.groupId, String(labels.size + 1));
+  }
+  return labels;
+}
+
 export function buildRosterExport(input: RosterExportInput): RosterExportModel {
   const {
     eventTitle,
@@ -146,6 +160,12 @@ export function buildRosterExport(input: RosterExportInput): RosterExportModel {
     { key: 'status', header: 'Estado', type: 'text', width: 16 },
     { key: 'isMember', header: 'Del pueblo', type: 'boolean', width: 12 },
   ];
+  // Only on an event that seats groups: an extra always-empty column on every
+  // ordinary roster would be noise the organizer has to explain away.
+  const groupLabels = buildGroupLabels(registrations);
+  if (groupLabels.size > 0) {
+    columns.push({ key: 'group', header: 'Grupo', type: 'text', width: 10 });
+  }
   if (telephoneRequired) columns.push({ key: 'phone', header: 'Teléfono', type: 'text', width: 16 });
   columns.push({ key: 'registeredAt', header: 'Fecha de alta', type: 'date', width: 20 });
   columns.push({ key: 'checkedInAt', header: 'Check-in', type: 'date', width: 20 });
@@ -164,7 +184,15 @@ export function buildRosterExport(input: RosterExportInput): RosterExportModel {
   }
 
   const rows = registrations.map((r, index) => {
-    const cells: RosterCell[] = [index + 1, r.name, STATUS_LABEL[r.status], r.isMember];
+    const cells: RosterCell[] = [
+      index + 1,
+      // An unclaimed seat is a real, paid-for place on the roster; naming it
+      // as such is more use to the organizer at the door than a blank.
+      r.isOpenSeat ? OPEN_SEAT_NAME : r.name,
+      STATUS_LABEL[r.status],
+      r.isMember,
+    ];
+    if (groupLabels.size > 0) cells.push(r.groupId ? (groupLabels.get(r.groupId) ?? '') : '');
     if (telephoneRequired) cells.push(phones[r.id] ?? null);
     cells.push(r.registeredAt);
     cells.push(r.checkedInAt);

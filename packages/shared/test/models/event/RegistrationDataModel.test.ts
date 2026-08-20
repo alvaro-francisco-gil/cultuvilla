@@ -4,6 +4,7 @@ import {
   RegistrationDataSchema,
   RegistrationStatusSchema,
   buildRegistrationData,
+  OPEN_SEAT_NAME,
 } from '../../../src/models/event/RegistrationDataModel';
 
 const validRegistration = {
@@ -83,5 +84,98 @@ describe('buildRegistrationData', () => {
     });
     expect(built.paidAt).toBeNull();
     expect(() => RegistrationDataSchema.parse(built)).not.toThrow();
+  });
+});
+
+describe('roster denormalization', () => {
+  it('defaults the three person fields when absent (converter-safe)', () => {
+    const parsed = RegistrationDataSchema.parse(validRegistration);
+    expect(parsed.photoURL).toBeNull();
+    expect(parsed.personUserId).toBeNull();
+    // Registrations predating the field belong to personas that were public by
+    // default; the backfill sets the real value from `persons`.
+    expect(parsed.isPersonPublic).toBe(true);
+  });
+
+  it('round-trips the denormalized person fields', () => {
+    const parsed = RegistrationDataSchema.parse({
+      ...validRegistration,
+      photoURL: 'https://example.test/p.jpg',
+      personUserId: 'u-9',
+      isPersonPublic: false,
+    });
+    expect(parsed.photoURL).toBe('https://example.test/p.jpg');
+    expect(parsed.personUserId).toBe('u-9');
+    expect(parsed.isPersonPublic).toBe(false);
+  });
+
+  it('builds a walk-in with no person as public and unlinked', () => {
+    const built = buildRegistrationData({
+      userId: '',
+      personId: '',
+      name: 'Vecina de paso',
+      status: 'confirmed',
+      position: 1,
+    });
+    expect(built.photoURL).toBeNull();
+    expect(built.personUserId).toBeNull();
+    expect(built.isPersonPublic).toBe(true);
+  });
+
+  it('carries an explicit private persona through the builder', () => {
+    const built = buildRegistrationData({
+      userId: 'u-1',
+      personId: 'p-2',
+      name: 'Peque',
+      status: 'confirmed',
+      position: 2,
+      isPersonPublic: false,
+    });
+    expect(built.isPersonPublic).toBe(false);
+  });
+});
+
+describe('buildRegistrationData — group fields', () => {
+  it('defaults an ordinary registration to no group at all', () => {
+    const reg = buildRegistrationData({
+      userId: 'u1',
+      personId: 'p1',
+      name: 'Ana',
+      status: 'confirmed',
+      position: 1,
+    });
+    expect(reg.groupId).toBeNull();
+    expect(reg.groupOwnerId).toBeNull();
+    expect(reg.isOpenSeat).toBe(false);
+  });
+
+  it('carries group membership and the open-seat flag through', () => {
+    const seat = buildRegistrationData({
+      userId: 'u1',
+      personId: '',
+      name: OPEN_SEAT_NAME,
+      status: 'confirmed',
+      position: 2,
+      groupId: 'g1',
+      groupOwnerId: 'u1',
+      isOpenSeat: true,
+    });
+    expect(seat).toMatchObject({ groupId: 'g1', groupOwnerId: 'u1', isOpenSeat: true });
+  });
+
+  it('parses a stored registration written before group sign-ups existed', () => {
+    // The strict converter runs schema.parse on every read, so a doc missing
+    // these keys must default rather than throw and take the roster down.
+    const parsed = RegistrationDataSchema.parse({
+      userId: 'u1',
+      personId: 'p1',
+      name: 'Ana',
+      status: 'confirmed',
+      position: 1,
+      registeredAt: new Date(),
+      isMember: false,
+      checkedInAt: null,
+    });
+    expect(parsed).toMatchObject({ groupId: null, groupOwnerId: null, isOpenSeat: false });
   });
 });

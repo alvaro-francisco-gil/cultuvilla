@@ -54,9 +54,13 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
   useEffect(() => {
     if (!visible || !user) return;
     let cancelled = false;
-    getPersonByUserId(user.uid).then((p) => {
-      if (!cancelled) setPhotoURL(p?.photoURL ?? null);
-    });
+    getPersonByUserId(user.uid, user.uid)
+      .then((p) => {
+        if (!cancelled) setPhotoURL(p?.photoURL ?? null);
+      })
+      .catch(() => {
+        /* best-effort avatar; the menu renders without it */
+      });
     getUserMemberships(user.uid)
       .then((ms) => {
         if (!cancelled) setVillageCount(ms.length);

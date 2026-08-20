@@ -101,4 +101,47 @@ describe('EventFormSchema', () => {
     const result = EventFormSchema.safeParse({ ...validBase, endDate: '2026-08-14T20:00' });
     expect(result.success).toBe(false);
   });
+
+  it('defaults to in-app sign-ups enabled with no note', () => {
+    const result = EventFormSchema.safeParse(validBase);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.signupEnabled).toBe(true);
+    expect(result.data.signupInfo).toBeNull();
+  });
+
+  it('accepts a sign-up note when in-app sign-ups are off', () => {
+    const result = EventFormSchema.safeParse({
+      ...validBase,
+      signupEnabled: false,
+      signupInfo: '  Inscripciones en el ayuntamiento  ',
+    });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.signupEnabled).toBe(false);
+    expect(result.data.signupInfo).toBe('Inscripciones en el ayuntamiento');
+  });
+
+  it('coerces a blank sign-up note to null', () => {
+    const result = EventFormSchema.safeParse({ ...validBase, signupEnabled: false, signupInfo: '   ' });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.signupInfo).toBeNull();
+  });
+
+  // The note replaces the sign-up button; with the button still there it would
+  // never be shown, so storing it is a silent no-op.
+  it('rejects a sign-up note while in-app sign-ups are enabled', () => {
+    const result = EventFormSchema.safeParse({ ...validBase, signupInfo: 'Entrada libre' });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a sign-up note longer than 200 characters', () => {
+    const result = EventFormSchema.safeParse({
+      ...validBase,
+      signupEnabled: false,
+      signupInfo: 'a'.repeat(201),
+    });
+    expect(result.success).toBe(false);
+  });
 });

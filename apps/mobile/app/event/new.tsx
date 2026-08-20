@@ -7,10 +7,10 @@ import {
   View,
 } from 'react-native';
 import { router, useLocalSearchParams, Redirect } from 'expo-router';
-import { Screen, Text, Input, DateTimeField, FieldLabel, Toggle, HStack, ErrorState } from '../../components/primitives';
+import { Screen, Text, Input, DateTimeField, FieldLabel, InfoTooltip, Toggle, HStack, VStack, Pressable, ErrorState } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { EventCoverPicker } from '../../components/feature/EventCoverPicker';
-import { EventLocationField } from '../../components/feature/EventLocationField';
+import { LocationField } from '../../components/feature/LocationField';
 import { MyVillagePicker, type VillageOption } from '../../components/feature/MyVillagePicker';
 import { OrganizerPicker } from '../../components/feature/OrganizerPicker';
 import { SignupQuestionsEditor } from '../../components/feature/signup/SignupQuestionsEditor';
@@ -36,6 +36,11 @@ import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 import { Stepper, type StepConfig } from '../../components/feature/Stepper';
 import { DeleteHeaderButton } from '../../components/feature/DeleteHeaderButton';
 import { roundUpToMinuteStep } from '../../lib/date/clockGrid';
+import { MAX_SIGNUP_GROUP_SIZE } from '@cultuvilla/shared/models/event/EventDataModel';
+
+/** Every real group size — parejas, tríos, grupos de cuatro. Size 1 isn't a
+ *  choice here: it's what the "inscripción por grupos" toggle being off means. */
+const GROUP_SIZE_CHOICES = Array.from({ length: MAX_SIGNUP_GROUP_SIZE - 1 }, (_, i) => i + 2);
 
 /** Nearest joined village to a coordinate (by great-circle distance), or null. */
 function nearestVillage(c: LatLng, villages: VillageOption[]): VillageOption | null {
@@ -61,6 +66,51 @@ function stepBody(children: React.ReactNode) {
     >
       {children}
     </ScrollView>
+  );
+}
+
+/**
+ * A yes/no field, laid out exactly like `Input`: `FieldLabel` on its own line,
+ * control underneath (see the primitive's `VStack gap={1}`). Every control in
+ * the form reads the same way down the left edge, rather than switches being
+ * right-aligned rows and text fields being stacked ones.
+ *
+ * The field's explanation lives behind an "ⓘ" instead of a paragraph under the
+ * control — the Detalles step is a list of decisions, and spelling each one out
+ * inline pushed the controls themselves below the fold.
+ */
+function ToggleField({
+  label,
+  help,
+  value,
+  onValueChange,
+  disabled,
+  testID,
+}: {
+  label: string;
+  help?: string;
+  value: boolean;
+  onValueChange: (next: boolean) => void;
+  disabled?: boolean;
+  testID: string;
+}) {
+  const { t } = useT();
+  return (
+    <VStack gap={1}>
+      <HStack gap={1} className="items-center">
+        <FieldLabel>{label}</FieldLabel>
+        {help ? <InfoTooltip title={label} text={help} testID={`${testID}-info`} /> : null}
+      </HStack>
+      <HStack gap={2} className="items-center">
+        <Toggle
+          value={value}
+          onValueChange={onValueChange}
+          disabled={disabled}
+          testID={testID}
+        />
+        <Text tone="muted">{value ? t('common.yes') : t('common.no')}</Text>
+      </HStack>
+    </VStack>
   );
 }
 
@@ -108,8 +158,20 @@ export default function NewEventScreen() {
   const [maxAttendees, setMaxAttendees] = useState('');
   const [telephoneRequired, setTelephoneRequired] = useState(false);
   const [requiresPayment, setRequiresPayment] = useState(false);
+  // 1 = ordinary individual sign-up. Frozen once anyone has signed up: seats
+  // already booked were seated against the old size (firestore.rules enforces
+  // the same, see isFrozenGroupSizeChange).
+  const [signupGroupSize, setSignupGroupSize] = useState(1);
+  // Off = the event takes no sign-ups through the app (entrada libre, or a list
+  // kept elsewhere). `signupInfo` then replaces the sign-up button on the
+  // detail screen.
+  const [signupEnabled, setSignupEnabled] = useState(true);
+  const [signupInfo, setSignupInfo] = useState('');
+  // Default on: in a pueblo, seeing who is going is what drives sign-ups.
+  const [attendeesPublic, setAttendeesPublic] = useState(true);
   const [signupFields, setSignupFields] = useState<SignupFieldSpec[]>([]);
   const [lockedFieldCount, setLockedFieldCount] = useState(0);
+  const [groupSizeLocked, setGroupSizeLocked] = useState(false);
   const [cover, setCover] = useState<UploadableImage | null>(null);
 
   // Picking a location auto-selects the nearest joined village (create mode,
@@ -169,11 +231,16 @@ export default function NewEventScreen() {
         setMaxAttendees(ev.maxAttendees != null ? String(ev.maxAttendees) : '');
         setTelephoneRequired(!!ev.telephoneRequired);
         setRequiresPayment(!!ev.requiresPayment);
+        setSignupGroupSize(ev.signupGroupSize);
+        setSignupEnabled(ev.signupEnabled !== false);
+        setSignupInfo(ev.signupInfo ?? '');
+        setAttendeesPublic(ev.attendeesVisibility !== 'organizers');
         setSignupFields(ev.signupFields ?? []);
         // Answers already collected are keyed by these ids, so once the event
         // has sign-ups the existing rows are frozen and only new ones can be
         // added. firestore.rules enforces the size half of the same invariant.
         setLockedFieldCount(ev.totalCount > 0 ? (ev.signupFields ?? []).length : 0);
+        setGroupSizeLocked(ev.totalCount > 0);
         setOrganizerUserIds(ev.organizerUserIds ?? []);
         setCreatedBy(ev.createdBy);
         setOrganizerOrgIds(ev.organizerOrgIds ?? []);
@@ -263,6 +330,10 @@ export default function NewEventScreen() {
         }))
         .filter((f, i) => i < lockedFieldCount || (f.label.length > 0 && isUsableSignupField(f)));
 
+      // A note about signing up elsewhere is only meaningful with in-app
+      // sign-ups off; EventFormSchema rejects the other combination.
+      const signupInfoValue = signupInfo.trim() ? signupInfo.trim() : null;
+
       // ── Edit: patch the existing event; only touch the cover if replaced ──
       if (editMode && eventId) {
         await updateEvent(eventId, {
@@ -274,7 +345,11 @@ export default function NewEventScreen() {
           maxAttendees: maxAttendeesValue,
           telephoneRequired,
           requiresPayment,
+          signupEnabled,
+          signupInfo: signupEnabled ? null : signupInfoValue,
+          attendeesVisibility: attendeesPublic ? ('members' as const) : ('organizers' as const),
           signupFields: usableSignupFields,
+          signupGroupSize,
           organizerUserIds,
           organizerOrgIds,
         });
@@ -307,7 +382,11 @@ export default function NewEventScreen() {
           maxAttendees: maxAttendeesValue,
           telephoneRequired,
           requiresPayment,
+          signupEnabled,
+          signupInfo: signupEnabled ? null : signupInfoValue,
+          attendeesVisibility: attendeesPublic ? ('members' as const) : ('organizers' as const),
           signupFields: usableSignupFields,
+          signupGroupSize,
           status: 'published',
           organizerUserIds,
           organizerOrgIds,
@@ -408,6 +487,17 @@ export default function NewEventScreen() {
       render: () => stepBody(
         <>
           <Input label={t('event.title')} value={title} onChangeText={setTitle} testID="event-title" />
+          <VStack gap={1}>
+            <FieldLabel>{t('event.imageLabel')}</FieldLabel>
+            <EventCoverPicker
+              uri={cover?.previewUri ?? existingImageURL}
+              label={cover || existingImageURL ? t('event.changeImage') : t('event.addImage')}
+              onPress={async () => {
+                const n = await pickImageAsBlob();
+                if (n) setCover(n);
+              }}
+            />
+          </VStack>
           <Input
             label={t('event.description')}
             value={description}
@@ -415,15 +505,21 @@ export default function NewEventScreen() {
             multiline
             numberOfLines={5}
           />
-          <FieldLabel>{t('event.imageLabel')}</FieldLabel>
-          <EventCoverPicker
-            uri={cover?.previewUri ?? existingImageURL}
-            label={cover || existingImageURL ? t('event.changeImage') : t('event.addImage')}
-            onPress={async () => {
-              const n = await pickImageAsBlob();
-              if (n) setCover(n);
-            }}
-          />
+          {municipalityId && user ? (
+            <OrganizerPicker
+              municipalityId={municipalityId}
+              selectedUserIds={organizerUserIds}
+              selectedOrgIds={organizerOrgIds}
+              // Only while composing. `confirmUserSheet` force-inserts whatever it
+              // is handed, and in edit mode nothing requires the editor to be an
+              // organizer — a village admin fixing someone else's event would
+              // silently become one, and organizerUserIds is its own clause in
+              // the event's update/delete rules. Mirrors news/new.tsx.
+              lockedUserId={editMode ? undefined : user.uid}
+              onChangeUsers={setOrganizerUserIds}
+              onChangeOrgs={setOrganizerOrgIds}
+            />
+          ) : null}
         </>,
       ),
     },
@@ -460,7 +556,7 @@ export default function NewEventScreen() {
             timePlaceholder={t('event.selectTime')}
             testID="endDate"
           />
-          <EventLocationField
+          <LocationField
             value={coords}
             displayName={locationName}
             onChange={handleLocationChange}
@@ -485,48 +581,106 @@ export default function NewEventScreen() {
       icon: 'options-outline',
       render: () => stepBody(
         <>
-          {municipalityId && user ? (
-            <OrganizerPicker
-              municipalityId={municipalityId}
-              selectedUserIds={organizerUserIds}
-              selectedOrgIds={organizerOrgIds}
-              lockedUserId={user.uid}
-              onChangeUsers={setOrganizerUserIds}
-              onChangeOrgs={setOrganizerOrgIds}
+          <ToggleField
+            label={t('event.signupEnabled')}
+            help={t('event.signupEnabledHint')}
+            value={signupEnabled}
+            onValueChange={setSignupEnabled}
+            testID="signup-enabled"
+          />
+          {!signupEnabled ? (
+            <Input
+              label={t('event.signupInfo')}
+              value={signupInfo}
+              onChangeText={setSignupInfo}
+              placeholder={t('event.signupInfoPlaceholder')}
+              maxLength={200}
+              testID="signup-info"
             />
           ) : null}
+          {signupEnabled ? (
+          <>
           <Input
             label={t('event.maxAttendees')}
             value={maxAttendees}
             onChangeText={setMaxAttendees}
             keyboardType="numeric"
           />
-          <HStack className="items-center justify-between py-1">
-            <Text className="flex-1">{t('event.telephoneRequired')}</Text>
-            <HStack gap={2} className="items-center">
-              <Text tone="muted">{telephoneRequired ? t('common.yes') : t('common.no')}</Text>
-              <Toggle
-                value={telephoneRequired}
-                onValueChange={setTelephoneRequired}
-                testID="telephone-required"
-              />
-            </HStack>
-          </HStack>
-          <HStack className="items-center justify-between py-1">
-            <Text className="flex-1">{t('event.requiresPayment')}</Text>
-            <HStack gap={2} className="items-center">
-              <Text tone="muted">{requiresPayment ? t('common.yes') : t('common.no')}</Text>
-              <Toggle
-                value={requiresPayment}
-                onValueChange={setRequiresPayment}
-                testID="requires-payment"
-              />
-            </HStack>
-          </HStack>
+          <ToggleField
+            label={t('event.telephoneRequired')}
+            value={telephoneRequired}
+            onValueChange={setTelephoneRequired}
+            testID="telephone-required"
+          />
+          <ToggleField
+            label={t('event.requiresPayment')}
+            value={requiresPayment}
+            onValueChange={setRequiresPayment}
+            testID="requires-payment"
+          />
+          {/* Group sign-up is a yes/no first and a size second. Folding "1" into
+              the size row made the common case (ordinary individual sign-up)
+              look like a setting you had to understand before you could skip
+              it. Turning it on picks the smallest real group; turning it off
+              returns the event to 1. */}
+          <ToggleField
+            label={t('event.signupGroupSize')}
+            help={t('event.signupGroupSizeHelp')}
+            value={signupGroupSize > 1}
+            onValueChange={(on) => setSignupGroupSize(on ? GROUP_SIZE_CHOICES[0]! : 1)}
+            disabled={groupSizeLocked}
+            testID="signup-group-size"
+          />
+          {signupGroupSize > 1 ? (
+            <VStack gap={1}>
+              <FieldLabel>{t('event.signupGroupSizeCount')}</FieldLabel>
+              <HStack gap={2} className="items-center">
+                {GROUP_SIZE_CHOICES.map((size) => {
+                  const active = signupGroupSize === size;
+                  return (
+                    <Pressable
+                      key={size}
+                      testID={`group-size-${String(size)}`}
+                      accessibilityRole="radio"
+                      accessibilityLabel={`${t('event.signupGroupSizeCount')}: ${String(size)}`}
+                      accessibilityState={{ selected: active, disabled: groupSizeLocked }}
+                      disabled={groupSizeLocked}
+                      onPress={() => setSignupGroupSize(size)}
+                      className={`flex-1 items-center rounded-lg border py-2 ${
+                        active ? 'border-accent bg-surface' : 'border-subtle'
+                      } ${groupSizeLocked ? 'opacity-50' : ''}`}
+                    >
+                      <Text tone={active ? undefined : 'muted'}>{size}</Text>
+                    </Pressable>
+                  );
+                })}
+              </HStack>
+            </VStack>
+          ) : null}
+          {/* Not tucked into the tooltip: this one explains why the control
+              in front of you is dead, so it has to be visible. */}
+          {groupSizeLocked ? (
+            <Text variant="bodySm" tone="muted">
+              {t('event.signupGroupSizeLocked')}
+            </Text>
+          ) : null}
+          {/* Governs who can see the sign-up list, so it belongs to sign-ups:
+              with them off there is no list for it to be about. */}
+          <ToggleField
+            label={t('event.attendeesPublic')}
+            help={t('event.attendeesPublicHint')}
+            value={attendeesPublic}
+            onValueChange={setAttendeesPublic}
+            testID="attendees-public"
+          />
+          </>
+          ) : null}
         </>,
       ),
     },
-    {
+    // Custom sign-up questions are asked at sign-up time, so the step is
+    // meaningless — and its answers unreachable — with in-app sign-ups off.
+    ...(signupEnabled ? ([{
       key: 'questions',
       title: t('event.stepQuestions'),
       icon: 'help-circle-outline',
@@ -540,7 +694,7 @@ export default function NewEventScreen() {
           lockedCount={lockedFieldCount}
         />,
       ),
-    },
+    }] as StepConfig[]) : []),
   ];
 
   // bottomInset={false}: the Stepper's own bottom nav bar applies the safe-area inset.

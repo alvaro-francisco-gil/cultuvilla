@@ -14,6 +14,7 @@ import { useAuth } from '../lib/auth/useAuth';
 import { resolveAuthRoute, resolveIntentResume } from '../lib/auth/authRoute';
 import { RegisterGateProvider, useRegisterGate } from '../lib/auth/RegisterGateContext';
 import { GuestActiveVillageProvider } from '../lib/village/GuestActiveVillageContext';
+import { MyRegistrationsProvider } from '../lib/registrations/MyRegistrationsContext';
 import { useDeepLinkRouter } from '../lib/deeplink/useDeepLinkRouter';
 import { useRouteTracking } from '../lib/observability/useRouteTracking';
 import { CropperHost } from '../lib/imageCrop';
@@ -45,13 +46,15 @@ export default function RootLayout() {
             <CallableErrorProvider>
               <AuthProvider>
                 <GuestActiveVillageProvider>
-                  <RegisterGateProvider>
-                    <AuthGate />
-                    {/* Web-only image-crop overlay (no-op on native, which uses its
-                        own native cropper). Rendered above the app so it can cover
-                        any screen when pickImageAsBlob({ square }) opens it. */}
-                    <CropperHost />
-                  </RegisterGateProvider>
+                  <MyRegistrationsProvider>
+                    <RegisterGateProvider>
+                      <AuthGate />
+                      {/* Web-only image-crop overlay (no-op on native, which uses its
+                          own native cropper). Rendered above the app so it can cover
+                          any screen when pickImageAsBlob({ square }) opens it. */}
+                      <CropperHost />
+                    </RegisterGateProvider>
+                  </MyRegistrationsProvider>
                 </GuestActiveVillageProvider>
               </AuthProvider>
             </CallableErrorProvider>

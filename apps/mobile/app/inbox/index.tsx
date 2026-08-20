@@ -101,7 +101,8 @@ export default function InboxScreen() {
       // Resolve organizer-request requesters (name + photo)
       const requesterFetches = fetchedOrganizerRows.map(async (r) => {
         if (requesterByUid[r.userId]) return;
-        const p = await getPersonByUserId(r.userId);
+        // Best-effort: a requester with a private persona falls back to the uid.
+        const p = await getPersonByUserId(r.userId).catch(() => null);
         return [
           r.userId,
           {
