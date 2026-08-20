@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.23.0 — 2026-08-20
+
 ### Added
 
 - **Cualquier comentario ajeno se puede denunciar, y a su autor se le puede bloquear.** Cada comentario que no es tuyo lleva una bandera que abre una hoja con siete motivos (spam, acoso, odio, contenido sexual, violencia, información falsa, otro) y, debajo, *Bloquear a esta persona*. Denunciar no falla nunca — es una escritura directa del cliente a la nueva colección `contentReports/`, con las reglas fijando quién denuncia (tú) y en qué estado nace (`open`, nunca resuelto de antemano). Bloquear es supresión del lado del cliente: los comentarios de esa persona desaparecen de tus pantallas al instante y no se vuelven a cargar, sin que su contenido cambie para nadie más. La lista vive en `users/{uid}/blockedUsers/` y es de lectura **y** escritura exclusivamente de su dueño — una lista legible revelaría quién bloqueó a quién, que es material de acoso por sí mismo.
