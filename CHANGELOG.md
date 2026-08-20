@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.21.0 — 2026-08-19
+
 ### Added
 
 - **Events can require people to sign up in groups — parejas, tríos, grupos de cuatro.** A new *Inscripción por grupos* setting on the event form (default *Individual*, so nothing changes for existing events) makes sign-up seat people together: a group is confirmed as a whole or waits as a whole, so a pareja can never be split across the capacity boundary with one in and one on the waitlist. The size is frozen the moment anyone signs up — seats already booked were seated against the old value, and neither the client nor the rules can re-seat them.
