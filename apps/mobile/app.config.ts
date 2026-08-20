@@ -118,6 +118,9 @@ const config: ExpoConfig = {
     supportsTablet: true,
     associatedDomains: [`applinks:${deepLinkHostPerEnv[env]}`],
     infoPlist: {
+      // Only standard HTTPS/TLS — declaring the exemption here stops App Store
+      // Connect asking for an export-compliance answer on every single build.
+      ITSAppUsesNonExemptEncryption: false,
       NSLocationWhenInUseUsageDescription:
         'Cultuvilla usa tu ubicación para fijar la del pueblo en el mapa.',
       // expo-image-picker reads the photo library to pick + crop avatars/escudos;

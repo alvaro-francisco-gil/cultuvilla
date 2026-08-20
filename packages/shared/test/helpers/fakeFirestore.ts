@@ -75,23 +75,21 @@ export function createFakeFirestoreModule() {
     fromDate: (d: Date) => ({ toDate: () => d, _isTimestamp: true }),
   };
 
-  function collection(_db: unknown, colId: string) {
-    return makeFakeCollRef(colId);
+  // Path segments are joined, so a nested collection
+  // (`collection(db, 'users', uid, 'blockedUsers')`) keys the store under its
+  // full path exactly as Firestore addresses it.
+  function collection(_db: unknown, ...segments: string[]) {
+    return makeFakeCollRef(segments.join('/'));
   }
 
-  function doc(colOrRef: { _col: string }, ...rest: string[]) {
-    // doc(collection(...)) — one arg, auto id
-    if (rest.length === 0) {
-      return makeFakeDocRef(colOrRef._col, nextId());
+  function doc(colOrRef: { _col?: string }, ...rest: string[]) {
+    if (typeof colOrRef?._col === 'string') {
+      // doc(collection(...)) — auto id; doc(collection(...), id) — explicit
+      return makeFakeDocRef(colOrRef._col, rest[0] ?? nextId());
     }
-    // doc(db, 'col', id) — three args (path style)
-    if (rest.length === 2 && typeof rest[0] === 'string' && typeof rest[1] === 'string') {
-      return makeFakeDocRef(rest[0], rest[1]);
-    }
-    // doc(collection(...), id) — two args
-    const colId = colOrRef._col;
-    const id = rest[0];
-    return makeFakeDocRef(colId, id);
+    // doc(db, ...path, id) — the last segment is the doc id
+    const colId = rest.slice(0, -1).join('/');
+    return makeFakeDocRef(colId, rest[rest.length - 1]);
   }
 
   async function getDoc(ref: { _col: string; id: string }) {
@@ -147,7 +145,11 @@ export function createFakeFirestoreModule() {
     return { _col: colRef._col, _constraints: constraints };
   }
 
-  async function getDocs(q: { _col: string; _constraints: unknown[] }) {
+  // The real SDK's getDocs takes a Query OR a bare CollectionReference; the
+  // fake must too, or a service that reads a whole collection unfiltered
+  // (blockedUserService) explodes on a missing _constraints.
+  async function getDocs(q: { _col: string; _constraints?: unknown[] }) {
+    const constraints = q._constraints ?? [];
     const colPrefix = `${q._col}/`;
     let docs = Object.entries(store)
       .filter(([id]) => id.startsWith(colPrefix))
@@ -156,7 +158,7 @@ export function createFakeFirestoreModule() {
         return { id: docId, data: () => data };
       });
 
-    for (const c of q._constraints) {
+    for (const c of constraints) {
       const constraint = c as Record<string, unknown>;
       if (constraint['_type'] === 'where') {
         const field = constraint['field'] as string;

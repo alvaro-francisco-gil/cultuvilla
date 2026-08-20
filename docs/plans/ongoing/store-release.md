@@ -74,10 +74,11 @@ serve both consoles and stay reviewable in git:
 - [docs/store/app-store-declarations.md](../../store/app-store-declarations.md) — App Privacy labels, age rating, notas de revisión, export compliance.
 - [docs/store/assets.md](../../store/assets.md) — icono, feature graphic, capturas.
 
-Dos bloqueantes que salen de ahí y afectan al calendario de este runbook: **no
-hay flujo de denuncia/bloqueo de UGC** (lo piden el content rating de Play y la
-guideline 1.2 de Apple) y **no hay cuenta de revisión utilizable** (el login es
-OTP por email o Google).
+El flujo de denuncia/bloqueo de UGC que piden el content rating de Play y la
+guideline 1.2 de Apple **ya está en el código**. Lo que sigue bloqueando desde
+fuera del repo: **una cuenta/buzón de revisión utilizable** (el login es OTP por
+email o Google, así que ninguna credencial suelta sirve) y, para iOS, **Sign in
+with Apple** mientras Google Sign-In esté en la pantalla de acceso.
 
 ## Repo knobs this runbook feeds
 
