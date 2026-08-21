@@ -28,29 +28,55 @@ Aun así hay que declarar **"Todas o algunas funciones están restringidas"** y
 dar instrucciones, porque el revisor no puede evaluar la mitad de la app sin
 cuenta.
 
-> ⚠️ **Decisión pendiente.** El inicio de sesión es (a) código OTP de 6 dígitos
-> enviado por email o (b) Google Sign-In. Ninguna de las dos da al revisor una
-> credencial usable tal cual: el OTP exige acceso al buzón y Google bloquea con
-> frecuencia los inicios de sesión desde los centros de revisión.
-> Opciones, por orden de preferencia:
-> 1. Buzón de revisión dedicado (p. ej. `cultuvilla.review@gmail.com`) y entregar
->    email + contraseña del buzón junto con el paso "lee el código en
->    mail.google.com". Funciona en ambas tiendas y no toca el código.
-> 2. Cuenta de revisión con contraseña de Firebase Auth — requiere exponer
->    `signInWithEmailAndPassword` en la UI, que hoy sólo existe como seam de
->    tests. No hacerlo sólo por la review.
->
-> Sea cual sea, la cuenta debe estar **dada de alta en un pueblo activo con
-> eventos**, o el revisor verá una app vacía.
+**Decidido: buzón de revisión dedicado.** El login es (a) código OTP de 6
+dígitos por email o (b) Google Sign-In, así que ninguna credencial suelta sirve:
+el OTP exige acceso al buzón. La alternativa — exponer
+`signInWithEmailAndPassword` en la UI sólo para la review — añade una superficie
+de autenticación real por una necesidad de trámite, y se descartó.
 
-Texto de instrucciones para la consola (rellenar `<email>` / `<clave>`):
+Preparación de la cuenta (hacer **antes** de rellenar el formulario):
 
-> La mayor parte de la app se puede usar sin cuenta: eventos, noticias, pueblos
-> y asociaciones son públicos. Se necesita cuenta para inscribirse a un evento,
-> unirse a una asociación o publicar contenido.
-> Para acceder: pantalla de inicio → "Entrar" → introducir `<email>` → se envía
-> un código de 6 dígitos a ese buzón → leerlo en https://mail.google.com con la
-> contraseña `<clave>` → introducirlo en la app.
+1. Crear `cultuvilla.review@gmail.com` (o una dirección del dominio). **Sin
+   2FA**, e iniciar sesión una vez desde un navegador normal: una cuenta recién
+   creada le lanza un desafío de seguridad al revisor y ahí se acaba la review.
+   Un buzón del propio dominio desafía menos que Gmail.
+2. Registrarla en la app y **unirla a un pueblo activo con eventos publicados**.
+   Un revisor que aterriza en un pueblo vacío reporta la app como rota.
+3. Dejarla como **usuaria normal**, no app admin. El revisor no necesita las
+   pantallas de administración y exponerlas invita preguntas.
+
+Lo que va en cada campo de Play Console → App access → "Add sign-in details":
+
+| Campo | Valor |
+|---|---|
+| Name (≤60) | `Test user account (village member)` |
+| Username / email (≤100) | la dirección del buzón de revisión |
+| Password | la contraseña **del buzón**, no de la app — la app no tiene contraseña |
+| All functionality accessible | sí (una cuenta normal alcanza todo lo que puede hacer una persona usuaria) |
+
+Instrucciones (el formulario exige **inglés**; 868 caracteres):
+
+```
+Most of the app works without an account: events, news, villages and associations are public. An account is only needed to sign up for an event, join an association, publish content, or report or block a user.
+
+The app has no password. Sign-in is a 6-digit code sent by email, so the password above is the password of the mailbox that receives the code.
+
+1. Open the app and tap "Entrar" (Sign in).
+2. Enter the email address above, then tap "Enviar codigo".
+3. Open https://mail.google.com in a browser, sign in with the same email address and the password above, and read the 6-digit code.
+4. Type the code into the app.
+
+Google Sign-In is also offered on that screen; please use the email code instead.
+
+This account is already a member of an active village with published events, so content is visible immediately after signing in. The app interface is in Spanish.
+```
+
+**El texto es la parte que sostiene el trámite.** Un revisor con sólo un email y
+una contraseña, en una app sin campo de contraseña, lo intenta, falla y rechaza
+por "cannot access app". No recortar los cuatro pasos. Antes de enviar,
+comprobar el buzón desde una ventana de incógnito: si pide verificación por
+teléfono, el revisor verá lo mismo. Las mismas credenciales y el mismo texto
+valen para App Store Connect → App Review Information.
 
 ## Content rating
 
