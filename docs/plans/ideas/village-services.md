@@ -195,6 +195,6 @@ These block promotion to `ready/`.
 - `organizations` — pending → approved creation flow, members subcollection with
   function-owned roles, audited role changes via `membershipEvents/`.
 - `events` + `registrations` — capacity, sign-up, and the per-registration
-  private data pattern from `event-signup-parameters`.
+  private data pattern from [event-signup-fields](../../decisions/event-signup-fields.md).
 - `municipalities/{id}/members` — the other instance of the membership-group
   abstraction a servicio's admins would make a third.
