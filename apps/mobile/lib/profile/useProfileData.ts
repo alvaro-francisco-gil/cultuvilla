@@ -77,16 +77,26 @@ export function useProfileData(
     setLoading(true);
     setNewsError(false);
     try {
-      const [self, mine] = await Promise.all([
+      // allSettled, not all: these two feed different parts of the card, and a
+      // denial in one must degrade its own section rather than abort the load.
+      // Coupled in a Promise.all, a single permission-denied left the whole
+      // profile blank — no photo, no name, a dash for every stat.
+      const [selfResult, personasResult] = await Promise.allSettled([
         withFirestoreErrorLog('profile:getPersonByUserId', () =>
           // Only the profile's own owner may read it unfiltered (a private
           // persona is still theirs to see).
           getPersonByUserId(uid, variant === 'self' ? uid : null),
         ),
-        withFirestoreErrorLog('profile:getPersonsByCreator', () => getPersonsByCreator(uid)),
+        // "Mi gente" is a self-only section, and only its owner may read the
+        // list at all (see getPersonsByCreator) — so don't ask when visiting.
+        variant === 'self'
+          ? withFirestoreErrorLog('profile:getPersonsByCreator', () =>
+              getPersonsByCreator(uid, uid),
+            )
+          : Promise.resolve([]),
       ]);
-      setSelfPerson(self);
-      setAllPersonas(mine);
+      setSelfPerson(selfResult.status === 'fulfilled' ? selfResult.value : null);
+      setAllPersonas(personasResult.status === 'fulfilled' ? personasResult.value : []);
 
       const myEvents = await withFirestoreErrorLog('profile:getEventsByOrganizer', () =>
         getEventsByOrganizer(uid),

@@ -37,7 +37,8 @@ export function BuryFab({ municipalityId, placeId, userId, buriedHereIds, onChan
   // Load personas a cargo on focus (so one created via /person/new shows on return).
   const load = useCallback(async () => {
     const result = await withFirestoreErrorLog('cemetery:getPersonsByCreator', () =>
-      getPersonsByCreator(userId),
+      // Own personas: the caller is the creator, so the private ones count too.
+      getPersonsByCreator(userId, userId),
     );
     // Personas a cargo are exactly the non-account persons this user created.
     const deps = result.filter((d) => d.userId == null);

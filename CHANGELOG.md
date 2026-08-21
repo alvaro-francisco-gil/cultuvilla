@@ -4,6 +4,12 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Fixed
+
+- **El perfil de otra persona ya no sale en blanco.** Al abrir `/user/<uid>` desde un comentario, un evento, la lista de vecinos de un barrio o la bandeja, la ficha aparecía vacía: avatar de marcador de posición, sin foto y un guión en cada estadística. La pantalla pedía las personas *creadas por* quien estás visitando (`getPersonsByCreator`), y esa consulta las reglas no la pueden autorizar para nadie salvo su creador — `createdBy ==` no demuestra nada sobre `isPublic` ni sobre quien pregunta, así que se rechaza entera, tenga o no esa persona una persona a cargo privada. El `permission-denied` resultante tumbaba el `Promise.all` que llevaba también la lectura de la persona y la de los eventos, y la carga moría antes de escribir un solo campo.
+  - **La consulta ya no se hace al visitar.** «Mi gente» es una sección que sólo ve su dueño, así que sólo su dueño la pide. `getPersonsByCreator` acepta además un `viewerUid` y, cuando no eres el creador, fija la rama pública (`isPublic == true`) — el mismo patrón que ya usaba su hermana `getPersonByUserId`, para que la próxima persona que llame al servicio no vuelva a pisar la mina. Índice compuesto nuevo: `persons` por `createdBy + isPublic + createdAt`.
+  - **Y una lectura denegada ya no puede vaciar la ficha entera.** Las dos lecturas de cabecera pasan por `Promise.allSettled`: cada una alimenta una parte distinta de la tarjeta, así que un rechazo degrada su sección en lugar de abortar la carga.
+
 ## v0.23.0 — 2026-08-20
 
 ### Added

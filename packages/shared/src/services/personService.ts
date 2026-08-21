@@ -25,14 +25,37 @@ export async function getPerson(personId: string): Promise<(PersonData & { id: s
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
+/**
+ * Every persona a user created — their own account persona plus the dependents
+ * they registered.
+ *
+ * Same rules constraint as {@link getPersonByUserId}: `createdBy ==` on its own
+ * proves nothing about `isPublic` and nothing about the caller, so the query is
+ * rejected outright for anyone but the creator — whether or not that user
+ * actually has a private persona. Unpinned, it made the read-only /user/[uid]
+ * profile come up blank: the denial rejected the batch that also carried the
+ * persona and event reads, so the photo, the name and every stat stayed empty.
+ *
+ * Pass `viewerUid` when the caller is asking about their own personas (the only
+ * way to see the private ones); omitting it yields the public-only view.
+ */
 export async function getPersonsByCreator(
   userId: string,
+  viewerUid?: string | null,
 ): Promise<(PersonData & { id: string })[]> {
-  const q = query(
-    personsCollection(getDb()),
-    where('createdBy', '==', userId),
-    orderBy('createdAt', 'asc'),
-  );
+  const own = viewerUid != null && viewerUid === userId;
+  const q = own
+    ? query(
+        personsCollection(getDb()),
+        where('createdBy', '==', userId),
+        orderBy('createdAt', 'asc'),
+      )
+    : query(
+        personsCollection(getDb()),
+        where('createdBy', '==', userId),
+        where('isPublic', '==', true),
+        orderBy('createdAt', 'asc'),
+      );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
