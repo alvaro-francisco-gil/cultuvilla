@@ -69,6 +69,26 @@ describe('firestore.rules — /_admin/**', () => {
     await assertFails(setDoc(doc(userDb, '_admin/backfills/cursors/some-cursor'), { at: 1 }));
   });
 
+  it('denies every client reading the store-review sign-in credential', async () => {
+    // _admin/reviewAccess holds the allowlisted address and the fixed OTP code
+    // for the store reviewer. The recursive wildcard already covers it; this
+    // asserts it by name because a readable copy of that pair is a working
+    // sign-in for anyone, not merely leaked operational state.
+    await seed(getEnv(), async (ctx) => {
+      await setDoc(doc(ctx.firestore(), '_admin/reviewAccess'), {
+        email: 'review@example.com',
+        code: '424242',
+      });
+    });
+
+    await assertFails(getDoc(doc(asAnon(getEnv()), '_admin/reviewAccess')));
+    await assertFails(getDoc(doc(asUser(getEnv(), 'uid-1'), '_admin/reviewAccess')));
+    await assertFails(getDoc(doc(await asAdmin(getEnv(), 'uid-admin'), '_admin/reviewAccess')));
+    await assertFails(
+      setDoc(doc(asUser(getEnv(), 'uid-1'), '_admin/reviewAccess'), { email: 'a@b.c', code: '000000' }),
+    );
+  });
+
   it('still allows the admin SDK (rules bypassed) to write a marker', async () => {
     // Sanity check that the harness's own writes are not what we just blocked.
     await assertSucceeds(seedMarker());

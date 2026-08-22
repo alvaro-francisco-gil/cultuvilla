@@ -147,4 +147,113 @@ describe('sendAuthOtpCode (callable)', () => {
     expect(data.codeHash).toBe(createHash('sha256').update(secondCode ?? '').digest('hex'));
     expect(data.codeHash).not.toBe(createHash('sha256').update(firstCode ?? '').digest('hex'));
   });
+
+  // Store reviewers cannot read the mailbox the code is sent to, so exactly one
+  // allowlisted address gets a fixed code. The point of the design is that only
+  // WHICH digits get hashed changes — the doc, the expiry and the attempt cap
+  // are the same ones a random code goes through, which is what keeps a code
+  // that never rotates out of brute-force range.
+  describe('store-review account (fixed code)', () => {
+    const REVIEW_EMAIL = 'review@example.com';
+    const REVIEW_CODE = '424242';
+    const reviewHash = createHash('sha256').update(REVIEW_CODE).digest('hex');
+
+    async function allowReview(data: Record<string, unknown> = {
+      email: REVIEW_EMAIL,
+      code: REVIEW_CODE,
+    }) {
+      await getFirestore().doc('_admin/reviewAccess').set(data);
+    }
+
+    async function storedHash(email: string): Promise<string | undefined> {
+      const doc = await getFirestore().collection('authOtpCodes').doc(bucketIdFor(email)).get();
+      return (doc.data() as { codeHash?: string } | undefined)?.codeHash;
+    }
+
+    it('issues the fixed code without emailing anything, and it verifies', async () => {
+      await allowReview();
+
+      const result = await callSend({ email: REVIEW_EMAIL });
+      expect(result.ok).toBe(true);
+      expect(sendMock).not.toHaveBeenCalled();
+      expect(await storedHash(REVIEW_EMAIL)).toBe(reviewHash);
+
+      const { token } = await runVerifyAuthOtpCode({ email: REVIEW_EMAIL, code: REVIEW_CODE });
+      expect(typeof token).toBe('string');
+      expect(token.length).toBeGreaterThan(0);
+    });
+
+    it('keeps the ordinary expiry and attempt cap on the review doc', async () => {
+      await allowReview();
+      await callSend({ email: REVIEW_EMAIL });
+
+      const doc = await getFirestore().collection('authOtpCodes').doc(bucketIdFor(REVIEW_EMAIL)).get();
+      const data = doc.data() as { attempts: number; expiresAt: { toMillis(): number } };
+      expect(data.attempts).toBe(0);
+      expect(data.expiresAt.toMillis()).toBeGreaterThan(Date.now());
+    });
+
+    it('never leaks the fixed code onto the doc outside the emulator', async () => {
+      await allowReview();
+      await callSend({ email: REVIEW_EMAIL });
+      const doc = await getFirestore().collection('authOtpCodes').doc(bucketIdFor(REVIEW_EMAIL)).get();
+      expect(doc.data()).not.toHaveProperty('emulatorCode');
+    });
+
+    // A prefix, suffix or domain match here would be an open sign-in for every
+    // address containing the allowlisted one.
+    it.each([
+      'xreview@example.com',
+      'review@example.com.attacker.test',
+      'review@attacker.test',
+      'eview@example.com',
+    ])('does not hand the fixed code to the near-miss %s', async (email) => {
+      await allowReview();
+
+      const result = await callSend({ email });
+      expect(result.ok).toBe(true);
+      expect(sendMock).toHaveBeenCalledTimes(1);
+      expect(await storedHash(email)).not.toBe(reviewHash);
+    });
+
+    it('normalises case and surrounding whitespace on the allowlisted address', async () => {
+      await allowReview({ email: '  Review@Example.COM  ', code: REVIEW_CODE });
+
+      await callSend({ email: REVIEW_EMAIL });
+      expect(sendMock).not.toHaveBeenCalled();
+      expect(await storedHash(REVIEW_EMAIL)).toBe(reviewHash);
+    });
+
+    it('falls back to a random emailed code when no allowlist doc exists', async () => {
+      const result = await callSend({ email: REVIEW_EMAIL });
+      expect(result.ok).toBe(true);
+      expect(sendMock).toHaveBeenCalledTimes(1);
+      expect(await storedHash(REVIEW_EMAIL)).not.toBe(reviewHash);
+    });
+
+    it.each([
+      { case: 'a non-numeric code', doc: { email: 'review@example.com', code: 'letmein' } },
+      { case: 'a short code', doc: { email: 'review@example.com', code: '4242' } },
+      { case: 'a missing code', doc: { email: 'review@example.com' } },
+      { case: 'a missing email', doc: { code: '424242' } },
+    ])('falls back to a random emailed code for $case', async ({ doc }) => {
+      await allowReview(doc);
+
+      const result = await callSend({ email: REVIEW_EMAIL });
+      expect(result.ok).toBe(true);
+      expect(sendMock).toHaveBeenCalledTimes(1);
+      expect(await storedHash(REVIEW_EMAIL)).not.toBe(reviewHash);
+    });
+
+    it('still rate-limits the review address like any other', async () => {
+      await allowReview();
+      for (let i = 0; i < 5; i += 1) {
+        expect((await callSend({ email: REVIEW_EMAIL })).ok).toBe(true);
+      }
+      await getFirestore().collection('authOtpCodes').doc(bucketIdFor(REVIEW_EMAIL)).delete();
+
+      expect((await callSend({ email: REVIEW_EMAIL })).ok).toBe(true);
+      expect(await storedHash(REVIEW_EMAIL)).toBeUndefined();
+    });
+  });
 });
