@@ -56,6 +56,10 @@ function formatAnswer(value: string | number | boolean, t: (key: string) => stri
  * (when the event collected a phone), export, and remove. Removing is
  * destructive, so the trash icons stay hidden until the heading's "Editar"
  * toggle is on — and that toggle only appears once someone has signed up.
+ * Edit mode is exclusively about removing: while it is on, the paid checkbox
+ * and the call icon step aside, so the only tappable control per row is the
+ * trash. Tapping "Pagado" when you meant the trash next to it is a wrong
+ * write on someone's registration; a one-purpose row makes that impossible.
  *
  * Two things are deliberately organizer-only and must stay that way:
  * `registrationPrivate` (phone + custom answers) is never even fetched in
@@ -209,7 +213,7 @@ export function EventAttendees({
       ) : (
         identity
       )}
-      {canManage && requiresPayment ? (
+      {canManage && !editing && requiresPayment ? (
         <Pressable
           testID={`paid-attendee-${r.id}`}
           accessibilityRole="checkbox"
@@ -224,7 +228,7 @@ export function EventAttendees({
           />
         </Pressable>
       ) : null}
-      {canManage && telephoneRequired && phones[r.id] ? (
+      {canManage && !editing && telephoneRequired && phones[r.id] ? (
         <Pressable
           testID={`call-attendee-${r.id}`}
           accessibilityLabel={t('event.call')}
