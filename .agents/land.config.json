@@ -1,0 +1,31 @@
+{
+  "baseBranch": "develop",
+  "protectedBranches": ["beta", "main"],
+
+  "_reviewLabel": "The ai-review reviewer is NOT yet wired for this repo. This stays TRUE anyway, deliberately: with no reviewer, pr:land does every step up to the merge and then exits 30 for a human, which is exactly today's behaviour plus the automation before it. Setting it false would auto-merge on CI alone — REMOVING review rather than replacing it. When the reviewer starts posting, this needs no change.",
+  "reviewLabel": "ai-review",
+  "requireApprovingReview": true,
+  "maxReviewRounds": 5,
+  "_reviewTimeoutMs": "Short until a reviewer exists — no point idling 20 minutes for a review that cannot arrive.",
+  "reviewTimeoutMs": 120000,
+
+  "_ciPaths": "ci.yml has NO paths: filter — it runs on every push and PR to develop/beta/main. '**' says that directly; enumerating top-level directories would silently stop being true the moment one is added.",
+  "ciPaths": ["**"],
+
+  "_sharedBlastRadius": "A base move here forces a rebase even with no direct file overlap.",
+  "sharedBlastRadius": [
+    "packages/shared/",
+    "pnpm-lock.yaml",
+    "package.json",
+    "firestore.rules"
+  ],
+
+  "_hardStop": "Never self-merges, however green. Mirrors the Autonomy contract section of AGENTS.md.",
+  "hardStop": [
+    { "pattern": "^firestore\\.rules$", "why": "Firestore security rules" },
+    { "pattern": "^storage\\.rules$", "why": "Storage security rules" },
+    { "pattern": "^firestore\\.indexes\\.json$", "why": "Firestore indexes (needs deploy)" },
+    { "pattern": "^scripts/backfill", "why": "data backfill or migration" },
+    { "pattern": "^packages/shared/src/firebase/converters/", "why": "stored-shape converter" }
+  ]
+}

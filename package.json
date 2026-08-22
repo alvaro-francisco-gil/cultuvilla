@@ -16,6 +16,7 @@
     "shared:lint": "pnpm --filter @cultuvilla/shared lint",
     "functions:lint": "npm --prefix functions run lint",
     "lint": "pnpm shared:lint && pnpm functions:lint",
+    "pr:land": "node scripts/pr-land.js",
     "app:start": "pnpm --filter cultuvilla-mobile start",
     "app:start:tunnel": "pnpm --filter cultuvilla-mobile start:tunnel",
     "app:start:lan": "pnpm --filter cultuvilla-mobile start:lan",

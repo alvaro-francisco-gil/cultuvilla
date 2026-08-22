@@ -462,13 +462,11 @@ restricts which branch may deploy (branch policy), but no longer requires a
 reviewer. All daily work targets `develop`. See
 [docs/decisions/dev-beta-prod-environments.md](docs/decisions/dev-beta-prod-environments.md).
 
-1. **Ask which mode to use, then work in it.** Before writing code, ask the user to pick one of two modes:
-   - **Worktree + feature branch (default).** Branch from the latest `develop` into a worktree under `.claude/worktrees/<short-name>/` and work there. Never edit the base checkout in this mode. Worktrees isolate dependencies, build outputs, and caches so parallel changes don't fight each other, and they make it easy to abandon work that doesn't pan out.
+1. **Classify the mode from the diff — never ask.** See the Autonomy contract below.
+   - **Direct** — the diff touches *only* `docs/**`, `*.md`, `CHANGELOG.md`, `.agents/**`, `.claude/**`. Commit and push straight to `develop` in the base checkout. No branch, no PR.
+   - **Autonomous (everything else)** — branch from the latest `develop` into a worktree under `.claude/worktrees/<short-name>/` and work there. Never edit the base checkout in this mode. Worktrees isolate dependencies, build outputs, and caches so parallel changes don't fight each other, and they make it easy to abandon work that doesn't pan out.
 
-   **The VSCode checkout must always stay on `develop`** — never run `git checkout`/`git switch` to a feature branch in the open editor workspace. A feature branch always lives in its own worktree, created with `git worktree add` and committed to from there, so the VSCode view never leaves `develop`.
-   - **Direct to develop.** Edit the base checkout and commit to `develop`. Only when the user explicitly chooses this for the task. (Never commit directly to `beta` or `main` — those advance only by promotion PRs.)
-
-   Worktree is the default — propose it unless the user opts into direct-to-develop. Surface the choice up front (during planning); don't assume it.
+   **The VSCode checkout must always stay on `develop`** — never run `git checkout`/`git switch` to a feature branch in the open editor workspace. A feature branch always lives in its own worktree, created with `git worktree add` and committed to from there, so the VSCode view never leaves `develop`. (Never commit directly to `beta` or `main` — those advance only by promotion PRs.)
 2. **Read any in-flight plan** in [docs/plans/](docs/plans/) and the relevant record in [docs/decisions/](docs/decisions/) for the feature area.
 3. **Look at the relevant service** in [packages/shared/src/services/](packages/shared/src/services/) before writing UI code; extend the service if the API you need is missing.
 4. **Add or extend tests whenever possible.** Tests are the contract that survives refactors and AI rewrites. Specifically:
@@ -482,10 +480,23 @@ reviewer. All daily work targets `develop`. See
    - **Why** it was done — the motivating problem or design decision.
    - **Tests** that were added (or an explicit note if none were possible).
    - **Test plan** as a checklist: targeted local checks, full CI gate, manual verification steps.
-8. **Wait for the user to confirm the merge.** Once the PR is open and CI is green, summarize the result and stop. Do **not** merge autonomously, even if every check passes — the human is the merge gate.
+8. **Land it with `pnpm pr:land`.** It opens the PR, watches CI, applies the rebase and hard-stop rules below, and merges when the bar is met. Run it, act on the exit code, run it again: `0` merged · `10` CI red · `20` review requested changes · `30` **hand to a human** · `40` preflight failed. Steps 7, 9 and 10 are what it automates — don't hand-roll them. **Today every PR here ends at exit 30**, because no reviewer is wired yet (see the Autonomy contract); that is the same human merge gate as before, with everything up to it automated.
 9. **Before merging, rebase the branch onto the latest `develop`.** `git fetch origin develop && git rebase origin/develop`, resolve any conflicts, run targeted checks for the affected/conflicted areas, then `git push --force-with-lease`. CI must run the full gate and go green again on the rebased commits before the merge. Stale branches cause silent breakage when the merge crosses a refactor that landed on develop while the PR was in review. (Promotion PRs `develop → beta` and `beta → main` follow the same rebase-then-green rule.)
 10. **Merge with a merge commit, not squash or rebase.** Use `gh pr merge <n> --merge`. Squashing would collapse the carefully-scoped commits in the PR (e.g. "feature" + "test for feature") into one, which makes `git bisect` and `git blame` worse. Rebase-merging hides the PR boundary entirely. A merge commit preserves both.
 11. **If you broke a rule in this file deliberately**, update this file in the same PR.
+
+## Autonomy contract
+
+**The user is a decider, not a merge gate.** A change should cost them two messages: their request, and one decision. The `ship-a-feature` skill owns the procedure — front-load every business and technical question into ONE message with a recommended pick on each, take `go` as "all your picks", then implement and land without check-ins.
+
+- **`ship-a-feature` and `managing-plans-lifecycle` are shared, not local.** Both are symlinks into the `.agents/_shared` submodule ([agent-skills](https://github.com/alvaro-francisco-gil/agent-skills)), consumed by several repos. **Do not edit them to fix something about this repo** — they carry procedure only. Every Cultuvilla-specific value lives here and in `.agents/land.config.json`. Run `git submodule update --init` after cloning, or the skills are empty.
+- **Merge bar: CI green *and* an approving `ai-review`.** The reviewer is **not yet wired for this repo**, so `pr:land` currently reaches exit `30` on every PR and hands it to you. That is deliberate and fail-closed: turning the review requirement off would auto-merge on CI alone, which *removes* review rather than replacing it. No config change is needed once the reviewer starts posting.
+- **"No CI ran" is never "CI passed".** `ci.yml` has no `paths:` filter, so every PR here does dispatch a run — `land.config.json` records that as `ciPaths: ["**"]`. If a path filter is ever added, that value must change with it.
+- **Rebase only when the base moved *into* your diff** — path intersection, or a `packages/shared/**` / lockfile / rules move. `pr:land` decides; don't pre-emptively rebase.
+- **Hard-stop list — these never self-merge, however green:** `firestore.rules`, `storage.rules`, `firestore.indexes.json`, `scripts/backfill*`, `packages/shared/src/firebase/converters/**`, and **any PR targeting `beta`/`main`**. "Green" answers *did the tests pass*, not *is the blast radius acceptable*.
+- **A red lane is not automatically your bug.** Read the log before changing code.
+
+**This repo overrides two `superpowers` skills.** `superpowers:brainstorming`'s one-question-per-message rule and `superpowers:finishing-a-development-branch`'s stop-and-ask merge menu are **superseded by `ship-a-feature`**. Every other superpowers skill still applies.
 
 ## Things to flag in PRs (or right here when you find them)
 
@@ -495,7 +506,8 @@ reviewer. All daily work targets `develop`. See
 - Reads in components that should be cached or batched.
 - Spanish strings that escaped the i18n message catalog.
 - Code changes that ship without tests when tests were possible.
-- Work that landed outside a worktree *without the user choosing direct-to-develop mode* (see Development workflow step 1) — and so might have polluted the `develop` base checkout state.
+- Work that landed outside a worktree when the diff was **not** Direct-path-only (see Development workflow step 1) — and so might have polluted the `develop` base checkout state.
+- A hand-rolled `gh pr merge` instead of `pnpm pr:land` — it skips the vacuous-green, staleness and hard-stop checks.
 
 ## Be proactive
 
