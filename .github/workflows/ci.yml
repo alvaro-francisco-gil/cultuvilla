@@ -140,3 +140,31 @@ jobs:
         run: pnpm test
         env:
           VITEST_RETRY_COUNT: '1'
+
+  # Immediate trigger for the self-hosted agentic reviewer. Without this the only
+  # path is github-review's 15-minute poll backstop, which routinely loses the race
+  # against a PR that is opened and merged inside one poll interval.
+  #
+  # Review is opt-in per PR: it fires only on PRs carrying the `ai-review` label AND
+  # with green CI. The label gate mirrors `review_mode: labeled` for this repo in
+  # homelab's personal/agent-review.yml, so both trigger paths agree on which PRs get
+  # reviewed.
+  #
+  # INERT until `SELF_HOSTED_REVIEW` is set to 'true' as a repository variable. That
+  # switch is deliberately separate from merging this file: the reviewer's lane label
+  # only resolves once homelab's ci-controller config is applied to the host, and a job
+  # dispatched before then queues against a class the controller cannot admit.
+  #
+  # `!failure() && !cancelled()` rather than `success()`: a skipped job is not a reason
+  # to skip review, but a real test failure is.
+  request-review:
+    needs: [ci, emulator-tests]
+    if: >-
+      github.event_name == 'pull_request' && !failure() && !cancelled()
+      && github.event.pull_request.draft == false
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && vars.SELF_HOSTED_REVIEW == 'true'
+      && contains(github.event.pull_request.labels.*.name, 'ai-review')
+    uses: alvaro-francisco-gil/homelab/.github/workflows/request-review.yml@main
+    with:
+      pr_number: ${{ github.event.pull_request.number }}
