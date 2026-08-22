@@ -3,7 +3,7 @@
 Status: **ongoing** — Play internal testing is live; the 14-day closed test has
 not started. iOS has not begun.
 
-**State as of 2026-08-18**
+**State as of 2026-08-22**
 
 - Play developer account (**personal**) verified. App created, `com.cultuvilla.app` claimed.
 - First EAS build succeeded: **0.19.0, versionCode 3**, live on the **internal** track.
@@ -69,21 +69,33 @@ Marcar aquí, no en la cabeza. Esto es lo que una sesión nueva lee primero.
 - [x] `ITSAppUsesNonExemptEncryption: false` en el `infoPlist`.
 - [x] Copys de ficha, declaraciones y specs de gráficos en [docs/store/](../../store/).
 
+- [x] **Cuenta de revisión con código de acceso fijo** (`_admin/reviewAccess` +
+      `scripts/set-review-access.mjs`) para que el revisor entre sin abrir un
+      buzón. Falta desplegarla a prod y escribir el doc allí.
+
 **Repo — pendiente**
 
 - [ ] **Sign in with Apple** (guideline 4.8), mientras Google Sign-In siga en la
       pantalla de acceso. Bloquea la primera submission de iOS, no la de Play.
 
+**Consola / fuera del repo — hecho**
+
+- [x] Alta de la cuenta de desarrollador (personal) y verificación de identidad.
+- [x] App creada en Play Console; `com.cultuvilla.app` reclamado.
+- [x] `0.19.0` / versionCode 3 en el track **internal** (build lanzado desde un
+      portátil con `eas build`, no por el workflow).
+- [x] SHA-1 + SHA-256 de la app signing key registrados en `cultuvilla-prod`;
+      el SHA-256 commiteado en `prod/assetlinks.json`.
+
 **Consola / fuera del repo — pendiente**
 
-- [ ] Alta de la cuenta de desarrollador (personal) y verificación de identidad.
-- [ ] Crear la app en Play Console (`com.cultuvilla.app`, permanente al primer subir).
-- [ ] Service account de Play → secret `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`.
-- [ ] `mobile-release` track `internal` (prueba de tubería, sin espera de review).
+- [ ] Service account de Play → secret `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`. **No
+      existe todavía** (ni a nivel de repo ni en el entorno `production`), así
+      que `mobile-release` falla en el paso de submit: hoy no hay forma de subir
+      un build desde Actions.
 - [ ] Cliente OAuth **Android** en `cultuvilla-prod` con el SHA-1 de la app signing key.
-- [ ] Buzón de revisión + cuenta dada de alta en un pueblo activo con eventos
-      (ver [play-declarations.md](../../store/play-declarations.md#app-access-sign-in-details)).
-- [ ] Formulario App access con esos datos.
+- [ ] Escribir `_admin/reviewAccess` en prod y rellenar el formulario App access
+      con ese par ([play-declarations.md](../../store/play-declarations.md)).
 - [ ] Content rating, Target audience, Data safety, Government apps, Financial
       features, Health — respuestas en [play-declarations.md](../../store/play-declarations.md).
 - [ ] Gráficos: icono 512×512, feature 1024×500, ≥2 capturas
@@ -91,6 +103,12 @@ Marcar aquí, no en la cabeza. Esto es lo que una sesión nueva lee primero.
 - [ ] Ficha es-ES ([listing-es-ES.md](../../store/listing-es-ES.md)).
 - [ ] `mobile-release` track `closed` + 12 testers → arranca el reloj de 14 días.
 - [ ] Rollout a producción.
+
+**Contenido en prod: un solo pueblo.** De 16 municipios con overlay de comunidad
+activada, sólo **Matabuena** tiene contenido (25 eventos, 2 noticias, 156
+miembros); los otros 15 tienen 1 miembro y 0 eventos. La app es navegable sin
+cuenta, así que un revisor ve ese contenido de todas formas, pero conviene
+saberlo antes de leer una captura vacía como un fallo.
 
 ## External facts and where each one lands
 

@@ -28,55 +28,75 @@ Aun así hay que declarar **"Todas o algunas funciones están restringidas"** y
 dar instrucciones, porque el revisor no puede evaluar la mitad de la app sin
 cuenta.
 
-**Decidido: buzón de revisión dedicado.** El login es (a) código OTP de 6
-dígitos por email o (b) Google Sign-In, así que ninguna credencial suelta sirve:
-el OTP exige acceso al buzón. La alternativa — exponer
-`signInWithEmailAndPassword` en la UI sólo para la review — añade una superficie
-de autenticación real por una necesidad de trámite, y se descartó.
+**Decidido: cuenta de revisión con código fijo.** El acceso es (a) código OTP de
+6 dígitos por email o (b) Google Sign-In, así que ninguna credencial suelta
+sirve: el OTP exige acceso al buzón. Las dos alternativas se descartaron —
+exponer `signInWithEmailAndPassword` sólo para la review añade una superficie de
+autenticación real por una necesidad de trámite, y entregar la contraseña de un
+buzón real deja esa credencial guardada en la consola y replayada en cada
+revisión de cada actualización.
+
+En su lugar, **una** dirección en lista blanca recibe un código de 6 dígitos que
+no rota, y el revisor no abre ningún buzón. El par vive en
+`_admin/reviewAccess` (denegado a todo cliente en las reglas), no en git ni en
+Secret Manager, y se escribe por entorno:
+
+```bash
+node scripts/set-review-access.mjs --env=prod --email=<dirección> --confirm
+node scripts/set-review-access.mjs --env=prod --clear --confirm   # al terminar
+```
+
+`sendAuthOtpCode` escribe el hash de ese código fijo en el mismo doc de
+`authOtpCodes` donde iría uno aleatorio y se salta el envío; `verifyAuthOtpCode`
+no cambia. Siguen aplicándose la caducidad de 10 minutos, el tope de 5 intentos
+y el límite de 5 envíos cada 15 minutos, que es lo que mantiene un código que
+nunca rota fuera del alcance de la fuerza bruta.
 
 Preparación de la cuenta (hacer **antes** de rellenar el formulario):
 
-1. Crear `cultuvilla.review@gmail.com` (o una dirección del dominio). **Sin
-   2FA**, e iniciar sesión una vez desde un navegador normal: una cuenta recién
-   creada le lanza un desafío de seguridad al revisor y ahí se acaba la review.
-   Un buzón del propio dominio desafía menos que Gmail.
-2. Registrarla en la app y **unirla a un pueblo activo con eventos publicados**.
-   Un revisor que aterriza en un pueblo vacío reporta la app como rota.
-3. Dejarla como **usuaria normal**, no app admin. El revisor no necesita las
-   pantallas de administración y exponerlas invita preguntas.
+1. La dirección debe existir ya como usuario en el entorno de destino. El script
+   avisa si no, porque `verifyAuthOtpCode` crearía una cuenta nueva al primer
+   acceso — y una cuenta recién creada no está en ningún pueblo.
+2. Dejarla como **usuaria normal**, no app admin. El revisor no necesita las
+   pantallas de administración y exponerlas invita preguntas. Un código fijo
+   sobre una cuenta con autoridad sería una decisión distinta: lo que hace
+   asumible el riesgo es que la identidad no puede hacer nada que no pueda hacer
+   cualquiera que se registre.
+3. **Revocar con `--clear` cuando termine la revisión.** El código sólo merece su
+   riesgo mientras un revisor lo necesita.
 
 Lo que va en cada campo de Play Console → App access → "Add sign-in details":
 
 | Campo | Valor |
 |---|---|
 | Name (≤60) | `Test user account (village member)` |
-| Username / email (≤100) | la dirección del buzón de revisión |
-| Password | la contraseña **del buzón**, no de la app — la app no tiene contraseña |
+| Username / email (≤100) | la dirección en lista blanca |
+| Password | el **código fijo de 6 dígitos** — la app no tiene contraseña |
 | All functionality accessible | sí (una cuenta normal alcanza todo lo que puede hacer una persona usuaria) |
 
-Instrucciones (el formulario exige **inglés**; 868 caracteres):
+Instrucciones (el formulario exige **inglés**):
 
 ```
-Most of the app works without an account: events, news, villages and associations are public. An account is only needed to sign up for an event, join an association, publish content, or report or block a user.
+Most of the app works without an account: events, news, villages and
+associations are public. An account is only needed to sign up for an event,
+join an association, publish content, or report or block a user.
 
-The app has no password. Sign-in is a 6-digit code sent by email, so the password above is the password of the mailbox that receives the code.
+The app has no password. Sign-in is a 6-digit code sent by email. For this
+review account the code is fixed, so you do not need to open a mailbox.
 
 1. Open the app and tap "Entrar" (Sign in).
-2. Enter the email address above, then tap "Enviar codigo".
-3. Open https://mail.google.com in a browser, sign in with the same email address and the password above, and read the 6-digit code.
-4. Type the code into the app.
+2. Enter the email address above and tap "Enviar codigo".
+3. Type the code above into the app.
 
 Google Sign-In is also offered on that screen; please use the email code instead.
 
-This account is already a member of an active village with published events, so content is visible immediately after signing in. The app interface is in Spanish.
+The app interface is in Spanish.
 ```
 
 **El texto es la parte que sostiene el trámite.** Un revisor con sólo un email y
 una contraseña, en una app sin campo de contraseña, lo intenta, falla y rechaza
-por "cannot access app". No recortar los cuatro pasos. Antes de enviar,
-comprobar el buzón desde una ventana de incógnito: si pide verificación por
-teléfono, el revisor verá lo mismo. Las mismas credenciales y el mismo texto
-valen para App Store Connect → App Review Information.
+por "cannot access app". No recortar los tres pasos. Las mismas credenciales y
+el mismo texto valen para App Store Connect → App Review Information.
 
 ## Content rating
 
