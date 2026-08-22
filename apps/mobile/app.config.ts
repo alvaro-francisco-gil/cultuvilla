@@ -111,6 +111,27 @@ const config: ExpoConfig = {
   version: '0.24.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
+
+  // OTA updates. A merge to `beta` publishes the JS bundle to the `beta`
+  // channel (.github/workflows/mobile-ota.yml); the profiles in eas.json already
+  // map each build to its channel.
+  updates: {
+    url: 'https://u.expo.dev/53188e5f-c5a1-4b1c-a009-44108826d54d',
+    // Check on launch but never block it: a slow network must not hold the
+    // splash screen. A published update lands on the NEXT launch.
+    fallbackToCacheTimeout: 0,
+  },
+  // `fingerprint`, NOT `appVersion` — this is load-bearing. `appVersion` ties an
+  // update to the marketing version, and we bump the MINOR on every single
+  // develop -> beta promotion, so every bump would strand OTA against the
+  // binaries already installed: the fix that motivated this would still not
+  // reach anyone. A fingerprint is derived from the native dependency graph, so
+  // a JS-only change keeps the same runtime version and flows over the air,
+  // while adding a native module changes it and correctly refuses to target
+  // binaries that cannot run the new code.
+  runtimeVersion: {
+    policy: 'fingerprint',
+  },
   scheme: 'cultuvilla',
   userInterfaceStyle: 'light',
   ios: {

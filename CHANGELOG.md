@@ -4,6 +4,14 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+
+- **Las correcciones llegan a las apps ya instaladas, sin esperar a un binario de tienda.** Un `merge` a `beta` publica el bundle JS al canal `beta` de EAS Update, y la app lo recoge en el siguiente arranque. Existe por un fallo concreto: el bug de las tarjetas de detalle (`h-full`) se corrigió el mismo día en que se reportó y aun así no podía llegar a nadie — el binario más reciente tenía cuatro días, no había canal de actualizaciones y `mobile-release` no tiene credenciales de Play. Una corrección de una línea sin ninguna ruta hasta la persona que la sufría.
+  - **`runtimeVersion` es `fingerprint`, nunca `appVersion`.** La MINOR sube en cada promoción `develop → beta`, así que la política `appVersion` dejaría cada actualización varada frente a los binarios ya instalados: reproduciría en silencio justo el problema que esto resuelve. Un fingerprint se deriva del grafo de dependencias nativas, así que un cambio sólo-JS conserva la versión de runtime y viaja por aire, mientras que añadir un módulo nativo la cambia y EAS se niega —correctamente— a servírsela a binarios que no pueden ejecutarla.
+  - **Sólo `beta` es automático.** Publicar a producción es una decisión de release, no un efecto secundario de un merge: se hace con un `workflow_dispatch` manual sobre el mismo workflow.
+  - **Una actualización nunca bloquea el arranque** (`fallbackToCacheTimeout: 0`): se comprueba al lanzar pero se aplica en el arranque siguiente, para que una red lenta no deje la pantalla de carga colgada.
+  - Las invariantes quedan fijadas en `packages/shared/test/ci/otaUpdates.test.ts`. **Requiere un binario nuevo**: sólo las builds hechas a partir de este cambio están suscritas a un canal, así que quien tenga una anterior necesita instalar una vez más antes de recibir nada por aire.
+
 ### Changed
 
 - **Al editar los asistentes de un evento, cada fila ofrece sólo la papelera.** Con «Editar» activado convivían tres controles a un dedo de distancia: la casilla de *Pagado*, el icono de llamar y la papelera. Un toque desviado marcaba a alguien como pagado o le abría el teléfono cuando lo que se quería era quitarle de la lista. El modo de edición trata de eliminar y de nada más, así que mientras está activo la casilla y la llamada se retiran; al desactivarlo vuelven a su sitio.
