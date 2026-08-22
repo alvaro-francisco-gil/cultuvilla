@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.24.0 — 2026-08-22
+
 ### Added
 
 - **Una cuenta de revisión con código de acceso fijo, para que Google Play y App Store puedan entrar.** El acceso a la app es un código de 6 dígitos enviado por email, así que la única otra forma de dejar entrar a un revisor de tienda es darle la contraseña de un buzón real — una credencial que además queda guardada en la consola y se reutiliza en cada revisión de cada actualización. En su lugar, **una** dirección en lista blanca recibe un código que no rota.
@@ -11,11 +13,17 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   - **El par vive en `_admin/reviewAccess`**, no en git (el código no puede estar commiteado) ni en Secret Manager (un secreto ausente tumba el deploy de los tres entornos). Como documento, activarlo, rotarlo o revocarlo es una escritura de datos por entorno, y un entorno sin el doc sencillamente no tiene cuenta de revisión. `_admin/**` está denegado a todo cliente en las reglas.
   - `node scripts/set-review-access.mjs --env=<env> --email=… [--code=…] [--clear]` lo escribe o lo borra (`--confirm` obligatorio en beta/prod). **Revocarlo con `--clear` cuando termine la revisión** — el código sólo merece su riesgo mientras un revisor lo necesita.
 
+### Changed
+
+- **La página pública de eliminación de cuenta dice con precisión qué se borra y qué se conserva.** Describía los comentarios como desvinculados de tu identidad cuando en realidad se borran por completo — sólo los eventos y las noticias se anonimizan —, no mencionaba los perfiles de familiares ni las fotografías que también elimina, y no daba ningún plazo de conservación. Ahora nombra los dos únicos rastros que quedan: el registro de auditoría de administradores (identificador de usuario, nunca nombre ni correo, mientras exista ese pueblo u organización) y los registros técnicos de seguridad, 30 días. Google Play exige que esa URL especifique los tipos de datos y los plazos, y era la que menos se parecía a lo que `deleteAccount` hace de verdad.
+
 ### Fixed
 
 - **El perfil de otra persona ya no sale en blanco.** Al abrir `/user/<uid>` desde un comentario, un evento, la lista de vecinos de un barrio o la bandeja, la ficha aparecía vacía: avatar de marcador de posición, sin foto y un guión en cada estadística. La pantalla pedía las personas *creadas por* quien estás visitando (`getPersonsByCreator`), y esa consulta las reglas no la pueden autorizar para nadie salvo su creador — `createdBy ==` no demuestra nada sobre `isPublic` ni sobre quien pregunta, así que se rechaza entera, tenga o no esa persona una persona a cargo privada. El `permission-denied` resultante tumbaba el `Promise.all` que llevaba también la lectura de la persona y la de los eventos, y la carga moría antes de escribir un solo campo.
   - **La consulta ya no se hace al visitar.** «Mi gente» es una sección que sólo ve su dueño, así que sólo su dueño la pide. `getPersonsByCreator` acepta además un `viewerUid` y, cuando no eres el creador, fija la rama pública (`isPublic == true`) — el mismo patrón que ya usaba su hermana `getPersonByUserId`, para que la próxima persona que llame al servicio no vuelva a pisar la mina. Índice compuesto nuevo: `persons` por `createdBy + isPublic + createdAt`.
   - **Y una lectura denegada ya no puede vaciar la ficha entera.** Las dos lecturas de cabecera pasan por `Promise.allSettled`: cada una alimenta una parte distinta de la tarjeta, así que un rechazo degrada su sección en lugar de abortar la carga.
+
+- **Las tarjetas de fecha y ubicación ya no se comen la pantalla de detalle.** En la app —no en la web— las tarjetas de FECHA y UBICACIÓN se estiraban cada una hasta ocupar la pantalla entera, y todo lo que va debajo (Organizadores, Pueblo, Descripción, Asistentes) quedaba fuera del alcance del scroll: la altura del contenido ya estaba agotada, así que no había forma de llegar hasta ello. La tarjeta declaraba `h-full`; en web `height:100%` contra un padre de altura automática se resuelve como altura de contenido y no se notaba nada, pero en nativo Yoga lo resuelve contra el viewport del `ScrollView`. La igualdad de altura entre las dos tarjetas ya la daba el `items-stretch` de la fila, así que `h-full` era además redundante. Afectaba a **todas** las pantallas de detalle de entidad, no sólo a los eventos.
 
 ## v0.23.0 — 2026-08-20
 
