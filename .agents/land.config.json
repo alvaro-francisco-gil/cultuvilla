@@ -2,11 +2,12 @@
   "baseBranch": "develop",
   "protectedBranches": ["beta", "main"],
 
-  "_reviewLabel": "The ai-review reviewer is NOT yet wired for this repo. This stays TRUE anyway, deliberately: with no reviewer, pr:land does every step up to the merge and then exits 30 for a human, which is exactly today's behaviour plus the automation before it. Setting it false would auto-merge on CI alone — REMOVING review rather than replacing it. When the reviewer starts posting, this needs no change.",
+  "_requireApprovingReview": "FALSE on an explicit decision (2026-08-22): the agent merges to develop here on green CI alone, without waiting for a review. Name it for what it is — this is a WEAKER bar than requiring one, not an equivalent one, because nothing reads the diff but the test suite. What keeps it defensible is that the rest of this file still bites: the hardStop list never self-merges however green, and the vacuous-green guard refuses to read 'no run dispatched' as 'tests passed'. develop is also not a release branch here, so a bad merge is caught before beta.",
+  "_requireApprovingReview_flipBack": "Set this back to TRUE the moment the ai-review reviewer starts posting on this repo. That path runs through github-review's poll backstop, NOT through a request-review job in ci.yml: this repo is PUBLIC and homelab is PRIVATE, and a public repo cannot call a private repo's reusable workflow. GitHub resolves the callee when it creates the run, before any job-level `if`, so such a job is not merely inert — it fails the whole workflow to load, taking every other job with it. (Tried on 2026-08-22; run 32594475090 completed with zero jobs.) What remains is the homelab-side registry entry in personal/agent-review.yml, which this repo already has, plus the controller config on the host. The cost is latency, not capability: reviews arrive within a poll interval rather than immediately.",
   "reviewLabel": "ai-review",
-  "requireApprovingReview": true,
+  "requireApprovingReview": false,
   "maxReviewRounds": 5,
-  "_reviewTimeoutMs": "Short until a reviewer exists — no point idling 20 minutes for a review that cannot arrive.",
+  "_reviewTimeoutMs": "Only consulted while requireApprovingReview is true; kept short so the flip back does not also mean a 20-minute idle.",
   "reviewTimeoutMs": 120000,
 
   "_ciPaths": "ci.yml has NO paths: filter — it runs on every push and PR to develop/beta/main. '**' says that directly; enumerating top-level directories would silently stop being true the moment one is added.",
