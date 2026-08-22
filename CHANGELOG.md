@@ -4,6 +4,10 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Changed
+
+- **Al editar los asistentes de un evento, cada fila ofrece sólo la papelera.** Con «Editar» activado convivían tres controles a un dedo de distancia: la casilla de *Pagado*, el icono de llamar y la papelera. Un toque desviado marcaba a alguien como pagado o le abría el teléfono cuando lo que se quería era quitarle de la lista. El modo de edición trata de eliminar y de nada más, así que mientras está activo la casilla y la llamada se retiran; al desactivarlo vuelven a su sitio.
+
 ## v0.24.0 — 2026-08-22
 
 ### Added

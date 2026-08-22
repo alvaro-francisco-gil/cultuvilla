@@ -207,6 +207,31 @@ describe('EventAttendees', () => {
     await waitFor(() => getByText('Ana'));
     expect(queryByTestId('attendee-profile-r1')).toBeNull();
   });
+
+  // Edit mode is exclusively about removing: a row must offer the trash and
+  // nothing else, so a mis-tap can't mark someone paid or dial them.
+  it('hides the paid checkbox and the call action while edit mode is on', async () => {
+    mockGet.mockResolvedValue([
+      { id: 'r1', personId: 'p1', name: 'Ana', status: 'confirmed', paidAt: null },
+    ]);
+    mockPrivate.mockResolvedValue({ phone: '600111222', answers: {} });
+    const { getByTestId, queryByTestId } = render(
+      <EventAttendees eventId="e1" eventTitle="Fiesta" eventDate={new Date("2026-06-24T20:00:00Z")} telephoneRequired requiresPayment canManage />,
+    );
+    await waitFor(() => getByTestId('call-attendee-r1'));
+    getByTestId('paid-attendee-r1');
+
+    enterEditMode();
+    expect(queryByTestId('paid-attendee-r1')).toBeNull();
+    expect(queryByTestId('call-attendee-r1')).toBeNull();
+    getByTestId('remove-attendee-r1');
+
+    // Leaving edit mode brings the ops affordances back.
+    fireEvent.press(screen.getByTestId('attendees-edit-toggle'));
+    getByTestId('paid-attendee-r1');
+    getByTestId('call-attendee-r1');
+    expect(queryByTestId('remove-attendee-r1')).toBeNull();
+  });
 });
 
 // The roster is readable by every member of the event's pueblo. What a fellow
