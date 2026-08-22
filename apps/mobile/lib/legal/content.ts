@@ -278,14 +278,19 @@ const accountDeletion: LegalDoc = {
       body: [
         '• Tu cuenta de acceso y tu correo electrónico.',
         '• Tu perfil de persona: nombre, fecha y lugar de nacimiento, biografía y fotografía.',
+        '• Los perfiles de familiares que hayas creado y que no tengan cuenta propia.',
         '• Tu pertenencia a pueblos y organizaciones, y tus inscripciones a eventos.',
-        'Tus comentarios y publicaciones dejan de estar asociados a tu identidad. El contenido que hayas publicado en nombre de una organización (eventos, noticias) sigue perteneciendo a esa organización, porque es información de la vida del pueblo que otras personas necesitan.',
+        '• Tus comentarios: se borran por completo, no se anonimizan.',
+        '• Las fotografías que hayas subido.',
+        'Los eventos y las noticias que hayas publicado sí se conservan, pero dejan de estar asociados a tu identidad: pasan a figurar como publicados por un usuario eliminado. Son información de la vida del pueblo que otras personas necesitan, y el contenido publicado en nombre de una organización sigue perteneciendo a esa organización.',
       ],
     },
     {
       heading: 'Qué se conserva y durante cuánto tiempo',
       body: [
-        'Conservamos únicamente lo que exige la normativa aplicable (por ejemplo, registros de seguridad y de auditoría) durante el plazo legalmente previsto, y después se suprime. Ver la Política de privacidad para el detalle.',
+        'Registro de auditoría de administradores: cada alta, baja o cambio de rol en un pueblo u organización deja una entrada en un registro interno. Guarda tu identificador de usuario —nunca tu nombre ni tu correo— y se conserva mientras exista ese pueblo u organización, con acceso restringido a sus administradores.',
+        'Registros técnicos de seguridad y diagnóstico: se conservan un máximo de 30 días y después se suprimen automáticamente.',
+        'No conservamos ningún otro dato personal tuyo. Ver la Política de privacidad para el detalle.',
       ],
     },
   ],

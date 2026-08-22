@@ -45,3 +45,6 @@ apps/mobile/public/.well-known/assetlinks.json
 
 # Subagent-driven-development scratch ledger
 .superpowers/
+
+# direnv local state (.envrc itself IS committed)
+.direnv/

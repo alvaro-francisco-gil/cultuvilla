@@ -68,6 +68,7 @@ export async function seedNews(dataset) {
             status: post.status ?? 'approved',
             submittedAt: publishedAt,
             publishedAt,
+            createdAt: publishedAt,
             createdBy: authorUserId,
             updatedAt: publishedAt,
           }),

@@ -19,7 +19,11 @@ export type DetailInfoCardProps = {
 export function DetailInfoCard({ icon, label, value, onPress }: DetailInfoCardProps) {
   return (
     <Pressable onPress={onPress} className="flex-1">
-      <Card className="h-full">
+      {/* No `h-full`: on native Yoga resolves height:100% against the
+          ScrollView viewport, so each card grew screen-tall and pushed the
+          description/village sections out of the scroll extent. The row
+          equalises heights via the parent HStack's items-stretch. */}
+      <Card>
         <HStack gap={2} align="center">
           <VStack gap={1} className="flex-1">
             <HStack gap={2} align="center">

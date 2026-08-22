@@ -28,29 +28,75 @@ Aun así hay que declarar **"Todas o algunas funciones están restringidas"** y
 dar instrucciones, porque el revisor no puede evaluar la mitad de la app sin
 cuenta.
 
-> ⚠️ **Decisión pendiente.** El inicio de sesión es (a) código OTP de 6 dígitos
-> enviado por email o (b) Google Sign-In. Ninguna de las dos da al revisor una
-> credencial usable tal cual: el OTP exige acceso al buzón y Google bloquea con
-> frecuencia los inicios de sesión desde los centros de revisión.
-> Opciones, por orden de preferencia:
-> 1. Buzón de revisión dedicado (p. ej. `cultuvilla.review@gmail.com`) y entregar
->    email + contraseña del buzón junto con el paso "lee el código en
->    mail.google.com". Funciona en ambas tiendas y no toca el código.
-> 2. Cuenta de revisión con contraseña de Firebase Auth — requiere exponer
->    `signInWithEmailAndPassword` en la UI, que hoy sólo existe como seam de
->    tests. No hacerlo sólo por la review.
->
-> Sea cual sea, la cuenta debe estar **dada de alta en un pueblo activo con
-> eventos**, o el revisor verá una app vacía.
+**Decidido: cuenta de revisión con código fijo.** El acceso es (a) código OTP de
+6 dígitos por email o (b) Google Sign-In, así que ninguna credencial suelta
+sirve: el OTP exige acceso al buzón. Las dos alternativas se descartaron —
+exponer `signInWithEmailAndPassword` sólo para la review añade una superficie de
+autenticación real por una necesidad de trámite, y entregar la contraseña de un
+buzón real deja esa credencial guardada en la consola y replayada en cada
+revisión de cada actualización.
 
-Texto de instrucciones para la consola (rellenar `<email>` / `<clave>`):
+En su lugar, **una** dirección en lista blanca recibe un código de 6 dígitos que
+no rota, y el revisor no abre ningún buzón. El par vive en
+`_admin/reviewAccess` (denegado a todo cliente en las reglas), no en git ni en
+Secret Manager, y se escribe por entorno:
 
-> La mayor parte de la app se puede usar sin cuenta: eventos, noticias, pueblos
-> y asociaciones son públicos. Se necesita cuenta para inscribirse a un evento,
-> unirse a una asociación o publicar contenido.
-> Para acceder: pantalla de inicio → "Entrar" → introducir `<email>` → se envía
-> un código de 6 dígitos a ese buzón → leerlo en https://mail.google.com con la
-> contraseña `<clave>` → introducirlo en la app.
+```bash
+node scripts/set-review-access.mjs --env=prod --email=<dirección> --confirm
+node scripts/set-review-access.mjs --env=prod --clear --confirm   # al terminar
+```
+
+`sendAuthOtpCode` escribe el hash de ese código fijo en el mismo doc de
+`authOtpCodes` donde iría uno aleatorio y se salta el envío; `verifyAuthOtpCode`
+no cambia. Siguen aplicándose la caducidad de 10 minutos, el tope de 5 intentos
+y el límite de 5 envíos cada 15 minutos, que es lo que mantiene un código que
+nunca rota fuera del alcance de la fuerza bruta.
+
+Preparación de la cuenta (hacer **antes** de rellenar el formulario):
+
+1. La dirección debe existir ya como usuario en el entorno de destino. El script
+   avisa si no, porque `verifyAuthOtpCode` crearía una cuenta nueva al primer
+   acceso — y una cuenta recién creada no está en ningún pueblo.
+2. Dejarla como **usuaria normal**, no app admin. El revisor no necesita las
+   pantallas de administración y exponerlas invita preguntas. Un código fijo
+   sobre una cuenta con autoridad sería una decisión distinta: lo que hace
+   asumible el riesgo es que la identidad no puede hacer nada que no pueda hacer
+   cualquiera que se registre.
+3. **Revocar con `--clear` cuando termine la revisión.** El código sólo merece su
+   riesgo mientras un revisor lo necesita.
+
+Lo que va en cada campo de Play Console → App access → "Add sign-in details":
+
+| Campo | Valor |
+|---|---|
+| Name (≤60) | `Test user account (village member)` |
+| Username / email (≤100) | la dirección en lista blanca |
+| Password | el **código fijo de 6 dígitos** — la app no tiene contraseña |
+| All functionality accessible | sí (una cuenta normal alcanza todo lo que puede hacer una persona usuaria) |
+
+Instrucciones (el formulario exige **inglés**):
+
+```
+Most of the app works without an account: events, news, villages and
+associations are public. An account is only needed to sign up for an event,
+join an association, publish content, or report or block a user.
+
+The app has no password. Sign-in is a 6-digit code sent by email. For this
+review account the code is fixed, so you do not need to open a mailbox.
+
+1. Open the app and tap "Entrar" (Sign in).
+2. Enter the email address above and tap "Enviar codigo".
+3. Type the code above into the app.
+
+Google Sign-In is also offered on that screen; please use the email code instead.
+
+The app interface is in Spanish.
+```
+
+**El texto es la parte que sostiene el trámite.** Un revisor con sólo un email y
+una contraseña, en una app sin campo de contraseña, lo intenta, falla y rechaza
+por "cannot access app". No recortar los tres pasos. Las mismas credenciales y
+el mismo texto valen para App Store Connect → App Review Information.
 
 ## Content rating
 

@@ -1072,7 +1072,8 @@ service cloud.firestore {
     }
 
     // _admin/** is server-only operational state: backfill completion markers
-    // at _admin/backfills/markers/{id}, and anything the registry adds later.
+    // at _admin/backfills/markers/{id}, the store-review sign-in credential at
+    // _admin/reviewAccess, and anything added later.
     // The Admin SDK bypasses rules, so the backfill harness writes these fine;
     // clients must never read or write them. Default-deny already blocks an
     // unmatched path — this explicit rule makes the invariant assertable and

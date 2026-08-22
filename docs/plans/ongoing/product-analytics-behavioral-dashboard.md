@@ -5,13 +5,13 @@ Builds directly on the shipped
 
 ## Status
 
-- **Updated:** 2026-07-25
-- **Stage:** Phase 0 (enable GA4→BigQuery export) in progress; Phase 1 (engagement instrumentation) shipped to dev/beta/prod.
+- **Updated:** 2026-08-21
+- **Stage:** Phase 0 (GA4→BigQuery export) **unverified and currently unverifiable from a laptop**; Phase 1 (engagement instrumentation) shipped to dev/beta/prod.
 - **Branch:** n/a — Phase 1 merged; Phase 0 is a console/infra action, no branch.
-- **Done:** Phase 1 full-engagement instrumentation merged to `develop` (PR #150, merge `295a6d9e`, 2026-07-19). **Google Analytics enabled on all three Firebase projects (dev/beta/prod) on 2026-07-19** — until then no GA4 property existed and no web analytics data was being collected anywhere (the app config carries no `measurementId`; the SDK relies on the runtime dynamic-config fetch, which only resolves once GA is enabled server-side).
-- **Next:** (1) Confirm the `analytics_<propertyId>` dataset provisions on prod and that events land once traffic + consent occur (verify via `bq`). (2) Prove the chain end-to-end by generating a little consented traffic on the prod web build. (3) Decide whether to add explicit `measurementId` to `firebaseConfigPerEnv`.
-- **Blockers:** GA4→BQ link is console-only (no CLI); **GA Data/Realtime API over CLI is now blocked** — Google deprecated the `analytics.readonly` scope on gcloud's default OAuth client, so verification goes through **BigQuery** (`cloud-platform` scope, which existing creds have), not the GA API.
-- **Handoff:** **GA4→BigQuery export LINKED on `cultuvilla-prod` 2026-07-19** — EU (`eu-west`), Daily + Streaming; dataset provisioning at time of writing. `matabuena.unida@gmail.com` has `roles/owner` on prod → can `bq` query it. **Phase 2's Firestore→BigQuery export must use the same region (`eu-west`)** or cross-location joins break. **Open finding:** `measurementId` is absent from `apps/mobile/app.config.ts` `firebaseConfigPerEnv` for all envs — analytics relies on the Firebase JS SDK's runtime dynamic-config fetch (works now that GA is enabled, but worth making explicit). Dev's GA property is under a different Google account (not visible to the prod/beta account).
+- **Done:** Phase 1 full-engagement instrumentation merged to `develop` (PR #150, merge `295a6d9e`, 2026-07-19). **Google Analytics enabled on all three Firebase projects (dev/beta/prod) on 2026-07-19** — until then no GA4 property existed and no web analytics data was being collected anywhere (the app config carries no `measurementId`; the SDK relies on the runtime dynamic-config fetch, which only resolves once GA is enabled server-side). GA4→BigQuery export **linked** on `cultuvilla-prod` 2026-07-19 — EU (`eu-west`), Daily + Streaming.
+- **Next:** (1) **Restore a credential that can read `cultuvilla-prod`** — see Blockers; nothing else in Phase 0 can be checked until then. (2) Confirm the `analytics_<propertyId>` dataset actually provisioned and that events land once traffic + consent occur. (3) Prove the chain end-to-end with a little consented traffic on the prod web build. (4) Decide whether to add explicit `measurementId` to `firebaseConfigPerEnv`.
+- **Blockers:** **The documented verification path is dead.** This plan's handoff said `matabuena.unida@gmail.com` holds `roles/owner` on prod and can therefore `bq` the export. As of 2026-08-21 it does not: `gcloud projects describe cultuvilla-prod` as that account returns *"does not have permission to access projects instance [cultuvilla-prod] (or it may not exist)"*, and `bq ls --project_id=cultuvilla-prod` consequently returns an empty listing rather than an error — which reads as "no datasets" and is **not** evidence either way about the export. Also still true: the GA4→BQ link is console-only (no CLI), and the GA Data/Realtime API over CLI is blocked because Google deprecated the `analytics.readonly` scope on gcloud's default OAuth client — so verification has to go through BigQuery, which is exactly what the lost access blocks.
+- **Handoff:** **Do not read an empty `bq ls` as "the export never provisioned"** — with no project access it is silent, not authoritative. Re-grant a prod-reading role (or verify from the Firebase/GCP console under the account that owns prod) before drawing any conclusion. **Phase 2's Firestore→BigQuery export must use the same region (`eu-west`)** or cross-location joins break. **Open finding:** `measurementId` is absent from `apps/mobile/app.config.ts` `firebaseConfigPerEnv` for all envs — analytics relies on the Firebase JS SDK's runtime dynamic-config fetch (works now that GA is enabled, but worth making explicit). Dev's GA property is under a different Google account (not visible to the prod/beta account).
 
 ## Rollout status
 
@@ -20,7 +20,7 @@ Builds directly on the shipped
 | Prereq — Google Analytics enabled on Firebase project | ✅ | ✅ | ✅ |
 | Phase 1 — engagement instrumentation (code) | ✅ | ✅ | ✅ |
 | Phase 1 — DebugView smoke verified | ⏳ | — | — |
-| Phase 0 — GA4→BigQuery export enabled | ⏳ | ⬜ | ⏳ |
+| Phase 0 — GA4→BigQuery export enabled | ⏳ | ⬜ | ⚠️ linked 2026-07-19; provisioning unverified — no prod access (see Blockers) |
 | Phase 2 — Firestore→BigQuery export | ⬜ | ⬜ | ⬜ |
 | Phase 2 — Looker Studio dashboard | ⬜ | ⬜ | ⬜ |
 | Phase 3 — log-based metrics + Cloud Monitoring dashboard | ⬜ | ⬜ | ⬜ |

@@ -14,7 +14,8 @@ next release.
 The runbook for the *sequence* of external steps (developer account, signing
 keys, tracks, the 12-tester closed test) stays in
 [../plans/ongoing/store-release.md](../plans/ongoing/store-release.md). This
-folder is the *content*; that file is the *process*.
+folder is the *content*; that file is the *process* — and its **"Dónde estamos"**
+checklist is the live state of the release, so start there.
 
 ## The rule that matters
 
@@ -44,9 +45,9 @@ binary's behaviour, and a mismatch gets the app pulled, not warned. So:
   cuenta) still exists and is what Apple looks for.
 - ✅ **Export compliance** is declared in the binary
   (`ITSAppUsesNonExemptEncryption: false`), so ASC stops asking per build.
-- ⚠️ **Reviewer account — still external, still needed.** Sign-in is an email
-  OTP or Google, so no credential in a form is usable on its own. Create the
-  review mailbox and hand over its password; see
+- ⚠️ **Reviewer account — decided, not yet created.** A dedicated review
+  mailbox, whose password goes in the console (the app itself has none). The
+  prep steps, the exact field values and the English instructions text are in
   [play-declarations.md](play-declarations.md#app-access-sign-in-details).
 - ⚠️ **Sign in with Apple** (guideline 4.8) before the first iOS submission,
   while Google Sign-In is on the login screen.
