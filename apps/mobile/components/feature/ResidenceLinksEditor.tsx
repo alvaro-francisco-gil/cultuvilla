@@ -15,6 +15,13 @@ export interface ResidenceLinksEditorProps {
  * municipalityLinks — there is no membership to drive a barrio, so the village
  * and barrio are both chosen here. Add/remove villages freely; one barrio per
  * village. Account-holders edit residence via MembershipVillageEditor instead.
+ *
+ * The one-barrio-per-village rule is enforced by hiding villages already used
+ * by another row from each row's picker, so a second barrio on the same village
+ * is unreachable rather than silently dropped on save. It matters because the
+ * two consumers of a duplicate disagree: `municipalityPeople` projects a single
+ * row per (municipality, person) so only one barrio roster ever lists them,
+ * while `syncBarrioResidentCount` increments both barrios.
  */
 export function ResidenceLinksEditor({ value, onChange }: ResidenceLinksEditorProps) {
   const { t } = useT();
@@ -63,6 +70,10 @@ export function ResidenceLinksEditor({ value, onChange }: ResidenceLinksEditorPr
             label={t('profile.personForm.village')}
             value={link.municipalityId || null}
             onChange={(id) => setVillage(i, id)}
+            excludeIds={value
+              .filter((_, j) => j !== i)
+              .map((l) => l.municipalityId)
+              .filter(Boolean)}
           />
           <BarrioPicker
             label={t('profile.personForm.barrio')}

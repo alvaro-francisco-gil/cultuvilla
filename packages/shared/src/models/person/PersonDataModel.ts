@@ -95,7 +95,7 @@ export function buildPersonData(input: PersonDataInput): PersonData {
     deathDate: input.deathDate ?? null,
     birthPlace: input.birthPlace ?? null,
     burialPlace: input.burialPlace ?? null,
-    municipalityLinks: input.municipalityLinks ?? [],
+    municipalityLinks: normalizeResidenceLinks(input.municipalityLinks ?? []),
     occupations: input.occupations ?? [],
     biography: input.biography ?? null,
     photoURL: input.photoURL ?? null,
@@ -118,6 +118,38 @@ export function buildResidenceLinks(
 ): MunicipalityLink[] {
   if (!municipalityId) return [];
   return [{ municipalityId, barrioId }];
+}
+
+/**
+ * Collapse residence links to **one per municipality** — the invariant every
+ * consumer already assumes. `municipalityPeople` projects a single row per
+ * (municipality, person) with a single `barrioId`, so a second link on the same
+ * village can never reach a barrio roster; but `syncBarrioResidentCount` keys on
+ * (municipalityId, barrioId) and would count the person in *both* barrios,
+ * inflating a count whose roster does not list them.
+ *
+ * The tie-break matches `syncMunicipalityPeople`'s projection exactly — the
+ * first link naming a barrio wins, so a whole-village link (`barrioId: null`)
+ * can never erase a barrio assignment. Order is otherwise preserved.
+ *
+ * Every path that writes `municipalityLinks` from a caller-supplied array must
+ * pass it through here; the single-selection paths (`updateResidenceBarrio`,
+ * `joinVillage`, `upsertResidenceLink`) already filter-then-append and are
+ * structurally single-barrio.
+ */
+export function normalizeResidenceLinks(links: MunicipalityLink[]): MunicipalityLink[] {
+  const byMunicipality = new Map<string, MunicipalityLink>();
+  for (const link of links) {
+    const existing = byMunicipality.get(link.municipalityId);
+    if (!existing) {
+      byMunicipality.set(link.municipalityId, link);
+      continue;
+    }
+    if (existing.barrioId === null && link.barrioId !== null) {
+      byMunicipality.set(link.municipalityId, link);
+    }
+  }
+  return [...byMunicipality.values()];
 }
 
 /** Full display name: "Juan Carlos García López" */

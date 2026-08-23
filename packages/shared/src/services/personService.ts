@@ -16,6 +16,7 @@ import {
   buildPersonData,
   buildDisplayName,
   buildResidenceLinks,
+  normalizeResidenceLinks,
   type PersonData,
   type PersonDataInput,
 } from '../models/person';
@@ -106,8 +107,13 @@ export async function updatePerson(
 ): Promise<void> {
   // updateDoc bypasses the converter, so partial-update payloads (and any
   // FieldValue sentinels callers might pass through Partial) go on the raw
-  // doc ref rather than the typed one.
-  await updateDoc(doc(getDb(), 'persons', personId), data);
+  // doc ref rather than the typed one. That also bypasses buildPersonData, so
+  // a caller-supplied links array is normalized here — one barrio per village,
+  // whatever the editor handed us.
+  const payload = data.municipalityLinks
+    ? { ...data, municipalityLinks: normalizeResidenceLinks(data.municipalityLinks) }
+    : data;
+  await updateDoc(doc(getDb(), 'persons', personId), payload);
 }
 
 export async function deletePerson(personId: string): Promise<void> {

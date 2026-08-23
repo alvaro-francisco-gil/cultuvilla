@@ -3,6 +3,7 @@ import {
   PersonDataSchema,
   buildPersonData,
   buildResidenceLinks,
+  normalizeResidenceLinks,
   buildDisplayName,
   buildShortName,
   buildNameWithNickname,
@@ -213,6 +214,85 @@ describe('buildResidenceLinks', () => {
     // so the stored object must have exactly those two keys and no others.
     const [link] = buildResidenceLinks('muni-1', 'barrio-1');
     expect(Object.keys(link).sort()).toEqual(['barrioId', 'municipalityId']);
+  });
+});
+
+describe('normalizeResidenceLinks', () => {
+  it('keeps distinct municipalities untouched, in order', () => {
+    const links = [
+      { municipalityId: 'muni-1', barrioId: 'barrio-1' },
+      { municipalityId: 'muni-2', barrioId: null },
+      { municipalityId: 'muni-3', barrioId: 'barrio-9' },
+    ];
+    expect(normalizeResidenceLinks(links)).toEqual(links);
+  });
+
+  it('collapses two barrios of the SAME village to the first one', () => {
+    // The bug this exists to stop: municipalityPeople projects one row per
+    // (municipality, person), so the second barrio never reaches a roster —
+    // but syncBarrioResidentCount would still count the person in both.
+    expect(
+      normalizeResidenceLinks([
+        { municipalityId: 'muni-1', barrioId: 'barrio-1' },
+        { municipalityId: 'muni-1', barrioId: 'barrio-2' },
+      ]),
+    ).toEqual([{ municipalityId: 'muni-1', barrioId: 'barrio-1' }]);
+  });
+
+  it('lets a barrio link win over an earlier whole-village link', () => {
+    // Same tie-break as syncMunicipalityPeople: the first link NAMING a barrio
+    // wins, so a barrioId-null entry can never erase a barrio assignment.
+    expect(
+      normalizeResidenceLinks([
+        { municipalityId: 'muni-1', barrioId: null },
+        { municipalityId: 'muni-1', barrioId: 'barrio-2' },
+      ]),
+    ).toEqual([{ municipalityId: 'muni-1', barrioId: 'barrio-2' }]);
+  });
+
+  it('keeps the first barrio when a whole-village link follows it', () => {
+    expect(
+      normalizeResidenceLinks([
+        { municipalityId: 'muni-1', barrioId: 'barrio-1' },
+        { municipalityId: 'muni-1', barrioId: null },
+      ]),
+    ).toEqual([{ municipalityId: 'muni-1', barrioId: 'barrio-1' }]);
+  });
+
+  it('preserves the position of a deduped municipality among the others', () => {
+    expect(
+      normalizeResidenceLinks([
+        { municipalityId: 'muni-1', barrioId: null },
+        { municipalityId: 'muni-2', barrioId: 'barrio-7' },
+        { municipalityId: 'muni-1', barrioId: 'barrio-3' },
+      ]),
+    ).toEqual([
+      { municipalityId: 'muni-1', barrioId: 'barrio-3' },
+      { municipalityId: 'muni-2', barrioId: 'barrio-7' },
+    ]);
+  });
+
+  it('is idempotent and safe on an empty list', () => {
+    expect(normalizeResidenceLinks([])).toEqual([]);
+    const once = normalizeResidenceLinks([
+      { municipalityId: 'muni-1', barrioId: 'barrio-1' },
+      { municipalityId: 'muni-1', barrioId: 'barrio-2' },
+    ]);
+    expect(normalizeResidenceLinks(once)).toEqual(once);
+  });
+});
+
+describe('buildPersonData residence normalization', () => {
+  it('deduplicates municipalityLinks so a new person cannot start multi-barrio', () => {
+    const person = buildPersonData({
+      givenName: 'Ana',
+      createdBy: 'uid-1',
+      municipalityLinks: [
+        { municipalityId: 'muni-1', barrioId: 'barrio-1' },
+        { municipalityId: 'muni-1', barrioId: 'barrio-2' },
+      ],
+    });
+    expect(person.municipalityLinks).toEqual([{ municipalityId: 'muni-1', barrioId: 'barrio-1' }]);
   });
 });
 

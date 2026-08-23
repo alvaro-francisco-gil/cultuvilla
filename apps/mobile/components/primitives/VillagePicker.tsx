@@ -31,12 +31,27 @@ export interface VillagePickerProps {
    * "add" affordance instead of a field-style trigger.
    */
   trigger?: (open: () => void) => ReactNode;
+  /**
+   * Municipality ids to hide from the results. Used by multi-row residence
+   * editors, where a village already claimed by another row must not be
+   * selectable again — a person lives in at most one barrio per village.
+   * The row's own `value` is never excluded, so re-opening the picker still
+   * shows the current selection.
+   */
+  excludeIds?: string[];
 }
 
 const PAGE_SIZE = 50;
 const DEBOUNCE_MS = 200;
 
-export function VillagePicker({ label, value, onChange, placeholder = 'Sin pueblo', trigger }: VillagePickerProps) {
+export function VillagePicker({
+  label,
+  value,
+  onChange,
+  placeholder = 'Sin pueblo',
+  trigger,
+  excludeIds,
+}: VillagePickerProps) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState('');
   const [results, setResults] = useState<Option[]>([]);
@@ -64,21 +79,28 @@ export function VillagePicker({ label, value, onChange, placeholder = 'Sin puebl
     return () => { cancelled = true; };
   }, [value, selected?.id]);
 
+  // Joined so the effect's dep list is a primitive — a fresh array literal from
+  // the parent on every render would otherwise re-run the search each time.
+  const excludedKey = (excludeIds ?? []).join(',');
+
   // Run search on modal open + on each (debounced) filter change.
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     setLoading(true);
+    const excluded = new Set(excludedKey ? excludedKey.split(',') : []);
     const handle = setTimeout(async () => {
       const list = await searchMunicipalities(filter, PAGE_SIZE);
       if (cancelled) return;
       setResults(
-        list.map((m) => ({
-          id: m.id,
-          name: m.name,
-          province: m.province,
-          escudoThumbUrl: escudoThumbDisplayUrl(m),
-        })),
+        list
+          .filter((m) => m.id === value || !excluded.has(m.id))
+          .map((m) => ({
+            id: m.id,
+            name: m.name,
+            province: m.province,
+            escudoThumbUrl: escudoThumbDisplayUrl(m),
+          })),
       );
       setLoading(false);
     }, DEBOUNCE_MS);
@@ -86,7 +108,7 @@ export function VillagePicker({ label, value, onChange, placeholder = 'Sin puebl
       cancelled = true;
       clearTimeout(handle);
     };
-  }, [open, filter]);
+  }, [open, filter, excludedKey, value]);
 
   return (
     <View>

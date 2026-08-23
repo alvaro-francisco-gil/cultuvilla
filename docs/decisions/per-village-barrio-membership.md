@@ -61,6 +61,38 @@ Every residence-link write — client or server — constructs the entry through
 `{ municipalityId, barrioId }` shape the `array-contains` query matches on. A
 stray extra key or wrong `null` would silently drop the person from the list.
 
+## One barrio per village — an invariant, not a preference
+
+`municipalityLinks` is an array, so nothing in its *type* stops two links naming
+the same municipality. The invariant is nonetheless load-bearing, because the two
+consumers of a duplicate disagree:
+
+- **`syncMunicipalityPeople`** projects **one row per (municipality, person)** —
+  doc id `{municipalityId}_{personId}`, a single `barrioId`, first-link-naming-a-
+  barrio wins. So only one barrio roster can ever list that person.
+- **`syncBarrioResidentCount`** keys deltas on `(municipalityId, barrioId)` and
+  increments **both**.
+
+A person in two barrios of one village therefore inflates a `residentCount` whose
+roster does not list them. Supporting multi-barrio properly would mean
+`municipalityPeople.barrioIds: string[]` with an `array-contains` query, a new
+composite index, a projection backfill, and add/remove (not upsert) semantics in
+every write path — deliberately not done.
+
+Enforcement, outside-in:
+
+- **`normalizeResidenceLinks`** (PersonDataModel) collapses an array to one link
+  per municipality, with the same tie-break as the projection. It runs in
+  `buildPersonData` and in `personService.updatePerson`, so no client path can
+  persist a duplicate whatever the editor hands over.
+- The **single-selection write paths** (`updateResidenceBarrio`, `joinVillage`,
+  `upsertResidenceLink`) filter-then-append and are structurally single-barrio;
+  they never needed the normalizer.
+- **`VillagePicker` takes `excludeIds`** so a multi-row editor hides villages
+  another row already holds — the duplicate is unreachable in the UI rather than
+  silently dropped on save. `ResidenceLinksEditor` (non-account persons) and
+  `MembershipVillageEditor` (own villages) both pass it.
+
 ## Key points
 
 - **No duplicate field, no projection lag.** Barrio lives in exactly one place.

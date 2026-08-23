@@ -4,6 +4,13 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Fixed
+
+- **Una persona a cargo ya no puede figurar en dos barrios del mismo pueblo.** El editor de residencia de las personas sin cuenta dejaba añadir dos filas con el mismo pueblo y distinto barrio, algo que su propia documentación decía que no permitía y que ninguna otra vía de escritura consiente: al unirte a un pueblo, al cambiar de barrio desde tu perfil o al aceptar una invitación, el enlace del pueblo se sustituye, nunca se acumula. El resultado no era sólo redundante, era **incoherente consigo mismo**: el directorio `municipalityPeople` guarda una única fila por (pueblo, persona), así que esa persona aparecía en el listado de un solo barrio, mientras que el contador de residentes la sumaba en los dos. Un barrio mostraba más vecinos de los que listaba.
+  - El selector de pueblo acepta ahora una lista de exclusión y cada fila oculta los pueblos que ya ocupa otra, de modo que el segundo barrio es inalcanzable en lugar de descartarse en silencio al guardar. Lo mismo en «Mis pueblos», que ya no ofrece un pueblo al que perteneces.
+  - Y por debajo, `normalizeResidenceLinks` colapsa los enlaces a uno por municipio en `buildPersonData` y en `updatePerson`, así que ninguna ruta de escritura puede volver a crear el estado, venga del editor que venga. El criterio de desempate es el mismo que ya usaba la proyección: gana el primer enlace que nombra un barrio, para que un enlace «todo el pueblo» no borre una asignación.
+  - **Migration:** los datos ya duplicados se corrigen con `scripts/backfill-dedupe-residence-links.mjs` (por entorno). Al reescribir la persona se dispara `syncBarrioResidentCount`, que resta el barrio sobrante — los contadores desviados se reparan solos.
+
 ### Changed
 
 - **Al editar los asistentes de un evento, cada fila ofrece sólo la papelera.** Con «Editar» activado convivían tres controles a un dedo de distancia: la casilla de *Pagado*, el icono de llamar y la papelera. Un toque desviado marcaba a alguien como pagado o le abría el teléfono cuando lo que se quería era quitarle de la lista. El modo de edición trata de eliminar y de nada más, así que mientras está activo la casilla y la llamada se retiran; al desactivarlo vuelven a su sitio.

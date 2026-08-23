@@ -189,6 +189,9 @@ export function MembershipVillageEditor({ userId }: MembershipVillageEditorProps
         label={t('profile.personForm.addVillage')}
         value={null}
         onChange={(id) => void onAddVillage(id)}
+        // A village already joined has a row above with its own barrio picker;
+        // offering it again would only re-run a no-op ensureVillageMembership.
+        excludeIds={rows.map((r) => r.municipalityId)}
         trigger={(open) => (
           <Pressable
             onPress={open}
