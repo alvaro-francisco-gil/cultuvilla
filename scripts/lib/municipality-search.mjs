@@ -34,9 +34,9 @@ function pushPrefixes(source, into) {
   for (let i = 1; i <= limit; i++) into.add(source.slice(0, i));
 }
 
-export function searchPrefixes(name, aliases = []) {
+export function searchPrefixes(name, aliases = [], localities = []) {
   const prefixes = new Set();
-  for (const source of [name, ...aliases]) {
+  for (const source of [name, ...aliases, ...localities]) {
     const normalized = searchKey(source).trim().replace(/\s+/g, ' ');
     if (normalized.length === 0) continue;
     pushPrefixes(normalized, prefixes);

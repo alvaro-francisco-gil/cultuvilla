@@ -12,6 +12,7 @@ import {
 } from '@cultuvilla/shared/services/municipalityService';
 import {
   escudoThumbDisplayUrl,
+  matchedLocality,
   municipalitySearchKey,
 } from '@cultuvilla/shared/models/municipality';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality';
@@ -129,7 +130,12 @@ export function VillageDiscovery() {
     return active.filter((m) => m.searchPrefixes.includes(key));
   }, [active, search]);
 
+
   const noResults = pageLoaded && activeFiltered.length === 0 && all.length === 0;
+
+  const searchKey = municipalitySearchKey(search.trim());
+  const localityFor = (m: Muni): string | null =>
+    searchKey.length === 0 ? null : matchedLocality(m.localityNames, searchKey);
 
   const rows: Row[] = useMemo(() => {
     const out: Row[] = [];
@@ -249,6 +255,7 @@ export function VillageDiscovery() {
           }
           const m = item.muni;
           const joined = joinedIds.has(m.id);
+          const via = localityFor(m);
           return (
             <Pressable
               onPress={() => viewMuni(m)}
@@ -263,6 +270,14 @@ export function VillageDiscovery() {
                   <Text tone="muted" variant="bodySm">
                     {m.province}
                   </Text>
+                  {/* A search for "Villarino de Manzanas" that returns a row
+                      reading only "Figueruela de Arriba" looks like the wrong
+                      answer. Naming the pedanía makes it the right one. */}
+                  {via ? (
+                    <Text tone="muted" variant="bodySm">
+                      {t('discover.viaLocality', { locality: via })}
+                    </Text>
+                  ) : null}
                 </VStack>
                 {m.communityActive ? (
                   <HStack gap={1} className="items-center">

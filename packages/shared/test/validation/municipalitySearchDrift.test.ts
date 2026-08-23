@@ -23,6 +23,7 @@ interface Entry {
   name: string;
   codigoINE: string;
   nameAliases?: string[];
+  localityNames?: string[];
 }
 
 const dataset = JSON.parse(readFileSync(datasetPath, 'utf-8')) as Entry[];
@@ -34,7 +35,11 @@ function byIne(ine: string): Entry {
 }
 
 const jsKey = searchKey as (name: string) => string;
-const jsPrefixes = searchPrefixes as (name: string, aliases?: string[]) => string[];
+const jsPrefixes = searchPrefixes as (
+  name: string,
+  aliases?: string[],
+  localities?: string[],
+) => string[];
 
 describe('municipality search key parity (TS model vs. scripts/lib .mjs)', () => {
   it('agrees on the search key for every municipality in the dataset', () => {
@@ -45,8 +50,9 @@ describe('municipality search key parity (TS model vs. scripts/lib .mjs)', () =>
   it('agrees on the prefix set for every municipality in the dataset', () => {
     const drift = dataset.filter((e) => {
       const aliases = e.nameAliases ?? [];
-      const ts = municipalitySearchPrefixes(e.name, aliases);
-      const js = jsPrefixes(e.name, aliases);
+      const localities = e.localityNames ?? [];
+      const ts = municipalitySearchPrefixes(e.name, aliases, localities);
+      const js = jsPrefixes(e.name, aliases, localities);
       return ts.length !== js.length || ts.some((v, i) => v !== js[i]);
     });
     expect(drift.map((e) => `${e.codigoINE} ${e.name}`)).toEqual([]);
@@ -92,11 +98,41 @@ describe('the dataset is actually searchable', () => {
     expect(dataset.every((e) => Array.isArray(e.nameAliases))).toBe(true);
   });
 
+  it('gives every entry a localityNames array', () => {
+    expect(dataset.every((e) => Array.isArray(e.localityNames))).toBe(true);
+  });
+
+  // The whole point of the locality index: this is the search that started the
+  // bug report, and it has to resolve to the municipio that contains it.
+  it('finds Figueruela de Arriba by searching for Villarino de Manzanas', () => {
+    const figueruela = byIne('49069');
+    expect(figueruela.localityNames).toContain('Villarino de Manzanas');
+    const prefixes = municipalitySearchPrefixes(
+      figueruela.name,
+      figueruela.nameAliases ?? [],
+      figueruela.localityNames ?? [],
+    );
+    expect(prefixes).toContain('villarino de manzanas');
+    expect(prefixes).toContain('manzanas');
+  });
+
+  it('never lists the municipio itself as one of its own localities', () => {
+    const selfListed = dataset.filter((e) => (e.localityNames ?? []).includes(e.name));
+    expect(selfListed.map((e) => `${e.codigoINE} ${e.name}`)).toEqual([]);
+  });
+
   it('keeps the prefix index small enough to stay a cheap array index', () => {
-    const sizes = dataset.map((e) => municipalitySearchPrefixes(e.name, e.nameAliases ?? []).length);
+    const sizes = dataset.map(
+      (e) =>
+        municipalitySearchPrefixes(e.name, e.nameAliases ?? [], e.localityNames ?? []).length,
+    );
     const max = Math.max(...sizes);
     const mean = sizes.reduce((a, b) => a + b, 0) / sizes.length;
-    expect(max).toBeLessThan(400);
-    expect(mean).toBeLessThan(120);
+    // Real data today: max 587 entries / 4.2KB on Llanera (70 localities),
+    // mean 34 / 255 bytes. Firestore allows 40,000 index entries and ~1MB per
+    // document, so there is a lot of headroom — but a runaway locality list
+    // would show up here first.
+    expect(max).toBeLessThan(2000);
+    expect(mean).toBeLessThan(100);
   });
 });

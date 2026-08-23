@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Populate `municipalities.searchPrefixes` (and `nameAliases`) — the array the
+ * Populate `municipalities.searchPrefixes` (and `nameAliases` / `localityNames`) — the array the
  * village-discovery search now queries with `array-contains`.
  *
  * Why: search used to be a `nameLower` range scan, which only matched the
@@ -34,7 +34,7 @@ export const meta = {
   id: 'municipality-search-prefixes',
   kind: 'backfill',
   description:
-    'Populate municipalities.searchPrefixes + nameAliases so discovery search matches any word of the name',
+    'Populate municipalities.searchPrefixes + nameAliases + localityNames so discovery search matches any word of the name, any co-official name, and any pedanía inside it',
   phase: 'pre-deploy',
   envs: ['dev', 'beta', 'prod'],
   idempotent: true,
@@ -50,8 +50,9 @@ export const meta = {
 const dataset = JSON.parse(
   readFileSync(path.join(__dirname, 'data', 'municipalities-es.json'), 'utf8'),
 );
-const aliasesByIne = new Map(
-  dataset.map((entry) => [entry.codigoINE, entry.nameAliases ?? []]),
+const aliasesByIne = new Map(dataset.map((entry) => [entry.codigoINE, entry.nameAliases ?? []]));
+const localitiesByIne = new Map(
+  dataset.map((entry) => [entry.codigoINE, entry.localityNames ?? []]),
 );
 
 function sameArray(a, b) {
@@ -61,15 +62,24 @@ function sameArray(a, b) {
 function patchFor(data) {
   if (typeof data.name !== 'string') return null;
   const wantAliases = aliasesByIne.get(data.codigoINE) ?? [];
-  const wantPrefixes = searchPrefixes(data.name, wantAliases);
-  if (sameArray(data.nameAliases, wantAliases) && sameArray(data.searchPrefixes, wantPrefixes)) {
+  const wantLocalities = localitiesByIne.get(data.codigoINE) ?? [];
+  const wantPrefixes = searchPrefixes(data.name, wantAliases, wantLocalities);
+  if (
+    sameArray(data.nameAliases, wantAliases) &&
+    sameArray(data.localityNames, wantLocalities) &&
+    sameArray(data.searchPrefixes, wantPrefixes)
+  ) {
     return null;
   }
-  return { nameAliases: wantAliases, searchPrefixes: wantPrefixes };
+  return {
+    nameAliases: wantAliases,
+    localityNames: wantLocalities,
+    searchPrefixes: wantPrefixes,
+  };
 }
 
 export async function run({ db, apply, log }) {
-  log('municipalities.searchPrefixes + nameAliases');
+  log('municipalities.searchPrefixes + nameAliases + localityNames');
   const { total, patched } = await backfillCollection(
     db,
     'municipalities',

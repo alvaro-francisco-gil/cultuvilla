@@ -10,6 +10,7 @@ import {
   buildPlaceData,
   municipalitySearchKey,
   municipalitySearchPrefixes,
+  matchedLocality,
   hasManualEscudo,
   escudoFullUrl,
   escudoThumbDisplayUrl,
@@ -19,6 +20,7 @@ const validMunicipality = {
   name: 'Jódar',
   nameLower: 'jodar',
   nameAliases: [],
+  localityNames: [],
   searchPrefixes: ['j', 'jo', 'jod', 'joda', 'jodar'],
   province: 'Jaén',
   comunidadAutonoma: 'Andalucía',
@@ -333,5 +335,104 @@ describe('buildMunicipalityData search fields', () => {
     });
     expect(built.nameAliases).toEqual([]);
     expect(built.searchPrefixes).toContain('jodar');
+  });
+});
+
+describe('municipalitySearchPrefixes with localities', () => {
+  it('finds the municipio by the name of a pedanía inside it', () => {
+    // The report that started all of this: a resident of Villarino de Manzanas
+    // searched for Villarino de Manzanas. It is an entidad singular of
+    // Figueruela de Arriba, so the municipio is what has to answer for it.
+    const prefixes = municipalitySearchPrefixes('Figueruela de Arriba', [], [
+      'Villarino de Manzanas',
+    ]);
+    expect(prefixes).toContain('villarino de manzanas');
+    expect(prefixes).toContain('villarino');
+    // ...and by a non-leading word of the pedanía too, same as for the municipio.
+    expect(prefixes).toContain('manzanas');
+    // The municipio's own name keeps working.
+    expect(prefixes).toContain('figueruela');
+    expect(prefixes).toContain('arriba');
+  });
+
+  it('indexes every locality, not just the first', () => {
+    const prefixes = municipalitySearchPrefixes('Figueruela de Arriba', [], [
+      'Villarino de Manzanas',
+      'Riomanzanas',
+      'Moldones',
+    ]);
+    expect(prefixes).toContain('riomanzanas');
+    expect(prefixes).toContain('moldones');
+  });
+
+  it('keeps localities and aliases independent', () => {
+    const prefixes = municipalitySearchPrefixes('San Sebastián', ['Donostia'], ['Igueldo']);
+    expect(prefixes).toContain('donostia');
+    expect(prefixes).toContain('igueldo');
+  });
+
+  it('stays deduplicated and sorted with localities in play', () => {
+    const prefixes = municipalitySearchPrefixes('Figueruela de Arriba', [], [
+      'Figueruela de Arriba',
+      'Villarino de Manzanas',
+    ]);
+    expect(new Set(prefixes).size).toBe(prefixes.length);
+    expect([...prefixes].sort()).toEqual(prefixes);
+  });
+});
+
+describe('matchedLocality', () => {
+  it('names the pedanía that made a municipio match', () => {
+    expect(matchedLocality(['Villarino de Manzanas', 'Moldones'], 'villarino')).toBe(
+      'Villarino de Manzanas',
+    );
+    expect(matchedLocality(['Villarino de Manzanas', 'Moldones'], 'manzanas')).toBe(
+      'Villarino de Manzanas',
+    );
+    expect(matchedLocality(['Villarino de Manzanas', 'Moldones'], 'mold')).toBe('Moldones');
+  });
+
+  it('returns null when the query did not come from a locality', () => {
+    expect(matchedLocality(['Villarino de Manzanas'], 'figueruela')).toBeNull();
+    expect(matchedLocality([], 'villarino')).toBeNull();
+    expect(matchedLocality(['Villarino de Manzanas'], '')).toBeNull();
+  });
+
+  it('matches accent-insensitively, like the index does', () => {
+    expect(matchedLocality(['Vegaquemada de Arriba'], 'vegaquemada')).toBe(
+      'Vegaquemada de Arriba',
+    );
+    expect(matchedLocality(['Cañizo'], 'caniz')).toBe('Cañizo');
+  });
+});
+
+describe('buildMunicipalityData localities', () => {
+  it('derives searchPrefixes from name, aliases and localities together', () => {
+    const built = buildMunicipalityData({
+      name: 'Figueruela de Arriba',
+      province: 'Zamora',
+      comunidadAutonoma: 'Castilla y León',
+      codigoINE: '49069',
+      localityNames: ['Villarino de Manzanas'],
+    });
+    expect(built.localityNames).toEqual(['Villarino de Manzanas']);
+    expect(built.searchPrefixes).toContain('villarino');
+  });
+
+  it('defaults localityNames to an empty array', () => {
+    const built = buildMunicipalityData({
+      name: 'Jódar',
+      province: 'Jaén',
+      comunidadAutonoma: 'Andalucía',
+      codigoINE: '23050',
+    });
+    expect(built.localityNames).toEqual([]);
+  });
+});
+
+describe('MunicipalityDataSchema localityNames', () => {
+  it('requires localityNames, so a doc predating the field is caught', () => {
+    const { localityNames: _omitted, ...without } = validMunicipality;
+    expect(() => MunicipalityDataSchema.parse(without)).toThrow();
   });
 });

@@ -73,18 +73,24 @@ function pushPrefixes(source: string, into: Set<string>): void {
  *    42% of Spanish municipality names are multi-word, and residents type the
  *    distinctive word, not the generic one.
  *
- * `aliases` (official-language names — Donostia, Lleida, A Coruña) are folded
- * into both families, so a Basque or Catalan speaker finds their pueblo by the
- * name they actually use.
+ * `aliases` (official-language names — Donostia, Lleida, A Coruña) and
+ * `localities` (the entidades singulares *inside* the municipality — Villarino
+ * de Manzanas inside Figueruela de Arriba) are folded into both families. Most
+ * Spanish villages are not municipios, so without the latter a resident
+ * searching for the name of the place they actually live in gets nothing.
  *
  * Prefixes are accent-stripped and lowercased, so the array is queried with the
  * output of `municipalitySearchKey`. The result is deduplicated and sorted so
  * regenerating it produces a byte-identical field and the backfill stays a no-op.
  */
-export function municipalitySearchPrefixes(name: string, aliases: string[] = []): string[] {
+export function municipalitySearchPrefixes(
+  name: string,
+  aliases: string[] = [],
+  localities: string[] = [],
+): string[] {
   const prefixes = new Set<string>();
 
-  for (const source of [name, ...aliases]) {
+  for (const source of [name, ...aliases, ...localities]) {
     const normalized = municipalitySearchKey(source).trim().replace(/\s+/g, ' ');
     if (normalized.length === 0) continue;
 
@@ -103,6 +109,29 @@ export function municipalitySearchPrefixes(name: string, aliases: string[] = [])
   return [...prefixes].sort();
 }
 
+/**
+ * The locality whose name explains why this municipality matched `query`, or
+ * `null` when the municipality matched on its own name or an alias.
+ *
+ * A search for "Villarino de Manzanas" returning a row that just says
+ * "Figueruela de Arriba" looks like the wrong answer. Naming the pedanía turns
+ * it into the right one.
+ *
+ * Mirrors the token rule in `municipalitySearchPrefixes`: any *word* of the
+ * locality may carry the match, not only the first.
+ */
+export function matchedLocality(localities: string[], query: string): string | null {
+  const key = municipalitySearchKey(query).trim();
+  if (key.length === 0) return null;
+  for (const locality of localities) {
+    const normalized = municipalitySearchKey(locality).trim().replace(/\s+/g, ' ');
+    if (normalized.startsWith(key)) return locality;
+    const tokens = normalized.split(/[^\p{L}\p{N}]+/u).filter((t) => t.length > 0);
+    if (tokens.some((token) => token.startsWith(key))) return locality;
+  }
+  return null;
+}
+
 export const MunicipalityDataSchema = z.object({
   // ── Reference data (INE-seeded, immutable in practice) ─────────────────
   name: z.string(),
@@ -116,7 +145,12 @@ export const MunicipalityDataSchema = z.object({
    *  from Wikidata labels; empty for the ~85% of municipalities whose name is
    *  the same in every language. */
   nameAliases: z.array(z.string()),
-  /** Flattened prefix index over `name` + `nameAliases` — see
+  /** The entidades singulares de población inside this municipality — pedanías,
+   *  anejos, aldeas. They are indexed for search but are not entities of their
+   *  own: you cannot join, post to or administer one, it only leads you to its
+   *  municipio. Empty for a municipality that is a single settlement. */
+  localityNames: z.array(z.string()),
+  /** Flattened prefix index over `name` + `nameAliases` + `localityNames` — see
    *  `municipalitySearchPrefixes`. Queried with `array-contains` so search
    *  matches any *word* of the name, not just the first. */
   searchPrefixes: z.array(z.string()),
@@ -165,6 +199,7 @@ export interface MunicipalityDataInput {
   comunidadAutonoma: string;
   codigoINE: string;
   nameAliases?: string[];
+  localityNames?: string[];
   coordinates?: LatLng | null;
   locationLabel?: string | null;
   mapZoom?: number | null;
@@ -203,7 +238,12 @@ export function buildMunicipalityData(input: MunicipalityDataInput): Municipalit
     name: input.name,
     nameLower: municipalitySearchKey(input.name),
     nameAliases: input.nameAliases ?? [],
-    searchPrefixes: municipalitySearchPrefixes(input.name, input.nameAliases ?? []),
+    localityNames: input.localityNames ?? [],
+    searchPrefixes: municipalitySearchPrefixes(
+      input.name,
+      input.nameAliases ?? [],
+      input.localityNames ?? [],
+    ),
     province: input.province,
     comunidadAutonoma: input.comunidadAutonoma,
     codigoINE: input.codigoINE,
