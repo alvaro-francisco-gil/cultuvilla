@@ -9,6 +9,7 @@ import {
   buildBarrioData,
   buildPlaceData,
   municipalitySearchKey,
+  municipalitySearchPrefixes,
   hasManualEscudo,
   escudoFullUrl,
   escudoThumbDisplayUrl,
@@ -17,6 +18,8 @@ import {
 const validMunicipality = {
   name: 'Jódar',
   nameLower: 'jodar',
+  nameAliases: [],
+  searchPrefixes: ['j', 'jo', 'jod', 'joda', 'jodar'],
   province: 'Jaén',
   comunidadAutonoma: 'Andalucía',
   codigoINE: '23050',
@@ -227,5 +230,108 @@ describe('PlaceDataSchema and buildPlaceData', () => {
         createdAt: new Date(),
       }),
     ).toThrow();
+  });
+});
+
+describe('municipalitySearchPrefixes', () => {
+  it('indexes every word, not just the first, so the leading generic is optional', () => {
+    const prefixes = municipalitySearchPrefixes('Villanueva de las Manzanas');
+    // The bug: a resident searches for the distinctive word, not the generic
+    // "Villanueva de las" that four dozen Spanish municipalities share.
+    expect(prefixes).toContain('manzanas');
+    expect(prefixes).toContain('manzan');
+    expect(prefixes).toContain('villanueva');
+  });
+
+  it('keeps whole-string prefixes so multi-word typing still narrows', () => {
+    const prefixes = municipalitySearchPrefixes('Villanueva de las Manzanas');
+    expect(prefixes).toContain('villanueva de las m');
+    expect(prefixes).toContain('villanueva de las manzanas');
+  });
+
+  it('strips accents so "avila" finds "Ávila"', () => {
+    expect(municipalitySearchPrefixes('Ávila')).toContain('avila');
+    expect(municipalitySearchPrefixes('Castellón de la Plana')).toContain('castellon');
+  });
+
+  it('indexes official-language aliases alongside the Spanish name', () => {
+    const prefixes = municipalitySearchPrefixes('San Sebastián', ['Donostia', 'Donostia-San Sebastián']);
+    expect(prefixes).toContain('donostia');
+    expect(prefixes).toContain('sebastian');
+    expect(prefixes).toContain('san sebastian');
+  });
+
+  it('drops standalone connectives so every "X de Y" name does not share a token', () => {
+    const prefixes = municipalitySearchPrefixes('Villanueva de las Manzanas');
+    expect(prefixes).not.toContain('de');
+    expect(prefixes).not.toContain('las');
+    // ...but a whole-string prefix that happens to span one is still fine.
+    expect(prefixes).toContain('villanueva de');
+  });
+
+  it('keeps a connective that is the only word (Sa Pobla stays findable as "sa")', () => {
+    expect(municipalitySearchPrefixes('Es')).toContain('es');
+  });
+
+  it('splits on punctuation, not just whitespace', () => {
+    const prefixes = municipalitySearchPrefixes("Castillo de Aro, Playa de Aro y S'Agaró");
+    expect(prefixes).toContain('playa');
+    expect(prefixes).toContain('agaro');
+  });
+
+  it('returns a deduplicated, sorted array so the field is stable across rebuilds', () => {
+    const a = municipalitySearchPrefixes('San Sebastián', ['Donostia']);
+    const b = municipalitySearchPrefixes('San Sebastián', ['Donostia']);
+    expect(a).toEqual(b);
+    expect(new Set(a).size).toBe(a.length);
+    expect([...a].sort()).toEqual(a);
+  });
+
+  it('is empty for an empty name', () => {
+    expect(municipalitySearchPrefixes('')).toEqual([]);
+  });
+
+  it('stays small enough to be a sane Firestore array index', () => {
+    const prefixes = municipalitySearchPrefixes("Castillo de Aro, Playa de Aro y S'Agaró");
+    expect(prefixes.length).toBeLessThan(200);
+  });
+});
+
+describe('MunicipalityDataSchema search fields', () => {
+  it('requires searchPrefixes, so a doc predating the field is caught by the converter', () => {
+    const { searchPrefixes: _omitted, ...without } = validMunicipality;
+    expect(() => MunicipalityDataSchema.parse(without)).toThrow();
+  });
+
+  it('requires nameAliases', () => {
+    const { nameAliases: _omitted, ...without } = validMunicipality;
+    expect(() => MunicipalityDataSchema.parse(without)).toThrow();
+  });
+});
+
+describe('buildMunicipalityData search fields', () => {
+  it('derives searchPrefixes from the name and the aliases', () => {
+    const built = buildMunicipalityData({
+      name: 'San Sebastián',
+      province: 'Guipúzcoa',
+      comunidadAutonoma: 'País Vasco',
+      codigoINE: '20069',
+      nameAliases: ['Donostia'],
+    });
+    expect(built.nameAliases).toEqual(['Donostia']);
+    expect(built.searchPrefixes).toContain('donostia');
+    expect(built.searchPrefixes).toContain('sebastian');
+    expect(built.nameLower).toBe('san sebastian');
+  });
+
+  it('defaults nameAliases to an empty array', () => {
+    const built = buildMunicipalityData({
+      name: 'Jódar',
+      province: 'Jaén',
+      comunidadAutonoma: 'Andalucía',
+      codigoINE: '23050',
+    });
+    expect(built.nameAliases).toEqual([]);
+    expect(built.searchPrefixes).toContain('jodar');
   });
 });

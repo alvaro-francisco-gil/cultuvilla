@@ -36,12 +36,90 @@ export function municipalitySearchKey(name: string): string {
     .toLowerCase();
 }
 
+/**
+ * Words that carry no distinguishing signal on their own. Spanish municipality
+ * names are overwhelmingly `<generic> de <distinctive>`, so indexing these as
+ * standalone tokens would put `de` on 3,400 documents and buy nothing — a user
+ * never searches for "de". They are dropped only from *token* indexing; the
+ * whole-string prefixes below still span them, so "villanueva de las m" works.
+ */
+const SEARCH_STOPWORDS = new Set([
+  'de', 'del', 'la', 'las', 'el', 'los', 'lo', 'y', 'e', 'i',
+  'da', 'do', 'das', 'dos', 'a', 'o', 'as', 'os',
+  'en', 'sa', 'ses', 'es', 'ets', 'na',
+]);
+
+/** Longest token/name we generate prefixes for. Nothing in the INE dataset comes
+ *  close, but an unbounded loop over a pathological string is a footgun. */
+const MAX_PREFIX_LENGTH = 40;
+
+function pushPrefixes(source: string, into: Set<string>): void {
+  const limit = Math.min(source.length, MAX_PREFIX_LENGTH);
+  for (let i = 1; i <= limit; i++) into.add(source.slice(0, i));
+}
+
+/**
+ * Every prefix a user could plausibly type to find this municipality, as a flat
+ * array for a single `array-contains` query.
+ *
+ * Two families are indexed:
+ *
+ * 1. **Whole-string prefixes** of the normalized name — what the old
+ *    `nameLower >= key < key + \uf8ff` range query matched. Keeps multi-word
+ *    typing ("san sebast", "villanueva de las m") narrowing as you type.
+ * 2. **Per-token prefixes** of every non-stopword word. This is the fix: the
+ *    leading generic becomes optional, so `manzanas` finds
+ *    *Villanueva de las Manzanas* and `aires` finds *Villarino de los Aires*.
+ *    42% of Spanish municipality names are multi-word, and residents type the
+ *    distinctive word, not the generic one.
+ *
+ * `aliases` (official-language names — Donostia, Lleida, A Coruña) are folded
+ * into both families, so a Basque or Catalan speaker finds their pueblo by the
+ * name they actually use.
+ *
+ * Prefixes are accent-stripped and lowercased, so the array is queried with the
+ * output of `municipalitySearchKey`. The result is deduplicated and sorted so
+ * regenerating it produces a byte-identical field and the backfill stays a no-op.
+ */
+export function municipalitySearchPrefixes(name: string, aliases: string[] = []): string[] {
+  const prefixes = new Set<string>();
+
+  for (const source of [name, ...aliases]) {
+    const normalized = municipalitySearchKey(source).trim().replace(/\s+/g, ' ');
+    if (normalized.length === 0) continue;
+
+    pushPrefixes(normalized, prefixes);
+
+    // Split on anything that isn't a letter or digit: whitespace, but also the
+    // commas and apostrophes in "Castillo de Aro, Playa de Aro y S'Agaró".
+    const tokens = normalized.split(/[^\p{L}\p{N}]+/u).filter((t) => t.length > 0);
+    for (const token of tokens) {
+      // A stopword that is the entire name ("Es") is the name — keep it.
+      if (tokens.length > 1 && SEARCH_STOPWORDS.has(token)) continue;
+      pushPrefixes(token, prefixes);
+    }
+  }
+
+  return [...prefixes].sort();
+}
+
 export const MunicipalityDataSchema = z.object({
   // ── Reference data (INE-seeded, immutable in practice) ─────────────────
   name: z.string(),
   /** Accent-stripped, lowercased copy of `name` for case/accent-insensitive
    * prefix search. Always derivable from `name`; stored so Firestore can index. */
   nameLower: z.string(),
+  /** Official-language names for the same municipality — "Donostia" for San
+   *  Sebastián, "Lleida" for Lérida, "A Coruña" for La Coruña. The dataset is
+   *  seeded with Spanish exonyms only, which left Basque/Catalan/Galician
+   *  speakers unable to find their own pueblo by the name they use. Sourced
+   *  from Wikidata labels; empty for the ~85% of municipalities whose name is
+   *  the same in every language. */
+  nameAliases: z.array(z.string()),
+  /** Flattened prefix index over `name` + `nameAliases` — see
+   *  `municipalitySearchPrefixes`. Queried with `array-contains` so search
+   *  matches any *word* of the name, not just the first. */
+  searchPrefixes: z.array(z.string()),
   province: z.string(),
   comunidadAutonoma: z.string(),
   codigoINE: z.string(),
@@ -86,6 +164,7 @@ export interface MunicipalityDataInput {
   province: string;
   comunidadAutonoma: string;
   codigoINE: string;
+  nameAliases?: string[];
   coordinates?: LatLng | null;
   locationLabel?: string | null;
   mapZoom?: number | null;
@@ -123,6 +202,8 @@ export function buildMunicipalityData(input: MunicipalityDataInput): Municipalit
   return {
     name: input.name,
     nameLower: municipalitySearchKey(input.name),
+    nameAliases: input.nameAliases ?? [],
+    searchPrefixes: municipalitySearchPrefixes(input.name, input.nameAliases ?? []),
     province: input.province,
     comunidadAutonoma: input.comunidadAutonoma,
     codigoINE: input.codigoINE,

@@ -22,6 +22,8 @@ async function seedMunicipality(organizerId: string | null = null): Promise<void
     .set({
       name: 'Villarriba',
       nameLower: 'villarriba',
+      nameAliases: [],
+      searchPrefixes: ['v', 'vi', 'vil', 'vill', 'villa', 'villar', 'villarr', 'villarri', 'villarrib', 'villarriba'],
       province: 'Madrid',
       comunidadAutonoma: 'Madrid',
       codigoINE: '28000',
