@@ -91,6 +91,46 @@ is why Wikidata won on "cleanest long term" despite losing on completeness —
 or to decide deliberately that a hand-fetched snapshot is acceptable *provided*
 it carries a freshness marker and a staleness test.
 
+## Found it: OpenStreetMap (2026-08-24)
+
+Overpass answers both halves. Probed against the same places:
+
+| Fuente | Figueruela de Arriba | Lugo | A Coruña | Pontevedra | Ourense |
+|---|---:|---:|---:|---:|---:|
+| Wikidata (hoy) | 6 | 2 | 4 | 3 | 5 |
+| OSM `place=city\|town\|village\|hamlet` | 6 | 11.441 | 13.676 | 7.350 | 4.543 |
+
+Galicia goes from **19 localities to ~37.000** — the right order of magnitude for
+a region with roughly 30.000 entidades singulares.
+
+**The tag filter is the whole game.** In Figueruela de Arriba OSM has 260 `place`
+nodes, but only 7 are settlements:
+
+- `village` / `hamlet` → **entidad singular**. The 6 returned are exactly the 6
+  Wikidata knew about, plus the municipal seat. This mapping is clean.
+- `locality` → **uninhabited toponym** — *parajes*, hilltops, streams, field
+  names (*Peña las Carreras*, *Alto de Fanales*, *Cruz de la Encrucijada*). 253
+  of the 260. Including these would flood search with names nobody lives in.
+- `isolated_dwelling` → **diseminado**. Borderline; out of scope for now.
+
+Properties that matter:
+
+- **Scriptable and re-fetchable** — Overpass, one query per province, the same
+  shape as `enrich-municipality-aliases.mjs` and `fetch-localities.mjs`.
+- **Attaches to the municipio spatially** — `area[name][admin_level=8]` scopes
+  the query, so no INE code is needed on the OSM side. Verified on Figueruela.
+- **Carries coordinates**, which the current locality data does not.
+
+### The catch: ODbL
+
+OSM is **ODbL**, not CC0 like Wikidata. Attribution ("© OpenStreetMap
+contributors") is trivial and non-negotiable. The open question is share-alike:
+ODbL's copyleft binds *derived databases*, and a case can be made that a search
+alias list extracted into our own docs is a "produced work" rather than a
+derived database — but that is a judgement, not a certainty. **This needs a
+deliberate decision before the import lands**, and it is now the main argument
+for still wanting an INE/IGN source someday.
+
 ## The modelling question: pedanía vs. barrio
 
 **They are not the same thing, and the codebase currently has no place for the
@@ -159,15 +199,11 @@ case.
 
 ## Open questions
 
-1. **Is there a complete, re-fetchable source?** Candidates not yet exhausted:
-   the IGN's WFS/ATOM services and its `Nomenclátor Geográfico Básico` (NGBE),
-   `datos.gob.es` distributions, regional open-data portals (Galicia's
-   [abertos](https://abertos.xunta.gal) is the highest-value single target),
-   OpenStreetMap `place=village|hamlet` with `addr:*` relations, and widening
-   the Wikidata class list to include `parroquia`.
-2. **Can a hand-fetched snapshot be made safe?** If the only complete source is
-   a manual `.mdb` download, does a committed `fetchedAt` + a test that fails
-   when the file is older than N months make it acceptable?
+1. ~~**Is there a complete, re-fetchable source?**~~ **Answered 2026-08-24:
+   OpenStreetMap via Overpass** (see above). Galicia goes from 19 to ~37.000.
+2. ~~**Can a hand-fetched snapshot be made safe?**~~ **Moot** — no hand-fetched
+   snapshot is needed. Replaced by: **is ODbL acceptable?** Attribution is
+   trivial; share-alike on a derived database is the real question.
 3. **Pedanía: alias, sibling entity, or barrio with a `kind`?** (the three
    shapes above) — this is the load-bearing decision.
 4. **Do we model *parroquia* / entidad colectiva at all?**
