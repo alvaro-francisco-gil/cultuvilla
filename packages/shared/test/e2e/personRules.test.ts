@@ -255,4 +255,55 @@ describe('firestore.rules — /persons/{personId}', () => {
       );
     });
   });
+
+  // The read-only /user/[uid] profile loads the viewed villager's personas.
+  // `createdBy ==` alone proves nothing about `isPublic` or about the caller,
+  // so rules reject it outright for anyone but the creator — regardless of
+  // whether that user actually has a private persona. That denial used to
+  // abort the whole profile load, leaving the photo and every stat empty.
+  describe('list by createdBy', () => {
+    async function seedCreated() {
+      await seed(getEnv(), async (ctx) => {
+        const db = ctx.firestore();
+        await setDoc(doc(db, 'persons/created-account'), {
+          ...personData({ createdBy: OTHER, userId: OTHER, isPublic: true }),
+          createdAt: new Date(),
+        });
+        await setDoc(doc(db, 'persons/created-dependent'), {
+          ...personData({ createdBy: OTHER, userId: null, isPublic: true }),
+          createdAt: new Date(),
+        });
+      });
+    }
+
+    it("an unpinned query for another user's personas is denied", async () => {
+      await seedCreated();
+      const db = asUser(getEnv(), OWNER);
+      await assertFails(
+        getDocs(query(collection(db, 'persons'), where('createdBy', '==', OTHER))),
+      );
+    });
+
+    it('the same query pinned to the public branch is allowed', async () => {
+      await seedCreated();
+      const db = asUser(getEnv(), OWNER);
+      await assertSucceeds(
+        getDocs(
+          query(
+            collection(db, 'persons'),
+            where('createdBy', '==', OTHER),
+            where('isPublic', '==', true),
+          ),
+        ),
+      );
+    });
+
+    it('a user may list their own personas unpinned, private included', async () => {
+      await seedCreated();
+      const db = asUser(getEnv(), OTHER);
+      await assertSucceeds(
+        getDocs(query(collection(db, 'persons'), where('createdBy', '==', OTHER))),
+      );
+    });
+  });
 });

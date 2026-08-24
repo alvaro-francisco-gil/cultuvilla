@@ -5,6 +5,7 @@ import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { Resend } from 'resend';
 import { RESEND_API_KEY } from './secret';
 import { bucketIdFor, checkRateLimit } from './rateLimit';
+import { reviewOtpCodeFor } from './reviewAccess';
 import { renderAuthOtpEmailHtml, renderAuthOtpEmailText, AUTH_OTP_EMAIL_SUBJECT_PREFIX } from './authEmailTemplate';
 
 const handler = 'sendAuthOtpCode';
@@ -61,7 +62,11 @@ export async function runSendAuthOtpCode(
     return { ok: true };
   }
 
-  const code = generateCode();
+  // A store reviewer cannot read the mailbox this code is sent to, so one
+  // allowlisted address gets a fixed code instead of a random one. Everything
+  // below is identical either way — same doc, same expiry, same attempt cap.
+  const reviewCode = await reviewOtpCodeFor(trimmedEmail);
+  const code = reviewCode ?? generateCode();
   const db = getFirestore();
   // Locally there is no Resend key and no mailbox to read it from, so the send
   // below throws and the sign-in flow cannot be completed by any means — not by
@@ -83,6 +88,16 @@ export async function runSendAuthOtpCode(
 
   if (emulator) {
     logger.info('auth otp code issued (emulator, not emailed)', { handler, bucketId, code });
+    return { ok: true };
+  }
+
+  // Nothing to deliver: the reviewer already has the code from the store
+  // console. Logged at info so an unexpected hit is visible in Cloud Logging.
+  if (reviewCode) {
+    logger.info('auth otp code issued for the store-review account (not emailed)', {
+      handler,
+      bucketId,
+    });
     return { ok: true };
   }
 

@@ -13,7 +13,7 @@ en ese caso anotar aquí dónde están).
 |---|---|---|---|
 | Icono de la app | 512×512 PNG 32-bit, **sin transparencia** | Sí | derivar de `icon.png`; Play recorta las esquinas por su cuenta |
 | Gráfico de funciones (feature graphic) | 1024×500 PNG/JPG, sin transparencia | Sí | se muestra arriba de la ficha; sin texto pequeño |
-| Capturas de teléfono | mín. 2, máx. 8; lado entre 320 y 3840 px; ratio máx. 2:1 | Sí | |
+| Capturas de teléfono | mín. 2, máx. 8; **16:9 o 9:16**; lado entre 320 y 3840 px | Sí | la consola pide 9:16 exacto, y el AVD `Cultuvilla_Big` dispara 1080×2400 (9:20) — ver *Cómo capturar* |
 | Capturas de tablet 7" y 10" | mismas reglas | No | `supportsTablet: true` en iOS, pero Play no las exige si no se declara soporte de tablet |
 | Vídeo promocional | URL de YouTube | No | |
 
@@ -47,7 +47,15 @@ limpios, sin bordes de dispositivo si se capturan a pantalla completa.
 ## Cómo capturar
 
 `pnpm seed:dev` deja el dataset `demo_1` cargado; la skill `drive-android-avd`
-arranca el AVD y hace las capturas de Android. Para iOS, el simulador de Xcode
+arranca el AVD y hace las capturas de Android.
+
+**Dos trampas del AVD.** (1) El subcomando `shot` de `scripts/avd-dev.sh` escribe
+0 bytes bajo WSL: la redirección de `adb exec-out ... > fichero` se pierde. Captura
+con `adb shell screencap -p /sdcard/x.png` + `adb pull`. (2) `Cultuvilla_Big` es
+1080×2400 (9:20), que **no** es el 9:16 que pide la consola; las entregas en
+`assets/phone-9x16/` están escaladas a 1080×1920 con relleno crema
+(`palette.cream`), que sobre el fondo de la app no se nota. Recorta y perderías
+la barra de pestañas. Para iOS, el simulador de Xcode
 con el perfil de build `preview-dev`. Las capturas de la ficha deben salir de
 una build que se parezca a producción — nada de banners de dev ni del prefijo
 `Dev` en el nombre.

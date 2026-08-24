@@ -49,7 +49,10 @@ Service account perms are bound to the key, scoped to the project, and don't dep
    mv ~/Downloads/villa-events-firebase-adminsdk-*.json ~/.config/cultuvilla/dev-sa.json
    chmod 600 ~/.config/cultuvilla/dev-sa.json
    ```
-The resolver auto-discovers `~/.config/cultuvilla/dev-sa.json` — **do not** globally `export GOOGLE_APPLICATION_CREDENTIALS` to it, or it becomes an override that hijacks beta/prod runs and trips the project-match guard. Set that env var only for a one-off run against a non-standard key path.
+The resolver auto-discovers `~/.config/cultuvilla/dev-sa.json`, so most dev work needs no env var at all. A few scripts (`upload-escudos.mjs`, `wipe-dev-everything.mjs`) hard-require `GOOGLE_APPLICATION_CREDENTIALS`, which is why the repo carries a directory-scoped [.envrc](../../../.envrc) (direnv) that exports it. Two rules around that:
+
+- **Never export it from `~/.bashrc`.** A global export follows you into every other project's admin SDK — it made Órdago's backfill tooling fail with `Missing or insufficient permissions`, which reads as a Firestore rules problem rather than an auth one. `.envrc` scopes it to this repo; run `direnv allow` once after cloning.
+- **Repo-scoped is not beta/prod-safe.** Beta and prod scripts run *from this repo*, so the `.envrc` export is live exactly where it does damage: it overrides the target env's credential and trips the project-match guard. Every beta/prod invocation must strip it — `env -u GOOGLE_APPLICATION_CREDENTIALS pnpm backfills:run --env=beta …` — as the backfill scripts already document in their headers.
 
 `.gitignore` blocks `*firebase-adminsdk*.json`, `*service-account*.json`, `*-sa.json` — never relax those.
 
@@ -155,7 +158,7 @@ For ancillary docs that depend on UID (`admins/{uid}`, `users/{uid}`, `municipal
 
 | Var | Purpose |
 |---|---|
-| `GOOGLE_APPLICATION_CREDENTIALS` | Path to service-account key. From `~/.bashrc`. |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Path to service-account key. From the repo's `.envrc` (direnv). Strip it with `env -u` for beta/prod. |
 | `ADMIN_UID` | Existing Auth UID to attribute seed data to. Skip Auth lookup. |
 | `ADMIN_EMAIL` | Look up existing Auth user by email (e.g. your real Google account). |
 | `ADMIN_PASSWORD` | Only used when creating a *new* email/password user. |

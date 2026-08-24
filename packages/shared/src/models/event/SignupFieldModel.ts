@@ -160,7 +160,7 @@ export function validateSignupAnswers(
  * type change would leave the collected values mismatched against their spec.
  *
  * firestore.rules can only enforce the size half of this (no loops), so this is
- * the full check — see docs/plans/ready/event-signup-parameters.md §4.
+ * the full check — see docs/decisions/event-signup-fields.md.
  */
 export function isAdditiveSignupFieldChange(
   before: SignupFieldSpec[],

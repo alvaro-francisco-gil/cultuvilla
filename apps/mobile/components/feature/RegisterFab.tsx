@@ -81,7 +81,10 @@ export function RegisterFab({ eventId, userId, personId, name, eventTitle, telep
     // dependent whenever getUserRegistrations threw.
     const [regsResult, depsResult] = await Promise.allSettled([
       withFirestoreErrorLog('event:getUserRegistrations', () => getUserRegistrations(eventId, userId)),
-      withFirestoreErrorLog('event:getPersonsByCreator', () => getPersonsByCreator(userId)),
+      withFirestoreErrorLog('event:getPersonsByCreator', () =>
+        // Own personas: the caller is the creator, so the private ones count too.
+        getPersonsByCreator(userId, userId),
+      ),
     ]);
 
     if (regsResult.status === 'fulfilled') {
