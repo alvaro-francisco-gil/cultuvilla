@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.26.0 — 2026-08-24
+
 ### Fixed
 
 - **Buscar el pueblo por el nombre de la pedanía, y no sólo por el del municipio.** Cultuvilla lista los 8.167 municipios del INE, pero la mayoría de los pueblos españoles no son municipios: Villarino de Manzanas es una entidad singular de Figueruela de Arriba, así que quien buscaba el nombre del sitio donde de verdad vive no encontraba nada y concluía, con razón, que faltaba su pueblo. Ahora cada municipio indexa también los nombres de las entidades singulares que contiene, y la ficha del resultado dice cuál de ellas ha provocado la coincidencia («Incluye Villarino de Manzanas»), para que no parezca una respuesta equivocada.
