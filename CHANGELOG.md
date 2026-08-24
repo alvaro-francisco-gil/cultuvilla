@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.27.0 — 2026-08-24
+
 ### Fixed
 
 - **El despliegue a beta/producción ya puede aplicar sus migraciones.** El paso «Auto-apply opted-in backfills» moría con `Firebase app named "[DEFAULT]" already exists` en cuanto encontraba un backfill sin marcador, y con él caía el despliegue entero: `initAdminForEnv` llamaba a `initializeApp` sin comprobar si ya había una app, y en ese camino se llama dos veces — una en el bucle de auto-aplicación para leer los marcadores y otra dentro de `executeBackfill`. Ahora reutiliza la app existente, y **se niega a reutilizarla si apunta a otro proyecto**: devolverla en silencio escribiría datos de un entorno en otro.
