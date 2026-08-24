@@ -121,6 +121,17 @@ package name must not split per track (a separate package is a separate install
 
 Marcar aquí, no en la cabeza. Esto es lo que una sesión nueva lee primero.
 
+> **Antes de fiarte de esta lista, ejecútala contra la realidad:**
+> `pnpm check:store-claims`
+>
+> Este documento describe estado que vive **fuera del repo** (Play Console, GCP,
+> EAS, secrets de GitHub) y que se desincroniza en silencio. El 2026-08-24 tres
+> afirmaciones de aquí estaban mal a la vez — el cliente OAuth de Android ya
+> estaba configurado, la página «Setup → API access» ya no existe, y la política
+> de organización nunca aplicó a `cultuvilla-prod` — y cada una costó tiempo
+> persiguiendo un problema inexistente. Un documento no puede darse cuenta de que
+> ha caducado; el script sí.
+
 **Repo — hecho**
 
 - [x] `contentReports/` + `users/{uid}/blockedUsers/` con denuncia y bloqueo en la

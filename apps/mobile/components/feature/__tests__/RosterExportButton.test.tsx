@@ -3,14 +3,7 @@ import { RosterExportButton } from '../RosterExportButton';
 import { downloadFile } from '../../../lib/export/downloadFile';
 
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
-// Mutable so one test can render the component as it behaves off the web build.
-const platform = { canDownloadFile: true };
-jest.mock('../../../lib/export/downloadFile', () => ({
-  get canDownloadFile() {
-    return platform.canDownloadFile;
-  },
-  downloadFile: jest.fn(),
-}));
+jest.mock('../../../lib/export/downloadFile', () => ({ downloadFile: jest.fn() }));
 const mockBuildWorkbook = jest.fn();
 jest.mock('../../../lib/export/rosterWorkbook', () => ({
   __esModule: true,
@@ -51,7 +44,7 @@ const props = {
 describe('RosterExportButton', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    platform.canDownloadFile = true;
+    mockDownload.mockResolvedValue(undefined);
     mockBuildWorkbook.mockResolvedValue(new ArrayBuffer(8));
   });
 
@@ -116,9 +109,19 @@ describe('RosterExportButton', () => {
     expect(mockDownload).not.toHaveBeenCalled();
   });
 
-  it('is web-only — the control is absent when downloads are unavailable', () => {
-    platform.canDownloadFile = false;
+  it('surfaces an error when the handoff itself fails, not only generation', async () => {
+    // On native the file is written and shared *after* the workbook is built,
+    // so a rejection there must reach the same error state.
+    mockDownload.mockRejectedValue(new Error('no share sheet'));
     render(<RosterExportButton {...props} />);
-    expect(screen.queryByTestId('export-roster')).toBeNull();
+    fireEvent.press(screen.getByTestId('export-roster'));
+    fireEvent.press(screen.getByTestId('export-roster-csv'));
+
+    await waitFor(() => screen.getByText('event.export.error'));
+  });
+
+  it('is offered on native too — the control no longer depends on the web build', () => {
+    render(<RosterExportButton {...props} />);
+    expect(screen.getByTestId('export-roster')).toBeTruthy();
   });
 });

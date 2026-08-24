@@ -88,6 +88,26 @@ function readJson(file) {
 export function initAdminForEnv(aliasOrProject) {
   const env = resolveEnv(aliasOrProject);
   const { project } = ENVS[env];
+
+  // Idempotent: firebase-admin throws on a second initializeApp for the default
+  // app, and two call sites legitimately reach here in one process — the
+  // auto-apply loop initializes to read markers, then executeBackfill
+  // initializes per backfill. Reuse rather than re-init, but ONLY for the same
+  // project: silently handing back an app pointed at another environment would
+  // write beta data into prod. Switching env mid-process is a bug, not a case
+  // to accommodate.
+  const existing = admin.apps.length > 0 ? admin.app() : null;
+  if (existing) {
+    const existingProject = existing.options.projectId;
+    if (existingProject !== project) {
+      throw new Error(
+        `firebase-admin is already initialized for project "${existingProject}" but env "${env}" expects "${project}".\n` +
+          `       Refusing to reuse it — one process must not span environments.`,
+      );
+    }
+    return { app: existing, env, projectId: project, credPath: null, auth: 'reused' };
+  }
+
   const credPath = resolveCredentialPath(env);
 
   // System default ADC — no explicit credential file.

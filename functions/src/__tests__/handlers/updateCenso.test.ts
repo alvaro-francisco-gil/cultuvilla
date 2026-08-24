@@ -15,6 +15,9 @@ async function seedCensoMunicipality(fields: unknown[]): Promise<void> {
   const now = new Date();
   await admin.firestore().doc(`municipalities/${MID}`).set({
     name: 'Villarriba', nameLower: 'villarriba', province: 'Madrid',
+    nameAliases: [],
+    localityNames: [],
+    searchPrefixes: ['v', 'vi', 'vil', 'vill', 'villa', 'villar', 'villarr', 'villarri', 'villarrib', 'villarriba'],
     comunidadAutonoma: 'Madrid', codigoINE: '28000', coordinates: null,
     locationLabel: null,
     mapZoom: null,

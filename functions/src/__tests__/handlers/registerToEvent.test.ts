@@ -426,6 +426,8 @@ describe('registerToEvent (callable)', () => {
         name: 'Ana',
         phone: null,
         answers: { size: 'M', note: 'ninguna' },
+        // No persons doc seeded for p1, so there is no birth date to copy.
+        birthday: null,
       });
 
       // Per-attendee, not per-signup: the second registrant has their own answers.
@@ -518,8 +520,88 @@ describe('registerToEvent (callable)', () => {
         },
       });
       expect(await privateDocs()).toEqual([
-        { name: 'Ana', phone: '+34600111222', answers: { size: 'S' } },
+        { name: 'Ana', phone: '+34600111222', answers: { size: 'S' }, birthday: null },
       ]);
+    });
+  });
+
+  // The roster export's "Fecha de nacimiento" column reads this. It is PII, so
+  // it may only ever reach the organizer-gated private doc — the registration
+  // doc beside it is readable by the whole pueblo.
+  describe('birth date denormalization', () => {
+    const BIRTHDAY = { year: 1980, month: 3, day: 12 };
+
+    async function seedPerson(
+      personId: string,
+      birthday: { year: number | null; month: number | null; day: number | null } | null,
+    ): Promise<void> {
+      await admin.firestore().doc(`persons/${personId}`).set({
+        givenName: 'Ana',
+        middleNames: [],
+        firstSurname: 'Pérez',
+        secondSurname: null,
+        nickname: null,
+        sex: null,
+        birthday,
+        deathDate: null,
+        birthPlace: null,
+        burialPlace: null,
+        municipalityLinks: [],
+        occupations: [],
+        biography: null,
+        photoURL: null,
+        userId: null,
+        isPublic: true,
+        createdBy: USER_ID,
+        createdAt: new Date(),
+      });
+    }
+
+    it('copies the birth date from the person onto the private doc', async () => {
+      await seedEvent({ maxAttendees: 10 });
+      await seedPerson('p1', BIRTHDAY);
+      await callRegister({
+        uid: USER_ID,
+        data: { eventId: EVENT_ID, registrants: [{ personId: 'p1', name: 'Ana' }] },
+      });
+
+      const snap = await admin
+        .firestore()
+        .collection(`events/${EVENT_ID}/registrationPrivate`)
+        .get();
+      expect(snap.docs.map((d) => d.data())).toEqual([
+        { name: 'Ana', phone: null, answers: {}, birthday: BIRTHDAY },
+      ]);
+    });
+
+    it('keeps the birth date off the world-readable registration doc', async () => {
+      await seedEvent({ maxAttendees: 10 });
+      await seedPerson('p1', BIRTHDAY);
+      const res = await callRegister({
+        uid: USER_ID,
+        data: { eventId: EVENT_ID, registrants: [{ personId: 'p1', name: 'Ana' }] },
+      });
+
+      const reg = await admin
+        .firestore()
+        .doc(`events/${EVENT_ID}/registrations/${res.registrations[0]?.id ?? ''}`)
+        .get();
+      expect(reg.data()).not.toHaveProperty('birthday');
+    });
+
+    it('writes no private doc for a person with no birth date on record', async () => {
+      await seedEvent({ maxAttendees: 10 });
+      await seedPerson('p1', null);
+      await callRegister({
+        uid: USER_ID,
+        data: { eventId: EVENT_ID, registrants: [{ personId: 'p1', name: 'Ana' }] },
+      });
+
+      const snap = await admin
+        .firestore()
+        .collection(`events/${EVENT_ID}/registrationPrivate`)
+        .get();
+      expect(snap.size).toBe(0);
     });
   });
 });

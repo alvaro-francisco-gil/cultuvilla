@@ -9,6 +9,7 @@ const M = 'm1';
 function barrioDoc(proposedBy: string | null, extra: Record<string, unknown> = {}) {
   return {
     name: 'Norte', municipalityId: M, images: [], createdAt: new Date(),
+    kind: 'barrio', source: 'user', isSeat: false,
     status: 'active', proposedBy, hiddenBy: null, hiddenAt: null, hiddenReason: null,
     commentCount: 0, readCount: 0, residentCount: 0,
     ...extra,
@@ -175,5 +176,46 @@ describe('firestore.rules — /municipalities/{m}/barrios', () => {
     await assertSucceeds(
       updateDoc(doc(boss, `municipalities/${M}/barrios/b1`), { name: 'Norte Alto' }),
     );
+  });
+
+  // The settlement kinds are reference data seeded from OSM by the Admin SDK at
+  // village activation, which bypasses rules. A client must not be able to
+  // invent a pedania, claim to be the municipal seat, or pass its own row off
+  // as seeded data.
+  it('member CANNOT create a pedania, aldea or parroquia', async () => {
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    for (const kind of ['pedania', 'aldea', 'parroquia']) {
+      await assertFails(
+        setDoc(doc(alice, `municipalities/${M}/barrios/x-${kind}`), barrioDoc('alice', { kind })),
+      );
+    }
+  });
+
+  it('member CANNOT claim the municipal seat', async () => {
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, `municipalities/${M}/barrios/b9`), barrioDoc('alice', { isSeat: true })),
+    );
+  });
+
+  it('member CANNOT pass their own row off as seeded', async () => {
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(
+      setDoc(doc(alice, `municipalities/${M}/barrios/b8`), barrioDoc('alice', { source: 'osm' })),
+    );
+  });
+
+  it('village admin CANNOT re-kind an existing barrio into a pedania', async () => {
+    // Admins may rename and delete freely — the seed is a starting point, not a
+    // source of truth — but kind/source/isSeat are structural, not editable.
+    await seedBarrio('b7', null);
+    await seedMember('boss', 'admin');
+    const boss = asUser(getEnv(), 'boss');
+    await assertFails(updateDoc(doc(boss, `municipalities/${M}/barrios/b7`), { kind: 'pedania' }));
+    await assertFails(updateDoc(doc(boss, `municipalities/${M}/barrios/b7`), { isSeat: true }));
+    await assertSucceeds(updateDoc(doc(boss, `municipalities/${M}/barrios/b7`), { name: 'Sur' }));
   });
 });

@@ -14,6 +14,9 @@ const BAND_FILL = argb(palette.cream);
 const BORDER_COLOR = argb(palette.sage);
 
 const DATE_FORMAT = 'dd/mm/yyyy hh:mm';
+// A birth date has no meaningful time of day, and stamping the datetime format
+// on one would print every attendee as born at 0:00.
+const DATE_ONLY_FORMAT = 'dd/mm/yyyy';
 
 const TITLE_ROW = 1;
 const SUBTITLE_ROW = 2;
@@ -81,6 +84,8 @@ export async function buildRosterWorkbook(model: RosterExportModel): Promise<Arr
       // parse falls back to text, and stamping a date format on a string cell
       // makes Excel render it as garbage.
       if (column.type === 'date' && cell.value instanceof Date) cell.numFmt = DATE_FORMAT;
+      // A partial birth date ('Marzo 1980') arrives as text and keeps it.
+      if (column.type === 'dateOnly' && cell.value instanceof Date) cell.numFmt = DATE_ONLY_FORMAT;
       // Phone numbers are text: Excel would otherwise eat the leading zero of
       // a landline and render long numbers in scientific notation.
       if (column.key === 'phone') cell.alignment = { horizontal: 'left' };

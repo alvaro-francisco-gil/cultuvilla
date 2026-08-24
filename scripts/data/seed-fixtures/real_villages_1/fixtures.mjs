@@ -63,8 +63,12 @@ export default {
         'Matabuena — pueblo de la sierra de Guadarrama (Segovia, Castilla y León). Naturaleza, tradición y vecinos.',
 
       barrios: [
+        // Matabuena's real entidades singulares, per OSM and the INE
+        // nomenclátor. An earlier revision invented "Villares de Matabuena",
+        // which does not exist — demo data for a real village should be the
+        // real village.
         { id: 'pueblo', name: 'El Pueblo', image: 'matabuena-barrio-pueblo.jpg' },
-        { id: 'villares', name: 'Villares de Matabuena', image: 'matabuena-barrio-villares.jpg' },
+        { id: 'matamala', name: 'Matamala', image: 'matabuena-barrio-matamala.jpg' },
       ],
 
       places: [

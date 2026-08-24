@@ -70,7 +70,8 @@ describe('EventAttendees', () => {
       <EventAttendees eventId="e1" eventTitle="Fiesta" eventDate={new Date("2026-06-24T20:00:00Z")} telephoneRequired={false} requiresPayment={false} canManage />,
     );
     await waitFor(() => getByText('Ana'));
-    expect(mockPrivate).not.toHaveBeenCalled();
+    // The private doc is still read (it carries the birth date the export
+    // needs); what an event without telephoneRequired lacks is the affordance.
     expect(queryByTestId('call-attendee-r1')).toBeNull();
   });
 
@@ -231,6 +232,27 @@ describe('EventAttendees', () => {
     getByTestId('paid-attendee-r1');
     getByTestId('call-attendee-r1');
     expect(queryByTestId('remove-attendee-r1')).toBeNull();
+  });
+
+  it('fetches registrationPrivate for an organizer even when the event asks nothing', async () => {
+    // Every sign-up denormalizes the attendee's birth date there, so the doc is
+    // worth reading on any event — the roster export's column comes from it.
+    mockGet.mockResolvedValue([
+      { id: 'r1', personId: 'p1', name: 'Ana', status: 'confirmed', isPersonPublic: true },
+    ]);
+    mockPrivate.mockResolvedValue({ phone: null, answers: {}, birthday: { year: 1980, month: 3, day: 12 } });
+    const { getByText } = render(
+      <EventAttendees
+        eventId="e1"
+        eventTitle="Fiesta"
+        eventDate={new Date('2026-06-24T20:00:00Z')}
+        telephoneRequired={false}
+        requiresPayment={false}
+        canManage
+      />,
+    );
+    await waitFor(() => getByText('Ana'));
+    await waitFor(() => expect(mockPrivate).toHaveBeenCalledWith('e1', 'r1'));
   });
 });
 

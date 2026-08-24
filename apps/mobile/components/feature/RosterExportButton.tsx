@@ -12,9 +12,10 @@ import type {
   SignupAnswers,
   SignupFieldSpec,
 } from '@cultuvilla/shared/models/event/SignupFieldModel';
+import type { PartialDate } from '@cultuvilla/shared/models/person/PersonDataModel';
 import { colors, iconSizes } from '@cultuvilla/shared/design-system';
 import { useT } from '../../lib/i18n';
-import { canDownloadFile, downloadFile } from '../../lib/export/downloadFile';
+import { downloadFile } from '../../lib/export/downloadFile';
 import { buildRosterWorkbook, XLSX_MIME } from '../../lib/export/rosterWorkbook';
 import { observability } from '@cultuvilla/shared';
 
@@ -25,6 +26,8 @@ export interface RosterExportButtonProps {
   eventDate: Date | null;
   registrations: Row[];
   phones: Record<string, string | null>;
+  /** Registration id -> the attendee's birth date; adds a roster column. */
+  birthdays?: Record<string, PartialDate | null>;
   telephoneRequired: boolean;
   requiresPayment: boolean;
   /** The event's custom questions; each becomes a trailing column. */
@@ -34,9 +37,9 @@ export interface RosterExportButtonProps {
 }
 
 /**
- * Roster download control on the event's attendee section. Renders nothing off
- * the web build: saving a file on iOS/Android needs native share/file-system
- * modules the app doesn't ship (see lib/export/downloadFile).
+ * Roster download control on the event's attendee section. Available on every
+ * platform: the web build triggers a browser download, iOS/Android write the
+ * file to cache and open the system share sheet (see lib/export/downloadFile).
  *
  * Excel is the default because that's what organizers hand around; CSV stays
  * one tap away for anything that eats a plain table.
@@ -52,6 +55,7 @@ export function RosterExportButton(props: RosterExportButtonProps) {
     eventDate,
     registrations,
     phones,
+    birthdays,
     telephoneRequired,
     requiresPayment,
     signupFields,
@@ -68,17 +72,18 @@ export function RosterExportButton(props: RosterExportButtonProps) {
           eventDate,
           registrations,
           phones,
+          birthdays,
           telephoneRequired,
           requiresPayment,
           signupFields,
           answers,
         });
         if (format === 'csv') {
-          downloadFile(toCsv(model), `${model.fileName}.csv`, 'text/csv;charset=utf-8');
+          await downloadFile(toCsv(model), `${model.fileName}.csv`, 'text/csv;charset=utf-8');
         } else {
           // buildRosterWorkbook itself defers ExcelJS behind a dynamic import,
           // so the heavy dependency still stays out of the initial bundle.
-          downloadFile(await buildRosterWorkbook(model), `${model.fileName}.xlsx`, XLSX_MIME);
+          await downloadFile(await buildRosterWorkbook(model), `${model.fileName}.xlsx`, XLSX_MIME);
         }
         setOpen(false);
       } catch (error) {
@@ -93,6 +98,7 @@ export function RosterExportButton(props: RosterExportButtonProps) {
       eventDate,
       registrations,
       phones,
+      birthdays,
       telephoneRequired,
       requiresPayment,
       signupFields,
@@ -100,7 +106,7 @@ export function RosterExportButton(props: RosterExportButtonProps) {
     ],
   );
 
-  if (!canDownloadFile || registrations.length === 0) return null;
+  if (registrations.length === 0) return null;
 
   return (
     <>

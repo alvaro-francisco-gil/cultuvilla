@@ -71,6 +71,7 @@ export default {
       description:
         'Real Sitio de Aranjuez — jardines históricos, el Tajo y una intensa vida festiva. Eventos del Ayuntamiento, peñas y asociaciones vecinales.',
       adminUserRef: 'admin',
+      escudo: 'aranjuez-escudo.jpg',
 
       barrios: [
         { id: 'centro', name: 'Casco Histórico', image: 'aranjuez-barrio-centro.jpg' },
@@ -183,6 +184,7 @@ export default {
       description:
         'Pueblo medieval con Plaza Mayor porticada. Fiestas patronales, anís, ajo y un teatro vivo en la plaza.',
       adminUserRef: 'admin',
+      escudo: 'chinchon-escudo.jpg',
 
       barrios: [
         { id: 'plaza-mayor', name: 'Plaza Mayor', image: 'chinchon-barrio-plaza-mayor.jpg' },
