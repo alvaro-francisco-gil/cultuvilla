@@ -1,35 +1,39 @@
 # Store release runbook — Google Play (primary) and App Store
 
-Status: **ongoing** — the 14-day closed test is running, but on a **stale
-build**. iOS has not begun.
+Status: **ongoing** — the 14-day closed test is running; `0.24.0` is in Play
+review to replace the stale build it started on. iOS has not begun.
 
 **State as of 2026-08-24**
 
 - Play developer account (**personal**) verified. App created, `com.cultuvilla.app` claimed.
 - First EAS build succeeded: **0.19.0, versionCode 3**, built from a laptop.
   (versionCode 1 and 2 were consumed by a failed build — Play only needs them increasing.)
-- **Closed testing (alpha) is live** since **22 Aug 14:38** — but it carries that same
-  `3 (0.19.0)` artifact, promoted from internal rather than rebuilt. The 14-day clock
-  is therefore running on code five versions old.
+- **Closed testing (alpha) is live** since **22 Aug 14:38**, 177 countries. It started
+  on that same `3 (0.19.0)` artifact, promoted from internal rather than rebuilt, so
+  the first two days of the clock ran on code five versions old.
+- **`4 (0.24.0)` uploaded to the closed track on 24 Aug and is in Play review.**
+  Built by `mobile-release` run 32711478586 from `main` @ `04d13165` — the first
+  time that workflow has ever run. Uploaded by hand (`submit: false`) because the
+  Play service account still does not exist.
 - App signing SHA-1 + SHA-256 registered in Firebase `cultuvilla-prod`; SHA-256 committed
   to `prod/assetlinks.json`.
-- **Next:** get a current build onto the closed track. `0.19.0` predates
-  `fix(mobile): stop detail info cards eating the whole scroll view on native`
-  (4f6dc1b6, 22 Aug 14:18), so **every closed tester sees the event detail screen
-  broken** — the FECHA/UBICACIÓN cards eat the viewport and everything below them
-  is unreachable. The fix is in `0.24.0`, which is on `beta` and sitting in the
-  green-but-unmerged promotion PR #254; `main` is still `0.23.0`.
-- **`mobile-release` has never run** (zero runs). It is blocked on two things: the
-  `production` GitHub Environment admits **only `main`** as a deployment ref, and
-  the `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` secret does not exist at either repo or
-  environment scope, so the submit step exits 1. The *build* step needs neither —
-  dispatching with `submit: false` yields an AAB to upload by hand, which is how
-  `0.19.0` got there.
-- **Unverified: whose Expo account `EXPO_TOKEN` belongs to.** The EAS project is
-  owned by `cultuvilla.app`; the secret was created 2026-05-29 and has never been
-  exercised, because every build so far was launched from a laptop. If it holds an
-  `ordago` token the CI build dies with `Entity not authorized`. A `submit: false`
-  dispatch is the cheap way to find out.
+  Why it mattered: `0.19.0` predates `fix(mobile): stop detail info cards eating the
+  whole scroll view on native` (4f6dc1b6, 22 Aug 14:18), so **every closed tester saw
+  the event detail screen broken** — the FECHA/UBICACIÓN cards ate the viewport and
+  everything below them was unreachable.
+- **Next:** create the Play service account and set `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`.
+  It is the last manual step in the loop; with it, a release is one
+  `gh workflow run mobile-release.yml --ref main -f track=closed -f submit=true`.
+
+**Two facts the first `mobile-release` run settled.**
+
+- The `production` GitHub Environment admits **only `main`** as a deployment ref
+  (custom branch policy), so a release build always requires the `beta` → `main`
+  promotion to have landed first. Dispatching from `develop` or `beta` is rejected.
+- `EXPO_TOKEN` is a **personal token under `alvaro-francisco-gil`**, who is Admin on
+  the `cultuvilla.app` account that owns the EAS project — the build logged
+  *Started by alvaro-francisco-gil*. It had never been exercised before 24 Aug
+  because every prior build came from a laptop.
 - Apple: joined an existing team (Team ID `78RB67NT38`) as Admin. No bundle IDs
   registered, no ASC app record, no iOS build has ever run.
 - **Sign in with Apple is implemented** (`expo-apple-authentication`,
