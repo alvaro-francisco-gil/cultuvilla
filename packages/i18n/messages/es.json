@@ -330,6 +330,9 @@
       "title": "Administración del pueblo",
       "hub": {
         "barrios": "Barrios",
+    "localidades": "Localidades",
+    "aldeas": "Aldeas",
+    "parroquias": "Parroquias",
         "places": "Lugares",
         "organizations": "Grupos",
         "invites": "Invitaciones",

@@ -12,6 +12,16 @@ import {
   ErrorState,
 } from '../primitives';
 import { ACCENT, Section, EntityCard } from './VillageSections';
+import type { BarrioKind } from '@cultuvilla/shared/models/municipality';
+
+// Order is the order they render. The seat sorts first inside its own section
+// (the seed does that), so the municipal centre leads the list a villager reads.
+const BARRIO_SECTIONS: { kind: BarrioKind; titleKey: string }[] = [
+  { kind: 'parroquia', titleKey: 'village.admin.hub.parroquias' },
+  { kind: 'aldea', titleKey: 'village.admin.hub.aldeas' },
+  { kind: 'pedania', titleKey: 'village.admin.hub.localidades' },
+  { kind: 'barrio', titleKey: 'village.admin.hub.barrios' },
+];
 import { AddContentSheet } from './AddContentSheet';
 import { LocationMap } from './LocationMap';
 import { JoinVillageModal } from './JoinVillageModal';
@@ -361,26 +371,38 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
           ))}
         </Section>
 
-        {/* ── Barrios ──────────────────────────────────────────── */}
-        <Section
-          title={t('village.admin.hub.barrios')}
-          isEmpty={barrios.length === 0}
-          status={sectionStatus.barrios}
-        >
-          {barrios.map((b) => (
-            <EntityCard
-              key={b.id}
-              label={b.name}
-              sub={t('village.admin.barrios.residentCount', {
-                count: b.residentCount,
-              })}
-              icon="map-outline"
-              imageUri={b.images[0] ?? null}
-              commentCount={b.commentCount}
-              onPress={() => router.push(`/village/${village.id}/barrio/${b.id}` as never)}
-            />
-          ))}
-        </Section>
+        {/* ── Subdivisiones, una sección por tipo ──────────────────
+            Spain has no single word for "part of a municipality": a barrio is a
+            neighbourhood within a settlement, a pedanía is a separate settlement
+            kilometres away, and Galicia and Asturias group theirs into
+            parroquias. One section per kind lets each village show the word its
+            own region uses, and Section renders nothing when a kind is absent,
+            so this costs no vertical space where it does not apply. */}
+        {BARRIO_SECTIONS.map(({ kind, titleKey }) => {
+          const rows = barrios.filter((b) => b.kind === kind);
+          return (
+            <Section
+              key={kind}
+              title={t(titleKey)}
+              isEmpty={rows.length === 0}
+              status={sectionStatus.barrios}
+            >
+              {rows.map((b) => (
+                <EntityCard
+                  key={b.id}
+                  label={b.name}
+                  sub={t('village.admin.barrios.residentCount', {
+                    count: b.residentCount,
+                  })}
+                  icon="map-outline"
+                  imageUri={b.images[0] ?? null}
+                  commentCount={b.commentCount}
+                  onPress={() => router.push(`/village/${village.id}/barrio/${b.id}` as never)}
+                />
+              ))}
+            </Section>
+          );
+        })}
 
         {/* ── Lugares ──────────────────────────────────────────── */}
         <Section

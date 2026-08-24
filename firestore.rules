@@ -336,17 +336,25 @@ service cloud.firestore {
 
     function isValidBarrioCreate(d) {
       return d.keys().hasOnly([
-              'name', 'municipalityId', 'images', 'createdAt',
+              'name', 'municipalityId', 'kind', 'source', 'isSeat', 'images', 'createdAt',
               'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount', 'residentCount',
             ])
           && d.keys().hasAll([
-              'name', 'municipalityId', 'images', 'createdAt',
+              'name', 'municipalityId', 'kind', 'source', 'isSeat', 'images', 'createdAt',
               'status', 'proposedBy', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount', 'residentCount',
             ])
           && isString(d.name)
           && isString(d.municipalityId)
+          // A client may only ever create a neighbourhood. The settlement kinds
+          // (pedania, aldea, parroquia) are reference data seeded from OSM by
+          // the Admin SDK at village activation, which bypasses these rules —
+          // so a user cannot invent a pedania, and cannot pass one off as the
+          // municipal seat.
+          && d.kind == 'barrio'
+          && d.source == 'user'
+          && d.isSeat == false
           && isList(d.images) && d.images.size() <= 5
           && isTimestamp(d.createdAt)
           && d.status == 'active'
@@ -688,6 +696,7 @@ service cloud.firestore {
              );
         allow update: if (isVillageAdmin(municipalityId) || isAppAdmin() || isOwner(resource.data.proposedBy))
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+               'kind', 'source', 'isSeat',
                'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
                'commentCount', 'readCount', 'residentCount',
                'proposedBy',
