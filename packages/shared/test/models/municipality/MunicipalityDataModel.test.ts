@@ -434,5 +434,55 @@ describe('MunicipalityDataSchema localityNames', () => {
   it('requires localityNames, so a doc predating the field is caught', () => {
     const { localityNames: _omitted, ...without } = validMunicipality;
     expect(() => MunicipalityDataSchema.parse(without)).toThrow();
+
+describe('BarrioDataSchema kind + source', () => {
+  it('defaults a hand-created barrio to kind "barrio", source "user"', () => {
+    const b = buildBarrioData({ name: 'El Arrabal', municipalityId: 'm1' });
+    expect(b.kind).toBe('barrio');
+    expect(b.source).toBe('user');
+    expect(b.isSeat).toBe(false);
+    expect(() => BarrioDataSchema.parse(b)).not.toThrow();
+  });
+
+  it('carries the seeded kinds through the builder', () => {
+    for (const kind of ['pedania', 'lugar', 'parroquia'] as const) {
+      const b = buildBarrioData({
+        name: 'X',
+        municipalityId: 'm1',
+        kind,
+        source: 'osm',
+      });
+      expect(b.kind).toBe(kind);
+      expect(b.source).toBe('osm');
+      expect(() => BarrioDataSchema.parse(b)).not.toThrow();
+    }
+  });
+
+  it('rejects a kind outside the four', () => {
+    const b = buildBarrioData({ name: 'X', municipalityId: 'm1' });
+    expect(() => BarrioDataSchema.parse({ ...b, kind: 'pueblo' })).toThrow();
+  });
+
+  it('requires kind and source, so a doc predating them is caught', () => {
+    const b = buildBarrioData({ name: 'X', municipalityId: 'm1' });
+    const { kind: _k, ...noKind } = b;
+    const { source: _s, ...noSource } = b;
+    expect(() => BarrioDataSchema.parse(noKind)).toThrow();
+    expect(() => BarrioDataSchema.parse(noSource)).toThrow();
+  });
+
+  it('marks the municipal seat', () => {
+    // The seat needs a row of its own or residents of the main village have
+    // nowhere to live while residents of the pedanías do. It is frequently NOT
+    // the municipality's own name — Aramaio's seat is a village called Ibarra.
+    const b = buildBarrioData({
+      name: 'Ibarra',
+      municipalityId: 'm1',
+      kind: 'pedania',
+      source: 'osm',
+      isSeat: true,
+    });
+    expect(b.isSeat).toBe(true);
+    expect(() => BarrioDataSchema.parse(b)).not.toThrow();
   });
 });

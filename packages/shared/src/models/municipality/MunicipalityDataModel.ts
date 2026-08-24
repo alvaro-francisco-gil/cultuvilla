@@ -280,9 +280,45 @@ export function buildVillageCommunity(input: ActivateCommunityInput): VillageCom
 // visible to everyone immediately. Organizers (village/app admin) can hide it
 // afterward via the visibility model. Enforcement lives in firestore.rules.
 
+/**
+ * What a subdivision of a municipality actually is. Spain has no single word:
+ * a *barrio* is a neighbourhood **within** a settlement, while a *pedanía* is a
+ * separate settlement kilometres away, and Galicia and Asturias group their
+ * settlements (*lugares*) into *parroquias*, which carry most of the local
+ * identity there.
+ *
+ * The distinction is not cosmetic — it decides which horizontal section a row
+ * renders in, and each section is titled with the word that region actually
+ * uses. Folding them into one word would flatten exactly the thing this model
+ * exists to represent.
+ *
+ * `pedania` vs `lugar` is derived structurally at seed time: a municipality
+ * whose settlements sit under parroquias gets `lugar`. That keeps Asturias
+ * correct without a hardcoded province list.
+ */
+export const BarrioKindSchema = z.enum(['barrio', 'pedania', 'lugar', 'parroquia']);
+export type BarrioKind = z.infer<typeof BarrioKindSchema>;
+
+/** Where the row came from. Seeded rows stay editable, but provenance lets the
+ *  UI show it and lets a future re-seed tell its own rows from a human's. */
+export const BarrioSourceSchema = z.enum(['user', 'osm']);
+export type BarrioSource = z.infer<typeof BarrioSourceSchema>;
+
 export const BarrioDataSchema = z.object({
   name: z.string(),
   municipalityId: z.string(),
+  kind: BarrioKindSchema,
+  source: BarrioSourceSchema,
+  /**
+   * The municipal seat — the settlement the ayuntamiento sits in.
+   *
+   * It gets a row like any other or residents of the main village would have
+   * nowhere to live while residents of the pedanías did, leaving `residentCount`
+   * and the censo asymmetric. It is frequently NOT the municipality's own name:
+   * Aramaio's seat is a village called Ibarra. Exactly one row per municipality
+   * carries this.
+   */
+  isSeat: z.boolean(),
   /** Public download URLs for the barrio's pictures (max 5). `images[0]` is
    *  the hero/cover shown in the detail scaffold. */
   images: z.array(z.string()).max(5),
@@ -305,6 +341,9 @@ export type BarrioData = z.infer<typeof BarrioDataSchema>;
 export interface BarrioDataInput {
   name: string;
   municipalityId: string;
+  kind?: BarrioKind;
+  source?: BarrioSource;
+  isSeat?: boolean;
   images?: string[];
   proposedBy?: string | null;
 }
@@ -313,6 +352,11 @@ export function buildBarrioData(input: BarrioDataInput): BarrioData {
   return {
     name: input.name,
     municipalityId: input.municipalityId,
+    // A hand-created row is a neighbourhood by default — that is the only kind
+    // a user may create; the settlement kinds are seeded.
+    kind: input.kind ?? 'barrio',
+    source: input.source ?? 'user',
+    isSeat: input.isSeat ?? false,
     images: input.images ?? [],
     createdAt: new Date(),
     proposedBy: input.proposedBy ?? null,

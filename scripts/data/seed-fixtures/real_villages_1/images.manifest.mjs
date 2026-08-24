@@ -37,5 +37,5 @@ export default [
 
   // Barrio images
   { file: 'matabuena-barrio-pueblo.jpg', url: pic('matabuena-barrio-pueblo', 1200, 800), ...COVER },
-  { file: 'matabuena-barrio-villares.jpg', url: pic('matabuena-barrio-villares', 1200, 800), ...COVER },
+  { file: 'matabuena-barrio-matamala.jpg', url: pic('matabuena-barrio-matamala', 1200, 800), ...COVER },
 ];

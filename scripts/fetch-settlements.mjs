@@ -114,22 +114,39 @@ const ISO_BY_INE_PREFIX = {
   '49': 'ZA', '50': 'Z',  '51': 'CE', '52': 'ML',
 };
 
+// Ceuta and Melilla are ciudades autónomas: OSM has them only as an
+// admin_level=4 relation, with no admin_level=8 municipality inside. Scoping
+// the normal way finds nothing, which the empty-result guard correctly refuses
+// to cache. Treat the level-4 relation as the municipality for those two.
+const MUNICIPALITY_LEVEL = { '51': 4, '52': 4 };
+const DEFAULT_MUNICIPALITY_LEVEL = 8;
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function query(provincePrefix) {
   const iso = ISO_BY_INE_PREFIX[provincePrefix];
   if (!iso) throw new Error(`No ISO 3166-2 code for INE province ${provincePrefix}`);
   const places = [...SETTLEMENT_PLACES, ...NEIGHBOURHOOD_PLACES].join('|');
+  const level = MUNICIPALITY_LEVEL[provincePrefix] ?? DEFAULT_MUNICIPALITY_LEVEL;
   // `foreach` emits each municipality relation followed by the place nodes
   // inside it, so one request per province yields the full grouping. Doing it
   // per municipality instead would be 8,167 requests.
+  const municipalities =
+    level === DEFAULT_MUNICIPALITY_LEVEL
+      ? `area["ISO3166-2"="ES-${iso}"][admin_level=6]->.p;\nrel(area.p)["admin_level"="8"];`
+      : `rel["ISO3166-2"="ES-${iso}"]["admin_level"="${level}"];`;
+  // Inside the loop the admin_centre member is emitted as a BARE id (`out ids`,
+  // no tags) and the place nodes with tags, so the two are told apart by
+  // whether `tags` is present — no positional guessing.
   return `
 [out:json][timeout:900];
-area["ISO3166-2"="ES-${iso}"][admin_level=6]->.p;
-rel(area.p)["admin_level"="8"];
+${municipalities}
 foreach(
-  ._; out tags;
-  map_to_area->.m;
+  ._->.rel;
+  .rel out tags;
+  node(r.rel:"admin_centre"); out ids;
+  .rel map_to_area->.m;
+  rel(area.m)["admin_level"="9"]; out tags center;
   node(area.m)["place"~"^(${places})$"];
   out tags center;
 );`.trim();
@@ -172,15 +189,45 @@ async function fetchProvince(prefix, attempts = 6) {
  * Order is load-bearing: every relation starts a new municipality and the nodes
  * that follow belong to it, which is exactly what `foreach` guarantees.
  */
-function group(elements, nameByIne) {
+function group(elements, nameByIne, ineByName) {
   const out = [];
   let current = null;
+  let seatIds = new Set();
+  const unmatched = [];
   for (const el of elements) {
     const tags = el.tags ?? {};
+    if (el.type === 'relation' && tags.admin_level === '9') {
+      // Galicia and Asturias: the entidad colectiva. Culturally the primary
+      // unit of identity there — "son de Samarugo" names a parroquia.
+      if (current && tags.name) {
+        current.settlements.push({
+          name: tags.name,
+          kind: 'parroquia',
+          isSeat: false,
+          lat: el.center?.lat ?? null,
+          lng: el.center?.lon ?? null,
+        });
+      }
+      continue;
+    }
     if (el.type === 'relation') {
-      const ine = ineOf(tags);
-      current = ine && nameByIne.has(ine) ? { codigoINE: ine, name: nameByIne.get(ine), settlements: [] } : null;
+      // Prefer the INE tag; fall back to the name. Lugo carries the tag on 67
+      // of 67, but coverage is not guaranteed everywhere and the ciudades
+      // autónomas relations carry none at all.
+      const ine = ineOf(tags) ?? ineByName.get(tags.name ?? '') ?? null;
+      current =
+        ine && nameByIne.has(ine)
+          ? { codigoINE: ine, name: nameByIne.get(ine), settlements: [] }
+          : null;
       if (current) out.push(current);
+      else if (tags.name) unmatched.push(tags.name);
+      seatIds = new Set();
+      continue;
+    }
+    // A node with no tags is the relation's admin_centre marker, emitted by
+    // `out ids` just after its relation.
+    if (el.type === 'node' && !el.tags) {
+      seatIds.add(el.id);
       continue;
     }
     if (!current || !tags.name) continue;
@@ -189,16 +236,37 @@ function group(elements, nameByIne) {
     current.settlements.push({
       name: tags.name,
       kind,
-      // The municipal seat shares the municipality's name. It IS an entidad
-      // singular (INE counts it as one), and it needs a row of its own or
-      // residents of the main village have nowhere to live while residents of
-      // the pedanías do — `residentCount` and the censo would be asymmetric.
-      isSeat: kind === 'pedania' && tags.name === current.name,
+      // The seat needs a row of its own or residents of the main village have
+      // nowhere to live while residents of the pedanías do — `residentCount`
+      // and the censo would be asymmetric. INE agrees it is an entidad singular.
+      //
+      // OSM's `admin_centre` member is authoritative and frequently is NOT the
+      // municipality's name: Aramaio's seat is a village called Ibarra. Name
+      // matching alone also misses every municipality we store under its
+      // Spanish exonym while OSM uses the co-official name (Alegría de Álava /
+      // Alegría-Dulantzi), which was 1,639 of 8,167.
+      isSeat: kind === 'pedania' && (seatIds.has(el.id) || tags.name === current.name),
       lat: el.lat ?? el.center?.lat ?? null,
       lng: el.lon ?? el.center?.lon ?? null,
     });
   }
+  if (unmatched.length) {
+    console.log(`      ${unmatched.length} OSM municipalities matched no INE code, e.g. ${unmatched.slice(0, 3).join(', ')}`);
+  }
   return out;
+}
+
+/**
+ * A municipality whose settlements sit under parroquias calls them *lugares*,
+ * not pedanías. Derived structurally rather than from a province list, so
+ * Asturias comes along without a hardcoded rule.
+ */
+function applyRegionalKind(entry) {
+  if (!entry.settlements.some((s) => s.kind === 'parroquia')) return entry;
+  for (const s of entry.settlements) {
+    if (s.kind === 'pedania') s.kind = 'lugar';
+  }
+  return entry;
 }
 
 function dedupe(entry) {
@@ -210,15 +278,26 @@ function dedupe(entry) {
     return true;
   });
   // Seat first, then alphabetical — the order the UI renders.
-  entry.settlements.sort((a, b) =>
-    a.isSeat === b.isSeat ? a.name.localeCompare(b.name, 'es') : a.isSeat ? -1 : 1,
-  );
+  // A municipality has exactly one seat. Both signals can fire at once — the
+  // admin_centre node, and a separate node that happens to carry the
+  // municipality's name — which would otherwise flag two rows.
+  let seatSeen = false;
+  for (const s of entry.settlements) {
+    if (!s.isSeat) continue;
+    if (seatSeen) s.isSeat = false;
+    seatSeen = true;
+  }
+
+  // Seat first, then parroquias (the grouping level), then everything else.
+  const rank = (s) => (s.isSeat ? 0 : s.kind === 'parroquia' ? 1 : 2);
+  entry.settlements.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, 'es'));
   return entry;
 }
 
 async function main() {
   const municipalities = JSON.parse(readFileSync(MUNI_PATH, 'utf8'));
   const nameByIne = new Map(municipalities.map((m) => [m.codigoINE, m.name]));
+  const ineByName = new Map(municipalities.map((m) => [m.name, m.codigoINE]));
   console.log(`Loaded ${municipalities.length} municipalities`);
 
   const prefixes = ONLY_PROVINCE
@@ -234,7 +313,9 @@ async function main() {
       continue;
     }
     const elements = await fetchProvince(prefix);
-    const grouped = group(elements, nameByIne).map(dedupe);
+    const grouped = group(elements, nameByIne, ineByName)
+      .map(applyRegionalKind)
+      .map(dedupe);
     const total = grouped.reduce((n, e) => n + e.settlements.length, 0);
     if (grouped.length === 0) {
       throw new Error(
@@ -265,7 +346,7 @@ async function main() {
   );
 
   const withAny = entries.filter((e) => e.settlements.length > 0);
-  const totals = { pedania: 0, barrio: 0, seats: 0 };
+  const totals = { pedania: 0, lugar: 0, parroquia: 0, barrio: 0, seats: 0 };
   for (const e of entries) {
     for (const s of e.settlements) {
       totals[s.kind]++;
@@ -273,10 +354,17 @@ async function main() {
     }
   }
 
+  const missingSeat = entries.filter(
+    (e) => e.settlements.length > 0 && !e.settlements.some((s) => s.isSeat),
+  );
   console.log(
     `\n${withAny.length} of ${entries.length} municipalities carry settlements.\n` +
-      `  pedanías/pueblos: ${totals.pedania}  (of which ${totals.seats} are the municipal seat)\n` +
-      `  barrios:          ${totals.barrio}`,
+      `  localidades (pedanías):  ${totals.pedania}\n` +
+      `  lugares (Galicia/Ast.):  ${totals.lugar}\n` +
+      `  parroquias:              ${totals.parroquia}\n` +
+      `  barrios:                 ${totals.barrio}\n` +
+      `  seats identified:        ${totals.seats}` +
+      (missingSeat.length ? ` (${missingSeat.length} municipalities have none)` : ''),
   );
 
   const figueruela = entries.find((e) => e.codigoINE === '49069');
