@@ -284,19 +284,23 @@ export function buildVillageCommunity(input: ActivateCommunityInput): VillageCom
  * What a subdivision of a municipality actually is. Spain has no single word:
  * a *barrio* is a neighbourhood **within** a settlement, while a *pedanía* is a
  * separate settlement kilometres away, and Galicia and Asturias group their
- * settlements (*lugares*) into *parroquias*, which carry most of the local
- * identity there.
+ * settlements (*aldeas*, strictly *lugares*) into *parroquias*, which carry
+ * most of the local identity there.
  *
  * The distinction is not cosmetic — it decides which horizontal section a row
  * renders in, and each section is titled with the word that region actually
  * uses. Folding them into one word would flatten exactly the thing this model
  * exists to represent.
  *
- * `pedania` vs `lugar` is derived structurally at seed time: a municipality
- * whose settlements sit under parroquias gets `lugar`. That keeps Asturias
+ * `pedania` vs `aldea` is derived structurally at seed time: a municipality
+ * whose settlements sit under parroquias gets `aldea`. That keeps Asturias
  * correct without a hardcoded province list.
+ *
+ * The precise Galician word is *lugar*, but "Lugares" is already the title of
+ * the `places` section (cementerios, iglesias, ermitas) on the same screen.
+ * "Aldeas" is real Galician vocabulary and collides with nothing.
  */
-export const BarrioKindSchema = z.enum(['barrio', 'pedania', 'lugar', 'parroquia']);
+export const BarrioKindSchema = z.enum(['barrio', 'pedania', 'aldea', 'parroquia']);
 export type BarrioKind = z.infer<typeof BarrioKindSchema>;
 
 /** Where the row came from. Seeded rows stay editable, but provenance lets the

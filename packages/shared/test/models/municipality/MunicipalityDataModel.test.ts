@@ -445,7 +445,7 @@ describe('BarrioDataSchema kind + source', () => {
   });
 
   it('carries the seeded kinds through the builder', () => {
-    for (const kind of ['pedania', 'lugar', 'parroquia'] as const) {
+    for (const kind of ['pedania', 'aldea', 'parroquia'] as const) {
       const b = buildBarrioData({
         name: 'X',
         municipalityId: 'm1',

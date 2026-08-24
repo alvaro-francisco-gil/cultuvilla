@@ -257,14 +257,14 @@ function group(elements, nameByIne, ineByName) {
 }
 
 /**
- * A municipality whose settlements sit under parroquias calls them *lugares*,
- * not pedanías. Derived structurally rather than from a province list, so
- * Asturias comes along without a hardcoded rule.
+ * A municipality whose settlements sit under parroquias calls them *aldeas*
+ * (strictly *lugares*), not pedanías. Derived structurally rather than from a
+ * province list, so Asturias comes along without a hardcoded rule.
  */
 function applyRegionalKind(entry) {
   if (!entry.settlements.some((s) => s.kind === 'parroquia')) return entry;
   for (const s of entry.settlements) {
-    if (s.kind === 'pedania') s.kind = 'lugar';
+    if (s.kind === 'pedania') s.kind = 'aldea';
   }
   return entry;
 }
@@ -346,7 +346,7 @@ async function main() {
   );
 
   const withAny = entries.filter((e) => e.settlements.length > 0);
-  const totals = { pedania: 0, lugar: 0, parroquia: 0, barrio: 0, seats: 0 };
+  const totals = { pedania: 0, aldea: 0, parroquia: 0, barrio: 0, seats: 0 };
   for (const e of entries) {
     for (const s of e.settlements) {
       totals[s.kind]++;
@@ -360,7 +360,7 @@ async function main() {
   console.log(
     `\n${withAny.length} of ${entries.length} municipalities carry settlements.\n` +
       `  localidades (pedanías):  ${totals.pedania}\n` +
-      `  lugares (Galicia/Ast.):  ${totals.lugar}\n` +
+      `  aldeas (Galicia/Ast.):   ${totals.aldea}\n` +
       `  parroquias:              ${totals.parroquia}\n` +
       `  barrios:                 ${totals.barrio}\n` +
       `  seats identified:        ${totals.seats}` +
