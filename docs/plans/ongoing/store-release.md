@@ -156,33 +156,34 @@ Marcar aquí, no en la cabeza. Esto es lo que una sesión nueva lee primero.
 
 **Consola / fuera del repo — pendiente**
 
-- [ ] Service account de Play → secret `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`. **No
-      existe en ningún sitio**, comprobado el 2026-08-24 en los tres:
-      secretos del repo (sólo `EXPO_TOKEN`), entorno `production` (vacío) y la
-      cuenta de EAS — `meActor.accounts.googleServiceAccountKeys` devuelve `[]`.
-      Por eso `mobile-release` falla en submit y `eas submit` tampoco funciona
-      desde un portátil. **Corolario:** el 0.19.0 que hay en el track internal
-      se subió *a mano* por la consola, no con `eas submit`; ese es hoy el único
-      camino para publicar, y requiere sesión de navegador en Play Console.
-      Para automatizarlo: Play Console → Setup → API access → crear/enlazar la
-      service account, darle **Release Manager**, descargar el JSON y guardarlo
-      como secret `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` (el `submit` de
-      [eas.json](../../../apps/mobile/eas.json) lo espera en
-      `./google-play-service-account.json`, que el workflow escribe desde el
-      secret).
-      **Automatizado en [scripts/setup-play-publisher.sh](../../../scripts/setup-play-publisher.sh)**:
-      habilita la API, crea la service account, exime *sólo ese proyecto* de
-      la política de organización, mina la clave, la guarda como secret de
-      GitHub y vuelve a armar la política. Requiere `gcloud auth login
-      cultuvilla.app@gmail.com` antes (es la única cuenta con acceso a los
-      tres proyectos; `matabuena.unida@` sólo ve `cultuvilla-beta`).
-      **Ojo — `constraints/iam.disableServiceAccountKeyCreation` está
-      impuesta a nivel de ORGANIZACIÓN** (org `1005684282225`, puesta el
-      2026-04-25), así que hereda a todos los proyectos y `keys create`
-      falla en todos por defecto. No hay camino sin clave: `eas submit`
-      (y fastlane por debajo) sólo se autentica con un JSON de service
-      account, no con Workload Identity.
-- [ ] Cliente OAuth **Android** en `cultuvilla-prod` con el SHA-1 de la app signing key.
+- [x] Service account de Play → secret `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`.
+      **Hecho el 2026-08-24** con
+      [scripts/setup-play-publisher.sh](../../../scripts/setup-play-publisher.sh):
+      `play-publisher@cultuvilla-prod.iam.gserviceaccount.com`, invitada en Play
+      con el permiso *Release apps to testing tracks*. Verificado de punta a
+      punta: `beta-build-and-submit` construyó y envió 0.24.0 (versionCode 5) al
+      track `alpha`, submission `FINISHED` / `COMPLETED`.
+      **Nota sobre la política de organización:** `cultuvilla-prod` **no tiene
+      padre** — está fuera de la organización `1005684282225`, así que
+      `iam.disableServiceAccountKeyCreation` nunca le aplicó y no hizo falta
+      ninguna exención. Sólo `cultuvilla-beta` está dentro de la organización.
+      Google además **ya no exige enlazar el proyecto de Cloud** con la cuenta de
+      desarrollador, así que la página «Setup → API access» puede ni aparecer: se
+      invita a la service account como a un usuario más desde *Users and
+      permissions*.
+
+- [x] Cliente OAuth **Android** en `cultuvilla-prod`. **Ya estaba resuelto**,
+      comprobado el 2026-08-24 contra la Firebase Management API: la app
+      `com.cultuvilla.app` (`1:34340110439:android:35193d…`) tiene registradas
+      SHA-1 y SHA-256, y esa SHA-256 coincide **exactamente** con la huella de
+      la clave de firma de Play commiteada en `prod/assetlinks.json`. Registrar
+      la SHA-1 crea el cliente OAuth de Android automáticamente, y
+      `GOOGLE_WEB_CLIENT_ID_PROD` pertenece al proyecto `34340110439`
+      (= `cultuvilla-prod`) y está presente en el entorno `production` de EAS,
+      que es de donde lee `app.config.ts` en una build de producción. Es decir:
+      **Google Sign-In funciona en las builds del track cerrado**; la entrada
+      anterior de esta lista estaba desactualizada.
+
 - [ ] Escribir `_admin/reviewAccess` en prod y rellenar el formulario App access
       con ese par ([play-declarations.md](../../store/play-declarations.md)).
 - [ ] Content rating, Target audience, Data safety, Government apps, Financial
