@@ -137,6 +137,9 @@ export const addWalkInRegistration = onCall<AddWalkInData, Promise<AddWalkInResu
           name,
           phone: phone ?? null,
           answers,
+          // No persons doc behind a walk-in, so no birth date to denormalize —
+          // written explicitly so every private doc carries the same shape.
+          birthday: null,
         });
       }
       tx.update(eventRef, {

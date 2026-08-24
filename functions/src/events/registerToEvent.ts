@@ -133,8 +133,8 @@ export const registerToEvent = onCall<RegisterToEventData, Promise<RegisterToEve
       // never published to the pueblo. `.data()` is where the strict
       // converter runs, so a stored doc that no longer parses throws HERE;
       // that must degrade the roster row, not fail an otherwise valid sign-up.
-      const personDenorm = personSnaps.map((snap) => {
-        const person = snap.exists ? tryReadPerson(snap) : null;
+      const persons = personSnaps.map((snap) => (snap.exists ? tryReadPerson(snap) : null));
+      const personDenorm = persons.map((person) => {
         if (!person) return { photoURL: null, personUserId: null, isPersonPublic: false };
         return {
           photoURL: person.photoURL,
@@ -142,6 +142,10 @@ export const registerToEvent = onCall<RegisterToEventData, Promise<RegisterToEve
           isPersonPublic: person.isPublic,
         };
       });
+      // Kept out of `personDenorm` above, which is spread onto the
+      // world-readable registration doc: a birth date is PII, so it goes only
+      // to the organizer-gated private doc, where the roster export reads it.
+      const personBirthdays = persons.map((person) => person?.birthday ?? null);
 
       // Semantic answer validation needs the event's field specs, so it can
       // only happen here (the input validator runs before the event is read).
@@ -200,15 +204,18 @@ export const registerToEvent = onCall<RegisterToEventData, Promise<RegisterToEve
           isOpenSeat: false,
         };
         tx.set(newRef, reg);
-        // Phone (when telephoneRequired) and custom field answers land in a
-        // separately-gated subcollection, never on the public registration doc.
-        // Keyed by reg id. Written only when there is something to store.
+        // Phone (when telephoneRequired), custom field answers and the
+        // attendee's birth date land in a separately-gated subcollection, never
+        // on the public registration doc. Keyed by reg id. Written only when
+        // there is something to store.
         const answers = validatedAnswers[i] ?? {};
-        if (registrant.phone || Object.keys(answers).length > 0) {
+        const birthday = personBirthdays[i] ?? null;
+        if (registrant.phone || Object.keys(answers).length > 0 || birthday) {
           tx.set(eventRegistrationPrivateDoc(db, eventId, newRef.id), {
             name: registrant.name,
             phone: registrant.phone ?? null,
             answers,
+            birthday,
           });
         }
         summaries.push({ id: newRef.id, status, position, isMember });
