@@ -25,9 +25,14 @@ review to replace the stale build it started on. iOS has not begun.
   `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` is a **repository** secret, not a `production`
   environment one — deliberately, because `beta-build-and-submit` cannot name that
   environment, whose branch policy admits only `main`.
-- **Next:** confirm the closed track has **≥12 testers continuously opted in**. That,
-  not elapsed days, is what unlocks the production track; the clock started 22 Aug and
-  a shortfall silently costs the whole 14 days.
+- **The 14-day clock is NOT running: 10 of 12 testers are opted in** (checked 24 Aug).
+  Play requires **≥12 continuously opted in for 14 days**, so the days elapsed since
+  22 Aug count for nothing and the window effectively starts when the 12th tester
+  accepts. "Opted in" means accepted the invite and installed — being on the tester
+  list is not enough.
+- **Next: recruit 2 more testers.** It is the only item on this plan that cannot be
+  done in parallel with anything else; every day at 10/12 is a day the production
+  track does not get closer.
 
 **`beta-build-and-submit` will ship whatever ref it is dispatched from.** It has a
 `workflow_dispatch` trigger with no branch restriction, no `environment` scope, and
