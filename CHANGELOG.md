@@ -4,6 +4,13 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+
+- **Avisar por correo cuando una plaza desaparece, no sólo cuando se consigue.** Apuntarse mandaba un correo de confirmación; que te dieran de baja no mandaba nada — ni correo ni notificación —, así que quien organizaba podía borrarte de un evento y la única forma de enterarte era volver a abrir la ficha. Ahora cancelar una inscripción manda el mismo correo con la misma imagen y los mismos datos del evento, en dos versiones: **«Inscripción cancelada»** cuando te has dado de baja tú (un resguardo) y **«Te han dado de baja»** cuando lo ha hecho la organización o quien reservó el grupo (una noticia). El correo enumera las plazas perdidas y lleva al evento por si quieres volver a apuntarte; ya no habla de aforo ni de lista de espera, porque describen una plaza que ya no tienes.
+  - **La notificación es el registro duradero, el correo es el mejor esfuerzo.** Que te den de baja escribe además una notificación `registration_removed` en la app; enviarte tú mismo una notificación de algo que acabas de hacer sería ruido, así que la baja propia sólo manda el resguardo por correo.
+  - **Un aviso por persona, no por plaza.** Al disolverse un grupo cada afectado recibe un solo correo con todas sus plazas y una sola notificación. Las plazas libres sin nombre no se enumeran, y devolver una plaza a un grupo (`release-seat`) sigue avisando sólo en la app a quien lo reservó: ahí no se pierde nada.
+  - **Las pruebas de la plantilla de correo no se ejecutaban.** `test/email/` no estaba en el `include` de ninguna configuración de vitest, así que los 22 tests de `registrationEmailTemplate` llevaban desde que se escribieron sin correr en CI. Ya están dentro.
+
 ## v0.27.0 — 2026-08-24
 
 ### Fixed
