@@ -434,6 +434,9 @@ describe('MunicipalityDataSchema localityNames', () => {
   it('requires localityNames, so a doc predating the field is caught', () => {
     const { localityNames: _omitted, ...without } = validMunicipality;
     expect(() => MunicipalityDataSchema.parse(without)).toThrow();
+  });
+});
+
 
 describe('BarrioDataSchema kind + source', () => {
   it('defaults a hand-created barrio to kind "barrio", source "user"', () => {
