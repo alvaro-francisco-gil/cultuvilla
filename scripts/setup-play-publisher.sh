@@ -9,10 +9,14 @@
 # which is the whole reason this script has to fight the org policy below.
 #
 # THE ORG POLICY. constraints/iam.disableServiceAccountKeyCreation is enforced
-# at the organization level (org 1005684282225, set 2026-04-25) and inherits to
-# every project, so `keys create` fails everywhere by default. This script adds
-# a PROJECT-SCOPED exemption for exactly one project, mints one key, and leaves
-# the org default untouched. Running it needs roles/orgpolicy.policyAdmin.
+# on org 1005684282225 (set 2026-04-25). It does NOT necessarily reach the
+# project you are targeting: `cultuvilla-prod` has no parent — it sits outside
+# that org entirely — so its effective policy is unset and `keys create` works
+# with no exemption at all. Only `cultuvilla-beta` is inside the org.
+# So the exemption is applied ONLY when the effective policy is actually
+# enforced, and re-armed only if this script was the thing that disabled it.
+# Blindly calling disable-enforce fails with a confusing setOrgPolicy denial on
+# an out-of-org project, which is exactly what happened the first time.
 #
 # What it does NOT do — and cannot, because Play Console has no API for it:
 # linking the GCP project to Play and granting the account Release Manager.
@@ -64,11 +68,19 @@ else
     --project="$PROJECT"
 fi
 
-say "3. Exempt THIS PROJECT ONLY from the org-wide key-creation ban"
-# The org default stays enforced; this writes a project-level policy that turns
-# it off for one project. Reversible with `org-policies delete` (step 6).
-run gcloud resource-manager org-policies disable-enforce \
-  iam.disableServiceAccountKeyCreation --project="$PROJECT"
+say "3. Exempt this project from the key-creation ban — only if it is enforced"
+ENFORCED="$(gcloud resource-manager org-policies describe \
+  iam.disableServiceAccountKeyCreation --project="$PROJECT" --effective \
+  --format='value(booleanPolicy.enforced)' 2>/dev/null || true)"
+DISABLED_BY_US=0
+if [ "$ENFORCED" = "True" ]; then
+  echo "  enforced here — adding a project-scoped exemption"
+  run gcloud resource-manager org-policies disable-enforce \
+    iam.disableServiceAccountKeyCreation --project="$PROJECT"
+  DISABLED_BY_US=1
+else
+  echo "  not enforced on ${PROJECT} — nothing to exempt, skipping"
+fi
 
 say "4. Mint the key into a 0600 temp file (never echoed, never committed)"
 TMP="$(mktemp)"; chmod 600 "$TMP"
@@ -84,21 +96,29 @@ else
   echo "  would run: gh secret set $SECRET_NAME < <keyfile>"
 fi
 
-say "6. Re-arm the org policy for this project"
-# Least privilege: the key is minted and stored, so the exemption has served its
-# purpose. Leaving it off would quietly weaken the org's posture forever.
-run gcloud resource-manager org-policies delete \
-  iam.disableServiceAccountKeyCreation --project="$PROJECT"
+say "6. Re-arm the policy — only if step 3 was the thing that turned it off"
+if [ "$DISABLED_BY_US" = "1" ]; then
+  run gcloud resource-manager org-policies delete \
+    iam.disableServiceAccountKeyCreation --project="$PROJECT"
+else
+  echo "  nothing to re-arm (never disabled by this run)"
+fi
 
 say "Done."
 cat <<EOF
 
 Still MANUAL — Play Console has no API for these:
 
-  1. Play Console -> Setup -> API access
-     Link the Google Cloud project '${PROJECT}' if it is not linked already.
-  2. Find '${SA_EMAIL}' in the service accounts list
-     -> Manage Play Console permissions -> grant "Release Manager" -> Invite user.
+  Google no longer requires linking the developer account to a Cloud project
+  (developers.google.com/android-publisher/getting_started), so there is no
+  "Setup -> API access" step any more. Grant the service account like a user:
+
+  1. https://play.google.com/console/developers/users-and-permissions
+  2. "Invite new users" -> email: ${SA_EMAIL}
+  3. "App permissions" tab -> add Cultuvilla -> tick "Release apps to testing
+     tracks" (that is the exact permission name; it covers closed testing and
+     deliberately does NOT allow publishing to production).
+  4. "Invite user".
 
 Verify end to end afterwards:
   gh workflow run beta-build-and-submit.yml -f track=closed
