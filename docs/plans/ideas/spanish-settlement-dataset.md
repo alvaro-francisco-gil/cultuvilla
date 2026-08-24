@@ -163,11 +163,9 @@ the natural move is to create one barrio per pedanía, which then means "barrio"
 means two different things in two different villages.
 
 That conflation is tolerable today because barrios are hand-created and few —
-dev holds 8 — but it is **already happening**: one of those 8 is *Villares de
-Matabuena*, an anejo several km outside Matabuena, not a neighbourhood of it
-(see open question 5). It stops being tolerable the moment we import a real
-nomenclátor: tens of thousands of entidades singulares poured into a collection
-whose semantics are "neighbourhood" would be a mess to unwind.
+dev holds 8. It stops being tolerable the moment we import a real nomenclátor:
+tens of thousands of entidades singulares poured into a collection whose
+semantics are "neighbourhood" would be a mess to unwind.
 
 ### Three candidate shapes
 
@@ -207,16 +205,19 @@ case.
 3. **Pedanía: alias, sibling entity, or barrio with a `kind`?** (the three
    shapes above) — this is the load-bearing decision.
 4. **Do we model *parroquia* / entidad colectiva at all?**
-5. **What happens to the existing hand-created barrios** under option (3)?
-   ~~Are they all genuinely neighbourhoods?~~ **No — already answered, and the
-   answer is the argument for this plan.** Dev holds 8 barrios: *Casco
-   Histórico*, *El Foso*, *Plaza Mayor*, *El Arrabal*, *Nuevo Aranjuez* and *El
-   Pueblo* are genuine neighbourhoods, but ***Villares de Matabuena*** is a
-   separate settlement — an anejo of Matabuena, several km out — and *Mira* is
-   ambiguous. So the conflation is not hypothetical: with only 8 rows in
-   existence, at least one is already a pedanía wearing the word "barrio". Any
-   option that keeps one collection needs a migration that classifies these by
-   hand. (Dev is seed data; confirm against prod before acting.)
+5. **What happens to the existing hand-created barrios?** Dev holds 8, spread
+   over four villages: Aranjuez (*Casco Histórico*, *El Foso*, *Nuevo
+   Aranjuez*), Chinchón (*El Arrabal*, *Plaza Mayor*), Matabuena (*El Pueblo*,
+   *Villares de Matabuena*), Abades (*Mira*).
+
+   **Correction (2026-08-24):** an earlier revision of this plan claimed
+   *Villares de Matabuena* was a real anejo and therefore live proof of the
+   pedanía/barrio conflation. That overstated the evidence. It comes from
+   `scripts/data/seed-fixtures/real_villages_1/fixtures.mjs` — authored demo
+   data, not a row a user created in the wild — and OSM's Matabuena contains
+   *Matamala* and *Cañicosa*, not *Villares*. Whether Villares is a real local
+   name that OSM lacks is a question for someone who knows the village.
+   The conflation risk stands on the structural argument, not on this row.
 6. **Does a pedanía need its own escudo, fiestas and admins**, or does it inherit
    the municipio's? This is the question that decides (2) vs. (3).
 7. **How does joining work?** Today a user joins a municipio and optionally picks
