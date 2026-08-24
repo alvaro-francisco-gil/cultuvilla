@@ -38,6 +38,13 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   - **Sólo `beta` es automático.** Publicar a producción es una decisión de release, no un efecto secundario de un merge: se hace con un `workflow_dispatch` manual sobre el mismo workflow.
   - **Una actualización nunca bloquea el arranque** (`fallbackToCacheTimeout: 0`): se comprueba al lanzar pero se aplica en el arranque siguiente, para que una red lenta no deje la pantalla de carga colgada.
   - Las invariantes quedan fijadas en `packages/shared/test/ci/otaUpdates.test.ts`. **Requiere un binario nuevo**: sólo las builds hechas a partir de este cambio están suscritas a un canal, así que quien tenga una anterior necesita instalar una vez más antes de recibir nada por aire.
+### Added
+
+- **Un pueblo ya no es sólo un municipio: ahora tiene por dentro sus pedanías, aldeas, parroquias y barrios.** España no tiene una sola palabra para «parte de un municipio», y hasta ahora Cultuvilla sólo tenía `barrios`, así que una pedanía —un pueblo separado, a kilómetros, con su nombre y a menudo su junta vecinal— tenía que hacerse pasar por un barrio, que es un vecindario *dentro* de un núcleo. Cada tipo tiene ahora su propia sección horizontal, titulada con la palabra que de verdad se usa en esa comarca: **Localidades**, **Aldeas**, **Parroquias** y **Barrios**. Un pueblo castellano ve sólo «Localidades»; uno gallego, «Parroquias» y «Aldeas»; una ciudad, «Localidades» y «Barrios». Las secciones vacías no se pintan, así que ninguna ocupa sitio donde no aplica.
+  - **La capital del municipio también es una fila.** Si no lo fuera, los vecinos del pueblo principal no tendrían dónde vivir mientras los de las pedanías sí, y el censo y el recuento de vecinos quedarían asimétricos. Y no siempre se llama como el municipio: la capital de Aramaio es una aldea llamada **Ibarra**, de ahí que el origen sea el `admin_centre` de OpenStreetMap y no una comparación de nombres — eso subió las capitales identificadas de 6.528 a 8.100 de 8.167.
+  - **Los datos vienen de OpenStreetMap** (`scripts/fetch-settlements.mjs`): 23.902 localidades, 40.685 aldeas, 4.691 parroquias y 22.827 barrios, en 8.131 de los 8.167 municipios. Los nomenclátores oficiales (INE, IGN) no tienen descarga automatizable, y un fichero que sólo se baja a mano se queda obsoleto en silencio. Incluye la atribución «© OpenStreetMap contributors» que exige la licencia ODbL.
+  - **Migration:** `scripts/backfill-barrio-kind.mjs` (por entorno, auto-aplicado en el deploy) pone `kind`/`source`/`isSeat` en los barrios existentes; todos los que hay hoy se crearon a mano, así que quedan como `kind: 'barrio'`, `source: 'user'`.
+
 
 ### Changed
 

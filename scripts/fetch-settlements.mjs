@@ -80,6 +80,8 @@ const ONLY_PROVINCE = args.find((a) => a.startsWith('--province='))?.split('=')[
 const SETTLEMENT_PLACES = ['city', 'town', 'village', 'hamlet'];
 const NEIGHBOURHOOD_PLACES = ['suburb', 'quarter', 'neighbourhood'];
 
+const round5 = (v) => (typeof v === 'number' ? Math.round(v * 1e5) / 1e5 : null);
+
 /** OSM `place` value → our `kind`. */
 function kindForPlace(place) {
   if (SETTLEMENT_PLACES.includes(place)) return 'pedania';
@@ -204,8 +206,8 @@ function group(elements, nameByIne, ineByName) {
           name: tags.name,
           kind: 'parroquia',
           isSeat: false,
-          lat: el.center?.lat ?? null,
-          lng: el.center?.lon ?? null,
+          lat: round5(el.center?.lat),
+          lng: round5(el.center?.lon),
         });
       }
       continue;
@@ -246,8 +248,10 @@ function group(elements, nameByIne, ineByName) {
       // Spanish exonym while OSM uses the co-official name (Alegría de Álava /
       // Alegría-Dulantzi), which was 1,639 of 8,167.
       isSeat: kind === 'pedania' && (seatIds.has(el.id) || tags.name === current.name),
-      lat: el.lat ?? el.center?.lat ?? null,
-      lng: el.lon ?? el.center?.lon ?? null,
+      // 5 decimals is ~1m — far more precision than a village pin needs, and
+      // full float precision alone added megabytes across 93k rows.
+      lat: round5(el.lat ?? el.center?.lat),
+      lng: round5(el.lon ?? el.center?.lon),
     });
   }
   if (unmatched.length) {
@@ -256,12 +260,33 @@ function group(elements, nameByIne, ineByName) {
   return out;
 }
 
+// Galicia (A Coruña, Lugo, Ourense, Pontevedra) and Asturias, by INE province
+// prefix. These are the only regions where the entidad colectiva — the
+// *parroquia* — is a real level of local identity.
+const PARISH_PROVINCES = new Set(['15', '27', '32', '36', '33']);
+
 /**
- * A municipality whose settlements sit under parroquias calls them *aldeas*
- * (strictly *lugares*), not pedanías. Derived structurally rather than from a
- * province list, so Asturias comes along without a hardcoded rule.
+ * A municipality whose settlements sit under parroquias calls them *aldeas*,
+ * not pedanías.
+ *
+ * This started as a purely structural rule — "has admin_level=9 children" — on
+ * the theory that it would catch Asturias for free without a province list. The
+ * data says otherwise: OSM uses admin_level=9 for ANY sub-municipal division,
+ * so the rule also caught Navarra's 53 concejos, Álava's 34, Catalonia's EMDs
+ * and a long tail of entidades locales menores — about 200 municipalities that
+ * would have been shown Galician vocabulary for a Basque or Catalan structure.
+ *
+ * So the province list is deliberate. Elsewhere the admin_level=9 rows are
+ * dropped rather than mislabelled: those concejos and EMDs are settlements in
+ * their own right and OSM already carries each of them as a place node, so
+ * nothing is lost — Aramaio's fourteen concejos all arrive as place=hamlet.
  */
 function applyRegionalKind(entry) {
+  const isParishRegion = PARISH_PROVINCES.has(entry.codigoINE.slice(0, 2));
+  if (!isParishRegion) {
+    entry.settlements = entry.settlements.filter((s) => s.kind !== 'parroquia');
+    return entry;
+  }
   if (!entry.settlements.some((s) => s.kind === 'parroquia')) return entry;
   for (const s of entry.settlements) {
     if (s.kind === 'pedania') s.kind = 'aldea';
@@ -379,7 +404,7 @@ async function main() {
     console.log('\n--dry-run: not writing JSON.');
     return;
   }
-  writeFileSync(OUT_PATH, JSON.stringify(entries, null, 2) + '\n');
+  writeFileSync(OUT_PATH, JSON.stringify(entries) + '\n');
   console.log(`\nWrote ${entries.length} entries → ${OUT_PATH}`);
 }
 
