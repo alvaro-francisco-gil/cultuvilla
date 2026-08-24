@@ -10,6 +10,7 @@ import {
   signOut as fbSignOut,
   onAuthStateChanged,
   GoogleAuthProvider,
+  OAuthProvider,
   signInWithCredential,
   signInWithCustomToken,
   signInWithPopup,
@@ -37,6 +38,8 @@ import {
   statusCodes,
   isSuccessResponse,
 } from '@react-native-google-signin/google-signin';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 import { clearPendingIntent } from './pendingIntent';
 import {
   clearPendingToken,
@@ -158,6 +161,8 @@ export interface AuthContextValue {
   profileChecked: boolean;
   refreshProfile: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  /** iOS only — throws on any other platform. See AppleButton, shown only on iOS. */
+  signInWithApple: () => Promise<void>;
   sendOtpCode: (email: string) => Promise<void>;
   verifyOtpCode: (email: string, code: string) => Promise<void>;
   isEmailLink: (url: string) => boolean;
@@ -352,6 +357,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signInWithApple = async (): Promise<void> => {
+    if (Platform.OS !== 'ios') {
+      throw new Error('Sign in with Apple is only available on iOS');
+    }
+    // Apple requires a SHA-256-hashed nonce in the request and returns the
+    // identityToken bound to it; Firebase re-derives the hash from the raw
+    // nonce we pass alongside the token, so both forms are needed here.
+    const rawNonce = Crypto.randomUUID();
+    const hashedNonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, rawNonce);
+    let credential;
+    try {
+      credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: hashedNonce,
+      });
+    } catch (err) {
+      const code = (err as { code?: string } | null)?.code;
+      if (code === 'ERR_REQUEST_CANCELED') {
+        throw new Error('Apple sign-in was cancelled');
+      }
+      throw err;
+    }
+    if (!credential.identityToken) {
+      throw new Error('Apple sign-in did not return an identityToken');
+    }
+    const provider = new OAuthProvider('apple.com');
+    const oauthCredential = provider.credential({
+      idToken: credential.identityToken,
+      rawNonce,
+    });
+    await signInWithCredential(getAuth(), oauthCredential);
+  };
+
   const sendOtpCode = async (email: string): Promise<void> => {
     const trimmed = email.trim();
     if (!trimmed) throw new Error('email-required');
@@ -505,6 +546,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profileChecked,
         refreshProfile,
         signInWithGoogle,
+        signInWithApple,
         sendOtpCode,
         verifyOtpCode,
         isEmailLink,

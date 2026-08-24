@@ -1,10 +1,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { Platform } from 'react-native';
 import { signOut as fbSignOut } from 'firebase/auth';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { AuthProvider } from '../AuthContext';
 import { useAuth } from '../useAuth';
 import { observability } from '@cultuvilla/shared';
 import { fetchUserIdHash } from '../../observability/errorBridge';
-import { signInWithCustomToken } from 'firebase/auth';
+import { signInWithCredential, signInWithCustomToken } from 'firebase/auth';
 import { verifyAuthOtpCode } from '@cultuvilla/shared/services/authEmailService';
 import { clearPendingToken } from '../otpTokenCache';
 
@@ -42,6 +44,11 @@ jest.mock('firebase/auth', () => ({
   signInWithEmailLink: jest.fn(),
   GoogleAuthProvider: class {
     static credential() {
+      return {};
+    }
+  },
+  OAuthProvider: class {
+    credential() {
       return {};
     }
   },
@@ -270,5 +277,55 @@ describe('verifyOtpCode on a flaky connection', () => {
 
     expect(verifyAuthOtpCode).toHaveBeenCalledTimes(2);
     expect((signInWithCustomToken as jest.Mock).mock.calls[1][1]).toBe('custom-token-other');
+  });
+});
+
+describe('signInWithApple', () => {
+  const originalPlatformOS = Platform.OS;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockAuthUser = { uid: FAKE_UID, email: 'a@b.com' };
+    Platform.OS = 'ios';
+  });
+
+  afterEach(() => {
+    Platform.OS = originalPlatformOS;
+  });
+
+  it('rejects on any platform other than iOS', async () => {
+    Platform.OS = 'android';
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+
+    await expect(result.current.signInWithApple()).rejects.toThrow(/iOS/);
+    expect(AppleAuthentication.signInAsync).not.toHaveBeenCalled();
+  });
+
+  it('signs in with the returned identityToken on iOS', async () => {
+    (AppleAuthentication.signInAsync as jest.Mock).mockResolvedValueOnce({
+      identityToken: 'apple-identity-token',
+    });
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+
+    await result.current.signInWithApple();
+
+    expect(signInWithCredential).toHaveBeenCalledTimes(1);
+  });
+
+  it('maps a cancelled Apple sheet to a friendly error', async () => {
+    (AppleAuthentication.signInAsync as jest.Mock).mockRejectedValueOnce(
+      Object.assign(new Error('canceled'), { code: 'ERR_REQUEST_CANCELED' }),
+    );
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+
+    await expect(result.current.signInWithApple()).rejects.toThrow(/cancelled/);
+  });
+
+  it('rejects when Apple returns no identityToken', async () => {
+    (AppleAuthentication.signInAsync as jest.Mock).mockResolvedValueOnce({ identityToken: null });
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+
+    await expect(result.current.signInWithApple()).rejects.toThrow(/identityToken/);
+    expect(signInWithCredential).not.toHaveBeenCalled();
   });
 });

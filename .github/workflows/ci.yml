@@ -11,7 +11,14 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel superseded runs on PR refs — a run whose commit has been replaced is
+  # dead work. But never on the branches a merge lands on: that run is the
+  # integration check for the merge, and a concurrent pusher would erase it,
+  # leaving the merge unverified with nothing to show for it.
+  cancel-in-progress: >-
+    ${{ github.ref != 'refs/heads/develop'
+        && github.ref != 'refs/heads/beta'
+        && github.ref != 'refs/heads/main' }}
 
 env:
   # CI builds against dev and never talks to Firebase. Placeholder values
@@ -133,3 +140,4 @@ jobs:
         run: pnpm test
         env:
           VITEST_RETRY_COUNT: '1'
+

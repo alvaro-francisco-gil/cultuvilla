@@ -49,6 +49,43 @@ describe('resolveAuthRoute', () => {
     ).toBe('/(tabs)');
   });
 
+  // Regression: "cancel" on complete-profile (abandonSignUp) signs the user
+  // out, but the gate only ever redirected when `user` was true — so a
+  // signed-out user was left rendering the onboarding screen it had just
+  // ejected them from, unstuck only by a manual refresh.
+  it('moves a signed-out user out of the onboarding group into (tabs)', () => {
+    expect(
+      resolveAuthRoute({
+        user: false,
+        profileChecked: false,
+        hasPersonId: false,
+        topSegment: '(onboarding)',
+      }),
+    ).toBe('/(tabs)');
+  });
+
+  it('leaves a guest on an (auth) screen alone so login stays reachable', () => {
+    expect(
+      resolveAuthRoute({
+        user: false,
+        profileChecked: false,
+        hasPersonId: false,
+        topSegment: '(auth)',
+      }),
+    ).toBeNull();
+  });
+
+  it('leaves a guest browsing (tabs) alone', () => {
+    expect(
+      resolveAuthRoute({
+        user: false,
+        profileChecked: false,
+        hasPersonId: false,
+        topSegment: '(tabs)',
+      }),
+    ).toBeNull();
+  });
+
   it('leaves an onboarded user already in (tabs) alone', () => {
     expect(
       resolveAuthRoute({

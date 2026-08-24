@@ -1,0 +1,90 @@
+name: mobile-ota
+
+# Publishes the JS bundle to an EAS Update channel, so a fix reaches apps that
+# are ALREADY INSTALLED instead of waiting for a store binary.
+#
+# Why this exists: `DetailInfoCard`'s `h-full` broke every entity detail screen
+# on native only. The fix merged the same day, but the newest binary in anyone's
+# hands was 0.19.0 from four days earlier, there was no OTA channel, and
+# `mobile-release` could not submit (no Play service account). A one-line JS fix
+# had no route to a user. This is that route.
+#
+# Scope is deliberately `beta` only. Pushing straight to production users on a
+# merge is a release decision, not a side effect — `production` stays a manual
+# dispatch, consistent with store binaries only moving by explicit choice.
+#
+# LIMIT: OTA carries JS and assets, never native code. Adding a config plugin or
+# a native module changes the fingerprint, and EAS then refuses to serve that
+# update to older binaries — correctly, since they cannot run it. Those still
+# need `mobile-release`. See the `expo-native-rebuild` skill.
+
+on:
+  push:
+    branches: [beta]
+    # Skip runs that cannot change the bundle. Docs and workflow edits are the
+    # common case and a no-op update just adds noise to the channel history.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - '.github/**'
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Channel to publish to
+        type: choice
+        options: [beta, dev, production]
+        default: beta
+
+concurrency:
+  group: mobile-ota-${{ github.event.inputs.channel || 'beta' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish OTA -> ${{ github.event.inputs.channel || 'beta' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The bundle imports @cultuvilla/shared from dist/, so it has to be built
+      # before Metro resolves it — same reason the deploy workflows build it.
+      - name: Build shared package
+        run: pnpm shared:build
+
+      - name: Fail early if EXPO_TOKEN is missing
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "${EXPO_TOKEN}" ]; then
+            echo "::error::EXPO_TOKEN is not set — cannot publish an update."
+            exit 1
+          fi
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publish update
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          APP_ENV: ${{ github.event.inputs.channel == 'production' && 'prod' || (github.event.inputs.channel || 'beta') }}
+        run: |
+          eas update \
+            --branch "${{ github.event.inputs.channel || 'beta' }}" \
+            --message "${GITHUB_SHA::7}" \
+            --non-interactive

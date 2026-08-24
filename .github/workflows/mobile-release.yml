@@ -29,6 +29,10 @@ on:
         description: Submit the build to the store after it succeeds
         type: boolean
         default: true
+      testflightGroup:
+        description: 'iOS only: TestFlight internal testing group to add the build to (leave blank to skip — the build still lands in App Store Connect either way)'
+        type: string
+        default: ''
 
 concurrency:
   group: mobile-release
@@ -108,7 +112,7 @@ jobs:
         run: rm -f apps/mobile/google-play-service-account.json
 
   ios:
-    name: iOS (build${{ inputs.submit && ' + submit' || '' }})
+    name: iOS (build${{ inputs.submit && format(' + submit -> TestFlight{0}', inputs.testflightGroup != '' && format(' [{0}]', inputs.testflightGroup) || '') || '' }})
     if: ${{ inputs.platform == 'ios' || inputs.platform == 'all' }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -141,18 +145,52 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      # ascAppId only exists once the app record is created in App Store Connect,
-      # and eas submit --non-interactive cannot discover it. Fail here with a
-      # readable message rather than 40 minutes later at the submit step.
+      # ascAppId/ascApiKeyId/ascApiKeyIssuerId only exist once the App Store Connect
+      # app record and API key are created, and eas submit --non-interactive cannot
+      # discover them. Fail here with a readable message rather than 40 minutes
+      # later at the submit step.
       - name: Assert App Store Connect app is configured
         if: ${{ inputs.submit }}
         env:
           ASC_APP_ID: ${{ vars.ASC_APP_ID }}
+          APPLE_ASC_KEY_ID: ${{ vars.APPLE_ASC_KEY_ID }}
+          APPLE_ASC_ISSUER_ID: ${{ vars.APPLE_ASC_ISSUER_ID }}
         run: |
-          if [ -z "${ASC_APP_ID}" ]; then
-            echo "::error::ASC_APP_ID variable is unset — create the app in App Store Connect and set it before submitting iOS."
+          missing=()
+          [ -z "${ASC_APP_ID}" ] && missing+=("ASC_APP_ID")
+          [ -z "${APPLE_ASC_KEY_ID}" ] && missing+=("APPLE_ASC_KEY_ID")
+          [ -z "${APPLE_ASC_ISSUER_ID}" ] && missing+=("APPLE_ASC_ISSUER_ID")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing repo variable(s): ${missing[*]} — create the app in App Store Connect and the ASC API key before submitting iOS."
             exit 1
           fi
+
+      # eas.json points ascApiKeyPath at ./apple-asc-api-key.p8 (relative to
+      # apps/mobile). Gitignored via the repo-wide *api-key*.p8 rule; materialised
+      # here from the secret and never persisted. ascApiKeyId/ascApiKeyIssuerId are
+      # not secret (they only identify which key), but they don't exist until the
+      # key is created in App Store Connect, so eas.json can't commit real values —
+      # patched into the submit profile at runtime instead.
+      - name: Write App Store Connect API key
+        if: ${{ inputs.submit }}
+        env:
+          APPLE_ASC_API_KEY_P8: ${{ secrets.APPLE_ASC_API_KEY_P8 }}
+          APPLE_ASC_KEY_ID: ${{ vars.APPLE_ASC_KEY_ID }}
+          APPLE_ASC_ISSUER_ID: ${{ vars.APPLE_ASC_ISSUER_ID }}
+        run: |
+          if [ -z "${APPLE_ASC_API_KEY_P8}" ]; then
+            echo "::error::APPLE_ASC_API_KEY_P8 secret is not set — cannot submit to App Store Connect."
+            exit 1
+          fi
+          printf '%s' "${APPLE_ASC_API_KEY_P8}" > apps/mobile/apple-asc-api-key.p8
+          node -e "
+            const fs = require('fs');
+            const path = 'apps/mobile/eas.json';
+            const eas = JSON.parse(fs.readFileSync(path, 'utf8'));
+            eas.submit.production.ios.ascApiKeyId = process.env.APPLE_ASC_KEY_ID;
+            eas.submit.production.ios.ascApiKeyIssuerId = process.env.APPLE_ASC_ISSUER_ID;
+            fs.writeFileSync(path, JSON.stringify(eas, null, 2) + '\n');
+          "
 
       - name: Build iOS archive
         working-directory: apps/mobile
@@ -167,4 +205,9 @@ jobs:
             --platform ios \
             --latest \
             --non-interactive \
-            --asc-app-id "${{ vars.ASC_APP_ID }}"
+            --asc-app-id "${{ vars.ASC_APP_ID }}" \
+            ${{ inputs.testflightGroup != '' && format('--groups "{0}"', inputs.testflightGroup) || '' }}
+
+      - name: Remove App Store Connect API key
+        if: ${{ always() }}
+        run: rm -f apps/mobile/apple-asc-api-key.p8

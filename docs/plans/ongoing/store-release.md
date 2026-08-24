@@ -1,18 +1,72 @@
 # Store release runbook — Google Play (primary) and App Store
 
-Status: **ongoing** — Play internal testing is live; the 14-day closed test has
-not started. iOS has not begun.
+Status: **ongoing** — the 14-day closed test is running; `0.24.0` is in Play
+review to replace the stale build it started on. iOS has not begun.
 
-**State as of 2026-08-22**
+**State as of 2026-08-24**
 
 - Play developer account (**personal**) verified. App created, `com.cultuvilla.app` claimed.
-- First EAS build succeeded: **0.19.0, versionCode 3**, live on the **internal** track.
+- First EAS build succeeded: **0.19.0, versionCode 3**, built from a laptop.
   (versionCode 1 and 2 were consumed by a failed build — Play only needs them increasing.)
+- **Closed testing (alpha) is live** since **22 Aug 14:38**, 177 countries. It started
+  on that same `3 (0.19.0)` artifact, promoted from internal rather than rebuilt, so
+  the first two days of the clock ran on code five versions old.
+- **`4 (0.24.0)` uploaded to the closed track on 24 Aug.** Built by `mobile-release`
+  run 32711478586 from `main` @ `04d13165` — the first time that workflow has ever
+  run. Uploaded by hand (`submit: false`), because the Play service account did not
+  exist yet at that point.
+  Why it mattered: `0.19.0` predates `fix(mobile): stop detail info cards eating the
+  whole scroll view on native` (4f6dc1b6, 22 Aug 14:18), so **every closed tester saw
+  the event detail screen broken** — the FECHA/UBICACIÓN cards ate the viewport and
+  everything below them was unreachable.
 - App signing SHA-1 + SHA-256 registered in Firebase `cultuvilla-prod`; SHA-256 committed
   to `prod/assetlinks.json`.
-- **Next:** promote to closed testing, recruit 12 testers, start the clock.
+- **The Play service account exists as of 24 Aug 10:12.**
+  `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` is a **repository** secret, not a `production`
+  environment one — deliberately, because `beta-build-and-submit` cannot name that
+  environment, whose branch policy admits only `main`.
+- **The 14-day clock is NOT running: 10 of 12 testers are opted in** (checked 24 Aug).
+  Play requires **≥12 continuously opted in for 14 days**, so the days elapsed since
+  22 Aug count for nothing and the window effectively starts when the 12th tester
+  accepts. "Opted in" means accepted the invite and installed — being on the tester
+  list is not enough.
+- **Next: recruit 2 more testers.** It is the only item on this plan that cannot be
+  done in parallel with anything else; every day at 10/12 is a day the production
+  track does not get closer.
+
+**`beta-build-and-submit` will ship whatever ref it is dispatched from.** It has a
+`workflow_dispatch` trigger with no branch restriction, no `environment` scope, and
+reads a repo-level secret, so a dispatch from any branch builds that code and
+auto-submits it to the closed track. That is how `5 (0.24.0)` — carrying Sign in with
+Apple, the OTA channel and unsoaked `AuthContext` changes — reached testers from
+`develop` on 24 Aug without a promotion. The workflow's own header says store binaries
+move only by explicit decision; today nothing enforces that. A `github.ref_name != 'beta'`
+guard on the dispatch path would.
+
+**Two facts the first `mobile-release` run settled.**
+
+- The `production` GitHub Environment admits **only `main`** as a deployment ref
+  (custom branch policy), so a release build always requires the `beta` → `main`
+  promotion to have landed first. Dispatching from `develop` or `beta` is rejected.
+- `EXPO_TOKEN` is a **personal token under `alvaro-francisco-gil`**, who is Admin on
+  the `cultuvilla.app` account that owns the EAS project — the build logged
+  *Started by alvaro-francisco-gil*. It had never been exercised before 24 Aug
+  because every prior build came from a laptop.
 - Apple: joined an existing team (Team ID `78RB67NT38`) as Admin. No bundle IDs
   registered, no ASC app record, no iOS build has ever run.
+- **Sign in with Apple is implemented** (`expo-apple-authentication`,
+  `AuthContext.signInWithApple`, `AppleButton` on the login screen, iOS-only).
+  It satisfies guideline 4.8 for the eventual *public* App Store submission —
+  it does **not** gate TestFlight internal testing, which needs no App Review.
+- `mobile-release.yml`'s iOS job now materialises an App Store Connect API key
+  from CI secrets/vars at runtime (same pattern as the Android Play service
+  account key) and accepts an optional `testflightGroup` dispatch input to add
+  a build straight to a named TestFlight internal testing group. None of this
+  has run yet — it needs `ASC_APP_ID`, `APPLE_ASC_KEY_ID`, `APPLE_ASC_ISSUER_ID`
+  (repo vars) and `APPLE_ASC_API_KEY_P8` (repo secret), none of which exist,
+  plus a bundle ID + ASC app record that don't exist yet either. It is also
+  subject to the same `production` GitHub Environment ref restriction noted
+  above — a dispatch only runs from `main`.
 
 This is the one place that records what has to happen outside the repo to get
 Cultuvilla onto the stores, and which knob in the repo each external fact feeds.
@@ -42,6 +96,12 @@ The requirement is **per package name**. Testing `com.cultuvilla.app.beta` earns
 nothing toward `com.cultuvilla.app` — which is why `mobile-release.yml` builds
 every track from the single `production` EAS profile and promotes the same
 artifact across tracks, rather than shipping the beta package to Play.
+
+That arrangement is now a recorded decision rather than a workflow comment:
+[docs/decisions/store-tracks-share-prod.md](../../decisions/store-tracks-share-prod.md)
+covers what `cultuvilla-beta` is for once no binary points at it, and why the
+package name must not split per track (a separate package is a separate install
+— the entangled beta/prod installs Órdago's testers hit).
 
 ## Critical path
 
@@ -73,10 +133,17 @@ Marcar aquí, no en la cabeza. Esto es lo que una sesión nueva lee primero.
       `scripts/set-review-access.mjs`) para que el revisor entre sin abrir un
       buzón. Falta desplegarla a prod y escribir el doc allí.
 
+- [x] **Sign in with Apple** (guideline 4.8) — `expo-apple-authentication` +
+      `AuthContext.signInWithApple` + `AppleButton`, iOS-only en la pantalla de
+      login. Bloqueaba la submission pública de iOS, no la de Play ni el
+      TestFlight interno (sin App Review).
+- [x] `mobile-release.yml`: job de iOS materializa la App Store Connect API key
+      desde secrets/vars en runtime, igual que el service account de Play, y
+      admite `testflightGroup` para añadir el build a un grupo de TestFlight.
+
 **Repo — pendiente**
 
-- [ ] **Sign in with Apple** (guideline 4.8), mientras Google Sign-In siga en la
-      pantalla de acceso. Bloquea la primera submission de iOS, no la de Play.
+- (nada bloquea desde el código; todo lo que sigue es externo)
 
 **Consola / fuera del repo — hecho**
 
@@ -89,11 +156,34 @@ Marcar aquí, no en la cabeza. Esto es lo que una sesión nueva lee primero.
 
 **Consola / fuera del repo — pendiente**
 
-- [ ] Service account de Play → secret `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`. **No
-      existe todavía** (ni a nivel de repo ni en el entorno `production`), así
-      que `mobile-release` falla en el paso de submit: hoy no hay forma de subir
-      un build desde Actions.
-- [ ] Cliente OAuth **Android** en `cultuvilla-prod` con el SHA-1 de la app signing key.
+- [x] Service account de Play → secret `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`.
+      **Hecho el 2026-08-24** con
+      [scripts/setup-play-publisher.sh](../../../scripts/setup-play-publisher.sh):
+      `play-publisher@cultuvilla-prod.iam.gserviceaccount.com`, invitada en Play
+      con el permiso *Release apps to testing tracks*. Verificado de punta a
+      punta: `beta-build-and-submit` construyó y envió 0.24.0 (versionCode 5) al
+      track `alpha`, submission `FINISHED` / `COMPLETED`.
+      **Nota sobre la política de organización:** `cultuvilla-prod` **no tiene
+      padre** — está fuera de la organización `1005684282225`, así que
+      `iam.disableServiceAccountKeyCreation` nunca le aplicó y no hizo falta
+      ninguna exención. Sólo `cultuvilla-beta` está dentro de la organización.
+      Google además **ya no exige enlazar el proyecto de Cloud** con la cuenta de
+      desarrollador, así que la página «Setup → API access» puede ni aparecer: se
+      invita a la service account como a un usuario más desde *Users and
+      permissions*.
+
+- [x] Cliente OAuth **Android** en `cultuvilla-prod`. **Ya estaba resuelto**,
+      comprobado el 2026-08-24 contra la Firebase Management API: la app
+      `com.cultuvilla.app` (`1:34340110439:android:35193d…`) tiene registradas
+      SHA-1 y SHA-256, y esa SHA-256 coincide **exactamente** con la huella de
+      la clave de firma de Play commiteada en `prod/assetlinks.json`. Registrar
+      la SHA-1 crea el cliente OAuth de Android automáticamente, y
+      `GOOGLE_WEB_CLIENT_ID_PROD` pertenece al proyecto `34340110439`
+      (= `cultuvilla-prod`) y está presente en el entorno `production` de EAS,
+      que es de donde lee `app.config.ts` en una build de producción. Es decir:
+      **Google Sign-In funciona en las builds del track cerrado**; la entrada
+      anterior de esta lista estaba desactualizada.
+
 - [ ] Escribir `_admin/reviewAccess` en prod y rellenar el formulario App access
       con ese par ([play-declarations.md](../../store/play-declarations.md)).
 - [ ] Content rating, Target audience, Data safety, Government apps, Financial
@@ -101,8 +191,50 @@ Marcar aquí, no en la cabeza. Esto es lo que una sesión nueva lee primero.
 - [ ] Gráficos: icono 512×512, feature 1024×500, ≥2 capturas
       ([assets.md](../../store/assets.md)).
 - [ ] Ficha es-ES ([listing-es-ES.md](../../store/listing-es-ES.md)).
-- [ ] `mobile-release` track `closed` + 12 testers → arranca el reloj de 14 días.
+- [x] `mobile-release` track `closed` + 12 testers → el reloj de 14 días arrancó
+      el **22 ago 14:38**, con `3 (0.19.0)` promovido desde internal (no un build
+      nuevo), 177 países.
+- [ ] **Subir `0.24.0` al track closed.** Los testers están probando una versión
+      con el bug de detalle de evento. Orden: mergear la PR #254 (`beta` → `main`,
+      verde desde el 22 ago) → `main` queda en `0.24.0` → lanzar `mobile-release`
+      desde `main`. `versionCode` autoincrementa (`appVersionSource: remote`), así
+      que saldrá `4`, por encima del `3` actual.
 - [ ] Rollout a producción.
+
+**iOS — pendiente, orden sugerido**
+
+1. [ ] Registrar el bundle ID `com.cultuvilla.app` en Apple Developer →
+       Certificates, Identifiers & Profiles, con **Sign In with Apple**
+       marcado como capability.
+2. [ ] Crear el registro de la app en App Store Connect → recoge el
+       **App Store Connect app id** → var de repo `ASC_APP_ID`.
+3. [ ] Crear una **App Store Connect API Key** (Users and Access → Integrations
+       → App Store Connect API → rol **Admin** o **App Manager**, no menos) →
+       descarga el `.p8` **una sola vez** (Apple no lo deja volver a descargar):
+       - el contenido del `.p8` → secret de repo `APPLE_ASC_API_KEY_P8`
+       - el Key ID que muestra la consola → var de repo `APPLE_ASC_KEY_ID`
+       - el Issuer ID (arriba de la tabla de keys) → var de repo `APPLE_ASC_ISSUER_ID`
+4. [ ] Habilitar el proveedor **Apple** en Firebase Console → Authentication →
+       Sign-in method, para `cultuvilla-prod` (y `beta`/`dev` si se quiere probar
+       ahí también). El flujo nativo no necesita Service ID ni return URL — solo
+       el proveedor activado.
+5. [ ] Primer build de iOS: `mobile-release` (`platform: ios`, `submit: false`)
+       desde `main` — igual que el primer AAB de Android, para descubrir
+       gotchas de build antes de intentar el submit. Si EAS pide credenciales
+       de firma (certificado de distribución / provisioning profile) de forma
+       interactiva porque nunca se generaron, hace falta un `eas credentials -p
+       ios` local, una única vez, con el Apple ID + 2FA de quien administra el
+       team — después queda guardado en los servidores de EAS y todo build de
+       CI posterior es no interactivo.
+6. [ ] Con `ASC_APP_ID` + las tres variables de la API key ya puestas, relanzar
+       `mobile-release` con `submit: true` y `testflightGroup` (crear antes un
+       grupo interno en App Store Connect → TestFlight, p. ej. "internal") →
+       el build llega a TestFlight sin ningún App Review, listo para testers
+       reales.
+7. [ ] Cuando se quiera abrir a la revisión pública: rellenar
+       [app-store-declarations.md](../../store/app-store-declarations.md) y
+       enviar a revisión desde App Store Connect (esto no lo hace `eas submit`
+       automáticamente).
 
 **Contenido en prod: un solo pueblo.** De 16 municipios con overlay de comunidad
 activada, sólo **Matabuena** tiene contenido (25 eventos, 2 noticias, 156
@@ -117,8 +249,11 @@ saberlo antes de leer una captura vacía como un fallo.
 | Play service account JSON | GCP → service account key, then Play Console → Users and permissions → Release Manager | repo secret `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` |
 | App signing key SHA-256 | Play Console → **Protected with Play → Play Store protection → Play app signing** | committed into `apps/mobile/public/.well-known/{env}/assetlinks.json` |
 | App signing key SHA-1 | same screen | **new Android OAuth client** in the `cultuvilla-prod` GCP project |
-| Apple Team ID | Apple Developer → Membership | committed into `apps/mobile/public/.well-known/{env}/apple-app-site-association` |
+| Apple Team ID | Apple Developer → Membership | committed into `apps/mobile/public/.well-known/{env}/apple-app-site-association` **and** `apps/mobile/eas.json` (`submit.production.ios.appleTeamId`) |
 | App Store Connect app id | App Store Connect → App Information | repo var `ASC_APP_ID` |
+| ASC API Key `.p8` file | App Store Connect → Users and Access → Integrations → App Store Connect API | repo secret `APPLE_ASC_API_KEY_P8` |
+| ASC API Key ID | same screen | repo var `APPLE_ASC_KEY_ID` |
+| ASC API Key Issuer ID | same screen (above the keys table) | repo var `APPLE_ASC_ISSUER_ID` |
 
 ### The Android OAuth client is the easy thing to forget
 
@@ -147,10 +282,10 @@ serve both consoles and stay reviewable in git:
 - [docs/store/assets.md](../../store/assets.md) — icono, feature graphic, capturas.
 
 El flujo de denuncia/bloqueo de UGC que piden el content rating de Play y la
-guideline 1.2 de Apple **ya está en el código**. Lo que sigue bloqueando desde
-fuera del repo: **una cuenta/buzón de revisión utilizable** (el login es OTP por
-email o Google, así que ninguna credencial suelta sirve) y, para iOS, **Sign in
-with Apple** mientras Google Sign-In esté en la pantalla de acceso.
+guideline 1.2 de Apple, y Sign in with Apple para la guideline 4.8, **ya están
+en el código**. Lo que sigue bloqueando desde fuera del repo, para ambas
+plataformas: **una cuenta/buzón de revisión utilizable** (el login es OTP por
+email o Google/Apple, así que ninguna credencial suelta sirve).
 
 ## Repo knobs this runbook feeds
 
