@@ -208,3 +208,15 @@ export const userBlockedUsersCollection = (db: Firestore, userId: string) =>
 
 export const userBlockedUserDoc = (db: Firestore, userId: string, blockedUserId: string) =>
   db.collection('users').doc(userId).collection('blockedUsers').doc(blockedUserId).withConverter(blockedUserConverterAdmin);
+
+/**
+ * The OSM settlement reference data for one municipality, keyed by INE code.
+ *
+ * Under `_admin/**`, which is `allow read, write: if false` for every client —
+ * no client reads this and the Admin SDK bypasses rules, so it needs no rules
+ * of its own and cannot be edited into the barrios of every village activated
+ * afterwards. (`_admin` paths need an EVEN number of segments to be a document;
+ * this one is four.)
+ */
+export const settlementSeedDoc = (db: Firestore, codigoINE: string) =>
+  db.collection('_admin').doc('settlements').collection('seeds').doc(codigoINE);

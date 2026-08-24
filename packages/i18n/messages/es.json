@@ -330,6 +330,9 @@
       "title": "Administración del pueblo",
       "hub": {
         "barrios": "Barrios",
+    "localidades": "Localidades",
+    "aldeas": "Aldeas",
+    "parroquias": "Parroquias",
         "places": "Lugares",
         "organizations": "Grupos",
         "invites": "Invitaciones",
@@ -907,7 +910,11 @@
     "allGroup": "Todos",
     "viewVillage": "Ver pueblo",
     "joinVillage": "Unirse a este pueblo",
-    "alreadyMember": "Ya eres miembro"
+    "alreadyMember": "Ya eres miembro",
+    "emptyHint": "Solo aparecen municipios. Muchas pedanías y anejos se encuentran escribiendo su nombre, pero el resultado es el municipio al que pertenecen.",
+    "emptyHintExample": "Por ejemplo, Villarino de Manzanas aparece como Figueruela de Arriba. Si no lo encuentras, prueba con el nombre del municipio.",
+    "searchHint": "Puedes escribir cualquier palabra del nombre",
+    "viaLocality": "Incluye {locality}"
   },
   "inbox": {
     "title": "Buzón",

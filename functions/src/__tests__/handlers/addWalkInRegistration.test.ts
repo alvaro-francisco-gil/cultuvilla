@@ -87,7 +87,11 @@ describe('addWalkInRegistration (callable)', () => {
       uid: ORGANIZER_ID,
       data: { eventId: EVENT_ID, name: 'Ana', answers: { size: 'M' } },
     });
-    expect(await privateDocs()).toEqual([{ name: 'Ana', phone: null, answers: { size: 'M' } }]);
+    // A walk-in has no persons doc, so `birthday` is written null rather than
+    // omitted — every private doc carries the same shape.
+    expect(await privateDocs()).toEqual([
+      { name: 'Ana', phone: null, answers: { size: 'M' }, birthday: null },
+    ]);
   });
 
   it('rejects a walk-in missing a required answer', async () => {

@@ -365,3 +365,70 @@ describe('VillageHomeBody', () => {
     expect(queryByText('15/06/2026')).toBeNull();
   });
 });
+
+describe('subdivision sections', () => {
+  const row = (id: string, name: string, kind: string) =>
+    ({
+      id,
+      name,
+      kind,
+      source: 'osm',
+      isSeat: false,
+      images: [],
+      residentCount: 0,
+      commentCount: 0,
+      municipalityId: 'v1',
+    }) as unknown as VillageHomeState['barrios'][number];
+
+  it('renders one section per kind, titled with that region\'s word', () => {
+    const { getByText } = render(
+      <VillageHomeBody
+        data={{
+          ...base,
+          barrios: [
+            row('b1', 'El Arrabal', 'barrio'),
+            row('p1', 'Villarino de Manzanas', 'pedania'),
+          ],
+        }}
+        reload={jest.fn()}
+      />,
+    );
+    expect(getByText('Barrios')).toBeTruthy();
+    expect(getByText('Localidades')).toBeTruthy();
+    expect(getByText('El Arrabal')).toBeTruthy();
+    expect(getByText('Villarino de Manzanas')).toBeTruthy();
+  });
+
+  it('hides the sections a village has no rows for', () => {
+    // Section returns null when empty, so a Castilian village with only
+    // pedanías must not show an empty Parroquias or Aldeas header.
+    const { queryByText } = render(
+      <VillageHomeBody
+        data={{ ...base, barrios: [row('p1', 'Matamala', 'pedania')] }}
+        reload={jest.fn()}
+      />,
+    );
+    expect(queryByText('Localidades')).toBeTruthy();
+    expect(queryByText('Parroquias')).toBeNull();
+    expect(queryByText('Aldeas')).toBeNull();
+    expect(queryByText('Barrios')).toBeNull();
+  });
+
+  it('keeps Galician aldeas out of the Lugares section, which is places', () => {
+    // "Lugares" is already the title of the places scroll (cementerios,
+    // iglesias); Galician settlements are titled "Aldeas" so the two cannot
+    // collide on the same screen.
+    const { getByText, getAllByText } = render(
+      <VillageHomeBody
+        data={{
+          ...base,
+          barrios: [row('a1', 'Samarugo', 'parroquia'), row('a2', 'Ibarra', 'aldea')],
+        }}
+        reload={jest.fn()}
+      />,
+    );
+    expect(getByText('Parroquias')).toBeTruthy();
+    expect(getByText('Aldeas')).toBeTruthy();
+    expect(getAllByText('Lugares').length).toBeLessThanOrEqual(1);
+  });
+});
