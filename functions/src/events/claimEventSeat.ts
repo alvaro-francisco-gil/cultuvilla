@@ -161,11 +161,16 @@ export const claimEventSeat = onCall<ClaimEventSeatData, Promise<ClaimEventSeatR
       // The claimer answers the event's questions for themselves — that is the
       // whole reason the fields are per-attendee. Overwrites whatever
       // placeholder the group owner's sign-up left behind.
-      if (phone || Object.keys(answers).length > 0) {
+      // The birth date rides along for the same reason it does at sign-up: the
+      // roster export reads it from here, and it is PII the world-readable
+      // registration doc must never carry.
+      const birthday = person.birthday ?? null;
+      if (phone || Object.keys(answers).length > 0 || birthday) {
         tx.set(eventRegistrationPrivateDoc(db, eventId, regRef.id), {
           name,
           phone: phone ?? null,
           answers,
+          birthday,
         });
       }
 

@@ -12,6 +12,7 @@ import type {
   SignupAnswers,
   SignupFieldSpec,
 } from '@cultuvilla/shared/models/event/SignupFieldModel';
+import type { PartialDate } from '@cultuvilla/shared/models/person/PersonDataModel';
 import { colors, iconSizes } from '@cultuvilla/shared/design-system';
 import { useT } from '../../lib/i18n';
 import { downloadFile } from '../../lib/export/downloadFile';
@@ -25,6 +26,8 @@ export interface RosterExportButtonProps {
   eventDate: Date | null;
   registrations: Row[];
   phones: Record<string, string | null>;
+  /** Registration id -> the attendee's birth date; adds a roster column. */
+  birthdays?: Record<string, PartialDate | null>;
   telephoneRequired: boolean;
   requiresPayment: boolean;
   /** The event's custom questions; each becomes a trailing column. */
@@ -52,6 +55,7 @@ export function RosterExportButton(props: RosterExportButtonProps) {
     eventDate,
     registrations,
     phones,
+    birthdays,
     telephoneRequired,
     requiresPayment,
     signupFields,
@@ -68,6 +72,7 @@ export function RosterExportButton(props: RosterExportButtonProps) {
           eventDate,
           registrations,
           phones,
+          birthdays,
           telephoneRequired,
           requiresPayment,
           signupFields,
@@ -93,6 +98,7 @@ export function RosterExportButton(props: RosterExportButtonProps) {
       eventDate,
       registrations,
       phones,
+      birthdays,
       telephoneRequired,
       requiresPayment,
       signupFields,

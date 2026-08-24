@@ -23,6 +23,7 @@ import type {
   SignupAnswerValue,
   SignupFieldSpec,
 } from '@cultuvilla/shared/models/event/SignupFieldModel';
+import type { PartialDate } from '@cultuvilla/shared/models/person/PersonDataModel';
 import { colors, iconSizes } from '@cultuvilla/shared/design-system';
 import { formatDate } from '@cultuvilla/shared/utils/format';
 import { useT } from '../../lib/i18n';
@@ -62,8 +63,8 @@ function formatAnswer(value: string | number | boolean, t: (key: string) => stri
  * write on someone's registration; a one-purpose row makes that impossible.
  *
  * Two things are deliberately organizer-only and must stay that way:
- * `registrationPrivate` (phone + custom answers) is never even fetched in
- * read-only mode, and a private persona (`isPersonPublic: false`) is counted
+ * `registrationPrivate` (phone, custom answers, birth date) is never even
+ * fetched in read-only mode, and a private persona (`isPersonPublic: false`) is counted
  * but rendered anonymously — the person doc is already denied to other
  * villagers, so naming them here would republish exactly what that setting
  * hides. Payment and check-in state are hidden rather than redacted: they live
@@ -96,6 +97,9 @@ export function EventAttendees({
   const [rows, setRows] = useState<Row[] | null>(null);
   const [phones, setPhones] = useState<Record<string, string | null>>({});
   const [answers, setAnswers] = useState<Record<string, SignupAnswers>>({});
+  // Export-only: the roster itself never shows a birth date, but the organizer
+  // exporting it gets a column. Same gated doc as the phone and the answers.
+  const [birthdays, setBirthdays] = useState<Record<string, PartialDate | null>>({});
   const [callTarget, setCallTarget] = useState<{ name: string; phone: string } | null>(null);
   const [editing, setEditing] = useState(false);
 
@@ -106,18 +110,22 @@ export function EventAttendees({
     // at sign-up. They used to be a `getPerson` per row, which one organizer
     // paid for; this list is now read by the whole pueblo, so that fan-out
     // would be paid by every viewer on every open.
-    // One gated doc per registration carries both the phone and the custom
-    // answers, so a single fan-out covers both — skipped entirely unless the
-    // caller is an organizer AND the event actually collects something. A
-    // non-organizer is denied these by rules, so asking would only log noise.
-    if (canManage && (telephoneRequired || signupFields.length > 0)) {
+    // One gated doc per registration carries the phone, the custom answers and
+    // the attendee's birth date, so a single fan-out covers all three. Gated on
+    // `canManage` alone: every sign-up denormalizes a birth date there, so
+    // "does this event collect anything?" stopped being the right question —
+    // and a non-organizer is denied the docs by rules, so asking would only log
+    // noise. The fan-out is paid by the handful of people who run the event,
+    // never by the pueblo reading the roster.
+    if (canManage) {
       const entries = await Promise.all(
         regs.map(async (r) => [r.id, await getRegistrationPrivate(eventId, r.id)] as const),
       );
       setPhones(Object.fromEntries(entries.map(([id, p]) => [id, p?.phone ?? null])));
       setAnswers(Object.fromEntries(entries.map(([id, p]) => [id, p?.answers ?? {}])));
+      setBirthdays(Object.fromEntries(entries.map(([id, p]) => [id, p?.birthday ?? null])));
     }
-  }, [eventId, canManage, telephoneRequired, signupFields.length]);
+  }, [eventId, canManage]);
 
   useEffect(() => {
     void load();
@@ -283,6 +291,7 @@ export function EventAttendees({
                 eventDate={eventDate}
                 registrations={rows ?? []}
                 phones={phones}
+                birthdays={birthdays}
                 telephoneRequired={telephoneRequired}
                 requiresPayment={requiresPayment}
                 signupFields={signupFields}
