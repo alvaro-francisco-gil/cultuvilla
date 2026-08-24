@@ -13,6 +13,10 @@ export const NotificationTypeSchema = z.enum([
   // them, which deletes every registration on it (see onEventUpdated). Sent to
   // each person who was signed up.
   'signups_disabled',
+  // An organizer, village admin, or the group's own owner removed the
+  // recipient's seat. The email in sendCancellationEmail is best-effort; this
+  // is the durable record that the seat is gone.
+  'registration_removed',
   'org_approved',
   'org_rejected',
   'organizer_request_created',
