@@ -1,6 +1,9 @@
 import { logger } from 'firebase-functions/v2';
 import type { Firestore } from 'firebase-admin/firestore';
-import { municipalityBarriosCollection } from '@cultuvilla/shared/firebase/refs/admin';
+import {
+  municipalityBarriosCollection,
+  settlementSeedDoc,
+} from '@cultuvilla/shared/firebase/refs/admin';
 // Deliberately the subpath, not the '@cultuvilla/shared' barrel: these are
 // value imports, and the barrel re-exports the design system and hooks, which
 // drag React Native into the functions bundle and break the esbuild step.
@@ -35,7 +38,7 @@ export async function seedVillageSettlements(
   try {
     // `_admin/**` is denied to every client, so this reference data cannot be
     // tampered with; the Admin SDK bypasses rules.
-    const snap = await db.doc(`_admin/settlements/seeds/${codigoINE}`).get();
+    const snap = await settlementSeedDoc(db, codigoINE).get();
     if (!snap.exists) {
       logger.info('no settlement seed for municipality', { handler, municipalityId, codigoINE });
       return 0;
