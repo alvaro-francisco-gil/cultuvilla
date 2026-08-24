@@ -25,6 +25,7 @@ async function seedMunicipality(
       name: 'Villarriba',
       nameLower: 'villarriba',
       nameAliases: [],
+      localityNames: [],
       searchPrefixes: ['v', 'vi', 'vil', 'vill', 'villa', 'villar', 'villarr', 'villarri', 'villarrib', 'villarriba'],
       province: 'Madrid',
       comunidadAutonoma: 'Madrid',

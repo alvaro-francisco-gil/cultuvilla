@@ -112,11 +112,13 @@ async function main() {
       const docRef = collection.doc(); // auto-ID
       const nameLower = searchKey(entry.name);
       const nameAliases = entry.nameAliases ?? [];
+      const localityNames = entry.localityNames ?? [];
       batch.set(docRef, {
         name: entry.name,
         nameLower,
         nameAliases,
-        searchPrefixes: searchPrefixes(entry.name, nameAliases),
+        localityNames,
+        searchPrefixes: searchPrefixes(entry.name, nameAliases, localityNames),
         province: entry.province,
         comunidadAutonoma: entry.comunidadAutonoma,
         codigoINE: entry.codigoINE,
