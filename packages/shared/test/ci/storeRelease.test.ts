@@ -203,3 +203,42 @@ describe('prod deep-link association files', () => {
     );
   });
 });
+
+// The beta branch auto-builds and submits to the CLOSED track
+// (.github/workflows/beta-build-and-submit.yml). Closed testing is not a public
+// release, and Play's "12 testers for 14 continuous days" clock only advances
+// while testers actually have builds — so this one step is automated while
+// production stays an explicit decision.
+describe('beta auto-submit workflow', () => {
+  const wf = readFileSync(
+    resolve(__dirname, '../../../..', '.github/workflows/beta-build-and-submit.yml'),
+    'utf8',
+  );
+
+  it('triggers on beta and never on main', () => {
+    expect(wf).toMatch(/branches:\s*\[beta\]/);
+    expect(wf).not.toMatch(/branches:\s*\[[^\]]*main/);
+  });
+
+  // Play's closed-testing requirement is per package name, so a
+  // com.cultuvilla.app.beta build earns nothing toward com.cultuvilla.app.
+  it('builds the production profile, not a beta-package profile', () => {
+    expect(wf).toMatch(/--profile production/);
+    expect(wf).not.toMatch(/--profile preview-beta/);
+  });
+
+  it('submits to the closed track by default', () => {
+    expect(wf).toMatch(/--auto-submit-with-profile/);
+    expect(wf).toMatch(/inputs\.track \|\| 'closed'/);
+  });
+
+  // A GitHub `environment` here would be rejected outright: the Production
+  // environment's branch policy allows only `main`.
+  it('does not scope itself to a GitHub environment', () => {
+    expect(wf).not.toMatch(/^\s*environment:/m);
+  });
+
+  it('deletes the service account key even when the build fails', () => {
+    expect(wf).toMatch(/if: always\(\)[\s\S]*rm -f apps\/mobile\/google-play-service-account\.json/);
+  });
+});
