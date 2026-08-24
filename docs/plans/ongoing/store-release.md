@@ -11,19 +11,32 @@ review to replace the stale build it started on. iOS has not begun.
 - **Closed testing (alpha) is live** since **22 Aug 14:38**, 177 countries. It started
   on that same `3 (0.19.0)` artifact, promoted from internal rather than rebuilt, so
   the first two days of the clock ran on code five versions old.
-- **`4 (0.24.0)` uploaded to the closed track on 24 Aug and is in Play review.**
-  Built by `mobile-release` run 32711478586 from `main` @ `04d13165` — the first
-  time that workflow has ever run. Uploaded by hand (`submit: false`) because the
-  Play service account still does not exist.
-- App signing SHA-1 + SHA-256 registered in Firebase `cultuvilla-prod`; SHA-256 committed
-  to `prod/assetlinks.json`.
+- **`4 (0.24.0)` uploaded to the closed track on 24 Aug.** Built by `mobile-release`
+  run 32711478586 from `main` @ `04d13165` — the first time that workflow has ever
+  run. Uploaded by hand (`submit: false`), because the Play service account did not
+  exist yet at that point.
   Why it mattered: `0.19.0` predates `fix(mobile): stop detail info cards eating the
   whole scroll view on native` (4f6dc1b6, 22 Aug 14:18), so **every closed tester saw
   the event detail screen broken** — the FECHA/UBICACIÓN cards ate the viewport and
   everything below them was unreachable.
-- **Next:** create the Play service account and set `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`.
-  It is the last manual step in the loop; with it, a release is one
-  `gh workflow run mobile-release.yml --ref main -f track=closed -f submit=true`.
+- App signing SHA-1 + SHA-256 registered in Firebase `cultuvilla-prod`; SHA-256 committed
+  to `prod/assetlinks.json`.
+- **The Play service account exists as of 24 Aug 10:12.**
+  `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` is a **repository** secret, not a `production`
+  environment one — deliberately, because `beta-build-and-submit` cannot name that
+  environment, whose branch policy admits only `main`.
+- **Next:** confirm the closed track has **≥12 testers continuously opted in**. That,
+  not elapsed days, is what unlocks the production track; the clock started 22 Aug and
+  a shortfall silently costs the whole 14 days.
+
+**`beta-build-and-submit` will ship whatever ref it is dispatched from.** It has a
+`workflow_dispatch` trigger with no branch restriction, no `environment` scope, and
+reads a repo-level secret, so a dispatch from any branch builds that code and
+auto-submits it to the closed track. That is how `5 (0.24.0)` — carrying Sign in with
+Apple, the OTA channel and unsoaked `AuthContext` changes — reached testers from
+`develop` on 24 Aug without a promotion. The workflow's own header says store binaries
+move only by explicit decision; today nothing enforces that. A `github.ref_name != 'beta'`
+guard on the dispatch path would.
 
 **Two facts the first `mobile-release` run settled.**
 
