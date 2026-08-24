@@ -4,7 +4,11 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.25.0 — 2026-08-24
+
 ### Added
+
+- **Un `merge` a `beta` publica solo en el canal cerrado de Google Play.** Antes cada binario exigía a alguien abrir la consola y subir el AAB a mano, y eso importa más de lo que parece: el reloj de Play de «12 testers durante 14 días seguidos» sólo avanza mientras los testers *tienen* builds, así que cada paso manual era un día que el contador no corría. Ahora `beta` construye el perfil `production` (paquete `com.cultuvilla.app` — el requisito de Play es por nombre de paquete, así que una build de `com.cultuvilla.app.beta` no suma nada) y lo envía al track cerrado sin intervención. **El despliegue a producción sigue siendo manual**, que es justo la decisión que la regla protegía.
 
 - **Las correcciones llegan a las apps ya instaladas, sin esperar a un binario de tienda.** Un `merge` a `beta` publica el bundle JS al canal `beta` de EAS Update, y la app lo recoge en el siguiente arranque. Existe por un fallo concreto: el bug de las tarjetas de detalle (`h-full`) se corrigió el mismo día en que se reportó y aun así no podía llegar a nadie — el binario más reciente tenía cuatro días, no había canal de actualizaciones y `mobile-release` no tiene credenciales de Play. Una corrección de una línea sin ninguna ruta hasta la persona que la sufría.
   - **`runtimeVersion` es `fingerprint`, nunca `appVersion`.** La MINOR sube en cada promoción `develop → beta`, así que la política `appVersion` dejaría cada actualización varada frente a los binarios ya instalados: reproduciría en silencio justo el problema que esto resuelve. Un fingerprint se deriva del grafo de dependencias nativas, así que un cambio sólo-JS conserva la versión de runtime y viaja por aire, mientras que añadir un módulo nativo la cambia y EAS se niega —correctamente— a servírsela a binarios que no pueden ejecutarla.
