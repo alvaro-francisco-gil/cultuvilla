@@ -1,0 +1,110 @@
+name: beta-build-and-submit
+
+# Merging to `beta` builds the Android release and submits it to Play's CLOSED
+# track, unattended. Mirrors ordago-apps' beta-build-and-submit.yml.
+#
+# Why a binary moves automatically here, when AGENTS.md otherwise insists store
+# binaries move only by explicit decision: closed testing is not a public
+# release. Play's "12 testers for 14 continuous days" clock only advances while
+# testers actually have builds, and every manual step in that loop is a day the
+# clock does not move. Production stays manual — that is the decision this
+# preserves. `mobile-release` remains the manual escape hatch for any track.
+#
+# Deliberately NOT scoped to a GitHub `environment`: the `Production`
+# environment's branch policy allows only `main`, so a beta-triggered job that
+# named it would be rejected outright. Repo-level secrets are read directly.
+#
+# The `production` EAS profile is correct here despite the branch name — Play's
+# closed-testing requirement is per PACKAGE, and only that profile builds
+# `com.cultuvilla.app`. Building `com.cultuvilla.app.beta` would earn nothing
+# toward it. Locked by packages/shared/test/ci/storeRelease.test.ts.
+
+on:
+  push:
+    branches: [beta]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  workflow_dispatch:
+    inputs:
+      track:
+        description: Play track to submit to
+        type: choice
+        options: [closed, internal]
+        default: closed
+
+concurrency:
+  group: beta-build-and-submit
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android build + submit -> ${{ github.event.inputs.track || 'closed' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      # Fail loudly and early rather than 40 minutes into a build that cannot be
+      # submitted. Until the Play service account exists this is where the
+      # workflow stops, and the message says exactly what to do about it.
+      - name: Require store credentials
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          missing=0
+          if [ -z "${EXPO_TOKEN}" ]; then
+            echo "::error::EXPO_TOKEN is not set."
+            missing=1
+          fi
+          if [ -z "${GOOGLE_PLAY_SERVICE_ACCOUNT_JSON}" ]; then
+            echo "::error::GOOGLE_PLAY_SERVICE_ACCOUNT_JSON is not set — see docs/plans/ongoing/store-release.md (Play Console -> Setup -> API access -> Release Manager)."
+            missing=1
+          fi
+          [ "$missing" = "0" ]
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The bundle imports @cultuvilla/shared from dist/, so it has to exist
+      # before Metro resolves it — same reason the deploy workflows build it.
+      - name: Build shared package
+        run: pnpm shared:build
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      # eas.json's submit profiles point at this path. The key never lands in
+      # the repo — only in the runner workspace, for the life of the job.
+      - name: Materialize the Play service account key
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: printf '%s' "${GOOGLE_PLAY_SERVICE_ACCOUNT_JSON}" > apps/mobile/google-play-service-account.json
+
+      - name: Build and submit
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas build \
+            --profile production \
+            --platform android \
+            --non-interactive \
+            --wait \
+            --auto-submit-with-profile "${{ github.event.inputs.track || 'closed' }}"
+
+      - name: Remove the key
+        if: always()
+        run: rm -f apps/mobile/google-play-service-account.json

@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { Platform } from 'react-native';
 import { Button, Input, Text, VStack } from '../../components/primitives';
 import {
+  AppleButton,
   AuthCard,
   AuthHeader,
   GoogleButton,
@@ -13,7 +15,7 @@ import { useT } from '../../lib/i18n';
 type Step = 'email' | 'code';
 
 export default function LoginScreen() {
-  const { sendOtpCode, verifyOtpCode, signInWithGoogle } = useAuth();
+  const { sendOtpCode, verifyOtpCode, signInWithGoogle, signInWithApple } = useAuth();
   const { t } = useT();
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
@@ -22,6 +24,7 @@ export default function LoginScreen() {
   const [sendLoading, setSendLoading] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
 
   async function onSendCode() {
     setError(null);
@@ -67,6 +70,18 @@ export default function LoginScreen() {
       setError(authErrorMessage(e, t('auth.error.unknown')));
     } finally {
       setGoogleLoading(false);
+    }
+  }
+
+  async function onApple() {
+    setError(null);
+    setAppleLoading(true);
+    try {
+      await signInWithApple();
+    } catch (e) {
+      setError(authErrorMessage(e, t('auth.error.unknown')));
+    } finally {
+      setAppleLoading(false);
     }
   }
 
@@ -122,6 +137,12 @@ export default function LoginScreen() {
         </Button>
         <OrDivider />
         <GoogleButton onPress={onGoogle} loading={googleLoading} testID="login-google-button" />
+        {Platform.OS === 'ios' && (
+          <AppleButton
+            onPress={appleLoading ? () => {} : onApple}
+            testID="login-apple-button"
+          />
+        )}
       </VStack>
     </AuthCard>
   );

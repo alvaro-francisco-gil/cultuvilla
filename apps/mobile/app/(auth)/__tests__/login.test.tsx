@@ -12,6 +12,7 @@ jest.mock('../../../lib/i18n', () => ({
 const mockSendOtpCode = jest.fn();
 const mockVerifyOtpCode = jest.fn();
 const mockSignInWithGoogle = jest.fn();
+const mockSignInWithApple = jest.fn();
 
 const mockUseAuth = jest.fn();
 jest.mock('../../../lib/auth/useAuth', () => ({
@@ -24,6 +25,7 @@ beforeEach(() => {
     sendOtpCode: mockSendOtpCode,
     verifyOtpCode: mockVerifyOtpCode,
     signInWithGoogle: mockSignInWithGoogle,
+    signInWithApple: mockSignInWithApple,
   });
 });
 
@@ -163,5 +165,16 @@ describe('<LoginScreen>', () => {
     fireEvent.press(getByTestId('login-google-button'));
 
     await waitFor(() => expect(mockSignInWithGoogle).toHaveBeenCalledTimes(1));
+  });
+
+  // The RN jest preset defaults Platform.OS to 'ios', which is exactly the
+  // one platform the Apple button must render on.
+  it('calls signInWithApple from the Apple button', async () => {
+    mockSignInWithApple.mockResolvedValue(undefined);
+    const { getByTestId } = render(<LoginScreen />);
+
+    fireEvent.press(getByTestId('login-apple-button'));
+
+    await waitFor(() => expect(mockSignInWithApple).toHaveBeenCalledTimes(1));
   });
 });

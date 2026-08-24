@@ -21,6 +21,9 @@ interface EasConfig {
     {
       environment?: string;
       autoIncrement?: boolean;
+      distribution?: string;
+      developmentClient?: boolean;
+      channel?: string;
       env?: Record<string, string>;
       android?: { buildType?: string };
     }
@@ -46,6 +49,7 @@ const easJson = JSON.parse(
 const workflow = readFileSync(resolve(repoRoot, '.github/workflows/mobile-release.yml'), 'utf-8');
 
 const PROD_PACKAGE = 'com.cultuvilla.app';
+const appConfig = readFileSync(resolve(repoRoot, 'apps/mobile/app.config.ts'), 'utf-8');
 
 describe('Play submit profiles', () => {
   const submitProfiles = ['internal', 'closed', 'production'] as const;
@@ -69,6 +73,60 @@ describe('Play submit profiles', () => {
       './google-play-service-account.json',
     );
     expect(workflow).toContain('apps/mobile/google-play-service-account.json');
+  });
+});
+
+describe('non-prod builds never reach a store', () => {
+  // The load-bearing invariant, and the reason the release pipeline looks the
+  // way it does: a separate package is a separate INSTALL, so a tester moving
+  // from a `.beta` store build to the prod one gets a second app rather than an
+  // update — new FCM token, new Google Sign-In Android OAuth client, unverified
+  // App Links, two icons. Every Play track ships the same com.cultuvilla.app
+  // artifact precisely so that migration never has to exist.
+  // See docs/decisions/store-tracks-share-prod.md.
+  const nonProdBuildProfiles = Object.entries(easJson.build).filter(
+    ([, profile]) => profile.env?.APP_ENV !== undefined && profile.env.APP_ENV !== 'prod',
+  );
+
+  it('has non-prod build profiles at all (otherwise the checks below are vacuous)', () => {
+    expect(nonProdBuildProfiles.length).toBeGreaterThan(0);
+  });
+
+  it('submits nothing but the production package', () => {
+    const submitted = new Set(
+      Object.values(easJson.submit).map((profile) => profile.android.applicationId),
+    );
+    expect(submitted).toEqual(new Set([PROD_PACKAGE]));
+  });
+
+  it.each(nonProdBuildProfiles.map(([name]) => name))(
+    '%s is internal-distribution — it cannot be handed to a store',
+    (name) => {
+      expect(easJson.build[name].distribution).toBe('internal');
+    },
+  );
+
+  it('keeps every non-prod APP_ENV off the release workflow', () => {
+    // mobile-release.yml builds --profile production only; if a second profile
+    // ever appears there, the build-invocation test above catches it. This one
+    // catches the subtler version: the workflow overriding APP_ENV directly.
+    expect(workflow).not.toMatch(/APP_ENV:\s*(dev|beta)\b/);
+  });
+});
+
+describe('per-env application identity', () => {
+  it('gives each env its own identifier, prod bare', () => {
+    // The `.dev` / `.beta` identifiers exist for sideloading — installing a
+    // non-prod build alongside the store app. They are only safe because
+    // nothing submits them (asserted above).
+    expect(appConfig).toContain("dev: 'com.cultuvilla.app.dev'");
+    expect(appConfig).toContain("beta: 'com.cultuvilla.app.beta'");
+    expect(appConfig).toContain(`prod: '${PROD_PACKAGE}'`);
+  });
+
+  it('labels non-prod builds so a sideloaded icon is identifiable', () => {
+    expect(appConfig).toContain("dev: 'Cultuvilla Dev'");
+    expect(appConfig).toContain("beta: 'Cultuvilla Beta'");
   });
 });
 
@@ -143,5 +201,44 @@ describe('prod deep-link association files', () => {
     expect(association.applinks.details[0].appID).toMatch(
       new RegExp(`^[A-Z0-9]{10}\\.${PROD_PACKAGE.replace(/\./g, '\\.')}$`),
     );
+  });
+});
+
+// The beta branch auto-builds and submits to the CLOSED track
+// (.github/workflows/beta-build-and-submit.yml). Closed testing is not a public
+// release, and Play's "12 testers for 14 continuous days" clock only advances
+// while testers actually have builds — so this one step is automated while
+// production stays an explicit decision.
+describe('beta auto-submit workflow', () => {
+  const wf = readFileSync(
+    resolve(__dirname, '../../../..', '.github/workflows/beta-build-and-submit.yml'),
+    'utf8',
+  );
+
+  it('triggers on beta and never on main', () => {
+    expect(wf).toMatch(/branches:\s*\[beta\]/);
+    expect(wf).not.toMatch(/branches:\s*\[[^\]]*main/);
+  });
+
+  // Play's closed-testing requirement is per package name, so a
+  // com.cultuvilla.app.beta build earns nothing toward com.cultuvilla.app.
+  it('builds the production profile, not a beta-package profile', () => {
+    expect(wf).toMatch(/--profile production/);
+    expect(wf).not.toMatch(/--profile preview-beta/);
+  });
+
+  it('submits to the closed track by default', () => {
+    expect(wf).toMatch(/--auto-submit-with-profile/);
+    expect(wf).toMatch(/inputs\.track \|\| 'closed'/);
+  });
+
+  // A GitHub `environment` here would be rejected outright: the Production
+  // environment's branch policy allows only `main`.
+  it('does not scope itself to a GitHub environment', () => {
+    expect(wf).not.toMatch(/^\s*environment:/m);
+  });
+
+  it('deletes the service account key even when the build fails', () => {
+    expect(wf).toMatch(/if: always\(\)[\s\S]*rm -f apps\/mobile\/google-play-service-account\.json/);
   });
 });

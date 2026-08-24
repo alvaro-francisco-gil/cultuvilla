@@ -37,6 +37,13 @@ export function resolveAuthRoute({
   if (user && !needsOnboarding && (inAuthGroup || inOnboardingGroup)) {
     return '/(tabs)';
   }
+  // Nor should a signed-out one: onboarding is the only group with no way back
+  // out on its own, so cancelling sign-up (abandonSignUp) would otherwise leave
+  // the guest rendering a screen that no longer applies to them. /(auth) is
+  // deliberately excluded — that is where a guest signs in.
+  if (!user && inOnboardingGroup) {
+    return '/(tabs)';
+  }
   return null;
 }
 
