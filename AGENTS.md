@@ -377,6 +377,7 @@ pnpm lint             # eslint --max-warnings 0 in packages/shared + functions
 pnpm typecheck        # tsc --noEmit in shared, functions, i18n, mobile
 pnpm test             # vitest (shared) + jest (mobile) + functions, under emulators
 pnpm backfills:list   # registered data migrations (see Backfills)
+pnpm check:store-claims # verify the store-release runbook against live infra
 ```
 
 Pre-commit (Husky + lint-staged) currently only formats `*.{json,md,yml,yaml}`; commit-msg runs commitlint. The lint/typecheck/test gate runs via `pnpm check` and in CI, not on commit.
@@ -394,7 +395,12 @@ DATASET=demo_1 pnpm seed:dev:wipe     # remove just that dataset (reverse order)
 
 Each domain also runs à la carte (resolves its dependencies by email / deterministic ID), e.g. `pnpm seed:dev:news` or `pnpm seed:dev:events:wipe`. Available: `users`, `villages`, `orgs`, `places`, `events`, `news`.
 
-Images are **pre-downloaded once, not fetched at seed time**. `DATASET=demo_1 pnpm seed:images` reads `images.manifest.mjs` and downloads each entry (Lorem Picsum by default) into the dataset's `images/`, resized with sharp; commit the results. Image-capable entities: user/persona photo, village escudo, event `imageURL`, news `images[]`. Orgs, places and barrios have no image field.
+Images are **generated or pre-downloaded once, never fetched at seed time**; either way the results are committed.
+
+- **`demo_1` is drawn, not photographed** — `pnpm seed:images:generate` ([generate-demo-images.mjs](scripts/seed/generate-demo-images.mjs)) renders every asset as a flat brand-coloured card carrying a glyph for what it depicts. It replaced Lorem Picsum because random photos were *actively misleading*, not merely generic: "Casa Consistorial" was a person in a beanie and "Ayuntamiento de Aranjuez" was a camera — and those images are what the Play Store screenshots are built from. We cannot license real photos of Aranjuez, so the honest alternative is imagery that is obviously illustrative. Output is deterministic (palette from a hash of the filename), so re-running makes no diff.
+- **Other datasets still download** — `DATASET=real_villages_1 pnpm seed:images` reads that dataset's `images.manifest.mjs` ([prepare-images.mjs](scripts/seed/prepare-images.mjs)) and resizes with sharp.
+
+Image-capable entities: user/persona photo, village escudo, barrio, place, organization, event `imageURL`, news `images[]`.
 
 To activate real villages via the **actual organizer-request → admin-approval flow** (rather than direct seeding), use the sibling script:
 

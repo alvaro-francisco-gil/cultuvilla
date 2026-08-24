@@ -35,6 +35,11 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   - **La fecha de nacimiento no se publica en el listado.** Es un dato personal y el documento de la inscripción lo lee todo el pueblo, así que viaja donde ya viajan el teléfono y las respuestas: en `registrationPrivate/{regId}`, que las reglas restringen a la organización del evento. Se copia desde `persons` en el momento de apuntarse, porque la ficha de una persona a cargo marcada como privada está denegada a cualquiera que no la haya creado — ni siquiera quien organiza podría leerla fila a fila.
   - **Migration:** las inscripciones ya existentes no llevaban el dato; lo copia `scripts/backfill-registration-private-birthday.mjs` (por entorno, `autoApply` en el despliegue).
 
+### Changed
+
+- **Las imágenes del dataset de demostración se dibujan, ya no son fotos al azar.** Venían de Lorem Picsum, y el resultado no era genérico sino directamente engañoso: la «Casa Consistorial» era una persona con gorro, el «Ayuntamiento de Aranjuez» una cámara de fotos y los Jardines del Príncipe una cordillera del Himalaya. Como esas imágenes son de donde salen las capturas de la ficha de Google Play, la tienda mostraba una app de pueblos ilustrada con fotos de otro sitio. No podemos licenciar fotos reales de Aranjuez, así que la alternativa honesta es imaginería **claramente ilustrativa**: cada archivo es una tarjeta plana en colores de marca con el glifo de lo que representa — una iglesia parece una iglesia y un cementerio un cementerio. El resultado es determinista (la paleta sale de un hash del nombre del fichero), así que regenerar no produce diff.
+- **Los pueblos de demostración ya tienen escudo.** El seeder aceptaba `escudo` desde el principio, pero ninguna ficha de `demo_1` lo definía, así que la portada del pueblo mostraba un cuadrado gris con la inicial. Aranjuez y Chinchón traen ahora uno dibujado.
+
 ## v0.25.0 — 2026-08-24
 
 ### Added

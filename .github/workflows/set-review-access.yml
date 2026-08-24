@@ -1,0 +1,123 @@
+name: Set Review Access
+
+# Writes (or clears) `_admin/reviewAccess` — the allowlisted address and fixed
+# 6-digit code handed to a Play / App Store reviewer.
+#
+# Sibling of set-app-version.yml, and it exists for the same reason: this is a
+# Firestore doc, so it is neither a code deploy (automatic on merge) nor a data
+# migration (the backfill registry). Without this workflow, writing it to prod
+# needed prod Admin SDK credentials on someone's laptop — and beta/prod enforce
+# iam.disableServiceAccountKeyCreation, so there is no key to hand out. Keyless
+# via WIF, exactly like the deploy.
+#
+# REVOKE IT when the review is done. Run again with clear=true. A code that
+# never rotates is only worth its risk while a reviewer actually needs it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - beta
+          - prod
+      email:
+        description: 'Allowlisted address — must ALREADY be a user in that env (ignored when clearing)'
+        required: false
+        type: string
+      code:
+        description: 'Fixed 6-digit code (blank = generate one and print it)'
+        required: false
+        type: string
+      clear:
+        description: 'Delete the doc instead of writing it — revokes review access immediately'
+        required: false
+        default: false
+        type: boolean
+      mode:
+        description: 'dry-run (default, no writes) or apply'
+        required: true
+        default: dry-run
+        type: choice
+        options:
+          - dry-run
+          - apply
+
+jobs:
+  set-review-access:
+    name: reviewAccess → ${{ inputs.env }} (${{ inputs.clear && 'clear' || 'set' }}, ${{ inputs.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ inputs.env == 'prod' && 'production' || inputs.env }}
+    concurrency:
+      group: review-access-${{ inputs.env }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write # required for Workload Identity Federation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.24.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Reject a write with no address
+        if: ${{ !inputs.clear && inputs.email == '' }}
+        run: |
+          echo "::error::email is required unless clear=true."
+          exit 1
+
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      # Always preview first — the dry run reports whether the address resolves
+      # to a real user in that env, which is the failure people actually hit.
+      - name: Dry run
+        run: |
+          node scripts/set-review-access.mjs \
+            --env="$ENV" \
+            ${CLEAR:+--clear} \
+            ${EMAIL:+--email="$EMAIL"} \
+            ${CODE:+--code="$CODE"} \
+            --dry-run
+        env:
+          ENV: ${{ inputs.env }}
+          EMAIL: ${{ inputs.email }}
+          CODE: ${{ inputs.code }}
+          CLEAR: ${{ inputs.clear && '1' || '' }}
+
+      - name: Apply
+        if: inputs.mode == 'apply'
+        run: |
+          node scripts/set-review-access.mjs \
+            --env="$ENV" \
+            ${CLEAR:+--clear} \
+            ${EMAIL:+--email="$EMAIL"} \
+            ${CODE:+--code="$CODE"} \
+            --confirm
+        env:
+          ENV: ${{ inputs.env }}
+          EMAIL: ${{ inputs.email }}
+          CODE: ${{ inputs.code }}
+          CLEAR: ${{ inputs.clear && '1' || '' }}
