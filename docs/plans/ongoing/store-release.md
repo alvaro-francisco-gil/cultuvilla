@@ -62,6 +62,12 @@ nothing toward `com.cultuvilla.app` — which is why `mobile-release.yml` builds
 every track from the single `production` EAS profile and promotes the same
 artifact across tracks, rather than shipping the beta package to Play.
 
+That arrangement is now a recorded decision rather than a workflow comment:
+[docs/decisions/store-tracks-share-prod.md](../../decisions/store-tracks-share-prod.md)
+covers what `cultuvilla-beta` is for once no binary points at it, and why the
+package name must not split per track (a separate package is a separate install
+— the entangled beta/prod installs Órdago's testers hit).
+
 ## Critical path
 
 1. Register the Play developer account and clear identity verification.
