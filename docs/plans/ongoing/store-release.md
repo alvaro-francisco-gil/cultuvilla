@@ -152,6 +152,18 @@ Marcar aquí, no en la cabeza. Esto es lo que una sesión nueva lee primero.
       [eas.json](../../../apps/mobile/eas.json) lo espera en
       `./google-play-service-account.json`, que el workflow escribe desde el
       secret).
+      **Automatizado en [scripts/setup-play-publisher.sh](../../../scripts/setup-play-publisher.sh)**:
+      habilita la API, crea la service account, exime *sólo ese proyecto* de
+      la política de organización, mina la clave, la guarda como secret de
+      GitHub y vuelve a armar la política. Requiere `gcloud auth login
+      cultuvilla.app@gmail.com` antes (es la única cuenta con acceso a los
+      tres proyectos; `matabuena.unida@` sólo ve `cultuvilla-beta`).
+      **Ojo — `constraints/iam.disableServiceAccountKeyCreation` está
+      impuesta a nivel de ORGANIZACIÓN** (org `1005684282225`, puesta el
+      2026-04-25), así que hereda a todos los proyectos y `keys create`
+      falla en todos por defecto. No hay camino sin clave: `eas submit`
+      (y fastlane por debajo) sólo se autentica con un JSON de service
+      account, no con Workload Identity.
 - [ ] Cliente OAuth **Android** en `cultuvilla-prod` con el SHA-1 de la app signing key.
 - [ ] Escribir `_admin/reviewAccess` en prod y rellenar el formulario App access
       con ese par ([play-declarations.md](../../store/play-declarations.md)).
