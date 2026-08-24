@@ -11,12 +11,27 @@ function resolveEnv(): Env {
 
 const env = resolveEnv();
 
+// Home-screen labels. The non-prod ones are prefixed so a sideloaded APK is
+// identifiable next to the store app — an icon labelled just "Beta" tells its
+// owner nothing about which app it is.
 const namePerEnv: Record<Env, string> = {
-  dev: 'Dev',
-  beta: 'Beta',
+  dev: 'Cultuvilla Dev',
+  beta: 'Cultuvilla Beta',
   prod: 'Cultuvilla',
 };
 
+// Application identity per env. Read this together with
+// docs/decisions/store-tracks-share-prod.md — the two non-prod identifiers are
+// SIDELOAD-ONLY and must never reach a Play track.
+//
+// A separate package is a separate INSTALL: its own FCM token, its own Google
+// Sign-In Android OAuth client (bound to package + SHA-1), its own App Links
+// verification, and its own icon on the home screen. So a tester who moves from
+// a `.beta` store build to the prod one is not updating an app, they are
+// installing a second one — which is how Órdago ended up with testers whose
+// beta and prod installs behaved as if they were entangled. Every Play track
+// here ships the SAME `com.cultuvilla.app` artifact, so a closed tester reaching
+// production receives an ordinary update and there is no migration to get wrong.
 const bundleIdPerEnv: Record<Env, string> = {
   dev: 'com.cultuvilla.app.dev',
   beta: 'com.cultuvilla.app.beta',
