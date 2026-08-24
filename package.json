@@ -41,7 +41,7 @@
     "backfills:run": "node scripts/backfills-cli.mjs run",
     "backfills:auto-apply": "node scripts/backfills-cli.mjs auto-apply",
     "backfills:lint": "node scripts/lint-backfill-meta.mjs",
-    "backfills:test": "node --test scripts/__tests__/backfill-registry.test.mjs scripts/__tests__/backfill-discovery.test.mjs",
+    "backfills:test": "node --test scripts/__tests__/backfill-registry.test.mjs scripts/__tests__/backfill-discovery.test.mjs scripts/__tests__/existing-village-settlements.test.mjs",
     "scripts:test": "node --test \"scripts/__tests__/*.test.mjs\"",
     "backfill:municipality-people:dev": "pnpm shared:build && node scripts/backfill-municipality-people.mjs",
     "typecheck": "pnpm shared:typecheck && pnpm functions:typecheck && pnpm i18n:typecheck && pnpm app:typecheck",
