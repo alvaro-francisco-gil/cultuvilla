@@ -62,6 +62,7 @@
     "escudos:upload": "node scripts/upload-escudos.mjs",
     "qr:generate": "node scripts/generate-qr.mjs",
     "qr:test": "node --test scripts/__tests__/generate-qr.test.mjs",
+    "check:store-claims": "node scripts/check-store-release-claims.mjs",
     "seed:images": "node scripts/seed/prepare-images.mjs",
     "seed:images:generate": "node scripts/seed/generate-demo-images.mjs --apply",
     "seed:dev": "pnpm shared:build && node scripts/seed/all.mjs",

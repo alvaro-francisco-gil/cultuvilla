@@ -377,6 +377,7 @@ pnpm lint             # eslint --max-warnings 0 in packages/shared + functions
 pnpm typecheck        # tsc --noEmit in shared, functions, i18n, mobile
 pnpm test             # vitest (shared) + jest (mobile) + functions, under emulators
 pnpm backfills:list   # registered data migrations (see Backfills)
+pnpm check:store-claims # verify the store-release runbook against live infra
 ```
 
 Pre-commit (Husky + lint-staged) currently only formats `*.{json,md,yml,yaml}`; commit-msg runs commitlint. The lint/typecheck/test gate runs via `pnpm check` and in CI, not on commit.
