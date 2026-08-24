@@ -18,3 +18,17 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
   },
   isSuccessResponse: (r: { type?: string } | null | undefined) => r?.type === 'success',
 }));
+
+jest.mock('expo-apple-authentication', () => ({
+  signInAsync: jest.fn(async () => ({ identityToken: 'test-identity-token' })),
+  AppleAuthenticationScope: { FULL_NAME: 0, EMAIL: 1 },
+  AppleAuthenticationButtonType: { CONTINUE: 0 },
+  AppleAuthenticationButtonStyle: { BLACK: 0 },
+  AppleAuthenticationButton: 'AppleAuthenticationButton',
+}));
+
+jest.mock('expo-crypto', () => ({
+  randomUUID: jest.fn(() => 'test-raw-nonce'),
+  digestStringAsync: jest.fn(async () => 'test-hashed-nonce'),
+  CryptoDigestAlgorithm: { SHA256: 'SHA256' },
+}));

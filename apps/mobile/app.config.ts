@@ -260,6 +260,7 @@ const config: ExpoConfig = {
           'Cultuvilla usa tu ubicación para fijar la del pueblo en el mapa.',
       },
     ],
+    'expo-apple-authentication',
   ],
   experiments: {
     typedRoutes: true,

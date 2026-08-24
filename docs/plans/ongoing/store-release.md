@@ -32,6 +32,19 @@ build**. iOS has not begun.
   dispatch is the cheap way to find out.
 - Apple: joined an existing team (Team ID `78RB67NT38`) as Admin. No bundle IDs
   registered, no ASC app record, no iOS build has ever run.
+- **Sign in with Apple is implemented** (`expo-apple-authentication`,
+  `AuthContext.signInWithApple`, `AppleButton` on the login screen, iOS-only).
+  It satisfies guideline 4.8 for the eventual *public* App Store submission —
+  it does **not** gate TestFlight internal testing, which needs no App Review.
+- `mobile-release.yml`'s iOS job now materialises an App Store Connect API key
+  from CI secrets/vars at runtime (same pattern as the Android Play service
+  account key) and accepts an optional `testflightGroup` dispatch input to add
+  a build straight to a named TestFlight internal testing group. None of this
+  has run yet — it needs `ASC_APP_ID`, `APPLE_ASC_KEY_ID`, `APPLE_ASC_ISSUER_ID`
+  (repo vars) and `APPLE_ASC_API_KEY_P8` (repo secret), none of which exist,
+  plus a bundle ID + ASC app record that don't exist yet either. It is also
+  subject to the same `production` GitHub Environment ref restriction noted
+  above — a dispatch only runs from `main`.
 
 This is the one place that records what has to happen outside the repo to get
 Cultuvilla onto the stores, and which knob in the repo each external fact feeds.
@@ -98,10 +111,17 @@ Marcar aquí, no en la cabeza. Esto es lo que una sesión nueva lee primero.
       `scripts/set-review-access.mjs`) para que el revisor entre sin abrir un
       buzón. Falta desplegarla a prod y escribir el doc allí.
 
+- [x] **Sign in with Apple** (guideline 4.8) — `expo-apple-authentication` +
+      `AuthContext.signInWithApple` + `AppleButton`, iOS-only en la pantalla de
+      login. Bloqueaba la submission pública de iOS, no la de Play ni el
+      TestFlight interno (sin App Review).
+- [x] `mobile-release.yml`: job de iOS materializa la App Store Connect API key
+      desde secrets/vars en runtime, igual que el service account de Play, y
+      admite `testflightGroup` para añadir el build a un grupo de TestFlight.
+
 **Repo — pendiente**
 
-- [ ] **Sign in with Apple** (guideline 4.8), mientras Google Sign-In siga en la
-      pantalla de acceso. Bloquea la primera submission de iOS, no la de Play.
+- (nada bloquea desde el código; todo lo que sigue es externo)
 
 **Consola / fuera del repo — hecho**
 
@@ -136,6 +156,41 @@ Marcar aquí, no en la cabeza. Esto es lo que una sesión nueva lee primero.
       que saldrá `4`, por encima del `3` actual.
 - [ ] Rollout a producción.
 
+**iOS — pendiente, orden sugerido**
+
+1. [ ] Registrar el bundle ID `com.cultuvilla.app` en Apple Developer →
+       Certificates, Identifiers & Profiles, con **Sign In with Apple**
+       marcado como capability.
+2. [ ] Crear el registro de la app en App Store Connect → recoge el
+       **App Store Connect app id** → var de repo `ASC_APP_ID`.
+3. [ ] Crear una **App Store Connect API Key** (Users and Access → Integrations
+       → App Store Connect API → rol **Admin** o **App Manager**, no menos) →
+       descarga el `.p8` **una sola vez** (Apple no lo deja volver a descargar):
+       - el contenido del `.p8` → secret de repo `APPLE_ASC_API_KEY_P8`
+       - el Key ID que muestra la consola → var de repo `APPLE_ASC_KEY_ID`
+       - el Issuer ID (arriba de la tabla de keys) → var de repo `APPLE_ASC_ISSUER_ID`
+4. [ ] Habilitar el proveedor **Apple** en Firebase Console → Authentication →
+       Sign-in method, para `cultuvilla-prod` (y `beta`/`dev` si se quiere probar
+       ahí también). El flujo nativo no necesita Service ID ni return URL — solo
+       el proveedor activado.
+5. [ ] Primer build de iOS: `mobile-release` (`platform: ios`, `submit: false`)
+       desde `main` — igual que el primer AAB de Android, para descubrir
+       gotchas de build antes de intentar el submit. Si EAS pide credenciales
+       de firma (certificado de distribución / provisioning profile) de forma
+       interactiva porque nunca se generaron, hace falta un `eas credentials -p
+       ios` local, una única vez, con el Apple ID + 2FA de quien administra el
+       team — después queda guardado en los servidores de EAS y todo build de
+       CI posterior es no interactivo.
+6. [ ] Con `ASC_APP_ID` + las tres variables de la API key ya puestas, relanzar
+       `mobile-release` con `submit: true` y `testflightGroup` (crear antes un
+       grupo interno en App Store Connect → TestFlight, p. ej. "internal") →
+       el build llega a TestFlight sin ningún App Review, listo para testers
+       reales.
+7. [ ] Cuando se quiera abrir a la revisión pública: rellenar
+       [app-store-declarations.md](../../store/app-store-declarations.md) y
+       enviar a revisión desde App Store Connect (esto no lo hace `eas submit`
+       automáticamente).
+
 **Contenido en prod: un solo pueblo.** De 16 municipios con overlay de comunidad
 activada, sólo **Matabuena** tiene contenido (25 eventos, 2 noticias, 156
 miembros); los otros 15 tienen 1 miembro y 0 eventos. La app es navegable sin
@@ -149,8 +204,11 @@ saberlo antes de leer una captura vacía como un fallo.
 | Play service account JSON | GCP → service account key, then Play Console → Users and permissions → Release Manager | repo secret `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` |
 | App signing key SHA-256 | Play Console → **Protected with Play → Play Store protection → Play app signing** | committed into `apps/mobile/public/.well-known/{env}/assetlinks.json` |
 | App signing key SHA-1 | same screen | **new Android OAuth client** in the `cultuvilla-prod` GCP project |
-| Apple Team ID | Apple Developer → Membership | committed into `apps/mobile/public/.well-known/{env}/apple-app-site-association` |
+| Apple Team ID | Apple Developer → Membership | committed into `apps/mobile/public/.well-known/{env}/apple-app-site-association` **and** `apps/mobile/eas.json` (`submit.production.ios.appleTeamId`) |
 | App Store Connect app id | App Store Connect → App Information | repo var `ASC_APP_ID` |
+| ASC API Key `.p8` file | App Store Connect → Users and Access → Integrations → App Store Connect API | repo secret `APPLE_ASC_API_KEY_P8` |
+| ASC API Key ID | same screen | repo var `APPLE_ASC_KEY_ID` |
+| ASC API Key Issuer ID | same screen (above the keys table) | repo var `APPLE_ASC_ISSUER_ID` |
 
 ### The Android OAuth client is the easy thing to forget
 
@@ -179,10 +237,10 @@ serve both consoles and stay reviewable in git:
 - [docs/store/assets.md](../../store/assets.md) — icono, feature graphic, capturas.
 
 El flujo de denuncia/bloqueo de UGC que piden el content rating de Play y la
-guideline 1.2 de Apple **ya está en el código**. Lo que sigue bloqueando desde
-fuera del repo: **una cuenta/buzón de revisión utilizable** (el login es OTP por
-email o Google, así que ninguna credencial suelta sirve) y, para iOS, **Sign in
-with Apple** mientras Google Sign-In esté en la pantalla de acceso.
+guideline 1.2 de Apple, y Sign in with Apple para la guideline 4.8, **ya están
+en el código**. Lo que sigue bloqueando desde fuera del repo, para ambas
+plataformas: **una cuenta/buzón de revisión utilizable** (el login es OTP por
+email o Google/Apple, así que ninguna credencial suelta sirve).
 
 ## Repo knobs this runbook feeds
 
