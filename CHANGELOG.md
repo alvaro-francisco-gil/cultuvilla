@@ -4,6 +4,14 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+
+- **Exportar la lista de asistentes a Excel o CSV ya funciona en la app, no sólo en la web.** El control de descarga del roster existía desde 0.24.0 pero se ocultaba en iOS y Android, porque guardar un fichero allí necesita módulos nativos que la app no traía; el organizador que gestiona su peña desde el móvil — que es la mayoría — no tenía forma de sacar la lista. Ahora el fichero se escribe en la caché de la app y se entrega a la hoja de compartir del sistema, que es donde viven «Guardar en Archivos», Drive, WhatsApp y el correo. El `.xlsx` y el `.csv` son exactamente los mismos que genera la web: mismo libro con logo, cabecera fija y filtros, y mismo CSV UTF-8-BOM con punto y coma.
+  - En iOS se envía además el UTI del tipo de fichero (`org.openxmlformats.spreadsheetml.sheet`, `public.comma-separated-values-text`): sin él el sistema no sabe qué apps pueden abrir la hoja y ofrece una lista vacía.
+  - `downloadFile` pasa a ser un par dividido por plataforma (`downloadFile.ts` nativo, `downloadFile.web.ts` web) en lugar de una única función con un `Platform.OS` dentro. Metro resuelve el fichero en tiempo de build, así que `expo-file-system` y `expo-sharing` no pueden colarse en el bundle web — que es exactamente el fallo que tumbó el export web en su día y que `scripts/check-web-export.mjs` vigila.
+  - Los textos del diálogo dejan de decir «descargar»: en el móvil no hay descarga, hay una hoja de compartir.
+  - **Requiere un binario nuevo.** Son dos módulos nativos, así que el fingerprint cambia y EAS Update no puede servir esto por aire a las builds ya instaladas: llega con el siguiente binario del track cerrado. No se añade el config plugin de `expo-sharing` a propósito — sólo sirve para *recibir* contenido compartido en la app (una share extension de iOS con su App Group), y aquí sólo compartimos hacia fuera.
+
 ## v0.25.0 — 2026-08-24
 
 ### Added

@@ -581,9 +581,9 @@
     "export": {
       "action": "Exportar asistentes",
       "title": "Exportar asistentes",
-      "body": "Se descargará la lista completa ({count} personas), incluida la lista de espera.",
-      "excel": "Descargar Excel (.xlsx)",
-      "csv": "Descargar CSV",
+      "body": "Se generará la lista completa ({count} personas), incluida la lista de espera.",
+      "excel": "Exportar a Excel (.xlsx)",
+      "csv": "Exportar a CSV",
       "error": "No se pudo generar el archivo. Inténtalo de nuevo."
     },
     "attendeesEmpty": "Aún no hay asistentes",

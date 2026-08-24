@@ -1,25 +1,54 @@
-import { isWeb } from '../platform';
+import { File, Paths } from 'expo-file-system';
+import { isAvailableAsync, shareAsync } from 'expo-sharing';
+import type { ExportFileData } from './exportFileTypes';
 
 /**
- * Hand the browser a generated file. Web-only by design: the native apps are
- * not released yet (see AGENTS.md "Versioning & releases") and saving/sharing
- * on iOS/Android would need expo-file-system + expo-sharing, which we don't
- * ship. Callers gate their UI on {@link canDownloadFile} rather than relying on
- * this throwing.
+ * Hand the user a generated file on iOS/Android. Native half of the platform
+ * split — Metro resolves `downloadFile.web.ts` on the web target instead, so
+ * the two native modules imported above never reach the web bundle.
+ *
+ * There is no "Downloads folder" to write to on either OS, so the file goes to
+ * the app's cache directory and is then handed to the system share sheet, which
+ * is where "Guardar en Archivos" / Drive / WhatsApp / mail all live. Cache (not
+ * documents) because the copy is disposable the moment the sheet is done with
+ * it: the OS may reclaim it, and the receiving app has taken its own copy.
  */
-export const canDownloadFile = isWeb;
+/**
+ * iOS identifies file types by UTI, not MIME, and picks the wrong app (or none)
+ * without one. Keyed by the MIME the callers already pass so a new export
+ * format only has to add a line here.
+ */
+const UTI_BY_MIME: Record<string, string> = {
+  'text/csv': 'public.comma-separated-values-text',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+    'org.openxmlformats.spreadsheetml.sheet',
+};
 
-export function downloadFile(data: BlobPart, fileName: string, mimeType: string): void {
-  if (!isWeb) throw new Error('downloadFile is only available on the web build');
+function utiFor(mimeType: string): string | undefined {
+  // Callers append charset parameters (`text/csv;charset=utf-8`); the UTI table
+  // is keyed by the bare type.
+  return UTI_BY_MIME[mimeType.split(';')[0]!.trim()];
+}
 
-  const url = URL.createObjectURL(new Blob([data], { type: mimeType }));
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = fileName;
-  // Safari ignores a click on a node that isn't in the document.
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  // Revoking synchronously cancels the download in Firefox; defer a tick.
-  setTimeout(() => URL.revokeObjectURL(url), 0);
+export async function downloadFile(
+  data: ExportFileData,
+  fileName: string,
+  mimeType: string,
+): Promise<void> {
+  if (!(await isAvailableAsync())) {
+    throw new Error('Sharing is not available on this device');
+  }
+
+  const file = new File(Paths.cache, fileName);
+  // Exporting the same roster twice must overwrite rather than throw on the
+  // leftover from the first run.
+  if (file.exists) file.delete();
+  file.create();
+  file.write(typeof data === 'string' ? data : new Uint8Array(data));
+
+  await shareAsync(file.uri, {
+    mimeType: mimeType.split(';')[0]!.trim(),
+    UTI: utiFor(mimeType),
+    dialogTitle: fileName,
+  });
 }
