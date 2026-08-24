@@ -28,6 +28,7 @@ import {
   type RegistrationTally,
 } from '../models/event/RegistrationRibbonModel';
 import type { SignupAnswers } from '../models/event/SignupFieldModel';
+import { PartialDateSchema, type PartialDate } from '../models/person/PersonDataModel';
 
 export interface RegisterInput {
   personId: string;
@@ -46,6 +47,13 @@ export interface RegisterInput {
 export interface RegistrationPrivateData {
   phone: string | null;
   answers: SignupAnswers;
+  /**
+   * The attendee's birth date, copied from `persons/{personId}` at sign-up. A
+   * point-in-time denormalization like the roster's photo/name, but PII, so it
+   * lives here rather than on the world-readable registration doc. `null` for a
+   * walk-in (no person doc) or a persona that never recorded one.
+   */
+  birthday: PartialDate | null;
 }
 
 export interface RegistrationSummary {
@@ -277,17 +285,29 @@ export async function addWalkInRegistration(
   return res.data.registration;
 }
 
-// Organizer-only read of a registrant's private data (phone + custom answers).
-// Returns null when the registration collected neither — the doc is only
-// written when there is something to put in it.
+// Organizer-only read of a registrant's private data (phone, custom answers,
+// birth date). Returns null when the registration carried none of them — the
+// doc is only written when there is something to put in it.
 export async function getRegistrationPrivate(
   eventId: string,
   regId: string,
 ): Promise<RegistrationPrivateData | null> {
   const snap = await getDoc(eventRegistrationPrivateDoc(getDb(), eventId, regId));
   if (!snap.exists()) return null;
-  const data = snap.data() as { phone?: string | null; answers?: SignupAnswers };
-  return { phone: data.phone ?? null, answers: data.answers ?? {} };
+  const data = snap.data() as {
+    phone?: string | null;
+    answers?: SignupAnswers;
+    birthday?: unknown;
+  };
+  // No converter on this collection (the answer map is shaped by the event's
+  // field specs, not a fixed model), so the one sub-object with a real shape is
+  // parsed here rather than trusted.
+  const birthday = PartialDateSchema.safeParse(data.birthday);
+  return {
+    phone: data.phone ?? null,
+    answers: data.answers ?? {},
+    birthday: birthday.success ? birthday.data : null,
+  };
 }
 
 /**

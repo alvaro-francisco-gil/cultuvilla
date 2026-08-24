@@ -9,6 +9,7 @@ import {
 import { municipalityDoc, municipalityMemberDoc } from '@cultuvilla/shared/firebase/refs/admin';
 import type { VillageMemberData } from '@cultuvilla/shared';
 import { readResidenceTarget, upsertResidenceLink } from './residenceProjection';
+import { seedVillageSettlements } from './seedVillageSettlements';
 
 const db = getFirestore();
 
@@ -51,7 +52,7 @@ export const startVillage = onCall<StartVillageData, Promise<StartVillageResult>
     const muniRef = municipalityDoc(db, municipalityId);
     const memberRef = municipalityMemberDoc(db, municipalityId, uid);
 
-    await db.runTransaction(async (tx) => {
+    const codigoINE = await db.runTransaction(async (tx) => {
       const muni = await tx.get(muniRef);
       if (!muni.exists) throw new HttpsError('not-found', 'Pueblo no encontrado.');
       // Converter-wrapped: typed MunicipalityData.
@@ -95,9 +96,20 @@ export const startVillage = onCall<StartVillageData, Promise<StartVillageResult>
       };
       tx.set(memberRef, newMember);
       if (residenceTarget) upsertResidenceLink(tx, residenceTarget, municipalityId, null);
+      // Returned rather than assigned to an outer binding: the seeding step
+      // below needs it, and a closure assignment is invisible to control-flow
+      // narrowing (the compiler would treat it as forever null).
+      return muniData?.codigoINE ?? null;
     });
 
     logger.info('village started', { handler, uid, municipalityId });
+
+    // Outside the transaction on purpose: the largest municipality has 829
+    // settlements and a transaction caps at 500 writes, and a village must come
+    // to life even if its seed is missing. seedVillageSettlements swallows and
+    // logs its own failures for that reason.
+    if (codigoINE) await seedVillageSettlements(db, municipalityId, codigoINE);
+
     return { ok: true };
   },
 );

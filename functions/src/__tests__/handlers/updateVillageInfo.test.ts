@@ -24,6 +24,9 @@ async function seedMunicipality(organizerId: string | null): Promise<void> {
     .set({
       name: 'Villarriba',
       nameLower: 'villarriba',
+      nameAliases: [],
+      localityNames: [],
+      searchPrefixes: ['v', 'vi', 'vil', 'vill', 'villa', 'villar', 'villarr', 'villarri', 'villarrib', 'villarriba'],
       province: 'Madrid',
       comunidadAutonoma: 'Madrid',
       codigoINE: '28000',
@@ -43,6 +46,9 @@ async function seedInactiveMunicipality(): Promise<void> {
   await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}`).set({
     name: 'Villarriba',
     nameLower: 'villarriba',
+    nameAliases: [],
+    localityNames: [],
+    searchPrefixes: ['v', 'vi', 'vil', 'vill', 'villa', 'villar', 'villarr', 'villarri', 'villarrib', 'villarriba'],
     province: 'Madrid',
     comunidadAutonoma: 'Madrid',
     codigoINE: '28000',

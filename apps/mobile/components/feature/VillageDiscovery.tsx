@@ -10,7 +10,11 @@ import {
   getActiveCommunities,
   listMunicipalitiesPage,
 } from '@cultuvilla/shared/services/municipalityService';
-import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
+import {
+  escudoThumbDisplayUrl,
+  matchedLocality,
+  municipalitySearchKey,
+} from '@cultuvilla/shared/models/municipality';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality';
 import { useAuth } from '../../lib/auth/useAuth';
 import {
@@ -38,6 +42,10 @@ export function VillageDiscovery() {
   const [cursor, setCursor] = useState<QueryDocumentSnapshot | null>(null);
   const [exhausted, setExhausted] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  // `all` starts empty, so without this the "no results" hint renders for the
+  // ~200ms between mount and the first page landing — every user would see
+  // "no encontramos tu pueblo" before the list they asked for appeared.
+  const [pageLoaded, setPageLoaded] = useState(false);
   // Bumped on every new search so a slow in-flight page can't clobber a newer one.
   const reqId = useRef(0);
 
@@ -82,6 +90,7 @@ export function VillageDiscovery() {
         setAll(page.items);
         setCursor(page.nextCursor);
         setExhausted(page.nextCursor === null);
+        setPageLoaded(true);
         if (search.trim().length >= 2) {
           observability.trackEvent(OBSERVABILITY_EVENTS.SEARCH_QUERY_SUBMITTED, {
             surface: 'village_discovery',
@@ -108,11 +117,25 @@ export function VillageDiscovery() {
     }
   }, [loadingMore, exhausted, cursor, search]);
 
+  // The two groups have to agree on what "matches". They used to disagree: this
+  // filter was a case-sensitive-accent `includes`, while "Todos" ran an
+  // accent-stripped prefix query in Firestore — so a village could appear in one
+  // group and not the other for the same search. Testing the doc's own
+  // `searchPrefixes` array is exactly the predicate Firestore evaluates for the
+  // "Todos" query, so the two cannot drift apart again.
   const activeFiltered = useMemo(() => {
     if (!active) return [];
-    const q = search.trim().toLowerCase();
-    return q ? active.filter((m) => m.name.toLowerCase().includes(q)) : active;
+    const key = municipalitySearchKey(search.trim());
+    if (key.length === 0) return active;
+    return active.filter((m) => m.searchPrefixes.includes(key));
   }, [active, search]);
+
+
+  const noResults = pageLoaded && activeFiltered.length === 0 && all.length === 0;
+
+  const searchKey = municipalitySearchKey(search.trim());
+  const localityFor = (m: Muni): string | null =>
+    searchKey.length === 0 ? null : matchedLocality(m.localityNames, searchKey);
 
   const rows: Row[] = useMemo(() => {
     const out: Row[] = [];
@@ -120,8 +143,10 @@ export function VillageDiscovery() {
       out.push({ kind: 'header', key: 'h-active', label: t('discover.activeGroup') });
       activeFiltered.forEach((m) => out.push({ kind: 'muni', key: `active-${m.id}`, muni: m }));
     }
-    out.push({ kind: 'header', key: 'h-all', label: t('discover.allGroup') });
-    all.forEach((m) => out.push({ kind: 'muni', key: `all-${m.id}`, muni: m }));
+    if (all.length > 0) {
+      out.push({ kind: 'header', key: 'h-all', label: t('discover.allGroup') });
+      all.forEach((m) => out.push({ kind: 'muni', key: `all-${m.id}`, muni: m }));
+    }
     return out;
   }, [activeFiltered, all, t]);
 
@@ -186,6 +211,9 @@ export function VillageDiscovery() {
           autoCapitalize="none"
           className="border border-subtle rounded-md px-3 py-1 bg-surface text-primary text-body"
         />
+        <Text tone="muted" variant="bodySm" className="pt-1">
+          {t('discover.searchHint')}
+        </Text>
       </View>
       <FlatList
         data={rows}
@@ -193,7 +221,23 @@ export function VillageDiscovery() {
         contentContainerClassName="px-4 pt-3 pb-8 gap-3"
         onEndReached={() => void loadMore()}
         onEndReachedThreshold={0.5}
-        ListEmptyComponent={<Text tone="muted">{t('discover.empty')}</Text>}
+        ListEmptyComponent={
+          noResults ? (
+            <VStack gap={2} className="py-6">
+              <Text tone="muted">{t('discover.empty')}</Text>
+              {/* Cultuvilla lists the 8,167 INE municipios and nothing below
+                  them, so a resident of a pedanía searches for a name that does
+                  not exist as a row. Say that here rather than leaving them to
+                  conclude their pueblo is missing. */}
+              <Text tone="muted" variant="bodySm">
+                {t('discover.emptyHint')}
+              </Text>
+              <Text tone="muted" variant="bodySm">
+                {t('discover.emptyHintExample')}
+              </Text>
+            </VStack>
+          ) : null
+        }
         ListFooterComponent={
           loadingMore ? (
             <View className="py-3">
@@ -211,6 +255,7 @@ export function VillageDiscovery() {
           }
           const m = item.muni;
           const joined = joinedIds.has(m.id);
+          const via = localityFor(m);
           return (
             <Pressable
               onPress={() => viewMuni(m)}
@@ -225,6 +270,14 @@ export function VillageDiscovery() {
                   <Text tone="muted" variant="bodySm">
                     {m.province}
                   </Text>
+                  {/* A search for "Villarino de Manzanas" that returns a row
+                      reading only "Figueruela de Arriba" looks like the wrong
+                      answer. Naming the pedanía makes it the right one. */}
+                  {via ? (
+                    <Text tone="muted" variant="bodySm">
+                      {t('discover.viaLocality', { locality: via })}
+                    </Text>
+                  ) : null}
                 </VStack>
                 {m.communityActive ? (
                   <HStack gap={1} className="items-center">

@@ -7,8 +7,9 @@
  * while the CSV serializer below renders the same model as es-ES text. Adding
  * a column here adds it to both outputs.
  */
-import { formatDate } from '../utils/format';
+import { formatDate, formatPartialDate } from '../utils/format';
 import { OPEN_SEAT_NAME } from '../models/event/RegistrationDataModel';
+import type { PartialDate } from '../models/person/PersonDataModel';
 import type { RegistrationData } from '../models/event/RegistrationDataModel';
 import type {
   SignupAnswers,
@@ -19,7 +20,13 @@ import type {
 
 export type RosterCell = string | number | boolean | Date | null;
 
-export type RosterColumnType = 'text' | 'number' | 'date' | 'boolean';
+/**
+ * `date` is a timestamp (a sign-up moment, a check-in); `dateOnly` is a
+ * calendar day whose time of day is meaningless — printing "12/03/1980, 0:00"
+ * for a birth date reads as a bug, so the two render differently in both
+ * outputs.
+ */
+export type RosterColumnType = 'text' | 'number' | 'date' | 'dateOnly' | 'boolean';
 
 export interface RosterColumn {
   key: string;
@@ -49,6 +56,12 @@ export interface RosterExportInput {
   registrations: (RegistrationData & { id: string })[];
   /** Registration id -> phone, only populated when the event collected them. */
   phones?: Record<string, string | null>;
+  /**
+   * Registration id -> the attendee's birth date, denormalized onto the
+   * organizer-gated `registrationPrivate` doc at sign-up. Partial by nature:
+   * a persona may record only a year, or a year and a month.
+   */
+  birthdays?: Record<string, PartialDate | null>;
   telephoneRequired: boolean;
   requiresPayment: boolean;
   /** The event's creator-defined questions; each becomes a trailing column. */
@@ -105,6 +118,25 @@ function answerCell(value: SignupAnswerValue | undefined, type: RosterColumnType
   return String(value);
 }
 
+/**
+ * A persona's birth date is a `PartialDate`: the year alone, or a year and a
+ * month, are legitimate answers. Only a complete one becomes a real Date the
+ * spreadsheet can sort and subtract; the rest are rendered to es-ES text
+ * ("Marzo 1980", "1980") rather than dropped, because a known year is still
+ * what the organizer asked for.
+ *
+ * UTC midnight, not local: ExcelJS converts a cell date with `getTime()`, so a
+ * local midnight in Spain (UTC+1/+2) lands on the previous day's serial and the
+ * sheet shows everyone born a day early. `renderCell` reads it back in UTC for
+ * the same reason.
+ */
+function birthdayCell(birthday: PartialDate | null | undefined): RosterCell {
+  if (!birthday?.year) return null;
+  const { year, month, day } = birthday;
+  if (month != null && day != null) return new Date(Date.UTC(year, month - 1, day));
+  return formatPartialDate(birthday);
+}
+
 const STATUS_LABEL: Record<RegistrationData['status'], string> = {
   confirmed: 'Confirmado',
   waitlisted: 'Lista de espera',
@@ -143,6 +175,7 @@ export function buildRosterExport(input: RosterExportInput): RosterExportModel {
     eventDate,
     registrations,
     phones = {},
+    birthdays = {},
     telephoneRequired,
     requiresPayment,
     signupFields = [],
@@ -160,6 +193,13 @@ export function buildRosterExport(input: RosterExportInput): RosterExportModel {
     { key: 'status', header: 'Estado', type: 'text', width: 16 },
     { key: 'isMember', header: 'Del pueblo', type: 'boolean', width: 12 },
   ];
+  // Same rule as the group column below: only when there is something to put
+  // in it. A persona's birth date is optional, and a roster of personas that
+  // never recorded one would otherwise carry a column of blanks.
+  const hasBirthdays = registrations.some((r) => birthdays[r.id]?.year != null);
+  if (hasBirthdays) {
+    columns.push({ key: 'birthday', header: 'Fecha de nacimiento', type: 'dateOnly', width: 20 });
+  }
   // Only on an event that seats groups: an extra always-empty column on every
   // ordinary roster would be noise the organizer has to explain away.
   const groupLabels = buildGroupLabels(registrations);
@@ -192,6 +232,7 @@ export function buildRosterExport(input: RosterExportInput): RosterExportModel {
       STATUS_LABEL[r.status],
       r.isMember,
     ];
+    if (hasBirthdays) cells.push(birthdayCell(birthdays[r.id]));
     if (groupLabels.size > 0) cells.push(r.groupId ? (groupLabels.get(r.groupId) ?? '') : '');
     if (telephoneRequired) cells.push(phones[r.id] ?? null);
     cells.push(r.registeredAt);
@@ -231,6 +272,7 @@ export function buildRosterExport(input: RosterExportInput): RosterExportModel {
 function renderCell(value: RosterCell, type: RosterColumnType): string {
   if (value === null) return '';
   if (type === 'date' && value instanceof Date) return formatDate(value, 'datetime');
+  if (type === 'dateOnly' && value instanceof Date) return formatDate(value, 'short', 'UTC');
   if (type === 'boolean') return value ? 'Sí' : 'No';
   return String(value);
 }

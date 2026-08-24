@@ -58,7 +58,8 @@ const SHAPE_CONTRACTS: ShapeContract[] = [
     label: 'barrios (create) — isValidBarrioCreate',
     build: () => buildBarrioData({ name: 'Centro', municipalityId: 'm1' }),
     ruleKeys: [
-      'name', 'municipalityId', 'images', 'createdAt', 'status', 'proposedBy',
+      'name', 'municipalityId', 'kind', 'source', 'isSeat',
+      'images', 'createdAt', 'status', 'proposedBy',
       'hiddenBy', 'hiddenAt', 'hiddenReason',
       'commentCount', 'readCount', 'residentCount',
     ],

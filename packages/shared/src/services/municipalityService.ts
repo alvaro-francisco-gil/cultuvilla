@@ -59,8 +59,14 @@ export async function getMunicipalities(): Promise<(MunicipalityData & { id: str
 
 /**
  * Prefix-search municipalities by name. Matches against the indexed
- * `nameLower` field (accent-stripped, lowercased) so "avila" finds "Ávila"
- * and "castell" finds "Castellón".
+ * `searchPrefixes` array (accent-stripped, lowercased) so "avila" finds
+ * "Ávila", "manzanas" finds "Villanueva de las Manzanas", and "donostia"
+ * finds "San Sebastián".
+ *
+ * The match is per-*word*, not just on the start of the full name: Spanish
+ * municipality names overwhelmingly lead with a shared generic ("Villanueva
+ * de las…"), and residents type the distinctive word. A `nameLower` range
+ * scan required the generic and returned nothing without it.
  *
  * An empty query returns the first `limit` municipalities alphabetically.
  *
@@ -81,13 +87,13 @@ export async function searchMunicipalities(
     const snap = await getDocs(q);
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   }
-  // Firestore prefix search: nameLower >= key AND nameLower < key + ''
-  // ( is in a Unicode private-use area, sorting after most printable chars).
+  // One array-contains on the prefix index replaces the old nameLower range
+  // scan: same accent-insensitive prefix behaviour, but it matches any word of
+  // the name (and any official-language alias), not just the leading one.
   const q = query(
     municipalitiesCollection(getDb()),
+    where('searchPrefixes', 'array-contains', key),
     orderBy('nameLower', 'asc'),
-    where('nameLower', '>=', key),
-    where('nameLower', '<', key + ''),
     firestoreLimit(limit),
   );
   const snap = await getDocs(q);
@@ -129,8 +135,7 @@ export async function listMunicipalitiesPage(opts: {
   const key = municipalitySearchKey((opts.search ?? '').trim());
   const constraints: QueryConstraint[] = [orderBy('nameLower', 'asc')];
   if (key.length > 0) {
-    constraints.push(where('nameLower', '>=', key));
-    constraints.push(where('nameLower', '<', key + ''));
+    constraints.push(where('searchPrefixes', 'array-contains', key));
   }
   if (opts.cursor) constraints.push(startAfter(opts.cursor));
   constraints.push(firestoreLimit(pageSize));

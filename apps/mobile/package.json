@@ -1,6 +1,6 @@
 {
   "name": "cultuvilla-mobile",
-  "version": "0.25.0",
+  "version": "0.26.0",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
@@ -35,12 +35,14 @@
     "expo-constants": "^56.0.18",
     "expo-crypto": "~56.0.4",
     "expo-dev-client": "~56.0.20",
+    "expo-file-system": "~56.0.10",
     "expo-font": "^56.0.7",
     "expo-image-picker": "~56.0.18",
     "expo-linking": "~56.0.14",
     "expo-localization": "~56.0.6",
     "expo-location": "~56.0.18",
     "expo-router": "~56.2.11",
+    "expo-sharing": "~56.0.25",
     "expo-splash-screen": "~56.0.10",
     "expo-status-bar": "~56.0.4",
     "expo-system-ui": "~56.0.5",

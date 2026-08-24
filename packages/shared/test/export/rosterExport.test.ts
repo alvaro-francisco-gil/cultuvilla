@@ -234,6 +234,73 @@ describe('buildRosterExport with custom sign-up questions', () => {
   });
 });
 
+describe('buildRosterExport with birth dates', () => {
+  const full = { year: 1980, month: 3, day: 12 };
+
+  it('omits the column when no attendee has a birth date on record', () => {
+    const keys = (birthdays: Record<string, { year: number | null; month: number | null; day: number | null } | null>) =>
+      buildRosterExport({ ...base, registrations: [reg()], birthdays }).columns.map((c) => c.key);
+
+    expect(keys({})).not.toContain('birthday');
+    expect(keys({ r1: null })).not.toContain('birthday');
+    expect(keys({ r1: { year: null, month: null, day: null } })).not.toContain('birthday');
+    expect(keys({ r1: full })).toContain('birthday');
+  });
+
+  it('keeps the four leading columns in place', () => {
+    const model = buildRosterExport({ ...base, registrations: [reg()], birthdays: { r1: full } });
+
+    expect(model.columns.slice(0, 5).map((c) => c.header)).toEqual([
+      'Nº',
+      'Nombre',
+      'Estado',
+      'Del pueblo',
+      'Fecha de nacimiento',
+    ]);
+  });
+
+  // UTC midnight, not local: ExcelJS turns a cell date into an Excel serial
+  // with getTime(), so a local midnight in Spain would land on the 11th.
+  it('emits a complete birth date as a UTC Date the spreadsheet can sort', () => {
+    const model = buildRosterExport({ ...base, registrations: [reg()], birthdays: { r1: full } });
+
+    expect(model.rows[0][4]).toEqual(new Date('1980-03-12T00:00:00.000Z'));
+  });
+
+  // A persona may legitimately record only the year, or the year and month.
+  // Those are still what the organizer asked for, so they render as text
+  // rather than being dropped for not fitting a date cell.
+  it('renders a partial birth date as text instead of dropping it', () => {
+    const model = buildRosterExport({
+      ...base,
+      registrations: [
+        reg(),
+        reg({ id: 'r2', name: 'Luis' }),
+        reg({ id: 'r3', name: 'Marta' }),
+      ],
+      birthdays: {
+        r1: { year: 1980, month: 3, day: null },
+        r2: { year: 1975, month: null, day: null },
+        r3: null,
+      },
+    });
+
+    expect(model.rows[0][4]).toBe('Marzo 1980');
+    expect(model.rows[1][4]).toBe('1975');
+    // No birth date on record: a blank cell, not a shifted row.
+    expect(model.rows[2][4]).toBeNull();
+    expect(model.rows[2]).toHaveLength(model.columns.length);
+  });
+
+  it('prints the day without a time of day in the CSV', () => {
+    const model = buildRosterExport({ ...base, registrations: [reg()], birthdays: { r1: full } });
+    const [header, row] = toCsv(model).trim().split('\r\n');
+
+    expect(header.split(';')[4]).toBe('Fecha de nacimiento');
+    expect(row.split(';')[4]).toBe('12/03/1980');
+  });
+});
+
 describe('toCsv', () => {
   it('emits a BOM and semicolon delimiter so Spanish Excel opens it correctly', () => {
     const csv = toCsv(buildRosterExport({ ...base, registrations: [reg()] }));

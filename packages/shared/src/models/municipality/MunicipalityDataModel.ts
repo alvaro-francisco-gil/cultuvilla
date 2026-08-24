@@ -36,12 +36,124 @@ export function municipalitySearchKey(name: string): string {
     .toLowerCase();
 }
 
+/**
+ * Words that carry no distinguishing signal on their own. Spanish municipality
+ * names are overwhelmingly `<generic> de <distinctive>`, so indexing these as
+ * standalone tokens would put `de` on 3,400 documents and buy nothing — a user
+ * never searches for "de". They are dropped only from *token* indexing; the
+ * whole-string prefixes below still span them, so "villanueva de las m" works.
+ */
+const SEARCH_STOPWORDS = new Set([
+  'de', 'del', 'la', 'las', 'el', 'los', 'lo', 'y', 'e', 'i',
+  'da', 'do', 'das', 'dos', 'a', 'o', 'as', 'os',
+  'en', 'sa', 'ses', 'es', 'ets', 'na',
+]);
+
+/** Longest token/name we generate prefixes for. Nothing in the INE dataset comes
+ *  close, but an unbounded loop over a pathological string is a footgun. */
+const MAX_PREFIX_LENGTH = 40;
+
+function pushPrefixes(source: string, into: Set<string>): void {
+  const limit = Math.min(source.length, MAX_PREFIX_LENGTH);
+  for (let i = 1; i <= limit; i++) into.add(source.slice(0, i));
+}
+
+/**
+ * Every prefix a user could plausibly type to find this municipality, as a flat
+ * array for a single `array-contains` query.
+ *
+ * Two families are indexed:
+ *
+ * 1. **Whole-string prefixes** of the normalized name — what the old
+ *    `nameLower >= key < key + \uf8ff` range query matched. Keeps multi-word
+ *    typing ("san sebast", "villanueva de las m") narrowing as you type.
+ * 2. **Per-token prefixes** of every non-stopword word. This is the fix: the
+ *    leading generic becomes optional, so `manzanas` finds
+ *    *Villanueva de las Manzanas* and `aires` finds *Villarino de los Aires*.
+ *    42% of Spanish municipality names are multi-word, and residents type the
+ *    distinctive word, not the generic one.
+ *
+ * `aliases` (official-language names — Donostia, Lleida, A Coruña) and
+ * `localities` (the entidades singulares *inside* the municipality — Villarino
+ * de Manzanas inside Figueruela de Arriba) are folded into both families. Most
+ * Spanish villages are not municipios, so without the latter a resident
+ * searching for the name of the place they actually live in gets nothing.
+ *
+ * Prefixes are accent-stripped and lowercased, so the array is queried with the
+ * output of `municipalitySearchKey`. The result is deduplicated and sorted so
+ * regenerating it produces a byte-identical field and the backfill stays a no-op.
+ */
+export function municipalitySearchPrefixes(
+  name: string,
+  aliases: string[] = [],
+  localities: string[] = [],
+): string[] {
+  const prefixes = new Set<string>();
+
+  for (const source of [name, ...aliases, ...localities]) {
+    const normalized = municipalitySearchKey(source).trim().replace(/\s+/g, ' ');
+    if (normalized.length === 0) continue;
+
+    pushPrefixes(normalized, prefixes);
+
+    // Split on anything that isn't a letter or digit: whitespace, but also the
+    // commas and apostrophes in "Castillo de Aro, Playa de Aro y S'Agaró".
+    const tokens = normalized.split(/[^\p{L}\p{N}]+/u).filter((t) => t.length > 0);
+    for (const token of tokens) {
+      // A stopword that is the entire name ("Es") is the name — keep it.
+      if (tokens.length > 1 && SEARCH_STOPWORDS.has(token)) continue;
+      pushPrefixes(token, prefixes);
+    }
+  }
+
+  return [...prefixes].sort();
+}
+
+/**
+ * The locality whose name explains why this municipality matched `query`, or
+ * `null` when the municipality matched on its own name or an alias.
+ *
+ * A search for "Villarino de Manzanas" returning a row that just says
+ * "Figueruela de Arriba" looks like the wrong answer. Naming the pedanía turns
+ * it into the right one.
+ *
+ * Mirrors the token rule in `municipalitySearchPrefixes`: any *word* of the
+ * locality may carry the match, not only the first.
+ */
+export function matchedLocality(localities: string[], query: string): string | null {
+  const key = municipalitySearchKey(query).trim();
+  if (key.length === 0) return null;
+  for (const locality of localities) {
+    const normalized = municipalitySearchKey(locality).trim().replace(/\s+/g, ' ');
+    if (normalized.startsWith(key)) return locality;
+    const tokens = normalized.split(/[^\p{L}\p{N}]+/u).filter((t) => t.length > 0);
+    if (tokens.some((token) => token.startsWith(key))) return locality;
+  }
+  return null;
+}
+
 export const MunicipalityDataSchema = z.object({
   // ── Reference data (INE-seeded, immutable in practice) ─────────────────
   name: z.string(),
   /** Accent-stripped, lowercased copy of `name` for case/accent-insensitive
    * prefix search. Always derivable from `name`; stored so Firestore can index. */
   nameLower: z.string(),
+  /** Official-language names for the same municipality — "Donostia" for San
+   *  Sebastián, "Lleida" for Lérida, "A Coruña" for La Coruña. The dataset is
+   *  seeded with Spanish exonyms only, which left Basque/Catalan/Galician
+   *  speakers unable to find their own pueblo by the name they use. Sourced
+   *  from Wikidata labels; empty for the ~85% of municipalities whose name is
+   *  the same in every language. */
+  nameAliases: z.array(z.string()),
+  /** The entidades singulares de población inside this municipality — pedanías,
+   *  anejos, aldeas. They are indexed for search but are not entities of their
+   *  own: you cannot join, post to or administer one, it only leads you to its
+   *  municipio. Empty for a municipality that is a single settlement. */
+  localityNames: z.array(z.string()),
+  /** Flattened prefix index over `name` + `nameAliases` + `localityNames` — see
+   *  `municipalitySearchPrefixes`. Queried with `array-contains` so search
+   *  matches any *word* of the name, not just the first. */
+  searchPrefixes: z.array(z.string()),
   province: z.string(),
   comunidadAutonoma: z.string(),
   codigoINE: z.string(),
@@ -86,6 +198,8 @@ export interface MunicipalityDataInput {
   province: string;
   comunidadAutonoma: string;
   codigoINE: string;
+  nameAliases?: string[];
+  localityNames?: string[];
   coordinates?: LatLng | null;
   locationLabel?: string | null;
   mapZoom?: number | null;
@@ -123,6 +237,13 @@ export function buildMunicipalityData(input: MunicipalityDataInput): Municipalit
   return {
     name: input.name,
     nameLower: municipalitySearchKey(input.name),
+    nameAliases: input.nameAliases ?? [],
+    localityNames: input.localityNames ?? [],
+    searchPrefixes: municipalitySearchPrefixes(
+      input.name,
+      input.nameAliases ?? [],
+      input.localityNames ?? [],
+    ),
     province: input.province,
     comunidadAutonoma: input.comunidadAutonoma,
     codigoINE: input.codigoINE,
@@ -159,9 +280,49 @@ export function buildVillageCommunity(input: ActivateCommunityInput): VillageCom
 // visible to everyone immediately. Organizers (village/app admin) can hide it
 // afterward via the visibility model. Enforcement lives in firestore.rules.
 
+/**
+ * What a subdivision of a municipality actually is. Spain has no single word:
+ * a *barrio* is a neighbourhood **within** a settlement, while a *pedanía* is a
+ * separate settlement kilometres away, and Galicia and Asturias group their
+ * settlements (*aldeas*, strictly *lugares*) into *parroquias*, which carry
+ * most of the local identity there.
+ *
+ * The distinction is not cosmetic — it decides which horizontal section a row
+ * renders in, and each section is titled with the word that region actually
+ * uses. Folding them into one word would flatten exactly the thing this model
+ * exists to represent.
+ *
+ * `pedania` vs `aldea` is derived structurally at seed time: a municipality
+ * whose settlements sit under parroquias gets `aldea`. That keeps Asturias
+ * correct without a hardcoded province list.
+ *
+ * The precise Galician word is *lugar*, but "Lugares" is already the title of
+ * the `places` section (cementerios, iglesias, ermitas) on the same screen.
+ * "Aldeas" is real Galician vocabulary and collides with nothing.
+ */
+export const BarrioKindSchema = z.enum(['barrio', 'pedania', 'aldea', 'parroquia']);
+export type BarrioKind = z.infer<typeof BarrioKindSchema>;
+
+/** Where the row came from. Seeded rows stay editable, but provenance lets the
+ *  UI show it and lets a future re-seed tell its own rows from a human's. */
+export const BarrioSourceSchema = z.enum(['user', 'osm']);
+export type BarrioSource = z.infer<typeof BarrioSourceSchema>;
+
 export const BarrioDataSchema = z.object({
   name: z.string(),
   municipalityId: z.string(),
+  kind: BarrioKindSchema,
+  source: BarrioSourceSchema,
+  /**
+   * The municipal seat — the settlement the ayuntamiento sits in.
+   *
+   * It gets a row like any other or residents of the main village would have
+   * nowhere to live while residents of the pedanías did, leaving `residentCount`
+   * and the censo asymmetric. It is frequently NOT the municipality's own name:
+   * Aramaio's seat is a village called Ibarra. Exactly one row per municipality
+   * carries this.
+   */
+  isSeat: z.boolean(),
   /** Public download URLs for the barrio's pictures (max 5). `images[0]` is
    *  the hero/cover shown in the detail scaffold. */
   images: z.array(z.string()).max(5),
@@ -184,6 +345,9 @@ export type BarrioData = z.infer<typeof BarrioDataSchema>;
 export interface BarrioDataInput {
   name: string;
   municipalityId: string;
+  kind?: BarrioKind;
+  source?: BarrioSource;
+  isSeat?: boolean;
   images?: string[];
   proposedBy?: string | null;
 }
@@ -192,6 +356,11 @@ export function buildBarrioData(input: BarrioDataInput): BarrioData {
   return {
     name: input.name,
     municipalityId: input.municipalityId,
+    // A hand-created row is a neighbourhood by default — that is the only kind
+    // a user may create; the settlement kinds are seeded.
+    kind: input.kind ?? 'barrio',
+    source: input.source ?? 'user',
+    isSeat: input.isSeat ?? false,
     images: input.images ?? [],
     createdAt: new Date(),
     proposedBy: input.proposedBy ?? null,

@@ -119,6 +119,9 @@ describe('ogRenderer', () => {
     await admin.firestore().doc('municipalities/mun-1').set({
       name: 'Villarriba',
       nameLower: 'villarriba',
+      nameAliases: [],
+      localityNames: [],
+      searchPrefixes: ['v', 'vi', 'vil', 'vill', 'villa', 'villar', 'villarr', 'villarri', 'villarrib', 'villarriba'],
       province: 'Valladolid',
       provinceLower: 'valladolid',
       comunidadAutonoma: 'Castilla y León',
@@ -148,6 +151,9 @@ describe('ogRenderer', () => {
     await admin.firestore().doc('municipalities/mun-1b').set({
       name: 'Villarriba B',
       nameLower: 'villarriba b',
+      nameAliases: [],
+      localityNames: [],
+      searchPrefixes: ['b', 'v', 'vi', 'vil', 'vill', 'villa', 'villar', 'villarr', 'villarri', 'villarrib', 'villarriba', 'villarriba ', 'villarriba b'],
       province: 'Valladolid',
       provinceLower: 'valladolid',
       comunidadAutonoma: 'Castilla y León',
@@ -175,6 +181,9 @@ describe('ogRenderer', () => {
     await admin.firestore().doc('municipalities/mun-1c').set({
       name: 'Villarriba C',
       nameLower: 'villarriba c',
+      nameAliases: [],
+      localityNames: [],
+      searchPrefixes: ['c', 'v', 'vi', 'vil', 'vill', 'villa', 'villar', 'villarr', 'villarri', 'villarrib', 'villarriba', 'villarriba ', 'villarriba c'],
       province: 'Valladolid',
       provinceLower: 'valladolid',
       comunidadAutonoma: 'Castilla y León',
@@ -202,6 +211,9 @@ describe('ogRenderer', () => {
     await admin.firestore().doc('municipalities/mun-2').set({
       name: 'Villabajo',
       nameLower: 'villabajo',
+      nameAliases: [],
+      localityNames: [],
+      searchPrefixes: ['v', 'vi', 'vil', 'vill', 'villa', 'villab', 'villaba', 'villabaj', 'villabajo'],
       province: 'Valladolid',
       provinceLower: 'valladolid',
       comunidadAutonoma: 'Castilla y León',

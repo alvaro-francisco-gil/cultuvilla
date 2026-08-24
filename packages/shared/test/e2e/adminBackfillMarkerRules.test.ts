@@ -93,4 +93,54 @@ describe('firestore.rules — /_admin/**', () => {
     // Sanity check that the harness's own writes are not what we just blocked.
     await assertSucceeds(seedMarker());
   });
+
+  // The OSM settlement dataset lives under the same deny-all, which is the whole
+  // reason it was put there: it is reference data no client reads, so it needs
+  // no rules of its own and cannot be edited into a village's seeded barrios.
+  describe('settlement seeds', () => {
+    const SEED_PATH = '_admin/settlements/seeds/49069';
+    const seedSettlements = () =>
+      seed(getEnv(), async (ctx) => {
+        await setDoc(doc(ctx.firestore(), SEED_PATH), {
+          codigoINE: '49069',
+          name: 'Figueruela de Arriba',
+          settlements: [
+            { name: 'Villarino de Manzanas', kind: 'pedania', isSeat: false, lat: null, lng: null },
+          ],
+        });
+      });
+
+    it('denies an anonymous client reading a settlement seed', async () => {
+      await seedSettlements();
+      await assertFails(getDoc(doc(asAnon(getEnv()), SEED_PATH)));
+    });
+
+    it('denies an authenticated user reading a settlement seed', async () => {
+      await seedSettlements();
+      await assertFails(getDoc(doc(asUser(getEnv(), 'uid-1'), SEED_PATH)));
+    });
+
+    it('denies an app admin reading a settlement seed', async () => {
+      await seedSettlements();
+      const adminDb = await asAdmin(getEnv(), 'boss');
+      await assertFails(getDoc(doc(adminDb, SEED_PATH)));
+    });
+
+    it('denies a client writing a settlement seed', async () => {
+      // A writable seed would let anyone inject arbitrary barrios into every
+      // village activated afterwards.
+      await assertFails(
+        setDoc(doc(asUser(getEnv(), 'uid-1'), SEED_PATH), {
+          codigoINE: '49069',
+          name: 'x',
+          settlements: [],
+        }),
+      );
+    });
+
+    it('denies a client deleting a settlement seed', async () => {
+      await seedSettlements();
+      await assertFails(deleteDoc(doc(asUser(getEnv(), 'uid-1'), SEED_PATH)));
+    });
+  });
 });
