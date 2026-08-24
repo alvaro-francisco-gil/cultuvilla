@@ -1,239 +1,272 @@
-# Completar el nomenclátor de pueblos españoles — Idea Exploration
+# Completar el nomenclátor de pueblos españoles
 
-> **Status:** Pre-spec exploration, derived from a user bug report (2026-08-23):
-> a resident of Villarino de Manzanas could not find their village. PRs #259 and
-> #260 fixed the *search*; this plan is about the *data* those PRs search, and
-> about the modelling question #260 deliberately left open. Not yet a formal
-> design — the open questions at the bottom must be answered before this moves
-> to `ready/`.
+> **Status:** Decided 2026-08-24, one question still open (see **D8**). Origin: a
+> user bug report (2026-08-23) that a resident of Villarino de Manzanas could not
+> find their village. PRs #259 and #260 fixed the *search*; this is the *data and
+> the model* behind it. Promote to `ready/` once D8 is settled.
 
 ---
 
 ## Goal
 
-Every inhabited place in Spain that a person would call "mi pueblo" should be
-findable in Cultuvilla, and should resolve to something the product can actually
-do — join, follow, post to. Today only the 8,167 INE *municipios* are
-first-class, and Wikidata's coverage of everything below them is partial and
-worst exactly where it matters most.
+Every inhabited place in Spain that a person calls "mi pueblo" should be
+findable **and joinable**. Today only the 8,167 INE *municipios* are
+first-class, so most Spanish villages — which are not municipios — exist at best
+as a search alias.
 
-## Context — what already shipped
+## Background: how Spain is actually organised
 
-[#259](https://github.com/alvaro-francisco-gil/cultuvilla/pull/259) made
-`municipalities.searchPrefixes` a per-word prefix index (plus co-official-name
-aliases). [#260](https://github.com/alvaro-francisco-gil/cultuvilla/pull/260)
-folded `localityNames` — the *entidades singulares* inside each municipality —
-into that same index, so searching a pedanía returns its municipio, labelled
-"Incluye Villarino de Manzanas".
+Two parallel hierarchies that do not line up.
 
-Both were built on the premise that **a locality is an alias, not an entity**:
-you cannot join a pedanía, post to one, or administer one, so it exists only to
-lead you to its municipio. That premise is what this plan should re-examine.
+**Administrative** (who governs): Estado → CCAA → Provincia → **Municipio**
+(8,131) → *Entidad Local Menor* (optional, ~3,700, over half in Castilla y
+León). An ELM has its own junta vecinal and alcalde pedáneo. This is what
+*pedanía* strictly means, and almost nobody uses the word that strictly.
 
-## The coverage problem
+**Statistical** (INE Nomenclátor, how population is counted): Municipio →
+*Entidad colectiva* → **Entidad singular** → Núcleo / Diseminado.
 
-`scripts/fetch-localities.mjs` sources localities from Wikidata. Result:
-**2,728 of 8,167 municipalities carry at least one locality; 10,537 localities
-total.**
+- **Entidad singular** is INE's "inhabitable area, clearly differentiated, known
+  by a specific name". **This is the level users type into search.**
+- **Entidad colectiva** is unused in most of Spain but is the ***parroquia*** in
+  Galicia and Asturias, where it dominates local identity.
+- Núcleo/diseminado is a statistical split of an entidad singular. Nobody says
+  "soy del diseminado" — ignored here, deliberately.
 
-INE's Nomenclátor lists on the order of 35,000 *entidades singulares* (and
-~61,000 *unidades poblacionales* once núcleos and diseminados are counted), so
-we hold roughly a third of the level we care about. **Both figures are from
-memory and unverified** — nobody has managed to download the authoritative file
-yet, which is itself the point of this plan. Confirming the real denominator is
-step one, because "we have 30%" and "we have 17%" argue for different answers.
+**The vocabulary is regional and contradictory**, which is why the model must
+carry a type rather than a single word:
 
-Worse, the gaps are not random. Coverage by province, worst first:
+| Word | Region | Means |
+| --- | --- | --- |
+| _pedanía_ | Castilla y León, Murcia, Valencia | ELM strictly; colloquially any non-seat settlement |
+| _parroquia_ | Galicia, Asturias | Entidad colectiva — the primary unit of identity |
+| _lugar_ / _aldea_ | Galicia | Entidad singular inside a parroquia |
+| _anejo_ / _agregado_ | Castilla | Settlement attached to a municipio |
+| **_concejo_** | **Asturias** | **The municipio itself** |
+| **_concejo_** | **Álava** | **A sub-municipal ELM** (~330) |
+| _barrio_ | Most of Spain | Neighbourhood _within_ a town |
+| _barrio_ / _auzo_ | País Vasco, Cantabria | Often a _dispersed rural settlement_ |
+| _pago_ | Canarias | Small rural settlement |
 
-| Provincia | Municipios | Con localidades | Localidades | Cobertura |
-|---|---:|---:|---:|---:|
-| Lugo | 67 | 2 | 2 | 3% |
-| A Coruña | 95 | 4 | 5 | 4% |
-| Pontevedra | 62 | 3 | 3 | 5% |
-| Ourense | 93 | 5 | 9 | 5% |
-| Sevilla | 106 | 6 | 8 | 6% |
-| Málaga | 103 | 6 | 7 | 6% |
-| Valencia | 267 | 22 | 40 | 8% |
-| … | | | | |
-| Islas Baleares | 67 | 55 | 287 | 82% |
-| Asturias | 78 | 69 | 779 | 88% |
-| Girona | 221 | 196 | 974 | 89% |
+Note that pedanías are not a rural curiosity: the city of Murcia governs 54,
+Valencia ~19.
 
-**Galicia is the headline failure.** It has by far the densest settlement
-structure in Spain — tens of thousands of *lugares* grouped into *parroquias* —
-and it is the region where "mi pueblo" is least likely to be a municipio. It is
-covered at 3–5%. A Galician user is almost guaranteed to hit the empty state.
+## Decisions
 
-The Wikidata query is not obviously wrong; Galician *lugares* are simply thin on
-Wikidata, and many are typed as `parroquia` rather than as an
-`entidad singular de población` subclass. Widening the class list is worth a
-pass, but it will not close a 6× gap on its own.
+### D1 — Source: OpenStreetMap via Overpass
 
-## Why the authoritative sources were not used (yet)
+The authoritative gazetteers have **no scriptable download**: the IGN NGMEP
+direct archive 404s behind a JS session portal, and the INE Nomenclátor is an
+undocumented JSP form that returns a page shell to a scripted POST. Either would
+be a blob fetched by hand once and committed with no way to refresh it — a
+dataset that rots silently, with no test able to detect it.
 
-Attempted on 2026-08-23, both dead ends for an automated fetch:
+OSM is complete, scriptable per province, spatially attachable to the municipio
+(`area[name][admin_level=8]`, so no INE code needed), and carries coordinates.
 
-- **IGN NGMEP** (Nomenclátor Geográfico de Municipios y Entidades de Población)
-  — the historic direct archive
-  (`centrodedescargas.cnig.es/CentroDescargas/equipamiento/BD_Municipios-Entidades.zip`)
-  returns 404, and the Centro de Descargas is a JS session portal. Distribution
-  formats are `.mdb` / `.odb`.
-- **INE Nomenclátor** — `ine.es/nomen2/` is an undocumented JSP form; a scripted
-  POST to `tabla.do` returns the page shell, not results. No CSV/bulk endpoint
-  found under `daco42`.
+| Source | Figueruela | Lugo | A Coruña | Pontevedra | Ourense |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Wikidata (what we ship today) | 6 | 2 | 4 | 3 | 5 |
+| OSM `village\|hamlet` | 6 | 11,441 | 13,676 | 7,350 | 4,543 |
 
-The reason this mattered: a dataset that can only be fetched by hand gets
-committed once and then **rots silently**, with no test that can detect it. That
-is why Wikidata won on "cleanest long term" despite losing on completeness —
-`fetch-localities.mjs` re-runs on demand and improves.
+Galicia goes from **19 → ~37,000**.
 
-**This plan's job is to find a source that is both complete and re-fetchable**,
-or to decide deliberately that a hand-fetched snapshot is acceptable *provided*
-it carries a freshness marker and a staleness test.
+**The tag filter is load-bearing.** Figueruela de Arriba has 260 `place` nodes;
+only 7 are settlements:
 
-## Found it: OpenStreetMap (2026-08-24)
+- `village` / `hamlet` → **entidad singular**. Returned exactly the 6 Wikidata
+  knew about, plus the seat. Clean mapping.
+- `locality` → **uninhabited toponym** (_Peña las Carreras_, _Alto de Fanales_).
+  253 of the 260. **Must be excluded** or search floods with names nobody lives
+  in.
+- `suburb` / `quarter` / `neighbourhood` → **barrio**. Decent quality (see D5).
+- `isolated_dwelling` → diseminado. Out of scope.
+- `admin_level=9` relations → **parroquia**. Verified: Vilalba has 29.
 
-Overpass answers both halves. Probed against the same places:
+### D2 — Licence: proceed under ODbL with attribution
 
-| Fuente | Figueruela de Arriba | Lugo | A Coruña | Pontevedra | Ourense |
-|---|---:|---:|---:|---:|---:|
-| Wikidata (hoy) | 6 | 2 | 4 | 3 | 5 |
-| OSM `place=city\|town\|village\|hamlet` | 6 | 11.441 | 13.676 | 7.350 | 4.543 |
+OSM is ODbL, not CC0. Ship "© OpenStreetMap contributors" in the app. The
+extracted name list is treated as a _produced work_ rather than a derived
+database. **This is a deliberate judgement, not settled law** — recorded here so
+it is not silently re-litigated later. It remains the one standing argument for
+wanting an INE/IGN source someday.
 
-Galicia goes from **19 localities to ~37.000** — the right order of magnitude for
-a region with roughly 30.000 entidades singulares.
+### D3 — Model: one collection, discriminated by `kind`
 
-**The tag filter is the whole game.** In Figueruela de Arriba OSM has 260 `place`
-nodes, but only 7 are settlements:
+`municipalities/{id}/barrios/{id}` gains
+`kind: 'barrio' | 'pedania' | 'parroquia'`. No new collection. Reuses the
+entity, its detail screen, the residence link (`persons.municipalityLinks`) and
+`residentCount` wholesale.
 
-- `village` / `hamlet` → **entidad singular**. The 6 returned are exactly the 6
-  Wikidata knew about, plus the municipal seat. This mapping is clean.
-- `locality` → **uninhabited toponym** — *parajes*, hilltops, streams, field
-  names (*Peña las Carreras*, *Alto de Fanales*, *Cruz de la Encrucijada*). 253
-  of the 260. Including these would flood search with names nobody lives in.
-- `isolated_dwelling` → **diseminado**. Borderline; out of scope for now.
+Rejected: a separate `localities/` collection. It would duplicate the entity,
+the screens, the rules and the residence link for something that behaves
+identically.
 
-Properties that matter:
+### D4 — UI: one scroll per kind
 
-- **Scriptable and re-fetchable** — Overpass, one query per province, the same
-  shape as `enrich-municipality-aliases.mjs` and `fetch-localities.mjs`.
-- **Attaches to the municipio spatially** — `area[name][admin_level=8]` scopes
-  the query, so no INE code is needed on the OSM side. Verified on Figueruela.
-- **Carries coordinates**, which the current locality data does not.
+The village home already renders 7 `<Section>` horizontal scrolls, and
+[VillageSections.tsx](../../../apps/mobile/components/feature/VillageSections.tsx)
+returns `null` for an empty one — so a scroll per kind costs **zero** vertical
+space where that kind is absent.
 
-### The catch: ODbL
+| Village | Sections that render |
+| --- | --- |
+| Figueruela de Arriba | Pedanías (6) |
+| Matabuena | Pedanías (2) |
+| Vilalba | Parroquias (29) · Lugares (745) |
+| Aranjuez | Pedanías (8) · Barrios (~45) |
 
-OSM is **ODbL**, not CC0 like Wikidata. Attribution ("© OpenStreetMap
-contributors") is trivial and non-negotiable. The open question is share-alike:
-ODbL's copyleft binds *derived databases*, and a case can be made that a search
-alias list extracted into our own docs is a "produced work" rather than a
-derived database — but that is a judgement, not a certainty. **This needs a
-deliberate decision before the import lands**, and it is now the main argument
-for still wanting an INE/IGN source someday.
+This also **dissolves the naming problem** — no adaptive label, no compromise
+word. A Galician village shows "Parroquias" because that is the section it has.
 
-## The modelling question: pedanía vs. barrio
+### D5 — Seed all three kinds; the admin curates afterwards
 
-**They are not the same thing, and the codebase currently has no place for the
-difference.** This is the substantive design question in this plan.
+**Revised 2026-08-24.** An earlier revision seeded only settlements and left
+barrios user-created. Reversed: **seed barrios too.**
 
-In Spanish administrative reality:
+The point is the **initial state**. A user signing up should land on a village
+page that already knows something about their pueblo, rather than an empty
+shell they are asked to fill in. OSM's barrio data supports this — Aranjuez's
+_Alpajes_, _El Deleite_, _Vergel_, _Casco Antiguo_ are all real barrios. A few
+junk rows (_Polígono Industrial Las Tejeras_, _Academia Especial de la Guardia
+Civil_) come with it, and that is acceptable because of D6.
 
-| Nivel | Qué es | ¿En Cultuvilla? |
-|---|---|---|
-| **Municipio** | Unidad con ayuntamiento. 8.131 en España. | ✅ `municipalities/` — first-class |
-| **Entidad colectiva** | Agrupación intermedia (*parroquia* en Galicia y Asturias) | ❌ no existe |
-| **Entidad singular** | Núcleo habitado con nombre propio y separado — *pedanía*, *aldea*, *lugar*, *anejo* | ⚠️ sólo como alias de búsqueda (`localityNames`) |
-| **Núcleo / diseminado** | Subdivisión de una entidad singular (compacto vs. disperso) | ❌ no existe |
-| **Entidad local menor / EATIM** | Entidad singular **con gobierno propio** (junta vecinal, alcalde pedáneo) | ❌ no existe |
-| **Barrio** | Vecindario *dentro* de un núcleo. No es un nivel INE. | ✅ `municipalities/{id}/barrios/` — first-class entity |
+| kind | Seeded from |
+| --- | --- |
+| `parroquia` | OSM `admin_level=9` |
+| `pedania` | OSM `place=village\|hamlet` |
+| `barrio` | OSM `place=suburb\|quarter\|neighbourhood` |
 
-So, precisely:
+> An earlier revision argued *against* seeding barrios from OSM missing 7 of the
+> 8 barrios on dev. **That evidence was void** — those rows are invented seed
+> fixtures, so OSM lacking them proved nothing.
 
-- A **pedanía** is a *separate settlement*, often kilometres from the municipal
-  seat, with its own name, its own fiestas, frequently its own junta vecinal.
-  Villarino de Manzanas is one, ~10 km from Figueruela de Arriba.
-- A **barrio** is a *neighbourhood within* a settlement.
+### D6 — Seeded rows are fully editable by village admins
 
-**The current model conflates them by omission.** `barrio` is the only
-subdivision a village has: it is user-created (`proposedBy`), it is an entity
-with a hero screen, comments and `readCount`, and it is what a person's
-residence points at (`persons.municipalityLinks` → `syncBarrioResidentCount`).
-So a village whose municipio contains pedanías has nowhere else to put them —
-the natural move is to create one barrio per pedanía, which then means "barrio"
-means two different things in two different villages.
+**Revised 2026-08-24** (was "rename yes, delete no"). The seed is a *starting
+point, not a source of truth*. Admins can rename **and delete** any row,
+including seeded ones — that is what makes D5 safe: the junk rows OSM brings
+along are a two-tap cleanup, not permanent litter.
 
-That conflation is tolerable today because barrios are hand-created and few —
-dev holds 8. It stops being tolerable the moment we import a real nomenclátor:
-tens of thousands of entidades singulares poured into a collection whose
-semantics are "neighbourhood" would be a mess to unwind.
+This is only coherent because of D7: seeding happens **once, at activation**, so
+there is no re-seed to resurrect what an admin deleted. If a periodic re-seed is
+ever added, it needs a tombstone — noted here so that trap is visible.
 
-### Three candidate shapes
+Rows still carry `source: 'osm' | 'user'` so the UI can show provenance and a
+future re-seed can tell them apart.
 
-1. **Keep localities as pure search aliases** (status quo after #260). Cheapest,
-   already shipped. A pedanía is findable but has no page, no members, no
-   fiestas. Fails the Galician user, for whom the pedanía *is* the community.
-2. **Promote entidad singular to a first-class entity**, sibling to barrio,
-   living at `municipalities/{id}/localities/{id}` or top-level with
-   `municipalityId`. Seeded read-only from the nomenclátor, then adoptable by
-   residents. Barrios keep their current meaning (neighbourhood-within).
-   Honest to reality; the most work.
-3. **Redefine `barrio` as "subdivisión del municipio"** and let it cover both,
-   with a `kind` discriminator (`pedania | barrio | parroquia`). Reuses the
-   entity, the screens, the residence link and `residentCount` wholesale. Cheaper
-   than (2), but rewrites the meaning of an existing user-visible word and needs
-   a migration of existing barrios.
+### D7 — Seed timing: on activation, not upfront
 
-Option (3) is the current front-runner on effort-vs-honesty, but it hinges on
-whether a pedanía should be able to hold things a barrio cannot — its own
-events, its own admins, its own censo. If yes, (2) is the real answer.
+Writing ~40,000 docs upfront would leave most dormant at `residentCount: 0`
+forever. Instead:
 
-### Galicia forces the *parroquia* question
+- **Discovery** stays where PR #260 put it — `localityNames` + `searchPrefixes`
+  on the municipality doc. Covers all 8,167 municipios cheaply, already shipped.
+- **Entities** are created when a village activates (`startVillage`), seeding
+  that municipio's barrios, pedanías and parroquias at that moment.
 
-Galicia's hierarchy is municipio → **parroquia** → lugar. A Galician saying "soy
-de Baio" may mean a parroquia, not a municipio or a lugar. Whatever shape wins,
-it has to answer whether `entidad colectiva` is a level we model, flatten, or
-ignore — and Galicia is precisely where coverage is worst, so this is not a tail
-case.
+So the alias layer answers _"can I find my pueblo?"_ and the entity layer
+answers _"now that my village is live, what is in it?"_.
 
-## Open questions
+### D8 — OPEN: does the municipal seat get its own row?
 
-1. ~~**Is there a complete, re-fetchable source?**~~ **Answered 2026-08-24:
-   OpenStreetMap via Overpass** (see above). Galicia goes from 19 to ~37.000.
-2. ~~**Can a hand-fetched snapshot be made safe?**~~ **Moot** — no hand-fetched
-   snapshot is needed. Replaced by: **is ODbL acceptable?** Attribution is
-   trivial; share-alike on a derived database is the real question.
-3. **Pedanía: alias, sibling entity, or barrio with a `kind`?** (the three
-   shapes above) — this is the load-bearing decision.
-4. **Do we model *parroquia* / entidad colectiva at all?**
-5. **What happens to the existing hand-created barrios?** Dev holds 8, spread
-   over four villages: Aranjuez (*Casco Histórico*, *El Foso*, *Nuevo
-   Aranjuez*), Chinchón (*El Arrabal*, *Plaza Mayor*), Matabuena (*El Pueblo*,
-   *Villares de Matabuena*), Abades (*Mira*).
+OSM's Matabuena returns **three** settlements: _Matamala_, _Cañicosa_ — and
+**_Matabuena_ itself**, the `place=village` seat. The current Wikidata script
+strips it (`names.delete(entry.name)`), but that was for a search-alias list,
+where a municipio matching its own name is pointless. As an *entity* the
+trade-off is different:
 
-   **Correction (2026-08-24):** an earlier revision of this plan claimed
-   *Villares de Matabuena* was a real anejo and therefore live proof of the
-   pedanía/barrio conflation. That overstated the evidence. It comes from
-   `scripts/data/seed-fixtures/real_villages_1/fixtures.mjs` — authored demo
-   data, not a row a user created in the wild — and OSM's Matabuena contains
-   *Matamala* and *Cañicosa*, not *Villares*. Whether Villares is a real local
-   name that OSM lacks is a question for someone who knows the village.
-   The conflation risk stands on the structural argument, not on this row.
-6. **Does a pedanía need its own escudo, fiestas and admins**, or does it inherit
-   the municipio's? This is the question that decides (2) vs. (3).
-7. **How does joining work?** Today a user joins a municipio and optionally picks
-   a barrio. If pedanías become entities, is the pedanía the join target, with
-   the municipio implied?
+- **Include it.** INE agrees — the seat *is* an entidad singular. It gives
+  residents of the main village a row to belong to, so `residentCount` and the
+  censo work symmetrically for everyone. Cost: "Matabuena" appears inside
+  Matabuena, which reads as redundant.
+- **Exclude it.** The scroll shows only the *other* settlements, which is what a
+  villager means by "las pedanías". Cost: residents of the main village have
+  nowhere to live — the residence link and barrio censo become asymmetric, with
+  Cañicosa residents assignable and Matabuena residents not.
 
-## Out of scope for now
+Leaning **include, flagged `isSeat: true`**, rendered first and styled distinctly
+(or labelled "el pueblo"), so the data stays symmetric while the UI stops looking
+redundant. **Needs a decision before Stage 1.**
 
-- Núcleo / diseminado. Nobody says "soy del diseminado de X".
+## Known risk
+
+**Vilalba's Lugares scroll holds 745 cards.** D4 puts lugares in their own scroll
+alongside parroquias rather than nested inside the parroquia detail. `Section`'s
+virtualized `data`/`renderItem` path makes this technically fine (lazy render),
+and `onManage` gives a full searchable list screen — but a 745-card horizontal
+scroll is not _browsable_, only scrollable. Accepted knowingly; revisit if
+Galician villages complain. Nesting lugares under parroquias is the fallback.
+
+## File structure
+
+**New**
+
+- `scripts/fetch-settlements.mjs` — OSM/Overpass per-province fetch of
+  `place=village|hamlet`, `place=suburb|quarter|neighbourhood` and
+  `admin_level=9`, joined to the municipio spatially
+- `scripts/data/settlements-es.json` — the fetched dataset
+- `scripts/backfill-barrio-kind.mjs` — registered backfill, sets `kind`/`source`
+  on existing rows
+
+**Modified**
+
+- `packages/shared/src/models/municipality/MunicipalityDataModel.ts` —
+  `BarrioDataSchema` gains `kind`, `source`, and (pending D8) `isSeat`
+- `packages/shared/src/services/municipalityService.ts` — `getBarrios(kind?)`
+- `functions/src/village/startVillage.ts` — seed settlements on activation
+- `apps/mobile/components/feature/VillageHomeBody.tsx` — one Section per kind
+- `apps/mobile/lib/useVillageHome.ts` — split `barrios` by kind
+- `packages/i18n/messages/es.json` — section titles, kind picker
+- `firestore.rules` — `kind`/`source` function-owned; admins may rename and
+  delete any row
+- `scripts/data/seed-fixtures/real_villages_1/fixtures.mjs` — replace the
+  invented _Villares de Matabuena_ with the real _Matamala_ / _Cañicosa_
+
+## Tasks
+
+### Stage 1 — Data
+
+- [ ] Settle **D8** (seat row or not)
+- [ ] Write `scripts/fetch-settlements.mjs` (Overpass, per province, retry/backoff
+      for 429 + 504 + truncated-200, as in `fetch-localities.mjs`)
+- [ ] Exclude `place=locality` explicitly, with a test asserting Figueruela
+      yields 6–7 settlements and not 260
+- [ ] Fetch and commit `settlements-es.json`; record per-province counts
+- [ ] Add "© OpenStreetMap contributors" attribution to the app's legal screen
+
+### Stage 2 — Model
+
+- [ ] `kind` + `source` on `BarrioDataSchema` (+ builder, + tests)
+- [ ] `backfill-barrio-kind.mjs` — existing rows default to `kind: 'barrio'`,
+      `source: 'user'`; `pre-deploy`, `autoApply`, idempotent
+- [ ] Firestore rules: `kind`/`source` function-owned; admins may rename/delete
+- [ ] Fix the `real_villages_1` fixture
+
+### Stage 3 — Seeding
+
+- [ ] `startVillage` seeds all three kinds for the activated municipio
+- [ ] Re-activation is idempotent (no duplicate rows)
+- [ ] Emulator test: activating Figueruela de Arriba creates its 6 pedanías
+
+### Stage 4 — UI
+
+- [ ] `useVillageHome` splits barrios by kind
+- [ ] One `<Section>` per kind, virtualized path for large ones
+- [ ] Kind picker in the add-barrio form
+- [ ] i18n strings
+
+## Out of scope
+
+- Núcleo / diseminado.
 - Historical or disappeared settlements.
+- Entidad Local Menor as a _governance_ concept (juntas vecinales with their own
+  admins). Modelled as `pedania` for now; revisit if a real ELM asks.
 - Anything outside Spain.
 
 ## Related
 
-- `scripts/fetch-localities.mjs` — current Wikidata locality fetch
-- `scripts/enrich-municipality-aliases.mjs` — co-official-name aliases
-- `scripts/backfill-municipality-search-prefixes.mjs` — the backfill both feed
+- PR [#259](https://github.com/alvaro-francisco-gil/cultuvilla/pull/259) — per-word search index
+- PR [#260](https://github.com/alvaro-francisco-gil/cultuvilla/pull/260) — `localityNames` alias layer
+- `scripts/fetch-localities.mjs` — the Wikidata locality fetch this supersedes
 - [docs/architecture/municipality-vs-village.md](../../architecture/municipality-vs-village.md)
-  — the existing municipality/village distinction this plan adds a third layer to
