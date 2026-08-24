@@ -135,9 +135,19 @@ Marcar aquí, no en la cabeza. Esto es lo que una sesión nueva lee primero.
 **Consola / fuera del repo — pendiente**
 
 - [ ] Service account de Play → secret `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`. **No
-      existe todavía** (ni a nivel de repo ni en el entorno `production`), así
-      que `mobile-release` falla en el paso de submit: hoy no hay forma de subir
-      un build desde Actions.
+      existe en ningún sitio**, comprobado el 2026-08-24 en los tres:
+      secretos del repo (sólo `EXPO_TOKEN`), entorno `production` (vacío) y la
+      cuenta de EAS — `meActor.accounts.googleServiceAccountKeys` devuelve `[]`.
+      Por eso `mobile-release` falla en submit y `eas submit` tampoco funciona
+      desde un portátil. **Corolario:** el 0.19.0 que hay en el track internal
+      se subió *a mano* por la consola, no con `eas submit`; ese es hoy el único
+      camino para publicar, y requiere sesión de navegador en Play Console.
+      Para automatizarlo: Play Console → Setup → API access → crear/enlazar la
+      service account, darle **Release Manager**, descargar el JSON y guardarlo
+      como secret `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` (el `submit` de
+      [eas.json](../../../apps/mobile/eas.json) lo espera en
+      `./google-play-service-account.json`, que el workflow escribe desde el
+      secret).
 - [ ] Cliente OAuth **Android** en `cultuvilla-prod` con el SHA-1 de la app signing key.
 - [ ] Escribir `_admin/reviewAccess` en prod y rellenar el formulario App access
       con ese par ([play-declarations.md](../../store/play-declarations.md)).
