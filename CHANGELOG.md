@@ -4,6 +4,14 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Fixed
+
+- **Buscar el pueblo por cualquier palabra de su nombre, no sólo por la primera.** La búsqueda comparaba lo escrito contra el principio del nombre completo, y el 42% de los municipios españoles tienen nombre de varias palabras que empieza por un genérico compartido: quien escribía «Manzanas» no encontraba *Villanueva de las Manzanas*, y quien escribía «Aires» no encontraba *Villarino de los Aires*. Ahora cada municipio indexa un prefijo por **cada palabra** de su nombre, así que se busca por la parte distintiva, que es la que uno escribe.
+  - **También por el nombre en la lengua cooficial.** El listado guardaba sólo el exónimo castellano — «San Sebastián», «Lérida», «La Coruña», «Alicante» —, de modo que buscar «Donostia», «Lleida», «A Coruña» o «Alacant» no devolvía nada. 2.122 municipios incorporan ahora su nombre en euskera, catalán, gallego, asturiano, aragonés u occitano, y se busca indistintamente por cualquiera de ellos.
+  - **Los dos grupos de resultados ya no se contradicen.** «Municipios activos» filtraba en el cliente distinguiendo mayúsculas y tildes mientras «Todos» consultaba en Firestore sin distinguirlas, así que un mismo pueblo podía salir en un grupo y no en el otro para la misma búsqueda. Ahora ambos evalúan exactamente el mismo criterio.
+  - **Cuando no hay resultados se explica por qué.** Cultuvilla lista los 8.167 municipios del INE y nada por debajo, así que quien vive en una pedanía busca un nombre que no existe como fila y concluye que falta su pueblo. El mensaje vacío ahora dice que sólo aparecen municipios y que hay que buscar el municipio al que pertenece la pedanía, con un ejemplo.
+  - **Migration:** los campos `searchPrefixes` y `nameAliases` de `municipalities` los rellena `scripts/backfill-municipality-search-prefixes.mjs` (por entorno, auto-aplicado en el deploy). Los alias se regeneran con `node scripts/enrich-municipality-aliases.mjs`.
+
 ### Added
 
 - **Exportar la lista de asistentes a Excel o CSV ya funciona en la app, no sólo en la web.** El control de descarga del roster existía desde 0.24.0 pero se ocultaba en iOS y Android, porque guardar un fichero allí necesita módulos nativos que la app no traía; el organizador que gestiona su peña desde el móvil — que es la mayoría — no tenía forma de sacar la lista. Ahora el fichero se escribe en la caché de la app y se entrega a la hoja de compartir del sistema, que es donde viven «Guardar en Archivos», Drive, WhatsApp y el correo. El `.xlsx` y el `.csv` son exactamente los mismos que genera la web: mismo libro con logo, cabecera fija y filtros, y mismo CSV UTF-8-BOM con punto y coma.

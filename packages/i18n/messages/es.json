@@ -907,7 +907,10 @@
     "allGroup": "Todos",
     "viewVillage": "Ver pueblo",
     "joinVillage": "Unirse a este pueblo",
-    "alreadyMember": "Ya eres miembro"
+    "alreadyMember": "Ya eres miembro",
+    "emptyHint": "Solo aparecen municipios. Si vives en una pedanía o un anejo, busca el municipio al que pertenece.",
+    "emptyHintExample": "Por ejemplo, Villarino de Manzanas se busca como Figueruela de Arriba.",
+    "searchHint": "Puedes escribir cualquier palabra del nombre"
   },
   "inbox": {
     "title": "Buzón",

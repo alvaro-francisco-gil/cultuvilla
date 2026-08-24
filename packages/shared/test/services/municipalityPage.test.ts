@@ -66,12 +66,21 @@ describe('listMunicipalitiesPage', () => {
     expect(calls.startAfter).toEqual([cursor]);
   });
 
-  it('applies prefix where-clauses when search is non-empty', async () => {
+  it('matches the prefix index when search is non-empty', async () => {
     nextDocs = [];
     await listMunicipalitiesPage({ search: 'avi', limit: 5 });
     const fields = calls.where.map((w: { field: string; op: string }) => `${w.field} ${w.op}`);
-    expect(fields).toContain('nameLower >=');
-    expect(fields).toContain('nameLower <');
+    // A single array-contains, not a nameLower range scan: the range scan only
+    // matched the start of the whole name, so "manzanas" could never find
+    // "Villanueva de las Manzanas".
+    expect(fields).toEqual(['searchPrefixes array-contains']);
+  });
+
+  it('normalizes the search term to the stored key shape', async () => {
+    nextDocs = [];
+    await listMunicipalitiesPage({ search: '  ÁVI ', limit: 5 });
+    const [clause] = calls.where as { field: string; op: string; value: unknown }[];
+    expect(clause.value).toBe('avi');
   });
 
   it('applies no where-clauses when search is empty', async () => {

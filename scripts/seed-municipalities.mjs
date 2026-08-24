@@ -30,6 +30,7 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import { initAdminForEnv } from './lib/env-credentials.mjs';
 import { parseEnvConfirm } from './lib/env-confirm.mjs';
+import { searchKey, searchPrefixes } from './lib/municipality-search.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -109,15 +110,13 @@ async function main() {
 
     for (const entry of chunk) {
       const docRef = collection.doc(); // auto-ID
-      // Mirrors municipalitySearchKey() in MunicipalityDataModel.ts — kept inline
-      // because this .mjs script can't import the TS model.
-      const nameLower = entry.name
-        .normalize('NFD')
-        .replace(/[̀-ͯ]/g, '')
-        .toLowerCase();
+      const nameLower = searchKey(entry.name);
+      const nameAliases = entry.nameAliases ?? [];
       batch.set(docRef, {
         name: entry.name,
         nameLower,
+        nameAliases,
+        searchPrefixes: searchPrefixes(entry.name, nameAliases),
         province: entry.province,
         comunidadAutonoma: entry.comunidadAutonoma,
         codigoINE: entry.codigoINE,
