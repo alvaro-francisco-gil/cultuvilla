@@ -4,6 +4,10 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Fixed
+
+- **El correo de cancelación ya sale de verdad.** Anular una inscripción escribía la cancelación y no enviaba nada: `cancelRegistration` era el único emisor de correo que no declaraba `secrets: [RESEND_API_KEY]`, así que Firebase no montaba la clave en su Cloud Run, Resend contestaba «Missing API key» y `sendEventEmail` — best-effort por contrato — se lo tragaba en silencio. Un test de invariante recorre ahora el grafo de imports real y falla si cualquier punto de entrada puede llegar a `RESEND_API_KEY.value()` sin declararlo, algo que los tests de handler no podían ver porque mockean el secreto.
+
 ### Changed
 
 - **Avisar de una actualización con un diálogo, no con una franja.** La app ya sabía desde el arranque si la versión instalada se había quedado corta, pero lo contaba mal: quedarse por debajo de `minSupported` sustituía la app entera por una pantalla suelta, y haber una versión nueva pintaba una franja naranja de una línea sobre la cabecera que se confundía con parte del diseño y que nadie llegaba a pulsar. Ahora son **dos diálogos** sobre la app, como en Órdago:
