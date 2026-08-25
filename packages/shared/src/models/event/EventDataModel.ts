@@ -76,6 +76,17 @@ export const EventDataSchema = z.object({
   // throwing the strict converter (existing docs are backfilled to 1 in this
   // same change).
   signupGroupSize: z.number().int().min(1).max(MAX_SIGNUP_GROUP_SIZE).default(1),
+  // Optional birth-year eligibility window the organizer advertises: a
+  // children's taller sets minBirthYear, a mayores merienda sets maxBirthYear,
+  // a quinta event sets both to the same year. Either end may be null (open).
+  // This is ADVISORY, not enforced: the sign-up sheet warns and asks the user
+  // to confirm, and nothing server-side rejects an out-of-range attendee —
+  // organizers add walk-ins and guests claim open seats, and a hard gate would
+  // strand both. `.default(null)` so events created before this field parse
+  // through the strict converter (existing docs are backfilled in this same
+  // change).
+  minBirthYear: z.number().int().nullable().default(null),
+  maxBirthYear: z.number().int().nullable().default(null),
   status: EventStatusSchema,
   organizerUserIds: z.array(z.string()),
   organizerOrgIds: z.array(z.string()),
@@ -126,6 +137,8 @@ export interface EventDataInput {
   signupInfo?: string | null;
   attendeesVisibility?: AttendeesVisibility;
   signupGroupSize?: number;
+  minBirthYear?: number | null;
+  maxBirthYear?: number | null;
   status?: EventStatus;
   organizerUserIds: string[];
   organizerOrgIds: string[];
@@ -156,6 +169,8 @@ export function buildEventData(input: EventDataInput): EventData {
     signupInfo: input.signupInfo ?? null,
     attendeesVisibility: input.attendeesVisibility ?? 'members',
     signupGroupSize: input.signupGroupSize ?? 1,
+    minBirthYear: input.minBirthYear ?? null,
+    maxBirthYear: input.maxBirthYear ?? null,
     status: input.status ?? 'published',
     organizerUserIds: input.organizerUserIds,
     organizerOrgIds: input.organizerOrgIds,
@@ -219,4 +234,42 @@ export function isEventOngoing(
   if (event.status !== 'published') return false;
   if (event.startDate > now) return false;
   return !isStartDayOver(eventEndBoundary(event), now);
+}
+
+/** The birth-year window an event advertises; both ends optional. */
+export type BirthYearWindow = Pick<EventData, 'minBirthYear' | 'maxBirthYear'>;
+
+/** True when the event advertises any birth-year restriction at all. */
+export function hasBirthYearWindow(event: BirthYearWindow): boolean {
+  return event.minBirthYear !== null || event.maxBirthYear !== null;
+}
+
+/**
+ * Whether a persona's birth year sits inside the event's advertised window.
+ *
+ * `'unknown'` is deliberately NOT `'out-of-range'`: every persona created in
+ * the app carries a full birthday (PersonForm requires it), so a null year
+ * means a legacy or seeded doc, and nagging about those would put a modal in
+ * front of a sign-up we have no evidence to question.
+ */
+export function birthYearEligibility(
+  event: BirthYearWindow,
+  birthYear: number | null | undefined,
+): 'ok' | 'unknown' | 'too-old' | 'too-young' {
+  if (!hasBirthYearWindow(event)) return 'ok';
+  if (birthYear == null) return 'unknown';
+  // minBirthYear is the EARLIEST year allowed, so falling below it means the
+  // persona was born before the window — i.e. too old for the event.
+  if (event.minBirthYear !== null && birthYear < event.minBirthYear) return 'too-old';
+  if (event.maxBirthYear !== null && birthYear > event.maxBirthYear) return 'too-young';
+  return 'ok';
+}
+
+/** True when the sign-up sheet should ask the user to confirm anyway. */
+export function needsBirthYearConfirm(
+  event: BirthYearWindow,
+  birthYear: number | null | undefined,
+): boolean {
+  const verdict = birthYearEligibility(event, birthYear);
+  return verdict === 'too-old' || verdict === 'too-young';
 }

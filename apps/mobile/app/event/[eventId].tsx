@@ -15,6 +15,7 @@ import { DetailSectionHeading } from '../../components/feature/DetailSectionHead
 import { EntityDetailScaffold } from '../../components/feature/EntityDetailScaffold';
 import type { EntityDetailAction } from '../../components/feature/EntityDetailHeader';
 import { DetailInfoCard } from '../../components/feature/DetailInfoCard';
+import { birthYearRangeLabel } from '../../lib/events/birthYearLabel';
 import { EntityComments } from '../../components/feature/EntityComments';
 import { ENTITY_FALLBACK_ICON } from '../../lib/entities/registry';
 import { useAuth } from '../../lib/auth/useAuth';
@@ -101,6 +102,13 @@ export default function EventDetailScreen() {
     ).catch(() => {});
   };
 
+  const birthYearLabel = event
+    ? birthYearRangeLabel(
+        { minBirthYear: event.minBirthYear, maxBirthYear: event.maxBirthYear },
+        t,
+      )
+    : null;
+
   const actions: EntityDetailAction[] = event
     ? [
         ...(canOrganize
@@ -142,6 +150,11 @@ export default function EventDetailScreen() {
             signupFields={event.signupFields}
             villageId={event.municipalityId}
             groupSize={event.signupGroupSize}
+            ownBirthYear={person.birthday?.year ?? null}
+            birthYearWindow={{
+              minBirthYear: event.minBirthYear,
+              maxBirthYear: event.maxBirthYear,
+            }}
           />
         ) : null
       }
@@ -164,6 +177,15 @@ export default function EventDetailScreen() {
               />
             ) : null}
           </HStack>
+          {/* Advertised birth-year window. Shown before the sign-up sheet so the
+              restriction reaches people who read the event and never tap the
+              FAB — the confirm modal only reaches those who do. */}
+          {birthYearLabel ? (
+            <VStack gap={2}>
+              <DetailSectionHeading>{t('event.birthYearRange')}</DetailSectionHeading>
+              <Text>{birthYearLabel}</Text>
+            </VStack>
+          ) : null}
           {(event.organizerUserIds?.length > 0 || event.organizerOrgIds?.length > 0) && (
             <VStack gap={2}>
               <DetailSectionHeading>{t('event.organizersLabel')}</DetailSectionHeading>
