@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.28.0 — 2026-08-25
+
 ### Added
 
 - **Rango de años de nacimiento por evento, como aviso y no como muro.** Un taller infantil, una merienda de mayores o una comida de quintos se anuncian por edad, pero la app no tenía dónde decirlo: quien organizaba lo escribía en la descripción y quien se apuntaba no lo leía. Ahora el formulario de evento tiene **«Años de nacimiento» — desde / hasta**, ambos opcionales (dejar uno vacío deja ese extremo abierto), el rango se muestra en la ficha del evento («Nacidos entre 2014 y 2020»), y al apuntar a alguien que no lo cumple sale un diálogo con su nombre pidiendo confirmación. Se puede seguir adelante: es el aviso lo que faltaba, no el permiso.
