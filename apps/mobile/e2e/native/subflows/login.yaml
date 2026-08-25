@@ -7,13 +7,26 @@
 # ONE query parameter, pipe-separated: `adb shell am start -d` eats an
 # unescaped `&`, so a two-parameter link would arrive without the password.
 #
+# `clearState` + `openLink` on a STOPPED app, deliberately — never `launchApp`
+# followed by `openLink`. An intent that reaches a RUNNING app is delivered as a
+# one-shot `url` event, and the app's JS takes seconds to boot: the listener is
+# not mounted yet, so the credentials are silently dropped and the flow fails
+# later with a confusing "not signed in". A cold start makes the link the LAUNCH
+# intent, which `Linking.getInitialURL()` replays whenever the listener is ready.
+#
 # Ends on a positive signed-in assertion so a broken seam fails HERE, with an
 # unambiguous message, instead of surfacing three steps later as a missing
 # button. `profile-edit-action` renders only once auth minted AND users/{uid}
 # AND persons/{id} have loaded, so it proves the whole read chain on device.
 appId: com.cultuvilla.app.dev
 ---
+- clearState
 - openLink: 'cultuvilla://?e2eLogin=${EMAIL}%7C${PASSWORD}'
+# The tab bar is the app's "JS is mounted" marker. Only once it is up is the
+# router's own URL listener attached and a second openLink safe to send.
+- extendedWaitUntil:
+    visible: 'Explora'
+    timeout: 90000
 - openLink: 'cultuvilla://profile'
 - extendedWaitUntil:
     visible:

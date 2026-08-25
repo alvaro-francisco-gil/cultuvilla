@@ -1,9 +1,13 @@
 # The inverse of 20, and the one flow that exercises a NATIVE Alert.alert
 # confirmation — the web driver only ever sees the window.confirm fallback
 # (react-native-web ships Alert.alert as a no-op; see the mobile-web-compat
-# skill). Untick the persona, confirm the alert, assert the doc is gone.
+# skill), so this dialog has never been executed by a test until now.
 #
-# Depends on 20 having registered this persona; filename order guarantees that.
+# Self-healing rather than order-dependent: it registers first if the persona
+# is not already signed up. scripts/run-android-e2e.mjs does run the flows in
+# filename order, so in a full suite 20 has already done it — but that makes
+# re-running THIS flow alone, against a database that is mid-suite, a normal
+# thing to do instead of a confusing failure.
 appId: com.cultuvilla.app.dev
 env:
   EMAIL: e2e-user@cultuvilla.test
@@ -11,8 +15,8 @@ env:
   EVENT_ID: e2e-event-fiesta
   PERSON_ID: e2e-person-user
 ---
-- launchApp:
-    clearState: true
+# `clearState` + cold-start openLink live in the login subflow — see the note
+# there on why a launchApp-then-openLink sequence drops the login intent.
 - runFlow:
     file: ../subflows/login.yaml
     env:
@@ -23,6 +27,24 @@ env:
     visible:
       id: 'register-fab'
     timeout: 45000
+
+# Precondition: be signed up. The FAB reads "Apuntarme" only while nobody is.
+- runFlow:
+    when:
+      notVisible: 'Apuntad.*'
+    commands:
+      - tapOn:
+          id: 'register-fab'
+      - tapOn:
+          id: 'attendee-row-${PERSON_ID}'
+      - tapOn:
+          id: 'attendee-confirm'
+      - extendedWaitUntil:
+          visible: 'Apuntad.*'
+          timeout: 20000
+
+# Untick this persona and confirm. The sheet opens with whoever is registered
+# already ticked, so one tap is a removal.
 - tapOn:
     id: 'register-fab'
 - tapOn:
@@ -31,7 +53,8 @@ env:
     id: 'attendee-confirm'
 # Native two-button Alert from lib/dialogs.ts showConfirm; the label is
 # event.register.cancelConfirm in packages/i18n/messages/es.json.
-- tapOn: 'Sí, cancelar'
+- tapOn: 'SÍ, CANCELAR'
+
 - runScript:
     file: ../scripts/queryCollection.js
     env:

@@ -23,14 +23,18 @@
  *                     on the Windows host, so this must be the Windows
  *                     adb.exe — see the drive-android-avd skill.
  *   MAESTRO_BIN       maestro binary (default `maestro`).
+ *   E2E_NATIVE_FLOW   Single flow file to run (same as --flow). Useful for
+ *                     iterating on one flow under `pnpm test:e2e:android`,
+ *                     which owns the emulator boot and takes no extra args.
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SUITE_DIR = path.join(ROOT, 'apps', 'mobile', 'e2e', 'native');
+const FLOWS_DIR = path.join(SUITE_DIR, 'flows');
 const REPORT_DIR = path.join(SUITE_DIR, 'report');
 
 const ADB = process.env.ADB || 'adb';
@@ -42,7 +46,7 @@ function arg(name) {
 }
 
 const apk = arg('apk') ?? process.env.E2E_ANDROID_APK;
-const flow = arg('flow');
+const flow = arg('flow') ?? process.env.E2E_NATIVE_FLOW;
 
 function run(cmd, args, opts = {}) {
   const res = spawnSync(cmd, args, { stdio: 'inherit', cwd: ROOT, ...opts });
@@ -87,16 +91,41 @@ if (apk) {
   if (code !== 0) process.exit(code);
 }
 
-// 3. Run the suite. JUnit output makes a failed flow legible in the CI summary
-//    instead of only in the raw log.
+// 3. Run the flows IN FILENAME ORDER, one `maestro test` per flow.
+//
+//    Maestro's workspace mode does not guarantee the order it discovers flows
+//    in, and this suite depends on it: 22 unregisters what 20 registered. A
+//    reshuffle would turn a healthy suite red for reasons that have nothing to
+//    do with the app. Driving the order here also gives one JUnit report per
+//    flow, so a CI failure names the flow instead of the workspace.
+//
+//    A failing flow does NOT stop the run: the rest of the suite is still worth
+//    knowing about, and a cascade (22 failing because 20 did) is itself the
+//    diagnosis.
 mkdirSync(REPORT_DIR, { recursive: true });
-const target = flow ? path.join(SUITE_DIR, 'flows', flow) : SUITE_DIR;
-const code = run(MAESTRO, [
-  'test',
-  target,
-  '--format',
-  'junit',
-  '--output',
-  path.join(REPORT_DIR, 'report.xml'),
-]);
-process.exit(code);
+const flows = flow
+  ? [flow]
+  : readdirSync(FLOWS_DIR)
+      .filter((f) => f.endsWith('.yaml'))
+      .sort();
+
+const failed = [];
+for (const name of flows) {
+  console.log(`\n[android-e2e] ─── ${name} ───`);
+  const status = run(MAESTRO, [
+    'test',
+    path.join(FLOWS_DIR, name),
+    '--format',
+    'junit',
+    '--output',
+    path.join(REPORT_DIR, `${name.replace(/\.yaml$/, '')}.xml`),
+  ]);
+  if (status !== 0) failed.push(name);
+}
+
+if (failed.length > 0) {
+  console.error(`\n[android-e2e] ${failed.length}/${flows.length} flow(s) failed:`);
+  for (const name of failed) console.error(`  - ${name}`);
+  process.exit(1);
+}
+console.log(`\n[android-e2e] all ${flows.length} flow(s) passed`);

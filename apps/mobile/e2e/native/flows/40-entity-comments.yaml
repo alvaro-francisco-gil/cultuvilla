@@ -10,8 +10,8 @@ env:
   PASSWORD: e2e-cultuvilla-pw
   EVENT_ID: e2e-event-fiesta
 ---
-- launchApp:
-    clearState: true
+# `clearState` + cold-start openLink live in the login subflow — see the note
+# there on why a launchApp-then-openLink sequence drops the login intent.
 - runFlow:
     file: ../subflows/login.yaml
     env:

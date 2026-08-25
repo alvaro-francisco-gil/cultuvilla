@@ -10,8 +10,8 @@ env:
   EMAIL: e2e-user@cultuvilla.test
   PASSWORD: e2e-cultuvilla-pw
 ---
-- launchApp:
-    clearState: true
+# `clearState` + cold-start openLink live in the login subflow — see the note
+# there on why a launchApp-then-openLink sequence drops the login intent.
 - runFlow:
     file: ../subflows/login.yaml
     env:
@@ -19,4 +19,8 @@ env:
       PASSWORD: ${PASSWORD}
 # The seeded attendee's display name — proof the persons doc, not just the auth
 # session, made it to the screen. Mirrors scripts/data/seed-fixtures/e2e/fixtures.mjs.
-- assertVisible: 'Usuario'
+# Maestro's text selector matches the WHOLE string, so this is the full name.
+- assertVisible: 'Usuario E2E'
+# The dependent persona the family-member flow signs up, rendered from the same
+# profile read — so 21's precondition is verified here rather than there.
+- assertVisible: 'Lucía Dependiente'

@@ -1,8 +1,0 @@
-# Maestro workspace config for the native (Android) E2E suite.
-#
-# Flow order is filename order, and it is load-bearing: 2x register before 22
-# unregister, and 50 (which soft-hides a place) last so it can't perturb the
-# flows that read that place. Each flow still starts from `clearState: true`, so
-# a single failure never cascades into a bogus second failure.
-flows:
-  - 'flows/*.yaml'

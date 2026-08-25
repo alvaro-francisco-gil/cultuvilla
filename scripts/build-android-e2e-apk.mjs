@@ -96,7 +96,12 @@ writeFileSync(
 `,
 );
 
-run('./gradlew', ['assembleRelease', '--no-daemon'], ANDROID);
+// Only the ABI the AVD actually runs. The default builds all four, and the
+// native compile of the RN/Expo modules for the three unused ones is the single
+// largest chunk of wall-clock here — minutes, for an APK that is installed on
+// exactly one x86_64 emulator and then thrown away.
+const abi = process.env.E2E_ANDROID_ABI || 'x86_64';
+run('./gradlew', ['assembleRelease', `-PreactNativeArchitectures=${abi}`], ANDROID);
 
 console.log(`[android-e2e-apk] emulator host baked in: ${EMULATOR_HOST}`);
 console.log(APK);

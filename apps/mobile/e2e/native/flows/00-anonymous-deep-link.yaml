@@ -1,23 +1,30 @@
-# Native (Maestro) anonymous deep-link smoke — the mirror of the web
+# Native anonymous deep-link smoke — the mirror of the web
 # apps/mobile/e2e/flows/deep-link-event.spec.ts. It proves the whole native
-# substrate boots end to end — dev-client build + emulator-connect (via
-# 10.0.2.2) + seeded data + deep-link routing — before any interaction, so a
-# failure here localises native setup problems fast.
+# substrate boots end to end — standalone APK + emulator-connect (via 10.0.2.2)
+# + seeded data + deep-link routing — before any interaction, so a failure here
+# localises setup problems fast.
 #
-# Anonymous ON PURPOSE: it needs no login, so it sidesteps the native
-# fixture-login mechanism (deferred to Stage 4). Only the DRIVER differs from the
-# web smoke; the seeded event fixture is shared substrate.
+# Anonymous ON PURPOSE: it needs no login, so a failure here is never the
+# fixture-login seam's fault. That makes it the first flow to read when the
+# suite goes red.
+#
+# `clearState` + `openLink` on a stopped app, not `launchApp` then `openLink`:
+# an intent delivered to a RUNNING app is a one-shot event that the app's JS is
+# usually not yet mounted to receive. A cold start makes the link the launch
+# intent, which `Linking.getInitialURL()` replays once the listener is ready.
 #
 # The event id/title below mirror scripts/data/seed-fixtures/e2e/fixtures.mjs
 # (`event.docId` / `event.title`). Maestro YAML can't import JS — keep them in
 # sync by hand, as apps/mobile/e2e/lib/fixtures.ts already does for the web side.
 #
-# `appId` is the dev build's Android package (app.config.ts bundleIdPerEnv.dev).
+# `appId` is the dev build's Android package (app.config.ts bundleIdPerEnv.dev),
+# the only env allowed to arm the emulator bypass.
 appId: com.cultuvilla.app.dev
 ---
-- launchApp:
-    clearState: true
+- clearState
 - openLink: cultuvilla://event/e2e-event-fiesta
-- assertVisible: 'Fiesta de Prueba E2E'
+- extendedWaitUntil:
+    visible: 'Fiesta de Prueba E2E'
+    timeout: 90000
 # Anonymous visitor gets the guest sign-up CTA (same assertion as the web smoke).
 - assertVisible: 'Apuntarme'

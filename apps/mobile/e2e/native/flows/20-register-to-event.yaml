@@ -13,8 +13,8 @@ env:
   EVENT_ID: e2e-event-fiesta
   PERSON_ID: e2e-person-user
 ---
-- launchApp:
-    clearState: true
+# `clearState` + cold-start openLink live in the login subflow — see the note
+# there on why a launchApp-then-openLink sequence drops the login intent.
 - runFlow:
     file: ../subflows/login.yaml
     env:
@@ -51,7 +51,10 @@ env:
       EXPECT: '>=1'
 - assertTrue: ${output.ok == 'true'}
 
-# Only now the UI: the FAB flips out of its sign-up CTA state.
+# Only now the UI: the FAB flips out of its sign-up CTA ("Apuntarme") into the
+# signed-up tally ("Apuntado (1)"). Maestro text selectors are regexes matched
+# against the WHOLE string, hence the trailing `.*` — same shape as the web
+# spec's /Apuntad/.
 - extendedWaitUntil:
-    visible: 'Apuntado'
+    visible: 'Apuntad.*'
     timeout: 20000
