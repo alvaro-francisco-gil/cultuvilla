@@ -1,4 +1,4 @@
-# E2E testing substrate (web Playwright now, native Maestro later)
+# E2E testing substrate (web Playwright + native Maestro)
 
 ## Context
 
@@ -45,9 +45,38 @@ build (where `__DEV__` is false).
   dedicated emulator project `cultuvilla-test` (never the real `villa-events`);
   `scripts/seed/lib/context.mjs` relaxes its `villa-events`-only + credentials
   guards when `FIRESTORE_EMULATOR_HOST` is set.
-- **Native Maestro is groundwork only.** One anonymous deep-link smoke
-  (`apps/mobile/e2e/native/`), manual/opt-in, **not** in CI (no AVD in CI). On an
-  AVD the emulator-connect host is overridden to `10.0.2.2`.
+- **Native Maestro is a full suite, in CI, gated to the release paths.**
+  `apps/mobile/e2e/native/` drives a standalone APK on an AVD through eight
+  flows; `.github/workflows/android-e2e.yml` runs them on PRs targeting
+  `beta`/`main` and pushes to those branches — the same gate as `web-e2e`, for
+  the same reason (an emulator boot plus a Gradle build is far too slow for
+  day-to-day `develop` PRs). On an AVD the emulator-connect host is `10.0.2.2`.
+
+  It exists **next to** the web suite, not instead of it: the web driver runs
+  the same React tree through react-native-web, so it proves the product logic
+  but never the platform. Native boot, the deep-link intent path, AsyncStorage
+  auth persistence, the native Firebase SDK, RN modals/pickers/soft-keyboard and
+  `Alert.alert` — which react-native-web ships as a **no-op**, so no web test has
+  ever executed a confirmation dialog — are invisible to Playwright and shipped
+  to users.
+
+- **The native login seam is a deep link, and the bypass wall moved.** Maestro
+  drives the UI and cannot reach `window.__cultuvillaE2E`, so credentials arrive
+  as `cultuvilla://?e2eLogin=<email>%7C<password>` — handled by the SAME armed
+  predicate and the SAME `signInWithEmailAndPassword` primitive. One parameter,
+  pipe-separated, because `adb shell am start -d` eats an unescaped `&`.
+
+  `Platform.OS === 'web'` used to make it *structurally impossible* for the
+  bypass to exist in a store binary. That accident is gone, so the wall is now
+  deliberate: **app.config.ts refuses to evaluate for `APP_ENV=beta|prod` with
+  `USE_FIREBASE_EMULATOR=1`**, which holds on every build path — CI, EAS and a
+  laptop alike — because they all evaluate it. The host allowlist widened by
+  exactly one non-routable AVD alias, and the grep gate gained a fifth rule.
+
+- **Flow ORDER is owned by the runner, not by Maestro.** Maestro's workspace mode
+  does not guarantee discovery order, and the suite depends on it (22 unregisters
+  what 20 registered). `scripts/run-android-e2e.mjs` enumerates and sorts the
+  flows itself, one `maestro test` per flow, so a CI failure names the flow.
 
 ## Rejected alternatives
 
@@ -64,9 +93,14 @@ build (where `__DEV__` is false).
 
 ## What this binds
 
-- A new web flow drives the UI by `testID` and makes its **strong assertion
-  against Firestore emulator state via `emulatorState`**, reusing the existing
-  `fixtureLogin` seam. Don't broaden the auth surface or the bypass-leak allowlist.
+- A new flow — web OR native — drives the UI by `testID` and makes its **strong
+  assertion against Firestore emulator state** (`emulatorState.ts` on web,
+  `native/scripts/{docField,queryCollection}.js` on native, both using the
+  `Bearer owner` rules-bypass). Reuse the existing fixture-login seam; don't
+  broaden the auth surface or the bypass-leak allowlist.
+- A native flow gets the next numeric filename prefix — the order is load-bearing
+  and `packages/shared/test/ci/androidE2e.test.ts` enforces the convention.
+- `USE_FIREBASE_EMULATOR=1` may only ever produce a `dev` bundle.
 - All fixtures go through the `build*Data` builders.
 - `USE_FIREBASE_EMULATOR` must never appear in deploy workflows or `.env`; the grep
   gate enforces it.
@@ -78,12 +112,12 @@ build (where `__DEV__` is false).
 
 ## Revisit when
 
-The testing-enhancement effort that produced this substrate is otherwise complete;
-three deliberately-deferred items remain, none currently planned:
+The testing-enhancement effort that produced this substrate is complete on both
+drivers. Deliberately deferred, none currently planned:
 
-- Interactive native flows are needed → design the native fixture-login mechanism
-  (deep-link login intent or a testID dev button) and wire a full Maestro suite
-  (the native smoke groundwork under `apps/mobile/e2e/native/` is the starting point).
+- **iOS.** Maestro drives simulators too, but GitHub's macOS runners are ~10x the
+  cost of Linux and the native risk this suite covers is overwhelmingly shared
+  RN, not platform-specific. Revisit if an iOS-only regression ever ships.
 - CI minutes hurt → add `dorny/paths-filter` so UI-only PRs skip the emulator job.
 - Coverage should gate, not just report → wire `diff-cover` and gate on **patch/diff
   coverage only, never absolute total** (a total gate on the existing baseline would

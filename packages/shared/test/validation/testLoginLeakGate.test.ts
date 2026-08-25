@@ -25,11 +25,15 @@ const { LEAK_RULES, ALLOWED_PATHS, scanForLeaks } = leakGate as unknown as {
 // fix the gate, not the test. The gate is the third defence layer for the E2E
 // auth bypass (see scripts/check-no-test-login-leak.mjs).
 describe('check-no-test-login-leak gate', () => {
-  it('confines the seam to the three allowlisted files', () => {
+  it('confines the seam to the allowlisted files', () => {
     expect(ALLOWED_PATHS.has('apps/mobile/app.config.ts')).toBe(true);
     expect(ALLOWED_PATHS.has('apps/mobile/lib/firebaseInit.ts')).toBe(true);
     expect(ALLOWED_PATHS.has('apps/mobile/lib/auth/AuthContext.tsx')).toBe(true);
-    expect(ALLOWED_PATHS.size).toBe(3);
+    // The native driver's link parser — pure predicates, no auth call. It is
+    // allowlisted so the file itself may name parseE2ELoginLink; the rule below
+    // still keeps every OTHER file from consuming it.
+    expect(ALLOWED_PATHS.has('apps/mobile/lib/auth/e2eLoginLink.ts')).toBe(true);
+    expect(ALLOWED_PATHS.size).toBe(4);
   });
 
   it.each([
@@ -40,6 +44,7 @@ describe('check-no-test-login-leak gate', () => {
     ['connectFunctionsEmulator(fns, host, 5001);', 'connectFunctionsEmulator'],
     ['connectStorageEmulator(store, host, 9199);', 'connectStorageEmulator'],
     ['window.__cultuvillaE2E?.login(email, password);', '__cultuvillaE2E helper'],
+    ['const creds = parseE2ELoginLink(url);', 'native deep-link test-login'],
   ])('flags a leak: %s', (line) => {
     const violations = scanForLeaks([{ path: 'apps/mobile/screens/Leak.tsx', content: line }]);
     expect(violations.length).toBeGreaterThan(0);
@@ -64,9 +69,10 @@ describe('check-no-test-login-leak gate', () => {
   });
 
   it('exposes one rule per guarded symbol group', () => {
-    // Four symbol families: the flag env var, its surfaced form, the connect*
-    // calls, and the window helper. Keeps the gate's surface auditable.
-    expect(LEAK_RULES).toHaveLength(4);
+    // Five symbol families: the flag env var, its surfaced form, the connect*
+    // calls, the window helper (web driver), and the deep-link parser (native
+    // driver). Keeps the gate's surface auditable.
+    expect(LEAK_RULES).toHaveLength(5);
     for (const { re } of LEAK_RULES) expect(re).toBeInstanceOf(RegExp);
   });
 });

@@ -377,6 +377,8 @@ pnpm lint             # eslint --max-warnings 0 in packages/shared + functions
 pnpm typecheck        # tsc --noEmit in shared, functions, i18n, mobile
 pnpm test             # vitest (shared) + jest (mobile) + functions, under emulators
 pnpm backfills:list   # registered data migrations (see Backfills)
+pnpm test:e2e:web     # Playwright over the web export, under emulators
+pnpm test:e2e:android # Maestro on an Android AVD, under emulators (needs a device)
 pnpm check:store-claims # verify the store-release runbook against live infra
 ```
 
@@ -454,7 +456,14 @@ prefer targeted tests/typechecks locally and let the PR's CI run the full gate. 
 direct-to-`develop` mode, run the full gate locally before committing:
 
 - `pnpm check` (the full gate), `pnpm test`, `pnpm test:emulators`,
-  `pnpm test:integration`, `pnpm test:rules`, `pnpm test:functions`
+  `pnpm test:integration`, `pnpm test:rules`, `pnpm test:functions`,
+  `pnpm test:e2e:web` (Playwright over the web export)
+
+`pnpm test:e2e:android` (Maestro on an AVD) is the same shape but needs a booted
+Android emulator, which this environment usually lacks — CI's `android-e2e`
+workflow is the authoritative run. See
+[apps/mobile/e2e/native/README.md](apps/mobile/e2e/native/README.md); under WSL2
+it also needs `EMULATOR_BIND_HOST=0.0.0.0`.
 
 Still off-limits — these run indefinitely (the user owns that iteration loop) or
 bypass CI:

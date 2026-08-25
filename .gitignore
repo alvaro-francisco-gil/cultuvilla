@@ -52,3 +52,4 @@ apps/mobile/public/.well-known/assetlinks.json
 # OSM settlement fetch cache (resumable, per-province); the assembled
 # settlements-es.json is what gets committed.
 scripts/data/.settlements-cache/
+firebase.emulator-bind.json

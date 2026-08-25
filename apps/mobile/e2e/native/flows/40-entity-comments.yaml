@@ -1,0 +1,65 @@
+# Posting a comment on an entity detail screen. This is the suite's only
+# keyboard-input flow against a running native app, so it covers what the web
+# driver cannot: the RN TextInput + soft keyboard + send round trip.
+#
+# The comment body is stamped with the current time so a re-run never asserts on
+# a leftover from the previous one.
+appId: com.cultuvilla.app.dev
+env:
+  EMAIL: e2e-user@cultuvilla.test
+  PASSWORD: e2e-cultuvilla-pw
+  EVENT_ID: e2e-event-fiesta
+---
+# `clearState` + cold-start openLink live in the login subflow — see the note
+# there on why a launchApp-then-openLink sequence drops the login intent.
+- runFlow:
+    file: ../subflows/login.yaml
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+- openLink: 'cultuvilla://event/${EVENT_ID}'
+- evalScript: ${output.body = 'Comentario nativo ' + Date.now()}
+# EntityComments renders below the hero image, the body and the organiser row,
+# so on a phone-sized screen it starts off the fold — Playwright's `click()`
+# scrolls implicitly, Maestro does not.
+- scrollUntilVisible:
+    element:
+      id: 'comment-input'
+    direction: DOWN
+    timeout: 45000
+- tapOn:
+    id: 'comment-input'
+- inputText: ${output.body}
+# The send arrow mounts only once the body is non-empty, so asserting it is a
+# real check on the composer's state — but do NOT tap it. It is an icon-sized
+# `Pressable` inside the input's `rightAdornment`, and a synthetic tap at its
+# centre reports COMPLETED while the handler never fires: the text just sits in
+# the field and the flow fails later with "no comment in Firestore". The input
+# carries `returnKeyType="send"` + `onSubmitEditing={onSend}`, so Enter runs the
+# very same handler, reliably.
+- assertVisible:
+    id: 'comment-send'
+- pressKey: Enter
+# No `hideKeyboard` — on Android that is a BACK press, and with no soft keyboard
+# up (this AVD has a hardware one) it walks straight out of the screen.
+# Strong assertion on the backend, not on the list. The composer sits at the
+# bottom of a long scroll and the keyboard re-lays the screen out on send, so
+# "is the new comment on screen" is a question about scroll position as much as
+# about the round trip — the doc landing in Firestore is the fact worth pinning.
+- runScript:
+    file: ../scripts/queryCollection.js
+    env:
+      COLLECTION_PATH: comments
+      FIELD: body
+      VALUE: ${output.body}
+      MIN: '1'
+- assertTrue: ${output.ok == 'true'}
+# And the denormalized count the syncEntityCommentCount trigger maintains moved,
+# which the UI list reads from.
+- runScript:
+    file: ../scripts/docField.js
+    env:
+      DOC_PATH: 'events/${EVENT_ID}'
+      FIELD: commentCount
+      EXPECT: '>=1'
+- assertTrue: ${output.ok == 'true'}
