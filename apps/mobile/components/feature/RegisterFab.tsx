@@ -7,6 +7,7 @@ import { GroupSignupSheet, type MyGroupSeat } from './GroupSignupSheet';
 import {
   computeRegistrationDiff,
   indexRegistrationsByPerson,
+  outOfRangeAttendeeNames,
   type AttendeeDiff,
   type AttendeeRegistration,
 } from './attendeeDiff';
@@ -22,6 +23,8 @@ import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
 import type { SignupAnswers, SignupFieldSpec } from '@cultuvilla/shared/models/event/SignupFieldModel';
 import { buildNameWithNickname, type PersonData } from '@cultuvilla/shared/models/person';
+import type { BirthYearWindow } from '@cultuvilla/shared/models/event/EventDataModel';
+import { birthYearRangeLabel } from '../../lib/events/birthYearLabel';
 import { useT } from '../../lib/i18n';
 import { useMyRegistrations } from '../../lib/registrations/MyRegistrationsContext';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
@@ -45,6 +48,10 @@ export interface RegisterFabProps {
   villageId?: string;
   /** `signupGroupSize`: > 1 switches the FAB to the group sign-up sheet. */
   groupSize?: number;
+  /** The caller's own birth year, for the advisory birth-year check. */
+  ownBirthYear?: number | null;
+  /** The event's advertised birth-year window; both ends null = no window. */
+  birthYearWindow?: BirthYearWindow;
 }
 
 type PersonDoc = PersonData & { id: string };
@@ -58,7 +65,19 @@ type PersonDoc = PersonData & { id: string };
  *
  * Styles live on `style` (never `className`) so the pill renders on RN-Web.
  */
-export function RegisterFab({ eventId, userId, personId, name, eventTitle, telephoneRequired, signupFields, villageId, groupSize = 1 }: RegisterFabProps) {
+export function RegisterFab({
+  eventId,
+  userId,
+  personId,
+  name,
+  eventTitle,
+  telephoneRequired,
+  signupFields,
+  villageId,
+  groupSize = 1,
+  ownBirthYear = null,
+  birthYearWindow = { minBirthYear: null, maxBirthYear: null },
+}: RegisterFabProps) {
   const { t } = useT();
   const { refresh: refreshRegistrations } = useMyRegistrations();
   const shareDeepLink = useShareDeepLink();
@@ -152,6 +171,33 @@ export function RegisterFab({ eventId, userId, personId, name, eventTitle, telep
     })),
   ];
   const names = new Map(attendees.map((a) => [a.id, a.name]));
+  const birthYearById = new Map<string, number | null>([
+    [personId, ownBirthYear],
+    ...dependents.map((d) => [d.id, d.birthday?.year ?? null] as [string, number | null]),
+  ]);
+
+  /**
+   * Gate a sign-up behind the advisory birth-year confirm. The window is a
+   * hint the organizer publishes, never a rule — so this only ever asks, and
+   * proceeds on yes.
+   */
+  function confirmBirthYears(personIds: string[], proceed: () => void) {
+    const flagged = outOfRangeAttendeeNames(birthYearWindow, personIds, birthYearById, names);
+    if (flagged.length === 0) {
+      proceed();
+      return;
+    }
+    showConfirm(
+      t('event.register.birthYearTitle'),
+      t('event.register.birthYearBody', {
+        names: flagged.join(', '),
+        // Non-empty `flagged` implies a window exists, so the label is never null.
+        range: birthYearRangeLabel(birthYearWindow, t) ?? '',
+      }),
+      proceed,
+      { confirmText: t('event.register.birthYearConfirm'), cancelText: t('common.cancel') },
+    );
+  }
 
   async function applyDiff(
     diff: AttendeeDiff,
@@ -273,6 +319,19 @@ export function RegisterFab({ eventId, userId, personId, name, eventTitle, telep
       setSheetOpen(false);
       return;
     }
+    // Only the personas being ADDED are checked: someone already registered
+    // has been through this prompt once, and re-asking on an unrelated edit
+    // (adding a sibling, cancelling another seat) would be nagging.
+    confirmBirthYears(diff.toAdd.map((a) => a.personId), () => {
+      applyConfirmed(diff, phone, answersByPersonId);
+    });
+  }
+
+  function applyConfirmed(
+    diff: AttendeeDiff,
+    phone?: string,
+    answersByPersonId?: Record<string, SignupAnswers>,
+  ) {
     if (diff.toCancelRegIds.length > 0) {
       // One combined confirm covers all removals.
       showConfirm(t('event.register.cancelTitle'), t('event.register.cancelManyBody'), () => void applyDiff(diff, phone, answersByPersonId), {
@@ -368,9 +427,11 @@ export function RegisterFab({ eventId, userId, personId, name, eventTitle, telep
           onCreateNew={() => router.push('/person/new')}
           onShareSeat={(token) => void shareSeat(token)}
           onCancelGroup={handleCancelGroup}
-          onConfirm={(ids, openSeats, phone, answers) =>
-            void applyGroup(ids, openSeats, phone, answers)
-          }
+          onConfirm={(ids, openSeats, phone, answers) => {
+            // An open seat is claimed by whoever gets the link, so there is no
+            // birth year to check for it — only the personas booked by name.
+            confirmBirthYears(ids, () => void applyGroup(ids, openSeats, phone, answers));
+          }}
         />
       ) : (
         <AttendeeSheet

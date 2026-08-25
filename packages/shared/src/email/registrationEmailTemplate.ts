@@ -28,16 +28,12 @@ export interface RegistrationEmailAttendee {
   position: number;
 }
 
-export interface RegistrationEmailContent {
-  /**
-   * 'registration' — the user just signed up. 'waitlist_promotion' — a slot
-   * freed up and they moved off the waitlist; same layout, different lead so
-   * the reader knows why they got a second email about the same event.
-   * 'existing_registration' — a retroactive send to someone who signed up
-   * before the confirmation email existed; framed as a reminder, because
-   * "Inscripción confirmada" would read as a duplicate weeks after the fact.
-   */
-  kind: 'registration' | 'waitlist_promotion' | 'existing_registration';
+/** A seat that no longer exists; there is no status left to report on it. */
+export interface CancelledEmailAttendee {
+  name: string;
+}
+
+interface RegistrationEmailBase {
   eventTitle: string;
   /** Absolute https URL to the event's web route. */
   eventUrl: string;
@@ -47,10 +43,44 @@ export interface RegistrationEmailContent {
   dateLabel: string;
   locationName: string;
   villageName: string;
-  attendees: RegistrationEmailAttendee[];
-  confirmedCount: number;
-  /** null when the event has no capacity limit. */
-  maxAttendees: number | null;
+}
+
+export type RegistrationEmailKind = RegistrationEmailContent['kind'];
+
+/**
+ * 'registration' — the user just signed up. 'waitlist_promotion' — a slot
+ * freed up and they moved off the waitlist; same layout, different lead so
+ * the reader knows why they got a second email about the same event.
+ * 'existing_registration' — a retroactive send to someone who signed up
+ * before the confirmation email existed; framed as a reminder, because
+ * "Inscripción confirmada" would read as a duplicate weeks after the fact.
+ * 'cancellation' / 'removed' — the seat is gone, either because the reader
+ * cancelled it or because an organizer (or the group's owner) did. Two kinds
+ * rather than one because "has anulado" is a receipt and "te han dado de
+ * baja" is news.
+ *
+ * The union is load-bearing: a cancelled seat has no capacity to report and
+ * no queue position, so the cancellation variants simply do not carry those
+ * fields. That makes it impossible for a caller to invent a plausible count
+ * for an email that never shows one.
+ */
+export type RegistrationEmailContent =
+  | (RegistrationEmailBase & {
+      kind: 'registration' | 'waitlist_promotion' | 'existing_registration';
+      attendees: RegistrationEmailAttendee[];
+      confirmedCount: number;
+      /** null when the event has no capacity limit. */
+      maxAttendees: number | null;
+    })
+  | (RegistrationEmailBase & {
+      kind: 'cancellation' | 'removed';
+      attendees: CancelledEmailAttendee[];
+    });
+
+function isCancellation(
+  content: RegistrationEmailContent,
+): content is Extract<RegistrationEmailContent, { kind: 'cancellation' | 'removed' }> {
+  return content.kind === 'cancellation' || content.kind === 'removed';
 }
 
 function escapeHtml(value: string): string {
@@ -74,21 +104,27 @@ export function eventWebUrl(eventId: string, projectId: string | undefined): str
 export const REGISTRATION_EMAIL_SUBJECT_PREFIX = 'Inscripción confirmada';
 export const PROMOTION_EMAIL_SUBJECT_PREFIX = '¡Plaza confirmada!';
 export const REMINDER_EMAIL_SUBJECT_PREFIX = 'Recordatorio de inscripción';
+export const CANCELLATION_EMAIL_SUBJECT_PREFIX = 'Inscripción cancelada';
+export const REMOVAL_EMAIL_SUBJECT_PREFIX = 'Te han dado de baja';
 
-const SUBJECT_PREFIXES: Record<RegistrationEmailContent['kind'], string> = {
+const SUBJECT_PREFIXES: Record<RegistrationEmailKind, string> = {
   registration: REGISTRATION_EMAIL_SUBJECT_PREFIX,
   waitlist_promotion: PROMOTION_EMAIL_SUBJECT_PREFIX,
   existing_registration: REMINDER_EMAIL_SUBJECT_PREFIX,
+  cancellation: CANCELLATION_EMAIL_SUBJECT_PREFIX,
+  removed: REMOVAL_EMAIL_SUBJECT_PREFIX,
 };
 
 export function registrationEmailSubject(content: RegistrationEmailContent): string {
   return `${SUBJECT_PREFIXES[content.kind]}: ${content.eventTitle}`;
 }
 
-const LEAD_LINES: Record<RegistrationEmailContent['kind'], string | null> = {
+const LEAD_LINES: Record<RegistrationEmailKind, string | null> = {
   registration: null,
   waitlist_promotion: 'Se ha liberado una plaza y ya tienes sitio en este evento.',
   existing_registration: 'Te recordamos que estás apuntado a este evento.',
+  cancellation: 'Has anulado tu inscripción en este evento.',
+  removed: 'La organización te ha dado de baja de este evento.',
 };
 
 function leadLine(content: RegistrationEmailContent): string | null {
@@ -105,17 +141,33 @@ export function capacityLabel(confirmedCount: number, maxAttendees: number | nul
   return `${String(confirmedCount)} de ${String(maxAttendees)} plazas ocupadas`;
 }
 
+const SEAT_HEADING = 'Tu inscripción';
+const CANCELLED_SEAT_HEADING = 'Plazas anuladas';
+const CANCEL_HINT = 'Puedes anular tu inscripción desde la página del evento.';
+const RESIGNUP_HINT = 'Puedes volver a apuntarte desde la página del evento.';
+
 function attendeeLine(a: RegistrationEmailAttendee): string {
   return a.status === 'confirmed'
     ? `${a.name} — plaza confirmada`
     : `${a.name} — en lista de espera (nº ${String(a.position)})`;
 }
 
+/** One line per seat: the sign-up status while it exists, the bare name once it doesn't. */
+function attendeeLines(content: RegistrationEmailContent): string[] {
+  return isCancellation(content)
+    ? content.attendees.map((a) => a.name)
+    : content.attendees.map(attendeeLine);
+}
+
 export function renderRegistrationEmailHtml(content: RegistrationEmailContent): string {
   const title = escapeHtml(content.eventTitle);
   const url = escapeHtml(content.eventUrl);
-  const capacity = escapeHtml(capacityLabel(content.confirmedCount, content.maxAttendees));
-  const anyWaitlisted = content.attendees.some((a) => a.status === 'waitlisted');
+  const cancelled = isCancellation(content);
+  const capacityRow = isCancellation(content)
+    ? ''
+    : `<p style="margin:0 0 24px; font-size:15px; color:#5a5a5a;">${escapeHtml(capacityLabel(content.confirmedCount, content.maxAttendees))}</p>`;
+  const anyWaitlisted =
+    !isCancellation(content) && content.attendees.some((a) => a.status === 'waitlisted');
   const lead = leadLine(content);
   const leadRow = lead
     ? `<p style="margin:0 0 16px; font-size:16px; color:${BRAND_GREEN}; font-weight:bold;">${escapeHtml(lead)}</p>`
@@ -129,10 +181,10 @@ export function renderRegistrationEmailHtml(content: RegistrationEmailContent): 
             </tr>`
     : '';
 
-  const attendeeRows = content.attendees
+  const attendeeRows = attendeeLines(content)
     .map(
-      (a) =>
-        `<tr><td style="padding:4px 0; font-size:15px; color:#2b2b2b;">${escapeHtml(attendeeLine(a))}</td></tr>`,
+      (line) =>
+        `<tr><td style="padding:4px 0; font-size:15px; color:#2b2b2b;">${escapeHtml(line)}</td></tr>`,
     )
     .join('\n                  ');
 
@@ -166,12 +218,12 @@ export function renderRegistrationEmailHtml(content: RegistrationEmailContent): 
                 <p style="margin:0 0 4px; font-size:15px; color:#5a5a5a;">${escapeHtml(content.locationName)}</p>
                 <p style="margin:0 0 24px; font-size:15px; color:#5a5a5a;">${escapeHtml(content.villageName)}</p>
 
-                <p style="margin:0 0 8px; font-size:14px; font-weight:bold; color:#5a5a5a; text-transform:uppercase; letter-spacing:0.5px;">Tu inscripción</p>
+                <p style="margin:0 0 8px; font-size:14px; font-weight:bold; color:#5a5a5a; text-transform:uppercase; letter-spacing:0.5px;">${escapeHtml(cancelled ? CANCELLED_SEAT_HEADING : SEAT_HEADING)}</p>
                 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 16px;">
                   ${attendeeRows}
                 </table>
                 ${waitlistNote}
-                <p style="margin:0 0 24px; font-size:15px; color:#5a5a5a;">${capacity}</p>
+                ${capacityRow}
 
                 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 8px;">
                   <tr>
@@ -180,7 +232,7 @@ export function renderRegistrationEmailHtml(content: RegistrationEmailContent): 
                     </td>
                   </tr>
                 </table>
-                <p style="margin:0; font-size:13px; color:#5a5a5a; text-align:center;">Puedes anular tu inscripción desde la página del evento.</p>
+                <p style="margin:0; font-size:13px; color:#5a5a5a; text-align:center;">${escapeHtml(cancelled ? RESIGNUP_HINT : CANCEL_HINT)}</p>
               </td>
             </tr>
             <tr>
@@ -197,7 +249,9 @@ export function renderRegistrationEmailHtml(content: RegistrationEmailContent): 
 }
 
 export function renderRegistrationEmailText(content: RegistrationEmailContent): string {
-  const anyWaitlisted = content.attendees.some((a) => a.status === 'waitlisted');
+  const cancelled = isCancellation(content);
+  const anyWaitlisted =
+    !isCancellation(content) && content.attendees.some((a) => a.status === 'waitlisted');
   const lead = leadLine(content);
   return [
     'Cultuvilla',
@@ -208,16 +262,17 @@ export function renderRegistrationEmailText(content: RegistrationEmailContent): 
     content.locationName,
     content.villageName,
     '',
-    'Tu inscripción:',
-    ...content.attendees.map((a) => `- ${attendeeLine(a)}`),
+    `${cancelled ? CANCELLED_SEAT_HEADING : SEAT_HEADING}:`,
+    ...attendeeLines(content).map((line) => `- ${line}`),
     ...(anyWaitlisted
       ? ['', 'Si se libera una plaza te avisaremos automáticamente por orden de lista.']
       : []),
     '',
-    capacityLabel(content.confirmedCount, content.maxAttendees),
-    '',
+    ...(isCancellation(content)
+      ? []
+      : [capacityLabel(content.confirmedCount, content.maxAttendees), '']),
     `Ver el evento: ${content.eventUrl}`,
-    'Puedes anular tu inscripción desde la página del evento.',
+    cancelled ? RESIGNUP_HINT : CANCEL_HINT,
     '',
     FOOTER_TEXT,
   ].join('\n');

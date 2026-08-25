@@ -19,7 +19,7 @@ async function seed() {
       createdBy: 'boss',
       attendeesVisibility: 'members',
       totalCount: 2,
-      signupGroupSize: 2,
+      signupGroupSize: 2, minBirthYear: null, maxBirthYear: null,
     });
     await setDoc(doc(db, `municipalities/${M}/members/villageboss`), { role: 'admin', joinedAt: new Date() });
     await setDoc(doc(db, `municipalities/${M}/members/alice`), { role: 'user', joinedAt: new Date() });

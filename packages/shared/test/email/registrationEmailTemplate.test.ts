@@ -148,3 +148,67 @@ describe('renderRegistrationEmailText', () => {
     expect(text).not.toContain('&amp;');
   });
 });
+
+function cancelledContent(
+  overrides: Partial<Extract<RegistrationEmailContent, { kind: 'cancellation' | 'removed' }>> = {},
+): RegistrationEmailContent {
+  return {
+    kind: 'cancellation',
+    eventTitle: 'Fiesta de San Juan',
+    eventUrl: 'https://villa-events.web.app/event/e1',
+    imageURL: 'https://storage.example/flyer.jpg',
+    dateLabel: '24 de junio de 2026, 20:00',
+    locationName: 'Plaza Mayor',
+    villageName: 'Villarriba',
+    attendees: [{ name: 'Ana' }],
+    ...overrides,
+  };
+}
+
+describe('cancellation emails', () => {
+  it('distinguishes cancelling yourself from being removed in the subject', () => {
+    expect(registrationEmailSubject(cancelledContent())).toBe(
+      'Inscripción cancelada: Fiesta de San Juan',
+    );
+    expect(registrationEmailSubject(cancelledContent({ kind: 'removed' }))).toBe(
+      'Te han dado de baja: Fiesta de San Juan',
+    );
+  });
+
+  it('says who removed the seat so the reader is not left guessing', () => {
+    expect(renderRegistrationEmailHtml(cancelledContent())).toContain('Has anulado tu inscripción');
+    expect(renderRegistrationEmailHtml(cancelledContent({ kind: 'removed' }))).toContain(
+      'La organización te ha dado de baja',
+    );
+  });
+
+  it('lists the seats that were cancelled, with no sign-up status on them', () => {
+    const html = renderRegistrationEmailHtml(
+      cancelledContent({ attendees: [{ name: 'Ana' }, { name: 'Luis' }] }),
+    );
+    expect(html).toContain('Plazas anuladas');
+    expect(html).toContain('Ana');
+    expect(html).toContain('Luis');
+    expect(html).not.toContain('plaza confirmada');
+  });
+
+  // Capacity and the waitlist promise describe a seat the reader no longer
+  // holds; repeating them would read as if the sign-up still stood.
+  it('drops the capacity line, the waitlist promise and the cancel hint', () => {
+    const html = renderRegistrationEmailHtml(cancelledContent());
+    expect(html).not.toContain('plazas ocupadas');
+    expect(html).not.toContain('personas apuntadas');
+    expect(html).not.toContain('lista de espera');
+    expect(html).not.toContain('Puedes anular tu inscripción');
+    expect(html).toContain('Puedes volver a apuntarte');
+  });
+
+  it('mirrors the cancellation facts in plain text', () => {
+    const text = renderRegistrationEmailText(cancelledContent({ kind: 'removed' }));
+    expect(text).toContain('La organización te ha dado de baja');
+    expect(text).toContain('Plazas anuladas:');
+    expect(text).toContain('- Ana');
+    expect(text).not.toContain('plazas ocupadas');
+    expect(text).toContain('https://villa-events.web.app/event/e1');
+  });
+});

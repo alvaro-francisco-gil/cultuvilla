@@ -322,7 +322,7 @@ describe('shape enforcement — /events/{eventId}', () => {
     maxAttendees: null,
     telephoneRequired: false,
     requiresPayment: false,
-    signupFields: [], attendeesVisibility: 'members', signupGroupSize: 1,
+    signupFields: [], attendeesVisibility: 'members', signupGroupSize: 1, minBirthYear: null, maxBirthYear: null,
     signupEnabled: true, signupInfo: null,
     status: 'published' as const,
     organizerUserIds: ['alice'],
@@ -365,6 +365,46 @@ describe('shape enforcement — /events/{eventId}', () => {
     for (const size of [0, 5, 2.5, '2', null]) {
       await assertFails(setDoc(doc(alice, 'events/e1'), { ...validEvent, signupGroupSize: size }));
     }
+  });
+
+  it('accepts a birth-year window at either or both ends', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    const windows = [
+      { minBirthYear: 2014, maxBirthYear: 2020 },
+      { minBirthYear: null, maxBirthYear: 1960 },
+      { minBirthYear: 1985, maxBirthYear: null },
+      { minBirthYear: 1985, maxBirthYear: 1985 },
+    ];
+    for (const [i, w] of windows.entries()) {
+      await assertSucceeds(
+        setDoc(doc(alice, `events/e-year-${String(i)}`), { ...validEvent, ...w }),
+      );
+    }
+  });
+
+  it('rejects a malformed or inverted birth-year window', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    const bad = [
+      { minBirthYear: 2020, maxBirthYear: 2014 }, // inverted
+      { minBirthYear: 1899, maxBirthYear: null }, // below the sanity floor
+      { minBirthYear: null, maxBirthYear: 2201 }, // above the sanity ceiling
+      { minBirthYear: 2014.5, maxBirthYear: null }, // not an int
+      { minBirthYear: '2014', maxBirthYear: null }, // wrong type
+    ];
+    for (const w of bad) {
+      await assertFails(setDoc(doc(alice, 'events/e1'), { ...validEvent, ...w }));
+    }
+  });
+
+  it('rejects an event created without the birth-year fields', async () => {
+    await seedMember('m1', 'alice');
+    const alice = asUser(getEnv(), 'alice');
+    const without: Record<string, unknown> = { ...validEvent };
+    delete without.minBirthYear;
+    delete without.maxBirthYear;
+    await assertFails(setDoc(doc(alice, 'events/e1'), without));
   });
 
   it('rejects an event created without signupGroupSize', async () => {
