@@ -1,16 +1,13 @@
-import { useEffect, useState } from 'react';
-import { Modal, Pressable as RNPressable, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useEffect, useMemo, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { getVillageMembers } from '@cultuvilla/shared/services/villageMemberService';
+import { getMunicipalityPeople } from '@cultuvilla/shared/services/municipalityPersonService';
 import { getUserProfile } from '@cultuvilla/shared/services/userService';
-import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 import type { OrganizationData } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
-import { colors } from '@cultuvilla/shared/design-system';
+import { colors, iconSizes } from '@cultuvilla/shared/design-system';
 import { LiveOwnerChip } from './LiveOwnerChip';
-import { Avatar } from '../primitives';
-import { Button } from '../primitives/Button';
+import { SearchableSelectSheet, type SelectableRow } from './SearchableSelectSheet';
 import { Text } from '../primitives/Text';
 import { VStack } from '../primitives/VStack';
 import { HStack } from '../primitives/HStack';
@@ -20,15 +17,13 @@ import { useT } from '../../lib/i18n';
 
 const ACCENT = colors.light.fg.accent;
 
-function initialsOf(name: string): string | undefined {
-  return name ? name.slice(0, 1).toUpperCase() : undefined;
-}
-
 interface VillagerOption {
   userId: string;
   displayName: string;
   /** Avatar from the linked person doc (the user doc's photoURL is often null). */
   photoURL: string | null;
+  /** Accent-folded name from the directory, so ordering matches the roster. */
+  sortName: string;
 }
 
 export interface OrganizerPickerProps {
@@ -52,10 +47,9 @@ export interface OrganizerPickerProps {
  *
  * - "Organizadores" (people): each selected villager is a full-width row with
  *   their avatar + name (via {@link LiveOwnerChip}); the locked creator can't be
- *   removed. A dashed "Añadir persona" row opens a member-picker sheet.
+ *   removed. A dashed "Añadir persona" row opens a searchable member sheet.
  * - "Grupos involucrados" (organizations): the same row treatment, added via an
- *   "Añadir grupo" sheet listing the village's approved groups (rather than
- *   showing every group inline).
+ *   "Añadir grupo" sheet listing the village's approved groups.
  */
 export function OrganizerPicker({
   municipalityId,
@@ -69,7 +63,6 @@ export function OrganizerPicker({
   selectPeopleTitle,
 }: OrganizerPickerProps) {
   const { t } = useT();
-  const insets = useSafeAreaInsets();
   const peopleLabelText = peopleLabel ?? t('event.organizersLabel');
   const addPersonLabelText = addPersonLabel ?? t('event.organizer.addUser');
   const selectPeopleTitleText = selectPeopleTitle ?? t('event.organizer.selectUsers');
@@ -78,39 +71,60 @@ export function OrganizerPicker({
   const [villagers, setVillagers] = useState<VillagerOption[]>([]);
   const [userSheetOpen, setUserSheetOpen] = useState(false);
   const [userSheetSelected, setUserSheetSelected] = useState<Set<string>>(new Set());
+  const [userSheetPinned, setUserSheetPinned] = useState<Set<string>>(new Set());
   const [orgSheetOpen, setOrgSheetOpen] = useState(false);
   const [orgSheetSelected, setOrgSheetSelected] = useState<Set<string>>(new Set());
+  const [orgSheetPinned, setOrgSheetPinned] = useState<Set<string>>(new Set());
 
   // ---- Load orgs + villagers once on mount / when municipality changes ------
+  //
+  // Names and avatars come from the `municipalityPeople` directory, which
+  // already carries `displayName`/`sortName`/`photoURL` per person. That is ONE
+  // query for the whole village: the previous shape fanned out a
+  // getUserProfile + getPersonByUserId per member, which in Matabuena (165
+  // members) meant ~331 reads before the sheet could show anything, and the
+  // sheet visibly filled in late. A member the directory doesn't cover (no
+  // person doc linked to this village yet) still falls back to their user doc,
+  // so nobody drops off the list.
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const [orgDocs, memberDocs] = await Promise.all([
-        getOrganizationsByMunicipality(municipalityId, 'approved'),
-        getVillageMembers(municipalityId),
+      const [orgDocs, memberDocs, people] = await Promise.all([
+        getOrganizationsByMunicipality(municipalityId, 'approved').catch(() => []),
+        getVillageMembers(municipalityId).catch(() => []),
+        getMunicipalityPeople(municipalityId).catch(() => []),
       ]);
       if (cancelled) return;
       setOrgs(orgDocs);
 
-      const withNames = await Promise.all(
-        memberDocs.map(async (m) => {
-          // Name from the (denormalized) user doc; avatar from the person doc —
-          // the user doc's photoURL is frequently null (see MembersList).
-          // Per-member catch, not one Promise.all over the batch: a member
-          // whose persona is private (or any transient denial) must cost only
-          // their avatar, never the whole villager list.
-          const [profile, person] = await Promise.all([
-            getUserProfile(m.userId).catch(() => null),
-            getPersonByUserId(m.userId).catch(() => null),
-          ]);
+      const byUserId = new Map(
+        people.filter((p) => p.userId).map((p) => [p.userId as string, p]),
+      );
+      const missing = memberDocs.filter((m) => !byUserId.has(m.userId));
+      // Per-member catch, not one Promise.all over the batch: a transient denial
+      // must cost only that member's name, never the whole villager list.
+      const fallbacks = new Map(
+        await Promise.all(
+          missing.map(async (m) => {
+            const profile = await getUserProfile(m.userId).catch(() => null);
+            return [m.userId, profile?.displayName ?? m.userId] as const;
+          }),
+        ),
+      );
+      if (cancelled) return;
+
+      setVillagers(
+        memberDocs.map((m) => {
+          const person = byUserId.get(m.userId);
+          const displayName = person?.displayName ?? fallbacks.get(m.userId) ?? m.userId;
           return {
             userId: m.userId,
-            displayName: profile?.displayName ?? m.userId,
+            displayName,
             photoURL: person?.photoURL ?? null,
+            sortName: person?.sortName ?? displayName,
           };
         }),
       );
-      if (!cancelled) setVillagers(withNames);
     })();
     return () => {
       cancelled = true;
@@ -118,8 +132,22 @@ export function OrganizerPicker({
   }, [municipalityId]);
 
   // ---- Villager sheet -------------------------------------------------------
+  const villagerRows: SelectableRow[] = useMemo(
+    () =>
+      villagers.map((v) => ({
+        id: v.userId,
+        label: v.displayName,
+        sortKey: v.sortName,
+        imageUri: v.photoURL,
+        disabled: v.userId === lockedUserId,
+        trailing: v.userId === lockedUserId ? t('event.organizer.locked') : undefined,
+      })),
+    [villagers, lockedUserId, t],
+  );
+
   function openUserSheet() {
     setUserSheetSelected(new Set(selectedUserIds));
+    setUserSheetPinned(new Set(selectedUserIds));
     setUserSheetOpen(true);
   }
   function toggleVillager(userId: string) {
@@ -143,8 +171,14 @@ export function OrganizerPicker({
   }
 
   // ---- Org sheet ------------------------------------------------------------
+  const orgRows: SelectableRow[] = useMemo(
+    () => orgs.map((o) => ({ id: o.id, label: o.name, imageUri: o.images[0] ?? null })),
+    [orgs],
+  );
+
   function openOrgSheet() {
     setOrgSheetSelected(new Set(selectedOrgIds));
+    setOrgSheetPinned(new Set(selectedOrgIds));
     setOrgSheetOpen(true);
   }
   function toggleOrg(orgId: string) {
@@ -187,7 +221,7 @@ export function OrganizerPicker({
                   testID={`remove-user-${uid}`}
                   hitSlop={8}
                 >
-                  <Ionicons name="close" size={20} color="#94a3b8" />
+                  <Ionicons name="close" size={iconSizes.md} color="#94a3b8" />
                 </Pressable>
               )}
             </HStack>
@@ -212,7 +246,7 @@ export function OrganizerPicker({
               testID={`remove-org-${oid}`}
               hitSlop={8}
             >
-              <Ionicons name="close" size={20} color="#94a3b8" />
+              <Ionicons name="close" size={iconSizes.md} color="#94a3b8" />
             </Pressable>
           </HStack>
         ))}
@@ -220,58 +254,36 @@ export function OrganizerPicker({
       </VStack>
 
       {/* Villager selection sheet */}
-      <SelectSheet
+      <SearchableSelectSheet
         open={userSheetOpen}
         title={selectPeopleTitleText}
         confirmLabel={t('event.organizer.confirm')}
         emptyLabel={null}
+        rows={villagerRows}
+        selected={userSheetSelected}
+        pinned={userSheetPinned}
+        onToggle={toggleVillager}
         onClose={() => setUserSheetOpen(false)}
         onConfirm={confirmUserSheet}
         confirmTestID="villager-confirm"
-        bottomInset={insets.bottom}
-      >
-        {villagers.map((v) => {
-          const isSelected = userSheetSelected.has(v.userId);
-          const isLocked = v.userId === lockedUserId;
-          return (
-            <SheetRow
-              key={v.userId}
-              testID={`villager-row-${v.userId}`}
-              label={v.displayName}
-              imageUri={v.photoURL}
-              initials={initialsOf(v.displayName)}
-              selected={isSelected}
-              disabled={isLocked}
-              trailing={isLocked ? t('event.organizer.locked') : undefined}
-              onPress={() => toggleVillager(v.userId)}
-            />
-          );
-        })}
-      </SelectSheet>
+        rowTestIDPrefix="villager-row"
+      />
 
       {/* Group selection sheet */}
-      <SelectSheet
+      <SearchableSelectSheet
         open={orgSheetOpen}
         title={t('event.organizer.selectOrgs')}
         confirmLabel={t('event.organizer.confirm')}
         emptyLabel={orgs.length === 0 ? t('event.organizer.noGroups') : null}
+        rows={orgRows}
+        selected={orgSheetSelected}
+        pinned={orgSheetPinned}
+        onToggle={toggleOrg}
         onClose={() => setOrgSheetOpen(false)}
         onConfirm={confirmOrgSheet}
         confirmTestID="org-confirm"
-        bottomInset={insets.bottom}
-      >
-        {orgs.map((o) => (
-          <SheetRow
-            key={o.id}
-            testID={`org-row-${o.id}`}
-            label={o.name}
-            imageUri={o.images[0] ?? null}
-            initials={initialsOf(o.name)}
-            selected={orgSheetSelected.has(o.id)}
-            onPress={() => toggleOrg(o.id)}
-          />
-        ))}
-      </SelectSheet>
+        rowTestIDPrefix="org-row"
+      />
     </VStack>
   );
 }
@@ -289,96 +301,5 @@ function AddRow({ label, onPress, testID }: { label: string; onPress: () => void
       <Ionicons name="add" size={22} color={ACCENT} />
       <Text tone="muted" className="flex-1">{label}</Text>
     </Pressable>
-  );
-}
-
-function SheetRow({
-  label,
-  selected,
-  disabled,
-  trailing,
-  imageUri,
-  initials,
-  onPress,
-  testID,
-}: {
-  label: string;
-  selected: boolean;
-  disabled?: boolean;
-  trailing?: string;
-  imageUri?: string | null;
-  initials?: string;
-  onPress: () => void;
-  testID?: string;
-}) {
-  return (
-    <RNPressable
-      testID={testID}
-      onPress={onPress}
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked: selected }}
-      disabled={disabled}
-      className={[
-        'flex-row items-center justify-between rounded-lg border p-3',
-        selected ? 'border-accent bg-surface' : 'border-subtle',
-        disabled ? 'opacity-70' : '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
-    >
-      <HStack gap={2} align="center" className="flex-1">
-        <Avatar uri={imageUri ?? null} size={32} initials={initials} />
-        <Text className="flex-1" numberOfLines={1}>{label}</Text>
-      </HStack>
-      {trailing ? (
-        <Text variant="caption" tone="muted">{trailing}</Text>
-      ) : selected ? (
-        <Ionicons name="checkmark" size={20} color={ACCENT} />
-      ) : null}
-    </RNPressable>
-  );
-}
-
-function SelectSheet({
-  open,
-  title,
-  confirmLabel,
-  emptyLabel,
-  onClose,
-  onConfirm,
-  confirmTestID,
-  bottomInset,
-  children,
-}: {
-  open: boolean;
-  title: string;
-  confirmLabel: string;
-  emptyLabel: string | null;
-  onClose: () => void;
-  onConfirm: () => void;
-  confirmTestID: string;
-  bottomInset: number;
-  children: React.ReactNode;
-}) {
-  return (
-    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
-      <RNPressable onPress={onClose} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} className="justify-end">
-        <RNPressable
-          onPress={() => {}}
-          className="rounded-t-2xl bg-surface-elevated p-5 border-t border-subtle"
-          style={{ paddingBottom: bottomInset + 20 }}
-        >
-          <VStack gap={3}>
-            <Text variant="h3">{title}</Text>
-            <ScrollView style={{ maxHeight: 320 }}>
-              <VStack gap={2}>
-                {emptyLabel ? <Text tone="muted">{emptyLabel}</Text> : children}
-              </VStack>
-            </ScrollView>
-            <Button onPress={onConfirm} fullWidth testID={confirmTestID}>{confirmLabel}</Button>
-          </VStack>
-        </RNPressable>
-      </RNPressable>
-    </Modal>
   );
 }
