@@ -1,0 +1,21 @@
+# Sign in as a seeded fixture user through the emulator-only fixture-login seam
+# (apps/mobile/lib/auth/AuthContext.tsx). The native mirror of the web suite's
+# apps/mobile/e2e/lib/fixtureLogin.ts: same single signInWithEmailAndPassword
+# primitive, same armed-only-against-an-emulator guard — only the delivery
+# differs, because Maestro drives the UI and cannot call into the app's JS.
+#
+# ONE query parameter, pipe-separated: `adb shell am start -d` eats an
+# unescaped `&`, so a two-parameter link would arrive without the password.
+#
+# Ends on a positive signed-in assertion so a broken seam fails HERE, with an
+# unambiguous message, instead of surfacing three steps later as a missing
+# button. `profile-edit-action` renders only once auth minted AND users/{uid}
+# AND persons/{id} have loaded, so it proves the whole read chain on device.
+appId: com.cultuvilla.app.dev
+---
+- openLink: 'cultuvilla://?e2eLogin=${EMAIL}%7C${PASSWORD}'
+- openLink: 'cultuvilla://profile'
+- extendedWaitUntil:
+    visible:
+      id: 'profile-edit-action'
+    timeout: 60000

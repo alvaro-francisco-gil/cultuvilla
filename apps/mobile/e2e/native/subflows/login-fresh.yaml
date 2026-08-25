@@ -1,0 +1,10 @@
+# Same seam as login.yaml, but for an auth-only fixture account with no profile.
+# There is no `profile-edit-action` to wait on — the AuthGate diverts to
+# complete-profile instead — so the assertion is that screen's first field.
+appId: com.cultuvilla.app.dev
+---
+- openLink: 'cultuvilla://?e2eLogin=${EMAIL}%7C${PASSWORD}'
+- extendedWaitUntil:
+    visible:
+      id: 'person-given-name'
+    timeout: 60000

@@ -1,0 +1,92 @@
+# A freshly-authenticated account with no profile is diverted to complete-profile
+# by the AuthGate, and completes the three-step person form. Mirrors the web
+# apps/mobile/e2e/flows/onboarding-profile.spec.ts.
+#
+# High value natively and nowhere else: this is the app's only multi-step form
+# with native pickers, and the step gating (terms acceptance, required birthday)
+# is exactly the kind of thing that behaves differently on a real device.
+#
+# Strong assertion: users/{uid}.personId links a persons/{id} that exists —
+# precisely what authRoute reads to consider the user onboarded.
+appId: com.cultuvilla.app.dev
+env:
+  EMAIL: e2e-fresh@cultuvilla.test
+  PASSWORD: e2e-cultuvilla-pw
+  UID: e2e-fresh
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: ../subflows/login-fresh.yaml
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+
+# Step 1 — identity. Terms acceptance gates the step, so accept before advancing.
+- tapOn:
+    id: 'person-given-name'
+- inputText: 'Nueva'
+- tapOn:
+    id: 'person-first-surname'
+- inputText: 'Vecina'
+- tapOn:
+    id: 'person-second-surname'
+- inputText: 'DePrueba'
+- hideKeyboard
+- tapOn:
+    id: 'person-sex-female'
+- tapOn:
+    id: 'accept-terms'
+- tapOn:
+    id: 'person-form-primary'
+
+# Step 2 — residence: only the birthday is required.
+- tapOn:
+    id: 'birthday-year'
+- scrollUntilVisible:
+    element:
+      id: 'birthday-year-option-1990'
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: 'birthday-year-option-1990'
+- tapOn:
+    id: 'birthday-month'
+- scrollUntilVisible:
+    element:
+      id: 'birthday-month-option-4'
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: 'birthday-month-option-4'
+- tapOn:
+    id: 'birthday-day'
+- scrollUntilVisible:
+    element:
+      id: 'birthday-day-option-15'
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: 'birthday-day-option-15'
+- tapOn:
+    id: 'person-form-primary'
+
+# Step 3 — about: every field optional, submit straight through.
+- tapOn:
+    id: 'person-form-primary'
+
+- runScript:
+    file: ../scripts/docField.js
+    env:
+      DOC_PATH: 'users/${UID}'
+      FIELD: personId
+      EXPECT: present
+      TIMEOUT_MS: '30000'
+- assertTrue: ${output.exists == 'true'}
+- assertTrue: ${output.value != ''}
+- runScript:
+    file: ../scripts/docField.js
+    env:
+      DOC_PATH: 'persons/${output.value}'
+      EXPECT: present
+- assertTrue: ${output.ok == 'true'}

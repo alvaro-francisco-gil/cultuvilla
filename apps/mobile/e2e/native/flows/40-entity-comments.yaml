@@ -1,0 +1,36 @@
+# Posting a comment on an entity detail screen. This is the suite's only
+# keyboard-input flow against a running native app, so it covers what the web
+# driver cannot: the RN TextInput + soft keyboard + send round trip.
+#
+# The comment body is stamped with the current time so a re-run never asserts on
+# a leftover from the previous one.
+appId: com.cultuvilla.app.dev
+env:
+  EMAIL: e2e-user@cultuvilla.test
+  PASSWORD: e2e-cultuvilla-pw
+  EVENT_ID: e2e-event-fiesta
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: ../subflows/login.yaml
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+- openLink: 'cultuvilla://event/${EVENT_ID}'
+- evalScript: ${output.body = 'Comentario nativo ' + Date.now()}
+- extendedWaitUntil:
+    visible:
+      id: 'comment-input'
+    timeout: 45000
+- tapOn:
+    id: 'comment-input'
+- inputText: ${output.body}
+- hideKeyboard
+- tapOn:
+    id: 'comment-send'
+# The body reappearing in the list is the full round trip: commentsService ->
+# Firestore emulator -> live list render.
+- extendedWaitUntil:
+    visible: ${output.body}
+    timeout: 20000

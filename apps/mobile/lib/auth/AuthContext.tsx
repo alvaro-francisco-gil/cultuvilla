@@ -1,5 +1,5 @@
 import { createContext, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import type { FirebaseOptions } from 'firebase/app';
@@ -33,6 +33,7 @@ import {
 import { getUserMemberships } from '@cultuvilla/shared/services/villageMemberService';
 import * as listenerManager from '@cultuvilla/shared/services/listenerManager';
 import type { UserData } from '@cultuvilla/shared/models/user';
+import { isE2EEmulatorHost, parseE2ELoginLink } from './e2eLoginLink';
 import {
   GoogleSignin,
   statusCodes,
@@ -231,28 +232,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     googleConfigured.current = true;
   }, []);
 
-  // E2E fixture-login seam (web only). Exposed on `window.__cultuvillaE2E` so the
-  // Playwright suite can sign in as a seeded fixture user without Google OAuth.
+  // E2E fixture-login seam. Lets an automated driver sign in as a seeded fixture
+  // user without Google OAuth. Two drivers, two delivery mechanisms, ONE armed
+  // predicate and ONE auth primitive:
+  //   - web (Playwright) → `window.__cultuvillaE2E.login(email, password)`.
+  //   - native (Maestro) → a deep link, because Maestro drives the UI and cannot
+  //     call into the app's JS context. See `handleE2ELoginLink` below.
+  //
   // Guarded three independent ways so it can NEVER fire in a build a real user
   // could load:
   //   1. extra.useEmulator — the build-time USE_FIREBASE_EMULATOR flag, set only
-  //      by the web-e2e CI job (deploy workflows positively assert it is unset).
-  //   2. Platform.OS === 'web' — the only surface Playwright drives.
-  //   3. a runtime assertion that Auth is actually pointed at a loopback emulator
-  //      (getAuth().emulatorConfig.host). Even if the flag leaked, a build talking
-  //      to real Firebase installs nothing — it fails closed by physics.
+  //      by the E2E CI jobs. app.config.ts REFUSES to build a beta/prod bundle
+  //      with it set, and the deploy workflows positively assert it is unset.
+  //   2. a runtime assertion that Auth is actually pointed at an emulator host
+  //      (getAuth().emulatorConfig.host) — see `isE2EEmulatorHost`. Even if the
+  //      flag leaked, a build talking to real Firebase arms nothing: it fails
+  //      closed by physics, not by intent.
+  //   3. the check:no-test-login-leak grep gate, which confines every symbol
+  //      here to this file.
   // Uses the single signInWithEmailAndPassword primitive; no new auth method.
   useEffect(() => {
-    if (Platform.OS !== 'web') return;
     if (Constants.expoConfig?.extra?.useEmulator !== true) return;
     const auth = getAuth();
-    const host = auth.emulatorConfig?.host;
-    if (host !== '127.0.0.1' && host !== 'localhost' && host !== '::1') return;
-    (globalThis as { __cultuvillaE2E?: unknown }).__cultuvillaE2E = {
-      login: (email: string, password: string) =>
-        signInWithEmailAndPassword(auth, email, password),
-      signOut: () => fbSignOut(auth),
+    if (!isE2EEmulatorHost(auth.emulatorConfig?.host)) return;
+
+    const login = (email: string, password: string) =>
+      signInWithEmailAndPassword(auth, email, password);
+
+    if (Platform.OS === 'web') {
+      (globalThis as { __cultuvillaE2E?: unknown }).__cultuvillaE2E = {
+        login,
+        signOut: () => fbSignOut(auth),
+      };
+      return;
+    }
+
+    // Native: the driver hands us credentials over the app's own URL scheme
+    // (`cultuvilla://?e2eLogin=<email>%7C<password>`), because Maestro drives
+    // the UI and has no way to call into the app's JS context. The query lands
+    // on the index route, which ignores unknown params, so no extra screen and
+    // no new route is introduced — the app just finds itself signed in.
+    // `signOut` is an empty value, keeping the surface to one link shape.
+    const handle = (url: string | null) => {
+      if (!url) return;
+      const parsed = parseE2ELoginLink(url);
+      if (!parsed) return;
+      if (parsed.email === '') {
+        void fbSignOut(auth);
+        return;
+      }
+      void login(parsed.email, parsed.password).catch((e) => {
+        console.warn('[e2e-login] failed:', e instanceof Error ? e.message : e);
+      });
     };
+    void Linking.getInitialURL().then(handle);
+    const sub = Linking.addEventListener('url', ({ url }) => handle(url));
+    return () => sub.remove();
   }, []);
 
   const loadProfile = useCallback(async (uid: string, currentEmail: string | null) => {

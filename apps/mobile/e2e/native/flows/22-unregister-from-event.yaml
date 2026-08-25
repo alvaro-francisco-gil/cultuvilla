@@ -1,0 +1,43 @@
+# The inverse of 20, and the one flow that exercises a NATIVE Alert.alert
+# confirmation — the web driver only ever sees the window.confirm fallback
+# (react-native-web ships Alert.alert as a no-op; see the mobile-web-compat
+# skill). Untick the persona, confirm the alert, assert the doc is gone.
+#
+# Depends on 20 having registered this persona; filename order guarantees that.
+appId: com.cultuvilla.app.dev
+env:
+  EMAIL: e2e-user@cultuvilla.test
+  PASSWORD: e2e-cultuvilla-pw
+  EVENT_ID: e2e-event-fiesta
+  PERSON_ID: e2e-person-user
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: ../subflows/login.yaml
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+- openLink: 'cultuvilla://event/${EVENT_ID}'
+- extendedWaitUntil:
+    visible:
+      id: 'register-fab'
+    timeout: 45000
+- tapOn:
+    id: 'register-fab'
+- tapOn:
+    id: 'attendee-row-${PERSON_ID}'
+- tapOn:
+    id: 'attendee-confirm'
+# Native two-button Alert from lib/dialogs.ts showConfirm; the label is
+# event.register.cancelConfirm in packages/i18n/messages/es.json.
+- tapOn: 'Sí, cancelar'
+- runScript:
+    file: ../scripts/queryCollection.js
+    env:
+      COLLECTION_PATH: 'events/${EVENT_ID}/registrations'
+      FIELD: personId
+      VALUE: ${PERSON_ID}
+      MIN: '0'
+      MAX: '0'
+- assertTrue: ${output.ok == 'true'}
