@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveVersionGate } from '../../src/utils/versionGate';
+import { resolveVersionGate, shouldPromptUpdate } from '../../src/utils/versionGate';
 import type { AppVersionConfig } from '../../src/models/config';
 
 const config: AppVersionConfig = {
@@ -28,5 +28,35 @@ describe('resolveVersionGate', () => {
   it('fails open on null config or malformed version', () => {
     expect(resolveVersionGate('1.0.0', null, 'ios')).toBe('ok');
     expect(resolveVersionGate('garbage', config, 'ios')).toBe('ok');
+  });
+});
+
+describe('shouldPromptUpdate', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const now = 1_700_000_000_000;
+
+  it('prompts when nothing was ever recorded', () => {
+    expect(shouldPromptUpdate(null, '1.5.0', now)).toBe(true);
+  });
+
+  it('stays quiet inside the cooldown for the same version', () => {
+    const record = { version: '1.5.0', promptedAt: now - DAY };
+    expect(shouldPromptUpdate(record, '1.5.0', now)).toBe(false);
+  });
+
+  it('prompts again once the cooldown has elapsed', () => {
+    const record = { version: '1.5.0', promptedAt: now - 3 * DAY };
+    expect(shouldPromptUpdate(record, '1.5.0', now)).toBe(true);
+  });
+
+  it('prompts immediately for a newer latest, cooldown or not', () => {
+    const record = { version: '1.5.0', promptedAt: now };
+    expect(shouldPromptUpdate(record, '1.6.0', now)).toBe(true);
+  });
+
+  it('honours a custom cooldown', () => {
+    const record = { version: '1.5.0', promptedAt: now - 2 * DAY };
+    expect(shouldPromptUpdate(record, '1.5.0', now, 7)).toBe(false);
+    expect(shouldPromptUpdate(record, '1.5.0', now, 1)).toBe(true);
   });
 });
