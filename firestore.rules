@@ -396,6 +396,7 @@ service cloud.firestore {
               'title', 'description', 'startDate', 'endDate', 'endBoundary', 'location',
               'imageURL', 'maxAttendees', 'telephoneRequired', 'requiresPayment',
               'signupFields', 'signupEnabled', 'signupInfo', 'attendeesVisibility', 'signupGroupSize',
+              'minBirthYear', 'maxBirthYear',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
               'villageCoverImage', 'villageCoordinates',
@@ -406,6 +407,7 @@ service cloud.firestore {
               'title', 'description', 'startDate', 'endDate', 'endBoundary', 'location',
               'imageURL', 'maxAttendees', 'telephoneRequired', 'requiresPayment',
               'signupFields', 'signupEnabled', 'signupInfo', 'attendeesVisibility', 'signupGroupSize',
+              'minBirthYear', 'maxBirthYear',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
               'villageCoverImage', 'villageCoordinates',
@@ -447,6 +449,15 @@ service cloud.firestore {
           && d.signupGroupSize is int
           && d.signupGroupSize >= 1
           && d.signupGroupSize <= 4
+          // Advertised birth-year window. Advisory only — the sign-up sheet
+          // warns and lets the user proceed — so rules check the shape, not
+          // the eligibility of anyone signing up. Bounds mirror
+          // MIN/MAX_EVENT_BIRTH_YEAR in EventFormSchema; keep the two in step.
+          && isNumberOrNull(d.minBirthYear)
+          && isNumberOrNull(d.maxBirthYear)
+          && (d.minBirthYear == null || (d.minBirthYear is int && d.minBirthYear >= 1900 && d.minBirthYear <= 2200))
+          && (d.maxBirthYear == null || (d.maxBirthYear is int && d.maxBirthYear >= 1900 && d.maxBirthYear <= 2200))
+          && (d.minBirthYear == null || d.maxBirthYear == null || d.maxBirthYear >= d.minBirthYear)
           && d.status in ['published', 'cancelled', 'completed']
           && d.organizerUserIds is list
           && d.organizerOrgIds is list
