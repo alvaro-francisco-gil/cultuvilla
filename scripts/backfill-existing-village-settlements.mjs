@@ -97,11 +97,47 @@ export function planSettlementWrites(settlements, existingBarrios) {
   return { toWrite, skipped };
 }
 
+/**
+ * A pre-seed village classified everything it had as a plain `barrio`, because
+ * that is the only kind the client can create: `firestore.rules` pins every
+ * client-written row to `kind: 'barrio', source: 'user', isSeat: false`. So a
+ * hand-made row's kind was never a decision — the UI gave nobody a way to
+ * express one — and correcting it against OSM overrides no human choice.
+ *
+ * Matabuena is the whole of it on prod: "Cañicosa", "Matabuena" and "Matamala"
+ * are the municipality's three pedanías, one of them its seat, all three filed
+ * under Barrios.
+ *
+ * PATCHES IN PLACE, NEVER RE-KEYS. Renaming the document to the seed id would
+ * be a delete + create, and `barrioId` is a foreign key: `persons.residenceLinks`
+ * and `municipalityPeople` point at it and `syncBarrioResidentCount` keys off
+ * it. Matabuena's three rows carry 167 residents between them. The id is fine —
+ * only two fields are wrong.
+ *
+ * `source` deliberately stays `'user'`: that provenance is true, and it keeps
+ * the row matching by name on every later run, so this stays a no-op.
+ */
+export function planKindReconciliation(existingBarrios, settlements) {
+  const byName = new Map(settlements.map((s) => [normalizeName(s.name), s]));
+  const patches = [];
+  for (const b of existingBarrios) {
+    if (b.source === 'osm') continue;
+    const hit = byName.get(normalizeName(String(b.name ?? '')));
+    if (!hit) continue;
+    const patch = {};
+    if ((b.kind ?? 'barrio') !== hit.kind) patch.kind = hit.kind;
+    if ((b.isSeat ?? false) !== hit.isSeat) patch.isSeat = hit.isSeat;
+    if (Object.keys(patch).length > 0) patches.push({ id: b.id, name: b.name, patch });
+  }
+  return patches;
+}
+
 export async function run({ db, apply, log }) {
   const villages = await municipalitiesCollection(db).where('communityActive', '==', true).get();
   log(`active villages: ${villages.size}`);
 
   let written = 0;
+  let reclassified = 0;
   let skippedExisting = 0;
   let noSeed = 0;
 
@@ -137,6 +173,18 @@ export async function run({ db, apply, log }) {
     );
     skippedExisting += skipped;
 
+    // Correct the rows that were already here before deciding they blocked a
+    // seed: a skipped seed and a mis-filed hand-made row are the same row.
+    const patches = planKindReconciliation(
+      existing.docs.map((d) => ({ id: d.id, ...d.data() })),
+      parsed.data.settlements,
+    );
+    for (const { id, name, patch } of patches) {
+      log(`  ${label}: reclassify "${name}" -> ${JSON.stringify(patch)}`);
+      if (apply) await barrios.doc(id).update(patch);
+      reclassified++;
+    }
+
     if (toWrite.length === 0) continue;
     log(`  ${label}: +${toWrite.length} (${existing.size} already present)`);
 
@@ -171,7 +219,7 @@ export async function run({ db, apply, log }) {
     `  ${apply ? 'wrote' : 'would write'} ${written} settlements; ` +
       `${skippedExisting} already present by id or name; ${noSeed} villages without seed data`,
   );
-  return { total: villages.size, patched: written };
+  return { total: villages.size, patched: written + reclassified };
 }
 
 if (isMain(import.meta.url)) await runBackfill({ meta, run });

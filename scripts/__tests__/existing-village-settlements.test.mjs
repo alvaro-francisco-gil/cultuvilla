@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   meta,
   normalizeName,
+  planKindReconciliation,
   planSettlementWrites,
 } from '../backfill-existing-village-settlements.mjs';
 
@@ -118,5 +119,75 @@ describe('meta', () => {
     assert.equal(meta.idempotent, true);
     assert.deepEqual(meta.autoApply, ['dev', 'beta', 'prod']);
     assert.deepEqual(meta.envs, ['dev', 'beta', 'prod']);
+  });
+});
+
+describe('planKindReconciliation', () => {
+  // Matabuena as it actually stands on prod: three pedanías, one of them the
+  // municipal seat, all three filed as plain barrios because that is the only
+  // kind firestore.rules lets a client write.
+  const matabuena = [
+    s('Matabuena', 'pedania', true),
+    s('Cañicosa', 'pedania'),
+    s('Matamala', 'pedania'),
+  ];
+  const asStored = (id, name) => ({ id, name, kind: 'barrio', source: 'user', isSeat: false });
+
+  it('corrects kind and isSeat on a hand-made row OSM knows better', () => {
+    const patches = planKindReconciliation(
+      [asStored('iS8L', 'Cañicosa'), asStored('rDRm', 'Matabuena'), asStored('rnLx', 'Matamala')],
+      matabuena,
+    );
+    assert.deepEqual(patches, [
+      { id: 'iS8L', name: 'Cañicosa', patch: { kind: 'pedania' } },
+      { id: 'rDRm', name: 'Matabuena', patch: { kind: 'pedania', isSeat: true } },
+      { id: 'rnLx', name: 'Matamala', patch: { kind: 'pedania' } },
+    ]);
+  });
+
+  it('never proposes a new id — the document is patched in place', () => {
+    // Re-keying to `osm-pedania-*` would be a delete + create, and `barrioId` is
+    // a foreign key from persons.residenceLinks and municipalityPeople. These
+    // three rows carry 167 residents between them on prod.
+    const patches = planKindReconciliation([asStored('rDRm', 'Matabuena')], matabuena);
+    assert.equal(patches[0].id, 'rDRm');
+    assert.deepEqual(Object.keys(patches[0].patch).sort(), ['isSeat', 'kind']);
+  });
+
+  it('leaves seeded rows alone', () => {
+    const patches = planKindReconciliation(
+      [{ id: 'osm-pedania-canicosa', name: 'Cañicosa', kind: 'pedania', source: 'osm', isSeat: false }],
+      matabuena,
+    );
+    assert.deepEqual(patches, []);
+  });
+
+  it('leaves a hand-made row with no seed counterpart alone', () => {
+    // A genuine new neighbourhood an admin added after seeding. Nothing in OSM
+    // claims to know better, so nothing is touched.
+    const patches = planKindReconciliation([asStored('zzz', 'El Rincón')], matabuena);
+    assert.deepEqual(patches, []);
+  });
+
+  it('is a no-op once it has run', () => {
+    const stored = [{ id: 'rDRm', name: 'Matabuena', kind: 'pedania', source: 'user', isSeat: true }];
+    assert.deepEqual(planKindReconciliation(stored, matabuena), []);
+  });
+
+  it('patches only the field that is wrong', () => {
+    const stored = [{ id: 'x', name: 'Matabuena', kind: 'pedania', source: 'user', isSeat: false }];
+    assert.deepEqual(planKindReconciliation(stored, matabuena), [
+      { id: 'x', name: 'Matabuena', patch: { isSeat: true } },
+    ]);
+  });
+
+  it('matches through accents and case, like the write planner', () => {
+    const patches = planKindReconciliation([asStored('x', 'CANICOSA')], matabuena);
+    assert.deepEqual(patches, [{ id: 'x', name: 'CANICOSA', patch: { kind: 'pedania' } }]);
+  });
+
+  it('treats a missing kind/isSeat as the client default rather than crashing', () => {
+    const patches = planKindReconciliation([{ id: 'x', name: 'Cañicosa', source: 'user' }], matabuena);
+    assert.deepEqual(patches, [{ id: 'x', name: 'Cañicosa', patch: { kind: 'pedania' } }]);
   });
 });
