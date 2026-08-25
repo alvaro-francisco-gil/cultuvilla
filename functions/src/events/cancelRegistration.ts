@@ -23,6 +23,7 @@ import { isWalkInAuthorized } from '../helpers/walkInAuthorization';
 import { sendCancellationEmail } from './sendCancellationEmail';
 import { resolveCancellation } from '../helpers/cancellationPlan';
 import { generateSeatToken } from '../helpers/seatToken';
+import { RESEND_API_KEY } from '../auth/secret';
 
 const db = getFirestore();
 
@@ -61,7 +62,7 @@ interface CancelRegistrationResult {
 export const cancelRegistration = onCall<
   CancelRegistrationData,
   Promise<CancelRegistrationResult>
->({ region: 'us-central1', cors: true }, async (request) => {
+>({ region: 'us-central1', cors: true, secrets: [RESEND_API_KEY] }, async (request) => {
   const auth = request.auth;
   if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
   const uid = auth.uid;
