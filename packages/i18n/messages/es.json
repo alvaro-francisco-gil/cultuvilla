@@ -1110,8 +1110,10 @@
   "appUpdate": {
     "blockTitle": "Actualización necesaria",
     "blockBody": "Esta versión ya no es compatible. Actualiza para seguir usando Cultuvilla.",
-    "nudge": "Hay una versión nueva disponible.",
-    "cta": "Actualizar"
+    "nudgeTitle": "Nueva actualización disponible",
+    "nudgeBody": "Hay una versión nueva de Cultuvilla con mejoras y correcciones.",
+    "cta": "Actualizar ahora",
+    "later": "Más tarde"
   },
   "userProfile": {
     "title": "Perfil",

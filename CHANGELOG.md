@@ -4,6 +4,15 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Changed
+
+- **Avisar de una actualización con un diálogo, no con una franja.** La app ya sabía desde el arranque si la versión instalada se había quedado corta, pero lo contaba mal: quedarse por debajo de `minSupported` sustituía la app entera por una pantalla suelta, y haber una versión nueva pintaba una franja naranja de una línea sobre la cabecera que se confundía con parte del diseño y que nadie llegaba a pulsar. Ahora son **dos diálogos** sobre la app, como en Órdago:
+  - **Bloqueante** cuando la versión ya no es compatible: no se puede cerrar — sin «Más tarde», sin botón atrás de Android, sin tocar fuera — y su único camino es «Actualizar ahora», que abre la ficha de la tienda.
+  - **Avisador** cuando sólo hay una versión más nueva: «Actualizar ahora» o «Más tarde», y la app sigue detrás.
+  - **El avisador no da la lata.** Recuerda en el dispositivo qué versión anunció y se calla **tres días** antes de repetirla; una versión *nueva* reinicia esa espera, así que un lanzamiento de verdad se anuncia al momento. El bloqueante no tiene espera: sale en cada arranque, que para eso es un muro.
+  - **Sigue sin existir en web**, donde el gate resuelve siempre `ok`: la web se actualiza al recargar y no hay tienda a la que mandar a nadie. Y sigue fallando abierto — una lectura mala del documento de configuración no puede dejar la app inservible.
+  - **No necesita despliegue de datos.** `config/appVersion` ya existe en dev, beta y prod con `minSupported` a `0.0.0` (el muro sigue dormido antes del lanzamiento en tiendas, según AGENTS.md) y con la URL real de Google Play; la de App Store sigue siendo el marcador de posición hasta que haya app publicada en iOS.
+
 ## v0.28.0 — 2026-08-25
 
 ### Added
