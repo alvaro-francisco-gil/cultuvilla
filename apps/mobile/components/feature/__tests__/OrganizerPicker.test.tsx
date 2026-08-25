@@ -8,8 +8,8 @@ jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
 jest.mock('@cultuvilla/shared/services/userService', () => ({
   getUserProfile: jest.fn(),
 }));
-jest.mock('@cultuvilla/shared/services/personService', () => ({
-  getPersonByUserId: jest.fn(),
+jest.mock('@cultuvilla/shared/services/municipalityPersonService', () => ({
+  getMunicipalityPeople: jest.fn(),
 }));
 jest.mock('@cultuvilla/shared/services/organizationService', () => ({
   getOrganizationsByMunicipality: jest.fn(),
@@ -17,12 +17,12 @@ jest.mock('@cultuvilla/shared/services/organizationService', () => ({
 
 import { getVillageMembers } from '@cultuvilla/shared/services/villageMemberService';
 import { getUserProfile } from '@cultuvilla/shared/services/userService';
-import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
+import { getMunicipalityPeople } from '@cultuvilla/shared/services/municipalityPersonService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 
 const mockGetVillageMembers = getVillageMembers as jest.Mock;
 const mockGetUserProfile = getUserProfile as jest.Mock;
-const mockGetPersonByUserId = getPersonByUserId as jest.Mock;
+const mockGetMunicipalityPeople = getMunicipalityPeople as jest.Mock;
 const mockGetOrganizationsByMunicipality = getOrganizationsByMunicipality as jest.Mock;
 
 // --- LiveOwnerChip mock — renders testID so we can find locked creator --------
@@ -54,11 +54,26 @@ function defaultMocks() {
     { id: OTHER_USER_ID, userId: OTHER_USER_ID, role: 'user', joinedAt: new Date() },
     { id: CREATOR_ID, userId: CREATOR_ID, role: 'user', joinedAt: new Date() },
   ]);
+  mockGetMunicipalityPeople.mockResolvedValue([
+    {
+      id: `${MUNICIPALITY_ID}_p1`,
+      userId: CREATOR_ID,
+      displayName: 'Creator Name',
+      sortName: 'creator name',
+      photoURL: null,
+    },
+    {
+      id: `${MUNICIPALITY_ID}_p2`,
+      userId: OTHER_USER_ID,
+      displayName: 'Other User',
+      sortName: 'other user',
+      photoURL: null,
+    },
+  ]);
   mockGetUserProfile.mockImplementation(async (uid: string) => ({
-    displayName: uid === CREATOR_ID ? 'Creator Name' : 'Other User',
+    displayName: `Fallback ${uid}`,
     photoURL: null,
   }));
-  mockGetPersonByUserId.mockResolvedValue({ photoURL: null });
   mockGetOrganizationsByMunicipality.mockResolvedValue([
     { id: ORG_ID, name: 'Org One', municipalityId: MUNICIPALITY_ID, status: 'approved', images: [] },
   ]);
@@ -170,13 +185,42 @@ describe('<OrganizerPicker>', () => {
     expect(getByTestId(`chip-user-${CREATOR_ID}`)).toBeTruthy();
   });
 
-  it('still lists every villager when one member\'s person lookup is denied', async () => {
-    // A member who marked their persona private makes getPersonByUserId reject
-    // with permission-denied. One rejection must not empty the whole sheet.
-    mockGetPersonByUserId.mockImplementation(async (uid: string) => {
-      if (uid === OTHER_USER_ID) throw new Error('permission-denied');
-      return { photoURL: null };
+  it('falls back to the user doc for a member the directory does not cover', async () => {
+    // A member whose person doc is not linked to this village yet is absent
+    // from `municipalityPeople`; they must still be listed, by name.
+    mockGetMunicipalityPeople.mockResolvedValue([
+      {
+        id: `${MUNICIPALITY_ID}_p1`,
+        userId: CREATOR_ID,
+        displayName: 'Creator Name',
+        sortName: 'creator name',
+        photoURL: null,
+      },
+    ]);
+    const { getByTestId, getByText } = render(
+      <OrganizerPicker
+        municipalityId={MUNICIPALITY_ID}
+        selectedUserIds={[CREATOR_ID]}
+        selectedOrgIds={[]}
+        lockedUserId={CREATOR_ID}
+        onChangeUsers={jest.fn()}
+        onChangeOrgs={jest.fn()}
+      />,
+    );
+    await waitFor(() => {
+      expect(getByTestId('add-user-btn')).toBeTruthy();
     });
+    fireEvent.press(getByTestId('add-user-btn'));
+    await waitFor(() => {
+      expect(getByTestId(`villager-row-${OTHER_USER_ID}`)).toBeTruthy();
+    });
+    expect(getByText(`Fallback ${OTHER_USER_ID}`)).toBeTruthy();
+  });
+
+  it('still lists every villager when the directory read is denied', async () => {
+    // The directory query can be rejected outright; that must cost avatars and
+    // ordering, never the villager list itself.
+    mockGetMunicipalityPeople.mockRejectedValue(new Error('permission-denied'));
     const { getByTestId } = render(
       <OrganizerPicker
         municipalityId={MUNICIPALITY_ID}
@@ -195,5 +239,140 @@ describe('<OrganizerPicker>', () => {
       expect(getByTestId(`villager-row-${OTHER_USER_ID}`)).toBeTruthy();
     });
     expect(getByTestId(`villager-row-${CREATOR_ID}`)).toBeTruthy();
+  });
+
+  it('reads the whole village in a fixed number of queries, not one per member', async () => {
+    // Matabuena has 165 members; the old shape fanned out two reads per member.
+    const many = Array.from({ length: 50 }, (_, i) => ({
+      id: `u${i}`,
+      userId: `u${i}`,
+      role: 'user' as const,
+      joinedAt: new Date(),
+    }));
+    mockGetVillageMembers.mockResolvedValue(many);
+    mockGetMunicipalityPeople.mockResolvedValue(
+      many.map((m, i) => ({
+        id: `${MUNICIPALITY_ID}_${m.userId}`,
+        userId: m.userId,
+        displayName: `Villager ${i}`,
+        sortName: `villager ${i}`,
+        photoURL: null,
+      })),
+    );
+    render(
+      <OrganizerPicker
+        municipalityId={MUNICIPALITY_ID}
+        selectedUserIds={[]}
+        selectedOrgIds={[]}
+        onChangeUsers={jest.fn()}
+        onChangeOrgs={jest.fn()}
+      />,
+    );
+    await waitFor(() => {
+      expect(mockGetMunicipalityPeople).toHaveBeenCalledTimes(1);
+    });
+    expect(mockGetVillageMembers).toHaveBeenCalledTimes(1);
+    // Every member is covered by the directory, so no per-member fallback read.
+    expect(mockGetUserProfile).not.toHaveBeenCalled();
+  });
+
+  describe('search', () => {
+    async function openVillagerSheet() {
+      const utils = render(
+        <OrganizerPicker
+          municipalityId={MUNICIPALITY_ID}
+          selectedUserIds={[CREATOR_ID]}
+          selectedOrgIds={[]}
+          lockedUserId={CREATOR_ID}
+          onChangeUsers={jest.fn()}
+          onChangeOrgs={jest.fn()}
+        />,
+      );
+      await waitFor(() => {
+        expect(utils.getByTestId('add-user-btn')).toBeTruthy();
+      });
+      fireEvent.press(utils.getByTestId('add-user-btn'));
+      await waitFor(() => {
+        expect(utils.getByTestId(`villager-row-${OTHER_USER_ID}`)).toBeTruthy();
+      });
+      return utils;
+    }
+
+    it('narrows the villager list to the matching rows', async () => {
+      const { getByTestId, queryByTestId } = await openVillagerSheet();
+      fireEvent.changeText(getByTestId('villager-row-search'), 'other');
+      await waitFor(() => {
+        expect(queryByTestId(`villager-row-${CREATOR_ID}`)).toBeNull();
+      });
+      expect(getByTestId(`villager-row-${OTHER_USER_ID}`)).toBeTruthy();
+    });
+
+    it('shows the empty-results message when nothing matches', async () => {
+      const { getByTestId, queryByTestId } = await openVillagerSheet();
+      fireEvent.changeText(getByTestId('villager-row-search'), 'zzz');
+      await waitFor(() => {
+        expect(getByTestId('villager-row-no-results')).toBeTruthy();
+      });
+      expect(queryByTestId(`villager-row-${OTHER_USER_ID}`)).toBeNull();
+    });
+
+    it('keeps a filtered-out selection when confirming', async () => {
+      // Ticking a villager, then typing a term that hides them, must not drop
+      // them: the selection is state, not a reading of what is on screen.
+      const onChangeUsers = jest.fn();
+      const { getByTestId } = render(
+        <OrganizerPicker
+          municipalityId={MUNICIPALITY_ID}
+          selectedUserIds={[CREATOR_ID]}
+          selectedOrgIds={[]}
+          lockedUserId={CREATOR_ID}
+          onChangeUsers={onChangeUsers}
+          onChangeOrgs={jest.fn()}
+        />,
+      );
+      await waitFor(() => {
+        expect(getByTestId('add-user-btn')).toBeTruthy();
+      });
+      fireEvent.press(getByTestId('add-user-btn'));
+      await waitFor(() => {
+        expect(getByTestId(`villager-row-${OTHER_USER_ID}`)).toBeTruthy();
+      });
+      fireEvent.press(getByTestId(`villager-row-${OTHER_USER_ID}`));
+      fireEvent.changeText(getByTestId('villager-row-search'), 'creator');
+      fireEvent.press(getByTestId('villager-confirm'));
+      expect(onChangeUsers).toHaveBeenCalledWith(
+        expect.arrayContaining([CREATOR_ID, OTHER_USER_ID]),
+      );
+    });
+
+    it('filters the group sheet too', async () => {
+      mockGetOrganizationsByMunicipality.mockResolvedValue([
+        { id: ORG_ID, name: 'Org One', municipalityId: MUNICIPALITY_ID, status: 'approved', images: [] },
+        { id: 'org2', name: 'Peña Aragón', municipalityId: MUNICIPALITY_ID, status: 'approved', images: [] },
+      ]);
+      const { getByTestId, queryByTestId } = render(
+        <OrganizerPicker
+          municipalityId={MUNICIPALITY_ID}
+          selectedUserIds={[CREATOR_ID]}
+          selectedOrgIds={[]}
+          lockedUserId={CREATOR_ID}
+          onChangeUsers={jest.fn()}
+          onChangeOrgs={jest.fn()}
+        />,
+      );
+      await waitFor(() => {
+        expect(getByTestId('add-org-btn')).toBeTruthy();
+      });
+      fireEvent.press(getByTestId('add-org-btn'));
+      await waitFor(() => {
+        expect(getByTestId(`org-row-${ORG_ID}`)).toBeTruthy();
+      });
+      // Accent-insensitive: "aragon" finds "Aragón".
+      fireEvent.changeText(getByTestId('org-row-search'), 'aragon');
+      await waitFor(() => {
+        expect(queryByTestId(`org-row-${ORG_ID}`)).toBeNull();
+      });
+      expect(getByTestId('org-row-org2')).toBeTruthy();
+    });
   });
 });

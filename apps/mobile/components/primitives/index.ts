@@ -45,3 +45,5 @@ export { BlockingOverlay } from './BlockingOverlay';
 export type { BlockingOverlayProps } from './BlockingOverlay';
 export { InfoTooltip } from './InfoTooltip';
 export type { InfoTooltipProps } from './InfoTooltip';
+export { BottomSheet, shouldDismissOnRelease } from './BottomSheet';
+export type { BottomSheetProps } from './BottomSheet';
