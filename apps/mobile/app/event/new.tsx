@@ -38,6 +38,10 @@ import { Stepper, type StepConfig } from '../../components/feature/Stepper';
 import { DeleteHeaderButton } from '../../components/feature/DeleteHeaderButton';
 import { roundUpToMinuteStep } from '../../lib/date/clockGrid';
 import { MAX_SIGNUP_GROUP_SIZE } from '@cultuvilla/shared/models/event/EventDataModel';
+import {
+  MAX_EVENT_BIRTH_YEAR,
+  MIN_EVENT_BIRTH_YEAR,
+} from '@cultuvilla/shared/models/event/EventFormSchema';
 
 /** Every real group size — parejas, tríos, grupos de cuatro. Size 1 isn't a
  *  choice here: it's what the "inscripción por grupos" toggle being off means. */
@@ -163,6 +167,10 @@ export default function NewEventScreen() {
   // already booked were seated against the old size (firestore.rules enforces
   // the same, see isFrozenGroupSizeChange).
   const [signupGroupSize, setSignupGroupSize] = useState(1);
+  // Advisory birth-year window ("nacidos entre X y Y"). Kept as strings so a
+  // half-typed year doesn't fight the numeric state; parsed on submit.
+  const [minBirthYear, setMinBirthYear] = useState('');
+  const [maxBirthYear, setMaxBirthYear] = useState('');
   // Off = the event takes no sign-ups through the app (entrada libre, or a list
   // kept elsewhere). `signupInfo` then replaces the sign-up button on the
   // detail screen.
@@ -238,6 +246,8 @@ export default function NewEventScreen() {
         setTelephoneRequired(!!ev.telephoneRequired);
         setRequiresPayment(!!ev.requiresPayment);
         setSignupGroupSize(ev.signupGroupSize);
+        setMinBirthYear(ev.minBirthYear == null ? '' : String(ev.minBirthYear));
+        setMaxBirthYear(ev.maxBirthYear == null ? '' : String(ev.maxBirthYear));
         setSignupEnabled(ev.signupEnabled !== false);
         setSignupInfo(ev.signupInfo ?? '');
         setAttendeesPublic(ev.attendeesVisibility !== 'organizers');
@@ -311,6 +321,16 @@ export default function NewEventScreen() {
     };
   }, [editMode, user, villageId, profile?.activeMunicipalityId]);
 
+  // Typed years, validated live so the step can refuse to advance. A blank
+  // end is an open-ended window, not an error.
+  const minBirthYearNum = minBirthYear.trim() ? Number(minBirthYear) : null;
+  const maxBirthYearNum = maxBirthYear.trim() ? Number(maxBirthYear) : null;
+  const outOfBounds = (y: number | null) =>
+    y !== null && (!Number.isInteger(y) || y < MIN_EVENT_BIRTH_YEAR || y > MAX_EVENT_BIRTH_YEAR);
+  const birthYearOutOfBounds = outOfBounds(minBirthYearNum) || outOfBounds(maxBirthYearNum);
+  const birthYearRangeInvalid =
+    minBirthYearNum !== null && maxBirthYearNum !== null && maxBirthYearNum < minBirthYearNum;
+
   // Survives a failed cover upload so the retry patches the event that was
   // already created instead of creating another one. See the create branch.
   const createdEventIdRef = useRef<string | null>(null);
@@ -325,6 +345,11 @@ export default function NewEventScreen() {
         displayName: locationName.trim() || municipalityName,
       });
       const maxAttendeesValue = maxAttendees.trim() ? Number(maxAttendees) : null;
+      // A window is only read by the in-app sign-up sheet, so it is dropped
+      // outright when in-app sign-ups are off — same rule as signupInfo, and
+      // the one EventFormSchema and firestore.rules both encode.
+      const minBirthYearValue = signupEnabled && minBirthYear.trim() ? Number(minBirthYear) : null;
+      const maxBirthYearValue = signupEnabled && maxBirthYear.trim() ? Number(maxBirthYear) : null;
       // Half-finished rows (no label yet, or a select with no options to pick)
       // would be unanswerable, so they never reach the event doc. Locked rows
       // are kept verbatim — dropping one would break the additive-only rule.
@@ -358,6 +383,8 @@ export default function NewEventScreen() {
           attendeesVisibility: attendeesPublic ? ('members' as const) : ('organizers' as const),
           signupFields: usableSignupFields,
           signupGroupSize,
+          minBirthYear: minBirthYearValue,
+          maxBirthYear: maxBirthYearValue,
           organizerUserIds,
           organizerOrgIds,
         });
@@ -395,6 +422,8 @@ export default function NewEventScreen() {
           attendeesVisibility: attendeesPublic ? ('members' as const) : ('organizers' as const),
           signupFields: usableSignupFields,
           signupGroupSize,
+          minBirthYear: minBirthYearValue,
+          maxBirthYear: maxBirthYearValue,
           status: 'published',
           organizerUserIds,
           organizerOrgIds,
@@ -604,6 +633,12 @@ export default function NewEventScreen() {
       key: 'details',
       title: t('event.stepDetails'),
       icon: 'options-outline',
+      validate: () => {
+        const e: string[] = [];
+        if (birthYearRangeInvalid) e.push('birthYearRange');
+        if (birthYearOutOfBounds) e.push('birthYearBounds');
+        return e;
+      },
       render: () => stepBody(
         <>
           <ToggleField
@@ -631,6 +666,49 @@ export default function NewEventScreen() {
             onChangeText={setMaxAttendees}
             keyboardType="numeric"
           />
+          {/* Advisory only: the sign-up sheet warns and still lets the user
+              through, so this is a hint to the pueblo, not a gate. */}
+          <VStack gap={1}>
+            <FieldLabel>{t('event.birthYearRange')}</FieldLabel>
+            <Text variant="bodySm" tone="muted">{t('event.birthYearRangeHelp')}</Text>
+            <HStack gap={2} className="items-start">
+              <View className="flex-1">
+                <Input
+                  label={t('event.birthYearFrom')}
+                  value={minBirthYear}
+                  onChangeText={setMinBirthYear}
+                  keyboardType="numeric"
+                  maxLength={4}
+                  placeholder={t('event.birthYearAny')}
+                  testID="min-birth-year"
+                />
+              </View>
+              <View className="flex-1">
+                <Input
+                  label={t('event.birthYearTo')}
+                  value={maxBirthYear}
+                  onChangeText={setMaxBirthYear}
+                  keyboardType="numeric"
+                  maxLength={4}
+                  placeholder={t('event.birthYearAny')}
+                  testID="max-birth-year"
+                />
+              </View>
+            </HStack>
+            {birthYearRangeInvalid ? (
+              <Text tone="danger" variant="bodySm" testID="birth-year-range-error">
+                {t('event.birthYearRangeInvalid')}
+              </Text>
+            ) : null}
+            {birthYearOutOfBounds ? (
+              <Text tone="danger" variant="bodySm" testID="birth-year-bounds-error">
+                {t('event.birthYearBoundsInvalid', {
+                  min: String(MIN_EVENT_BIRTH_YEAR),
+                  max: String(MAX_EVENT_BIRTH_YEAR),
+                })}
+              </Text>
+            ) : null}
+          </VStack>
           <ToggleField
             label={t('event.telephoneRequired')}
             value={telephoneRequired}

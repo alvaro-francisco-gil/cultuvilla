@@ -1,0 +1,146 @@
+import { describe, it, expect } from 'vitest';
+import {
+  birthYearEligibility,
+  buildEventData,
+  EventDataSchema,
+  hasBirthYearWindow,
+  needsBirthYearConfirm,
+} from '../../../src/models/event/EventDataModel';
+import { EventFormSchema } from '../../../src/models/event/EventFormSchema';
+
+const baseInput = {
+  title: 'Taller infantil',
+  description: '',
+  startDate: new Date('2026-08-15T18:00:00Z'),
+  location: { coordinates: { lat: 40.0, lng: -3.6 }, displayName: 'Plaza Mayor' },
+  organizerUserIds: ['u1'],
+  organizerOrgIds: [],
+  createdBy: 'u1',
+  municipalityId: 'm1',
+  villageName: 'Villa',
+  villageCoordinates: null,
+};
+
+describe('event birth-year window — model', () => {
+  it('defaults both ends to null when the creator sets no window', () => {
+    const data = buildEventData(baseInput);
+    expect(data.minBirthYear).toBeNull();
+    expect(data.maxBirthYear).toBeNull();
+    expect(hasBirthYearWindow(data)).toBe(false);
+  });
+
+  it('carries the window through the builder', () => {
+    const data = buildEventData({ ...baseInput, minBirthYear: 2014, maxBirthYear: 2020 });
+    expect(data.minBirthYear).toBe(2014);
+    expect(data.maxBirthYear).toBe(2020);
+    expect(hasBirthYearWindow(data)).toBe(true);
+  });
+
+  it('parses a legacy event doc that predates the fields', () => {
+    const data = buildEventData(baseInput);
+    const legacy: Record<string, unknown> = { ...data };
+    delete legacy['minBirthYear'];
+    delete legacy['maxBirthYear'];
+    const parsed = EventDataSchema.parse(legacy);
+    expect(parsed.minBirthYear).toBeNull();
+    expect(parsed.maxBirthYear).toBeNull();
+  });
+});
+
+describe('birthYearEligibility', () => {
+  const open = { minBirthYear: null, maxBirthYear: null };
+  const kids = { minBirthYear: 2014, maxBirthYear: 2020 };
+  const mayores = { minBirthYear: null, maxBirthYear: 1960 };
+  const quinta = { minBirthYear: 1985, maxBirthYear: 1985 };
+
+  it('is ok for any year when no window is set — even an unknown one', () => {
+    expect(birthYearEligibility(open, 1930)).toBe('ok');
+    expect(birthYearEligibility(open, null)).toBe('ok');
+  });
+
+  it('reports too-old below the minimum and too-young above the maximum', () => {
+    expect(birthYearEligibility(kids, 2013)).toBe('too-old');
+    expect(birthYearEligibility(kids, 2021)).toBe('too-young');
+  });
+
+  it('treats both bounds as inclusive', () => {
+    expect(birthYearEligibility(kids, 2014)).toBe('ok');
+    expect(birthYearEligibility(kids, 2020)).toBe('ok');
+    expect(birthYearEligibility(quinta, 1985)).toBe('ok');
+  });
+
+  it('leaves an open end unbounded', () => {
+    expect(birthYearEligibility(mayores, 1900)).toBe('ok');
+    expect(birthYearEligibility(mayores, 1961)).toBe('too-young');
+  });
+
+  it('reports unknown — never out-of-range — for a persona with no birth year', () => {
+    expect(birthYearEligibility(kids, null)).toBe('unknown');
+    expect(birthYearEligibility(kids, undefined)).toBe('unknown');
+    expect(needsBirthYearConfirm(kids, null)).toBe(false);
+  });
+
+  it('asks for confirmation only when the year is known and outside', () => {
+    expect(needsBirthYearConfirm(kids, 2013)).toBe(true);
+    expect(needsBirthYearConfirm(kids, 2015)).toBe(false);
+    expect(needsBirthYearConfirm(open, 2013)).toBe(false);
+  });
+});
+
+describe('EventFormSchema — birth-year window', () => {
+  const validBase = {
+    title: 'Taller infantil',
+    description: '',
+    startDate: '2026-08-15T20:00',
+    locationName: 'Plaza Mayor',
+    maxAttendees: '',
+    telephoneRequired: false,
+  };
+
+  it('defaults both ends to null when the fields are left empty', () => {
+    const result = EventFormSchema.safeParse({ ...validBase, minBirthYear: '', maxBirthYear: '' });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.minBirthYear).toBeNull();
+    expect(result.data.maxBirthYear).toBeNull();
+  });
+
+  it('coerces year strings to integers', () => {
+    const result = EventFormSchema.safeParse({ ...validBase, minBirthYear: '2014', maxBirthYear: '2020' });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.minBirthYear).toBe(2014);
+    expect(result.data.maxBirthYear).toBe(2020);
+  });
+
+  it('accepts an open-ended window', () => {
+    const result = EventFormSchema.safeParse({ ...validBase, maxBirthYear: '1960' });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.minBirthYear).toBeNull();
+    expect(result.data.maxBirthYear).toBe(1960);
+  });
+
+  it('rejects an inverted window', () => {
+    const result = EventFormSchema.safeParse({ ...validBase, minBirthYear: '2020', maxBirthYear: '2014' });
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(result.error.issues.some((i) => i.path.includes('maxBirthYear'))).toBe(true);
+  });
+
+  it('rejects a year outside the sanity bounds', () => {
+    expect(EventFormSchema.safeParse({ ...validBase, minBirthYear: '1899' }).success).toBe(false);
+    expect(EventFormSchema.safeParse({ ...validBase, maxBirthYear: '2201' }).success).toBe(false);
+  });
+
+  it('rejects a window on an event that takes no in-app sign-ups', () => {
+    const result = EventFormSchema.safeParse({
+      ...validBase,
+      signupEnabled: false,
+      minBirthYear: '2014',
+    });
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(result.error.issues.some((i) => i.path.includes('minBirthYear'))).toBe(true);
+  });
+});

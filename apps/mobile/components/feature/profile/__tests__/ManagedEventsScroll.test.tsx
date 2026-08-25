@@ -18,6 +18,8 @@ function makeEvent(over: Partial<ManagedEvent> & { id: string }): ManagedEvent {
     signupFields: [],
     attendeesVisibility: 'members' as const,
     signupGroupSize: 1,
+    minBirthYear: null,
+    maxBirthYear: null,
     signupEnabled: true,
     signupInfo: null,
     status: over.status ?? 'published',

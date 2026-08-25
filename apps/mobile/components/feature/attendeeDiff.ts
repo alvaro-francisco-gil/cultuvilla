@@ -1,3 +1,9 @@
+import {
+  hasBirthYearWindow,
+  needsBirthYearConfirm,
+  type BirthYearWindow,
+} from '@cultuvilla/shared/models/event/EventDataModel';
+
 import type { RegistrationStatus } from '@cultuvilla/shared/models/event/RegistrationDataModel';
 
 /** A persona's existing registration on the event: the doc id + its status. */
@@ -52,4 +58,24 @@ export function computeRegistrationDiff(
     if (!selectedIds.has(id)) toCancelRegIds.push(reg.regId);
   }
   return { toAdd, toCancelRegIds };
+}
+
+/**
+ * Names of the personas about to be signed up whose birth year falls outside
+ * the event's advertised window — the ones the sheet asks the user to confirm.
+ *
+ * A persona with no known birth year is never listed: every persona created in
+ * the app carries a full birthday, so a missing year is a legacy doc, not a
+ * mismatch worth a modal. See birthYearEligibility.
+ */
+export function outOfRangeAttendeeNames(
+  window: BirthYearWindow,
+  personIds: string[],
+  birthYearById: Map<string, number | null>,
+  names: Map<string, string>,
+): string[] {
+  if (!hasBirthYearWindow(window)) return [];
+  return personIds
+    .filter((id) => needsBirthYearConfirm(window, birthYearById.get(id) ?? null))
+    .map((id) => names.get(id) ?? '');
 }

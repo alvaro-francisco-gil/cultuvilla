@@ -17,7 +17,10 @@ import {
   buildSeatTokenData,
   OPEN_SEAT_NAME,
 } from '@cultuvilla/shared/models';
+import type { EventData } from '@cultuvilla/shared';
+import type { CancelledEmailAttendee } from '@cultuvilla/shared/email';
 import { isWalkInAuthorized } from '../helpers/walkInAuthorization';
+import { sendCancellationEmail } from './sendCancellationEmail';
 import { resolveCancellation } from '../helpers/cancellationPlan';
 import { generateSeatToken } from '../helpers/seatToken';
 
@@ -26,6 +29,13 @@ const db = getFirestore();
 interface CancelRegistrationData {
   eventId?: string;
   registrationId?: string;
+}
+
+/** One recipient's share of a cancellation: the seats they lost, and whether they did it. */
+interface CancellationRecipient {
+  userId: string;
+  attendees: CancelledEmailAttendee[];
+  selfInflicted: boolean;
 }
 
 interface CancelRegistrationResult {
@@ -62,7 +72,9 @@ export const cancelRegistration = onCall<
   if (!eventId) throw new HttpsError('invalid-argument', 'eventId requerido.');
   if (!registrationId) throw new HttpsError('invalid-argument', 'registrationId requerido.');
 
-  return db.runTransaction(async (tx) => {
+  const outcome = await db.runTransaction<
+    CancelRegistrationResult & { recipients: CancellationRecipient[]; event: EventData | null }
+  >(async (tx) => {
     const regRef = eventRegistrationDoc(db, eventId, registrationId);
     const [regSnap, eventSnap] = await Promise.all([tx.get(regRef), tx.get(eventDoc(db, eventId))]);
 
@@ -161,7 +173,10 @@ export const cancelRegistration = onCall<
         uid,
         groupId: plan.groupId,
       });
-      return { action: plan.action, removedRegistrationIds: [] };
+      // A guest handing a seat back keeps the booking alive, so there is
+      // nothing to mourn by email — the owner's notification above is the
+      // whole story.
+      return { action: plan.action, removedRegistrationIds: [], recipients: [], event: null };
     }
 
     // delete-solo / delete-group. The onRegistrationDeleted trigger recomputes
@@ -178,6 +193,41 @@ export const cancelRegistration = onCall<
       tx.delete(tokenDoc.ref);
     }
 
+    // Open seats belong to the owner but name nobody, so listing "Plaza libre"
+    // as a lost seat would be noise. Real seats only.
+    const lostSeats = (groupSeats?.docs.map((d) => d.data()) ?? [reg]).filter((r) => !r.isOpenSeat);
+    const recipients: CancellationRecipient[] = [];
+    for (const seat of lostSeats) {
+      const existing = recipients.find((r) => r.userId === seat.userId);
+      if (existing) {
+        existing.attendees.push({ name: seat.name });
+        continue;
+      }
+      recipients.push({
+        userId: seat.userId,
+        attendees: [{ name: seat.name }],
+        selfInflicted: seat.userId === uid,
+      });
+    }
+
+    for (const recipient of recipients) {
+      // Telling people what they themselves just did is noise; the callable
+      // already answered them.
+      if (recipient.selfInflicted) continue;
+      // Deterministic id: one removal from one event is one notification,
+      // however many seats it took and however often Eventarc redelivers.
+      tx.set(
+        userNotificationsCollection(db, recipient.userId).doc(`removed_${eventId}`),
+        buildNotificationData({
+          type: 'registration_removed',
+          title: 'Inscripción cancelada',
+          body: `Ya no estás apuntado a "${eventData.title}". Habla con quien organiza el evento si crees que es un error.`,
+          eventId,
+          municipalityId: eventData.municipalityId,
+        }),
+      );
+    }
+
     logger.info('Registration cancelled', {
       handler: 'cancelRegistration',
       eventId,
@@ -187,6 +237,33 @@ export const cancelRegistration = onCall<
       removedCount: doomed.length,
     });
 
-    return { action: plan.action, removedRegistrationIds: doomed.map((r) => r.id) };
+    return {
+      action: plan.action,
+      removedRegistrationIds: doomed.map((r) => r.id),
+      recipients,
+      event: eventData,
+    };
   });
+
+  // Deliberately outside the transaction: Firestore retries the callback on
+  // contention, and a send inside it would go out once per retry. Failures are
+  // swallowed and logged by sendCancellationEmail — a bounced email must not
+  // undo a completed cancellation.
+  const event = outcome.event;
+  if (event) {
+    for (const recipient of outcome.recipients) {
+      await sendCancellationEmail({
+        userId: recipient.userId,
+        eventId,
+        event,
+        attendees: recipient.attendees,
+        selfInflicted: recipient.selfInflicted,
+      });
+    }
+  }
+
+  return {
+    action: outcome.action,
+    removedRegistrationIds: outcome.removedRegistrationIds,
+  };
 });
