@@ -127,8 +127,11 @@ if (BIND_HOST) {
     }
   }
   // Inside ROOT so every relative path in the config (rules, functions source)
-  // still resolves against the repo.
-  const generated = path.join(ROOT, `firebase.emulator-bind.${process.pid}.json`);
+  // still resolves against the repo. A FIXED name, not per-pid: the emulators
+  // bind fixed ports, so two harness runs can't coexist anyway — and a
+  // pid-suffixed name just accumulates litter every time a run is killed hard
+  // enough to skip the exit hook.
+  const generated = path.join(ROOT, 'firebase.emulator-bind.json');
   writeFileSync(generated, JSON.stringify(base, null, 2));
   process.on('exit', () => { try { rmSync(generated); } catch { /* best effort */ } });
   configArgs = ['--config', path.basename(generated)];

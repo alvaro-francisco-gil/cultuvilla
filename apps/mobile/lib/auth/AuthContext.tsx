@@ -244,25 +244,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   //   1. extra.useEmulator — the build-time USE_FIREBASE_EMULATOR flag, set only
   //      by the E2E CI jobs. app.config.ts REFUSES to build a beta/prod bundle
   //      with it set, and the deploy workflows positively assert it is unset.
-  //   2. a runtime assertion that Auth is actually pointed at an emulator host
-  //      (getAuth().emulatorConfig.host) — see `isE2EEmulatorHost`. Even if the
-  //      flag leaked, a build talking to real Firebase arms nothing: it fails
-  //      closed by physics, not by intent.
+  //   2. a runtime assertion, checked on EVERY sign-in attempt, that Auth is
+  //      actually pointed at an emulator host (getAuth().emulatorConfig.host)
+  //      — see `isE2EEmulatorHost`. Even if the flag leaked, a build talking to
+  //      real Firebase signs nobody in: it fails closed by physics, not intent.
   //   3. the check:no-test-login-leak grep gate, which confines every symbol
   //      here to this file.
   // Uses the single signInWithEmailAndPassword primitive; no new auth method.
   useEffect(() => {
     if (Constants.expoConfig?.extra?.useEmulator !== true) return;
-    const auth = getAuth();
-    if (!isE2EEmulatorHost(auth.emulatorConfig?.host)) return;
 
-    const login = (email: string, password: string) =>
-      signInWithEmailAndPassword(auth, email, password);
+    // The emulator-host check happens at USE time, not at mount time.
+    //
+    // Mount time is a race: `bootstrapFirebase()` is what calls
+    // connectAuthEmulator, and if this effect wins that race `emulatorConfig`
+    // is still undefined — the seam would decline to arm and then never
+    // reconsider, silently dropping every login for the life of that launch.
+    // That is a flaky test, not a safety property. Checking here instead keeps
+    // the fail-closed physics exactly as strong (a build talking to real
+    // Firebase can never sign in) without depending on module ordering.
+    const login = (email: string, password: string): Promise<unknown> => {
+      const auth = getAuth();
+      if (!isE2EEmulatorHost(auth.emulatorConfig?.host)) {
+        return Promise.reject(
+          new Error('[e2e-login] refused: Auth is not pointed at a local emulator'),
+        );
+      }
+      return signInWithEmailAndPassword(auth, email, password);
+    };
+    const signOutFixture = (): Promise<unknown> => {
+      const auth = getAuth();
+      if (!isE2EEmulatorHost(auth.emulatorConfig?.host)) return Promise.resolve();
+      return fbSignOut(auth);
+    };
 
     if (Platform.OS === 'web') {
       (globalThis as { __cultuvillaE2E?: unknown }).__cultuvillaE2E = {
         login,
-        signOut: () => fbSignOut(auth),
+        signOut: signOutFixture,
       };
       return;
     }
@@ -278,7 +297,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const parsed = parseE2ELoginLink(url);
       if (!parsed) return;
       if (parsed.email === '') {
-        void fbSignOut(auth);
+        void signOutFixture();
         return;
       }
       void login(parsed.email, parsed.password).catch((e) => {

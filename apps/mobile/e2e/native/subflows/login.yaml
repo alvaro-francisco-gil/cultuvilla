@@ -7,27 +7,55 @@
 # ONE query parameter, pipe-separated: `adb shell am start -d` eats an
 # unescaped `&`, so a two-parameter link would arrive without the password.
 #
-# `clearState` + `openLink` on a STOPPED app, deliberately — never `launchApp`
-# followed by `openLink`. An intent that reaches a RUNNING app is delivered as a
-# one-shot `url` event, and the app's JS takes seconds to boot: the listener is
-# not mounted yet, so the credentials are silently dropped and the flow fails
-# later with a confusing "not signed in". A cold start makes the link the LAUNCH
-# intent, which `Linking.getInitialURL()` replays whenever the listener is ready.
+# THE SHAPE BELOW IS THE WHOLE POINT, and every line of it is a lesson:
 #
-# Ends on a positive signed-in assertion so a broken seam fails HERE, with an
+#  1. Launch WITHOUT credentials first. An intent fired at a cold-starting app
+#     is delivered once and dropped if the JS listener has not mounted yet, and
+#     `clearState` immediately followed by the login link loses it often enough
+#     to be maddening rather than obviously broken. Waiting for the tab bar
+#     proves the listener is attached before any credential is sent.
+#  2. Never use the bare `cultuvilla://`. expo-dev-client is a plain dependency,
+#     so its launcher activity exists even in this release APK and claims the
+#     schemeless link; the app never starts and the failure points somewhere
+#     else entirely. Always name a route.
+#  3. Carry the credentials ON the destination route. Sending login and
+#     navigation as two links leaves a window where the sign-in resolves in
+#     between and the AuthGate redirects to the tabs index.
+#  4. Re-ask with `runFlow: when:`, NOT with `retry:`. The AuthGate redirect can
+#     still win the first time; asking again works because the session already
+#     exists by then, so nothing redirects. It has to be a conditional rather
+#     than a retry because Maestro 2.4 records the failed attempt inside a
+#     `retry` block and reports the whole flow as failed even after a later
+#     attempt succeeds and every command reads COMPLETED.
+#  5. Do NOT tap the "Perfil" tab instead. That string also labels the profile
+#     screen's own header, so the selector is ambiguous and the tap can land on
+#     a header and navigate nowhere.
+#
+# It ends on a positive signed-in assertion so a broken seam fails HERE, with an
 # unambiguous message, instead of surfacing three steps later as a missing
 # button. `profile-edit-action` renders only once auth minted AND users/{uid}
 # AND persons/{id} have loaded, so it proves the whole read chain on device.
 appId: com.cultuvilla.app.dev
 ---
 - clearState
-- openLink: 'cultuvilla://?e2eLogin=${EMAIL}%7C${PASSWORD}'
-# The tab bar is the app's "JS is mounted" marker. Only once it is up is the
-# router's own URL listener attached and a second openLink safe to send.
+# Cold start with no credentials. As a guest the profile screen renders nothing,
+# which is fine — we are only waiting for the app to be alive.
+- openLink: 'cultuvilla://profile'
 - extendedWaitUntil:
     visible: 'Explora'
     timeout: 90000
-- openLink: 'cultuvilla://profile'
+- openLink: 'cultuvilla://profile?e2eLogin=${EMAIL}%7C${PASSWORD}'
+- repeat:
+    times: 4
+    commands:
+      - runFlow:
+          when:
+            notVisible:
+              id: 'profile-edit-action'
+          commands:
+            - openLink: 'cultuvilla://profile'
+            - waitForAnimationToEnd:
+                timeout: 4000
 - extendedWaitUntil:
     visible:
       id: 'profile-edit-action'

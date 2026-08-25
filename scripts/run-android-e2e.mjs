@@ -23,6 +23,8 @@
  *                     on the Windows host, so this must be the Windows
  *                     adb.exe — see the drive-android-avd skill.
  *   MAESTRO_BIN       maestro binary (default `maestro`).
+ *   E2E_ANDROID_DEVICE  adb id to target; defaults to the first attached
+ *                     emulator (see the selection note below).
  *   E2E_NATIVE_FLOW   Single flow file to run (same as --flow). Useful for
  *                     iterating on one flow under `pnpm test:e2e:android`,
  *                     which owns the emulator boot and takes no extra args.
@@ -39,6 +41,17 @@ const REPORT_DIR = path.join(SUITE_DIR, 'report');
 
 const ADB = process.env.ADB || 'adb';
 const MAESTRO = process.env.MAESTRO_BIN || 'maestro';
+
+// Maestro installs a driver APK on the device and connects to it over a
+// forwarded port. Its default startup budget is tight enough that a cold or
+// loaded emulator — a CI runner's software-rendered AVD, or a Windows-hosted
+// one reached across a WSL2 adb bridge — loses the race and dies with an opaque
+// `AndroidDriverTimeoutException` that reads like a broken flow. Give it room
+// unless the caller has already said otherwise.
+const MAESTRO_ENV = {
+  ...process.env,
+  MAESTRO_DRIVER_STARTUP_TIMEOUT: process.env.MAESTRO_DRIVER_STARTUP_TIMEOUT || '180000',
+};
 
 function arg(name) {
   const i = process.argv.indexOf(`--${name}`);
@@ -70,13 +83,24 @@ if (devices.status !== 0) {
 const attached = devices.stdout
   .split('\n')
   .slice(1)
-  .filter((l) => /\tdevice$/.test(l.trim()));
+  .filter((l) => /\tdevice$/.test(l.trim()))
+  .map((l) => l.trim().split('\t')[0]);
 if (attached.length === 0) {
   console.error('[android-e2e] no Android device/emulator attached. Boot an AVD first.');
   console.error(devices.stdout.trim());
   process.exit(1);
 }
-console.log(`[android-e2e] device: ${attached[0].split('\t')[0]}`);
+// Pin the target explicitly and pass it to BOTH adb and Maestro. With more than
+// one device attached — a developer's phone plugged in next to the AVD — adb
+// refuses outright and Maestro picks one on its own, so the install and the run
+// can disagree about what is being tested. Prefer an emulator: this suite
+// installs a debug-signed APK wired to a local Firebase emulator, which has no
+// business landing on a real phone.
+const device =
+  process.env.E2E_ANDROID_DEVICE ??
+  attached.find((id) => id.startsWith('emulator-')) ??
+  attached[0];
+console.log(`[android-e2e] device: ${device}${attached.length > 1 ? ` (of ${attached.length} attached)` : ''}`);
 
 // 2. Install the build under test. `-r` so a re-run over an existing install
 //    updates in place; `-d` allows a downgrade when re-testing an older commit.
@@ -87,7 +111,7 @@ if (apk) {
     process.exit(1);
   }
   console.log(`[android-e2e] installing ${apkPath}`);
-  const code = run(ADB, ['install', '-r', '-d', apkPath]);
+  const code = run(ADB, ['-s', device, 'install', '-r', '-d', apkPath]);
   if (code !== 0) process.exit(code);
 }
 
@@ -112,14 +136,20 @@ const flows = flow
 const failed = [];
 for (const name of flows) {
   console.log(`\n[android-e2e] ─── ${name} ───`);
-  const status = run(MAESTRO, [
-    'test',
-    path.join(FLOWS_DIR, name),
-    '--format',
-    'junit',
-    '--output',
-    path.join(REPORT_DIR, `${name.replace(/\.yaml$/, '')}.xml`),
-  ]);
+  const status = run(
+    MAESTRO,
+    [
+      '--device',
+      device,
+      'test',
+      path.join(FLOWS_DIR, name),
+      '--format',
+      'junit',
+      '--output',
+      path.join(REPORT_DIR, `${name.replace(/\.yaml$/, '')}.xml`),
+    ],
+    { env: MAESTRO_ENV },
+  );
   if (status !== 0) failed.push(name);
 }
 

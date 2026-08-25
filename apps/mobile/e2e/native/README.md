@@ -124,6 +124,21 @@ costs two extra steps:
 Neither applies on a Linux runner, where the AVD and the emulators share one
 loopback — which is why CI leaves both unset and exposes nothing.
 
+## Maestro traps this suite already paid for
+
+Every one of these cost real debugging time. They are encoded in the flows with
+comments; this is the index.
+
+| Trap | What it looks like | What to do |
+|---|---|---|
+| `hideKeyboard` is a **BACK press** | A later step fails with "element not found" while the app sits on the launcher — `inputText` on an AVD with a hardware keyboard never raises a soft keyboard, so the BACK walks out of the screen. | Don't use it. |
+| `retry:` still fails the flow | Every command reads COMPLETED and the flow is reported FAILED anyway (Maestro 2.4 records the failed attempt inside the block). | Use `runFlow: when:` — a skipped conditional records nothing. |
+| `scrollUntilVisible` on an unscrollable screen | Burns its timeout and fails, naming a field that was visible all along. | Wrap it in `runFlow: when: notVisible:`, or drop it. |
+| A centre-tap lands on the wrong child | Tapping a consent row opens the legal screen instead of ticking the box; tapping an icon-sized adornment reports COMPLETED while the handler never fires. | Target the inner element (`accept-terms-box`), or trigger the same handler another way (`pressKey: Enter` on an input with `onSubmitEditing`). |
+| The bare `cultuvilla://` | The app never starts. expo-dev-client is a plain dependency, so its launcher activity exists even in the release APK and claims the schemeless link. | Always name a route. |
+| An intent to a cold-starting app | Silently dropped — the JS listener has not mounted yet. | Launch first, wait for the tab bar, then send the link. |
+| Text selectors match the WHOLE string | `Apuntado` misses "Apuntado (1)"; `Perfil` matches both the tab and the screen header. | Use a regex (`Apuntad.*`) or a `testID`. |
+
 ## Adding a flow
 
 Mirror an existing web flow rather than inventing a divergent native-only

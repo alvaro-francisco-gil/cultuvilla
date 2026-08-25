@@ -116,6 +116,46 @@ describe('native flow suite', () => {
   // The substrate's whole point (docs/decisions/e2e-testing-substrate.md): the
   // stable assertion is Firestore emulator state, not the view hierarchy. A
   // suite that only ever asserted on screen text would be the fragile half only.
+  // `hideKeyboard` is a BACK press on Android. `inputText` on an AVD with a
+  // hardware keyboard never raises a soft keyboard, so the BACK walks out of the
+  // screen and the next step fails against the launcher — a failure that names
+  // the wrong thing entirely. It cost an afternoon once; it does not get to a
+  // second time.
+  it('never uses hideKeyboard', () => {
+    for (const flow of flows) {
+      const body = read(`apps/mobile/e2e/native/flows/${flow}`)
+        .split('\n')
+        .filter((l) => !l.trim().startsWith('#'))
+        .join('\n');
+      expect(body).not.toMatch(/hideKeyboard/);
+    }
+  });
+
+  // Maestro 2.4's `retry:` reports the whole flow as FAILED because of a failed
+  // attempt, even when a later attempt succeeds and every command reads
+  // COMPLETED. `runFlow: when:` is the primitive that actually absorbs a
+  // transient — a skipped conditional records nothing.
+  it('absorbs transients with runFlow-when, never with retry', () => {
+    for (const file of [...flows.map((f) => `flows/${f}`), 'subflows/login.yaml', 'subflows/login-fresh.yaml']) {
+      const body = read(`apps/mobile/e2e/native/${file}`)
+        .split('\n')
+        .filter((l) => !l.trim().startsWith('#'))
+        .join('\n');
+      expect(body).not.toMatch(/^\s*-\s*retry:/m);
+    }
+  });
+
+  // expo-dev-client is a plain dependency, so its launcher activity ships even
+  // in this release APK and claims a schemeless `cultuvilla://` — the app never
+  // starts and the failure points somewhere else entirely.
+  it('never opens the bare scheme', () => {
+    for (const file of [...flows.map((f) => `flows/${f}`), 'subflows/login.yaml', 'subflows/login-fresh.yaml']) {
+      expect(read(`apps/mobile/e2e/native/${file}`)).not.toMatch(
+        /openLink:\s*'?cultuvilla:\/\/'?\s*$/m,
+      );
+    }
+  });
+
   it('asserts on backend state, not only on the screen', () => {
     const withBackendAssertions = flows.filter((f) =>
       read(`apps/mobile/e2e/native/flows/${f}`).includes('runScript'),

@@ -1,13 +1,22 @@
-# Same seam and the same cold-start reasoning as login.yaml, but for an
-# auth-only fixture account with no profile. There is no `profile-edit-action`
+# Same seam and the same reasoning as login.yaml (read the note there), but for
+# an auth-only fixture account with no profile. There is no `profile-edit-action`
 # to wait on — the AuthGate diverts to complete-profile instead — so the
 # assertion is that screen's first field, which doubles as the proof that the
 # divert happened.
+#
+# No re-ask loop is needed here: the divert IS the AuthGate doing its job, so
+# there is no navigation for it to race against.
 appId: com.cultuvilla.app.dev
 ---
 - clearState
-- openLink: 'cultuvilla://?e2eLogin=${EMAIL}%7C${PASSWORD}'
+# A concrete route, never the bare `cultuvilla://` — expo-dev-client's launcher
+# claims the schemeless link even in this release APK.
+- openLink: 'cultuvilla://profile'
+- extendedWaitUntil:
+    visible: 'Explora'
+    timeout: 90000
+- openLink: 'cultuvilla://profile?e2eLogin=${EMAIL}%7C${PASSWORD}'
 - extendedWaitUntil:
     visible:
       id: 'person-given-name'
-    timeout: 90000
+    timeout: 60000

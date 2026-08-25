@@ -31,8 +31,11 @@ env:
       DOC_PATH: 'municipalities/${VILLAGE_ID}/members/${UID}'
       EXPECT: present
 - assertTrue: ${output.ok == 'true'}
-# The member-only affordance replaces the join button once membership lands.
+# The member-only affordance replaces the join button once the client re-reads
+# its own membership. That is a second round trip after the write the assertion
+# above already proved, so it gets a native-sized timeout rather than the web
+# suite's 15s.
 - extendedWaitUntil:
     visible:
       id: 'village-add-content-action'
-    timeout: 20000
+    timeout: 45000

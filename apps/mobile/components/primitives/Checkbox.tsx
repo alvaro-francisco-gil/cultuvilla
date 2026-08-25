@@ -29,6 +29,13 @@ export function Checkbox({ value, onValueChange, label, testID }: CheckboxProps)
     >
       <HStack gap={2} align="center">
         <View
+          // The box gets its own handle because the label is frequently a node
+          // with tappable links inside it (consent copy pointing at /legal/*).
+          // An automated tap aims at an element's CENTRE, which on such a row
+          // lands on a link and navigates away instead of ticking the box; the
+          // box's centre is unambiguous and the press still bubbles to the
+          // Pressable above.
+          testID={testID ? `${testID}-box` : undefined}
           className={`w-6 h-6 rounded-sm border items-center justify-center ${
             value ? 'bg-accent border-accent' : 'bg-surface border-subtle'
           }`}
