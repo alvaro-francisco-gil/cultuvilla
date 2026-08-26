@@ -78,20 +78,30 @@ env:
 - tapOn:
     id: 'person-second-surname'
 - inputText: 'DePrueba'
-# Put the keyboard away before reaching for the sex selector. It covers the
-# lower half of a pixel_5, and `scrollUntilVisible` cannot reveal an element the
-# keyboard is sitting on top of — the three name fields above survived only
-# because they sit high enough to stay clear of it.
+# The soft keyboard covers the bottom ~45% of a pixel_5, and `scrollUntilVisible`
+# CANNOT get out from under it: Maestro's swipe starts at the screen centre,
+# which sits right on the keyboard's top edge, so the gesture is absorbed and the
+# list barely moves. Swipe explicitly instead, with BOTH endpoints above the
+# keyboard, and repeat until the target surfaces.
 #
-# Tapping a plain label is what does it: PersonForm's ScrollView is
-# `keyboardShouldPersistTaps="handled"`, so a tap landing on a non-touchable
-# dismisses the keyboard instead of being swallowed. `hideKeyboard` is banned
-# suite-wide (androidE2e.test.ts) because on Android it is a BACK press, which
-# walks out of the screen on an AVD whose hardware keyboard means no soft
-# keyboard was ever raised. Nothing below needs this field to keep focus, so
-# blurring is free here — unlike in 40-entity-comments, where it would kill the
-# Enter-to-send.
-- tapOn: 'Nombre'
+# A swipe is also the only option that keeps the focused field focused —
+# `hideKeyboard` is banned suite-wide (androidE2e.test.ts: on Android it is a
+# BACK press, which walks out of the screen on a hardware-keyboard AVD), and
+# tapping a label to dismiss does not work either: the label belongs to the
+# Input's own subtree, so Maestro resolves the text to the FIELD and taps it,
+# re-opening the keyboard it was meant to close.
+#
+# Everything from the sex selector down (terms box, submit) is below the fold
+# with the keyboard up, so this is the one place the flow needs it.
+- repeat:
+    times: 8
+    while:
+      notVisible:
+        id: 'person-sex-female'
+    commands:
+      - swipe:
+          start: 50%, 45%
+          end: 50%, 15%
 - runFlow:
     when:
       notVisible:

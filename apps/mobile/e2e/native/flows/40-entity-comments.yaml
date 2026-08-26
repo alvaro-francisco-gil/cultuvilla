@@ -37,22 +37,31 @@ env:
 # the field and the flow fails later with "no comment in Firestore". The input
 # carries `returnKeyType="send"` + `onSubmitEditing={onSend}`, so Enter runs the
 # very same handler, reliably.
-# ...but it has to be ON SCREEN to be asserted. The soft keyboard resizes the
-# window (`windowSoftInputMode=adjustResize`) and the composer ends up scrolled
-# off the bottom, so `comment-send` exists and is still not visible. Scroll it
-# back — never tap, and never dismiss the keyboard: Enter below submits through
-# the field's `onSubmitEditing`, so anything that blurs `comment-input` turns
-# the send into a silent no-op. Scrolling keeps focus.
-- runFlow:
-    when:
+# The soft keyboard covers the bottom ~45% of a pixel_5, and `scrollUntilVisible`
+# CANNOT get out from under it: Maestro's swipe starts at the screen centre,
+# which sits right on the keyboard's top edge, so the gesture is absorbed and the
+# list barely moves. Swipe explicitly instead, with BOTH endpoints above the
+# keyboard, and repeat until the target surfaces.
+#
+# A swipe is also the only option that keeps the focused field focused —
+# `hideKeyboard` is banned suite-wide (androidE2e.test.ts: on Android it is a
+# BACK press, which walks out of the screen on a hardware-keyboard AVD), and
+# tapping a label to dismiss does not work either: the label belongs to the
+# Input's own subtree, so Maestro resolves the text to the FIELD and taps it,
+# re-opening the keyboard it was meant to close.
+#
+# Keeping focus is not optional here: `pressKey: Enter` below submits through
+# the field's `onSubmitEditing`, so any blur turns the send into a silent no-op
+# that only surfaces later as "no comment in Firestore".
+- repeat:
+    times: 8
+    while:
       notVisible:
         id: 'comment-send'
     commands:
-      - scrollUntilVisible:
-          element:
-            id: 'comment-send'
-          direction: DOWN
-          timeout: 20000
+      - swipe:
+          start: 50%, 45%
+          end: 50%, 15%
 - assertVisible:
     id: 'comment-send'
 - pressKey: Enter
