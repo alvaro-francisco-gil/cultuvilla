@@ -17,8 +17,10 @@ vi.mock('sharp', () => {
 });
 
 import {
+  STORAGE_BUCKET_REGION,
   VARIANT_MAX_EDGE,
   downloadTokenOf,
+  generateImageVariants,
   variantDecision,
   writeVariants,
 } from '../../images/generateImageVariants';
@@ -118,5 +120,21 @@ describe('writeVariants', () => {
 
   it('keeps the thumb budget well below the card budget', () => {
     expect(VARIANT_MAX_EDGE.thumb).toBeLessThan(VARIANT_MAX_EDGE.card);
+  });
+});
+
+describe('trigger region', () => {
+  it('is pinned to the bucket region, not the us-central1 default', () => {
+    // A Storage trigger must live in its bucket's region. All three envs'
+    // default buckets are US-EAST1, so leaving the function on the
+    // us-central1 default fails the entire `firebase deploy` with
+    // "A function in region us-central1 cannot listen to a bucket in region
+    // us-east1" — taking every other function's deploy down with it.
+    expect(STORAGE_BUCKET_REGION).toBe('us-east1');
+
+    const { __endpoint } = generateImageVariants as unknown as {
+      __endpoint: { region?: string[] };
+    };
+    expect(__endpoint.region).toEqual(['us-east1']);
   });
 });

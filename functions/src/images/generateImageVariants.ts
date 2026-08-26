@@ -28,6 +28,18 @@ const WEBP_QUALITY: Record<ImageVariant, number> = {
 /** Matches `imageService.IMAGE_UPLOAD_CACHE_CONTROL`. */
 const CACHE_CONTROL = 'public, max-age=31536000, immutable';
 
+/**
+ * Region of the default Storage bucket in every environment (villa-events,
+ * cultuvilla-beta, cultuvilla-prod are all `US-EAST1`).
+ *
+ * A Storage trigger MUST be co-located with its bucket — functions default to
+ * `us-central1`, and deploying this one there fails the whole `firebase deploy`
+ * with "A function in region us-central1 cannot listen to a bucket in region
+ * us-east1". Locked by the region test in
+ * `functions/src/__tests__/handlers/generateImageVariants.test.ts`.
+ */
+export const STORAGE_BUCKET_REGION = 'us-east1';
+
 export interface VariantDecision {
   generate: boolean;
   reason: 'ok' | 'not-an-image' | 'already-a-variant' | 'exempt-path';
@@ -171,6 +183,11 @@ export async function handleObjectFinalized(event: StorageEvent): Promise<void> 
  * what this writes.
  */
 export const generateImageVariants = onObjectFinalized(
-  { memory: '1GiB', timeoutSeconds: 120, retry: false },
+  {
+    region: STORAGE_BUCKET_REGION,
+    memory: '1GiB',
+    timeoutSeconds: 120,
+    retry: false,
+  },
   handleObjectFinalized,
 );
