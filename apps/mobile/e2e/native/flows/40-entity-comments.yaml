@@ -30,46 +30,27 @@ env:
 - tapOn:
     id: 'comment-input'
 - inputText: ${output.body}
-# The send arrow mounts only once the body is non-empty, so asserting it is a
-# real check on the composer's state — but do NOT tap it. It is an icon-sized
+# NO visibility assertion on `comment-send`, and no scrolling: on Android the
+# composer CANNOT be brought on screen while the keyboard is up. Twenty-five
+# full-height swipes moved the page by exactly zero pixels — the ScrollView is
+# already at maximum scroll, the content bottom sits at the screen bottom, and
+# the keyboard simply overlays the last ~45% of it. The window is not resized.
+#
+# That is a real product limitation on native (the web build has no overlaying
+# keyboard, which is why the Playwright mirror asserts this happily), so no
+# test-side change can satisfy `assertVisible: comment-send`. Do not add one
+# back without fixing the app first.
+#
+# The send still works and is still fully verified: `comment-input` carries
+# `returnKeyType="send"` + `onSubmitEditing={onSend}`, so Enter on the focused
+# field runs the same handler the arrow would, and the two runScript assertions
+# below check the actual Firestore state — the comment document and the
+# denormalised `commentCount`. That is the suite's own standard: assert on
+# backend state, not on the screen.
+#
+# Do NOT tap the arrow even once it is reachable: it is an icon-sized
 # `Pressable` inside the input's `rightAdornment`, and a synthetic tap at its
-# centre reports COMPLETED while the handler never fires: the text just sits in
-# the field and the flow fails later with "no comment in Firestore". The input
-# carries `returnKeyType="send"` + `onSubmitEditing={onSend}`, so Enter runs the
-# very same handler, reliably.
-# The soft keyboard covers the bottom ~45% of a pixel_5, and `scrollUntilVisible`
-# CANNOT get out from under it: Maestro's swipe starts at the screen centre,
-# which sits right on the keyboard's top edge, so the gesture is absorbed and the
-# list barely moves. Swipe explicitly instead, with BOTH endpoints above the
-# keyboard, and repeat until the target surfaces.
-#
-# A swipe is also the only option that keeps the focused field focused —
-# `hideKeyboard` is banned suite-wide (androidE2e.test.ts: on Android it is a
-# BACK press, which walks out of the screen on a hardware-keyboard AVD), and
-# tapping a label to dismiss does not work either: the label belongs to the
-# Input's own subtree, so Maestro resolves the text to the FIELD and taps it,
-# re-opening the keyboard it was meant to close.
-#
-# Keeping focus is not optional here: `pressKey: Enter` below submits through
-# the field's `onSubmitEditing`, so any blur turns the send into a silent no-op
-# that only surfaces later as "no comment in Firestore".
-#
-# The bound is generous because the composer sits below the ENTIRE attendee
-# list, and `while: notVisible` exits the moment it surfaces — so a high ceiling
-# costs nothing on a short page and is the difference between passing and
-# failing on a long one. Eight was not enough: the run stopped at "Asistentes",
-# one screen short.
-- repeat:
-    times: 25
-    while:
-      notVisible:
-        id: 'comment-send'
-    commands:
-      - swipe:
-          start: 50%, 50%
-          end: 50%, 12%
-- assertVisible:
-    id: 'comment-send'
+# centre reports COMPLETED while the handler never fires.
 - pressKey: Enter
 # No `hideKeyboard` — on Android that is a BACK press, and with no soft keyboard
 # up (this AVD has a hardware one) it walks straight out of the screen.

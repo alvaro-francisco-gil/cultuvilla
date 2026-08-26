@@ -99,9 +99,14 @@ env:
       notVisible:
         id: 'person-sex-female'
     commands:
+      # 45% -> 15%, NOT 50% -> 12%: this flow reached the end of the form with
+      # these exact numbers, and regressed the moment the stroke was widened.
+      # A start at 50% lands on a text field rather than on inert form
+      # background, so the gesture is taken as a text interaction instead of a
+      # scroll. Both endpoints must also stay clear of the keyboard.
       - swipe:
-          start: 50%, 50%
-          end: 50%, 12%
+          start: 45%, 45%
+          end: 45%, 15%
 - runFlow:
     when:
       notVisible:
