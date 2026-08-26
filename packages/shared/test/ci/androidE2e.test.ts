@@ -94,6 +94,37 @@ describe('E2E auth-bypass hygiene', () => {
   });
 });
 
+describe('gradle build headroom', () => {
+  // The first real run of this job died here, and reported the wrong thing.
+  // `:expo-updates:kspReleaseKotlin` exhausted the 512m metaspace that Expo's
+  // generated gradle.properties grants, the daemon then spun emitting
+  // `OutOfMemoryError: Metaspace` from its RMI threads instead of exiting, and
+  // the job burned the remaining 45 minutes to its `timeout-minutes` and
+  // surfaced as "cancelled" — a starved-runner symptom, not an OOM one.
+  it('raises the metaspace ceiling above Expo template default', () => {
+    expect(apkScript).toMatch(/org\.gradle\.jvmargs=\$\{JVM_ARGS\}/);
+    const jvmArgs = /const JVM_ARGS = '([^']+)'/.exec(apkScript)?.[1] ?? '';
+    const metaspace = /MaxMetaspaceSize=(\d+)m/.exec(jvmArgs)?.[1];
+    expect(metaspace, `no MaxMetaspaceSize in "${jvmArgs}"`).toBeDefined();
+    expect(Number(metaspace)).toBeGreaterThan(512);
+  });
+
+  // `expo prebuild --clean` rewrites gradle.properties from the template on
+  // every run, so the ceiling has to be re-applied by the script rather than
+  // committed once. If the patch ever silently matches nothing, the build is
+  // back on 512m with no signal — so it must be a hard failure.
+  it('fails loudly if the property it patches is gone', () => {
+    expect(apkScript).toMatch(/no org\.gradle\.jvmargs line/);
+    expect(apkScript).toMatch(/process\.exit\(1\)/);
+  });
+
+  // Without this, a fatal Gradle error costs 45 minutes of runner time and
+  // reports as a timeout instead of as itself.
+  it('builds with --no-daemon so a fatal build dies instead of hanging', () => {
+    expect(apkScript).toMatch(/'--no-daemon'/);
+  });
+});
+
 describe('native flow suite', () => {
   const flows = readdirSync(flowsDir).filter((f) => f.endsWith('.yaml'));
 
