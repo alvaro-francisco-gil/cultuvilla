@@ -590,6 +590,24 @@
       "error": "No se pudo generar el archivo. Inténtalo de nuevo."
     },
     "attendeesEmpty": "Aún no hay asistentes",
+    "history": {
+      "title": "Historial de inscripciones",
+      "show": "Ver historial",
+      "hide": "Ocultar historial",
+      "empty": "Todavía no hay movimientos.",
+      "error": "No se ha podido cargar el historial.",
+      "unknownActor": "Alguien",
+      "wasWaitlisted": "en lista de espera",
+      "signed_up": "{name} se apuntó",
+      "walk_in_added": "{actor} apuntó a {name} en la puerta",
+      "seat_claimed": "{name} ocupó una plaza del grupo",
+      "waitlist_promoted": "{name} pasó de la lista de espera a plaza confirmada",
+      "cancelled_self": "{name} anuló su inscripción",
+      "removed_by_organizer": "{actor} quitó a {name}",
+      "group_cancelled": "{name} salió al anularse su grupo",
+      "seat_released": "{name} devolvió su plaza al grupo",
+      "signups_disabled": "{name} salió al desactivarse las inscripciones"
+    },
     "attendeePrivate": "Perfil privado",
     "signedUpAt": "Apuntado el {date}",
     "removeAttendeeTitle": "Quitar asistente",
@@ -654,10 +672,12 @@
     "signupGroupSizeCount": "Personas por grupo",
     "signupGroupSizeLocked": "No se puede cambiar: ya hay gente apuntada.",
     "birthYearRange": "Años de nacimiento",
-    "birthYearRangeHelp": "Opcional. Orientativo: quien no cumpla el rango podrá apuntarse igualmente confirmándolo.",
+    "birthYearLimit": "Limitar la edad",
+    "birthYearLimitHelp": "Orientativo: quien no cumpla el rango podrá apuntarse igualmente confirmándolo. Puedes dejar un extremo en blanco para no limitarlo por ese lado. A quien no tenga año de nacimiento registrado no se le pregunta.",
     "birthYearFrom": "Desde el año",
     "birthYearTo": "Hasta el año",
-    "birthYearAny": "Sin límite",
+    "birthYearFromExample": "Ej. 1990",
+    "birthYearToExample": "Ej. 2014",
     "birthYearRangeInvalid": "El año final no puede ser anterior al inicial",
     "birthYearBoundsInvalid": "Introduce un año entre {min} y {max}",
     "birthYearLabel": {
@@ -1110,8 +1130,10 @@
   "appUpdate": {
     "blockTitle": "Actualización necesaria",
     "blockBody": "Esta versión ya no es compatible. Actualiza para seguir usando Cultuvilla.",
-    "nudge": "Hay una versión nueva disponible.",
-    "cta": "Actualizar"
+    "nudgeTitle": "Nueva actualización disponible",
+    "nudgeBody": "Hay una versión nueva de Cultuvilla con mejoras y correcciones.",
+    "cta": "Actualizar ahora",
+    "later": "Más tarde"
   },
   "userProfile": {
     "title": "Perfil",

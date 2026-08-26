@@ -1,6 +1,6 @@
 {
   "name": "cultuvilla-mobile",
-  "version": "0.28.0",
+  "version": "0.29.0",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
@@ -17,8 +17,7 @@
     "typecheck": "tsc --noEmit",
     "e2e": "playwright test --config e2e/playwright.config.ts",
     "e2e:ui": "playwright test --config e2e/playwright.config.ts --ui",
-    "e2e:browser": "playwright test --config e2e/browser.config.ts",
-    "e2e:native": "maestro test e2e/native/flows"
+    "e2e:browser": "playwright test --config e2e/browser.config.ts"
   },
   "dependencies": {
     "@cultuvilla/i18n": "workspace:*",
@@ -37,6 +36,8 @@
     "expo-dev-client": "~56.0.20",
     "expo-file-system": "~56.0.10",
     "expo-font": "^56.0.7",
+    "expo-image": "~56.0.12",
+    "expo-image-manipulator": "~56.0.25",
     "expo-image-picker": "~56.0.18",
     "expo-linking": "~56.0.14",
     "expo-localization": "~56.0.6",

@@ -1,4 +1,5 @@
-import { Image, View, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { RemoteImage } from './RemoteImage';
 import { Pressable } from './Pressable';
 import { Text } from './Text';
 
@@ -12,10 +13,15 @@ export interface AvatarProps {
 export function Avatar({ uri, size = 96, initials, onPress }: AvatarProps) {
   const radius = size / 2;
   const content = uri ? (
-    <Image
-      source={{ uri }}
+    // `thumb`: an avatar is at most ~96dp, so the 240px rendition is already
+    // generous at 3x DPR and a fraction of the original's weight.
+    <RemoteImage
+      uri={uri}
+      variant="thumb"
       style={{ width: size, height: size, borderRadius: radius }}
-      accessibilityIgnoresInvertColors
+      contentFit="cover"
+      transitionMs={0}
+      testID="avatar-image"
     />
   ) : (
     <View

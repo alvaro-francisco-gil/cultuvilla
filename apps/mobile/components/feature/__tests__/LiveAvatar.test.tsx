@@ -41,11 +41,10 @@ describe('<LiveAvatar>', () => {
       error: null,
     });
 
-    const { UNSAFE_getByType } = render(<LiveAvatar ownerId="alice" ownerType="user" />);
+    const { getByTestId } = render(<LiveAvatar ownerId="alice" ownerType="user" />);
 
     expect(userDoc).toHaveBeenCalledWith(expect.anything(), 'alice');
-    const { Image } = require('react-native');
-    expect(UNSAFE_getByType(Image).props.source).toEqual({ uri: 'https://img/alice.jpg' });
+    expect(getByTestId('avatar-image').props.source).toEqual([{ uri: 'https://img/alice.jpg' }]);
   });
 
   it('reads images[0] for organization owners', () => {
@@ -55,11 +54,10 @@ describe('<LiveAvatar>', () => {
       error: null,
     });
 
-    const { UNSAFE_getByType } = render(<LiveAvatar ownerId="pena1" ownerType="organization" />);
+    const { getByTestId } = render(<LiveAvatar ownerId="pena1" ownerType="organization" />);
 
     expect(organizationDoc).toHaveBeenCalledWith(expect.anything(), 'pena1');
-    const { Image } = require('react-native');
-    expect(UNSAFE_getByType(Image).props.source).toEqual({ uri: 'https://img/pena.jpg' });
+    expect(getByTestId('avatar-image').props.source).toEqual([{ uri: 'https://img/pena.jpg' }]);
   });
 
   it('uses the person doc for person owners', () => {

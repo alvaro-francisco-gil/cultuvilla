@@ -1,6 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 import { uriToBlob } from './uriToBlob';
+import { downscaleForUpload } from './downscale';
 
 /**
  * Native square pick + crop (the default impl; web overrides it in
@@ -21,12 +22,18 @@ export async function pickAndCropSquare(): Promise<UploadableImage | null> {
   });
   if (result.canceled || !result.assets[0]) return null;
   const asset = result.assets[0];
-  const blob = await uriToBlob(asset.uri);
+  const scaled = await downscaleForUpload({
+    uri: asset.uri,
+    width: asset.width,
+    height: asset.height,
+    contentType: asset.mimeType ?? undefined,
+  });
+  const blob = await uriToBlob(scaled.uri);
   return {
     blob,
-    filename: asset.fileName ?? `upload-${Date.now()}.jpg`,
-    contentType: asset.mimeType ?? 'image/jpeg',
-    previewUri: asset.uri,
+    filename: `upload-${Date.now()}.${scaled.extension}`,
+    contentType: scaled.contentType,
+    previewUri: scaled.uri,
   };
 }
 

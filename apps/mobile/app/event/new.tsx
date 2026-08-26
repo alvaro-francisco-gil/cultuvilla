@@ -169,6 +169,10 @@ export default function NewEventScreen() {
   const [signupGroupSize, setSignupGroupSize] = useState(1);
   // Advisory birth-year window ("nacidos entre X y Y"). Kept as strings so a
   // half-typed year doesn't fight the numeric state; parsed on submit.
+  // The window is one decision — "¿limito la edad?" — and an optional
+  // refinement. Switching it off keeps whatever was typed so a mis-tap doesn't
+  // destroy it; submit reads the toggle, not the text.
+  const [birthYearLimited, setBirthYearLimited] = useState(false);
   const [minBirthYear, setMinBirthYear] = useState('');
   const [maxBirthYear, setMaxBirthYear] = useState('');
   // Off = the event takes no sign-ups through the app (entrada libre, or a list
@@ -248,6 +252,7 @@ export default function NewEventScreen() {
         setSignupGroupSize(ev.signupGroupSize);
         setMinBirthYear(ev.minBirthYear == null ? '' : String(ev.minBirthYear));
         setMaxBirthYear(ev.maxBirthYear == null ? '' : String(ev.maxBirthYear));
+        setBirthYearLimited(ev.minBirthYear != null || ev.maxBirthYear != null);
         setSignupEnabled(ev.signupEnabled !== false);
         setSignupInfo(ev.signupInfo ?? '');
         setAttendeesPublic(ev.attendeesVisibility !== 'organizers');
@@ -327,9 +332,13 @@ export default function NewEventScreen() {
   const maxBirthYearNum = maxBirthYear.trim() ? Number(maxBirthYear) : null;
   const outOfBounds = (y: number | null) =>
     y !== null && (!Number.isInteger(y) || y < MIN_EVENT_BIRTH_YEAR || y > MAX_EVENT_BIRTH_YEAR);
-  const birthYearOutOfBounds = outOfBounds(minBirthYearNum) || outOfBounds(maxBirthYearNum);
+  const birthYearOutOfBounds =
+    birthYearLimited && (outOfBounds(minBirthYearNum) || outOfBounds(maxBirthYearNum));
   const birthYearRangeInvalid =
-    minBirthYearNum !== null && maxBirthYearNum !== null && maxBirthYearNum < minBirthYearNum;
+    birthYearLimited &&
+    minBirthYearNum !== null &&
+    maxBirthYearNum !== null &&
+    maxBirthYearNum < minBirthYearNum;
 
   // Survives a failed cover upload so the retry patches the event that was
   // already created instead of creating another one. See the create branch.
@@ -348,8 +357,9 @@ export default function NewEventScreen() {
       // A window is only read by the in-app sign-up sheet, so it is dropped
       // outright when in-app sign-ups are off — same rule as signupInfo, and
       // the one EventFormSchema and firestore.rules both encode.
-      const minBirthYearValue = signupEnabled && minBirthYear.trim() ? Number(minBirthYear) : null;
-      const maxBirthYearValue = signupEnabled && maxBirthYear.trim() ? Number(maxBirthYear) : null;
+      const yearsApply = signupEnabled && birthYearLimited;
+      const minBirthYearValue = yearsApply && minBirthYear.trim() ? Number(minBirthYear) : null;
+      const maxBirthYearValue = yearsApply && maxBirthYear.trim() ? Number(maxBirthYear) : null;
       // Half-finished rows (no label yet, or a select with no options to pick)
       // would be unanswerable, so they never reach the event doc. Locked rows
       // are kept verbatim — dropping one would break the additive-only rule.
@@ -667,10 +677,18 @@ export default function NewEventScreen() {
             keyboardType="numeric"
           />
           {/* Advisory only: the sign-up sheet warns and still lets the user
-              through, so this is a hint to the pueblo, not a gate. */}
+              through, so this is a hint to the pueblo, not a gate. Most events
+              have no age range at all, so the years stay behind the toggle
+              rather than spending two inputs of the step on the rare case. */}
           <VStack gap={1}>
-            <FieldLabel>{t('event.birthYearRange')}</FieldLabel>
-            <Text variant="bodySm" tone="muted">{t('event.birthYearRangeHelp')}</Text>
+            <ToggleField
+              label={t('event.birthYearLimit')}
+              help={t('event.birthYearLimitHelp')}
+              value={birthYearLimited}
+              onValueChange={setBirthYearLimited}
+              testID="birth-year-limit"
+            />
+            {birthYearLimited ? (
             <HStack gap={2} className="items-start">
               <View className="flex-1">
                 <Input
@@ -679,7 +697,7 @@ export default function NewEventScreen() {
                   onChangeText={setMinBirthYear}
                   keyboardType="numeric"
                   maxLength={4}
-                  placeholder={t('event.birthYearAny')}
+                  placeholder={t('event.birthYearFromExample')}
                   testID="min-birth-year"
                 />
               </View>
@@ -690,11 +708,12 @@ export default function NewEventScreen() {
                   onChangeText={setMaxBirthYear}
                   keyboardType="numeric"
                   maxLength={4}
-                  placeholder={t('event.birthYearAny')}
+                  placeholder={t('event.birthYearToExample')}
                   testID="max-birth-year"
                 />
               </View>
             </HStack>
+            ) : null}
             {birthYearRangeInvalid ? (
               <Text tone="danger" variant="bodySm" testID="birth-year-range-error">
                 {t('event.birthYearRangeInvalid')}

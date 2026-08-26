@@ -20,14 +20,13 @@ describe('<LiveOwnerChip>', () => {
       loading: false,
     });
 
-    const { getByText, UNSAFE_getByType } = render(
+    const { getByText, getByTestId } = render(
       <LiveOwnerChip ownerId="u1" ownerType="user" />,
     );
 
     expect(useOwnerSummary).toHaveBeenCalledWith('u1', 'user');
     expect(getByText('Ana García')).toBeTruthy();
-    const { Image } = require('react-native');
-    expect(UNSAFE_getByType(Image).props.source).toEqual({ uri: 'https://img/ana.jpg' });
+    expect(getByTestId('avatar-image').props.source).toEqual([{ uri: 'https://img/ana.jpg' }]);
   });
 
   it('falls back to fallbackName and shows its initial when the doc has no name', () => {

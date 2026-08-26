@@ -205,7 +205,6 @@ jobs:
             --platform ios \
             --latest \
             --non-interactive \
-            --asc-app-id "${{ vars.ASC_APP_ID }}" \
             ${{ inputs.testflightGroup != '' && format('--groups "{0}"', inputs.testflightGroup) || '' }}
 
       - name: Remove App Store Connect API key

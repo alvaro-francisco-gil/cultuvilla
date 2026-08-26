@@ -1,0 +1,70 @@
+# The inverse of 20, and the one flow that exercises a NATIVE Alert.alert
+# confirmation — the web driver only ever sees the window.confirm fallback
+# (react-native-web ships Alert.alert as a no-op; see the mobile-web-compat
+# skill), so this dialog has never been executed by a test until now.
+#
+# Self-healing rather than order-dependent: it registers first if the persona
+# is not already signed up. scripts/run-android-e2e.mjs does run the flows in
+# filename order, so in a full suite 20 has already done it — but that makes
+# re-running THIS flow alone, against a database that is mid-suite, a normal
+# thing to do instead of a confusing failure.
+appId: com.cultuvilla.app.dev
+env:
+  EMAIL: e2e-user@cultuvilla.test
+  PASSWORD: e2e-cultuvilla-pw
+  EVENT_ID: e2e-event-fiesta
+  PERSON_ID: e2e-person-user
+---
+# `clearState` + cold-start openLink live in the login subflow — see the note
+# there on why a launchApp-then-openLink sequence drops the login intent.
+- runFlow:
+    file: ../subflows/login.yaml
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+- openLink: 'cultuvilla://event/${EVENT_ID}'
+- extendedWaitUntil:
+    visible:
+      id: 'register-fab'
+    timeout: 45000
+
+# Precondition: be signed up. The FAB reads "Apuntarme" only while nobody is.
+- runFlow:
+    when:
+      notVisible: 'Apuntad.*'
+    commands:
+      - tapOn:
+          id: 'register-fab'
+      - tapOn:
+          id: 'attendee-row-${PERSON_ID}'
+      - tapOn:
+          id: 'attendee-confirm'
+      - extendedWaitUntil:
+          visible: 'Apuntad.*'
+          # This waits on state written by 21-register-family-member and then
+          # denormalised by a background trigger, so it is a cross-flow race,
+          # not a render. 20s passed on two runs and lost on the third; the rest
+          # of the suite waits 45s for exactly this kind of thing.
+          timeout: 45000
+
+# Untick this persona and confirm. The sheet opens with whoever is registered
+# already ticked, so one tap is a removal.
+- tapOn:
+    id: 'register-fab'
+- tapOn:
+    id: 'attendee-row-${PERSON_ID}'
+- tapOn:
+    id: 'attendee-confirm'
+# Native two-button Alert from lib/dialogs.ts showConfirm; the label is
+# event.register.cancelConfirm in packages/i18n/messages/es.json.
+- tapOn: 'SÍ, CANCELAR'
+
+- runScript:
+    file: ../scripts/queryCollection.js
+    env:
+      COLLECTION_PATH: 'events/${EVENT_ID}/registrations'
+      FIELD: personId
+      VALUE: ${PERSON_ID}
+      MIN: '0'
+      MAX: '0'
+- assertTrue: ${output.ok == 'true'}

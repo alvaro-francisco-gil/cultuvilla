@@ -106,6 +106,10 @@ export function ProfileView({
           <Pressable
             onPress={() => router.push(`/person/${selfPerson.id}?edit=1`)}
             accessibilityLabel={t('profile.actions.edit')}
+            // Renders only for a signed-in self-view whose person doc has
+            // loaded, which makes it the E2E suites' signed-in marker: auth
+            // minted -> users/{uid} read -> persons/{id} read -> rendered.
+            testID="profile-edit-action"
             className="flex-1 flex-row items-center justify-center bg-surface"
             style={{
               paddingVertical: 5,

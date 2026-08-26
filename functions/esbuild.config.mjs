@@ -9,6 +9,13 @@ import { rmSync } from 'node:fs';
 // they're declared in package.json dependencies and installed in the runtime,
 // and the functions framework must load the runtime's own firebase-functions
 // instance to discover triggers.
+//
+// `sharp` is external for a different reason: it is a NATIVE module. Bundling
+// it produces a `createRequire(import.meta.url)` call in CJS output where
+// `import.meta` does not exist, so the bundle throws ERR_INVALID_ARG_VALUE at
+// load and the functions emulator reports only "codebase could not be analyzed
+// successfully". Like firebase-admin it is a declared dependency, so the
+// runtime installs it (with its prebuilt linux-x64 binary) itself.
 rmSync(new URL('./dist', import.meta.url), { recursive: true, force: true });
 
 await build({
@@ -24,5 +31,6 @@ await build({
     'firebase-admin/*',
     'firebase-functions',
     'firebase-functions/*',
+    'sharp',
   ],
 });

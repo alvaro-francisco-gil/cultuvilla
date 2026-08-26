@@ -154,6 +154,42 @@ lives in `@cultuvilla/shared/utils/format.ts`, preset to `es-ES`. Never
 call `Intl.DateTimeFormat` or `Intl.NumberFormat` directly in screens —
 the formatter is the single point of locale truth.
 
+### Storage triggers
+
+A Cloud Storage trigger (`onObjectFinalized`, …) has two prerequisites that a
+Firestore trigger does not, and getting either wrong fails the **entire**
+`firebase deploy` — so one bad Storage trigger blocks every other function from
+shipping.
+
+1. **Pin the region to the bucket's.** Functions default to `us-central1`; the
+   default bucket in all three envs is **`us-east1`**. A mismatch fails with
+   "A function in region us-central1 cannot listen to a bucket in region
+   us-east1". `generateImageVariants` declares `region: STORAGE_BUCKET_REGION`
+   and a test asserts the resolved `__endpoint.region`.
+2. **The GCS service agent needs `roles/pubsub.publisher`** on the project
+   (Storage → Eventarc). The deploy service account deliberately lacks the
+   permission to grant this itself, so the deploy stops with "We failed to
+   modify the IAM policy for the project" and prints the exact command.
+
+The grant is **already applied to dev, beta and prod** — it is one-time per
+project, not per trigger, so a new Storage trigger needs only rule 1. Should a
+fourth environment ever appear, the agent is created lazily and does not exist
+until asked for, which makes the binding fail with "Service account … does not
+exist" on a fresh project. Provision it first:
+
+```bash
+gcloud storage service-agent --project=<project>   # creates + prints the agent
+gcloud projects add-iam-policy-binding <project> \
+  --member=serviceAccount:service-<projectNumber>@gs-project-accounts.iam.gserviceaccount.com \
+  --role=roles/pubsub.publisher
+```
+
+Also: `sharp` is **external** in [functions/esbuild.config.mjs](functions/esbuild.config.mjs).
+It is a native module, and bundling it emits a `createRequire(import.meta.url)`
+call into CJS output that throws at load — which the emulator reports only as
+"codebase could not be analyzed successfully", with every unrelated trigger
+silently absent. Any other native dependency needs the same treatment.
+
 ### Cloud Functions logging
 
 Cloud Functions write to Cloud Logging. **Never use `console.*`** — `console.log("foo " + bar)` produces an unstructured `textPayload` that filters and dashboards can't query. Use the v2 logger instead, with a structured second arg:
@@ -377,6 +413,8 @@ pnpm lint             # eslint --max-warnings 0 in packages/shared + functions
 pnpm typecheck        # tsc --noEmit in shared, functions, i18n, mobile
 pnpm test             # vitest (shared) + jest (mobile) + functions, under emulators
 pnpm backfills:list   # registered data migrations (see Backfills)
+pnpm test:e2e:web     # Playwright over the web export, under emulators
+pnpm test:e2e:android # Maestro on an Android AVD, under emulators (needs a device)
 pnpm check:store-claims # verify the store-release runbook against live infra
 ```
 
@@ -454,7 +492,14 @@ prefer targeted tests/typechecks locally and let the PR's CI run the full gate. 
 direct-to-`develop` mode, run the full gate locally before committing:
 
 - `pnpm check` (the full gate), `pnpm test`, `pnpm test:emulators`,
-  `pnpm test:integration`, `pnpm test:rules`, `pnpm test:functions`
+  `pnpm test:integration`, `pnpm test:rules`, `pnpm test:functions`,
+  `pnpm test:e2e:web` (Playwright over the web export)
+
+`pnpm test:e2e:android` (Maestro on an AVD) is the same shape but needs a booted
+Android emulator, which this environment usually lacks — CI's `android-e2e`
+workflow is the authoritative run. See
+[apps/mobile/e2e/native/README.md](apps/mobile/e2e/native/README.md); under WSL2
+it also needs `EMULATOR_BIND_HOST=0.0.0.0`.
 
 Still off-limits — these run indefinitely (the user owns that iteration loop) or
 bypass CI:

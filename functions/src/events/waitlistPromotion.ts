@@ -8,6 +8,7 @@ import {
 } from '@cultuvilla/shared/firebase/refs/admin';
 import { buildNotificationData } from '@cultuvilla/shared/models';
 import { selectPromotionGroup } from '../helpers/registerToEventValidation';
+import { appendRegistrationEvent } from '../helpers/registrationAudit';
 import { RESEND_API_KEY } from '../auth/secret';
 import { sendRegistrationEmail } from './sendRegistrationEmail';
 
@@ -80,6 +81,23 @@ export const onRegistrationDeleted = onDocumentDeleted(
           // update() bypasses the converter, partial shape is accepted.
           await doc.ref.update({ status: 'confirmed' });
           promoted = true;
+
+          // Deterministic id: a promotion is terminal (a confirmed seat is
+          // never re-waitlisted), so a redelivered trigger overwrites its own
+          // entry rather than appending a phantom second promotion.
+          await appendRegistrationEvent(db, eventId, `promoted_${doc.id}`, {
+            registrationId: doc.id,
+            action: 'waitlist_promoted',
+            // Nobody performed this — the queue did. Empty rather than an
+            // organizer uid, so the log never implies someone intervened.
+            actorUserId: '',
+            subjectUserId: nextData.userId,
+            personId: nextData.personId,
+            name: nextData.name,
+            // The status it was promoted TO.
+            status: 'confirmed',
+            groupId: nextData.groupId,
+          });
 
           // An open seat has no one to tell — its group owner learns of the
           // promotion through their own seat's notification.

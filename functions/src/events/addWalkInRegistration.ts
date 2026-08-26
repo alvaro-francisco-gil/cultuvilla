@@ -12,6 +12,7 @@ import type { RegistrationData } from '@cultuvilla/shared/models';
 import { validateSignupAnswers } from '@cultuvilla/shared/models';
 import { computeStatuses } from '../helpers/registerToEventValidation';
 import { isWalkInAuthorized } from '../helpers/walkInAuthorization';
+import { writeRegistrationEvent } from '../helpers/registrationAudit';
 
 const db = getFirestore();
 
@@ -142,6 +143,20 @@ export const addWalkInRegistration = onCall<AddWalkInData, Promise<AddWalkInResu
           birthday: null,
         });
       }
+      // A walk-in has no `userId` — nobody signed themselves up. The organizer
+      // is both actor and the only account involved, which is exactly what the
+      // log needs to say.
+      writeRegistrationEvent(tx, db, eventId, {
+        registrationId: newRef.id,
+        action: 'walk_in_added',
+        actorUserId: uid,
+        subjectUserId: '',
+        personId: '',
+        name,
+        status,
+        at: reg.registeredAt,
+      });
+
       tx.update(eventRef, {
         confirmedCount: confirmedSnap.size + (status === 'confirmed' ? 1 : 0),
         totalCount: totalSnap.size + 1,
