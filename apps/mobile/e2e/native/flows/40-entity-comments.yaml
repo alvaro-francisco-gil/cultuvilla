@@ -53,15 +53,21 @@ env:
 # Keeping focus is not optional here: `pressKey: Enter` below submits through
 # the field's `onSubmitEditing`, so any blur turns the send into a silent no-op
 # that only surfaces later as "no comment in Firestore".
+#
+# The bound is generous because the composer sits below the ENTIRE attendee
+# list, and `while: notVisible` exits the moment it surfaces — so a high ceiling
+# costs nothing on a short page and is the difference between passing and
+# failing on a long one. Eight was not enough: the run stopped at "Asistentes",
+# one screen short.
 - repeat:
-    times: 8
+    times: 25
     while:
       notVisible:
         id: 'comment-send'
     commands:
       - swipe:
-          start: 50%, 45%
-          end: 50%, 15%
+          start: 50%, 50%
+          end: 50%, 12%
 - assertVisible:
     id: 'comment-send'
 - pressKey: Enter

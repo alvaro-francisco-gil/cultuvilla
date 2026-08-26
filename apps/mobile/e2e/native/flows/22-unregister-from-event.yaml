@@ -41,7 +41,11 @@ env:
           id: 'attendee-confirm'
       - extendedWaitUntil:
           visible: 'Apuntad.*'
-          timeout: 20000
+          # This waits on state written by 21-register-family-member and then
+          # denormalised by a background trigger, so it is a cross-flow race,
+          # not a render. 20s passed on two runs and lost on the third; the rest
+          # of the suite waits 45s for exactly this kind of thing.
+          timeout: 45000
 
 # Untick this persona and confirm. The sheet opens with whoever is registered
 # already ticked, so one tap is a removal.

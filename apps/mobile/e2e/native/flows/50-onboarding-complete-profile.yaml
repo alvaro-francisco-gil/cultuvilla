@@ -94,14 +94,14 @@ env:
 # Everything from the sex selector down (terms box, submit) is below the fold
 # with the keyboard up, so this is the one place the flow needs it.
 - repeat:
-    times: 8
+    times: 25
     while:
       notVisible:
         id: 'person-sex-female'
     commands:
       - swipe:
-          start: 50%, 45%
-          end: 50%, 15%
+          start: 50%, 50%
+          end: 50%, 12%
 - runFlow:
     when:
       notVisible:
@@ -232,7 +232,10 @@ env:
       DOC_PATH: 'users/${UID}'
       FIELD: personId
       EXPECT: present
-      TIMEOUT_MS: '30000'
+      # 30s expired with "Crear perfil" still spinning on CI: creating the
+      # person, linking it onto the user and running the denormalisation
+      # triggers is a lot slower on a loaded emulator than on a laptop.
+      TIMEOUT_MS: '90000'
 - assertTrue: ${output.exists == 'true'}
 - assertTrue: ${output.value != ''}
 - runScript:
