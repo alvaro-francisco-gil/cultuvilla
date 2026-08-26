@@ -17,6 +17,7 @@ import {
   eventRegistrationsCollection,
   eventRegistrationPrivateDoc,
   eventSeatTokensCollection,
+  eventRegistrationEventsCollection,
 } from '../firebase/refs/client';
 import { registrationConverterClient } from '../firebase/converters/registrationConverter.client';
 import type {
@@ -27,6 +28,7 @@ import {
   tallyRegistrationsByEvent,
   type RegistrationTally,
 } from '../models/event/RegistrationRibbonModel';
+import type { RegistrationEventData } from '../models/event/RegistrationEventDataModel';
 import type { SignupAnswers } from '../models/event/SignupFieldModel';
 import { PartialDateSchema, type PartialDate } from '../models/person/PersonDataModel';
 
@@ -83,6 +85,25 @@ export async function getEventRegistrations(
   eventId: string,
 ): Promise<(RegistrationData & { id: string })[]> {
   const q = query(eventRegistrationsCollection(getDb(), eventId), orderBy('registeredAt', 'asc'));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export type RegistrationEventWithId = RegistrationEventData & { id: string };
+
+/**
+ * The event's roster audit log, newest first: who joined, who left, and who
+ * removed them. `firestore.rules` limits reads to `isEventOrganizer(eventId)`
+ * — the organizer set, the village's admins and app admins — so a plain
+ * villager reading the public roster never sees it.
+ *
+ * Reads only. Entries are written exclusively by the registration callables
+ * via the admin SDK; there is no client write path.
+ */
+export async function getRegistrationEvents(
+  eventId: string,
+): Promise<RegistrationEventWithId[]> {
+  const q = query(eventRegistrationEventsCollection(getDb(), eventId), orderBy('at', 'desc'));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }

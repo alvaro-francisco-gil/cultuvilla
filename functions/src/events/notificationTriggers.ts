@@ -2,12 +2,13 @@ import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions/v2';
 import { getFirestore } from 'firebase-admin/firestore';
 import {
+  eventRegistrationEventsCollection,
   eventRegistrationPrivateDoc,
   eventRegistrationsCollection,
   eventSeatTokensCollection,
   userNotificationsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
-import { buildNotificationData } from '@cultuvilla/shared/models';
+import { buildNotificationData, buildRegistrationEventData } from '@cultuvilla/shared/models';
 
 const db = getFirestore();
 
@@ -104,9 +105,30 @@ export const onEventUpdated = onDocumentUpdated(
         const userIds = new Set(regs.docs.map((r) => r.data().userId));
 
         const writer = db.bulkWriter();
+        // The sweep is the largest removal the product can perform, and it
+        // hard-deletes every row — so the audit entry written alongside each
+        // delete is the organizer's only remaining record of who had signed
+        // up. Deterministic id for the same reason as the notification below:
+        // a redelivered flip must overwrite, not duplicate.
+        const sweptAt = new Date();
         for (const reg of regs.docs) {
+          const seat = reg.data();
           void writer.delete(reg.ref);
           void writer.delete(eventRegistrationPrivateDoc(db, eventId, reg.id));
+          void writer.set(
+            eventRegistrationEventsCollection(db, eventId).doc(`disabled_${reg.id}`),
+            buildRegistrationEventData({
+              registrationId: reg.id,
+              action: 'signups_disabled',
+              actorUserId: '',
+              subjectUserId: seat.userId,
+              personId: seat.personId,
+              name: seat.name,
+              status: seat.status,
+              groupId: seat.groupId,
+              at: sweptAt,
+            }),
+          );
         }
         for (const token of tokens.docs) void writer.delete(token.ref);
         for (const userId of userIds) {

@@ -8,6 +8,7 @@ import { placeConverterClient } from '../converters/placeConverter.client';
 import { villageMemberConverterClient } from '../converters/villageMemberConverter.client';
 import { inviteTokenConverterClient } from '../converters/inviteTokenConverter.client';
 import { seatTokenConverterClient } from '../converters/seatTokenConverter.client';
+import { registrationEventConverterClient } from '../converters/registrationEventConverter.client';
 import { organizationConverterClient } from '../converters/organizationConverter.client';
 import { orgMemberConverterClient } from '../converters/orgMemberConverter.client';
 import { organizerRequestConverterClient } from '../converters/organizerRequestConverter.client';
@@ -53,6 +54,12 @@ export const eventSeatTokensCollection = (db: Firestore, eventId: string) =>
 
 export const eventSeatTokenDoc = (db: Firestore, eventId: string, token: string) =>
   doc(db, 'events', eventId, 'seatTokens', token).withConverter(seatTokenConverterClient);
+
+// Append-only audit log of the event's roster changes — see
+// RegistrationEventDataModel. Readable by `isEventOrganizer(eventId)` only
+// (organizers, village admins, app admins); every client write is denied.
+export const eventRegistrationEventsCollection = (db: Firestore, eventId: string) =>
+  collection(db, 'events', eventId, 'registrationEvents').withConverter(registrationEventConverterClient);
 
 // ── Municipality domain ────────────────────────────────────────────────────
 
