@@ -534,3 +534,118 @@ describe('NewEventScreen — disabling sign-ups on an event with registrations',
     await waitFor(() => expect(updateEvent).toHaveBeenCalledTimes(1));
   });
 });
+
+// The birth-year window is one decision ("¿limito la edad?") followed by an
+// optional refinement, not two always-present number boxes. Most events have no
+// age range at all, so the Detalles step spent two inputs and a paragraph on a
+// field almost nobody fills in.
+describe('NewEventScreen — birth-year limit toggle', () => {
+  /** Walks a fresh form to the Detalles step, where the toggle lives. */
+  async function openDetails(view: ReturnType<typeof render>): Promise<void> {
+    const { getByText, getByLabelText, getByTestId } = view;
+    await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
+    fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('startDate')).toBeTruthy());
+    fireEvent.press(getByTestId('startDate'));
+    fireEvent.press(getByTestId('location-field'));
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('signup-enabled')).toBeTruthy());
+  }
+
+  it('hides the year inputs until the limit is switched on', async () => {
+    const view = render(<NewEventScreen />);
+    await openDetails(view);
+    const { getByTestId, queryByTestId } = view;
+
+    const toggle = getByTestId('birth-year-limit');
+    expect(toggle.props.accessibilityState.checked).toBe(false);
+    expect(queryByTestId('min-birth-year')).toBeNull();
+    expect(queryByTestId('max-birth-year')).toBeNull();
+
+    fireEvent.press(toggle);
+    expect(getByTestId('min-birth-year')).toBeTruthy();
+    expect(getByTestId('max-birth-year')).toBeTruthy();
+  });
+
+  // The explanation has to carry three things the inline paragraph used to (or
+  // that the example placeholders displaced): it is advisory, a blank end is an
+  // open end, and a person with no recorded year is never asked.
+  it('parks the explanation behind an info tooltip', async () => {
+    const view = render(<NewEventScreen />);
+    await openDetails(view);
+    const { getByTestId, getByText, queryByText } = view;
+
+    expect(queryByText('event.birthYearLimitHelp')).toBeNull();
+    fireEvent.press(getByTestId('birth-year-limit-info'));
+    expect(getByText('event.birthYearLimitHelp')).toBeTruthy();
+  });
+
+  it('starts switched on when the event being edited already has a bound', async () => {
+    mockParams.eventId = 'e-7';
+    (getEvent as jest.Mock).mockResolvedValue({
+      id: 'e-7',
+      municipalityId: 'm-1',
+      villageName: 'Pueblo',
+      villageCoordinates: { lat: 1, lng: 2 },
+      title: 'Taller infantil',
+      description: 'Desc',
+      startDate: new Date('2026-08-01T18:00'),
+      endDate: null,
+      location: { coordinates: { lat: 1, lng: 2 }, displayName: 'Plaza' },
+      maxAttendees: null,
+      telephoneRequired: false,
+      requiresPayment: false,
+      signupGroupSize: 1,
+      signupEnabled: true,
+      signupInfo: null,
+      attendeesVisibility: 'members' as const,
+      signupFields: [],
+      totalCount: 0,
+      organizerUserIds: ['uid-1'],
+      organizerOrgIds: [],
+      createdBy: 'uid-1',
+      imageURL: null,
+      // Only the upper bound is set: one end is enough to mean "limited".
+      minBirthYear: null,
+      maxBirthYear: 2020,
+    });
+    try {
+      const { getByText, getByTestId } = render(<NewEventScreen />);
+      await waitFor(() => expect(getByTestId('organizer-picker')).toBeTruthy());
+      fireEvent.press(getByText('common.stepper.next'));
+      await waitFor(() => expect(getByTestId('startDate')).toBeTruthy());
+      fireEvent.press(getByText('common.stepper.next'));
+      await waitFor(() => expect(getByTestId('birth-year-limit')).toBeTruthy());
+
+      expect(getByTestId('birth-year-limit').props.accessibilityState.checked).toBe(true);
+      expect(getByTestId('max-birth-year').props.value).toBe('2020');
+    } finally {
+      delete mockParams.eventId;
+    }
+  });
+
+  // Switching the limit off keeps whatever was typed — a mis-tap must not
+  // destroy it — so the submitted nulls can only come from the toggle itself.
+  it('submits no window when the limit is switched back off, despite typed years', async () => {
+    (createEvent as jest.Mock).mockClear();
+    const view = render(<NewEventScreen />);
+    await openDetails(view);
+    const { getByText, getByTestId } = view;
+
+    fireEvent.press(getByTestId('birth-year-limit'));
+    fireEvent.changeText(getByTestId('min-birth-year'), '2014');
+    fireEvent.changeText(getByTestId('max-birth-year'), '2020');
+    fireEvent.press(getByTestId('birth-year-limit'));
+
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('signup-question-add')).toBeTruthy());
+    fireEvent.press(getByTestId('event-form-primary'));
+
+    await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
+    expect((createEvent as jest.Mock).mock.calls[0][0]).toMatchObject({
+      minBirthYear: null,
+      maxBirthYear: null,
+    });
+  });
+});

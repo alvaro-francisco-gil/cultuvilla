@@ -4,11 +4,12 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
-### Fixed
-
-- **El correo de cancelación ya sale de verdad.** Anular una inscripción escribía la cancelación y no enviaba nada: `cancelRegistration` era el único emisor de correo que no declaraba `secrets: [RESEND_API_KEY]`, así que Firebase no montaba la clave en su Cloud Run, Resend contestaba «Missing API key» y `sendEventEmail` — best-effort por contrato — se lo tragaba en silencio. Un test de invariante recorre ahora el grafo de imports real y falla si cualquier punto de entrada puede llegar a `RESEND_API_KEY.value()` sin declararlo, algo que los tests de handler no podían ver porque mockean el secreto.
-
 ### Changed
+
+- **El rango de años de nacimiento de un evento se pide sólo si lo hay.** El paso de Detalles gastaba una etiqueta, un párrafo y dos casillas numéricas en un campo que la inmensa mayoría de los eventos deja vacío: una verbena no tiene edad, y quien la creaba tenía que leer y descartar el bloque entero cada vez. Ahora es un interruptor — **«Limitar la edad»** — y los años «Desde» y «Hasta» aparecen debajo sólo cuando se enciende, con un año de ejemplo dentro de cada caja («Ej. 1990», «Ej. 2014») que además enseña de qué lado va cada uno.
+  - **La explicación se va detrás de la «ⓘ»**, como los demás interruptores del paso, y recoge las tres cosas que hacía falta decir en alguna parte: que es orientativo y quien no cumpla podrá apuntarse confirmándolo, que dejar un extremo en blanco lo deja abierto, y que a quien no tenga año registrado no se le pregunta. El párrafo bajo el control empujaba los controles mismos fuera de pantalla, que es justo la razón por la que este paso ya movía sus explicaciones ahí.
+  - **Apagar el interruptor no borra lo escrito.** Un toque desviado no puede destruir dos años ya tecleados, así que el texto se conserva y lo que decide es el interruptor: apagado, el evento se guarda sin rango. Es el mismo patrón con el que las opciones de inscripción cuelgan de «Admite inscripciones».
+  - **No cambia ningún dato.** `minBirthYear` y `maxBirthYear` conservan su forma exacta, así que no hay migración ni despliegue: los eventos que ya tienen un rango abren el formulario con el interruptor encendido.
 
 - **Avisar de una actualización con un diálogo, no con una franja.** La app ya sabía desde el arranque si la versión instalada se había quedado corta, pero lo contaba mal: quedarse por debajo de `minSupported` sustituía la app entera por una pantalla suelta, y haber una versión nueva pintaba una franja naranja de una línea sobre la cabecera que se confundía con parte del diseño y que nadie llegaba a pulsar. Ahora son **dos diálogos** sobre la app, como en Órdago:
   - **Bloqueante** cuando la versión ya no es compatible: no se puede cerrar — sin «Más tarde», sin botón atrás de Android, sin tocar fuera — y su único camino es «Actualizar ahora», que abre la ficha de la tienda.
@@ -16,6 +17,10 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   - **El avisador no da la lata.** Recuerda en el dispositivo qué versión anunció y se calla **tres días** antes de repetirla; una versión *nueva* reinicia esa espera, así que un lanzamiento de verdad se anuncia al momento. El bloqueante no tiene espera: sale en cada arranque, que para eso es un muro.
   - **Sigue sin existir en web**, donde el gate resuelve siempre `ok`: la web se actualiza al recargar y no hay tienda a la que mandar a nadie. Y sigue fallando abierto — una lectura mala del documento de configuración no puede dejar la app inservible.
   - **No necesita despliegue de datos.** `config/appVersion` ya existe en dev, beta y prod con `minSupported` a `0.0.0` (el muro sigue dormido antes del lanzamiento en tiendas, según AGENTS.md) y con la URL real de Google Play; la de App Store sigue siendo el marcador de posición hasta que haya app publicada en iOS.
+
+### Fixed
+
+- **El correo de cancelación ya sale de verdad.** Anular una inscripción escribía la cancelación y no enviaba nada: `cancelRegistration` era el único emisor de correo que no declaraba `secrets: [RESEND_API_KEY]`, así que Firebase no montaba la clave en su Cloud Run, Resend contestaba «Missing API key» y `sendEventEmail` — best-effort por contrato — se lo tragaba en silencio. Un test de invariante recorre ahora el grafo de imports real y falla si cualquier punto de entrada puede llegar a `RESEND_API_KEY.value()` sin declararlo, algo que los tests de handler no podían ver porque mockean el secreto.
 
 ## v0.28.0 — 2026-08-25
 
