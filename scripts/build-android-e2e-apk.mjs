@@ -22,7 +22,18 @@
  *      builds produced by this script; `eas build` runs its own prebuild and
  *      never sees it.
  *
- *   3. The E2E env must be set for BOTH prebuild and the gradle build.
+ *   3. Gradle needs more metaspace than Expo's template grants it. The
+ *      generated `gradle.properties` ships `-XX:MaxMetaspaceSize=512m`, and
+ *      `:expo-updates:kspReleaseKotlin` exhausts it — KSP loads the whole
+ *      annotation-processor classpath into metaspace, and `expo-updates` is the
+ *      module that tips it over. The failure is doubly nasty: the OOM kills the
+ *      Gradle daemon, which then spins emitting `OutOfMemoryError: Metaspace`
+ *      from its RMI threads instead of exiting, so the job burns to its
+ *      `timeout-minutes` and reports "cancelled" rather than the real error.
+ *      We raise the ceiling AND build with `--no-daemon` so a fatal build dies
+ *      immediately instead of hanging for another 45 minutes.
+ *
+ *   4. The E2E env must be set for BOTH prebuild and the gradle build.
  *      `USE_FIREBASE_EMULATOR` is read by app.config.ts (baked into
  *      `extra.useEmulator` by expo-constants at gradle time), while
  *      `EXPO_PUBLIC_EMULATOR_HOST` is inlined by Metro during the bundle task.
@@ -36,7 +47,7 @@
  * Prints the APK path on the last line.
  */
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -79,6 +90,21 @@ if (!process.argv.includes('--skip-prebuild')) {
   run('npx', ['expo', 'prebuild', '--platform', 'android', '--clean'], MOBILE);
 }
 
+// See requirement 3 above. `expo prebuild --clean` rewrites gradle.properties
+// from the template every run, so this re-applies each time rather than being a
+// one-off edit. Keyed on the exact property so a future template change that
+// already raises the ceiling is left alone.
+const gradleProps = path.join(ANDROID, 'gradle.properties');
+const JVM_ARGS = '-Xmx4096m -XX:MaxMetaspaceSize=2048m';
+const props = readFileSync(gradleProps, 'utf8');
+const patched = props.replace(/^org\.gradle\.jvmargs=.*$/m, `org.gradle.jvmargs=${JVM_ARGS}`);
+if (patched === props) {
+  console.error(`[android-e2e-apk] no org.gradle.jvmargs line in ${gradleProps} to patch`);
+  process.exit(1);
+}
+writeFileSync(gradleProps, patched);
+console.log(`[android-e2e-apk] gradle jvmargs: ${JVM_ARGS}`);
+
 // See requirement 2 above. `tools:replace` is required because the merged
 // manifest would otherwise conflict with the library manifests that declare it.
 const releaseManifestDir = path.join(ANDROID, 'app', 'src', 'release');
@@ -101,7 +127,7 @@ writeFileSync(
 // largest chunk of wall-clock here — minutes, for an APK that is installed on
 // exactly one x86_64 emulator and then thrown away.
 const abi = process.env.E2E_ANDROID_ABI || 'x86_64';
-run('./gradlew', ['assembleRelease', `-PreactNativeArchitectures=${abi}`], ANDROID);
+run('./gradlew', ['assembleRelease', `-PreactNativeArchitectures=${abi}`, '--no-daemon'], ANDROID);
 
 console.log(`[android-e2e-apk] emulator host baked in: ${EMULATOR_HOST}`);
 console.log(APK);
