@@ -87,12 +87,16 @@ describe('pickImageAsBlob', () => {
 
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(open).toHaveBeenCalledWith('GET', ASSET.uri, true);
-    expect(result).toEqual({
+    // The pick is re-encoded before upload (lib/downscale.ts), so the object is
+    // named after what was actually produced rather than the picker's filename.
+    // expo-image-manipulator is unavailable in jest, which exercises the
+    // fallback branch: the untouched asset, with its own content type.
+    expect(result).toMatchObject({
       blob: FAKE_BLOB,
-      filename: 'pic.jpg',
       contentType: 'image/jpeg',
       previewUri: ASSET.uri,
     });
+    expect(result?.filename).toMatch(/^upload-\d+\.jpg$/);
   });
 
   it('on web reads the asset via the browser fetch', async () => {

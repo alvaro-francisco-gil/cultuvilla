@@ -7,7 +7,13 @@ process.env.FIRESTORE_EMULATOR_HOST ||= '127.0.0.1:8080';
 process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
 process.env.FIREBASE_STORAGE_EMULATOR_HOST ||= '127.0.0.1:9199';
 process.env.GCLOUD_PROJECT ||= process.env.TEST_PROJECT_ID || 'cultuvilla-test';
-process.env.FIREBASE_CONFIG ||= JSON.stringify({ projectId: process.env.GCLOUD_PROJECT });
+// `storageBucket` is required by v2 Storage triggers: `onObjectFinalized`
+// resolves the default bucket from FIREBASE_CONFIG at MODULE LOAD, so without
+// it merely importing a storage-trigger module throws.
+process.env.FIREBASE_CONFIG ||= JSON.stringify({
+  projectId: process.env.GCLOUD_PROJECT,
+  storageBucket: `${process.env.GCLOUD_PROJECT}.appspot.com`,
+});
 
 import * as admin from 'firebase-admin';
 

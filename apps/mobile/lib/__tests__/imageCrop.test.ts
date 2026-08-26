@@ -53,12 +53,16 @@ describe('pickAndCropSquare (native)', () => {
       expect.objectContaining({ allowsEditing: true, aspect: [1, 1] }),
     );
     expect(open).toHaveBeenCalledWith('GET', ASSET.uri, true);
-    expect(result).toEqual({
+    // The pick is re-encoded before upload (lib/downscale.ts), so the object is
+    // named after what was actually produced rather than the picker's filename.
+    // expo-image-manipulator is unavailable in jest, which exercises the
+    // fallback branch: the untouched asset, with its own content type.
+    expect(result).toMatchObject({
       blob: FAKE_BLOB,
-      filename: 'pic.jpg',
       contentType: 'image/jpeg',
       previewUri: ASSET.uri,
     });
+    expect(result?.filename).toMatch(/^upload-\d+\.jpg$/);
   });
 
   it('returns null when the user cancels the picker/crop', async () => {

@@ -2,6 +2,12 @@ import * as ImagePicker from 'expo-image-picker';
 import type { UploadableImage } from '@cultuvilla/shared/services/imageService';
 import { uriToBlob } from './uriToBlob';
 import { pickAndCropSquare } from './imageCrop';
+import { downscaleForUpload } from './downscale';
+
+/** Filename for a downscaled pick, keyed to the encoder's actual output. */
+function uploadFilename(extension: string): string {
+  return `upload-${Date.now()}.${extension}`;
+}
 
 export interface PickImageOptions {
   /**
@@ -33,10 +39,21 @@ export async function pickImageAsBlob(
   });
   if (result.canceled || !result.assets[0]) return null;
   const asset = result.assets[0];
-  const blob = await uriToBlob(asset.uri);
-  const filename = asset.fileName ?? `upload-${Date.now()}.jpg`;
-  const contentType = asset.mimeType ?? 'image/jpeg';
-  return { blob, filename, contentType, previewUri: asset.uri };
+  const scaled = await downscaleForUpload({
+    uri: asset.uri,
+    width: asset.width,
+    height: asset.height,
+    contentType: asset.mimeType ?? undefined,
+  });
+  const blob = await uriToBlob(scaled.uri);
+  return {
+    blob,
+    // The manipulator re-encodes, so the picker's original filename would carry
+    // the wrong extension; name the object after what we actually uploaded.
+    filename: uploadFilename(scaled.extension),
+    contentType: scaled.contentType,
+    previewUri: scaled.uri,
+  };
 }
 
 /** An {@link UploadableImage} that also carries the picked asset's pixel size,
@@ -58,13 +75,21 @@ export async function pickImageWithSize(): Promise<SizedUploadableImage | null> 
   });
   if (result.canceled || !result.assets[0]) return null;
   const asset = result.assets[0];
-  const blob = await uriToBlob(asset.uri);
-  return {
-    blob,
-    filename: asset.fileName ?? `upload-${Date.now()}.jpg`,
-    contentType: asset.mimeType ?? 'image/jpeg',
-    previewUri: asset.uri,
+  const scaled = await downscaleForUpload({
+    uri: asset.uri,
     width: asset.width,
     height: asset.height,
+    contentType: asset.mimeType ?? undefined,
+  });
+  const blob = await uriToBlob(scaled.uri);
+  return {
+    blob,
+    filename: uploadFilename(scaled.extension),
+    contentType: scaled.contentType,
+    previewUri: scaled.uri,
+    // The POST-resize dimensions: news blocks persist these to lay the image
+    // out without a network round-trip, so they must describe the stored object.
+    width: scaled.width,
+    height: scaled.height,
   };
 }

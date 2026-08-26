@@ -7,6 +7,7 @@ import { usePersonPlaces } from '../../../lib/usePersonPlaces';
 import { buildDisplayName } from '@cultuvilla/shared/models/person';
 import { isCatalogOccupation, occupationI18nKey } from '@cultuvilla/shared/models/occupation';
 import type { PersonData } from '@cultuvilla/shared/models/person';
+import { RemoteImage } from '../../primitives/RemoteImage';
 
 export interface PersonProfileViewProps {
   person: PersonData & { id: string };
@@ -68,7 +69,12 @@ export function PersonProfileView({ person }: PersonProfileViewProps) {
           style={{ aspectRatio: PHOTO_ASPECT_RATIO }}
         >
           {person.photoURL ? (
-            <Image source={{ uri: person.photoURL }} resizeMode="cover" style={{ width: '100%', height: '100%' }} />
+            <RemoteImage
+              uri={person.photoURL}
+              variant="card"
+              contentFit="cover"
+              style={{ width: '100%', height: '100%' }}
+            />
           ) : (
             <Text variant="h1" tone="muted">
               {(displayName || '?').charAt(0).toUpperCase()}

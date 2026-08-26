@@ -28,3 +28,11 @@ export {
   type UpdatePromptRecord,
 } from './versionGate';
 export { maxBirthdayForAge, isAtLeastYearsOld } from './age';
+export {
+  IMAGE_VARIANT_SUFFIX,
+  isVariantExemptStoragePath,
+  isVariantStoragePath,
+  variantImageURL,
+  variantStoragePath,
+  type ImageVariant,
+} from './imageVariants';
