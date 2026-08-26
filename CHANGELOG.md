@@ -4,16 +4,14 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.29.0 — 2026-08-26
+
 ### Added
 
 - **Historial de inscripciones, sólo para quien organiza.** Anular una inscripción borra la fila del todo, así que hasta ahora quien organizaba un evento no tenía forma de ver que alguien se había apuntado y luego se había ido — ni de distinguir «se dio de baja» de «le quitaron». Cada cambio en la lista de asistentes deja ahora un apunte en `events/{id}/registrationEvents/`, escrito por la propia función en la misma transacción que el cambio: altas, altas en la puerta, plazas de grupo ocupadas o devueltas, saltos desde la lista de espera, bajas propias, expulsiones, grupos anulados y el barrido que se lleva la lista entera cuando se desactivan las inscripciones. Aparece plegado bajo la lista de asistentes, en la pantalla del evento.
   - **No lo ve el pueblo.** Las reglas lo limitan a quien organiza el evento, a las personas administradoras del pueblo y a las de la app — ni siquiera lo ve la persona a la que se refiere el apunte, y da igual lo abierta que esté la lista de asistentes: nombra a gente que ya no está en ella.
   - **Nadie puede escribirlo ni corregirlo desde la app**, tampoco quien administra: es un registro para rendir cuentas, y sólo lo escribe el servidor.
   - Empieza vacío: lo ocurrido antes de este despliegue no se puede reconstruir, porque esas filas ya no existen.
-
-### Fixed
-
-- **El correo de cancelación ya sale de verdad.** Anular una inscripción escribía la cancelación y no enviaba nada: `cancelRegistration` era el único emisor de correo que no declaraba `secrets: [RESEND_API_KEY]`, así que Firebase no montaba la clave en su Cloud Run, Resend contestaba «Missing API key» y `sendEventEmail` — best-effort por contrato — se lo tragaba en silencio. Un test de invariante recorre ahora el grafo de imports real y falla si cualquier punto de entrada puede llegar a `RESEND_API_KEY.value()` sin declararlo, algo que los tests de handler no podían ver porque mockean el secreto.
 
 ### Changed
 
