@@ -30,7 +30,10 @@ interface EasConfig {
   >;
   submit: Record<
     string,
-    { android: { track: string; applicationId: string; serviceAccountKeyPath: string } }
+    {
+      android: { track: string; applicationId: string; serviceAccountKeyPath: string };
+      ios?: { ascAppId: string };
+    }
   >;
 }
 
@@ -240,5 +243,44 @@ describe('beta auto-submit workflow', () => {
 
   it('deletes the service account key even when the build fails', () => {
     expect(wf).toMatch(/if: always\(\)[\s\S]*rm -f apps\/mobile\/google-play-service-account\.json/);
+  });
+
+  // Mirrors the Android job — beta merges also build+submit iOS straight to
+  // TestFlight, which needs no App Review for internal testers.
+  it('has an iOS job that builds the production profile and submits it', () => {
+    expect(wf).toMatch(/ios:\s*\n\s*name: iOS/);
+    expect(wf).toMatch(/eas build[\s\S]*?--profile production[\s\S]*?--platform ios/);
+    expect(wf).toMatch(/eas submit[\s\S]*?--profile production[\s\S]*?--platform ios/);
+  });
+
+  it('deletes the Apple API key even when the build fails', () => {
+    expect(wf).toMatch(/if: always\(\)[\s\S]*rm -f apps\/mobile\/apple-asc-api-key\.p8/);
+  });
+});
+
+// `eas submit --asc-app-id` doesn't exist in this eas-cli version — the flag
+// silently failed a real submission (caught 2026-08-26) after the build had
+// already spent ~8 minutes on EAS. ascAppId belongs in the submit profile's
+// JSON, not as a CLI flag, so this guards the whole class of "flag doesn't
+// exist" mistakes rather than just this one string.
+describe('eas submit invocations never pass unsupported flags', () => {
+  const mobileReleaseWf = readFileSync(
+    resolve(__dirname, '../../../..', '.github/workflows/mobile-release.yml'),
+    'utf8',
+  );
+  const betaWf = readFileSync(
+    resolve(__dirname, '../../../..', '.github/workflows/beta-build-and-submit.yml'),
+    'utf8',
+  );
+
+  it.each([
+    ['mobile-release.yml', mobileReleaseWf],
+    ['beta-build-and-submit.yml', betaWf],
+  ])('%s does not pass --asc-app-id to eas submit', (_name, wf) => {
+    expect(wf).not.toContain('--asc-app-id');
+  });
+
+  it('ascAppId is committed in the submit profile instead', () => {
+    expect(easJson.submit.production.ios?.ascAppId).toBe('6804756586');
   });
 });
