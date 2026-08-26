@@ -27,4 +27,19 @@ appId: com.cultuvilla.app.dev
     visible: 'Fiesta de Prueba E2E'
     timeout: 90000
 # Anonymous visitor gets the guest sign-up CTA (same assertion as the web smoke).
+#
+# Scroll to it first. The CTA sits below the fold on a pixel_5 once the
+# full-bleed hero, title, date/location cards, organisers and village have had
+# their say — the web viewport is taller, which is why the Playwright mirror of
+# this flow asserts it directly and passes. Guarded by `when: notVisible` so a
+# future layout that does fit it on screen doesn't start scrolling past it.
+- runFlow:
+    when:
+      notVisible: 'Apuntarme'
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: 'Apuntarme'
+          direction: DOWN
+          timeout: 20000
 - assertVisible: 'Apuntarme'

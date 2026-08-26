@@ -37,6 +37,22 @@ env:
 # the field and the flow fails later with "no comment in Firestore". The input
 # carries `returnKeyType="send"` + `onSubmitEditing={onSend}`, so Enter runs the
 # very same handler, reliably.
+# ...but it has to be ON SCREEN to be asserted. The soft keyboard resizes the
+# window (`windowSoftInputMode=adjustResize`) and the composer ends up scrolled
+# off the bottom, so `comment-send` exists and is still not visible. Scroll it
+# back — never tap, and never dismiss the keyboard: Enter below submits through
+# the field's `onSubmitEditing`, so anything that blurs `comment-input` turns
+# the send into a silent no-op. Scrolling keeps focus.
+- runFlow:
+    when:
+      notVisible:
+        id: 'comment-send'
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: 'comment-send'
+          direction: DOWN
+          timeout: 20000
 - assertVisible:
     id: 'comment-send'
 - pressKey: Enter

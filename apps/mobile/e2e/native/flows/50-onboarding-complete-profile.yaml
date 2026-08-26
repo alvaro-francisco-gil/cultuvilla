@@ -78,6 +78,20 @@ env:
 - tapOn:
     id: 'person-second-surname'
 - inputText: 'DePrueba'
+# Put the keyboard away before reaching for the sex selector. It covers the
+# lower half of a pixel_5, and `scrollUntilVisible` cannot reveal an element the
+# keyboard is sitting on top of — the three name fields above survived only
+# because they sit high enough to stay clear of it.
+#
+# Tapping a plain label is what does it: PersonForm's ScrollView is
+# `keyboardShouldPersistTaps="handled"`, so a tap landing on a non-touchable
+# dismisses the keyboard instead of being swallowed. `hideKeyboard` is banned
+# suite-wide (androidE2e.test.ts) because on Android it is a BACK press, which
+# walks out of the screen on an AVD whose hardware keyboard means no soft
+# keyboard was ever raised. Nothing below needs this field to keep focus, so
+# blurring is free here — unlike in 40-entity-comments, where it would kill the
+# Enter-to-send.
+- tapOn: 'Nombre'
 - runFlow:
     when:
       notVisible:
