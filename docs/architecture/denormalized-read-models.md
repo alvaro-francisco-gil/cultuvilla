@@ -208,6 +208,34 @@ reactions/likes feature — it was removed in favor of this invisible counter.
 - **Not surfaced in the UI today** — it's tracked for future use (e.g.
   ranking, moderation signal), not rendered on any card or detail screen.
 
+### `_card` / `_thumb` image renditions ← any uploaded Storage object
+
+Feed cards and section rows render into boxes a few hundred dp wide; the
+originals behind them are phone photos. Rather than storing a second URL on
+each of the nine image-bearing models (and migrating their strict converters
+and projections), the renditions are addressed **by convention**: a sibling
+object with the original's basename plus `_card.webp` / `_thumb.webp`.
+
+- **Write path:** [functions/src/images/generateImageVariants.ts](../../functions/src/images/generateImageVariants.ts)
+  (`onObjectFinalized`) resizes with sharp and writes both renditions next to
+  the original. It skips its own output — without that guard the trigger would
+  recurse on every write it makes.
+- **Read path:** `variantImageURL` in
+  [packages/shared/src/utils/imageVariants.ts](../../packages/shared/src/utils/imageVariants.ts),
+  applied inside the `RemoteImage` primitive. A rendition that does not exist
+  yet 404s and the component falls back to the original, so the rewrite is safe
+  to apply everywhere.
+- **Access:** a rendition matches its original — the original's download token
+  is copied when it has one (a token bypasses `storage.rules`, so an auth-gated
+  person photo needs it), and omitted when the original is served publicly
+  through the rules.
+- **Backfill:** [scripts/backfill-image-variants.mjs](../../scripts/backfill-image-variants.mjs)
+  for images uploaded before the trigger existed, and
+  [scripts/backfill-image-cache-control.mjs](../../scripts/backfill-image-cache-control.mjs)
+  for the immutable cache header. Deliberately **not** `autoApply` — it
+  re-encodes every stored image, which is minutes of work and real egress, so
+  it is dispatched per env rather than redone on every deploy.
+
 ### `burialCount` ← `persons/{personId}.burialPlace`
 
 Cemetery place cards show how many people have been added to that cemetery

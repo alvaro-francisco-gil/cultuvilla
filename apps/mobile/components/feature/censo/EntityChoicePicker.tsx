@@ -6,6 +6,7 @@ import { colors, iconSizes, radii, spacing } from '@cultuvilla/shared/design-sys
 import { Button, HStack, Pressable, Text } from '../../primitives';
 import { useT } from '../../../lib/i18n';
 import type { ChoiceOption } from './ChoiceList';
+import { RemoteImage } from '../../primitives/RemoteImage';
 
 export interface EntityChoicePickerProps {
   title: string;
@@ -148,11 +149,13 @@ export function EntityChoicePicker({
 function EntityThumbnail({ option, size }: { option: ChoiceOption; size: number }) {
   if (option.imageUri) {
     return (
-      <Image
+      <RemoteImage
         testID={`entity-option-image-${option.value}`}
-        source={{ uri: option.imageUri }}
+        uri={option.imageUri}
+        variant="thumb"
         style={{ width: size, height: size, borderRadius: radii.md }}
-        accessibilityIgnoresInvertColors
+        contentFit="cover"
+        transitionMs={0}
       />
     );
   }

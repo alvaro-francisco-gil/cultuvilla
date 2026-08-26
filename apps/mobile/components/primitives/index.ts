@@ -47,3 +47,5 @@ export { InfoTooltip } from './InfoTooltip';
 export type { InfoTooltipProps } from './InfoTooltip';
 export { BottomSheet, shouldDismissOnRelease } from './BottomSheet';
 export type { BottomSheetProps } from './BottomSheet';
+export { RemoteImage } from './RemoteImage';
+export type { RemoteImageProps } from './RemoteImage';

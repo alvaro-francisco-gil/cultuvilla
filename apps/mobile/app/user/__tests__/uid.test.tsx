@@ -1,4 +1,4 @@
-import { Image } from 'react-native';
+import { Image } from 'expo-image';
 import { render, waitFor } from '@testing-library/react-native';
 import UserProfileScreen from '../[uid]';
 
@@ -108,7 +108,12 @@ describe('/user/[uid]', () => {
   it('shows the viewed villager photo', async () => {
     const screen = await renderScreen();
     await waitFor(() => {
-      const uris = screen.UNSAFE_getAllByType(Image).map((n) => n.props.source?.uri);
+      // Remote images render through <RemoteImage> onto expo-image, whose
+      // `source` prop is normalized into an array of sources.
+      const uris = screen
+        .UNSAFE_getAllByType(Image)
+        .flatMap((n) => (Array.isArray(n.props.source) ? n.props.source : [n.props.source]))
+        .map((s: { uri?: string } | undefined) => s?.uri);
       expect(uris).toContain(OTHER_PERSON.photoURL);
     });
   });

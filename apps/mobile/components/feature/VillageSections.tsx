@@ -7,6 +7,7 @@ import { VStack, HStack, Text, Pressable, TopCropImage } from '../primitives';
 import { useT } from '../../lib/i18n';
 import { HorizontalScrollRow } from './HorizontalScrollRow';
 import { SectionTitle } from './SectionTitle';
+import { RemoteImage } from '../primitives/RemoteImage';
 
 /**
  * Presentational building blocks for the village overview on the shared
@@ -234,10 +235,11 @@ function BigCard({
         }}
       >
         {imageUri ? (
-          <Image
-            source={{ uri: imageUri }}
+          <RemoteImage
+            uri={imageUri}
+            variant="card"
             style={{ width: '100%', height: '100%' }}
-            resizeMode="contain"
+            contentFit="contain"
           />
         ) : (
           fallback

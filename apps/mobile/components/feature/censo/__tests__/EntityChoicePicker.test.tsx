@@ -60,9 +60,10 @@ it('shows option images and selects a single entity', () => {
   );
 
   fireEvent.press(getByText('Selecciona una opción'));
-  expect(getByTestId('entity-option-image-plaza').props.source).toEqual({
-    uri: 'https://example.com/plaza.jpg',
-  });
+  // expo-image normalizes `source` into an array of sources.
+  expect(getByTestId('entity-option-image-plaza').props.source).toEqual([
+    { uri: 'https://example.com/plaza.jpg' },
+  ]);
   fireEvent.press(getByText('Plaza Mayor'));
 
   expect(onChange).toHaveBeenCalledWith('plaza');

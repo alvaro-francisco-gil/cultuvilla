@@ -255,6 +255,7 @@ const config: ExpoConfig = {
   },
   plugins: [
     'expo-router',
+    'expo-image',
     [
       'expo-splash-screen',
       {
