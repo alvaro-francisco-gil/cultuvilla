@@ -40,12 +40,34 @@ branch without waiting for a promotion PR.
 | `22-unregister-from-event` | A real native `Alert.alert` confirmation. |
 | `30-village-join` | A rules-gated direct client write, and the UI flip that follows it. |
 | `40-entity-comments` | RN `TextInput` + soft keyboard + send round trip. |
-| `50-onboarding-complete-profile` | The three-step person form with native `Modal`/`FlatList` pickers and step gating. |
+| `50-onboarding-complete-profile` | The three-step person form with native `Modal`/`FlatList` pickers and step gating. **Quarantined — see below.** |
 
 Filename order is load-bearing: `22` unregisters what `20` registered. Every flow
 still starts from `clearState: true`, so one failure never cascades into a bogus
 second one. [../../../../packages/shared/test/ci/androidE2e.test.ts](../../../../packages/shared/test/ci/androidE2e.test.ts)
 fails the build if a flow is added without a numeric prefix.
+
+## Quarantine
+
+`scripts/run-android-e2e.mjs` holds a `QUARANTINED` map of flows that are **not
+run** by the gate, each with the reason. Every run prints what it held out, twice
+— once up front and once in the summary — because a suite that quietly shrank
+reads as "everything passed", which is worse than a red lane. `--flow <name>`
+still runs a quarantined flow, so chasing one needs no edit.
+
+Currently held out: **`50-onboarding-complete-profile`**. The profile submit
+hangs on the native SDK's cleartext Firestore connection to `10.0.2.2` — logcat
+shows `unexpected end of stream on http://10.0.2.2:8080`, and a Firestore write
+promise never settles when the connection drops, so "Crear perfil" spins
+forever. It reproduced on both runs that reached the submit.
+
+The product path is **not** uncovered: [`../flows/onboarding-profile.spec.ts`](../flows/onboarding-profile.spec.ts)
+is the exact mirror — the same three `person-form-primary` clicks and the same
+`personId` assertion, against the same Firestore emulator — and it passes. What
+is unverified is the native emulator transport, which no real client uses (real
+clients talk to Firestore over TLS, not cleartext to an AVD host alias). That is
+why this is a quarantine and not a release blocker; it is still worth fixing, and
+`experimentalForceLongPolling` for the emulator is the first thing to try.
 
 ## Backend assertions from Maestro
 
