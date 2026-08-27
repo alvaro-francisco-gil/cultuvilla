@@ -4,6 +4,44 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v0.30.0 — 2026-08-27
+
+Sin cambios para quien usa la app. Esta versión existe porque la promoción a beta
+lleva siempre un número nuevo (AGENTS.md → *Versioning & releases*), y lo que
+arrastra es la primera ejecución real de las pruebas E2E en Android — que hasta
+0.29.0 nunca se había ejecutado, porque se añadió en una PR que no tocaba las
+rutas de release.
+
+### Fixed
+
+- **La suite E2E de Android ya se ejecuta de verdad, y pasa.** En su estreno se
+  quedó a medias: el APK no llegaba a compilarse porque
+  `:expo-updates:kspReleaseKotlin` agotaba los 512 MB de metaspace que da la
+  plantilla de Expo, y el demonio de Gradle, en vez de morirse, se quedaba una
+  hora dando vueltas hasta agotar el tiempo del job — así que el fallo se
+  presentaba como «cancelado», que parece falta de máquinas y no falta de
+  memoria. Con el techo subido y `--no-daemon`, un fallo mortal muere en nueve
+  minutos y dice lo que es.
+  - **Y tres recorridos no veían lo que tenían delante.** Ninguno era un fallo de
+    la app: el botón de apuntarse queda por debajo del pliegue en un pixel_5, y
+    el teclado del móvil tapa el enviar de los comentarios y el selector de sexo
+    del formulario. Nada de esto lo puede ver la suite web, porque en
+    react-native-web el teclado no existe como capa encima — que es exactamente
+    la razón de ser de la suite nativa.
+  - **Un hallazgo de producto, sin arreglar todavía.** Con el teclado abierto, en
+    Android nativo la ventana no se redimensiona: 25 barridos de pantalla
+    completa movieron la página exactamente cero píxeles. Se escribe un
+    comentario sin ver ni el campo ni el botón de enviar. Se puede enviar con la
+    tecla del propio teclado, así que está deslucido, no roto.
+  - **El paso que habilita KVM ya no tumba el job.** `udevadm control
+    --reload-rules` devuelve 1 en algunas máquinas de GitHub y, bajo `bash -e`,
+    eso se llevaba por delante toda la ejecución — tres veces en una noche— con
+    `/dev/kvm` ya escribible y el emulador listo para arrancar.
+  - **`50-onboarding-complete-profile` queda en cuarentena**, anunciada en cada
+    ejecución. Se cuelga al crear el perfil por la conexión en claro del SDK
+    nativo con el emulador de Firestore, algo que ningún cliente real usa; el
+    camino de producto lo cubre el espejo web, que pasa.
+
 ## v0.29.0 — 2026-08-26
 
 ### Added
