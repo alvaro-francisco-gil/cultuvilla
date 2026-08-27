@@ -19,6 +19,7 @@ const read = (p: string) => readFileSync(resolve(repoRoot, p), 'utf8');
 const workflow = read('.github/workflows/android-e2e.yml');
 const appConfig = read('apps/mobile/app.config.ts');
 const apkScript = read('scripts/build-android-e2e-apk.mjs');
+const runner = read('scripts/run-android-e2e.mjs');
 const rootPkg = JSON.parse(read('package.json')) as { scripts: Record<string, string> };
 const flowsDir = resolve(repoRoot, 'apps/mobile/e2e/native/flows');
 
@@ -91,6 +92,48 @@ describe('E2E auth-bypass hygiene', () => {
   it('confines the cleartext-HTTP opt-in to the generated android tree', () => {
     expect(apkScript).toMatch(/usesCleartextTraffic/);
     expect(appConfig).not.toMatch(/usesCleartextTraffic/);
+  });
+});
+
+describe('quarantine', () => {
+  // A quarantine is a hole in the gate. These tests do not object to the hole —
+  // sometimes it is the right call — they object to it being quiet, vague, or
+  // permanent-by-neglect, which is how a suite ends up green and worthless.
+  const quarantined = [...runner.matchAll(/^\s{4}'([\w.-]+\.yaml)',$/gm)].map((m) => m[1]);
+
+  it('holds out at most one flow', () => {
+    expect(quarantined.length).toBeLessThanOrEqual(1);
+  });
+
+  it('names only flows that exist', () => {
+    const onDisk = readdirSync(flowsDir).filter((f) => f.endsWith('.yaml'));
+    for (const name of quarantined) expect(onDisk).toContain(name);
+  });
+
+  // The runner also checks this at runtime and exits non-zero; this catches it
+  // in the unit suite, where it is 200ms instead of a 40-minute AVD boot.
+  it('fails the run rather than skipping a quarantine entry that no longer matches a file', () => {
+    expect(runner).toMatch(/quarantine names a flow that does not exist/);
+  });
+
+  it('announces every held-out flow instead of shrinking the suite quietly', () => {
+    expect(runner).toMatch(/QUARANTINED, NOT RUN/);
+    // ...and says so again in the summary line, which is the part a passing run
+    // actually prints.
+    expect(runner).toMatch(/quarantined and NOT run/);
+  });
+
+  it('gives each held-out flow a reason', () => {
+    for (const name of quarantined) {
+      const at = runner.indexOf(`'${name}',`);
+      // The reason string follows the key inside the same Map entry.
+      const reason = runner.slice(at + name.length, at + name.length + 600);
+      expect(reason.length, `no reason recorded for ${name}`).toBeGreaterThan(80);
+    }
+  });
+
+  it('still lets --flow run a quarantined flow explicitly', () => {
+    expect(runner).toMatch(/flow \? \[flow\]/);
   });
 });
 
