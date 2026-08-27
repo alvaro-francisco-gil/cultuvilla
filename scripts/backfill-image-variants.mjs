@@ -65,6 +65,7 @@ export async function run({ admin, projectId, apply, log }) {
 
   let total = 0;
   let patched = 0;
+  const skipped = [];
   let pageToken;
 
   do {
@@ -95,26 +96,41 @@ export async function run({ admin, projectId, apply, log }) {
       patched += 1;
       if (!apply) continue;
 
-      const [source] = await file.download();
-      for (const [i, { variant, path }] of wanted.entries()) {
-        if (present[i]) continue;
-        const body = await sharp(source, { failOn: 'none' })
-          .rotate()
-          .resize({
-            width: MAX_EDGE[variant],
-            height: MAX_EDGE[variant],
-            fit: 'inside',
-            withoutEnlargement: true,
-          })
-          .webp({ quality: QUALITY[variant] })
-          .toBuffer();
-        await bucket.file(path).save(body, {
-          contentType: 'image/webp',
-          metadata: {
-            cacheControl: CACHE_CONTROL,
-            ...(token ? { metadata: { firebaseStorageDownloadTokens: token } } : {}),
-          },
-        });
+      // One object sharp cannot decode must not abort the sweep. Prod has HEIC
+      // originals from before the client downscaled to WebP on upload, and the
+      // runner's sharp has no libheif compiled in ("Support for this
+      // compression format has not been built in") — that killed a prod run
+      // 169 objects in, leaving 115 untouched and no marker. Skipping matches
+      // what the live trigger already does with an undecodable object
+      // (generateImageVariants logs and sets retry:false rather than hammering
+      // it), and a missing variant degrades to the original anyway.
+      try {
+        const [source] = await file.download();
+        for (const [i, { variant, path }] of wanted.entries()) {
+          if (present[i]) continue;
+          const body = await sharp(source, { failOn: 'none' })
+            .rotate()
+            .resize({
+              width: MAX_EDGE[variant],
+              height: MAX_EDGE[variant],
+              fit: 'inside',
+              withoutEnlargement: true,
+            })
+            .webp({ quality: QUALITY[variant] })
+            .toBuffer();
+          await bucket.file(path).save(body, {
+            contentType: 'image/webp',
+            metadata: {
+              cacheControl: CACHE_CONTROL,
+              ...(token ? { metadata: { firebaseStorageDownloadTokens: token } } : {}),
+            },
+          });
+        }
+      } catch (err) {
+        patched -= 1;
+        const reason = err instanceof Error ? err.message.split('\n')[0] : String(err);
+        skipped.push({ path: name, contentType, reason });
+        log(`SKIPPED ${name} (${contentType}): ${reason}`);
       }
     }
 
@@ -122,7 +138,16 @@ export async function run({ admin, projectId, apply, log }) {
   } while (pageToken);
 
   log(`${patched}/${total} originals ${apply ? 'given variants' : 'would get variants'}`);
-  return { total, patched };
+
+  // A partial sweep that reports itself as done is how a half-migrated bucket
+  // gets forgotten. Name every skip, and put the count in the marker so the
+  // record of the run says so too.
+  if (skipped.length > 0) {
+    log(`!! ${skipped.length} original(s) SKIPPED, still serving full-size:`);
+    for (const s of skipped) log(`     ${s.path} (${s.contentType}): ${s.reason}`);
+  }
+
+  return { total, patched, skipped: skipped.length };
 }
 
 if (isMain(import.meta.url)) await runBackfill({ meta, run });
