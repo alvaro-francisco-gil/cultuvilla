@@ -195,3 +195,22 @@ jobs:
 
       - name: Deploy Hosting
         run: firebase deploy --only hosting --project ${{ inputs.firebase_alias }} --non-interactive
+
+      # `config/appVersion.latest` is what the in-app update nudge compares the
+      # installed build against — and it is a Firestore document, so unlike
+      # everything above it does NOT ship with the deploy. Leaving it to a
+      # manual dispatch is exactly what let beta sit on 0.27.0 while 0.28.0,
+      # 0.29.0 and 0.30.0 all shipped: three releases whose testers were never
+      # told a new build existed, which is most of the point of a closed track.
+      #
+      # LAST, deliberately: announcing a version that then failed to deploy
+      # would point clients at a build that is not there.
+      #
+      # Both omitted flags are the safe defaults, and they are what makes this
+      # safe to automate: no `--latest` resolves to this branch's app.config.ts
+      # version, and no `--min` PRESERVES the stored `minSupported`. So this can
+      # raise the announcement but can NEVER move the force-update wall — that
+      # stays a deliberate "Set App Version" dispatch, because walling off
+      # clients is a product decision and must never be a side effect of a merge.
+      - name: Announce the shipped version to clients
+        run: node scripts/seed-app-version-config.mjs --env=${{ inputs.firebase_alias }} --confirm

@@ -209,3 +209,60 @@ describe('set-app-version endpoint invariant', () => {
     expect(appVersionWorkflow).toContain('${MIN:+--min="$MIN"}');
   });
 });
+
+// `config/appVersion.latest` drives the in-app update nudge, and it is a
+// Firestore document — so it does not ship with a code deploy the way rules,
+// indexes and functions do. Leaving it to a manual dispatch is what let beta
+// advertise 0.27.0 while 0.28.0, 0.29.0 and 0.30.0 shipped: three releases
+// whose testers were never told a new build existed. The deploy now announces
+// it itself.
+describe('version announcement on deploy', () => {
+  // Resolved lazily, per test: `stepBlockContaining` throws when the step is
+  // gone, and at describe-body scope that aborts collection of the whole FILE —
+  // reporting "no tests" and taking the other 25 invariants down with it,
+  // instead of naming the one thing that broke.
+  const step = () => stepBlockContaining(deployWorkflow, 'seed-app-version-config.mjs');
+
+  it('announces the shipped version as part of every deploy', () => {
+    expect(deployWorkflow).toContain('node scripts/seed-app-version-config.mjs');
+    expect(step()).toContain('--env=${{ inputs.firebase_alias }}');
+  });
+
+  // THE load-bearing one. `minSupported` is the force-update wall: raising it
+  // locks every older client out of the app. Omitting `--min` makes the script
+  // preserve whatever is stored, so a routine merge cannot wall off the fleet.
+  // Moving the wall stays a deliberate "Set App Version" dispatch.
+  it('never passes --min, so a deploy cannot move the force-update wall', () => {
+    expect(step()).not.toMatch(/--min[=\s]/);
+  });
+
+  // Omitting --latest resolves to this branch's app.config.ts version, which is
+  // exactly what just deployed. Pinning a literal here would drift.
+  it('never pins --latest, so the announced version follows app.config.ts', () => {
+    expect(step()).not.toMatch(/--latest[=\s]/);
+  });
+
+  it('runs only after the deploy steps, never before them', () => {
+    const announce = deployWorkflow.indexOf('seed-app-version-config.mjs');
+    for (const deployStep of [
+      'firebase deploy --only firestore:rules',
+      'firebase deploy --only functions',
+      'firebase deploy --only hosting',
+    ]) {
+      expect(
+        deployWorkflow.indexOf(deployStep),
+        `announcement must follow "${deployStep}"`,
+      ).toBeLessThan(announce);
+    }
+  });
+
+  // The script refuses to write beta/prod without it, so a missing --confirm
+  // would fail every promotion at the very last step.
+  it('passes --confirm, which beta and prod require', () => {
+    expect(step()).toContain('--confirm');
+  });
+
+  it('is not a dry run', () => {
+    expect(step()).not.toContain('--dry-run');
+  });
+});
