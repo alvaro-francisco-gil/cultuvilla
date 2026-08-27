@@ -11,6 +11,24 @@ function resolveEnv(): Env {
 
 const env = resolveEnv();
 
+// Build-time hard guard on the E2E auth bypass.
+//
+// `USE_FIREBASE_EMULATOR=1` arms BOTH the emulator-connect seam and the
+// fixture-login (see `extra.useEmulator` below). It used to be structurally
+// impossible for that to reach a store binary because the seam was web-only;
+// now that the native (Maestro) driver needs it too, "web-only" is no longer
+// the wall. So the wall moves here: a beta/prod build with the flag set is a
+// build failure, on EVERY path — CI, EAS, and a laptop alike — because
+// app.config.ts is evaluated by all of them. The deploy workflows' runtime
+// assertion stays as a second, independent layer.
+if (process.env['USE_FIREBASE_EMULATOR'] === '1' && env !== 'dev') {
+  throw new Error(
+    `[cultuvilla] USE_FIREBASE_EMULATOR=1 with APP_ENV=${env}. The E2E auth ` +
+      'bypass may only be built into a `dev` bundle pointed at local emulators. ' +
+      'Refusing to build.',
+  );
+}
+
 // Home-screen labels. The non-prod ones are prefixed so a sideloaded APK is
 // identifiable next to the store app — an icon labelled just "Beta" tells its
 // owner nothing about which app it is.
@@ -123,7 +141,7 @@ const config: ExpoConfig = {
   // the shell would silently build one repo into the other's EAS project; owner
   // + projectId in the file make the routing per-repo by construction.
   owner: 'cultuvilla.app',
-  version: '0.28.0',
+  version: '0.30.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
 
@@ -237,6 +255,7 @@ const config: ExpoConfig = {
   },
   plugins: [
     'expo-router',
+    'expo-image',
     [
       'expo-splash-screen',
       {

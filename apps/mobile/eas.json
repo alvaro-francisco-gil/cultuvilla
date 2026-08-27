@@ -56,6 +56,7 @@
       },
       "ios": {
         "bundleIdentifier": "com.cultuvilla.app",
+        "ascAppId": "6804756586",
         "language": "es-ES",
         "appleTeamId": "78RB67NT38",
         "ascApiKeyPath": "./apple-asc-api-key.p8"

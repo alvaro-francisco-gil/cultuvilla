@@ -972,6 +972,18 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // Append-only audit log of the roster: who joined, who left, and who
+      // removed them. Cancellation is a hard delete, so without this the
+      // organizer has no record that a departed attendee ever existed. Same
+      // audience as the ops on the roster — organizers, village admins, app
+      // admins — and never the pueblo, because it names people who are no
+      // longer on the (already village-scoped) list. Written only by the
+      // registration callables via the admin SDK.
+      match /registrationEvents/{entryId} {
+        allow read: if isEventOrganizer(eventId);
+        allow write: if false;
+      }
+
       // Organizer-only private data per registration: the attendee's phone and
       // their answers to the event's custom signupFields. The registration doc
       // itself is world-readable, so all PII lives here instead. Written only

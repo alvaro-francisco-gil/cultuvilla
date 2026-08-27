@@ -17,11 +17,13 @@
  *   ONLY                Comma list passed to `firebase emulators:start --only`
  *                       (default: auth,firestore,functions,storage)
  *   WAIT_TIMEOUT_MS     Per-port wait timeout (default: 180000)
+ *   EMULATOR_BIND_HOST  Bind the emulators to this host instead of loopback
+ *                       (WSL2 + a Windows-hosted AVD needs 0.0.0.0; see below)
  *   VITEST_RETRY_COUNT  Defaulted to "1" in the child env if not set by caller.
  *                       Each vitest config reads it and passes to `test.retry`.
  */
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -102,10 +104,44 @@ const emulatorEnv = {
   VITEST_RETRY_COUNT: process.env.VITEST_RETRY_COUNT ?? '1',
 };
 
+/**
+ * EMULATOR_BIND_HOST — bind the emulators to something other than loopback.
+ *
+ * Needed by exactly one caller: the native Android suite run from WSL2, where
+ * the AVD lives on the Windows host. The device reaches the host loopback at
+ * `10.0.2.2`, but that resolves to the WINDOWS loopback, and a WSL process
+ * bound to 127.0.0.1 is invisible there — a 0.0.0.0 bind is reachable. On a
+ * Linux runner (and in CI) the AVD and the emulators share one loopback, so
+ * this stays unset and nothing is exposed beyond the machine.
+ *
+ * The firebase CLI has no --host flag, so the only lever is the config file:
+ * write a patched copy to a temp path and point `--config` at it.
+ */
+const BIND_HOST = process.env.EMULATOR_BIND_HOST;
+let configArgs = [];
+if (BIND_HOST) {
+  const base = JSON.parse(readFileSync(path.join(ROOT, 'firebase.json'), 'utf8'));
+  for (const service of Object.keys(base.emulators ?? {})) {
+    if (typeof base.emulators[service] === 'object' && base.emulators[service] !== null) {
+      base.emulators[service].host = BIND_HOST;
+    }
+  }
+  // Inside ROOT so every relative path in the config (rules, functions source)
+  // still resolves against the repo. A FIXED name, not per-pid: the emulators
+  // bind fixed ports, so two harness runs can't coexist anyway — and a
+  // pid-suffixed name just accumulates litter every time a run is killed hard
+  // enough to skip the exit hook.
+  const generated = path.join(ROOT, 'firebase.emulator-bind.json');
+  writeFileSync(generated, JSON.stringify(base, null, 2));
+  process.on('exit', () => { try { rmSync(generated); } catch { /* best effort */ } });
+  configArgs = ['--config', path.basename(generated)];
+  console.log(`[emulators] binding to ${BIND_HOST} via ${path.basename(generated)}`);
+}
+
 console.log(`[emulators] starting (project=${TEST_PROJECT_ID}, only=${ONLY})`);
 const emu = spawn(
   'firebase',
-  ['emulators:start', '--project', TEST_PROJECT_ID, '--only', ONLY],
+  ['emulators:start', '--project', TEST_PROJECT_ID, '--only', ONLY, ...configArgs],
   { cwd: ROOT, env: emulatorEnv, stdio: ['ignore', 'inherit', 'inherit'] },
 );
 

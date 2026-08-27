@@ -20,5 +20,19 @@ export {
 } from './phone';
 export { buildGoogleCalendarUrl, type CalendarEventInput } from './calendar';
 export { compareVersions } from './semver';
-export { resolveVersionGate, type GateDecision } from './versionGate';
+export {
+  resolveVersionGate,
+  shouldPromptUpdate,
+  UPDATE_PROMPT_COOLDOWN_DAYS,
+  type GateDecision,
+  type UpdatePromptRecord,
+} from './versionGate';
 export { maxBirthdayForAge, isAtLeastYearsOld } from './age';
+export {
+  IMAGE_VARIANT_SUFFIX,
+  isVariantExemptStoragePath,
+  isVariantStoragePath,
+  variantImageURL,
+  variantStoragePath,
+  type ImageVariant,
+} from './imageVariants';

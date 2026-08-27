@@ -1,0 +1,156 @@
+# Native Android E2E — the release gate that drives the REAL app on a REAL
+# Android emulator, against real Firebase emulators, through real user journeys.
+#
+# WHY THIS EXISTS ALONGSIDE web-e2e (mobile-ci.yml): the web suite runs the same
+# React tree via react-native-web, so it proves the product logic but not the
+# platform. Everything below it — native app boot, the Expo Router deep-link
+# intent path, AsyncStorage auth persistence, the native Firebase SDK, RN
+# modals/sheets/soft-keyboard, and `Alert.alert` (which react-native-web ships
+# as a NO-OP, so the web driver has literally never executed it) — is invisible
+# to Playwright and shipped to users. This job is the only thing that sees it.
+#
+# GATED TO THE RELEASE PATHS, like web-e2e: a full Gradle build plus an AVD boot
+# is far too slow for day-to-day `develop` PRs, and beta is the release
+# candidate — the last point where a native-only regression can be caught before
+# it becomes a store binary. `develop` PRs keep the fast mobile-ci job.
+name: android-e2e
+
+on:
+  pull_request:
+    branches: [beta, main]
+  push:
+    branches: [beta, main]
+  # So a native regression can be chased on a develop branch without waiting for
+  # a promotion PR.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: >-
+    ${{ github.ref != 'refs/heads/beta' && github.ref != 'refs/heads/main' }}
+
+jobs:
+  android-e2e:
+    name: Android E2E (Maestro on an AVD)
+    runs-on: ubuntu-latest
+    # Gradle cold build (~15 min) + AVD boot + 8 flows. Generous on purpose:
+    # timing out mid-suite tells you nothing, and this runs a handful of times
+    # per release, not per push.
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # The AVD needs hardware acceleration to be usable. ubuntu-latest runners
+      # expose /dev/kvm but not to the runner user; this udev rule is the
+      # documented fix and must run before the emulator action.
+      # The udev dance is BEST EFFORT; only the final check is a real gate.
+      # `sudo udevadm control --reload-rules` exits 1 on some runners, and under
+      # `bash -e` that killed the whole job — three times in one evening — even
+      # though /dev/kvm was already world-writable and the emulator would have
+      # booted fine. What actually matters is the last line: if /dev/kvm is not
+      # writable the AVD cannot start, and that still fails the job.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules || echo "udevadm reload failed; continuing"
+          sudo udevadm trigger --name-match=kvm || echo "udevadm trigger failed; continuing"
+          test -w /dev/kvm && echo "KVM writable"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.24.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # 21 for both halves of this job: the Firebase emulators want it (see
+      # ci.yml) and AGP 8.x on Expo SDK 56 supports it. One JAVA_HOME, no
+      # switching mid-job.
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install functions dependencies
+        run: npm ci
+        working-directory: functions
+
+      - name: Build shared package
+        run: pnpm shared:build
+
+      - name: Build functions
+        run: pnpm functions:build
+
+      # Gradle's own cache. The Android build is the long pole in this job by a
+      # wide margin, and it is almost entirely dependency resolution + AGP work
+      # that does not change between runs.
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-android-e2e-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'apps/mobile/app.config.ts') }}
+          restore-keys: gradle-android-e2e-${{ runner.os }}-
+
+      # Prebuild + assembleRelease with USE_FIREBASE_EMULATOR=1 and the AVD host
+      # alias baked in. Every non-obvious constraint lives in the script, so the
+      # local run and this one produce the same APK.
+      - name: Build E2E APK (emulator mode)
+        run: node scripts/build-android-e2e-apk.mjs
+
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      # One boot of everything: the action brings up the AVD, then the script
+      # inside it boots the Firebase emulators, seeds the deterministic E2E
+      # fixtures and runs the Maestro suite — the exact command a developer runs
+      # locally (`pnpm test:e2e:android`).
+      #
+      # API 33 + google_apis + x86_64 matches the image the repo's local AVD
+      # uses. `-no-snapshot-save` keeps a forced kill from poisoning the image.
+      - name: Seed + run the Maestro suite on an AVD
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          E2E_ANDROID_APK: apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+          E2E_FIREBASE_PROJECT: cultuvilla-test
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          ram-size: 4096M
+          # Animations make every `tapOn` race the transition it triggered.
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot-save -noaudio -no-boot-anim -camera-back none
+          script: pnpm test:e2e:android
+
+      - name: Upload Maestro artifacts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-artifacts
+          path: |
+            apps/mobile/e2e/native/report/
+            ~/.maestro/tests/
+          if-no-files-found: ignore
+          retention-days: 7

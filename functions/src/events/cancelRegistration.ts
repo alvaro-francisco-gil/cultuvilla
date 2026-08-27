@@ -23,6 +23,8 @@ import { isWalkInAuthorized } from '../helpers/walkInAuthorization';
 import { sendCancellationEmail } from './sendCancellationEmail';
 import { resolveCancellation } from '../helpers/cancellationPlan';
 import { generateSeatToken } from '../helpers/seatToken';
+import { writeRegistrationEvent } from '../helpers/registrationAudit';
+import { RESEND_API_KEY } from '../auth/secret';
 
 const db = getFirestore();
 
@@ -61,7 +63,7 @@ interface CancelRegistrationResult {
 export const cancelRegistration = onCall<
   CancelRegistrationData,
   Promise<CancelRegistrationResult>
->({ region: 'us-central1', cors: true }, async (request) => {
+>({ region: 'us-central1', cors: true, secrets: [RESEND_API_KEY] }, async (request) => {
   const auth = request.auth;
   if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
   const uid = auth.uid;
@@ -166,6 +168,17 @@ export const cancelRegistration = onCall<
         );
       }
 
+      writeRegistrationEvent(tx, db, eventId, {
+        registrationId,
+        action: 'seat_released',
+        actorUserId: uid,
+        subjectUserId: reg.userId,
+        personId: reg.personId,
+        name: reg.name,
+        status: reg.status,
+        groupId: plan.groupId,
+      });
+
       logger.info('Group seat released', {
         handler: 'cancelRegistration',
         eventId,
@@ -183,10 +196,34 @@ export const cancelRegistration = onCall<
     // the event counters and runs waitlist promotion, so neither is touched
     // here — doing both would double-count.
     const doomed = groupSeats ? groupSeats.docs.map((d) => d.ref) : [regRef];
-    for (const ref of doomed) {
+    const doomedData = groupSeats ? groupSeats.docs.map((d) => d.data()) : [reg];
+    // The audit entry is the ONLY thing that survives this: the registration
+    // and its private answers are hard-deleted, so without a record written in
+    // this same transaction an organizer can never see that the attendee was
+    // ever on the roster. `group_cancelled` is one entry per lost seat, not one
+    // per group — the roster is a list of people, and so is its history.
+    const at = new Date();
+    doomed.forEach((ref, i) => {
+      const seat = doomedData[i];
       tx.delete(ref);
       tx.delete(eventRegistrationPrivateDoc(db, eventId, ref.id));
-    }
+      writeRegistrationEvent(tx, db, eventId, {
+        registrationId: ref.id,
+        action:
+          plan.action === 'delete-group'
+            ? 'group_cancelled'
+            : seat.userId === uid
+              ? 'cancelled_self'
+              : 'removed_by_organizer',
+        actorUserId: uid,
+        subjectUserId: seat.userId,
+        personId: seat.personId,
+        name: seat.name,
+        status: seat.status,
+        groupId: seat.groupId,
+        at,
+      });
+    });
     // Unconsumed links for a group that no longer exists would 404 on claim
     // anyway; deleting them makes the failure immediate and honest.
     for (const tokenDoc of groupTokens?.docs ?? []) {

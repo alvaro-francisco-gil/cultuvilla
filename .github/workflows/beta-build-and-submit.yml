@@ -1,14 +1,17 @@
 name: beta-build-and-submit
 
 # Merging to `beta` builds the Android release and submits it to Play's CLOSED
-# track, unattended. Mirrors ordago-apps' beta-build-and-submit.yml.
+# track, unattended, and separately builds + submits the iOS release straight
+# to TestFlight (no App Review gate for internal testers, so this is the iOS
+# analog of Play's closed track). Mirrors ordago-apps' beta-build-and-submit.yml.
 #
 # Why a binary moves automatically here, when AGENTS.md otherwise insists store
 # binaries move only by explicit decision: closed testing is not a public
 # release. Play's "12 testers for 14 continuous days" clock only advances while
 # testers actually have builds, and every manual step in that loop is a day the
 # clock does not move. Production stays manual — that is the decision this
-# preserves. `mobile-release` remains the manual escape hatch for any track.
+# preserves, for both stores. `mobile-release` remains the manual escape hatch
+# for any track (Play) or a named TestFlight group (iOS).
 #
 # Deliberately NOT scoped to a GitHub `environment`: the `Production`
 # environment's branch policy allows only `main`, so a beta-triggered job that
@@ -32,6 +35,10 @@ on:
         type: choice
         options: [closed, internal]
         default: closed
+      testflightGroup:
+        description: 'iOS only: TestFlight internal testing group to add the build to (leave blank to skip)'
+        type: string
+        default: ''
 
 concurrency:
   group: beta-build-and-submit
@@ -108,3 +115,86 @@ jobs:
       - name: Remove the key
         if: always()
         run: rm -f apps/mobile/google-play-service-account.json
+
+  ios:
+    name: iOS build + submit -> TestFlight
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      # Fail loudly and early rather than 40 minutes into a build that cannot be
+      # submitted. See mobile-release.yml for the same check on the manual path.
+      - name: Require store credentials
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          APPLE_ASC_API_KEY_P8: ${{ secrets.APPLE_ASC_API_KEY_P8 }}
+          APPLE_ASC_KEY_ID: ${{ vars.APPLE_ASC_KEY_ID }}
+          APPLE_ASC_ISSUER_ID: ${{ vars.APPLE_ASC_ISSUER_ID }}
+        run: |
+          missing=()
+          [ -z "${EXPO_TOKEN}" ] && missing+=("EXPO_TOKEN")
+          [ -z "${APPLE_ASC_API_KEY_P8}" ] && missing+=("APPLE_ASC_API_KEY_P8")
+          [ -z "${APPLE_ASC_KEY_ID}" ] && missing+=("APPLE_ASC_KEY_ID")
+          [ -z "${APPLE_ASC_ISSUER_ID}" ] && missing+=("APPLE_ASC_ISSUER_ID")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing repo secret/variable(s): ${missing[*]} — see docs/plans/ongoing/store-release.md."
+            exit 1
+          fi
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm shared:build
+
+      - uses: expo/expo-github-action@v9
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      # eas.json's ascApiKeyPath points at this file (relative to apps/mobile).
+      # Gitignored, materialised here, never persisted. ascApiKeyId/ascApiKeyIssuerId
+      # aren't secret but don't exist until the key is created in App Store
+      # Connect, so eas.json can't commit real values — patched in at runtime.
+      - name: Write App Store Connect API key
+        env:
+          APPLE_ASC_API_KEY_P8: ${{ secrets.APPLE_ASC_API_KEY_P8 }}
+          APPLE_ASC_KEY_ID: ${{ vars.APPLE_ASC_KEY_ID }}
+          APPLE_ASC_ISSUER_ID: ${{ vars.APPLE_ASC_ISSUER_ID }}
+        run: |
+          printf '%s' "${APPLE_ASC_API_KEY_P8}" > apps/mobile/apple-asc-api-key.p8
+          node -e "
+            const fs = require('fs');
+            const path = 'apps/mobile/eas.json';
+            const eas = JSON.parse(fs.readFileSync(path, 'utf8'));
+            eas.submit.production.ios.ascApiKeyId = process.env.APPLE_ASC_KEY_ID;
+            eas.submit.production.ios.ascApiKeyIssuerId = process.env.APPLE_ASC_ISSUER_ID;
+            fs.writeFileSync(path, JSON.stringify(eas, null, 2) + '\n');
+          "
+
+      - name: Build iOS archive
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas build --profile production --platform ios --non-interactive --wait
+
+      - name: Submit to App Store Connect
+        working-directory: apps/mobile
+        run: |
+          eas submit \
+            --profile production \
+            --platform ios \
+            --latest \
+            --non-interactive \
+            ${{ github.event.inputs.testflightGroup != '' && format('--groups "{0}"', github.event.inputs.testflightGroup) || '' }}
+
+      - name: Remove the key
+        if: always()
+        run: rm -f apps/mobile/apple-asc-api-key.p8

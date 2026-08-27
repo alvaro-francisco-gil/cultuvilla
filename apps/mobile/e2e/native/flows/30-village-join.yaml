@@ -1,0 +1,41 @@
+# Village self-join — a direct, approval-free client write gated purely by
+# firestore.rules (a user may add only themselves). Mirrors the web
+# apps/mobile/e2e/flows/village-join.spec.ts. The membership doc is the strong
+# assertion; the UI flip to the member-only action is the corroboration.
+appId: com.cultuvilla.app.dev
+env:
+  EMAIL: e2e-joiner@cultuvilla.test
+  PASSWORD: e2e-cultuvilla-pw
+  VILLAGE_ID: e2e-village-join
+  UID: e2e-joiner
+---
+# `clearState` + cold-start openLink live in the login subflow — see the note
+# there on why a launchApp-then-openLink sequence drops the login intent.
+- runFlow:
+    file: ../subflows/login.yaml
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+- openLink: 'cultuvilla://village/${VILLAGE_ID}'
+- extendedWaitUntil:
+    visible:
+      id: 'village-join-action'
+    timeout: 45000
+- tapOn:
+    id: 'village-join-action'
+- tapOn:
+    id: 'join-village-confirm'
+- runScript:
+    file: ../scripts/docField.js
+    env:
+      DOC_PATH: 'municipalities/${VILLAGE_ID}/members/${UID}'
+      EXPECT: present
+- assertTrue: ${output.ok == 'true'}
+# The member-only affordance replaces the join button once the client re-reads
+# its own membership. That is a second round trip after the write the assertion
+# above already proved, so it gets a native-sized timeout rather than the web
+# suite's 15s.
+- extendedWaitUntil:
+    visible:
+      id: 'village-add-content-action'
+    timeout: 45000

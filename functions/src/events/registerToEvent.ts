@@ -17,6 +17,7 @@ import {
   type RegisterToEventData,
 } from '../helpers/registerToEventValidation';
 import { generateSeatToken } from '../helpers/seatToken';
+import { writeRegistrationEvent } from '../helpers/registrationAudit';
 import { RESEND_API_KEY } from '../auth/secret';
 import { sendRegistrationEmail } from './sendRegistrationEmail';
 import type { RegistrationEmailAttendee } from '@cultuvilla/shared/email';
@@ -218,6 +219,17 @@ export const registerToEvent = onCall<RegisterToEventData, Promise<RegisterToEve
             birthday,
           });
         }
+        writeRegistrationEvent(tx, db, eventId, {
+          registrationId: newRef.id,
+          action: 'signed_up',
+          actorUserId: userId,
+          subjectUserId: userId,
+          personId: registrant.personId,
+          name: registrant.name,
+          status,
+          groupId,
+          at: registeredAt,
+        });
         summaries.push({ id: newRef.id, status, position, isMember });
         attendees.push({ name: registrant.name, status, position });
       });
@@ -264,6 +276,19 @@ export const registerToEvent = onCall<RegisterToEventData, Promise<RegisterToEve
             createdAt: registeredAt,
           }),
         );
+        // An open seat joins the roster like any other body: it occupies a
+        // place from this moment, so the log records it as one.
+        writeRegistrationEvent(tx, db, eventId, {
+          registrationId: seatRef.id,
+          action: 'signed_up',
+          actorUserId: userId,
+          subjectUserId: userId,
+          personId: '',
+          name: OPEN_SEAT_NAME,
+          status,
+          groupId,
+          at: registeredAt,
+        });
         openSeatSummaries.push({ registrationId: seatRef.id, token });
         summaries.push({ id: seatRef.id, status, position, isMember: false });
       }

@@ -16,6 +16,7 @@
  *   2. `useEmulator`                    — its surfaced `extra.useEmulator` form.
  *   3. `connect{Auth,Firestore,Functions,Storage}Emulator` — emulator wiring.
  *   4. `__cultuvillaE2E`                — the window-exposed test-login helper.
+ *   5. `parseE2ELoginLink`              — the native deep-link test-login.
  *
  * Scope (the code that gets bundled/deployed):
  *   - apps/mobile/**\/*.{ts,tsx}  (excluding e2e/, tests, dist, .expo)
@@ -50,6 +51,11 @@ export const ALLOWED_PATHS = new Set([
   'apps/mobile/app.config.ts',
   'apps/mobile/lib/firebaseInit.ts',
   'apps/mobile/lib/auth/AuthContext.tsx',
+  // Pure string predicates for the native (Maestro) driver's login link. No
+  // auth call and no emulator wiring live here — only the parsing that is worth
+  // unit-testing. The CAPABILITY still has exactly one home (AuthContext.tsx),
+  // which the parseE2ELoginLink rule below enforces.
+  'apps/mobile/lib/auth/e2eLoginLink.ts',
 ]);
 
 export const LEAK_RULES = [
@@ -68,6 +74,10 @@ export const LEAK_RULES = [
   {
     rule: '__cultuvillaE2E: the test-login seam; confined to AuthContext.tsx',
     re: /__cultuvillaE2E/,
+  },
+  {
+    rule: 'parseE2ELoginLink: the native deep-link test-login; only AuthContext.tsx may consume it',
+    re: /\bparseE2ELoginLink\b/,
   },
 ];
 

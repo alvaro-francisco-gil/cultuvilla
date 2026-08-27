@@ -13,6 +13,7 @@ import {
 } from '@cultuvilla/shared/firebase/refs/admin';
 import { buildNotificationData, validateSignupAnswers } from '@cultuvilla/shared/models';
 import { isWellFormedSeatToken } from '../helpers/seatToken';
+import { writeRegistrationEvent } from '../helpers/registrationAudit';
 import { RESEND_API_KEY } from '../auth/secret';
 import { sendRegistrationEmail } from './sendRegistrationEmail';
 
@@ -175,6 +176,17 @@ export const claimEventSeat = onCall<ClaimEventSeatData, Promise<ClaimEventSeatR
       }
 
       tx.update(tokenRef, { consumedAt: new Date(), consumedBy: uid });
+
+      writeRegistrationEvent(tx, db, eventId, {
+        registrationId: regRef.id,
+        action: 'seat_claimed',
+        actorUserId: uid,
+        subjectUserId: uid,
+        personId,
+        name,
+        status: reg.status,
+        groupId: reg.groupId,
+      });
 
       // The group owner is accountable for the seat, so they are told who took
       // it. Deterministic id keyed by the seat: a re-delivery or a later

@@ -1,4 +1,5 @@
-import { Image, View, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { RemoteImage } from './RemoteImage';
 import { Text } from './Text';
 
 export interface EscudoProps {
@@ -26,15 +27,20 @@ export interface EscudoProps {
 export function Escudo({ url, size = 64, fallbackInitial, fill = false }: EscudoProps) {
   if (url) {
     return (
-      <Image
-        source={{ uri: url }}
+      // `original`: escudos are reference data, already resized to 256px and
+      // already served immutably by scripts/upload-escudos.mjs, so there is no
+      // variant to fetch. RemoteImage is still the right host — it brings the
+      // memory + disk cache the raw RN Image lacked.
+      <RemoteImage
+        uri={url}
+        variant="original"
         style={{
           width: size,
           height: size,
           borderRadius: fill ? Math.max(4, size * 0.18) : 0,
         }}
-        resizeMode={fill ? 'cover' : 'contain'}
-        accessibilityIgnoresInvertColors
+        contentFit={fill ? 'cover' : 'contain'}
+        transitionMs={0}
       />
     );
   }

@@ -7,6 +7,7 @@ import { Pressable } from './Pressable';
 import { Text } from './Text';
 import { FieldLabel } from './FieldLabel';
 import { Button } from './Button';
+import { RemoteImage } from './RemoteImage';
 
 interface Option {
   id: string;
@@ -127,7 +128,13 @@ export function BarrioPicker({
                   style={styles.row}
                 >
                   {item.image ? (
-                    <Image source={{ uri: item.image }} style={styles.thumb} />
+                    <RemoteImage
+                      uri={item.image}
+                      variant="thumb"
+                      style={styles.thumb}
+                      contentFit="cover"
+                      transitionMs={0}
+                    />
                   ) : (
                     <View style={styles.thumbPlaceholder}>
                       <Ionicons name="map-outline" size={18} color="#94a3b8" />

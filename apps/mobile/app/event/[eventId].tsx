@@ -11,6 +11,7 @@ import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
 import { ownerRoute } from '../../lib/entities/ownerRoute';
 import { RegisterFab } from '../../components/feature/RegisterFab';
 import { EventAttendees } from '../../components/feature/EventAttendees';
+import { RegistrationHistory } from '../../components/feature/RegistrationHistory';
 import { DetailSectionHeading } from '../../components/feature/DetailSectionHeading';
 import { EntityDetailScaffold } from '../../components/feature/EntityDetailScaffold';
 import type { EntityDetailAction } from '../../components/feature/EntityDetailHeader';
@@ -257,6 +258,11 @@ export default function EventDetailScreen() {
               canManage={canOrganize}
             />
           ) : null}
+          {/* Organizer-only, and deliberately not gated on attendeesVisibility:
+              the roster's history names people who have already left, which is
+              never pueblo business however open the roster is. Same audience as
+              the `registrationEvents` read rule. */}
+          {canOrganize ? <RegistrationHistory eventId={event.id} /> : null}
           {!user && (
             <Button variant="primary" fullWidth onPress={() => gate.requireAuth(`/event/${event.id}`, t('guest.event'))}>
               {t('guest.eventCta')}

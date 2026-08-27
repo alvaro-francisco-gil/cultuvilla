@@ -69,3 +69,7 @@ export { verifyAuthOtpCode } from './auth/verifyAuthOtpCode';
 // Observability (client error ingestion + pseudonymized identity)
 export { logClientError } from './observability/logClientError';
 export { getUserIdHash } from './observability/getUserIdHash';
+
+// Image variants (downscaled WebP renditions written beside every upload, so
+// cards fetch tens of kilobytes instead of the full-size original)
+export { generateImageVariants } from './images/generateImageVariants';

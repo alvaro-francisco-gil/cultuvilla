@@ -3,6 +3,7 @@ import type { Firestore } from 'firebase-admin/firestore';
 import { eventConverterAdmin } from '../converters/eventConverter.admin';
 import { registrationConverterAdmin } from '../converters/registrationConverter.admin';
 import { seatTokenConverterAdmin } from '../converters/seatTokenConverter.admin';
+import { registrationEventConverterAdmin } from '../converters/registrationEventConverter.admin';
 import { municipalityConverterAdmin } from '../converters/municipalityConverter.admin';
 import { barrioConverterAdmin } from '../converters/barrioConverter.admin';
 import { placeConverterAdmin } from '../converters/placeConverter.admin';
@@ -53,6 +54,12 @@ export const eventSeatTokensCollection = (db: Firestore, eventId: string) =>
 
 export const eventSeatTokenDoc = (db: Firestore, eventId: string, token: string) =>
   db.collection('events').doc(eventId).collection('seatTokens').doc(token).withConverter(seatTokenConverterAdmin);
+
+// Append-only audit log of the event's roster changes — see
+// RegistrationEventDataModel. Written only from `writeRegistrationEvent`, in
+// the same transaction as the mutation it records.
+export const eventRegistrationEventsCollection = (db: Firestore, eventId: string) =>
+  db.collection('events').doc(eventId).collection('registrationEvents').withConverter(registrationEventConverterAdmin);
 
 // ── Municipality domain ────────────────────────────────────────────────────
 

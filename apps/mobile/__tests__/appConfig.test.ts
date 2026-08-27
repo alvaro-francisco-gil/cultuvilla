@@ -46,3 +46,46 @@ describe('apple-app-site-association', () => {
     expect(appIDs).toContain(`${APPLE_TEAM_ID}.${bundleIdPerEnv[env]}`);
   });
 });
+
+// The E2E auth bypass used to be structurally unable to reach a store binary
+// because the fixture-login seam was web-only. The native (Maestro) driver
+// removed that wall, so app.config.ts became the wall instead: it refuses to
+// evaluate at all for a non-dev env with the flag set. This test is what keeps
+// that refusal from being quietly deleted.
+describe('E2E emulator flag guard', () => {
+  const load = (env: string | undefined, flag: string | undefined) => {
+    const prevEnv = process.env['APP_ENV'];
+    const prevFlag = process.env['USE_FIREBASE_EMULATOR'];
+    if (env === undefined) delete process.env['APP_ENV'];
+    else process.env['APP_ENV'] = env;
+    if (flag === undefined) delete process.env['USE_FIREBASE_EMULATOR'];
+    else process.env['USE_FIREBASE_EMULATOR'] = flag;
+    try {
+      jest.isolateModules(() => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require('../app.config');
+      });
+    } finally {
+      if (prevEnv === undefined) delete process.env['APP_ENV'];
+      else process.env['APP_ENV'] = prevEnv;
+      if (prevFlag === undefined) delete process.env['USE_FIREBASE_EMULATOR'];
+      else process.env['USE_FIREBASE_EMULATOR'] = prevFlag;
+    }
+  };
+
+  it.each(['beta', 'prod'])('refuses to build a %s bundle with the bypass armed', (env) => {
+    expect(() => load(env, '1')).toThrow(/USE_FIREBASE_EMULATOR=1/);
+  });
+
+  it('allows the dev bundle the E2E jobs actually build', () => {
+    expect(() => load('dev', '1')).not.toThrow();
+  });
+
+  it.each(['dev', 'beta', 'prod'])('never blocks an ordinary %s build', (env) => {
+    expect(() => load(env, undefined)).not.toThrow();
+  });
+
+  it('surfaces the flag as extra.useEmulator only when armed', () => {
+    expect(config.extra?.['useEmulator']).toBe(false);
+  });
+});

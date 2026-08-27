@@ -3,6 +3,18 @@ import { getFirebaseStorage } from '../firebase';
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 
+/**
+ * Cache header stamped on every uploaded object.
+ *
+ * Without explicit metadata Firebase Storage serves `private, max-age=0`, so
+ * the app re-downloads every image on every render — the single largest cause
+ * of slow feed rendering. `generateImageId` makes each filename unique and an
+ * object is never overwritten in place, so `immutable` is accurate: the bytes
+ * behind a given URL cannot change. `scripts/backfill-image-cache-control.mjs`
+ * applies the same header to objects uploaded before this existed.
+ */
+export const IMAGE_UPLOAD_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+
 export interface UploadableImage {
   blob: Blob;
   filename: string;
@@ -34,7 +46,10 @@ async function uploadToPath(path: string, image: UploadableImage): Promise<strin
   validateUploadableImage(image);
   const storageRef = ref(getFirebaseStorage(), path);
   const contentType = image.contentType ?? image.blob.type;
-  await uploadBytes(storageRef, image.blob, { contentType });
+  await uploadBytes(storageRef, image.blob, {
+    contentType,
+    cacheControl: IMAGE_UPLOAD_CACHE_CONTROL,
+  });
   return getDownloadURL(storageRef);
 }
 
@@ -47,7 +62,10 @@ async function uploadReturningPath(path: string, image: UploadableImage): Promis
   validateUploadableImage(image);
   const storageRef = ref(getFirebaseStorage(), path);
   const contentType = image.contentType ?? image.blob.type;
-  await uploadBytes(storageRef, image.blob, { contentType });
+  await uploadBytes(storageRef, image.blob, {
+    contentType,
+    cacheControl: IMAGE_UPLOAD_CACHE_CONTROL,
+  });
   return path;
 }
 
