@@ -4,6 +4,12 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v1.0.0 — 2026-08-28
+
+Primera publicación pública en las tiendas: App Store y Google Play. Sin
+cambios funcionales respecto a v0.30.0 — el salto de versión en sí es el hito,
+requerido por Apple para aceptar la ficha de la app (rechaza versiones `0.x`).
+
 ## v0.30.0 — 2026-08-27
 
 Sin cambios para quien usa la app. Esta versión existe porque la promoción a beta
