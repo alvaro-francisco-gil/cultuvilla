@@ -1109,6 +1109,13 @@
     "getOnPlayStore": "Descargar en Google Play",
     "continueOnWeb": "Seguir en la web"
   },
+  "smartBanner": {
+    "title": "Cultuvilla en tu móvil",
+    "subtitleIos": "Descárgala gratis en el App Store",
+    "subtitleAndroid": "Descárgala gratis en Google Play",
+    "cta": "Ver",
+    "dismiss": "Cerrar el aviso de descarga"
+  },
   "deeplink": {
     "share": {
       "event": {

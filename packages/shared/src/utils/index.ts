@@ -36,3 +36,10 @@ export {
   variantStoragePath,
   type ImageVariant,
 } from './imageVariants';
+export {
+  isStoreBannerDismissed,
+  resolveStorePlatform,
+  STORE_BANNER_DISMISS_DAYS,
+  type StoreBannerDismissal,
+  type StorePlatform,
+} from './storeBanner';

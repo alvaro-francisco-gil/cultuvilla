@@ -30,6 +30,12 @@ review to replace the stale build it started on. iOS has not begun.
   22 Aug count for nothing and the window effectively starts when the 12th tester
   accepts. "Opted in" means accepted the invite and installed — being on the tester
   list is not enough.
+- **Pendiente al publicar cada ficha: rellenar `apps/mobile/lib/appStores.ts`.**
+  El aviso de descarga de la web (`SmartAppBanner`) y la landing `/descarga`
+  están escritos y latentes; cada plataforma se enciende sola en cuanto su URL
+  deja de estar vacía. A 2026-08-29 las dos fichas dan 404 a un visitante
+  anónimo, así que ninguna está puesta.
+
 - **Next: recruit 2 more testers.** It is the only item on this plan that cannot be
   done in parallel with anything else; every day at 10/12 is a day the production
   track does not get closer.
