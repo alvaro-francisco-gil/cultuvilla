@@ -4,6 +4,30 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+
+- **Aviso de descarga en la web.** Quien entra a cultuvilla.es desde un móvil ve
+  una barra que le ofrece la app de su plataforma — App Store en iOS, Google Play
+  en Android — y que empuja el contenido hacia abajo en vez de taparlo, como hace
+  la barra nativa de Safari. En escritorio no aparece: no hay tienda a la que
+  mandar a nadie. Se puede cerrar, y entonces calla 30 días; es un aplazamiento,
+  no una renuncia, porque quien dice «ahora no» en junio puede querer la app en
+  julio y no hay cuenta donde guardar esa preferencia (la barra también se ve sin
+  iniciar sesión).
+
+  Queda **latente hasta que las fichas de tienda sean públicas**: cada plataforma
+  se enciende por separado, en cuanto se rellena su URL en
+  `apps/mobile/lib/appStores.ts`. A 2026-08-29 ninguna de las dos carga todavía
+  (Play sigue en prueba cerrada; la ficha de App Store existe pero sin publicar),
+  así que hoy no se muestra a nadie. Es un cambio de una línea por tienda, sin
+  despliegue de nada más.
+
+  La detección de plataforma vive en `resolveStorePlatform`
+  (`packages/shared/src/utils/storeBanner.ts`) y está probada contra user-agents
+  reales, incluido el caso que rompe a casi todo el mundo: desde iPadOS 13 un iPad
+  se anuncia como un Mac de escritorio, y lo único que los distingue es que el iPad
+  declara puntos táctiles.
+
 ## v1.0.0 — 2026-08-28
 
 Primera publicación pública en las tiendas: App Store y Google Play. Sin
