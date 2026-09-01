@@ -1,6 +1,8 @@
+import { createRef } from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
-import { Platform } from 'react-native';
+import { Platform, type ScrollView } from 'react-native';
 import { EntityComments } from './EntityComments';
+import { DetailScrollProvider } from '../../lib/keyboard/DetailScrollContext';
 import {
   addComment,
   deleteComment,
@@ -670,6 +672,56 @@ describe('<EntityComments>', () => {
       await findByText('Comentarios');
       await waitFor(() => expect(getBlockedUserIdsMock).toHaveBeenCalledWith('uid-1'));
       expect(queryByText('Comentario ajeno')).toBeNull();
+    });
+  });
+
+  describe('composer visibility while typing', () => {
+    it('grows with the comment instead of hiding what you wrote, up to a ceiling', async () => {
+      getCommentsMock.mockResolvedValue([]);
+      const { findByTestId } = render(<EntityComments {...BASE_PROPS} />);
+      const input = await findByTestId('comment-input');
+      expect(input.props.multiline).toBe(true);
+
+      const heightOf = () =>
+        // The style is an array once NativeWind merges className styles in.
+        [input.props.style].flat(Infinity).reduce((h, s) => (s && 'height' in s ? s.height : h), 0);
+      const oneLine = heightOf();
+
+      act(() => {
+        input.props.onContentSizeChange({ nativeEvent: { contentSize: { height: 68 } } });
+      });
+      expect(heightOf()).toBe(68);
+      expect(heightOf()).toBeGreaterThan(oneLine);
+      // A comment longer than the ceiling scrolls inside the field rather than
+      // growing over the whole screen.
+      act(() => {
+        input.props.onContentSizeChange({ nativeEvent: { contentSize: { height: 900 } } });
+      });
+      expect(heightOf()).toBe(120);
+      expect(input.props.scrollEnabled).toBe(true);
+    });
+
+    it('scrolls itself into view when focused, so the keyboard cannot cover it', async () => {
+      getCommentsMock.mockResolvedValue([]);
+      const scrollToEnd = jest.fn();
+      const scrollRef = createRef<ScrollView>() as React.RefObject<ScrollView | null>;
+      scrollRef.current = { scrollToEnd } as unknown as ScrollView;
+      const { findByTestId } = render(
+        <DetailScrollProvider scrollRef={scrollRef}>
+          <EntityComments {...BASE_PROPS} />
+        </DetailScrollProvider>,
+      );
+      const input = await findByTestId('comment-input');
+
+      act(() => {
+        input.props.onFocus();
+      });
+      expect(scrollToEnd).toHaveBeenCalled();
+
+      // ...and keeps following the field as it grows with a longer comment.
+      scrollToEnd.mockClear();
+      fireEvent.changeText(input, 'una respuesta bastante larga');
+      expect(scrollToEnd).toHaveBeenCalled();
     });
   });
 });

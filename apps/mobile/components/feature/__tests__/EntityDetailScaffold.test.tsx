@@ -1,5 +1,5 @@
 import { act, render } from '@testing-library/react-native';
-import { RefreshControl, Text } from 'react-native';
+import { KeyboardAvoidingView, RefreshControl, ScrollView, Text } from 'react-native';
 import { EntityDetailScaffold } from '../EntityDetailScaffold';
 
 jest.mock('react-native-safe-area-context', () => ({
@@ -57,5 +57,18 @@ describe('EntityDetailScaffold', () => {
     });
     expect(onRefresh).toHaveBeenCalledTimes(1);
     expect(control.props.refreshing).toBe(false);
+  });
+
+  // Android is edge-to-edge, so the window no longer resizes for the keyboard:
+  // without the KeyboardAvoidingView the composer at the bottom of a detail
+  // screen is covered by the keyboard the moment it is focused.
+  it('keeps the body clear of the keyboard and lets taps through while it is open', () => {
+    const { UNSAFE_getByType } = render(
+      <EntityDetailScaffold loading={false} imageUri={null} fallbackIcon="image-outline">
+        <Text>cuerpo</Text>
+      </EntityDetailScaffold>,
+    );
+    expect(UNSAFE_getByType(KeyboardAvoidingView).props.behavior).toBe('padding');
+    expect(UNSAFE_getByType(ScrollView).props.keyboardShouldPersistTaps).toBe('handled');
   });
 });

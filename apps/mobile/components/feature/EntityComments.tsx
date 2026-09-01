@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Alert, Platform, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, Platform, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { usePathname, router } from 'expo-router';
 import { VStack } from '../primitives/VStack';
@@ -27,6 +27,7 @@ import { ownerRoute } from '../../lib/entities/ownerRoute';
 import { resolveCommentAuthor, type CommentAuthor } from '../../lib/comments/commentAuthors';
 import { ReportSheet, type ReportTarget } from './ReportSheet';
 import { getBlockedUserIds } from '@cultuvilla/shared/services/blockedUserService';
+import { useDetailScroll } from '../../lib/keyboard/DetailScrollContext';
 
 export type EntityCommentsProps = {
   entityKind: EntityKind;
@@ -135,7 +136,10 @@ export function EntityComments({
   const [loadingReplies, setLoadingReplies] = useState<Set<string>>(new Set());
   const [blockedUserIds, setBlockedUserIds] = useState<Set<string>>(new Set());
   const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
+  const [composerFocused, setComposerFocused] = useState(false);
   const inputRef = useRef<TextInput>(null);
+  const detailScrollRef = useDetailScroll();
+  const revealComposer = () => detailScrollRef?.current?.scrollToEnd({ animated: true });
 
   const me = user ? authors.get(user.uid) : undefined;
   const visibleComments = comments.filter((c) => !blockedUserIds.has(c.authorUserId));
@@ -159,6 +163,28 @@ export function EntityComments({
     }
     void getBlockedUserIds(user.uid).then((ids) => setBlockedUserIds(new Set(ids)));
   }, [user]);
+
+  // The composer sits at the very bottom of the detail scroll, so an opening
+  // keyboard lands right on top of it. The scaffold shrinks the scroll area
+  // (KeyboardAvoidingView); scrolling to the end is what actually puts the
+  // field — and the reply banner above it — back in front of the typist.
+  useEffect(() => {
+    if (!composerFocused) return;
+    const sub = Keyboard.addListener('keyboardDidShow', revealComposer);
+    // Focusing while the keyboard is already up (tapping "responder") fires no
+    // keyboard event, so reveal once on focus too.
+    revealComposer();
+    return () => sub.remove();
+    // revealComposer only reads a ref — re-subscribing per render would churn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [composerFocused]);
+
+  // A growing field pushes its own bottom edge under the keyboard; follow it.
+  useEffect(() => {
+    if (!composerFocused) return;
+    revealComposer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [body, composerFocused]);
 
   // Resolve author name + photo once per uid (avoid an N+1 refetch per comment).
   useEffect(() => {
@@ -488,7 +514,9 @@ export function EntityComments({
               </Pressable>
             </HStack>
           ) : null}
-          <HStack gap={2} align="center">
+          {/* end-aligned so the avatar and send arrow stay level with the last
+              line as the field grows. */}
+          <HStack gap={2} align="end">
             <Avatar
               uri={me?.photoURL ?? null}
               size={32}
@@ -505,8 +533,9 @@ export function EntityComments({
                 accessibilityLabel={t('comments.placeholder')}
                 testID="comment-input"
                 pill
-                onSubmitEditing={onSend}
-                returnKeyType="send"
+                autoGrow
+                onFocus={() => setComposerFocused(true)}
+                onBlur={() => setComposerFocused(false)}
                 rightAdornment={
                   <SendAdornment
                     visible={body.trim().length > 0}
