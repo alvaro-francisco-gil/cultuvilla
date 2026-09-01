@@ -44,6 +44,22 @@ rutas de release.
 
 ### Fixed
 
+- **El teclado ya no tapa lo que estás escribiendo en un comentario.** El
+  compositor vive al final del scroll de la ficha (evento, noticia, sitio,
+  barrio, cartel, organización), justo donde aparece el teclado. Android es
+  edge-to-edge desde Expo SDK 54, así que la ventana ya no se encoge sola
+  (`adjustResize` dejó de ser una opción) y el teclado caía encima del campo. Ahora
+  el andamio de ficha encoge el área de scroll (`KeyboardAvoidingView`) y el
+  propio compositor se desplaza a la vista al recibir el foco y cada vez que el
+  teclado se abre — también al pulsar «responder» con el teclado ya abierto, que
+  no emite ningún evento de teclado.
+
+- **El campo de comentario crece con el comentario.** Antes era de una línea:
+  un texto largo se iba desplazando y sólo se veía el final. Ahora crece hasta
+  ~6 líneas y a partir de ahí hace scroll dentro del propio campo, así que
+  siempre se puede releer entero lo escrito. Como es multilínea, la tecla Enter
+  ya inserta un salto de línea en vez de enviar: se envía con la flecha.
+
 - **La suite E2E de Android ya se ejecuta de verdad, y pasa.** En su estreno se
   quedó a medias: el APK no llegaba a compilarse porque
   `:expo-updates:kspReleaseKotlin` agotaba los 512 MB de metaspace que da la
