@@ -44,6 +44,17 @@ rutas de release.
 
 ### Fixed
 
+- **Escribir un artículo ya no va a tirones.** Al abrir el formulario de artículo
+  se notaba todo pesado — el desplegable de categoría tardaba segundos en
+  abrirse — aunque el problema no era ese campo, sino la pantalla entera: el
+  cargador de menciones (`@`) pedía **todos** los municipios del INE, 8.167
+  documentos, y los pasaba uno a uno por el conversor estricto en el hilo de JS
+  justo al montar. Los primeros toques se quedaban esperando detrás de ese
+  trabajo. Ahora pide solo los pueblos con comunidad activada, que es el único
+  conjunto que tiene ficha a la que enlazar: 2 documentos en beta en vez de
+  8.167 (y otras tantas lecturas facturadas menos por cada vez que se abre la
+  pantalla).
+
 - **El teclado ya no tapa lo que estás escribiendo en un comentario.** El
   compositor vive al final del scroll de la ficha (evento, noticia, sitio,
   barrio, cartel, organización), justo donde aparece el teclado. Android es
