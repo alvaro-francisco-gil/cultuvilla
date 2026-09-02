@@ -46,6 +46,22 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   reales, incluido el caso que rompe a casi todo el mundo: desde iPadOS 13 un iPad
   se anuncia como un Mac de escritorio, y lo único que los distingue es que el iPad
   declara puntos táctiles.
+### Fixed
+
+- **Sign in with Apple ya funciona.** El proveedor `apple.com` no estaba
+  habilitado en Firebase Auth en ninguno de los tres entornos, así que el botón
+  —correcto en el cliente y con sus tests en verde— moría en
+  `auth/operation-not-allowed` al llamar a `signInWithCredential`. Apple rechazó
+  la submission de 1.0.0 por ello (guideline 2.1(a)). Habilitado en
+  `villa-events`, `cultuvilla-beta` y `cultuvilla-prod`; no requiere cambio de
+  cliente ni build nueva.
+
+### Added
+
+- `pnpm check:store-claims` comprueba ahora que **cada proveedor de acceso que
+  la app ofrece está habilitado en los tres entornos**. Un proveedor que la UI
+  ofrece pero el proyecto no habilita sólo falla en runtime, y ningún test del
+  repo podía verlo.
 
 ## v1.0.0 — 2026-08-28
 
