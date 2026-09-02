@@ -51,12 +51,6 @@ export async function getMunicipality(id: string): Promise<(MunicipalityData & {
   return { id: snap.id, ...snap.data() };
 }
 
-export async function getMunicipalities(): Promise<(MunicipalityData & { id: string })[]> {
-  const q = query(municipalitiesCollection(getDb()), orderBy('name', 'asc'));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-}
-
 /**
  * Prefix-search municipalities by name. Matches against the indexed
  * `searchPrefixes` array (accent-stripped, lowercased) so "avila" finds

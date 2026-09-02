@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react-native';
 import { useMentionSources } from '../useMentionSources';
-import { getActiveCommunities, getMunicipalities } from '@cultuvilla/shared/services/municipalityService';
+import { getActiveCommunities } from '@cultuvilla/shared/services/municipalityService';
 
 jest.mock('@cultuvilla/shared/services/organizationService', () => ({
   getOrganizationsByMunicipality: jest.fn().mockResolvedValue([]),
@@ -17,7 +17,6 @@ jest.mock('@cultuvilla/shared/services/festivalPosterService', () => ({
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getPlaces: jest.fn().mockResolvedValue([]),
   getBarrios: jest.fn().mockResolvedValue([]),
-  getMunicipalities: jest.fn().mockResolvedValue([]),
   getActiveCommunities: jest.fn().mockResolvedValue([]),
 }));
 
@@ -33,11 +32,14 @@ describe('useMentionSources village candidates', () => {
   // (~8.2k docs through the strict Zod converter), which janked the whole form
   // — the category dropdown took seconds to open. Only an activated village has
   // a /village/[id] screen to link to, so that is the only mentionable set.
-  it('never reads the full municipalities collection', async () => {
+  // The compose screen used to load every INE municipality (~8.2k docs through
+  // the strict Zod converter), which janked the whole form for seconds on a
+  // phone. A mention deep-links to /village/[id], which exists only once a
+  // community is activated, so that is the only mentionable set.
+  it('reads only the activated communities', async () => {
     renderHook(() => useMentionSources('m1'));
 
-    await waitFor(() => expect(mockActive).toHaveBeenCalled());
-    expect(getMunicipalities).not.toHaveBeenCalled();
+    await waitFor(() => expect(mockActive).toHaveBeenCalledTimes(1));
   });
 
   it('offers only villages with an activated community', async () => {
