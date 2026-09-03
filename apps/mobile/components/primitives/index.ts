@@ -5,6 +5,8 @@ export * from './Text';
 export { ScreenTitle } from './ScreenTitle';
 export * from './Pressable';
 export * from './Button';
+export { ActionPill } from './ActionPill';
+export type { ActionPillProps } from './ActionPill';
 export { ErrorState } from './ErrorState';
 export type { ErrorStateProps } from './ErrorState';
 export * from './Card';
