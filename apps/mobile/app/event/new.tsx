@@ -182,6 +182,10 @@ export default function NewEventScreen() {
   const [signupInfo, setSignupInfo] = useState('');
   // Default on: in a pueblo, seeing who is going is what drives sign-ups.
   const [attendeesPublic, setAttendeesPublic] = useState(true);
+  // Restrict the event to the members of its single organizing org. Kept as a
+  // boolean rather than the org id itself so the switch survives the user
+  // swapping which org organizes; the id is derived at submit time.
+  const [privateToOrg, setPrivateToOrg] = useState(false);
   const [signupFields, setSignupFields] = useState<SignupFieldSpec[]>([]);
   const [lockedFieldCount, setLockedFieldCount] = useState(0);
   const [groupSizeLocked, setGroupSizeLocked] = useState(false);
@@ -267,6 +271,7 @@ export default function NewEventScreen() {
         setOrganizerUserIds(ev.organizerUserIds ?? []);
         setCreatedBy(ev.createdBy);
         setOrganizerOrgIds(ev.organizerOrgIds ?? []);
+        setPrivateToOrg(ev.visibilityOrgId !== null);
         setExistingImageURL(ev.imageURL ?? null);
         setLoadError(null);
       } catch (e) {
@@ -377,6 +382,13 @@ export default function NewEventScreen() {
       // sign-ups off; EventFormSchema rejects the other combination.
       const signupInfoValue = signupInfo.trim() ? signupInfo.trim() : null;
 
+      // A private event names exactly one org, and that org must be one of the
+      // organizers — the switch is only offered in that case, but a stale
+      // toggle left behind by adding a second org must not slip through.
+      const visibilityOrgId =
+        privateToOrg && organizerOrgIds.length === 1 ? (organizerOrgIds[0] ?? null) : null;
+      const visibility = visibilityOrgId === null ? ('public' as const) : ('organization' as const);
+
       // ── Edit: patch the existing event; only touch the cover if replaced ──
       if (editMode && eventId) {
         await updateEvent(eventId, {
@@ -397,6 +409,8 @@ export default function NewEventScreen() {
           maxBirthYear: maxBirthYearValue,
           organizerUserIds,
           organizerOrgIds,
+          visibility,
+          visibilityOrgId,
         });
         if (cover) {
           const url = await uploadEventImage(municipalityId, eventId, {
@@ -437,6 +451,8 @@ export default function NewEventScreen() {
           status: 'published',
           organizerUserIds,
           organizerOrgIds,
+          visibility,
+          visibilityOrgId,
           createdBy: user.uid,
           municipalityId,
           villageName: municipalityName,
@@ -582,6 +598,18 @@ export default function NewEventScreen() {
               lockedUserId={editMode ? undefined : user.uid}
               onChangeUsers={setOrganizerUserIds}
               onChangeOrgs={setOrganizerOrgIds}
+            />
+          ) : null}
+          {/* Only offered with exactly one organizing org: "private" has to
+              name the single group whose membership is the guest list, and a
+              two-org event has no such group. */}
+          {organizerOrgIds.length === 1 ? (
+            <ToggleField
+              label={t('event.privateToOrg')}
+              help={t('event.privateToOrgHint')}
+              value={privateToOrg}
+              onValueChange={setPrivateToOrg}
+              testID="private-to-org"
             />
           ) : null}
         </>,

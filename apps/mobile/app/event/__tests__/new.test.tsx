@@ -69,10 +69,24 @@ jest.mock('../../../lib/auth/useEntityCapabilities', () => ({
 // records its props: what the screen tells it to lock is the contract under test.
 const mockOrganizerProps: { current: { lockedUserId?: string } | null } = { current: null };
 jest.mock('../../../components/feature/OrganizerPicker', () => ({
-  OrganizerPicker: (props: { lockedUserId?: string }) => {
+  OrganizerPicker: (props: {
+    lockedUserId?: string;
+    onChangeOrgs?: (ids: string[]) => void;
+  }) => {
     mockOrganizerProps.current = props;
-    const { View } = require('react-native');
-    return <View testID="organizer-picker" />;
+    const { View, Pressable } = require('react-native');
+    // Two escape hatches so the tests can put the screen in the states the
+    // "Solo para miembros" switch depends on: exactly one organizing org, and
+    // more than one.
+    return (
+      <View testID="organizer-picker">
+        <Pressable testID="pick-one-org" onPress={() => props.onChangeOrgs?.(['org-1'])} />
+        <Pressable
+          testID="pick-two-orgs"
+          onPress={() => props.onChangeOrgs?.(['org-1', 'org-2'])}
+        />
+      </View>
+    );
   },
 }));
 jest.mock('../../../components/feature/LocationField', () => ({
@@ -646,6 +660,83 @@ describe('NewEventScreen — birth-year limit toggle', () => {
     expect((createEvent as jest.Mock).mock.calls[0][0]).toMatchObject({
       minBirthYear: null,
       maxBirthYear: null,
+    });
+  });
+});
+
+// A private event is private to ONE organization: the switch only makes sense
+// once the event has exactly one organizing org to be private to.
+describe('NewEventScreen — private events', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  // Walks the whole wizard and submits. `pickOrgs` runs on the first step, so a
+  // test can put the event in the one-org state the privacy switch needs.
+  async function submitNewEvent(
+    utils: ReturnType<typeof render>,
+    onFirstStep?: (u: ReturnType<typeof render>) => void,
+  ) {
+    const { getByText, getByLabelText, getByTestId } = utils;
+    await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
+    fireEvent.changeText(getByLabelText('event.title'), 'Fiesta');
+    onFirstStep?.(utils);
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('startDate')).toBeTruthy());
+    fireEvent.press(getByTestId('startDate'));
+    fireEvent.press(getByTestId('location-field'));
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('signup-enabled')).toBeTruthy());
+    fireEvent.press(getByText('common.stepper.next'));
+    await waitFor(() => expect(getByTestId('signup-question-add')).toBeTruthy());
+    fireEvent.press(getByTestId('event-form-primary'));
+    await waitFor(() => expect(createEvent).toHaveBeenCalled());
+  }
+
+  it('offers the switch only when exactly one org organizes the event', async () => {
+    const { getByLabelText, getByTestId, queryByTestId } = render(<NewEventScreen />);
+    await waitFor(() => expect(getByLabelText('event.title')).toBeTruthy());
+
+    expect(queryByTestId('private-to-org')).toBeNull();
+    fireEvent.press(getByTestId('pick-one-org'));
+    expect(getByTestId('private-to-org')).toBeTruthy();
+    fireEvent.press(getByTestId('pick-two-orgs'));
+    expect(queryByTestId('private-to-org')).toBeNull();
+  });
+
+  it('creates a public event by default', async () => {
+    await submitNewEvent(render(<NewEventScreen />), (u) =>
+      fireEvent.press(u.getByTestId('pick-one-org')),
+    );
+    expect(jest.mocked(createEvent).mock.calls[0]?.[0]).toMatchObject({
+      visibility: 'public',
+      visibilityOrgId: null,
+    });
+  });
+
+  it('creates an event restricted to the organizing org when the switch is on', async () => {
+    await submitNewEvent(render(<NewEventScreen />), (u) => {
+      fireEvent.press(u.getByTestId('pick-one-org'));
+      fireEvent.press(u.getByTestId('private-to-org'));
+    });
+    expect(jest.mocked(createEvent).mock.calls[0]?.[0]).toMatchObject({
+      visibility: 'organization',
+      visibilityOrgId: 'org-1',
+    });
+  });
+
+  // The switch is only rendered with one org, but the state it sets outlives
+  // adding a second one — and a private event with two orgs has no single
+  // membership to gate on, so the submit path has to drop it.
+  it('falls back to public when a second org joins after the switch was set', async () => {
+    await submitNewEvent(render(<NewEventScreen />), (u) => {
+      fireEvent.press(u.getByTestId('pick-one-org'));
+      fireEvent.press(u.getByTestId('private-to-org'));
+      fireEvent.press(u.getByTestId('pick-two-orgs'));
+    });
+    expect(jest.mocked(createEvent).mock.calls[0]?.[0]).toMatchObject({
+      visibility: 'public',
+      visibilityOrgId: null,
     });
   });
 });

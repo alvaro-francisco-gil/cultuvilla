@@ -26,6 +26,7 @@ import { FilterSheet, type FilterSheetOption } from '../../components/feature/Fi
 import { PullSpinner } from '../../components/feature/PullSpinner';
 import { AppHeader } from '../../components/layout/AppHeader';
 import { useAuth } from '../../lib/auth/useAuth';
+import { useMyOrgIds } from '../../lib/orgs/useMyOrgIds';
 import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useMyRegistrations } from '../../lib/registrations/MyRegistrationsContext';
 import { useT } from '../../lib/i18n';
@@ -33,7 +34,11 @@ import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
 import { webSpread } from '../../lib/platform';
 import { useWebPullToRefresh } from '../../lib/useWebPullToRefresh';
 import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
-import { getUpcomingFeed, haversineKm } from '@cultuvilla/shared/services/feedService';
+import {
+  getPrivateUpcomingFeed,
+  getUpcomingFeed,
+  haversineKm,
+} from '@cultuvilla/shared/services/feedService';
 import { getAllVillagesFeed } from '@cultuvilla/shared/services/newsService';
 import { getActiveCommunities } from '@cultuvilla/shared/services/municipalityService';
 import type { EventData } from '@cultuvilla/shared/models/event/EventDataModel';
@@ -83,6 +88,7 @@ const TAB_LABEL_KEY: Record<FeedTab, string> = {
 export default function FeedScreen() {
   const { t } = useT();
   const { profile } = useAuth();
+  const { orgIds } = useMyOrgIds();
   const gate = useRegisterGate();
   const { ribbonFor, refresh: refreshRegistrations } = useMyRegistrations();
   const activeMunicipalityId = profile?.activeMunicipalityId ?? null;
@@ -137,8 +143,21 @@ export default function FeedScreen() {
   async function load() {
     try {
       setError(null);
-      const result = await withFirestoreErrorLog('feed:getUpcomingFeed', () => getUpcomingFeed(50));
-      setEvents(result.events);
+      // Two queries, not one: the public feed is a single paged query, while
+      // the private half is one query per org the viewer belongs to — rules do
+      // not filter a list, so each query must ask only for rows this viewer may
+      // read. The private half is best-effort: losing it must not empty the feed.
+      const [result, mine] = await Promise.all([
+        withFirestoreErrorLog('feed:getUpcomingFeed', () => getUpcomingFeed(50)),
+        withFirestoreErrorLog('feed:getPrivateUpcomingFeed', () =>
+          getPrivateUpcomingFeed(orgIds),
+        ).catch(() => []),
+      ]);
+      setEvents(
+        [...result.events, ...mine].sort(
+          (a, b) => a.endBoundary.getTime() - b.endBoundary.getTime(),
+        ),
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : 'unknown');
     }
@@ -181,7 +200,7 @@ export default function FeedScreen() {
       // "apuntado" ribbons are stale by the time the user comes back here.
       refreshRegistrations();
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []),
+    }, [orgIds]),
   );
 
   // Lazily load the news feed the first time the user opens the tab.

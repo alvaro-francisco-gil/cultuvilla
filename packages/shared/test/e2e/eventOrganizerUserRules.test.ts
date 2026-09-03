@@ -31,6 +31,7 @@ function newEvent(createdBy: string, extraOrganizers: string[] = [], orgIds: str
     telephoneRequired: false,
     requiresPayment: false,
     signupFields: [], attendeesVisibility: 'members', signupGroupSize: 1, minBirthYear: null, maxBirthYear: null,
+    visibility: 'public', visibilityOrgId: null,
     signupEnabled: true, signupInfo: null,
     status: 'published',
     organizerUserIds: [createdBy, ...extraOrganizers],

@@ -39,11 +39,14 @@ async function seedEvent(opts: {
   maxAttendees: number | null;
   signupFields?: unknown[];
   signupEnabled?: boolean;
+  visibilityOrgId?: string | null;
 }): Promise<void> {
   const now = new Date();
   await admin.firestore().doc(`events/${EVENT_ID}`).set({
     signupFields: opts.signupFields ?? [],
     signupEnabled: opts.signupEnabled ?? true,
+    visibility: opts.visibilityOrgId ? 'organization' : 'public',
+    visibilityOrgId: opts.visibilityOrgId ?? null,
     signupInfo: null,
     title: 'Fiesta',
     description: 'Una fiesta',
@@ -603,5 +606,69 @@ describe('registerToEvent (callable)', () => {
         .get();
       expect(snap.size).toBe(0);
     });
+  });
+});
+
+// The read rule already hides a private event, but this callable writes through
+// the Admin SDK and bypasses rules entirely — so the event id alone (a
+// forwarded share link) would otherwise be enough to take a seat.
+describe('registerToEvent — private events', () => {
+  const ORG_ID = 'org-1';
+
+  beforeEach(async () => {
+    await resetEmulators();
+    sendMock.mockClear();
+  });
+
+  afterAll(() => {
+    ft.cleanup();
+  });
+
+  async function seedOrgMember(userId: string): Promise<void> {
+    await admin.firestore().doc(`organizations/${ORG_ID}/members/${userId}`).set({
+      userId,
+      role: 'member',
+      joinedAt: new Date(),
+    });
+  }
+
+  it('lets a member of the org sign up', async () => {
+    await seedEvent({ maxAttendees: null, visibilityOrgId: ORG_ID });
+    await seedOrgMember(USER_ID);
+    const result = await callRegister({
+      uid: USER_ID,
+      data: { eventId: EVENT_ID, registrants: [{ personId: 'p1', name: 'Ana' }] },
+    });
+    expect(result.registrations.map((r) => r.status)).toEqual(['confirmed']);
+  });
+
+  it('refuses someone who does not belong to the org', async () => {
+    await seedEvent({ maxAttendees: null, visibilityOrgId: ORG_ID });
+    await expect(
+      callRegister({
+        uid: OTHER_USER_ID,
+        data: { eventId: EVENT_ID, registrants: [{ personId: 'p9', name: 'Nadie' }] },
+      }),
+    ).rejects.toThrow(/privado/i);
+    const docs = await admin.firestore().collection(`events/${EVENT_ID}/registrations`).get();
+    expect(docs.size).toBe(0);
+  });
+
+  it('lets an organizer sign up even when they are not in the org', async () => {
+    await seedEvent({ maxAttendees: null, visibilityOrgId: ORG_ID });
+    const result = await callRegister({
+      uid: 'creator-1',
+      data: { eventId: EVENT_ID, registrants: [{ personId: 'p2', name: 'Bea' }] },
+    });
+    expect(result.registrations.map((r) => r.status)).toEqual(['confirmed']);
+  });
+
+  it('still lets anyone sign up to a public event', async () => {
+    await seedEvent({ maxAttendees: null });
+    const result = await callRegister({
+      uid: OTHER_USER_ID,
+      data: { eventId: EVENT_ID, registrants: [{ personId: 'p3', name: 'Carmen' }] },
+    });
+    expect(result.registrations.map((r) => r.status)).toEqual(['confirmed']);
   });
 });

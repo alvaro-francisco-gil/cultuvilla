@@ -6,6 +6,27 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Added
 
+- **Eventos privados para una organización.** Al crear un evento con una única
+  organización organizadora aparece el interruptor **«Solo para miembros»**: el
+  evento deja de verse en Explora, en la pestaña del pueblo y en el enlace
+  compartido para cualquiera que no sea de esa organización, y solo sus miembros
+  pueden apuntarse. Los organizadores del evento lo ven siempre, aunque no sean
+  socios; el resto del pueblo no, **incluidos los administradores del pueblo** —
+  la cena de una peña no es la plaza del pueblo. Conservan, eso sí, su capacidad
+  de editar o cancelar el evento, pero no la de volverlo público.
+
+  La restricción se aplica en tres capas, porque cada una tiene su hueco: las
+  reglas de Firestore esconden el documento, `registerToEvent` y
+  `claimEventSeat` rechazan la inscripción (son Admin SDK y se saltan las
+  reglas, así que un enlace reenviado bastaría), y la vista previa del enlace
+  compartido devuelve una tarjeta genérica «Evento privado» sin título, texto ni
+  imagen, porque ahí no hay nadie a quien autorizar.
+
+  **Migration:** los eventos existentes reciben `visibility: 'public'` y
+  `visibilityOrgId: null` con `scripts/backfill-event-visibility.mjs`
+  (`pre-deploy`, auto-aplicado en dev/beta/prod). Sin él las consultas del feed
+  —que ahora filtran por `visibility`— no devolverían ningún evento antiguo.
+
 - **Los fallos de acceso ahora dejan rastro.** Un error al iniciar sesión era la
   única clase de error que el proyecto no podía ver, y lo era por partida doble:
   `logClientError` exigía estar autenticado —y en un login fallido no hay

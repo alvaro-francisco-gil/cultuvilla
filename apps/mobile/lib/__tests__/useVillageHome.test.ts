@@ -37,6 +37,7 @@ jest.mock('@cultuvilla/shared/services/organizationService', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/orgMemberService', () => ({
   getOrgMemberCount: jest.fn(async () => 0),
+  getUserOrgIds: jest.fn(async () => []),
 }));
 jest.mock('@cultuvilla/shared/services/personService', () => ({
   getBarrioResidentCount: jest.fn(async () => 0),
@@ -46,6 +47,7 @@ jest.mock('@cultuvilla/shared/services/organizerRequestService', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/eventService', () => ({
   getEventsByMunicipality: jest.fn(async () => []),
+  getPrivateEventsByMunicipality: jest.fn(async () => []),
 }));
 jest.mock('@cultuvilla/shared/services/newsService', () => ({
   getHomeFeed: jest.fn(async () => []),

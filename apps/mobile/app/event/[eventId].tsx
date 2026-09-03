@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Linking, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, iconSizes } from '@cultuvilla/shared/design-system';
 import { VStack } from '../../components/primitives/VStack';
 import { HStack } from '../../components/primitives/HStack';
 import { Text } from '../../components/primitives/Text';
@@ -33,6 +35,7 @@ import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
 import { buildNameWithNickname } from '@cultuvilla/shared/models/person/PersonDataModel';
 import { formatDate, buildGoogleCalendarUrl } from '@cultuvilla/shared/utils';
 import { useT } from '../../lib/i18n';
+import { isPrivateEvent } from '@cultuvilla/shared/models/event/EventDataModel';
 import type { EventData } from '@cultuvilla/shared/models/event/EventDataModel';
 import type { PersonData } from '@cultuvilla/shared/models/person/PersonDataModel';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality';
@@ -162,6 +165,17 @@ export default function EventDetailScreen() {
     >
       {event ? (
         <>
+          {/* Private events look identical to public ones once you are inside,
+              so the notice is what tells an organizer that the thing they are
+              about to share is not shareable. */}
+          {isPrivateEvent(event) ? (
+            <HStack gap={2} align="center">
+              <Ionicons name="lock-closed-outline" size={iconSizes.sm} color={colors.light.fg.muted} />
+              <Text variant="bodySm" tone="muted" className="flex-1">
+                {t('event.privateNotice')}
+              </Text>
+            </HStack>
+          ) : null}
           <HStack gap={3} align="stretch">
             <DetailInfoCard
               icon="calendar-outline"
