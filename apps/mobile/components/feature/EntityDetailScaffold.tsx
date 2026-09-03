@@ -116,6 +116,7 @@ export function EntityDetailScaffold({
                   imageUri={imageUri}
                   fallbackImageUri={fallbackImageUri}
                   fallbackIcon={fallbackIcon}
+                  accessibilityLabel={title}
                 />
                 <VStack gap={3} className="p-4">
                   {title ? <Text variant="h1">{title}</Text> : null}
