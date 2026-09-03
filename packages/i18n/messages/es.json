@@ -28,6 +28,11 @@
     "search": "Buscar",
     "noResults": "Sin resultados",
     "notFound": "No encontrado",
+    "imageViewer": {
+      "open": "Ver la imagen a pantalla completa",
+      "hint": "Pellizca para acercar, desliza hacia abajo para cerrar",
+      "close": "Cerrar la imagen"
+    },
     "stepper": { "back": "Anterior", "next": "Siguiente" },
     "close": "Cerrar",
     "moreInfo": "Más información",

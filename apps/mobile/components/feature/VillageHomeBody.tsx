@@ -92,7 +92,13 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
     return (
       <View className="flex-1 items-center justify-center px-8">
         <VStack gap={2} className="items-center">
-          <Escudo url={escudoFullUrl(village)} size={96} fallbackInitial={village.name} />
+          <Escudo
+            url={escudoFullUrl(village)}
+            size={96}
+            fallbackInitial={village.name}
+            zoomable
+            accessibilityLabel={village.name}
+          />
           <Text variant="h2" className="mt-2 text-center">
             {village.name}
           </Text>
@@ -194,6 +200,8 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
                 size={88}
                 fill={hasManualEscudo(village)}
                 fallbackInitial={village.name}
+                zoomable
+                accessibilityLabel={village.name}
               />
             </View>
             <VStack gap={0} className="flex-1">

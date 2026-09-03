@@ -6,6 +6,25 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Added
 
+- **Zoom en las imágenes.** Tocar una foto la abre a pantalla completa sobre
+  fondo negro: se hace zoom pellizcando, se arrastra para moverla, un toque doble
+  alterna entre encajada y 3x, y se cierra deslizando hacia abajo o con la ✕. El
+  visor pide el archivo **original**, no la versión reducida que muestra la
+  pantalla — ampliar un `card` de 1080px solo agranda el borrón.
+
+  Se aplica a las imágenes de contenido: el cartel de cabecera de cada ficha
+  (evento, cartel de fiestas, lugar, barrio, organización, noticia), las
+  imágenes dentro del cuerpo de una noticia, el retrato de una persona y el
+  escudo grande del pueblo. Deliberadamente **no** a las miniaturas del feed ni a
+  las de los listados, donde tocar tiene que seguir llevándote a la ficha, ni a
+  las previsualizaciones de los formularios.
+
+  Está construido sobre `Animated` + `PanResponder` de React Native, sin
+  `gesture-handler` ni `reanimated`: ninguno de los dos está instalado y añadirlos
+  cambiaría la huella nativa, así que el zoom solo llegaría con un binario nuevo
+  de tienda. Tal como está, viaja por OTA y funciona también en la web. La
+  geometría vive aparte, en `apps/mobile/lib/imageZoom.ts`, con tests unitarios.
+
 - **Aviso de descarga en la web.** Quien entra a cultuvilla.es desde un móvil ve
   una barra que le ofrece la app de su plataforma — App Store en iOS, Google Play
   en Android — y que empuja el contenido hacia abajo en vez de taparlo, como hace
