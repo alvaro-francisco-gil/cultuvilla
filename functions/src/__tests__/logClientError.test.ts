@@ -54,4 +54,32 @@ describe('runLogClientError', () => {
     expect(attrs.email).toBeUndefined();
     expect(attrs.secret).toBeUndefined();
   });
+
+  it('accepts a signed-out report and records it as unauthenticated', () => {
+    // A sign-in that fails has no auth. Requiring one made every auth-flow
+    // error invisible — the exact errors we most need — because sendClientError
+    // swallows the callable's `unauthenticated` rejection.
+    errorSpy.mockClear();
+    runLogClientError(null, {
+      message: 'The authorization attempt failed for an unknown reason.',
+      name: 'Error',
+      code: 'ERR_APPLE_AUTHENTICATION_REQUEST_FAILED',
+      operation: 'auth:signInWithApple',
+      surface: 'login',
+    });
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    const [, attrs] = errorSpy.mock.calls[0];
+    expect(attrs['user.id']).toBeUndefined();
+    expect(attrs.authenticated).toBe(false);
+    expect(attrs['error.code']).toBe('ERR_APPLE_AUTHENTICATION_REQUEST_FAILED');
+    expect(attrs.operation).toBe('auth:signInWithApple');
+  });
+
+  it('marks a report from a signed-in user as authenticated', () => {
+    errorSpy.mockClear();
+    runLogClientError('user-xyz', { message: 'x' });
+    const [, attrs] = errorSpy.mock.calls[0];
+    expect(attrs['user.id']).toBe('user-xyz');
+    expect(attrs.authenticated).toBe(true);
+  });
 });

@@ -432,7 +432,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       const code = (err as { code?: string } | null)?.code;
       if (code === 'ERR_REQUEST_CANCELED') {
-        throw new Error('Apple sign-in was cancelled');
+        // Carries a code so reportAuthError can tell "changed their mind"
+        // apart from "the native flow broke" — the message alone cannot.
+        const cancelled = new Error('Apple sign-in was cancelled') as Error & { code?: string };
+        cancelled.code = 'auth/cancelled';
+        throw cancelled;
       }
       throw err;
     }
