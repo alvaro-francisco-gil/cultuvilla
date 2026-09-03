@@ -24,6 +24,16 @@ export type EventStatus = z.infer<typeof EventStatusSchema>;
 export const AttendeesVisibilitySchema = z.enum(['members', 'organizers']);
 export type AttendeesVisibility = z.infer<typeof AttendeesVisibilitySchema>;
 
+// Who may see the event at all. `public` = the whole app (the historical and
+// default behaviour); `organization` = only members of `visibilityOrgId`, the
+// event's own organizer set, and app admins. Village admins are deliberately
+// NOT on that list: a private event is private from the pueblo's leadership too,
+// which is the entire point of a peña organizing something for its own members.
+// Enforced in firestore.rules (read), in registerToEvent / claimSeat (sign-up),
+// and in the OG renderer (link previews).
+export const EventVisibilitySchema = z.enum(['public', 'organization']);
+export type EventVisibility = z.infer<typeof EventVisibilitySchema>;
+
 export const EventDataSchema = z.object({
   title: z.string(),
   description: z.string(),
@@ -87,6 +97,16 @@ export const EventDataSchema = z.object({
   // change).
   minBirthYear: z.number().int().nullable().default(null),
   maxBirthYear: z.number().int().nullable().default(null),
+  // `.default('public')` so events created before this field parse through the
+  // strict converter (existing docs are backfilled to 'public' in this same
+  // change). firestore.rules reads the same default via `data.get(...)`, so the
+  // stored and enforced meaning of an absent field agree.
+  visibility: EventVisibilitySchema.default('public'),
+  // The organization whose members may see and join the event. Non-null iff
+  // `visibility` is 'organization' — the pairing is enforced by buildEventData,
+  // by firestore.rules on create/update, and by isPrivateEvent below, which
+  // reads the id rather than the enum so a half-written doc fails closed.
+  visibilityOrgId: z.string().nullable().default(null),
   status: EventStatusSchema,
   organizerUserIds: z.array(z.string()),
   organizerOrgIds: z.array(z.string()),
@@ -139,6 +159,8 @@ export interface EventDataInput {
   signupGroupSize?: number;
   minBirthYear?: number | null;
   maxBirthYear?: number | null;
+  visibility?: EventVisibility;
+  visibilityOrgId?: string | null;
   status?: EventStatus;
   organizerUserIds: string[];
   organizerOrgIds: string[];
@@ -154,6 +176,12 @@ export interface EventDataInput {
 export function buildEventData(input: EventDataInput): EventData {
   const now = new Date();
   const endDate = input.endDate ?? null;
+  // The pair is normalized here rather than trusted from the caller: a
+  // `visibility: 'organization'` with no org would be an event nobody — not
+  // even its creator — could ever read back, and an orphan `visibilityOrgId`
+  // on a public event would make the feed's private query surface it twice.
+  const visibilityOrgId = input.visibility === 'organization' ? (input.visibilityOrgId ?? null) : null;
+  const visibility = visibilityOrgId === null ? 'public' : 'organization';
   return {
     title: input.title,
     description: input.description,
@@ -171,6 +199,8 @@ export function buildEventData(input: EventDataInput): EventData {
     signupGroupSize: input.signupGroupSize ?? 1,
     minBirthYear: input.minBirthYear ?? null,
     maxBirthYear: input.maxBirthYear ?? null,
+    visibility,
+    visibilityOrgId,
     status: input.status ?? 'published',
     organizerUserIds: input.organizerUserIds,
     organizerOrgIds: input.organizerOrgIds,
@@ -187,6 +217,44 @@ export function buildEventData(input: EventDataInput): EventData {
     readCount: 0,
     endBoundary: eventEndBoundary({ startDate: input.startDate, endDate }),
   };
+}
+
+/**
+ * True when the event is restricted to one organization's members.
+ * Reads `visibilityOrgId`, not the enum: a doc that somehow carries
+ * `visibility: 'organization'` with no org id is unreadable by anyone, so
+ * treating it as public would be the only failure mode worse than hiding it.
+ */
+export function isPrivateEvent(
+  event: Pick<EventData, 'visibility' | 'visibilityOrgId'>,
+): boolean {
+  return event.visibility === 'organization' && event.visibilityOrgId !== null;
+}
+
+/** Everything about a viewer that decides whether a private event is theirs to see. */
+export interface EventViewer {
+  userId: string | null;
+  /** Organizations the viewer belongs to. */
+  orgIds: string[];
+  isAppAdmin?: boolean;
+}
+
+/**
+ * The client-side mirror of the `events` read rule. Firestore is the authority
+ * — this exists so screens can hide what the rules would deny instead of
+ * rendering a card that 404s on tap.
+ *
+ * Village admins are absent on purpose (see EventVisibilitySchema): they
+ * moderate the pueblo's public square, and a peña's internal event is not it.
+ */
+export function canViewEvent(
+  event: Pick<EventData, 'visibility' | 'visibilityOrgId' | 'organizerUserIds'>,
+  viewer: EventViewer,
+): boolean {
+  if (!isPrivateEvent(event)) return true;
+  if (viewer.isAppAdmin === true) return true;
+  if (viewer.userId !== null && event.organizerUserIds.includes(viewer.userId)) return true;
+  return event.visibilityOrgId !== null && viewer.orgIds.includes(event.visibilityOrgId);
 }
 
 /** True when the event seats people in groups rather than one by one. */

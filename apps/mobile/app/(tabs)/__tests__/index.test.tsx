@@ -1,6 +1,9 @@
 import { render } from '@testing-library/react-native';
 import FeedScreen from '../index';
-import { getUpcomingFeed } from '@cultuvilla/shared/services/feedService';
+import {
+  getPrivateUpcomingFeed,
+  getUpcomingFeed,
+} from '@cultuvilla/shared/services/feedService';
 import { getAllVillagesFeed } from '@cultuvilla/shared/services/newsService';
 import { buildEventData } from '@cultuvilla/shared/models/event/EventDataModel';
 import { buildNewsPostData } from '@cultuvilla/shared/models/news/NewsPostDataModel';
@@ -11,6 +14,7 @@ jest.mock('@cultuvilla/shared', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/feedService', () => ({
   getUpcomingFeed: jest.fn().mockResolvedValue([]),
+  getPrivateUpcomingFeed: jest.fn().mockResolvedValue([]),
   haversineKm: jest.fn().mockReturnValue(0),
 }));
 jest.mock('@cultuvilla/shared/services/newsService', () => ({
@@ -145,5 +149,41 @@ describe('FeedScreen sign-up ribbon', () => {
     const { findByText, queryByText } = render(<FeedScreen />);
     await findByText('Verbena', undefined, { timeout: 5000 });
     expect(queryByText('Apuntado')).toBeNull();
+  });
+});
+
+// The private half of the feed is a separate query per org, so the screen is
+// what stitches the two lists into one chronological feed — and what has to
+// survive the private half failing.
+describe('FeedScreen private events', () => {
+  const privateEvent = {
+    ...event,
+    id: 'ev-priv',
+    title: 'Cena de la peña',
+    visibility: 'organization' as const,
+    visibilityOrgId: 'org-1',
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockRibbonFor.mockReturnValue(null);
+    (getAllVillagesFeed as jest.Mock).mockResolvedValue([]);
+  });
+
+  it('shows the viewer’s private events alongside the public ones', async () => {
+    (getUpcomingFeed as jest.Mock).mockResolvedValue({ events: [event] });
+    (getPrivateUpcomingFeed as jest.Mock).mockResolvedValue([privateEvent]);
+
+    const { findByText } = render(<FeedScreen />);
+    expect(await findByText('Verbena', undefined, { timeout: 5000 })).toBeTruthy();
+    expect(await findByText('Cena de la peña', undefined, { timeout: 5000 })).toBeTruthy();
+  });
+
+  it('still renders the public feed when the private half fails', async () => {
+    (getUpcomingFeed as jest.Mock).mockResolvedValue({ events: [event] });
+    (getPrivateUpcomingFeed as jest.Mock).mockRejectedValue(new Error('permission-denied'));
+
+    const { findByText } = render(<FeedScreen />);
+    expect(await findByText('Verbena', undefined, { timeout: 5000 })).toBeTruthy();
   });
 });

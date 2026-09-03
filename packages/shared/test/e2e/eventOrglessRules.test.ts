@@ -13,6 +13,7 @@ function orglessEvent(createdBy: string) {
     title: 'Fiesta', description: 'desc', startDate: new Date('2026-07-01'), endDate: null,
     location: { coordinates: { lat: 40.0, lng: -3.0 }, displayName: 'Plaza Mayor' },
     imageURL: null, maxAttendees: null, telephoneRequired: false, requiresPayment: false, signupFields: [], attendeesVisibility: 'members', signupGroupSize: 1, minBirthYear: null, maxBirthYear: null, signupEnabled: true, signupInfo: null,
+    visibility: 'public', visibilityOrgId: null,
     status: 'published', organizerUserIds: [createdBy], organizerOrgIds: [],
     createdBy, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
     municipalityId: M, villageName: 'Villa',
