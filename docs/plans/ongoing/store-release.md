@@ -218,40 +218,73 @@ Marcar aquí, no en la cabeza. Esto es lo que una sesión nueva lee primero.
       que saldrá `4`, por encima del `3` actual.
 - [ ] Rollout a producción.
 
-**iOS — pendiente, orden sugerido**
+**iOS — estado**
 
-1. [ ] Registrar el bundle ID `com.cultuvilla.app` en Apple Developer →
-       Certificates, Identifiers & Profiles, con **Sign In with Apple**
-       marcado como capability.
-2. [ ] Crear el registro de la app en App Store Connect → recoge el
-       **App Store Connect app id** → var de repo `ASC_APP_ID`.
-3. [ ] Crear una **App Store Connect API Key** (Users and Access → Integrations
-       → App Store Connect API → rol **Admin** o **App Manager**, no menos) →
-       descarga el `.p8` **una sola vez** (Apple no lo deja volver a descargar):
-       - el contenido del `.p8` → secret de repo `APPLE_ASC_API_KEY_P8`
-       - el Key ID que muestra la consola → var de repo `APPLE_ASC_KEY_ID`
-       - el Issuer ID (arriba de la tabla de keys) → var de repo `APPLE_ASC_ISSUER_ID`
-4. [ ] Habilitar el proveedor **Apple** en Firebase Console → Authentication →
-       Sign-in method, para `cultuvilla-prod` (y `beta`/`dev` si se quiere probar
-       ahí también). El flujo nativo no necesita Service ID ni return URL — solo
-       el proveedor activado.
-5. [ ] Primer build de iOS: `mobile-release` (`platform: ios`, `submit: false`)
-       desde `main` — igual que el primer AAB de Android, para descubrir
-       gotchas de build antes de intentar el submit. Si EAS pide credenciales
-       de firma (certificado de distribución / provisioning profile) de forma
-       interactiva porque nunca se generaron, hace falta un `eas credentials -p
-       ios` local, una única vez, con el Apple ID + 2FA de quien administra el
-       team — después queda guardado en los servidores de EAS y todo build de
-       CI posterior es no interactivo.
-6. [ ] Con `ASC_APP_ID` + las tres variables de la API key ya puestas, relanzar
-       `mobile-release` con `submit: true` y `testflightGroup` (crear antes un
-       grupo interno en App Store Connect → TestFlight, p. ej. "internal") →
-       el build llega a TestFlight sin ningún App Review, listo para testers
-       reales.
-7. [ ] Cuando se quiera abrir a la revisión pública: rellenar
-       [app-store-declarations.md](../../store/app-store-declarations.md) y
-       enviar a revisión desde App Store Connect (esto no lo hace `eas submit`
-       automáticamente).
+1. [x] Bundle ID `com.cultuvilla.app` registrado en Apple Developer con la
+       capability **Sign In with Apple** (`APPLE_ID_AUTH`).
+2. [x] App creada en App Store Connect → `ASC_APP_ID` = `6804756586`.
+3. [x] **App Store Connect API Key** creada (`APPLE_ASC_KEY_ID`,
+       `APPLE_ASC_ISSUER_ID`, `APPLE_ASC_API_KEY_P8`). El `.p8` sólo se descarga
+       una vez: hay copia permanente fuera del repo y una copia de trabajo
+       gitignorada en `apps/mobile/apple-asc-api-key.p8` (`*.p8` ya está en
+       `apps/mobile/.gitignore`).
+4. [x] Proveedor **Apple** habilitado en Firebase Auth en **los tres** entornos
+       (`villa-events`, `cultuvilla-beta`, `cultuvilla-prod`), con
+       `clientId` / `bundleIds` = `com.cultuvilla.app`. El flujo nativo no
+       necesita Service ID ni return URL — sólo el proveedor activado.
+       **Este paso se olvidó y costó un rechazo** — ver *El rechazo de 1.0.0*.
+5. [x] Primer build de iOS verde y no interactivo desde CI. El bootstrap de
+       credenciales de firma **sí** requirió un `eas build` interactivo una vez,
+       hecho por el Account Holder: una cuenta de tipo **Individual** sólo
+       permite acceso a Certificates/Identifiers/Profiles al propio titular, no
+       delegable por rol de App Store Connect.
+6. [x] TestFlight funcionando. Grupo **Internal** (sólo admite usuarios del
+       equipo de App Store Connect) y grupo **External** para direcciones
+       cualesquiera; el externo exige un **Beta App Review** único, ya aprobado.
+7. [x] Ficha completa y enviada a revisión vía API (`reviewSubmissions` +
+       `reviewSubmissionItems`, que `eas submit` no hace): categorías, ficha
+       es-ES, age rating, precio **Free**, capturas 6.7" y iPad Pro 12.9",
+       datos de contacto y cuenta de demo para el revisor
+       (`_admin/reviewAccess` en prod, código fijo de 6 dígitos).
+
+### El rechazo de 1.0.0 — guideline 2.1(a)
+
+Apple rechazó la primera submission el **2 sep 2026** con *"got an error when
+trying to login with Apple login"*. La causa no estaba en el cliente: el botón,
+el nonce y `signInWithCredential` eran correctos y sus tests unitarios pasaban.
+**`apple.com` no estaba habilitado como proveedor en Firebase Auth en ningún
+entorno**, así que la llamada moría en `auth/operation-not-allowed` — sólo en
+runtime, delante del revisor.
+
+La lección es que un proveedor que la UI ofrece pero el proyecto no habilita es
+invisible para todo test del repo: el hueco es de configuración de servidor, no
+de código. Por eso `pnpm check:store-claims` ahora comprueba, contra la infra
+viva, que cada proveedor que la app ofrece está habilitado en los tres entornos.
+
+**Pero no está cerrado.** Tras habilitar el proveedor, un tester de TestFlight
+sigue sin poder entrar, y su vídeo muestra un fallo **en otra capa**: se abre la
+hoja de Apple, marca «compartir mi correo electrónico», Face ID reconoce, y
+entonces es **el propio iOS** quien dice *«no se ha completado el registro»* —
+cadena que no está en `packages/i18n`. Es decir, `signInAsync()` aborta en la
+capa nativa y Firebase no llega a llamarse nunca, así que el proveedor no puede
+ser la explicación de *este* fallo.
+
+Verificado y descartado como causa (3 sep 2026), todo vía la ASC API:
+
+| Comprobación | Resultado |
+|---|---|
+| Capability `APPLE_ID_AUTH` en el App ID `CMZZ2NW7J9` | habilitada, `PRIMARY_APP_CONSENT` (no agrupada bajo `com.ordago.app`) |
+| Perfil de aprovisionamiento (26 ago, `ACTIVE`) | concede `com.apple.developer.applesignin: ["Default"]` |
+| Proveedor `apple.com` en los tres entornos | habilitado, `bundleIds: com.cultuvilla.app` |
+| Nonce del cliente | correcto: hasheado a Apple, crudo a Firebase |
+| Código de auth en el build 9 | idéntico a `develop` (`git diff` vacío) |
+| Colisión `auth/account-exists-with-different-credential` | descartada: ocurriría *después* de la hoja de Apple, con error nuestro, no de iOS |
+
+Falta el dato que lo resolvería: el código de `ASAuthorizationError` que hay
+detrás del diálogo. No se registraba en ninguna parte — `authErrorMessage`
+convierte todo `Firebase: Error (auth/...)` en copy genérica y no había ningún
+`captureError` en las rutas de fallo de login. Esa instrumentación es el
+siguiente paso; sin ella el diagnóstico es inferencia, no evidencia.
 
 **Contenido en prod: un solo pueblo.** De 16 municipios con overlay de comunidad
 activada, sólo **Matabuena** tiene contenido (25 eventos, 2 noticias, 156

@@ -137,6 +137,43 @@ if (!token) {
   }
 }
 
+// ── Firebase Auth sign-in providers ───────────────────────────────────────
+// Apple rejected 1.0.0 under guideline 2.1(a) — "got an error when trying to
+// login with Apple login" — because `apple.com` was enabled in NO environment.
+// The client shipped a working Sign in with Apple button and the unit tests
+// passed: the gap was entirely server-side config, which no test in the repo
+// could see. A provider the UI offers but the project does not enable fails at
+// `signInWithCredential` with auth/operation-not-allowed, i.e. only ever at
+// runtime, in front of a reviewer or a user.
+console.log('\nFirebase Auth sign-in providers');
+const idpToken = trySh('gcloud', ['auth', 'print-access-token']);
+if (!idpToken) {
+  meh('could not read Auth providers', 'needs an authenticated gcloud');
+} else {
+  // Every provider the app offers in its UI must be enabled in every env, not
+  // just prod — a provider missing on dev/beta cannot be caught by testing.
+  const REQUIRED_IDPS = ['google.com', 'apple.com'];
+  for (const project of ['villa-events', 'cultuvilla-beta', PROD]) {
+    const raw = trySh('bash', ['-lc',
+      `curl -sS -H "Authorization: Bearer ${idpToken}" -H "X-Goog-User-Project: ${project}" ` +
+      `"https://identitytoolkit.googleapis.com/admin/v2/projects/${project}/defaultSupportedIdpConfigs"`]);
+    let configs = null;
+    try {
+      configs = JSON.parse(raw ?? '').defaultSupportedIdpConfigs ?? [];
+    } catch {
+      meh(`could not read Auth providers for ${project}`);
+      continue;
+    }
+    const enabled = new Set(
+      configs.filter((c) => c.enabled).map((c) => c.name.split('/').pop()),
+    );
+    for (const idp of REQUIRED_IDPS) {
+      if (enabled.has(idp)) ok(`${idp} enabled on ${project}`);
+      else bad(`${idp} NOT enabled on ${project}`, 'the app offers this provider — sign-in will fail at runtime');
+    }
+  }
+}
+
 // ── EAS production environment ────────────────────────────────────────────
 console.log('\nEAS production environment');
 const easEnv = trySh('bash', ['-lc',
