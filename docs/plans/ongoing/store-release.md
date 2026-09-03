@@ -261,6 +261,31 @@ invisible para todo test del repo: el hueco es de configuración de servidor, no
 de código. Por eso `pnpm check:store-claims` ahora comprueba, contra la infra
 viva, que cada proveedor que la app ofrece está habilitado en los tres entornos.
 
+**Pero no está cerrado.** Tras habilitar el proveedor, un tester de TestFlight
+sigue sin poder entrar, y su vídeo muestra un fallo **en otra capa**: se abre la
+hoja de Apple, marca «compartir mi correo electrónico», Face ID reconoce, y
+entonces es **el propio iOS** quien dice *«no se ha completado el registro»* —
+cadena que no está en `packages/i18n`. Es decir, `signInAsync()` aborta en la
+capa nativa y Firebase no llega a llamarse nunca, así que el proveedor no puede
+ser la explicación de *este* fallo.
+
+Verificado y descartado como causa (3 sep 2026), todo vía la ASC API:
+
+| Comprobación | Resultado |
+|---|---|
+| Capability `APPLE_ID_AUTH` en el App ID `CMZZ2NW7J9` | habilitada, `PRIMARY_APP_CONSENT` (no agrupada bajo `com.ordago.app`) |
+| Perfil de aprovisionamiento (26 ago, `ACTIVE`) | concede `com.apple.developer.applesignin: ["Default"]` |
+| Proveedor `apple.com` en los tres entornos | habilitado, `bundleIds: com.cultuvilla.app` |
+| Nonce del cliente | correcto: hasheado a Apple, crudo a Firebase |
+| Código de auth en el build 9 | idéntico a `develop` (`git diff` vacío) |
+| Colisión `auth/account-exists-with-different-credential` | descartada: ocurriría *después* de la hoja de Apple, con error nuestro, no de iOS |
+
+Falta el dato que lo resolvería: el código de `ASAuthorizationError` que hay
+detrás del diálogo. No se registraba en ninguna parte — `authErrorMessage`
+convierte todo `Firebase: Error (auth/...)` en copy genérica y no había ningún
+`captureError` en las rutas de fallo de login. Esa instrumentación es el
+siguiente paso; sin ella el diagnóstico es inferencia, no evidencia.
+
 **Contenido en prod: un solo pueblo.** De 16 municipios con overlay de comunidad
 activada, sólo **Matabuena** tiene contenido (25 eventos, 2 noticias, 156
 miembros); los otros 15 tienen 1 miembro y 0 eventos. La app es navegable sin
