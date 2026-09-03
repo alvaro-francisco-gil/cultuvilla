@@ -6,6 +6,21 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Added
 
+- **Los fallos de acceso ahora dejan rastro.** Un error al iniciar sesión era la
+  única clase de error que el proyecto no podía ver, y lo era por partida doble:
+  `logClientError` exigía estar autenticado —y en un login fallido no hay
+  sesión, así que la llamada se rechazaba y `sendClientError` se tragaba el
+  rechazo en silencio— mientras `authErrorMessage` sustituye todo
+  `Firebase: Error (auth/…)` por copy genérica, de modo que el código tampoco
+  llegaba a quien estaba delante de la pantalla. Apple rechazó la 1.0.0 por un
+  error de login del que no quedó ni una línea de log.
+
+  Ahora `logClientError` **acepta reportes sin autenticar** (los marca con
+  `authenticated: false` y sin `user.id`, porque no hay identidad que
+  pseudonimizar) y las cuatro rutas de fallo de `login.tsx` reportan vía
+  `reportAuthError`, que etiqueta el proveedor en `operation` y **calla ante una
+  cancelación** del usuario. La copy que ve la persona no cambia.
+
 - **Zoom en las imágenes.** Tocar una foto la abre a pantalla completa sobre
   fondo negro: se hace zoom pellizcando, se arrastra para moverla, un toque doble
   alterna entre encajada y 3x, y se cierra deslizando hacia abajo o con la ✕. El

@@ -10,6 +10,7 @@ import {
 } from '../../components/auth';
 import { useAuth } from '../../lib/auth/useAuth';
 import { authErrorMessage } from '../../lib/auth/authErrorMessage';
+import { reportAuthError } from '../../lib/auth/reportAuthError';
 import { useT } from '../../lib/i18n';
 
 type Step = 'email' | 'code';
@@ -33,6 +34,7 @@ export default function LoginScreen() {
       await sendOtpCode(email);
       setStep('code');
     } catch (e) {
+      reportAuthError('auth:sendOtpCode', e);
       setError(authErrorMessage(e, t('auth.error.unknown')));
     } finally {
       setSendLoading(false);
@@ -46,6 +48,7 @@ export default function LoginScreen() {
       await verifyOtpCode(email, code);
       // AuthGate (app/_layout.tsx) picks up the auth state change and routes.
     } catch (e) {
+      reportAuthError('auth:verifyOtpCode', e);
       setError(authErrorMessage(e, t('auth.error.unknown')));
     } finally {
       setVerifyLoading(false);
@@ -67,6 +70,7 @@ export default function LoginScreen() {
     try {
       await signInWithGoogle();
     } catch (e) {
+      reportAuthError('auth:signInWithGoogle', e);
       setError(authErrorMessage(e, t('auth.error.unknown')));
     } finally {
       setGoogleLoading(false);
@@ -79,6 +83,7 @@ export default function LoginScreen() {
     try {
       await signInWithApple();
     } catch (e) {
+      reportAuthError('auth:signInWithApple', e);
       setError(authErrorMessage(e, t('auth.error.unknown')));
     } finally {
       setAppleLoading(false);
