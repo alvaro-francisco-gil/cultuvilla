@@ -350,27 +350,59 @@ test('releaseVersion reports when nothing is pending', async () => {
 
 // ── availability ──────────────────────────────────────────────────────────
 
-test('getAvailability spots an app that is removed from sale', async () => {
-  // The failure that made 1.0.0 invisible: approved, released, for sale nowhere.
-  const { request } = fakeAsc([[/^GET \/apps\/app1\/availableTerritories/, { data: [] }]]);
-  const result = await getAvailability(request, { ascAppId: 'app1' });
-  assert.deepEqual(result, { known: true, territories: 0, forSale: false, atLeast: false });
-});
+const AVAILABILITY_ID = [/^GET \/apps\/app1\/appAvailabilityV2$/, { data: { id: 'av1' } }];
 
-test('getAvailability counts territories when the app is on sale', async () => {
+test('getAvailability spots an app that is for sale nowhere', async () => {
+  // The failure that made 1.0.0 invisible: approved, released, on sale nowhere.
   const { request } = fakeAsc([
-    [/^GET \/apps\/app1\/availableTerritories/, { data: [{ id: 'ESP' }, { id: 'USA' }] }],
+    AVAILABILITY_ID,
+    [
+      /^GET \/appAvailabilities\/av1\/territoryAvailabilities/,
+      { data: [{ attributes: { available: false } }, { attributes: { available: false } }] },
+    ],
   ]);
   const result = await getAvailability(request, { ascAppId: 'app1' });
-  assert.equal(result.forSale, true);
+  assert.equal(result.known, true);
+  assert.equal(result.forSale, false);
+  assert.equal(result.territories, 0);
+});
+
+test('getAvailability counts only the territories actually available', async () => {
+  // Every territory is listed; `available` is what separates them.
+  const { request } = fakeAsc([
+    AVAILABILITY_ID,
+    [
+      /^GET \/appAvailabilities\/av1\/territoryAvailabilities/,
+      {
+        data: [
+          { attributes: { available: true } },
+          { attributes: { available: true } },
+          { attributes: { available: false } },
+        ],
+      },
+    ],
+  ]);
+  const result = await getAvailability(request, { ascAppId: 'app1' });
   assert.equal(result.territories, 2);
+  assert.equal(result.forSale, true);
+  assert.equal(result.source, 'appAvailabilityV2');
+});
+
+test('getAvailability falls back to the legacy relationship', async () => {
+  // Apple moved this resource once already; the chain is why one 404 is not fatal.
+  const { request } = fakeAsc([
+    [/^GET \/apps\/app1\/availableTerritories/, { data: [{ id: 'ESP' }] }],
+  ]);
+  const result = await getAvailability(request, { ascAppId: 'app1' });
+  assert.equal(result.source, 'availableTerritories');
+  assert.equal(result.forSale, true);
 });
 
 test('getAvailability degrades instead of killing the status command', async () => {
-  // Apple has moved this resource between API versions; a status command that
-  // dies on its last line is worse than one that says it could not tell.
+  // Both shapes gone: report doubt, and say what was tried.
   const { request } = fakeAsc([]);
   const result = await getAvailability(request, { ascAppId: 'app1' });
   assert.equal(result.known, false);
-  assert.match(result.reason, /unhandled GET/);
+  assert.match(result.reason, /appAvailabilityV2/);
+  assert.match(result.reason, /availableTerritories/);
 });

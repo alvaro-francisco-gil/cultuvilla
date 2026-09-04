@@ -117,7 +117,8 @@ switch (command) {
       console.log(`\nAvailability: could not read it — ${availability.reason}`);
     } else if (availability.forSale) {
       console.log(
-        `\nAvailability: for sale in ${availability.atLeast ? '200+' : availability.territories} territories.`,
+        `\nAvailability: for sale in ${availability.atLeast ? '200+' : availability.territories} territories ` +
+          `(via ${availability.source}).`,
       );
     } else {
       console.log(
