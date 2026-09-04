@@ -52,15 +52,40 @@ jobs:
       # `sudo udevadm control --reload-rules` exits 1 on some runners, and under
       # `bash -e` that killed the whole job — three times in one evening — even
       # though /dev/kvm was already world-writable and the emulator would have
-      # booted fine. What actually matters is the last line: if /dev/kvm is not
+      # booted fine. What actually matters is the last block: if /dev/kvm is not
       # writable the AVD cannot start, and that still fails the job.
+      #
+      # The gate POLLS rather than sampling once. `udevadm trigger` queues the
+      # event and returns; the mode change lands asynchronously, so an immediate
+      # `test -w` races it and fails on a runner that would have been ready a
+      # moment later. That is not hypothetical — it killed a promotion's E2E in
+      # 6s, before a single dependency was installed, on a commit whose suite
+      # passed in full on the next runner. `udevadm settle` alone is not enough
+      # (it waits for the queue, not for the static_node rule to be applied),
+      # hence the bounded retry.
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
             | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules || echo "udevadm reload failed; continuing"
           sudo udevadm trigger --name-match=kvm || echo "udevadm trigger failed; continuing"
-          test -w /dev/kvm && echo "KVM writable"
+          sudo udevadm settle --timeout=10 || echo "udevadm settle failed; continuing"
+
+          for attempt in $(seq 1 10); do
+            if [ -w /dev/kvm ]; then
+              echo "KVM writable (after ${attempt} attempt(s))"
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "::error::/dev/kvm is not writable after 10s — this runner cannot" \
+            "start an accelerated AVD, so the Maestro suite would never boot." \
+            "This is a runner-level condition, not a change in this commit:" \
+            "re-run the job to land on a different runner. Diagnostics follow."
+          ls -l /dev/kvm || echo "/dev/kvm does not exist at all"
+          id
+          exit 1
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
