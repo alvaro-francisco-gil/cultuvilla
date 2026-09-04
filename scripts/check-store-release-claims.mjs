@@ -189,6 +189,50 @@ if (!easEnv) {
   }
 }
 
+// ── Store listings ────────────────────────────────────────────────────────
+// APP_STORES gates every download offer in the web build. A URL filled in
+// before its listing is public sends real visitors to a 404, which is strictly
+// worse than showing them nothing — and nothing else in the repo can catch it,
+// because whether a store page is publicly reachable is not a fact any test has
+// access to. So it is checked here, against the live stores.
+console.log('\nStore listings');
+const appStores = readFileSync(resolve(ROOT, 'apps/mobile/lib/appStores.ts'), 'utf8');
+const urlFor = (key) =>
+  appStores.match(new RegExp(`^\\\\s*${key}:\\\\s*'([^']*)'`, 'm'))?.[1] ?? '';
+
+/** Is the app id live on the App Store? The lookup API returns 0 results until it is. */
+async function iosListingIsLive(url) {
+  const id = url.match(/id(\d+)/)?.[1];
+  if (!id) return { live: false, why: 'no numeric app id in the URL' };
+  const res = await fetch(`https://itunes.apple.com/lookup?id=${id}&country=es`);
+  const body = await res.json();
+  return body.resultCount > 0
+    ? { live: true, why: `${body.results[0].trackName} ${body.results[0].version}` }
+    : { live: false, why: 'lookup returns 0 results — approved is not the same as released' };
+}
+
+async function androidListingIsLive(url) {
+  const res = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0' } });
+  return res.ok
+    ? { live: true, why: `HTTP ${res.status}` }
+    : { live: false, why: `HTTP ${res.status} — still closed-track?` };
+}
+
+for (const [key, probe] of [['ios', iosListingIsLive], ['android', androidListingIsLive]]) {
+  const url = urlFor(key);
+  if (!url) {
+    meh(`APP_STORES.${key} is empty`, 'that platform offers no download — deliberate until it ships');
+    continue;
+  }
+  try {
+    const { live, why } = await probe(url);
+    if (live) ok(`APP_STORES.${key} listing is public`, why);
+    else bad(`APP_STORES.${key} points at a listing that is NOT public`, why);
+  } catch (err) {
+    meh(`could not reach the ${key} store`, err.message);
+  }
+}
+
 console.log(`\n\x1b[1m${pass} pass · ${fail} fail · ${skip} skipped\x1b[0m`);
 if (fail > 0) {
   console.log('\nA FAIL means docs/plans/ongoing/store-release.md may be out of date.');

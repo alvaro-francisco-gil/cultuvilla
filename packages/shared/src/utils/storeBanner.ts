@@ -71,3 +71,36 @@ export function isStoreBannerDismissed(
   if (!record || !Number.isFinite(record.dismissedAt)) return false;
   return Math.abs(now - record.dismissedAt) < cooldownDays * DAY_MS;
 }
+
+/**
+ * Will *this* browser draw Apple's own smart app banner for us?
+ *
+ * Safari on iOS renders a native install bar from the `apple-itunes-app` meta
+ * tag, above the page and outside our control. Where it does, our own banner is
+ * a second bar saying the same thing, so we stand down. Where it does not —
+ * Chrome/Firefox/Edge on iOS, and every in-app webview (a link opened from
+ * Instagram or WhatsApp, which is how most shared village links get opened) —
+ * the meta tag does nothing and our banner is the only offer there is.
+ *
+ * The caller is responsible for having already established that this is iOS;
+ * this answers only the Safari-vs-everything-else half.
+ *
+ * Detected by exclusion rather than by matching "Safari", because every iOS
+ * browser is WebKit and carries a "Safari" token in its UA. What distinguishes
+ * the real one is the *absence* of a wrapper's marker: the alternative browsers
+ * add a vendor token (CriOS, FxiOS, EdgiOS, OPiOS), and in-app webviews add
+ * their app's name while dropping the "Version/" token that genuine Safari
+ * always sends. Unknown wrappers therefore fall through to "not Safari", which
+ * is the safe way to be wrong: a redundant banner, never a missing one.
+ */
+export function rendersNativeSmartBanner(userAgent: string | null | undefined): boolean {
+  if (!userAgent) return false;
+  // Alternative iOS browsers: each adds a vendor token.
+  if (/CriOS|FxiOS|EdgiOS|OPiOS|GSA\//.test(userAgent)) return false;
+  // Named in-app webviews. Android's `wv` token and Facebook's FB_IAB/FBAN are
+  // here so the answer stays right off iOS too, rather than relying on the
+  // caller to only ask about iPhones.
+  if (/; wv\)|FB_IAB|FBAN|FBAV|Instagram|Line\/|MicroMessenger/.test(userAgent)) return false;
+  // Genuine Safari always sends a `Version/` token; unnamed webviews do not.
+  return /Version\/\d/.test(userAgent) && /Safari/.test(userAgent);
+}

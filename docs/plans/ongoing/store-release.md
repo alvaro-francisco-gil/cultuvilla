@@ -1,8 +1,9 @@
 # Store release runbook — Google Play (primary) and App Store
 
-Status: **ongoing** — **iOS 1.0.0 fue aprobado por App Review el 4 sep 2026.**
-Android sigue en el test cerrado de 14 días. Retirar este plan a
-`docs/decisions/` cuando Play llegue también a producción.
+Status: **ongoing** — **iOS 1.0.0 está publicado en el App Store** (aprobado el
+4 sep 2026, disponible en 175 territorios, gratis). Android sigue en el test
+cerrado de 14 días. Retirar este plan a `docs/decisions/` cuando Play llegue
+también a producción.
 
 **State as of 2026-08-24**
 
@@ -31,11 +32,11 @@ Android sigue en el test cerrado de 14 días. Retirar este plan a
   22 Aug count for nothing and the window effectively starts when the 12th tester
   accepts. "Opted in" means accepted the invite and installed — being on the tester
   list is not enough.
-- **Pendiente al publicar cada ficha: rellenar `apps/mobile/lib/appStores.ts`.**
-  El aviso de descarga de la web (`SmartAppBanner`) y la landing `/descarga`
-  están escritos y latentes; cada plataforma se enciende sola en cuanto su URL
-  deja de estar vacía. A 2026-08-29 las dos fichas dan 404 a un visitante
-  anónimo, así que ninguna está puesta.
+- **`apps/mobile/lib/appStores.ts`: iOS puesto (4 sep 2026), Android pendiente.**
+  El aviso de descarga de la web (`SmartAppBanner`) y la landing `/descarga` se
+  encienden solos en cuanto la URL de esa plataforma deja de estar vacía. La de
+  Play sigue vacía porque su ficha aún da 404 a un visitante anónimo; ponerla
+  cuando `pnpm check:store-claims` diga que la ficha es pública.
 
 - **Next: recruit 2 more testers.** It is the only item on this plan that cannot be
   done in parallel with anything else; every day at 10/12 is a day the production
@@ -298,6 +299,24 @@ Marcar aquí, no en la cabeza. Esto es lo que una sesión nueva lee primero.
        es-ES, age rating, precio **Free**, capturas 6.7" y iPad Pro 12.9",
        datos de contacto y cuenta de demo para el revisor
        (`_admin/reviewAccess` en prod, código fijo de 6 dígitos).
+
+### iOS 1.0.0 — aceptado (4 sep 2026)
+
+Submission `6a0a05a8-2290-4d63-9271-77193ae0ec02`, enviada el 2 sep por la API
+key, aceptada el 4 sep: <https://apps.apple.com/app/cultuvilla/id6804756586>.
+
+**Aceptada no es publicada, y el hueco entre las dos duró horas.** El correo de
+Apple dice *eligible for distribution*; mientras la versión no se libera (o
+mientras propaga), `apps.apple.com` devuelve 404 y
+`itunes.apple.com/lookup?id=6804756586` devuelve `resultCount: 0`. Rellenar
+`APP_STORES.ios` en ese momento habría mandado a cada visitante de iPhone a una
+página inexistente. Por eso `pnpm check:store-claims` comprueba ahora que cada
+URL de `APP_STORES` resuelve de verdad, y por eso el lookup —no el correo— es lo
+que autoriza a rellenarla.
+
+Con la ficha pública se encienden solos el aviso de descarga y `/descarga`; en
+Safari lo dibuja Apple desde la etiqueta `apple-itunes-app` y el nuestro se
+aparta. Ver el CHANGELOG de esa entrada.
 
 ### El rechazo de 1.0.0 — guideline 2.1(a)
 
