@@ -144,6 +144,21 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Fixed
 
+- **Los botones de acción ya no se parten en dos líneas.** En Pueblo (y en
+  Perfil) las píldoras terracota —Unirme, Añadir contenido, Compartir, Rellenar
+  censo…— repartían su ancho a partes iguales, así que una etiqueta larga, o el
+  tamaño de letra grande del sistema, la mandaba a una segunda línea. Ahora la
+  etiqueta **se encoge hasta caber en una línea** y nunca se recorta con `…`:
+  truncar el nombre de una acción es peor que hacerlo pequeño. Por debajo del
+  75% del tamaño base deja de encoger y se permite la segunda línea, de modo que
+  no se pierde texto en ningún caso.
+
+  `adjustsFontSizeToFit` no servía: RN-Web no lo implementa y degrada justo a esa
+  elipsis, así que la etiqueta se mide sin restricciones y se escala por la
+  proporción, igual en nativo que en la web. De paso, el escalado de fuente del
+  sistema se limita a 1.3 en estas píldoras y las siete copias del mismo marcado
+  pasan a ser una primitiva, `<ActionPill>`.
+
 - **Proveedor `apple.com` habilitado en Firebase Auth.** No estaba activo en
   ninguno de los tres entornos, así que el botón de Sign in with Apple
   —correcto en el cliente y con sus tests en verde— moría en

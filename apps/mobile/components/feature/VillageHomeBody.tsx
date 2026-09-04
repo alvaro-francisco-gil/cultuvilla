@@ -5,13 +5,13 @@ import {
   Text,
   VStack,
   HStack,
-  Pressable,
   Escudo,
   Button,
+  ActionPill,
   ScreenTitle,
   ErrorState,
 } from '../primitives';
-import { ACCENT, Section, EntityCard } from './VillageSections';
+import { Section, EntityCard } from './VillageSections';
 import type { BarrioKind } from '@cultuvilla/shared/models/municipality';
 
 // Order is the order they render. The seat sorts first inside its own section
@@ -264,44 +264,18 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         {noOrganizer ? (
           <VStack gap={2} className="px-4 pt-2">
             {pendingOrganizerRequest ? (
-              <Pressable
+              <ActionPill
+                grow={false}
                 disabled
+                label={t('village.noOrganizer.pending')}
                 onPress={() => {}}
-                accessibilityLabel={t('village.noOrganizer.pending')}
-                accessibilityState={{ disabled: true }}
-                className="flex-row items-center justify-center bg-surface"
-                style={{
-                  paddingVertical: 5,
-                  paddingHorizontal: 12,
-                  borderRadius: 24,
-                  borderWidth: 1.5,
-                  borderColor: ACCENT,
-                  minHeight: 32,
-                  opacity: 0.5,
-                }}
-              >
-                <Text style={{ color: ACCENT }} className="font-semibold">
-                  {t('village.noOrganizer.pending')}
-                </Text>
-              </Pressable>
+              />
             ) : (
-              <Pressable
+              <ActionPill
+                grow={false}
+                label={t('village.noOrganizer.cta')}
                 onPress={() => router.push(`/discover/organize/${village.id}` as never)}
-                accessibilityLabel={t('village.noOrganizer.cta')}
-                className="flex-row items-center justify-center bg-surface"
-                style={{
-                  paddingVertical: 5,
-                  paddingHorizontal: 12,
-                  borderRadius: 24,
-                  borderWidth: 1.5,
-                  borderColor: ACCENT,
-                  minHeight: 32,
-                }}
-              >
-                <Text style={{ color: ACCENT }} className="font-semibold">
-                  {t('village.noOrganizer.cta')}
-                </Text>
-              </Pressable>
+              />
             )}
             <Text variant="bodySm" className="text-center">
               {t('village.noOrganizer.body')}
@@ -481,42 +455,16 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         {(isMember && censoConfigured) || canManage ? (
           <HStack gap={3} className="px-4 pt-8">
             {isMember && censoConfigured ? (
-              <Pressable
+              <ActionPill
+                label={censoFillLabel}
                 onPress={() => router.push(`/village/${village.id}/censo?mode=fill` as never)}
-                accessibilityLabel={censoFillLabel}
-                className="flex-1 flex-row items-center justify-center bg-surface"
-                style={{
-                  paddingVertical: 5,
-                  paddingHorizontal: 12,
-                  borderRadius: 24,
-                  borderWidth: 1.5,
-                  borderColor: ACCENT,
-                  minHeight: 32,
-                }}
-              >
-                <Text style={{ color: ACCENT }} className="font-semibold">
-                  {censoFillLabel}
-                </Text>
-              </Pressable>
+              />
             ) : null}
             {canManage ? (
-              <Pressable
+              <ActionPill
+                label={t('village.censo.configure')}
                 onPress={() => router.push(`/village/${village.id}/censo?mode=configure` as never)}
-                accessibilityLabel={t('village.censo.configure')}
-                className="flex-1 flex-row items-center justify-center bg-surface"
-                style={{
-                  paddingVertical: 5,
-                  paddingHorizontal: 12,
-                  borderRadius: 24,
-                  borderWidth: 1.5,
-                  borderColor: ACCENT,
-                  minHeight: 32,
-                }}
-              >
-                <Text style={{ color: ACCENT }} className="font-semibold">
-                  {t('village.censo.configure')}
-                </Text>
-              </Pressable>
+              />
             ) : null}
           </HStack>
         ) : null}
@@ -543,41 +491,6 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         canManage={canManage}
       />
     </>
-  );
-}
-
-/** The terracotta-outline pill used across the village-home action row. */
-function ActionPill({
-  label,
-  onPress,
-  disabled = false,
-  testID,
-}: {
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-  testID?: string;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityLabel={label}
-      testID={testID}
-      className="flex-1 flex-row items-center justify-center bg-surface"
-      style={{
-        paddingVertical: 5,
-        paddingHorizontal: 12,
-        borderRadius: 24,
-        borderWidth: 1.5,
-        borderColor: ACCENT,
-        minHeight: 32,
-      }}
-    >
-      <Text style={{ color: ACCENT }} className="font-semibold">
-        {label}
-      </Text>
-    </Pressable>
   );
 }
 

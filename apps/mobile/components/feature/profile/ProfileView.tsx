@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
-import { HStack, Pressable, Text } from '../../primitives';
+import { ActionPill, HStack, Text } from '../../primitives';
 import { ProfileHeader } from './ProfileHeader';
 import { ProfileStatsRow } from './ProfileStatsRow';
 import { PersonaScroll } from './PersonaScroll';
 import { ProfileSectionHeader } from './ProfileSectionHeader';
-import { ACCENT, Section, EntityCard } from '../VillageSections';
+import { Section, EntityCard } from '../VillageSections';
 import { useShareDeepLink } from '../../../lib/deeplink/useShareDeepLink';
 import { useT } from '../../../lib/i18n';
 import { withFirestoreErrorLog } from '../../../lib/firestoreErrorLog';
@@ -103,46 +103,18 @@ export function ProfileView({
 
       {isSelf && selfPerson ? (
         <HStack gap={3} className="px-4 pt-2 pb-2">
-          <Pressable
+          <ActionPill
+            label={t('profile.actions.edit')}
             onPress={() => router.push(`/person/${selfPerson.id}?edit=1`)}
-            accessibilityLabel={t('profile.actions.edit')}
             // Renders only for a signed-in self-view whose person doc has
             // loaded, which makes it the E2E suites' signed-in marker: auth
             // minted -> users/{uid} read -> persons/{id} read -> rendered.
             testID="profile-edit-action"
-            className="flex-1 flex-row items-center justify-center bg-surface"
-            style={{
-              paddingVertical: 5,
-              paddingHorizontal: 12,
-              borderRadius: 24,
-              borderWidth: 1.5,
-              borderColor: ACCENT,
-              minHeight: 32,
-            }}
-          >
-            <Text style={{ color: ACCENT }} className="font-semibold">
-              {t('profile.actions.edit')}
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() =>
-              void share(getUserViewLink(uid), buildDisplayName(selfPerson))
-            }
-            accessibilityLabel={t('profile.actions.share')}
-            className="flex-1 flex-row items-center justify-center bg-surface"
-            style={{
-              paddingVertical: 5,
-              paddingHorizontal: 12,
-              borderRadius: 24,
-              borderWidth: 1.5,
-              borderColor: ACCENT,
-              minHeight: 32,
-            }}
-          >
-            <Text style={{ color: ACCENT }} className="font-semibold">
-              {t('profile.actions.share')}
-            </Text>
-          </Pressable>
+          />
+          <ActionPill
+            label={t('profile.actions.share')}
+            onPress={() => void share(getUserViewLink(uid), buildDisplayName(selfPerson))}
+          />
         </HStack>
       ) : null}
 
