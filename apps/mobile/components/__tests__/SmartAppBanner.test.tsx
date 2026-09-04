@@ -31,8 +31,10 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   },
 }));
 
-const IPHONE =
+const IPHONE_SAFARI =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
+const IPHONE_CHROME =
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/126.0.6478.54 Mobile/15E148 Safari/604.1';
 const ANDROID =
   'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36';
 const DESKTOP =
@@ -58,14 +60,22 @@ beforeEach(() => {
   jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
 });
 
-it('offers the App Store to an iPhone visitor', async () => {
-  setUserAgent(IPHONE);
+it('offers the App Store to an iPhone visitor not using Safari', async () => {
+  setUserAgent(IPHONE_CHROME);
   const { findByTestId, getByText } = render(<SmartAppBanner />);
   await findByTestId('smart-app-banner');
   expect(getByText('smartBanner.subtitleIos')).toBeTruthy();
 
   fireEvent.press(getByText('smartBanner.cta'));
   expect(Linking.openURL).toHaveBeenCalledWith(IOS_URL);
+});
+
+// Safari draws Apple's own install bar from the `apple-itunes-app` meta tag in
+// app/+html.tsx. Rendering ours too would stack two bars saying the same thing.
+it('stands down on iOS Safari, which draws Apple\'s own banner', async () => {
+  setUserAgent(IPHONE_SAFARI);
+  const { queryByTestId } = render(<SmartAppBanner />);
+  await waitFor(() => expect(queryByTestId('smart-app-banner')).toBeNull());
 });
 
 it('offers Google Play to an Android visitor', async () => {
@@ -85,7 +95,7 @@ it('stays silent on desktop, where there is no store to send anyone to', async (
 
 it('stays silent on native, where the visitor already has the app', async () => {
   mockIsWeb = false;
-  setUserAgent(IPHONE);
+  setUserAgent(IPHONE_CHROME);
   const { queryByTestId } = render(<SmartAppBanner />);
   await waitFor(() => expect(queryByTestId('smart-app-banner')).toBeNull());
 });
@@ -95,7 +105,7 @@ it('stays silent on native, where the visitor already has the app', async () => 
 // visitor a link to nowhere.
 it('stays silent for a platform whose store URL is not filled in yet', async () => {
   mockStores = { ios: '', android: ANDROID_URL };
-  setUserAgent(IPHONE);
+  setUserAgent(IPHONE_CHROME);
   const { queryByTestId } = render(<SmartAppBanner />);
   await waitFor(() => expect(queryByTestId('smart-app-banner')).toBeNull());
 });

@@ -33,6 +33,32 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   GitHub —de modo que un agente puede lanzar una publicación sin tener
   credenciales de Apple— y que es *dry run* por defecto: cada comando enseña lo
   que haría y no manda nada a Apple hasta marcar `apply`.
+- **Cultuvilla ya está en el App Store**, y la web se lo ofrece a quien la visita
+  desde un iPhone o un iPad. `APP_STORES.ios` deja de estar vacío, con lo que se
+  encienden solos los dos consumidores que llevaban escritos desde el 29 de
+  agosto: el aviso de descarga sobre la navegación y la landing `/descarga`.
+  Android sigue en pruebas cerradas de Play, así que su URL sigue vacía y a un
+  visitante de Android no se le ofrece nada — las dos plataformas se encienden
+  por separado, a propósito.
+
+  En Safari el aviso lo dibuja **Apple**, no nosotros: `app/+html.tsx` emite la
+  etiqueta `apple-itunes-app` y `SmartAppBanner` se aparta para no apilar dos
+  barras que dicen lo mismo. En cualquier otro navegador de iOS —Chrome, Firefox
+  y sobre todo los navegadores integrados de Instagram o WhatsApp, por donde se
+  abre la mayoría de los enlaces compartidos— esa etiqueta no hace nada y el
+  aviso propio sigue siendo la única oferta. Lo decide
+  `rendersNativeSmartBanner`, que reconoce al Safari de verdad por la *ausencia*
+  del distintivo del navegador que lo envuelve, porque todos ellos son WebKit y
+  todos mandan «Safari» en su user agent.
+
+  `pnpm check:store-claims` comprueba además que cada URL de `APP_STORES`
+  apunta a una ficha realmente pública. La autoridad es **la propia página**, no
+  la API de lookup: el día del lanzamiento la ficha ya servía un 200 con la app
+  real mientras `lookup` seguía devolviendo `resultCount: 0`, porque el índice de
+  búsqueda va horas por detrás del front del store. Aprobada no es lo mismo que
+  publicada, y una URL rellenada antes de tiempo manda a visitantes reales a un
+  404 — pero fiarse del índice habría retenido el aviso sobre una página que ya
+  funcionaba.
 
 - **Eventos privados para una organización.** Al crear un evento con una única
   organización organizadora aparece el interruptor **«Solo para miembros»**: el

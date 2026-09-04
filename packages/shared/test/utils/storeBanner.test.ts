@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   isStoreBannerDismissed,
+  rendersNativeSmartBanner,
   resolveStorePlatform,
   STORE_BANNER_DISMISS_DAYS,
 } from '../../src/utils/storeBanner';
@@ -91,6 +92,37 @@ describe('resolveStorePlatform', () => {
     'resolves %s to null',
     (ua) => {
       expect(resolveStorePlatform(ua, 0)).toBeNull();
+    },
+  );
+});
+
+describe('rendersNativeSmartBanner', () => {
+  // Safari draws its own bar from the `apple-itunes-app` meta tag, so ours has
+  // to stand down for exactly this one browser and no other.
+  it.each([
+    ['iPhone Safari', UA.iphoneSafari],
+    ['an iPad on iOS 12', UA.ipadLegacy],
+    ['iPadOS 13+ desktop-UA Safari', UA.ipadOS13],
+    ['an iPod touch', UA.ipod],
+  ])('is true for %s', (_label, ua) => {
+    expect(rendersNativeSmartBanner(ua)).toBe(true);
+  });
+
+  // Every one of these carries a "Safari" token despite not being Safari, which
+  // is why the check keys off the vendor markers instead.
+  it.each([
+    ['iPhone Chrome (CriOS)', UA.iphoneChrome],
+    ['iPhone Firefox (FxiOS)', UA.iphoneFirefox],
+    ['the Instagram in-app browser', UA.iphoneInstagram],
+    ['the Facebook in-app browser', UA.androidFacebook],
+  ])('is false for %s', (_label, ua) => {
+    expect(rendersNativeSmartBanner(ua)).toBe(false);
+  });
+
+  it.each<[string | null | undefined]>([[null], [undefined], ['']])(
+    'is false for %s',
+    (ua) => {
+      expect(rendersNativeSmartBanner(ua)).toBe(false);
     },
   );
 });

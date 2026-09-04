@@ -4,6 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   isStoreBannerDismissed,
+  rendersNativeSmartBanner,
   resolveStorePlatform,
   type StoreBannerDismissal,
   type StorePlatform,
@@ -31,11 +32,18 @@ async function readDismissal(): Promise<StoreBannerDismissal | null> {
  * Returns null when we have no listing for the detected platform, which is what
  * keeps the banner dormant until each `APP_STORES` URL is filled in at release
  * (iOS and Android light up independently — see lib/appStores.ts).
+ *
+ * Also null on iOS Safari, which draws Apple's own bar from the
+ * `apple-itunes-app` meta tag in app/+html.tsx — two bars offering the same
+ * install is worse than either alone. Every other iOS browser ignores that tag
+ * (including the in-app webviews that shared village links open in), so there
+ * we are still the only offer.
  */
 function resolveOffer(): { platform: StorePlatform; url: string } | null {
   if (!isWeb || typeof navigator === 'undefined') return null;
   const platform = resolveStorePlatform(navigator.userAgent, navigator.maxTouchPoints ?? 0);
   if (!platform) return null;
+  if (platform === 'ios' && rendersNativeSmartBanner(navigator.userAgent)) return null;
   const url = APP_STORES[platform];
   return url ? { platform, url } : null;
 }

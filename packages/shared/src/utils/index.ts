@@ -38,6 +38,7 @@ export {
 } from './imageVariants';
 export {
   isStoreBannerDismissed,
+  rendersNativeSmartBanner,
   resolveStorePlatform,
   STORE_BANNER_DISMISS_DAYS,
   type StoreBannerDismissal,

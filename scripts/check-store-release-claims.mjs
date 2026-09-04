@@ -189,6 +189,67 @@ if (!easEnv) {
   }
 }
 
+// ── Store listings ────────────────────────────────────────────────────────
+// APP_STORES gates every download offer in the web build. A URL filled in
+// before its listing is public sends real visitors to a 404, which is strictly
+// worse than showing them nothing — and nothing else in the repo can catch it,
+// because whether a store page is publicly reachable is not a fact any test has
+// access to. So it is checked here, against the live stores.
+console.log('\nStore listings');
+const appStores = readFileSync(resolve(ROOT, 'apps/mobile/lib/appStores.ts'), 'utf8');
+const urlFor = (key) =>
+  appStores.match(new RegExp(`^\\\\s*${key}:\\\\s*'([^']*)'`, 'm'))?.[1] ?? '';
+
+/**
+ * Is the iOS listing reachable?
+ *
+ * The question this check exists to answer is "does the URL we put in front of
+ * visitors resolve", so the page itself is the authority — not the lookup API.
+ * They disagree for hours: on release day (2026-09-04) the product page served
+ * 200 with the real listing while `lookup` still returned `resultCount: 0`,
+ * because the search index is a slower pipeline than the store front end.
+ * Gating on lookup would have held the banner back from a page that worked.
+ */
+async function iosListingIsLive(url) {
+  const id = url.match(/id(\d+)/)?.[1];
+  if (!id) return { live: false, why: 'no numeric app id in the URL' };
+
+  const page = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0' } });
+  if (!page.ok) return { live: false, why: `product page HTTP ${page.status} — not published yet` };
+
+  // A 200 that isn't this app would mean Apple redirected us somewhere generic.
+  const html = await page.text();
+  if (!/cultuvilla/i.test(html)) return { live: false, why: 'product page 200 but does not name the app' };
+
+  // Supplementary: the search index, which lags and must not gate.
+  const res = await fetch(`https://itunes.apple.com/lookup?id=${id}&country=es`);
+  const body = await res.json();
+  const indexed = body.resultCount > 0 ? `indexed as ${body.results[0].trackName}` : 'not yet in the search index (lags the page)';
+  return { live: true, why: `product page 200; ${indexed}` };
+}
+
+async function androidListingIsLive(url) {
+  const res = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0' } });
+  return res.ok
+    ? { live: true, why: `HTTP ${res.status}` }
+    : { live: false, why: `HTTP ${res.status} — still closed-track?` };
+}
+
+for (const [key, probe] of [['ios', iosListingIsLive], ['android', androidListingIsLive]]) {
+  const url = urlFor(key);
+  if (!url) {
+    meh(`APP_STORES.${key} is empty`, 'that platform offers no download — deliberate until it ships');
+    continue;
+  }
+  try {
+    const { live, why } = await probe(url);
+    if (live) ok(`APP_STORES.${key} listing is public`, why);
+    else bad(`APP_STORES.${key} points at a listing that is NOT public`, why);
+  } catch (err) {
+    meh(`could not reach the ${key} store`, err.message);
+  }
+}
+
 console.log(`\n\x1b[1m${pass} pass · ${fail} fail · ${skip} skipped\x1b[0m`);
 if (fail > 0) {
   console.log('\nA FAIL means docs/plans/ongoing/store-release.md may be out of date.');
