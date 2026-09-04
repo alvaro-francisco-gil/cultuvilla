@@ -6,6 +6,34 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Added
 
+- **La release de iOS ya no depende de que alguien pulse un botón.**
+  `eas submit` termina en la subida: el binario queda en App Store Connect y ahí
+  se para. Todo lo que viene después —crear la versión, adjuntarle el build,
+  escribir las novedades, mandarla a revisión y publicarla— era trabajo manual
+  contra la API de ASC, y por eso **1.0.0 estuvo dos días aprobada y sin
+  publicar** sin que nada lo vigilara.
+
+  Ahora `scripts/appstore-release.mjs` hace las cuatro cosas (`status`,
+  `submit`, `release`, `phased`) y `mobile-release.yml` encadena el envío a
+  revisión detrás del build con la casilla `submitForReview`. Las versiones se
+  crean con `releaseType: AFTER_APPROVAL`, así que **la aprobación publica
+  sola**, y con *phased release* de 7 días: la actualización llega poco a poco a
+  quien ya tiene la app, y un build malo se pausa (`phased --state=pause`) en vez
+  de necesitar una revisión urgente. A quien la descarga por primera vez le llega
+  siempre la última, así que el despliegue por fases no cambia nada en 1.0.0 y
+  empieza a contar en la primera actualización.
+
+  Las novedades de la ficha salen del CHANGELOG (`extractReleaseNotes`), que es
+  el texto que sí pasa por revisión en un PR; publicar una versión cuyo bloque
+  `## vX.Y.Z` no se ha estampado falla en el job en vez de publicar un «What's
+  New» vacío.
+
+  **No hay ninguna clave de Apple en ningún portátil**, a propósito. Se opera
+  desde **Actions → "App Store release"**, que es despachable por la API de
+  GitHub —de modo que un agente puede lanzar una publicación sin tener
+  credenciales de Apple— y que es *dry run* por defecto: cada comando enseña lo
+  que haría y no manda nada a Apple hasta marcar `apply`.
+
 - **Eventos privados para una organización.** Al crear un evento con una única
   organización organizadora aparece el interruptor **«Solo para miembros»**: el
   evento deja de verse en Explora, en la pestaña del pueblo y en el enlace

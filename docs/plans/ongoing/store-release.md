@@ -1,7 +1,8 @@
 # Store release runbook — Google Play (primary) and App Store
 
-Status: **ongoing** — the 14-day closed test is running; `0.24.0` is in Play
-review to replace the stale build it started on. iOS has not begun.
+Status: **ongoing** — **iOS 1.0.0 fue aprobado por App Review el 4 sep 2026.**
+Android sigue en el test cerrado de 14 días. Retirar este plan a
+`docs/decisions/` cuando Play llegue también a producción.
 
 **State as of 2026-08-24**
 
@@ -77,6 +78,39 @@ guard on the dispatch path would.
 This is the one place that records what has to happen outside the repo to get
 Cultuvilla onto the stores, and which knob in the repo each external fact feeds.
 Retire it to `docs/decisions/` once v1.0.0 is live on both stores.
+
+## Publicar iOS es automático (desde el 4 sep 2026)
+
+`eas submit` sube el binario y se detiene ahí. Todo lo posterior es API de App
+Store Connect, y hasta esta fecha se hacía a mano — por eso 1.0.0 estuvo
+**aprobado y sin publicar** desde el 4 de septiembre sin que nada lo detectara:
+el correo de Apple dice *eligible for distribution*, que es la aprobación, no la
+publicación.
+
+| Quiero… | Cómo |
+|---|---|
+| ver qué cree ASC que hay | Actions → **App Store release** → `status` |
+| publicar una versión aprobada | `release` + `apply` |
+| mandar un build a revisión | `submit` + `build_number` + `apply` |
+| pausar un despliegue que va mal | `phased` + `state: pause` + `apply` |
+| que un build nuevo se mande solo | `mobile-release` con `submitForReview` |
+
+Las versiones se crean con **`releaseType: AFTER_APPROVAL`**: la aprobación
+publica sola y nadie pulsa un botón. El seguro es el **phased release de 7
+días** — sólo afecta a la actualización automática de quien ya tiene la app (una
+descarga nueva siempre recibe la última), así que no cambia nada en 1.0.0 y
+empieza a importar en la primera actualización.
+
+**No hay clave de Apple en ningún portátil.** El `.p8` vive sólo como secreto de
+repositorio, así que el workflow *es* la interfaz: despachable por la API de
+GitHub, de modo que un agente puede publicar sin tener credenciales de Apple, y
+dry-run por defecto.
+
+`node scripts/appstore-release.mjs <cmd>` es el mismo código en local, y falla
+con un mensaje claro cuando no encuentra credenciales. Los helpers puros están
+cubiertos en `scripts/__tests__/appstore-release.test.mjs` (20 casos, con un ASC
+falso), incluida la firma ES256 en formato JOSE — que es la diferencia entre un
+token válido y un 401 sin explicación.
 
 ## The one decision that sets the timeline
 
