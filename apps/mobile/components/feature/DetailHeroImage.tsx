@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NaturalImage } from '../primitives/NaturalImage';
+import { ZoomableImage } from '../primitives/ZoomableImage';
 
 /**
  * Full-bleed hero image ("flyer") shown directly below the EntityDetailHeader
@@ -19,18 +20,27 @@ export type DetailHeroImageProps = {
   imageUri: string | null;
   fallbackImageUri?: string | null;
   fallbackIcon: keyof typeof Ionicons.glyphMap;
+  /** Entity title, used to describe the picture to a screen reader. */
+  accessibilityLabel?: string;
 };
 
 export function DetailHeroImage({
   imageUri,
   fallbackImageUri = null,
   fallbackIcon,
+  accessibilityLabel,
 }: DetailHeroImageProps) {
   const displayUri = imageUri ?? fallbackImageUri;
   return (
     <View style={{ width: '100%' }}>
       {displayUri ? (
-        <NaturalImage uri={displayUri} initialAspectRatio={ASPECT_RATIO} />
+        <ZoomableImage
+          uri={displayUri}
+          accessibilityLabel={accessibilityLabel}
+          testID="hero-image-zoom"
+        >
+          <NaturalImage uri={displayUri} initialAspectRatio={ASPECT_RATIO} />
+        </ZoomableImage>
       ) : (
         <View
           className="items-center justify-center"

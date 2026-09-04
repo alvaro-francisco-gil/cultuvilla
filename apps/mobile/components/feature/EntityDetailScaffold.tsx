@@ -1,5 +1,12 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Animated, RefreshControl, ScrollView, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Animated,
+  KeyboardAvoidingView,
+  RefreshControl,
+  ScrollView,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../primitives/Screen';
 import { VStack } from '../primitives/VStack';
@@ -8,6 +15,7 @@ import { DetailHeroImage } from './DetailHeroImage';
 import { EntityDetailHeader, type EntityDetailAction } from './EntityDetailHeader';
 import { PullSpinner } from './PullSpinner';
 import { useWebPullToRefresh } from '../../lib/useWebPullToRefresh';
+import { DetailScrollProvider } from '../../lib/keyboard/DetailScrollContext';
 import { useT } from '../../lib/i18n';
 
 /**
@@ -86,12 +94,18 @@ export function EntityDetailScaffold({
         </View>
       ) : (
         <>
-          <View style={{ flex: 1 }}>
+          {/* Android is edge-to-edge (Expo SDK 54+), so the window no longer
+              resizes for the keyboard and `adjustResize` is not an option:
+              without this the keyboard covers the comment composer on both
+              platforms. `padding` shrinks the scroll area instead, and the
+              composer scrolls itself into view via DetailScrollProvider. */}
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
             {onRefresh ? <PullSpinner pull={pull} top={0} /> : null}
             <Animated.View style={{ flex: 1, transform: [{ translateY: pull }] }}>
               <ScrollView
                 ref={scrollRef}
                 contentContainerClassName={scrollContentClassName}
+                keyboardShouldPersistTaps="handled"
                 refreshControl={
                   onRefresh ? (
                     <RefreshControl refreshing={nativeRefreshing} onRefresh={runRefresh} />
@@ -102,14 +116,15 @@ export function EntityDetailScaffold({
                   imageUri={imageUri}
                   fallbackImageUri={fallbackImageUri}
                   fallbackIcon={fallbackIcon}
+                  accessibilityLabel={title}
                 />
                 <VStack gap={3} className="p-4">
                   {title ? <Text variant="h1">{title}</Text> : null}
-                  {children}
+                  <DetailScrollProvider scrollRef={scrollRef}>{children}</DetailScrollProvider>
                 </VStack>
               </ScrollView>
             </Animated.View>
-          </View>
+          </KeyboardAvoidingView>
           {fab}
         </>
       )}

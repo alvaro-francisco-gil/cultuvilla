@@ -33,6 +33,11 @@ export async function getUpcomingFeed(
   startOfToday.setHours(0, 0, 0, 0);
   const baseConstraints = [
     where('status', '==', 'published'),
+    // Rules do not filter a list — an unpinned query either leaks the private
+    // rows or fails outright — so the global feed asks only for public events.
+    // Private ones reach the feed through getPrivateUpcomingFeed, one org at a
+    // time.
+    where('visibility', '==', 'public'),
     where('endBoundary', '>=', Timestamp.fromDate(startOfToday)),
     orderBy('endBoundary', 'asc'),
     firestoreLimit(pageSize),
@@ -45,6 +50,39 @@ export async function getUpcomingFeed(
   const events = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   const lastDoc = snap.docs.length > 0 ? (snap.docs[snap.docs.length - 1] ?? null) : null;
   return { events, cursor: lastDoc };
+}
+
+/**
+ * The private companion to `getUpcomingFeed`: upcoming events restricted to the
+ * organizations the viewer belongs to. Unpaginated on purpose — an org's own
+ * calendar is small, and merging two cursors into one infinite list would make
+ * the feed's ordering depend on which page each half happened to be on.
+ *
+ * One query per org, never an `in` over several: the read rule resolves a
+ * membership document per returned event, and keeping a page to a single org
+ * keeps that to one (cached) lookup instead of one per document.
+ */
+export async function getPrivateUpcomingFeed(
+  orgIds: string[],
+): Promise<(EventData & { id: string })[]> {
+  if (orgIds.length === 0) return [];
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const pages = await Promise.all(
+    orgIds.map(async (orgId) => {
+      const snap = await getDocs(
+        query(
+          eventsCollection(getDb()),
+          where('visibilityOrgId', '==', orgId),
+          where('status', '==', 'published'),
+          where('endBoundary', '>=', Timestamp.fromDate(startOfToday)),
+          orderBy('endBoundary', 'asc'),
+        ),
+      );
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    }),
+  );
+  return pages.flat().sort((a, b) => a.endBoundary.getTime() - b.endBoundary.getTime());
 }
 
 const EARTH_RADIUS_KM = 6371;

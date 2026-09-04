@@ -115,6 +115,44 @@ describe('ogRenderer', () => {
     expect(res.body).toContain('<div id="root">');
   });
 
+  // A link preview is rendered for whoever scrolls past the URL, with no viewer
+  // to authorize — so a private event's card must say nothing but that it is
+  // private. This is the one place the org boundary cannot be enforced by
+  // checking who is asking.
+  it('event: a private event leaks no title, description or image', async () => {
+    const now = new Date();
+    await admin.firestore().doc('events/e-priv').set({
+      title: 'Cena secreta de la peña',
+      description: 'En el local, a las 21h',
+      startDate: now,
+      location: { coordinates: { lat: 40.4, lng: -3.7 }, displayName: 'local' },
+      imageURL: 'https://cdn.example/event-priv.jpg',
+      maxAttendees: null,
+      telephoneRequired: false,
+      status: 'published',
+      visibility: 'organization',
+      visibilityOrgId: 'org-1',
+      organizerUserIds: ['creator-1'],
+      organizerOrgIds: ['org-1'],
+      createdBy: 'creator-1',
+      createdAt: now,
+      updatedAt: now,
+      municipalityId: 'mun-1',
+      villageName: 'Villarriba',
+      villageCoverImage: 'https://cdn.example/village.jpg',
+      villageCoordinates: null,
+    });
+
+    const res = await invoke('/event/e-priv');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toContain('Evento privado');
+    expect(res.body).not.toContain('Cena secreta');
+    expect(res.body).not.toContain('En el local');
+    expect(res.body).not.toContain('event-priv.jpg');
+    expect(res.body).not.toContain('village.jpg');
+  });
+
   it('village: uses escudoManualUrl as og:image when present', async () => {
     await admin.firestore().doc('municipalities/mun-1').set({
       name: 'Villarriba',

@@ -1,11 +1,12 @@
 // packages/shared/src/services/orgMemberService.ts
-import { getDoc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
+import { collectionGroup, getDoc, getDocs, query, setDoc, deleteDoc, where } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { getDb, getFirebaseFunctions } from '../firebase';
 import {
   organizationMembersCollection,
   organizationMemberDoc,
 } from '../firebase/refs/client';
+import { orgMemberConverterClient } from '../firebase/converters/orgMemberConverter.client';
 import type { OrgMemberData } from '../models/organization/OrgMemberDataModel';
 import { buildOrgMemberData, type OrgMemberRole } from '../models/organization/OrgMemberDataModel';
 
@@ -91,4 +92,25 @@ export async function getOrgMembershipsByUserInMunicipality(
   // future server-side filtering; not used in the body yet.
   void municipalityId;
   return checks.filter((m): m is UserOrgMembership => m !== null);
+}
+
+/**
+ * Every organization `userId` belongs to, across every village — the reverse of
+ * `getOrgMembers`. Uses the same collection-group index as
+ * `getUserMemberships`, and the same parent-path filter, because
+ * `municipalities/{id}/members` and `organizations/{id}/members` share a
+ * collection id and a group query returns both.
+ *
+ * Feeds need this before they can ask for private events: an org id the viewer
+ * does not belong to turns a list query into a permission-denied for the whole
+ * page, so the org set has to be known up front rather than discovered from
+ * the results.
+ */
+export async function getUserOrgIds(userId: string): Promise<string[]> {
+  const cg = collectionGroup(getDb(), 'members').withConverter(orgMemberConverterClient);
+  const snap = await getDocs(query(cg, where('userId', '==', userId)));
+  return snap.docs
+    .filter((d) => d.ref.parent.parent?.parent.id === 'organizations')
+    .map((d) => d.ref.parent.parent?.id)
+    .filter((id): id is string => id !== undefined);
 }

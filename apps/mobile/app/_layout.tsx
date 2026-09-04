@@ -7,6 +7,7 @@ import { bootstrapFirebase } from '../lib/firebaseInit';
 import { bootstrapObservability } from '../lib/observability/configure';
 import { ObservabilityErrorBoundary } from '../lib/observability/ObservabilityErrorBoundary';
 import { AppVersionGate } from '../components/AppVersionGate';
+import { SmartAppBanner } from '../components/SmartAppBanner';
 import { AuthProvider } from '../lib/auth/AuthContext';
 import { CallableErrorProvider } from '../lib/callableError';
 import { I18nProvider } from '../lib/i18n';
@@ -48,6 +49,12 @@ export default function RootLayout() {
                 <GuestActiveVillageProvider>
                   <MyRegistrationsProvider>
                     <RegisterGateProvider>
+                      {/* Web-only "get the app" bar. A flex sibling above the
+                          navigator, so it pushes the app down instead of
+                          overlaying the tab bar or a detail header. Renders
+                          nothing on native and nothing until a store URL for
+                          the visitor's platform exists (lib/appStores.ts). */}
+                      <SmartAppBanner />
                       <AuthGate />
                       {/* Web-only image-crop overlay (no-op on native, which uses its
                           own native cropper). Rendered above the app so it can cover

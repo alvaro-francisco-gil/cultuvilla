@@ -29,6 +29,7 @@ jest.mock('@cultuvilla/shared/services/orgMemberService', () => ({
   isOrgMember: jest.fn().mockResolvedValue(false),
   addOrgMember: jest.fn(),
   getOrgMembers: jest.fn().mockResolvedValue([]),
+  getUserOrgIds: jest.fn().mockResolvedValue([]),
 }));
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({ getOrgViewLink: () => 'https://x' }));
 jest.mock('../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));

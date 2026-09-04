@@ -28,6 +28,7 @@ interface RawEvent {
   description?: unknown;
   imageURL?: unknown;
   villageCoverImage?: unknown;
+  visibilityOrgId?: unknown;
 }
 
 interface RawNewsImage {
@@ -56,6 +57,8 @@ interface RawOrg {
   images?: unknown;
 }
 
+const PRIVATE_EVENT_DESCRIPTION = 'Solo visible para los miembros de la organización.';
+
 function asString(v: unknown): string | null {
   return typeof v === 'string' && v.length > 0 ? v : null;
 }
@@ -72,6 +75,13 @@ export async function getEventOg(eventId: string): Promise<OgMeta | null> {
   const snap = await getFirestore().collection('events').doc(eventId).get();
   if (!snap.exists) return null;
   const e = (snap.data() ?? {}) as RawEvent;
+  // A link preview is rendered for whoever scrolls past the URL — there is no
+  // viewer to authorize. So a private event gets a card that says only that it
+  // exists and is private: no title, no description, no flyer. The app itself
+  // still enforces access when the link is opened.
+  if (asString(e.visibilityOrgId) !== null) {
+    return { title: 'Evento privado', description: PRIVATE_EVENT_DESCRIPTION, imageUrl: null };
+  }
   const title = asString(e.title) ?? '';
   return {
     title,

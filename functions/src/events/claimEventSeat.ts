@@ -14,6 +14,7 @@ import {
 import { buildNotificationData, validateSignupAnswers } from '@cultuvilla/shared/models';
 import { isWellFormedSeatToken } from '../helpers/seatToken';
 import { writeRegistrationEvent } from '../helpers/registrationAudit';
+import { assertMayJoinEvent } from '../helpers/privateEventAccess';
 import { RESEND_API_KEY } from '../auth/secret';
 import { sendRegistrationEmail } from './sendRegistrationEmail';
 
@@ -98,6 +99,10 @@ export const claimEventSeat = onCall<ClaimEventSeatData, Promise<ClaimEventSeatR
       if (eventData.status !== 'published') {
         throw new HttpsError('failed-precondition', 'Este evento ya no admite inscripciones.');
       }
+      // A seat token is a secret, but a secret that travels: the whole point of
+      // an open seat is that the owner forwards the link. On a private event
+      // that link must not become a way around the org boundary.
+      await assertMayJoinEvent(db, tx, eventData, uid);
 
       // A persona the caller does not own would let anyone put a third party's
       // name and photo on a world-readable roster — the same boundary the

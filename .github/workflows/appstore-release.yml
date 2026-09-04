@@ -1,0 +1,115 @@
+name: App Store release
+
+# The manual/recovery endpoint for everything that happens to an iOS build AFTER
+# `eas submit` uploads it. mobile-release.yml does this inline for a build it
+# just made; this is for a binary already sitting in App Store Connect, and for
+# the operations that have no build of their own — releasing an approved
+# version, or pausing a phased rollout that is going badly.
+#
+# There is no ASC key on a laptop by design (see docs/plans/ongoing/store-release.md),
+# so this workflow is how a human or an agent drives the App Store at all. It is
+# dispatchable through the GitHub API, which means an agent can run a release it
+# holds no Apple credentials for.
+#
+# Dry run by default: every command prints what it would do and sends nothing to
+# Apple until `apply` is checked.
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: What to do
+        type: choice
+        options: [status, release, submit, set-release-type, phased]
+        default: status
+      apply:
+        description: Actually send it to Apple (unchecked = dry run)
+        type: boolean
+        default: false
+      build_number:
+        description: 'submit only: CFBundleVersion of the uploaded build (e.g. 9)'
+        type: string
+        default: ''
+      version:
+        description: 'release only: marketing version to act on (blank = whichever is waiting on the button)'
+        type: string
+        default: ''
+      phased_state:
+        description: 'phased only: pause a rollout, resume it, or push it to everyone'
+        type: choice
+        options: [pause, resume, complete]
+        default: pause
+      ref:
+        description: Git ref to run the release code from
+        type: string
+        default: develop
+
+concurrency:
+  group: appstore-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    name: ${{ inputs.command }}${{ inputs.apply && ' (apply)' || ' (dry run)' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # The same protected environment mobile-release uses. Its branch policy
+    # admits only `main`, which is deliberate for *building* a release — but
+    # this workflow must also run read-only `status` from develop, so it does
+    # NOT name that environment. The credentials are repo-level, as they are for
+    # beta-build-and-submit, and for the same reason.
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+
+      # Nothing here runs pnpm, but setup-node reads `packageManager` from
+      # package.json and enables pnpm caching on its own — then fails to locate
+      # the binary. Installing pnpm is cheaper than fighting the auto-detection.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.24.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      # No `pnpm install`: the release scripts deliberately use only the Node
+      # standard library, so this workflow can run against a ref whose lockfile
+      # does not resolve.
+      - name: Assert App Store Connect credentials exist
+        env:
+          ASC_APP_ID: ${{ vars.ASC_APP_ID }}
+          APPLE_ASC_KEY_ID: ${{ vars.APPLE_ASC_KEY_ID }}
+          APPLE_ASC_ISSUER_ID: ${{ vars.APPLE_ASC_ISSUER_ID }}
+          APPLE_ASC_API_KEY_P8: ${{ secrets.APPLE_ASC_API_KEY_P8 }}
+        run: |
+          missing=()
+          [ -z "${ASC_APP_ID}" ] && missing+=("ASC_APP_ID (repo var)")
+          [ -z "${APPLE_ASC_KEY_ID}" ] && missing+=("APPLE_ASC_KEY_ID (repo var)")
+          [ -z "${APPLE_ASC_ISSUER_ID}" ] && missing+=("APPLE_ASC_ISSUER_ID (repo var)")
+          [ -z "${APPLE_ASC_API_KEY_P8}" ] && missing+=("APPLE_ASC_API_KEY_P8 (repo secret)")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing: ${missing[*]} — see docs/plans/ongoing/store-release.md"
+            exit 1
+          fi
+
+      - name: ${{ inputs.command }}
+        env:
+          ASC_APP_ID: ${{ vars.ASC_APP_ID }}
+          APPLE_ASC_KEY_ID: ${{ vars.APPLE_ASC_KEY_ID }}
+          APPLE_ASC_ISSUER_ID: ${{ vars.APPLE_ASC_ISSUER_ID }}
+          APPLE_ASC_API_KEY_P8: ${{ secrets.APPLE_ASC_API_KEY_P8 }}
+        run: |
+          node scripts/appstore-release.mjs "${{ inputs.command }}" \
+            ${{ inputs.apply && '--apply' || '' }} \
+            ${{ inputs.build_number != '' && format('--build-number={0}', inputs.build_number) || '' }} \
+            ${{ inputs.version != '' && format('--version={0}', inputs.version) || '' }} \
+            ${{ inputs.command == 'phased' && format('--state={0}', inputs.phased_state) || '' }}

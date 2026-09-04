@@ -5,6 +5,7 @@ import { RichText } from './RichText';
 import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
 import type { NewsBlock, NewsImageBlock } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 import { RemoteImage } from '../primitives/RemoteImage';
+import { ZoomableImage } from '../primitives/ZoomableImage';
 
 /** Resolve a stored inline image and render it at its natural aspect ratio. */
 function InlineImage({ block, municipalityId }: { block: NewsImageBlock; municipalityId: string }) {
@@ -28,16 +29,21 @@ function InlineImage({ block, municipalityId }: { block: NewsImageBlock; municip
 
   return (
     <VStack gap={1}>
-      <View className="overflow-hidden rounded-lg bg-surface-elevated" style={{ width: '100%', aspectRatio }}>
-        {uri ? (
-          <RemoteImage
-            uri={uri}
-            variant="card"
-            style={{ width: '100%', height: '100%' }}
-            contentFit="cover"
-          />
-        ) : null}
-      </View>
+      <ZoomableImage uri={uri} accessibilityLabel={block.caption ?? undefined} testID="news-image-zoom">
+        <View
+          className="overflow-hidden rounded-lg bg-surface-elevated"
+          style={{ width: '100%', aspectRatio }}
+        >
+          {uri ? (
+            <RemoteImage
+              uri={uri}
+              variant="card"
+              style={{ width: '100%', height: '100%' }}
+              contentFit="cover"
+            />
+          ) : null}
+        </View>
+      </ZoomableImage>
       {block.caption ? (
         <RichText
           text={block.caption}

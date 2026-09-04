@@ -26,7 +26,6 @@ jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadUserPhoto: jest.fn(),
 }));
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
-  getMunicipalities: jest.fn().mockResolvedValue([]),
   getMunicipality: jest.fn().mockResolvedValue(null),
   getBarrios: jest.fn().mockResolvedValue([]),
 }));

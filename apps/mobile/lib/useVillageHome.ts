@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useAuth } from './auth/useAuth';
+import { useMyOrgIds } from './orgs/useMyOrgIds';
 import { withFirestoreErrorLog } from './firestoreErrorLog';
 import {
   getMunicipality,
@@ -14,7 +15,10 @@ import {
 import { getMunicipalityPeople } from '@cultuvilla/shared/services/municipalityPersonService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 import { getMyOrganizerRequests } from '@cultuvilla/shared/services/organizerRequestService';
-import { getEventsByMunicipality } from '@cultuvilla/shared/services/eventService';
+import {
+  getEventsByMunicipality,
+  getPrivateEventsByMunicipality,
+} from '@cultuvilla/shared/services/eventService';
 import { getHomeFeed } from '@cultuvilla/shared/services/newsService';
 import {
   getFestivalPosters,
@@ -109,6 +113,10 @@ const EMPTY: VillageHomeState = {
  */
 export function useVillageHome(municipalityId: string | null) {
   const { user } = useAuth();
+  // The viewer's orgs decide which private events this village can show. The
+  // array identity is stable between renders, so it is safe in `reload`'s deps
+  // — and being in them is what makes the section refill once the lookup lands.
+  const { orgIds } = useMyOrgIds();
   // Depend on the stable uid primitive, not the `user` object — the AuthContext
   // value can be a fresh object per render; keying `reload` off `uid` keeps it
   // stable so the focus/mount effects don't re-fire in a loop.
@@ -217,8 +225,23 @@ export function useVillageHome(municipalityId: string | null) {
       try {
         // published + completed so past events survive the hourly completion job;
         // cancelled is excluded by the query.
-        const evts = await withFirestoreErrorLog('villageHome:getEvents', () =>
-          getEventsByMunicipality(municipalityId, ['published', 'completed']),
+        // Public and private are separate queries: Firestore rules do not
+        // filter a list, so each query has to ask only for rows the viewer may
+        // read — public ones here, and the private half one org at a time.
+        // Losing the private half must not empty the section.
+        const [publicEvts, privateEvts] = await Promise.all([
+          withFirestoreErrorLog('villageHome:getEvents', () =>
+            getEventsByMunicipality(municipalityId, ['published', 'completed']),
+          ),
+          withFirestoreErrorLog('villageHome:getPrivateEvents', () =>
+            getPrivateEventsByMunicipality(municipalityId, orgIds, [
+              'published',
+              'completed',
+            ]),
+          ).catch(() => []),
+        ]);
+        const evts = [...publicEvts, ...privateEvts].sort(
+          (a, b) => a.startDate.getTime() - b.startDate.getTime(),
         );
         // Split on the end boundary, not startDate, so a multi-day event still
         // running counts as upcoming. Upcoming first (soonest first), then past
@@ -331,7 +354,7 @@ export function useVillageHome(municipalityId: string | null) {
       loadBarrios(),
       loadOrgs(),
     ]);
-  }, [municipalityId, uid]);
+  }, [municipalityId, uid, orgIds]);
 
   useEffect(() => {
     void reload();
