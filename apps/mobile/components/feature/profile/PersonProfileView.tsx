@@ -8,6 +8,7 @@ import { buildDisplayName } from '@cultuvilla/shared/models/person';
 import { isCatalogOccupation, occupationI18nKey } from '@cultuvilla/shared/models/occupation';
 import type { PersonData } from '@cultuvilla/shared/models/person';
 import { RemoteImage } from '../../primitives/RemoteImage';
+import { ZoomableImage } from '../../primitives/ZoomableImage';
 
 export interface PersonProfileViewProps {
   person: PersonData & { id: string };
@@ -63,24 +64,30 @@ export function PersonProfileView({ person }: PersonProfileViewProps) {
       </View>
 
       <HStack gap={4} align="start" className="px-4 pt-4">
-        <View
-          testID="person-photo"
-          className="w-36 rounded-md overflow-hidden bg-subtle items-center justify-center"
-          style={{ aspectRatio: PHOTO_ASPECT_RATIO }}
+        <ZoomableImage
+          uri={person.photoURL ?? null}
+          accessibilityLabel={displayName}
+          testID="person-photo-zoom"
         >
-          {person.photoURL ? (
-            <RemoteImage
-              uri={person.photoURL}
-              variant="card"
-              contentFit="cover"
-              style={{ width: '100%', height: '100%' }}
-            />
-          ) : (
-            <Text variant="h1" tone="muted">
-              {(displayName || '?').charAt(0).toUpperCase()}
-            </Text>
-          )}
-        </View>
+          <View
+            testID="person-photo"
+            className="w-36 rounded-md overflow-hidden bg-subtle items-center justify-center"
+            style={{ aspectRatio: PHOTO_ASPECT_RATIO }}
+          >
+            {person.photoURL ? (
+              <RemoteImage
+                uri={person.photoURL}
+                variant="card"
+                contentFit="cover"
+                style={{ width: '100%', height: '100%' }}
+              />
+            ) : (
+              <Text variant="h1" tone="muted">
+                {(displayName || '?').charAt(0).toUpperCase()}
+              </Text>
+            )}
+          </View>
+        </ZoomableImage>
 
         <PersonFacts facts={facts} />
       </HStack>

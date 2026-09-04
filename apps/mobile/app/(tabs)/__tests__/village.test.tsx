@@ -35,6 +35,7 @@ jest.mock('@cultuvilla/shared/services/organizationService', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/orgMemberService', () => ({
   getOrgMemberCount: jest.fn().mockResolvedValue(0),
+  getUserOrgIds: jest.fn().mockResolvedValue([]),
 }));
 jest.mock('@cultuvilla/shared/services/personService', () => ({
   getBarrioResidentCount: jest.fn().mockResolvedValue(0),
@@ -45,6 +46,7 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/eventService', () => ({
   getEventsByMunicipality: jest.fn().mockResolvedValue([]),
+  getPrivateEventsByMunicipality: jest.fn().mockResolvedValue([]),
 }));
 jest.mock('@cultuvilla/shared/services/newsService', () => ({
   getHomeFeed: jest.fn().mockResolvedValue([]),

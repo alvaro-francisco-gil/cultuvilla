@@ -137,6 +137,43 @@ if (!token) {
   }
 }
 
+// ── Firebase Auth sign-in providers ───────────────────────────────────────
+// Apple rejected 1.0.0 under guideline 2.1(a) — "got an error when trying to
+// login with Apple login" — because `apple.com` was enabled in NO environment.
+// The client shipped a working Sign in with Apple button and the unit tests
+// passed: the gap was entirely server-side config, which no test in the repo
+// could see. A provider the UI offers but the project does not enable fails at
+// `signInWithCredential` with auth/operation-not-allowed, i.e. only ever at
+// runtime, in front of a reviewer or a user.
+console.log('\nFirebase Auth sign-in providers');
+const idpToken = trySh('gcloud', ['auth', 'print-access-token']);
+if (!idpToken) {
+  meh('could not read Auth providers', 'needs an authenticated gcloud');
+} else {
+  // Every provider the app offers in its UI must be enabled in every env, not
+  // just prod — a provider missing on dev/beta cannot be caught by testing.
+  const REQUIRED_IDPS = ['google.com', 'apple.com'];
+  for (const project of ['villa-events', 'cultuvilla-beta', PROD]) {
+    const raw = trySh('bash', ['-lc',
+      `curl -sS -H "Authorization: Bearer ${idpToken}" -H "X-Goog-User-Project: ${project}" ` +
+      `"https://identitytoolkit.googleapis.com/admin/v2/projects/${project}/defaultSupportedIdpConfigs"`]);
+    let configs = null;
+    try {
+      configs = JSON.parse(raw ?? '').defaultSupportedIdpConfigs ?? [];
+    } catch {
+      meh(`could not read Auth providers for ${project}`);
+      continue;
+    }
+    const enabled = new Set(
+      configs.filter((c) => c.enabled).map((c) => c.name.split('/').pop()),
+    );
+    for (const idp of REQUIRED_IDPS) {
+      if (enabled.has(idp)) ok(`${idp} enabled on ${project}`);
+      else bad(`${idp} NOT enabled on ${project}`, 'the app offers this provider — sign-in will fail at runtime');
+    }
+  }
+}
+
 // ── EAS production environment ────────────────────────────────────────────
 console.log('\nEAS production environment');
 const easEnv = trySh('bash', ['-lc',
@@ -149,6 +186,67 @@ if (!easEnv) {
   for (const key of ['GOOGLE_WEB_CLIENT_ID_PROD', 'FIREBASE_PROJECT_ID_PROD', 'FIREBASE_API_KEY_PROD']) {
     if (easEnv.includes(key)) ok(`${key} present`);
     else bad(`${key} MISSING from the EAS production environment`);
+  }
+}
+
+// ── Store listings ────────────────────────────────────────────────────────
+// APP_STORES gates every download offer in the web build. A URL filled in
+// before its listing is public sends real visitors to a 404, which is strictly
+// worse than showing them nothing — and nothing else in the repo can catch it,
+// because whether a store page is publicly reachable is not a fact any test has
+// access to. So it is checked here, against the live stores.
+console.log('\nStore listings');
+const appStores = readFileSync(resolve(ROOT, 'apps/mobile/lib/appStores.ts'), 'utf8');
+const urlFor = (key) =>
+  appStores.match(new RegExp(`^\\\\s*${key}:\\\\s*'([^']*)'`, 'm'))?.[1] ?? '';
+
+/**
+ * Is the iOS listing reachable?
+ *
+ * The question this check exists to answer is "does the URL we put in front of
+ * visitors resolve", so the page itself is the authority — not the lookup API.
+ * They disagree for hours: on release day (2026-09-04) the product page served
+ * 200 with the real listing while `lookup` still returned `resultCount: 0`,
+ * because the search index is a slower pipeline than the store front end.
+ * Gating on lookup would have held the banner back from a page that worked.
+ */
+async function iosListingIsLive(url) {
+  const id = url.match(/id(\d+)/)?.[1];
+  if (!id) return { live: false, why: 'no numeric app id in the URL' };
+
+  const page = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0' } });
+  if (!page.ok) return { live: false, why: `product page HTTP ${page.status} — not published yet` };
+
+  // A 200 that isn't this app would mean Apple redirected us somewhere generic.
+  const html = await page.text();
+  if (!/cultuvilla/i.test(html)) return { live: false, why: 'product page 200 but does not name the app' };
+
+  // Supplementary: the search index, which lags and must not gate.
+  const res = await fetch(`https://itunes.apple.com/lookup?id=${id}&country=es`);
+  const body = await res.json();
+  const indexed = body.resultCount > 0 ? `indexed as ${body.results[0].trackName}` : 'not yet in the search index (lags the page)';
+  return { live: true, why: `product page 200; ${indexed}` };
+}
+
+async function androidListingIsLive(url) {
+  const res = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0' } });
+  return res.ok
+    ? { live: true, why: `HTTP ${res.status}` }
+    : { live: false, why: `HTTP ${res.status} — still closed-track?` };
+}
+
+for (const [key, probe] of [['ios', iosListingIsLive], ['android', androidListingIsLive]]) {
+  const url = urlFor(key);
+  if (!url) {
+    meh(`APP_STORES.${key} is empty`, 'that platform offers no download — deliberate until it ships');
+    continue;
+  }
+  try {
+    const { live, why } = await probe(url);
+    if (live) ok(`APP_STORES.${key} listing is public`, why);
+    else bad(`APP_STORES.${key} points at a listing that is NOT public`, why);
+  } catch (err) {
+    meh(`could not reach the ${key} store`, err.message);
   }
 }
 

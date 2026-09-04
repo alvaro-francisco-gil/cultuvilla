@@ -57,7 +57,42 @@ service cloud.firestore {
     function isRosterVisibleToVillage(eventId) {
       let event = get(/databases/$(database)/documents/events/$(eventId)).data;
       return event.get('attendeesVisibility', 'members') == 'members'
-        && isVillageMember(event.municipalityId);
+        && isVillageMember(event.municipalityId)
+        // A private event's roster is org-wide, not pueblo-wide: the pueblo
+        // cannot see the event, so it must not see who is going to it either.
+        // An attendee from outside the org still reaches their own row through
+        // the per-document branch below.
+        && (event.get('visibilityOrgId', null) == null || isOrgMember(event.visibilityOrgId));
+    }
+
+    // Who may see a private event at all. Village admins are deliberately
+    // absent: a peña's internal event is not the pueblo's public square, and
+    // giving the village's leadership a read here would defeat the feature.
+    // The org pointer, not the enum, is the gate — a doc claiming to be private
+    // with no org named fails closed everywhere rather than half-open.
+    // Cheapest branch first: a public event costs no document reads at all.
+    function canReadEvent(event) {
+      return event.get('visibilityOrgId', null) == null
+        || isOrgMember(event.visibilityOrgId)
+        || (isAuthenticated() && request.auth.uid in event.organizerUserIds)
+        || isAppAdmin();
+    }
+
+    // Changing who an event is visible to is not ordinary moderation. A village
+    // admin keeps edit/cancel authority over every event in their pueblo but
+    // must not be able to blind-write a peña's private event back into public
+    // view; and nobody may hide an event inside an org they don't belong to.
+    function isValidVisibilityChange(before, after) {
+      let beforeOrg = before.get('visibilityOrgId', null);
+      let afterOrg = after.get('visibilityOrgId', null);
+      return (after.get('visibility', 'public') == 'organization') == (afterOrg != null)
+        && (
+             afterOrg == beforeOrg
+             || (
+                  ((isAuthenticated() && request.auth.uid in before.organizerUserIds) || isAppAdmin())
+                  && (afterOrg == null || isOrgMember(afterOrg) || isAppAdmin())
+                )
+           );
     }
 
     // ── Shape validation helpers ─────────────────────────────────────────
@@ -397,6 +432,7 @@ service cloud.firestore {
               'imageURL', 'maxAttendees', 'telephoneRequired', 'requiresPayment',
               'signupFields', 'signupEnabled', 'signupInfo', 'attendeesVisibility', 'signupGroupSize',
               'minBirthYear', 'maxBirthYear',
+              'visibility', 'visibilityOrgId',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
               'villageCoverImage', 'villageCoordinates',
@@ -408,6 +444,7 @@ service cloud.firestore {
               'imageURL', 'maxAttendees', 'telephoneRequired', 'requiresPayment',
               'signupFields', 'signupEnabled', 'signupInfo', 'attendeesVisibility', 'signupGroupSize',
               'minBirthYear', 'maxBirthYear',
+              'visibility', 'visibilityOrgId',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
               'createdAt', 'updatedAt', 'municipalityId', 'villageName',
               'villageCoverImage', 'villageCoordinates',
@@ -458,6 +495,13 @@ service cloud.firestore {
           && (d.minBirthYear == null || (d.minBirthYear is int && d.minBirthYear >= 1900 && d.minBirthYear <= 2200))
           && (d.maxBirthYear == null || (d.maxBirthYear is int && d.maxBirthYear >= 1900 && d.maxBirthYear <= 2200))
           && (d.minBirthYear == null || d.maxBirthYear == null || d.maxBirthYear >= d.minBirthYear)
+          // Private events. The enum and the org pointer are one fact stored
+          // twice (the enum is what feeds can filter on, the id is what the
+          // read rule resolves), so they must agree or the event becomes
+          // either invisible to everyone or visible to the wrong people.
+          && d.visibility in ['public', 'organization']
+          && isStringOrNull(d.visibilityOrgId)
+          && (d.visibility == 'organization') == (d.visibilityOrgId != null)
           && d.status in ['published', 'cancelled', 'completed']
           && d.organizerUserIds is list
           && d.organizerOrgIds is list
@@ -881,13 +925,20 @@ service cloud.firestore {
     }
 
     match /events/{eventId} {
-      allow read: if true;
+      // `resource == null` keeps a read of a missing event returning
+      // "doesn't exist" rather than permission-denied — a link to a deleted
+      // event must 404, not look like a private one.
+      allow read: if resource == null || canReadEvent(resource.data);
       allow create: if isAuthenticated()
         && isValidEventCreate(request.resource.data)
         && request.resource.data.municipalityId is string
         && request.resource.data.createdBy == request.auth.uid
         && isVillageMember(request.resource.data.municipalityId)
-        && (request.auth.uid in request.resource.data.organizerUserIds);
+        && (request.auth.uid in request.resource.data.organizerUserIds)
+        // You can only make an event private to an org you belong to —
+        // otherwise anyone could park content inside someone else's peña.
+        && (request.resource.data.visibilityOrgId == null
+            || isOrgMember(request.resource.data.visibilityOrgId));
       allow update: if (
            isOwner(resource.data.createdBy)
         || (request.auth.uid in resource.data.organizerUserIds)
@@ -898,7 +949,8 @@ service cloud.firestore {
         && request.resource.data.municipalityId == resource.data.municipalityId
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['commentCount', 'readCount'])
         && isAdditiveSignupFieldsChange(resource.data, request.resource.data)
-        && isFrozenGroupSizeChange(resource.data, request.resource.data);
+        && isFrozenGroupSizeChange(resource.data, request.resource.data)
+        && isValidVisibilityChange(resource.data, request.resource.data);
       allow delete: if isOwner(resource.data.createdBy)
         || (request.auth.uid in resource.data.organizerUserIds)
         || isVillageAdmin(resource.data.municipalityId)

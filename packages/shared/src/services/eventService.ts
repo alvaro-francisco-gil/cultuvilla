@@ -28,6 +28,19 @@ import {
   type EventStatus,
 } from '../models/event/EventDataModel';
 
+type EventWithId = EventData & { id: string };
+
+/**
+ * Every list query over `events` MUST constrain visibility itself. Firestore
+ * rules are not a filter: a `list` rule that turns on a field the query leaves
+ * unconstrained is evaluated against what the query *could* return, so an
+ * unpinned query is not reliably denied — it can hand back the private rows.
+ * Where the rule *can* prove the denial it fails the whole page instead. Both
+ * outcomes are wrong for a feed, and both are avoided the same way: ask only
+ * for what the viewer may read.
+ */
+const publicOnly = () => where('visibility', '==', 'public');
+
 export async function getEvent(eventId: string): Promise<(EventData & { id: string }) | null> {
   const snap = await getDoc(eventDoc(getDb(), eventId));
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
@@ -50,6 +63,7 @@ export async function getEventsByMunicipality(
   const q = query(
     ref,
     where('municipalityId', '==', municipalityId),
+    publicOnly(),
     ...statusConstraint,
     orderBy('startDate', 'asc'),
   );
@@ -57,12 +71,59 @@ export async function getEventsByMunicipality(
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+/**
+ * The private half of `getEventsByMunicipality`: the events restricted to one
+ * of the caller's own organizations. Queried per org — never with an `in` over
+ * several — so that every document a page returns shares one membership
+ * document, keeping the read rule's `get()` inside its per-request budget.
+ *
+ * Orgs belong to exactly one municipality, so the village filter is applied in
+ * memory rather than costing a fourth index field.
+ */
+export async function getPrivateEventsByMunicipality(
+  municipalityId: string,
+  orgIds: string[],
+  status?: EventStatus | EventStatus[],
+): Promise<EventWithId[]> {
+  if (orgIds.length === 0) return [];
+  const statusConstraint = Array.isArray(status)
+    ? [where('status', 'in', status)]
+    : status
+      ? [where('status', '==', status)]
+      : [];
+  const pages = await Promise.all(
+    orgIds.map(async (orgId) => {
+      const snap = await getDocs(
+        query(
+          eventsCollection(getDb()),
+          where('visibilityOrgId', '==', orgId),
+          ...statusConstraint,
+          orderBy('startDate', 'asc'),
+        ),
+      );
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    }),
+  );
+  return pages
+    .flat()
+    .filter((e) => e.municipalityId === municipalityId)
+    .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+}
+
+/**
+ * The org detail screen's event list. `includePrivate` must be true only when
+ * the caller is a member of `organizationId` (or an app admin) — a non-member
+ * asking for the private rows does not get a shorter list, they get a
+ * permission-denied that empties the whole section.
+ */
 export async function getEventsByOrganization(
   organizationId: string,
-): Promise<(EventData & { id: string })[]> {
+  { includePrivate = false }: { includePrivate?: boolean } = {},
+): Promise<EventWithId[]> {
   const q = query(
     eventsCollection(getDb()),
     where('organizerOrgIds', 'array-contains', organizationId),
+    ...(includePrivate ? [] : [publicOnly()]),
     orderBy('startDate', 'asc'),
   );
   const snap = await getDocs(q);

@@ -18,6 +18,7 @@ import {
 } from '../helpers/registerToEventValidation';
 import { generateSeatToken } from '../helpers/seatToken';
 import { writeRegistrationEvent } from '../helpers/registrationAudit';
+import { assertMayJoinEvent } from '../helpers/privateEventAccess';
 import { RESEND_API_KEY } from '../auth/secret';
 import { sendRegistrationEmail } from './sendRegistrationEmail';
 import type { RegistrationEmailAttendee } from '@cultuvilla/shared/email';
@@ -87,6 +88,10 @@ export const registerToEvent = onCall<RegisterToEventData, Promise<RegisterToEve
       if (!eventData.signupEnabled) {
         throw new HttpsError('failed-precondition', 'Este evento no admite inscripciones por la app.');
       }
+      // Rules hide a private event from outsiders, but this path is Admin SDK
+      // and bypasses them: without this check the event id alone would let a
+      // non-member sign up to an event they cannot see.
+      await assertMayJoinEvent(db, tx, eventData, userId);
       const maxAttendees = eventData.maxAttendees;
       const municipalityId = eventData.municipalityId;
       if (!municipalityId) {

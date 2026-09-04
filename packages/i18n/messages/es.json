@@ -28,6 +28,11 @@
     "search": "Buscar",
     "noResults": "Sin resultados",
     "notFound": "No encontrado",
+    "imageViewer": {
+      "open": "Ver la imagen a pantalla completa",
+      "hint": "Pellizca para acercar, desliza hacia abajo para cerrar",
+      "close": "Cerrar la imagen"
+    },
     "stepper": { "back": "Anterior", "next": "Siguiente" },
     "close": "Cerrar",
     "moreInfo": "Más información",
@@ -550,6 +555,10 @@
     "requiresPayment": "Se paga en el evento",
     "attendeesPublic": "Lista de asistentes visible",
     "attendeesPublicHint": "Quien sea del pueblo podrá ver quién se ha apuntado. Los datos de contacto y las respuestas del formulario siguen siendo solo para ti.",
+    "privateToOrg": "Solo para miembros",
+    "privateToOrgHint": "El evento solo será visible para los miembros de la organización, y solo ellos podrán apuntarse.",
+    "privateBadge": "Privado",
+    "privateNotice": "Este evento es privado: solo lo ven los miembros de la organización.",
     "signupEnabled": "Inscripciones por la app",
     "signupEnabledHint": "Desactívalo si el evento es de entrada libre o si las inscripciones se hacen por otro sitio.",
     "signupDisableTitle": "Desactivar las inscripciones",
@@ -1108,6 +1117,13 @@
     "getOnAppStore": "Descargar en el App Store",
     "getOnPlayStore": "Descargar en Google Play",
     "continueOnWeb": "Seguir en la web"
+  },
+  "smartBanner": {
+    "title": "Cultuvilla en tu móvil",
+    "subtitleIos": "Descárgala gratis en el App Store",
+    "subtitleAndroid": "Descárgala gratis en Google Play",
+    "cta": "Ver",
+    "dismiss": "Cerrar el aviso de descarga"
   },
   "deeplink": {
     "share": {

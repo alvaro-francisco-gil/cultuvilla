@@ -17,6 +17,8 @@ function makeEvent(over: Partial<ManagedEvent> & { id: string }): ManagedEvent {
     requiresPayment: false,
     signupFields: [],
     attendeesVisibility: 'members' as const,
+    visibility: 'public' as const,
+    visibilityOrgId: null,
     signupGroupSize: 1,
     minBirthYear: null,
     maxBirthYear: null,

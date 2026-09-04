@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 import { getEventsByMunicipality } from '@cultuvilla/shared/services/eventService';
-import { getPlaces, getBarrios, getMunicipalities } from '@cultuvilla/shared/services/municipalityService';
+import { getPlaces, getBarrios, getActiveCommunities } from '@cultuvilla/shared/services/municipalityService';
 import { getNewsPostsByMunicipality } from '@cultuvilla/shared/services/newsService';
 import { getFestivalPosters } from '@cultuvilla/shared/services/festivalPosterService';
 import type { MentionCandidate } from './mentionText';
 
 /**
  * Load every entity a news `@`-mention can point at — approved organizations
- * (peñas/asociaciones/…), events, places, barrios, the pueblo (villages),
+ * (peñas/asociaciones/…), events, places, barrios, activated villages,
  * festival posters, and other visible news posts. Content entities are filtered
  * to `status: 'active'` (server-side in their services); people are deliberately
  * not mentionable (members have no public profile screen). Loaded once per
@@ -41,7 +41,11 @@ export function useMentionSources(
         getEventsByMunicipality(municipalityId).catch(() => []),
         getPlaces(municipalityId).catch(() => []),
         getBarrios(municipalityId).catch(() => []),
-        getMunicipalities().catch(() => []),
+        // Activated communities only — never the full INE municipality list.
+        // A mention deep-links to /village/[id], which exists only once a
+        // community is active, and reading all ~8.2k docs through the strict
+        // converter janked the whole compose form for seconds on a phone.
+        getActiveCommunities().catch(() => []),
         getFestivalPosters(municipalityId).catch(() => []),
         getNewsPostsByMunicipality(municipalityId, { status: 'active' }).catch(() => []),
       ]);

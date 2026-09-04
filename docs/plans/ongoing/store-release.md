@@ -1,7 +1,9 @@
 # Store release runbook — Google Play (primary) and App Store
 
-Status: **ongoing** — the 14-day closed test is running; `0.24.0` is in Play
-review to replace the stale build it started on. iOS has not begun.
+Status: **ongoing** — **iOS 1.0.0 está publicado en el App Store** (aprobado el
+4 sep 2026, disponible en 175 territorios, gratis). Android sigue en el test
+cerrado de 14 días. Retirar este plan a `docs/decisions/` cuando Play llegue
+también a producción.
 
 **State as of 2026-08-24**
 
@@ -30,6 +32,12 @@ review to replace the stale build it started on. iOS has not begun.
   22 Aug count for nothing and the window effectively starts when the 12th tester
   accepts. "Opted in" means accepted the invite and installed — being on the tester
   list is not enough.
+- **`apps/mobile/lib/appStores.ts`: iOS puesto (4 sep 2026), Android pendiente.**
+  El aviso de descarga de la web (`SmartAppBanner`) y la landing `/descarga` se
+  encienden solos en cuanto la URL de esa plataforma deja de estar vacía. La de
+  Play sigue vacía porque su ficha aún da 404 a un visitante anónimo; ponerla
+  cuando `pnpm check:store-claims` diga que la ficha es pública.
+
 - **Next: recruit 2 more testers.** It is the only item on this plan that cannot be
   done in parallel with anything else; every day at 10/12 is a day the production
   track does not get closer.
@@ -71,6 +79,57 @@ guard on the dispatch path would.
 This is the one place that records what has to happen outside the repo to get
 Cultuvilla onto the stores, and which knob in the repo each external fact feeds.
 Retire it to `docs/decisions/` once v1.0.0 is live on both stores.
+
+## Publicar iOS es automático (desde el 4 sep 2026)
+
+`eas submit` sube el binario y se detiene ahí. Todo lo posterior es API de App
+Store Connect, y hasta esta fecha se hacía a mano — por eso 1.0.0 estuvo
+**aprobado y sin publicar** desde el 4 de septiembre sin que nada lo detectara:
+el correo de Apple dice *eligible for distribution*, que es la aprobación, no la
+publicación.
+
+| Quiero… | Cómo |
+|---|---|
+| ver qué cree ASC que hay | Actions → **App Store release** → `status` |
+| publicar una versión aprobada | `release` + `apply` |
+| mandar un build a revisión | `submit` + `build_number` + `apply` |
+| pausar un despliegue que va mal | `phased` + `state: pause` + `apply` |
+| que un build nuevo se mande solo | `mobile-release` con `submitForReview` |
+
+Las versiones se crean con **`releaseType: AFTER_APPROVAL`**: la aprobación
+publica sola y nadie pulsa un botón. El seguro es el **phased release de 7
+días** — sólo afecta a la actualización automática de quien ya tiene la app (una
+descarga nueva siempre recibe la última), así que no cambia nada en 1.0.0 y
+empieza a importar en la primera actualización.
+
+**No hay clave de Apple en ningún portátil.** El `.p8` vive sólo como secreto de
+repositorio, así que el workflow *es* la interfaz: despachable por la API de
+GitHub, de modo que un agente puede publicar sin tener credenciales de Apple, y
+dry-run por defecto.
+
+`node scripts/appstore-release.mjs <cmd>` es el mismo código en local, y falla
+con un mensaje claro cuando no encuentra credenciales. Los helpers puros están
+cubiertos en `scripts/__tests__/appstore-release.test.mjs` (20 casos, con un ASC
+falso), incluida la firma ES256 en formato JOSE — que es la diferencia entre un
+token válido y un 401 sin explicación.
+
+### Aprobado, publicado y *retirado de la venta* son tres cosas distintas
+
+1.0.0 llegó a **Ready for Distribution** —aprobado y publicado— y aun así no
+aparecía en ninguna tienda: la app estaba **removed from sale**, disponible en
+cero territorios. La versión no dice nada de eso; el aviso vive en *Pricing and
+Availability*, otra pantalla.
+
+Se arregla a mano (App Store Connect → **Monetization → Pricing and
+Availability** → comprobar que el precio es **Free** y editar **Availability**
+para añadir territorios → *Save*). La API key no expone ese ajuste, así que no
+se puede automatizar el arreglo — pero sí **detectarlo**: `appstore-release.mjs
+status` cuenta los territorios y grita si son cero.
+
+La lección se repite: lo que hunde una release iOS no es el código, es un ajuste
+de servidor que ningún test del repo puede ver. Primero fue `apple.com` sin
+habilitar en Firebase Auth, luego la disponibilidad. Cada uno costó días porque
+nada lo miraba. Por eso `status` y `check:store-claims` miran ahora.
 
 ## The one decision that sets the timeline
 
@@ -212,40 +271,91 @@ Marcar aquí, no en la cabeza. Esto es lo que una sesión nueva lee primero.
       que saldrá `4`, por encima del `3` actual.
 - [ ] Rollout a producción.
 
-**iOS — pendiente, orden sugerido**
+**iOS — estado**
 
-1. [ ] Registrar el bundle ID `com.cultuvilla.app` en Apple Developer →
-       Certificates, Identifiers & Profiles, con **Sign In with Apple**
-       marcado como capability.
-2. [ ] Crear el registro de la app en App Store Connect → recoge el
-       **App Store Connect app id** → var de repo `ASC_APP_ID`.
-3. [ ] Crear una **App Store Connect API Key** (Users and Access → Integrations
-       → App Store Connect API → rol **Admin** o **App Manager**, no menos) →
-       descarga el `.p8` **una sola vez** (Apple no lo deja volver a descargar):
-       - el contenido del `.p8` → secret de repo `APPLE_ASC_API_KEY_P8`
-       - el Key ID que muestra la consola → var de repo `APPLE_ASC_KEY_ID`
-       - el Issuer ID (arriba de la tabla de keys) → var de repo `APPLE_ASC_ISSUER_ID`
-4. [ ] Habilitar el proveedor **Apple** en Firebase Console → Authentication →
-       Sign-in method, para `cultuvilla-prod` (y `beta`/`dev` si se quiere probar
-       ahí también). El flujo nativo no necesita Service ID ni return URL — solo
-       el proveedor activado.
-5. [ ] Primer build de iOS: `mobile-release` (`platform: ios`, `submit: false`)
-       desde `main` — igual que el primer AAB de Android, para descubrir
-       gotchas de build antes de intentar el submit. Si EAS pide credenciales
-       de firma (certificado de distribución / provisioning profile) de forma
-       interactiva porque nunca se generaron, hace falta un `eas credentials -p
-       ios` local, una única vez, con el Apple ID + 2FA de quien administra el
-       team — después queda guardado en los servidores de EAS y todo build de
-       CI posterior es no interactivo.
-6. [ ] Con `ASC_APP_ID` + las tres variables de la API key ya puestas, relanzar
-       `mobile-release` con `submit: true` y `testflightGroup` (crear antes un
-       grupo interno en App Store Connect → TestFlight, p. ej. "internal") →
-       el build llega a TestFlight sin ningún App Review, listo para testers
-       reales.
-7. [ ] Cuando se quiera abrir a la revisión pública: rellenar
-       [app-store-declarations.md](../../store/app-store-declarations.md) y
-       enviar a revisión desde App Store Connect (esto no lo hace `eas submit`
-       automáticamente).
+1. [x] Bundle ID `com.cultuvilla.app` registrado en Apple Developer con la
+       capability **Sign In with Apple** (`APPLE_ID_AUTH`).
+2. [x] App creada en App Store Connect → `ASC_APP_ID` = `6804756586`.
+3. [x] **App Store Connect API Key** creada (`APPLE_ASC_KEY_ID`,
+       `APPLE_ASC_ISSUER_ID`, `APPLE_ASC_API_KEY_P8`). El `.p8` sólo se descarga
+       una vez: hay copia permanente fuera del repo y una copia de trabajo
+       gitignorada en `apps/mobile/apple-asc-api-key.p8` (`*.p8` ya está en
+       `apps/mobile/.gitignore`).
+4. [x] Proveedor **Apple** habilitado en Firebase Auth en **los tres** entornos
+       (`villa-events`, `cultuvilla-beta`, `cultuvilla-prod`), con
+       `clientId` / `bundleIds` = `com.cultuvilla.app`. El flujo nativo no
+       necesita Service ID ni return URL — sólo el proveedor activado.
+       **Este paso se olvidó y costó un rechazo** — ver *El rechazo de 1.0.0*.
+5. [x] Primer build de iOS verde y no interactivo desde CI. El bootstrap de
+       credenciales de firma **sí** requirió un `eas build` interactivo una vez,
+       hecho por el Account Holder: una cuenta de tipo **Individual** sólo
+       permite acceso a Certificates/Identifiers/Profiles al propio titular, no
+       delegable por rol de App Store Connect.
+6. [x] TestFlight funcionando. Grupo **Internal** (sólo admite usuarios del
+       equipo de App Store Connect) y grupo **External** para direcciones
+       cualesquiera; el externo exige un **Beta App Review** único, ya aprobado.
+7. [x] Ficha completa y enviada a revisión vía API (`reviewSubmissions` +
+       `reviewSubmissionItems`, que `eas submit` no hace): categorías, ficha
+       es-ES, age rating, precio **Free**, capturas 6.7" y iPad Pro 12.9",
+       datos de contacto y cuenta de demo para el revisor
+       (`_admin/reviewAccess` en prod, código fijo de 6 dígitos).
+
+### iOS 1.0.0 — aceptado (4 sep 2026)
+
+Submission `6a0a05a8-2290-4d63-9271-77193ae0ec02`, enviada el 2 sep por la API
+key, aceptada el 4 sep: <https://apps.apple.com/app/cultuvilla/id6804756586>.
+
+**Aceptada no es publicada, y el hueco entre las dos duró horas.** El correo de
+Apple dice *eligible for distribution*; mientras la versión no se libera (o
+mientras propaga), `apps.apple.com` devuelve 404 y
+`itunes.apple.com/lookup?id=6804756586` devuelve `resultCount: 0`. Rellenar
+`APP_STORES.ios` en ese momento habría mandado a cada visitante de iPhone a una
+página inexistente. Por eso `pnpm check:store-claims` comprueba ahora que cada
+URL de `APP_STORES` resuelve de verdad, y por eso el lookup —no el correo— es lo
+que autoriza a rellenarla.
+
+Con la ficha pública se encienden solos el aviso de descarga y `/descarga`; en
+Safari lo dibuja Apple desde la etiqueta `apple-itunes-app` y el nuestro se
+aparta. Ver el CHANGELOG de esa entrada.
+
+### El rechazo de 1.0.0 — guideline 2.1(a)
+
+Apple rechazó la primera submission el **2 sep 2026** con *"got an error when
+trying to login with Apple login"*. La causa no estaba en el cliente: el botón,
+el nonce y `signInWithCredential` eran correctos y sus tests unitarios pasaban.
+**`apple.com` no estaba habilitado como proveedor en Firebase Auth en ningún
+entorno**, así que la llamada moría en `auth/operation-not-allowed` — sólo en
+runtime, delante del revisor.
+
+La lección es que un proveedor que la UI ofrece pero el proyecto no habilita es
+invisible para todo test del repo: el hueco es de configuración de servidor, no
+de código. Por eso `pnpm check:store-claims` ahora comprueba, contra la infra
+viva, que cada proveedor que la app ofrece está habilitado en los tres entornos.
+
+**Pero no está cerrado.** Tras habilitar el proveedor, un tester de TestFlight
+sigue sin poder entrar, y su vídeo muestra un fallo **en otra capa**: se abre la
+hoja de Apple, marca «compartir mi correo electrónico», Face ID reconoce, y
+entonces es **el propio iOS** quien dice *«no se ha completado el registro»* —
+cadena que no está en `packages/i18n`. Es decir, `signInAsync()` aborta en la
+capa nativa y Firebase no llega a llamarse nunca, así que el proveedor no puede
+ser la explicación de *este* fallo.
+
+Verificado y descartado como causa (3 sep 2026), todo vía la ASC API:
+
+| Comprobación | Resultado |
+|---|---|
+| Capability `APPLE_ID_AUTH` en el App ID `CMZZ2NW7J9` | habilitada, `PRIMARY_APP_CONSENT` (no agrupada bajo `com.ordago.app`) |
+| Perfil de aprovisionamiento (26 ago, `ACTIVE`) | concede `com.apple.developer.applesignin: ["Default"]` |
+| Proveedor `apple.com` en los tres entornos | habilitado, `bundleIds: com.cultuvilla.app` |
+| Nonce del cliente | correcto: hasheado a Apple, crudo a Firebase |
+| Código de auth en el build 9 | idéntico a `develop` (`git diff` vacío) |
+| Colisión `auth/account-exists-with-different-credential` | descartada: ocurriría *después* de la hoja de Apple, con error nuestro, no de iOS |
+
+Falta el dato que lo resolvería: el código de `ASAuthorizationError` que hay
+detrás del diálogo. No se registraba en ninguna parte — `authErrorMessage`
+convierte todo `Firebase: Error (auth/...)` en copy genérica y no había ningún
+`captureError` en las rutas de fallo de login. Esa instrumentación es el
+siguiente paso; sin ella el diagnóstico es inferencia, no evidencia.
 
 **Contenido en prod: un solo pueblo.** De 16 municipios con overlay de comunidad
 activada, sólo **Matabuena** tiene contenido (25 eventos, 2 noticias, 156

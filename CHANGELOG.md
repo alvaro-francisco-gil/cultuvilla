@@ -4,6 +4,179 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v1.1.0 — 2026-09-04
+
+### Added
+
+- **La release de iOS ya no depende de que alguien pulse un botón.**
+  `eas submit` termina en la subida: el binario queda en App Store Connect y ahí
+  se para. Todo lo que viene después —crear la versión, adjuntarle el build,
+  escribir las novedades, mandarla a revisión y publicarla— era trabajo manual
+  contra la API de ASC, y por eso **1.0.0 estuvo dos días aprobada y sin
+  publicar** sin que nada lo vigilara.
+
+  Ahora `scripts/appstore-release.mjs` hace las cuatro cosas (`status`,
+  `submit`, `release`, `phased`) y `mobile-release.yml` encadena el envío a
+  revisión detrás del build con la casilla `submitForReview`. Las versiones se
+  crean con `releaseType: AFTER_APPROVAL`, así que **la aprobación publica
+  sola**, y con *phased release* de 7 días: la actualización llega poco a poco a
+  quien ya tiene la app, y un build malo se pausa (`phased --state=pause`) en vez
+  de necesitar una revisión urgente. A quien la descarga por primera vez le llega
+  siempre la última, así que el despliegue por fases no cambia nada en 1.0.0 y
+  empieza a contar en la primera actualización.
+
+  Las novedades de la ficha salen del CHANGELOG (`extractReleaseNotes`), que es
+  el texto que sí pasa por revisión en un PR; publicar una versión cuyo bloque
+  `## vX.Y.Z` no se ha estampado falla en el job en vez de publicar un «What's
+  New» vacío.
+
+  **No hay ninguna clave de Apple en ningún portátil**, a propósito. Se opera
+  desde **Actions → "App Store release"**, que es despachable por la API de
+  GitHub —de modo que un agente puede lanzar una publicación sin tener
+  credenciales de Apple— y que es *dry run* por defecto: cada comando enseña lo
+  que haría y no manda nada a Apple hasta marcar `apply`.
+- **Cultuvilla ya está en el App Store**, y la web se lo ofrece a quien la visita
+  desde un iPhone o un iPad. `APP_STORES.ios` deja de estar vacío, con lo que se
+  encienden solos los dos consumidores que llevaban escritos desde el 29 de
+  agosto: el aviso de descarga sobre la navegación y la landing `/descarga`.
+  Android sigue en pruebas cerradas de Play, así que su URL sigue vacía y a un
+  visitante de Android no se le ofrece nada — las dos plataformas se encienden
+  por separado, a propósito.
+
+  En Safari el aviso lo dibuja **Apple**, no nosotros: `app/+html.tsx` emite la
+  etiqueta `apple-itunes-app` y `SmartAppBanner` se aparta para no apilar dos
+  barras que dicen lo mismo. En cualquier otro navegador de iOS —Chrome, Firefox
+  y sobre todo los navegadores integrados de Instagram o WhatsApp, por donde se
+  abre la mayoría de los enlaces compartidos— esa etiqueta no hace nada y el
+  aviso propio sigue siendo la única oferta. Lo decide
+  `rendersNativeSmartBanner`, que reconoce al Safari de verdad por la *ausencia*
+  del distintivo del navegador que lo envuelve, porque todos ellos son WebKit y
+  todos mandan «Safari» en su user agent.
+
+  `pnpm check:store-claims` comprueba además que cada URL de `APP_STORES`
+  apunta a una ficha realmente pública. La autoridad es **la propia página**, no
+  la API de lookup: el día del lanzamiento la ficha ya servía un 200 con la app
+  real mientras `lookup` seguía devolviendo `resultCount: 0`, porque el índice de
+  búsqueda va horas por detrás del front del store. Aprobada no es lo mismo que
+  publicada, y una URL rellenada antes de tiempo manda a visitantes reales a un
+  404 — pero fiarse del índice habría retenido el aviso sobre una página que ya
+  funcionaba.
+
+- **Eventos privados para una organización.** Al crear un evento con una única
+  organización organizadora aparece el interruptor **«Solo para miembros»**: el
+  evento deja de verse en Explora, en la pestaña del pueblo y en el enlace
+  compartido para cualquiera que no sea de esa organización, y solo sus miembros
+  pueden apuntarse. Los organizadores del evento lo ven siempre, aunque no sean
+  socios; el resto del pueblo no, **incluidos los administradores del pueblo** —
+  la cena de una peña no es la plaza del pueblo. Conservan, eso sí, su capacidad
+  de editar o cancelar el evento, pero no la de volverlo público.
+
+  La restricción se aplica en tres capas, porque cada una tiene su hueco: las
+  reglas de Firestore esconden el documento, `registerToEvent` y
+  `claimEventSeat` rechazan la inscripción (son Admin SDK y se saltan las
+  reglas, así que un enlace reenviado bastaría), y la vista previa del enlace
+  compartido devuelve una tarjeta genérica «Evento privado» sin título, texto ni
+  imagen, porque ahí no hay nadie a quien autorizar.
+
+  **Migration:** los eventos existentes reciben `visibility: 'public'` y
+  `visibilityOrgId: null` con `scripts/backfill-event-visibility.mjs`
+  (`pre-deploy`, auto-aplicado en dev/beta/prod). Sin él las consultas del feed
+  —que ahora filtran por `visibility`— no devolverían ningún evento antiguo.
+
+- **Los fallos de acceso ahora dejan rastro.** Un error al iniciar sesión era la
+  única clase de error que el proyecto no podía ver, y lo era por partida doble:
+  `logClientError` exigía estar autenticado —y en un login fallido no hay
+  sesión, así que la llamada se rechazaba y `sendClientError` se tragaba el
+  rechazo en silencio— mientras `authErrorMessage` sustituye todo
+  `Firebase: Error (auth/…)` por copy genérica, de modo que el código tampoco
+  llegaba a quien estaba delante de la pantalla. Apple rechazó la 1.0.0 por un
+  error de login del que no quedó ni una línea de log.
+
+  Ahora `logClientError` **acepta reportes sin autenticar** (los marca con
+  `authenticated: false` y sin `user.id`, porque no hay identidad que
+  pseudonimizar) y las cuatro rutas de fallo de `login.tsx` reportan vía
+  `reportAuthError`, que etiqueta el proveedor en `operation` y **calla ante una
+  cancelación** del usuario. La copy que ve la persona no cambia.
+
+- **Zoom en las imágenes.** Tocar una foto la abre a pantalla completa sobre
+  fondo negro: se hace zoom pellizcando, se arrastra para moverla, un toque doble
+  alterna entre encajada y 3x, y se cierra deslizando hacia abajo o con la ✕. El
+  visor pide el archivo **original**, no la versión reducida que muestra la
+  pantalla — ampliar un `card` de 1080px solo agranda el borrón.
+
+  Se aplica a las imágenes de contenido: el cartel de cabecera de cada ficha
+  (evento, cartel de fiestas, lugar, barrio, organización, noticia), las
+  imágenes dentro del cuerpo de una noticia, el retrato de una persona y el
+  escudo grande del pueblo. Deliberadamente **no** a las miniaturas del feed ni a
+  las de los listados, donde tocar tiene que seguir llevándote a la ficha, ni a
+  las previsualizaciones de los formularios.
+
+  Está construido sobre `Animated` + `PanResponder` de React Native, sin
+  `gesture-handler` ni `reanimated`: ninguno de los dos está instalado y añadirlos
+  cambiaría la huella nativa, así que el zoom solo llegaría con un binario nuevo
+  de tienda. Tal como está, viaja por OTA y funciona también en la web. La
+  geometría vive aparte, en `apps/mobile/lib/imageZoom.ts`, con tests unitarios.
+
+- **Aviso de descarga en la web.** Quien entra a cultuvilla.es desde un móvil ve
+  una barra que le ofrece la app de su plataforma — App Store en iOS, Google Play
+  en Android — y que empuja el contenido hacia abajo en vez de taparlo, como hace
+  la barra nativa de Safari. En escritorio no aparece: no hay tienda a la que
+  mandar a nadie. Se puede cerrar, y entonces calla 30 días; es un aplazamiento,
+  no una renuncia, porque quien dice «ahora no» en junio puede querer la app en
+  julio y no hay cuenta donde guardar esa preferencia (la barra también se ve sin
+  iniciar sesión).
+
+  Queda **latente hasta que las fichas de tienda sean públicas**: cada plataforma
+  se enciende por separado, en cuanto se rellena su URL en
+  `apps/mobile/lib/appStores.ts`. A 2026-08-29 ninguna de las dos carga todavía
+  (Play sigue en prueba cerrada; la ficha de App Store existe pero sin publicar),
+  así que hoy no se muestra a nadie. Es un cambio de una línea por tienda, sin
+  despliegue de nada más.
+
+  La detección de plataforma vive en `resolveStorePlatform`
+  (`packages/shared/src/utils/storeBanner.ts`) y está probada contra user-agents
+  reales, incluido el caso que rompe a casi todo el mundo: desde iPadOS 13 un iPad
+  se anuncia como un Mac de escritorio, y lo único que los distingue es que el iPad
+  declara puntos táctiles.
+
+- `pnpm check:store-claims` comprueba ahora que **cada proveedor de acceso que
+  la app ofrece está habilitado en los tres entornos**. Un proveedor que la UI
+  ofrece pero el proyecto no habilita sólo falla en runtime, y ningún test del
+  repo podía verlo.
+
+### Fixed
+
+- **Los botones de acción ya no se parten en dos líneas.** En Pueblo (y en
+  Perfil) las píldoras terracota —Unirme, Añadir contenido, Compartir, Rellenar
+  censo…— repartían su ancho a partes iguales, así que una etiqueta larga, o el
+  tamaño de letra grande del sistema, la mandaba a una segunda línea. Ahora la
+  etiqueta **se encoge hasta caber en una línea** y nunca se recorta con `…`:
+  truncar el nombre de una acción es peor que hacerlo pequeño. Por debajo del
+  75% del tamaño base deja de encoger y se permite la segunda línea, de modo que
+  no se pierde texto en ningún caso.
+
+  `adjustsFontSizeToFit` no servía: RN-Web no lo implementa y degrada justo a esa
+  elipsis, así que la etiqueta se mide sin restricciones y se escala por la
+  proporción, igual en nativo que en la web. De paso, el escalado de fuente del
+  sistema se limita a 1.3 en estas píldoras y las siete copias del mismo marcado
+  pasan a ser una primitiva, `<ActionPill>`.
+
+- **Proveedor `apple.com` habilitado en Firebase Auth.** No estaba activo en
+  ninguno de los tres entornos, así que el botón de Sign in with Apple
+  —correcto en el cliente y con sus tests en verde— moría en
+  `auth/operation-not-allowed` al llamar a `signInWithCredential`. Apple rechazó
+  la submission de 1.0.0 mencionando un error al entrar con Apple (guideline
+  2.1(a)). Habilitado en `villa-events`, `cultuvilla-beta` y `cultuvilla-prod`;
+  es configuración de servidor, no requiere cambio de cliente ni build nueva.
+
+  **No está confirmado que esto agote el fallo.** Un tester sigue viendo el
+  diálogo del propio iOS («no se ha completado el registro»), que aborta en la
+  capa nativa *antes* de que se llame a Firebase, así que es un fallo distinto
+  del que arregla este cambio. La capability `APPLE_ID_AUTH` del App ID, el
+  perfil de aprovisionamiento (`com.apple.developer.applesignin`) y el nonce del
+  cliente están verificados y correctos; falta el código de `ASAuthorizationError`
+  para saber más.
+
 ## v1.0.0 — 2026-08-28
 
 Primera publicación pública en las tiendas: App Store y Google Play. Sin
@@ -19,6 +192,33 @@ arrastra es la primera ejecución real de las pruebas E2E en Android — que has
 rutas de release.
 
 ### Fixed
+
+- **Escribir un artículo ya no va a tirones.** Al abrir el formulario de artículo
+  se notaba todo pesado — el desplegable de categoría tardaba segundos en
+  abrirse — aunque el problema no era ese campo, sino la pantalla entera: el
+  cargador de menciones (`@`) pedía **todos** los municipios del INE, 8.167
+  documentos, y los pasaba uno a uno por el conversor estricto en el hilo de JS
+  justo al montar. Los primeros toques se quedaban esperando detrás de ese
+  trabajo. Ahora pide solo los pueblos con comunidad activada, que es el único
+  conjunto que tiene ficha a la que enlazar: 2 documentos en beta en vez de
+  8.167 (y otras tantas lecturas facturadas menos por cada vez que se abre la
+  pantalla).
+
+- **El teclado ya no tapa lo que estás escribiendo en un comentario.** El
+  compositor vive al final del scroll de la ficha (evento, noticia, sitio,
+  barrio, cartel, organización), justo donde aparece el teclado. Android es
+  edge-to-edge desde Expo SDK 54, así que la ventana ya no se encoge sola
+  (`adjustResize` dejó de ser una opción) y el teclado caía encima del campo. Ahora
+  el andamio de ficha encoge el área de scroll (`KeyboardAvoidingView`) y el
+  propio compositor se desplaza a la vista al recibir el foco y cada vez que el
+  teclado se abre — también al pulsar «responder» con el teclado ya abierto, que
+  no emite ningún evento de teclado.
+
+- **El campo de comentario crece con el comentario.** Antes era de una línea:
+  un texto largo se iba desplazando y sólo se veía el final. Ahora crece hasta
+  ~6 líneas y a partir de ahí hace scroll dentro del propio campo, así que
+  siempre se puede releer entero lo escrito. Como es multilínea, la tecla Enter
+  ya inserta un salto de línea en vez de enviar: se envía con la flecha.
 
 - **La suite E2E de Android ya se ejecuta de verdad, y pasa.** En su estreno se
   quedó a medias: el APK no llegaba a compilarse porque
