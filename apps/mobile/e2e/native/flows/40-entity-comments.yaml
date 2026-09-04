@@ -47,8 +47,20 @@ env:
 # is precisely the fix for that, and wraps the scroll region in a
 # KeyboardAvoidingView that scrolls the composer above the keyboard on focus and
 # as the field grows. So the arrow is now both on screen and a one-tap target.
-- assertVisible:
-    id: 'comment-send'
+#
+# WAIT for it rather than asserting immediately. The arrow only renders once the
+# field is non-empty (`visible={body.trim().length > 0}`), and the composer is
+# still moving when the text lands: the keyboard is animating up and the
+# KeyboardAvoidingView + on-grow auto-scroll are repositioning the field under
+# it. A bare `assertVisible` races that settle and fails on a slow AVD while
+# passing on a fast one — it did exactly that, green on one runner and red on
+# another for the identical commit. `extendedWaitUntil` polls instead of
+# sampling once, so the step is decided by whether the arrow ever becomes
+# reachable, not by how quickly this runner got there.
+- extendedWaitUntil:
+    visible:
+      id: 'comment-send'
+    timeout: 30000
 - tapOn:
     id: 'comment-send'
 # No `hideKeyboard` — on Android that is a BACK press, and with no soft keyboard
