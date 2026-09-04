@@ -200,15 +200,32 @@ const appStores = readFileSync(resolve(ROOT, 'apps/mobile/lib/appStores.ts'), 'u
 const urlFor = (key) =>
   appStores.match(new RegExp(`^\\\\s*${key}:\\\\s*'([^']*)'`, 'm'))?.[1] ?? '';
 
-/** Is the app id live on the App Store? The lookup API returns 0 results until it is. */
+/**
+ * Is the iOS listing reachable?
+ *
+ * The question this check exists to answer is "does the URL we put in front of
+ * visitors resolve", so the page itself is the authority — not the lookup API.
+ * They disagree for hours: on release day (2026-09-04) the product page served
+ * 200 with the real listing while `lookup` still returned `resultCount: 0`,
+ * because the search index is a slower pipeline than the store front end.
+ * Gating on lookup would have held the banner back from a page that worked.
+ */
 async function iosListingIsLive(url) {
   const id = url.match(/id(\d+)/)?.[1];
   if (!id) return { live: false, why: 'no numeric app id in the URL' };
+
+  const page = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0' } });
+  if (!page.ok) return { live: false, why: `product page HTTP ${page.status} — not published yet` };
+
+  // A 200 that isn't this app would mean Apple redirected us somewhere generic.
+  const html = await page.text();
+  if (!/cultuvilla/i.test(html)) return { live: false, why: 'product page 200 but does not name the app' };
+
+  // Supplementary: the search index, which lags and must not gate.
   const res = await fetch(`https://itunes.apple.com/lookup?id=${id}&country=es`);
   const body = await res.json();
-  return body.resultCount > 0
-    ? { live: true, why: `${body.results[0].trackName} ${body.results[0].version}` }
-    : { live: false, why: 'lookup returns 0 results — approved is not the same as released' };
+  const indexed = body.resultCount > 0 ? `indexed as ${body.results[0].trackName}` : 'not yet in the search index (lags the page)';
+  return { live: true, why: `product page 200; ${indexed}` };
 }
 
 async function androidListingIsLive(url) {

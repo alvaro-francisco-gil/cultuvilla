@@ -52,9 +52,13 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   todos mandan «Safari» en su user agent.
 
   `pnpm check:store-claims` comprueba además que cada URL de `APP_STORES`
-  apunta a una ficha realmente pública (vía la API de lookup de Apple y una
-  petición a Play). Aprobada no es lo mismo que publicada, y una URL rellenada
-  un día antes de tiempo manda a visitantes reales a un 404.
+  apunta a una ficha realmente pública. La autoridad es **la propia página**, no
+  la API de lookup: el día del lanzamiento la ficha ya servía un 200 con la app
+  real mientras `lookup` seguía devolviendo `resultCount: 0`, porque el índice de
+  búsqueda va horas por detrás del front del store. Aprobada no es lo mismo que
+  publicada, y una URL rellenada antes de tiempo manda a visitantes reales a un
+  404 — pero fiarse del índice habría retenido el aviso sobre una página que ya
+  funcionaba.
 
 - **Eventos privados para una organización.** Al crear un evento con una única
   organización organizadora aparece el interruptor **«Solo para miembros»**: el
