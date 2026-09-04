@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v1.1.0 — 2026-09-04
+
 ### Added
 
 - **La release de iOS ya no depende de que alguien pulse un botón.**
