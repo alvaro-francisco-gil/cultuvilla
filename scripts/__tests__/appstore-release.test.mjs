@@ -9,6 +9,7 @@ import {
 } from '../lib/appstore.mjs';
 import {
   findOrCreateVersion,
+  getAvailability,
   releaseVersion,
   submitIosForReview,
   waitForBuild,
@@ -345,4 +346,31 @@ test('releaseVersion reports when nothing is pending', async () => {
   ]);
   const result = await releaseVersion(request, { ascAppId: 'app1', apply: true });
   assert.equal(result.status, 'not-found');
+});
+
+// ── availability ──────────────────────────────────────────────────────────
+
+test('getAvailability spots an app that is removed from sale', async () => {
+  // The failure that made 1.0.0 invisible: approved, released, for sale nowhere.
+  const { request } = fakeAsc([[/^GET \/apps\/app1\/availableTerritories/, { data: [] }]]);
+  const result = await getAvailability(request, { ascAppId: 'app1' });
+  assert.deepEqual(result, { known: true, territories: 0, forSale: false, atLeast: false });
+});
+
+test('getAvailability counts territories when the app is on sale', async () => {
+  const { request } = fakeAsc([
+    [/^GET \/apps\/app1\/availableTerritories/, { data: [{ id: 'ESP' }, { id: 'USA' }] }],
+  ]);
+  const result = await getAvailability(request, { ascAppId: 'app1' });
+  assert.equal(result.forSale, true);
+  assert.equal(result.territories, 2);
+});
+
+test('getAvailability degrades instead of killing the status command', async () => {
+  // Apple has moved this resource between API versions; a status command that
+  // dies on its last line is worse than one that says it could not tell.
+  const { request } = fakeAsc([]);
+  const result = await getAvailability(request, { ascAppId: 'app1' });
+  assert.equal(result.known, false);
+  assert.match(result.reason, /unhandled GET/);
 });

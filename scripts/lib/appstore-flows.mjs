@@ -319,3 +319,33 @@ export async function setReleaseType(request, { versionId, releaseType }) {
   });
   return releaseType;
 }
+
+/**
+ * In how many territories is this app actually for sale?
+ *
+ * Approval, release and *availability* are three separate things, and only the
+ * first two are visible on the version. An app removed from sale shows a fully
+ * approved "Ready for Distribution" version and still appears nowhere — which
+ * is exactly how 1.0.0 spent days looking published while `itunes/lookup`
+ * returned nothing (2026-09-04). Nothing in the pipeline could see it, so
+ * `status` reports it now.
+ *
+ * Degrades to `{ known: false }` rather than throwing: Apple has moved this
+ * resource between API versions, and a status command that dies on the last
+ * line is worse than one that admits it could not tell.
+ */
+export async function getAvailability(request, { ascAppId }) {
+  try {
+    const data = await request('GET', `/apps/${ascAppId}/availableTerritories?limit=200`);
+    const count = data?.data?.length ?? 0;
+    return {
+      known: true,
+      territories: count,
+      forSale: count > 0,
+      // The endpoint pages at 200; we only care whether it is zero or not.
+      atLeast: count === 200,
+    };
+  } catch (err) {
+    return { known: false, reason: err.message };
+  }
+}

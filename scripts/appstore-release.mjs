@@ -22,6 +22,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeAscRequest } from './lib/appstore.mjs';
 import {
+  getAvailability,
   listVersions,
   releaseVersion,
   setPhasedReleaseState,
@@ -106,6 +107,23 @@ switch (command) {
     if (manual.length) {
       console.log(
         `${manual.length} version(s) still on a manual releaseType — future approvals will stall the same way.`,
+      );
+    }
+
+    // An approved version in an app that is removed from sale is invisible in
+    // every storefront, and nothing on the version says so.
+    const availability = await getAvailability(request, { ascAppId });
+    if (!availability.known) {
+      console.log(`\nAvailability: could not read it — ${availability.reason}`);
+    } else if (availability.forSale) {
+      console.log(
+        `\nAvailability: for sale in ${availability.atLeast ? '200+' : availability.territories} territories.`,
+      );
+    } else {
+      console.log(
+        '\nAvailability: THE APP IS REMOVED FROM SALE — for sale in 0 territories.\n' +
+          'An approved version will still appear nowhere. Fix it in App Store Connect →\n' +
+          'Pricing and Availability → Availability, which is not exposed by this API key.',
       );
     }
     break;

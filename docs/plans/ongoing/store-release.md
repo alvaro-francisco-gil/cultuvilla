@@ -112,6 +112,24 @@ cubiertos en `scripts/__tests__/appstore-release.test.mjs` (20 casos, con un ASC
 falso), incluida la firma ES256 en formato JOSE — que es la diferencia entre un
 token válido y un 401 sin explicación.
 
+### Aprobado, publicado y *retirado de la venta* son tres cosas distintas
+
+1.0.0 llegó a **Ready for Distribution** —aprobado y publicado— y aun así no
+aparecía en ninguna tienda: la app estaba **removed from sale**, disponible en
+cero territorios. La versión no dice nada de eso; el aviso vive en *Pricing and
+Availability*, otra pantalla.
+
+Se arregla a mano (App Store Connect → **Monetization → Pricing and
+Availability** → comprobar que el precio es **Free** y editar **Availability**
+para añadir territorios → *Save*). La API key no expone ese ajuste, así que no
+se puede automatizar el arreglo — pero sí **detectarlo**: `appstore-release.mjs
+status` cuenta los territorios y grita si son cero.
+
+La lección se repite: lo que hunde una release iOS no es el código, es un ajuste
+de servidor que ningún test del repo puede ver. Primero fue `apple.com` sin
+habilitar en Firebase Auth, luego la disponibilidad. Cada uno costó días porque
+nada lo miraba. Por eso `status` y `check:store-claims` miran ahora.
+
 ## The one decision that sets the timeline
 
 Google requires **personal** developer accounts registered after 13 Nov 2023 to
