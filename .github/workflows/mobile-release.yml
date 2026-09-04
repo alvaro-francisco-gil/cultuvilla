@@ -33,6 +33,10 @@ on:
         description: 'iOS only: TestFlight internal testing group to add the build to (leave blank to skip — the build still lands in App Store Connect either way)'
         type: string
         default: ''
+      submitForReview:
+        description: 'iOS only: after uploading, attach the build to the App Store version and submit it for review (auto-releases on approval, phased over 7 days)'
+        type: boolean
+        default: false
 
 concurrency:
   group: mobile-release
@@ -206,6 +210,22 @@ jobs:
             --latest \
             --non-interactive \
             ${{ inputs.testflightGroup != '' && format('--groups "{0}"', inputs.testflightGroup) || '' }}
+
+      # eas submit stops at the upload: the binary lands in App Store Connect and
+      # sits there. Everything after — attaching it to an App Store version,
+      # writing the notes, submitting for review — is ASC API work, and doing it
+      # by hand is how 1.0.0 ended up approved-but-unreleased for two days.
+      - name: Submit for App Store review
+        if: ${{ inputs.submit && inputs.submitForReview }}
+        env:
+          ASC_APP_ID: ${{ vars.ASC_APP_ID }}
+          APPLE_ASC_KEY_ID: ${{ vars.APPLE_ASC_KEY_ID }}
+          APPLE_ASC_ISSUER_ID: ${{ vars.APPLE_ASC_ISSUER_ID }}
+          APPLE_ASC_API_KEY_P8: ${{ secrets.APPLE_ASC_API_KEY_P8 }}
+        run: |
+          BUILD_NUMBER=$(cd apps/mobile && eas build:list --platform ios --limit 1 --status finished --json --non-interactive | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s)[0].appBuildVersion))')
+          echo "Submitting iOS build ${BUILD_NUMBER} for review."
+          node scripts/appstore-release.mjs submit --build-number="${BUILD_NUMBER}" --apply
 
       - name: Remove App Store Connect API key
         if: ${{ always() }}
