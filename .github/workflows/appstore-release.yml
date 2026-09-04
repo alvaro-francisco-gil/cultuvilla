@@ -68,12 +68,20 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
+      # Nothing here runs pnpm, but setup-node reads `packageManager` from
+      # package.json and enables pnpm caching on its own — then fails to locate
+      # the binary. Installing pnpm is cheaper than fighting the auto-detection.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.24.0
+
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
           node-version: 22
 
-      # No pnpm install: the release scripts deliberately use only the Node
+      # No `pnpm install`: the release scripts deliberately use only the Node
       # standard library, so this workflow can run against a ref whose lockfile
       # does not resolve.
       - name: Assert App Store Connect credentials exist
