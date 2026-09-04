@@ -325,16 +325,47 @@ export async function setReleaseType(request, { versionId, releaseType }) {
  *
  * Approval, release and *availability* are three separate things, and only the
  * first two are visible on the version. An app removed from sale shows a fully
- * approved "Ready for Distribution" version and still appears nowhere — which
- * is exactly how 1.0.0 spent days looking published while `itunes/lookup`
- * returned nothing (2026-09-04). Nothing in the pipeline could see it, so
- * `status` reports it now.
+ * approved READY_FOR_SALE version and still appears nowhere — which is how
+ * 1.0.0 spent days looking published while `itunes/lookup` returned nothing
+ * (2026-09-04). Nothing in the pipeline could see it, so `status` reports it.
  *
- * Degrades to `{ known: false }` rather than throwing: Apple has moved this
- * resource between API versions, and a status command that dies on the last
- * line is worse than one that admits it could not tell.
+ * Apple keeps moving this resource: the v1 `availableTerritories` relationship
+ * now 404s with "The relationship 'availableTerritories' does not exist"
+ * (confirmed against the live API, 2026-09-04). So this walks a chain of known
+ * shapes newest-first and degrades to `{ known: false }` if none answer, rather
+ * than throwing — a status command that dies on its last line is worse than one
+ * that admits it could not tell.
  */
 export async function getAvailability(request, { ascAppId }) {
+  const attempts = [];
+
+  // Current shape: appAvailabilityV2 -> territoryAvailabilities.
+  try {
+    const av = await request('GET', `/apps/${ascAppId}/appAvailabilityV2`);
+    const availabilityId = av?.data?.id;
+    if (availabilityId) {
+      const terr = await request(
+        'GET',
+        `/appAvailabilities/${availabilityId}/territoryAvailabilities?limit=200`,
+      );
+      // Every territory is listed; `available` says which are actually on sale.
+      const rows = terr?.data ?? [];
+      const count = rows.filter((t) => t?.attributes?.available === true).length;
+      return {
+        known: true,
+        territories: count,
+        forSale: count > 0,
+        atLeast: rows.length === 200,
+        source: 'appAvailabilityV2',
+      };
+    }
+    attempts.push('appAvailabilityV2 returned no id');
+  } catch (err) {
+    attempts.push(err.message);
+  }
+
+  // Legacy shape, kept because it is the one every older recipe online uses and
+  // it costs one request to rule out.
   try {
     const data = await request('GET', `/apps/${ascAppId}/availableTerritories?limit=200`);
     const count = data?.data?.length ?? 0;
@@ -342,10 +373,12 @@ export async function getAvailability(request, { ascAppId }) {
       known: true,
       territories: count,
       forSale: count > 0,
-      // The endpoint pages at 200; we only care whether it is zero or not.
       atLeast: count === 200,
+      source: 'availableTerritories',
     };
   } catch (err) {
-    return { known: false, reason: err.message };
+    attempts.push(err.message);
   }
+
+  return { known: false, reason: attempts.join(' | ') };
 }
