@@ -44,6 +44,25 @@ describe('android-e2e workflow gating', () => {
     );
   });
 
+  // `udevadm trigger` queues the event and returns; the mode change lands
+  // asynchronously. Sampling `/dev/kvm` once therefore races it, and losing that
+  // race kills the job in seconds on a runner that would have been ready a
+  // moment later — a 25-minute release lane failing for nothing. The gate must
+  // POLL, so that a red here means "this runner truly cannot accelerate an AVD"
+  // rather than "we asked too early".
+  it('waits for /dev/kvm rather than sampling it once', () => {
+    const step = workflow.slice(
+      workflow.indexOf('- name: Enable KVM'),
+      workflow.indexOf('- name: Setup pnpm'),
+    );
+    // A retry loop around the writability check, not a bare `test -w`.
+    expect(step).toMatch(/for\s+attempt\s+in/);
+    expect(step).toMatch(/\[ -w \/dev\/kvm \]/);
+    expect(step).toMatch(/sleep 1/);
+    // Still a real gate: it must be able to fail.
+    expect(step).toMatch(/exit 1/);
+  });
+
   // One emulator boot for the whole suite: the AVD action's `script:` runs the
   // very command a developer runs locally, so a green CI run and a green local
   // run mean the same thing.
