@@ -22,7 +22,22 @@
  */
 import { createSign } from 'node:crypto';
 
-export const ASC_API_BASE = 'https://api.appstoreconnect.apple.com/v1';
+export const ASC_API_ROOT = 'https://api.appstoreconnect.apple.com';
+export const ASC_API_BASE = `${ASC_API_ROOT}/v1`;
+
+/**
+ * Resolve a path against the right API version.
+ *
+ * Most of ASC is v1, so a bare path gets the v1 prefix. But Apple versions
+ * individual resources, not the API as a whole — `appAvailabilities` and its
+ * `territoryAvailabilities` live under /v2 — and a v2 resource requested under
+ * /v1 fails as "the relationship does not exist", which reads exactly like the
+ * resource being gone rather than misaddressed. Cost an extra round trip to
+ * diagnose on 2026-09-04.
+ */
+export function ascUrl(path) {
+  return /^\/v\d+\//.test(path) ? `${ASC_API_ROOT}${path}` : `${ASC_API_BASE}${path}`;
+}
 
 /** App Store versions still editable — a build can be attached and submitted. */
 export const EDITABLE_STATES = new Set([
@@ -80,7 +95,7 @@ export function signAscJwt({ keyId, issuerId, privateKey }, now = Math.floor(Dat
 
 /** Raw request. Returns parsed JSON, or null for the 204 that relationship PATCHes give. */
 export async function ascRequest(method, path, token, body) {
-  const res = await fetch(`${ASC_API_BASE}${path}`, {
+  const res = await fetch(ascUrl(path), {
     method,
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),

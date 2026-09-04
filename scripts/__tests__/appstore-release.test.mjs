@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  ascUrl,
   classifyReleasability,
   classifyVersionState,
   isBuildReady,
@@ -357,7 +358,7 @@ test('getAvailability spots an app that is for sale nowhere', async () => {
   const { request } = fakeAsc([
     AVAILABILITY_ID,
     [
-      /^GET \/appAvailabilities\/av1\/territoryAvailabilities/,
+      /^GET \/v2\/appAvailabilities\/av1\/territoryAvailabilities/,
       { data: [{ attributes: { available: false } }, { attributes: { available: false } }] },
     ],
   ]);
@@ -372,7 +373,7 @@ test('getAvailability counts only the territories actually available', async () 
   const { request } = fakeAsc([
     AVAILABILITY_ID,
     [
-      /^GET \/appAvailabilities\/av1\/territoryAvailabilities/,
+      /^GET \/v2\/appAvailabilities\/av1\/territoryAvailabilities/,
       {
         data: [
           { attributes: { available: true } },
@@ -405,4 +406,14 @@ test('getAvailability degrades instead of killing the status command', async () 
   assert.equal(result.known, false);
   assert.match(result.reason, /appAvailabilityV2/);
   assert.match(result.reason, /availableTerritories/);
+});
+
+test('ascUrl sends versioned paths to their own API version', () => {
+  // A v2 resource requested under /v1 fails as "the relationship does not
+  // exist", which reads like the resource is gone rather than misaddressed.
+  assert.equal(ascUrl('/apps/1'), 'https://api.appstoreconnect.apple.com/v1/apps/1');
+  assert.equal(
+    ascUrl('/v2/appAvailabilities/1/territoryAvailabilities'),
+    'https://api.appstoreconnect.apple.com/v2/appAvailabilities/1/territoryAvailabilities',
+  );
 });

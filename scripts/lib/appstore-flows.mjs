@@ -344,9 +344,11 @@ export async function getAvailability(request, { ascAppId }) {
     const av = await request('GET', `/apps/${ascAppId}/appAvailabilityV2`);
     const availabilityId = av?.data?.id;
     if (availabilityId) {
+      // /v2 explicitly: this resource is not v1, and asking v1 for it fails as
+      // "the relationship does not exist", which looks like a missing resource.
       const terr = await request(
         'GET',
-        `/appAvailabilities/${availabilityId}/territoryAvailabilities?limit=200`,
+        `/v2/appAvailabilities/${availabilityId}/territoryAvailabilities?limit=200`,
       );
       // Every territory is listed; `available` says which are actually on sale.
       const rows = terr?.data ?? [];
