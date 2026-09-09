@@ -74,6 +74,31 @@ describe('anchor materialization', () => {
     expect(w.end.toISOString()).toBe('2027-08-28T21:59:59.999Z');
   });
 
+  // Date.UTC(2027, 1, 29) rolls to 1 March. A 29-February anchor must stay in
+  // February — a fiesta declared for the end of February is not a March fiesta.
+  it('clamps a 29 February anchor to 28 February in a non-leap year', () => {
+    const b = buildFiestaBlock({ id: 'f', name: 'F', anchor: { month: 2, day: 29, days: 1 } });
+    const w = must(resolveFiestaWindow(b, 2027));
+    expect(w.start.toISOString()).toBe('2027-02-27T23:00:00.000Z'); // 28 Feb, Madrid
+    expect(w.end.toISOString()).toBe('2027-02-28T22:59:59.999Z');
+  });
+
+  it('keeps 29 February in a leap year', () => {
+    const b = buildFiestaBlock({ id: 'f', name: 'F', anchor: { month: 2, day: 29, days: 1 } });
+    expect(must(resolveFiestaWindow(b, 2028)).start.toISOString()).toBe('2028-02-28T23:00:00.000Z');
+  });
+
+  it('never lets a block start in a later month than its anchor declares', () => {
+    for (let month = 1; month <= 12; month++) {
+      for (const day of [28, 29, 30, 31]) {
+        const b = buildFiestaBlock({ id: 'f', name: 'F', anchor: clampAnchor({ month, day, days: 1 }) });
+        const w = must(resolveFiestaWindow(b, 2027));
+        // +2h puts a Madrid midnight back into the correct local month.
+        expect(new Date(w.start.getTime() + 7_200_000).getUTCMonth() + 1).toBe(month);
+      }
+    }
+  });
+
   it('handles a winter block, where Madrid is UTC+1 not UTC+2', () => {
     const reyes = buildFiestaBlock({ id: 'reyes', name: 'Reyes', anchor: { month: 1, day: 5, days: 2 } });
     const w = must(resolveFiestaWindow(reyes, 2027));

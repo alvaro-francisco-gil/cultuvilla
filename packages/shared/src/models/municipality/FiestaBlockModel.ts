@@ -111,13 +111,20 @@ export function resolveFiestaWindow(
   if (options.exactOnly) return null;
 
   const { month, day, days } = block.anchor;
-  const start = madridMidnight(year, month, day);
+  // `Date.UTC` rolls 29 February in a non-leap year forward to 1 March, which
+  // would silently move the fiestas out of the month they were declared in. A
+  // block anchored to the end of February is a February block in every year, so
+  // the day is clamped to this year's month length BEFORE anything is derived
+  // from it — the end of the block is stepped from the clamped start, not the
+  // raw anchor, or it rolls over again.
+  const startDay = Math.min(day, new Date(Date.UTC(year, month, 0)).getUTCDate());
+  const start = madridMidnight(year, month, startDay);
   // The block ends at the last instant of its final day: Madrid midnight of the
   // day after, less a millisecond. The day-after is stepped in pure calendar
   // space rather than off `start` — a Madrid midnight lands on the PREVIOUS UTC
   // date, so reading UTC fields back off it is a silent day short. Recomputing
   // the Madrid midnight also keeps the block right across a DST change inside it.
-  const after = new Date(Date.UTC(year, month - 1, day + days));
+  const after = new Date(Date.UTC(year, month - 1, startDay + days));
   const end = new Date(
     madridMidnight(after.getUTCFullYear(), after.getUTCMonth() + 1, after.getUTCDate()).getTime() - 1,
   );

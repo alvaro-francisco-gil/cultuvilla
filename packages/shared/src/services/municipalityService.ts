@@ -16,8 +16,10 @@ import {
   type QueryConstraint,
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
+import { z } from 'zod';
 import { httpsCallable } from 'firebase/functions';
 import { getDb, getFirebaseFunctions } from '../firebase';
+import { FiestaBlockSchema, type FiestaBlock } from '../models/municipality/FiestaBlockModel';
 import {
   municipalitiesCollection,
   municipalityDoc,
@@ -218,6 +220,25 @@ export async function updateVillageInfo(payload: UpdateVillageInfoPayload): Prom
   await fn(payload);
 }
 
+/**
+ * Refuse malformed fiesta data at the write boundary.
+ *
+ * This write goes through a bare `doc()` ref — no converter — while every read
+ * of a municipality parses strictly. A single invalid block (an empty name from
+ * a cleared input, say) therefore makes the village document unreadable for
+ * EVERY user, not just its author. Validating here is what keeps a UI slip from
+ * bricking a village, and it covers callers the editor doesn't own.
+ *
+ * Block ids must also be unique: the id keys the per-block Wrapped document, so
+ * a duplicate would silently make two blocks share one summary.
+ */
+function assertValidFiestas(fiestas: FiestaBlock[]): FiestaBlock[] {
+  const parsed = z.array(FiestaBlockSchema).parse(fiestas);
+  const ids = new Set(parsed.map((b) => b.id));
+  if (ids.size !== parsed.length) throw new Error('fiesta blocks must have unique ids');
+  return parsed;
+}
+
 export async function updateCommunity(
   municipalityId: string,
   data: Partial<Pick<VillageCommunity, 'description' | 'organizerId' | 'fiestas'>>,
@@ -225,7 +246,7 @@ export async function updateCommunity(
   const updates: UpdateData<DocumentData> = {};
   if (data.description !== undefined) updates['community.description'] = data.description;
   if (data.organizerId !== undefined) updates['community.organizerId'] = data.organizerId;
-  if (data.fiestas !== undefined) updates['community.fiestas'] = data.fiestas;
+  if (data.fiestas !== undefined) updates['community.fiestas'] = assertValidFiestas(data.fiestas);
   await updateDoc(doc(getDb(), 'municipalities', municipalityId), updates);
 }
 

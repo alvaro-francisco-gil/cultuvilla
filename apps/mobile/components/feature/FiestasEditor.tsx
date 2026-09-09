@@ -33,6 +33,11 @@ interface Props {
 export function FiestasEditor({ blocks, year, onChange }: Props) {
   const { t } = useT();
   const [draftName, setDraftName] = useState('');
+  // Names are edited locally and committed on blur. Persisting every keystroke
+  // would write `name: ''` the moment the field is cleared, and a municipality
+  // is read through a strict converter — one empty name makes the village
+  // document unreadable for everyone. An empty name on blur reverts.
+  const [nameDrafts, setNameDrafts] = useState<Record<string, string>>({});
 
   const ids = useMemo(() => blocks.map((b) => b.id), [blocks]);
 
@@ -52,7 +57,20 @@ export function FiestasEditor({ blocks, year, onChange }: Props) {
   }
 
   function remove(id: string) {
+    setNameDrafts((d) => {
+      const { [id]: _dropped, ...rest } = d;
+      return rest;
+    });
     onChange(blocks.filter((b) => b.id !== id));
+  }
+
+  function commitName(block: FiestaBlock) {
+    const draft = (nameDrafts[block.id] ?? block.name).trim();
+    setNameDrafts((d) => {
+      const { [block.id]: _dropped, ...rest } = d;
+      return rest;
+    });
+    if (draft !== '' && draft !== block.name) replace(block.id, { ...block, name: draft });
   }
 
   function setAnchor(block: FiestaBlock, patch: Partial<FiestaBlock['anchor']>) {
@@ -94,10 +112,12 @@ export function FiestasEditor({ blocks, year, onChange }: Props) {
             <VStack gap={2}>
               <HStack className="items-center justify-between">
                 <Input
-                  value={block.name}
-                  onChangeText={(name) => replace(block.id, { ...block, name })}
+                  value={nameDrafts[block.id] ?? block.name}
+                  onChangeText={(name) => setNameDrafts((d) => ({ ...d, [block.id]: name }))}
+                  onBlur={() => commitName(block)}
                   placeholder={t('village.fiestas.namePlaceholder')}
                   className="flex-1"
+                  testID={`fiesta-${block.id}-name`}
                 />
                 <Pressable
                   onPress={() => remove(block.id)}
