@@ -37,7 +37,7 @@ async function seedMunicipality(communityActive: boolean): Promise<void> {
       escudoManualUrl: null,
       communityActive,
       community: communityActive
-        ? { description: 'ya', organizerId: 'someone', profileForm: null, activatedAt: now }
+        ? { description: 'ya', organizerId: 'someone', profileForm: null, fiestas: [], activatedAt: now }
         : null,
     });
 }

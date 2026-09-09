@@ -39,7 +39,7 @@ async function seedMunicipality(
       escudoManualUrl: null,
       communityActive,
       community: communityActive
-        ? { description: '', organizerId, profileForm: null, activatedAt: now }
+        ? { description: '', organizerId, profileForm: null, fiestas: [], activatedAt: now }
         : null,
     });
 }

@@ -173,6 +173,7 @@ describe('ogRenderer', () => {
         description: 'Comunidad pequeña pero apañada',
         organizerId: 'admin-1',
         createdAt: new Date(),
+        fiestas: [],
       },
       communityActive: true,
     });
@@ -205,6 +206,7 @@ describe('ogRenderer', () => {
         description: 'Comunidad con escudo genérico',
         organizerId: 'admin-1',
         createdAt: new Date(),
+        fiestas: [],
       },
       communityActive: true,
     });
@@ -235,6 +237,7 @@ describe('ogRenderer', () => {
         description: 'Comunidad con solo miniatura de escudo',
         organizerId: 'admin-1',
         createdAt: new Date(),
+        fiestas: [],
       },
       communityActive: true,
     });
@@ -265,6 +268,7 @@ describe('ogRenderer', () => {
         description: 'Pueblo bonito',
         organizerId: 'admin-2',
         createdAt: new Date(),
+        fiestas: [],
       },
       communityActive: true,
     });
