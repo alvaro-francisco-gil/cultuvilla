@@ -450,6 +450,34 @@ DATASET=real_villages_1 pnpm seed:villages:wipe
 
 It assumes `pnpm seed:dev` has been run (so the requester + approver users exist) and `pnpm seed:municipalities` has been run (so the target municipality with the matching `codigoINE` exists). Doc writes replay what the `requestOrganizeVillage` / `respondToOrganizerRequest` Cloud Functions do — `organizerRequests` records the audit trail.
 
+### Mirroring a real village into the emulator
+
+`pnpm mirror:village --municipality=<id|name>` copies one village's data from a
+real environment into the **local emulator**, so a feature can be developed
+against real shapes, counts and distributions instead of invented fixtures.
+Reads are read-only and default to prod; writes only ever reach an emulator.
+
+```bash
+export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
+pnpm mirror:village --municipality=Matabuena --dry-run   # counts, writes nothing
+pnpm mirror:village --municipality=Matabuena             # ~1.4k docs
+pnpm mirror:village --municipality=Matabuena --anonymize # scrub names/photos/emails
+```
+
+**Two guards make it safe to point at prod**, and both must hold: `FIRESTORE_EMULATOR_HOST`
+must be set, and the target project id must not be one of the three real ones. A
+mirror writes over a thousand documents, so a misconfigured target would not be a
+small mistake. They are unit-tested — don't weaken them.
+
+Not a registered backfill: it never mutates a real environment, so there is
+nothing for the deploy gate to verify.
+
+**`persons` is reached through the `municipalityPeople` projection**, not a
+`municipalityId` filter. A person is linked to a village by `municipalityLinks`,
+an array of `{municipalityId, barrioId}` **objects** — Firestore matches an array
+element whole, so a field filter returns zero rows silently rather than failing.
+Any future collection scoped that way needs the same treatment.
+
 ### Mobile app
 
 Mobile code lives in [`apps/mobile/`](apps/mobile/). It is an Expo SDK 56 / Expo Router 56 / NativeWind v4 React Native app that consumes `@cultuvilla/shared` and `@cultuvilla/i18n` from the monorepo.
