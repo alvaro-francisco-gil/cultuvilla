@@ -451,6 +451,16 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
           ))}
         </Section>
 
+        {/* ── Vocabulario: open to everyone, including non-members — a word from
+            a pueblo you don't live in is exactly the thing worth not losing ─── */}
+        <HStack gap={3} className="px-4 pt-8">
+          <ActionPill
+            label={t('village.vocabulary.title')}
+            onPress={() => router.push(`/village/${village.id}/vocabulary` as never)}
+            testID="village-vocabulary-action"
+          />
+        </HStack>
+
         {/* ── Censo: only villagers of a configured village fill; admins also configure ─── */}
         {(isMember && censoConfigured) || canManage ? (
           <HStack gap={3} className="px-4 pt-8">

@@ -49,6 +49,7 @@ export { setContentVisibility } from './moderation/setContentVisibility';
 
 // Interaction (entity comment count sync + view count callable, entityKind-routed)
 export { syncEntityCommentCount } from './interaction/syncEntityInteractionCounts';
+export { syncVocabularyDefinitionCount } from './vocabulary/syncVocabularyDefinitionCount';
 export { recordEntityView } from './interaction/recordEntityView';
 
 // Share-link Open Graph preview renderer (HTTPS function behind a Hosting rewrite).

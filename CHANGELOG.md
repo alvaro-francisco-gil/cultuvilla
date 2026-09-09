@@ -4,6 +4,32 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+
+- **El vocabulario del pueblo, escrito entre todos.** Cada pueblo tiene ahora un
+  **Vocabulario**: las palabras, dichos, motes y topónimos que sólo se dicen ahí
+  y que hoy no están escritos en ningún sitio. Cualquier vecino del pueblo añade
+  una palabra; cualquiera —también quien no vive allí— la lee, igual que el resto
+  del feed abierto.
+
+  Lo que lo hace realmente colaborativo no es que todos puedan publicar, sino que
+  **una palabra es un objeto compartido, no un post**. El id del término se
+  *deriva* de la propia palabra (`{municipalityId}__{slug}`, tildes y mayúsculas
+  plegadas), así que si Ana añade «esbardo» y Luis añade «Esbardo» un minuto
+  después, no salen dos entradas: sale una, con dos acepciones. Nadie
+  sobrescribe el significado de nadie —cada vecino añade el suyo al lado, con su
+  ejemplo de uso y, si la hay, la palabra equivalente en castellano— porque una
+  palabra puede querer decir dos cosas en dos barrios y las dos merecen quedarse.
+
+  Sin cola de aprobación, deliberadamente: una lista que hay que aprobar es una
+  lista que no se llena. Se publica al instante y los administradores del pueblo
+  ocultan o borran después, con la misma palanca (`setContentVisibility`) que el
+  resto del contenido. Las palabras admiten **comentarios** y se pueden reportar.
+
+  Un término sólo desaparece cuando se queda sin significados: `definitionCount`
+  lo lleva un trigger y las reglas lo leen para permitir —o no— que su autor lo
+  retire.
+
 ## v1.1.0 — 2026-09-04
 
 ### Added

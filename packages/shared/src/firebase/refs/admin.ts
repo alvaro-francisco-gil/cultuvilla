@@ -25,6 +25,8 @@ import { festivalPosterConverterAdmin } from '../converters/festivalPosterConver
 import { municipalityPersonConverterAdmin } from '../converters/municipalityPersonConverter.admin';
 import { contentReportConverterAdmin } from '../converters/contentReportConverter.admin';
 import { blockedUserConverterAdmin } from '../converters/blockedUserConverter.admin';
+import { vocabularyTermConverterAdmin } from '../converters/vocabularyTermConverter.admin';
+import { vocabularyDefinitionConverterAdmin } from '../converters/vocabularyDefinitionConverter.admin';
 
 export const eventsCollection = (db: Firestore) =>
   db.collection('events').withConverter(eventConverterAdmin);
@@ -227,3 +229,17 @@ export const userBlockedUserDoc = (db: Firestore, userId: string, blockedUserId:
  */
 export const settlementSeedDoc = (db: Firestore, codigoINE: string) =>
   db.collection('_admin').doc('settlements').collection('seeds').doc(codigoINE);
+
+// ── Vocabulary domain (top-level collections) ────────────────────────────
+
+export const vocabularyTermsCollection = (db: Firestore) =>
+  db.collection('vocabularyTerms').withConverter(vocabularyTermConverterAdmin);
+
+export const vocabularyTermDoc = (db: Firestore, termId: string) =>
+  db.collection('vocabularyTerms').doc(termId).withConverter(vocabularyTermConverterAdmin);
+
+export const vocabularyDefinitionsCollection = (db: Firestore) =>
+  db.collection('vocabularyDefinitions').withConverter(vocabularyDefinitionConverterAdmin);
+
+export const vocabularyDefinitionDoc = (db: Firestore, definitionId: string) =>
+  db.collection('vocabularyDefinitions').doc(definitionId).withConverter(vocabularyDefinitionConverterAdmin);
