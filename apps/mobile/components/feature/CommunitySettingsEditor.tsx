@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ScrollView } from 'react-native';
 import { VStack, Text, Input, ImagePickerField } from '../primitives';
 import { LocationPicker } from './LocationPicker';
+import { FiestasEditor } from './FiestasEditor';
 import { useT } from '../../lib/i18n';
 import { showAlert } from '../../lib/dialogs';
 import { pickImageAsBlob } from '../../lib/images';
@@ -18,6 +19,7 @@ import {
 } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { MunicipalityData } from '@cultuvilla/shared/models/municipality/MunicipalityDataModel';
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
+import type { FiestaBlock } from '@cultuvilla/shared/models/municipality/FiestaBlockModel';
 
 /**
  * Organizer-only community editor (escudo, location, description). Content-only
@@ -34,12 +36,14 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
   const [locationLabel, setLocationLabel] = useState('');
   const [zoom, setZoom] = useState<number>(MAP_ZOOM_DEFAULT);
   const [uploadingEscudo, setUploadingEscudo] = useState(false);
+  const [fiestas, setFiestas] = useState<FiestaBlock[]>([]);
 
   const load = useCallback(async () => {
     if (!villageId) return;
     const m = await getMunicipality(villageId);
     setVillage(m);
     setDescription(m?.community?.description ?? '');
+    setFiestas(m?.community?.fiestas ?? []);
     setCoords(m?.coordinates ?? null);
     setLocationLabel(m?.locationLabel ?? '');
     setZoom(clampMapZoom(m?.mapZoom ?? MAP_ZOOM_DEFAULT));
@@ -74,6 +78,19 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
           locationLabel: nextCoords && nextLabel !== '' ? nextLabel : null,
           mapZoom: nextCoords ? nextZoom : null,
         });
+      } catch (e) {
+        showAlert(e instanceof Error ? e.message : String(e));
+      }
+    },
+    [villageId],
+  );
+
+  const saveFiestas = useCallback(
+    async (next: FiestaBlock[]) => {
+      if (!villageId) return;
+      setFiestas(next);
+      try {
+        await updateCommunity(villageId, { fiestas: next });
       } catch (e) {
         showAlert(e instanceof Error ? e.message : String(e));
       }
@@ -131,6 +148,12 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
           onBlur={() => void saveDescription()}
           multiline
           placeholder={t('village.admin.community.description')}
+        />
+
+        <FiestasEditor
+          blocks={fiestas}
+          year={new Date().getFullYear()}
+          onChange={(next) => void saveFiestas(next)}
         />
       </VStack>
     </ScrollView>

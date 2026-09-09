@@ -33,7 +33,10 @@
       "hint": "Pellizca para acercar, desliza hacia abajo para cerrar",
       "close": "Cerrar la imagen"
     },
-    "stepper": { "back": "Anterior", "next": "Siguiente" },
+    "stepper": {
+      "back": "Anterior",
+      "next": "Siguiente"
+    },
     "close": "Cerrar",
     "moreInfo": "Más información",
     "photo": "Foto",
@@ -306,7 +309,9 @@
       "confirm": "Unirme",
       "cancel": "Cancelar"
     },
-    "share": { "title": "Compartir pueblo" },
+    "share": {
+      "title": "Compartir pueblo"
+    },
     "addContent": {
       "button": "Añadir contenido",
       "title": "¿Qué quieres añadir?",
@@ -321,8 +326,12 @@
         "cartel": "Cartel de fiestas"
       }
     },
-    "edit": { "title": "Editar pueblo" },
-    "villagers": { "title": "Personas" },
+    "edit": {
+      "title": "Editar pueblo"
+    },
+    "villagers": {
+      "title": "Personas"
+    },
     "membersList": {
       "colName": "Nombre",
       "colCenso": "Censo",
@@ -362,9 +371,9 @@
       "title": "Administración del pueblo",
       "hub": {
         "barrios": "Barrios",
-    "localidades": "Localidades",
-    "aldeas": "Aldeas",
-    "parroquias": "Parroquias",
+        "localidades": "Localidades",
+        "aldeas": "Aldeas",
+        "parroquias": "Parroquias",
         "places": "Lugares",
         "organizations": "Grupos",
         "invites": "Invitaciones",
@@ -391,7 +400,7 @@
         "addImage": "Añadir imagen",
         "removeImage": "Quitar imagen",
         "location": "Ubicación",
-      "kindLabel": "Tipo",
+        "kindLabel": "Tipo",
         "kind": {
           "cemetery": "Cementerio",
           "church": "Iglesia",
@@ -507,7 +516,23 @@
         "addImage": "Añadir imagen",
         "removeImage": "Quitar imagen"
       },
-      "viewer": { "close": "Cerrar" }
+      "viewer": {
+        "close": "Cerrar"
+      }
+    },
+    "fiestas": {
+      "title": "Fiestas del pueblo",
+      "help": "Declara cuándo son las fiestas. Puedes añadir varias: unas de julio y otras de agosto, por ejemplo. Sin fechas declaradas no se genera el resumen de fiestas.",
+      "namePlaceholder": "Nombre (p. ej. Fiestas de agosto)",
+      "add": "Añadir",
+      "remove": "Quitar estas fiestas",
+      "anchorLabel": "Mes y día en que suelen empezar",
+      "day": "Día",
+      "days": "Duración (días)",
+      "confirmYear": "Fechas confirmadas de {year}",
+      "startsAt": "Empiezan",
+      "endsAt": "Terminan",
+      "approximate": "Aproximadamente {dates}. Confirma las fechas para generar el resumen."
     }
   },
   "villages": {
@@ -1158,15 +1183,25 @@
         "view": "Mira «{name}» en Cultuvilla: {url}",
         "invite": "Te he guardado una plaza en «{name}» en Cultuvilla: {url}"
       },
-      "news": { "view": "Mira «{name}» en Cultuvilla: {url}" },
-      "village": { "view": "Mira {name} en Cultuvilla: {url}" },
+      "news": {
+        "view": "Mira «{name}» en Cultuvilla: {url}"
+      },
+      "village": {
+        "view": "Mira {name} en Cultuvilla: {url}"
+      },
       "organization": {
         "view": "Mira {name} en Cultuvilla: {url}",
         "invite": "Te invito a unirte a {name} en Cultuvilla: {url}"
       },
-      "place": { "view": "Mira «{name}» en Cultuvilla: {url}" },
-      "barrio": { "view": "Mira {name} en Cultuvilla: {url}" },
-      "user": { "view": "Mira el perfil de {name} en Cultuvilla: {url}" }
+      "place": {
+        "view": "Mira «{name}» en Cultuvilla: {url}"
+      },
+      "barrio": {
+        "view": "Mira {name} en Cultuvilla: {url}"
+      },
+      "user": {
+        "view": "Mira el perfil de {name} en Cultuvilla: {url}"
+      }
     },
     "shareViewLabel": "Compartir"
   },

@@ -80,6 +80,7 @@ export const startVillage = onCall<StartVillageData, Promise<StartVillageResult>
           description: (description ?? '').trim(),
           organizerId: null,
           profileForm: null,
+          fiestas: [],
           activatedAt: FieldValue.serverTimestamp(),
         },
       };

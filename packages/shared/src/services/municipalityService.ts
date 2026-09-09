@@ -220,11 +220,12 @@ export async function updateVillageInfo(payload: UpdateVillageInfoPayload): Prom
 
 export async function updateCommunity(
   municipalityId: string,
-  data: Partial<Pick<VillageCommunity, 'description' | 'organizerId'>>,
+  data: Partial<Pick<VillageCommunity, 'description' | 'organizerId' | 'fiestas'>>,
 ): Promise<void> {
   const updates: UpdateData<DocumentData> = {};
   if (data.description !== undefined) updates['community.description'] = data.description;
   if (data.organizerId !== undefined) updates['community.organizerId'] = data.organizerId;
+  if (data.fiestas !== undefined) updates['community.fiestas'] = data.fiestas;
   await updateDoc(doc(getDb(), 'municipalities', municipalityId), updates);
 }
 
