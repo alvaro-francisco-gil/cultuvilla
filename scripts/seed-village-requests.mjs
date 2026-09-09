@@ -255,6 +255,7 @@ async function seedOne(v) {
         description: fresh.get('description') ?? '',
         organizerId: requesterUid,
         profileForm: null,
+        fiestas: [],
         activatedAt: FieldValue.serverTimestamp(),
       },
     });

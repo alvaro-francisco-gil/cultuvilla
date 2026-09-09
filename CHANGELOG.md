@@ -29,6 +29,28 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   Un término sólo desaparece cuando se queda sin significados: `definitionCount`
   lo lleva un trigger y las reglas lo leen para permitir —o no— que su autor lo
   retire.
+- **Un pueblo ya puede declarar cuándo son sus fiestas — y pueden ser varias.**
+  Matabuena tiene dos: las de Santiago en julio y las de agosto, con semanas
+  normales por medio. Un único rango de fechas no describe el año, así que las
+  fiestas se declaran como una lista de bloques en la ficha del pueblo
+  (`community.fiestas`), editable por los administradores desde *Editar pueblo*.
+
+  Cada bloque lleva **dos cosas que responden a preguntas distintas**: un patrón
+  que se repite cada año (mes, día y duración), que contesta «¿cuándo son las
+  fiestas?» para cualquier año sin que nadie toque nada; y, opcionalmente, las
+  **fechas exactas confirmadas** de un año concreto. El patrón es exacto para una
+  festividad fija como Santiago y aproximado para unas fiestas que se mueven con
+  el fin de semana — por eso lo que se publique (el futuro resumen de fiestas)
+  exigirá siempre las fechas confirmadas, y nunca trabajará sobre una
+  aproximación que podría dejar fuera o meter de más los eventos de esos días.
+
+  Las fechas se calculan en la zona horaria de España, no en UTC: un bloque que
+  termina el 28 de agosto termina a las 23:59 de esa noche, y no a las 02:00 de
+  la madrugada del propio día, que es lo que pasaría con un límite en UTC.
+
+  **Migration:** `scripts/backfill-village-fiestas.mjs` (registrado, `pre-deploy`,
+  auto-aplicado por el deploy) siembra `community.fiestas: []` en los pueblos con
+  comunidad activa. Sin él el converter estricto no puede leer la ficha del pueblo.
 
 ## v1.1.0 — 2026-09-04
 

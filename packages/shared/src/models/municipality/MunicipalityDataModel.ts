@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { LatLngSchema, type LatLng } from '../core/LocationDataModel';
 import { visibilityFields, defaultVisibility } from '../core/VisibilityModel';
 import { VillageProfileFormSchema } from './CensoTypes';
+import { FiestaBlockSchema } from './FiestaBlockModel';
 
 /**
  * A municipality is the canonical Spanish administrative unit (INE-coded).
@@ -20,6 +21,10 @@ export const VillageCommunitySchema = z.object({
    * during that window any member can edit the basic info (wiki phase). */
   organizerId: z.string().nullable(),
   profileForm: VillageProfileFormSchema.nullable(),
+  /** When this village's fiestas are — one block per distinct celebration.
+   *  Empty until an admin declares them; a village with none never gets a
+   *  Wrapped, which is the intended gate. See FiestaBlockModel. */
+  fiestas: z.array(FiestaBlockSchema),
   activatedAt: z.date(),
 });
 export type VillageCommunity = z.infer<typeof VillageCommunitySchema>;
@@ -270,6 +275,7 @@ export function buildVillageCommunity(input: ActivateCommunityInput): VillageCom
     description: input.description,
     organizerId: input.organizerId ?? null,
     profileForm: null,
+    fiestas: [],
     activatedAt: new Date(),
   };
 }

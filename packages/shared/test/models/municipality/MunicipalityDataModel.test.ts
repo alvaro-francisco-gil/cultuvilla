@@ -55,6 +55,7 @@ describe('MunicipalityDataSchema', () => {
           description: 'Hola',
           organizerId: 'u1',
           profileForm: null,
+          fiestas: [],
           activatedAt: new Date('2026-01-02T00:00:00Z'),
         },
         communityActive: true,
@@ -87,6 +88,7 @@ describe('VillageCommunitySchema', () => {
           fields: [{ source: 'predefined', key: 'barrio', required: true }],
           updatedAt: new Date(),
         },
+        fiestas: [],
         activatedAt: new Date(),
       }),
     ).not.toThrow();
@@ -168,6 +170,7 @@ describe('buildVillageCommunity', () => {
         description: '',
         organizerId: null,
         profileForm: null,
+        fiestas: [],
         activatedAt: new Date(),
       }),
     ).not.toThrow();

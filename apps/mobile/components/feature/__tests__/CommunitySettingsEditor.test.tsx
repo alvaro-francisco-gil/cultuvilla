@@ -26,7 +26,7 @@ const mockVillage = {
   locationLabel: null,
   mapZoom: null,
   communityActive: true,
-  community: { description: 'hola', organizerId: 'u1', profileForm: null, activatedAt: new Date() },
+  community: { description: 'hola', organizerId: 'u1', profileForm: null, fiestas: [], activatedAt: new Date() },
 };
 
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
@@ -106,5 +106,47 @@ describe('CommunitySettingsEditor location persistence', () => {
         expect.objectContaining({ locationLabel: null }),
       );
     });
+  });
+});
+
+describe('fiestas persistence', () => {
+  it('saves a new fiesta block immediately, while the editor is mounted', async () => {
+    const { getByTestId } = render(<CommunitySettingsEditor villageId="m1" />);
+    await waitFor(() => expect(getMunicipality).toHaveBeenCalled());
+
+    fireEvent.changeText(getByTestId('fiesta-new-name'), 'Fiestas de agosto');
+    fireEvent.press(getByTestId('fiesta-add'));
+
+    await waitFor(() =>
+      expect(updateCommunity).toHaveBeenCalledWith('m1', {
+        fiestas: [expect.objectContaining({ id: 'fiestas-de-agosto', name: 'Fiestas de agosto' })],
+      }),
+    );
+  });
+
+  it('seeds the editor from the village\'s saved blocks', async () => {
+    (getMunicipality as jest.Mock).mockResolvedValue({
+      ...mockVillage,
+      community: {
+        ...mockVillage.community,
+        fiestas: [{ id: 'santiago', name: 'Santiago', anchor: { month: 7, day: 24, days: 3 }, years: {} }],
+      },
+    });
+    const { getByTestId } = render(<CommunitySettingsEditor villageId="m1" />);
+    await waitFor(() => expect(getByTestId('fiesta-santiago-name').props.value).toBe('Santiago'));
+  });
+
+  // The service rejects malformed blocks at the write boundary; the screen must
+  // surface that rather than swallowing it and looking like it saved.
+  it('surfaces a rejected write instead of failing silently', async () => {
+    const { showAlert } = require('../../../lib/dialogs');
+    (updateCommunity as jest.Mock).mockRejectedValue(new Error('fiesta blocks must have unique ids'));
+
+    const { getByTestId } = render(<CommunitySettingsEditor villageId="m1" />);
+    await waitFor(() => expect(getMunicipality).toHaveBeenCalled());
+    fireEvent.changeText(getByTestId('fiesta-new-name'), 'Otra');
+    fireEvent.press(getByTestId('fiesta-add'));
+
+    await waitFor(() => expect(showAlert).toHaveBeenCalledWith('fiesta blocks must have unique ids'));
   });
 });

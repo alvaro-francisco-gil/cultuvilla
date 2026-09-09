@@ -23,7 +23,7 @@ async function seedCensoMunicipality(fields: unknown[]): Promise<void> {
     mapZoom: null,
     createdAt: now, escudoUrl: null, escudoThumbUrl: null, escudoManualUrl: null,
     communityActive: true,
-    community: { organizerId: ADMIN_ID, description: 'x', activatedAt: now,
+    community: { organizerId: ADMIN_ID, description: 'x', activatedAt: now, fiestas: [],
       profileForm: { fields, updatedAt: now } },
   });
 }

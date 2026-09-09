@@ -275,7 +275,8 @@ export function isEventSignupOpen(
 
 /** The wall clock every event date is authored and displayed in. */
 export const EVENT_TZ = 'Europe/Madrid';
-function madridDayKey(d: Date): string {
+/** `YYYY-MM-DD` for the Europe/Madrid calendar day containing `d`. */
+export function madridDayKey(d: Date): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: EVENT_TZ, year: 'numeric', month: '2-digit', day: '2-digit',
   }).format(d);

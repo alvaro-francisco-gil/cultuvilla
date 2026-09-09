@@ -45,6 +45,7 @@ async function seedMunicipality(opts: {
             organizerId: opts.organizerId ?? null,
             description: 'Mi pueblo',
             profileForm: null,
+            fiestas: [],
             activatedAt: now,
           }
         : null,
