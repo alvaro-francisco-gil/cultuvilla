@@ -2,7 +2,7 @@
 
 ## Goal
 
-Let a village declare **when its fiestas are** (more than one block per year), and use those windows to generate a shareable post-fiestas **Wrapped** — a village-level summary of what happened, with a personal cut layered on top.
+Let a village declare **when its fiestas are** (more than one block per year), and use those windows to generate a shareable post-fiestas **Wrapped** — a village-level summary of what happened, with a personal cut layered on top. Once a block ends, its Wrapped is computed and offered to the village admins, and publishes itself after a grace period if they don't act.
 
 ## Context
 
@@ -74,7 +74,33 @@ Written by village admins from the existing village-edit surface; `firestore.rul
 
 ### Phase 3 — the Wrapped
 
-**Compute.** A `buildVillageWrapped({ municipalityId, year, blockId })` callable does the per-event subcollection reads and persona dedup, then writes one cached doc per village + year + block. Clients read a single document. Admin-triggered while the metrics are being iterated on; an `onSchedule` job that fires after a block ends is a later and near-trivial addition — deliberately not in v1, because the metrics need to settle before they start publishing themselves. Past years replay for free.
+**Compute.** A `buildVillageWrapped({ municipalityId, year, blockId })` callable does the per-event subcollection reads and persona dedup, then writes one cached doc per village + year + block, id `{municipalityId}_{year}_{blockId}`. That deterministic id is what makes the whole lifecycle below idempotent — a rerun overwrites rather than duplicating. Clients read a single document. Past years replay for free.
+
+**Publication lifecycle — notify first, publish anyway.** The Wrapped is not admin-triggered and not silently automatic; it is *offered* to the village admins and then publishes itself if nobody acts. Decided 2026-09-09.
+
+```
+block window ends (exact per-year end, Europe/Madrid)
+        v
+  compute -> status: 'draft', autoPublishAt = now + GRACE
+        v
+  notify village admins ("tu pueblo tiene un Wrapped listo")
+        v
+  admin publishes ---> 'published'
+  admin discards  ---> 'discarded'  (terminal; scheduler skips it forever)
+  admin does nothing for GRACE days ---> 'published' automatically
+```
+
+Three things make this work as specified:
+
+- **Only villages with declared fiestas windows participate.** The scheduler's candidate query is villages whose `community.fiestas` block has an exact `years[year]` window that has just ended. A village that never declared its dates is never computed, never notified, and never auto-publishes — which is precisely the intended gate, and it also gives Phase 2 a reason to exist beyond the Wrapped.
+- **`autoPublishAt` is a stored timestamp, not elapsed-time arithmetic.** The scheduler's second query is `status == 'draft' AND autoPublishAt <= now`, which is indexable, testable by writing a past timestamp, and immune to a missed run — a scheduler outage delays publication rather than skipping it. `GRACE` is a named constant, proposed at **3 days**.
+- **The block boundary is Europe/Madrid, not UTC.** A block ending Aug 28 ends at 23:59:59 local; a naive UTC boundary fires the job while the last night of the fiestas is still going on.
+
+**Why auto-publish is safe here, and where it isn't.** Every figure is derived from data members can already see, so publishing without review leaks nothing. The real risk is not privacy but *tone* — auto-publishing a thin Wrapped (one event, two sign-ups) makes the village look dead on its own noticeboard. So auto-publish carries a **quality floor**: below a threshold (proposed: fewer than 3 live events, or zero sign-ups) the doc is computed and the admin is still notified, but it will **never publish on the timer** — only an explicit admin publish releases it. This is also the answer to "should a zero-event block produce a Wrapped at all": it produces a draft nobody sees unless an admin decides it is worth showing.
+
+An admin's review screen offers exactly two actions, publish and discard. It is not an editor — the numbers are the numbers, and a Wrapped an admin could rewrite would not be worth reading.
+
+**Notifications.** A new `NotificationType` enum member, delivered to every `role: 'admin'` member of the village via `users/{uid}/notifications/`. It carries `municipalityId` and leaves `entityKind`/`entityId` null, consistent with a Wrapped not being an `EntityKind`. Widening the enum is additive — existing notification docs keep parsing.
 
 **Village cards** (all figures below are the real Matabuena 2026 August block):
 
@@ -96,28 +122,28 @@ Written by village admins from the existing village-edit surface; `firestore.rul
 - **No RN `Modal`** — an absolute-positioned overlay, following the carteles full-screen viewer.
 - Card transitions put styles on `style`, not `className`; NativeWind drops `className` on `Animated.View`.
 
-Entry point is a `Section` or banner on the village home, appearing once a block has ended and its doc exists. Sharing reuses the existing `functions/src/og/` renderer for a share card.
+Entry point is a `Section` or banner on the village home, appearing once the doc reaches `published`. A `draft` is visible only to village admins, via the notification and their review screen. Sharing reuses the existing `functions/src/og/` renderer for a share card.
 
 ## Migration & testing
 
-`community.fiestas` is a new field behind a strict Zod converter, so it needs a **registered `pre-deploy` backfill** with `autoApply: ['dev','beta','prod']` (additive, idempotent — defaults to `[]` on every existing municipality). Without it the conformance gate blocks the promotion. `community` is nullable, so only municipalities with an active community are touched.
+The Wrapped doc is a **new collection** — follow the `add-firestore-collection` checklist (model, service, index re-export, services map, rules, composite index, tests). It needs one composite index for the scheduler's `status` + `autoPublishAt` query, declared in the same change. `community.fiestas` is a new field behind a strict Zod converter, so it needs a **registered `pre-deploy` backfill** with `autoApply: ['dev','beta','prod']` (additive, idempotent — defaults to `[]` on every existing municipality). Without it the conformance gate blocks the promotion. `community` is nullable, so only municipalities with an active community are touched.
 
 Tests:
 
 - `resolveFiestaWindow` — anchor materialization, override precedence, and that `exactOnly` refuses an anchor-only block (vitest, `packages/shared/test/`).
 - The whole aggregation as a **pure function over a committed Matabuena-derived fixture** — so the metrics are testable without an emulator, and the cancelled-event filter, persona dedup, and confirmed/waitlisted split each get a regression test with real numbers.
-- Rules test: a non-admin member cannot write `community.fiestas`.
+- Rules test: a non-admin member cannot write `community.fiestas`, and a non-admin cannot read a `draft` Wrapped or write `status`.
 - Callable handler test under the emulator harness.
+- **The publication lifecycle, which is where the bugs will be.** Each transition gets a test: a block with no exact `years[year]` window is never picked up; a `draft` past `autoPublishAt` publishes; one below the quality floor does *not* publish on the timer, however long it waits; a `discarded` doc is never resurrected by a later run; and a rerun over an existing doc overwrites in place rather than duplicating. All drivable by writing `autoPublishAt` in the past — no clock manipulation and no waiting.
 
 ## Out of scope
 
 - **Event data cleaning.** Investigated and dismissed — the apparent duplicates are cancelled-then-recreated events, correctly modelled. No cleanup needed; the Wrapped filters `cancelled`.
+- **A Wrapped editor.** Admins publish or discard; they never edit the figures.
 - **Weekday-based recurrence** (*"last weekend of August"*) — per-year overrides make it unnecessary. Revisit only if a village asks for accurate far-future dates.
-- **Scheduled auto-publish** — added once the metrics stop changing.
 - **Attendance metrics** — impossible until check-in is actually used.
 - **Cross-village or all-time Wrapped** — one village, one year, one block.
 
 ## Open questions
 
-- Does a Wrapped need village-admin **approval before members can see it**, or does it publish as soon as it is computed? Leaning publish-on-compute, since every figure is derived from data members can already see.
-- Should a block with **zero events** produce a Wrapped at all, or stay silent? Leaning silent.
+None blocking. Two values want a look during implementation rather than now: the `GRACE` period (proposed 3 days) and the quality floor (proposed: 3 live events and at least one sign-up).
