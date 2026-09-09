@@ -264,6 +264,33 @@
     "profile": "Perfil"
   },
   "village": {
+    "vocabulary": {
+      "title": "Vocabulario",
+      "search": "Buscar una palabra",
+      "empty": "Todavía no hay ninguna palabra recogida. Añade la primera.",
+      "noMatches": "Ninguna palabra coincide con esa búsqueda.",
+      "notFound": "Esta palabra ya no existe.",
+      "add": "Añadir palabra",
+      "addDefinition": "Añadir otro significado",
+      "term": "Palabra o expresión",
+      "termPlaceholder": "p. ej. esbardo",
+      "kindLabel": "Tipo",
+      "kind": {
+        "palabra": "Palabra",
+        "dicho": "Dicho",
+        "mote": "Mote",
+        "toponimo": "Topónimo"
+      },
+      "definition": "Qué significa",
+      "definitionPlaceholder": "Explícalo con tus palabras",
+      "definitions": "{count} significados",
+      "definitionCount": "{count} significados",
+      "example": "Ejemplo de uso",
+      "examplePlaceholder": "Úsala en una frase, como se dice aquí",
+      "castellano": "En castellano",
+      "castellanoPlaceholder": "La palabra equivalente, si la hay",
+      "save": "Guardar"
+    },
     "title": "Pueblos",
     "proposals": {
       "pending": "Pendiente",

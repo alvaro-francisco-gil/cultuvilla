@@ -148,8 +148,8 @@ without joining the persons collection.
 
 ### `commentCount` ← `comments/`
 
-Every entity kind (event, organization, festivalPoster, place, barrio, news)
-carries a running comment count on its own doc, so cards and detail screens
+Every comment-capable kind (event, organization, festivalPoster, place, barrio,
+news, vocabularyTerm) carries a running comment count on its own doc, so cards and detail screens
 can show it without a `getCountFromServer` per entity per render.
 
 - **Source of truth:** the generic top-level `comments/` collection, each doc
@@ -158,7 +158,7 @@ can show it without a `getCountFromServer` per entity per render.
 - **Trigger:** [functions/src/interaction/syncEntityInteractionCounts.ts](../../functions/src/interaction/syncEntityInteractionCounts.ts)
   — `syncEntityCommentCount`, an `onDocumentWritten` on `comments/`. Routes by
   `entityKind` to the right parent doc: top-level for `event` /
-  `organization` / `festivalPoster` / `news`, nested
+  `organization` / `festivalPoster` / `news` / `vocabularyTerm`, nested
   (`municipalities/{municipalityId}/places/{id}` or `.../barrios/{id}`) for
   `place` / `barrio`. The count is incremented/decremented with
   `FieldValue.increment`, not recomputed from a full scan — this is a
@@ -173,6 +173,28 @@ can show it without a `getCountFromServer` per entity per render.
   `deleteNewsPost`) still fires the trigger per deleted doc, so counts on a
   *surviving* parent stay correct. A parent deleted out from under a
   still-in-flight trigger is a no-op (`isNotFound` guard), not a retry loop.
+
+### `definitionCount` ← `vocabularyDefinitions/`
+
+Every vocabulary term carries a running count of the active definitions
+pointing at it. Unlike the other counters here it is **not** cosmetic:
+`firestore.rules` reads it to decide whether the author of a headword may still
+withdraw it, so an incorrect value is a security fact, not a display glitch.
+
+- **Source of truth:** the top-level `vocabularyDefinitions/` collection,
+  filtered to `termId == {termId}` and `status == 'active'`.
+- **Trigger:** [functions/src/vocabulary/syncVocabularyDefinitionCount.ts](../../functions/src/vocabulary/syncVocabularyDefinitionCount.ts)
+  — `syncVocabularyDefinitionCount`, an `onDocumentWritten` on
+  `vocabularyDefinitions/`. Hiding and unhiding count as leaving and rejoining:
+  a hidden meaning is not visible to the pueblo, so it must not hold an
+  otherwise-empty headword hostage.
+- **Rules:** `vocabularyTerms` is `allow update: if false` for clients
+  outright, so the trigger (admin SDK) is the only writer. The create rule
+  requires the field present and zeroed.
+- **Backfill:** none — the collection is new, so there is no pre-existing data
+  to reconcile.
+- **Delete behavior:** a term deleted out from under an in-flight trigger is a
+  no-op (`isNotFound` guard), not a retry loop.
 
 ### `replyCount` ← `comments/`
 

@@ -24,6 +24,8 @@ import { festivalPosterConverterClient } from '../converters/festivalPosterConve
 import { municipalityPersonConverterClient } from '../converters/municipalityPersonConverter.client';
 import { contentReportConverterClient } from '../converters/contentReportConverter.client';
 import { blockedUserConverterClient } from '../converters/blockedUserConverter.client';
+import { vocabularyTermConverterClient } from '../converters/vocabularyTermConverter.client';
+import { vocabularyDefinitionConverterClient } from '../converters/vocabularyDefinitionConverter.client';
 
 export const eventsCollection = (db: Firestore) =>
   collection(db, 'events').withConverter(eventConverterClient);
@@ -204,3 +206,20 @@ export const userBlockedUsersCollection = (db: Firestore, userId: string) =>
 
 export const userBlockedUserDoc = (db: Firestore, userId: string, blockedUserId: string) =>
   doc(db, 'users', userId, 'blockedUsers', blockedUserId).withConverter(blockedUserConverterClient);
+
+// ── Vocabulary domain (top-level collections) ────────────────────────────
+// The term id is derived from `municipalityId` + slug (see `vocabularyTermId`),
+// never minted — that is what makes two villagers adding the same word land on
+// one shared doc instead of two.
+
+export const vocabularyTermsCollection = (db: Firestore) =>
+  collection(db, 'vocabularyTerms').withConverter(vocabularyTermConverterClient);
+
+export const vocabularyTermDoc = (db: Firestore, termId: string) =>
+  doc(db, 'vocabularyTerms', termId).withConverter(vocabularyTermConverterClient);
+
+export const vocabularyDefinitionsCollection = (db: Firestore) =>
+  collection(db, 'vocabularyDefinitions').withConverter(vocabularyDefinitionConverterClient);
+
+export const vocabularyDefinitionDoc = (db: Firestore, definitionId: string) =>
+  doc(db, 'vocabularyDefinitions', definitionId).withConverter(vocabularyDefinitionConverterClient);

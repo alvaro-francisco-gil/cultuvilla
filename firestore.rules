@@ -517,7 +517,7 @@ service cloud.firestore {
     }
 
     function isValidEntityKind(v) {
-      return v in ['event', 'festivalPoster', 'place', 'barrio', 'organization', 'news'];
+      return v in ['event', 'festivalPoster', 'place', 'barrio', 'organization', 'news', 'vocabularyTerm'];
     }
 
     function isValidCommentCreate(d) {
@@ -539,7 +539,7 @@ service cloud.firestore {
       return d.keys().hasOnly(['municipalityId', 'targetKind', 'targetId', 'targetAuthorUserId', 'reporterUserId', 'reason', 'note', 'status', 'createdAt'])
           && d.keys().hasAll(['municipalityId', 'targetKind', 'targetId', 'targetAuthorUserId', 'reporterUserId', 'reason', 'note', 'status', 'createdAt'])
           && isString(d.municipalityId)
-          && d.targetKind in ['event', 'festivalPoster', 'place', 'barrio', 'organization', 'news', 'comment', 'person']
+          && d.targetKind in ['event', 'festivalPoster', 'place', 'barrio', 'organization', 'news', 'vocabularyTerm', 'comment', 'person']
           && isString(d.targetId)
           && isStringOrNull(d.targetAuthorUserId)
           && isString(d.reporterUserId)
@@ -547,6 +547,65 @@ service cloud.firestore {
           && (d.note == null || (isString(d.note) && d.note.size() <= 500))
           && d.status == 'open'
           && isTimestamp(d.createdAt);
+    }
+
+    // A term's doc id is derived (municipalityId + slug), so the create rule
+    // must pin the claimed municipalityId to the path — otherwise a member of
+    // pueblo A could seed `B__esbardo` and own B's headword.
+    function isValidVocabularyTermCreate(d, termId) {
+      return d.keys().hasOnly([
+              'municipalityId', 'term', 'normalized', 'kind', 'createdBy', 'createdAt',
+              'definitionCount', 'commentCount', 'readCount',
+              'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+            ])
+          && d.keys().hasAll([
+              'municipalityId', 'term', 'normalized', 'kind', 'createdBy', 'createdAt',
+              'definitionCount', 'commentCount', 'readCount',
+              'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+            ])
+          && isString(d.municipalityId)
+          && isString(d.term) && d.term.size() > 0 && d.term.size() <= 80
+          && isString(d.normalized) && d.normalized.size() > 0 && d.normalized.size() <= 80
+          && d.kind in ['palabra', 'dicho', 'mote', 'toponimo']
+          && isString(d.createdBy)
+          && isTimestamp(d.createdAt)
+          && d.definitionCount == 0
+          && d.commentCount == 0
+          && d.readCount == 0
+          && d.status == 'active'
+          && d.hiddenBy == null
+          && d.hiddenAt == null
+          && d.hiddenReason == null
+          && termId == d.municipalityId + '__' + d.normalized;
+    }
+
+    function isValidVocabularyDefinitionCreate(d) {
+      return d.keys().hasOnly([
+              'municipalityId', 'termId', 'definition', 'example', 'castellano',
+              'createdBy', 'createdAt', 'updatedAt',
+              'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+            ])
+          && d.keys().hasAll([
+              'municipalityId', 'termId', 'definition', 'example', 'castellano',
+              'createdBy', 'createdAt', 'updatedAt',
+              'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+            ])
+          && isString(d.municipalityId)
+          && isString(d.termId)
+          && isString(d.definition) && d.definition.size() > 0 && d.definition.size() <= 1000
+          && (d.example == null || (isString(d.example) && d.example.size() <= 500))
+          && (d.castellano == null || (isString(d.castellano) && d.castellano.size() <= 200))
+          && isString(d.createdBy)
+          && isTimestamp(d.createdAt)
+          && isTimestamp(d.updatedAt)
+          && d.status == 'active'
+          && d.hiddenBy == null
+          && d.hiddenAt == null
+          && d.hiddenReason == null
+          // Same anchoring as a comment: the definition's municipalityId is what
+          // its own delete rule reads for admin authority, so it must match the
+          // term it claims to define.
+          && topLevelEntityInVillage(/databases/$(database)/documents/vocabularyTerms/$(d.termId), d.municipalityId);
     }
 
     function isValidBlockedUserCreate(d, blockedUserId) {
@@ -595,6 +654,8 @@ service cloud.firestore {
                ? topLevelEntityInVillage(/databases/$(database)/documents/organizations/$(id), mid)
            : kind == 'festivalPoster'
                ? topLevelEntityInVillage(/databases/$(database)/documents/festivalPosters/$(id), mid)
+           : kind == 'vocabularyTerm'
+               ? topLevelEntityInVillage(/databases/$(database)/documents/vocabularyTerms/$(id), mid)
            : false;
     }
 
@@ -644,6 +705,52 @@ service cloud.firestore {
       // Clients never delete a post directly — the deleteNewsPost callable
       // cascades comments with the admin SDK (author or admin).
       allow delete: if false;
+    }
+
+    // ── Vocabulary: a pueblo's own words ────────────────────────────────
+    // Members write, everyone reads — a word from a pueblo you don't live in is
+    // exactly the thing worth not losing, so the read side joins the open feed.
+    match /vocabularyTerms/{termId} {
+      allow read: if resource.data.status == 'active'
+                    || isVillageMember(resource.data.municipalityId)
+                    || isOwner(resource.data.createdBy);
+      allow create: if isVillageMember(request.resource.data.municipalityId)
+                      && isValidVocabularyTermCreate(request.resource.data, termId)
+                      && request.resource.data.createdBy == request.auth.uid;
+      // Nothing on a term is client-editable. `term`/`normalized`/`kind` fix the
+      // identity the doc id is derived from; the counters and the visibility
+      // fields are function-owned. Correcting a headword means adding the right
+      // one and letting the wrong one be deleted — which keeps the derived id
+      // and the stored word from ever disagreeing.
+      allow update: if false;
+      // A term with definitions still on it must not vanish under them; once the
+      // last one is gone the author may withdraw the empty headword. Admins are
+      // not bound by that — an abusive term should go immediately.
+      allow delete: if isVillageAdmin(resource.data.municipalityId)
+                      || isAppAdmin()
+                      || (isOwner(resource.data.createdBy)
+                          && resource.data.status == 'active'
+                          && resource.data.definitionCount == 0);
+    }
+
+    match /vocabularyDefinitions/{definitionId} {
+      allow read: if resource.data.status == 'active'
+                    || isVillageMember(resource.data.municipalityId)
+                    || isOwner(resource.data.createdBy);
+      allow create: if isVillageMember(request.resource.data.municipalityId)
+                      && isValidVocabularyDefinitionCreate(request.resource.data)
+                      && request.resource.data.createdBy == request.auth.uid;
+      // Only the author edits their own meaning — a village admin's lever is
+      // hide (setContentVisibility) or delete, never rewriting what someone else
+      // said a word means.
+      allow update: if isOwner(resource.data.createdBy)
+                      && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+                           'municipalityId', 'termId', 'createdBy', 'createdAt',
+                           'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+                         ]);
+      allow delete: if isOwner(resource.data.createdBy)
+                      || isVillageAdmin(resource.data.municipalityId)
+                      || isAppAdmin();
     }
 
     match /comments/{commentId} {

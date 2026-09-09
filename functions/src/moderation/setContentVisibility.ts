@@ -27,6 +27,10 @@ function buildPath(collection: ModeratedCollection, docId: string, municipalityI
       return `municipalities/${municipalityId}/barrios/${docId}`;
     case 'places':
       return `municipalities/${municipalityId}/places/${docId}`;
+    case 'vocabularyTerms':
+      return `vocabularyTerms/${docId}`;
+    case 'vocabularyDefinitions':
+      return `vocabularyDefinitions/${docId}`;
   }
 }
 
