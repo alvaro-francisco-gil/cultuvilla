@@ -229,12 +229,10 @@ const config: ExpoConfig = {
       {
         action: 'VIEW',
         autoVerify: true,
-        data: [
-          { scheme: 'https', host: deepLinkHostPerEnv[env], pathPrefix: '/event/' },
-          { scheme: 'https', host: deepLinkHostPerEnv[env], pathPrefix: '/news/' },
-          { scheme: 'https', host: deepLinkHostPerEnv[env], pathPrefix: '/village/' },
-          { scheme: 'https', host: deepLinkHostPerEnv[env], pathPrefix: '/o/' },
-        ],
+        // The whole host: URLs start with the pueblo's slug (`/matabuena/…`), so
+        // there is no fixed prefix to claim. Android cannot exclude paths; iOS
+        // excludes `/entrar` in the AASA so a sign-in link stays in the browser.
+        data: [{ scheme: 'https', host: deepLinkHostPerEnv[env] }],
         category: ['BROWSABLE', 'DEFAULT'],
       },
     ],
