@@ -149,7 +149,7 @@ without joining the persons collection.
 ### `commentCount` ← `comments/`
 
 Every comment-capable kind (event, organization, festivalPoster, place, barrio,
-news, vocabularyTerm) carries a running comment count on its own doc, so cards and detail screens
+news, vocabularyTerm, historyEntry) carries a running comment count on its own doc, so cards and detail screens
 can show it without a `getCountFromServer` per entity per render.
 
 - **Source of truth:** the generic top-level `comments/` collection, each doc
@@ -158,7 +158,7 @@ can show it without a `getCountFromServer` per entity per render.
 - **Trigger:** [functions/src/interaction/syncEntityInteractionCounts.ts](../../functions/src/interaction/syncEntityInteractionCounts.ts)
   — `syncEntityCommentCount`, an `onDocumentWritten` on `comments/`. Routes by
   `entityKind` to the right parent doc: top-level for `event` /
-  `organization` / `festivalPoster` / `news` / `vocabularyTerm`, nested
+  `organization` / `festivalPoster` / `news` / `vocabularyTerm` / `historyEntry`, nested
   (`municipalities/{municipalityId}/places/{id}` or `.../barrios/{id}`) for
   `place` / `barrio`. The count is incremented/decremented with
   `FieldValue.increment`, not recomputed from a full scan — this is a
