@@ -6,6 +6,32 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Added
 
+- **Los pueblos de Cultuvilla ya se pueden encontrar en Google.** La web era una
+  aplicación que se pintaba entera en el navegador: quien llegaba a
+  `cultuvilla.es/event/…` —o el robot de Google— recibía una página vacía hasta
+  que arrancaba la app y respondía la base de datos. Google no tenía nada que
+  leer ni ninguna lista de páginas que visitar, así que ningún pueblo aparecía.
+
+  Ahora cada enlace compartido de evento, noticia, pueblo u organización llega
+  **con su contenido ya escrito** —título, foto, fecha, lugar y descripción— y la
+  app lo sustituye en cuanto tiene sus datos. Es el mismo HTML para personas y
+  para buscadores: no hay una versión "para Google". Quien abre el enlace desde
+  un grupo de WhatsApp con mala cobertura ve la fiesta al instante en vez de una
+  pantalla en blanco.
+
+  Además: un **`/sitemap.xml`** vivo con los pueblos activos, los eventos
+  públicos, las noticias y las organizaciones; **datos estructurados**
+  (schema.org `Event`, `City`, `Organization`, `NewsArticle`) para que un evento
+  salga con su fecha y su lugar en los resultados; una URL canónica sin los
+  parámetros de rastreo que añaden WhatsApp o Instagram; y un título y una
+  descripción por defecto para el resto de la web, que hasta ahora no tenía
+  ninguno.
+
+  Lo que **no** se indexa, a propósito: las fichas de **personas** (un vecino
+  aceptó ser visible dentro de la app de su pueblo, no que su nombre salga en
+  Google), los **enlaces de invitación** `/join`, los **eventos privados** y las
+  pantallas personales (`/me`, `/inbox`, `/settings`, `/admin`).
+
 - **El vocabulario del pueblo, escrito entre todos.** Cada pueblo tiene ahora un
   **Vocabulario**: las palabras, dichos, motes y topónimos que sólo se dicen ahí
   y que hoy no están escritos en ningún sitio. Cualquier vecino del pueblo añade
