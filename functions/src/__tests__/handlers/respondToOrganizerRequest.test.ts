@@ -30,6 +30,7 @@ async function seedMunicipality(opts: {
       province: 'Madrid',
       comunidadAutonoma: 'Madrid',
       codigoINE: '28000',
+      slug: 'pueblo-28000',
       coordinates: null,
       locationLabel: null,
       mapZoom: null,

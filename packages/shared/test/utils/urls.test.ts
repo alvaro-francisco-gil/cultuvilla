@@ -3,6 +3,8 @@ import {
   entityEditPath,
   entityPath,
   entityRef,
+  eventLinkTarget,
+  festivalPosterLinkTarget,
   isReservedRootSegment,
   newWordPath,
   orgJoinPath,
@@ -128,5 +130,18 @@ describe('reserved segments', () => {
       expect(isReservedRootSegment(s)).toBe(true);
     }
     expect(isReservedRootSegment('matabuena')).toBe(false);
+  });
+});
+
+describe('link targets', () => {
+  it('keeps a private event title out of its URL', () => {
+    const target = eventLinkTarget({ ...fiesta, visibilityOrgId: 'org1' });
+    expect(entityPath('event', target)).toBe('/matabuena/evento/evento-privado_evt123');
+    expect(entityPath('event', eventLinkTarget({ ...fiesta, visibilityOrgId: null }))).toContain('fiestas-de-san-roque');
+  });
+
+  it('names an untitled cartel by its year', () => {
+    const target = festivalPosterLinkTarget({ id: 'c1', title: null, year: 1987, villageSlug: 'matabuena' });
+    expect(entityPath('festivalPoster', target)).toBe('/matabuena/cartel/cartel-1987_c1');
   });
 });

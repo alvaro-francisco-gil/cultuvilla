@@ -20,13 +20,23 @@ const PROD_ORIGIN = 'https://cultuvilla.es';
 
 /**
  * Reachable on prod, but never to rank:
- *  - /me, /inbox, /settings, /admin — private to one person or to admins.
- *  - /person/ — `persons` is publicly readable so guest browsing can show who
+ *  - /mis-*, /buzon, /ajustes, /admin — private to one person or to admins.
+ *  - /persona/ — `persons` is publicly readable so guest browsing can show who
  *    organises an event (docs/decisions/guest-browsing.md). A villager agreed
  *    to be visible inside their village's app, not to rank on Google.
- *  - /*\/join — an invite link is a door opened for specific people.
+ *  - /*\/unirse — an invite link is a door opened for specific people.
+ *  - /*\/plaza/ — a seat-claim link carries a single-use secret token.
  */
-export const PROD_DISALLOWED = ['/me', '/inbox', '/settings', '/admin', '/person/', '/*/join$'];
+export const PROD_DISALLOWED = [
+  '/mis-inscripciones',
+  '/mis-pueblos',
+  '/buzon',
+  '/ajustes',
+  '/admin',
+  '/persona/',
+  '/*/unirse$',
+  '/*/plaza/',
+];
 
 export function buildRobotsTxt(env) {
   if (env !== 'prod') return 'User-agent: *\nDisallow: /\n';

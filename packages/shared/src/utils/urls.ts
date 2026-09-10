@@ -231,3 +231,35 @@ function safeDecode(segment: string): string | null {
     return null;
   }
 }
+
+/**
+ * The link target of an event. A private event's URL must not carry its title:
+ * the share preview withholds it from anyone outside the org, and a slug in the
+ * link itself would hand it to every chat the link is pasted into.
+ */
+export function eventLinkTarget(event: {
+  id: string;
+  title: string;
+  villageSlug: string;
+  visibilityOrgId?: string | null;
+}): EntityLinkTarget {
+  return {
+    id: event.id,
+    title: event.visibilityOrgId ? 'evento privado' : event.title,
+    villageSlug: event.villageSlug,
+  };
+}
+
+/** A cartel may have no title; the year is what people search for. */
+export function festivalPosterLinkTarget(poster: {
+  id: string;
+  title: string | null;
+  year: number;
+  villageSlug: string;
+}): EntityLinkTarget {
+  return {
+    id: poster.id,
+    title: poster.title ?? `cartel ${poster.year}`,
+    villageSlug: poster.villageSlug,
+  };
+}

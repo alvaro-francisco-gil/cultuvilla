@@ -24,6 +24,7 @@ async function seedOrg(): Promise<void> {
     status: 'approved',
     municipalityId: MUNICIPALITY_ID,
     requestedBy: ORG_ADMIN_ID,
+    villageSlug: 'villarriba',
     reviewedBy: 'someone',
     createdAt: new Date(),
     reviewedAt: new Date(),
