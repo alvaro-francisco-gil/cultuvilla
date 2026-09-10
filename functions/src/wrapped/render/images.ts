@@ -14,8 +14,21 @@ import { bubblePalette } from './theme';
 const ALLOWED_IMAGE_HOSTS = new Set(['firebasestorage.googleapis.com', 'storage.googleapis.com']);
 
 /** Larger than any real flyer (phone photos are 2–5 MB); bounds memory per fetch. */
-export const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 export const IMAGE_FETCH_TIMEOUT_MS = 8_000;
+
+/**
+ * Decoded-pixel ceiling per image, and how many may decode at once.
+ *
+ * The byte cap alone does not bound memory: JPEG compresses ~20:1, so a 10 MB
+ * upload can be a 100-megapixel image that sharp expands to gigabytes of raw
+ * RGBA. These two numbers are what the memory budget is actually made of —
+ * 24 MP decodes to roughly 100 MB, four at a time is ~400 MB, which fits the
+ * 1 GiB the render function asks for with room for Satori and the output.
+ * Raise one and you must lower the other.
+ */
+export const MAX_IMAGE_PIXELS = 24_000_000;
+export const IMAGE_CONCURRENCY = 4;
 
 export function isAllowedImageUrl(raw: string): boolean {
   let url: URL;
@@ -82,7 +95,7 @@ export async function loadImage(
     if (!res.ok) return null;
     const input = await readCapped(res, maxBytes);
     if (!input) return null;
-    const out = await sharp(input)
+    const out = await sharp(input, { limitInputPixels: MAX_IMAGE_PIXELS })
       .resize(Math.round(width), Math.round(height), { fit: 'cover', position: 'attention' })
       .jpeg({ quality: 82, mozjpeg: true })
       .toBuffer();
@@ -95,7 +108,7 @@ export async function loadImage(
 /** Load many images with bounded concurrency, preserving input order. */
 export async function loadImages(
   jobs: { url: string | null; width: number; height: number }[],
-  concurrency = 8,
+  concurrency = IMAGE_CONCURRENCY,
   fetchImpl: typeof fetch = fetch,
 ): Promise<(string | null)[]> {
   const results = new Array<string | null>(jobs.length).fill(null);

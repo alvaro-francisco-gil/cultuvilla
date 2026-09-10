@@ -1,6 +1,6 @@
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
 import type { CartelInput, WrappedInputs } from '@cultuvilla/shared/wrapped';
-import { EventStatusSchema, RegistrationStatusSchema, isPrivateEvent } from '@cultuvilla/shared/models';
+import { EventStatusSchema, RegistrationStatusSchema, isPrivateEvent, madridYear } from '@cultuvilla/shared/models';
 import {
   eventRegistrationsCollection,
   eventsCollection,
@@ -146,7 +146,7 @@ export async function gatherWrappedInputs(
     getByIds(db, creatorIds, (id) => userDoc(db, id).withConverter(null)),
   ]);
 
-  const year = window.start.getFullYear();
+  const year = madridYear(window.start);
   // Every year, not just this one: the carteles card sets this year's posters
   // against the pueblo's whole archive. Only `active` posters: this becomes a
   // forwardable image, so it allowlists rather than excluding `hidden` — a

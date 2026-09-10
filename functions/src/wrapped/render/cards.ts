@@ -124,7 +124,15 @@ export function coverCard(ctx: CardContext, escudo: string | null): SatoriNode {
     h(
       'div',
       { style: { display: 'flex', flexDirection: 'column' } },
-      text(ctx.blockName, { fontSize: 148, fontWeight: 800, lineHeight: 0.95, letterSpacing: -4 }),
+      // The block name is free text a village admin types, with no length
+      // limit, so it is fitted rather than set — an unfitted 148px overflows
+      // the card at about a dozen characters.
+      text(ctx.blockName, {
+        fontSize: fitFontSize(ctx.blockName, CARD_WIDTH - GUTTER * 2, 148, 56),
+        fontWeight: 800,
+        lineHeight: 0.95,
+        letterSpacing: -4,
+      }),
       text(String(ctx.year), { fontSize: 220, fontWeight: 800, lineHeight: 1, color: colors.accent, letterSpacing: -8, marginTop: 8 }),
       text(ctx.dateRange, { fontSize: 44, color: colors.inkDim, marginTop: 28 }),
     ),

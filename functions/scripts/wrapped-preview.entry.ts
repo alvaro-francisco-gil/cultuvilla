@@ -4,7 +4,7 @@ import { initializeApp, applicationDefault } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { gatherWrappedInputs } from '../src/wrapped/gatherInputs';
 import { composeWrapped } from '../src/wrapped/composeWrapped';
-import { buildFiestaBlock, resolveFiestaWindow } from '@cultuvilla/shared/models';
+import { buildFiestaBlock, resolveFiestaWindow, madridYear } from '@cultuvilla/shared/models';
 
 /**
  * Render a village's Wrapped to local PNGs from real data, read-only.
@@ -46,7 +46,7 @@ async function main(): Promise<void> {
   const t1 = Date.now();
   const { aggregate, images } = await composeWrapped(gathered, {
     blockName: env('PREVIEW_BLOCK'),
-    year: window.start.getFullYear(),
+    year: madridYear(window.start),
   });
   const t2 = Date.now();
 

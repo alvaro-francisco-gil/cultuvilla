@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import sharp from 'sharp';
 import { composeWrapped, CARD_FORMATS, formatDateRange } from '../../wrapped/composeWrapped';
 import type { GatheredWrapped } from '../../wrapped/gatherInputs';
+import { fitFontSize } from '../../wrapped/render/layout';
 
 /**
  * Renders real cards end to end — Satori layout, embedded fonts, sharp
@@ -83,6 +84,16 @@ describe('composeWrapped', () => {
     await expect(
       composeWrapped(gathered(), { blockName: 'Fiestas de agosto', year: 2026 }, offline),
     ).resolves.toBeDefined();
+  }, 60_000);
+
+  // A village admin types the block name and nothing limits its length, so
+  // the cover fits it instead of setting it at a fixed size that overflows.
+  it('renders a very long fiesta block name within the card', async () => {
+    const blockName = 'Fiestas patronales de Nuestra Señora de la Asunción y San Roque';
+    const { images } = await composeWrapped(gathered(), { blockName, year: 2026 }, offline);
+    const meta = await sharp(images.cover.bytes).metadata();
+    expect({ w: meta.width, h: meta.height }).toEqual({ w: 1080, h: 1920 });
+    expect(fitFontSize(blockName, 1080 - 72 * 2, 148, 56)).toBeLessThan(148);
   }, 60_000);
 
   it('reads the censo figure against the censo only', async () => {

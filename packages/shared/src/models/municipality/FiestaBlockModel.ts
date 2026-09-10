@@ -182,3 +182,15 @@ export function clampAnchor(anchor: FiestaAnchor): FiestaAnchor {
   const days = Math.min(31, Math.max(1, Math.round(anchor.days) || 1));
   return { month, day, days };
 }
+
+/**
+ * The Madrid calendar year an instant falls in.
+ *
+ * A window is stored as UTC instants, so `getFullYear()` is wrong at the edges:
+ * midnight on 1 January in Madrid is 23:00 on 31 December UTC, and a January
+ * fiesta block would be attributed to — and would collect the carteles of —
+ * the previous year.
+ */
+export function madridYear(at: Date): number {
+  return Number(new Intl.DateTimeFormat('en-CA', { timeZone: EVENT_TZ, year: 'numeric' }).format(at));
+}

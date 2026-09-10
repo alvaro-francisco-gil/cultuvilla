@@ -6,7 +6,7 @@ import {
   MAX_EVENT_TILES, POSTER_ASPECT, type CardContext,
 } from './render/cards';
 import { fixedAspectGrid, hexLayout, mosaicLayout } from './render/layout';
-import { loadImages } from './render/images';
+import { IMAGE_CONCURRENCY, loadImages } from './render/images';
 import { renderImage, type ImageFormat } from './render/renderCard';
 import { CARD_WIDTH, GUTTER } from './render/theme';
 
@@ -97,7 +97,7 @@ export async function composeWrapped(
     ...orgPeople.map((p) => ({ url: p.photoURL, width: 180, height: 180 })),
     ...archive.ordered.map((p) => ({ url: p.imageURL, width: poster.tileWidth * 2, height: poster.tileHeight * 2 })),
   ];
-  const images = await loadImages(jobs, 16, fetchImpl);
+  const images = await loadImages(jobs, IMAGE_CONCURRENCY, fetchImpl);
   let cursor = 0;
   const take = (n: number) => images.slice(cursor, (cursor += n));
   const [escudo] = take(1);

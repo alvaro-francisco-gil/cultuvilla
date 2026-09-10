@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import sharp from 'sharp';
-import { isAllowedImageUrl, loadImage } from '../../wrapped/render/images';
+import {
+  IMAGE_CONCURRENCY,
+  MAX_IMAGE_PIXELS,
+  isAllowedImageUrl,
+  loadImage,
+  loadImages,
+} from '../../wrapped/render/images';
 
 /**
  * Image URLs come from documents users can write — an event's `imageURL`, a
@@ -97,4 +103,41 @@ describe('loadImage', () => {
   it('returns null rather than throwing on a non-image body', async () => {
     expect(await loadImage(STORAGE, 8, 8, respond(Buffer.from('<html>not an image</html>')))).toBeNull();
   });
+});
+
+describe('decode bounds', () => {
+  // The byte cap alone does not bound memory: a small JPEG can decode to
+  // gigabytes of raw pixels. sharp must refuse the decode, leaving the tile
+  // to its fallback rather than taking the function's memory with it.
+  it('refuses an image whose decoded size passes the pixel ceiling', async () => {
+    const side = Math.ceil(Math.sqrt(MAX_IMAGE_PIXELS)) + 500;
+    const bomb = await sharp({
+      create: { width: side, height: side, channels: 3, background: '#000' },
+    })
+      .jpeg({ quality: 1 })
+      .toBuffer();
+    expect(bomb.byteLength).toBeLessThan(10 * 1024 * 1024);
+    expect(await loadImage(STORAGE, 100, 100, respond(bomb))).toBeNull();
+  }, 60_000);
+
+  it('accepts an image below the ceiling', async () => {
+    expect(await loadImage(STORAGE, 8, 8, respond(await png()))).toMatch(/^data:image\/jpeg;base64,/);
+  });
+
+  it('never decodes more than IMAGE_CONCURRENCY images at once', async () => {
+    const body = await png();
+    let inFlight = 0;
+    let peak = 0;
+    const counted: typeof fetch = async () => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((r) => setTimeout(r, 5));
+      inFlight -= 1;
+      return new Response(body, { status: 200 });
+    };
+    const jobs = Array.from({ length: 40 }, () => ({ url: STORAGE, width: 8, height: 8 }));
+    const out = await loadImages(jobs, undefined, counted);
+    expect(out).toHaveLength(40);
+    expect(peak).toBeLessThanOrEqual(IMAGE_CONCURRENCY);
+  }, 30_000);
 });
