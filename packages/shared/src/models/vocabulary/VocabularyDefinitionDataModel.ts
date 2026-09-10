@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { visibilityFields, defaultVisibility } from '../core/VisibilityModel';
+import { contributorFields, creditedUserIds } from '../core/ContributorsModel';
 
 /**
  * One villager's meaning for one term. Stored top-level at
@@ -24,6 +25,8 @@ export const VocabularyDefinitionDataSchema = z.object({
   /** The nearest standard-Castilian equivalent, when there is one. */
   castellano: z.string().max(200).nullable(),
   createdBy: z.string(),
+  /** Who digitalized this meaning. Always includes the author. */
+  ...contributorFields,
   createdAt: z.date(),
   updatedAt: z.date(),
   ...visibilityFields,
@@ -37,6 +40,8 @@ export interface VocabularyDefinitionDataInput {
   example?: string | null;
   castellano?: string | null;
   createdBy: string;
+  contributorUserIds?: string[];
+  contributorOrgIds?: string[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -57,6 +62,8 @@ export function buildVocabularyDefinitionData(
     example: trimmedOrNull(input.example),
     castellano: trimmedOrNull(input.castellano),
     createdBy: input.createdBy,
+    contributorUserIds: creditedUserIds(input.createdBy, input.contributorUserIds),
+    contributorOrgIds: input.contributorOrgIds ?? [],
     createdAt,
     updatedAt: input.updatedAt ?? createdAt,
     ...defaultVisibility(),

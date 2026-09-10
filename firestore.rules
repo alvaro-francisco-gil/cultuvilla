@@ -549,17 +549,32 @@ service cloud.firestore {
           && isTimestamp(d.createdAt);
     }
 
+    // Digitization credit (ContributorsModel). Credit, never authority — so the
+    // only things worth enforcing are that the author cannot write themselves
+    // out of their own contribution, and that a list cannot grow unbounded.
+    // The cap is a spam brake, not a product limit: nobody digitalizes one word
+    // with twenty-one people, but a script could name the whole village.
+    function isValidDigitizationCredit(d) {
+      return isList(d.contributorUserIds)
+          && isList(d.contributorOrgIds)
+          && d.contributorUserIds.size() <= 20
+          && d.contributorOrgIds.size() <= 20
+          && d.createdBy in d.contributorUserIds;
+    }
+
     // A term's doc id is derived (municipalityId + slug), so the create rule
     // must pin the claimed municipalityId to the path — otherwise a member of
     // pueblo A could seed `B__esbardo` and own B's headword.
     function isValidVocabularyTermCreate(d, termId) {
       return d.keys().hasOnly([
               'municipalityId', 'term', 'normalized', 'kind', 'createdBy', 'createdAt',
+              'contributorUserIds', 'contributorOrgIds',
               'definitionCount', 'commentCount', 'readCount',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
             ])
           && d.keys().hasAll([
               'municipalityId', 'term', 'normalized', 'kind', 'createdBy', 'createdAt',
+              'contributorUserIds', 'contributorOrgIds',
               'definitionCount', 'commentCount', 'readCount',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
             ])
@@ -568,6 +583,7 @@ service cloud.firestore {
           && isString(d.normalized) && d.normalized.size() > 0 && d.normalized.size() <= 80
           && d.kind in ['palabra', 'dicho', 'mote', 'toponimo']
           && isString(d.createdBy)
+          && isValidDigitizationCredit(d)
           && isTimestamp(d.createdAt)
           && d.definitionCount == 0
           && d.commentCount == 0
@@ -582,12 +598,12 @@ service cloud.firestore {
     function isValidVocabularyDefinitionCreate(d) {
       return d.keys().hasOnly([
               'municipalityId', 'termId', 'definition', 'example', 'castellano',
-              'createdBy', 'createdAt', 'updatedAt',
+              'createdBy', 'contributorUserIds', 'contributorOrgIds', 'createdAt', 'updatedAt',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
             ])
           && d.keys().hasAll([
               'municipalityId', 'termId', 'definition', 'example', 'castellano',
-              'createdBy', 'createdAt', 'updatedAt',
+              'createdBy', 'contributorUserIds', 'contributorOrgIds', 'createdAt', 'updatedAt',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
             ])
           && isString(d.municipalityId)
@@ -596,6 +612,7 @@ service cloud.firestore {
           && (d.example == null || (isString(d.example) && d.example.size() <= 500))
           && (d.castellano == null || (isString(d.castellano) && d.castellano.size() <= 200))
           && isString(d.createdBy)
+          && isValidDigitizationCredit(d)
           && isTimestamp(d.createdAt)
           && isTimestamp(d.updatedAt)
           && d.status == 'active'
@@ -813,7 +830,10 @@ service cloud.firestore {
                       && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
                            'municipalityId', 'termId', 'createdBy', 'createdAt',
                            'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
-                         ]);
+                         ])
+                      // Re-crediting is an ordinary author edit, held to the
+                      // same credit rules as the create.
+                      && isValidDigitizationCredit(request.resource.data);
       allow delete: if isOwner(resource.data.createdBy)
                       || isVillageAdmin(resource.data.municipalityId)
                       || isAppAdmin();

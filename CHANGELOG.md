@@ -25,6 +25,20 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
   Nueva colección `historyEntries/`: necesita desplegar reglas, índice y
   `storage.rules`. Sin migración — la colección es nueva.
+- **Quién digitalizó cada palabra.** Al añadir una palabra al Vocabulario —o un
+  significado nuevo a una que ya existe— ahora se puede nombrar a los vecinos y
+  grupos que ayudaron a recogerla, igual que en los carteles y los lugares:
+  «Digitalizado por Ana, Luis · Peña El Botijo». El formulario pasa a tener dos
+  pasos, como el de añadir un lugar: primero la palabra, luego la digitalización.
+
+  **Se acredita la palabra, no sólo el significado**, a propósito: recoger una
+  palabra que nadie había escrito es justo la aportación que queremos premiar.
+  El crédito de la palabra es de quien la registró primero y no cambia; quien
+  añade después otro significado recibe el crédito en *ese* significado.
+
+  Es crédito, no autoría: aparecer nombrado no da permiso para editar. El autor
+  va siempre incluido y no puede quitarse, y las reglas limitan cada lista a 20
+  personas y 20 grupos para que no sirva para nombrar a medio pueblo.
 
 - **Los pueblos de Cultuvilla ya se pueden encontrar en Google.** La web era una
   aplicación que se pintaba entera en el navegador: quien llegaba a

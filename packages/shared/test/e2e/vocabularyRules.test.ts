@@ -27,6 +27,8 @@ function termDoc(createdBy: string, extra: Record<string, unknown> = {}) {
     normalized: 'esbardo',
     kind: 'palabra',
     createdBy,
+    contributorUserIds: [createdBy],
+    contributorOrgIds: [],
     createdAt: new Date(),
     definitionCount: 0,
     commentCount: 0,
@@ -47,6 +49,8 @@ function definitionDoc(createdBy: string, extra: Record<string, unknown> = {}) {
     example: null,
     castellano: 'osezno',
     createdBy,
+    contributorUserIds: [createdBy],
+    contributorOrgIds: [],
     createdAt: new Date(),
     updatedAt: new Date(),
     status: 'active',
@@ -170,6 +174,132 @@ describe('firestore.rules — /vocabularyTerms', () => {
     await seedMember('root', 'admin');
     await seedTerm('alice', { definitionCount: 4 });
     await assertSucceeds(deleteDoc(doc(asUser(getEnv(), 'root'), `vocabularyTerms/${TERM_ID}`)));
+  });
+});
+
+describe('firestore.rules — digitization credit on words and meanings', () => {
+  // Credit is not authority, so the rules only guard two things: the author
+  // cannot write themselves out of their own contribution, and a list cannot
+  // be used to name the whole village.
+
+  it('a member credits other villagers and groups on a new word', async () => {
+    await seedMember('alice');
+    await assertSucceeds(
+      setDoc(
+        doc(asUser(getEnv(), 'alice'), `vocabularyTerms/${TERM_ID}`),
+        termDoc('alice', {
+          contributorUserIds: ['alice', 'bob', 'carol'],
+          contributorOrgIds: ['peña-el-botijo'],
+        }),
+      ),
+    );
+  });
+
+  it('CANNOT create a word whose credit leaves its own author out', async () => {
+    await seedMember('alice');
+    await assertFails(
+      setDoc(
+        doc(asUser(getEnv(), 'alice'), `vocabularyTerms/${TERM_ID}`),
+        termDoc('alice', { contributorUserIds: ['bob'] }),
+      ),
+    );
+  });
+
+  it('CANNOT create a word crediting more than twenty people', async () => {
+    await seedMember('alice');
+    const everyone = ['alice', ...Array.from({ length: 20 }, (_, i) => `u${String(i)}`)];
+    await assertFails(
+      setDoc(
+        doc(asUser(getEnv(), 'alice'), `vocabularyTerms/${TERM_ID}`),
+        termDoc('alice', { contributorUserIds: everyone }),
+      ),
+    );
+  });
+
+  it('CANNOT create a word crediting more than twenty groups', async () => {
+    await seedMember('alice');
+    await assertFails(
+      setDoc(
+        doc(asUser(getEnv(), 'alice'), `vocabularyTerms/${TERM_ID}`),
+        termDoc('alice', { contributorOrgIds: Array.from({ length: 21 }, (_, i) => `o${String(i)}`) }),
+      ),
+    );
+  });
+
+  it('CANNOT create a word without the credit fields at all', async () => {
+    await seedMember('alice');
+    const { contributorUserIds: _u, contributorOrgIds: _o, ...uncredited } = termDoc('alice');
+    await assertFails(
+      setDoc(doc(asUser(getEnv(), 'alice'), `vocabularyTerms/${TERM_ID}`), uncredited),
+    );
+  });
+
+  it('a member credits others on a meaning', async () => {
+    await seedMember('bob');
+    await seedTerm('alice');
+    await assertSucceeds(
+      addDoc(
+        collection(asUser(getEnv(), 'bob'), 'vocabularyDefinitions'),
+        definitionDoc('bob', { contributorUserIds: ['bob', 'dora'], contributorOrgIds: ['o1'] }),
+      ),
+    );
+  });
+
+  it('CANNOT add a meaning whose credit leaves its own author out', async () => {
+    await seedMember('bob');
+    await seedTerm('alice');
+    await assertFails(
+      addDoc(
+        collection(asUser(getEnv(), 'bob'), 'vocabularyDefinitions'),
+        definitionDoc('bob', { contributorUserIds: ['dora'] }),
+      ),
+    );
+  });
+
+  it('the author re-credits their own meaning', async () => {
+    await seedMember('bob');
+    await seedTerm('alice');
+    await seedDefinition('d1', 'bob');
+    await assertSucceeds(
+      updateDoc(doc(asUser(getEnv(), 'bob'), 'vocabularyDefinitions/d1'), {
+        contributorUserIds: ['bob', 'dora'],
+        updatedAt: new Date(),
+      }),
+    );
+  });
+
+  it('the author CANNOT re-credit their meaning so that it drops themselves', async () => {
+    await seedMember('bob');
+    await seedTerm('alice');
+    await seedDefinition('d1', 'bob');
+    await assertFails(
+      updateDoc(doc(asUser(getEnv(), 'bob'), 'vocabularyDefinitions/d1'), {
+        contributorUserIds: ['dora'],
+        updatedAt: new Date(),
+      }),
+    );
+  });
+
+  it('somebody credited on a meaning CANNOT edit it — credit is not authority', async () => {
+    await seedMember('dora');
+    await seedTerm('alice');
+    await seedDefinition('d1', 'bob', { contributorUserIds: ['bob', 'dora'] });
+    await assertFails(
+      updateDoc(doc(asUser(getEnv(), 'dora'), 'vocabularyDefinitions/d1'), {
+        definition: 'Otra cosa.',
+        updatedAt: new Date(),
+      }),
+    );
+  });
+
+  it('a word’s credit is fixed once recorded — not even its author re-credits it', async () => {
+    await seedMember('alice');
+    await seedTerm('alice');
+    await assertFails(
+      updateDoc(doc(asUser(getEnv(), 'alice'), `vocabularyTerms/${TERM_ID}`), {
+        contributorUserIds: ['alice', 'bob'],
+      }),
+    );
   });
 });
 

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { visibilityFields, defaultVisibility } from '../core/VisibilityModel';
+import { contributorFields } from '../core/ContributorsModel';
 
 export const DATE_PRECISIONS = ['year', 'month', 'day'] as const;
 export const DatePrecisionSchema = z.enum([...DATE_PRECISIONS]);
@@ -9,8 +10,7 @@ export type DatePrecision = z.infer<typeof DatePrecisionSchema>;
 export const FestivalPosterDataSchema = z.object({
   municipalityId: z.string(),
   proposedBy: z.string().nullable(),
-  contributorUserIds: z.array(z.string()),
-  contributorOrgIds: z.array(z.string()),
+  ...contributorFields,
   year: z.number().int(),
   title: z.string().nullable(),
   images: z.array(z.string()).max(5),

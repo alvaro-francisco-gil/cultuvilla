@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { LatLngSchema, type LatLng } from '../core/LocationDataModel';
 import { visibilityFields, defaultVisibility } from '../core/VisibilityModel';
+import { contributorFields } from '../core/ContributorsModel';
 import { VillageProfileFormSchema } from './CensoTypes';
 import { FiestaBlockSchema } from './FiestaBlockModel';
 
@@ -420,8 +421,7 @@ export const PlaceDataSchema = z.object({
   images: z.array(z.string()).max(5),
   createdAt: z.date(),
   proposedBy: z.string().nullable(),
-  contributorUserIds: z.array(z.string()),
-  contributorOrgIds: z.array(z.string()),
+  ...contributorFields,
   // Denormalized interaction counters, maintained server-side by the comments
   // Cloud Function trigger / the detail-screen view tracker. Initialized to 0
   // at create.

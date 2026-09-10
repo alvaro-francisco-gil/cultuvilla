@@ -76,6 +76,22 @@ describe('buildVocabularyTermData', () => {
     ).toThrow();
   });
 
+  it('credits the author as the word’s digitalizer even when nobody else is named', () => {
+    const data = buildVocabularyTermData(input);
+    expect(data.contributorUserIds).toEqual(['alice']);
+    expect(data.contributorOrgIds).toEqual([]);
+  });
+
+  it('credits everyone picked, author first and once', () => {
+    const data = buildVocabularyTermData({
+      ...input,
+      contributorUserIds: ['bob', 'alice'],
+      contributorOrgIds: ['peña-el-botijo'],
+    });
+    expect(data.contributorUserIds).toEqual(['alice', 'bob']);
+    expect(data.contributorOrgIds).toEqual(['peña-el-botijo']);
+  });
+
   it('declares the four kinds the UI renders', () => {
     expect([...VOCABULARY_TERM_KINDS]).toEqual(['palabra', 'dicho', 'mote', 'toponimo']);
   });
@@ -105,6 +121,10 @@ describe('buildVocabularyDefinitionData', () => {
     const data = buildVocabularyDefinitionData(input);
     expect(data.definition).toBe('Cría de oso.');
     expect(data.updatedAt).toEqual(data.createdAt);
+  });
+
+  it('credits the author of a meaning even when nobody else is named', () => {
+    expect(buildVocabularyDefinitionData(input).contributorUserIds).toEqual(['bob']);
   });
 
   it('rejects a definition longer than the rules allow', () => {

@@ -63,6 +63,8 @@ import {
   moderationEventsCollection,
   adminsCollection,
   municipalityPeopleCollection,
+  vocabularyTermsCollection,
+  vocabularyDefinitionsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
 
 // `--env dev|beta|prod` (default dev). Read-only check — safe against any env,
@@ -141,6 +143,8 @@ const REGISTRY = [
   { name: 'moderationEvents', coll: (db) => moderationEventsCollection(db) },
   { name: 'admins', coll: (db) => adminsCollection(db) },
   { name: 'municipalityPeople', coll: (db) => municipalityPeopleCollection(db) },
+  { name: 'vocabularyTerms', coll: (db) => vocabularyTermsCollection(db) },
+  { name: 'vocabularyDefinitions', coll: (db) => vocabularyDefinitionsCollection(db) },
 ];
 
 /** Format a caught converter error into `path: message` lines, one per zod issue. */
