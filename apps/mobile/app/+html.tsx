@@ -23,6 +23,25 @@ export default function Root({ children }: PropsWithChildren) {
         {APP_STORES.ios ? (
           <meta name="apple-itunes-app" content={`app-id=${APP_STORE_ID}`} />
         ) : null}
+        {/* Defaults for every route that ogRenderer does NOT rewrite — the home
+            feed, /discover, /descarga and the village sub-surfaces. Without
+            these the SPA shell ships no <title> and no description at all, so
+            those pages were entering Google's index untitled. ogRenderer strips
+            and replaces all of them on share-link routes, so the two can never
+            both apply. */}
+        <title>Cultuvilla — la vida de tu pueblo</title>
+        <meta
+          name="description"
+          content="Fiestas, eventos, noticias y vida de los pueblos de España. Descubre lo que pasa en tu pueblo y apúntate."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Cultuvilla" />
+        <meta property="og:title" content="Cultuvilla — la vida de tu pueblo" />
+        <meta
+          property="og:description"
+          content="Fiestas, eventos, noticias y vida de los pueblos de España."
+        />
+        <meta name="twitter:card" content="summary_large_image" />
         <ScrollViewStyleReset />
       </head>
       <body>{children}</body>

@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -17,6 +17,7 @@ import { PullSpinner } from './PullSpinner';
 import { useWebPullToRefresh } from '../../lib/useWebPullToRefresh';
 import { DetailScrollProvider } from '../../lib/keyboard/DetailScrollContext';
 import { useT } from '../../lib/i18n';
+import { dismissSeoShell } from '../../lib/seoShell';
 
 /**
  * Shared scaffold for every ENTITY detail screen. An "entity" is a
@@ -63,6 +64,15 @@ export function EntityDetailScaffold({
 }: EntityDetailScaffoldProps) {
   const { t } = useT();
   const busy = loading || notFound;
+
+  // Hand over from the server-rendered block that ogRenderer injected before
+  // #root. Waiting for `!loading` is the whole point: dismissing on mount would
+  // replace real content with this screen's spinner. Six entity detail screens
+  // share this scaffold, so one call covers all of them; no-op on native and on
+  // any route the renderer never touched.
+  useEffect(() => {
+    if (!loading) dismissSeoShell();
+  }, [loading]);
 
   const scrollRef = useRef<ScrollView>(null);
   const [nativeRefreshing, setNativeRefreshing] = useState(false);

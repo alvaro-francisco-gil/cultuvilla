@@ -31,6 +31,7 @@ import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { useT } from '../../lib/i18n';
+import { dismissSeoShell } from '../../lib/seoShell';
 import { isProposalVisible } from '../../lib/proposals';
 import { joinVillage } from '@cultuvilla/shared/services/villageMemberService';
 import { getVillageViewLink } from '@cultuvilla/shared/services/deepLinkService';
@@ -68,6 +69,14 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
   const [addOpen, setAddOpen] = useState(false);
 
   const { coreLoading, coreError, village } = data;
+
+  // Village is not an entity (it opens a ScreenHeader, not EntityDetailScaffold),
+  // so it needs its own hand-over from the server-rendered block. This body is
+  // shared by /village/[villageId] and the village tab, which is where a cold
+  // entry to a shared village link actually lands after its redirect.
+  useEffect(() => {
+    if (!coreLoading) dismissSeoShell();
+  }, [coreLoading]);
 
   if (coreLoading) {
     return (
