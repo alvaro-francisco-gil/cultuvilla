@@ -9,7 +9,7 @@
 //      member of one pueblo could seed another pueblo's headword.
 //   2. `definitionCount` is trigger-owned and gates the author's delete, so a
 //      client must never be able to write it.
-import { describe, it } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { doc, setDoc, updateDoc, deleteDoc, getDoc, addDoc, collection } from 'firebase/firestore';
 import { useRulesTestEnv } from '../helpers/rulesTestEnv';
@@ -170,6 +170,54 @@ describe('firestore.rules — /vocabularyTerms', () => {
     await seedMember('root', 'admin');
     await seedTerm('alice', { definitionCount: 4 });
     await assertSucceeds(deleteDoc(doc(asUser(getEnv(), 'root'), `vocabularyTerms/${TERM_ID}`)));
+  });
+});
+
+describe('firestore.rules — adding a word, as vocabularyService actually does it', () => {
+  // The service reads the derived term id BEFORE writing it (ensureVocabularyTerm),
+  // because a blind setDoc onto an existing term would be an *update* in rules
+  // terms and is denied. That read lands on a document that does not exist yet,
+  // and a read rule that dereferences `resource.data` errors on a null resource
+  // instead of returning "not found" — which Firestore reports as
+  // permission-denied. This is the exact first step of adding any new word, so
+  // it broke the whole feature while every single-rule test still passed.
+  it('a member can read a term that does not exist yet — the first step of adding a word', async () => {
+    await seedMember('alice');
+    await assertSucceeds(getDoc(doc(asUser(getEnv(), 'alice'), `vocabularyTerms/${TERM_ID}`)));
+  });
+
+  it('a signed-out visitor can read a term that does not exist — a dead share link is 404, not denied', async () => {
+    await assertSucceeds(getDoc(doc(asAnon(getEnv()), `vocabularyTerms/${TERM_ID}`)));
+  });
+
+  it('reading a missing term reports it as missing rather than throwing', async () => {
+    await seedMember('alice');
+    const snap = await getDoc(doc(asUser(getEnv(), 'alice'), `vocabularyTerms/${TERM_ID}`));
+    expect(snap.exists()).toBe(false);
+  });
+
+  // The whole addVocabularyEntry sequence, in order: probe, create the term,
+  // attach the first definition.
+  it('runs the full add-a-word sequence the service performs', async () => {
+    await seedMember('alice');
+    const alice = asUser(getEnv(), 'alice');
+    await assertSucceeds(getDoc(doc(alice, `vocabularyTerms/${TERM_ID}`)));
+    await assertSucceeds(setDoc(doc(alice, `vocabularyTerms/${TERM_ID}`), termDoc('alice')));
+    await assertSucceeds(
+      addDoc(collection(alice, 'vocabularyDefinitions'), definitionDoc('alice')),
+    );
+  });
+
+  // Second contributor on the same word: their probe finds the existing term, so
+  // they skip the create and only attach a definition.
+  it('lets a second villager attach a meaning to a word somebody else added', async () => {
+    await seedMember('alice');
+    await seedMember('bob');
+    await seedTerm('alice');
+    const bob = asUser(getEnv(), 'bob');
+    const probe = await getDoc(doc(bob, `vocabularyTerms/${TERM_ID}`));
+    expect(probe.exists()).toBe(true);
+    await assertSucceeds(addDoc(collection(bob, 'vocabularyDefinitions'), definitionDoc('bob')));
   });
 });
 
