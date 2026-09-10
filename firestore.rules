@@ -711,7 +711,17 @@ service cloud.firestore {
     // Members write, everyone reads — a word from a pueblo you don't live in is
     // exactly the thing worth not losing, so the read side joins the open feed.
     match /vocabularyTerms/{termId} {
-      allow read: if resource.data.status == 'active'
+      // `resource == null` FIRST, and it is load-bearing rather than defensive.
+      // A term's id is derived from the word, so adding one begins by reading
+      // the id that does not exist yet (ensureVocabularyTerm) — a blind setDoc
+      // onto a word somebody already added would be an *update* in rules terms
+      // and is denied. Without this clause that probe dereferences a null
+      // `resource`, the rule errors, and Firestore reports it as
+      // permission-denied: adding any new word fails before it starts. It also
+      // makes a share link to a deleted term a plain "not found" instead of an
+      // error.
+      allow read: if resource == null
+                    || resource.data.status == 'active'
                     || isVillageMember(resource.data.municipalityId)
                     || isOwner(resource.data.createdBy);
       allow create: if isVillageMember(request.resource.data.municipalityId)
@@ -734,7 +744,10 @@ service cloud.firestore {
     }
 
     match /vocabularyDefinitions/{definitionId} {
-      allow read: if resource.data.status == 'active'
+      // Same null-resource guard as vocabularyTerms above: a missing definition
+      // must read as "not found", not as denied.
+      allow read: if resource == null
+                    || resource.data.status == 'active'
                     || isVillageMember(resource.data.municipalityId)
                     || isOwner(resource.data.createdBy);
       allow create: if isVillageMember(request.resource.data.municipalityId)
