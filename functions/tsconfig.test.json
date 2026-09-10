@@ -3,8 +3,13 @@
   "compilerOptions": {
     "noEmit": true,
     "esModuleInterop": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
-  "include": ["src/__tests__"],
+  "include": [
+    "src/__tests__",
+    "src/**/*.d.ts"
+  ],
   "exclude": []
 }
