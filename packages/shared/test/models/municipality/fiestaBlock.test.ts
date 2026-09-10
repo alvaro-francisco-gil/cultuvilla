@@ -8,6 +8,7 @@ import {
   isFiestaBlockOver,
   nextFiestaWindow,
   resolveFiestaWindow,
+  madridYear,
 } from '../../../src/models/municipality/FiestaBlockModel';
 
 // Matabuena's two real 2026 blocks — the case the model exists for.
@@ -247,5 +248,26 @@ describe('clampAnchor', () => {
     ]) {
       expect(() => FiestaAnchorSchema.parse(clampAnchor(bad))).not.toThrow();
     }
+  });
+});
+
+describe('madridYear', () => {
+  it('reads the Madrid calendar year, not the UTC one', () => {
+    // Midnight on 1 January in Madrid is 23:00 on 31 December UTC. A January
+    // fiesta block would otherwise be filed under the previous year, and its
+    // carteles card would count the wrong year's posters.
+    const block = buildFiestaBlock({ id: 'reyes', name: 'Reyes', anchor: { month: 1, day: 1, days: 6 } });
+    const window = resolveFiestaWindow(block, 2027);
+    if (!window) throw new Error('expected a window');
+    expect(window.start.getUTCFullYear()).toBe(2026);
+    expect(madridYear(window.start)).toBe(2027);
+  });
+
+  it('agrees with UTC in the middle of the year', () => {
+    expect(madridYear(new Date('2026-08-15T18:00:00Z'))).toBe(2026);
+  });
+
+  it('reads the last instant of the year as that year', () => {
+    expect(madridYear(new Date('2026-12-31T22:59:59Z'))).toBe(2026);
   });
 });

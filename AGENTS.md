@@ -508,6 +508,23 @@ an array of `{municipalityId, barrioId}` **objects** — Firestore matches an ar
 element whole, so a field filter returns zero rows silently rather than failing.
 Any future collection scoped that way needs the same treatment.
 
+### Previewing a village Wrapped
+
+`pnpm wrapped:preview` renders a village's post-fiestas Wrapped cards to local
+image files from real data, read-only — the design loop for the Wrapped, with no
+deploy and no emulator.
+
+```bash
+pnpm wrapped:preview --municipality=digSmD1NFyaOJCPQ99cC \
+  --start=2026-08-14 --end=2026-08-28 --block="Fiestas de agosto" [--project=cultuvilla-prod] [--out=DIR]
+```
+
+It bundles its entry with **the deploy's own esbuild options** (`functions/esbuild.shared.mjs`),
+so a preview that renders proves the deployed bundle renders: fonts inlined,
+Satori's layout engine bundled, `sharp` external. Keep those options shared —
+a preview built differently would prove nothing. Reads use the same ADC as the
+mirror (`~/.config/cultuvilla/adc.json`).
+
 ### Mobile app
 
 Mobile code lives in [`apps/mobile/`](apps/mobile/). It is an Expo SDK 56 / Expo Router 56 / NativeWind v4 React Native app that consumes `@cultuvilla/shared` and `@cultuvilla/i18n` from the monorepo.
