@@ -67,8 +67,14 @@ export function ActionPill({
       onLayout={(e) =>
         setAvailableWidth(e.nativeEvent.layout.width - HORIZONTAL_PADDING * 2)
       }
-      className="flex-row items-center justify-center bg-surface"
-      style={({ pressed }) => ({
+      className={`flex-row items-center justify-center bg-surface${
+        disabled ? '' : ' active:opacity-70'
+      }`}
+      // A plain object, never a function: NativeWind collects the inline style
+      // as a declaration and applies it with `{ ...style }`, which spreads a
+      // function to nothing — the pill would render as a bare label with no
+      // outline. Press feedback rides on the `active:` variant instead.
+      style={{
         flex: grow ? 1 : undefined,
         paddingVertical: 5,
         paddingHorizontal: HORIZONTAL_PADDING,
@@ -79,8 +85,8 @@ export function ActionPill({
         // The measuring copy below is deliberately wider than any screen;
         // clip it so it can't add horizontal overflow to the web build.
         overflow: 'hidden',
-        opacity: disabled ? 0.5 : pressed ? 0.7 : 1,
-      })}
+        ...(disabled ? { opacity: 0.5 } : null),
+      }}
     >
       <RNText
         numberOfLines={fitsOneLine ? 1 : undefined}
