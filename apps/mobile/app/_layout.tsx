@@ -19,6 +19,7 @@ import { MyRegistrationsProvider } from '../lib/registrations/MyRegistrationsCon
 import { useDeepLinkRouter } from '../lib/deeplink/useDeepLinkRouter';
 import { useRouteTracking } from '../lib/observability/useRouteTracking';
 import { CropperHost } from '../lib/imageCrop';
+import { useSeoShellFailsafe } from '../lib/seoShell';
 import { ActivityIndicator, View } from 'react-native';
 
 bootstrapFirebase();
@@ -26,6 +27,9 @@ bootstrapObservability();
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ Fraunces_700Bold });
+  // Before any early return: the overlay ogRenderer injects must be released
+  // even when the app never reaches a screen that knows about it.
+  useSeoShellFailsafe();
   if (!fontsLoaded) {
     return (
       <View className="flex-1 items-center justify-center bg-surface">
