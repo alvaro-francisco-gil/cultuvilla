@@ -9,6 +9,7 @@ describe('entity registry', () => {
       barrio: 'map-outline',
       organization: 'people-outline',
       news: 'newspaper-outline',
+      historyEntry: 'hourglass-outline',
     });
   });
 });

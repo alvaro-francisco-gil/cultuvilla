@@ -25,6 +25,7 @@ import { municipalityPersonConverterClient } from '../converters/municipalityPer
 import { contentReportConverterClient } from '../converters/contentReportConverter.client';
 import { blockedUserConverterClient } from '../converters/blockedUserConverter.client';
 import { vocabularyTermConverterClient } from '../converters/vocabularyTermConverter.client';
+import { historyEntryConverterClient } from '../converters/historyEntryConverter.client';
 import { vocabularyDefinitionConverterClient } from '../converters/vocabularyDefinitionConverter.client';
 
 export const eventsCollection = (db: Firestore) =>
@@ -223,3 +224,11 @@ export const vocabularyDefinitionsCollection = (db: Firestore) =>
 
 export const vocabularyDefinitionDoc = (db: Firestore, definitionId: string) =>
   doc(db, 'vocabularyDefinitions', definitionId).withConverter(vocabularyDefinitionConverterClient);
+
+// ── Village history (top-level collection) ───────────────────────────────
+
+export const historyEntriesCollection = (db: Firestore) =>
+  collection(db, 'historyEntries').withConverter(historyEntryConverterClient);
+
+export const historyEntryDoc = (db: Firestore, entryId: string) =>
+  doc(db, 'historyEntries', entryId).withConverter(historyEntryConverterClient);

@@ -6,6 +6,26 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Added
 
+- **La historia del pueblo, en una línea del tiempo.** Cada pueblo tiene ahora
+  un botón **Historia** que abre su cronología: el presente arriba y, según se
+  baja, más atrás en el tiempo, con un separador al empezar cada siglo. Cada
+  acontecimiento lleva un título, un relato con formato, hasta **tres imágenes
+  con pie de foto** (la primera es la portada) y, si se quiere, sus **fuentes**.
+
+  La fecha es tan precisa como lo que se sabe: un año, un mes o un día; un
+  momento o un periodo («1936 – 1939»); y puede marcarse como aproximada
+  («h. 1500»). Admite años **antes de Cristo** («218 a. C.»), que es donde
+  empiezan muchas historias de pueblo — por eso las fechas se guardan como
+  números y no como `Timestamp`, que no llega más atrás del año 1.
+
+  Igual que el vocabulario: cualquier vecino publica al instante, cualquiera lo
+  lee (también fuera de la app, con enlace para compartir), y los
+  administradores ocultan o corrigen después. Los acontecimientos admiten
+  comentarios.
+
+  Nueva colección `historyEntries/`: necesita desplegar reglas, índice y
+  `storage.rules`. Sin migración — la colección es nueva.
+
 - **Los pueblos de Cultuvilla ya se pueden encontrar en Google.** La web era una
   aplicación que se pintaba entera en el navegador: quien llegaba a
   `cultuvilla.es/event/…` —o el robot de Google— recibía una página vacía hasta

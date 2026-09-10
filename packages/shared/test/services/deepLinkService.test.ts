@@ -13,6 +13,9 @@ import {
   getUserViewLink,
   getPlaceViewLink,
   getBarrioViewLink,
+  getHistoryEntryViewLink,
+  isNestedResource,
+  NESTED_CHILD_PATH,
   getSeatClaimLink,
   parseLink,
   buildShareMessage,
@@ -347,5 +350,33 @@ describe('seat-claim links', () => {
 
   it('does not mistake an unrelated four-segment event path for a claim', () => {
     expect(parseLink('https://example.test.app/event/evt_123/other/x')).toBeNull();
+  });
+});
+
+describe('deepLinkService — history entries', () => {
+  it('builds a history entry link nested under its village', () => {
+    expect(getHistoryEntryViewLink('mun_abc', 'h1')).toEqual({
+      url: 'https://example.test.app/village/mun_abc/history-entry/h1',
+      kind: 'content',
+      resource: 'historyEntry',
+      id: 'h1',
+      parentId: 'mun_abc',
+    });
+  });
+
+  it('round-trips through parseLink', () => {
+    const link = getHistoryEntryViewLink('mun_abc', 'h1');
+    expect(parseLink(link.url)).toEqual({
+      kind: 'content',
+      resource: 'historyEntry',
+      id: 'h1',
+      parentId: 'mun_abc',
+    });
+  });
+
+  it('maps the resource back to the route segment the app files it under', () => {
+    expect(isNestedResource('historyEntry')).toBe(true);
+    expect(NESTED_CHILD_PATH.historyEntry).toBe('history-entry');
+    expect(isNestedResource('event')).toBe(false);
   });
 });

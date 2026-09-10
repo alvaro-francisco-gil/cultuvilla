@@ -8,6 +8,7 @@ export type DeepLinkResource =
   | 'organization'
   | 'place'
   | 'barrio'
+  | 'historyEntry'
   | 'user';
 
 export interface DeepLink {
@@ -15,7 +16,7 @@ export interface DeepLink {
   kind: LinkKind;
   resource: DeepLinkResource;
   id: string;
-  /** Parent id for resources nested under a village (place, barrio). */
+  /** Parent id for resources nested under a village (place, barrio, history entry). */
   parentId?: string;
   /** The single-use secret on a seat-claim link. */
   token?: string;
@@ -29,6 +30,7 @@ const RESOURCE_TO_PATH: Record<DeepLinkResource, string> = {
   // Nested resources live under /village/<villageId>/...; see buildNestedLink.
   place: 'village',
   barrio: 'village',
+  historyEntry: 'village',
   user: 'user',
 };
 
@@ -39,6 +41,7 @@ const SUPPORTS_INVITE: Record<DeepLinkResource, boolean> = {
   organization: true,
   place: false,
   barrio: false,
+  historyEntry: false,
   user: false,
 };
 
@@ -47,12 +50,17 @@ const SUPPORTS_INVITE: Record<DeepLinkResource, boolean> = {
  * /village/<villageId>/<childPath>/<id> and the parsed link carries the village
  * id in `parentId`.
  */
-const NESTED_CHILD_PATH = {
+export const NESTED_CHILD_PATH = {
   place: 'place',
   barrio: 'barrio',
+  historyEntry: 'history-entry',
 } as const;
 
-type NestedResource = keyof typeof NESTED_CHILD_PATH;
+export type NestedResource = keyof typeof NESTED_CHILD_PATH;
+
+export function isNestedResource(resource: DeepLinkResource): resource is NestedResource {
+  return resource in NESTED_CHILD_PATH;
+}
 const NESTED_PARENT_PATH = 'village';
 
 const INVITE_SUFFIX = 'join';
@@ -136,12 +144,14 @@ export const getPlaceViewLink = (villageId: string, placeId: string): DeepLink =
   buildNestedLink('place', villageId, placeId);
 export const getBarrioViewLink = (villageId: string, barrioId: string): DeepLink =>
   buildNestedLink('barrio', villageId, barrioId);
+export const getHistoryEntryViewLink = (villageId: string, entryId: string): DeepLink =>
+  buildNestedLink('historyEntry', villageId, entryId);
 
 export interface ParsedDeepLink {
   kind: LinkKind;
   resource: DeepLinkResource;
   id: string;
-  /** Parent id for resources nested under a village (place, barrio). */
+  /** Parent id for resources nested under a village (place, barrio, history entry). */
   parentId?: string;
   /** The single-use secret on a seat-claim link. */
   token?: string;
@@ -150,6 +160,7 @@ export interface ParsedDeepLink {
 const CHILD_PATH_TO_RESOURCE: { readonly [path: string]: NestedResource | undefined } = {
   place: 'place',
   barrio: 'barrio',
+  'history-entry': 'historyEntry',
 };
 
 const PATH_TO_RESOURCE: { readonly [path: string]: DeepLinkResource | undefined } = {

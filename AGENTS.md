@@ -128,8 +128,10 @@ Currently controlled inputs with `useState`. No form library yet. New forms shou
 An **entity** is a village-scoped domain object that appears in a horizontal
 `Section` scroll (as a `BigCard` / `EntityCard`) and opens a hero-image detail
 screen. The family: **event, festival-poster (cartel), place, barrio,
-organization, news**. `person` and `village` are **not** entities — they open
-into forms (`ScreenHeader`), not hero-detail screens.
+organization, news**, plus **history entry**, which opens the same hero-detail
+screen but is listed on the village's timeline rather than in a `Section`
+scroll. `person` and `village` are **not** entities — they open into forms
+(`ScreenHeader`), not hero-detail screens.
 
 Every entity detail screen is a thin consumer of one scaffold,
 [apps/mobile/components/feature/EntityDetailScaffold.tsx](apps/mobile/components/feature/EntityDetailScaffold.tsx):

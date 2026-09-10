@@ -8,7 +8,8 @@ export type EntityKind =
   | 'place'
   | 'barrio'
   | 'organization'
-  | 'news';
+  | 'news'
+  | 'historyEntry';
 
 /** Fallback Ionicon shown in DetailHeroImage / cards when an entity has no
  * image. Single source of truth for the icons the detail screens used to
@@ -20,4 +21,5 @@ export const ENTITY_FALLBACK_ICON: Record<EntityKind, keyof typeof Ionicons.glyp
   barrio: 'map-outline',
   organization: 'people-outline',
   news: 'newspaper-outline',
+  historyEntry: 'hourglass-outline',
 };

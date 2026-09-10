@@ -12,6 +12,7 @@ describe('EntityKind', () => {
         'organization',
         'place',
         'vocabularyTerm',
+        'historyEntry',
       ].sort(),
     );
   });

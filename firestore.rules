@@ -517,7 +517,7 @@ service cloud.firestore {
     }
 
     function isValidEntityKind(v) {
-      return v in ['event', 'festivalPoster', 'place', 'barrio', 'organization', 'news', 'vocabularyTerm'];
+      return v in ['event', 'festivalPoster', 'place', 'barrio', 'organization', 'news', 'vocabularyTerm', 'historyEntry'];
     }
 
     function isValidCommentCreate(d) {
@@ -539,7 +539,7 @@ service cloud.firestore {
       return d.keys().hasOnly(['municipalityId', 'targetKind', 'targetId', 'targetAuthorUserId', 'reporterUserId', 'reason', 'note', 'status', 'createdAt'])
           && d.keys().hasAll(['municipalityId', 'targetKind', 'targetId', 'targetAuthorUserId', 'reporterUserId', 'reason', 'note', 'status', 'createdAt'])
           && isString(d.municipalityId)
-          && d.targetKind in ['event', 'festivalPoster', 'place', 'barrio', 'organization', 'news', 'vocabularyTerm', 'comment', 'person']
+          && d.targetKind in ['event', 'festivalPoster', 'place', 'barrio', 'organization', 'news', 'vocabularyTerm', 'historyEntry', 'comment', 'person']
           && isString(d.targetId)
           && isStringOrNull(d.targetAuthorUserId)
           && isString(d.reporterUserId)
@@ -608,6 +608,57 @@ service cloud.firestore {
           && topLevelEntityInVillage(/databases/$(database)/documents/vocabularyTerms/$(d.termId), d.municipalityId);
     }
 
+    // ── Village history ──────────────────────────────────────────────────
+    // A historical date is plain integers, not a timestamp, so it can hold a
+    // BC year. `sortKey` is what the timeline orders on; it is re-derived here
+    // (same arithmetic as `historicalDateSortKey`) so a client cannot file an
+    // entry at a date it does not claim.
+    function isValidHistoricalDate(v) {
+      return isMap(v)
+          && v.keys().hasOnly(['year', 'month', 'day'])
+          && v.keys().hasAll(['year', 'month', 'day'])
+          && v.year is int && v.year >= -9999 && v.year <= 9999 && v.year != 0
+          && (v.month == null || (v.month is int && v.month >= 1 && v.month <= 12))
+          && (v.day == null || (v.month != null && v.day is int && v.day >= 1 && v.day <= 31));
+    }
+
+    function historicalDateSortKey(v) {
+      return v.year * 10000
+           + (v.month == null ? 0 : v.month * 100)
+           + (v.day == null ? 0 : v.day);
+    }
+
+    function isValidHistoryEntryShape(d) {
+      return d.keys().hasOnly([
+              'municipalityId', 'createdBy', 'title', 'body', 'images', 'start', 'end',
+              'approximate', 'sources', 'sortKey', 'createdAt', 'updatedAt',
+              'commentCount', 'readCount',
+              'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+            ])
+          && d.keys().hasAll([
+              'municipalityId', 'createdBy', 'title', 'body', 'images', 'start', 'end',
+              'approximate', 'sources', 'sortKey', 'createdAt', 'updatedAt',
+              'commentCount', 'readCount',
+              'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+            ])
+          && isString(d.municipalityId)
+          && isString(d.createdBy)
+          && isString(d.title) && d.title.size() > 0 && d.title.size() <= 120
+          && isMap(d.body)
+          && d.body.keys().hasOnly(['text', 'mentions', 'links', 'marks'])
+          && isString(d.body.text) && d.body.text.size() <= 20000
+          && isList(d.body.mentions) && isList(d.body.links) && isList(d.body.marks)
+          && isList(d.images) && d.images.size() <= 3
+          && isValidHistoricalDate(d.start)
+          && (d.end == null
+              || (isValidHistoricalDate(d.end) && historicalDateSortKey(d.end) > historicalDateSortKey(d.start)))
+          && isBool(d.approximate)
+          && (d.sources == null || (isString(d.sources) && d.sources.size() <= 2000))
+          && d.sortKey == historicalDateSortKey(d.start)
+          && isTimestamp(d.createdAt)
+          && isTimestamp(d.updatedAt);
+    }
+
     function isValidBlockedUserCreate(d, blockedUserId) {
       return d.keys().hasOnly(['blockedUserId', 'createdAt'])
           && d.keys().hasAll(['blockedUserId', 'createdAt'])
@@ -656,6 +707,8 @@ service cloud.firestore {
                ? topLevelEntityInVillage(/databases/$(database)/documents/festivalPosters/$(id), mid)
            : kind == 'vocabularyTerm'
                ? topLevelEntityInVillage(/databases/$(database)/documents/vocabularyTerms/$(id), mid)
+           : kind == 'historyEntry'
+               ? topLevelEntityInVillage(/databases/$(database)/documents/historyEntries/$(id), mid)
            : false;
     }
 
@@ -764,6 +817,42 @@ service cloud.firestore {
       allow delete: if isOwner(resource.data.createdBy)
                       || isVillageAdmin(resource.data.municipalityId)
                       || isAppAdmin();
+    }
+
+    // ── Village history: a pueblo's timeline ─────────────────────────────
+    // Members write, everyone reads, admins moderate after the fact — the same
+    // open posture as vocabulary. Admins may also correct someone else's entry
+    // (unlike a vocabulary definition, an entry is a shared account of an event,
+    // not one villager's opinion).
+    match /historyEntries/{entryId} {
+      allow read: if resource.data.status == 'active'
+                    || isVillageMember(resource.data.municipalityId)
+                    || isOwner(resource.data.createdBy);
+      allow create: if isVillageMember(request.resource.data.municipalityId)
+                      && isValidHistoryEntryShape(request.resource.data)
+                      && request.resource.data.createdBy == request.auth.uid
+                      && request.resource.data.commentCount == 0
+                      && request.resource.data.readCount == 0
+                      && request.resource.data.status == 'active'
+                      && request.resource.data.hiddenBy == null
+                      && request.resource.data.hiddenAt == null
+                      && request.resource.data.hiddenReason == null;
+      // Authority reads the STORED municipalityId, and the diff below keeps it
+      // immutable — otherwise an admin of pueblo A could walk an entry into B.
+      // Counters and visibility are function-owned.
+      allow update: if (
+                        isOwner(resource.data.createdBy)
+                        || isVillageAdmin(resource.data.municipalityId)
+                        || isAppAdmin()
+                      )
+                      && isValidHistoryEntryShape(request.resource.data)
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                           'title', 'body', 'images', 'start', 'end', 'approximate',
+                           'sources', 'sortKey', 'updatedAt',
+                         ]);
+      allow delete: if isVillageAdmin(resource.data.municipalityId)
+                      || isAppAdmin()
+                      || (isOwner(resource.data.createdBy) && resource.data.status == 'active');
     }
 
     match /comments/{commentId} {

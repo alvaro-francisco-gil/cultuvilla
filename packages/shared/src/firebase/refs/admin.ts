@@ -26,6 +26,7 @@ import { municipalityPersonConverterAdmin } from '../converters/municipalityPers
 import { contentReportConverterAdmin } from '../converters/contentReportConverter.admin';
 import { blockedUserConverterAdmin } from '../converters/blockedUserConverter.admin';
 import { vocabularyTermConverterAdmin } from '../converters/vocabularyTermConverter.admin';
+import { historyEntryConverterAdmin } from '../converters/historyEntryConverter.admin';
 import { vocabularyDefinitionConverterAdmin } from '../converters/vocabularyDefinitionConverter.admin';
 
 export const eventsCollection = (db: Firestore) =>
@@ -243,3 +244,11 @@ export const vocabularyDefinitionsCollection = (db: Firestore) =>
 
 export const vocabularyDefinitionDoc = (db: Firestore, definitionId: string) =>
   db.collection('vocabularyDefinitions').doc(definitionId).withConverter(vocabularyDefinitionConverterAdmin);
+
+// ── Village history (top-level collection) ───────────────────────────────
+
+export const historyEntriesCollection = (db: Firestore) =>
+  db.collection('historyEntries').withConverter(historyEntryConverterAdmin);
+
+export const historyEntryDoc = (db: Firestore, entryId: string) =>
+  db.collection('historyEntries').doc(entryId).withConverter(historyEntryConverterAdmin);

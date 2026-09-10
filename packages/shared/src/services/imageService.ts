@@ -185,6 +185,21 @@ export async function uploadFestivalPosterImage(
   );
 }
 
+/**
+ * Upload one history-entry gallery image. Returns the **download URL** stored in
+ * `HistoryEntryData.images[].url`.
+ */
+export async function uploadHistoryEntryImage(
+  municipalityId: string,
+  entryId: string,
+  image: UploadableImage,
+): Promise<string> {
+  return uploadToPath(
+    `historyEntries/${municipalityId}/${entryId}/${generateImageId(image.filename)}`,
+    image,
+  );
+}
+
 /** Resolve a download URL for a stored news image path. */
 export async function newsImageDownloadURL(storagePath: string): Promise<string> {
   return getDownloadURL(ref(getFirebaseStorage(), storagePath));

@@ -260,6 +260,14 @@ describe('VillageHomeBody', () => {
     expect(router.push).toHaveBeenCalledWith('/village/m1/community');
   });
 
+  it('opens the pueblo’s history — for non-members too, reading is open to everyone', () => {
+    const { getByTestId } = render(
+      <VillageHomeBody data={{ ...base, isMember: false }} reload={jest.fn()} />,
+    );
+    fireEvent.press(getByTestId('village-history-action'));
+    expect(router.push).toHaveBeenCalledWith('/village/m1/history');
+  });
+
   it('non-admin members do not see the "Detalles pueblo" option in the sheet', () => {
     const { getByText, queryByText } = render(<VillageHomeBody data={base} reload={jest.fn()} />);
     fireEvent.press(getByText('Añadir contenido'));
@@ -354,7 +362,7 @@ describe('VillageHomeBody', () => {
         organizerUserIds: ['u1'],
         title: 'Sabores de siempre',
         body: 'Recetas del pueblo',
-        category: 'historia',
+        category: 'gastronomia',
         createdAt: publishedAt,
         publishedAt,
         updatedAt: publishedAt,
@@ -365,7 +373,7 @@ describe('VillageHomeBody', () => {
       <VillageHomeBody data={{ ...base, news: [post] }} reload={jest.fn()} />,
     );
 
-    expect(getByText('Historia')).toBeTruthy();
+    expect(getByText('Gastronomía')).toBeTruthy();
     expect(queryByText('15/06/2026')).toBeNull();
   });
 });
