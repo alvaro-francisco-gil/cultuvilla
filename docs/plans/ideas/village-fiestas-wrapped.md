@@ -102,27 +102,37 @@ An admin's review screen offers exactly two actions, publish and discard. It is 
 
 **Notifications.** A new `NotificationType` enum member, delivered to every `role: 'admin'` member of the village via `users/{uid}/notifications/`. It carries `municipalityId` and leaves `entityKind`/`entityId` null, consistent with a Wrapped not being an `EntityKind`. Widening the enum is additive — existing notification docs keep parsing.
 
-**Village cards** (all figures below are the real Matabuena 2026 August block):
+**The Wrapped is a set of generated images**, not an in-app screen. Decided 2026-09-11: images are what people share, and a forwarded image must exist at a URL for a link preview to resolve — which rules out rendering on the device. One server-side render serves the app, the share preview and notifications, identically on every phone.
 
-- the block, its name and its dates
-- 14 events held
-- 240 confirmed sign-ups, and the unique-persona count behind them
-- fullest event — *Taller infantil de pintar bolsas de tela*, 60/60
-- most-commented event — *Torneo de Brisca*
-- people left on the waitlist, as a demand signal
-- new members who joined during the window (`joinedAt` in range)
-- that year's carteles as the visual spine
+**Six 1080×1920 story cards**, built and rendered from Matabuena's real data (renderer in `functions/src/wrapped/`):
 
-`readCount` is **excluded from the headline.** 382 views on a taller is a view counter, not a person; printing it beside "60 apuntados" invites it to be read as reach. It may appear as an explicitly-labelled "veces visto" card, never as a participation number.
+| Card | Shows | Real imagery? |
+|---|---|---|
+| cover | pueblo, block name, year, dates, escudo | the escudo only |
+| stats | 174 people took part · 14 events · 240 sign-ups · 6 comments · 12 waitlisted · *el lleno* (bolsas de tela, 60/60) | no — typography |
+| events | every counted event's flyer, date + title in a caption band | **yes — all 21 events have a flyer** |
+| people | the whole public censo as bubbles, participants ringed and first, the rest dimmed | 18% — 50 of 272 have a photo; the rest are coloured initials |
+| organizers | organizations by events run, then people by events they published | no — none of the top organizers or orgs has a photo |
+| carteles | the pueblo's whole poster archive oldest-first, this year's ringed at the end, over a 1960→2026 timeline | **yes — all 73 carteles** |
 
-**Personal cards**, layered second: the events you and your personas signed up to, how many, your first fiesta if `joinedAt` falls in the window, comments you left. Gated by a floor — under ~2 sign-ups it falls through to the village Wrapped rather than rendering a hollow personal one. With ~46 participating accounts against 173 members, the empty case is the common case, so the fallback is the main path, not an edge case.
+Rendering: Satori (layout; fonts embedded as glyph paths, so no container fonts are needed) → sharp (raster). Photo cards ship as JPEG, flat cards as PNG. All six for Matabuena: ~1.5 MB total, ~20 s, dominated by ~140 image fetches.
 
-**Presentation.** A new route `apps/mobile/app/village/[villageId]/wrapped/[year].tsx` — swipeable full-screen cards. Not an `EntityDetailScaffold` consumer: a Wrapped is not an entity (no hero image + title + body, no comments, no moderation). Two web-compat constraints, both already paid for elsewhere in this repo:
+**Findings from rendering real data** — each is now a tested rule:
 
-- **No RN `Modal`** — an absolute-positioned overlay, following the carteles full-screen viewer.
-- Card transitions put styles on `style`, not `className`; NativeWind drops `className` on `Animated.View`.
+- **"174 of 272 in the censo" was a false ratio.** 174 people took part, but only **137** are in the censo: 33 have no village link at all (29 are personas someone else created — mostly kids), 4 live elsewhere. The two figures are computed separately (`uniquePersonCount`, `censoParticipantCount`) and never read against each other.
+- **`organizerUserIds` is a member roster, not a credit list.** On 11 of 21 events it holds the same six people. People are credited by `createdBy`, organizations by `organizerOrgIds` — where the story is real: the Comisión de Festejos ran 8 of the 14 August events.
+- **Only `isPublic` people and `active` carteles appear**, both allowlisted, because every card is forwardable. The one Matabuena person who opted out is neither drawn nor counted.
+- **The carteles archive is crowdsourced**, so its 28 missing years (a long hole 1980–91, and 2020) are shown on the timeline and never explained on the card.
 
-Entry point is a `Section` or banner on the village home, appearing once the doc reaches `published`. A `draft` is visible only to village admins, via the notification and their review screen. Sharing reuses the existing `functions/src/og/` renderer for a share card.
+`readCount` stays **excluded** — 382 views on a taller is a view counter, not a person.
+
+**Dropped from the earlier draft:** the "new members during the fiestas" card (every Matabuena member joined in July–August 2026, the app's launch — in a launch year it measures the launch), and a standalone "most commented" card (4 comments cannot fill a screen).
+
+**Personal cards** remain a later layer: the events you and your personas signed up to, above a floor of ~2 sign-ups, falling through to the village Wrapped below it.
+
+**Presentation in the app** is thin: a viewer that pages through the six stored images, and a share action. Entry point is a `Section` or banner on the village home once the doc reaches `published`; a `draft` is visible only to village admins, via the notification and their review screen.
+
+**Iterating on the design needs no deploy:** `pnpm wrapped:preview --municipality=<id> --start=YYYY-MM-DD --end=YYYY-MM-DD --block="<name>"` renders a real village read-only to local files, bundled with the deploy's own esbuild options.
 
 ## Migration & testing
 
@@ -146,4 +156,5 @@ Tests:
 
 ## Open questions
 
-None blocking. Two values want a look during implementation rather than now: the `GRACE` period (proposed 3 days) and the quality floor (proposed: 3 live events and at least one sign-up).
+- **The 33 participants with no village link.** They took part in the fiestas and are absent from the people wall, because the wall is the censo and they have no residence — mostly personas a parent created without setting a village. Options: draw them on the wall anyway, prompt parents to set their family's residence, or leave the wall as the censo. Needs a product call.
+- `GRACE` period (proposed 3 days) and the auto-publish quality floor (3 live events and at least one sign-up) — tune against real data.
