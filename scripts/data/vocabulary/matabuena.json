@@ -1,0 +1,442 @@
+{
+  "municipality": { "name": "Matabuena", "codigoINE": "40123" },
+  "sources": {
+    "ayer-dijimos-algo": {
+      "name": "Ayer Dijimos Algo",
+      "kind": "podcast",
+      "url": "https://www.youtube.com/channel/UCld9WLRKEWoxjO7Af-3irwQ",
+      "credit": "Podcast Ayer Dijimos Algo — sección de Samuel Picazo",
+      "notes": "Podcast de Matabuena. Las palabras y refranes salen de la sección de Samuel Picazo al inicio de cada episodio (el tiempo según las cabañuelas, el refrán del mes y, desde el episodio 10, las palabritas). Transcrito de los subtítulos automáticos de YouTube; los pasajes dudosos se re-transcribieron con Whisper large-v3. Solo palabras locales: se descartaron las canarias (abobanicado, machango) y 'enmarañado', que es castellano general."
+    }
+  },
+  "curatedAt": "2026-09-11",
+  "entries": [
+    {
+      "term": "ajigolado",
+      "kind": "palabra",
+      "definition": "Que se queda sin aire y siente una presión en el pecho al hacer un pequeño esfuerzo. También se escribe agigolado; el verbo es ajigolarse (agigolar).",
+      "castellano": "sofocado, jadeante",
+      "example": "Subí la cuesta y llegué ajigolado.",
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 10,
+        "videoId": "wvsZfJSM-W4",
+        "at": 463,
+        "asSaid": "ajigolado o ajigolada"
+      },
+      "verification": {
+        "status": "verified",
+        "notes": "Localismo segoviano. La RAE recoge 'ajigolarse' (fatigarse jadeando) en sus diccionarios históricos; el vocabulario de Cobos de Segovia lo escribe 'agigolar'.",
+        "references": [
+          "https://www.rae.es/tdhle/ajigolarse",
+          "https://www.cobosdesegovia.com/Vocabulario_popular.htm",
+          "https://www.significadode.org/definicion/246016.htm"
+        ]
+      }
+    },
+    {
+      "term": "modorro",
+      "kind": "palabra",
+      "definition": "Atontado, torpe, falto de entendimiento. Viene de la oveja modorra: la que padece la modorra, una enfermedad del cerebro que la deja aturdida, sin equilibrio y separada del rebaño.",
+      "castellano": "atontado, torpe",
+      "example": "Esa oveja está modorra.",
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 11,
+        "videoId": "HYx6VOoLPVs",
+        "at": 350,
+        "asSaid": "modorro"
+      },
+      "verification": {
+        "status": "verified",
+        "notes": "En el podcast se explica la 'oveja modorra' como la que no valía para criar; las fuentes la describen como la oveja enferma de modorra (aturdida). Se usa la acepción de las fuentes.",
+        "references": [
+          "https://dle.rae.es/modorro",
+          "https://recorriendotierradepinares.jimdofree.com/palabrario-segoviano/",
+          "https://www.cobosdesegovia.com/Vocabulario_popular.htm"
+        ]
+      }
+    },
+    {
+      "term": "añusgar",
+      "kind": "palabra",
+      "definition": "Atragantarse; quedarse la comida o la bebida atascada en la garganta. Se usa sobre todo como pronominal: añusgarse.",
+      "castellano": "atragantarse",
+      "example": "Me he añusgado con el pan.",
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 11,
+        "videoId": "HYx6VOoLPVs",
+        "at": 3471,
+        "asSaid": "no se os añusga ninguna cerveza"
+      },
+      "verification": {
+        "status": "verified",
+        "notes": "Aportada en un audio de un oyente al final del episodio 11 y explicada en el episodio 12 (https://youtu.be/GFxwt0RhQL8?t=664). Recogida por la RAE (añusgarse) y en el vocabulario de Cobos de Segovia.",
+        "references": [
+          "https://dle.rae.es/a%C3%B1usgarse",
+          "https://www.cobosdesegovia.com/Vocabulario_popular.htm"
+        ]
+      }
+    },
+    {
+      "term": "horco",
+      "kind": "palabra",
+      "definition": "Ristra o trenza de ajos (o cebollas) atados por los tallos para que se sequen y guardarlos juntos.",
+      "castellano": "ristra",
+      "example": "Un horco de ajos.",
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 12,
+        "videoId": "GFxwt0RhQL8",
+        "at": 694,
+        "asSaid": "orco"
+      },
+      "verification": {
+        "status": "verified",
+        "notes": "En el podcast suena 'orco'; la grafía correcta según la RAE es 'horco', con h (sinónimo de horca de ajos).",
+        "references": ["https://dle.rae.es/horco"]
+      }
+    },
+    {
+      "term": "antier",
+      "kind": "palabra",
+      "definition": "Anteayer, el día antes de ayer.",
+      "castellano": "anteayer",
+      "example": "Eso pasó antier.",
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 12,
+        "videoId": "GFxwt0RhQL8",
+        "at": 718,
+        "asSaid": "antier"
+      },
+      "verification": {
+        "status": "verified",
+        "notes": "Recogida por la RAE como forma coloquial de anteayer.",
+        "references": ["https://dle.rae.es/antier"]
+      }
+    },
+    {
+      "term": "morgas",
+      "kind": "palabra",
+      "definition": "Restos o suciedad de comida que quedan alrededor de la boca, en las comisuras. Por extensión, quien come sucio: ser un morgas.",
+      "castellano": "restos de comida en la boca",
+      "example": "¡Vaya morgas tienes! Límpiate.",
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 13,
+        "videoId": "QNQb3Oc5Xjs",
+        "at": 576,
+        "asSaid": "morgas"
+      },
+      "verification": {
+        "status": "verified",
+        "notes": "Localismo segoviano muy extendido; sinónimos: berretes, mudarras.",
+        "references": [
+          "https://recorriendotierradepinares.jimdofree.com/palabrario-segoviano/",
+          "https://palabrejasdesegovia.wordpress.com/2015/01/23/algunas-palabras-de-segovia-y-provincia-comenzamos/"
+        ]
+      }
+    },
+    {
+      "term": "polán",
+      "kind": "palabra",
+      "definition": "Chaval malo, travieso.",
+      "castellano": "travieso",
+      "example": "Tú eres más polán que morgas.",
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 13,
+        "videoId": "QNQb3Oc5Xjs",
+        "at": 583,
+        "asSaid": "Polán es un chaval malo"
+      },
+      "verification": {
+        "status": "unverified",
+        "notes": "No aparece en ningún diccionario ni vocabulario segoviano consultado. Whisper confirma que se pronuncia 'polán' (varias veces). Confirmar grafía y significado con Samuel antes de subirla.",
+        "references": []
+      }
+    },
+    {
+      "term": "ralo",
+      "kind": "palabra",
+      "definition": "Espaciado, poco tupido: con las partes más separadas de lo normal. Tejas ralas son las que solapan poco; árboles ralos, los que están muy separados; dientes ralos, los separados.",
+      "castellano": "espaciado, disperso",
+      "example": "Las tejas están ralas y entra el agua.",
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 14,
+        "videoId": "tIqWNLc_vSo",
+        "at": 508,
+        "asSaid": "ralo"
+      },
+      "verification": {
+        "status": "verified",
+        "notes": "Recogida por la RAE y en el palabrario segoviano.",
+        "references": [
+          "https://dle.rae.es/ralo",
+          "https://recorriendotierradepinares.jimdofree.com/palabrario-segoviano/"
+        ]
+      }
+    },
+    {
+      "term": "yunta",
+      "kind": "palabra",
+      "definition": "Pareja de vacas, bueyes o mulas uncidas con el yugo para arar o tirar del carro.",
+      "castellano": "par de animales de tiro",
+      "example": "Araban con una yunta de vacas.",
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 14,
+        "videoId": "tIqWNLc_vSo",
+        "at": 550,
+        "asSaid": "yunta"
+      },
+      "verification": {
+        "status": "verified",
+        "notes": "Recogida por la RAE y en el vocabulario de Cobos de Segovia.",
+        "references": [
+          "https://dle.rae.es/yunto",
+          "https://www.cobosdesegovia.com/Vocabulario_popular.htm"
+        ]
+      }
+    },
+    {
+      "term": "rilar",
+      "kind": "palabra",
+      "definition": "Temblar, tiritar, sobre todo de frío.",
+      "castellano": "tiritar",
+      "example": "Está rilando de frío.",
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 15,
+        "videoId": "y-lWfz_uVlA",
+        "at": 374,
+        "asSaid": "Rilar. Está rilado."
+      },
+      "verification": {
+        "status": "verified",
+        "notes": "Recogida por la RAE (temblar, tiritar) y en el vocabulario de Cobos de Segovia (tiritar de frío).",
+        "references": [
+          "https://dle.rae.es/rilar",
+          "https://www.cobosdesegovia.com/Vocabulario_popular.htm"
+        ]
+      }
+    },
+    {
+      "term": "miaja",
+      "kind": "palabra",
+      "definition": "Un poco; porción muy pequeña de algo.",
+      "castellano": "migaja, pizca",
+      "example": "Dame una miaja de pan.",
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 15,
+        "videoId": "y-lWfz_uVlA",
+        "at": 385,
+        "asSaid": "una miaja"
+      },
+      "verification": {
+        "status": "verified",
+        "notes": "Recogida por la RAE y en el palabrario segoviano.",
+        "references": [
+          "https://www.rae.es/diccionario-estudiante/miaja",
+          "https://recorriendotierradepinares.jimdofree.com/palabrario-segoviano/"
+        ]
+      }
+    },
+    {
+      "term": "En febrero busca la sombra el perro, a últimos que no a primeros",
+      "kind": "dicho",
+      "definition": "A finales de febrero el sol ya empieza a calentar tanto que hasta el perro busca la sombra; a primeros de mes, todavía no.",
+      "castellano": null,
+      "example": null,
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 9,
+        "videoId": "s4Xz_eXNAH4",
+        "at": 283,
+        "asSaid": "en febrero busca la sombra el perro, pero a últimos que no a primeros"
+      },
+      "verification": {
+        "status": "verified",
+        "notes": "Refrán meteorológico recogido en el Refranero Multilingüe del CVC; la coletilla 'a finales, que no a primeros' es una variante documentada.",
+        "references": [
+          "https://cvc.cervantes.es/lengua/refranero/ficha.aspx?Par=58717&Lng=0",
+          "http://fuentemolinos.blogspot.com/2020/02/refran-en-febrero-busca-la-sombra-el.html"
+        ]
+      }
+    },
+    {
+      "term": "Dura más una mala vecina que una nieve marcina",
+      "kind": "dicho",
+      "definition": "La nieve de marzo (marcina) dura poco porque el sol y el viento la derriten enseguida; una mala vecina, en cambio, te dura mucho más.",
+      "castellano": null,
+      "example": null,
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 9,
+        "videoId": "s4Xz_eXNAH4",
+        "at": 470,
+        "asSaid": "Dura más una mala vecina que una nieve marcina"
+      },
+      "verification": {
+        "status": "verified",
+        "notes": "Lo dice Edu en el programa. Refrán documentado con variantes: 'nieve marcina', 'nieve marcelina', 'nieve marzalina'.",
+        "references": [
+          "https://stel2.ub.edu/paremio-rom/es/refranes/si-nun-durara-m%C3%A1s-la-mala-vecina-que-la-nieve-marcelina",
+          "https://www.tiempo.com/ram/147822/algunos-refranes-de-nieve-y-nevadas/"
+        ]
+      }
+    },
+    {
+      "term": "En abril, aguas mil",
+      "kind": "dicho",
+      "definition": "Abril suele ser un mes de muchas lluvias.",
+      "castellano": null,
+      "example": null,
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 10,
+        "videoId": "wvsZfJSM-W4",
+        "at": 343,
+        "asSaid": "En abril, aguas mil"
+      },
+      "verification": {
+        "status": "verified",
+        "notes": "Uno de los refranes meteorológicos más conocidos.",
+        "references": [
+          "https://www.eltiempo.es/noticias/refranes-mes-abril-populares-clima-tiempo-aguas-mil"
+        ]
+      }
+    },
+    {
+      "term": "Hasta el cuarenta de mayo no te quites el sayo",
+      "kind": "dicho",
+      "definition": "No guardes la ropa de abrigo hasta pasado el 9 de junio (el 'cuarenta de mayo'): hasta entonces el frío puede volver.",
+      "castellano": null,
+      "example": null,
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 10,
+        "videoId": "wvsZfJSM-W4",
+        "at": 363,
+        "asSaid": "hasta el 40 de mayo no te quites el sayo"
+      },
+      "verification": {
+        "status": "verified",
+        "notes": "Se repite en el episodio 13 (https://youtu.be/QNQb3Oc5Xjs?t=559).",
+        "references": [
+          "https://cvc.cervantes.es/lengua/refranero/ficha.aspx?Par=58799&Lng=0",
+          "https://www.elespanol.com/sociedad/20230609/cuarenta-mayo-no-quites-sayo-viene-refran/770173238_0.html"
+        ]
+      }
+    },
+    {
+      "term": "Abril mojado, de panes bien cargado",
+      "kind": "dicho",
+      "definition": "Si abril es lluvioso, la cosecha de cereal (el pan) será abundante.",
+      "castellano": null,
+      "example": null,
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 11,
+        "videoId": "HYx6VOoLPVs",
+        "at": 304,
+        "asSaid": "Abril mojado, de panes bien cargado"
+      },
+      "verification": {
+        "status": "verified",
+        "notes": "La forma más documentada es 'Abril mojado, de panes viene cargado'; se guarda tal y como se dijo en el programa.",
+        "references": [
+          "https://www.tiempo.com/ram/2485/refranes-meteorolgicos-de-abril/"
+        ]
+      }
+    },
+    {
+      "term": "En mayo cualquiera tiene un caballo",
+      "kind": "dicho",
+      "definition": "En mayo la hierba ya crece en el campo, así que mantener un caballo no cuesta nada: cualquiera puede tenerlo.",
+      "castellano": null,
+      "example": null,
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 12,
+        "videoId": "GFxwt0RhQL8",
+        "at": 587,
+        "asSaid": "En mayo cualquiera tiene un caballo"
+      },
+      "verification": {
+        "status": "verified",
+        "notes": "Documentado en refraneros de mayo; variante: 'En mayo, quien tiene un burro tiene un caballo'.",
+        "references": [
+          "http://telecentrodesanzoles.blogspot.com/2011/05/refranero-de-mayo.html"
+        ]
+      }
+    },
+    {
+      "term": "En mayo florido, granan los trigos y florece el lirio",
+      "kind": "dicho",
+      "definition": "Mayo es el mes en que el trigo forma el grano y el campo florece.",
+      "castellano": null,
+      "example": null,
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 13,
+        "videoId": "QNQb3Oc5Xjs",
+        "at": 533,
+        "asSaid": "En mayo florido granan los trigos y florece el lirio"
+      },
+      "verification": {
+        "status": "verified",
+        "notes": "La forma más documentada termina en 'florece el olivo'; se guarda la variante con 'lirio' tal y como se dijo (en la sierra no hay olivos).",
+        "references": [
+          "https://conocerelcastellano.com/refranes-y-dichos/meses-del-anio/mayo/mayo-florido-en-flor-el-olivo-y-granados-los-trigos"
+        ]
+      }
+    },
+    {
+      "term": "Junio brillante, año abundante",
+      "kind": "dicho",
+      "definition": "Un junio soleado anuncia un buen año de cosechas.",
+      "castellano": null,
+      "example": null,
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 14,
+        "videoId": "tIqWNLc_vSo",
+        "at": 476,
+        "asSaid": "Junio brillante, año abundante"
+      },
+      "verification": {
+        "status": "verified",
+        "notes": "Documentado en refraneros de junio.",
+        "references": [
+          "https://www.refranespopulares.org/refranes-populares-sobre-junio/"
+        ]
+      }
+    },
+    {
+      "term": "En junio, hoz en el puño",
+      "kind": "dicho",
+      "definition": "Junio es época de siega: toca coger la hoz.",
+      "castellano": null,
+      "example": null,
+      "said": {
+        "sourceId": "ayer-dijimos-algo",
+        "episode": 15,
+        "videoId": "y-lWfz_uVlA",
+        "at": 350,
+        "asSaid": "En junio, hoz en el puño"
+      },
+      "verification": {
+        "status": "verified",
+        "notes": "Documentado como 'En junio, hoz en puño' (a veces con la coletilla 'de verde y no de maduro').",
+        "references": [
+          "https://conocerelcastellano.com/refranes-y-dichos/meses-del-anio/sobre-junio"
+        ]
+      }
+    }
+  ]
+}
