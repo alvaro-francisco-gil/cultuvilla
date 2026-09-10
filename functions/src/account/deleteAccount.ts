@@ -14,6 +14,9 @@ import {
   personsCollection,
   userDoc,
   userNotificationsCollection,
+  userDevicesCollection,
+  userNotificationPrefsDoc,
+  pushQueueCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
 // Subpath import (not the '@cultuvilla/shared' barrel): the barrel pulls
 // react-native into the functions esbuild bundle. See helpers/membershipAudit.ts.
@@ -42,10 +45,11 @@ interface DeleteAccountResult {
  *     to the DELETED_USER_UID sentinel and pull the uid from `organizerUserIds`.
  *  4. Hard-delete free-text/PII interactions the user authored: comments.
  *     Unlike posts these carry no editorial value once the author is gone.
- *  5. Delete personal data: persons (self + dependents), memberships (with a
- *     `removed` audit event each), registrations, notifications, organizer
- *     requests, dangling organizer pointers, Cloud Storage photos, and the user
- *     profile doc.
+ *  5. Delete personal data: push devices, preferences and queued pushes (first,
+ *     so nothing reaches a phone while the rest is torn down), persons (self +
+ *     dependents), memberships (with a `removed` audit event each),
+ *     registrations, notifications, organizer requests, dangling organizer
+ *     pointers, Cloud Storage photos, and the user profile doc.
  *  6. Delete the Firebase Auth user last — once the data is gone the auth
  *     record has nothing left to protect, and doing it last means a mid-way
  *     failure leaves the account still sign-in-able for a retry.
@@ -71,6 +75,8 @@ export const deleteAccount = onCall<undefined, Promise<DeleteAccountResult>>(
 
     const commentsDeleted = await deleteUserComments(uid);
 
+    const pushDataDeleted = await deletePushData(uid);
+
     const membershipsRemoved = await removeMemberships(uid);
     const personIds = await deletePersons(uid);
     const registrationsDeleted = await deleteRegistrations(uid);
@@ -92,6 +98,7 @@ export const deleteAccount = onCall<undefined, Promise<DeleteAccountResult>>(
       personsDeleted: personIds.length,
       registrationsDeleted,
       notificationsDeleted,
+      pushDataDeleted,
       organizerRequestsDeleted,
       organizerPointersNulled,
     });
@@ -296,6 +303,23 @@ async function deleteRegistrations(uid: string): Promise<number> {
 async function deleteNotifications(uid: string): Promise<number> {
   const snap = await raw(userNotificationsCollection(db, uid)).get();
   return deleteRefsInChunks(snap.docs.map((doc) => doc.ref));
+}
+
+/**
+ * Device tokens address a push at a specific phone, so they are personal data
+ * in their own right. The preferences doc and any queued-but-unsent pushes go
+ * with them; the queue entries carry the uid.
+ */
+async function deletePushData(uid: string): Promise<number> {
+  const [devices, queued] = await Promise.all([
+    raw(userDevicesCollection(db, uid)).get(),
+    raw(pushQueueCollection(db)).where('userId', '==', uid).get(),
+  ]);
+  return deleteRefsInChunks([
+    ...devices.docs.map((doc) => doc.ref),
+    ...queued.docs.map((doc) => doc.ref),
+    userNotificationPrefsDoc(db, uid).withConverter(null),
+  ]);
 }
 
 async function deleteOrganizerRequests(uid: string): Promise<number> {

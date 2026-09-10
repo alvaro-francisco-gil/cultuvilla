@@ -2,6 +2,7 @@ import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { getFirestore } from 'firebase-admin/firestore';
 import { userNotificationsCollection } from '@cultuvilla/shared/firebase/refs/admin';
 import { buildNotificationData } from '@cultuvilla/shared/models';
+import { broadcastToVillage } from '../village/entityPublishedTriggers';
 
 const db = getFirestore();
 
@@ -40,5 +41,21 @@ export const onOrganizationUpdated = onDocumentUpdated(
 
     const ref = userNotificationsCollection(db, requestedBy).doc();
     await ref.set(buildNotificationData({ type, title, body, municipalityId }));
+
+    // Approval is also the moment the org becomes visible to the village —
+    // creation was only a request. Broadcast here rather than from a second
+    // trigger on the same transition (see docs/decisions/unified-inbox.md:
+    // org lifecycle outcomes extend this handler). The founder is excluded;
+    // they just got their own org_approved above.
+    if (type === 'org_approved' && municipalityId) {
+      await broadcastToVillage({
+        kind: 'organization',
+        entityId: event.params.orgId,
+        municipalityId,
+        entityLabel: orgName || null,
+        actorUid: requestedBy,
+        handler: 'onOrganizationUpdated',
+      });
+    }
   },
 );
