@@ -4,10 +4,10 @@
   dist/index.html from THIS file and ignores app/+html.tsx entirely — which is
   how a lang="es" fix and the iOS App Store tag once sat dead in production.
   scripts/check-web-export.mjs rejects a deploy whose export lacks either.
-  The <title> placeholder is filled from the app name per env — and Expo
+  The page title placeholder is filled from the app name per env — and Expo
   replaces only its FIRST occurrence, so never write the placeholder anywhere
-  above the title, this comment included. ogRenderer strips and replaces the
-  title/description/og/twitter tags on share-link routes.
+  above the title, this comment included. ogRenderer drops these comments and
+  replaces the title/description/og/twitter tags on share-link routes.
 -->
 <html lang="es">
   <head>
