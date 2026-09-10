@@ -39,8 +39,22 @@ export function injectMeta(shell: string, og: OgMeta | null, url: string): strin
   const head = shell.slice(0, headCloseIdx);
   const tail = shell.slice(headCloseIdx);
 
-  const cleanedHead = stripExistingMeta(head);
+  const cleanedHead = stripExistingMeta(stripComments(head));
   return cleanedHead + tags + tail;
+}
+
+/**
+ * Drop HTML comments from the head before any tag-matching regex runs.
+ *
+ * The tag regexes below cannot tell markup from prose, and a comment that
+ * merely *mentions* `<title>` gave the title regex a start point inside the
+ * comment: it deleted everything from there to the real `</title>`, including
+ * the comment's own `-->`, `<html lang>`, charset and the viewport meta. The
+ * rest of the head then sat inside an unterminated comment. Comments in the
+ * shell are notes for developers, not for crawlers or browsers.
+ */
+function stripComments(head: string): string {
+  return head.replace(/<!--[\s\S]*?-->/g, '');
 }
 
 function buildMetaTags(meta: OgMeta, url: string): string {

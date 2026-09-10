@@ -72,6 +72,22 @@ describe('canonical + robots meta', () => {
   });
 });
 
+describe('HTML comments in the shell', () => {
+  // A comment that merely mentions <title> must not become the start of a
+  // title match — that deleted <html lang>, charset and viewport on dev.
+  it('cannot swallow the head when a comment mentions a tag', () => {
+    const shell =
+      '<!DOCTYPE html><!-- the <title> is filled per env -->' +
+      '<html lang="es"><head><meta name="viewport" content="width=device-width"/>' +
+      '<title>old</title></head><body><div id="root"></div></body></html>';
+    const html = injectMeta(shell, EVENT, 'https://cultuvilla.es/event/abc');
+    expect(html).toContain('<html lang="es">');
+    expect(html).toContain('<meta name="viewport" content="width=device-width"/>');
+    expect(html).toContain('<title>Fiestas de Santiago</title>');
+    expect(html).not.toContain('<!--');
+  });
+});
+
 describe('buildJsonLd', () => {
   it('describes an event with dates and a place', () => {
     const json = parseLd(buildJsonLd(EVENT, 'https://cultuvilla.es/event/abc'));
