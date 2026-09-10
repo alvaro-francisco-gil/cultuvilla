@@ -89,6 +89,34 @@ When a query would require N reads or live across collection boundaries, write a
 
 `strict: true` everywhere. No `any`. No `@ts-nocheck`. If a type is genuinely unknown at the boundary, use `unknown` and narrow. `@typescript-eslint/no-explicit-any` is an error in `packages/shared` and `functions`; the same standard applies in `apps/mobile` even though it isn't lint-gated yet — fix at the source, never silence with `as any`.
 
+### 6. Web parity is not a build rule
+
+`apps/mobile/` ships to iOS, Android **and** the web (Expo web export → Firebase
+Hosting). It is one codebase: the whole web-specific surface is 3 `.web.*` override
+files and ~27 `Platform.OS === 'web'` branch sites, fenced by
+`pnpm app:check-web-compat` / `pnpm app:check-web-export` and the
+`mobile-web-compat` skill. Keeping the two "in sync" is not a cost we pay.
+
+Two rules, and they are deliberately not the same rule:
+
+- **A feature does not have to work on web to be done.** Ship it app-only when the
+  web version would be a compromise or a blocker (native camera, push, offline).
+  Say so in the PR. Web does not hold a veto over native capabilities.
+- **Never block a flow that already works on web.** No walls, no "continúa en la
+  app" interstitial in front of a working action. The app earns its install by
+  being better, not by web being worse — and a wall lands hardest on the visitor
+  who tapped a WhatsApp link on a phone with no app installed. Desktop has no app
+  to install at all.
+
+**Web's job is the anonymous reader** — the WhatsApp link recipient and Google
+search. Every read route must resolve on web, permanently: share previews
+(`ogRenderer`) and the printed `/descarga` QR depend on it. Work that improves
+anonymous read on web (SEO, share previews, first paint) is *more* valuable under
+this rule, not less.
+
+Read [docs/decisions/web-parity-not-a-build-rule.md](docs/decisions/web-parity-not-a-build-rule.md)
+before proposing that something be removed from, or blocked on, the web build.
+
 ## Conventions
 
 ### Forms
@@ -235,7 +263,7 @@ Header ≤ 100 chars. Direct-to-`develop` is fine for small self-contained chang
 
 ### Versioning & releases
 
-- **Store release is in progress; the web build is still the only shipped surface.** Web (Expo web export → Firebase Hosting) deploys on every promotion. The Android/iOS store release is being set up now — see [docs/plans/ongoing/store-release.md](docs/plans/ongoing/store-release.md) for the runbook and the current state of the external (Play Console / App Store Connect) side. Store **binaries**: a merge to `beta` builds and submits to Play's **closed** track automatically ([beta-build-and-submit.yml](.github/workflows/beta-build-and-submit.yml)); **production is never automatic** and moves only by an explicit `mobile-release` dispatch. The **JS bundle** is a separate matter — see *OTA updates* below.
+- **iOS is published; Android is still in Play's closed track.** iOS 1.0.0 was accepted by App Review on 2026-09-04 and `APP_STORES.ios` is filled in; `APP_STORES.android` stays empty until the Play listing is public, so until then **the web build is the Android app**. Web (Expo web export → Firebase Hosting) deploys on every promotion and is not going away — see [invariant 6](#6-web-parity-is-not-a-build-rule). See [docs/plans/ongoing/store-release.md](docs/plans/ongoing/store-release.md) for the runbook and the current state of the external (Play Console / App Store Connect) side. Store **binaries**: a merge to `beta` builds and submits to Play's **closed** track automatically ([beta-build-and-submit.yml](.github/workflows/beta-build-and-submit.yml)); **production is never automatic** and moves only by an explicit `mobile-release` dispatch. The **JS bundle** is a separate matter — see *OTA updates* below.
 - **Closed-track releases are automatic from `beta`.** Closed testing is not a public release, and Play's "12 testers for 14 continuous days" clock only advances while testers actually *have* builds — every manual step in that loop is a day the clock does not move. So `beta` builds the **`production` EAS profile** (package `com.cultuvilla.app`; the requirement is per package name, so a `com.cultuvilla.app.beta` build earns nothing) and auto-submits to the closed track. Production rollout stays a deliberate `mobile-release` dispatch.
   - It needs `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` as a **repo-level** secret and fails fast with a pointer to the runbook when it is absent.
   - It deliberately declares **no GitHub `environment`**: the `Production` environment's branch policy allows only `main`, so naming it from a `beta` trigger would be rejected before any step ran.
