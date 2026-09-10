@@ -80,6 +80,8 @@ export type HistoryEntryBody = z.infer<typeof HistoryEntryBodySchema>;
 export const HistoryEntryDataSchema = z
   .object({
     municipalityId: z.string(),
+    /** The village's permanent URL slug, denormalized so a card can link without a read. */
+    villageSlug: z.string(),
     createdBy: z.string(),
     title: z.string().trim().min(1).max(HISTORY_ENTRY_TITLE_MAX),
     body: HistoryEntryBodySchema,
@@ -111,6 +113,7 @@ export type HistoryEntryData = z.infer<typeof HistoryEntryDataSchema>;
 
 export interface HistoryEntryDataInput {
   municipalityId: string;
+  villageSlug: string;
   createdBy: string;
   title: string;
   body: HistoryEntryBody;
@@ -131,6 +134,7 @@ function blankToNull(value: string | null | undefined): string | null {
 export function buildHistoryEntryData(input: HistoryEntryDataInput): HistoryEntryData {
   return {
     municipalityId: input.municipalityId,
+    villageSlug: input.villageSlug,
     createdBy: input.createdBy,
     title: input.title.trim(),
     body: input.body,

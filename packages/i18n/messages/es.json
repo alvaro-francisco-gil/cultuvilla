@@ -1312,6 +1312,9 @@
       "festivalPoster": {
         "view": "Mira el cartel «{name}» en Cultuvilla: {url}"
       },
+      "historyEntry": {
+        "view": "Mira «{name}» en la historia del pueblo, en Cultuvilla: {url}"
+      },
       "user": {
         "view": "Mira el perfil de {name} en Cultuvilla: {url}"
       },

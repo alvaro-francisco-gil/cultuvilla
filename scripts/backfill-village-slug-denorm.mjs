@@ -17,7 +17,7 @@ import { isMain, runBackfill } from './lib/backfill-harness.mjs';
 export const meta = {
   id: 'village-slug-denorm',
   kind: 'backfill',
-  description: 'Denormalize municipalities.slug onto events/news/organizations/festivalPosters as villageSlug',
+  description: 'Denormalize municipalities.slug onto events/news/organizations/festivalPosters/historyEntries as villageSlug',
   phase: 'pre-deploy',
   envs: ['dev', 'beta', 'prod'],
   idempotent: true,
@@ -26,7 +26,7 @@ export const meta = {
   dependsOn: ['municipality-slug'],
 };
 
-const COLLECTIONS = ['events', 'news', 'organizations', 'festivalPosters'];
+const COLLECTIONS = ['events', 'news', 'organizations', 'festivalPosters', 'historyEntries'];
 
 export async function run({ db, apply, log }) {
   const slugs = new Map();

@@ -651,18 +651,19 @@ service cloud.firestore {
 
     function isValidHistoryEntryShape(d) {
       return d.keys().hasOnly([
-              'municipalityId', 'createdBy', 'title', 'body', 'images', 'start', 'end',
+              'municipalityId', 'villageSlug', 'createdBy', 'title', 'body', 'images', 'start', 'end',
               'approximate', 'sources', 'sortKey', 'createdAt', 'updatedAt',
               'commentCount', 'readCount',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
             ])
           && d.keys().hasAll([
-              'municipalityId', 'createdBy', 'title', 'body', 'images', 'start', 'end',
+              'municipalityId', 'villageSlug', 'createdBy', 'title', 'body', 'images', 'start', 'end',
               'approximate', 'sources', 'sortKey', 'createdAt', 'updatedAt',
               'commentCount', 'readCount',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
             ])
           && isString(d.municipalityId)
+          && isString(d.villageSlug)
           && isString(d.createdBy)
           && isString(d.title) && d.title.size() > 0 && d.title.size() <= 120
           && isMap(d.body)

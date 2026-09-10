@@ -47,6 +47,9 @@ describe('deepLinkService builders', () => {
     expect(getEntityLink('festivalPoster', target('c1', 'Fiestas 1987')).url).toBe(
       `${HOST}/matabuena/cartel/fiestas-1987_c1`,
     );
+    expect(getEntityLink('historyEntry', target('h1', 'La riada de 1912')).url).toBe(
+      `${HOST}/matabuena/acontecimiento/la-riada-de-1912_h1`,
+    );
     expect(getUserViewLink('uid_1').url).toBe(`${HOST}/usuario/uid_1`);
   });
 

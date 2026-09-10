@@ -54,6 +54,8 @@ export const getOrgViewLink = (target: EntityLinkTarget): DeepLink =>
 export const getPlaceViewLink = (target: EntityLinkTarget): DeepLink => getEntityLink('place', target);
 export const getBarrioViewLink = (target: EntityLinkTarget): DeepLink =>
   getEntityLink('barrio', target);
+export const getHistoryEntryViewLink = (target: EntityLinkTarget): DeepLink =>
+  getEntityLink('historyEntry', target);
 
 /** Same page as the view link; `unirse` makes the destination open its join flow. */
 export const getOrgInviteLink = (target: EntityLinkTarget): DeepLink =>

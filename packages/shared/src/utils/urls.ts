@@ -66,6 +66,7 @@ export const ENTITY_SEGMENT = {
   place: 'lugar',
   barrio: 'barrio',
   festivalPoster: 'cartel',
+  historyEntry: 'acontecimiento',
 } as const;
 
 export type UrlEntityKind = keyof typeof ENTITY_SEGMENT;
@@ -82,6 +83,7 @@ export const VILLAGE_SECTIONS = [
   'comunidad',
   'editar',
   'entidades',
+  'historia',
   'lugares',
   'miembros',
   'vocabulario',
@@ -144,7 +146,7 @@ export function entityPath(kind: UrlEntityKind, target: EntityLinkTarget): strin
 }
 
 export function entityEditPath(
-  kind: Extract<UrlEntityKind, 'organization' | 'place' | 'barrio' | 'festivalPoster'>,
+  kind: Extract<UrlEntityKind, 'organization' | 'place' | 'barrio' | 'festivalPoster' | 'historyEntry'>,
   target: EntityLinkTarget,
 ): string {
   return `${entityPath(kind, target)}/${EDIT_SEGMENT}`;
