@@ -13,36 +13,41 @@ is verified in production.
 ## Status
 
 - **Updated:** 2026-09-11
-- **Stage:** Phase 1 (SEO) — code merged, **three defects found before verification**; dev deploy in flight.
-- **Branch:** n/a — #329 merged; the Phase 1 fixes below need a new branch.
+- **Stage:** Phase 1 (SEO) — **shipped and verified on dev**. Next move is the promotion to beta, then prod.
+- **Branch:** n/a — #329, #336 and #338 all merged to `develop`.
 - **Done:**
-  - Phase 0: parity rule dropped, decision recorded — `89c4d6f1` (direct to `develop`).
-  - Phase 1 code: server-rendered share-link content, JSON-LD, canonical, `noindex` for private events and `/join`, live `/sitemap.xml` + `/robots.txt` — PR #329, merge `85e34d62`. CI green (lint/typecheck/unit/build, emulator suites).
+  - Phase 0: parity rule dropped, decision recorded — `89c4d6f1`.
+  - Phase 1 code (#329, `85e34d62`): server-rendered share-link content, JSON-LD, canonical, `noindex` for private events and `/join`, live `/sitemap.xml`.
+  - Phase 1 fixes (#336, `f3de0061`): static per-env `robots.txt` (only prod indexable); the document head moved to `apps/mobile/public/index.html` with `+html.tsx` deleted; one canonical host per project (`webOriginForProject`, which also fixed prod emails linking to `cultuvilla-prod.web.app`); the content block turned into an overlay; a root-layout failsafe to release it. `check-web-export` now gates the document and the env's robots.
+  - Phase 1 regression fix (#338, `8a115ad1`): `ogRenderer` drops HTML comments before rewriting the head.
+  - **Verified on dev 2026-09-11** — every `curl` check below passes on `villa-events.web.app`.
 - **Next:**
-  1. **Fix: `robots.txt` must disallow everything except on the prod domain.** It currently serves `Allow: /` + a sitemap on dev and beta too, which invites Google to index `villa-events.web.app` / `cultuvilla-beta.web.app` — demo seed data under the Cultuvilla name. Serve `Disallow: /` (no sitemap line) unless the host is `cultuvilla.es`. **Must land before the next `develop → beta` promotion.**
-  2. **Fix: `+html.tsx` is ignored in production.** See Handoff for the evidence. It means three things never shipped: the `lang="es"` fix (`d2113add`, 2026-07-11), the iOS `apple-itunes-app` tag (`efaac978`, 2026-09-04), and #329's default title/description/og. The iOS one matters most — `SmartAppBanner` hides our own banner on iOS Safari *because* Apple's bar is supposed to draw from that tag, so iOS Safari visitors may currently get **no install offer at all** (confirm on a device). Candidate fix: move the head into `apps/mobile/public/index.html`, which Expo uses as the template in single-page mode, then delete `+html.tsx`. Lock it in by extending `scripts/check-web-export.mjs` to assert that the exported `index.html` contains `lang="es"` and `apple-itunes-app`. The `[Unreleased]` CHANGELOG entry from #329 already claims those defaults exist, so this has to land before that entry is stamped into a release.
-  3. **Fix: canonical must use the canonical host, not the requesting origin.** Prod is reachable at both `cultuvilla.es` and `cultuvilla-prod.web.app`; `ogRenderer` and the sitemap build URLs from `x-forwarded-host`, so each host declares itself canonical and the two compete. Pin to `cultuvilla.es` on prod (the `deepLinkHost` config already names it).
-  4. Then the verification rows in the table below, env by env.
+  1. **Promote `develop → beta`.** Nothing else is pending on dev. Read the **Playwright web E2E** run closely: it only runs on PRs to `beta`/`main`, so this is its first pass over the server-rendered first paint.
+  2. Re-run the `curl` checks against `cultuvilla-beta.web.app` (expect `Disallow: /`).
+  3. Promote `beta → main`, re-run the checks on `cultuvilla.es`, then the prod-only items (Search Console, Rich Results).
+  4. The manual mobile-web and WhatsApp checks — neither has been done on any env yet; both need a phone.
 - **Blockers:**
-  - Dev deploy run `34535736654` (for `bb9ecaa0`, which includes #329) was still `in_progress` at 2026-09-11. The run for #329's own merge (`85e34d62`) was cancelled by #327 merging four seconds later — expected `cancel-in-progress`, not a failure.
   - **Search Console needs Alvaro** — property verification for `cultuvilla.es` and the sitemap submission are console actions under the domain owner's account.
-  - Phase 3 is gated on **Android reaching Play production** — tracked in [store-release.md](store-release.md), not here.
+  - Phase 3 is gated on **Android reaching Play production** (submitted 2026-09-08, in review) — tracked in [store-release.md](store-release.md), not here.
 - **Handoff:**
-  - **How we know `+html.tsx` is ignored:** `web.output` is `'single'` in `app.config.ts`, and Expo Router only uses `+html.tsx` for `static`/`server` output. Proven twice on 2026-09-11: `curl -s https://cultuvilla.es/` returns `<html lang="en">`, `<title>Cultuvilla</title>`, and no `apple-itunes-app`; and a local `npx expo export --platform web --output-dir <scratch>` (run from `apps/mobile`) produces the same `lang="en"` / `<title>Cultuvilla Dev</title>` with none of the file's tags. Re-run that export + `grep -oE '<html[^>]*>|<title>[^<]*</title>|apple-itunes-app' <out>/index.html` to verify any fix — it takes about a minute and needs no emulators.
-  - **`ogRenderer` fetches the live `/index.html` as its shell** (`functions/src/og/spaShell.ts`, cached 1h per instance). A template change therefore reaches every share-link route too. `injectMeta` strips and replaces title/description/og/canonical/robots/JSON-LD, so the defaults and the per-page tags cannot both apply.
-  - **The sitemap uses no composite index, on purpose** — every query is a single-field order plus a limit, filtered in memory. Keep it that way: an index would put `firestore.indexes.json` (a hard-stop path) in every change to the sitemap.
-  - **Web E2E (Playwright) only runs on PRs to `beta`/`main`**, so it was skipped on #329. Its first real run against the server-rendered first paint is the next promotion — read it closely.
+  - **`+html.tsx` does nothing in this app.** `web.output` is `'single'`, and Expo only uses that file for `static`/`server` output; the head lives in `apps/mobile/public/index.html`. That file swallowed the July `lang="es"` fix and the 4 Sep iOS App Store tag without a single failing check. `check-web-export` now asserts both in the built output, and `webDocument.test.ts` pins the template.
+  - **Expo fills the title placeholder with `String.replace` — first occurrence only.** Never name it above `<title>`, comments included, or the literal placeholder becomes the page title. Pinned by a test.
+  - **A Cloud Function can never serve `/robots.txt` or `/favicon.ico`.** The Functions Framework answers both itself with an empty 404 before any handler runs, so a Hosting rewrite to a function silently 404s while the function answers fine on its own URL (path `/`). That is why robots is a static per-env file.
+  - **Test the renderer against the real template, not a fixture.** `stripExistingMeta`'s regexes cannot tell markup from prose: a comment merely *mentioning* `<title>` gave the title regex a start point and deleted `<html lang>`, charset and the viewport meta on every share page. Every hand-written-shell test passed. `functions/src/__tests__/og/template.test.ts` now renders `apps/mobile/public/index.html` itself — keep new renderer assertions there.
+  - **The sitemap uses no composite index, on purpose** — single-field order plus a limit, filtered in memory. Keep it that way: an index would put `firestore.indexes.json` (a hard-stop path) into every sitemap change.
+  - **Verifying a deploy:** `curl` the checks below with a cache-busting query (`?cb=$RANDOM`) — Hosting caches a 404 for 10 minutes, which reads exactly like a broken rewrite.
 
 ## Rollout status
 
 | Step | Dev (`villa-events`) | Beta (`cultuvilla-beta`) | Prod (`cultuvilla-prod`) |
 |---|---|---|---|
 | **Phase 0** — parity rule + decision | ✅ | ✅ (docs) | ✅ (docs) |
-| **Phase 1** — SEO code deployed | ⏳ run `34535736654` | ⬜ | ⬜ |
-| Fix: `robots.txt` blocks non-prod hosts | ⬜ | ⬜ | ⬜ |
-| Fix: head template actually ships (`lang`, iOS tag, defaults) | ⬜ | ⬜ | ⬜ |
-| Fix: canonical pinned to `cultuvilla.es` | n/a | n/a | ⬜ |
-| `curl` checks pass (see below) | ⬜ | ⬜ | ⬜ |
+| **Phase 1** — SEO code deployed | ✅ | ⬜ | ⬜ |
+| Fix: `robots.txt` blocks non-prod hosts | ✅ | ⬜ | ⬜ |
+| Fix: head template actually ships (`lang`, iOS tag, defaults) | ✅ | ⬜ | ⬜ |
+| Fix: share pages keep their head (comment strip) | ✅ | ⬜ | ⬜ |
+| Fix: canonical is the project's own origin | ✅ | ⬜ | ⬜ (must read `cultuvilla.es`) |
+| `curl` checks pass (see below) | ✅ | ⬜ | ⬜ |
 | Mobile web: content → content, no spinner flash | ⬜ | ⬜ | ⬜ |
 | WhatsApp preview unchanged | ⬜ | ⬜ | ⬜ |
 | Playwright web E2E green on promotion | — | ⬜ | ⬜ |
@@ -56,13 +61,14 @@ Legend: ⬜ pending · ⏳ in progress · ✅ done · ⚠️ blocked (note inlin
 
 ## Phase 1 — make the web good at its one job (SEO)
 
-Code is in #329. What remains is the three fixes above and verification.
+Code is in #329, #336 and #338, and passes on dev. What remains is promoting it
+and repeating these checks per env.
 
 **`curl` checks, per env** (substitute the host; on prod use `cultuvilla.es`):
 
 - [ ] `curl -sI <host>/sitemap.xml` → `200`, `application/xml`; the body lists `/village/…` and `/event/…` URLs **on the canonical host**. On dev/beta, after fix 1: no sitemap reference in robots.
 - [ ] `curl -s <host>/robots.txt` → on prod: `Disallow: /person/`, `Disallow: /*/join$`, a `Sitemap:` line. On dev/beta: `Disallow: /`.
-- [ ] `curl -s <host>/event/<publicId>` → `id="seo-content"` appears **before** `id="root"`; `"@type":"Event"`; one `rel="canonical"` with no query string.
+- [ ] `curl -s <host>/event/<publicId>` → `id="seo-content"` appears **before** `id="root"`; `"@type":"Event"`; one `rel="canonical"` with no query string; and the document survived the head rewrite — `<html lang="es">`, `<head>`, `<meta charset>`, the viewport meta, exactly one `<title>` and one `description`, and **no unbalanced `<!--`**.
 - [ ] `curl -s <host>/village/<id>/join` → `<meta name="robots" content="noindex,follow"/>`.
 - [ ] `curl -s <host>/` → `lang="es"`, a real `<title>`, and (prod) `apple-itunes-app`.
 
