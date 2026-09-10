@@ -1,18 +1,30 @@
-import type { Firestore } from 'firebase-admin/firestore';
+import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
 import type { CartelInput, WrappedInputs } from '@cultuvilla/shared/wrapped';
 import { EventStatusSchema, RegistrationStatusSchema } from '@cultuvilla/shared/models';
+import {
+  eventRegistrationsCollection,
+  eventsCollection,
+  festivalPostersCollection,
+  municipalityDoc,
+  municipalityPeopleCollection,
+  organizationDoc,
+  userDoc,
+} from '@cultuvilla/shared/firebase/refs/admin';
 
 /**
  * Read everything a Wrapped is built from, for one municipality and window.
  *
- * Reads raw fields rather than going through the strict converters, and only
- * the few fields the Wrapped needs. This is deliberate: the same reader runs in
- * the callable AND in the local preview, which reads another environment's
- * data with this branch's code. A converter tightened on develop (a new
- * required field) would throw on every prod doc that predates it — the
- * municipality converter already would, since prod has no `community.fiestas`
- * until that backfill runs there. A field that is missing or mistyped here
- * degrades to a safe default instead of failing the whole Wrapped.
+ * Paths come from the typed factories in `firebase/refs/admin`, so collection
+ * names still have one source of truth — but each ref is taken with
+ * `.withConverter(null)` and read as raw fields, only the few the Wrapped needs.
+ *
+ * That is deliberate: the same reader runs in the callable AND in the local
+ * preview, which reads another environment's data with this branch's code. A
+ * converter tightened on develop (a new required field) would throw on every
+ * prod doc that predates it — the municipality converter already would, since
+ * prod has no `community.fiestas` until that backfill runs there. A field that
+ * is missing or mistyped here degrades to a safe default instead of failing
+ * the whole Wrapped.
  */
 
 export interface GatheredWrapped {
@@ -40,11 +52,15 @@ function date(v: unknown): Date | null {
 }
 
 /** Batched point reads; chunked so one Wrapped never issues an unbounded `getAll`. */
-async function getByIds(db: Firestore, collection: string, ids: string[]): Promise<Map<string, Raw>> {
+async function getByIds(
+  db: Firestore,
+  ids: string[],
+  refFor: (id: string) => DocumentReference,
+): Promise<Map<string, Raw>> {
   const out = new Map<string, Raw>();
   const unique = [...new Set(ids)];
   for (let i = 0; i < unique.length; i += 100) {
-    const refs = unique.slice(i, i + 100).map((id) => db.collection(collection).doc(id));
+    const refs = unique.slice(i, i + 100).map(refFor);
     if (refs.length === 0) continue;
     const snaps = await db.getAll(...refs);
     for (const s of snaps) if (s.exists) out.set(s.id, s.data() as Raw);
@@ -57,11 +73,11 @@ export async function gatherWrappedInputs(
   municipalityId: string,
   window: { start: Date; end: Date },
 ): Promise<GatheredWrapped> {
-  const muniSnap = await db.collection('municipalities').doc(municipalityId).get();
+  const muniSnap = await municipalityDoc(db, municipalityId).withConverter(null).get();
   if (!muniSnap.exists) throw new Error(`municipality ${municipalityId} not found`);
   const muni = muniSnap.data() as Raw;
 
-  const eventsSnap = await db.collection('events').where('municipalityId', '==', municipalityId).get();
+  const eventsSnap = await eventsCollection(db).withConverter(null).where('municipalityId', '==', municipalityId).get();
   const events = eventsSnap.docs.flatMap((d) => {
     const e = d.data();
     const startDate = date(e.startDate);
@@ -89,7 +105,9 @@ export async function gatherWrappedInputs(
   const relevant = events.filter(
     (e) => e.status !== 'cancelled' && e.startDate.getTime() >= t0 && e.startDate.getTime() <= t1,
   );
-  const regSnaps = await Promise.all(relevant.map((e) => db.collection('events').doc(e.id).collection('registrations').get()));
+  const regSnaps = await Promise.all(
+    relevant.map((e) => eventRegistrationsCollection(db, e.id).withConverter(null).get()),
+  );
   const registrations = regSnaps.flatMap((snap, i) =>
     snap.docs.flatMap((d) => {
       const r = d.data();
@@ -105,7 +123,10 @@ export async function gatherWrappedInputs(
   // carrying names and faces — `isPublic: false` is someone opting out of
   // exactly that, so they are neither drawn nor counted. Strictly `=== true`:
   // a row missing the flag is treated as private, never as consent.
-  const peopleSnap = await db.collection('municipalityPeople').where('municipalityId', '==', municipalityId).get();
+  const peopleSnap = await municipalityPeopleCollection(db)
+    .withConverter(null)
+    .where('municipalityId', '==', municipalityId)
+    .get();
   const people = peopleSnap.docs.flatMap((d) => {
     const p = d.data();
     const personId = str(p.personId);
@@ -115,14 +136,20 @@ export async function gatherWrappedInputs(
 
   const orgIds = relevant.flatMap((e) => e.organizerOrgIds);
   const creatorIds = relevant.flatMap((e) => (e.createdBy ? [e.createdBy] : []));
-  const [orgDocs, userDocs] = await Promise.all([getByIds(db, 'organizations', orgIds), getByIds(db, 'users', creatorIds)]);
+  const [orgDocs, userDocs] = await Promise.all([
+    getByIds(db, orgIds, (id) => organizationDoc(db, id).withConverter(null)),
+    getByIds(db, creatorIds, (id) => userDoc(db, id).withConverter(null)),
+  ]);
 
   const year = window.start.getFullYear();
   // Every year, not just this one: the carteles card sets this year's posters
   // against the pueblo's whole archive. Only `active` posters: this becomes a
   // forwardable image, so it allowlists rather than excluding `hidden` — a
   // denylist would leak any moderation status added later.
-  const postersSnap = await db.collection('festivalPosters').where('municipalityId', '==', municipalityId).get();
+  const postersSnap = await festivalPostersCollection(db)
+    .withConverter(null)
+    .where('municipalityId', '==', municipalityId)
+    .get();
   const posters = postersSnap.docs.flatMap((d) => {
     const p = d.data();
     const images = strs(p.images);
