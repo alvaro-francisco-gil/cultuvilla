@@ -1,3 +1,4 @@
+import { getVillageSlug } from './municipalityService';
 import {
   doc,
   deleteDoc,
@@ -24,15 +25,19 @@ export function newFestivalPosterId(): string {
   return doc(festivalPostersCollection(getDb())).id;
 }
 
-async function writePoster(id: string, input: FestivalPosterDataInput): Promise<string> {
-  await setDoc(festivalPosterDoc(getDb(), id), buildFestivalPosterData(input));
+async function writePoster(
+  id: string,
+  input: Omit<FestivalPosterDataInput, 'villageSlug'>,
+): Promise<string> {
+  const villageSlug = await getVillageSlug(input.municipalityId);
+  await setDoc(festivalPosterDoc(getDb(), id), buildFestivalPosterData({ ...input, villageSlug }));
   return id;
 }
 
 /** Any village member adds a poster; it lands `active` and is visible to everyone
  *  immediately. Village/app admins can hide it afterward via `moderationService`. */
 export function createFestivalPoster(
-  input: FestivalPosterDataInput,
+  input: Omit<FestivalPosterDataInput, 'villageSlug'>,
   id: string = newFestivalPosterId(),
 ): Promise<string> {
   return writePoster(id, input);

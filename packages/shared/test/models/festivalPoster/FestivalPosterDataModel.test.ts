@@ -5,7 +5,7 @@ import {
 } from '../../../src/models/festivalPoster/FestivalPosterDataModel';
 
 const base = {
-  municipalityId: 'm1',
+  municipalityId: 'm1', villageSlug: 'villa',
   year: 2025,
   createdAt: new Date('2025-01-02T00:00:00Z'),
 };

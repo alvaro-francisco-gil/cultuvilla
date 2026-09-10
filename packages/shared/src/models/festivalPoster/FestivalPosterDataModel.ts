@@ -9,6 +9,8 @@ export type DatePrecision = z.infer<typeof DatePrecisionSchema>;
 /** A village fiesta poster. Stored at /festivalPosters/{posterId} (top-level). */
 export const FestivalPosterDataSchema = z.object({
   municipalityId: z.string(),
+  /** The village's permanent URL slug, denormalized so a card can link without a read. */
+  villageSlug: z.string(),
   proposedBy: z.string().nullable(),
   ...contributorFields,
   year: z.number().int(),
@@ -29,6 +31,7 @@ export type FestivalPosterData = z.infer<typeof FestivalPosterDataSchema>;
 
 export interface FestivalPosterDataInput {
   municipalityId: string;
+  villageSlug: string;
   proposedBy?: string | null;
   contributorUserIds?: string[];
   contributorOrgIds?: string[];
@@ -51,6 +54,7 @@ export function buildFestivalPosterData(input: FestivalPosterDataInput): Festiva
   }
   return {
     municipalityId: input.municipalityId,
+    villageSlug: input.villageSlug,
     proposedBy: input.proposedBy ?? null,
     contributorUserIds: input.contributorUserIds ?? [],
     contributorOrgIds: input.contributorOrgIds ?? [],

@@ -1,4 +1,5 @@
 // packages/shared/src/services/eventService.ts
+import { getVillageSlug } from './municipalityService';
 import {
   getDoc,
   getDocs,
@@ -130,15 +131,16 @@ export async function getEventsByOrganization(
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-export async function createEvent(input: EventDataInput): Promise<string> {
+export async function createEvent(input: Omit<EventDataInput, 'villageSlug'>): Promise<string> {
   const newRef = doc(eventsCollection(getDb()));
-  await setDoc(newRef, buildEventData(input));
+  const villageSlug = await getVillageSlug(input.municipalityId);
+  await setDoc(newRef, buildEventData({ ...input, villageSlug }));
   return newRef.id;
 }
 
 export async function updateEvent(
   eventId: string,
-  data: Partial<Omit<EventData, 'createdAt' | 'createdBy' | 'municipalityId'>>,
+  data: Partial<Omit<EventData, 'createdAt' | 'createdBy' | 'municipalityId' | 'villageSlug'>>,
 ): Promise<void> {
   // updateDoc bypasses the converter's toFirestore, so partial-update payloads
   // still need explicit Timestamp conversion for Date fields. Use the untyped

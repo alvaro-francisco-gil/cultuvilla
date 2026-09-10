@@ -23,11 +23,15 @@ import {
   getAllVillagesFeed,
   getOtherVillagesFeed,
 } from '../../src/services/newsService';
+import { rememberVillageSlug } from '../../src/services/municipalityService';
 
 // ─── Task 9: CRUD ─────────────────────────────────────────────────────────────
 
 describe('newsService — Task 9: CRUD', () => {
   beforeEach(() => {
+    rememberVillageSlug('m1', 'villa');
+    rememberVillageSlug('m2', 'otra');
+    rememberVillageSlug('m3', 'tercera');
     resetFakeFirestore();
   });
 
@@ -206,6 +210,9 @@ describe('getApprovedNewsPostsByOrganizer', () => {
 
 describe('newsService — Task 7: Feed queries', () => {
   beforeEach(() => {
+    rememberVillageSlug('m1', 'villa');
+    rememberVillageSlug('m2', 'otra');
+    rememberVillageSlug('m3', 'tercera');
     resetFakeFirestore();
   });
 

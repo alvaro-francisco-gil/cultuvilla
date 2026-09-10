@@ -1,3 +1,4 @@
+import { getVillageSlug } from './municipalityService';
 import {
   doc,
   getDoc,
@@ -61,6 +62,7 @@ const FORBIDDEN_UPDATE_KEYS = new Set<string>([
   'status',
   'publishedAt',
   'municipalityId',
+  'villageSlug',
   'createdAt',
   'createdBy',
   'readCount',
@@ -72,12 +74,14 @@ export async function createNewsPost(input: CreateNewsPostInput): Promise<string
   // doc() on a typed collection ref yields an auto-id typed doc ref.
   const ref = doc(newsCollection(getDb()));
   const now = new Date();
+  const villageSlug = await getVillageSlug(input.municipalityId);
   // setDoc routes through the typed converter — createdAt/updatedAt must be
   // plain Dates (serverTimestamp sentinels are rejected by the schema).
   await setDoc(
     ref,
     buildNewsPostData({
       municipalityId: input.municipalityId,
+      villageSlug,
       createdBy: input.createdBy,
       organizerUserIds: input.organizerUserIds,
       organizerOrgIds: input.organizerOrgIds ?? [],

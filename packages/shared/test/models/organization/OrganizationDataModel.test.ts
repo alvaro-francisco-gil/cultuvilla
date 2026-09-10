@@ -11,7 +11,7 @@ const validOrg = {
   images: [] as string[],
   type: 'peña' as const,
   status: 'pending' as const,
-  municipalityId: 'm-1',
+  municipalityId: 'm-1', villageSlug: 'villa',
   requestedBy: 'u-1',
   reviewedBy: null,
   createdAt: new Date('2026-01-01T00:00:00Z'),
@@ -54,7 +54,7 @@ describe('buildOrganizationData', () => {
       name: 'Peña X',
       type: 'peña',
       requestedBy: 'u1',
-      municipalityId: 'v1',
+      municipalityId: 'v1', villageSlug: 'villa',
     });
     expect(o.name).toBe('Peña X');
     expect(o.municipalityId).toBe('v1');
@@ -80,7 +80,7 @@ describe('membersPublic', () => {
 
   it('buildOrganizationData defaults membersPublic to true', () => {
     const o = buildOrganizationData({
-      name: 'Peña X', type: 'peña', requestedBy: 'u1', municipalityId: 'v1',
+      name: 'Peña X', type: 'peña', requestedBy: 'u1', municipalityId: 'v1', villageSlug: 'villa',
     });
     expect(o.membersPublic).toBe(true);
     expect(() => OrganizationDataSchema.parse(o)).not.toThrow();
@@ -88,7 +88,7 @@ describe('membersPublic', () => {
 
   it('buildOrganizationData honours an explicit membersPublic false', () => {
     const o = buildOrganizationData({
-      name: 'Peña X', type: 'peña', requestedBy: 'u1', municipalityId: 'v1', membersPublic: false,
+      name: 'Peña X', type: 'peña', requestedBy: 'u1', municipalityId: 'v1', villageSlug: 'villa', membersPublic: false,
     });
     expect(o.membersPublic).toBe(false);
   });

@@ -68,10 +68,10 @@ export const ENTITY_SEGMENT = {
   festivalPoster: 'cartel',
 } as const;
 
-export type EntityKind = keyof typeof ENTITY_SEGMENT;
+export type UrlEntityKind = keyof typeof ENTITY_SEGMENT;
 
-const SEGMENT_TO_ENTITY: { readonly [segment: string]: EntityKind | undefined } = Object.fromEntries(
-  (Object.keys(ENTITY_SEGMENT) as EntityKind[]).map((kind) => [ENTITY_SEGMENT[kind], kind]),
+const SEGMENT_TO_ENTITY: { readonly [segment: string]: UrlEntityKind | undefined } = Object.fromEntries(
+  (Object.keys(ENTITY_SEGMENT) as UrlEntityKind[]).map((kind) => [ENTITY_SEGMENT[kind], kind]),
 );
 
 /** Listing and admin screens under a pueblo — `/<pueblo>/<section>`. */
@@ -139,12 +139,12 @@ export function villageSectionPath(villageSlug: string, section: VillageSection)
   return `${villagePath(villageSlug)}/${section}`;
 }
 
-export function entityPath(kind: EntityKind, target: EntityLinkTarget): string {
+export function entityPath(kind: UrlEntityKind, target: EntityLinkTarget): string {
   return `${villagePath(target.villageSlug)}/${ENTITY_SEGMENT[kind]}/${entityRef(target.title, target.id)}`;
 }
 
 export function entityEditPath(
-  kind: Extract<EntityKind, 'organization' | 'place' | 'barrio' | 'festivalPoster'>,
+  kind: Extract<UrlEntityKind, 'organization' | 'place' | 'barrio' | 'festivalPoster'>,
   target: EntityLinkTarget,
 ): string {
   return `${entityPath(kind, target)}/${EDIT_SEGMENT}`;
@@ -179,7 +179,7 @@ export type ParsedAppPath =
   | { type: 'village'; villageSlug: string }
   | {
       type: 'entity';
-      kind: EntityKind;
+      kind: UrlEntityKind;
       villageSlug: string;
       /** The ref segment as it appeared — compare with `entityRef` to detect a stale slug. */
       ref: string;

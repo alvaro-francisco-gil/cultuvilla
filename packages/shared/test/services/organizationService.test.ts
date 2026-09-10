@@ -25,12 +25,14 @@ import {
   getMyOrganizations,
   requestOrganization,
 } from '../../src/services/organizationService';
+import { rememberVillageSlug } from '../../src/services/municipalityService';
 
 // Approval moved server-side (approveOrganization callable): the client service
 // is now a thin wrapper. The status flip + founding-admin seed + audit are
 // covered by the functions handler test, not here.
 describe('approveOrganization', () => {
   beforeEach(() => {
+    rememberVillageSlug('m1', 'villa');
     vi.clearAllMocks();
   });
 
@@ -45,6 +47,7 @@ describe('approveOrganization', () => {
 
 describe('getMyOrganizations', () => {
   beforeEach(() => {
+    rememberVillageSlug('m1', 'villa');
     vi.clearAllMocks();
     vi.mocked(query).mockReturnValue({} as ReturnType<typeof query>);
     vi.mocked(getDocs).mockResolvedValue({
@@ -66,6 +69,7 @@ describe('getMyOrganizations', () => {
 
 describe('requestOrganization membersPublic', () => {
   beforeEach(() => {
+    rememberVillageSlug('m1', 'villa');
     vi.clearAllMocks();
     vi.mocked(doc).mockReturnValue({ id: 'o1' } as ReturnType<typeof doc>);
   });

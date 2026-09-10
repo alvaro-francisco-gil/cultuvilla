@@ -7,7 +7,7 @@ const baseEvent = {
   location: { coordinates: { lat: 40.4, lng: -3.7 }, displayName: 'Plaza' }, imageURL: null, maxAttendees: null,
   telephoneRequired: false, status: 'published', organizerUserIds: ['u1'], organizerOrgIds: [],
   createdBy: 'u1', createdAt: new Date(), updatedAt: new Date(),
-  municipalityId: 'm1', villageName: 'X', villageCoverImage: null,
+  municipalityId: 'm1', villageName: 'X', villageSlug: 'villa', villageCoverImage: null,
   villageCoordinates: null, confirmedCount: 0, totalCount: 0,
   commentCount: 0, readCount: 0, endBoundary: new Date(),
 };

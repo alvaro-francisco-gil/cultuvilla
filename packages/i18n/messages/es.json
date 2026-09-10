@@ -1308,6 +1308,9 @@
       "barrio": {
         "view": "Mira {name} en Cultuvilla: {url}"
       },
+      "festivalPoster": {
+        "view": "Mira el cartel «{name}» en Cultuvilla: {url}"
+      },
       "user": {
         "view": "Mira el perfil de {name} en Cultuvilla: {url}"
       },

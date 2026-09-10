@@ -130,6 +130,8 @@ export type NewsBlock = z.infer<typeof NewsBlockSchema>;
  */
 export const NewsPostDataSchema = z.object({
   municipalityId: z.string(),
+  /** The village's permanent URL slug, denormalized so a card can link without a read. */
+  villageSlug: z.string(),
   createdBy: z.string(),
   organizerUserIds: z.array(z.string()),
   organizerOrgIds: z.array(z.string()),
@@ -155,6 +157,7 @@ export type NewsPostData = z.infer<typeof NewsPostDataSchema>;
 
 export interface NewsPostDataInput {
   municipalityId: string;
+  villageSlug: string;
   createdBy: string;
   organizerUserIds: string[];
   organizerOrgIds?: string[];
@@ -174,6 +177,7 @@ export interface NewsPostDataInput {
 export function buildNewsPostData(input: NewsPostDataInput): NewsPostData {
   return {
     municipalityId: input.municipalityId,
+    villageSlug: input.villageSlug,
     createdBy: input.createdBy,
     organizerUserIds: input.organizerUserIds,
     organizerOrgIds: input.organizerOrgIds ?? [],

@@ -26,7 +26,7 @@ const validEvent = {
   createdAt: new Date('2026-01-01T00:00:00Z'),
   updatedAt: new Date('2026-01-01T00:00:00Z'),
   municipalityId: 'm-1',
-  villageName: 'Villa',
+  villageName: 'Villa', villageSlug: 'villa',
   villageCoverImage: null,
   villageCoordinates: { lat: 40.4, lng: -3.7 },
   confirmedCount: 0,
@@ -65,7 +65,7 @@ describe('buildEventData', () => {
       organizerUserIds: ['u'],
       organizerOrgIds: [],
       createdBy: 'u',
-      municipalityId: 'm', villageName: 'M',
+      municipalityId: 'm', villageName: 'M', villageSlug: 'villa',
       villageCoordinates: { lat: 1, lng: 2 },
     });
     expect(built.status).toBe('published');
@@ -94,7 +94,7 @@ describe('buildEventData', () => {
       organizerUserIds: ['u'],
       organizerOrgIds: [],
       createdBy: 'u',
-      municipalityId: 'm', villageName: 'M',
+      municipalityId: 'm', villageName: 'M', villageSlug: 'villa',
       villageCoordinates: { lat: 1, lng: 2 },
     });
     expect(built.endDate).toEqual(new Date('2026-06-17T18:00:00Z'));
@@ -112,7 +112,7 @@ describe('buildEventData', () => {
       organizerUserIds: ['u'],
       organizerOrgIds: [],
       createdBy: 'u',
-      municipalityId: 'm', villageName: 'M',
+      municipalityId: 'm', villageName: 'M', villageSlug: 'villa',
       villageCoordinates: { lat: 1, lng: 2 },
     });
     expect(built.requiresPayment).toBe(false);
@@ -127,7 +127,7 @@ describe('buildEventData', () => {
       organizerUserIds: ['u'],
       organizerOrgIds: [],
       createdBy: 'u',
-      municipalityId: 'm', villageName: 'M',
+      municipalityId: 'm', villageName: 'M', villageSlug: 'villa',
       villageCoordinates: { lat: 1, lng: 2 },
       requiresPayment: true,
     });
@@ -146,7 +146,7 @@ describe('isEventFull', () => {
     organizerUserIds: ['u'], organizerOrgIds: [], createdBy: 'u',
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
-    municipalityId: 'm', villageName: 'M',
+    municipalityId: 'm', villageName: 'M', villageSlug: 'villa',
     villageCoverImage: null,
     villageCoordinates: { lat: 1, lng: 2 },
     confirmedCount: 0, totalCount: 0,
@@ -178,7 +178,7 @@ describe('isEventSignupOpen', () => {
     organizerUserIds: ['u'], organizerOrgIds: [], createdBy: 'u',
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
-    municipalityId: 'm', villageName: 'M',
+    municipalityId: 'm', villageName: 'M', villageSlug: 'villa',
     villageCoverImage: null,
     villageCoordinates: { lat: 1, lng: 2 },
     confirmedCount: 0, totalCount: 0,
@@ -251,7 +251,7 @@ describe('attendeesVisibility', () => {
       startDate: new Date('2026-06-15T18:00:00Z'),
       location: { coordinates: { lat: 1, lng: 2 }, displayName: 'Plaza' },
       organizerUserIds: ['u'], organizerOrgIds: [], createdBy: 'u',
-      municipalityId: 'm', villageName: 'M',
+      municipalityId: 'm', villageName: 'M', villageSlug: 'villa',
       villageCoordinates: { lat: 1, lng: 2 },
     });
     const { attendeesVisibility: _v, ...withoutField } = built;
@@ -264,7 +264,7 @@ describe('attendeesVisibility', () => {
       startDate: new Date('2026-06-15T18:00:00Z'),
       location: { coordinates: { lat: 1, lng: 2 }, displayName: 'Plaza' },
       organizerUserIds: ['u'], organizerOrgIds: [], createdBy: 'u',
-      municipalityId: 'm', villageName: 'M',
+      municipalityId: 'm', villageName: 'M', villageSlug: 'villa',
       villageCoordinates: { lat: 1, lng: 2 },
       attendeesVisibility: 'organizers',
     });
@@ -289,7 +289,7 @@ function baseEventInput() {
     organizerOrgIds: [],
     createdBy: 'u',
     municipalityId: 'm',
-    villageName: 'M',
+    villageName: 'M', villageSlug: 'villa',
     villageCoordinates: { lat: 1, lng: 2 },
   };
 }

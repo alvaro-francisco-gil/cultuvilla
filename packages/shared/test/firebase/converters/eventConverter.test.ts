@@ -18,7 +18,7 @@ const baseFirestoreShape = {
   createdAt: Timestamp.fromDate(new Date('2026-01-01T00:00:00Z')),
   updatedAt: Timestamp.fromDate(new Date('2026-01-01T00:00:00Z')),
   municipalityId: 'm-1',
-  villageName: 'Villa',
+  villageName: 'Villa', villageSlug: 'villa',
   villageCoverImage: null,
   villageCoordinates: new GeoPoint(40.4, -3.7),
   confirmedCount: 0,

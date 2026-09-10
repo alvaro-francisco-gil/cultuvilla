@@ -1,3 +1,4 @@
+import { entityPath, type EntityLinkTarget } from '../utils/urls';
 /**
  * Branded HTML/text templates for the event-registration confirmation email,
  * sent via Resend. Lives in the shared package because two callers render it:
@@ -98,8 +99,8 @@ function escapeHtml(value: string): string {
  * Absolute URL of the event's web route, on the env's public origin — the brand
  * domain on prod, `<projectId>.web.app` elsewhere (see `webOriginForProject`).
  */
-export function eventWebUrl(eventId: string, projectId: string | undefined): string {
-  return `${webOriginForProject(projectId)}/event/${encodeURIComponent(eventId)}`;
+export function eventWebUrl(event: EntityLinkTarget, projectId: string | undefined): string {
+  return `${webOriginForProject(projectId)}${entityPath('event', event)}`;
 }
 
 export const REGISTRATION_EMAIL_SUBJECT_PREFIX = 'Inscripción confirmada';

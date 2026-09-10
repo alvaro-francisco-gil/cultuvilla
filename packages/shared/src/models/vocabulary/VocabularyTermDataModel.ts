@@ -1,3 +1,4 @@
+import { slugify } from '../../utils/urls';
 import { z } from 'zod';
 import { visibilityFields, defaultVisibility } from '../core/VisibilityModel';
 import { contributorFields, creditedUserIds } from '../core/ContributorsModel';
@@ -62,31 +63,27 @@ export interface VocabularyTermDataInput {
 }
 
 /**
- * Lowercase, trim, fold accents and collapse anything that is not a letter or
- * digit into a single dash. Mirrors `slugifyOccupation` — the same trick of
- * making the doc id the identity so differently cased/accented entries of one
- * word collide onto one doc instead of forking.
- *
- * Note this deliberately folds ñ → n: a slug is a key, not a rendering. The
- * display form keeps every accent, because `term` is stored verbatim.
+ * The term's key — the same `slugify` the URLs use, so a term's id and its
+ * `/<pueblo>/palabra/<slug>` path always agree. Differently cased/accented
+ * entries of one word collide onto one doc instead of forking; the display form
+ * keeps every accent, because `term` is stored verbatim.
  */
 export function slugifyTerm(term: string): string {
-  return term
-    .trim()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+  return slugify(term);
 }
 
 /**
- * The deterministic document id for a term. `__` separates the two halves:
- * a municipalityId is an INE code (digits) and a slug can never contain an
- * underscore, so the pair round-trips unambiguously.
+ * The deterministic document id for a term. `__` separates the two halves: a
+ * slug can never contain an underscore, so the id splits unambiguously at the
+ * last `__` — see `termSlugFromId`.
  */
 export function vocabularyTermId(municipalityId: string, term: string): string {
   return `${municipalityId}__${slugifyTerm(term)}`;
+}
+
+/** The slug half of a term id — the `/<pueblo>/palabra/<slug>` segment. */
+export function termSlugFromId(termId: string): string {
+  return termId.slice(termId.lastIndexOf('__') + 2);
 }
 
 export function buildVocabularyTermData(input: VocabularyTermDataInput): VocabularyTermData {
