@@ -18,16 +18,15 @@ const refs = readFileSync(resolve(repoRoot, 'packages/shared/src/firebase/refs/a
 const gate = readFileSync(resolve(repoRoot, 'scripts/check-dev-conformance.mjs'), 'utf-8');
 
 /**
- * Top-level collections the gate deliberately does not walk yet. Each entry is
- * a known gap with a reason, not a way to make this test pass — registering a
- * collection starts gating promotions on data the gate has never checked, so
- * it is its own change, made after confirming the stored data conforms.
+ * Top-level collections the gate deliberately does not walk. Empty, and worth
+ * keeping that way: an entry here is a collection whose stored data can drift
+ * under its converter without any deploy noticing.
+ *
+ * This is not a way to make the test pass. Registering a collection starts
+ * gating promotions on data the gate has never walked, so an entry belongs
+ * here only until someone confirms that env's data conforms — then it goes.
  */
-const NOT_YET_GATED: Record<string, string> = {
-  contentReportsCollection:
-    'predates this test; its stored reports have never been walked by the gate, so ' +
-    'registering it could newly block a promotion — confirm conformance first',
-};
+const NOT_YET_GATED: Record<string, string> = {};
 
 // Top-level factories take only `db` — nested ones also take a parent id.
 const topLevelFactories = [

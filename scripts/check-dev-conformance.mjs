@@ -65,6 +65,8 @@ import {
   municipalityPeopleCollection,
   vocabularyTermsCollection,
   vocabularyDefinitionsCollection,
+  historyEntriesCollection,
+  contentReportsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
 
 // `--env dev|beta|prod` (default dev). Read-only check — safe against any env,
@@ -145,6 +147,8 @@ const REGISTRY = [
   { name: 'municipalityPeople', coll: (db) => municipalityPeopleCollection(db) },
   { name: 'vocabularyTerms', coll: (db) => vocabularyTermsCollection(db) },
   { name: 'vocabularyDefinitions', coll: (db) => vocabularyDefinitionsCollection(db) },
+  { name: 'historyEntries', coll: (db) => historyEntriesCollection(db) },
+  { name: 'contentReports', coll: (db) => contentReportsCollection(db) },
 ];
 
 /** Format a caught converter error into `path: message` lines, one per zod issue. */
