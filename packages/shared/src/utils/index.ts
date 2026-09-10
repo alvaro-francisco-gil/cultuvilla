@@ -9,6 +9,7 @@ export {
   type DateStyle,
 } from './format';
 export * from './festivalPosterDates';
+export * from './historyDates';
 export {
   DEFAULT_PHONE_COUNTRY,
   PHONE_COUNTRIES,

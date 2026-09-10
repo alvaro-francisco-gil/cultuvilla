@@ -395,6 +395,15 @@
       ]
     },
     {
+      "collectionGroup": "historyEntries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "municipalityId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "sortKey", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "vocabularyDefinitions",
       "queryScope": "COLLECTION",
       "fields": [

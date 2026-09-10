@@ -16,6 +16,7 @@ export const ENTITY_KINDS = [
   'organization',
   'news',
   'vocabularyTerm',
+  'historyEntry',
 ] as const;
 
 export const EntityKindSchema = z.enum(ENTITY_KINDS);

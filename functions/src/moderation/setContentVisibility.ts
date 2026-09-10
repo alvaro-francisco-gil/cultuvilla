@@ -31,6 +31,8 @@ function buildPath(collection: ModeratedCollection, docId: string, municipalityI
       return `vocabularyTerms/${docId}`;
     case 'vocabularyDefinitions':
       return `vocabularyDefinitions/${docId}`;
+    case 'historyEntries':
+      return `historyEntries/${docId}`;
   }
 }
 
