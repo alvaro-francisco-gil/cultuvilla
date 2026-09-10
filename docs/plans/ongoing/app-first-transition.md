@@ -13,7 +13,7 @@ is verified in production.
 ## Status
 
 - **Updated:** 2026-09-11
-- **Stage:** Phase 1 (SEO) — code merged, **two defects found before verification**; dev deploy in flight.
+- **Stage:** Phase 1 (SEO) — code merged, **three defects found before verification**; dev deploy in flight.
 - **Branch:** n/a — #329 merged; the Phase 1 fixes below need a new branch.
 - **Done:**
   - Phase 0: parity rule dropped, decision recorded — `89c4d6f1` (direct to `develop`).
