@@ -23,6 +23,14 @@ export const NotificationTypeSchema = z.enum([
   'organizer_request_approved',
   'organizer_request_rejected',
   'comment_reply',
+  // A T-24h nudge for an event the recipient is signed up to. Written by the
+  // scheduled `sendEventReminders`, keyed so a re-run cannot send it twice.
+  'event_reminder',
+  // Something new appeared in the recipient's village. ONE type for the whole
+  // entity family (event, news, place, barrio, organization, festivalPoster) —
+  // `entityKind` says which. Six near-identical types would have meant six
+  // places to update every time the family grows.
+  'village_entity_published',
 ]);
 export type NotificationType = z.infer<typeof NotificationTypeSchema>;
 

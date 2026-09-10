@@ -15,6 +15,9 @@ import { organizerRequestConverterAdmin } from '../converters/organizerRequestCo
 import { personConverterAdmin } from '../converters/personConverter.admin';
 import { userConverterAdmin } from '../converters/userConverter.admin';
 import { notificationConverterAdmin } from '../converters/notificationConverter.admin';
+import { deviceTokenConverterAdmin } from '../converters/deviceTokenConverter.admin';
+import { notificationPrefsConverterAdmin } from '../converters/notificationPrefsConverter.admin';
+import { pushQueueConverterAdmin } from '../converters/pushQueueConverter.admin';
 import { newsPostConverterAdmin } from '../converters/newsPostConverter.admin';
 import { commentConverterAdmin } from '../converters/commentConverter.admin';
 import { occupationConverterAdmin } from '../converters/occupationConverter.admin';
@@ -145,6 +148,33 @@ export const userNotificationsCollection = (db: Firestore, userId: string) =>
 
 export const userNotificationDoc = (db: Firestore, userId: string, notificationId: string) =>
   db.collection('users').doc(userId).collection('notifications').doc(notificationId).withConverter(notificationConverterAdmin);
+
+// Push-capable devices. THE DOCUMENT ID IS THE FCM REGISTRATION TOKEN — see
+// DeviceTokenDataModel. Dead tokens are pruned by path when FCM reports
+// `registration-token-not-registered`, so the send site needs no lookup.
+export const userDevicesCollection = (db: Firestore, userId: string) =>
+  db.collection('users').doc(userId).collection('devices').withConverter(deviceTokenConverterAdmin);
+
+export const userDeviceDoc = (db: Firestore, userId: string, token: string) =>
+  db.collection('users').doc(userId).collection('devices').doc(token).withConverter(deviceTokenConverterAdmin);
+
+// Rules admit exactly one doc here (`notifications`), so the whole collection
+// shares its schema — which is what lets the conformance gate walk it.
+export const userPreferencesCollection = (db: Firestore, userId: string) =>
+  db.collection('users').doc(userId).collection('preferences')
+    .withConverter(notificationPrefsConverterAdmin);
+
+// Optional: absent means DEFAULT_NOTIFICATION_PREFS.
+export const userNotificationPrefsDoc = (db: Firestore, userId: string) =>
+  userPreferencesCollection(db, userId).doc('notifications');
+
+// Server-only push spool — see PushQueueDataModel for why the id is
+// deterministic. `firestore.rules` denies clients both directions.
+export const pushQueueCollection = (db: Firestore) =>
+  db.collection('pushQueue').withConverter(pushQueueConverterAdmin);
+
+export const pushQueueDoc = (db: Firestore, id: string) =>
+  db.collection('pushQueue').doc(id).withConverter(pushQueueConverterAdmin);
 
 // ── News domain (top-level collections) ──────────────────────────────────
 
