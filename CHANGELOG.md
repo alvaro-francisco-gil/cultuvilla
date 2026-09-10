@@ -90,6 +90,13 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   la variante `active:opacity-70`. El `Pressable` base tenía el mismo defecto (la
   atenuación al pulsar nunca se aplicaba) y queda arreglado igual; un test impide
   volver a combinar un estilo-función con `className`.
+- **El icono de Android ya no toca los bordes.** Android recorta el icono
+  adaptativo con la máscara del lanzador (un círculo en Pixel y muchos otros) y
+  solo garantiza visible el círculo central de 66 dp de los 108 dp del lienzo.
+  El logo de `adaptive-icon.png` se salía de esa zona segura y las puntas de las
+  hojas quedaban cortadas o pegadas al borde. El logo se ha reducido al 80 % y
+  centrado, con margen dentro de la zona segura. Es un recurso nativo: llega con
+  el próximo binario, no por OTA.
 
 ## v1.1.0 — 2026-09-04
 
