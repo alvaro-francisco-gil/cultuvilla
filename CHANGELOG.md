@@ -52,6 +52,19 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   auto-aplicado por el deploy) siembra `community.fiestas: []` en los pueblos con
   comunidad activa. Sin él el converter estricto no puede leer la ficha del pueblo.
 
+### Fixed
+
+- **Los botones de acción vuelven a verse como botones.** En Pueblo («Añadir
+  contenido», «Compartir pueblo», «Unirme», «Rellenar censo») y en Perfil, los
+  botones aparecían como texto suelto, sin el contorno terracota, en la app y en
+  la web. `ActionPill` pasaba su estilo como función (`style={({ pressed }) =>
+  …}`) junto a un `className`, y NativeWind aplica el estilo en línea con
+  `{ ...style }`: una función se expande a nada, así que se perdían borde,
+  relleno y ancho. El estilo es ahora un objeto y la atenuación al pulsar va por
+  la variante `active:opacity-70`. El `Pressable` base tenía el mismo defecto (la
+  atenuación al pulsar nunca se aplicaba) y queda arreglado igual; un test impide
+  volver a combinar un estilo-función con `className`.
+
 ## v1.1.0 — 2026-09-04
 
 ### Added
