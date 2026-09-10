@@ -1,4 +1,5 @@
 import { View } from 'react-native';
+import { Pressable } from '../primitives/Pressable';
 import { formatRelativeTime } from '@cultuvilla/shared/utils/format';
 import { HStack } from '../primitives/HStack';
 import { VStack } from '../primitives/VStack';
@@ -9,17 +10,19 @@ export interface NotificationRowProps {
   body: string;
   read: boolean;
   createdAt: Date;
+  /** Where a tap opens; omitted for notifications about nothing openable. */
+  onPress?: () => void;
   testID?: string;
 }
 
 /**
- * Read-only row for the Buzón activity feed. Pure presentation — no
- * Firestore, no actions. Title/body arrive already resolved (Spanish) on
- * the notification doc, so this component does not route them through
- * i18n.
+ * Row for the Buzón activity feed. Pure presentation — no Firestore; the caller
+ * resolves where a tap goes (via the shared `notificationRoute`, the same
+ * function a tapped push uses). Title/body arrive already resolved (Spanish)
+ * on the notification doc, so this component does not route them through i18n.
  */
-export function NotificationRow({ title, body, read, createdAt, testID }: NotificationRowProps) {
-  return (
+export function NotificationRow({ title, body, read, createdAt, onPress, testID }: NotificationRowProps) {
+  const row = (
     <HStack
       gap={3}
       align="start"
@@ -45,5 +48,11 @@ export function NotificationRow({ title, body, read, createdAt, testID }: Notifi
         </Text>
       </VStack>
     </HStack>
+  );
+  if (!onPress) return row;
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button">
+      {row}
+    </Pressable>
   );
 }

@@ -18,6 +18,15 @@ import { getHomeFeed } from '@cultuvilla/shared/services/newsService';
 import { buildEventData } from '@cultuvilla/shared/models/event/EventDataModel';
 import { buildNewsPostData } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 
+const mockOfferPush = jest.fn();
+jest.mock('../../../lib/push/PushProvider', () => ({
+  usePush: () => ({
+    offerPush: mockOfferPush,
+    permission: 'undetermined',
+    refreshPermission: jest.fn(),
+    requestPermission: jest.fn(),
+  }),
+}));
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getMunicipality: jest.fn(),
   getBarrios: jest.fn().mockResolvedValue([]),

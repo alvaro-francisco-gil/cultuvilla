@@ -10,6 +10,15 @@ import {
 import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
 import { showConfirm } from '../../../lib/dialogs';
 
+const mockOfferPush = jest.fn();
+jest.mock('../../../lib/push/PushProvider', () => ({
+  usePush: () => ({
+    offerPush: mockOfferPush,
+    permission: 'undetermined',
+    refreshPermission: jest.fn(),
+    requestPermission: jest.fn(),
+  }),
+}));
 jest.mock('../../../lib/registrations/MyRegistrationsContext', () => ({
   useMyRegistrations: () => ({ ribbonFor: () => null, refresh: jest.fn() }),
 }));

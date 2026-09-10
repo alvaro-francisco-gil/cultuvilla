@@ -70,6 +70,24 @@ export default function SettingsScreen() {
 
         <VStack gap={2}>
           <Text variant="caption" tone="muted" className="uppercase">
+            {t('settings.section.notifications')}
+          </Text>
+          <Card variant="flat" className="p-0">
+            <Pressable
+              onPress={() => router.push('/settings/notifications')}
+              className="px-4 py-3"
+              testID="settings-notifications"
+            >
+              <HStack justify="between" align="center">
+                <Text>{t('notifications.settings.label')}</Text>
+                <Ionicons name="chevron-forward" size={iconSizes.sm} color="#cbd5e1" />
+              </HStack>
+            </Pressable>
+          </Card>
+        </VStack>
+
+        <VStack gap={2}>
+          <Text variant="caption" tone="muted" className="uppercase">
             {t('settings.section.safety')}
           </Text>
           <Card variant="flat" className="p-0">

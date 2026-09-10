@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { Screen, VStack, HStack, Text, Button, Avatar, Pressable } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { NotificationRow } from '../../components/feature/NotificationRow';
@@ -21,6 +21,7 @@ import {
 } from '@cultuvilla/shared/services/organizationService';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 import { getNotifications, markAllAsRead } from '@cultuvilla/shared/services/notificationService';
+import { notificationRoute } from '@cultuvilla/shared/models/notification';
 import { getMyPendingRequests, buildActivityFeed } from '@cultuvilla/shared/services/inboxService';
 import type { ActivityItem } from '@cultuvilla/shared/services/inboxService';
 import type { OrganizerRequestData } from '@cultuvilla/shared/models/municipality/OrganizerRequestDataModel';
@@ -414,6 +415,10 @@ export default function InboxScreen() {
                 body={item.notification.body}
                 read={item.notification.read}
                 createdAt={item.notification.createdAt}
+                onPress={(() => {
+                  const route = notificationRoute(item.notification);
+                  return route ? () => router.push(route as Href) : undefined;
+                })()}
               />
             ) : (
               <VStack key={item.id} gap={1} className="bg-surface border-b border-subtle px-4 py-3">

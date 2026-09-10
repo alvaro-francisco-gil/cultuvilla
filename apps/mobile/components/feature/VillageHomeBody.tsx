@@ -32,6 +32,7 @@ import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { useT } from '../../lib/i18n';
 import { dismissSeoShell } from '../../lib/seoShell';
+import { usePush } from '../../lib/push/PushProvider';
 import { isProposalVisible } from '../../lib/proposals';
 import { joinVillage } from '@cultuvilla/shared/services/villageMemberService';
 import { getVillageViewLink } from '@cultuvilla/shared/services/deepLinkService';
@@ -60,6 +61,7 @@ export interface VillageHomeBodyProps {
  */
 export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
   const { user, refreshProfile } = useAuth();
+  const { offerPush } = usePush();
   const gate = useRegisterGate();
   const { isAppAdmin } = useIsAppAdmin();
   const share = useShareDeepLink();
@@ -186,6 +188,9 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
     try {
       await joinVillage(village.id, user.uid, barrioId);
       setPendingJoin(false);
+      // Joining earns the first ask: everything added to this village will now
+      // reach them. The policy only lets a join have the FIRST ask.
+      offerPush('village_join', { villageName: village.name });
       // joinVillage set this village as active; refresh the auth profile so the
       // Pueblo tab reflects it now, not only after an app restart.
       await refreshProfile();

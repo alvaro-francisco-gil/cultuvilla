@@ -49,6 +49,7 @@ import {
   shouldRetainToken,
 } from './otpTokenCache';
 import { fetchUserIdHash } from '../observability/errorBridge';
+import { unregisterPushForSignOut } from '../push/pushSession';
 
 declare const __DEV__: boolean;
 
@@ -543,6 +544,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const canChangeEmail = isEmailOnlyAccount(user);
 
   const teardownSession = async (): Promise<void> => {
+    // This device's push row first, while the user can still delete it — the
+    // rules are owner-only, and a shared phone must stop receiving the previous
+    // account's pushes the moment it signs out.
+    await unregisterPushForSignOut();
     // Tear down every registered Firestore listener BEFORE auth flips closed,
     // so no listener fires a final permission-denied snapshot at the moment
     // the rules flip. See packages/shared/src/services/listenerManager.ts.
