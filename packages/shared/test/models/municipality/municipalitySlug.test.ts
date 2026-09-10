@@ -30,6 +30,15 @@ describe('assignMunicipalitySlugs', () => {
     expect(slugs.get('2')).toBe('matabuena-soria');
   });
 
+  it('gives the bare name to the activated doc when two docs are one place', () => {
+    const slugs = assignMunicipalitySlugs([
+      { ...muni('ine', 'Aranjuez', 'Madrid', '28013') },
+      { ...muni('seed', 'Aranjuez', 'Madrid', '28013'), communityActive: true },
+    ]);
+    expect(slugs.get('seed')).toBe('aranjuez');
+    expect(slugs.get('ine')).toBe('aranjuez-madrid');
+  });
+
   it('avoids reserved route words', () => {
     expect(assignMunicipalitySlugs([muni('1', 'Descarga', 'Huesca')]).get('1')).toBe('descarga-huesca');
   });
