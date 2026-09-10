@@ -12,9 +12,18 @@ import { escapeHtml } from './escape';
  * them and free of the cloaking risk that user-agent sniffing carries.
  *
  * It renders as a sibling *before* `#root`, and the app tears it down once the
- * real screen has its data (`dismissSeoShell`). Styling is inline and
- * deliberately plain — it exists for the ~300ms before the app takes over, so
- * it must be legible, not beautiful, and must not ship a stylesheet.
+ * real screen has its data (`dismissSeoShell`).
+ *
+ * It is a fixed, full-viewport overlay rather than a block in the flow, because
+ * of the page it lands in: Expo's shell sets `body { overflow: hidden }` and
+ * `#root { height: 100% }`. In the flow, this block pushed the whole app down
+ * and the overflow clipped its bottom — tab bar included — for as long as the
+ * block was up. As an overlay the app mounts and loads *underneath* it, and
+ * removal reveals a finished screen: content, then content.
+ *
+ * Styling is inline and deliberately plain: it is on screen only until the app
+ * has data, so it must be legible, not beautiful, and must not ship a
+ * stylesheet.
  */
 export function buildSeoBody(og: OgMeta): string {
   if (!og.title) return '';
@@ -42,9 +51,10 @@ export function buildSeoBody(og: OgMeta): string {
 
   return (
     `<div id="seo-content" data-seo-shell="1" ` +
-    `style="max-width:680px;margin:0 auto;padding:16px;` +
+    `style="position:fixed;inset:0;z-index:2147483647;overflow-y:auto;` +
+    `background:#fff;color:#1b1f23;` +
     `font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif">` +
-    `<article>${parts.join('')}</article>` +
+    `<article style="max-width:680px;margin:0 auto;padding:16px">${parts.join('')}</article>` +
     `</div>`
   );
 }

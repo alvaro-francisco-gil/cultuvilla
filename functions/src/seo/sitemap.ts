@@ -1,7 +1,8 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import { getFirestore } from 'firebase-admin/firestore';
-import { buildRobotsTxt, buildSitemapXml, toLastmod, toDate, type SitemapUrl } from './urls';
+import { webOriginForProject } from '@cultuvilla/shared/utils';
+import { buildSitemapXml, toLastmod, toDate, type SitemapUrl } from './urls';
 
 /**
  * Why a sitemap at all, and why a function rather than a build artifact.
@@ -108,24 +109,13 @@ async function collectUrls(origin: string): Promise<Fetched> {
   return { urls, counts };
 }
 
-/**
- * `host` is the Cloud Run service URL when Firebase Hosting rewrites to us;
- * `x-forwarded-host` carries the real domain. Same reasoning as ogRenderer —
- * emitting Cloud Run URLs into a sitemap would ask Google to index the wrong
- * origin entirely.
- */
-function resolveOrigin(req: { get: (h: string) => string | undefined }): string {
-  const xHost = req.get('x-forwarded-host')?.split(',')[0]?.trim();
-  const host = xHost ?? req.get('host') ?? 'localhost';
-  const proto = (req.get('x-forwarded-proto') ?? 'https').split(',')[0]?.trim() ?? 'https';
-  return `${proto}://${host}`;
-}
-
 export const sitemap = onRequest(
   { region: 'europe-west1', cors: false, maxInstances: 3, memory: '256MiB', timeoutSeconds: 60 },
-  async (req, res) => {
+  async (_req, res) => {
     try {
-      const origin = resolveOrigin(req);
+      // Every <loc> names the project's public origin, never the request host:
+      // Hosting hands us a Cloud Run host, and prod answers on two domains.
+      const origin = webOriginForProject(process.env['GCLOUD_PROJECT']);
       const { urls, counts } = await collectUrls(origin);
       logger.info('Rendered sitemap', { handler: 'sitemap', origin, total: urls.length, ...counts });
       res
@@ -142,17 +132,5 @@ export const sitemap = onRequest(
       });
       res.status(500).set('Content-Type', 'text/plain').send('Internal Server Error');
     }
-  },
-);
-
-export const robotsTxt = onRequest(
-  { region: 'europe-west1', cors: false, maxInstances: 3, memory: '128MiB', timeoutSeconds: 10 },
-  (req, res) => {
-    const origin = resolveOrigin(req);
-    res
-      .status(200)
-      .set('Content-Type', 'text/plain; charset=utf-8')
-      .set('Cache-Control', 'public, max-age=3600, s-maxage=86400')
-      .send(buildRobotsTxt(origin));
   },
 );

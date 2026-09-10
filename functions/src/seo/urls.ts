@@ -1,6 +1,11 @@
 /**
- * Pure sitemap/robots builders. Kept free of Firestore and of `onRequest` so
- * the XML contract can be unit-tested without an emulator.
+ * Pure sitemap builders. Kept free of Firestore and of `onRequest` so the XML
+ * contract can be unit-tested without an emulator.
+ *
+ * robots.txt is deliberately NOT here: the Cloud Functions Framework answers
+ * `/robots.txt` and `/favicon.ico` itself with an empty 404 before any handler
+ * runs, so no function can serve it through a Hosting rewrite. It is a static
+ * per-env file instead — see apps/mobile/scripts/write-robots.mjs.
  */
 
 export interface SitemapUrl {
@@ -8,36 +13,6 @@ export interface SitemapUrl {
   lastmod?: string | null;
   changefreq?: 'daily' | 'weekly' | 'monthly';
   priority?: string;
-}
-
-/**
- * Paths that are reachable but must never rank. Two different reasons, both
- * ending in the same rule:
- *
- *  - **Private to one person** (`/me`, `/inbox`, `/settings`) or to admins
- *    (`/admin`) — a search result pointing here is useless to everyone but its
- *    owner, and it is not owner-specific anyway once rendered logged-out.
- *  - **`/person/`** — `persons` is publicly readable so guest browsing can show
- *    who organises an event (see docs/decisions/guest-browsing.md). A villager
- *    consented to being visible *inside a village app*, not to their name
- *    ranking on Google. That gap is exactly what robots.txt is for.
- *  - **`/join`** — an invite link is a door someone chose to open for specific
- *    people; indexing it opens it for everyone.
- */
-export const DISALLOWED_PATHS = [
-  '/me',
-  '/inbox',
-  '/settings',
-  '/admin',
-  '/person/',
-  '/*/join$',
-] as const;
-
-export function buildRobotsTxt(origin: string): string {
-  const lines = ['User-agent: *', 'Allow: /'];
-  for (const path of DISALLOWED_PATHS) lines.push(`Disallow: ${path}`);
-  lines.push('', `Sitemap: ${origin}/sitemap.xml`, '');
-  return lines.join('\n');
 }
 
 function escapeXml(value: string): string {

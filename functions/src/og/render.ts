@@ -9,6 +9,7 @@ import {
 } from './fetchers';
 import { injectMeta, injectSeoBody } from './html';
 import { getSpaShell } from './spaShell';
+import { webOriginForProject } from '@cultuvilla/shared/utils';
 
 type RouteKind = 'event' | 'news' | 'village' | 'org';
 type ParsedRoute = { kind: RouteKind; id: string } | null;
@@ -109,13 +110,25 @@ export const ogRenderer = onRequest(
       }
       if (og && INVITE_RE.test(url.pathname)) og.noindex = true;
 
-      // Canonical strips the query string: WhatsApp, Instagram and mail clients
-      // all append their own tracking params, and each variant would otherwise
-      // compete with the real URL in the index.
-      const canonical = `${origin}${url.pathname.replace(/\/$/, '') || '/'}`;
+      // Canonical names the project's public origin, not the host this request
+      // arrived on: prod answers on both cultuvilla.es and
+      // cultuvilla-prod.web.app, and deriving it from the request made each
+      // declare itself canonical. It also drops the query string — WhatsApp,
+      // Instagram and mail clients append their own tracking params, and each
+      // variant would otherwise compete with the real URL.
+      const canonical = `${webOriginForProject(process.env['GCLOUD_PROJECT'])}${
+        url.pathname.replace(/\/$/, '') || '/'
+      }`;
 
+      // The shell is still fetched from the request's own origin: that is the
+      // Hosting site actually serving this deploy.
       const shell = await getSpaShell(origin);
-      const html = injectSeoBody(injectMeta(shell, og, canonical), og);
+      const withMeta = injectMeta(shell, og, canonical);
+      // Only indexable pages get the content block. A noindex page (a private
+      // event, an invite link) has nothing a crawler should read, and an invite
+      // screen is not an entity detail screen, so nothing there would ever
+      // dismiss an overlay placed over it.
+      const html = og?.noindex ? withMeta : injectSeoBody(withMeta, og);
 
       logger.info('Rendered OG preview', {
         handler: 'ogRenderer',

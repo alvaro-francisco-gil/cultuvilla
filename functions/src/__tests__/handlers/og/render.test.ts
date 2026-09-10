@@ -6,6 +6,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as admin from 'firebase-admin';
 import { resetEmulators } from '../../helpers/firestoreEmulator';
+import { webOriginForProject } from '@cultuvilla/shared/utils';
+
+// Canonical URLs name the project's public origin, never the request host.
+const ORIGIN = webOriginForProject(process.env['GCLOUD_PROJECT']);
 
 const SHELL =
   '<!doctype html><html lang="en"><head>' +
@@ -119,7 +123,10 @@ describe('ogRenderer', () => {
     expect(res.body.indexOf('id="seo-content"')).toBeLessThan(res.body.indexOf('id="root"'));
     expect(res.body).toContain('Fiesta del Pueblo');
     expect(res.body).toContain('"@type":"Event"');
-    expect(res.body).toContain('<link rel="canonical" href="https://example.com/event/e1"/>');
+    expect(res.body).toContain(`<link rel="canonical" href="${ORIGIN}/event/e1"/>`);
+    // The request arrived on example.com; the canonical must not follow it, or
+    // prod's two hosts each declare themselves canonical.
+    expect(res.body).not.toContain('href="https://example.com/');
     expect(res.body).not.toContain('name="robots"');
   });
 
@@ -147,7 +154,7 @@ describe('ogRenderer', () => {
 
     const res = await invoke('/event/e-utm?utm_source=whatsapp');
 
-    expect(res.body).toContain('<link rel="canonical" href="https://example.com/event/e-utm"/>');
+    expect(res.body).toContain(`<link rel="canonical" href="${ORIGIN}/event/e-utm"/>`);
     expect(res.body).not.toContain('utm_source');
   });
 
@@ -174,6 +181,9 @@ describe('ogRenderer', () => {
     const invite = await invoke('/village/mun-join/join');
     expect(invite.statusCode).toBe(200);
     expect(invite.body).toContain('<meta name="robots" content="noindex,follow"/>');
+    // An invite screen never dismisses the content overlay, so it gets none.
+    expect(invite.body).not.toContain('id="seo-content"');
+    expect(plain.body).toContain('id="seo-content"');
   });
 
   // A link preview is rendered for whoever scrolls past the URL, with no viewer
@@ -216,6 +226,7 @@ describe('ogRenderer', () => {
     // promise a reader something the page will refuse to show them.
     expect(res.body).toContain('<meta name="robots" content="noindex,follow"/>');
     expect(res.body).not.toContain('"@type":"Event"');
+    expect(res.body).not.toContain('id="seo-content"');
   });
 
   it('village: uses escudoManualUrl as og:image when present', async () => {
