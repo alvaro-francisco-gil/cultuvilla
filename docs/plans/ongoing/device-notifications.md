@@ -119,14 +119,14 @@ than a global switch.
 
 One type, `village_entity_published`, carrying `entityKind` — not six
 near-identical types. The set is the entity family from AGENTS.md: **event,
-news, place, barrio, organization, festivalPoster**.
+news, place, barrio, organization, festivalPoster, historyEntry**.
 
 The subtlety is that "added to the village" is a different moment per kind:
 
 | Kind | Fires on |
 |---|---|
 | event | create, `status: 'published'` |
-| news, place, barrio, festivalPoster | create, `status: 'active'` (not hidden) |
+| news, place, barrio, festivalPoster, historyEntry | create, `status: 'active'` (not hidden) |
 | organization | **update** `pending → approved` — creation is a *request*, not a village-visible thing |
 
 Fan-out reads `municipalities/{id}/members` and writes one notification doc per

@@ -102,7 +102,7 @@ describe('villageEntityPublishedCopy', () => {
 
   it('covers the entity family and excludes vocabulary terms', () => {
     expect([...BROADCAST_ENTITY_KINDS].sort()).toEqual(
-      ['barrio', 'event', 'festivalPoster', 'news', 'organization', 'place'].sort(),
+      ['barrio', 'event', 'festivalPoster', 'historyEntry', 'news', 'organization', 'place'].sort(),
     );
     expect(isBroadcastEntityKind('vocabularyTerm')).toBe(false);
     for (const kind of BROADCAST_ENTITY_KINDS) {

@@ -68,7 +68,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 - **Notificaciones en el móvil.** Hasta ahora las notificaciones sólo vivían en
   el Buzón; ahora llegan también al móvil, en iOS y Android, y **todo lo que se
   añade a un pueblo avisa a sus vecinos**: un evento, una noticia, un lugar, un
-  barrio, una peña o un cartel de fiestas. Además, el día antes de un evento al
+  barrio, una peña, un cartel de fiestas o una entrada de la historia del
+  pueblo. Además, el día antes de un evento al
   que vas te llega un recordatorio.
 
   El permiso **no se pide al abrir la app**. iOS sólo deja preguntarlo una vez en

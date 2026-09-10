@@ -8,6 +8,7 @@ import {
   onBarrioPublished,
   onEventPublished,
   onFestivalPosterPublished,
+  onHistoryEntryPublished,
   onNewsPublished,
   onPlacePublished,
 } from '../../../village/entityPublishedTriggers';
@@ -153,6 +154,23 @@ describe('village entity broadcast', () => {
     );
     const [n] = await notificationsOf('member-1');
     expect(n.data()['body']).toBe('Un cartel de fiestas nuevo en tu pueblo.');
+  });
+
+  it('announces a new history entry on the village timeline', async () => {
+    await fireCreate(
+      onHistoryEntryPublished,
+      'historyEntries/h1',
+      { municipalityId: MUN, createdBy: ACTOR, title: 'La riada del 62', status: 'active' },
+      { entryId: 'h1' },
+    );
+    const [n] = await notificationsOf('member-1');
+    expect(n.id).toBe('village_entity_historyEntry_h1');
+    expect(n.data()).toMatchObject({
+      entityKind: 'historyEntry',
+      title: 'Nueva entrada de historia en Matabuena',
+      body: '«La riada del 62»',
+    });
+    expect(await notificationsOf(ACTOR)).toHaveLength(0);
   });
 
   it('announces an organization on approval, not on creation, and spares the founder', async () => {

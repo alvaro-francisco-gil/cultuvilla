@@ -13,6 +13,7 @@ export const BROADCAST_ENTITY_KINDS = [
   'barrio',
   'organization',
   'festivalPoster',
+  'historyEntry',
 ] as const;
 export type BroadcastEntityKind = (typeof BROADCAST_ENTITY_KINDS)[number];
 
@@ -23,6 +24,7 @@ export function isBroadcastEntityKind(kind: EntityKind): kind is BroadcastEntity
 const HEADLINE: Record<BroadcastEntityKind, string> = {
   event: 'Nuevo evento',
   news: 'Nueva publicación',
+  historyEntry: 'Nueva entrada de historia',
   place: 'Nuevo lugar',
   barrio: 'Nuevo barrio',
   organization: 'Nueva organización',
@@ -33,6 +35,7 @@ const HEADLINE: Record<BroadcastEntityKind, string> = {
 const UNNAMED: Record<BroadcastEntityKind, string> = {
   event: 'Un evento nuevo',
   news: 'Una publicación nueva',
+  historyEntry: 'Una entrada de historia nueva',
   place: 'Un lugar nuevo',
   barrio: 'Un barrio nuevo',
   organization: 'Una organización nueva',

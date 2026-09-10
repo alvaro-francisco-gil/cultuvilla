@@ -141,6 +141,26 @@ export const onNewsPublished = onDocumentCreated('news/{newsId}', async (event) 
   });
 });
 
+// The timeline is a village-scoped entity like any other: published instantly
+// by any member, moderated after the fact.
+export const onHistoryEntryPublished = onDocumentCreated(
+  'historyEntries/{entryId}',
+  async (event) => {
+    const d = event.data?.data();
+    if (!d || !isVisible(d)) return;
+    const municipalityId = str(d, 'municipalityId');
+    if (!municipalityId) return;
+    await broadcastToVillage({
+      kind: 'historyEntry',
+      entityId: event.params.entryId,
+      municipalityId,
+      entityLabel: str(d, 'title'),
+      actorUid: str(d, 'createdBy'),
+      handler: 'onHistoryEntryPublished',
+    });
+  },
+);
+
 export const onFestivalPosterPublished = onDocumentCreated(
   'festivalPosters/{posterId}',
   async (event) => {

@@ -21,13 +21,14 @@ describe('notificationRoute', () => {
     ['place', '/village/mun1/place/x'],
     ['barrio', '/village/mun1/barrio/x'],
     ['festivalPoster', '/village/mun1/festival-poster/x'],
+    ['historyEntry', '/village/mun1/history-entry/x'],
     ['vocabularyTerm', '/village/mun1/word/x'],
   ] as const)('routes a %s entity to %s', (entityKind, route) => {
     expect(notificationRoute({ ...base, entityKind, entityId: 'x' })).toBe(route);
   });
 
   it('cannot address a village-nested entity without its village', () => {
-    for (const entityKind of ['place', 'barrio', 'festivalPoster', 'vocabularyTerm'] as const) {
+    for (const entityKind of ['place', 'barrio', 'festivalPoster', 'historyEntry', 'vocabularyTerm'] as const) {
       expect(
         notificationRoute({ ...base, entityKind, entityId: 'x', municipalityId: null }),
       ).toBeNull();

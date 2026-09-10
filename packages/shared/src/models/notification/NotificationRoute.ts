@@ -38,6 +38,10 @@ export function notificationRoute(n: NotificationRouteInput): string | null {
         return n.municipalityId
           ? `/village/${n.municipalityId}/festival-poster/${n.entityId}`
           : null;
+      case 'historyEntry':
+        return n.municipalityId
+          ? `/village/${n.municipalityId}/history-entry/${n.entityId}`
+          : null;
       case 'vocabularyTerm':
         return n.municipalityId ? `/village/${n.municipalityId}/word/${n.entityId}` : null;
     }

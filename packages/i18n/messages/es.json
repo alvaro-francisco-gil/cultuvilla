@@ -1038,7 +1038,7 @@
         },
         "village": {
           "label": "Novedades del pueblo",
-          "hint": "Cuando se publica un evento, una noticia, un lugar, un barrio, una peña o un cartel en tus pueblos."
+          "hint": "Cuando se publica un evento, una noticia, un lugar, un barrio, una peña, un cartel o una entrada de historia en tus pueblos."
         },
         "social": {
           "label": "Actividad y solicitudes",

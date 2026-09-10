@@ -41,6 +41,7 @@ export { flushPushQueue } from './push/flushPushQueue';
 export {
   onEventPublished,
   onNewsPublished,
+  onHistoryEntryPublished,
   onFestivalPosterPublished,
   onPlacePublished,
   onBarrioPublished,
