@@ -113,6 +113,67 @@ describe('ogRenderer', () => {
     expect(res.body).not.toContain('content="stale"');
     // SPA shell body survives so real users still hydrate.
     expect(res.body).toContain('<div id="root">');
+    // Server-rendered content lands before #root, so React's first commit
+    // cannot destroy it and the crawler sees real markup, not an empty shell.
+    expect(res.body).toContain('id="seo-content"');
+    expect(res.body.indexOf('id="seo-content"')).toBeLessThan(res.body.indexOf('id="root"'));
+    expect(res.body).toContain('Fiesta del Pueblo');
+    expect(res.body).toContain('"@type":"Event"');
+    expect(res.body).toContain('<link rel="canonical" href="https://example.com/event/e1"/>');
+    expect(res.body).not.toContain('name="robots"');
+  });
+
+  it('event: a query string does not fork the canonical URL', async () => {
+    const now = new Date();
+    await admin.firestore().doc('events/e-utm').set({
+      title: 'Fiesta',
+      description: 'x',
+      startDate: now,
+      location: { coordinates: { lat: 40.4, lng: -3.7 }, displayName: 'plaza' },
+      imageURL: null,
+      maxAttendees: null,
+      telephoneRequired: false,
+      status: 'published',
+      organizerUserIds: ['c1'],
+      organizerOrgIds: [],
+      createdBy: 'c1',
+      createdAt: now,
+      updatedAt: now,
+      municipalityId: 'mun-1',
+      villageName: 'Villarriba',
+      villageCoverImage: null,
+      villageCoordinates: null,
+    });
+
+    const res = await invoke('/event/e-utm?utm_source=whatsapp');
+
+    expect(res.body).toContain('<link rel="canonical" href="https://example.com/event/e-utm"/>');
+    expect(res.body).not.toContain('utm_source');
+  });
+
+  it('village: an invite link is reachable but never indexable', async () => {
+    const now = new Date();
+    await admin.firestore().doc('municipalities/mun-join').set({
+      name: 'Villarriba',
+      nameLower: 'villarriba',
+      nameAliases: [],
+      localityNames: [],
+      searchPrefixes: [],
+      province: 'Segovia',
+      comunidadAutonoma: 'Castilla y León',
+      codigoINE: '40001',
+      coordinates: null,
+      createdAt: now,
+      communityActive: true,
+      community: { description: 'Un pueblo' },
+    });
+
+    const plain = await invoke('/village/mun-join');
+    expect(plain.body).not.toContain('name="robots"');
+
+    const invite = await invoke('/village/mun-join/join');
+    expect(invite.statusCode).toBe(200);
+    expect(invite.body).toContain('<meta name="robots" content="noindex,follow"/>');
   });
 
   // A link preview is rendered for whoever scrolls past the URL, with no viewer
@@ -151,6 +212,10 @@ describe('ogRenderer', () => {
     expect(res.body).not.toContain('En el local');
     expect(res.body).not.toContain('event-priv.jpg');
     expect(res.body).not.toContain('village.jpg');
+    // Withheld content must not rank either: a search result would otherwise
+    // promise a reader something the page will refuse to show them.
+    expect(res.body).toContain('<meta name="robots" content="noindex,follow"/>');
+    expect(res.body).not.toContain('"@type":"Event"');
   });
 
   it('village: uses escudoManualUrl as og:image when present', async () => {

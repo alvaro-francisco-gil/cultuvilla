@@ -7,11 +7,19 @@ import {
   getOrgOg,
   type OgMeta,
 } from './fetchers';
-import { injectMeta } from './html';
+import { injectMeta, injectSeoBody } from './html';
 import { getSpaShell } from './spaShell';
 
 type RouteKind = 'event' | 'news' | 'village' | 'org';
 type ParsedRoute = { kind: RouteKind; id: string } | null;
+
+/**
+ * An invite URL is reachable by anyone holding the link, which is exactly why it
+ * must never be indexed — a `/join` page ranking in Google turns a link someone
+ * chose to share into an open door. `follow` is kept so the village/org page it
+ * points at still gets crawled.
+ */
+const INVITE_RE = /\/join\/?$/;
 
 const PATTERNS: { kind: RouteKind; re: RegExp }[] = [
   { kind: 'event', re: /^\/event\/([^/]+)\/?$/ },
@@ -99,8 +107,15 @@ export const ogRenderer = onRequest(
           });
         }
       }
+      if (og && INVITE_RE.test(url.pathname)) og.noindex = true;
+
+      // Canonical strips the query string: WhatsApp, Instagram and mail clients
+      // all append their own tracking params, and each variant would otherwise
+      // compete with the real URL in the index.
+      const canonical = `${origin}${url.pathname.replace(/\/$/, '') || '/'}`;
+
       const shell = await getSpaShell(origin);
-      const html = injectMeta(shell, og, url.toString());
+      const html = injectSeoBody(injectMeta(shell, og, canonical), og);
 
       logger.info('Rendered OG preview', {
         handler: 'ogRenderer',
@@ -108,6 +123,7 @@ export const ogRenderer = onRequest(
         kind: route?.kind ?? 'unmatched',
         id: route?.id,
         hasDoc: og !== null,
+        noindex: og?.noindex === true,
       });
 
       res
