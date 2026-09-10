@@ -3,7 +3,7 @@ import { injectMeta, injectSeoBody } from '../../og/html';
 import { buildJsonLd } from '../../og/jsonLd';
 import { buildSeoBody } from '../../og/seoBody';
 import type { OgMeta } from '../../og/fetchers';
-import { buildRobotsTxt, buildSitemapXml, toLastmod } from '../../seo/urls';
+import { buildSitemapXml, toLastmod } from '../../seo/urls';
 
 /** Narrow `string | null` for the assertions that follow, failing loudly if null. */
 function present(value: string | null): string {
@@ -159,6 +159,14 @@ describe('buildSeoBody / injectSeoBody', () => {
     expect(block).toContain('&lt;script&gt;');
   });
 
+  // Expo's shell sets body{overflow:hidden} and #root{height:100%}. A block in
+  // the flow pushes the app down and the overflow clips its bottom (tab bar
+  // included); an overlay lets the app load underneath and be revealed whole.
+  it('covers the viewport instead of pushing the app down', () => {
+    const block = buildSeoBody(EVENT);
+    expect(block).toMatch(/id="seo-content"[^>]*style="position:fixed;inset:0;/);
+  });
+
   it('inserts the block BEFORE #root so React cannot destroy it on mount', () => {
     const html = injectSeoBody(SHELL, EVENT);
     expect(html.indexOf('id="seo-content"')).toBeLessThan(html.indexOf('id="root"'));
@@ -176,21 +184,6 @@ describe('buildSeoBody / injectSeoBody', () => {
     expect(html).toContain('og:image');
     expect(html).toContain('id="seo-content"');
     expect(html).toContain('id="root"');
-  });
-});
-
-describe('robots.txt', () => {
-  it('points at the sitemap on the requesting origin', () => {
-    expect(buildRobotsTxt('https://cultuvilla.es')).toContain(
-      'Sitemap: https://cultuvilla.es/sitemap.xml',
-    );
-  });
-
-  it('keeps people and invite links out of the index', () => {
-    const txt = buildRobotsTxt('https://cultuvilla.es');
-    expect(txt).toContain('Disallow: /person/');
-    expect(txt).toContain('Disallow: /*/join$');
-    expect(txt).toContain('Disallow: /inbox');
   });
 });
 

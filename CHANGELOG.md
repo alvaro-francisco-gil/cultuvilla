@@ -80,6 +80,38 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Fixed
 
+- **En el iPhone, Safari no ofrecía la app — y la web se declaraba en inglés.**
+  La v1.1.0 anunció que Safari mostraría su propia barra de descarga del App
+  Store, y por eso nuestro aviso se aparta en Safari. Pero la etiqueta que la
+  enciende vivía en `app/+html.tsx`, un archivo que la web **no usa**: en el
+  modo de página única, Expo construye el documento desde
+  `public/index.html` e ignora `+html.tsx` por completo. Así que en producción
+  la etiqueta nunca salió, y a un visitante de Safari en iPhone no se le
+  ofrecía **nada**. Por el mismo motivo la página iba en `lang="en"` desde
+  julio pese a un arreglo que decía lo contrario, y Chrome seguía ofreciendo
+  traducir una web en castellano. La cabecera vive ahora en
+  `public/index.html`, `+html.tsx` desaparece, y el despliegue **se rechaza**
+  si la página exportada pierde `lang="es"` o la etiqueta del App Store —
+  para que esto no pueda volver a romperse sin que nadie lo vea.
+- **Los entornos de pruebas ya no se pueden indexar.** La web de desarrollo y la
+  de beta —llenas de datos de demostración con el nombre de Cultuvilla— servían
+  un `robots.txt` que invitaba a Google a entrar. Ahora sólo producción se deja
+  indexar; dev y beta responden `Disallow: /`. El `robots.txt` es un archivo
+  estático por entorno: servirlo desde una función era imposible, porque el
+  framework de Cloud Functions contesta `/robots.txt` él mismo con un 404 vacío
+  antes de que el código llegue a ejecutarse.
+- **Una sola dirección para cada página.** Producción responde en
+  `cultuvilla.es` y en `cultuvilla-prod.web.app`, y cada una se anunciaba como
+  la dirección canónica, así que Google veía dos copias de todo compitiendo
+  entre sí. Ahora la canónica y el sitemap nombran siempre `cultuvilla.es` — y
+  también los enlaces de los correos de inscripción y cancelación, que hasta
+  ahora mandaban a los vecinos a `cultuvilla-prod.web.app`.
+- **Abrir un enlace compartido ya no descoloca la pantalla.** El contenido que
+  la web pinta antes de que arranque la app empujaba la app hacia abajo y
+  cortaba su parte inferior —barra de pestañas incluida— mientras estaba
+  visible. Ahora cubre la pantalla y la app carga debajo, así que al quitarse
+  aparece la pantalla ya terminada.
+
 - **Los botones de acción vuelven a verse como botones.** En Pueblo («Añadir
   contenido», «Compartir pueblo», «Unirme», «Rellenar censo») y en Perfil, los
   botones aparecían como texto suelto, sin el contorno terracota, en la app y en

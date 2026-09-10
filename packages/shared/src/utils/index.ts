@@ -44,3 +44,4 @@ export {
   type StoreBannerDismissal,
   type StorePlatform,
 } from './storeBanner';
+export { webOriginForProject } from './webOrigin';

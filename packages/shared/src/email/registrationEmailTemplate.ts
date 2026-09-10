@@ -14,6 +14,8 @@
  * also in the text below the image, and the img carries a real alt.
  */
 
+import { webOriginForProject } from '../utils/webOrigin';
+
 const FOOTER_TEXT = 'Cultuvilla · cultuvilla.app@gmail.com';
 
 const BRAND_GREEN = '#2f5233';
@@ -93,12 +95,11 @@ function escapeHtml(value: string): string {
 }
 
 /**
- * Absolute URL of the event's web route. Hosting serves the app at
- * `<projectId>.web.app` in every env (see .firebaserc), so the project the
- * caller is running against picks the right host without extra config.
+ * Absolute URL of the event's web route, on the env's public origin — the brand
+ * domain on prod, `<projectId>.web.app` elsewhere (see `webOriginForProject`).
  */
 export function eventWebUrl(eventId: string, projectId: string | undefined): string {
-  return `https://${projectId ?? 'villa-events'}.web.app/event/${encodeURIComponent(eventId)}`;
+  return `${webOriginForProject(projectId)}/event/${encodeURIComponent(eventId)}`;
 }
 
 export const REGISTRATION_EMAIL_SUBJECT_PREFIX = 'Inscripción confirmada';

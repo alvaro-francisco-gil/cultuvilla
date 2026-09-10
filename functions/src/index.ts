@@ -54,7 +54,7 @@ export { recordEntityView } from './interaction/recordEntityView';
 
 // Share-link Open Graph preview renderer (HTTPS function behind a Hosting rewrite).
 export { ogRenderer } from './og/render';
-export { sitemap, robotsTxt } from './seo/sitemap';
+export { sitemap } from './seo/sitemap';
 
 // Maps (Google Static Maps proxy + geocoding — key stays server-side)
 export { staticMap } from './maps/staticMap';
