@@ -1,6 +1,6 @@
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
 import type { CartelInput, WrappedInputs } from '@cultuvilla/shared/wrapped';
-import { EventStatusSchema, RegistrationStatusSchema } from '@cultuvilla/shared/models';
+import { EventStatusSchema, RegistrationStatusSchema, isPrivateEvent } from '@cultuvilla/shared/models';
 import {
   eventRegistrationsCollection,
   eventsCollection,
@@ -83,6 +83,11 @@ export async function gatherWrappedInputs(
     const startDate = date(e.startDate);
     const status = EventStatusSchema.safeParse(e.status);
     if (!startDate || !status.success) return [];
+    // An org-private event is visible only to that org's members, and every
+    // Wrapped card is a forwardable image. Dropped here, before registrations
+    // are read, so it reaches neither a card nor a stat nor the people wall.
+    const visibility = e.visibility === 'organization' ? 'organization' : 'public';
+    if (isPrivateEvent({ visibility, visibilityOrgId: str(e.visibilityOrgId) })) return [];
     return [
       {
         id: d.id,
