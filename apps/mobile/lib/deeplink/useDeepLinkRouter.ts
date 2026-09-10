@@ -3,12 +3,14 @@ import { Platform } from 'react-native';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import {
+  NESTED_CHILD_PATH,
+  isNestedResource,
   parseLink,
   type DeepLinkResource,
 } from '@cultuvilla/shared/services/deepLinkService';
 
-// Flat (top-level) resources. Nested resources (place, barrio) live under a
-// village and are routed separately below.
+// Flat (top-level) resources. Nested resources (place, barrio, history entry)
+// live under a village and are routed separately below.
 const RESOURCE_TO_ROUTE: Partial<Record<DeepLinkResource, string>> = {
   event: 'event',
   news: 'news',
@@ -20,10 +22,10 @@ const RESOURCE_TO_ROUTE: Partial<Record<DeepLinkResource, string>> = {
 function route(url: string): void {
   const parsed = parseLink(url);
   if (!parsed) return;
-  if (parsed.resource === 'place' || parsed.resource === 'barrio') {
+  if (isNestedResource(parsed.resource)) {
     if (!parsed.parentId) return;
     router.replace(
-      `/village/${parsed.parentId}/${parsed.resource}/${parsed.id}` as never,
+      `/village/${parsed.parentId}/${NESTED_CHILD_PATH[parsed.resource]}/${parsed.id}` as never,
     );
     return;
   }

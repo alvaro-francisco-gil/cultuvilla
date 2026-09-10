@@ -460,9 +460,14 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
           ))}
         </Section>
 
-        {/* ── Vocabulario: open to everyone, including non-members — a word from
-            a pueblo you don't live in is exactly the thing worth not losing ─── */}
+        {/* ── Historia + Vocabulario: open to everyone, including non-members —
+            a pueblo's past and its words are exactly what is worth not losing ─── */}
         <HStack gap={3} className="px-4 pt-8">
+          <ActionPill
+            label={t('village.history.title')}
+            onPress={() => router.push(`/village/${village.id}/history` as never)}
+            testID="village-history-action"
+          />
           <ActionPill
             label={t('village.vocabulary.title')}
             onPress={() => router.push(`/village/${village.id}/vocabulary` as never)}

@@ -14,7 +14,8 @@
       "person": "Eliminando persona…",
       "place": "Eliminando lugar…",
       "barrio": "Eliminando barrio…",
-      "festivalPoster": "Eliminando cartel…"
+      "festivalPoster": "Eliminando cartel…",
+      "historyEntry": "Eliminando acontecimiento…"
     },
     "edit": "Editar",
     "approve": "Aprobar",
@@ -293,6 +294,51 @@
       "castellano": "En castellano",
       "castellanoPlaceholder": "La palabra equivalente, si la hay",
       "save": "Guardar"
+    },
+    "history": {
+      "title": "Historia",
+      "empty": "Todavía no hay acontecimientos en la historia de este pueblo.",
+      "emptyMember": "Sé el primero en añadir uno: una fundación, una riada, la llegada de la luz…",
+      "add": "Añadir acontecimiento",
+      "newTitle": "Nuevo acontecimiento",
+      "editTitle": "Editar acontecimiento",
+      "sources": "Fuentes",
+      "form": {
+        "images": "Imágenes",
+        "imagesHint": "Hasta 3. La primera es la portada.",
+        "addImage": "Añadir imagen",
+        "removeImage": "Quitar imagen",
+        "caption": "Pie de foto {n}",
+        "captionPlaceholder": "Ej.: Archivo municipal, 1920",
+        "title": "Título",
+        "titlePlaceholder": "Ej.: Se construye la iglesia",
+        "date": "Fecha",
+        "from": "Desde",
+        "to": "Hasta",
+        "dateHint": "Deja el mes y el día vacíos si solo sabes el año.",
+        "isRange": "Es un periodo (desde – hasta)",
+        "approximate": "Fecha aproximada",
+        "year": "Año",
+        "bc": "a. C.",
+        "month": "Mes",
+        "day": "Día",
+        "body": "Relato",
+        "bodyPlaceholder": "Cuenta qué pasó, quién lo vivió, qué quedó…",
+        "sources": "Fuentes",
+        "sourcesPlaceholder": "Libros, archivos o personas que lo cuentan",
+        "save": "Guardar",
+        "errors": {
+          "titleRequired": "Pon un título.",
+          "yearRequired": "Indica el año.",
+          "yearZero": "El año 0 no existe: del 1 a. C. se pasa al 1.",
+          "dayInvalid": "Ese día no existe en ese mes.",
+          "endYearRequired": "Indica el año en que termina.",
+          "endYearZero": "El año 0 no existe: del 1 a. C. se pasa al 1.",
+          "endDayInvalid": "El día final no existe en ese mes.",
+          "endBeforeStart": "El final tiene que ser posterior al inicio.",
+          "saveFailed": "No se ha podido guardar. Inténtalo de nuevo."
+        }
+      }
     },
     "title": "Pueblos",
     "proposals": {
@@ -1201,6 +1247,9 @@
       },
       "user": {
         "view": "Mira el perfil de {name} en Cultuvilla: {url}"
+      },
+      "historyEntry": {
+        "view": "Mira «{name}» en Cultuvilla: {url}"
       }
     },
     "shareViewLabel": "Compartir"
