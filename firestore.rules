@@ -676,6 +676,39 @@ service cloud.firestore {
           && isTimestamp(d.updatedAt);
     }
 
+    // The platform decides the transport: an Android token is an FCM token,
+    // an iOS token is a raw APNs token that must carry its gateway and bundle
+    // id (see DeviceTokenDataModel). The pairing is asserted here as well as in
+    // the converter so a malformed row can never reach a transport.
+    function isValidDeviceTokenWrite(d, token) {
+      let keys = ['token', 'platform', 'apnsEnvironment', 'apnsTopic', 'appVersion', 'createdAt', 'lastSeenAt'];
+      return d.keys().hasOnly(keys)
+          && d.keys().hasAll(keys)
+          && d.token == token
+          && d.appVersion is string
+          && isTimestamp(d.createdAt)
+          && isTimestamp(d.lastSeenAt)
+          && (
+               (d.platform == 'android'
+                 && d.apnsEnvironment == null
+                 && d.apnsTopic == null)
+            || (d.platform == 'ios'
+                 && d.apnsEnvironment in ['production', 'sandbox']
+                 && d.apnsTopic is string
+                 && d.apnsTopic.size() > 0)
+          );
+    }
+
+    function isValidNotificationPrefsWrite(d) {
+      return d.keys().hasOnly(['mine', 'village', 'social', 'quietHours', 'updatedAt'])
+          && d.keys().hasAll(['mine', 'village', 'social', 'quietHours', 'updatedAt'])
+          && d.mine is bool
+          && d.village is bool
+          && d.social is bool
+          && d.quietHours is bool
+          && isTimestamp(d.updatedAt);
+    }
+
     function isValidBlockedUserCreate(d, blockedUserId) {
       return d.keys().hasOnly(['blockedUserId', 'createdAt'])
           && d.keys().hasAll(['blockedUserId', 'createdAt'])
@@ -916,6 +949,28 @@ service cloud.firestore {
         allow update: if isOwner(userId)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
         allow create, delete: if false;
+      }
+
+      // Push registration tokens. THE DOCUMENT ID IS THE TOKEN, so a device
+      // re-registering on every launch overwrites its own row instead of
+      // accumulating one per session. Owner-only in both directions: the token
+      // is what addresses a push at a person's pocket, and a readable list
+      // would let anyone enumerate a user's devices.
+      match /devices/{token} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && isValidDeviceTokenWrite(request.resource.data, token);
+      }
+
+      // Push preferences. Optional by design — an account with no doc gets
+      // DEFAULT_NOTIFICATION_PREFS — so there is no create/update split here.
+      // These gate PUSH only; the in-app Buzón always receives everything, so
+      // muting a category can never destroy the durable record.
+      match /preferences/{prefId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId)
+          && prefId == 'notifications'
+          && isValidNotificationPrefsWrite(request.resource.data);
       }
 
       // Per-user block list. Owner-only in BOTH directions: a readable list
@@ -1392,6 +1447,15 @@ service cloud.firestore {
     // unmatched path — this explicit rule makes the invariant assertable and
     // stops a future broad rule from accidentally exposing operational state.
     match /_admin/{document=**} {
+      allow read, write: if false;
+    }
+
+    // pushQueue is the server-only spool that turns a notification doc into a
+    // device push (see PushQueueDataModel). Nothing in the app reads it, and a
+    // client-writable spool would let anyone send themselves — or suppress —
+    // an arbitrary push. The Admin SDK bypasses rules, so the triggers write it
+    // fine.
+    match /pushQueue/{queueId} {
       allow read, write: if false;
     }
 
