@@ -27,6 +27,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { currentStoreUrl } from './lib/app-stores.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const PROD = 'cultuvilla-prod';
@@ -196,9 +197,6 @@ if (!easEnv) {
 // because whether a store page is publicly reachable is not a fact any test has
 // access to. So it is checked here, against the live stores.
 console.log('\nStore listings');
-const appStores = readFileSync(resolve(ROOT, 'apps/mobile/lib/appStores.ts'), 'utf8');
-const urlFor = (key) =>
-  appStores.match(new RegExp(`^\\\\s*${key}:\\\\s*'([^']*)'`, 'm'))?.[1] ?? '';
 
 /**
  * Is the iOS listing reachable?
@@ -236,7 +234,7 @@ async function androidListingIsLive(url) {
 }
 
 for (const [key, probe] of [['ios', iosListingIsLive], ['android', androidListingIsLive]]) {
-  const url = urlFor(key);
+  const url = currentStoreUrl(key);
   if (!url) {
     meh(`APP_STORES.${key} is empty`, 'that platform offers no download — deliberate until it ships');
     continue;
