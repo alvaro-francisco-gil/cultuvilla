@@ -77,7 +77,7 @@ jest.mock('../../lib/i18n', () => ({
   }),
 }));
 jest.mock('expo-router', () => ({
-  usePathname: () => '/event/e-1',
+  usePathname: () => '/villa/evento/fiesta_e-1',
   router: { push: jest.fn() },
 }));
 const { router: mockRouter } = jest.requireMock('expo-router');
@@ -354,7 +354,7 @@ describe('<EntityComments>', () => {
       fireEvent.press(signInButton);
     });
 
-    expect(mockRequireAuth).toHaveBeenCalledWith('/event/e-1', 'guest.comment');
+    expect(mockRequireAuth).toHaveBeenCalledWith('/villa/evento/fiesta_e-1', 'guest.comment');
     expect(addCommentMock).not.toHaveBeenCalled();
   });
 
@@ -540,11 +540,11 @@ describe('<EntityComments>', () => {
     const { findByTestId } = render(<EntityComments {...BASE_PROPS} />);
 
     fireEvent.press(await findByTestId('comment-author-c-1'));
-    expect(mockRouter.push).toHaveBeenCalledWith('/user/uid-2');
+    expect(mockRouter.push).toHaveBeenCalledWith('/usuario/uid-2');
 
     mockRouter.push.mockClear();
     fireEvent.press(await findByTestId('comment-author-avatar-c-1'));
-    expect(mockRouter.push).toHaveBeenCalledWith('/user/uid-2');
+    expect(mockRouter.push).toHaveBeenCalledWith('/usuario/uid-2');
   });
 
   it('opens the author profile from a reply', async () => {
@@ -581,7 +581,7 @@ describe('<EntityComments>', () => {
     });
 
     fireEvent.press(await findByTestId('comment-author-r-1'));
-    expect(mockRouter.push).toHaveBeenCalledWith('/user/uid-3');
+    expect(mockRouter.push).toHaveBeenCalledWith('/usuario/uid-3');
   });
 
   it('leaves a deleted author inert instead of routing to a tombstone uid', async () => {

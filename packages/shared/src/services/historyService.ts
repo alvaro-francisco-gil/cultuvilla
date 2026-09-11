@@ -1,5 +1,6 @@
 import { deleteDoc, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import { getDb } from '../firebase';
+import { getVillageSlug } from './municipalityService';
 import { historyEntriesCollection, historyEntryDoc } from '../firebase/refs/client';
 import {
   buildHistoryEntryData,
@@ -18,10 +19,11 @@ export function newHistoryEntryId(): string {
 /** Any village member adds an entry; it lands `active` and is public at once.
  *  Village/app admins can hide it afterward via `moderationService`. */
 export async function createHistoryEntry(
-  input: HistoryEntryDataInput,
+  input: Omit<HistoryEntryDataInput, 'villageSlug'>,
   id: string = newHistoryEntryId(),
 ): Promise<string> {
-  await setDoc(historyEntryDoc(getDb(), id), buildHistoryEntryData(input));
+  const villageSlug = await getVillageSlug(input.municipalityId);
+  await setDoc(historyEntryDoc(getDb(), id), buildHistoryEntryData({ ...input, villageSlug }));
   return id;
 }
 

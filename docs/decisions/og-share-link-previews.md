@@ -1,5 +1,9 @@
 # Open Graph previews via a Hosting-edge Cloud Function
 
+> **Paths superseded** by [spanish-village-urls](spanish-village-urls.md): the renderer now
+> serves `/<pueblo>` and `/<pueblo>/{evento,noticia,entidad}/<ref>` (+ `/unirse`), looks
+> villages up by slug, and 301s a stale title or pueblo to the canonical path.
+
 ## Context
 
 The deeplink service produces working share URLs (`/event/<id>`, `/news/<id>`,

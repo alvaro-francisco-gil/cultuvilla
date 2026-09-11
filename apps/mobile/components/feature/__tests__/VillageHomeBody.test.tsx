@@ -74,6 +74,7 @@ jest.mock('../../../lib/i18n', () => {
 const village = {
   id: 'm1',
   name: 'Anaya',
+  slug: 'anaya',
   province: 'Segovia',
   communityActive: true,
   community: { organizerId: null, description: null },
@@ -148,7 +149,7 @@ describe('VillageHomeBody', () => {
       <VillageHomeBody data={{ ...base, isMember: false }} reload={jest.fn()} />,
     );
     fireEvent.press(getByText('Inicia sesión para unirte'));
-    expect(mockRequireAuth).toHaveBeenCalledWith('/village/m1', expect.any(String), 'm1');
+    expect(mockRequireAuth).toHaveBeenCalledWith('/anaya', expect.any(String), 'm1');
   });
 
   it('renders the start-village notice when the community is dormant', () => {
@@ -235,6 +236,7 @@ describe('VillageHomeBody', () => {
       createdAt: new Date('2026-01-01T00:00:00Z'),
       updatedAt: new Date('2026-01-01T00:00:00Z'),
       municipalityId: 'm1',
+      villageSlug: 'villa',
       villageName: 'Anaya',
       villageCoverImage: null,
       villageCoordinates: null,
@@ -267,7 +269,7 @@ describe('VillageHomeBody', () => {
     );
     fireEvent.press(getByText('Añadir contenido'));
     fireEvent.press(getByText('Detalles pueblo'));
-    expect(router.push).toHaveBeenCalledWith('/village/m1/community');
+    expect(router.push).toHaveBeenCalledWith('/anaya/comunidad');
   });
 
   it('opens the pueblo’s history — for non-members too, reading is open to everyone', () => {
@@ -275,7 +277,7 @@ describe('VillageHomeBody', () => {
       <VillageHomeBody data={{ ...base, isMember: false }} reload={jest.fn()} />,
     );
     fireEvent.press(getByTestId('village-history-action'));
-    expect(router.push).toHaveBeenCalledWith('/village/m1/history');
+    expect(router.push).toHaveBeenCalledWith('/anaya/historia');
   });
 
   it('non-admin members do not see the "Detalles pueblo" option in the sheet', () => {
@@ -293,14 +295,14 @@ describe('VillageHomeBody', () => {
       (label) => expect(getByText(label)).toBeTruthy(),
     );
     fireEvent.press(getByText('Evento'));
-    expect(router.push).toHaveBeenCalledWith('/event/new?villageId=m1');
+    expect(router.push).toHaveBeenCalledWith('/crear/evento?villageId=m1');
   });
 
   it('routes peña and agrupación to the org create screen with a preselected type', () => {
     const { getByText } = render(<VillageHomeBody data={base} reload={jest.fn()} />);
     fireEvent.press(getByText('Añadir contenido'));
     fireEvent.press(getByText('Peña'));
-    expect(router.push).toHaveBeenCalledWith('/village/m1/organizations?type=pena');
+    expect(router.push).toHaveBeenCalledWith('/anaya/entidades?type=pena');
   });
 
   it('shows the censo fill CTA to a villager of a village with a configured censo', () => {
@@ -368,6 +370,7 @@ describe('VillageHomeBody', () => {
       id: 'news-1',
       ...buildNewsPostData({
         municipalityId: 'm1',
+        villageSlug: 'villa',
         createdBy: 'u1',
         organizerUserIds: ['u1'],
         title: 'Sabores de siempre',
@@ -400,6 +403,7 @@ describe('subdivision sections', () => {
       residentCount: 0,
       commentCount: 0,
       municipalityId: 'v1',
+      villageSlug: 'villa',
     }) as unknown as VillageHomeState['barrios'][number];
 
   it('renders one section per kind, titled with that region\'s word', () => {

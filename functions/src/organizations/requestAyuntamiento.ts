@@ -2,6 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import { getFirestore } from 'firebase-admin/firestore';
 import {
+  municipalityDoc,
   organizationsCollection,
   municipalityMemberDoc,
   adminDoc,
@@ -46,13 +47,16 @@ export const requestAyuntamiento = onCall<
     }
 
     // Mirror the rules' create gate: village member of that municipality, or app admin.
-    const [memberSnap, adminSnap] = await Promise.all([
+    const [memberSnap, adminSnap, municipalitySnap] = await Promise.all([
       municipalityMemberDoc(db, municipalityId, uid).get(),
       adminDoc(db, uid).get(),
+      municipalityDoc(db, municipalityId).get(),
     ]);
     if (!memberSnap.exists && !adminSnap.exists) {
       throw new HttpsError('permission-denied', 'No perteneces a este pueblo.');
     }
+    const villageSlug = municipalitySnap.data()?.slug;
+    if (!villageSlug) throw new HttpsError('not-found', 'Pueblo no encontrado.');
 
     const orgsCol = organizationsCollection(db);
     const existingAyuntamientos = orgsCol
@@ -77,6 +81,7 @@ export const requestAyuntamiento = onCall<
         type: 'ayuntamiento',
         status: 'pending',
         municipalityId,
+        villageSlug,
         requestedBy: uid,
       });
       tx.set(newRef, data);

@@ -47,6 +47,7 @@ async function seedOrgAndMembers() {
         type: 'peña',
         status: 'pending',
         municipalityId: MID,
+        villageSlug: 'villa',
         requestedBy: 'creator',
       }),
     );

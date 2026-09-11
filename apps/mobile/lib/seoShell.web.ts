@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { usePathname } from 'expo-router';
+import { parseAppPath } from '@cultuvilla/shared/utils';
 
 /**
  * Remove the server-rendered content block that `ogRenderer` injects before
- * `#root` on share-link routes (`/event/*`, `/news/*`, `/village/*`, `/o/*`).
+ * `#root` on share-link routes (`/<pueblo>` and its evento/noticia/entidad pages).
  *
  * Why the app owns the removal rather than React clearing it: the block sits
  * *outside* `#root` precisely so React's first commit cannot destroy it. If it
@@ -21,12 +22,16 @@ export function dismissSeoShell(): void {
 }
 
 /**
- * Path prefixes whose screens dismiss the block themselves once loaded — the
- * entity detail scaffold and the village home. `/village` also covers the
- * village tab, which is where a cold `/village/{id}` link lands after its
- * redirect (route groups are stripped from the pathname).
+ * Routes whose screens dismiss the block themselves once loaded — the entity
+ * detail scaffold and the village home. The village tab counts too: a cold
+ * `/<pueblo>` link lands there after its redirect (route groups are stripped
+ * from the pathname).
  */
-const SELF_DISMISSING = ['/event/', '/news/', '/o/', '/village'];
+function isSelfDismissing(pathname: string): boolean {
+  if (pathname.startsWith('/mi-pueblo')) return true;
+  const route = parseAppPath(pathname);
+  return route?.type === 'village' || route?.type === 'entity';
+}
 
 /** Past this, the block goes regardless: a stuck overlay is worse than a spinner. */
 export const SEO_SHELL_FAILSAFE_MS = 8000;
@@ -50,6 +55,6 @@ export function useSeoShellFailsafe(): void {
   }, []);
 
   useEffect(() => {
-    if (!SELF_DISMISSING.some((prefix) => pathname.startsWith(prefix))) dismissSeoShell();
+    if (!isSelfDismissing(pathname)) dismissSeoShell();
   }, [pathname]);
 }

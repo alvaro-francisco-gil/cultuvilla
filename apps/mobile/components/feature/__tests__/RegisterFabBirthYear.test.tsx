@@ -75,7 +75,7 @@ const baseProps = {
   userId: 'u1',
   personId: 'p1',
   name: 'Ana',
-  eventTitle: 'Taller infantil',
+  eventTitle: 'Taller infantil', villageSlug: 'villa', visibilityOrgId: null,
   telephoneRequired: false,
 };
 

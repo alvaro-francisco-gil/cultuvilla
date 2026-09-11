@@ -11,7 +11,7 @@ import { RemoteImage } from '../primitives/RemoteImage';
 
 /**
  * Presentational building blocks for the village overview on the shared
- * village tab ((tabs)/village.tsx). Creating content lives on the single
+ * village tab ((tabs)/mi-pueblo.tsx). Creating content lives on the single
  * "Añadir contenido" sheet, so a section carries no add affordance of its own
  * and simply hides itself when it has no entities.
  */

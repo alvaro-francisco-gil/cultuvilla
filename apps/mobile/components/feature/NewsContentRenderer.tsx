@@ -8,7 +8,7 @@ import { RemoteImage } from '../primitives/RemoteImage';
 import { ZoomableImage } from '../primitives/ZoomableImage';
 
 /** Resolve a stored inline image and render it at its natural aspect ratio. */
-function InlineImage({ block, municipalityId }: { block: NewsImageBlock; municipalityId: string }) {
+function InlineImage({ block, villageSlug }: { block: NewsImageBlock; villageSlug: string }) {
   const [uri, setUri] = useState<string | null>(null);
 
   useEffect(() => {
@@ -50,7 +50,7 @@ function InlineImage({ block, municipalityId }: { block: NewsImageBlock; municip
           mentions={block.captionMentions}
           links={block.captionLinks}
           marks={block.captionMarks}
-          municipalityId={municipalityId}
+          villageSlug={villageSlug}
           tone="muted"
           variant="caption"
           className="text-center"
@@ -65,7 +65,7 @@ interface NewsContentRendererProps {
   /** Legacy plain-text body, rendered when `content` is empty (pre-blocks posts). */
   body: string;
   /** The post's village — needed to resolve place deep-links inside mentions. */
-  municipalityId: string;
+  villageSlug: string;
 }
 
 /**
@@ -73,9 +73,9 @@ interface NewsContentRendererProps {
  * `@`-mentions) and image blocks. Falls back to the legacy `body` string for
  * posts authored before the block model existed.
  */
-export function NewsContentRenderer({ content, body, municipalityId }: NewsContentRendererProps) {
+export function NewsContentRenderer({ content, body, villageSlug }: NewsContentRendererProps) {
   if (content.length === 0) {
-    return <RichText text={body} mentions={[]} links={[]} municipalityId={municipalityId} />;
+    return <RichText text={body} mentions={[]} links={[]} villageSlug={villageSlug} />;
   }
 
   return (
@@ -88,10 +88,10 @@ export function NewsContentRenderer({ content, body, municipalityId }: NewsConte
             mentions={block.mentions}
             links={block.links}
             marks={block.marks}
-            municipalityId={municipalityId}
+            villageSlug={villageSlug}
           />
         ) : (
-          <InlineImage key={i} block={block} municipalityId={municipalityId} />
+          <InlineImage key={i} block={block} villageSlug={villageSlug} />
         ),
       )}
     </VStack>

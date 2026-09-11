@@ -89,3 +89,13 @@ describe('E2E emulator flag guard', () => {
     expect(config.extra?.['useEmulator']).toBe(false);
   });
 });
+
+describe('universal link paths', () => {
+  it('claims every path except sign-in, since URLs start with the pueblo slug', () => {
+    for (const env of ['dev', 'beta', 'prod'] as const) {
+      const path = join(__dirname, '..', 'public', '.well-known', env, 'apple-app-site-association');
+      const aasa = JSON.parse(readFileSync(path, 'utf8'));
+      expect(aasa.applinks.details[0].paths).toEqual(['NOT /entrar', 'NOT /entrar/*', '*']);
+    }
+  });
+});

@@ -6,12 +6,28 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import * as admin from 'firebase-admin';
 import functionsTestFactory from 'firebase-functions-test';
 import { resetEmulators } from '../helpers/firestoreEmulator';
+import { buildMunicipalityData } from '@cultuvilla/shared/models';
 import { requestAyuntamiento } from '../../organizations/requestAyuntamiento';
 
 const ft = functionsTestFactory({ projectId: process.env.GCLOUD_PROJECT || 'cultuvilla-test' });
 
 const MUNICIPALITY_ID = 'mun-1';
 const USER_ID = 'alice';
+
+async function seedMunicipality(): Promise<void> {
+  await admin
+    .firestore()
+    .doc(`municipalities/${MUNICIPALITY_ID}`)
+    .set(
+      buildMunicipalityData({
+        name: 'Villarriba',
+        province: 'Madrid',
+        comunidadAutonoma: 'Madrid',
+        codigoINE: '28000',
+        slug: 'villarriba',
+      }),
+    );
+}
 
 async function seedMember(userId: string): Promise<void> {
   await admin.firestore().doc(`municipalities/${MUNICIPALITY_ID}/members/${userId}`).set({
@@ -32,6 +48,7 @@ async function seedAyuntamiento(status: 'pending' | 'approved' | 'rejected'): Pr
     status,
     municipalityId: MUNICIPALITY_ID,
     requestedBy: 'someone',
+    villageSlug: 'villarriba',
     reviewedBy: null,
     createdAt: new Date(),
     reviewedAt: null,
@@ -62,6 +79,7 @@ describe('requestAyuntamiento (callable)', () => {
 
   beforeEach(async () => {
     await resetEmulators();
+    await seedMunicipality();
   });
 
   afterAll(() => {
@@ -99,6 +117,7 @@ describe('requestAyuntamiento (callable)', () => {
     expect(snap.data()?.status).toBe('pending');
     expect(snap.data()?.municipalityId).toBe(MUNICIPALITY_ID);
     expect(snap.data()?.requestedBy).toBe(USER_ID);
+    expect(snap.data()?.villageSlug).toBe('villarriba');
   });
 
   it('rejects a second ayuntamiento when one is already pending', async () => {

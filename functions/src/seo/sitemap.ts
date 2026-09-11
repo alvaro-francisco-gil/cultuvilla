@@ -1,7 +1,7 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import { getFirestore } from 'firebase-admin/firestore';
-import { webOriginForProject } from '@cultuvilla/shared/utils';
+import { entityPath, villagePath, webOriginForProject } from '@cultuvilla/shared/utils';
 import { buildSitemapXml, toLastmod, toDate, type SitemapUrl } from './urls';
 
 /**
@@ -27,6 +27,10 @@ const MAX_PER_COLLECTION = 1000;
 /** Past events keep ranking for a while ("fiestas de Matabuena 2026"), but not forever. */
 const EVENT_TAIL_DAYS = 120;
 
+function stringField(v: unknown): string | null {
+  return typeof v === 'string' && v.length > 0 ? v : null;
+}
+
 interface Fetched {
   urls: SitemapUrl[];
   counts: Record<string, number>;
@@ -45,8 +49,10 @@ async function collectUrls(origin: string): Promise<Fetched> {
     .limit(MAX_PER_COLLECTION)
     .get();
   for (const doc of villages.docs) {
+    const slug = stringField(doc.get('slug'));
+    if (!slug) continue;
     urls.push({
-      loc: `${origin}/village/${doc.id}`,
+      loc: `${origin}${villagePath(slug)}`,
       lastmod: toLastmod(doc.get('updatedAt')),
       changefreq: 'weekly',
       priority: '0.9',
@@ -68,8 +74,10 @@ async function collectUrls(origin: string): Promise<Fetched> {
     if (doc.get('status') !== 'published') continue;
     const boundary = toDate(doc.get('endBoundary'));
     if (boundary && boundary < cutoff) continue;
+    const villageSlug = stringField(doc.get('villageSlug'));
+    if (!villageSlug) continue;
     urls.push({
-      loc: `${origin}/event/${doc.id}`,
+      loc: `${origin}${entityPath('event', { id: doc.id, title: stringField(doc.get('title')) ?? '', villageSlug })}`,
       lastmod: toLastmod(doc.get('updatedAt')),
       changefreq: 'weekly',
       priority: '0.8',
@@ -83,15 +91,19 @@ async function collectUrls(origin: string): Promise<Fetched> {
     .orderBy('publishedAt', 'desc')
     .limit(MAX_PER_COLLECTION)
     .get();
+  let newsCount = 0;
   for (const doc of news.docs) {
+    const villageSlug = stringField(doc.get('villageSlug'));
+    if (!villageSlug) continue;
+    newsCount += 1;
     urls.push({
-      loc: `${origin}/news/${doc.id}`,
+      loc: `${origin}${entityPath('news', { id: doc.id, title: stringField(doc.get('title')) ?? '', villageSlug })}`,
       lastmod: toLastmod(doc.get('publishedAt')),
       changefreq: 'monthly',
       priority: '0.6',
     });
   }
-  counts['news'] = news.size;
+  counts['news'] = newsCount;
 
   const orgs = await db
     .collection('organizations')
@@ -101,7 +113,14 @@ async function collectUrls(origin: string): Promise<Fetched> {
   let orgCount = 0;
   for (const doc of orgs.docs) {
     if (doc.get('status') !== 'approved') continue;
-    urls.push({ loc: `${origin}/o/${doc.id}`, changefreq: 'monthly', priority: '0.6' });
+    const villageSlug = stringField(doc.get('villageSlug'));
+    if (!villageSlug) continue;
+    const path = entityPath('organization', {
+      id: doc.id,
+      title: stringField(doc.get('name')) ?? '',
+      villageSlug,
+    });
+    urls.push({ loc: `${origin}${path}`, changefreq: 'monthly', priority: '0.6' });
     orgCount += 1;
   }
   counts['orgs'] = orgCount;

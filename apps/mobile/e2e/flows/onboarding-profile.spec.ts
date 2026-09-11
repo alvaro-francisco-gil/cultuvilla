@@ -4,7 +4,7 @@ import { fixtureLogin } from '../lib/fixtureLogin';
 import { getUserPersonId, personExists, waitFor } from '../lib/emulatorState';
 
 // A freshly-authenticated user with no profile is diverted to complete-profile
-// by the AuthGate (authRoute: no personId → /(onboarding)/complete-profile). The
+// by the AuthGate (authRoute: no personId → /(onboarding)/completar-perfil). The
 // flow fills the required identity + birthday fields and submits; the strong
 // assertion is the backend effect — a persons/{id} doc plus the users/{uid}
 // profile that links it, which is exactly what authRoute reads to consider the

@@ -184,7 +184,7 @@ describe('EventAttendees', () => {
     );
     await waitFor(() => getByTestId('attendee-profile-r1'));
     fireEvent.press(getByTestId('attendee-profile-r1'));
-    expect(mockPush).toHaveBeenCalledWith('/person/p1');
+    expect(mockPush).toHaveBeenCalledWith('/persona/p1');
   });
 
   it('opens the richer user profile when the attendee has an account', async () => {
@@ -197,7 +197,7 @@ describe('EventAttendees', () => {
     );
     await waitFor(() => getByTestId('attendee-profile-r1'));
     fireEvent.press(getByTestId('attendee-profile-r1'));
-    expect(mockPush).toHaveBeenCalledWith('/user/u1');
+    expect(mockPush).toHaveBeenCalledWith('/usuario/u1');
   });
 
   it('leaves a walk-in with no person non-tappable', async () => {

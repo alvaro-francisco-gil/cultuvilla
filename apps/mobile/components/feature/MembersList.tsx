@@ -1,3 +1,4 @@
+import { personHref, userHref } from '../../lib/navigation/routes';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -143,7 +144,7 @@ export function MembersList({
   const canOpenProfile = (m: MemberRow) => m.userId.length > 0 || m.isPublic;
 
   const openProfile = (m: MemberRow) => {
-    router.push((m.userId ? `/user/${m.userId}` : `/person/${m.personId}`) as never);
+    router.push(m.userId ? userHref(m.userId) : personHref(m.personId));
   };
 
   const renderRowContent = (m: MemberRow, actionable: boolean) => (

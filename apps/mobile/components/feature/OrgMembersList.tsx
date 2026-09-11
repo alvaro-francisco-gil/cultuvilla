@@ -1,3 +1,4 @@
+import { userHref } from '../../lib/navigation/routes';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -146,7 +147,7 @@ export function OrgMembersList({
             <HStack key={r.id} gap={3} align="center" className="py-2">
               <Pressable
                 testID={`org-member-profile-${r.id}`}
-                onPress={() => router.push(`/user/${r.userId}` as never)}
+                onPress={() => router.push(userHref(r.userId))}
                 accessibilityRole="button"
                 accessibilityLabel={r.name}
                 className="flex-1 flex-row items-center gap-3"

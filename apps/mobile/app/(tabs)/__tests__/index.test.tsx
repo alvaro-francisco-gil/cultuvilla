@@ -81,6 +81,7 @@ const event = {
     organizerOrgIds: [],
     createdBy: 'uid-1',
     municipalityId: 'mun1',
+    villageSlug: 'villa',
     villageName: 'Sotos de Mayorga',
     villageCoordinates: { lat: 40.4, lng: -3.7 },
   }),
@@ -89,6 +90,7 @@ const event = {
 const post = {
   ...buildNewsPostData({
     municipalityId: 'mun1',
+    villageSlug: 'villa',
     createdBy: 'uid-1',
     organizerUserIds: ['uid-1'],
     title: 'Corte de agua',

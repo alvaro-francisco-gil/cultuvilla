@@ -5,253 +5,111 @@ vi.mock('expo-constants', () => ({
 }));
 
 import {
+  getBarrioViewLink,
+  getEntityLink,
   getEventLink,
   getNewsLink,
-  getVillageViewLink,
-  getOrgViewLink,
   getOrgInviteLink,
-  getUserViewLink,
+  getOrgViewLink,
   getPlaceViewLink,
-  getBarrioViewLink,
-  getHistoryEntryViewLink,
-  isNestedResource,
-  NESTED_CHILD_PATH,
   getSeatClaimLink,
+  getUserViewLink,
+  getVillageViewLink,
   parseLink,
   buildShareMessage,
 } from '../../src/services/deepLinkService';
 
+const HOST = 'https://example.test.app';
+const target = (id: string, title: string) => ({ id, title, villageSlug: 'matabuena' });
+
 describe('deepLinkService builders', () => {
-  it('builds an event content link', () => {
-    expect(getEventLink('evt_123')).toEqual({
-      url: 'https://example.test.app/event/evt_123',
-      kind: 'content',
-      resource: 'event',
-      id: 'evt_123',
-    });
-  });
-
-  it('builds a news content link', () => {
-    expect(getNewsLink('news_42')).toEqual({
-      url: 'https://example.test.app/news/news_42',
-      kind: 'content',
-      resource: 'news',
-      id: 'news_42',
-    });
-  });
-
-  it('builds a village view link', () => {
-    expect(getVillageViewLink('mun_abc')).toEqual({
-      url: 'https://example.test.app/village/mun_abc',
+  it('builds village-first Spanish URLs on the configured host', () => {
+    expect(getVillageViewLink('matabuena')).toEqual({
+      url: `${HOST}/matabuena`,
+      path: '/matabuena',
       kind: 'content',
       resource: 'village',
-      id: 'mun_abc',
     });
-  });
-
-  it('builds an organization view link using /o/', () => {
-    expect(getOrgViewLink('org_xyz')).toEqual({
-      url: 'https://example.test.app/o/org_xyz',
+    expect(getEventLink(target('evt_1', 'Fiestas de San Roque'))).toEqual({
+      url: `${HOST}/matabuena/evento/fiestas-de-san-roque_evt_1`,
+      path: '/matabuena/evento/fiestas-de-san-roque_evt_1',
       kind: 'content',
-      resource: 'organization',
-      id: 'org_xyz',
+      resource: 'event',
     });
+    expect(getNewsLink(target('n1', 'Bando')).url).toBe(`${HOST}/matabuena/noticia/bando_n1`);
+    expect(getOrgViewLink(target('o1', 'Peña El Roble')).url).toBe(
+      `${HOST}/matabuena/entidad/pena-el-roble_o1`,
+    );
+    expect(getPlaceViewLink(target('p1', 'Ermita')).url).toBe(`${HOST}/matabuena/lugar/ermita_p1`);
+    expect(getBarrioViewLink(target('b1', 'El Arrabal')).url).toBe(
+      `${HOST}/matabuena/barrio/el-arrabal_b1`,
+    );
+    expect(getEntityLink('festivalPoster', target('c1', 'Fiestas 1987')).url).toBe(
+      `${HOST}/matabuena/cartel/fiestas-1987_c1`,
+    );
+    expect(getEntityLink('historyEntry', target('h1', 'La riada de 1912')).url).toBe(
+      `${HOST}/matabuena/acontecimiento/la-riada-de-1912_h1`,
+    );
+    expect(getUserViewLink('uid_1').url).toBe(`${HOST}/usuario/uid_1`);
   });
 
-  it('builds an organization invite link with /join suffix', () => {
-    expect(getOrgInviteLink('org_xyz')).toEqual({
-      url: 'https://example.test.app/o/org_xyz/join',
+  it('marks the invite forms', () => {
+    expect(getOrgInviteLink(target('o1', 'Peña'))).toMatchObject({
+      url: `${HOST}/matabuena/entidad/pena_o1/unirse`,
       kind: 'invite',
       resource: 'organization',
-      id: 'org_xyz',
+    });
+    expect(getSeatClaimLink(target('e1', 'Cena'), 'tok')).toMatchObject({
+      url: `${HOST}/matabuena/evento/cena_e1/plaza/tok`,
+      kind: 'invite',
+      resource: 'event',
     });
   });
 
-  it('builds a place view link nested under its village', () => {
-    expect(getPlaceViewLink('mun_abc', 'place_1')).toEqual({
-      url: 'https://example.test.app/village/mun_abc/place/place_1',
-      kind: 'content',
-      resource: 'place',
-      id: 'place_1',
-      parentId: 'mun_abc',
-    });
+  // The share sheet and the seat-claim link are the two ways an event URL
+  // leaves the app; neither may spell out a private event's title.
+  it('never puts a private event title in a link', () => {
+    const secret = { id: 'e9', title: 'Cena secreta', villageSlug: 'matabuena', visibilityOrgId: 'org1' };
+    expect(getEventLink(secret).url).toBe(`${HOST}/matabuena/evento/evento-privado_e9`);
+    expect(getSeatClaimLink(secret, 'tok').url).toBe(`${HOST}/matabuena/evento/evento-privado_e9/plaza/tok`);
   });
 
-  it('builds a barrio view link nested under its village', () => {
-    expect(getBarrioViewLink('mun_abc', 'barrio_1')).toEqual({
-      url: 'https://example.test.app/village/mun_abc/barrio/barrio_1',
-      kind: 'content',
-      resource: 'barrio',
-      id: 'barrio_1',
-      parentId: 'mun_abc',
-    });
-  });
-
-  it('builds a user profile view link using /user/', () => {
-    expect(getUserViewLink('uid_1')).toEqual({
-      url: 'https://example.test.app/user/uid_1',
-      kind: 'content',
-      resource: 'user',
-      id: 'uid_1',
-    });
-  });
-
-  it('throws on empty id', () => {
-    expect(() => getEventLink('')).toThrow(/id/i);
-  });
-
-  it('throws when a nested link is missing its village id', () => {
-    expect(() => getPlaceViewLink('', 'place_1')).toThrow(/village/i);
-    expect(() => getBarrioViewLink('', 'barrio_1')).toThrow(/village/i);
+  it('rejects missing ids', () => {
+    expect(() => getEventLink(target('', 'x'))).toThrow(/id/i);
+    expect(() => getUserViewLink('')).toThrow(/uid/);
+    expect(() => getSeatClaimLink(target('e1', 'x'), '')).toThrow(/token/);
   });
 });
 
 describe('deepLinkService.parseLink', () => {
-  it('parses an event https URL', () => {
-    expect(parseLink('https://example.test.app/event/evt_123')).toEqual({
+  it('round-trips every builder to its in-app path', () => {
+    const links = [
+      getVillageViewLink('matabuena'),
+      getEventLink(target('evt_1', 'Fiestas')),
+      getOrgInviteLink(target('o1', 'Peña')),
+      getSeatClaimLink(target('e1', 'Cena'), 'tok'),
+      getUserViewLink('u1'),
+    ];
+    for (const l of links) {
+      expect(parseLink(l.url)).toEqual({ path: l.path, kind: l.kind, resource: l.resource });
+    }
+  });
+
+  it('accepts the app scheme', () => {
+    expect(parseLink('cultuvilla://matabuena/evento/x_e1?utm=1')).toEqual({
+      path: '/matabuena/evento/x_e1',
       kind: 'content',
       resource: 'event',
-      id: 'evt_123',
     });
   });
 
-  it('parses a village view URL', () => {
-    expect(parseLink('https://example.test.app/village/mun_abc')).toEqual({
-      kind: 'content',
-      resource: 'village',
-      id: 'mun_abc',
-    });
-  });
-
-  it('parses an org invite URL', () => {
-    expect(parseLink('https://example.test.app/o/org_xyz/join')).toEqual({
-      kind: 'invite',
-      resource: 'organization',
-      id: 'org_xyz',
-    });
-  });
-
-  it('rejects /join suffix on resources that do not support invite', () => {
-    expect(parseLink('https://example.test.app/event/evt_1/join')).toBeNull();
-    expect(parseLink('https://example.test.app/news/n_1/join')).toBeNull();
-    expect(parseLink('https://example.test.app/village/mun_abc/join')).toBeNull();
-  });
-
-  it('rejects unknown path suffixes', () => {
-    expect(parseLink('https://example.test.app/village/m_1/banana')).toBeNull();
-  });
-
-  it('parses a cultuvilla:// scheme URL', () => {
-    expect(parseLink('cultuvilla://event/evt_123')).toEqual({
-      kind: 'content',
-      resource: 'event',
-      id: 'evt_123',
-    });
-  });
-
-  it('parses a cultuvilla:// invite URL', () => {
-    expect(parseLink('cultuvilla://o/org_1/join')).toEqual({
-      kind: 'invite',
-      resource: 'organization',
-      id: 'org_1',
-    });
-  });
-
-  it('returns null for a host mismatch', () => {
-    expect(parseLink('https://other.host/event/evt_123')).toBeNull();
-  });
-
-  it('parses a user profile view URL', () => {
-    expect(parseLink('https://example.test.app/user/uid_1')).toEqual({
-      kind: 'content',
-      resource: 'user',
-      id: 'uid_1',
-    });
-  });
-
-  it('round-trips a user profile view link', () => {
-    const link = getUserViewLink('uid_round');
-    expect(parseLink(link.url)).toEqual({
-      kind: 'content',
-      resource: 'user',
-      id: 'uid_round',
-    });
-  });
-
-  it('returns null for an unknown resource segment', () => {
-    expect(parseLink('https://example.test.app/profile/user_1')).toBeNull();
-  });
-
-  it('no longer parses a /person/ URL (person is the editor, not a shareable view)', () => {
-    expect(parseLink('https://example.test.app/person/person_1')).toBeNull();
-  });
-
-  it('returns null for a malformed URL', () => {
+  it('returns null for other hosts, app routes and garbage', () => {
+    expect(parseLink('https://other.host/matabuena')).toBeNull();
+    expect(parseLink(`${HOST}/ajustes`)).toBeNull();
+    expect(parseLink(`${HOST}/matabuena/lugares`)).toBeNull();
+    expect(parseLink(`${HOST}/`)).toBeNull();
+    expect(parseLink('http://example.test.app/matabuena')).toBeNull();
     expect(parseLink('not-a-url')).toBeNull();
-  });
-
-  it('round-trips a village view link', () => {
-    const link = getVillageViewLink('mun_round');
-    expect(parseLink(link.url)).toEqual({
-      kind: 'content',
-      resource: 'village',
-      id: 'mun_round',
-    });
-  });
-
-  it('parses a nested place URL', () => {
-    expect(parseLink('https://example.test.app/village/mun_abc/place/place_1')).toEqual({
-      kind: 'content',
-      resource: 'place',
-      id: 'place_1',
-      parentId: 'mun_abc',
-    });
-  });
-
-  it('parses a nested barrio URL', () => {
-    expect(parseLink('https://example.test.app/village/mun_abc/barrio/barrio_1')).toEqual({
-      kind: 'content',
-      resource: 'barrio',
-      id: 'barrio_1',
-      parentId: 'mun_abc',
-    });
-  });
-
-  it('parses a nested place cultuvilla:// URL', () => {
-    expect(parseLink('cultuvilla://village/mun_abc/place/place_1')).toEqual({
-      kind: 'content',
-      resource: 'place',
-      id: 'place_1',
-      parentId: 'mun_abc',
-    });
-  });
-
-  it('rejects an unknown nested child segment', () => {
-    expect(parseLink('https://example.test.app/village/mun_abc/banana/x')).toBeNull();
-  });
-
-  it('rejects a nested path whose parent is not a village', () => {
-    expect(parseLink('https://example.test.app/o/org_1/place/place_1')).toBeNull();
-  });
-
-  it('round-trips a place view link', () => {
-    const link = getPlaceViewLink('mun_round', 'place_round');
-    expect(parseLink(link.url)).toEqual({
-      kind: 'content',
-      resource: 'place',
-      id: 'place_round',
-      parentId: 'mun_round',
-    });
-  });
-
-  it('round-trips a barrio view link', () => {
-    const link = getBarrioViewLink('mun_round', 'barrio_round');
-    expect(parseLink(link.url)).toEqual({
-      kind: 'content',
-      resource: 'barrio',
-      id: 'barrio_round',
-      parentId: 'mun_round',
-    });
   });
 });
 
@@ -259,124 +117,20 @@ describe('deepLinkService.buildShareMessage', () => {
   const t = (key: string, vars?: Record<string, string | number>): string => {
     const map: Record<string, string> = {
       'deeplink.share.event.view': 'Mira «{name}»: {url}',
-      'deeplink.share.news.view': 'Mira «{name}»: {url}',
-      'deeplink.share.village.view': 'Mira {name}: {url}',
-      'deeplink.share.organization.view': 'Mira {name}: {url}',
+      'deeplink.share.event.invite': 'Te he guardado una plaza en «{name}»: {url}',
       'deeplink.share.organization.invite': 'Te invito a unirte a {name}: {url}',
-      'deeplink.share.place.view': 'Mira «{name}»: {url}',
-      'deeplink.share.barrio.view': 'Mira {name}: {url}',
-      'deeplink.share.user.view': 'Mira el perfil de {name}: {url}',
     };
     let out: string = map[key] ?? key;
-    if (!vars) return out;
-    for (const k of Object.keys(vars)) {
-      out = out.split(`{${k}}`).join(String(vars[k]));
-    }
+    for (const k of Object.keys(vars ?? {})) out = out.split(`{${k}}`).join(String(vars?.[k]));
     return out;
   };
 
-  it('interpolates the event title into the view message', () => {
-    const link = getEventLink('evt_1');
-    expect(buildShareMessage(link, t, 'Fiesta de San Juan')).toBe(
-      `Mira «Fiesta de San Juan»: ${link.url}`,
-    );
-  });
-
-  it('interpolates the village name into the view message', () => {
-    const link = getVillageViewLink('mun_1');
-    expect(buildShareMessage(link, t, 'Matabuena')).toBe(`Mira Matabuena: ${link.url}`);
-  });
-
-  it('interpolates the org name into the invite message', () => {
-    const link = getOrgInviteLink('org_1');
-    expect(buildShareMessage(link, t, 'Peña El Roble')).toBe(
-      `Te invito a unirte a Peña El Roble: ${link.url}`,
-    );
-  });
-
-  it('interpolates the place name into the view message', () => {
-    const link = getPlaceViewLink('mun_1', 'place_1');
-    expect(buildShareMessage(link, t, 'Ermita de San Roque')).toBe(
-      `Mira «Ermita de San Roque»: ${link.url}`,
-    );
-  });
-
-  it('interpolates the barrio name into the view message', () => {
-    const link = getBarrioViewLink('mun_1', 'barrio_1');
-    expect(buildShareMessage(link, t, 'El Arrabal')).toBe(`Mira El Arrabal: ${link.url}`);
-  });
-
-  it('interpolates the user name into the profile view message', () => {
-    const link = getUserViewLink('uid_1');
-    expect(buildShareMessage(link, t, 'María García')).toBe(
-      `Mira el perfil de María García: ${link.url}`,
-    );
-  });
-});
-
-describe('seat-claim links', () => {
-  it('builds the claim URL from the event and the token', () => {
-    expect(getSeatClaimLink('evt_123', 'tok_abc')).toEqual({
-      url: 'https://example.test.app/event/evt_123/claim/tok_abc',
-      kind: 'invite',
-      resource: 'event',
-      id: 'evt_123',
-      token: 'tok_abc',
-    });
-  });
-
-  it('refuses to build a link without a token', () => {
-    expect(() => getSeatClaimLink('evt_123', '')).toThrow(/token/);
-  });
-
-  it('round-trips through parseLink', () => {
-    const link = getSeatClaimLink('evt_123', 'tok_abc');
-    expect(parseLink(link.url)).toEqual({
-      kind: 'invite',
-      resource: 'event',
-      id: 'evt_123',
-      token: 'tok_abc',
-    });
-  });
-
-  it('parses the custom-scheme form too', () => {
-    expect(parseLink('cultuvilla://event/evt_123/claim/tok_abc')).toEqual({
-      kind: 'invite',
-      resource: 'event',
-      id: 'evt_123',
-      token: 'tok_abc',
-    });
-  });
-
-  it('does not mistake an unrelated four-segment event path for a claim', () => {
-    expect(parseLink('https://example.test.app/event/evt_123/other/x')).toBeNull();
-  });
-});
-
-describe('deepLinkService — history entries', () => {
-  it('builds a history entry link nested under its village', () => {
-    expect(getHistoryEntryViewLink('mun_abc', 'h1')).toEqual({
-      url: 'https://example.test.app/village/mun_abc/history-entry/h1',
-      kind: 'content',
-      resource: 'historyEntry',
-      id: 'h1',
-      parentId: 'mun_abc',
-    });
-  });
-
-  it('round-trips through parseLink', () => {
-    const link = getHistoryEntryViewLink('mun_abc', 'h1');
-    expect(parseLink(link.url)).toEqual({
-      kind: 'content',
-      resource: 'historyEntry',
-      id: 'h1',
-      parentId: 'mun_abc',
-    });
-  });
-
-  it('maps the resource back to the route segment the app files it under', () => {
-    expect(isNestedResource('historyEntry')).toBe(true);
-    expect(NESTED_CHILD_PATH.historyEntry).toBe('history-entry');
-    expect(isNestedResource('event')).toBe(false);
+  it('picks the message by resource and kind', () => {
+    const view = getEventLink(target('e1', 'Fiesta'));
+    expect(buildShareMessage(view, t, 'Fiesta')).toBe(`Mira «Fiesta»: ${view.url}`);
+    const seat = getSeatClaimLink(target('e1', 'Fiesta'), 'tok');
+    expect(buildShareMessage(seat, t, 'Fiesta')).toBe(`Te he guardado una plaza en «Fiesta»: ${seat.url}`);
+    const invite = getOrgInviteLink(target('o1', 'Peña'));
+    expect(buildShareMessage(invite, t, 'Peña')).toBe(`Te invito a unirte a Peña: ${invite.url}`);
   });
 });

@@ -40,15 +40,37 @@ describe('useDeepLinkRouter', () => {
   });
 
   it('routes the initial URL when present (event)', async () => {
-    mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/event/evt_1');
+    mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/villa/evento/fiesta_evt_1');
     render(<Probe />);
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/event/evt_1'));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/villa/evento/fiesta_evt_1'));
   });
 
-  it('maps organization to /o/', async () => {
-    mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/o/org_1');
+  it('routes an organization URL to its village-scoped entidad route', async () => {
+    mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/villa/entidad/pena_org_1');
     render(<Probe />);
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/o/org_1'));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/villa/entidad/pena_org_1'));
+  });
+
+  it('routes a cultuvilla:// scheme link the same as its https form', async () => {
+    mockGetInitialURL.mockResolvedValueOnce('cultuvilla://villa/noticia/bando_n_1');
+    render(<Probe />);
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/villa/noticia/bando_n_1'));
+  });
+
+  it('routes a seat-claim URL to its event plaza route without an intent query', async () => {
+    mockGetInitialURL.mockResolvedValueOnce(
+      'https://example.test.app/villa/evento/fiesta_evt_1/plaza/tok_1',
+    );
+    render(<Probe />);
+    await waitFor(() =>
+      expect(mockReplace).toHaveBeenCalledWith('/villa/evento/fiesta_evt_1/plaza/tok_1'),
+    );
+  });
+
+  it('routes a user profile URL', async () => {
+    mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/usuario/u_1');
+    render(<Probe />);
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/usuario/u_1'));
   });
 
   it('routes a runtime URL event', async () => {
@@ -56,46 +78,49 @@ describe('useDeepLinkRouter', () => {
     render(<Probe />);
     await waitFor(() => expect(mockAddEventListener).toHaveBeenCalled());
     const handler = mockAddEventListener.mock.calls[0][1] as (e: { url: string }) => void;
-    handler({ url: 'https://example.test.app/village/mun_9' });
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/village/mun_9'));
+    handler({ url: 'https://example.test.app/matabuena' });
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/matabuena'));
   });
 
   it('routes a nested place URL to its village-scoped route', async () => {
     mockGetInitialURL.mockResolvedValueOnce(
-      'https://example.test.app/village/mun_1/place/place_2',
+      'https://example.test.app/villa/lugar/ermita_place_2',
     );
     render(<Probe />);
     await waitFor(() =>
-      expect(mockReplace).toHaveBeenCalledWith('/village/mun_1/place/place_2'),
+      expect(mockReplace).toHaveBeenCalledWith('/villa/lugar/ermita_place_2'),
     );
   });
 
   it('routes a nested barrio URL to its village-scoped route', async () => {
     mockGetInitialURL.mockResolvedValueOnce(
-      'https://example.test.app/village/mun_1/barrio/barrio_2',
+      'https://example.test.app/villa/barrio/arriba_barrio_2',
     );
     render(<Probe />);
     await waitFor(() =>
-      expect(mockReplace).toHaveBeenCalledWith('/village/mun_1/barrio/barrio_2'),
+      expect(mockReplace).toHaveBeenCalledWith('/villa/barrio/arriba_barrio_2'),
     );
   });
 
   it('ignores unknown URLs', async () => {
-    mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/unknown/x');
+    mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/villa/unknown/x');
     render(<Probe />);
     await waitFor(() => expect(mockAddEventListener).toHaveBeenCalled());
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
-  it('routes org invite URL with intent=join query', async () => {
-    mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/o/org_5/join');
+  // The `/unirse` route adds the join intent itself; the router only replays the path.
+  it('routes an org invite URL to its /unirse route', async () => {
+    mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/villa/entidad/pena_org_5/unirse');
     render(<Probe />);
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/o/org_5?intent=join'));
+    await waitFor(() =>
+      expect(mockReplace).toHaveBeenCalledWith('/villa/entidad/pena_org_5/unirse'),
+    );
   });
 
   it('is a no-op on web (expo-router owns web routing)', async () => {
     const web = jest.replaceProperty(Platform, 'OS', 'web');
-    mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/o/org_5/join');
+    mockGetInitialURL.mockResolvedValueOnce('https://example.test.app/villa/entidad/pena_org_5/unirse');
     render(<Probe />);
     await new Promise((r) => setTimeout(r, 10));
     expect(mockGetInitialURL).not.toHaveBeenCalled();

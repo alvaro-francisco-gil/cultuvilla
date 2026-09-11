@@ -8,7 +8,7 @@ test.describe('capacity waitlist promotion', () => {
     await page.goto('/');
     await fixtureLogin(page, fixtures.attendee.email);
 
-    await page.goto(`/event/${fixtures.capacityEvent.docId}`);
+    await page.goto(fixtures.capacityEvent.path);
     const fab = page.getByTestId('register-fab');
     await expect(fab).toBeVisible({ timeout: 30_000 });
     await fab.click();
@@ -23,7 +23,7 @@ test.describe('capacity waitlist promotion', () => {
 
     await fixtureSignOut(page);
     await fixtureLogin(page, fixtures.admin.email);
-    await page.goto(`/event/${fixtures.capacityEvent.docId}`);
+    await page.goto(fixtures.capacityEvent.path);
 
     // The trash icons only exist once the heading's "Editar" toggle is on.
     const editToggle = page.getByTestId('attendees-edit-toggle');

@@ -268,6 +268,7 @@
     "profile": "Perfil"
   },
   "village": {
+    "notFound": "No encontramos este pueblo. Puede que el enlace esté mal escrito.",
     "vocabulary": {
       "title": "Vocabulario",
       "search": "Buscar una palabra",
@@ -1307,6 +1308,12 @@
       },
       "barrio": {
         "view": "Mira {name} en Cultuvilla: {url}"
+      },
+      "festivalPoster": {
+        "view": "Mira el cartel «{name}» en Cultuvilla: {url}"
+      },
+      "historyEntry": {
+        "view": "Mira «{name}» en la historia del pueblo, en Cultuvilla: {url}"
       },
       "user": {
         "view": "Mira el perfil de {name} en Cultuvilla: {url}"

@@ -18,7 +18,7 @@ test.describe('organizer request → super-admin approval', () => {
     await page.goto('/');
     await fixtureLogin(page, fixtures.attendee.email);
 
-    await page.goto(`/discover/organize/${village}`);
+    await page.goto(`/descubrir/organizar/${village}`);
     const submit = page.getByTestId('organize-submit');
     await expect(submit).toBeVisible({ timeout: 30_000 });
     await submit.click();
@@ -32,7 +32,7 @@ test.describe('organizer request → super-admin approval', () => {
     // ── Approver: the super-admin sees the request in the Buzón's actionable section. ──
     await fixtureSignOut(page);
     await fixtureLogin(page, fixtures.superAdmin.email);
-    await page.goto('/inbox');
+    await page.goto('/buzon');
 
     const approve = page.locator('[data-testid^="approve-organizer-"]').first();
     await expect(approve).toBeVisible({ timeout: 30_000 });

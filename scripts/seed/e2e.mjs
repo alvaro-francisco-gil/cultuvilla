@@ -128,6 +128,7 @@ async function run() {
           province: village.province,
           comunidadAutonoma: village.comunidadAutonoma,
           codigoINE: village.codigoINE,
+          slug: village.slug,
           coordinates: coords,
         }),
         community: buildVillageCommunity({
@@ -160,6 +161,7 @@ async function run() {
           province: joinVillage.province,
           comunidadAutonoma: joinVillage.comunidadAutonoma,
           codigoINE: joinVillage.codigoINE,
+          slug: joinVillage.slug,
           coordinates: joinCoords,
         }),
         community: buildVillageCommunity({
@@ -188,6 +190,7 @@ async function run() {
           province: organizerlessVillage.province,
           comunidadAutonoma: organizerlessVillage.comunidadAutonoma,
           codigoINE: organizerlessVillage.codigoINE,
+          slug: organizerlessVillage.slug,
           coordinates: solanaCoords,
         }),
         community: buildVillageCommunity({ description: organizerlessVillage.description }),
@@ -207,6 +210,7 @@ async function run() {
         type: org.type,
         description: org.description,
         municipalityId: village.docId,
+        villageSlug: village.slug,
         requestedBy: users.admin.uid,
         status: 'approved',
         reviewedBy: users.admin.uid,
@@ -243,6 +247,7 @@ async function run() {
         createdBy: users.admin.uid,
         municipalityId: village.docId,
         villageName: village.name,
+        villageSlug: village.slug,
         villageCoordinates: coords,
       }),
       { merge: true },
@@ -265,6 +270,7 @@ async function run() {
     createdBy: users.admin.uid,
     municipalityId: village.docId,
     villageName: village.name,
+    villageSlug: village.slug,
     villageCoordinates: coords,
   });
   await db

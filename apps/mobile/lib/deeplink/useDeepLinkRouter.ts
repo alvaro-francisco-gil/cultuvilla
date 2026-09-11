@@ -2,37 +2,19 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
-import {
-  NESTED_CHILD_PATH,
-  isNestedResource,
-  parseLink,
-  type DeepLinkResource,
-} from '@cultuvilla/shared/services/deepLinkService';
+import { parseLink } from '@cultuvilla/shared/services/deepLinkService';
 
-// Flat (top-level) resources. Nested resources (place, barrio, history entry)
-// live under a village and are routed separately below.
-const RESOURCE_TO_ROUTE: Partial<Record<DeepLinkResource, string>> = {
-  event: 'event',
-  news: 'news',
-  village: 'village',
-  organization: 'o',
-  user: 'user',
-};
-
+/**
+ * A link's path IS the app route — `/matabuena/evento/fiestas_e1` is both the
+ * URL and the expo-router path — so routing a deep link is just replaying the
+ * path we parsed. `parseLink` still gates it: an unknown host or an unknown
+ * shape must fall through to the browser rather than open an app screen. An org
+ * invite needs nothing extra: its `/unirse` route adds the join intent itself.
+ */
 function route(url: string): void {
   const parsed = parseLink(url);
   if (!parsed) return;
-  if (isNestedResource(parsed.resource)) {
-    if (!parsed.parentId) return;
-    router.replace(
-      `/village/${parsed.parentId}/${NESTED_CHILD_PATH[parsed.resource]}/${parsed.id}` as never,
-    );
-    return;
-  }
-  const segment = RESOURCE_TO_ROUTE[parsed.resource];
-  if (!segment) return;
-  const inviteQuery = parsed.kind === 'invite' ? '?intent=join' : '';
-  router.replace(`/${segment}/${parsed.id}${inviteQuery}` as never);
+  router.replace(parsed.path as never);
 }
 
 export function useDeepLinkRouter(): void {

@@ -31,7 +31,7 @@ async function resolveAuthor(dataset, post, adminUid) {
 export async function seedNews(dataset) {
   for (const v of dataset.villages) {
     if (!v.news?.length) continue;
-    const { vDocId, vKey, adminUid } = await resolveVillage(dataset, v);
+    const { vDocId, vKey, villageSlug, adminUid } = await resolveVillage(dataset, v);
     for (const post of v.news) {
       const id = newsDocId(vKey, post.id);
       const authorUserId = await resolveAuthor(dataset, post, adminUid);
@@ -57,6 +57,7 @@ export async function seedNews(dataset) {
         tag(
           buildNewsPostData({
             municipalityId: vDocId,
+            villageSlug,
             organizerUserIds: [authorUserId],
             organizerOrgIds: post.orgId ? [orgDocId(vKey, post.orgId)] : [],
             title: post.title,

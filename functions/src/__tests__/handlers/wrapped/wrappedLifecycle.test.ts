@@ -25,7 +25,7 @@ const db = () => admin.firestore();
 async function seedVillage(fiestas: unknown[]): Promise<void> {
   await db().doc(`municipalities/${MID}`).set({
     name: 'Matabuena', nameLower: 'matabuena', nameAliases: [], localityNames: [], searchPrefixes: ['m'],
-    province: 'Segovia', comunidadAutonoma: 'Castilla y León', codigoINE: '40118',
+    slug: 'matabuena', province: 'Segovia', comunidadAutonoma: 'Castilla y León', codigoINE: '40118',
     coordinates: null, locationLabel: null, mapZoom: null, createdAt: new Date(),
     escudoUrl: null, escudoThumbUrl: null, escudoManualUrl: null,
     communityActive: true,
@@ -47,7 +47,7 @@ async function seedEvents(count: number, confirmed: number): Promise<void> {
   for (let i = 0; i < count; i += 1) {
     const id = `ev-${String(i)}`;
     await db().doc(`events/${id}`).set({
-      municipalityId: MID, title: `Evento ${String(i)}`, status: 'published',
+      municipalityId: MID, villageSlug: 'matabuena', title: `Evento ${String(i)}`, status: 'published',
       startDate: admin.firestore.Timestamp.fromDate(new Date(START.getTime() + 60_000)),
       commentCount: 0, createdBy: ADMIN, organizerOrgIds: [], imageURL: null,
       visibility: 'public', visibilityOrgId: null,

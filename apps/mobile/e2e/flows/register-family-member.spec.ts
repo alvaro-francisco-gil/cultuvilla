@@ -8,7 +8,7 @@ test.describe('register a family persona', () => {
     await page.goto('/');
     await fixtureLogin(page, fixtures.attendee.email);
 
-    await page.goto(`/event/${fixtures.event.docId}`);
+    await page.goto(fixtures.event.path);
     const fab = page.getByTestId('register-fab');
     await expect(fab).toBeVisible({ timeout: 30_000 });
     await fab.click();

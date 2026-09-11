@@ -39,6 +39,7 @@ async function seedMember(
 function newsDoc(municipalityId: string, createdBy: string, extra: Record<string, unknown> = {}) {
   return {
     municipalityId,
+    villageSlug: 'villa',
     organizerUserIds: [createdBy],
     organizerOrgIds: [],
     title: 'Test post',

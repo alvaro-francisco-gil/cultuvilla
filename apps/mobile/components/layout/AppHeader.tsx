@@ -1,3 +1,4 @@
+import { routes } from '../../lib/navigation/routes';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -76,7 +77,7 @@ export function AppHeader({ centerLabel, extraRightSlot }: AppHeaderProps) {
           <View className="flex-row items-center gap-1">
             {extraRightSlot}
             <Pressable
-              onPress={() => router.push('/inbox')}
+              onPress={() => router.push(routes.inbox)}
               accessibilityLabel={t('header.openNotifications')}
               className="p-1"
             >
@@ -99,7 +100,7 @@ export function AppHeader({ centerLabel, extraRightSlot }: AppHeaderProps) {
                 // The menu is entirely auth-only (profile, sign-out, my
                 // signups); guests get the RegisterSheet instead.
                 if (user) setMenuOpen(true);
-                else gate.requireAuth('/(tabs)/profile', t('guest.menu'));
+                else gate.requireAuth(routes.profile, t('guest.menu'));
               }}
               accessibilityLabel={t('header.openMenu')}
               className="p-1 -mr-1"

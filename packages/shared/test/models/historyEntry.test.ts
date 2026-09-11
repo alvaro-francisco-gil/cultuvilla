@@ -13,6 +13,7 @@ const NOW = new Date('2026-09-11T10:00:00Z');
 function input(over: Partial<HistoryEntryDataInput> = {}): HistoryEntryDataInput {
   return {
     municipalityId: '40001',
+    villageSlug: 'villarriba',
     createdBy: 'u1',
     title: 'Carta puebla',
     body: { text: 'El rey concede fueros.', mentions: [], links: [], marks: [] },
@@ -89,6 +90,7 @@ describe('buildHistoryEntryData', () => {
     const data = buildHistoryEntryData(input());
     expect(data).toMatchObject({
       municipalityId: '40001',
+      villageSlug: 'villarriba',
       title: 'Carta puebla',
       images: [],
       end: null,

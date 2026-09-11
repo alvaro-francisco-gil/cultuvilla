@@ -195,18 +195,19 @@ service cloud.firestore {
 
     function isValidNewsPostCreate(d) {
       return d.keys().hasOnly([
-              'municipalityId', 'organizerUserIds', 'organizerOrgIds', 'title', 'body',
+              'municipalityId', 'villageSlug', 'organizerUserIds', 'organizerOrgIds', 'title', 'body',
               'content', 'category', 'images', 'coverImage', 'status', 'hiddenBy',
               'hiddenAt', 'hiddenReason', 'createdAt', 'publishedAt', 'createdBy',
               'updatedAt', 'readCount', 'commentCount',
             ])
           && d.keys().hasAll([
-              'municipalityId', 'organizerUserIds', 'organizerOrgIds', 'title', 'body',
+              'municipalityId', 'villageSlug', 'organizerUserIds', 'organizerOrgIds', 'title', 'body',
               'content', 'category', 'images', 'coverImage', 'status', 'hiddenBy',
               'hiddenAt', 'hiddenReason', 'createdAt', 'publishedAt', 'createdBy',
               'updatedAt', 'readCount', 'commentCount',
             ])
           && isString(d.municipalityId)
+          && isString(d.villageSlug)
           && d.organizerUserIds is list
           && d.organizerOrgIds is list
           && isString(d.title)
@@ -278,12 +279,12 @@ service cloud.firestore {
 
     function isValidOrganizationCreate(d) {
       return d.keys().hasOnly([
-              'name', 'description', 'images', 'type', 'status', 'municipalityId',
+              'name', 'description', 'images', 'type', 'status', 'municipalityId', 'villageSlug',
               'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
               'commentCount', 'readCount', 'memberCount', 'membersPublic',
             ])
           && d.keys().hasAll([
-              'name', 'description', 'images', 'type', 'status', 'municipalityId',
+              'name', 'description', 'images', 'type', 'status', 'municipalityId', 'villageSlug',
               'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
               'commentCount', 'readCount', 'memberCount', 'membersPublic',
             ])
@@ -293,6 +294,7 @@ service cloud.firestore {
           && d.type in ['ayuntamiento', 'peña', 'asociación', 'otros']
           && d.status in ['pending', 'approved', 'rejected']
           && isString(d.municipalityId)
+          && isString(d.villageSlug)
           && isString(d.requestedBy)
           && isStringOrNull(d.reviewedBy)
           && isTimestamp(d.createdAt)
@@ -339,18 +341,19 @@ service cloud.firestore {
 
     function isValidFestivalPosterCreate(d) {
       return d.keys().hasOnly([
-              'municipalityId', 'proposedBy', 'contributorUserIds', 'contributorOrgIds', 'year', 'title', 'images',
+              'municipalityId', 'villageSlug', 'proposedBy', 'contributorUserIds', 'contributorOrgIds', 'year', 'title', 'images',
               'datePrecision', 'startsAt', 'endsAt', 'createdAt',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount',
             ])
           && d.keys().hasAll([
-              'municipalityId', 'proposedBy', 'contributorUserIds', 'contributorOrgIds', 'year', 'title', 'images',
+              'municipalityId', 'villageSlug', 'proposedBy', 'contributorUserIds', 'contributorOrgIds', 'year', 'title', 'images',
               'datePrecision', 'startsAt', 'endsAt', 'createdAt',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount',
             ])
           && isString(d.municipalityId)
+          && isString(d.villageSlug)
           && isStringOrNull(d.proposedBy)
           && isList(d.contributorUserIds)
           && isList(d.contributorOrgIds)
@@ -434,7 +437,7 @@ service cloud.firestore {
               'minBirthYear', 'maxBirthYear',
               'visibility', 'visibilityOrgId',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
-              'createdAt', 'updatedAt', 'municipalityId', 'villageName',
+              'createdAt', 'updatedAt', 'municipalityId', 'villageName', 'villageSlug',
               'villageCoverImage', 'villageCoordinates',
               'confirmedCount', 'totalCount',
               'commentCount', 'readCount',
@@ -446,7 +449,7 @@ service cloud.firestore {
               'minBirthYear', 'maxBirthYear',
               'visibility', 'visibilityOrgId',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
-              'createdAt', 'updatedAt', 'municipalityId', 'villageName',
+              'createdAt', 'updatedAt', 'municipalityId', 'villageName', 'villageSlug',
               'villageCoverImage', 'villageCoordinates',
               'commentCount', 'readCount',
             ])
@@ -510,6 +513,7 @@ service cloud.firestore {
           && isTimestamp(d.updatedAt)
           && isString(d.municipalityId)
           && isString(d.villageName)
+          && isString(d.villageSlug)
           && isStringOrNull(d.villageCoverImage)
           && isLatLngOrNull(d.villageCoordinates)
           && d.commentCount == 0
@@ -647,18 +651,19 @@ service cloud.firestore {
 
     function isValidHistoryEntryShape(d) {
       return d.keys().hasOnly([
-              'municipalityId', 'createdBy', 'title', 'body', 'images', 'start', 'end',
+              'municipalityId', 'villageSlug', 'createdBy', 'title', 'body', 'images', 'start', 'end',
               'approximate', 'sources', 'sortKey', 'createdAt', 'updatedAt',
               'commentCount', 'readCount',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
             ])
           && d.keys().hasAll([
-              'municipalityId', 'createdBy', 'title', 'body', 'images', 'start', 'end',
+              'municipalityId', 'villageSlug', 'createdBy', 'title', 'body', 'images', 'start', 'end',
               'approximate', 'sources', 'sortKey', 'createdAt', 'updatedAt',
               'commentCount', 'readCount',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
             ])
           && isString(d.municipalityId)
+          && isString(d.villageSlug)
           && isString(d.createdBy)
           && isString(d.title) && d.title.size() > 0 && d.title.size() <= 120
           && isMap(d.body)
@@ -802,7 +807,7 @@ service cloud.firestore {
                       && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
                            'status','hiddenBy','hiddenAt','hiddenReason',
                            'publishedAt',
-                           'municipalityId','createdAt','createdBy',
+                           'municipalityId','villageSlug','createdAt','createdBy',
                            'readCount','commentCount'
                          ]);
       // Clients never delete a post directly — the deleteNewsPost callable
@@ -1186,7 +1191,7 @@ service cloud.firestore {
             || request.resource.data.status == 'rejected')
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
              'commentCount', 'readCount', 'memberCount',
-             'type', 'municipalityId', 'requestedBy', 'createdAt',
+             'type', 'municipalityId', 'villageSlug', 'requestedBy', 'createdAt',
            ]);
       allow delete: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
 
@@ -1241,7 +1246,7 @@ service cloud.firestore {
       )
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.municipalityId == resource.data.municipalityId
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['commentCount', 'readCount'])
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['commentCount', 'readCount', 'villageSlug'])
         && isAdditiveSignupFieldsChange(resource.data, request.resource.data)
         && isFrozenGroupSizeChange(resource.data, request.resource.data)
         && isValidVisibilityChange(resource.data, request.resource.data);
@@ -1433,7 +1438,7 @@ service cloud.firestore {
              // Unlike places/barrios (nested, so the path fixes the village),
              // a poster is top-level and this rule reads municipalityId for
              // authority — mutable, it walks the doc into another pueblo.
-             'proposedBy', 'municipalityId',
+             'proposedBy', 'municipalityId', 'villageSlug',
            ]);
       allow delete: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin()
         || (isOwner(resource.data.proposedBy) && resource.data.status == 'active');

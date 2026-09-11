@@ -35,6 +35,7 @@ async function seedPost(postId: string): Promise<void> {
     title: 'Test post',
     body: 'Body',
     category: 'fiesta',
+    villageSlug: 'villarriba',
     images: [],
     status: 'active',
     hiddenBy: null,

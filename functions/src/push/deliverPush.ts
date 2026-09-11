@@ -1,6 +1,7 @@
 import { logger } from 'firebase-functions/v2';
 import { getFirestore } from 'firebase-admin/firestore';
 import {
+  municipalityDoc,
   userDevicesCollection,
   userNotificationsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
@@ -48,7 +49,16 @@ export async function deliverPush(
     }
   }
 
-  const envelope = buildPushEnvelope(notificationId, notification);
+  // The tap route is village-first, and a notification holds the municipality
+  // id, not its slug. Slugs never change, so the read is the only cost.
+  const municipality = notification.municipalityId
+    ? await municipalityDoc(db, notification.municipalityId).get()
+    : null;
+  const envelope = buildPushEnvelope(
+    notificationId,
+    notification,
+    municipality?.data()?.slug ?? null,
+  );
 
   // The icon badge has to be the unread count the Buzón would show — not the
   // number of pushes sent, which drifts the moment one is read elsewhere. Only

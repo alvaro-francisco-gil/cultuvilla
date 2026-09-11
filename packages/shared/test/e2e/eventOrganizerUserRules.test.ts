@@ -41,6 +41,7 @@ function newEvent(createdBy: string, extraOrganizers: string[] = [], orgIds: str
     updatedAt: new Date(),
     municipalityId: M,
     villageName: 'Villa',
+    villageSlug: 'villa',
     villageCoverImage: null,
     villageCoordinates: null,
     commentCount: 0,
@@ -172,6 +173,12 @@ describe('firestore.rules — event organizerUserIds control', () => {
   it('denied: update that changes municipalityId', async () => {
     const alice = asUser(getEnv(), 'alice');
     await assertFails(updateDoc(doc(alice, 'events/owned'), { municipalityId: 'm2' }));
+  });
+
+  // The slug is a permalink: rewriting it would break every link already shared.
+  it('denied: update that changes villageSlug', async () => {
+    const alice = asUser(getEnv(), 'alice');
+    await assertFails(updateDoc(doc(alice, 'events/owned'), { villageSlug: 'otro-pueblo' }));
   });
 
   it('an org member in organizerOrgIds but NOT in organizerUserIds is denied update', async () => {

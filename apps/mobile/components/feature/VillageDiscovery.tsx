@@ -1,3 +1,4 @@
+import { discoverStartHref, routes, villageHref } from '../../lib/navigation/routes';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, ActivityIndicator, View, TextInput } from 'react-native';
 import { router, type Href } from 'expo-router';
@@ -165,15 +166,12 @@ export function VillageDiscovery() {
       observability.trackEvent(OBSERVABILITY_EVENTS.SEARCH_RESULT_SELECTED, { surface: 'village_discovery' });
     }
     // Active villages → the rich village home; dormant municipalities → the "start" flow.
-    const target: Href = m.communityActive
-      ? { pathname: '/village/[villageId]', params: { villageId: m.id } }
-      : { pathname: '/discover/start/[municipalityId]', params: { municipalityId: m.id } };
-    router.push(target);
+    router.push(m.communityActive ? villageHref(m.slug) : discoverStartHref(m.id));
   };
 
   const onPressJoin = (m: Muni) => {
     if (!user) {
-      router.push('/(auth)/login' as Href);
+      router.push(routes.login);
       return;
     }
     setPendingJoin(m);
@@ -194,7 +192,7 @@ export function VillageDiscovery() {
       // joinVillage set this village as active; refresh the auth profile so the
       // Pueblo tab reflects it now, not only after an app restart.
       await refreshProfile();
-      router.push({ pathname: '/village/[villageId]', params: { villageId: id } });
+      router.push(villageHref(pendingJoin.slug));
     } catch (e) {
       if (!succeeded) observability.trackEvent(OBSERVABILITY_EVENTS.VILLAGE_JOIN_ERROR, { villageId: id });
       throw e;

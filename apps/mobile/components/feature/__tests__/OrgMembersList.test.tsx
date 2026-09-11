@@ -122,7 +122,7 @@ test('tapping a member opens their profile, in edit mode or out of it', async ()
 
   await waitFor(() => expect(screen.getByTestId('org-member-profile-user1')).toBeTruthy());
   fireEvent.press(screen.getByTestId('org-member-profile-user1'));
-  expect(mockPush).toHaveBeenCalledWith('/user/user1');
+  expect(mockPush).toHaveBeenCalledWith('/usuario/user1');
   expect(mockSetOrgMemberRole).not.toHaveBeenCalled();
 
   enterEditMode();
@@ -139,7 +139,7 @@ test('a read-only viewer can still open a member profile', async () => {
 
   await waitFor(() => expect(screen.getByTestId('org-member-profile-user1')).toBeTruthy());
   fireEvent.press(screen.getByTestId('org-member-profile-user1'));
-  expect(mockPush).toHaveBeenCalledWith('/user/user1');
+  expect(mockPush).toHaveBeenCalledWith('/usuario/user1');
 });
 
 test('shows a member full name with the apodo in parentheses, not the apodo alone', async () => {

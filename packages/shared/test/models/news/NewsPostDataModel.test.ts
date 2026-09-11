@@ -123,7 +123,7 @@ describe('NewsPostDataSchema', () => {
   it('accepts a post with organizerUserIds + organizerOrgIds', () => {
     const now = new Date();
     const parsed = NewsPostDataSchema.parse({
-      municipalityId: 'm1',
+      municipalityId: 'm1', villageSlug: 'villa',
       organizerUserIds: ['u'],
       organizerOrgIds: [],
       createdBy: 'u',
@@ -180,7 +180,7 @@ describe('NewsPostDataSchema', () => {
     const now = new Date();
     expect(() =>
       NewsPostDataSchema.parse({
-        municipalityId: 'm1',
+        municipalityId: 'm1', villageSlug: 'villa',
         organizerUserIds: ['u1'],
         organizerOrgIds: [],
         createdBy: 'u1',
@@ -206,7 +206,7 @@ describe('buildNewsPostData', () => {
   it('produces an active post with zeroed counters by default', () => {
     const now = new Date();
     const p = buildNewsPostData({
-      municipalityId: 'm1',
+      municipalityId: 'm1', villageSlug: 'villa',
       organizerUserIds: ['u1'],
       organizerOrgIds: [],
       createdBy: 'u1',
@@ -239,7 +239,7 @@ describe('buildNewsPostData', () => {
     const published = new Date('2026-01-02T00:00:00Z');
 
     const withoutPublishedAt = buildNewsPostData({
-      municipalityId: 'm1',
+      municipalityId: 'm1', villageSlug: 'villa',
       organizerUserIds: ['u1'],
       organizerOrgIds: [],
       createdBy: 'u1',
@@ -252,7 +252,7 @@ describe('buildNewsPostData', () => {
     expect(withoutPublishedAt.publishedAt).toEqual(created);
 
     const withPublishedAt = buildNewsPostData({
-      municipalityId: 'm1',
+      municipalityId: 'm1', villageSlug: 'villa',
       organizerUserIds: ['u1'],
       organizerOrgIds: [],
       createdBy: 'u1',

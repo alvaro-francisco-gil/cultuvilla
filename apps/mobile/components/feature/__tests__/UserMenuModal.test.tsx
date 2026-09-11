@@ -39,10 +39,10 @@ jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
 describe('UserMenuModal menu actions', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('navigates to /settings when tapping Ajustes', async () => {
+  it('navigates to /ajustes when tapping Ajustes', async () => {
     const { getByText } = render(<UserMenuModal visible onClose={jest.fn()} />);
     fireEvent.press(getByText('menu.settings'));
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/settings'));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/ajustes'));
   });
 
   it('shares the Cultuvilla website', async () => {

@@ -22,7 +22,7 @@
 appId: com.cultuvilla.app.dev
 ---
 - clearState
-- openLink: cultuvilla://event/e2e-event-fiesta
+- openLink: cultuvilla://altozano-de-prueba/evento/_e2e-event-fiesta
 - extendedWaitUntil:
     visible: 'Fiesta de Prueba E2E'
     timeout: 90000

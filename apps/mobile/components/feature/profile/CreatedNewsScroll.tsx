@@ -12,7 +12,7 @@ export type CreatedNews = NewsPostData & { id: string };
 export interface CreatedNewsScrollProps {
   news: CreatedNews[];
   emptyLabel: string;
-  onPressNews: (id: string) => void;
+  onPressNews: (post: CreatedNews) => void;
 }
 
 export function CreatedNewsScroll({ news, emptyLabel, onPressNews }: CreatedNewsScrollProps) {
@@ -35,7 +35,7 @@ export function CreatedNewsScroll({ news, emptyLabel, onPressNews }: CreatedNews
           keyExtractor={(n) => n.id}
           contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
           renderItem={({ item }) => (
-            <NewsScrollCard post={item} onPress={() => onPressNews(item.id)} />
+            <NewsScrollCard post={item} onPress={() => onPressNews(item)} />
           )}
         />
       )}

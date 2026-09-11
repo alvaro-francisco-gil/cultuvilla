@@ -15,7 +15,7 @@ env:
     env:
       EMAIL: ${EMAIL}
       PASSWORD: ${PASSWORD}
-- openLink: 'cultuvilla://event/${EVENT_ID}'
+- openLink: 'cultuvilla://altozano-de-prueba/evento/_${EVENT_ID}'
 - extendedWaitUntil:
     visible:
       id: 'register-fab'

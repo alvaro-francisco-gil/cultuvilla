@@ -163,6 +163,9 @@ export const MunicipalityDataSchema = z.object({
   province: z.string(),
   comunidadAutonoma: z.string(),
   codigoINE: z.string(),
+  /** Permanent URL slug — `/matabuena`. Assigned once by `assignMunicipalitySlugs`
+   *  and never changed, not even on a rename: it is a permalink. */
+  slug: z.string(),
   coordinates: LatLngSchema.nullable(),
   /** Human-readable name of `coordinates` ("Plaza Mayor, Abadía, Cáceres"),
    *  captured when the organizer picks the spot. Stored rather than resolved on
@@ -204,6 +207,7 @@ export interface MunicipalityDataInput {
   province: string;
   comunidadAutonoma: string;
   codigoINE: string;
+  slug: string;
   nameAliases?: string[];
   localityNames?: string[];
   coordinates?: LatLng | null;
@@ -253,6 +257,7 @@ export function buildMunicipalityData(input: MunicipalityDataInput): Municipalit
     province: input.province,
     comunidadAutonoma: input.comunidadAutonoma,
     codigoINE: input.codigoINE,
+    slug: input.slug,
     coordinates: input.coordinates ?? null,
     locationLabel: input.locationLabel ?? null,
     mapZoom: input.mapZoom ?? null,

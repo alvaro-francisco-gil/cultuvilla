@@ -3,7 +3,7 @@ import { Text as RNText, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { Text } from '../primitives';
 import type { TextProps } from '../primitives/Text';
-import { mentionHref } from '../../lib/newsMentions';
+import { mentionIsNavigable, openMention } from '../../lib/newsMentions';
 import { buildLinkRuns, isSafeHttpUrl } from '../../lib/linkText';
 import { markPresentation } from '../../lib/markStyle';
 import type { NewsMention, NewsLink, NewsMark } from '@cultuvilla/shared/models/news/NewsPostDataModel';
@@ -15,7 +15,8 @@ interface RichTextProps extends Omit<TextProps, 'children'> {
   links?: NewsLink[];
   /** Stored formatting marks (bold/italic/underline/strikethrough) indexing into `text`. */
   marks?: NewsMark[];
-  municipalityId: string;
+  /** The pueblo the article belongs to — every mention it carries lives there. */
+  villageSlug: string;
 }
 
 // Colour + weight for a link/mention span. Underline is NOT here — decoration is
@@ -32,7 +33,7 @@ function openExternal(url: string) {
  * render — and formatting marks (bold/italic/underline/strikethrough), styled
  * and tappable. Unsafe-scheme URLs render as plain text.
  */
-export function RichText({ text, mentions, links = [], marks = [], municipalityId, ...textProps }: RichTextProps) {
+export function RichText({ text, mentions, links = [], marks = [], villageSlug, ...textProps }: RichTextProps) {
   const runs = buildLinkRuns(text, mentions, links, marks);
   if (runs.length === 1 && !runs[0]!.mention && !runs[0]!.link && !runs[0]!.autoUrl && !runs[0]!.marks) {
     return <Text {...textProps}>{text}</Text>;
@@ -40,14 +41,15 @@ export function RichText({ text, mentions, links = [], marks = [], municipalityI
 
   const parts = runs.map((run, i) => {
     if (run.mention) {
-      const href = mentionHref(run.mention, municipalityId);
+      const mention = run.mention;
+      const navigable = mentionIsNavigable(mention);
       const pres = markPresentation(run.marks, true);
       return (
         <RNText
           key={i}
           className={`${LINK_CLASS} ${pres.className}`}
           style={pres.style}
-          onPress={href ? () => router.push(href as never) : undefined}
+          onPress={navigable ? () => void openMention(mention, villageSlug) : undefined}
         >
           {run.text}
         </RNText>

@@ -99,11 +99,12 @@ describe('ogRenderer', () => {
       updatedAt: now,
       municipalityId: 'mun-1',
       villageName: 'Villarriba',
+      villageSlug: 'villarriba',
       villageCoverImage: null,
       villageCoordinates: null,
     });
 
-    const res = await invoke('/event/e1');
+    const res = await invoke('/villarriba/evento/fiesta-del-pueblo_e1');
 
     expect(res.statusCode).toBe(200);
     expect(res.headers['Content-Type']).toBe('text/html; charset=utf-8');
@@ -123,7 +124,9 @@ describe('ogRenderer', () => {
     expect(res.body.indexOf('id="seo-content"')).toBeLessThan(res.body.indexOf('id="root"'));
     expect(res.body).toContain('Fiesta del Pueblo');
     expect(res.body).toContain('"@type":"Event"');
-    expect(res.body).toContain(`<link rel="canonical" href="${ORIGIN}/event/e1"/>`);
+    expect(res.body).toContain(
+      `<link rel="canonical" href="${ORIGIN}/villarriba/evento/fiesta-del-pueblo_e1"/>`,
+    );
     // The request arrived on example.com; the canonical must not follow it, or
     // prod's two hosts each declare themselves canonical.
     expect(res.body).not.toContain('href="https://example.com/');
@@ -148,19 +151,20 @@ describe('ogRenderer', () => {
       updatedAt: now,
       municipalityId: 'mun-1',
       villageName: 'Villarriba',
+      villageSlug: 'villarriba',
       villageCoverImage: null,
       villageCoordinates: null,
     });
 
-    const res = await invoke('/event/e-utm?utm_source=whatsapp');
+    const res = await invoke('/villarriba/evento/fiesta_e-utm?utm_source=whatsapp');
 
-    expect(res.body).toContain(`<link rel="canonical" href="${ORIGIN}/event/e-utm"/>`);
+    expect(res.body).toContain(`<link rel="canonical" href="${ORIGIN}/villarriba/evento/fiesta_e-utm"/>`);
     expect(res.body).not.toContain('utm_source');
   });
 
-  it('village: an invite link is reachable but never indexable', async () => {
+  it('village: resolves the pueblo by its slug, not its doc id', async () => {
     const now = new Date();
-    await admin.firestore().doc('municipalities/mun-join').set({
+    await admin.firestore().doc('municipalities/mun-slug').set({
       name: 'Villarriba',
       nameLower: 'villarriba',
       nameAliases: [],
@@ -169,21 +173,22 @@ describe('ogRenderer', () => {
       province: 'Segovia',
       comunidadAutonoma: 'Castilla y León',
       codigoINE: '40001',
+      slug: 'villarriba',
       coordinates: null,
       createdAt: now,
       communityActive: true,
       community: { description: 'Un pueblo' },
     });
 
-    const plain = await invoke('/village/mun-join');
-    expect(plain.body).not.toContain('name="robots"');
+    const bySlug = await invoke('/villarriba');
+    expect(bySlug.statusCode).toBe(200);
+    expect(bySlug.body).toContain('<title>Villarriba</title>');
+    expect(bySlug.body).not.toContain('name="robots"');
 
-    const invite = await invoke('/village/mun-join/join');
-    expect(invite.statusCode).toBe(200);
-    expect(invite.body).toContain('<meta name="robots" content="noindex,follow"/>');
-    // An invite screen never dismisses the content overlay, so it gets none.
-    expect(invite.body).not.toContain('id="seo-content"');
-    expect(plain.body).toContain('id="seo-content"');
+    expect(bySlug.body).toContain('id="seo-content"');
+
+    const byId = await invoke('/mun-slug');
+    expect(byId.body).toContain('property="og:title" content="Cultuvilla"');
   });
 
   // A link preview is rendered for whoever scrolls past the URL, with no viewer
@@ -210,11 +215,12 @@ describe('ogRenderer', () => {
       updatedAt: now,
       municipalityId: 'mun-1',
       villageName: 'Villarriba',
+      villageSlug: 'villarriba',
       villageCoverImage: 'https://cdn.example/village.jpg',
       villageCoordinates: null,
     });
 
-    const res = await invoke('/event/e-priv');
+    const res = await invoke('/villarriba/evento/evento-privado_e-priv');
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain('Evento privado');
@@ -229,6 +235,53 @@ describe('ogRenderer', () => {
     expect(res.body).not.toContain('id="seo-content"');
   });
 
+  it('event: the redirect for a private event does not spell out its title', async () => {
+    const now = new Date();
+    await admin.firestore().doc('events/e-priv2').set({
+      title: 'Cena secreta',
+      description: 'x',
+      startDate: now,
+      location: { coordinates: null, displayName: 'local' },
+      status: 'published',
+      visibility: 'organization',
+      visibilityOrgId: 'org-1',
+      municipalityId: 'mun-1',
+      villageName: 'Villarriba',
+      villageSlug: 'villarriba',
+    });
+
+    const res = await invoke('/villarriba/evento/cena-secreta_e-priv2');
+
+    expect(res.statusCode).toBe(301);
+    expect(res.headers['Location']).toBe('/villarriba/evento/evento-privado_e-priv2');
+  });
+
+  it('event: a stale title or a wrong pueblo redirects permanently to the canonical path', async () => {
+    const now = new Date();
+    await admin.firestore().doc('events/e-moved').set({
+      title: 'Fiestas de San Roque',
+      description: 'x',
+      startDate: now,
+      location: { coordinates: null, displayName: 'plaza' },
+      status: 'published',
+      municipalityId: 'mun-1',
+      villageName: 'Villarriba',
+      villageSlug: 'villarriba',
+    });
+
+    const stale = await invoke('/villarriba/evento/fiestas-de-san-rocke_e-moved?utm_source=whatsapp');
+    expect(stale.statusCode).toBe(301);
+    expect(stale.headers['Location']).toBe(
+      '/villarriba/evento/fiestas-de-san-roque_e-moved?utm_source=whatsapp',
+    );
+
+    const wrongVillage = await invoke('/villabajo/evento/fiestas-de-san-roque_e-moved');
+    expect(wrongVillage.headers['Location']).toBe('/villarriba/evento/fiestas-de-san-roque_e-moved');
+
+    const canonical = await invoke('/villarriba/evento/fiestas-de-san-roque_e-moved/');
+    expect(canonical.statusCode).toBe(200);
+  });
+
   it('village: uses escudoManualUrl as og:image when present', async () => {
     await admin.firestore().doc('municipalities/mun-1').set({
       name: 'Villarriba',
@@ -241,6 +294,7 @@ describe('ogRenderer', () => {
       comunidadAutonoma: 'Castilla y León',
       comunidadAutonomaLower: 'castilla y leon',
       codigoINE: '47001',
+      slug: 'villarriba',
       coordinates: null,
       escudoUrl: 'https://cdn.example/escudo.png',
       escudoThumbUrl: null,
@@ -254,7 +308,7 @@ describe('ogRenderer', () => {
       communityActive: true,
     });
 
-    const res = await invoke('/village/mun-1');
+    const res = await invoke('/villarriba');
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain('<title>Villarriba</title>');
@@ -274,6 +328,7 @@ describe('ogRenderer', () => {
       comunidadAutonoma: 'Castilla y León',
       comunidadAutonomaLower: 'castilla y leon',
       codigoINE: '47001b',
+      slug: 'villarriba-b',
       coordinates: null,
       escudoUrl: 'https://cdn.example/escudo-fallback.png',
       escudoThumbUrl: null,
@@ -287,7 +342,7 @@ describe('ogRenderer', () => {
       communityActive: true,
     });
 
-    const res = await invoke('/village/mun-1b');
+    const res = await invoke('/villarriba-b');
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain('property="og:image" content="https://cdn.example/escudo-fallback.png"');
@@ -305,6 +360,7 @@ describe('ogRenderer', () => {
       comunidadAutonoma: 'Castilla y León',
       comunidadAutonomaLower: 'castilla y leon',
       codigoINE: '47001c',
+      slug: 'villarriba-c',
       coordinates: null,
       escudoUrl: null,
       escudoThumbUrl: 'https://cdn.example/escudo-thumb.png',
@@ -318,44 +374,10 @@ describe('ogRenderer', () => {
       communityActive: true,
     });
 
-    const res = await invoke('/village/mun-1c');
+    const res = await invoke('/villarriba-c');
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain('property="og:image" content="https://cdn.example/escudo-thumb.png"');
-  });
-
-  it('village invite variant uses the same og as the view URL', async () => {
-    await admin.firestore().doc('municipalities/mun-2').set({
-      name: 'Villabajo',
-      nameLower: 'villabajo',
-      nameAliases: [],
-      localityNames: [],
-      searchPrefixes: ['v', 'vi', 'vil', 'vill', 'villa', 'villab', 'villaba', 'villabaj', 'villabajo'],
-      province: 'Valladolid',
-      provinceLower: 'valladolid',
-      comunidadAutonoma: 'Castilla y León',
-      comunidadAutonomaLower: 'castilla y leon',
-      codigoINE: '47002',
-      coordinates: null,
-      escudoUrl: null,
-      escudoThumbUrl: null,
-      escudoManualUrl: null,
-      community: {
-        description: 'Pueblo bonito',
-        organizerId: 'admin-2',
-        createdAt: new Date(),
-        fiestas: [],
-      },
-      communityActive: true,
-    });
-
-    const view = await invoke('/village/mun-2');
-    const invite = await invoke('/village/mun-2/join');
-
-    expect(view.body).toContain('<title>Villabajo</title>');
-    expect(invite.body).toContain('<title>Villabajo</title>');
-    expect(invite.body).toContain('property="og:description" content="Pueblo bonito"');
-    expect(invite.headers['Cache-Control']).toBe('public, max-age=600, s-maxage=3600');
   });
 
   it('organization: injects org name + description + image', async () => {
@@ -364,6 +386,7 @@ describe('ogRenderer', () => {
       description: 'Una peña activa',
       images: ['https://cdn.example/org-1.jpg'],
       municipalityId: 'mun-1',
+      villageSlug: 'villarriba',
       type: 'pena',
       status: 'approved',
       createdBy: 'creator',
@@ -371,12 +394,17 @@ describe('ogRenderer', () => {
       updatedAt: new Date(),
     });
 
-    const view = await invoke('/o/org-1');
-    const invite = await invoke('/o/org-1/join');
+    const view = await invoke('/villarriba/entidad/pena-los-sauces_org-1');
+    const invite = await invoke('/villarriba/entidad/pena-los-sauces_org-1/unirse');
 
     expect(view.body).toContain('<title>Peña Los Sauces</title>');
     expect(view.body).toContain('property="og:image" content="https://cdn.example/org-1.jpg"');
+    expect(view.body).not.toContain('name="robots"');
+    // An invite is reachable but never indexable — and keeps its /unirse suffix
+    // rather than being redirected to the plain view.
+    expect(invite.statusCode).toBe(200);
     expect(invite.body).toContain('<title>Peña Los Sauces</title>');
+    expect(invite.body).toContain('<meta name="robots" content="noindex,follow"/>');
   });
 
   it('news: title + description present, og:image omitted gracefully when signing fails', async () => {
@@ -389,7 +417,7 @@ describe('ogRenderer', () => {
       organizerOrgIds: [],
       images: [],
       municipalityId: 'mun-1',
-      villageName: 'Villarriba',
+      villageSlug: 'villarriba',
       submittedAt: new Date(),
       publishedAt: new Date(),
       status: 'approved',
@@ -398,7 +426,7 @@ describe('ogRenderer', () => {
       reportCount: 0,
     });
 
-    const res = await invoke('/news/n1');
+    const res = await invoke('/villarriba/noticia/anuncio-del-ayuntamiento_n1');
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain('<title>Anuncio del ayuntamiento</title>');
@@ -408,7 +436,7 @@ describe('ogRenderer', () => {
   });
 
   it('missing doc: returns 200 with default og tags', async () => {
-    const res = await invoke('/event/does-not-exist');
+    const res = await invoke('/villarriba/evento/x_does-not-exist');
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain('<title>Cultuvilla</title>');
@@ -416,7 +444,7 @@ describe('ogRenderer', () => {
   });
 
   it('unmatched URL pattern: returns 200 with default og tags', async () => {
-    const res = await invoke('/event/nested/deeper/path');
+    const res = await invoke('/villarriba/evento/nested/deeper/path');
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain('property="og:title" content="Cultuvilla"');
@@ -426,7 +454,7 @@ describe('ogRenderer', () => {
     // Firestore-reserved ids (__x__) make .doc() throw INVALID_ARGUMENT. A
     // crawler hitting such a URL must still get a valid 200 default preview,
     // not a 500 Internal Server Error.
-    const res = await invoke('/event/__reserved__');
+    const res = await invoke('/villarriba/evento/x___reserved__');
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain('property="og:title" content="Cultuvilla"');
@@ -443,7 +471,7 @@ describe('ogRenderer', () => {
       organizerOrgIds: [],
       images: [],
       municipalityId: 'mun-1',
-      villageName: 'V',
+      villageSlug: 'v',
       submittedAt: new Date(),
       publishedAt: new Date(),
       status: 'approved',
@@ -452,7 +480,7 @@ describe('ogRenderer', () => {
       reportCount: 0,
     });
 
-    const res = await invoke('/news/n-long');
+    const res = await invoke('/v/noticia/long_n-long');
     const match = /property="og:description" content="(a+…)"/.exec(res.body);
     expect(match).not.toBeNull();
     const description = match?.[1] ?? '';

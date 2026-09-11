@@ -30,6 +30,7 @@ async function seedEvent(id: string, startsInHours: number, status: 'published' 
     updatedAt: now,
     municipalityId: 'mun',
     villageName: 'Matabuena',
+    villageSlug: 'matabuena',
     villageCoverImage: null,
     villageCoordinates: null,
     confirmedCount: 0,

@@ -39,6 +39,7 @@ const mockMuni = (
 ) => ({
   id,
   name,
+  slug: name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, '-'),
   province: 'Segovia',
   communityActive,
   localityNames,
@@ -93,21 +94,14 @@ it('opens an active village detail on tap', async () => {
   const { getAllByText } = render(<VillageDiscovery />);
   await waitFor(() => expect(getAllByText('Anaya').length).toBeGreaterThan(0), SEARCH_WAIT);
   fireEvent.press(getAllByText('Anaya')[0]!);
-  expect(mockPush).toHaveBeenCalledWith(
-    expect.objectContaining({ pathname: '/village/[villageId]', params: { villageId: 'm1' } }),
-  );
+  expect(mockPush).toHaveBeenCalledWith('/anaya');
 });
 
 it('routes a dormant municipality to the start flow', async () => {
   const { getByText } = render(<VillageDiscovery />);
   await waitFor(() => expect(getByText('Bernuy')).toBeTruthy(), SEARCH_WAIT);
   fireEvent.press(getByText('Bernuy'));
-  expect(mockPush).toHaveBeenCalledWith(
-    expect.objectContaining({
-      pathname: '/discover/start/[municipalityId]',
-      params: { municipalityId: 'm2' },
-    }),
-  );
+  expect(mockPush).toHaveBeenCalledWith('/descubrir/empezar/m2');
 });
 
 it('fires VILLAGE_JOIN_SUCCESS after confirming a join', async () => {

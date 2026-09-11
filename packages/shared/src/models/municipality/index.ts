@@ -9,3 +9,4 @@ export * from './OrganizerRequestDataModel'
 export * from './MunicipalityPersonDataModel'
 export * from './SettlementSeedModel'
 export * from './FiestaBlockModel';
+export * from './municipalitySlug';

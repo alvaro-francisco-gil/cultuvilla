@@ -18,7 +18,7 @@ test('prod: points crawlers at the sitemap on the brand domain', () => {
 
 test('prod: keeps people, invite links and private screens out', () => {
   const txt = buildRobotsTxt('prod');
-  for (const path of ['/person/', '/*/join$', '/me', '/inbox', '/settings', '/admin']) {
+  for (const path of ['/persona/', '/*/unirse$', '/*/plaza/', '/mis-inscripciones', '/mis-pueblos', '/buzon', '/ajustes', '/admin']) {
     assert.ok(txt.includes(`Disallow: ${path}\n`), `missing Disallow: ${path}`);
   }
   // A bare "Disallow: /" on prod would de-index the whole site.

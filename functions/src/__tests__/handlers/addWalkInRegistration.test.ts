@@ -36,6 +36,7 @@ async function seedEvent(signupFields: unknown[] = []): Promise<void> {
     updatedAt: now,
     municipalityId: MUNICIPALITY_ID,
     villageName: 'Villarriba',
+    villageSlug: 'villarriba',
     villageCoverImage: null,
     villageCoordinates: null,
     confirmedCount: 0,

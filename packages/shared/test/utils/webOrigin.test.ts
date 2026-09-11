@@ -21,11 +21,17 @@ describe('webOriginForProject', () => {
 });
 
 describe('eventWebUrl', () => {
-  it('sends prod email recipients to the brand domain', () => {
-    expect(eventWebUrl('e1', 'cultuvilla-prod')).toBe('https://cultuvilla.es/event/e1');
+  const event = { id: 'e1', title: 'Fiesta de San Roque', villageSlug: 'matabuena' };
+
+  it('sends prod email recipients to the brand domain, on the village-first path', () => {
+    expect(eventWebUrl(event, 'cultuvilla-prod')).toBe(
+      'https://cultuvilla.es/matabuena/evento/fiesta-de-san-roque_e1',
+    );
   });
 
-  it('encodes the event id', () => {
-    expect(eventWebUrl('a/b', 'villa-events')).toBe('https://villa-events.web.app/event/a%2Fb');
+  it('uses the project web.app host everywhere else', () => {
+    expect(eventWebUrl(event, 'villa-events')).toBe(
+      'https://villa-events.web.app/matabuena/evento/fiesta-de-san-roque_e1',
+    );
   });
 });

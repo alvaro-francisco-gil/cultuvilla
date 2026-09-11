@@ -51,10 +51,12 @@ function subjectOf(n: NotificationData): string {
 export function buildPushEnvelope(
   notificationId: string,
   n: NotificationData,
+  /** The notification's pueblo slug — every tap route starts with it. */
+  villageSlug: string | null,
 ): PushEnvelope {
   const category = notificationCategory(n.type);
   const subject = subjectOf(n);
-  const route = notificationRoute(n);
+  const route = notificationRoute(n, villageSlug);
 
   // FCM data values must be strings, and a null becomes an absent key rather
   // than the string "null" — the tap handler checks presence, not content.

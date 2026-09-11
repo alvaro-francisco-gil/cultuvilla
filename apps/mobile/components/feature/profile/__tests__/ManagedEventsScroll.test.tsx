@@ -31,6 +31,7 @@ function makeEvent(over: Partial<ManagedEvent> & { id: string }): ManagedEvent {
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
     municipalityId: 'm-1',
+    villageSlug: 'villa',
     villageName: 'Villa',
     villageCoverImage: null,
     villageCoordinates: null,
@@ -106,7 +107,7 @@ describe('ManagedEventsScroll', () => {
     expect(getByText('Aún no gestionas ningún evento')).toBeTruthy();
   });
 
-  it('calls onPressEvent with the id when a card is pressed', () => {
+  it('calls onPressEvent with the pressed event when a card is pressed', () => {
     const onPressEvent = jest.fn();
     const { getByText } = render(
       <ManagedEventsScroll
@@ -118,6 +119,6 @@ describe('ManagedEventsScroll', () => {
       />,
     );
     fireEvent.press(getByText('En marcha'));
-    expect(onPressEvent).toHaveBeenCalledWith('ongoing');
+    expect(onPressEvent).toHaveBeenCalledWith(ONGOING);
   });
 });

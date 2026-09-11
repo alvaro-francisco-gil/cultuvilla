@@ -27,7 +27,7 @@ const PHOTO_ASPECT_RATIO = 1;
  * account). Reached from the village tab — the roster, a barrio, an event's
  * attendee list — including by the persona's own creator, so it deliberately
  * renders no edit affordances. Account-holder vecinos route to the richer
- * `/user/[uid]` profile instead.
+ * `/usuario/[uid]` profile instead.
  *
  * Laid out like an encyclopedia entry: the name owns the top of the screen (the
  * navigation bar deliberately carries no title, so the name isn't stated

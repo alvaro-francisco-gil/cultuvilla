@@ -30,6 +30,8 @@ export const OrganizationDataSchema = z.object({
   images: z.array(z.string()).max(5),
   type: OrganizationTypeSchema,
   municipalityId: z.string(),
+  /** The village's permanent URL slug, denormalized so a card can link without a read. */
+  villageSlug: z.string(),
   requestedBy: z.string(),
   createdAt: z.date(),
   // Denormalized interaction counters, maintained server-side by the comments
@@ -62,6 +64,7 @@ export interface OrganizationDataInput {
   type: OrganizationType;
   status?: OrganizationStatus;
   municipalityId: string;
+  villageSlug: string;
   requestedBy: string;
   reviewedBy?: string | null;
   createdAt?: Date;
@@ -77,6 +80,7 @@ export function buildOrganizationData(input: OrganizationDataInput): Organizatio
     type: input.type,
     status: input.status ?? 'pending',
     municipalityId: input.municipalityId,
+    villageSlug: input.villageSlug,
     requestedBy: input.requestedBy,
     reviewedBy: input.reviewedBy ?? null,
     createdAt: input.createdAt ?? new Date(),

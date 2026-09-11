@@ -336,6 +336,30 @@ with no extra reads and no visible reshuffle.
   recompute the true count from the source and write it; they double as repair
   tools if a trigger ever drifts.
 
+### `villageSlug` ← `municipalities/{id}.slug`
+
+Every URL starts with its pueblo (`/matabuena/evento/…`), and a feed card has to
+build its href synchronously, from the doc it already holds. So the top-level
+entities — `events`, `news`, `organizations`, `festivalPosters`,
+`historyEntries` — carry a copy of their municipality's `slug`. See
+[docs/decisions/spanish-village-urls.md](../decisions/spanish-village-urls.md).
+
+- **No sync trigger, on purpose.** A slug is a permalink: it is assigned once
+  and never changes, not even on a municipality rename. There is nothing to
+  propagate, so there is no trigger to keep in step.
+- **Written at create, by the service.** `createEvent`, `createNewsPost`,
+  `requestOrganization`, `createFestivalPoster` and `createHistoryEntry` look the
+  slug up (`getVillageSlug`, cached per session) and stamp it; callers never
+  pass it. The `requestAyuntamiento` callable does the same server-side.
+- **Rules:** `villageSlug` must be a string on create and is immutable on
+  update. It is not cross-checked against the municipality — a wrong value is
+  cosmetic (screens load by id, and the share-preview server 301s to the
+  canonical path), and checking would add a `get()` to every create.
+- **Backfill:** [scripts/backfill-municipality-slug.mjs](../../scripts/backfill-municipality-slug.mjs)
+  assigns the slugs, then [scripts/backfill-village-slug-denorm.mjs](../../scripts/backfill-village-slug-denorm.mjs)
+  (which `dependsOn` it) copies them onto the entities. Both are registered,
+  `pre-deploy`, and `autoApply` on every env.
+
 ## Adding a new denormalized field — checklist
 
 1. Add the field to the **read-model document's** data model in `packages/shared/src/models/`.

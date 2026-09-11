@@ -1,6 +1,7 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { logger } from 'firebase-functions/v2';
+import { entityPath, eventLinkTarget, villagePath } from '@cultuvilla/shared/utils';
 
 /**
  * Minimal Open Graph payload the renderer needs. `imageUrl` is null when the
@@ -30,6 +31,13 @@ export interface OgMeta {
    * content is withheld from the anonymous reader.
    */
   noindex?: boolean;
+  /**
+   * The path this doc lives at today. A request for any other path — a title
+   * edited since the link was shared, a hand-typed village — is redirected
+   * here, so each doc has exactly one URL to rank. Null when the doc predates
+   * slugs and cannot say.
+   */
+  canonicalPath?: string | null;
 }
 
 export type OgDetail =
@@ -66,6 +74,7 @@ interface RawEvent {
   endDate?: unknown;
   location?: { displayName?: unknown } | null;
   villageName?: unknown;
+  villageSlug?: unknown;
   municipalityId?: unknown;
   status?: unknown;
 }
@@ -81,10 +90,12 @@ interface RawNews {
   publishedAt?: unknown;
   createdAt?: unknown;
   municipalityId?: unknown;
+  villageSlug?: unknown;
 }
 
 interface RawVillage {
   name?: unknown;
+  slug?: unknown;
   escudoUrl?: unknown;
   escudoThumbUrl?: unknown;
   escudoManualUrl?: unknown;
@@ -102,6 +113,7 @@ interface RawOrg {
   images?: unknown;
   type?: unknown;
   municipalityId?: unknown;
+  villageSlug?: unknown;
 }
 
 const PRIVATE_EVENT_DESCRIPTION = 'Solo visible para los miembros de la organización.';
@@ -153,6 +165,18 @@ export async function getEventOg(eventId: string): Promise<OgMeta | null> {
   const snap = await getFirestore().collection('events').doc(eventId).get();
   if (!snap.exists) return null;
   const e = (snap.data() ?? {}) as RawEvent;
+  const villageSlug = asString(e.villageSlug);
+  const canonicalPath = villageSlug
+    ? entityPath(
+        'event',
+        eventLinkTarget({
+          id: eventId,
+          title: asString(e.title) ?? '',
+          villageSlug,
+          visibilityOrgId: asString(e.visibilityOrgId),
+        }),
+      )
+    : null;
   // A link preview is rendered for whoever scrolls past the URL — there is no
   // viewer to authorize. So a private event gets a card that says only that it
   // exists and is private: no title, no description, no flyer. The app itself
@@ -165,6 +189,7 @@ export async function getEventOg(eventId: string): Promise<OgMeta | null> {
       // Withheld content must not rank: the page is reachable, but there is
       // nothing here a search result should ever promise a reader.
       noindex: true,
+      canonicalPath,
     };
   }
   const title = asString(e.title) ?? '';
@@ -172,6 +197,7 @@ export async function getEventOg(eventId: string): Promise<OgMeta | null> {
     title,
     description: trim(asString(e.description)),
     imageUrl: asString(e.imageURL) ?? asString(e.villageCoverImage),
+    canonicalPath,
     detail: {
       kind: 'event',
       startDate: toIso(e.startDate),
@@ -184,17 +210,15 @@ export async function getEventOg(eventId: string): Promise<OgMeta | null> {
   };
 }
 
-export async function getVillageOg(municipalityId: string): Promise<OgMeta | null> {
-  // typed-refs: allowed — intentional converter-less read; see file header.
-  const snap = await getFirestore().collection('municipalities').doc(municipalityId).get();
-  if (!snap.exists) return null;
-  const v = (snap.data() ?? {}) as RawVillage;
+function villageOg(municipalityId: string, v: RawVillage): OgMeta {
   const community = v.community ?? null;
+  const slug = asString(v.slug);
   return {
     title: asString(v.name) ?? '',
     description: trim(community ? asString(community.description) : ''),
     imageUrl:
       asString(v.escudoManualUrl) ?? asString(v.escudoUrl) ?? asString(v.escudoThumbUrl),
+    canonicalPath: slug ? villagePath(slug) : null,
     detail: {
       kind: 'village',
       municipalityId,
@@ -206,6 +230,19 @@ export async function getVillageOg(municipalityId: string): Promise<OgMeta | nul
   };
 }
 
+/** A village is addressed by its slug — `/matabuena`, not a doc id. */
+export async function getVillageOgBySlug(slug: string): Promise<OgMeta | null> {
+  // typed-refs: allowed — intentional converter-less read; see file header.
+  const snap = await getFirestore()
+    .collection('municipalities')
+    .where('slug', '==', slug)
+    .limit(1)
+    .get();
+  if (snap.empty) return null;
+  const doc = snap.docs[0];
+  return villageOg(doc.id, doc.data());
+}
+
 export async function getOrgOg(orgId: string): Promise<OgMeta | null> {
   // typed-refs: allowed — intentional converter-less read; see file header.
   const snap = await getFirestore().collection('organizations').doc(orgId).get();
@@ -213,10 +250,14 @@ export async function getOrgOg(orgId: string): Promise<OgMeta | null> {
   const o = (snap.data() ?? {}) as RawOrg;
   // images[0] is the hero/cover — see OrganizationDataModel's images convention.
   const images = Array.isArray(o.images) ? o.images : [];
+  const villageSlug = asString(o.villageSlug);
   return {
     title: asString(o.name) ?? '',
     description: trim(asString(o.description)),
     imageUrl: asString(images[0]),
+    canonicalPath: villageSlug
+      ? entityPath('organization', { id: orgId, title: asString(o.name) ?? '', villageSlug })
+      : null,
     detail: {
       kind: 'org',
       orgType: asString(o.type),
@@ -261,10 +302,14 @@ export async function getNewsOg(postId: string): Promise<OgMeta | null> {
       });
     }
   }
+  const villageSlug = asString(n.villageSlug);
   return {
     title: asString(n.title) ?? '',
     description: trim(asString(n.body)),
     imageUrl,
+    canonicalPath: villageSlug
+      ? entityPath('news', { id: postId, title: asString(n.title) ?? '', villageSlug })
+      : null,
     detail: {
       kind: 'news',
       publishedAt: toIso(n.publishedAt) ?? toIso(n.createdAt),

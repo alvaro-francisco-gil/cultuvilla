@@ -1,10 +1,9 @@
 import { View } from 'react-native';
-import { router } from 'expo-router';
 import { LiveOwnerChip } from './LiveOwnerChip';
 import { DetailSectionHeading } from './DetailSectionHeading';
 import { VStack } from '../primitives/VStack';
 import { Text } from '../primitives/Text';
-import { ownerRoute } from '../../lib/entities/ownerRoute';
+import { openOwner } from '../../lib/entities/ownerRoute';
 
 /**
  * Digitization credit ("Digitalizado por") — the groups and villagers who
@@ -39,7 +38,7 @@ export function EntityContributors({
           ownerType="organization"
           size={chipSize}
           tone="muted"
-          onPress={() => router.push(ownerRoute('organization', id) as never)}
+          onPress={() => void openOwner('organization', id)}
         />
       ))}
       {userIds.map((id) => (
@@ -49,7 +48,7 @@ export function EntityContributors({
           ownerType="user"
           size={chipSize}
           tone="muted"
-          onPress={() => router.push(ownerRoute('user', id) as never)}
+          onPress={() => void openOwner('user', id)}
         />
       ))}
     </View>

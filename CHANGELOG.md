@@ -38,6 +38,24 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   Solo participan los pueblos que han confirmado las fechas exactas de ese
   año. Un resumen publicado se abre sin estar registrado, para que el enlace
   siga funcionando en manos de quien lo reciba.
+- **Direcciones en español, con el nombre del pueblo.** Cada pueblo tiene su
+  propia dirección, `cultuvilla.es/matabuena`, fácil de dictar o de imprimir en
+  un bando, y todo lo que publica cuelga de ella:
+  `cultuvilla.es/matabuena/evento/fiestas-de-san-roque_…`, `/noticia/…`,
+  `/entidad/…`, `/lugar/…`, `/barrio/…`, `/cartel/…`, `/acontecimiento/…`,
+  `/palabra/…`. Las pantallas de la app también hablan español (`/ajustes`,
+  `/buzon`, `/perfil`, `/crear/evento`…). Un enlace con el título ya cambiado,
+  o con otro pueblo, redirige al bueno; y un evento privado nunca muestra su
+  título en la dirección. Los nombres que comparten varios pueblos llevan la
+  provincia (`moya-cuenca`). Las antiguas direcciones (`/event/…`,
+  `/village/…`, `/o/…`) dejan de funcionar; `/legal/privacy` y `/legal/terms`
+  redirigen a `/legal/privacidad` y `/legal/terminos` porque las fichas de las
+  tiendas apuntan a ellas.
+  **Migration:** `scripts/backfill-municipality-slug.mjs` asigna
+  `municipalities.slug` y después `scripts/backfill-village-slug-denorm.mjs`
+  copia `villageSlug` a `events`, `news`, `organizations`, `festivalPosters` e
+  `historyEntries` (per env; ambos `pre-deploy` y `autoApply`, ya aplicados en
+  dev).
 
 - **La historia del pueblo, en una línea del tiempo.** Cada pueblo tiene ahora
   un botón **Historia** que abre su cronología: el presente arriba y, según se

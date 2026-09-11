@@ -52,6 +52,7 @@ function eventPayload(createdBy: string, over: Record<string, unknown> = {}) {
     updatedAt: new Date(),
     municipalityId: M,
     villageName: 'Villa',
+    villageSlug: 'villa',
     villageCoverImage: null,
     villageCoordinates: null,
     commentCount: 0,
