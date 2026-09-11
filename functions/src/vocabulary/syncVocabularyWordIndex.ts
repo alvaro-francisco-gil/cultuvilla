@@ -60,7 +60,6 @@ export const syncVocabularyWordIndex = onDocumentWritten(
     // The first village to write it down fixes the spelling and the kind for
     // everyone, so a later pueblo cannot rename the shared word.
     const first = shared[0];
-    if (!first) return;
     await ref.set(
       buildVocabularyWordData({
         term: first.term,
