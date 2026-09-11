@@ -8,7 +8,7 @@ describe('RichText external links', () => {
   it('autolinks a bare URL and opens it with Linking.openURL', () => {
     const spy = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined as never);
     const { getByText } = render(
-      <RichText text="ir a https://x.com hoy" mentions={[]} links={[]} municipalityId="m1" />,
+      <RichText text="ir a https://x.com hoy" mentions={[]} links={[]} villageSlug="villa" />,
     );
     fireEvent.press(getByText('https://x.com'));
     expect(spy).toHaveBeenCalledWith('https://x.com');
@@ -22,7 +22,7 @@ describe('RichText external links', () => {
         text="entradas aquí"
         mentions={[]}
         links={[{ url: 'https://tickets.example.com', offset: 9, length: 4 }]}
-        municipalityId="m1"
+        villageSlug="villa"
       />,
     );
     fireEvent.press(getByText('aquí'));
@@ -38,7 +38,7 @@ describe('RichText external links', () => {
         mentions={[]}
         links={[{ url: 'https://tickets.example.com', offset: 9, length: 4 }]}
         marks={[{ type: 'bold', offset: 9, length: 4 }]}
-        municipalityId="m1"
+        villageSlug="villa"
       />,
     );
     fireEvent.press(getByText('aquí'));
@@ -53,7 +53,7 @@ describe('RichText external links', () => {
         mentions={[]}
         links={[]}
         marks={[{ type: 'italic', offset: 5, length: 5 }]}
-        municipalityId="m1"
+        villageSlug="villa"
       />,
     );
     // "mundo" is split into its own italic run, so it is a distinct text node.
@@ -67,7 +67,7 @@ describe('RichText external links', () => {
         mentions={[]}
         links={[]}
         marks={[{ type: 'strikethrough', offset: 5, length: 5 }]}
-        municipalityId="m1"
+        villageSlug="villa"
       />,
     );
     expect(getByText('mundo').props.style).toEqual({ textDecorationLine: 'line-through' });
@@ -83,7 +83,7 @@ describe('RichText external links', () => {
           { type: 'underline', offset: 0, length: 5 },
           { type: 'strikethrough', offset: 0, length: 5 },
         ]}
-        municipalityId="m1"
+        villageSlug="villa"
       />,
     );
     expect(getByText('mundo').props.style).toEqual({ textDecorationLine: 'underline line-through' });
@@ -96,7 +96,7 @@ describe('RichText external links', () => {
         text="click me"
         mentions={[]}
         links={[{ url: 'javascript:alert(1)', offset: 0, length: 8 }]}
-        municipalityId="m1"
+        villageSlug="villa"
       />,
     );
     fireEvent.press(getByText('click me'));

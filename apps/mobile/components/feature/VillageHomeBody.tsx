@@ -65,7 +65,7 @@ export interface VillageHomeBodyProps {
 
 /**
  * Presentational village home shared by the pueblo tab and the pushed
- * `/village/[villageId]` detail. Takes data from `useVillageHome`; the host
+ * `/[pueblo]` detail. Takes data from `useVillageHome`; the host
  * supplies the header chrome (AppHeader vs ScreenHeader). The action row's first
  * button is "Unirme" (join) for non-members and "Añadir contenido" (opens the
  * add sheet) for members; `!data.isMember` is the single source of truth for

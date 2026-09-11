@@ -1,3 +1,4 @@
+import { placeEditHref } from '../../../lib/navigation/routes';
 import { parseEntityRef } from '@cultuvilla/shared/utils';
 import { useVillageRoute, withVillageRoute } from '../../../lib/navigation/VillageRouteGate';
 import { useCallback, useEffect, useState } from 'react';
@@ -106,7 +107,7 @@ function PlaceDetailScreen() {
               {
                 icon: 'create-outline' as const,
                 accessibilityLabel: t('common.edit'),
-                onPress: () => router.push(`/village/${villageId}/place/${place.id}/edit` as never),
+                onPress: () => router.push(placeEditHref(villageSlug, place)),
               },
             ]
           : []),

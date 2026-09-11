@@ -1,3 +1,4 @@
+import { openVillage } from '../../../lib/navigation/openVillage';
 import { eventHref, newsHref, orgHref, personHref, routes } from '../../../lib/navigation/routes';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
@@ -225,7 +226,7 @@ export function ProfileView({
             onPressVillage={(id) =>
               isSelf
                 ? onSelectVillage?.(id)
-                : router.push({ pathname: '/village/[villageId]', params: { villageId: id } })
+                : void openVillage(id)
             }
             onPressJoin={isSelf ? () => router.push(routes.discover) : undefined}
             showJoin={isSelf}

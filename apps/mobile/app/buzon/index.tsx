@@ -1,3 +1,4 @@
+import { openVillage } from '../../lib/navigation/openVillage';
 import { userHref } from '../../lib/navigation/routes';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, View } from 'react-native';
@@ -294,10 +295,7 @@ export default function InboxScreen() {
                           <View onStartShouldSetResponder={() => true}>
                             <Pressable
                               onPress={() =>
-                                router.push({
-                                  pathname: '/village/[villageId]',
-                                  params: { villageId: row.municipalityId },
-                                } as never)
+                                void openVillage(row.municipalityId)
                               }
                             >
                               <Text variant="caption" style={{ textDecorationLine: 'underline' }}>

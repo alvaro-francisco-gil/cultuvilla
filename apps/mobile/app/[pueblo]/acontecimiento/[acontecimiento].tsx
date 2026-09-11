@@ -1,3 +1,4 @@
+import { historyEntryEditHref } from '../../../lib/navigation/routes';
 import { parseEntityRef } from '@cultuvilla/shared/utils';
 import { useVillageRoute, withVillageRoute } from '../../../lib/navigation/VillageRouteGate';
 import { useCallback, useEffect, useState } from 'react';
@@ -69,7 +70,7 @@ function HistoryEntryDetailScreen() {
                 icon: 'create-outline' as const,
                 accessibilityLabel: t('common.edit'),
                 onPress: () =>
-                  router.push(`/village/${villageId}/history-entry/${entry.id}/edit` as never),
+                  router.push(historyEntryEditHref({ ...entry, villageSlug })),
               },
             ]
           : []),
@@ -109,7 +110,7 @@ function HistoryEntryDetailScreen() {
               mentions={entry.body.mentions}
               links={entry.body.links}
               marks={entry.body.marks}
-              municipalityId={entry.municipalityId}
+              villageSlug={villageSlug}
             />
           ) : null}
           {gallery.length > 0 ? (

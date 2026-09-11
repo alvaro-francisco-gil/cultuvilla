@@ -1,3 +1,4 @@
+import { festivalPosterEditHref } from '../../../lib/navigation/routes';
 import { parseEntityRef } from '@cultuvilla/shared/utils';
 import { useVillageRoute, withVillageRoute } from '../../../lib/navigation/VillageRouteGate';
 import { useCallback, useEffect, useState } from 'react';
@@ -68,7 +69,7 @@ function FestivalPosterDetailScreen() {
             icon: 'create-outline',
             accessibilityLabel: t('common.edit'),
             onPress: () =>
-              router.push(`/village/${villageId}/festival-poster/${poster.id}/edit` as never),
+              router.push(festivalPosterEditHref({ ...poster, villageSlug })),
           },
         ]
       : [];

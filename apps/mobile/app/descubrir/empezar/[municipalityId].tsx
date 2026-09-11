@@ -1,3 +1,4 @@
+import { openVillage } from '../../../lib/navigation/openVillage';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, Switch } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -92,10 +93,7 @@ export default function StartVillageScreen() {
       }
     },
     onSuccess: () => {
-      router.replace({
-        pathname: '/village/[villageId]',
-        params: { villageId: municipalityId ?? '' },
-      });
+      if (municipalityId) void openVillage(municipalityId, 'replace');
     },
     swallow: true,
   });

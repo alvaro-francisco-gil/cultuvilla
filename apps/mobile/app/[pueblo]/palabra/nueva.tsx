@@ -1,3 +1,5 @@
+import { wordHref } from '../../../lib/navigation/routes';
+import { termSlugFromId } from '@cultuvilla/shared/models';
 import { useVillageRoute, withVillageRoute } from '../../../lib/navigation/VillageRouteGate';
 import { useState, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
@@ -78,7 +80,7 @@ function NewVocabularyTermScreen() {
         contributorOrgIds: credit.orgIds,
         ...draft,
       });
-      router.replace(`/village/${villageId}/word/${termId}` as never);
+      router.replace(wordHref(villageSlug, termSlugFromId(termId)));
     } finally {
       setSaving(false);
     }

@@ -21,14 +21,14 @@ import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { isOrgMember, addOrgMember, getOrgMembers } from '@cultuvilla/shared/services/orgMemberService';
 import { getOrgViewLink } from '@cultuvilla/shared/services/deepLinkService';
 import { parseEntityRef } from '@cultuvilla/shared/utils';
-import { orgEditHref } from '../../../../lib/navigation/routes';
+import { entityRefHref, orgEditHref } from '../../../../lib/navigation/routes';
 import type { OrganizationData } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
 import { canViewOrgRoster } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
 
 type Org = OrganizationData & { id: string };
 
 export default function OrgDetailScreen() {
-  const { entidad, intent } = useLocalSearchParams<{ entidad: string; intent?: string }>();
+  const { pueblo, entidad, intent } = useLocalSearchParams<{ pueblo: string; entidad: string; intent?: string }>();
   const orgId = parseEntityRef(entidad ?? '') ?? '';
   const arrivedViaInvite = intent === 'join';
   const { t } = useT();
@@ -71,7 +71,7 @@ export default function OrgDetailScreen() {
 
   const onJoin = useCallback(async () => {
     if (!user) {
-      gate.requireAuth(`/o/${orgId}`, t('guest.org'));
+      gate.requireAuth(entityRefHref('organization', pueblo, entidad), t('guest.org'));
       return;
     }
     if (!orgId || !org) return;

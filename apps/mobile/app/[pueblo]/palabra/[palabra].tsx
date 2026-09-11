@@ -29,6 +29,8 @@ import {
 } from '@cultuvilla/shared/services/vocabularyService';
 import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { formatDate } from '@cultuvilla/shared/utils';
+import { vocabularyTermId } from '@cultuvilla/shared/models';
+import { useVillageRoute, withVillageRoute } from '../../../lib/navigation/VillageRouteGate';
 
 /**
  * One headword and every meaning the pueblo has given it.
@@ -38,8 +40,11 @@ import { formatDate } from '@cultuvilla/shared/utils';
  * comments, which is why `vocabularyTerm` is in `ENTITY_KINDS` — that list is
  * "comment-capable kinds", not the hero-detail entity family.
  */
-export default function VocabularyTermScreen() {
-  const { villageId, termId } = useLocalSearchParams<{ villageId: string; termId: string }>();
+function VocabularyTermScreen() {
+  const { municipalityId: villageId } = useVillageRoute();
+  const { palabra } = useLocalSearchParams<{ palabra: string }>();
+  // A term's doc id is `<municipalityId>__<slug>`; the URL carries the slug.
+  const termId = palabra ? vocabularyTermId(villageId, palabra) : '';
   const { t } = useT();
   const { user } = useAuth();
   const { canManage, isMember } = useEntityCapabilities(villageId);
@@ -230,3 +235,5 @@ export default function VocabularyTermScreen() {
     </Screen>
   );
 }
+
+export default withVillageRoute(VocabularyTermScreen);

@@ -1,11 +1,13 @@
 import { useEffect } from 'react';
-import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { Screen } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { VillageHomeBody } from '../../components/feature/VillageHomeBody';
 import { useVillageHome } from '../../lib/useVillageHome';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useGuestActiveVillage } from '../../lib/village/GuestActiveVillageContext';
+import { myVillageHref } from '../../lib/navigation/routes';
+import { useVillageRoute, withVillageRoute } from '../../lib/navigation/VillageRouteGate';
 
 // Root of the village-detail subtree (barrios, places, festival posters,
 // members…), pushed and back-navigable when reached in-app from discovery, a
@@ -14,7 +16,7 @@ import { useGuestActiveVillage } from '../../lib/village/GuestActiveVillageConte
 // button).
 //
 // It is ALSO the target of an external share link
-// (https://<host>/village/<id>). Arriving that way is a COLD entry: there is
+// (https://<host>/<pueblo>). Arriving that way is a COLD entry: there is
 // no back-stack and no tab shell, so the bare ScreenHeader back button would
 // be a dead end. We detect that with `!router.canGoBack()` and send the
 // visitor into the tab shell (bottom tabs + header) showing this village
@@ -22,8 +24,8 @@ import { useGuestActiveVillage } from '../../lib/village/GuestActiveVillageConte
 // auth state. For a guest we mark it as their active village (the shell reads
 // it via useActiveVillageId); for a signed-in member we pass it as a transient
 // `villageId` param so the shell can render it WITHOUT overwriting their home.
-export default function VillageHome() {
-  const { villageId } = useLocalSearchParams<{ villageId: string }>();
+function VillageHome() {
+  const { municipalityId: villageId } = useVillageRoute();
   const { user } = useAuth();
   const { activate } = useGuestActiveVillage();
   const id = (villageId as string) ?? null;
@@ -37,7 +39,7 @@ export default function VillageHome() {
   const home = useVillageHome(coldEntry ? null : id);
 
   if (coldEntry && id) {
-    return <Redirect href={`/(tabs)/village?villageId=${id}`} />;
+    return <Redirect href={myVillageHref(id)} />;
   }
 
   return (
@@ -47,3 +49,5 @@ export default function VillageHome() {
     </Screen>
   );
 }
+
+export default withVillageRoute(VillageHome);

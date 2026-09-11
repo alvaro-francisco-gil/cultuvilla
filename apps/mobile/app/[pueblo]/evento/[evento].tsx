@@ -11,7 +11,7 @@ import { Avatar } from '../../../components/primitives/Avatar';
 import { Pressable } from '../../../components/primitives/Pressable';
 import { LiveOwnerChip } from '../../../components/feature/LiveOwnerChip';
 import { openOwner } from '../../../lib/entities/ownerRoute';
-import { createEventHref, villageHref } from '../../../lib/navigation/routes';
+import { createEventHref, eventHref, villageHref } from '../../../lib/navigation/routes';
 import { parseEntityRef } from '@cultuvilla/shared/utils';
 import { RegisterFab } from '../../../components/feature/RegisterFab';
 import { EventAttendees } from '../../../components/feature/EventAttendees';
@@ -279,7 +279,7 @@ export default function EventDetailScreen() {
               the `registrationEvents` read rule. */}
           {canOrganize ? <RegistrationHistory eventId={event.id} /> : null}
           {!user && (
-            <Button variant="primary" fullWidth onPress={() => gate.requireAuth(`/event/${event.id}`, t('guest.event'))}>
+            <Button variant="primary" fullWidth onPress={() => gate.requireAuth(eventHref(event), t('guest.event'))}>
               {t('guest.eventCta')}
             </Button>
           )}

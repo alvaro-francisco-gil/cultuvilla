@@ -1,35 +1,55 @@
+import { router } from 'expo-router';
 import type { NewsMention } from '@cultuvilla/shared/models/news/NewsPostDataModel';
+import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
+import {
+  barrioHref,
+  eventHref,
+  festivalPosterHref,
+  newsHref,
+  orgHref,
+  placeHref,
+  villageHref,
+} from './navigation/routes';
 
 /**
- * Resolve an `@`-mention to an in-app route, or `null` when the entity type has
- * no standalone screen. `municipalityId` is needed for place links, which are
- * nested under their village.
+ * Opens an `@`-mention. Every entity lives under its pueblo, and a mention
+ * stores the entity's `label`, so the URL can be rebuilt from the mention alone
+ * — except a mention of *another* village, whose slug only its own doc knows.
+ * That one branch resolves it; nothing else costs a read.
  *
- * - organization   → `/o/{id}`
- * - event          → `/event/{id}`
- * - place          → `/village/{municipalityId}/place/{id}`
- * - barrio         → `/village/{municipalityId}/barrio/{id}`
- * - festivalPoster → `/village/{municipalityId}/festival-poster/{id}`
- * - village        → `/village/{id}`
- * - news           → `/news/{id}`
+ * Entity types with no standalone screen do nothing.
  */
-export function mentionHref(mention: NewsMention, municipalityId: string): string | null {
+export async function openMention(mention: NewsMention, villageSlug: string): Promise<void> {
+  const { entityId: id, label } = mention;
   switch (mention.entityType) {
     case 'organization':
-      return `/o/${mention.entityId}`;
+      router.push(orgHref({ id, name: label, villageSlug }));
+      return;
     case 'event':
-      return `/event/${mention.entityId}`;
+      router.push(eventHref({ id, title: label, villageSlug }));
+      return;
     case 'place':
-      return `/village/${municipalityId}/place/${mention.entityId}`;
+      router.push(placeHref(villageSlug, { id, name: label }));
+      return;
     case 'barrio':
-      return `/village/${municipalityId}/barrio/${mention.entityId}`;
+      router.push(barrioHref(villageSlug, { id, name: label }));
+      return;
     case 'festivalPoster':
-      return `/village/${municipalityId}/festival-poster/${mention.entityId}`;
-    case 'village':
-      return `/village/${mention.entityId}`;
+      router.push(festivalPosterHref({ id, title: label, year: 0, villageSlug }));
+      return;
     case 'news':
-      return `/news/${mention.entityId}`;
-    default:
-      return null;
+      router.push(newsHref({ id, title: label, villageSlug }));
+      return;
+    case 'village': {
+      const mentioned = await getMunicipality(id);
+      if (mentioned) router.push(villageHref(mentioned.slug));
+    }
   }
+}
+
+/** Whether a mention leads anywhere — the ones that do get link styling. */
+export function mentionIsNavigable(mention: NewsMention): boolean {
+  return ['organization', 'event', 'place', 'barrio', 'festivalPoster', 'news', 'village'].includes(
+    mention.entityType,
+  );
 }

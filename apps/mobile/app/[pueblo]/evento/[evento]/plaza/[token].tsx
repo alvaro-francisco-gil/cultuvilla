@@ -1,3 +1,5 @@
+import { entityRefHref, personHref } from '../../../../../lib/navigation/routes';
+import { parseEntityRef } from '@cultuvilla/shared/utils';
 import { useCallback, useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Screen } from '../../../../../components/primitives/Screen';
@@ -30,7 +32,7 @@ import { formatDate } from '@cultuvilla/shared/utils/format';
 import type { EventData } from '@cultuvilla/shared/models/event/EventDataModel';
 
 /**
- * Landing screen for a seat-claim link — `/event/<eventId>/claim/<token>`.
+ * Landing screen for a seat-claim link — `/<pueblo>/evento/<ref>/plaza/<token>`.
  *
  * The seat behind the token is already booked and already paid for in capacity
  * terms; claiming only moves it from the group owner's name to yours. So there
@@ -42,7 +44,9 @@ import type { EventData } from '@cultuvilla/shared/models/event/EventDataModel';
  * t-shirt size is the entire reason those fields are per-attendee.
  */
 export default function ClaimSeatScreen() {
-  const { eventId, token } = useLocalSearchParams<{ eventId: string; token: string }>();
+  const { pueblo, evento, token } = useLocalSearchParams<{ pueblo: string; evento: string; token: string }>();
+  const eventId = parseEntityRef(evento ?? '') ?? '';
+  const eventPath = entityRefHref('event', pueblo ?? '', evento ?? '');
   const { t } = useT();
   const { user } = useAuth();
   const gate = useRegisterGate();
@@ -137,7 +141,7 @@ export default function ClaimSeatScreen() {
             <Text variant="h3">{t('event.claim.successTitle')}</Text>
             <Text tone="muted">{t('event.claim.successBody', { title: event.title })}</Text>
             <Button
-              onPress={() => router.replace({ pathname: '/event/[eventId]', params: { eventId } })}
+              onPress={() => router.replace(eventPath)}
               fullWidth
               testID="claim-go-to-event"
             >
@@ -153,7 +157,7 @@ export default function ClaimSeatScreen() {
             {!user ? (
               <Button
                 onPress={() =>
-                  gate.requireAuth(`/event/${eventId}/claim/${token}`, t('event.claim.authReason'))
+                  gate.requireAuth(`${eventPath}/plaza/${token}`, t('event.claim.authReason'))
                 }
                 fullWidth
                 testID="claim-sign-in"
@@ -166,7 +170,7 @@ export default function ClaimSeatScreen() {
               // sign-up has.
               <VStack gap={2}>
                 <Text tone="muted">{t('event.register.needsPerson')}</Text>
-                <Button onPress={() => router.push('/person/new')} fullWidth>
+                <Button onPress={() => router.push(personHref('new'))} fullWidth>
                   {t('event.register.createPersona')}
                 </Button>
               </VStack>

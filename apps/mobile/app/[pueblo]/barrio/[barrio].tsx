@@ -1,3 +1,4 @@
+import { barrioEditHref, personHref, routes, userHref } from '../../../lib/navigation/routes';
 import { parseEntityRef } from '@cultuvilla/shared/utils';
 import { useVillageRoute, withVillageRoute } from '../../../lib/navigation/VillageRouteGate';
 import { useCallback, useEffect, useState } from 'react';
@@ -81,7 +82,7 @@ function BarrioDetailScreen() {
               {
                 icon: 'create-outline' as const,
                 accessibilityLabel: t('common.edit'),
-                onPress: () => router.push(`/village/${villageId}/barrio/${barrio.id}/edit` as never),
+                onPress: () => router.push(barrioEditHref(villageSlug, barrio)),
               },
             ]
           : []),
@@ -124,13 +125,14 @@ function BarrioDetailScreen() {
                 // Everyone in the barrio is listed. Only a private dependent's
                 // row leads nowhere — their person doc is unreadable to anyone
                 // but its creator, so there is nothing to open.
-                const onPress = p.userId
+                const linkedUid = p.userId;
+                const onPress = linkedUid
                   ? () =>
                       router.push(
-                        (p.userId === user?.uid ? '/(tabs)/profile' : `/user/${p.userId}`) as never,
+                        linkedUid === user?.uid ? routes.profile : userHref(linkedUid),
                       )
                   : p.isPublic
-                  ? () => router.push(`/person/${p.personId}` as never)
+                  ? () => router.push(personHref(p.personId))
                   : undefined;
                 const row = (
                   <HStack gap={2} className="items-center py-3 border-b border-subtle">

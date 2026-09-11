@@ -55,35 +55,35 @@ describe('dismissSeoShell (native)', () => {
 // unusable. These cover the paths where no self-dismissing screen ever mounts.
 describe('useSeoShellFailsafe (web)', () => {
   it('leaves the block to the screen while on a share-link route', () => {
-    mockPathname = '/event/e1';
+    mockPathname = '/matabuena/evento/fiestas_e1';
     const remove = withBlock();
     renderHook(() => useSeoShellFailsafe());
     expect(remove).not.toHaveBeenCalled();
   });
 
-  // A cold /village/{id} link redirects to the village tab, whose pathname is
-  // /village — the tab's VillageHomeBody dismisses it, so the net must not.
+  // A cold /<pueblo> link redirects to the village tab, whose pathname is
+  // /mi-pueblo — the tab's VillageHomeBody dismisses it, so the net must not.
   it('keeps the block across the cold-village redirect', () => {
-    mockPathname = '/village/v1';
+    mockPathname = '/matabuena';
     const remove = withBlock();
     const { rerender } = renderHook(() => useSeoShellFailsafe());
-    mockPathname = '/village';
+    mockPathname = '/mi-pueblo';
     rerender({});
     expect(remove).not.toHaveBeenCalled();
   });
 
   it('drops the block the moment the root layout routes elsewhere (auth, onboarding)', () => {
-    mockPathname = '/event/e1';
+    mockPathname = '/matabuena/evento/fiestas_e1';
     const remove = withBlock();
     const { rerender } = renderHook(() => useSeoShellFailsafe());
-    mockPathname = '/onboarding';
+    mockPathname = '/completar-perfil';
     rerender({});
     expect(remove).toHaveBeenCalledTimes(1);
   });
 
   it('drops the block unconditionally once the failsafe elapses', () => {
     jest.useFakeTimers();
-    mockPathname = '/event/e1';
+    mockPathname = '/matabuena/evento/fiestas_e1';
     const remove = withBlock();
     renderHook(() => useSeoShellFailsafe());
     jest.advanceTimersByTime(SEO_SHELL_FAILSAFE_MS - 1);

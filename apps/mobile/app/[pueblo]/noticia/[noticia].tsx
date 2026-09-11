@@ -137,7 +137,7 @@ export default function NewsDetailScreen() {
             <Text tone="muted">{t(`news.compose.category.${post.category}`)}</Text>
             {date ? <Text tone="muted">{formatDate(date, 'long')}</Text> : null}
           </HStack>
-          <NewsContentRenderer content={post.content} body={post.body} municipalityId={post.municipalityId} />
+          <NewsContentRenderer content={post.content} body={post.body} villageSlug={post.villageSlug} />
           <EntityComments
             key={post.id}
             entityKind="news"
