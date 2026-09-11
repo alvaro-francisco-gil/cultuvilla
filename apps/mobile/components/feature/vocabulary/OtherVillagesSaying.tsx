@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
+import { termSlugFromId } from '@cultuvilla/shared/models';
 import { Ionicons } from '@expo/vector-icons';
 import { iconSizes, colors } from '@cultuvilla/shared/design-system';
 import { Text } from '../../primitives/Text';
@@ -8,6 +9,7 @@ import { HStack } from '../../primitives/HStack';
 import { Pressable } from '../../primitives/Pressable';
 import { DetailSectionHeading } from '../DetailSectionHeading';
 import { useT } from '../../../lib/i18n';
+import { wordHref } from '../../../lib/navigation/routes';
 import {
   getVillagesSayingTerm,
   type VocabularyTermWithId,
@@ -30,7 +32,7 @@ export function OtherVillagesSaying({
   municipalityId: string;
 }) {
   const { t } = useT();
-  const [entries, setEntries] = useState<(VocabularyTermWithId & { villageName?: string })[]>([]);
+  const [entries, setEntries] = useState<(VocabularyTermWithId & { villageName?: string; villageSlug?: string })[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,10 +41,10 @@ export function OtherVillagesSaying({
         // One name lookup per village. The list is short by nature — a word is
         // in a handful of pueblos, not hundreds — so this stays a few reads.
         const named = await Promise.all(
-          found.map(async (entry) => ({
-            ...entry,
-            villageName: (await getMunicipality(entry.municipalityId))?.name,
-          })),
+          found.map(async (entry) => {
+            const municipality = await getMunicipality(entry.municipalityId);
+            return { ...entry, villageName: municipality?.name, villageSlug: municipality?.slug };
+          }),
         );
         if (!cancelled) setEntries(named);
       })
@@ -54,18 +56,19 @@ export function OtherVillagesSaying({
     };
   }, [normalized, municipalityId]);
 
-  if (entries.length === 0) return null;
+  const linkable = entries.filter(
+    (entry): entry is typeof entry & { villageSlug: string } => Boolean(entry.villageSlug),
+  );
+  if (linkable.length === 0) return null;
 
   return (
     <VStack gap={2} testID="vocabulary-other-villages">
       <DetailSectionHeading>{t('village.vocabulary.alsoSaidIn')}</DetailSectionHeading>
-      {entries.map((entry) => (
+      {linkable.map((entry) => (
         <Pressable
           key={entry.id}
           className="py-2 border-b border-subtle"
-          onPress={() =>
-            router.push(`/village/${entry.municipalityId}/word/${entry.id}` as never)
-          }
+          onPress={() => router.push(wordHref(entry.villageSlug, termSlugFromId(entry.id)))}
           testID={`vocabulary-other-village-${entry.municipalityId}`}
         >
           <HStack gap={3} className="items-center">
