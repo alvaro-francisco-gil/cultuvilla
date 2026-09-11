@@ -177,6 +177,56 @@ describe('firestore.rules — /vocabularyTerms', () => {
   });
 });
 
+describe('firestore.rules — /vocabularyWords (the shared word index)', () => {
+  // Derived, function-owned, and public: it is what the "añadir palabra"
+  // search reads, so a client write here would let one villager restyle a
+  // word's spelling for every pueblo, or invent one no village records.
+  const WORD = 'vocabularyWords/esbardo';
+  const wordDoc = () => ({
+    term: 'Esbardo',
+    normalized: 'esbardo',
+    kind: 'palabra',
+    villageCount: 2,
+    firstMunicipalityId: M,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
+  async function seedWord() {
+    await seed(getEnv(), async (ctx) => {
+      await setDoc(doc(ctx.firestore(), WORD), wordDoc());
+    });
+  }
+
+  it('anyone, signed out included, can read the index — search must work for visitors', async () => {
+    await seedWord();
+    await assertSucceeds(getDoc(doc(asAnon(getEnv()), WORD)));
+  });
+
+  it('a village member CANNOT invent a word in the index', async () => {
+    await seedMember('alice');
+    await assertFails(setDoc(doc(asUser(getEnv(), 'alice'), WORD), wordDoc()));
+  });
+
+  it('a village member CANNOT restyle a word for every pueblo', async () => {
+    await seedMember('alice');
+    await seedWord();
+    await assertFails(updateDoc(doc(asUser(getEnv(), 'alice'), WORD), { term: 'ESBARDO!!' }));
+  });
+
+  it('a village member CANNOT inflate a word’s village count', async () => {
+    await seedMember('alice');
+    await seedWord();
+    await assertFails(updateDoc(doc(asUser(getEnv(), 'alice'), WORD), { villageCount: 999 }));
+  });
+
+  it('even a village admin CANNOT write the index — it is derived, not authored', async () => {
+    await seedMember('root', 'admin');
+    await seedWord();
+    await assertFails(deleteDoc(doc(asUser(getEnv(), 'root'), WORD)));
+  });
+});
+
 describe('firestore.rules — digitization credit on words and meanings', () => {
   // Credit is not authority, so the rules only guard two things: the author
   // cannot write themselves out of their own contribution, and a list cannot

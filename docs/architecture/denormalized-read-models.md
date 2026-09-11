@@ -174,6 +174,36 @@ can show it without a `getCountFromServer` per entity per render.
   *surviving* parent stay correct. A parent deleted out from under a
   still-in-flight trigger is a no-op (`isNotFound` guard), not a retry loop.
 
+### `vocabularyWords/` ← `vocabularyTerms/`
+
+One row per *word*, across every village that records it — what the "añadir
+palabra" search reads so that a villager sees "esbardo · en 3 pueblos" while
+typing, instead of coining a second entry for a word the app already has.
+
+Unlike every other row here it projects whole documents, not a field: the index
+row **is** the word.
+
+- **Source of truth:** `vocabularyTerms/` — each village's own entry. A word
+  exists precisely because some village wrote it down, which is why the index is
+  derived rather than authored: when the last village drops the word, the row
+  goes with it, and no client can invent a word no pueblo records.
+- **Trigger:** [functions/src/vocabulary/syncVocabularyWordIndex.ts](../../functions/src/vocabulary/syncVocabularyWordIndex.ts)
+  — `syncVocabularyWordIndex`, an `onDocumentWritten` on `vocabularyTerms/`. It
+  **recounts** the word's active entries rather than incrementing a counter: a
+  term's status flips under moderation, and the entry that created the word can
+  be the one deleted. The display spelling and kind come from the village that
+  recorded it first, so a later pueblo cannot rename a shared word.
+- **Only `palabra` and `dicho` are indexed.** A `mote` names one village's
+  family and a `toponimo` one village's field — "El Cerro" in two pueblos is two
+  different places, so merging those would be a factual error, not
+  de-duplication. See `SHARED_VOCABULARY_KINDS`.
+- **Rules:** `vocabularyWords` is public-read and `allow write: if false`. A
+  client write would let one villager restyle a word's spelling for every pueblo.
+- **Backfill:** none — the index shipped before any village had recorded a word.
+  If it ever drifts, it rebuilds by re-writing the `vocabularyTerms` entries.
+- **Delete behavior:** the last active entry going away deletes the word row. A
+  stale row would offer villagers a word no pueblo actually has.
+
 ### `definitionCount` ← `vocabularyDefinitions/`
 
 Every vocabulary term carries a running count of the active definitions

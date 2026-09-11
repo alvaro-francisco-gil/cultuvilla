@@ -7,6 +7,12 @@ import {
   VOCABULARY_TERM_KINDS,
 } from '../../src/models/vocabulary/VocabularyTermDataModel';
 import {
+  isSharedVocabularyKind,
+  SHARED_VOCABULARY_KINDS,
+  buildVocabularyWordData,
+  VocabularyWordDataSchema,
+} from '../../src/models/vocabulary/VocabularyWordDataModel';
+import {
   buildVocabularyDefinitionData,
   VocabularyDefinitionDataSchema,
 } from '../../src/models/vocabulary/VocabularyDefinitionDataModel';
@@ -134,5 +140,37 @@ describe('buildVocabularyDefinitionData', () => {
         definition: 'x'.repeat(1001),
       }),
     ).toThrow();
+  });
+});
+
+describe('shared vocabulary kinds', () => {
+  // A word travels between villages; a nickname and a field name do not.
+  it('shares palabras and dichos', () => {
+    expect(isSharedVocabularyKind('palabra')).toBe(true);
+    expect(isSharedVocabularyKind('dicho')).toBe(true);
+  });
+
+  it('never shares a mote or a topónimo — those name one village’s family and field', () => {
+    expect(isSharedVocabularyKind('mote')).toBe(false);
+    expect(isSharedVocabularyKind('toponimo')).toBe(false);
+  });
+
+  it('is the subset of the kinds a term can be', () => {
+    for (const kind of SHARED_VOCABULARY_KINDS) {
+      expect(VOCABULARY_TERM_KINDS).toContain(kind);
+    }
+  });
+
+  it('builds a word whose id is the slug it shares with every village entry', () => {
+    const word = buildVocabularyWordData({
+      term: 'Esbardo',
+      normalized: slugifyTerm('Esbardo'),
+      kind: 'palabra',
+      villageCount: 2,
+      firstMunicipalityId: '40123',
+    });
+    expect(() => VocabularyWordDataSchema.parse(word)).not.toThrow();
+    expect(word.normalized).toBe('esbardo');
+    expect(word.updatedAt).toEqual(word.createdAt);
   });
 });

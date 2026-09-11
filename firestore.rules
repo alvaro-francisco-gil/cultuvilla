@@ -846,6 +846,16 @@ service cloud.firestore {
                           && resource.data.definitionCount == 0);
     }
 
+    // The shared word index: one row per word across every village, derived
+    // from the entries below by syncVocabularyWordIndex. Public so the "añadir
+    // palabra" search works for anyone, and function-owned — a client write
+    // here would let one villager restyle a word's spelling for every pueblo,
+    // or invent a word no village records.
+    match /vocabularyWords/{slug} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     match /vocabularyDefinitions/{definitionId} {
       // Same null-resource guard as vocabularyTerms above: a missing definition
       // must read as "not found", not as denied.

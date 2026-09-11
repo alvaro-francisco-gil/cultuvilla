@@ -2,6 +2,7 @@ import {
   addDoc,
   deleteDoc,
   doc,
+  limit,
   getDoc,
   getDocs,
   orderBy,
@@ -16,13 +17,17 @@ import {
   vocabularyTermDoc,
   vocabularyDefinitionsCollection,
   vocabularyDefinitionDoc,
+  vocabularyWordsCollection,
+  vocabularyWordDoc,
 } from '../firebase/refs/client';
 import {
   buildVocabularyTermData,
+  slugifyTerm,
   vocabularyTermId,
   type VocabularyTermData,
   type VocabularyTermKind,
 } from '../models/vocabulary/VocabularyTermDataModel';
+import type { VocabularyWordData } from '../models/vocabulary/VocabularyWordDataModel';
 import {
   buildVocabularyDefinitionData,
   type VocabularyDefinitionData,
@@ -30,6 +35,7 @@ import {
 } from '../models/vocabulary/VocabularyDefinitionDataModel';
 
 export type VocabularyTermWithId = VocabularyTermData & { id: string };
+export type VocabularyWordWithId = VocabularyWordData & { id: string };
 export type VocabularyDefinitionWithId = VocabularyDefinitionData & { id: string };
 
 // ── Terms ────────────────────────────────────────────────────────────────
@@ -173,4 +179,67 @@ export function updateVocabularyDefinition(
 
 export function deleteVocabularyDefinition(definitionId: string): Promise<void> {
   return deleteDoc(vocabularyDefinitionDoc(getDb(), definitionId));
+}
+
+// ── The shared word index ────────────────────────────────────────────────
+// One doc per word across every village, maintained by
+// `syncVocabularyWordIndex`. Read-only from the client.
+
+/** How many suggestions the "añadir palabra" form offers while you type. */
+export const VOCABULARY_SUGGESTION_LIMIT = 8;
+
+/**
+ * Words already recorded anywhere that start with what the villager is typing.
+ *
+ * Firestore has no substring search, so this is a prefix range on `normalized`:
+ * `\uf8ff` is the last character in the BMP, so `[q, q + \uf8ff]` spans exactly
+ * the words beginning with `q`. Ordering by the same field keeps it a
+ * single-field index, so no composite index is needed.
+ *
+ * The query is folded the same way the ids are, so typing "napa" finds "ñapa"
+ * and "ESBARDO" finds "esbardo".
+ */
+export async function searchVocabularyWords(
+  prefix: string,
+  max: number = VOCABULARY_SUGGESTION_LIMIT,
+): Promise<VocabularyWordWithId[]> {
+  const needle = slugifyTerm(prefix);
+  if (!needle) return [];
+  const q = query(
+    vocabularyWordsCollection(getDb()),
+    where('normalized', '>=', needle),
+    where('normalized', '<=', `${needle}\uf8ff`),
+    orderBy('normalized', 'asc'),
+    limit(max),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export async function getVocabularyWord(slug: string): Promise<VocabularyWordWithId | null> {
+  const snap = await getDoc(vocabularyWordDoc(getDb(), slug));
+  const data = snap.data();
+  return data ? { id: snap.id, ...data } : null;
+}
+
+/**
+ * Every village that records this word, the current one excluded — the
+ * "también se dice en…" list on a word screen.
+ *
+ * Reads the village entries rather than the index, because the index counts
+ * villages without naming them; naming them is what makes the section useful.
+ */
+export async function getVillagesSayingTerm(
+  normalized: string,
+  exceptMunicipalityId: string,
+): Promise<VocabularyTermWithId[]> {
+  const q = query(
+    vocabularyTermsCollection(getDb()),
+    where('normalized', '==', normalized),
+    where('status', '==', 'active'),
+  );
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .filter((t) => t.municipalityId !== exceptMunicipalityId);
 }

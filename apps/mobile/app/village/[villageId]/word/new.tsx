@@ -15,6 +15,7 @@ import {
   EMPTY_DEFINITION_DRAFT,
   type DefinitionDraft,
 } from '../../../../components/feature/vocabulary/DefinitionFields';
+import { ExistingWordSuggestions } from '../../../../components/feature/vocabulary/ExistingWordSuggestions';
 import {
   DigitizationPicker,
   EMPTY_DIGITIZATION_CREDIT,
@@ -55,6 +56,10 @@ export default function NewVocabularyTermScreen() {
 
   const [term, setTerm] = useState('');
   const [kind, setKind] = useState<VocabularyTermKind>('palabra');
+  // Set when the villager took an existing word from the suggestions: their
+  // village is joining a word other pueblos already have, so the spelling and
+  // the kind are the word's, not theirs to restate.
+  const [joining, setJoining] = useState<{ term: string; villageCount: number } | null>(null);
   const [draft, setDraft] = useState<DefinitionDraft>(EMPTY_DEFINITION_DRAFT);
   const [credit, setCredit] = useState<DigitizationCredit>(EMPTY_DIGITIZATION_CREDIT);
   const [saving, setSaving] = useState(false);
@@ -93,13 +98,32 @@ export default function NewVocabularyTermScreen() {
             <Input
               label={t('village.vocabulary.term')}
               value={term}
-              onChangeText={setTerm}
+              onChangeText={(next) => {
+                setTerm(next);
+                // Editing the word again means they are no longer taking the
+                // suggested one.
+                if (joining && next !== joining.term) setJoining(null);
+              }}
               placeholder={t('village.vocabulary.termPlaceholder')}
               autoCapitalize="none"
               autoCorrect={false}
               maxLength={80}
               testID="vocabulary-term-input"
             />
+            {joining ? (
+              <Text tone="muted" variant="bodySm" testID="vocabulary-joining-notice">
+                {t('village.vocabulary.joiningWord', { count: joining.villageCount })}
+              </Text>
+            ) : (
+              <ExistingWordSuggestions
+                query={term}
+                onPick={(word) => {
+                  setTerm(word.term);
+                  setKind(word.kind);
+                  setJoining({ term: word.term, villageCount: word.villageCount });
+                }}
+              />
+            )}
             <VStack gap={2}>
               <FieldLabel>{t('village.vocabulary.kindLabel')}</FieldLabel>
               <HStack gap={2} className="flex-wrap">

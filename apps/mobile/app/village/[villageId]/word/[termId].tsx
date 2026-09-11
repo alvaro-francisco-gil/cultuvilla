@@ -13,6 +13,7 @@ import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
 import { ScreenTitle } from '../../../../components/primitives/ScreenTitle';
 import { DetailSectionHeading } from '../../../../components/feature/DetailSectionHeading';
 import { EntityComments } from '../../../../components/feature/EntityComments';
+import { OtherVillagesSaying } from '../../../../components/feature/vocabulary/OtherVillagesSaying';
 import { EntityContributors } from '../../../../components/feature/EntityContributors';
 import { ReportSheet, type ReportTarget } from '../../../../components/feature/ReportSheet';
 import { useT } from '../../../../lib/i18n';
@@ -204,6 +205,11 @@ export default function VocabularyTermScreen() {
                   </Button>
                 ) : null}
               </VStack>
+
+              <OtherVillagesSaying
+                normalized={term.normalized}
+                municipalityId={term.municipalityId}
+              />
 
               <EntityComments
                 entityKind="vocabularyTerm"

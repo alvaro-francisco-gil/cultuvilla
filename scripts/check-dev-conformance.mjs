@@ -68,6 +68,7 @@ import {
   municipalityPeopleCollection,
   vocabularyTermsCollection,
   vocabularyDefinitionsCollection,
+  vocabularyWordsCollection,
   historyEntriesCollection,
   contentReportsCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
@@ -155,6 +156,7 @@ const REGISTRY = [
   { name: 'municipalityPeople', coll: (db) => municipalityPeopleCollection(db) },
   { name: 'vocabularyTerms', coll: (db) => vocabularyTermsCollection(db) },
   { name: 'vocabularyDefinitions', coll: (db) => vocabularyDefinitionsCollection(db) },
+  { name: 'vocabularyWords', coll: (db) => vocabularyWordsCollection(db) },
   { name: 'historyEntries', coll: (db) => historyEntriesCollection(db) },
   { name: 'contentReports', coll: (db) => contentReportsCollection(db) },
 ];

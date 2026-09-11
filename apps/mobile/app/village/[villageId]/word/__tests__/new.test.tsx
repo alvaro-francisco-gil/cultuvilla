@@ -48,6 +48,28 @@ jest.mock('../../../../../components/feature/OrganizerPicker', () => {
   };
 });
 
+// Stands in for the live suggestion list: one button that offers a word two
+// other villages already record.
+jest.mock('../../../../../components/feature/vocabulary/ExistingWordSuggestions', () => {
+  const { Pressable, Text } = jest.requireActual('react-native');
+  return {
+    ExistingWordSuggestions: ({
+      query,
+      onPick,
+    }: {
+      query: string;
+      onPick: (w: { term: string; kind: string; villageCount: number }) => void;
+    }) => (
+      <Pressable
+        testID="mock-suggestion"
+        onPress={() => onPick({ term: 'Esbardo', kind: 'dicho', villageCount: 2 })}
+      >
+        <Text>{`query:${query}`}</Text>
+      </Pressable>
+    ),
+  };
+});
+
 const mockCaps = useEntityCapabilities as jest.Mock;
 
 beforeEach(() => {
@@ -60,7 +82,37 @@ function fillWord(getByTestId: (id: string) => unknown) {
   fireEvent.changeText(getByTestId('vocabulary-definition-input') as never, 'Cría de oso.');
 }
 
-describe('Añadir palabra — digitization credit', () => {
+describe('Añadir palabra', () => {
+  // Taking an existing word is what stops a near-miss duplicate: the villager
+  // gets the established spelling and kind rather than coining their own.
+  it('takes the spelling and kind of a word other villages already record', async () => {
+    const { getByTestId, getByText } = render(<NewVocabularyTermScreen />);
+    fireEvent.changeText(getByTestId('vocabulary-term-input'), 'esbar');
+    fireEvent.press(getByTestId('mock-suggestion'));
+    expect(getByTestId('vocabulary-joining-notice')).toBeTruthy();
+
+    fireEvent.changeText(getByTestId('vocabulary-definition-input'), 'Cría de oso.');
+    fireEvent.press(getByText('common.stepper.next'));
+    fireEvent.press(getByTestId('vocabulary-submit'));
+
+    await waitFor(() =>
+      expect(addVocabularyEntry).toHaveBeenCalledWith(
+        expect.objectContaining({ term: 'Esbardo', kind: 'dicho' }),
+      ),
+    );
+  });
+
+  it('drops back to suggesting once the villager edits the word again', () => {
+    const { getByTestId, queryByTestId } = render(<NewVocabularyTermScreen />);
+    fireEvent.changeText(getByTestId('vocabulary-term-input'), 'esbar');
+    fireEvent.press(getByTestId('mock-suggestion'));
+    expect(queryByTestId('vocabulary-joining-notice')).toBeTruthy();
+
+    fireEvent.changeText(getByTestId('vocabulary-term-input'), 'esbardu');
+    expect(queryByTestId('vocabulary-joining-notice')).toBeNull();
+    expect(queryByTestId('mock-suggestion')).toBeTruthy();
+  });
+
   it('sends no extra credit when nobody else is named — the model adds the author on write', async () => {
     const { getByTestId, getByText } = render(<NewVocabularyTermScreen />);
     fillWord(getByTestId);

@@ -784,6 +784,14 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "vocabularyTerms",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "normalized", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [
