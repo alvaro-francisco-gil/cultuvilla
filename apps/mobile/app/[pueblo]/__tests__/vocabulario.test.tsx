@@ -19,10 +19,10 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('@cultuvilla/shared/services/vocabularyService', () => ({
   getVocabularyTerms: jest.fn(),
 }));
-jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({
+jest.mock('../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: jest.fn(),
 }));
-jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 
 const mockCaps = useEntityCapabilities as jest.Mock;
 const mockTerms = getVocabularyTerms as jest.Mock;

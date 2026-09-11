@@ -18,9 +18,9 @@ jest.mock('expo-router', () => ({
   },
   router: { back: jest.fn(), push: jest.fn(), canGoBack: () => true, replace: jest.fn() },
 }));
-jest.mock('../../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
-jest.mock('../../../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: () => jest.fn() }));
-jest.mock('../../../../../lib/auth/useEntityCapabilities', () => ({
+jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('../../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: () => jest.fn() }));
+jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: jest.fn(),
 }));
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
@@ -31,9 +31,9 @@ jest.mock('@cultuvilla/shared/services/personService', () => ({
   getPersonsByBurialPlace: jest.fn().mockResolvedValue([]),
   updatePerson: jest.fn().mockResolvedValue(undefined),
 }));
-jest.mock('../../../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
-jest.mock('../../../../../components/feature/EntityContributors', () => ({ EntityContributors: () => null }));
-jest.mock('../../../../../components/feature/BuryFab', () => ({ BuryFab: () => null }));
+jest.mock('../../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
+jest.mock('../../../../components/feature/EntityContributors', () => ({ EntityContributors: () => null }));
+jest.mock('../../../../components/feature/BuryFab', () => ({ BuryFab: () => null }));
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 // staticMapUrl reads the initialized Firebase app for its project id.
 jest.mock('@cultuvilla/shared/services/mapsService', () => ({

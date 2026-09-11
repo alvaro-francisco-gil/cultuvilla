@@ -10,10 +10,10 @@ jest.mock('expo-router', () => ({
   router: { replace: jest.fn(), back: jest.fn() },
   Redirect: (props: { href: string }) => mockRedirect(props),
 }));
-jest.mock('../../../../../lib/auth/useEntityCapabilities', () => ({
+jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: jest.fn(),
 }));
-jest.mock('../../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('@cultuvilla/shared/services/festivalPosterService', () => ({
   getFestivalPoster: jest.fn(),
   updateFestivalPoster: jest.fn(),
@@ -26,7 +26,7 @@ jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadFestivalPosterImage: jest.fn(),
   deleteImageByURL: jest.fn(),
 }));
-jest.mock('../../../../../components/feature/OrganizerPicker', () => ({ OrganizerPicker: () => null }));
+jest.mock('../../../../components/feature/OrganizerPicker', () => ({ OrganizerPicker: () => null }));
 
 import PosterEditScreen from '../[cartel]/editar';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';

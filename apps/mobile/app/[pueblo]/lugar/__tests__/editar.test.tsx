@@ -12,10 +12,10 @@ jest.mock('expo-router', () => ({
   Redirect: (props: { href: string }) => mockRedirect(props),
   router: { back: jest.fn(), replace: jest.fn() },
 }));
-jest.mock('../../../../../lib/auth/useEntityCapabilities', () => ({
+jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: jest.fn(),
 }));
-jest.mock('../../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getPlace: jest.fn(),
   updatePlace: jest.fn(),
@@ -28,13 +28,13 @@ jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadPlaceImage: jest.fn(),
   deleteImageByURL: jest.fn(),
 }));
-jest.mock('../../../../../components/feature/OrganizerPicker', () => {
+jest.mock('../../../../components/feature/OrganizerPicker', () => {
   const { Text } = jest.requireActual('react-native');
   return { OrganizerPicker: () => <Text testID="mock-organizer-picker">contributors</Text> };
 });
 // The picker itself is a full-screen map + geocoder; here we only drive its
 // output, so it stands in as two buttons: "pin something" and "clear the pin".
-jest.mock('../../../../../components/feature/LocationField', () => {
+jest.mock('../../../../components/feature/LocationField', () => {
   const { Text, Pressable } = jest.requireActual('react-native');
   return {
     LocationField: ({

@@ -12,16 +12,16 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getMunicipality: jest.fn(() => Promise.resolve({ name: 'Matabuena' })),
 }));
-jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({ useEntityCapabilities: jest.fn() }));
-jest.mock('../../../../lib/auth/useAuth', () => ({ useAuth: () => ({ user: { uid: 'u1' } }) }));
-jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
-jest.mock('../../../../components/feature/CensoSchemaEditor', () => ({
+jest.mock('../../../lib/auth/useEntityCapabilities', () => ({ useEntityCapabilities: jest.fn() }));
+jest.mock('../../../lib/auth/useAuth', () => ({ useAuth: () => ({ user: { uid: 'u1' } }) }));
+jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('../../../components/feature/CensoSchemaEditor', () => ({
   CensoSchemaEditor: () => {
     const { Text } = require('react-native');
     return <Text>SCHEMA_EDITOR</Text>;
   },
 }));
-jest.mock('../../../../components/feature/CensoAnswers', () => ({
+jest.mock('../../../components/feature/CensoAnswers', () => ({
   CensoAnswers: () => {
     const { Text } = require('react-native');
     return <Text>ANSWER_FORM</Text>;

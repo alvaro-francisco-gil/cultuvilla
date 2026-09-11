@@ -9,10 +9,10 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ newsId: 'n1' }),
   router: { back: jest.fn(), push: jest.fn(), canGoBack: () => true, replace: jest.fn() },
 }));
-jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
-jest.mock('../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: () => jest.fn() }));
-jest.mock('../../../components/feature/NewsContentRenderer', () => ({ NewsContentRenderer: () => null }));
-jest.mock('../../../components/feature/LiveOwnerChip', () => ({
+jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('../../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: () => jest.fn() }));
+jest.mock('../../../../components/feature/NewsContentRenderer', () => ({ NewsContentRenderer: () => null }));
+jest.mock('../../../../components/feature/LiveOwnerChip', () => ({
   LiveOwnerChip: ({
     ownerId,
     ownerType,
@@ -30,9 +30,9 @@ jest.mock('../../../components/feature/LiveOwnerChip', () => ({
     );
   },
 }));
-jest.mock('../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
+jest.mock('../../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
-jest.mock('../../../lib/auth/useEntityCapabilities', () => ({
+jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: jest.fn(),
 }));
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({ getNewsLink: () => 'https://x' }));

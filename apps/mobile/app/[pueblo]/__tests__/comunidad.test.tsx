@@ -14,9 +14,9 @@ jest.mock('expo-router', () => ({
     return <Text>REDIRECT:{href}</Text>;
   },
 }));
-jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({ useEntityCapabilities: jest.fn() }));
-jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
-jest.mock('../../../../components/feature/CommunitySettingsEditor', () => ({
+jest.mock('../../../lib/auth/useEntityCapabilities', () => ({ useEntityCapabilities: jest.fn() }));
+jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('../../../components/feature/CommunitySettingsEditor', () => ({
   CommunitySettingsEditor: () => {
     const { Text } = require('react-native');
     return <Text>COMMUNITY_EDITOR</Text>;

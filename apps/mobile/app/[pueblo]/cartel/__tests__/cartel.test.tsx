@@ -10,8 +10,8 @@ jest.mock('expo-router', () => ({
   useFocusEffect: (cb: () => void) => cb(),
   router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn() },
 }));
-jest.mock('../../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
-jest.mock('../../../../../lib/auth/useEntityCapabilities', () => ({
+jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: jest.fn(),
 }));
 jest.mock('@cultuvilla/shared/services/festivalPosterService', () => ({
@@ -20,9 +20,9 @@ jest.mock('@cultuvilla/shared/services/festivalPosterService', () => ({
 jest.mock('@cultuvilla/shared/utils', () => ({ formatFestivalPosterDates: () => 'del 1 al 5' }));
 // NaturalImage reads Image.getSize (unmocked under jest-expo); the screen test
 // only asserts the title, so stub it to a plain view.
-jest.mock('../../../../../components/primitives/NaturalImage', () => ({ NaturalImage: () => null }));
-jest.mock('../../../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
-jest.mock('../../../../../components/feature/EntityContributors', () => ({ EntityContributors: () => null }));
+jest.mock('../../../../components/primitives/NaturalImage', () => ({ NaturalImage: () => null }));
+jest.mock('../../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
+jest.mock('../../../../components/feature/EntityContributors', () => ({ EntityContributors: () => null }));
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';

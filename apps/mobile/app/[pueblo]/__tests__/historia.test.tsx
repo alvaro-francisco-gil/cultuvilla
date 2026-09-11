@@ -18,11 +18,11 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('@cultuvilla/shared/services/historyService', () => ({
   getHistoryEntries: jest.fn(),
 }));
-jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({
+jest.mock('../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: jest.fn(),
 }));
-jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
-jest.mock('../../../../components/primitives/RemoteImage', () => ({ RemoteImage: () => null }));
+jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('../../../components/primitives/RemoteImage', () => ({ RemoteImage: () => null }));
 
 const mockCaps = useEntityCapabilities as jest.Mock;
 const mockEntries = getHistoryEntries as jest.Mock;

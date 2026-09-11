@@ -12,13 +12,13 @@ jest.mock('expo-router', () => ({
   useFocusEffect: (cb: () => void) => cb(),
   router: { back: jest.fn(), push: jest.fn(), canGoBack: () => true, replace: jest.fn() },
 }));
-jest.mock('../../../../../lib/auth/useAuth', () => ({ useAuth: () => ({ user: { uid: 'u1' } }) }));
-jest.mock('../../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
-jest.mock('../../../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: () => jest.fn() }));
-jest.mock('../../../../../lib/useOwnerSummary', () => ({
+jest.mock('../../../../lib/auth/useAuth', () => ({ useAuth: () => ({ user: { uid: 'u1' } }) }));
+jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('../../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: () => jest.fn() }));
+jest.mock('../../../../lib/useOwnerSummary', () => ({
   useOwnerSummary: () => ({ name: null, imageUri: null }),
 }));
-jest.mock('../../../../../lib/auth/useEntityCapabilities', () => ({
+jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: jest.fn(),
 }));
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
@@ -36,7 +36,7 @@ jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({ getBarrioViewL
 jest.mock('@cultuvilla/shared/services/municipalityPersonService', () => ({
   getMunicipalityPeopleByBarrio: jest.fn().mockResolvedValue([]),
 }));
-jest.mock('../../../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
+jest.mock('../../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 
 type Row = Awaited<ReturnType<typeof getMunicipalityPeopleByBarrio>>[number];

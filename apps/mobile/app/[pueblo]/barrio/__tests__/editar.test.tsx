@@ -11,10 +11,10 @@ jest.mock('expo-router', () => ({
   Redirect: (props: { href: string }) => mockRedirect(props),
   router: { back: jest.fn(), replace: jest.fn() },
 }));
-jest.mock('../../../../../lib/auth/useEntityCapabilities', () => ({
+jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: jest.fn(),
 }));
-jest.mock('../../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getBarrio: jest.fn(),
   updateBarrio: jest.fn(),

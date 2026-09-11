@@ -15,12 +15,12 @@ jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({ useEntityCapabilities: jest.fn() }));
-jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('../../../lib/auth/useEntityCapabilities', () => ({ useEntityCapabilities: jest.fn() }));
+jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
   isVillageMember: jest.fn(),
 }));
-jest.mock('../../../../components/feature/MembersList', () => ({
+jest.mock('../../../components/feature/MembersList', () => ({
   MembersList: () => {
     const { Text } = require('react-native');
     return <Text>MEMBERS_LIST</Text>;

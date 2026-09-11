@@ -10,11 +10,11 @@ jest.mock('expo-router', () => ({
   useFocusEffect: (cb: () => void) => cb(),
   router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn(), push: jest.fn() },
 }));
-jest.mock('../../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
-jest.mock('../../../../../lib/auth/useEntityCapabilities', () => ({
+jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: jest.fn(),
 }));
-jest.mock('../../../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: () => jest.fn() }));
+jest.mock('../../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: () => jest.fn() }));
 jest.mock('@cultuvilla/shared/services/historyService', () => ({
   getHistoryEntry: jest.fn().mockResolvedValue({
     id: 'h1',
@@ -34,9 +34,9 @@ jest.mock('@cultuvilla/shared/services/historyService', () => ({
     status: 'active',
   }),
 }));
-jest.mock('../../../../../components/primitives/NaturalImage', () => ({ NaturalImage: () => null }));
-jest.mock('../../../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
-jest.mock('../../../../../components/feature/RichText', () => ({
+jest.mock('../../../../components/primitives/NaturalImage', () => ({ NaturalImage: () => null }));
+jest.mock('../../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
+jest.mock('../../../../components/feature/RichText', () => ({
   RichText: ({ text }: { text: string }) => {
     const { Text } = require('react-native');
     return <Text>{text}</Text>;

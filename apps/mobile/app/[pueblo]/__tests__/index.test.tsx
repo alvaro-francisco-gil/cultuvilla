@@ -3,7 +3,7 @@ import { render } from '@testing-library/react-native';
 // The body is exercised in its own suite; here we only verify the screen wires
 // the village name into the header when pushed in-app (has a back stack) and
 // redirects a cold share-link entry (no back stack) into the tab shell.
-jest.mock('../../../../lib/useVillageHome', () => ({
+jest.mock('../../../lib/useVillageHome', () => ({
   useVillageHome: () => ({
     coreLoading: false,
     coreError: null,
@@ -25,7 +25,7 @@ jest.mock('../../../../lib/useVillageHome', () => ({
     reload: jest.fn(),
   }),
 }));
-jest.mock('../../../../components/feature/VillageHomeBody', () => ({
+jest.mock('../../../components/feature/VillageHomeBody', () => ({
   VillageHomeBody: () => null,
 }));
 jest.mock('react-native-safe-area-context', () => ({
@@ -43,16 +43,16 @@ jest.mock('expo-router', () => ({
     return null;
   },
 }));
-jest.mock('../../../../lib/i18n', () => ({
+jest.mock('../../../lib/i18n', () => ({
   useT: () => ({ locale: 'es', t: (k: string) => k }),
 }));
 
 const mockUseAuth = jest.fn();
-jest.mock('../../../../lib/auth/useAuth', () => ({
+jest.mock('../../../lib/auth/useAuth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 const mockActivate = jest.fn();
-jest.mock('../../../../lib/village/GuestActiveVillageContext', () => ({
+jest.mock('../../../lib/village/GuestActiveVillageContext', () => ({
   useGuestActiveVillage: () => ({ guestVillageId: null, activate: mockActivate }),
 }));
 
