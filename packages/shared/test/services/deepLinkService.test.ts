@@ -66,6 +66,14 @@ describe('deepLinkService builders', () => {
     });
   });
 
+  // The share sheet and the seat-claim link are the two ways an event URL
+  // leaves the app; neither may spell out a private event's title.
+  it('never puts a private event title in a link', () => {
+    const secret = { id: 'e9', title: 'Cena secreta', villageSlug: 'matabuena', visibilityOrgId: 'org1' };
+    expect(getEventLink(secret).url).toBe(`${HOST}/matabuena/evento/evento-privado_e9`);
+    expect(getSeatClaimLink(secret, 'tok').url).toBe(`${HOST}/matabuena/evento/evento-privado_e9/plaza/tok`);
+  });
+
   it('rejects missing ids', () => {
     expect(() => getEventLink(target('', 'x'))).toThrow(/id/i);
     expect(() => getUserViewLink('')).toThrow(/uid/);

@@ -81,7 +81,7 @@ const baseProps = {
   userId: 'u1',
   personId: 'p1',
   name: 'Ana',
-  eventTitle: 'Fiestas de San Juan', villageSlug: 'villa',
+  eventTitle: 'Fiestas de San Juan', villageSlug: 'villa', visibilityOrgId: null,
   telephoneRequired: false,
 };
 

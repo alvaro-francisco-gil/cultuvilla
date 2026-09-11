@@ -157,6 +157,7 @@ export default function EventDetailScreen() {
             signupFields={event.signupFields}
             villageId={event.municipalityId}
             villageSlug={event.villageSlug}
+            visibilityOrgId={event.visibilityOrgId}
             groupSize={event.signupGroupSize}
             ownBirthYear={person.birthday?.year ?? null}
             birthYearWindow={{

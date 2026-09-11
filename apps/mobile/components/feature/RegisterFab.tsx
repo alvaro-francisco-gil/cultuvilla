@@ -44,6 +44,8 @@ export interface RegisterFabProps {
   eventTitle: string;
   /** The event's pueblo slug — a seat-claim link is village-first like every other URL. */
   villageSlug: string;
+  /** Non-null for an org-private event — its seat links must not carry the title. */
+  visibilityOrgId: string | null;
   /** When true, adding new attendees first requires a shared phone. */
   telephoneRequired: boolean;
   /** The event's custom sign-up fields, answered once per new attendee. */
@@ -76,6 +78,7 @@ export function RegisterFab({
   name,
   eventTitle,
   villageSlug,
+  visibilityOrgId,
   telephoneRequired,
   signupFields,
   villageId,
@@ -302,7 +305,7 @@ export function RegisterFab({
     // `deeplink.share.event.invite` reads "Te he guardado una plaza en «{name}»",
     // so the slot is the event, not whoever is sending it.
     await shareDeepLink(
-      getSeatClaimLink({ id: eventId, title: eventTitle, villageSlug }, token),
+      getSeatClaimLink({ id: eventId, title: eventTitle, villageSlug, visibilityOrgId }, token),
       eventTitle,
     );
   }

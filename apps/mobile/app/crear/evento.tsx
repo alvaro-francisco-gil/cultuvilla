@@ -217,6 +217,13 @@ export default function NewEventScreen() {
   const [organizerUserIds, setOrganizerUserIds] = useState<string[]>([]);
   const [createdBy, setCreatedBy] = useState<string | null>(null);
   const [organizerOrgIds, setOrganizerOrgIds] = useState<string[]>([]);
+  // A private event names exactly one org, and that org must be one of the
+  // organizers — the switch is only offered in that case, but a stale toggle
+  // left behind by adding a second org must not slip through. The same value is
+  // saved AND used to build the event's URL, so a private event is never opened
+  // at a URL that spells out its title.
+  const visibilityOrgId =
+    privateToOrg && organizerOrgIds.length === 1 ? (organizerOrgIds[0] ?? null) : null;
 
   useEffect(() => {
     // Only auto-seed the creator when composing a new event. In edit mode the
@@ -389,11 +396,6 @@ export default function NewEventScreen() {
       // sign-ups off; EventFormSchema rejects the other combination.
       const signupInfoValue = signupInfo.trim() ? signupInfo.trim() : null;
 
-      // A private event names exactly one org, and that org must be one of the
-      // organizers — the switch is only offered in that case, but a stale
-      // toggle left behind by adding a second org must not slip through.
-      const visibilityOrgId =
-        privateToOrg && organizerOrgIds.length === 1 ? (organizerOrgIds[0] ?? null) : null;
       const visibility = visibilityOrgId === null ? ('public' as const) : ('organization' as const);
 
       // ── Edit: patch the existing event; only touch the cover if replaced ──
@@ -478,7 +480,7 @@ export default function NewEventScreen() {
       return newId;
     },
     onSuccess: (id) => {
-      if (id) router.replace(eventHref({ id, title, villageSlug }));
+      if (id) router.replace(eventHref({ id, title, villageSlug, visibilityOrgId }));
     },
     swallow: true,
   });
@@ -543,7 +545,7 @@ export default function NewEventScreen() {
 
   // ── Edit: non-organizer redirect ──────────────────────────────────────────
   if (editMode && !capLoading && !canEdit(createdBy, organizerUserIds)) {
-    return <Redirect href={eventHref({ id: eventId, title, villageSlug })} />;
+    return <Redirect href={eventHref({ id: eventId, title, villageSlug, visibilityOrgId })} />;
   }
 
   // ── No active village (create only) ───────────────────────────────────────

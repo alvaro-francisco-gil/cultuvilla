@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import {
   entityPath,
+  eventLinkTarget,
   orgJoinPath,
   parseAppPath,
   seatClaimPath,
@@ -47,7 +48,13 @@ export const getUserViewLink = (uid: string): DeepLink => {
 export const getEntityLink = (kind: UrlEntityKind, target: EntityLinkTarget): DeepLink =>
   link(kind, entityPath(kind, target));
 
-export const getEventLink = (target: EntityLinkTarget): DeepLink => getEntityLink('event', target);
+/**
+ * Event links go through `eventLinkTarget`, never straight to `getEntityLink`:
+ * a private event's URL must not carry its title, and taking the rule out of
+ * the caller's hands is what keeps a share sheet from leaking it.
+ */
+export const getEventLink = (event: Parameters<typeof eventLinkTarget>[0]): DeepLink =>
+  getEntityLink('event', eventLinkTarget(event));
 export const getNewsLink = (target: EntityLinkTarget): DeepLink => getEntityLink('news', target);
 export const getOrgViewLink = (target: EntityLinkTarget): DeepLink =>
   getEntityLink('organization', target);
@@ -66,8 +73,10 @@ export const getOrgInviteLink = (target: EntityLinkTarget): DeepLink =>
  * secret, not an id — it rides only in this link, never in the view link that
  * share sheets and previews are built from.
  */
-export const getSeatClaimLink = (target: EntityLinkTarget, token: string): DeepLink =>
-  link('event', seatClaimPath(target, token), 'invite');
+export const getSeatClaimLink = (
+  event: Parameters<typeof eventLinkTarget>[0],
+  token: string,
+): DeepLink => link('event', seatClaimPath(eventLinkTarget(event), token), 'invite');
 
 export interface ParsedDeepLink {
   path: string;

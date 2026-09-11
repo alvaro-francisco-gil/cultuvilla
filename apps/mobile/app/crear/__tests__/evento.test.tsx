@@ -731,6 +731,28 @@ describe('NewEventScreen — private events', () => {
     });
   });
 
+  // A private event's URL must never spell out its title: the share preview
+  // withholds it, and the address bar, history and copied links would not.
+  it('opens a new private event at a URL without its title', async () => {
+    const { router } = jest.requireMock('expo-router') as { router: { replace: jest.Mock } };
+    await submitNewEvent(render(<NewEventScreen />), (u) => {
+      fireEvent.press(u.getByTestId('pick-one-org'));
+      fireEvent.press(u.getByTestId('private-to-org'));
+    });
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    const target = String(router.replace.mock.calls.at(-1)?.[0]);
+    expect(target).toBe('/pueblo/evento/evento-privado_e-1');
+    expect(target).not.toMatch(/fiesta/);
+  });
+
+  it('opens a new public event at a URL carrying its title', async () => {
+    const { router } = jest.requireMock('expo-router') as { router: { replace: jest.Mock } };
+    await submitNewEvent(render(<NewEventScreen />), (u) =>
+      fireEvent.press(u.getByTestId('pick-one-org')),
+    );
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/pueblo/evento/fiesta_e-1'));
+  });
+
   // The switch is only rendered with one org, but the state it sets outlives
   // adding a second one — and a private event with two orgs has no single
   // membership to gate on, so the submit path has to drop it.
