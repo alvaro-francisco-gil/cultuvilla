@@ -88,8 +88,8 @@ export async function getMunicipalityBySlug(
   const snap = await getDocs(
     query(municipalitiesCollection(getDb()), where('slug', '==', slug), firestoreLimit(1)),
   );
-  if (snap.empty) return null;
-  const found = snap.docs[0];
+  const found = snap.docs.at(0);
+  if (!found) return null;
   rememberVillageSlug(found.id, slug);
   return { id: found.id, ...found.data() };
 }
