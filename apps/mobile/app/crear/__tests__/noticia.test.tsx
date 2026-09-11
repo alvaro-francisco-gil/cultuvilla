@@ -1,4 +1,3 @@
-// apps/mobile/app/news/__tests__/new.test.tsx
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import NewNewsScreen from '../noticia';
 import { pickImageWithSize } from '../../../lib/images';
@@ -32,6 +31,10 @@ jest.mock('@cultuvilla/shared/services/newsService', () => ({
   createNewsPost: jest.fn(),
   updateNewsPost: jest.fn(),
   getNewsPost: jest.fn(),
+}));
+// Create mode resolves the target pueblo's slug to build the article's URL.
+jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
+  getVillageSlug: jest.fn().mockResolvedValue('villa'),
 }));
 jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadNewsImage: jest.fn(),

@@ -6,7 +6,7 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ orgId: 'o1' }),
+  useLocalSearchParams: () => ({ pueblo: 'villa', entidad: 'pena-la-union_o1' }),
   useFocusEffect: (cb: () => void) => cb(),
   router: { back: jest.fn(), push: jest.fn(), canGoBack: () => true, replace: jest.fn() },
 }));
@@ -32,7 +32,14 @@ jest.mock('@cultuvilla/shared/services/orgMemberService', () => ({
   getOrgMembers: jest.fn().mockResolvedValue([]),
   getUserOrgIds: jest.fn().mockResolvedValue([]),
 }));
-jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({ getOrgViewLink: () => 'https://x' }));
+jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({
+  getOrgViewLink: () => ({
+    url: 'https://x/villa/entidad/pena-la-union_o1',
+    path: '/villa/entidad/pena-la-union_o1',
+    kind: 'content',
+    resource: 'organization',
+  }),
+}));
 jest.mock('../../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 

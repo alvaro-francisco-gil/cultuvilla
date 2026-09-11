@@ -4,13 +4,14 @@ import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { isVillageMember } from '@cultuvilla/shared/services/villageMemberService';
 
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ villageId: 'm1' }),
+  useLocalSearchParams: () => ({ pueblo: 'villa' }),
   Redirect: ({ href }: { href: string }) => {
     const { Text } = require('react-native');
     return <Text>REDIRECT:{href}</Text>;
   },
 }));
 // ScreenHeader reads safe-area insets; provide them without a SafeAreaProvider.
+jest.mock('../../../lib/navigation/VillageRouteGate');
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -44,7 +45,7 @@ describe('VillageMembersScreen (members-only)', () => {
     mockCaps.mockReturnValue({ canManage: false, canApprove: false, uid: 'u1', loading: false });
     mockIsMember.mockResolvedValue(false);
     const { findByText, queryByText } = render(<VillageMembersScreen />);
-    expect(await findByText('REDIRECT:/village/m1')).toBeTruthy();
+    expect(await findByText('REDIRECT:/villa')).toBeTruthy();
     expect(queryByText('MEMBERS_LIST')).toBeNull();
   });
 
@@ -61,7 +62,7 @@ describe('VillageMembersScreen (members-only)', () => {
     const { queryByText } = render(<VillageMembersScreen />);
     // Before the async check resolves, neither the roster nor a redirect shows.
     expect(queryByText('MEMBERS_LIST')).toBeNull();
-    expect(queryByText('REDIRECT:/village/m1')).toBeNull();
+    expect(queryByText('REDIRECT:/villa')).toBeNull();
     await waitFor(() => expect(queryByText('MEMBERS_LIST')).toBeTruthy());
   });
 });

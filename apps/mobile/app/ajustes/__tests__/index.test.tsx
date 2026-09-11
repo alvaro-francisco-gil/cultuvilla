@@ -38,16 +38,16 @@ describe('SettingsScreen', () => {
     expect(getByText('settings.deleteAccount.label')).toBeTruthy();
   });
 
-  it('navigates to /settings/change-email when tapping "Cambiar correo"', () => {
+  it('navigates to /ajustes/cambiar-email when tapping "Cambiar correo"', () => {
     const { getByText } = render(<SettingsScreen />);
     fireEvent.press(getByText('settings.changeEmail.label'));
-    expect(mockPush).toHaveBeenCalledWith('/settings/change-email');
+    expect(mockPush).toHaveBeenCalledWith('/ajustes/cambiar-email');
   });
 
-  it('navigates to /settings/delete-account when tapping "Eliminar cuenta"', () => {
+  it('navigates to /ajustes/eliminar-cuenta when tapping "Eliminar cuenta"', () => {
     const { getByText } = render(<SettingsScreen />);
     fireEvent.press(getByText('settings.deleteAccount.label'));
-    expect(mockPush).toHaveBeenCalledWith('/settings/delete-account');
+    expect(mockPush).toHaveBeenCalledWith('/ajustes/eliminar-cuenta');
   });
 
   it('disables the change-email row and shows the hint when the account cannot change email', () => {

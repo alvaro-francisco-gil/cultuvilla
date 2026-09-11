@@ -6,10 +6,11 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ villageId: 'm1', posterId: 'fp1' }),
+  useLocalSearchParams: () => ({ pueblo: 'villa', cartel: 'fiestas_fp1' }),
   router: { replace: jest.fn(), back: jest.fn() },
   Redirect: (props: { href: string }) => mockRedirect(props),
 }));
+jest.mock('../../../../lib/navigation/VillageRouteGate');
 jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: jest.fn(),
 }));
@@ -76,7 +77,7 @@ it('redirects when the viewer can neither manage nor edit', async () => {
   mockCaps({ canManage: false, uid: 'u1', canEdit: false });
   render(<PosterEditScreen />);
   await waitFor(() =>
-    expect(mockRedirect).toHaveBeenCalledWith({ href: '/village/m1/festival-poster/fp1' }),
+    expect(mockRedirect).toHaveBeenCalledWith({ href: '/villa/cartel/fiestas_fp1' }),
   );
 });
 

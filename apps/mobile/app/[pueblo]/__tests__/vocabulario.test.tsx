@@ -4,7 +4,7 @@ import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { getVocabularyTerms } from '@cultuvilla/shared/services/vocabularyService';
 
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ villageId: 'm1' }),
+  useLocalSearchParams: () => ({ pueblo: 'villa' }),
   useFocusEffect: (cb: () => void) => {
     const { useEffect } = require('react');
     useEffect(cb, [cb]);
@@ -12,6 +12,7 @@ jest.mock('expo-router', () => ({
   router: { push: jest.fn() },
 }));
 // ScreenHeader reads safe-area insets; provide them without a SafeAreaProvider.
+jest.mock('../../../lib/navigation/VillageRouteGate');
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -34,7 +35,6 @@ function term(id: string, word: string, normalized: string) {
     normalized,
     kind: 'palabra',
     municipalityId: 'm1',
-    villageSlug: 'villa',
     createdBy: 'alice',
     createdAt: new Date(),
     definitionCount: 1,

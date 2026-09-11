@@ -20,6 +20,10 @@
   "hosting": {
     "public": "apps/mobile/dist",
     "ignore": ["firebase.json", "**/.DS_Store", "**/.gitkeep"],
+    "redirects": [
+      { "source": "/legal/privacy", "destination": "/legal/privacidad", "type": 301 },
+      { "source": "/legal/terms", "destination": "/legal/terminos", "type": 301 }
+    ],
     "rewrites": [
       { "source": "/@(admin|ajustes|buzon|completar-perfil|crear|descarga|descubrir|entrar|legal|mi-pueblo|mis-inscripciones|mis-pueblos|perfil|persona|usuario)", "destination": "/index.html" },
       { "source": "/@(admin|ajustes|buzon|completar-perfil|crear|descarga|descubrir|entrar|legal|mi-pueblo|mis-inscripciones|mis-pueblos|perfil|persona|usuario)/**", "destination": "/index.html" },

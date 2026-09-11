@@ -8,13 +8,13 @@ import { parseLink } from '@cultuvilla/shared/services/deepLinkService';
  * A link's path IS the app route — `/matabuena/evento/fiestas_e1` is both the
  * URL and the expo-router path — so routing a deep link is just replaying the
  * path we parsed. `parseLink` still gates it: an unknown host or an unknown
- * shape must fall through to the browser rather than open an app screen.
+ * shape must fall through to the browser rather than open an app screen. An org
+ * invite needs nothing extra: its `/unirse` route adds the join intent itself.
  */
 function route(url: string): void {
   const parsed = parseLink(url);
   if (!parsed) return;
-  const inviteQuery = parsed.kind === 'invite' && parsed.resource === 'organization' ? '?intent=join' : '';
-  router.replace(`${parsed.path}${inviteQuery}` as never);
+  router.replace(parsed.path as never);
 }
 
 export function useDeepLinkRouter(): void {

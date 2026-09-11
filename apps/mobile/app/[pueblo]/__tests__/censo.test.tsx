@@ -2,8 +2,9 @@ import { render } from '@testing-library/react-native';
 import CensoScreen from '../censo';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 
-let mockParams: Record<string, string> = { villageId: 'm1' };
+let mockParams: Record<string, string> = { pueblo: 'villa' };
 jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams }));
+jest.mock('../../../lib/navigation/VillageRouteGate');
 // ScreenHeader reads safe-area insets; provide them without a SafeAreaProvider.
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
@@ -32,7 +33,7 @@ const mockCaps = useEntityCapabilities as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockParams = { villageId: 'm1' };
+  mockParams = { pueblo: 'villa' };
 });
 
 describe('CensoScreen (role-mode)', () => {
@@ -51,7 +52,7 @@ describe('CensoScreen (role-mode)', () => {
   });
 
   it('an organizer with mode=fill lands in the answer form', () => {
-    mockParams = { villageId: 'm1', mode: 'fill' };
+    mockParams = { pueblo: 'villa', mode: 'fill' };
     mockCaps.mockReturnValue({ canManage: true, canApprove: true, uid: 'u1', loading: false });
     const { getByText, queryByText } = render(<CensoScreen />);
     expect(getByText('ANSWER_FORM')).toBeTruthy();

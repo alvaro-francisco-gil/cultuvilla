@@ -7,10 +7,11 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ villageId: 'm1', barrioId: 'b1' }),
+  useLocalSearchParams: () => ({ pueblo: 'villa', barrio: 'centro_b1' }),
   Redirect: (props: { href: string }) => mockRedirect(props),
   router: { back: jest.fn(), replace: jest.fn() },
 }));
+jest.mock('../../../../lib/navigation/VillageRouteGate');
 jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: jest.fn(),
 }));
@@ -52,7 +53,6 @@ describe('BarrioEditScreen guard', () => {
       name: 'Centro',
       images: [],
       municipalityId: 'm1',
-      villageSlug: 'villa',
       proposedBy: 'creator',
       status: 'active',
     });
@@ -61,7 +61,7 @@ describe('BarrioEditScreen guard', () => {
   it('redirects to the barrio detail when the viewer can neither manage nor edit', async () => {
     mockCaps({ canManage: false, uid: 'u1', canEdit: false });
     render(<BarrioEditScreen />);
-    await waitFor(() => expect(mockRedirect).toHaveBeenCalledWith({ href: '/village/m1/barrio/b1' }));
+    await waitFor(() => expect(mockRedirect).toHaveBeenCalledWith({ href: '/villa/barrio/centro_b1' }));
   });
 
   it('lets the creator edit their own barrio without being a village admin', async () => {

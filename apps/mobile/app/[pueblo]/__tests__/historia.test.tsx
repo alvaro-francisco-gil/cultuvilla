@@ -4,13 +4,14 @@ import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { getHistoryEntries } from '@cultuvilla/shared/services/historyService';
 
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ villageId: 'm1' }),
+  useLocalSearchParams: () => ({ pueblo: 'villa' }),
   useFocusEffect: (cb: () => void) => {
     const { useEffect } = require('react');
     useEffect(cb, [cb]);
   },
   router: { push: jest.fn() },
 }));
+jest.mock('../../../lib/navigation/VillageRouteGate');
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),

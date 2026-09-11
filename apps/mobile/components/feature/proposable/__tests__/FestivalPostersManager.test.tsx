@@ -46,7 +46,6 @@ describe('<FestivalPostersManager>', () => {
       expect(createFestivalPoster).toHaveBeenCalledWith(
         expect.objectContaining({
           municipalityId: 'm1',
-          villageSlug: 'villa',
           proposedBy: 'alice',
           contributorUserIds: ['alice'],
           contributorOrgIds: [],
@@ -59,6 +58,8 @@ describe('<FestivalPostersManager>', () => {
         'new-id',
       ),
     );
+    // The service stamps villageSlug from the municipality; the form must not invent one.
+    expect((createFestivalPoster as jest.Mock).mock.calls[0][0]).not.toHaveProperty('villageSlug');
     expect(uploadFestivalPosterImage).toHaveBeenCalledWith('m1', 'new-id', stubImage);
   });
 

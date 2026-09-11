@@ -8,10 +8,11 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ villageId: 'm1', barrioId: 'b1' }),
+  useLocalSearchParams: () => ({ pueblo: 'villa', barrio: 'centro_b1' }),
   useFocusEffect: (cb: () => void) => cb(),
   router: { back: jest.fn(), push: jest.fn(), canGoBack: () => true, replace: jest.fn() },
 }));
+jest.mock('../../../../lib/navigation/VillageRouteGate');
 jest.mock('../../../../lib/auth/useAuth', () => ({ useAuth: () => ({ user: { uid: 'u1' } }) }));
 jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: () => jest.fn() }));
@@ -99,7 +100,7 @@ describe('BarrioDetailScreen', () => {
     const { findByRole } = render(<BarrioDetailScreen />);
 
     fireEvent.press(await findByRole('button', { name: 'p1' }));
-    expect(router.push).toHaveBeenCalledWith('/person/p1');
+    expect(router.push).toHaveBeenCalledWith('/persona/p1');
   });
 
   it('lists a private persona but leaves the row unlinked', async () => {
@@ -111,7 +112,7 @@ describe('BarrioDetailScreen', () => {
 
     await findAllByText('p2');
     expect(queryByRole('button', { name: 'p2' })).toBeNull();
-    expect(router.push).not.toHaveBeenCalledWith('/person/p2');
+    expect(router.push).not.toHaveBeenCalledWith('/persona/p2');
   });
 
   it('opens the richer user profile for an account holder', async () => {
@@ -122,6 +123,6 @@ describe('BarrioDetailScreen', () => {
     const { findByRole } = render(<BarrioDetailScreen />);
 
     fireEvent.press(await findByRole('button', { name: 'p3' }));
-    expect(router.push).toHaveBeenCalledWith('/user/u9');
+    expect(router.push).toHaveBeenCalledWith('/usuario/u9');
   });
 });

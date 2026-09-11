@@ -8,7 +8,7 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ eventId: 'e1' }),
+  useLocalSearchParams: () => ({ pueblo: 'villa', evento: 'verbena_e1' }),
   router: {
     back: jest.fn(),
     push: (...args: unknown[]) => mockPush(...args),
@@ -43,7 +43,14 @@ jest.mock('@cultuvilla/shared/services/eventService', () => ({
     villageSlug: 'villa', villageName: 'Villapueblo',
   }),
 }));
-jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({ getEventLink: () => 'https://x' }));
+jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({
+  getEventLink: () => ({
+    url: 'https://x/villa/evento/verbena_e1',
+    path: '/villa/evento/verbena_e1',
+    kind: 'content',
+    resource: 'event',
+  }),
+}));
 jest.mock('@cultuvilla/shared/services/personService', () => ({ getPersonByUserId: jest.fn().mockResolvedValue(null) }));
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getMunicipality: jest.fn().mockResolvedValue({
@@ -51,7 +58,11 @@ jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   }),
 }));
 jest.mock('@cultuvilla/shared/models/person/PersonDataModel', () => ({ buildNameWithNickname: () => 'N' }));
-jest.mock('@cultuvilla/shared/utils', () => ({ formatDate: () => '12 jul', buildGoogleCalendarUrl: () => 'https://cal' }));
+jest.mock('@cultuvilla/shared/utils', () => ({
+  ...jest.requireActual('@cultuvilla/shared/utils'),
+  formatDate: () => '12 jul',
+  buildGoogleCalendarUrl: () => 'https://cal',
+}));
 
 describe('EventDetailScreen', () => {
   beforeEach(() => mockPush.mockClear());
@@ -68,9 +79,6 @@ describe('EventDetailScreen', () => {
     getByText('Villapueblo');
 
     fireEvent.press(getByLabelText('Villapueblo'));
-    expect(mockPush).toHaveBeenCalledWith({
-      pathname: '/village/[villageId]',
-      params: { villageId: 'm1' },
-    });
+    expect(mockPush).toHaveBeenCalledWith('/villa');
   });
 });

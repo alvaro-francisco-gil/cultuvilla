@@ -19,7 +19,7 @@ test.describe('post a comment on an entity', () => {
     await fixtureLogin(page, fixtures.attendee.email);
 
     // 3. Open the event detail screen where EntityComments renders.
-    await page.goto(`/event/${fixtures.event.docId}`);
+    await page.goto(fixtures.event.path);
     const commentInput = page.getByTestId('comment-input');
     await expect(commentInput).toBeVisible({ timeout: 30_000 });
 

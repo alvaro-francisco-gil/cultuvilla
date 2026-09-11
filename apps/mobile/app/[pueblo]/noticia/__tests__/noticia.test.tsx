@@ -6,7 +6,7 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ newsId: 'n1' }),
+  useLocalSearchParams: () => ({ pueblo: 'villa', noticia: 'gran-noticia_n1' }),
   router: { back: jest.fn(), push: jest.fn(), canGoBack: () => true, replace: jest.fn() },
 }));
 jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
@@ -35,17 +35,31 @@ jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityVi
 jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: jest.fn(),
 }));
-jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({ getNewsLink: () => 'https://x' }));
+jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({
+  getNewsLink: () => ({
+    url: 'https://x/villa/noticia/gran-noticia_n1',
+    path: '/villa/noticia/gran-noticia_n1',
+    kind: 'content',
+    resource: 'news',
+  }),
+}));
+// An organization chip resolves the org to learn its pueblo and name slug.
+jest.mock('@cultuvilla/shared/services/organizationService', () => ({
+  getOrganization: jest.fn().mockResolvedValue({ id: 'o1', name: 'Peña El Roble', villageSlug: 'villa' }),
+}));
 jest.mock('@cultuvilla/shared/services/newsService', () => ({
   getNewsPost: jest.fn().mockResolvedValue({
-    id: 'n1', title: 'Gran noticia', category: 'general', municipalityId: 'm1',
+    id: 'n1', title: 'Gran noticia', category: 'general', municipalityId: 'm1', villageSlug: 'villa',
     images: [], coverImage: null, content: null, body: '',
     organizerOrgIds: ['o1'], organizerUserIds: ['u1'],
     createdBy: 'u9', publishedAt: null, createdAt: null, status: 'active',
   }),
 }));
 jest.mock('@cultuvilla/shared/services/imageService', () => ({ newsImageDownloadURL: jest.fn() }));
-jest.mock('@cultuvilla/shared/utils', () => ({ formatDate: () => '' }));
+jest.mock('@cultuvilla/shared/utils', () => ({
+  ...jest.requireActual('@cultuvilla/shared/utils'),
+  formatDate: () => '',
+}));
 
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 
@@ -93,10 +107,10 @@ describe('NewsDetailScreen', () => {
     const { getByTestId, findByTestId } = render(<NewsDetailScreen />);
 
     fireEvent.press(await findByTestId('chip:user:u1'));
-    expect(router.push).toHaveBeenCalledWith('/user/u1');
+    expect(router.push).toHaveBeenCalledWith('/usuario/u1');
 
     router.push.mockClear();
     fireEvent.press(getByTestId('chip:organization:o1'));
-    expect(router.push).toHaveBeenCalledWith('/o/o1');
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith('/villa/entidad/pena-el-roble_o1'));
   });
 });

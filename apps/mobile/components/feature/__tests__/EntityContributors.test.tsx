@@ -1,8 +1,13 @@
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { EntityContributors } from '../EntityContributors';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn() },
+}));
+
+const mockGetOrganization = jest.fn();
+jest.mock('@cultuvilla/shared/services/organizationService', () => ({
+  getOrganization: (id: string) => mockGetOrganization(id),
 }));
 
 jest.mock('../LiveOwnerChip', () => ({
@@ -48,14 +53,16 @@ describe('EntityContributors', () => {
       <EntityContributors label="Contribuyeron" userIds={['u1']} orgIds={[]} />,
     );
     fireEvent.press(getByTestId('user:u1'));
-    expect(router.push).toHaveBeenCalledWith('/user/u1');
+    expect(router.push).toHaveBeenCalledWith('/usuario/u1');
   });
 
-  it('opens a credited organization when its chip is pressed', () => {
+  it('opens a credited organization when its chip is pressed', async () => {
+    mockGetOrganization.mockResolvedValueOnce({ id: 'o1', name: 'Peña El Roble', villageSlug: 'villa' });
     const { getByTestId } = render(
       <EntityContributors label="Contribuyeron" userIds={[]} orgIds={['o1']} />,
     );
     fireEvent.press(getByTestId('organization:o1'));
-    expect(router.push).toHaveBeenCalledWith('/o/o1');
+    expect(mockGetOrganization).toHaveBeenCalledWith('o1');
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith('/villa/entidad/pena-el-roble_o1'));
   });
 });

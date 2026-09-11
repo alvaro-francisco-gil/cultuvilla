@@ -28,6 +28,7 @@ jest.mock('../../../lib/useVillageHome', () => ({
 jest.mock('../../../components/feature/VillageHomeBody', () => ({
   VillageHomeBody: () => null,
 }));
+jest.mock('../../../lib/navigation/VillageRouteGate');
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -36,7 +37,7 @@ jest.mock('react-native-safe-area-context', () => ({
 const mockRedirect = jest.fn();
 const mockCanGoBack = jest.fn();
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ villageId: 'm1' }),
+  useLocalSearchParams: () => ({ pueblo: 'villa' }),
   router: { push: jest.fn(), back: jest.fn(), canGoBack: () => mockCanGoBack() },
   Redirect: ({ href }: { href: string }) => {
     mockRedirect(href);
@@ -83,7 +84,7 @@ it('activates the shared village and redirects a guest cold entry into the tab s
   mockUseAuth.mockReturnValue({ user: null });
   render(<VillageHome />);
   expect(mockActivate).toHaveBeenCalledWith('m1');
-  expect(mockRedirect).toHaveBeenCalledWith('/(tabs)/village?villageId=m1');
+  expect(mockRedirect).toHaveBeenCalledWith('/(tabs)/mi-pueblo?villageId=m1');
 });
 
 it('redirects a signed-in cold entry into the tab shell without switching their home', () => {
@@ -93,5 +94,5 @@ it('redirects a signed-in cold entry into the tab shell without switching their 
   // No activate + no profile write: the shared village rides the query param,
   // so the member's activeMunicipalityId is untouched.
   expect(mockActivate).not.toHaveBeenCalled();
-  expect(mockRedirect).toHaveBeenCalledWith('/(tabs)/village?villageId=m1');
+  expect(mockRedirect).toHaveBeenCalledWith('/(tabs)/mi-pueblo?villageId=m1');
 });

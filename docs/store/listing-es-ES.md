@@ -11,8 +11,8 @@ to it for every other locale.
 | Categoría | Play: **Estilo de vida** · ASC primary: **Estilo de vida**, secondary: **Redes sociales** |
 | Email de contacto | `cultuvilla.app@gmail.com` |
 | Web / Marketing URL | `https://cultuvilla.es` |
-| Política de privacidad | `https://cultuvilla.es/legal/privacy` |
-| Términos de uso | `https://cultuvilla.es/legal/terms` |
+| Política de privacidad | `https://cultuvilla.es/legal/privacidad` |
+| Términos de uso | `https://cultuvilla.es/legal/terminos` |
 | Soporte | `https://cultuvilla.es` (o `mailto:cultuvilla.app@gmail.com` — ASC exige una URL) |
 | Copyright (ASC) | `2026 Cultuvilla` |
 

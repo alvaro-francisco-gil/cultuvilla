@@ -6,7 +6,7 @@ binary; the "source" column is what to re-read before changing it.
 
 | Declaration | Answer | Source |
 |---|---|---|
-| Privacy policy | `https://cultuvilla.es/legal/privacy` | [docs/legal/politica-de-privacidad.md](../legal/politica-de-privacidad.md) → [apps/mobile/app/legal/privacy.tsx](../../apps/mobile/app/legal/privacy.tsx) |
+| Privacy policy | `https://cultuvilla.es/legal/privacidad` | [docs/legal/politica-de-privacidad.md](../legal/politica-de-privacidad.md) → [apps/mobile/app/legal/privacidad.tsx](../../apps/mobile/app/legal/privacidad.tsx) |
 | App access | **Parts restricted** — credenciales de prueba obligatorias | ver abajo |
 | Ads | **No contiene anuncios** | sin SDK de publicidad en [apps/mobile/package.json](../../apps/mobile/package.json) |
 | Content rating | Cuestionario → categoría **Social / UGC** | ver abajo |

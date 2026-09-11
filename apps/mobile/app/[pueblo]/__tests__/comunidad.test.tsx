@@ -8,12 +8,13 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ villageId: 'm1' }),
+  useLocalSearchParams: () => ({ pueblo: 'villa' }),
   Redirect: ({ href }: { href: string }) => {
     const { Text } = require('react-native');
     return <Text>REDIRECT:{href}</Text>;
   },
 }));
+jest.mock('../../../lib/navigation/VillageRouteGate');
 jest.mock('../../../lib/auth/useEntityCapabilities', () => ({ useEntityCapabilities: jest.fn() }));
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../components/feature/CommunitySettingsEditor', () => ({
@@ -37,7 +38,7 @@ describe('CommunityScreen (role-gated)', () => {
   it('a villager is redirected back to the village', () => {
     mockCaps.mockReturnValue({ canManage: false, canApprove: false, uid: 'u1', loading: false });
     const { getByText, queryByText } = render(<CommunityScreen />);
-    expect(getByText('REDIRECT:/village/m1')).toBeTruthy();
+    expect(getByText('REDIRECT:/villa')).toBeTruthy();
     expect(queryByText('COMMUNITY_EDITOR')).toBeNull();
   });
 });

@@ -1,5 +1,5 @@
 // The news edit route had no authority guard at all: anyone who deep-linked to
-// /news/new?newsId=… got the compose form (their save then bounced off the
+// /crear/noticia?newsId=… got the compose form (their save then bounced off the
 // Firestore rules). It now redirects like every other entity's edit screen.
 import { render, waitFor } from '@testing-library/react-native';
 import NewNewsScreen from '../noticia';
@@ -43,6 +43,8 @@ jest.mock('@cultuvilla/shared/services/newsService', () => ({
     status: 'active',
   }),
 }));
+// Edit mode takes the pueblo slug off the loaded post; it never looks it up.
+jest.mock('@cultuvilla/shared/services/municipalityService', () => ({ getVillageSlug: jest.fn() }));
 jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadNewsImage: jest.fn(),
   newsImageDownloadURL: jest.fn(),
@@ -74,7 +76,7 @@ describe('NewNewsScreen edit guard', () => {
   it('redirects to the article when the viewer may not edit it', async () => {
     const canEdit = mockCaps(false);
     render(<NewNewsScreen />);
-    await waitFor(() => expect(mockRedirect).toHaveBeenCalledWith({ href: '/news/n1' }));
+    await waitFor(() => expect(mockRedirect).toHaveBeenCalledWith({ href: '/villa/noticia/gran-noticia_n1' }));
     expect(canEdit).toHaveBeenCalledWith('author', ['author']);
   });
 

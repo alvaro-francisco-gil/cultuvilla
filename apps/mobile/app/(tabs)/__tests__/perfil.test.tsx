@@ -188,7 +188,7 @@ describe('ProfileScreen — Grupos & Peñas', () => {
   });
 
   function seedActiveMunicipalityWith(
-    orgs: { id: string; name: string; type: string; images: string[] }[],
+    orgs: { id: string; name: string; type: string; images: string[]; villageSlug: string }[],
     memberships: { orgId: string; role: 'admin' | 'member' }[],
   ) {
     mockProfile.activeMunicipalityId = 'mun-1';
@@ -205,8 +205,8 @@ describe('ProfileScreen — Grupos & Peñas', () => {
   it('shows each section title only when the user belongs to that kind of org', async () => {
     seedActiveMunicipalityWith(
       [
-        { id: 'org-aso', name: 'Asociación Cultural', type: 'asociación', images: [] },
-        { id: 'org-pena', name: 'Peña El Bote', type: 'peña', images: [] },
+        { id: 'org-aso', name: 'Asociación Cultural', type: 'asociación', images: [], villageSlug: 'villa' },
+        { id: 'org-pena', name: 'Peña El Bote', type: 'peña', images: [], villageSlug: 'villa' },
       ],
       [
         { orgId: 'org-aso', role: 'member' },
@@ -222,7 +222,7 @@ describe('ProfileScreen — Grupos & Peñas', () => {
 
   it('counts a peña membership in the Grupos profile stat', async () => {
     seedActiveMunicipalityWith(
-      [{ id: 'org-pena', name: 'Peña El Bote', type: 'peña', images: [] }],
+      [{ id: 'org-pena', name: 'Peña El Bote', type: 'peña', images: [], villageSlug: 'villa' }],
       [{ orgId: 'org-pena', role: 'member' }],
     );
 
@@ -248,7 +248,7 @@ describe('ProfileScreen — Grupos & Peñas', () => {
 
   it('hides the Peñas section when the user only belongs to a non-peña org', async () => {
     seedActiveMunicipalityWith(
-      [{ id: 'org-aso', name: 'Asociación Cultural', type: 'asociación', images: [] }],
+      [{ id: 'org-aso', name: 'Asociación Cultural', type: 'asociación', images: [], villageSlug: 'villa' }],
       [{ orgId: 'org-aso', role: 'member' }],
     );
     const { getByText, queryByText } = render(<ProfileScreen />);
@@ -258,12 +258,12 @@ describe('ProfileScreen — Grupos & Peñas', () => {
     expect(queryByText('profile.peñasSection.title')).toBeNull();
   });
 
-  it('routes a peña membership to the Peñas scroll and a non-peña to Grupos, each linking to /o/:id', async () => {
+  it('routes a peña membership to the Peñas scroll and a non-peña to Grupos, each linking to its village-first org page', async () => {
     seedActiveMunicipalityWith(
       [
-        { id: 'org-aso', name: 'Asociación Cultural', type: 'asociación', images: [] },
-        { id: 'org-pena', name: 'Peña El Bote', type: 'peña', images: [] },
-        { id: 'org-other', name: 'No soy miembro', type: 'peña', images: [] },
+        { id: 'org-aso', name: 'Asociación Cultural', type: 'asociación', images: [], villageSlug: 'villa' },
+        { id: 'org-pena', name: 'Peña El Bote', type: 'peña', images: [], villageSlug: 'villa' },
+        { id: 'org-other', name: 'No soy miembro', type: 'peña', images: [], villageSlug: 'villa' },
       ],
       [
         { orgId: 'org-aso', role: 'admin' },
@@ -282,10 +282,10 @@ describe('ProfileScreen — Grupos & Peñas', () => {
     expect(queryByTestId('org-card-No soy miembro')).toBeNull();
 
     fireEvent.press(getByTestId('org-card-Asociación Cultural'));
-    expect(expoRouter.router.push).toHaveBeenCalledWith('/o/org-aso');
+    expect(expoRouter.router.push).toHaveBeenCalledWith('/villa/entidad/asociacion-cultural_org-aso');
 
     fireEvent.press(getByTestId('org-card-Peña El Bote'));
-    expect(expoRouter.router.push).toHaveBeenCalledWith('/o/org-pena');
+    expect(expoRouter.router.push).toHaveBeenCalledWith('/villa/entidad/pena-el-bote_org-pena');
   });
 });
 

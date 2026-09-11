@@ -11,13 +11,14 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ villageId: 'm1', placeId: 'pl1' }),
+  useLocalSearchParams: () => ({ pueblo: 'villa', lugar: 'la-plaza_pl1' }),
   useFocusEffect: (cb: () => void) => {
     const React = require('react');
     React.useEffect(() => cb(), [cb]);
   },
   router: { back: jest.fn(), push: jest.fn(), canGoBack: () => true, replace: jest.fn() },
 }));
+jest.mock('../../../../lib/navigation/VillageRouteGate');
 jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../../lib/deeplink/useShareDeepLink', () => ({ useShareDeepLink: () => jest.fn() }));
 jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({
@@ -26,7 +27,14 @@ jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getPlace: jest.fn().mockResolvedValue({ id: 'pl1', name: 'La Plaza', kind: 'plaza', images: [], description: 'desc' }),
 }));
-jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({ getPlaceViewLink: () => 'https://x' }));
+jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({
+  getPlaceViewLink: () => ({
+    url: 'https://x/villa/lugar/la-plaza_pl1',
+    path: '/villa/lugar/la-plaza_pl1',
+    kind: 'content',
+    resource: 'place',
+  }),
+}));
 jest.mock('@cultuvilla/shared/services/personService', () => ({
   getPersonsByBurialPlace: jest.fn().mockResolvedValue([]),
   updatePerson: jest.fn().mockResolvedValue(undefined),
@@ -154,7 +162,7 @@ describe('PlaceDetailScreen', () => {
     expect(getByTestId('buried-edit-person-name')).toHaveTextContent('Antigua Sin Fecha');
     expect(queryByText('village.placeDetail.deathDateUnknown')).toBeNull();
     expect(queryByText('village.placeDetail.editBurialTitle')).toBeNull();
-    expect(router.push).not.toHaveBeenCalledWith('/person/p-old');
+    expect(router.push).not.toHaveBeenCalledWith('/persona/p-old');
   });
 
   it('asks for the viewer\'s own burials and marks a private one with a lock', async () => {

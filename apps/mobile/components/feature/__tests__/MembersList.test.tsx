@@ -98,14 +98,14 @@ test('opens the linked user profile from the name or avatar area', async () => {
   render(<MembersList villageId="m1" />);
   await waitFor(() => expect(screen.getByTestId('person-profile-p1')).toBeTruthy());
   fireEvent.press(screen.getByTestId('person-profile-p1'));
-  expect(mockPush).toHaveBeenCalledWith('/user/user1');
+  expect(mockPush).toHaveBeenCalledWith('/usuario/user1');
 });
 
 test('opens a dependent persona profile when no user account is linked', async () => {
   render(<MembersList villageId="m1" />);
   await waitFor(() => expect(screen.getByTestId('person-profile-p2')).toBeTruthy());
   fireEvent.press(screen.getByTestId('person-profile-p2'));
-  expect(mockPush).toHaveBeenCalledWith('/person/p2');
+  expect(mockPush).toHaveBeenCalledWith('/persona/p2');
 });
 
 // A private dependent stays in the census by name, but their card is

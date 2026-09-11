@@ -31,7 +31,7 @@ binary's behaviour, and a mismatch gets the app pulled, not warned. So:
   is what keeps camera, microphone, background location and legacy storage out
   of the manifest. Removing a block is a declaration change.
 - The privacy policy ([../legal/politica-de-privacidad.md](../legal/politica-de-privacidad.md),
-  served at `/legal/privacy`) must be a superset of both forms.
+  served at `/legal/privacidad`) must be a superset of both forms.
 
 ## Status of the store-side blockers
 
@@ -51,3 +51,8 @@ binary's behaviour, and a mismatch gets the app pulled, not warned. So:
   [play-declarations.md](play-declarations.md#app-access-sign-in-details).
 - ⚠️ **Sign in with Apple** (guideline 4.8) before the first iOS submission,
   while Google Sign-In is on the login screen.
+
+> **Legal URLs moved to Spanish (2026-09).** The pages are now `/legal/privacidad`
+> and `/legal/terminos`; Hosting 301s the old `/legal/privacy` and `/legal/terms`,
+> so the URLs already declared in App Store Connect and Play Console keep working.
+> Update both consoles to the new URLs at the next listing edit.

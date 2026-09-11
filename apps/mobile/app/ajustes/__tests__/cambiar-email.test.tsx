@@ -66,10 +66,10 @@ describe('ChangeEmailScreen', () => {
     expect(await findByText('settings.changeEmail.error.generic')).toBeTruthy();
   });
 
-  it('redirects to /settings and renders no form when the account cannot change email', async () => {
+  it('redirects to /ajustes and renders no form when the account cannot change email', async () => {
     mockUseAuth.mockReturnValue({ changeEmail: mockChangeEmail, canChangeEmail: false });
     const { queryByText } = render(<ChangeEmailScreen />);
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/settings'));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/ajustes'));
     expect(queryByText('settings.changeEmail.submit')).toBeNull();
   });
 });

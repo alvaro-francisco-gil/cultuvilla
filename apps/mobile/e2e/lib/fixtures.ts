@@ -17,17 +17,26 @@ export const fixtures = {
   },
   // Auth-only account with no profile — signing in diverts to complete-profile.
   fresh: { uid: 'e2e-fresh', email: 'e2e-fresh@cultuvilla.test' },
-  village: { docId: 'e2e-village-altozano', name: 'Altozano de Prueba' },
-  joinVillage: { docId: 'e2e-village-join', name: 'Pueblo de Unión E2E' },
+  village: { docId: 'e2e-village-altozano', slug: 'altozano-de-prueba', name: 'Altozano de Prueba' },
+  joinVillage: { docId: 'e2e-village-join', slug: 'pueblo-de-union-e2e', name: 'Pueblo de Unión E2E' },
   // Active but organizer-less village (organizerId null) — organizer-request target.
-  organizerlessVillage: { docId: 'e2e-village-solana', name: 'Solana de Prueba' },
-  org: { docId: 'e2e-org-ayto' },
-  event: { docId: 'e2e-event-fiesta', title: 'Fiesta de Prueba E2E' },
+  organizerlessVillage: { docId: 'e2e-village-solana', slug: 'solana-de-prueba', name: 'Solana de Prueba' },
+  org: { docId: 'e2e-org-ayto', path: '/altozano-de-prueba/entidad/ayuntamiento-de-altozano_e2e-org-ayto' },
+  event: {
+    docId: 'e2e-event-fiesta',
+    title: 'Fiesta de Prueba E2E',
+    path: '/altozano-de-prueba/evento/fiesta-de-prueba-e2e_e2e-event-fiesta',
+  },
   capacityEvent: {
     docId: 'e2e-event-aforo',
     title: 'Evento con Aforo E2E',
     seededRegistrationId: 'e2e-reg-admin-confirmed',
+    path: '/altozano-de-prueba/evento/evento-con-aforo-e2e_e2e-event-aforo',
   },
   dependentPerson: { docId: 'e2e-person-dependent', givenName: 'Lucía' },
-  place: { docId: 'e2e-place-plaza', name: 'Plaza E2E Visible' },
+  place: {
+    docId: 'e2e-place-plaza',
+    name: 'Plaza E2E Visible',
+    path: '/altozano-de-prueba/lugar/plaza-e2e-visible_e2e-place-plaza',
+  },
 } as const;

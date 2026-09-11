@@ -6,10 +6,11 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ villageId: 'm1', entryId: 'h1' }),
+  useLocalSearchParams: () => ({ pueblo: 'villa', acontecimiento: 'carta-puebla_h1' }),
   useFocusEffect: (cb: () => void) => cb(),
   router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn(), push: jest.fn() },
 }));
+jest.mock('../../../../lib/navigation/VillageRouteGate');
 jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: jest.fn(),
@@ -47,6 +48,7 @@ jest.mock('@cultuvilla/shared/services/commentsService', () => ({
 }));
 
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+import { getHistoryEntry } from '@cultuvilla/shared/services/historyService';
 
 function mockCaps(canEdit: boolean) {
   (useEntityCapabilities as jest.Mock).mockReturnValue({
@@ -69,6 +71,7 @@ describe('HistoryEntryDetailScreen', () => {
     expect(getByText('El rey concede fueros al concejo.')).toBeTruthy();
     expect(getByText('Pergamino original')).toBeTruthy();
     expect(getByText('Archivo Histórico Provincial')).toBeTruthy();
+    expect(getHistoryEntry).toHaveBeenCalledWith('h1');
   });
 
   it('lets anyone share it', async () => {

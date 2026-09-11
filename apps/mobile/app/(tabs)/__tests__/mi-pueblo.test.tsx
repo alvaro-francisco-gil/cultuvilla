@@ -225,25 +225,25 @@ describe('VillageTabScreen', () => {
     it('tapping a barrio card pushes the barrio detail route', async () => {
       const { findByText } = render(<VillageTabScreen />);
       fireEvent.press(await findByText('El Barrio', undefined, { timeout: 5000 }));
-      expect(router.push).toHaveBeenCalledWith('/village/mun1/barrio/barrio1');
+      expect(router.push).toHaveBeenCalledWith('/villa/barrio/el-barrio_barrio1');
     });
 
     it('tapping a lugar card pushes the place detail route', async () => {
       const { findByText } = render(<VillageTabScreen />);
       fireEvent.press(await findByText('La Iglesia', undefined, { timeout: 5000 }));
-      expect(router.push).toHaveBeenCalledWith('/village/mun1/place/place1');
+      expect(router.push).toHaveBeenCalledWith('/villa/lugar/la-iglesia_place1');
     });
 
     it('tapping an agrupación card pushes the org detail route', async () => {
       const { findByText } = render(<VillageTabScreen />);
       fireEvent.press(await findByText('Ayuntamiento', undefined, { timeout: 5000 }));
-      expect(router.push).toHaveBeenCalledWith('/o/org1');
+      expect(router.push).toHaveBeenCalledWith('/villa/entidad/ayuntamiento_org1');
     });
 
     it('tapping a peña card pushes the org detail route', async () => {
       const { findByText } = render(<VillageTabScreen />);
       fireEvent.press(await findByText('Peña La Juerga', undefined, { timeout: 5000 }));
-      expect(router.push).toHaveBeenCalledWith('/o/org2');
+      expect(router.push).toHaveBeenCalledWith('/villa/entidad/pena-la-juerga_org2');
     });
   });
 

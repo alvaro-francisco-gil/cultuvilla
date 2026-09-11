@@ -8,10 +8,11 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ villageId: 'm1', placeId: 'p1' }),
+  useLocalSearchParams: () => ({ pueblo: 'villa', lugar: 'plaza_p1' }),
   Redirect: (props: { href: string }) => mockRedirect(props),
   router: { back: jest.fn(), replace: jest.fn() },
 }));
+jest.mock('../../../../lib/navigation/VillageRouteGate');
 jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: jest.fn(),
 }));
@@ -67,7 +68,6 @@ const place = (over: Record<string, unknown> = {}) => ({
   description: '',
   images: [],
   municipalityId: 'm1',
-  villageSlug: 'villa',
   proposedBy: 'creator',
   contributorUserIds: [],
   contributorOrgIds: [],
@@ -101,7 +101,7 @@ describe('PlaceEditScreen guard', () => {
   it('redirects to the place detail when the viewer can neither manage nor edit', async () => {
     mockCaps({ canManage: false, uid: 'u1', canEdit: false });
     render(<PlaceEditScreen />);
-    await waitFor(() => expect(mockRedirect).toHaveBeenCalledWith({ href: '/village/m1/place/p1' }));
+    await waitFor(() => expect(mockRedirect).toHaveBeenCalledWith({ href: '/villa/lugar/plaza_p1' }));
   });
 
   it('lets the creator edit their own place without being a village admin', async () => {

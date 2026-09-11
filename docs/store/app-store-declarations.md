@@ -29,7 +29,7 @@ el prompt de App Tracking Transparency.
 Otros datos que Apple lista y **no** recogemos: Health & Fitness, Financial Info,
 Contacts, Search History, Browsing History, Purchases, Audio Data.
 
-**Privacy Policy URL**: `https://cultuvilla.es/legal/privacy`
+**Privacy Policy URL**: `https://cultuvilla.es/legal/privacidad`
 **Account deletion**: obligatorio desde 2022 para toda app con registro — existe
 (Ajustes → Eliminar cuenta). Indicar la ruta en las notas de revisión.
 

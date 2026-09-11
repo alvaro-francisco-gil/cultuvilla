@@ -1,5 +1,10 @@
 # Deep link service: HTTPS Universal/App Links over a per-env host
 
+> **URL shape superseded** by [spanish-village-urls](spanish-village-urls.md): paths are
+> now Spanish and village-first, built by `packages/shared/src/utils/urls.ts`, and the
+> apps claim the whole host. The transport decisions below (HTTPS links, per-env
+> host, AASA/assetlinks per env, no interstitial) still stand.
+
 ## Context
 
 Cultuvilla resources (events, news, villages, organizations) needed shareable

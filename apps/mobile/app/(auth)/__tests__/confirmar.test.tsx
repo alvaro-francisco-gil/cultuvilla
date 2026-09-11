@@ -63,7 +63,7 @@ describe('<FinishScreen> re-auth wedge', () => {
 
     await waitFor(() => expect(mockCompleteReauth).toHaveBeenCalled());
     expect(mockClearPendingReauth).not.toHaveBeenCalled();
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/settings'));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/ajustes'));
   });
 
   it('waits for the initial auth state before deciding whether a session is present', async () => {
