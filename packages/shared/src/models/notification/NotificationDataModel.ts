@@ -31,6 +31,10 @@ export const NotificationTypeSchema = z.enum([
   // `entityKind` says which. Six near-identical types would have meant six
   // places to update every time the family grows.
   'village_entity_published',
+  // The village's post-fiestas Wrapped finished computing and is waiting on a
+  // village admin. It carries `municipalityId` and no entity: a Wrapped is not
+  // an EntityKind, and the review screen is reached from the village.
+  'village_wrapped_ready',
 ]);
 export type NotificationType = z.infer<typeof NotificationTypeSchema>;
 

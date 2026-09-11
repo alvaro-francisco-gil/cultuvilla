@@ -1395,6 +1395,22 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // villageWrapped — the post-fiestas summary, one doc per village + year +
+    // block. Function-owned end to end: it is computed, rendered and published
+    // by Cloud Functions, and released or binned through
+    // respondToVillageWrapped, never by a client write.
+    //
+    // A published Wrapped reads publicly because the images it points at are
+    // made to be forwarded — a recipient who is not a member, or not signed in,
+    // must still be able to open the link. A draft is the admins' to decide on
+    // and is readable only by them.
+    match /villageWrapped/{wrappedId} {
+      allow read: if resource.data.status == 'published'
+        || isVillageAdmin(resource.data.municipalityId)
+        || isAppAdmin();
+      allow write: if false;
+    }
+
     // festivalPosters — top-level, scoped by municipalityId field (mirrors
     // the /places proposal pattern: members propose, admins/app-admins
     // approve/reject and may act directly).

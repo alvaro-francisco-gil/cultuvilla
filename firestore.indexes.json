@@ -423,6 +423,23 @@
       ]
     },
     {
+      "collectionGroup": "villageWrapped",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "autoPublishAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "villageWrapped",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "municipalityId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "windowStart", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "joinRequests",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
