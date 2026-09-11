@@ -1,23 +1,27 @@
+import { parseEntityRef } from '@cultuvilla/shared/utils';
+import { useVillageRoute, withVillageRoute } from '../../../lib/navigation/VillageRouteGate';
 import { useCallback, useEffect, useState } from 'react';
 import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
-import { Text } from '../../../../components/primitives/Text';
-import { VStack } from '../../../../components/primitives/VStack';
-import { NaturalImage } from '../../../../components/primitives/NaturalImage';
-import { EntityDetailScaffold } from '../../../../components/feature/EntityDetailScaffold';
-import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
-import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
-import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
-import { EntityComments } from '../../../../components/feature/EntityComments';
-import { EntityContributors } from '../../../../components/feature/EntityContributors';
-import { useT } from '../../../../lib/i18n';
+import { Text } from '../../../components/primitives/Text';
+import { VStack } from '../../../components/primitives/VStack';
+import { NaturalImage } from '../../../components/primitives/NaturalImage';
+import { EntityDetailScaffold } from '../../../components/feature/EntityDetailScaffold';
+import type { EntityDetailAction } from '../../../components/feature/EntityDetailHeader';
+import { ENTITY_FALLBACK_ICON } from '../../../lib/entities/registry';
+import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
+import { EntityComments } from '../../../components/feature/EntityComments';
+import { EntityContributors } from '../../../components/feature/EntityContributors';
+import { useT } from '../../../lib/i18n';
 import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 import { getFestivalPoster } from '@cultuvilla/shared/services/festivalPosterService';
 import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import type { FestivalPosterWithId } from '@cultuvilla/shared/services/festivalPosterService';
 import { formatFestivalPosterDates } from '@cultuvilla/shared/utils';
 
-export default function FestivalPosterDetailScreen() {
-  const { villageId, posterId } = useLocalSearchParams<{ villageId: string; posterId: string }>();
+function FestivalPosterDetailScreen() {
+  const { municipalityId: villageId, slug: villageSlug } = useVillageRoute();
+  const { cartel: cartelRef } = useLocalSearchParams<{ cartel: string }>();
+  const posterId = parseEntityRef(cartelRef ?? '') ?? '';
   const { t } = useT();
   const { canManage, canEdit } = useEntityCapabilities(villageId);
   const [poster, setPoster] = useState<FestivalPosterWithId | null>(null);
@@ -106,3 +110,5 @@ export default function FestivalPosterDetailScreen() {
     </EntityDetailScaffold>
   );
 }
+
+export default withVillageRoute(FestivalPosterDetailScreen);

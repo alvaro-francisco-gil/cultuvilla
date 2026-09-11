@@ -1,5 +1,5 @@
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import DeleteAccountScreen from '../delete-account';
+import DeleteAccountScreen from '../eliminar-cuenta';
 
 jest.mock('../../../lib/i18n', () => ({
   useT: () => ({

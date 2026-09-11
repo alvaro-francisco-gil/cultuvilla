@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react-native';
-import CommunityScreen from '../community';
-import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+import CommunityScreen from '../comunidad';
+import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 
 // ScreenHeader reads safe-area insets; provide them without a SafeAreaProvider.
 jest.mock('react-native-safe-area-context', () => ({

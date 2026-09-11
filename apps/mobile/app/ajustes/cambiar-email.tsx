@@ -1,3 +1,4 @@
+import { routes } from '../../lib/navigation/routes';
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { Screen } from '../../components/primitives/Screen';
@@ -29,7 +30,7 @@ export default function ChangeEmailScreen() {
   // rather than relying only on the (disabled) entry row: a non-email-only
   // account (e.g. Google) must not reach the change-email form.
   useEffect(() => {
-    if (!canChangeEmail) router.replace('/settings');
+    if (!canChangeEmail) router.replace(routes.settings);
   }, [canChangeEmail]);
 
   if (!canChangeEmail) return null;

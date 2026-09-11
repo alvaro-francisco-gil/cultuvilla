@@ -1,15 +1,16 @@
+import { eventHref } from '../lib/navigation/routes';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, View } from 'react-native';
 import { router } from 'expo-router';
-import { Screen } from '../../components/primitives/Screen';
-import { Text } from '../../components/primitives/Text';
-import { ErrorState } from '../../components/primitives/ErrorState';
-import { EventCard } from '../../components/feature/EventCard';
-import { SegmentedToggle } from '../../components/feature/SegmentedToggle';
-import { ScreenHeader } from '../../components/layout/ScreenHeader';
-import { useAuth } from '../../lib/auth/useAuth';
-import { useT } from '../../lib/i18n';
-import { splitEventsByTime } from '../../lib/registrations/splitEventsByTime';
+import { Screen } from '../components/primitives/Screen';
+import { Text } from '../components/primitives/Text';
+import { ErrorState } from '../components/primitives/ErrorState';
+import { EventCard } from '../components/feature/EventCard';
+import { SegmentedToggle } from '../components/feature/SegmentedToggle';
+import { ScreenHeader } from '../components/layout/ScreenHeader';
+import { useAuth } from '../lib/auth/useAuth';
+import { useT } from '../lib/i18n';
+import { splitEventsByTime } from '../lib/registrations/splitEventsByTime';
 import { getUserRegistrationsAcrossEvents } from '@cultuvilla/shared/services/registrationService';
 import { getEvent } from '@cultuvilla/shared/services/eventService';
 import type { EventData } from '@cultuvilla/shared/models/event/EventDataModel';
@@ -101,7 +102,7 @@ export default function MyRegistrationsScreen() {
                 villageCoverImage: item.villageCoverImage,
                 commentCount: item.commentCount,
               }}
-              onPress={(id) => router.push(`/event/${id}`)}
+              onPress={() => router.push(eventHref(item))}
             />
           )}
         />

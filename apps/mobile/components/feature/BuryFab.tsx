@@ -1,3 +1,4 @@
+import { personHref } from '../../lib/navigation/routes';
 import { useCallback, useRef, useState } from 'react';
 import { Animated, Pressable as RNPressable, Text } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
@@ -128,7 +129,7 @@ export function BuryFab({ municipalityId, placeId, userId, buriedHereIds, onChan
         }}
         onCreateNew={() => {
           pendingCreate.current = true;
-          router.push('/person/new');
+          router.push(personHref('new'));
         }}
         onConfirm={handleConfirm}
       />

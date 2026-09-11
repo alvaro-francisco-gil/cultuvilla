@@ -1,5 +1,5 @@
 import { render, waitFor } from '@testing-library/react-native';
-import OrgDetailScreen from '../[orgId]/index';
+import OrgDetailScreen from '../[entidad]/index';
 
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
@@ -23,6 +23,7 @@ jest.mock('@cultuvilla/shared/services/organizationService', () => ({
     images: [],
     description: 'd',
     municipalityId: 'm1',
+    villageSlug: 'villa',
   }),
 }));
 jest.mock('@cultuvilla/shared/services/orgMemberService', () => ({

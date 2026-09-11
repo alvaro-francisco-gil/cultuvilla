@@ -1,3 +1,4 @@
+import { personHref } from '../../lib/navigation/routes';
 import { useCallback, useRef, useState } from 'react';
 import { Animated, Pressable as RNPressable, Text } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
@@ -41,6 +42,8 @@ export interface RegisterFabProps {
   name: string;
   /** The event's title — what a shared seat-claim link names in its message. */
   eventTitle: string;
+  /** The event's pueblo slug — a seat-claim link is village-first like every other URL. */
+  villageSlug: string;
   /** When true, adding new attendees first requires a shared phone. */
   telephoneRequired: boolean;
   /** The event's custom sign-up fields, answered once per new attendee. */
@@ -72,6 +75,7 @@ export function RegisterFab({
   personId,
   name,
   eventTitle,
+  villageSlug,
   telephoneRequired,
   signupFields,
   villageId,
@@ -297,7 +301,10 @@ export function RegisterFab({
   async function shareSeat(token: string) {
     // `deeplink.share.event.invite` reads "Te he guardado una plaza en «{name}»",
     // so the slot is the event, not whoever is sending it.
-    await shareDeepLink(getSeatClaimLink(eventId, token), eventTitle);
+    await shareDeepLink(
+      getSeatClaimLink({ id: eventId, title: eventTitle, villageSlug }, token),
+      eventTitle,
+    );
   }
 
   function handleCancelGroup(regId: string) {
@@ -433,7 +440,7 @@ export function RegisterFab({
           busy={busy}
           autoSelectIds={autoSelectIds}
           onClose={() => setSheetOpen(false)}
-          onCreateNew={() => router.push('/person/new')}
+          onCreateNew={() => router.push(personHref('new'))}
           onShareSeat={(token) => void shareSeat(token)}
           onCancelGroup={handleCancelGroup}
           onConfirm={(ids, openSeats, phone, answers) => {
@@ -451,7 +458,7 @@ export function RegisterFab({
           busy={busy}
           autoSelectIds={autoSelectIds}
           onClose={() => setSheetOpen(false)}
-          onCreateNew={() => router.push('/person/new')}
+          onCreateNew={() => router.push(personHref('new'))}
           onConfirm={handleConfirm}
         />
       )}

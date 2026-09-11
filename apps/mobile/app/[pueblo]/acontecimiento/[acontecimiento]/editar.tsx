@@ -1,13 +1,16 @@
+import { entityRefHref, villageSectionHref } from '../../../../lib/navigation/routes';
+import { parseEntityRef } from '@cultuvilla/shared/utils';
+import { useVillageRoute, withVillageRoute } from '../../../../lib/navigation/VillageRouteGate';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, View } from 'react-native';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { Screen } from '../../../../../components/primitives/Screen';
-import { Text } from '../../../../../components/primitives/Text';
-import { ScreenHeader } from '../../../../../components/layout/ScreenHeader';
-import { DeleteHeaderButton } from '../../../../../components/feature/DeleteHeaderButton';
-import { HistoryEntryForm } from '../../../../../components/feature/history/HistoryEntryForm';
-import { useT } from '../../../../../lib/i18n';
-import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
+import { Screen } from '../../../../components/primitives/Screen';
+import { Text } from '../../../../components/primitives/Text';
+import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
+import { DeleteHeaderButton } from '../../../../components/feature/DeleteHeaderButton';
+import { HistoryEntryForm } from '../../../../components/feature/history/HistoryEntryForm';
+import { useT } from '../../../../lib/i18n';
+import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 import {
   deleteHistoryEntry,
   getHistoryEntry,
@@ -16,8 +19,10 @@ import {
 } from '@cultuvilla/shared/services/historyService';
 import { hideContent } from '@cultuvilla/shared/services/moderationService';
 
-export default function EditHistoryEntryScreen() {
-  const { villageId, entryId } = useLocalSearchParams<{ villageId: string; entryId: string }>();
+function EditHistoryEntryScreen() {
+  const { municipalityId: villageId, slug: villageSlug } = useVillageRoute();
+  const { acontecimiento: acontecimientoRef } = useLocalSearchParams<{ acontecimiento: string }>();
+  const entryId = parseEntityRef(acontecimientoRef ?? '') ?? '';
   const { t } = useT();
   const { canManage, canEdit, canDelete, loading: capLoading } = useEntityCapabilities(villageId);
   const [entry, setEntry] = useState<HistoryEntryWithId | null>(null);
@@ -52,13 +57,13 @@ export default function EditHistoryEntryScreen() {
     );
   }
   if (!canEdit(entry.createdBy)) {
-    return <Redirect href={`/village/${villageId}/history-entry/${entryId}`} />;
+    return <Redirect href={entityRefHref('historyEntry', villageSlug, acontecimientoRef ?? '')} />;
   }
 
   // An admin *moderates* (audited soft-hide via the callable); an author
   // withdraws their own still-active entry outright, which the rules permit.
   function remove() {
-    const done = () => router.replace(`/village/${villageId}/history` as never);
+    const done = () => router.replace(villageSectionHref(villageSlug, 'historia'));
     return canManage
       ? hideContent({ collection: 'historyEntries', docId: entryId }).then(done)
       : deleteHistoryEntry(entryId).then(done);
@@ -96,3 +101,5 @@ export default function EditHistoryEntryScreen() {
     </Screen>
   );
 }
+
+export default withVillageRoute(EditHistoryEntryScreen);

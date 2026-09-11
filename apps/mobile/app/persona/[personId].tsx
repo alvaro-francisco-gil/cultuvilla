@@ -1,3 +1,4 @@
+import { routes } from '../../lib/navigation/routes';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -78,7 +79,7 @@ export default function PersonDetailScreen() {
     // the persona may have been reached by deep link (no history), and its detail
     // no longer exists after deletion — a back would fire the "GO_BACK not
     // handled" navigator warning.
-    return deletePerson(person.id).then(() => router.replace('/(tabs)/profile'));
+    return deletePerson(person.id).then(() => router.replace(routes.profile));
   };
 
   // Residence links for the non-account (links-mode) editor. Seeded from the

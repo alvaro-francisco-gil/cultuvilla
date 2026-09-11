@@ -1,3 +1,4 @@
+import { createEventHref, createNewsHref, eventHref, newsHref } from '../../lib/navigation/routes';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
@@ -97,10 +98,10 @@ export default function FeedScreen() {
   // requireAuth returns true only when signed in; otherwise it opens the
   // RegisterSheet and we skip navigation.
   const createEvent = useCallback(() => {
-    if (gate.requireAuth('/event/new', t('guest.createEvent'))) router.push('/event/new');
+    if (gate.requireAuth(createEventHref(), t('guest.createEvent'))) router.push(createEventHref());
   }, [gate, t]);
   const createNews = useCallback(() => {
-    if (gate.requireAuth('/news/new', t('guest.createNews'))) router.push('/news/new');
+    if (gate.requireAuth(createNewsHref(), t('guest.createNews'))) router.push(createNewsHref());
   }, [gate, t]);
   const { width } = useWindowDimensions();
   const pagerRef = useRef<ScrollView>(null);
@@ -485,11 +486,11 @@ export default function FeedScreen() {
               confirmedCount: item.confirmedCount,
             }}
             registration={ribbonFor(item.id)}
-            onPress={(id) => {
+            onPress={() => {
               if (search.trim().length > 0) {
                 observability.trackEvent(OBSERVABILITY_EVENTS.SEARCH_RESULT_SELECTED, { surface: 'home_feed' });
               }
-              router.push(`/event/${id}`);
+              router.push(eventHref(item));
             }}
           />
         )}
@@ -542,11 +543,11 @@ export default function FeedScreen() {
           <NewsCard
             post={item}
             fallbackImageUri={null}
-            onPress={(id) => {
+            onPress={() => {
               if (search.trim().length > 0) {
                 observability.trackEvent(OBSERVABILITY_EVENTS.SEARCH_RESULT_SELECTED, { surface: 'home_feed' });
               }
-              router.push(`/news/${id}`);
+              router.push(newsHref(item));
             }}
           />
         )}

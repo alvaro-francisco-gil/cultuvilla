@@ -1,3 +1,4 @@
+import { routes } from '../../lib/navigation/routes';
 import { router } from 'expo-router';
 import { Screen } from '../../components/primitives';
 import { AppHeader } from '../../components/layout/AppHeader';
@@ -15,7 +16,7 @@ export default function ProfileScreen() {
     if (!user) return;
     await setActiveMunicipality(user.uid, municipalityId);
     await refreshProfile();
-    router.replace('/(tabs)/village');
+    router.replace(routes.myVillage);
   }
 
   if (!user) return null;

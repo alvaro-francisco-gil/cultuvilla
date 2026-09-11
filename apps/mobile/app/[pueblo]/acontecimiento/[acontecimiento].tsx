@@ -1,16 +1,18 @@
+import { parseEntityRef } from '@cultuvilla/shared/utils';
+import { useVillageRoute, withVillageRoute } from '../../../lib/navigation/VillageRouteGate';
 import { useCallback, useEffect, useState } from 'react';
 import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
-import { Text } from '../../../../components/primitives/Text';
-import { VStack } from '../../../../components/primitives/VStack';
-import { NaturalImage } from '../../../../components/primitives/NaturalImage';
-import { EntityDetailScaffold } from '../../../../components/feature/EntityDetailScaffold';
-import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
-import { EntityComments } from '../../../../components/feature/EntityComments';
-import { RichText } from '../../../../components/feature/RichText';
-import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
-import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
-import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
-import { useT } from '../../../../lib/i18n';
+import { Text } from '../../../components/primitives/Text';
+import { VStack } from '../../../components/primitives/VStack';
+import { NaturalImage } from '../../../components/primitives/NaturalImage';
+import { EntityDetailScaffold } from '../../../components/feature/EntityDetailScaffold';
+import type { EntityDetailAction } from '../../../components/feature/EntityDetailHeader';
+import { EntityComments } from '../../../components/feature/EntityComments';
+import { RichText } from '../../../components/feature/RichText';
+import { ENTITY_FALLBACK_ICON } from '../../../lib/entities/registry';
+import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
+import { useShareDeepLink } from '../../../lib/deeplink/useShareDeepLink';
+import { useT } from '../../../lib/i18n';
 import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 import {
   getHistoryEntry,
@@ -20,8 +22,10 @@ import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { getHistoryEntryViewLink } from '@cultuvilla/shared/services/deepLinkService';
 import { formatHistoryEntryDate } from '@cultuvilla/shared/utils';
 
-export default function HistoryEntryDetailScreen() {
-  const { villageId, entryId } = useLocalSearchParams<{ villageId: string; entryId: string }>();
+function HistoryEntryDetailScreen() {
+  const { municipalityId: villageId, slug: villageSlug } = useVillageRoute();
+  const { acontecimiento: acontecimientoRef } = useLocalSearchParams<{ acontecimiento: string }>();
+  const entryId = parseEntityRef(acontecimientoRef ?? '') ?? '';
   const { t } = useT();
   const share = useShareDeepLink();
   const { canManage, canEdit } = useEntityCapabilities(villageId);
@@ -72,7 +76,7 @@ export default function HistoryEntryDetailScreen() {
         {
           icon: 'share-outline',
           accessibilityLabel: t('deeplink.shareViewLabel'),
-          onPress: () => void share(getHistoryEntryViewLink(villageId, entry.id), entry.title),
+          onPress: () => void share(getHistoryEntryViewLink({ id: entry.id, title: entry.title, villageSlug }), entry.title),
         },
       ]
     : [];
@@ -144,3 +148,5 @@ export default function HistoryEntryDetailScreen() {
     </EntityDetailScaffold>
   );
 }
+
+export default withVillageRoute(HistoryEntryDetailScreen);

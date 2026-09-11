@@ -1,21 +1,24 @@
+import { entityRefHref, villageHref } from '../../../../lib/navigation/routes';
+import { parseEntityRef } from '@cultuvilla/shared/utils';
+import { useVillageRoute, withVillageRoute } from '../../../../lib/navigation/VillageRouteGate';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { useLocalSearchParams, Redirect, router } from 'expo-router';
-import { Screen } from '../../../../../components/primitives/Screen';
-import { Text } from '../../../../../components/primitives/Text';
-import { VStack } from '../../../../../components/primitives/VStack';
-import { Input } from '../../../../../components/primitives/Input';
-import { Button } from '../../../../../components/primitives/Button';
-import { FieldLabel } from '../../../../../components/primitives/FieldLabel';
-import { DateField } from '../../../../../components/primitives/DateField';
-import { MultiImagePickerRow } from '../../../../../components/feature/MultiImagePickerRow';
-import { OrganizerPicker } from '../../../../../components/feature/OrganizerPicker';
-import { ScreenHeader } from '../../../../../components/layout/ScreenHeader';
-import { DeleteHeaderButton } from '../../../../../components/feature/DeleteHeaderButton';
-import { sanitizeYear, datesToPayload } from '../../../../../components/feature/proposable/festivalPosterForm';
-import { useT } from '../../../../../lib/i18n';
-import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
-import { pickImageAsBlob } from '../../../../../lib/images';
+import { Screen } from '../../../../components/primitives/Screen';
+import { Text } from '../../../../components/primitives/Text';
+import { VStack } from '../../../../components/primitives/VStack';
+import { Input } from '../../../../components/primitives/Input';
+import { Button } from '../../../../components/primitives/Button';
+import { FieldLabel } from '../../../../components/primitives/FieldLabel';
+import { DateField } from '../../../../components/primitives/DateField';
+import { MultiImagePickerRow } from '../../../../components/feature/MultiImagePickerRow';
+import { OrganizerPicker } from '../../../../components/feature/OrganizerPicker';
+import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
+import { DeleteHeaderButton } from '../../../../components/feature/DeleteHeaderButton';
+import { sanitizeYear, datesToPayload } from '../../../../components/feature/proposable/festivalPosterForm';
+import { useT } from '../../../../lib/i18n';
+import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+import { pickImageAsBlob } from '../../../../lib/images';
 import {
   getFestivalPoster,
   updateFestivalPoster,
@@ -28,8 +31,10 @@ import {
 } from '@cultuvilla/shared/services/imageService';
 import type { VisibilityStatus } from '@cultuvilla/shared/models';
 
-export default function FestivalPosterEditScreen() {
-  const { villageId, posterId } = useLocalSearchParams<{ villageId: string; posterId: string }>();
+function FestivalPosterEditScreen() {
+  const { municipalityId: villageId, slug: villageSlug } = useVillageRoute();
+  const { cartel: cartelRef } = useLocalSearchParams<{ cartel: string }>();
+  const posterId = parseEntityRef(cartelRef ?? '') ?? '';
   const { t } = useT();
   const { canManage, canEdit, canDelete, uid, loading: capLoading } = useEntityCapabilities(villageId);
 
@@ -79,7 +84,7 @@ export default function FestivalPosterEditScreen() {
     );
   }
   if (!notFound && !canEdit(proposedBy)) {
-    return <Redirect href={`/village/${villageId}/festival-poster/${posterId}`} />;
+    return <Redirect href={entityRefHref('festivalPoster', villageSlug, cartelRef ?? '')} />;
   }
 
   // An admin *moderates* (audited soft-hide via the callable); a creator
@@ -87,7 +92,7 @@ export default function FestivalPosterEditScreen() {
   // rules permit directly.
   function removePoster() {
     if (!posterId || !villageId) return;
-    const done = () => router.replace(`/village/${villageId}`);
+    const done = () => router.replace(villageHref(villageSlug));
     return canManage
       ? hideContent({ collection: 'festivalPosters', docId: posterId }).then(done)
       : deleteFestivalPoster(posterId).then(done);
@@ -219,3 +224,5 @@ export default function FestivalPosterEditScreen() {
     </Screen>
   );
 }
+
+export default withVillageRoute(FestivalPosterEditScreen);

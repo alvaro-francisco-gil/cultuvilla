@@ -17,6 +17,7 @@ const mockVillage = {
   province: 'X',
   comunidadAutonoma: 'X',
   codigoINE: '1',
+  slug: 'villa',
   nameLower: 'villa',
   createdAt: new Date(),
   escudoUrl: null,

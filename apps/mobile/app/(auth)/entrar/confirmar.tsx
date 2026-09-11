@@ -1,11 +1,12 @@
+import { routes } from '../../../lib/navigation/routes';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
-import { Text } from '../../components/primitives';
-import { AuthCard, AuthHeader } from '../../components/auth';
-import { useAuth } from '../../lib/auth/useAuth';
-import { useT } from '../../lib/i18n';
+import { Text } from '../../../components/primitives';
+import { AuthCard, AuthHeader } from '../../../components/auth';
+import { useAuth } from '../../../lib/auth/useAuth';
+import { useT } from '../../../lib/i18n';
 
 type Status = 'pending' | 'completing' | 'error' | 'reauth-done';
 
@@ -73,7 +74,7 @@ export default function FinishScreen() {
       try {
         await completeReauth(url);
         setStatus('reauth-done');
-        router.replace('/settings');
+        router.replace(routes.settings);
       } catch (e) {
         setStatus('error');
         setError(e instanceof Error ? e.message : t('auth.error.unknown'));

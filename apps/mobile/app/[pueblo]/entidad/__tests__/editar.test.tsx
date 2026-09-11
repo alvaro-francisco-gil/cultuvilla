@@ -1,5 +1,5 @@
 import { render, waitFor } from '@testing-library/react-native';
-import OrgEditScreen from '../[orgId]/edit';
+import OrgEditScreen from '../[entidad]/editar';
 
 const mockRedirect = jest.fn((_props: { href: string }) => null);
 jest.mock('expo-router', () => ({
@@ -23,7 +23,7 @@ jest.mock('@cultuvilla/shared/services/imageService', () => ({
   deleteImageByURL: jest.fn(),
 }));
 
-import { useOrgCapabilities } from '../../../lib/auth/useOrgCapabilities';
+import { useOrgCapabilities } from '../../../../lib/auth/useOrgCapabilities';
 
 describe('OrgEditScreen guard', () => {
   beforeEach(() => jest.clearAllMocks());

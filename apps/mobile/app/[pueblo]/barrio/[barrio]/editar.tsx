@@ -1,21 +1,26 @@
+import { entityRefHref, villageHref } from '../../../../lib/navigation/routes';
+import { parseEntityRef } from '@cultuvilla/shared/utils';
+import { useVillageRoute, withVillageRoute } from '../../../../lib/navigation/VillageRouteGate';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { useLocalSearchParams, Redirect, router } from 'expo-router';
-import { Screen } from '../../../../../components/primitives/Screen';
-import { Text } from '../../../../../components/primitives/Text';
-import { ScreenHeader } from '../../../../../components/layout/ScreenHeader';
-import { ProposableForm } from '../../../../../components/feature/proposable/ProposableForm';
-import { DeleteHeaderButton } from '../../../../../components/feature/DeleteHeaderButton';
-import { useT } from '../../../../../lib/i18n';
-import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
-import { pickImageAsBlob } from '../../../../../lib/images';
+import { Screen } from '../../../../components/primitives/Screen';
+import { Text } from '../../../../components/primitives/Text';
+import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
+import { ProposableForm } from '../../../../components/feature/proposable/ProposableForm';
+import { DeleteHeaderButton } from '../../../../components/feature/DeleteHeaderButton';
+import { useT } from '../../../../lib/i18n';
+import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+import { pickImageAsBlob } from '../../../../lib/images';
 import { getBarrio, updateBarrio, deleteBarrio } from '@cultuvilla/shared/services/municipalityService';
 import { hideContent } from '@cultuvilla/shared/services/moderationService';
 import { deleteImageByURL, uploadBarrioImage } from '@cultuvilla/shared/services/imageService';
 import type { VisibilityStatus } from '@cultuvilla/shared/models';
 
-export default function BarrioEditScreen() {
-  const { villageId, barrioId } = useLocalSearchParams<{ villageId: string; barrioId: string }>();
+function BarrioEditScreen() {
+  const { municipalityId: villageId, slug: villageSlug } = useVillageRoute();
+  const { barrio: barrioRef } = useLocalSearchParams<{ barrio: string }>();
+  const barrioId = parseEntityRef(barrioRef ?? '') ?? '';
   const { t } = useT();
   const { canManage, canEdit, canDelete, loading: capLoading } = useEntityCapabilities(villageId);
   const [name, setName] = useState('');
@@ -54,7 +59,7 @@ export default function BarrioEditScreen() {
     );
   }
   if (!notFound && !canEdit(proposedBy)) {
-    return <Redirect href={`/village/${villageId}/barrio/${barrioId}`} />;
+    return <Redirect href={entityRefHref('barrio', villageSlug, barrioRef ?? '')} />;
   }
 
   // An admin *moderates* (audited soft-hide via the callable); a creator
@@ -62,7 +67,7 @@ export default function BarrioEditScreen() {
   // rules permit directly.
   function removeBarrio() {
     if (!villageId || !barrioId) return;
-    const done = () => router.replace(`/village/${villageId}`);
+    const done = () => router.replace(villageHref(villageSlug));
     return canManage
       ? hideContent({ collection: 'barrios', docId: barrioId, municipalityId: villageId }).then(done)
       : deleteBarrio(villageId, barrioId).then(done);
@@ -154,3 +159,5 @@ export default function BarrioEditScreen() {
     </Screen>
   );
 }
+
+export default withVillageRoute(BarrioEditScreen);

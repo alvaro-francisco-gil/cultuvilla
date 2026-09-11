@@ -1,9 +1,10 @@
+import { useVillageRoute, withVillageRoute } from '../../lib/navigation/VillageRouteGate';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { Screen, VStack, Text, Input, Button } from '../../../components/primitives';
-import { ScreenHeader } from '../../../components/layout/ScreenHeader';
-import { useT } from '../../../lib/i18n';
+import { router } from 'expo-router';
+import { Screen, VStack, Text, Input, Button } from '../../components/primitives';
+import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { useT } from '../../lib/i18n';
 import { getMunicipality, updateVillageInfo } from '@cultuvilla/shared/services/municipalityService';
 
 /**
@@ -12,8 +13,8 @@ import { getMunicipality, updateVillageInfo } from '@cultuvilla/shared/services/
  * through the `updateVillageInfo` callable, which enforces that authorization
  * server-side.
  */
-export default function EditVillageInfoScreen() {
-  const { villageId } = useLocalSearchParams<{ villageId: string }>();
+function EditVillageInfoScreen() {
+  const { municipalityId: villageId, slug: villageSlug } = useVillageRoute();
   const { t } = useT();
   const [description, setDescription] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -66,3 +67,5 @@ export default function EditVillageInfoScreen() {
     </Screen>
   );
 }
+
+export default withVillageRoute(EditVillageInfoScreen);

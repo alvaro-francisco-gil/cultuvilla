@@ -1,28 +1,30 @@
+import { parseEntityRef } from '@cultuvilla/shared/utils';
+import { useVillageRoute, withVillageRoute } from '../../../lib/navigation/VillageRouteGate';
 import { useCallback, useEffect, useState } from 'react';
 import { Modal, Pressable as RNPressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text } from '../../../../components/primitives/Text';
-import { VStack } from '../../../../components/primitives/VStack';
-import { HStack } from '../../../../components/primitives/HStack';
-import { Avatar } from '../../../../components/primitives/Avatar';
-import { Button } from '../../../../components/primitives/Button';
-import { Pressable } from '../../../../components/primitives/Pressable';
-import { PartialDateField } from '../../../../components/primitives/PartialDateField';
-import { NaturalImage } from '../../../../components/primitives/NaturalImage';
-import { EntityDetailScaffold } from '../../../../components/feature/EntityDetailScaffold';
-import { LocationMap } from '../../../../components/feature/LocationMap';
-import { BuryFab } from '../../../../components/feature/BuryFab';
-import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
-import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
-import { DetailSectionHeading } from '../../../../components/feature/DetailSectionHeading';
-import { EntityComments } from '../../../../components/feature/EntityComments';
-import { EntityContributors } from '../../../../components/feature/EntityContributors';
-import { useT } from '../../../../lib/i18n';
-import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
-import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
-import { showAlert } from '../../../../lib/dialogs';
+import { Text } from '../../../components/primitives/Text';
+import { VStack } from '../../../components/primitives/VStack';
+import { HStack } from '../../../components/primitives/HStack';
+import { Avatar } from '../../../components/primitives/Avatar';
+import { Button } from '../../../components/primitives/Button';
+import { Pressable } from '../../../components/primitives/Pressable';
+import { PartialDateField } from '../../../components/primitives/PartialDateField';
+import { NaturalImage } from '../../../components/primitives/NaturalImage';
+import { EntityDetailScaffold } from '../../../components/feature/EntityDetailScaffold';
+import { LocationMap } from '../../../components/feature/LocationMap';
+import { BuryFab } from '../../../components/feature/BuryFab';
+import type { EntityDetailAction } from '../../../components/feature/EntityDetailHeader';
+import { ENTITY_FALLBACK_ICON } from '../../../lib/entities/registry';
+import { DetailSectionHeading } from '../../../components/feature/DetailSectionHeading';
+import { EntityComments } from '../../../components/feature/EntityComments';
+import { EntityContributors } from '../../../components/feature/EntityContributors';
+import { useT } from '../../../lib/i18n';
+import { useShareDeepLink } from '../../../lib/deeplink/useShareDeepLink';
+import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
+import { showAlert } from '../../../lib/dialogs';
 import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 import { getPlace } from '@cultuvilla/shared/services/municipalityService';
 import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
@@ -53,8 +55,10 @@ export function sortBuriedByDeathDate(people: Person[]): Person[] {
   return [...people].sort((a, b) => deathDateSortValue(b) - deathDateSortValue(a));
 }
 
-export default function PlaceDetailScreen() {
-  const { villageId, placeId } = useLocalSearchParams<{ villageId: string; placeId: string }>();
+function PlaceDetailScreen() {
+  const { municipalityId: villageId, slug: villageSlug } = useVillageRoute();
+  const { lugar: lugarRef } = useLocalSearchParams<{ lugar: string }>();
+  const placeId = parseEntityRef(lugarRef ?? '') ?? '';
   const { t } = useT();
   const share = useShareDeepLink();
   const [place, setPlace] = useState<Place | null>(null);
@@ -109,7 +113,7 @@ export default function PlaceDetailScreen() {
         {
           icon: 'share-outline',
           accessibilityLabel: t('deeplink.shareViewLabel'),
-          onPress: () => void share(getPlaceViewLink(villageId, place.id), place.name),
+          onPress: () => void share(getPlaceViewLink({ id: place.id, title: place.name, villageSlug }), place.name),
         },
       ]
     : [];
@@ -329,3 +333,5 @@ export default function PlaceDetailScreen() {
     </>
   );
 }
+
+export default withVillageRoute(PlaceDetailScreen);

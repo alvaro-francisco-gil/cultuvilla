@@ -1,5 +1,5 @@
 import { render, waitFor, fireEvent } from '@testing-library/react-native';
-import NewsDetailScreen from '../[newsId]';
+import NewsDetailScreen from '../[noticia]';
 
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
@@ -47,7 +47,7 @@ jest.mock('@cultuvilla/shared/services/newsService', () => ({
 jest.mock('@cultuvilla/shared/services/imageService', () => ({ newsImageDownloadURL: jest.fn() }));
 jest.mock('@cultuvilla/shared/utils', () => ({ formatDate: () => '' }));
 
-import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
+import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 
 function mockCaps(canEdit: boolean) {
   const spy = jest.fn(() => canEdit);

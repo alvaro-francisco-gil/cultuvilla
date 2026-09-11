@@ -1,26 +1,29 @@
+import { parseEntityRef } from '@cultuvilla/shared/utils';
+import { entityRefHref } from '../../../../lib/navigation/routes';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { useLocalSearchParams, Redirect, router } from 'expo-router';
-import { Screen } from '../../../components/primitives/Screen';
-import { Text } from '../../../components/primitives/Text';
-import { Toggle } from '../../../components/primitives/Toggle';
-import { VStack } from '../../../components/primitives/VStack';
-import { FieldLabel } from '../../../components/primitives/FieldLabel';
-import { ScreenHeader } from '../../../components/layout/ScreenHeader';
-import { ProposableForm } from '../../../components/feature/proposable/ProposableForm';
-import { DeleteHeaderButton } from '../../../components/feature/DeleteHeaderButton';
-import { useT } from '../../../lib/i18n';
-import { useOrgCapabilities } from '../../../lib/auth/useOrgCapabilities';
+import { Screen } from '../../../../components/primitives/Screen';
+import { Text } from '../../../../components/primitives/Text';
+import { Toggle } from '../../../../components/primitives/Toggle';
+import { VStack } from '../../../../components/primitives/VStack';
+import { FieldLabel } from '../../../../components/primitives/FieldLabel';
+import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
+import { ProposableForm } from '../../../../components/feature/proposable/ProposableForm';
+import { DeleteHeaderButton } from '../../../../components/feature/DeleteHeaderButton';
+import { useT } from '../../../../lib/i18n';
+import { useOrgCapabilities } from '../../../../lib/auth/useOrgCapabilities';
 import { getOrganization, updateOrganization, deleteOrganization } from '@cultuvilla/shared/services/organizationService';
 import { deleteImageByURL, uploadOrganizationImage } from '@cultuvilla/shared/services/imageService';
-import { pickImageAsBlob } from '../../../lib/images';
+import { pickImageAsBlob } from '../../../../lib/images';
 import {
   PROPOSABLE_ORGANIZATION_TYPES,
   type OrganizationType,
 } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
 
 export default function OrgEditScreen() {
-  const { orgId } = useLocalSearchParams<{ orgId: string }>();
+  const { pueblo: villageSlug, entidad: entidadRef } = useLocalSearchParams<{ pueblo: string; entidad: string }>();
+  const orgId = parseEntityRef(entidadRef ?? '') ?? '';
   const { t } = useT();
   const [municipalityId, setMunicipalityId] = useState<string | undefined>(undefined);
   const { canManage, loading: capLoading } = useOrgCapabilities(orgId, municipalityId);
@@ -71,7 +74,7 @@ export default function OrgEditScreen() {
       </Screen>
     );
   }
-  if (!canManage) return <Redirect href={`/o/${orgId}`} />;
+  if (!canManage) return <Redirect href={entityRefHref('organization', villageSlug, entidadRef ?? '')} />;
 
   // Images persist immediately (unlike the create flow, the doc already
   // exists here), so add/remove writes the doc on each action rather than

@@ -1,3 +1,4 @@
+import { routes } from '../../lib/navigation/routes';
 import { useEffect, useRef, useState } from 'react';
 import {
   Modal,
@@ -107,17 +108,17 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
         {
           icon: 'person-circle-outline',
           label: t('menu.editProfile'),
-          onPress: () => close(() => router.push('/(tabs)/profile')),
+          onPress: () => close(() => router.push(routes.profile)),
         },
         {
           icon: 'ticket-outline',
           label: t('menu.mySignups'),
-          onPress: () => close(() => router.push('/me/registrations' as Href)),
+          onPress: () => close(() => router.push(routes.myRegistrations)),
         },
         {
           icon: 'settings-outline',
           label: t('menu.settings'),
-          onPress: () => close(() => router.push('/settings' as Href)),
+          onPress: () => close(() => router.push(routes.settings)),
         },
       ],
     },
@@ -129,14 +130,14 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
               {
                 icon: 'swap-horizontal-outline',
                 label: t('menu.switchVillage'),
-                onPress: () => close(() => router.push('/me/villages' as Href)),
+                onPress: () => close(() => router.push(routes.myVillages)),
               },
             ]
           : []) as MenuItem[]),
         {
           icon: 'search-outline',
           label: t('menu.findVillage'),
-          onPress: () => close(() => router.push('/discover')),
+          onPress: () => close(() => router.push(routes.discover)),
         },
       ],
     },
@@ -162,12 +163,12 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
         {
           icon: 'document-text-outline',
           label: t('menu.terms'),
-          onPress: () => close(() => router.push('/legal/terms' as Href)),
+          onPress: () => close(() => router.push(routes.terms)),
         },
         {
           icon: 'shield-checkmark-outline',
           label: t('menu.privacy'),
-          onPress: () => close(() => router.push('/legal/privacy' as Href)),
+          onPress: () => close(() => router.push(routes.privacy)),
         },
       ],
     },
@@ -269,7 +270,7 @@ export function UserMenuModal({ visible, onClose }: UserMenuModalProps) {
                   </Text>
                 ) : null}
                 <Pressable
-                  onPress={() => close(() => router.push('/(tabs)/profile'))}
+                  onPress={() => close(() => router.push(routes.profile))}
                   className="mt-2 self-start px-3 py-1 rounded-md border border-strong"
                 >
                   <Text variant="caption" className="font-semibold">

@@ -1,3 +1,4 @@
+import { userHref } from '../../lib/navigation/routes';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { router, type Href } from 'expo-router';
@@ -270,7 +271,7 @@ export default function InboxScreen() {
               return (
                 <Pressable
                   key={row.id}
-                  onPress={() => router.push(`/user/${row.userId}` as never)}
+                  onPress={() => router.push(userHref(row.userId))}
                   className="bg-surface border border-subtle rounded-xl p-3"
                 >
                   <VStack gap={2}>

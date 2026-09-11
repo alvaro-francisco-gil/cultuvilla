@@ -1,5 +1,5 @@
 import { render, waitFor } from '@testing-library/react-native';
-import BarrioEditScreen from '../[barrioId]/edit';
+import BarrioEditScreen from '../[barrio]/editar';
 
 const mockRedirect = jest.fn((_props: { href: string }) => null);
 jest.mock('react-native-safe-area-context', () => ({
@@ -28,7 +28,7 @@ jest.mock('@cultuvilla/shared/services/imageService', () => ({
   deleteImageByURL: jest.fn(),
 }));
 
-import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
+import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 import { getBarrio } from '@cultuvilla/shared/services/municipalityService';
 
 function mockCaps(opts: { canManage: boolean; uid: string | null; canEdit: boolean }) {
@@ -52,6 +52,7 @@ describe('BarrioEditScreen guard', () => {
       name: 'Centro',
       images: [],
       municipalityId: 'm1',
+      villageSlug: 'villa',
       proposedBy: 'creator',
       status: 'active',
     });

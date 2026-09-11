@@ -1,6 +1,6 @@
 import { render, waitFor, fireEvent } from '@testing-library/react-native';
-import VocabularyScreen from '../vocabulary';
-import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+import VocabularyScreen from '../vocabulario';
+import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { getVocabularyTerms } from '@cultuvilla/shared/services/vocabularyService';
 
 jest.mock('expo-router', () => ({
@@ -34,6 +34,7 @@ function term(id: string, word: string, normalized: string) {
     normalized,
     kind: 'palabra',
     municipalityId: 'm1',
+    villageSlug: 'villa',
     createdBy: 'alice',
     createdAt: new Date(),
     definitionCount: 1,

@@ -1,19 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Text } from '../../components/primitives/Text';
-import { HStack } from '../../components/primitives/HStack';
-import { EntityDetailScaffold } from '../../components/feature/EntityDetailScaffold';
-import type { EntityDetailAction } from '../../components/feature/EntityDetailHeader';
-import { ENTITY_FALLBACK_ICON } from '../../lib/entities/registry';
-import { NewsContentRenderer } from '../../components/feature/NewsContentRenderer';
-import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
-import { ownerRoute } from '../../lib/entities/ownerRoute';
-import { EntityComments } from '../../components/feature/EntityComments';
-import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
-import { useT } from '../../lib/i18n';
-import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
+import { Text } from '../../../components/primitives/Text';
+import { HStack } from '../../../components/primitives/HStack';
+import { EntityDetailScaffold } from '../../../components/feature/EntityDetailScaffold';
+import type { EntityDetailAction } from '../../../components/feature/EntityDetailHeader';
+import { ENTITY_FALLBACK_ICON } from '../../../lib/entities/registry';
+import { NewsContentRenderer } from '../../../components/feature/NewsContentRenderer';
+import { LiveOwnerChip } from '../../../components/feature/LiveOwnerChip';
+import { openOwner } from '../../../lib/entities/ownerRoute';
+import { EntityComments } from '../../../components/feature/EntityComments';
+import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
+import { useT } from '../../../lib/i18n';
+import { useShareDeepLink } from '../../../lib/deeplink/useShareDeepLink';
 import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 import { getNewsLink } from '@cultuvilla/shared/services/deepLinkService';
+import { parseEntityRef } from '@cultuvilla/shared/utils';
+import { createNewsHref } from '../../../lib/navigation/routes';
 import { getNewsPost } from '@cultuvilla/shared/services/newsService';
 import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
@@ -23,7 +25,8 @@ import type { NewsPostData } from '@cultuvilla/shared/models/news/NewsPostDataMo
 type Post = NewsPostData & { id: string };
 
 export default function NewsDetailScreen() {
-  const { newsId } = useLocalSearchParams<{ newsId: string }>();
+  const { noticia } = useLocalSearchParams<{ noticia: string }>();
+  const newsId = parseEntityRef(noticia ?? '') ?? '';
   const { t } = useT();
   const share = useShareDeepLink();
   const [post, setPost] = useState<Post | null>(null);
@@ -86,14 +89,14 @@ export default function NewsDetailScreen() {
               {
                 icon: 'create-outline' as const,
                 accessibilityLabel: t('news.compose.editTitle'),
-                onPress: () => router.push(`/news/new?newsId=${post.id}` as never),
+                onPress: () => router.push(createNewsHref({ newsId: post.id })),
               },
             ]
           : []),
         {
           icon: 'share-outline',
           accessibilityLabel: t('deeplink.shareViewLabel'),
-          onPress: () => void share(getNewsLink(post.id), post.title),
+          onPress: () => void share(getNewsLink(post), post.title),
         },
       ]
     : [];
@@ -117,7 +120,7 @@ export default function NewsDetailScreen() {
               ownerType="organization"
               size={28}
               tone="muted"
-              onPress={() => router.push(ownerRoute('organization', id) as never)}
+              onPress={() => void openOwner('organization', id)}
             />
           ))}
           {post.organizerUserIds.map((id) => (
@@ -127,7 +130,7 @@ export default function NewsDetailScreen() {
               ownerType="user"
               size={28}
               tone="muted"
-              onPress={() => router.push(ownerRoute('user', id) as never)}
+              onPress={() => void openOwner('user', id)}
             />
           ))}
           <HStack gap={2} justify="between">

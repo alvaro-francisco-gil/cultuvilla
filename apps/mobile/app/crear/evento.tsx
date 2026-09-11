@@ -1,3 +1,4 @@
+import { eventHref } from '../../lib/navigation/routes';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -141,6 +142,7 @@ export default function NewEventScreen() {
   // so we show the event's own village read-only.
   const [joinedVillages, setJoinedVillages] = useState<VillageOption[]>([]);
   const [selectedVillageId, setSelectedVillageId] = useState<string | null>(null);
+  const [editVillageSlug, setEditVillageSlug] = useState('');
   const [villageManuallyPicked, setVillageManuallyPicked] = useState(false);
   const [editMunicipalityId, setEditMunicipalityId] = useState<string | null>(null);
   const [editVillage, setEditVillage] = useState<VillageOption | null>(null);
@@ -150,6 +152,8 @@ export default function NewEventScreen() {
     ? editVillage
     : (joinedVillages.find((v) => v.id === selectedVillageId) ?? null);
   const municipalityName = selectedVillage?.name ?? '';
+  // The pueblo slug the new (or edited) event's URL is built from.
+  const villageSlug = editMode ? editVillageSlug : (selectedVillage?.slug ?? '');
   const municipalityCoordinates = selectedVillage?.coordinates ?? null;
 
   // form fields
@@ -237,8 +241,10 @@ export default function NewEventScreen() {
           return;
         }
         setEditMunicipalityId(ev.municipalityId);
+        setEditVillageSlug(ev.villageSlug);
         setEditVillage({
           id: ev.municipalityId,
+          slug: ev.villageSlug,
           name: ev.villageName ?? '',
           province: '',
           coordinates: ev.villageCoordinates ?? null,
@@ -307,6 +313,7 @@ export default function NewEventScreen() {
           .filter((m): m is NonNullable<typeof m> => m != null)
           .map((m) => ({
             id: m.id,
+            slug: m.slug,
             name: m.name,
             province: m.province,
             coordinates: m.coordinates,
@@ -471,7 +478,7 @@ export default function NewEventScreen() {
       return newId;
     },
     onSuccess: (id) => {
-      if (id) router.replace(`/event/${id}`);
+      if (id) router.replace(eventHref({ id, title, villageSlug }));
     },
     swallow: true,
   });
@@ -536,7 +543,7 @@ export default function NewEventScreen() {
 
   // ── Edit: non-organizer redirect ──────────────────────────────────────────
   if (editMode && !capLoading && !canEdit(createdBy, organizerUserIds)) {
-    return <Redirect href={`/event/${eventId}`} />;
+    return <Redirect href={eventHref({ id: eventId, title, villageSlug })} />;
   }
 
   // ── No active village (create only) ───────────────────────────────────────

@@ -1,5 +1,5 @@
 import { render, fireEvent } from '@testing-library/react-native';
-import VillageTabScreen from '../village';
+import VillageTabScreen from '../mi-pueblo';
 import { getMunicipality, getBarrios, getPlaces } from '@cultuvilla/shared/services/municipalityService';
 import { getMyOrganizerRequests } from '@cultuvilla/shared/services/organizerRequestService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
@@ -133,6 +133,7 @@ const base = buildMunicipalityData({
   province: 'Valladolid',
   comunidadAutonoma: 'Castilla y León',
   codigoINE: '47001',
+  slug: 'villa',
 });
 const activeMuni = {
   ...base,
@@ -206,11 +207,11 @@ describe('VillageTabScreen', () => {
     const barrio = { ...buildBarrioData({ name: 'El Barrio', municipalityId: 'mun1' }), id: 'barrio1' };
     const place = { ...buildPlaceData({ name: 'La Iglesia', kind: 'church', municipalityId: 'mun1' }), id: 'place1' };
     const agrupacion = {
-      ...buildOrganizationData({ name: 'Ayuntamiento', type: 'ayuntamiento', municipalityId: 'mun1', requestedBy: 'uid-1', status: 'approved' }),
+      ...buildOrganizationData({ name: 'Ayuntamiento', type: 'ayuntamiento', municipalityId: 'mun1', villageSlug: 'villa', requestedBy: 'uid-1', status: 'approved' }),
       id: 'org1',
     };
     const pena = {
-      ...buildOrganizationData({ name: 'Peña La Juerga', type: 'peña', municipalityId: 'mun1', requestedBy: 'uid-1', status: 'approved' }),
+      ...buildOrganizationData({ name: 'Peña La Juerga', type: 'peña', municipalityId: 'mun1', villageSlug: 'villa', requestedBy: 'uid-1', status: 'approved' }),
       id: 'org2',
     };
 
@@ -257,6 +258,7 @@ describe('VillageTabScreen', () => {
         organizerOrgIds: [],
         createdBy: 'uid-1',
         municipalityId: 'mun1',
+        villageSlug: 'villa',
         villageName: 'Sotos de Mayorga',
         villageCoordinates: { lat: 40.4, lng: -3.7 },
       }),
@@ -265,6 +267,7 @@ describe('VillageTabScreen', () => {
     const post = {
       ...buildNewsPostData({
         municipalityId: 'mun1',
+        villageSlug: 'villa',
         createdBy: 'uid-1',
         organizerUserIds: ['uid-1'],
         title: 'Corte de agua',
@@ -296,6 +299,7 @@ describe('VillageTabScreen', () => {
     const poster = {
       ...buildFestivalPosterData({
         municipalityId: 'mun1',
+        villageSlug: 'villa',
         year: 2024,
         title: 'San Roque',
         createdAt: new Date('2024-01-01'),

@@ -1,3 +1,4 @@
+import { routes } from '../../lib/navigation/routes';
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -228,7 +229,7 @@ export default function CompleteProfileScreen() {
                 {t('onboarding.completeProfile.acceptPrefix')}{' '}
                 <Text
                   className="text-accent underline"
-                  onPress={() => router.push('/legal/terms')}
+                  onPress={() => router.push(routes.terms)}
                 >
                   {t('menu.terms')}
                 </Text>
@@ -237,7 +238,7 @@ export default function CompleteProfileScreen() {
                 {' '}
                 <Text
                   className="text-accent underline"
-                  onPress={() => router.push('/legal/privacy')}
+                  onPress={() => router.push(routes.privacy)}
                 >
                   {t('menu.privacy')}
                 </Text>

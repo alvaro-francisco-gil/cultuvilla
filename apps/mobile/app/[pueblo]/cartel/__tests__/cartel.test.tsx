@@ -1,5 +1,5 @@
 import { render, waitFor } from '@testing-library/react-native';
-import FestivalPosterDetailScreen from '../[posterId]';
+import FestivalPosterDetailScreen from '../[cartel]';
 
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
@@ -25,7 +25,7 @@ jest.mock('../../../../../components/feature/EntityComments', () => ({ EntityCom
 jest.mock('../../../../../components/feature/EntityContributors', () => ({ EntityContributors: () => null }));
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({ recordEntityView: jest.fn().mockResolvedValue(undefined) }));
 
-import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
+import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 
 function mockCaps(canEdit: boolean, uid: string | null) {
   (useEntityCapabilities as jest.Mock).mockReturnValue({

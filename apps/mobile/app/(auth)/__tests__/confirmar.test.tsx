@@ -1,5 +1,5 @@
 import { render, waitFor } from '@testing-library/react-native';
-import FinishScreen from '../finish';
+import FinishScreen from '../entrar/confirmar';
 
 const mockReplace = jest.fn();
 jest.mock('expo-router', () => ({

@@ -1,6 +1,6 @@
 import { render, waitFor, fireEvent } from '@testing-library/react-native';
 import { router } from 'expo-router';
-import BarrioDetailScreen from '../[barrioId]';
+import BarrioDetailScreen from '../[barrio]';
 import { getMunicipalityPeopleByBarrio } from '@cultuvilla/shared/services/municipalityPersonService';
 
 jest.mock('react-native-safe-area-context', () => ({
@@ -27,6 +27,7 @@ jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
     name: 'Centro',
     images: [],
     municipalityId: 'm1',
+    villageSlug: 'villa',
     proposedBy: 'creator',
     status: 'active',
   }),
@@ -44,6 +45,7 @@ const resident = (over: Partial<Row> & { personId: string }): Row =>
   ({
     id: `m1_${over.personId}`,
     municipalityId: 'm1',
+    villageSlug: 'villa',
     barrioId: 'b1',
     displayName: over.personId,
     sortName: over.personId,
@@ -53,7 +55,7 @@ const resident = (over: Partial<Row> & { personId: string }): Row =>
     ...over,
   }) as Row;
 
-import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
+import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 
 function mockCaps(opts: { canEdit?: boolean; uid?: string | null } = {}) {
   (useEntityCapabilities as jest.Mock).mockReturnValue({

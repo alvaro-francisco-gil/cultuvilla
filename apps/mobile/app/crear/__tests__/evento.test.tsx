@@ -1,6 +1,6 @@
 // apps/mobile/app/event/__tests__/new.test.tsx
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import NewEventScreen from '../new';
+import NewEventScreen from '../evento';
 import { pickImageAsBlob } from '../../../lib/images';
 import { createEvent, updateEvent, getEvent } from '@cultuvilla/shared/services/eventService';
 import { uploadEventImage } from '@cultuvilla/shared/services/imageService';
@@ -412,6 +412,7 @@ describe('NewEventScreen edit mode', () => {
   const OTHERS_EVENT = {
     id: 'e-9',
     municipalityId: 'm-1',
+    villageSlug: 'villa',
     villageName: 'Pueblo',
     villageCoordinates: { lat: 1, lng: 2 },
     title: 'Verbena',
@@ -467,6 +468,7 @@ describe('NewEventScreen — disabling sign-ups on an event with registrations',
   const SIGNED_UP_EVENT = {
     id: 'e-8',
     municipalityId: 'm-1',
+    villageSlug: 'villa',
     villageName: 'Pueblo',
     villageCoordinates: { lat: 1, lng: 2 },
     title: 'Carrera popular',
@@ -600,6 +602,7 @@ describe('NewEventScreen — birth-year limit toggle', () => {
     (getEvent as jest.Mock).mockResolvedValue({
       id: 'e-7',
       municipalityId: 'm-1',
+      villageSlug: 'villa',
       villageName: 'Pueblo',
       villageCoordinates: { lat: 1, lng: 2 },
       title: 'Taller infantil',

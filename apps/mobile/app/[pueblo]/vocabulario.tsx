@@ -1,18 +1,21 @@
+import { newWordHref, wordHref } from '../../lib/navigation/routes';
+import { termSlugFromId } from '@cultuvilla/shared/models';
+import { useVillageRoute, withVillageRoute } from '../../lib/navigation/VillageRouteGate';
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, View } from 'react-native';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { iconSizes, colors } from '@cultuvilla/shared/design-system';
-import { Screen } from '../../../components/primitives/Screen';
-import { Text } from '../../../components/primitives/Text';
-import { HStack } from '../../../components/primitives/HStack';
-import { VStack } from '../../../components/primitives/VStack';
-import { Input } from '../../../components/primitives/Input';
-import { Pressable } from '../../../components/primitives/Pressable';
-import { Fab } from '../../../components/primitives/Fab';
-import { ScreenHeader } from '../../../components/layout/ScreenHeader';
-import { useT } from '../../../lib/i18n';
-import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
+import { Screen } from '../../components/primitives/Screen';
+import { Text } from '../../components/primitives/Text';
+import { HStack } from '../../components/primitives/HStack';
+import { VStack } from '../../components/primitives/VStack';
+import { Input } from '../../components/primitives/Input';
+import { Pressable } from '../../components/primitives/Pressable';
+import { Fab } from '../../components/primitives/Fab';
+import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { useT } from '../../lib/i18n';
+import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
 import {
   getVocabularyTerms,
   type VocabularyTermWithId,
@@ -28,8 +31,8 @@ import { slugifyTerm } from '@cultuvilla/shared/models/vocabulary';
  * list that already fits in one. Matching runs on the accent-folded form, so
  * "napa" finds "ñapa" and "esbardo" finds "Esbardo".
  */
-export default function VocabularyScreen() {
-  const { villageId } = useLocalSearchParams<{ villageId: string }>();
+function VocabularyScreen() {
+  const { municipalityId: villageId, slug: villageSlug } = useVillageRoute();
   const { t } = useT();
   const { isMember } = useEntityCapabilities(villageId);
   const [terms, setTerms] = useState<VocabularyTermWithId[]>([]);
@@ -89,7 +92,7 @@ export default function VocabularyScreen() {
         renderItem={({ item }) => (
           <Pressable
             className="py-3 border-b border-subtle"
-            onPress={() => router.push(`/village/${villageId}/word/${item.id}` as never)}
+            onPress={() => router.push(wordHref(villageSlug, termSlugFromId(item.id)))}
             testID={`vocabulary-term-${item.id}`}
           >
             <HStack gap={3} className="items-center">
@@ -110,10 +113,12 @@ export default function VocabularyScreen() {
       {isMember ? (
         <Fab
           label={t('village.vocabulary.add')}
-          onPress={() => router.push(`/village/${villageId}/word/new` as never)}
+          onPress={() => router.push(newWordHref(villageSlug))}
           testID="vocabulary-add-fab"
         />
       ) : null}
     </Screen>
   );
 }
+
+export default withVillageRoute(VocabularyScreen);

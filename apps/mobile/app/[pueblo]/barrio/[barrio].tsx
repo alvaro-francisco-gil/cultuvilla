@@ -1,23 +1,25 @@
+import { parseEntityRef } from '@cultuvilla/shared/utils';
+import { useVillageRoute, withVillageRoute } from '../../../lib/navigation/VillageRouteGate';
 import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { iconSizes } from '@cultuvilla/shared/design-system';
-import { Text } from '../../../../components/primitives/Text';
-import { VStack } from '../../../../components/primitives/VStack';
-import { HStack } from '../../../../components/primitives/HStack';
-import { Avatar } from '../../../../components/primitives/Avatar';
-import { Pressable } from '../../../../components/primitives/Pressable';
-import { NaturalImage } from '../../../../components/primitives/NaturalImage';
-import { EntityDetailScaffold } from '../../../../components/feature/EntityDetailScaffold';
-import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
-import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
-import { DetailSectionHeading } from '../../../../components/feature/DetailSectionHeading';
-import { EntityComments } from '../../../../components/feature/EntityComments';
-import { useT } from '../../../../lib/i18n';
-import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
-import { useAuth } from '../../../../lib/auth/useAuth';
-import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+import { Text } from '../../../components/primitives/Text';
+import { VStack } from '../../../components/primitives/VStack';
+import { HStack } from '../../../components/primitives/HStack';
+import { Avatar } from '../../../components/primitives/Avatar';
+import { Pressable } from '../../../components/primitives/Pressable';
+import { NaturalImage } from '../../../components/primitives/NaturalImage';
+import { EntityDetailScaffold } from '../../../components/feature/EntityDetailScaffold';
+import type { EntityDetailAction } from '../../../components/feature/EntityDetailHeader';
+import { ENTITY_FALLBACK_ICON } from '../../../lib/entities/registry';
+import { DetailSectionHeading } from '../../../components/feature/DetailSectionHeading';
+import { EntityComments } from '../../../components/feature/EntityComments';
+import { useT } from '../../../lib/i18n';
+import { useShareDeepLink } from '../../../lib/deeplink/useShareDeepLink';
+import { useAuth } from '../../../lib/auth/useAuth';
+import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 import { getBarrio } from '@cultuvilla/shared/services/municipalityService';
 import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
@@ -28,8 +30,10 @@ import type { BarrioData, MunicipalityPersonData } from '@cultuvilla/shared/mode
 type Barrio = BarrioData & { id: string };
 type Resident = MunicipalityPersonData & { id: string };
 
-export default function BarrioDetailScreen() {
-  const { villageId, barrioId } = useLocalSearchParams<{ villageId: string; barrioId: string }>();
+function BarrioDetailScreen() {
+  const { municipalityId: villageId, slug: villageSlug } = useVillageRoute();
+  const { barrio: barrioRef } = useLocalSearchParams<{ barrio: string }>();
+  const barrioId = parseEntityRef(barrioRef ?? '') ?? '';
   const { t } = useT();
   const { user } = useAuth();
   const share = useShareDeepLink();
@@ -84,7 +88,7 @@ export default function BarrioDetailScreen() {
         {
           icon: 'share-outline',
           accessibilityLabel: t('deeplink.shareViewLabel'),
-          onPress: () => void share(getBarrioViewLink(villageId, barrio.id), barrio.name),
+          onPress: () => void share(getBarrioViewLink({ id: barrio.id, title: barrio.name, villageSlug }), barrio.name),
         },
       ]
     : [];
@@ -166,3 +170,5 @@ export default function BarrioDetailScreen() {
     </EntityDetailScaffold>
   );
 }
+
+export default withVillageRoute(BarrioDetailScreen);

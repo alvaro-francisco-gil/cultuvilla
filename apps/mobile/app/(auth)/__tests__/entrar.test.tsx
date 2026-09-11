@@ -1,5 +1,5 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import LoginScreen from '../login';
+import LoginScreen from '../entrar';
 
 jest.mock('../../../lib/i18n', () => ({
   useT: () => ({

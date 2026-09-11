@@ -1,11 +1,13 @@
-import { useLocalSearchParams, Redirect, router } from 'expo-router';
+import { villageHref } from '../../lib/navigation/routes';
+import { useVillageRoute, withVillageRoute } from '../../lib/navigation/VillageRouteGate';
+import { Redirect, router } from 'expo-router';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Screen, Button } from '../../../components/primitives';
-import { ScreenHeader } from '../../../components/layout/ScreenHeader';
-import { CommunitySettingsEditor } from '../../../components/feature/CommunitySettingsEditor';
-import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
-import { useT } from '../../../lib/i18n';
+import { Screen, Button } from '../../components/primitives';
+import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { CommunitySettingsEditor } from '../../components/feature/CommunitySettingsEditor';
+import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
+import { useT } from '../../lib/i18n';
 
 // Role-mode community editor (organizers only; non-organizers are redirected
 // back to the village, where the header is their read view). Edits the pueblo's
@@ -13,8 +15,8 @@ import { useT } from '../../../lib/i18n';
 // changes, so the bottom "Listo" button just closes the editor. The villagers
 // roster lives on its own screen (village/[id]/members), reached from the
 // personas stat.
-export default function CommunityScreen() {
-  const { villageId } = useLocalSearchParams<{ villageId: string }>();
+function CommunityScreen() {
+  const { municipalityId: villageId, slug: villageSlug } = useVillageRoute();
   const { canManage, loading } = useEntityCapabilities(villageId);
   const { t } = useT();
   const insets = useSafeAreaInsets();
@@ -30,7 +32,7 @@ export default function CommunityScreen() {
       </Screen>
     );
   }
-  if (!canManage) return <Redirect href={`/village/${villageId}`} />;
+  if (!canManage) return <Redirect href={villageHref(villageSlug)} />;
 
   return (
     <Screen padded={false} bottomInset={false} topInset={false}>
@@ -51,3 +53,5 @@ export default function CommunityScreen() {
     </Screen>
   );
 }
+
+export default withVillageRoute(CommunityScreen);

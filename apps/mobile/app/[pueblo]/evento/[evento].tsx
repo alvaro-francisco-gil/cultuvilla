@@ -3,28 +3,30 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { Linking, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, iconSizes } from '@cultuvilla/shared/design-system';
-import { VStack } from '../../components/primitives/VStack';
-import { HStack } from '../../components/primitives/HStack';
-import { Text } from '../../components/primitives/Text';
-import { Button } from '../../components/primitives/Button';
-import { Avatar } from '../../components/primitives/Avatar';
-import { Pressable } from '../../components/primitives/Pressable';
-import { LiveOwnerChip } from '../../components/feature/LiveOwnerChip';
-import { ownerRoute } from '../../lib/entities/ownerRoute';
-import { RegisterFab } from '../../components/feature/RegisterFab';
-import { EventAttendees } from '../../components/feature/EventAttendees';
-import { RegistrationHistory } from '../../components/feature/RegistrationHistory';
-import { DetailSectionHeading } from '../../components/feature/DetailSectionHeading';
-import { EntityDetailScaffold } from '../../components/feature/EntityDetailScaffold';
-import type { EntityDetailAction } from '../../components/feature/EntityDetailHeader';
-import { DetailInfoCard } from '../../components/feature/DetailInfoCard';
-import { birthYearRangeLabel } from '../../lib/events/birthYearLabel';
-import { EntityComments } from '../../components/feature/EntityComments';
-import { ENTITY_FALLBACK_ICON } from '../../lib/entities/registry';
-import { useAuth } from '../../lib/auth/useAuth';
-import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
-import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
-import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
+import { VStack } from '../../../components/primitives/VStack';
+import { HStack } from '../../../components/primitives/HStack';
+import { Text } from '../../../components/primitives/Text';
+import { Button } from '../../../components/primitives/Button';
+import { Avatar } from '../../../components/primitives/Avatar';
+import { Pressable } from '../../../components/primitives/Pressable';
+import { LiveOwnerChip } from '../../../components/feature/LiveOwnerChip';
+import { openOwner } from '../../../lib/entities/ownerRoute';
+import { createEventHref, villageHref } from '../../../lib/navigation/routes';
+import { parseEntityRef } from '@cultuvilla/shared/utils';
+import { RegisterFab } from '../../../components/feature/RegisterFab';
+import { EventAttendees } from '../../../components/feature/EventAttendees';
+import { RegistrationHistory } from '../../../components/feature/RegistrationHistory';
+import { DetailSectionHeading } from '../../../components/feature/DetailSectionHeading';
+import { EntityDetailScaffold } from '../../../components/feature/EntityDetailScaffold';
+import type { EntityDetailAction } from '../../../components/feature/EntityDetailHeader';
+import { DetailInfoCard } from '../../../components/feature/DetailInfoCard';
+import { birthYearRangeLabel } from '../../../lib/events/birthYearLabel';
+import { EntityComments } from '../../../components/feature/EntityComments';
+import { ENTITY_FALLBACK_ICON } from '../../../lib/entities/registry';
+import { useAuth } from '../../../lib/auth/useAuth';
+import { useRegisterGate } from '../../../lib/auth/RegisterGateContext';
+import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
+import { useShareDeepLink } from '../../../lib/deeplink/useShareDeepLink';
 import { getEvent } from '@cultuvilla/shared/services/eventService';
 import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
@@ -34,7 +36,7 @@ import { getMunicipality } from '@cultuvilla/shared/services/municipalityService
 import { escudoThumbDisplayUrl } from '@cultuvilla/shared/models/municipality';
 import { buildNameWithNickname } from '@cultuvilla/shared/models/person/PersonDataModel';
 import { formatDate, buildGoogleCalendarUrl } from '@cultuvilla/shared/utils';
-import { useT } from '../../lib/i18n';
+import { useT } from '../../../lib/i18n';
 import { isPrivateEvent } from '@cultuvilla/shared/models/event/EventDataModel';
 import type { EventData } from '@cultuvilla/shared/models/event/EventDataModel';
 import type { PersonData } from '@cultuvilla/shared/models/person/PersonDataModel';
@@ -45,7 +47,8 @@ type PersonDoc = PersonData & { id: string };
 type VillageDoc = MunicipalityData & { id: string };
 
 export default function EventDetailScreen() {
-  const { eventId } = useLocalSearchParams<{ eventId: string }>();
+  const { evento } = useLocalSearchParams<{ evento: string }>();
+  const eventId = parseEntityRef(evento ?? '') ?? '';
   const { user } = useAuth();
   const gate = useRegisterGate();
   const { t } = useT();
@@ -120,14 +123,14 @@ export default function EventDetailScreen() {
               {
                 icon: 'create-outline' as const,
                 accessibilityLabel: t('event.editEvent'),
-                onPress: () => router.push(`/event/new?eventId=${event.id}` as never),
+                onPress: () => router.push(createEventHref({ eventId: event.id })),
               },
             ]
           : []),
         {
           icon: 'share-outline',
           accessibilityLabel: t('deeplink.shareViewLabel'),
-          onPress: () => void share(getEventLink(event.id), event.title),
+          onPress: () => void share(getEventLink(event), event.title),
         },
       ]
     : [];
@@ -153,6 +156,7 @@ export default function EventDetailScreen() {
             telephoneRequired={!!event.telephoneRequired}
             signupFields={event.signupFields}
             villageId={event.municipalityId}
+            villageSlug={event.villageSlug}
             groupSize={event.signupGroupSize}
             ownBirthYear={person.birthday?.year ?? null}
             birthYearWindow={{
@@ -210,7 +214,7 @@ export default function EventDetailScreen() {
                     key={id}
                     ownerType="organization"
                     ownerId={id}
-                    onPress={() => router.push(ownerRoute('organization', id) as never)}
+                    onPress={() => void openOwner('organization', id)}
                   />
                 ))}
                 {event.organizerUserIds?.map((id) => (
@@ -218,7 +222,7 @@ export default function EventDetailScreen() {
                     key={id}
                     ownerType="user"
                     ownerId={id}
-                    onPress={() => router.push(ownerRoute('user', id) as never)}
+                    onPress={() => void openOwner('user', id)}
                   />
                 ))}
               </View>
@@ -229,10 +233,7 @@ export default function EventDetailScreen() {
               <DetailSectionHeading>{t('event.villageLabel')}</DetailSectionHeading>
               <Pressable
                 onPress={() =>
-                  router.push({
-                    pathname: '/village/[villageId]',
-                    params: { villageId: event.municipalityId },
-                  })
+                  router.push(villageHref(event.villageSlug))
                 }
                 accessibilityRole="button"
                 accessibilityLabel={event.villageName}

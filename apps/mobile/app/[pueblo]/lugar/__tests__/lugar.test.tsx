@@ -1,6 +1,6 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
-import PlaceDetailScreen, { sortBuriedByDeathDate } from '../[placeId]';
+import PlaceDetailScreen, { sortBuriedByDeathDate } from '../[lugar]';
 import { getPlace } from '@cultuvilla/shared/services/municipalityService';
 import { getPersonsByBurialPlace, updatePerson } from '@cultuvilla/shared/services/personService';
 import { buildPlaceData } from '@cultuvilla/shared/models/municipality';
@@ -41,7 +41,7 @@ jest.mock('@cultuvilla/shared/services/mapsService', () => ({
   MAP_ZOOM_DEFAULT: 13,
 }));
 
-import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
+import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 
 function mockCaps(opts: { canEdit?: boolean; uid?: string | null } = {}) {
   (useEntityCapabilities as jest.Mock).mockReturnValue({

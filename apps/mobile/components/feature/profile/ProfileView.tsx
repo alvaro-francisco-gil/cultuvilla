@@ -1,3 +1,4 @@
+import { eventHref, newsHref, orgHref, personHref, routes } from '../../../lib/navigation/routes';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
@@ -105,7 +106,7 @@ export function ProfileView({
         <HStack gap={3} className="px-4 pt-2 pb-2">
           <ActionPill
             label={t('profile.actions.edit')}
-            onPress={() => router.push(`/person/${selfPerson.id}?edit=1`)}
+            onPress={() => router.push(personHref(selfPerson.id, 'edit=1'))}
             // Renders only for a signed-in self-view whose person doc has
             // loaded, which makes it the E2E suites' signed-in marker: auth
             // minted -> users/{uid} read -> persons/{id} read -> rendered.
@@ -136,8 +137,8 @@ export function ProfileView({
               personas={otherPersonas}
               addLabel={t('profile.personasSection.add')}
               emptyLabel={t('profile.personasSection.empty')}
-              onPressPersona={(id) => router.push(`/person/${id}?edit=1`)}
-              onPressAdd={() => router.push('/person/new')}
+              onPressPersona={(id) => router.push(personHref(id, 'edit=1'))}
+              onPressAdd={() => router.push(personHref('new'))}
               showAdd
             />
           )}
@@ -152,7 +153,7 @@ export function ProfileView({
             now={new Date()}
             ongoingLabel={t('profile.managedEventsSection.ongoing')}
             emptyLabel={t('profile.managedEventsSection.empty')}
-            onPressEvent={(id) => router.push(`/event/${id}` as never)}
+            onPressEvent={(event) => router.push(eventHref(event))}
           />
         </>
       ) : null}
@@ -170,7 +171,7 @@ export function ProfileView({
           <CreatedNewsScroll
             news={createdNews}
             emptyLabel={t('profile.createdNewsSection.empty')}
-            onPressNews={(id) => router.push(`/news/${id}` as never)}
+            onPressNews={(post) => router.push(newsHref(post))}
           />
         </>
       ) : null}
@@ -188,7 +189,7 @@ export function ProfileView({
               icon="business-outline"
               imageUri={o.imageURL}
               commentCount={o.commentCount}
-              onPress={() => router.push(`/o/${o.id}` as never)}
+              onPress={() => router.push(orgHref(o))}
             />
           ))}
         </Section>
@@ -207,7 +208,7 @@ export function ProfileView({
               icon="people-circle-outline"
               imageUri={o.imageURL}
               commentCount={o.commentCount}
-              onPress={() => router.push(`/o/${o.id}` as never)}
+              onPress={() => router.push(orgHref(o))}
             />
           ))}
         </Section>
@@ -226,7 +227,7 @@ export function ProfileView({
                 ? onSelectVillage?.(id)
                 : router.push({ pathname: '/village/[villageId]', params: { villageId: id } })
             }
-            onPressJoin={isSelf ? () => router.push('/discover') : undefined}
+            onPressJoin={isSelf ? () => router.push(routes.discover) : undefined}
             showJoin={isSelf}
           />
         </>

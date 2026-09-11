@@ -1,17 +1,18 @@
+import { routes } from '../lib/navigation/routes';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen } from '../../components/primitives/Screen';
-import { Text } from '../../components/primitives/Text';
-import { ErrorState } from '../../components/primitives/ErrorState';
-import { Pressable } from '../../components/primitives/Pressable';
-import { Button } from '../../components/primitives/Button';
-import { VStack } from '../../components/primitives/VStack';
-import { Escudo } from '../../components/primitives/Escudo';
-import { ScreenHeader } from '../../components/layout/ScreenHeader';
-import { useAuth } from '../../lib/auth/useAuth';
-import { useT } from '../../lib/i18n';
+import { Screen } from '../components/primitives/Screen';
+import { Text } from '../components/primitives/Text';
+import { ErrorState } from '../components/primitives/ErrorState';
+import { Pressable } from '../components/primitives/Pressable';
+import { Button } from '../components/primitives/Button';
+import { VStack } from '../components/primitives/VStack';
+import { Escudo } from '../components/primitives/Escudo';
+import { ScreenHeader } from '../components/layout/ScreenHeader';
+import { useAuth } from '../lib/auth/useAuth';
+import { useT } from '../lib/i18n';
 import {
   getUserMemberships,
   type UserMembership,
@@ -61,7 +62,7 @@ export default function MyVillagesScreen() {
     try {
       await setActiveMunicipality(user.uid, municipalityId);
       await refreshProfile();
-      router.replace('/(tabs)/village');
+      router.replace(routes.myVillage);
     } finally {
       setSwitchingId(null);
     }
@@ -86,7 +87,7 @@ export default function MyVillagesScreen() {
           ListEmptyComponent={<Text tone="muted">{t('me.villages.empty')}</Text>}
           ListFooterComponent={
             <View className="pt-4">
-              <Button variant="ghost" onPress={() => router.push('/discover')}>
+              <Button variant="ghost" onPress={() => router.push(routes.discover)}>
                 <Text>{t('villageSwitcher.findAnother')}</Text>
               </Button>
             </View>

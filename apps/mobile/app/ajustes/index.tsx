@@ -1,3 +1,4 @@
+import { routes } from '../../lib/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { iconSizes } from '@cultuvilla/shared/design-system';
@@ -38,7 +39,7 @@ export default function SettingsScreen() {
           </Text>
           <Card variant="flat" className="p-0">
             <Pressable
-              onPress={() => router.push('/settings/change-email')}
+              onPress={() => router.push(routes.changeEmail)}
               disabled={changeEmailDisabled}
               className="px-4 py-3 border-b border-subtle"
             >
@@ -57,7 +58,7 @@ export default function SettingsScreen() {
               ) : null}
             </Pressable>
             <Pressable
-              onPress={() => router.push('/settings/delete-account')}
+              onPress={() => router.push(routes.deleteAccount)}
               className="px-4 py-3"
             >
               <HStack justify="between" align="center">
@@ -91,7 +92,7 @@ export default function SettingsScreen() {
             {t('settings.section.safety')}
           </Text>
           <Card variant="flat" className="p-0">
-            <Pressable onPress={() => router.push('/settings/blocked')} className="px-4 py-3">
+            <Pressable onPress={() => router.push(routes.blockedUsers)} className="px-4 py-3">
               <HStack justify="between" align="center">
                 <Text>{t('settings.blocked.label')}</Text>
                 <Ionicons name="chevron-forward" size={iconSizes.sm} color="#cbd5e1" />

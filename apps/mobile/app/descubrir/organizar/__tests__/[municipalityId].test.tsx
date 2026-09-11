@@ -69,6 +69,7 @@ describe('OrganizeVillageScreen phone field', () => {
     });
     expect(organizerRequestService.requestOrganizeVillage).toHaveBeenCalledWith({
       municipalityId: 'muni-1',
+      villageSlug: 'villa',
       motivation: null,
     });
   });

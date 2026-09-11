@@ -3,22 +3,22 @@ import { Platform, KeyboardAvoidingView, ScrollView, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { iconSizes, colors } from '@cultuvilla/shared/design-system';
-import { Screen } from '../../../../components/primitives/Screen';
-import { Text } from '../../../../components/primitives/Text';
-import { HStack } from '../../../../components/primitives/HStack';
-import { VStack } from '../../../../components/primitives/VStack';
-import { Button } from '../../../../components/primitives/Button';
-import { Pressable } from '../../../../components/primitives/Pressable';
-import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
-import { ScreenTitle } from '../../../../components/primitives/ScreenTitle';
-import { DetailSectionHeading } from '../../../../components/feature/DetailSectionHeading';
-import { EntityComments } from '../../../../components/feature/EntityComments';
-import { OtherVillagesSaying } from '../../../../components/feature/vocabulary/OtherVillagesSaying';
-import { EntityContributors } from '../../../../components/feature/EntityContributors';
-import { ReportSheet, type ReportTarget } from '../../../../components/feature/ReportSheet';
-import { useT } from '../../../../lib/i18n';
-import { useAuth } from '../../../../lib/auth/useAuth';
-import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+import { Screen } from '../../../components/primitives/Screen';
+import { Text } from '../../../components/primitives/Text';
+import { HStack } from '../../../components/primitives/HStack';
+import { VStack } from '../../../components/primitives/VStack';
+import { Button } from '../../../components/primitives/Button';
+import { Pressable } from '../../../components/primitives/Pressable';
+import { ScreenHeader } from '../../../components/layout/ScreenHeader';
+import { ScreenTitle } from '../../../components/primitives/ScreenTitle';
+import { DetailSectionHeading } from '../../../components/feature/DetailSectionHeading';
+import { EntityComments } from '../../../components/feature/EntityComments';
+import { OtherVillagesSaying } from '../../../components/feature/vocabulary/OtherVillagesSaying';
+import { EntityContributors } from '../../../components/feature/EntityContributors';
+import { ReportSheet, type ReportTarget } from '../../../components/feature/ReportSheet';
+import { useT } from '../../../lib/i18n';
+import { useAuth } from '../../../lib/auth/useAuth';
+import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import {
   deleteVocabularyDefinition,
   deleteVocabularyTerm,

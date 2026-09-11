@@ -1,19 +1,21 @@
+import { villageHref } from '../../lib/navigation/routes';
+import { useVillageRoute, withVillageRoute } from '../../lib/navigation/VillageRouteGate';
 import { useEffect, useState } from 'react';
-import { useLocalSearchParams, Redirect } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
-import { Screen } from '../../../components/primitives';
-import { ScreenHeader } from '../../../components/layout/ScreenHeader';
-import { MembersList } from '../../../components/feature/MembersList';
-import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
+import { Screen } from '../../components/primitives';
+import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { MembersList } from '../../components/feature/MembersList';
+import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
 import { isVillageMember } from '@cultuvilla/shared/services/villageMemberService';
-import { useT } from '../../../lib/i18n';
+import { useT } from '../../lib/i18n';
 
 // Villagers roster ("Personas") — reached by tapping the personas stat on the
 // village home. Members-only: non-members who deep-link here are bounced back to
 // the village. Admins keep the promote/demote row action via MembersList's
 // `canManage`; non-admin members see the same table read-only.
-export default function VillageMembersScreen() {
-  const { villageId } = useLocalSearchParams<{ villageId: string }>();
+function VillageMembersScreen() {
+  const { municipalityId: villageId, slug: villageSlug } = useVillageRoute();
   const { canManage, uid, loading } = useEntityCapabilities(villageId);
   const { t } = useT();
   const [isMember, setIsMember] = useState<boolean | null>(null);
@@ -47,7 +49,7 @@ export default function VillageMembersScreen() {
   }
 
   // App/village admins can always view; everyone else must be a member.
-  if (!isMember && !canManage) return <Redirect href={`/village/${villageId}`} />;
+  if (!isMember && !canManage) return <Redirect href={villageHref(villageSlug)} />;
 
   return (
     <Screen padded={false} topInset={false}>
@@ -56,3 +58,5 @@ export default function VillageMembersScreen() {
     </Screen>
   );
 }
+
+export default withVillageRoute(VillageMembersScreen);

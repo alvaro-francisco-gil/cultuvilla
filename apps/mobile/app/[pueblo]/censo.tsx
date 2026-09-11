@@ -1,19 +1,21 @@
+import { useVillageRoute, withVillageRoute } from '../../lib/navigation/VillageRouteGate';
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
-import { Screen } from '../../../components/primitives';
-import { ScreenHeader } from '../../../components/layout/ScreenHeader';
-import { CensoSchemaEditor } from '../../../components/feature/CensoSchemaEditor';
-import { CensoAnswers } from '../../../components/feature/CensoAnswers';
-import { useAuth } from '../../../lib/auth/useAuth';
-import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
-import { useT } from '../../../lib/i18n';
+import { Screen } from '../../components/primitives';
+import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { CensoSchemaEditor } from '../../components/feature/CensoSchemaEditor';
+import { CensoAnswers } from '../../components/feature/CensoAnswers';
+import { useAuth } from '../../lib/auth/useAuth';
+import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
+import { useT } from '../../lib/i18n';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
 
 // Role-mode censo: one shared screen. An organizer authors the schema; a
 // villager answers (and edits their own answers). No proposals.
-export default function CensoScreen() {
-  const { villageId, mode } = useLocalSearchParams<{ villageId: string; mode?: string }>();
+function CensoScreen() {
+  const { municipalityId: villageId, slug: villageSlug } = useVillageRoute();
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
   const { user } = useAuth();
   const { t } = useT();
   const { canManage, loading } = useEntityCapabilities(villageId);
@@ -46,8 +48,10 @@ export default function CensoScreen() {
         // like any villager. Non-admins always answer.
         <CensoSchemaEditor villageId={villageId} />
       ) : (
-        <CensoAnswers villageId={villageId} userId={user.uid} />
+        <CensoAnswers villageId={villageId} villageSlug={villageSlug} userId={user.uid} />
       )}
     </Screen>
   );
 }
+
+export default withVillageRoute(CensoScreen);

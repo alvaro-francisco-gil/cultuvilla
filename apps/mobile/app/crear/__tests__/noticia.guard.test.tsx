@@ -2,7 +2,7 @@
 // /news/new?newsId=… got the compose form (their save then bounced off the
 // Firestore rules). It now redirects like every other entity's edit screen.
 import { render, waitFor } from '@testing-library/react-native';
-import NewNewsScreen from '../new';
+import NewNewsScreen from '../noticia';
 
 const mockRedirect = jest.fn((_props: { href: string }) => null);
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
@@ -30,6 +30,7 @@ jest.mock('@cultuvilla/shared/services/newsService', () => ({
     title: 'Gran noticia',
     category: 'general',
     municipalityId: 'm-1',
+    villageSlug: 'villa',
     images: [],
     coverImage: null,
     content: [],

@@ -1,3 +1,5 @@
+import { getVillageSlug } from '@cultuvilla/shared/services/municipalityService';
+import { newsHref } from '../../lib/navigation/routes';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
@@ -171,8 +173,23 @@ export default function NewNewsScreen() {
   // editable (any current organizer may reattribute the post), so the picker is
   // shown in both modes — just without the creator lock outside of create.
   const [editMunicipalityId, setEditMunicipalityId] = useState<string | null>(null);
+  const [villageSlug, setVillageSlug] = useState('');
+
   const municipalityId = editMode ? editMunicipalityId : (villageId ?? profile?.activeMunicipalityId ?? null);
   const { canEdit, loading: capLoading } = useEntityCapabilities(municipalityId ?? undefined);
+
+  // The article's URL is built from its pueblo's slug. In edit mode it comes off
+  // the post; when writing a new one, resolve it from the pueblo being posted to.
+  useEffect(() => {
+    if (!municipalityId || villageSlug) return;
+    let cancelled = false;
+    void getVillageSlug(municipalityId).then((slug) => {
+      if (!cancelled) setVillageSlug(slug);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [municipalityId, villageSlug]);
   const [organizerUserIds, setOrganizerUserIds] = useState<string[]>([]);
   const [createdBy, setCreatedBy] = useState<string | null>(null);
   const [organizerOrgIds, setOrganizerOrgIds] = useState<string[]>([]);
@@ -198,6 +215,7 @@ export default function NewNewsScreen() {
       setTitle(post.title);
       setCategory(post.category);
       setEditMunicipalityId(post.municipalityId);
+      setVillageSlug(post.villageSlug);
       setOrganizerUserIds(post.organizerUserIds);
       setCreatedBy(post.createdBy);
       setOrganizerOrgIds(post.organizerOrgIds);
@@ -339,7 +357,7 @@ export default function NewNewsScreen() {
     },
     onSuccess: (postId) => {
       if (editMode) {
-        if (postId) router.replace(`/news/${postId}`);
+        if (postId) router.replace(newsHref({ id: postId, title, villageSlug }));
       } else {
         setSubmitted(true);
       }
@@ -359,7 +377,7 @@ export default function NewNewsScreen() {
   // Editing is gated exactly like every other entity's edit screen (and like
   // the news update rules); anyone else who deep-links here goes to the article.
   if (editMode && !loading && !capLoading && !canEdit(createdBy, organizerUserIds)) {
-    return <Redirect href={`/news/${newsId}`} />;
+    return <Redirect href={newsHref({ id: newsId, title, villageSlug })} />;
   }
 
   if (loading) {

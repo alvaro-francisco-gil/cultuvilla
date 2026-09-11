@@ -1,5 +1,5 @@
 import { render, waitFor } from '@testing-library/react-native';
-import HistoryEntryDetailScreen from '../[entryId]';
+import HistoryEntryDetailScreen from '../[acontecimiento]';
 
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
@@ -19,6 +19,7 @@ jest.mock('@cultuvilla/shared/services/historyService', () => ({
   getHistoryEntry: jest.fn().mockResolvedValue({
     id: 'h1',
     municipalityId: 'm1',
+    villageSlug: 'villa',
     createdBy: 'author',
     title: 'Carta puebla',
     body: { text: 'El rey concede fueros al concejo.', mentions: [], links: [], marks: [] },
@@ -45,7 +46,7 @@ jest.mock('@cultuvilla/shared/services/commentsService', () => ({
   recordEntityView: jest.fn().mockResolvedValue(undefined),
 }));
 
-import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
+import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 
 function mockCaps(canEdit: boolean) {
   (useEntityCapabilities as jest.Mock).mockReturnValue({

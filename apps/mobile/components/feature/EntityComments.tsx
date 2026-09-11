@@ -23,7 +23,7 @@ import { formatCompactRelativeTime } from '@cultuvilla/shared/utils';
 import { DELETED_USER_UID } from '@cultuvilla/shared/models/user';
 import { iconSizes, colors } from '@cultuvilla/shared/design-system';
 import type { CommentData, EntityKind } from '@cultuvilla/shared/models';
-import { ownerRoute } from '../../lib/entities/ownerRoute';
+import { openOwner } from '../../lib/entities/ownerRoute';
 import { resolveCommentAuthor, type CommentAuthor } from '../../lib/comments/commentAuthors';
 import { ReportSheet, type ReportTarget } from './ReportSheet';
 import { getBlockedUserIds } from '@cultuvilla/shared/services/blockedUserService';
@@ -79,7 +79,7 @@ function AuthorLink({
   if (uid === DELETED_USER_UID) return <>{children}</>;
   return (
     <Pressable
-      onPress={() => router.push(ownerRoute('user', uid) as never)}
+      onPress={() => void openOwner('user', uid)}
       accessibilityRole="button"
       accessibilityLabel={label}
       testID={testID}

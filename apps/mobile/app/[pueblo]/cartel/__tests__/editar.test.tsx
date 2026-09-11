@@ -28,8 +28,8 @@ jest.mock('@cultuvilla/shared/services/imageService', () => ({
 }));
 jest.mock('../../../../../components/feature/OrganizerPicker', () => ({ OrganizerPicker: () => null }));
 
-import PosterEditScreen from '../[posterId]/edit';
-import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
+import PosterEditScreen from '../[cartel]/editar';
+import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 import { getFestivalPoster } from '@cultuvilla/shared/services/festivalPosterService';
 
 function mockCaps(opts: { canManage: boolean; uid: string | null; canEdit: boolean }) {
@@ -50,6 +50,7 @@ beforeEach(() => {
   (getFestivalPoster as jest.Mock).mockResolvedValue({
     id: 'fp1',
     municipalityId: 'm1',
+    villageSlug: 'villa',
     year: 2025,
     title: 'Fiestas',
     images: [],

@@ -1,16 +1,19 @@
+import { entityRefHref, villageHref } from '../../../../lib/navigation/routes';
+import { parseEntityRef } from '@cultuvilla/shared/utils';
+import { useVillageRoute, withVillageRoute } from '../../../../lib/navigation/VillageRouteGate';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { useLocalSearchParams, Redirect, router } from 'expo-router';
-import { Screen } from '../../../../../components/primitives/Screen';
-import { Text } from '../../../../../components/primitives/Text';
-import { ScreenHeader } from '../../../../../components/layout/ScreenHeader';
-import { ProposableForm } from '../../../../../components/feature/proposable/ProposableForm';
-import { LocationField } from '../../../../../components/feature/LocationField';
-import { OrganizerPicker } from '../../../../../components/feature/OrganizerPicker';
-import { DeleteHeaderButton } from '../../../../../components/feature/DeleteHeaderButton';
-import { useT } from '../../../../../lib/i18n';
-import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
-import { pickImageAsBlob } from '../../../../../lib/images';
+import { Screen } from '../../../../components/primitives/Screen';
+import { Text } from '../../../../components/primitives/Text';
+import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
+import { ProposableForm } from '../../../../components/feature/proposable/ProposableForm';
+import { LocationField } from '../../../../components/feature/LocationField';
+import { OrganizerPicker } from '../../../../components/feature/OrganizerPicker';
+import { DeleteHeaderButton } from '../../../../components/feature/DeleteHeaderButton';
+import { useT } from '../../../../lib/i18n';
+import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+import { pickImageAsBlob } from '../../../../lib/images';
 import { getPlace, updatePlace, deletePlace } from '@cultuvilla/shared/services/municipalityService';
 import { hideContent } from '@cultuvilla/shared/services/moderationService';
 import { deleteImageByURL, uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
@@ -18,8 +21,10 @@ import { PLACE_KINDS, type PlaceKind } from '@cultuvilla/shared/models/municipal
 import type { VisibilityStatus } from '@cultuvilla/shared/models';
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 
-export default function PlaceEditScreen() {
-  const { villageId, placeId } = useLocalSearchParams<{ villageId: string; placeId: string }>();
+function PlaceEditScreen() {
+  const { municipalityId: villageId, slug: villageSlug } = useVillageRoute();
+  const { lugar: lugarRef } = useLocalSearchParams<{ lugar: string }>();
+  const placeId = parseEntityRef(lugarRef ?? '') ?? '';
   const { t } = useT();
   const { canManage, canEdit, canDelete, uid, loading: capLoading } = useEntityCapabilities(villageId);
   const [name, setName] = useState('');
@@ -72,7 +77,7 @@ export default function PlaceEditScreen() {
     );
   }
   if (!notFound && !canEdit(proposedBy)) {
-    return <Redirect href={`/village/${villageId}/place/${placeId}`} />;
+    return <Redirect href={entityRefHref('place', villageSlug, lugarRef ?? '')} />;
   }
 
   // An admin *moderates* (audited soft-hide via the callable); a creator
@@ -80,7 +85,7 @@ export default function PlaceEditScreen() {
   // rules permit directly.
   function removePlace() {
     if (!villageId || !placeId) return;
-    const done = () => router.replace(`/village/${villageId}`);
+    const done = () => router.replace(villageHref(villageSlug));
     return canManage
       ? hideContent({ collection: 'places', docId: placeId, municipalityId: villageId }).then(done)
       : deletePlace(villageId, placeId).then(done);
@@ -215,3 +220,5 @@ export default function PlaceEditScreen() {
     </Screen>
   );
 }
+
+export default withVillageRoute(PlaceEditScreen);

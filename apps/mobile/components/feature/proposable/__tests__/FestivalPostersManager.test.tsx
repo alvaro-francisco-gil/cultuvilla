@@ -46,6 +46,7 @@ describe('<FestivalPostersManager>', () => {
       expect(createFestivalPoster).toHaveBeenCalledWith(
         expect.objectContaining({
           municipalityId: 'm1',
+          villageSlug: 'villa',
           proposedBy: 'alice',
           contributorUserIds: ['alice'],
           contributorOrgIds: [],

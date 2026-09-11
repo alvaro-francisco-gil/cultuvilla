@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react-native';
 import CensoScreen from '../censo';
-import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 
 let mockParams: Record<string, string> = { villageId: 'm1' };
 jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams }));

@@ -1,17 +1,19 @@
+import { historyEntryHref, newHistoryEntryHref } from '../../lib/navigation/routes';
+import { useVillageRoute, withVillageRoute } from '../../lib/navigation/VillageRouteGate';
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, View } from 'react-native';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { Screen } from '../../../components/primitives/Screen';
-import { Text } from '../../../components/primitives/Text';
-import { HStack } from '../../../components/primitives/HStack';
-import { VStack } from '../../../components/primitives/VStack';
-import { Pressable } from '../../../components/primitives/Pressable';
-import { RemoteImage } from '../../../components/primitives/RemoteImage';
-import { Fab } from '../../../components/primitives/Fab';
-import { ScreenHeader } from '../../../components/layout/ScreenHeader';
-import { useT } from '../../../lib/i18n';
-import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
-import { buildTimelineRows } from '../../../lib/history/timeline';
+import { router, useFocusEffect } from 'expo-router';
+import { Screen } from '../../components/primitives/Screen';
+import { Text } from '../../components/primitives/Text';
+import { HStack } from '../../components/primitives/HStack';
+import { VStack } from '../../components/primitives/VStack';
+import { Pressable } from '../../components/primitives/Pressable';
+import { RemoteImage } from '../../components/primitives/RemoteImage';
+import { Fab } from '../../components/primitives/Fab';
+import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { useT } from '../../lib/i18n';
+import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
+import { buildTimelineRows } from '../../lib/history/timeline';
 import {
   getHistoryEntries,
   type HistoryEntryWithId,
@@ -41,8 +43,8 @@ function Rail({ dot }: { dot: boolean }) {
  * scrolling down goes further into the past. Entries are evenly spaced with a
  * divider opening each century (see `buildTimelineRows`).
  */
-export default function VillageHistoryScreen() {
-  const { villageId } = useLocalSearchParams<{ villageId: string }>();
+function VillageHistoryScreen() {
+  const { municipalityId: villageId, slug: villageSlug } = useVillageRoute();
   const { t } = useT();
   const { isMember } = useEntityCapabilities(villageId);
   const [entries, setEntries] = useState<HistoryEntryWithId[]>([]);
@@ -100,7 +102,7 @@ export default function VillageHistoryScreen() {
             ) : (
               <Pressable
                 onPress={() =>
-                  router.push(`/village/${villageId}/history-entry/${row.entry.id}` as never)
+                  router.push(historyEntryHref({ id: row.entry.id, title: row.entry.title, villageSlug }))
                 }
                 testID={`history-entry-${row.entry.id}`}
                 accessibilityRole="button"
@@ -142,10 +144,12 @@ export default function VillageHistoryScreen() {
       {isMember ? (
         <Fab
           label={t('village.history.add')}
-          onPress={() => router.push(`/village/${villageId}/history-entry/new` as never)}
+          onPress={() => router.push(newHistoryEntryHref(villageSlug))}
           testID="history-add-fab"
         />
       ) : null}
     </Screen>
   );
 }
+
+export default withVillageRoute(VillageHistoryScreen);

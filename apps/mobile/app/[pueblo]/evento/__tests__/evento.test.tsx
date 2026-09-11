@@ -1,5 +1,5 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import EventDetailScreen from '../[eventId]';
+import EventDetailScreen from '../[evento]';
 
 const mockPush = jest.fn();
 
@@ -39,7 +39,8 @@ jest.mock('@cultuvilla/shared/services/eventService', () => ({
     id: 'e1', title: 'Verbena', startDate: new Date('2026-07-12T20:00:00Z'), endDate: null,
     description: 'baile', imageURL: null, villageCoverImage: null, location: null,
     organizerUserIds: [], organizerOrgIds: [], telephoneRequired: false,
-    municipalityId: 'm1', villageName: 'Villapueblo',
+    municipalityId: 'm1',
+    villageSlug: 'villa', villageName: 'Villapueblo',
   }),
 }));
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({ getEventLink: () => 'https://x' }));

@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { Screen } from '../../../components/primitives';
-import { ScreenHeader } from '../../../components/layout/ScreenHeader';
-import { VillageHomeBody } from '../../../components/feature/VillageHomeBody';
-import { useVillageHome } from '../../../lib/useVillageHome';
-import { useAuth } from '../../../lib/auth/useAuth';
-import { useGuestActiveVillage } from '../../../lib/village/GuestActiveVillageContext';
+import { Screen } from '../../components/primitives';
+import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { VillageHomeBody } from '../../components/feature/VillageHomeBody';
+import { useVillageHome } from '../../lib/useVillageHome';
+import { useAuth } from '../../lib/auth/useAuth';
+import { useGuestActiveVillage } from '../../lib/village/GuestActiveVillageContext';
 
 // Root of the village-detail subtree (barrios, places, festival posters,
 // members…), pushed and back-navigable when reached in-app from discovery, a

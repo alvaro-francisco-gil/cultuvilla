@@ -1,6 +1,6 @@
 // apps/mobile/app/news/__tests__/new.test.tsx
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import NewNewsScreen from '../new';
+import NewNewsScreen from '../noticia';
 import { pickImageWithSize } from '../../../lib/images';
 
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));

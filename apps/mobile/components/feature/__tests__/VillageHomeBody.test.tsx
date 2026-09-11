@@ -235,6 +235,7 @@ describe('VillageHomeBody', () => {
       createdAt: new Date('2026-01-01T00:00:00Z'),
       updatedAt: new Date('2026-01-01T00:00:00Z'),
       municipalityId: 'm1',
+      villageSlug: 'villa',
       villageName: 'Anaya',
       villageCoverImage: null,
       villageCoordinates: null,
@@ -368,6 +369,7 @@ describe('VillageHomeBody', () => {
       id: 'news-1',
       ...buildNewsPostData({
         municipalityId: 'm1',
+        villageSlug: 'villa',
         createdBy: 'u1',
         organizerUserIds: ['u1'],
         title: 'Sabores de siempre',
@@ -400,6 +402,7 @@ describe('subdivision sections', () => {
       residentCount: 0,
       commentCount: 0,
       municipalityId: 'v1',
+      villageSlug: 'villa',
     }) as unknown as VillageHomeState['barrios'][number];
 
   it('renders one section per kind, titled with that region\'s word', () => {

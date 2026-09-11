@@ -1,6 +1,6 @@
 import { render, waitFor } from '@testing-library/react-native';
-import VillageMembersScreen from '../members';
-import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+import VillageMembersScreen from '../miembros';
+import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { isVillageMember } from '@cultuvilla/shared/services/villageMemberService';
 
 jest.mock('expo-router', () => ({

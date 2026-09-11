@@ -1,5 +1,5 @@
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
-import ProfileScreen from '../profile';
+import ProfileScreen from '../perfil';
 
 // Regression: changing the profile photo failed with FirebaseError
 // storage/unauthorized on `persons/<id>/photos/<id>.jpeg`. The screen uploaded

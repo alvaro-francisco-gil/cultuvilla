@@ -1,6 +1,6 @@
 import { render, waitFor } from '@testing-library/react-native';
-import VillageHistoryScreen from '../history';
-import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+import VillageHistoryScreen from '../historia';
+import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { getHistoryEntries } from '@cultuvilla/shared/services/historyService';
 
 jest.mock('expo-router', () => ({
@@ -31,6 +31,7 @@ function entry(id: string, title: string, year: number, extra: Record<string, un
   return {
     id,
     municipalityId: 'm1',
+    villageSlug: 'villa',
     createdBy: 'alice',
     title,
     body: { text: '', mentions: [], links: [], marks: [] },

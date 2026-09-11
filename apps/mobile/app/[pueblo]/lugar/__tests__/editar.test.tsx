@@ -1,6 +1,6 @@
 import { Alert } from 'react-native';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import PlaceEditScreen from '../[placeId]/edit';
+import PlaceEditScreen from '../[lugar]/editar';
 
 const mockRedirect = jest.fn((_props: { href: string }) => null);
 jest.mock('react-native-safe-area-context', () => ({
@@ -56,7 +56,7 @@ jest.mock('../../../../../components/feature/LocationField', () => {
   };
 });
 
-import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
+import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 import { getPlace, deletePlace, updatePlace } from '@cultuvilla/shared/services/municipalityService';
 import { hideContent } from '@cultuvilla/shared/services/moderationService';
 
@@ -67,6 +67,7 @@ const place = (over: Record<string, unknown> = {}) => ({
   description: '',
   images: [],
   municipalityId: 'm1',
+  villageSlug: 'villa',
   proposedBy: 'creator',
   contributorUserIds: [],
   contributorOrgIds: [],

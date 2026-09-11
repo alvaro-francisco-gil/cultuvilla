@@ -1,5 +1,5 @@
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
-import CompleteProfileScreen from '../complete-profile';
+import CompleteProfileScreen from '../completar-perfil';
 import { observability } from '@cultuvilla/shared';
 
 jest.mock('@cultuvilla/shared', () => ({

@@ -1,28 +1,29 @@
+import { useVillageRoute, withVillageRoute } from '../../../lib/navigation/VillageRouteGate';
 import { useState, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { Screen } from '../../../../components/primitives/Screen';
-import { VStack } from '../../../../components/primitives/VStack';
-import { HStack } from '../../../../components/primitives/HStack';
-import { Text } from '../../../../components/primitives/Text';
-import { Input } from '../../../../components/primitives/Input';
-import { Pressable } from '../../../../components/primitives/Pressable';
-import { FieldLabel } from '../../../../components/primitives/FieldLabel';
-import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
-import { Stepper, type StepConfig } from '../../../../components/feature/Stepper';
+import { router } from 'expo-router';
+import { Screen } from '../../../components/primitives/Screen';
+import { VStack } from '../../../components/primitives/VStack';
+import { HStack } from '../../../components/primitives/HStack';
+import { Text } from '../../../components/primitives/Text';
+import { Input } from '../../../components/primitives/Input';
+import { Pressable } from '../../../components/primitives/Pressable';
+import { FieldLabel } from '../../../components/primitives/FieldLabel';
+import { ScreenHeader } from '../../../components/layout/ScreenHeader';
+import { Stepper, type StepConfig } from '../../../components/feature/Stepper';
 import {
   DefinitionFields,
   EMPTY_DEFINITION_DRAFT,
   type DefinitionDraft,
-} from '../../../../components/feature/vocabulary/DefinitionFields';
-import { ExistingWordSuggestions } from '../../../../components/feature/vocabulary/ExistingWordSuggestions';
+} from '../../../components/feature/vocabulary/DefinitionFields';
+import { ExistingWordSuggestions } from '../../../components/feature/vocabulary/ExistingWordSuggestions';
 import {
   DigitizationPicker,
   EMPTY_DIGITIZATION_CREDIT,
   type DigitizationCredit,
-} from '../../../../components/feature/vocabulary/DigitizationPicker';
-import { useT } from '../../../../lib/i18n';
-import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+} from '../../../components/feature/vocabulary/DigitizationPicker';
+import { useT } from '../../../lib/i18n';
+import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
 import { addVocabularyEntry } from '@cultuvilla/shared/services/vocabularyService';
 import {
   VOCABULARY_TERM_KINDS,
@@ -49,8 +50,8 @@ function stepBody(children: ReactNode) {
  * entry. The one credit picked here goes on the word (when it is new) and on
  * the meaning.
  */
-export default function NewVocabularyTermScreen() {
-  const { villageId } = useLocalSearchParams<{ villageId: string }>();
+function NewVocabularyTermScreen() {
+  const { municipalityId: villageId, slug: villageSlug } = useVillageRoute();
   const { t } = useT();
   const { uid, isMember } = useEntityCapabilities(villageId);
 
@@ -183,3 +184,5 @@ export default function NewVocabularyTermScreen() {
     </Screen>
   );
 }
+
+export default withVillageRoute(NewVocabularyTermScreen);

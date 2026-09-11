@@ -11,10 +11,10 @@ jest.mock('../../i18n', () => ({
 }));
 
 const link: DeepLink = {
-  url: 'https://cultuvilla-beta.web.app/village/v1/join',
+  url: 'https://cultuvilla-beta.web.app/altozano/entidad/pena_o1/unirse',
+  path: '/altozano/entidad/pena_o1/unirse',
   kind: 'invite',
-  resource: 'village',
-  id: 'v1',
+  resource: 'organization',
 };
 
 describe('useShareDeepLink', () => {

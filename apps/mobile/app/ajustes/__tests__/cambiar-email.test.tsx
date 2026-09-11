@@ -1,5 +1,5 @@
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import ChangeEmailScreen from '../change-email';
+import ChangeEmailScreen from '../cambiar-email';
 import { ReauthRequiredError } from '../../../lib/auth/AuthContext';
 
 const mockReplace = jest.fn();

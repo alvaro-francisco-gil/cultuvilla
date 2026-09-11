@@ -11,6 +11,7 @@ jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 const baseProps = {
   visible: true,
   villageId: 'villa-1',
+  villageSlug: 'villa',
   canManage: false,
   onClose: jest.fn(),
 };

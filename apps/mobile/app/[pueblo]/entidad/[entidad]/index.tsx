@@ -2,31 +2,34 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text as RNText, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
-import { Text } from '../../../components/primitives/Text';
-import { VStack } from '../../../components/primitives/VStack';
-import { NaturalImage } from '../../../components/primitives/NaturalImage';
-import { EntityDetailScaffold } from '../../../components/feature/EntityDetailScaffold';
-import type { EntityDetailAction } from '../../../components/feature/EntityDetailHeader';
-import { ENTITY_FALLBACK_ICON } from '../../../lib/entities/registry';
-import { useT } from '../../../lib/i18n';
-import { useAuth } from '../../../lib/auth/useAuth';
-import { useRegisterGate } from '../../../lib/auth/RegisterGateContext';
-import { useOrgCapabilities } from '../../../lib/auth/useOrgCapabilities';
-import { EntityComments } from '../../../components/feature/EntityComments';
-import { OrgMembersList } from '../../../components/feature/OrgMembersList';
-import { useShareDeepLink } from '../../../lib/deeplink/useShareDeepLink';
+import { Text } from '../../../../components/primitives/Text';
+import { VStack } from '../../../../components/primitives/VStack';
+import { NaturalImage } from '../../../../components/primitives/NaturalImage';
+import { EntityDetailScaffold } from '../../../../components/feature/EntityDetailScaffold';
+import type { EntityDetailAction } from '../../../../components/feature/EntityDetailHeader';
+import { ENTITY_FALLBACK_ICON } from '../../../../lib/entities/registry';
+import { useT } from '../../../../lib/i18n';
+import { useAuth } from '../../../../lib/auth/useAuth';
+import { useRegisterGate } from '../../../../lib/auth/RegisterGateContext';
+import { useOrgCapabilities } from '../../../../lib/auth/useOrgCapabilities';
+import { EntityComments } from '../../../../components/feature/EntityComments';
+import { OrgMembersList } from '../../../../components/feature/OrgMembersList';
+import { useShareDeepLink } from '../../../../lib/deeplink/useShareDeepLink';
 import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 import { getOrganization } from '@cultuvilla/shared/services/organizationService';
 import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { isOrgMember, addOrgMember, getOrgMembers } from '@cultuvilla/shared/services/orgMemberService';
 import { getOrgViewLink } from '@cultuvilla/shared/services/deepLinkService';
+import { parseEntityRef } from '@cultuvilla/shared/utils';
+import { orgEditHref } from '../../../../lib/navigation/routes';
 import type { OrganizationData } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
 import { canViewOrgRoster } from '@cultuvilla/shared/models/organization/OrganizationDataModel';
 
 type Org = OrganizationData & { id: string };
 
 export default function OrgDetailScreen() {
-  const { orgId, intent } = useLocalSearchParams<{ orgId: string; intent?: string }>();
+  const { entidad, intent } = useLocalSearchParams<{ entidad: string; intent?: string }>();
+  const orgId = parseEntityRef(entidad ?? '') ?? '';
   const arrivedViaInvite = intent === 'join';
   const { t } = useT();
   const { user } = useAuth();
@@ -102,7 +105,7 @@ export default function OrgDetailScreen() {
               {
                 icon: 'create-outline' as const,
                 accessibilityLabel: t('common.edit'),
-                onPress: () => router.push(`/o/${org.id}/edit` as never),
+                onPress: () => router.push(orgEditHref({ id: org.id, name: org.name, villageSlug: org.villageSlug })),
               },
             ]
           : []),
@@ -113,7 +116,7 @@ export default function OrgDetailScreen() {
             observability.trackEvent(OBSERVABILITY_EVENTS.ORG_INVITE_SHARED, {
               municipalityId: org.municipalityId,
             });
-            void share(getOrgViewLink(org.id), org.name);
+            void share(getOrgViewLink({ id: org.id, title: org.name, villageSlug: org.villageSlug }), org.name);
           },
         },
       ]
