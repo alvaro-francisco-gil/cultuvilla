@@ -51,7 +51,7 @@ jest.mock('../../../../components/feature/OrganizerPicker', () => {
 
 // Stands in for the live suggestion list: one button that offers a word two
 // other villages already record.
-jest.mock('../../../../../components/feature/vocabulary/ExistingWordSuggestions', () => {
+jest.mock('../../../../components/feature/vocabulary/ExistingWordSuggestions', () => {
   const { Pressable, Text } = jest.requireActual('react-native');
   return {
     ExistingWordSuggestions: ({
