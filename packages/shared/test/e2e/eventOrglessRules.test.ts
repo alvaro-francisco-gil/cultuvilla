@@ -16,7 +16,7 @@ function orglessEvent(createdBy: string) {
     visibility: 'public', visibilityOrgId: null,
     status: 'published', organizerUserIds: [createdBy], organizerOrgIds: [],
     createdBy, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
-    municipalityId: M, villageName: 'Villa',
+    municipalityId: M, villageName: 'Villa', villageSlug: 'villa',
     villageCoverImage: null, villageCoordinates: null,
     commentCount: 0, readCount: 0,
     // Single-day: endBoundary must equal startDate (rules consistency check).

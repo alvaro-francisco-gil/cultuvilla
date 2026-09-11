@@ -1,13 +1,14 @@
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import NewVocabularyTermScreen from '../new';
+import NewVocabularyTermScreen from '../nueva';
 import { addVocabularyEntry } from '@cultuvilla/shared/services/vocabularyService';
-import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
+import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 
 const mockReplace = jest.fn();
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ villageId: 'm1' }),
+  useLocalSearchParams: () => ({ pueblo: 'villa' }),
   router: { replace: (...args: unknown[]) => mockReplace(...args), back: jest.fn() },
 }));
+jest.mock('../../../../lib/navigation/VillageRouteGate');
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -15,13 +16,13 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('@cultuvilla/shared/services/vocabularyService', () => ({
   addVocabularyEntry: jest.fn().mockResolvedValue('m1__esbardo'),
 }));
-jest.mock('../../../../../lib/auth/useEntityCapabilities', () => ({
+jest.mock('../../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: jest.fn(),
 }));
-jest.mock('../../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
+jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 // Stands in for the villager/group picker: one button that credits a neighbour
 // and a peña, and echoes back which user it was told is the locked author.
-jest.mock('../../../../../components/feature/OrganizerPicker', () => {
+jest.mock('../../../../components/feature/OrganizerPicker', () => {
   const { Pressable, Text } = jest.requireActual('react-native');
   return {
     OrganizerPicker: ({
@@ -162,7 +163,7 @@ describe('Añadir palabra', () => {
     fillWord(getByTestId);
     fireEvent.press(getByText('common.stepper.next'));
     fireEvent.press(getByTestId('vocabulary-submit'));
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/village/m1/word/m1__esbardo'));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/villa/palabra/esbardo'));
   });
 
   it('does not advance past the word step without a word and a meaning', () => {

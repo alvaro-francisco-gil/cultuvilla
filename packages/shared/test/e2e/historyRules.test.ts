@@ -27,6 +27,7 @@ const PATH = `historyEntries/${ENTRY}`;
 function entry(createdBy: string, over: Partial<HistoryEntryDataInput> = {}) {
   return buildHistoryEntryData({
     municipalityId: M,
+    villageSlug: 'villa',
     createdBy,
     title: 'Carta puebla',
     body: { text: 'El rey concede fueros.', mentions: [], links: [], marks: [] },
@@ -198,6 +199,11 @@ describe('firestore.rules — /historyEntries update', () => {
   it('CANNOT move the entry to another pueblo', async () => {
     await seedEntry('alice');
     await assertFails(updateDoc(doc(asUser(getEnv(), 'alice'), PATH), { municipalityId: 'm2' }));
+  });
+
+  it('CANNOT rewrite its pueblo slug — shared links would break', async () => {
+    await seedEntry('alice');
+    await assertFails(updateDoc(doc(asUser(getEnv(), 'alice'), PATH), { villageSlug: 'otro-pueblo' }));
   });
 
   it('CANNOT touch the counters or visibility', async () => {

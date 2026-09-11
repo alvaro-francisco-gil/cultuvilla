@@ -46,6 +46,7 @@ export const routes = {
   blockedUsers: href('/ajustes/bloqueados'),
   changeEmail: href('/ajustes/cambiar-email'),
   deleteAccount: href('/ajustes/eliminar-cuenta'),
+  notificationSettings: href('/ajustes/notificaciones'),
   myRegistrations: href('/mis-inscripciones'),
   myVillages: href('/mis-pueblos'),
   discover: href('/descubrir'),
@@ -103,6 +104,10 @@ export const festivalPosterEditHref = (poster: Parameters<typeof festivalPosterL
   href(entityEditPath('festivalPoster', festivalPosterLinkTarget(poster)));
 
 export const wordHref = (villageSlug: string, termSlug: string): HrefPath => href(wordPath(villageSlug, termSlug));
+
+/** Adding a meaning to an existing word. */
+export const defineWordHref = (villageSlug: string, termSlug: string): HrefPath =>
+  href(`${wordPath(villageSlug, termSlug)}/definir`);
 
 export const newWordHref = (villageSlug: string, query?: string): HrefPath =>
   href(`${newWordPath(villageSlug)}${query ? `?${query}` : ''}`);

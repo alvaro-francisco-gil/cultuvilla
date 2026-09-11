@@ -1,24 +1,26 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Screen } from '../../../../../components/primitives/Screen';
-import { VStack } from '../../../../../components/primitives/VStack';
-import { Text } from '../../../../../components/primitives/Text';
-import { ScreenTitle } from '../../../../../components/primitives/ScreenTitle';
-import { ScreenHeader } from '../../../../../components/layout/ScreenHeader';
-import { Stepper, type StepConfig } from '../../../../../components/feature/Stepper';
+import { Screen } from '../../../../components/primitives/Screen';
+import { VStack } from '../../../../components/primitives/VStack';
+import { Text } from '../../../../components/primitives/Text';
+import { ScreenTitle } from '../../../../components/primitives/ScreenTitle';
+import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
+import { Stepper, type StepConfig } from '../../../../components/feature/Stepper';
 import {
   DefinitionFields,
   EMPTY_DEFINITION_DRAFT,
   type DefinitionDraft,
-} from '../../../../../components/feature/vocabulary/DefinitionFields';
+} from '../../../../components/feature/vocabulary/DefinitionFields';
 import {
   DigitizationPicker,
   EMPTY_DIGITIZATION_CREDIT,
   type DigitizationCredit,
-} from '../../../../../components/feature/vocabulary/DigitizationPicker';
-import { useT } from '../../../../../lib/i18n';
-import { useEntityCapabilities } from '../../../../../lib/auth/useEntityCapabilities';
+} from '../../../../components/feature/vocabulary/DigitizationPicker';
+import { useT } from '../../../../lib/i18n';
+import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
+import { useVillageRoute, withVillageRoute } from '../../../../lib/navigation/VillageRouteGate';
+import { vocabularyTermId } from '@cultuvilla/shared/models';
 import {
   addVocabularyDefinition,
   getVocabularyTerm,
@@ -42,8 +44,10 @@ function stepBody(children: ReactNode) {
  * who digitalized it. The word's own credit is untouched — it belongs to
  * whoever first recorded the word — so this credit lands on the meaning only.
  */
-export default function DefineVocabularyTermScreen() {
-  const { villageId, termId } = useLocalSearchParams<{ villageId: string; termId: string }>();
+function DefineVocabularyTermScreen() {
+  const { municipalityId: villageId } = useVillageRoute();
+  const { palabra } = useLocalSearchParams<{ palabra: string }>();
+  const termId = palabra ? vocabularyTermId(villageId, palabra) : '';
   const { t } = useT();
   const { uid, isMember } = useEntityCapabilities(villageId);
 
@@ -138,3 +142,5 @@ export default function DefineVocabularyTermScreen() {
     </Screen>
   );
 }
+
+export default withVillageRoute(DefineVocabularyTermScreen);

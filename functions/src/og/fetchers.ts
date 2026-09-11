@@ -238,9 +238,9 @@ export async function getVillageOgBySlug(slug: string): Promise<OgMeta | null> {
     .where('slug', '==', slug)
     .limit(1)
     .get();
+  if (snap.empty) return null;
   const doc = snap.docs[0];
-  if (!doc) return null;
-  return villageOg(doc.id, (doc.data() ?? {}) as RawVillage);
+  return villageOg(doc.id, doc.data());
 }
 
 export async function getOrgOg(orgId: string): Promise<OgMeta | null> {

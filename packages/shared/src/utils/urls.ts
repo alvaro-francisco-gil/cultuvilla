@@ -261,7 +261,7 @@ export function festivalPosterLinkTarget(poster: {
 }): EntityLinkTarget {
   return {
     id: poster.id,
-    title: poster.title ?? `cartel ${poster.year}`,
+    title: poster.title ?? `cartel ${String(poster.year)}`,
     villageSlug: poster.villageSlug,
   };
 }

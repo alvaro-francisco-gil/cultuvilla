@@ -66,11 +66,14 @@ describe('village-first URLs', () => {
     expect(catchAll).toBeGreaterThan(-1);
     expect(rewrites[catchAll]?.function?.functionId).toBe('ogRenderer');
 
-    const appRule = rewrites.find((r) => r.source.startsWith('/@(') && !r.source.endsWith('/**'));
+    const appRuleIndex = rewrites.findIndex(
+      (r) => r.source.startsWith('/@(') && !r.source.endsWith('/**'),
+    );
+    const appRule = rewrites[appRuleIndex] as Rewrite | undefined;
     expect(appRule?.destination).toBe('/index.html');
-    expect(rewrites.indexOf(appRule!)).toBeLessThan(catchAll);
+    expect(appRuleIndex).toBeLessThan(catchAll);
 
-    const listed = new Set(/^\/@\((.+)\)$/.exec(appRule!.source)?.[1]?.split('|'));
+    const listed = new Set(/^\/@\((.+)\)$/.exec(appRule?.source ?? '')?.[1]?.split('|'));
     for (const segment of topLevelSegments(appDir)) {
       expect(listed, `/${segment} would be routed to the share-preview server`).toContain(segment);
     }

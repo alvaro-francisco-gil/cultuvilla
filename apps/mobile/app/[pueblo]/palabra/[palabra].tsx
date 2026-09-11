@@ -29,7 +29,8 @@ import {
 } from '@cultuvilla/shared/services/vocabularyService';
 import { recordEntityView } from '@cultuvilla/shared/services/commentsService';
 import { formatDate } from '@cultuvilla/shared/utils';
-import { vocabularyTermId } from '@cultuvilla/shared/models';
+import { termSlugFromId, vocabularyTermId } from '@cultuvilla/shared/models';
+import { defineWordHref } from '../../../lib/navigation/routes';
 import { useVillageRoute, withVillageRoute } from '../../../lib/navigation/VillageRouteGate';
 
 /**
@@ -41,7 +42,7 @@ import { useVillageRoute, withVillageRoute } from '../../../lib/navigation/Villa
  * "comment-capable kinds", not the hero-detail entity family.
  */
 function VocabularyTermScreen() {
-  const { municipalityId: villageId } = useVillageRoute();
+  const { municipalityId: villageId, slug: villageSlug } = useVillageRoute();
   const { palabra } = useLocalSearchParams<{ palabra: string }>();
   // A term's doc id is `<municipalityId>__<slug>`; the URL carries the slug.
   const termId = palabra ? vocabularyTermId(villageId, palabra) : '';
@@ -202,7 +203,7 @@ function VocabularyTermScreen() {
                   <Button
                     variant="secondary"
                     onPress={() =>
-                      router.push(`/village/${villageId}/word/${term.id}/define` as never)
+                      router.push(defineWordHref(villageSlug, termSlugFromId(term.id)))
                     }
                     testID="vocabulary-add-definition"
                   >

@@ -75,7 +75,7 @@ export default function SettingsScreen() {
           </Text>
           <Card variant="flat" className="p-0">
             <Pressable
-              onPress={() => router.push('/settings/notifications')}
+              onPress={() => router.push(routes.notificationSettings)}
               className="px-4 py-3"
               testID="settings-notifications"
             >

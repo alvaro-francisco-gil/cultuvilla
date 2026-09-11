@@ -1,3 +1,4 @@
+import { routes } from '../navigation/routes';
 import {
   createContext,
   useCallback,
@@ -58,7 +59,7 @@ const SHEET_HANDOFF_MS = 450;
 function routeFromTap(data: PushTapData): string {
   const route = data['route'];
   // A notification about nothing openable still lands somewhere useful.
-  return typeof route === 'string' && route.startsWith('/') ? route : '/inbox';
+  return typeof route === 'string' && route.startsWith('/') ? route : routes.inbox;
 }
 
 export function PushProvider({ children }: { children: ReactNode }) {
