@@ -75,6 +75,8 @@ export async function ensureVocabularyTerm(input: {
   term: string;
   kind: VocabularyTermKind;
   createdBy: string;
+  contributorUserIds?: string[];
+  contributorOrgIds?: string[];
 }): Promise<string> {
   const id = vocabularyTermId(input.municipalityId, input.term);
   const ref = vocabularyTermDoc(getDb(), id);
@@ -93,12 +95,18 @@ export async function ensureVocabularyTerm(input: {
 /**
  * Add a headword together with its first meaning — the single action the "añadir
  * palabra" form performs. Returns the term id so the caller can navigate to it.
+ *
+ * One digitization credit feeds both writes. When the word is new it credits the
+ * word and its meaning; when somebody recorded the word first, the term keeps its
+ * original credit (it is immutable) and this credit lands on the new meaning only.
  */
 export async function addVocabularyEntry(input: {
   municipalityId: string;
   term: string;
   kind: VocabularyTermKind;
   createdBy: string;
+  contributorUserIds?: string[];
+  contributorOrgIds?: string[];
   definition: string;
   example?: string | null;
   castellano?: string | null;
@@ -111,6 +119,8 @@ export async function addVocabularyEntry(input: {
     example: input.example ?? null,
     castellano: input.castellano ?? null,
     createdBy: input.createdBy,
+    contributorUserIds: input.contributorUserIds,
+    contributorOrgIds: input.contributorOrgIds,
   });
   return termId;
 }

@@ -183,7 +183,13 @@ Shape (in `shapeRules.test.ts`):
 
 Run: `pnpm test:rules` — should pass.
 
-### 11. Deploy notes in the PR description
+### 11. Register the collection in the conformance gate
+
+Add it to `REGISTRY` in [`scripts/check-dev-conformance.mjs`](../../../scripts/check-dev-conformance.mjs) (import its factory from `refs/admin`). That gate walks every registered collection through its converter before each beta/prod deploy; an **unregistered** collection is never checked, so the first schema change to it can ship a converter crash while the gate reports green. The script's own drift guard only *warns*, and only once the collection holds data — a brand-new collection slips past it entirely.
+
+`packages/shared/test/ci/conformanceRegistry.test.ts` fails the build if a top-level factory in `refs/admin.ts` is missing from the registry. Don't satisfy it by adding to its `NOT_YET_GATED` exceptions — those are known gaps with a reason, not an escape hatch. (`vocabularyTerms`/`vocabularyDefinitions` shipped without this step; the test exists because of it.)
+
+### 12. Deploy notes in the PR description
 
 If the rules or indexes file changed, the PR description must note that a deploy is needed and to which env (default dev — use the `firestore-deploy` skill). Indexes build asynchronously after deploy.
 
@@ -197,6 +203,7 @@ If the rules or indexes file changed, the PR description must note that a deploy
 - [ ] Rules block in `firestore.rules` with BOTH auth helpers AND a `isValid<Entity>Create` shape predicate wired into `allow create`.
 - [ ] Composite index entry in `firestore.indexes.json` for `(municipalityId, sortField)` (or the equivalent shape your queries use).
 - [ ] Service vitest + auth rules e2e test + shape rules e2e cases.
+- [ ] Collection registered in the conformance gate `REGISTRY` (`conformanceRegistry.test.ts` passes).
 - [ ] `pnpm check:no-raw-firestore-refs` passes.
 - [ ] PR description notes the deploy needed.
 

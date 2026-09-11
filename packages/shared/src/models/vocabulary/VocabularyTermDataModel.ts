@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { visibilityFields, defaultVisibility } from '../core/VisibilityModel';
+import { contributorFields, creditedUserIds } from '../core/ContributorsModel';
 
 /**
  * What kind of local expression this is. A pueblo's vocabulary is not only
@@ -33,6 +34,14 @@ export const VocabularyTermDataSchema = z.object({
   normalized: z.string().min(1).max(80),
   kind: VocabularyTermKindSchema,
   createdBy: z.string(),
+  /**
+   * Who digitalized the word — the first villager to record it and whoever they
+   * named with them. Fixed at creation, like the rest of the term: a later
+   * villager who adds a meaning is credited on that meaning instead. Crediting
+   * the word itself, not only its meanings, is deliberate — recording a word
+   * nobody had written down is the contribution worth rewarding.
+   */
+  ...contributorFields,
   createdAt: z.date(),
   /** Denormalized by `syncVocabularyDefinitionCount`; clients never write it. */
   definitionCount: z.number().int(),
@@ -47,6 +56,8 @@ export interface VocabularyTermDataInput {
   term: string;
   kind: VocabularyTermKind;
   createdBy: string;
+  contributorUserIds?: string[];
+  contributorOrgIds?: string[];
   createdAt?: Date;
 }
 
@@ -86,6 +97,8 @@ export function buildVocabularyTermData(input: VocabularyTermDataInput): Vocabul
     normalized: slugifyTerm(input.term),
     kind: input.kind,
     createdBy: input.createdBy,
+    contributorUserIds: creditedUserIds(input.createdBy, input.contributorUserIds),
+    contributorOrgIds: input.contributorOrgIds ?? [],
     createdAt,
     definitionCount: 0,
     commentCount: 0,

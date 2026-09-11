@@ -7,19 +7,18 @@ import { Screen } from '../../../../components/primitives/Screen';
 import { Text } from '../../../../components/primitives/Text';
 import { HStack } from '../../../../components/primitives/HStack';
 import { VStack } from '../../../../components/primitives/VStack';
-import { Input } from '../../../../components/primitives/Input';
 import { Button } from '../../../../components/primitives/Button';
 import { Pressable } from '../../../../components/primitives/Pressable';
 import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
 import { ScreenTitle } from '../../../../components/primitives/ScreenTitle';
 import { DetailSectionHeading } from '../../../../components/feature/DetailSectionHeading';
 import { EntityComments } from '../../../../components/feature/EntityComments';
+import { EntityContributors } from '../../../../components/feature/EntityContributors';
 import { ReportSheet, type ReportTarget } from '../../../../components/feature/ReportSheet';
 import { useT } from '../../../../lib/i18n';
 import { useAuth } from '../../../../lib/auth/useAuth';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 import {
-  addVocabularyDefinition,
   deleteVocabularyDefinition,
   deleteVocabularyTerm,
   getVocabularyDefinitions,
@@ -47,10 +46,6 @@ export default function VocabularyTermScreen() {
   const [term, setTerm] = useState<VocabularyTermWithId | null>(null);
   const [definitions, setDefinitions] = useState<VocabularyDefinitionWithId[]>([]);
   const [loading, setLoading] = useState(true);
-  const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState('');
-  const [draftExample, setDraftExample] = useState('');
-  const [saving, setSaving] = useState(false);
   const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
 
   const load = useCallback(async () => {
@@ -83,27 +78,6 @@ export default function VocabularyTermScreen() {
       }).catch(() => {});
     }, [termId, villageId]),
   );
-
-  async function submitDefinition() {
-    if (!term || !user || !draft.trim()) return;
-    setSaving(true);
-    try {
-      await addVocabularyDefinition({
-        municipalityId: term.municipalityId,
-        termId: term.id,
-        definition: draft,
-        example: draftExample,
-        castellano: null,
-        createdBy: user.uid,
-      });
-      setDraft('');
-      setDraftExample('');
-      setAdding(false);
-      await load();
-    } finally {
-      setSaving(false);
-    }
-  }
 
   async function removeDefinition(definitionId: string) {
     await deleteVocabularyDefinition(definitionId);
@@ -154,6 +128,12 @@ export default function VocabularyTermScreen() {
                 </Text>
               </VStack>
 
+              <EntityContributors
+                userIds={term.contributorUserIds}
+                orgIds={term.contributorOrgIds}
+                label={t('village.contributors.label')}
+              />
+
               <VStack gap={3}>
                 <DetailSectionHeading>
                   {t('village.vocabulary.definitions', { count: definitions.length })}
@@ -176,9 +156,12 @@ export default function VocabularyTermScreen() {
                             {t('village.vocabulary.castellano')}: {definition.castellano}
                           </Text>
                         ) : null}
-                        <Text tone="muted" variant="bodySm">
-                          {formatDate(definition.createdAt)}
-                        </Text>
+                        <EntityContributors
+                          variant="inline"
+                          userIds={definition.contributorUserIds}
+                          orgIds={definition.contributorOrgIds}
+                          label={`${t('village.contributors.label')} · ${formatDate(definition.createdAt)}`}
+                        />
                       </VStack>
                       {user ? (
                         <Pressable
@@ -210,49 +193,15 @@ export default function VocabularyTermScreen() {
                 ))}
 
                 {isMember ? (
-                  adding ? (
-                    <VStack gap={3}>
-                      <Input
-                        value={draft}
-                        onChangeText={setDraft}
-                        placeholder={t('village.vocabulary.definitionPlaceholder')}
-                        multiline
-                        autoGrow
-                        maxLength={1000}
-                        testID="vocabulary-definition-draft"
-                      />
-                      <Input
-                        value={draftExample}
-                        onChangeText={setDraftExample}
-                        placeholder={t('village.vocabulary.examplePlaceholder')}
-                        multiline
-                        autoGrow
-                        maxLength={500}
-                        testID="vocabulary-example-draft"
-                      />
-                      <HStack gap={2}>
-                        <Button
-                          onPress={() => void submitDefinition()}
-                          disabled={!draft.trim() || saving}
-                          loading={saving}
-                          testID="vocabulary-definition-save"
-                        >
-                          {t('village.vocabulary.save')}
-                        </Button>
-                        <Button variant="secondary" onPress={() => setAdding(false)}>
-                          {t('common.cancel')}
-                        </Button>
-                      </HStack>
-                    </VStack>
-                  ) : (
-                    <Button
-                      variant="secondary"
-                      onPress={() => setAdding(true)}
-                      testID="vocabulary-add-definition"
-                    >
-                      {t('village.vocabulary.addDefinition')}
-                    </Button>
-                  )
+                  <Button
+                    variant="secondary"
+                    onPress={() =>
+                      router.push(`/village/${villageId}/word/${term.id}/define` as never)
+                    }
+                    testID="vocabulary-add-definition"
+                  >
+                    {t('village.vocabulary.addDefinition')}
+                  </Button>
                 ) : null}
               </VStack>
 
