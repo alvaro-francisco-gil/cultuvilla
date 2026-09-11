@@ -2,11 +2,20 @@
 
 ## Status
 
-- **Updated:** 2026-09-10
-- **Stage:** phase 1 implemented, native config + store submission pending
-- **Blockers (external, human-only):** the `APNS_AUTH_KEY` secret in each env's
-  Secret Manager; per-env `google-services.json` (Android only); the
-  time-sensitive capability on the App ID; Play Data Safety form update.
+- **Updated:** 2026-09-11
+- **Stage:** phase 1 merged (PR #337); **dev deploy blocked on `APNS_AUTH_KEY`**
+- **Dev state:** Firestore rules + indexes are live on `villa-events`; Cloud
+  Functions and Hosting are NOT — the deploy stops at `Deploy Cloud Functions`
+  with "In non-interactive mode but have no value for the secret:
+  APNS_AUTH_KEY", and every later merge to develop will stop there too until
+  the secret exists. Unblock (placeholder; iOS push is skipped with a warning):
+  `printf '%s' '{}' | gcloud secrets create APNS_AUTH_KEY --data-file=- --project=villa-events`,
+  then re-run the failed `Deploy dev` workflow.
+- **Before promoting to beta/prod:** the same secret in `cultuvilla-beta`
+  (placeholder is fine) and the real `.p8` JSON in `cultuvilla-prod` — the
+  promotion's deploy fails identically otherwise.
+- **Remaining human-only steps:** see *Prerequisites* below (google-services
+  files, App ID capability, Play Data Safety, store binary).
 
 ## Context
 
