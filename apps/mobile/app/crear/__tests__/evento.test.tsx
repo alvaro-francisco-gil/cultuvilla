@@ -37,7 +37,7 @@ jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getMunicipality: jest.fn().mockResolvedValue({
-    id: 'm-1', name: 'Pueblo', province: 'Prov', coordinates: { lat: 1, lng: 2 },
+    id: 'm-1', slug: 'pueblo', name: 'Pueblo', province: 'Prov', coordinates: { lat: 1, lng: 2 },
   }),
 }));
 jest.mock('@cultuvilla/shared/models/municipality', () => ({
@@ -359,6 +359,9 @@ describe('NewEventScreen cover upload', () => {
 
     await waitFor(() => expect(uploadEventImage).toHaveBeenCalled());
     expect(createEvent).toHaveBeenCalledTimes(1);
+    // The new event opens at its village-first URL, built from the pueblo picked.
+    const { router } = jest.requireMock('expo-router') as { router: { replace: jest.Mock } };
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith(expect.stringMatching(/^\/pueblo\/evento\/.+_e-1$/)));
     expect(uploadEventImage).toHaveBeenCalledWith(
       'm-1',
       'e-1',
