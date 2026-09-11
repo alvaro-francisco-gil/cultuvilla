@@ -9,7 +9,7 @@ describe('resolveAuthRoute', () => {
         hasPersonId: false,
         topSegment: '(tabs)',
       }),
-    ).toBe('/(onboarding)/complete-profile');
+    ).toBe('/(onboarding)/completar-perfil');
   });
 
   it('does not bounce a user already inside the onboarding group', () => {

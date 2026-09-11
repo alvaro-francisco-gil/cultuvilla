@@ -1,4 +1,4 @@
-export type AuthRouteHref = '/(onboarding)/complete-profile' | '/(tabs)';
+export type AuthRouteHref = '/(onboarding)/completar-perfil' | '/(tabs)';
 
 export interface AuthRouteInput {
   /** Is there an authenticated Firebase user. */
@@ -29,7 +29,7 @@ export function resolveAuthRoute({
   const inAuthGroup = topSegment === '(auth)';
 
   if (needsOnboarding && !inOnboardingGroup) {
-    return '/(onboarding)/complete-profile';
+    return '/(onboarding)/completar-perfil';
   }
   // Authenticated + fully onboarded users should never be left sitting on an
   // /(auth) or /(onboarding) screen. Covering the onboarding group is what

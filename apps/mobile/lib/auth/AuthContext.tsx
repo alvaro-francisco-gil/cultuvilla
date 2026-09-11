@@ -571,7 +571,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Signing in with the wrong address used to be a one-way door: AuthGate
-  // redirects a user with no personId to /(onboarding)/complete-profile and
+  // redirects a user with no personId to /(onboarding)/completar-perfil and
   // nowhere else, so settings (the only sign-out) was unreachable and the sole
   // way forward was creating the very account you didn't want. This is the
   // reverse gear for that screen.
