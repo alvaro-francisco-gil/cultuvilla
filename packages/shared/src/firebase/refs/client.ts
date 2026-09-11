@@ -15,6 +15,8 @@ import { organizerRequestConverterClient } from '../converters/organizerRequestC
 import { personConverterClient } from '../converters/personConverter.client';
 import { userConverterClient } from '../converters/userConverter.client';
 import { notificationConverterClient } from '../converters/notificationConverter.client';
+import { deviceTokenConverterClient } from '../converters/deviceTokenConverter.client';
+import { notificationPrefsConverterClient } from '../converters/notificationPrefsConverter.client';
 import { newsPostConverterClient } from '../converters/newsPostConverter.client';
 import { commentConverterClient } from '../converters/commentConverter.client';
 import { occupationConverterClient } from '../converters/occupationConverter.client';
@@ -145,6 +147,23 @@ export const userNotificationsCollection = (db: Firestore, userId: string) =>
 
 export const userNotificationDoc = (db: Firestore, userId: string, notificationId: string) =>
   doc(db, 'users', userId, 'notifications', notificationId).withConverter(notificationConverterClient);
+
+// Push-capable devices. THE DOCUMENT ID IS THE FCM REGISTRATION TOKEN — see
+// DeviceTokenDataModel: that is what makes re-registering on every launch
+// idempotent instead of accumulating a row per session.
+export const userDevicesCollection = (db: Firestore, userId: string) =>
+  collection(db, 'users', userId, 'devices').withConverter(deviceTokenConverterClient);
+
+export const userDeviceDoc = (db: Firestore, userId: string, token: string) =>
+  doc(db, 'users', userId, 'devices', token).withConverter(deviceTokenConverterClient);
+
+// Optional: absent means DEFAULT_NOTIFICATION_PREFS. Fixed doc id so there is
+// exactly one preferences document per account.
+export const NOTIFICATION_PREFS_DOC_ID = 'notifications';
+
+export const userNotificationPrefsDoc = (db: Firestore, userId: string) =>
+  doc(db, 'users', userId, 'preferences', NOTIFICATION_PREFS_DOC_ID)
+    .withConverter(notificationPrefsConverterClient);
 
 // ── News domain (top-level collections) ──────────────────────────────────
 

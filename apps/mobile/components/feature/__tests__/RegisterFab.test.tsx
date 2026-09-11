@@ -11,6 +11,15 @@ import {
 import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
 import { observability } from '@cultuvilla/shared';
 
+const mockOfferPush = jest.fn();
+jest.mock('../../../lib/push/PushProvider', () => ({
+  usePush: () => ({
+    offerPush: mockOfferPush,
+    permission: 'undetermined',
+    refreshPermission: jest.fn(),
+    requestPermission: jest.fn(),
+  }),
+}));
 jest.mock('../../../lib/registrations/MyRegistrationsContext', () => ({
   useMyRegistrations: () => ({ ribbonFor: () => null, refresh: jest.fn() }),
 }));
@@ -158,6 +167,8 @@ describe('RegisterFab', () => {
       ]),
     );
     expect(observability.trackEvent).toHaveBeenCalledWith('event.signup.success', { villageId: undefined });
+    // A booked seat is the moment the push soft ask earns its place.
+    await waitFor(() => expect(mockOfferPush).toHaveBeenCalledWith('event_signup'));
   });
 
   it('shows a dependent full name with the apodo in parentheses, not the apodo alone', async () => {

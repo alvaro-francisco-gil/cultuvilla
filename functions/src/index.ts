@@ -10,6 +10,7 @@ export { cancelRegistration } from './events/cancelRegistration';
 export { completeExpiredEvents } from './events/eventCompletion';
 export { onRegistrationDeleted } from './events/waitlistPromotion';
 export { onEventUpdated } from './events/notificationTriggers';
+export { sendEventReminders } from './events/eventReminders';
 
 // Village (memberships, organizer requests, invites, denormalization)
 export { acceptInvite } from './village/acceptInvite';
@@ -30,6 +31,21 @@ export { approveOrganization } from './organizations/approveOrganization';
 export { changeOrgMemberRole } from './organizations/changeOrgMemberRole';
 export { syncOrgMemberCount } from './organizations/syncOrgMemberCount';
 export { onOrganizationUpdated } from './organizations/notificationTriggers';
+
+// Push notifications. onNotificationCreated is the ONLY seam between the
+// notification log and a device: every producer just writes a notification doc.
+export { onNotificationCreated } from './push/onNotificationCreated';
+export { flushPushQueue } from './push/flushPushQueue';
+
+// "Something new appeared in your village" — one broadcast per entity kind.
+export {
+  onEventPublished,
+  onNewsPublished,
+  onHistoryEntryPublished,
+  onFestivalPosterPublished,
+  onPlacePublished,
+  onBarrioPublished,
+} from './village/entityPublishedTriggers';
 
 // Census (censo)
 export { updateCenso } from './census/updateCenso';

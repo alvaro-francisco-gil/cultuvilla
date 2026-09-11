@@ -27,6 +27,7 @@ import type { BirthYearWindow } from '@cultuvilla/shared/models/event/EventDataM
 import { birthYearRangeLabel } from '../../lib/events/birthYearLabel';
 import { useT } from '../../lib/i18n';
 import { useMyRegistrations } from '../../lib/registrations/MyRegistrationsContext';
+import { usePush } from '../../lib/push/PushProvider';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
 import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 
@@ -79,6 +80,7 @@ export function RegisterFab({
   birthYearWindow = { minBirthYear: null, maxBirthYear: null },
 }: RegisterFabProps) {
   const { t } = useT();
+  const { offerPush } = usePush();
   const { refresh: refreshRegistrations } = useMyRegistrations();
   const shareDeepLink = useShareDeepLink();
   const [registrations, setRegistrations] = useState<Map<string, AttendeeRegistration>>(new Map());
@@ -235,6 +237,10 @@ export function RegisterFab({
       setRegistrations(next);
       setAutoSelectIds([]);
       setSheetOpen(false);
+      // The moment push earns its ask: a seat was just booked, and "we'll tell
+      // you if it changes" is a concrete, true promise. The policy decides
+      // whether the sheet actually shows.
+      if (diff.toAdd.length > 0) offerPush('event_signup');
       // Keep the feed's "apuntado" ribbons honest without waiting for the next
       // focus refresh.
       refreshRegistrations();
@@ -276,7 +282,10 @@ export function RegisterFab({
       // unclaimed seat carries its own send-link row. Firing the OS share sheet
       // unasked hijacked the moment the booking was confirmed and gave no way
       // back to the other seats' links.
-      if (result.openSeats.length === 0) setSheetOpen(false);
+      if (result.openSeats.length === 0) {
+        setSheetOpen(false);
+        offerPush('event_signup');
+      }
     } catch (e) {
       if (!succeeded) observability.trackEvent(OBSERVABILITY_EVENTS.EVENT_SIGNUP_ERROR, { villageId });
       showAlert(e instanceof Error ? e.message : 'unknown', t('event.register.error'));

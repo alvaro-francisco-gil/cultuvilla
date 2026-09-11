@@ -1008,7 +1008,62 @@
   "notifications": {
     "title": "Notificaciones",
     "markAllRead": "Marcar todo como leído",
-    "noNotifications": "No tienes notificaciones"
+    "noNotifications": "No tienes notificaciones",
+    "channels": {
+      "mine": "Mis inscripciones",
+      "village": "Novedades del pueblo",
+      "social": "Actividad y solicitudes"
+    },
+    "softAsk": {
+      "eventSignup": {
+        "title": "¿Te avisamos si cambia algo?",
+        "body": "Si se libera una plaza, cambia la hora o se cancela el evento, te llega al móvil al momento."
+      },
+      "villageJoin": {
+        "title": "Entérate de lo que pasa en {village}",
+        "body": "Eventos, noticias, lugares y peñas nuevas del pueblo, en tu móvil. Nunca de madrugada."
+      },
+      "accept": "Sí, avisadme",
+      "decline": "Ahora no",
+      "close": "Cerrar"
+    },
+    "settings": {
+      "label": "Notificaciones",
+      "title": "Notificaciones",
+      "intro": "Elige qué te llega al móvil. En el Buzón siempre verás todo.",
+      "categories": {
+        "mine": {
+          "label": "Mis inscripciones",
+          "hint": "Plazas liberadas, cambios y cancelaciones de los eventos a los que vas, y un recordatorio el día antes."
+        },
+        "village": {
+          "label": "Novedades del pueblo",
+          "hint": "Cuando se publica un evento, una noticia, un lugar, un barrio, una peña, un cartel o una entrada de historia en tus pueblos."
+        },
+        "social": {
+          "label": "Actividad y solicitudes",
+          "hint": "Respuestas a tus comentarios y el resultado de tus solicitudes."
+        }
+      },
+      "quietHours": {
+        "label": "No molestar de noche",
+        "hint": "Lo que llegue entre las 22:00 y las 8:00 te llega por la mañana. Lo de tus inscripciones llega siempre."
+      },
+      "permission": {
+        "undetermined": {
+          "title": "Aún no recibes avisos en el móvil",
+          "body": "Actívalos para que no se te pase nada.",
+          "action": "Activar notificaciones"
+        },
+        "denied": {
+          "title": "Las notificaciones están desactivadas",
+          "body": "Actívalas en los ajustes del móvil para recibir avisos.",
+          "action": "Abrir ajustes"
+        },
+        "unsupported": "Las notificaciones al móvil solo están disponibles en la app."
+      },
+      "saveError": "No se han podido guardar los cambios."
+    }
   },
   "tabs": {
     "explora": "Explora",
@@ -1274,7 +1329,8 @@
     "title": "Ajustes",
     "section": {
       "account": "Cuenta",
-      "safety": "Seguridad"
+      "safety": "Seguridad",
+      "notifications": "Notificaciones"
     },
     "blocked": {
       "label": "Personas bloqueadas",

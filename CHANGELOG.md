@@ -65,6 +65,30 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   aceptó ser visible dentro de la app de su pueblo, no que su nombre salga en
   Google), los **enlaces de invitación** `/join`, los **eventos privados** y las
   pantallas personales (`/me`, `/inbox`, `/settings`, `/admin`).
+- **Notificaciones en el móvil.** Hasta ahora las notificaciones sólo vivían en
+  el Buzón; ahora llegan también al móvil, en iOS y Android, y **todo lo que se
+  añade a un pueblo avisa a sus vecinos**: un evento, una noticia, un lugar, un
+  barrio, una peña, un cartel de fiestas o una entrada de la historia del
+  pueblo. Además, el día antes de un evento al
+  que vas te llega un recordatorio.
+
+  El permiso **no se pide al abrir la app**. iOS sólo deja preguntarlo una vez en
+  la vida de la instalación, así que primero sale una hoja propia, en el momento
+  en que el aviso tiene sentido —justo después de apuntarte a un evento («¿Te
+  avisamos si cambia algo?») o de unirte a un pueblo— y sólo si dices que sí
+  aparece el diálogo del sistema. Como mucho dos veces, nunca dos en la misma
+  semana.
+
+  En **Ajustes → Notificaciones** eliges qué te llega (*Mis inscripciones*,
+  *Novedades del pueblo*, *Actividad y solicitudes*) y si quieres **no molestar
+  de noche**: lo que llegue entre las 22:00 y las 8:00 te llega por la mañana,
+  salvo lo de tus propias plazas, que llega siempre. En el Buzón sigues viendo
+  todo, y ahora cada aviso se puede tocar para ir a lo que anuncia.
+
+  Sólo en la app; la web no pide ni bloquea nada. Requiere una versión nueva de
+  la app (no llega por OTA) y, antes del despliegue, el secreto `APNS_AUTH_KEY`
+  en cada entorno — ver
+  [device-notifications.md](docs/plans/ongoing/device-notifications.md).
 
 - **El vocabulario del pueblo, escrito entre todos.** Cada pueblo tiene ahora un
   **Vocabulario**: las palabras, dichos, motes y topónimos que sólo se dicen ahí

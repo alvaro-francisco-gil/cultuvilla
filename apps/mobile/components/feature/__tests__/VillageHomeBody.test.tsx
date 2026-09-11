@@ -7,6 +7,15 @@ import { buildPlaceData } from '@cultuvilla/shared/models/municipality';
 
 const mockRefreshProfile = jest.fn(async () => undefined);
 let mockUser: { uid: string } | null = { uid: 'u1' };
+const mockOfferPush = jest.fn();
+jest.mock('../../../lib/push/PushProvider', () => ({
+  usePush: () => ({
+    offerPush: mockOfferPush,
+    permission: 'undetermined',
+    refreshPermission: jest.fn(),
+    requestPermission: jest.fn(),
+  }),
+}));
 jest.mock('../../../lib/auth/useAuth', () => ({
   useAuth: () => ({
     user: mockUser,
@@ -127,6 +136,7 @@ describe('VillageHomeBody', () => {
     // Refresh the in-memory auth profile so the Pueblo tab picks up the new
     // activeMunicipalityId immediately, not only after an app restart.
     await waitFor(() => expect(mockRefreshProfile).toHaveBeenCalled());
+    expect(mockOfferPush).toHaveBeenCalledWith('village_join', { villageName: expect.any(String) });
   });
 
   it('logged-out "sign in to join" carries the village across auth', () => {

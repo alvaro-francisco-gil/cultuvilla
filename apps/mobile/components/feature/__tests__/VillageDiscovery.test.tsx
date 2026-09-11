@@ -4,6 +4,15 @@ import { joinVillage } from '@cultuvilla/shared/services/villageMemberService';
 
 const mockPush = jest.fn();
 const mockRefreshProfile = jest.fn().mockResolvedValue(undefined);
+const mockOfferPush = jest.fn();
+jest.mock('../../../lib/push/PushProvider', () => ({
+  usePush: () => ({
+    offerPush: mockOfferPush,
+    permission: 'undetermined',
+    refreshPermission: jest.fn(),
+    requestPermission: jest.fn(),
+  }),
+}));
 jest.mock('@cultuvilla/shared', () => ({
   ...jest.requireActual('@cultuvilla/shared'),
   observability: { trackEvent: jest.fn() },
@@ -108,6 +117,8 @@ it('fires VILLAGE_JOIN_SUCCESS after confirming a join', async () => {
   fireEvent.press(getByText('village.joinConfirm.confirm'));
   await waitFor(() => expect(joinVillage).toHaveBeenCalledWith('m1', 'u1', null));
   expect(observability.trackEvent).toHaveBeenCalledWith('village.join.success', { villageId: 'm1' });
+  // Joining earns the push soft ask (the policy decides whether it shows).
+  expect(mockOfferPush).toHaveBeenCalledWith('village_join', { villageName: 'Anaya' });
 });
 
 describe('search matching', () => {

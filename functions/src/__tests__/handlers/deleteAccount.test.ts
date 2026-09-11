@@ -117,6 +117,15 @@ async function seedNotification(uid: string): Promise<void> {
   });
 }
 
+// A device token addresses a push at a specific phone — personal data in its
+// own right, so it must not outlive the account. Queue entries carry the uid.
+async function seedPushData(uid: string): Promise<void> {
+  await db().doc(`users/${uid}/devices/tok-1`).set({ token: 'tok-1', platform: 'android' });
+  await db().doc(`users/${uid}/preferences/notifications`).set({ village: false });
+  await db().doc(`pushQueue/${uid}__notif-1`).set({ userId: uid, notificationId: 'notif-1', sentAt: null });
+  await db().doc(`pushQueue/someone-else__n`).set({ userId: 'someone-else', notificationId: 'n', sentAt: null });
+}
+
 async function seedComment(uid: string): Promise<void> {
   await db().doc('comments/comment-1').set({
     entityKind: 'news',
@@ -198,6 +207,7 @@ describe('deleteAccount (callable)', () => {
     await seedVillageMember(USER_ID, 'admin');
     await seedVillageMember(CO_ADMIN_ID, 'admin');
     await seedSelfPerson(USER_ID);
+    await seedPushData(USER_ID);
     await seedDependentPerson('dependent-1', USER_ID);
     await seedNews(USER_ID);
     await seedEvent(USER_ID);
@@ -238,6 +248,11 @@ describe('deleteAccount (callable)', () => {
       false,
     );
     expect((await db().doc(`users/${USER_ID}/notifications/notif-1`).get()).exists).toBe(false);
+    expect((await db().doc(`users/${USER_ID}/devices/tok-1`).get()).exists).toBe(false);
+    expect((await db().doc(`users/${USER_ID}/preferences/notifications`).get()).exists).toBe(false);
+    expect((await db().doc(`pushQueue/${USER_ID}__notif-1`).get()).exists).toBe(false);
+    // Only the departing account's queue entries.
+    expect((await db().doc('pushQueue/someone-else__n').get()).exists).toBe(true);
     expect((await db().doc('organizerRequests/req-1').get()).exists).toBe(false);
     expect((await db().doc(`users/${USER_ID}`).get()).exists).toBe(false);
 

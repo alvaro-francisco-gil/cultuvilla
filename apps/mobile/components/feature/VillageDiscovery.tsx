@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { VStack, HStack, Text, Escudo, Pressable } from '../primitives';
 import { JoinVillageModal } from './JoinVillageModal';
 import { useT } from '../../lib/i18n';
+import { usePush } from '../../lib/push/PushProvider';
 import {
   getActiveCommunities,
   listMunicipalitiesPage,
@@ -50,6 +51,7 @@ export function VillageDiscovery() {
   const reqId = useRef(0);
 
   const { user, refreshProfile } = useAuth();
+  const { offerPush } = usePush();
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
   const [pendingJoin, setPendingJoin] = useState<Muni | null>(null);
   const [joining, setJoining] = useState(false);
@@ -188,6 +190,7 @@ export function VillageDiscovery() {
       observability.trackEvent(OBSERVABILITY_EVENTS.VILLAGE_JOIN_SUCCESS, { villageId: id });
       setJoinedIds((prev) => new Set(prev).add(id));
       setPendingJoin(null);
+      offerPush('village_join', { villageName: pendingJoin.name });
       // joinVillage set this village as active; refresh the auth profile so the
       // Pueblo tab reflects it now, not only after an app restart.
       await refreshProfile();
