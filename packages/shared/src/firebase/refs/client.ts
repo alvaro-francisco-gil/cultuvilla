@@ -29,6 +29,7 @@ import { blockedUserConverterClient } from '../converters/blockedUserConverter.c
 import { vocabularyTermConverterClient } from '../converters/vocabularyTermConverter.client';
 import { historyEntryConverterClient } from '../converters/historyEntryConverter.client';
 import { vocabularyDefinitionConverterClient } from '../converters/vocabularyDefinitionConverter.client';
+import { vocabularyWordConverterClient } from '../converters/vocabularyWordConverter.client';
 
 export const eventsCollection = (db: Firestore) =>
   collection(db, 'events').withConverter(eventConverterClient);
@@ -251,3 +252,10 @@ export const historyEntriesCollection = (db: Firestore) =>
 
 export const historyEntryDoc = (db: Firestore, entryId: string) =>
   doc(db, 'historyEntries', entryId).withConverter(historyEntryConverterClient);
+
+/** The shared word index — one doc per word across every village. Function-owned. */
+export const vocabularyWordsCollection = (db: Firestore) =>
+  collection(db, 'vocabularyWords').withConverter(vocabularyWordConverterClient);
+
+export const vocabularyWordDoc = (db: Firestore, slug: string) =>
+  doc(db, 'vocabularyWords', slug).withConverter(vocabularyWordConverterClient);

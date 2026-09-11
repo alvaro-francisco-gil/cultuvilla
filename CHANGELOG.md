@@ -6,6 +6,24 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Added
 
+- **Una palabra, muchos pueblos.** Las palabras empiezan a repetirse entre
+  pueblos, y eso deja de ser un problema de duplicados para convertirse en lo
+  interesante: mientras escribes una palabra nueva, el formulario te muestra si
+  ya está recogida en otros sitios («esbardo · en 3 pueblos»). La eliges, te
+  quedas con su grafía, y la añades al tuyo aportando **tu** significado. En la
+  pantalla de la palabra aparece **«También se dice en»**, con los demás pueblos
+  y cuántas acepciones tiene cada uno: la misma palabra y cómo cambia de un
+  pueblo a otro.
+
+  Los duplicados no los evita el buscador, los evita el identificador: se deriva
+  de la propia palabra, así que escribirla entera sin mirar las sugerencias
+  también acaba en la misma palabra. El buscador sirve para enterarte antes de
+  escribir, no para que el sistema funcione.
+
+  **Los motes y los topónimos nunca se comparten**, a propósito. Un mote nombra
+  a una familia de un pueblo y un topónimo a un paraje suyo: «El Cerro» de dos
+  pueblos son dos sitios distintos, y juntarlos sería un error, no una limpieza.
+
 - **La historia del pueblo, en una línea del tiempo.** Cada pueblo tiene ahora
   un botón **Historia** que abre su cronología: el presente arriba y, según se
   baja, más atrás en el tiempo, con un separador al empezar cada siglo. Cada
