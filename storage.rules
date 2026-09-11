@@ -32,6 +32,14 @@ service firebase.storage {
                    && request.resource.contentType.matches('image/.*');
     }
 
+    // Rendered Wrapped cards, written only by the Cloud Function that builds
+    // them. Public read: a Wrapped is meant to be forwarded, and its images are
+    // reached by unguessable download-token URLs from a published doc.
+    match /villageWrapped/{wrappedId}/{card} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     match /users/{userId}/photo/{imageId} {
       allow read: if true;
       allow write: if request.auth != null

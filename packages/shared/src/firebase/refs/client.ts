@@ -23,6 +23,7 @@ import { occupationConverterClient } from '../converters/occupationConverter.cli
 import { adminConverterClient } from '../converters/adminConverter.client';
 import { membershipEventConverterClient } from '../converters/membershipEventConverter.client';
 import { festivalPosterConverterClient } from '../converters/festivalPosterConverter.client';
+import { villageWrappedConverterClient } from '../converters/villageWrappedConverter.client';
 import { municipalityPersonConverterClient } from '../converters/municipalityPersonConverter.client';
 import { contentReportConverterClient } from '../converters/contentReportConverter.client';
 import { blockedUserConverterClient } from '../converters/blockedUserConverter.client';
@@ -259,3 +260,9 @@ export const vocabularyWordsCollection = (db: Firestore) =>
 
 export const vocabularyWordDoc = (db: Firestore, slug: string) =>
   doc(db, 'vocabularyWords', slug).withConverter(vocabularyWordConverterClient);
+
+export const villageWrappedCollection = (db: Firestore) =>
+  collection(db, 'villageWrapped').withConverter(villageWrappedConverterClient);
+
+export const villageWrappedDoc = (db: Firestore, wrappedId: string) =>
+  doc(db, 'villageWrapped', wrappedId).withConverter(villageWrappedConverterClient);

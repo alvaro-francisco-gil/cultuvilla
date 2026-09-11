@@ -23,6 +23,21 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   **Los motes y los topónimos nunca se comparten**, a propósito. Un mote nombra
   a una familia de un pueblo y un topónimo a un paraje suyo: «El Cerro» de dos
   pueblos son dos sitios distintos, y juntarlos sería un error, no una limpieza.
+- **El resumen de las fiestas.** Cuando terminan unas fiestas que el pueblo
+  había fijado en el calendario, la app prepara sola su **resumen**: seis
+  imágenes verticales, para compartir tal cual por WhatsApp — la portada, las
+  cifras, todos los eventos con su cartel, el pueblo entero en burbujas, quién
+  organizó más cosas, y los carteles de este año sumados al archivo histórico.
+
+  No se publica a tus espaldas ni se queda esperando para siempre: los
+  administradores del pueblo reciben un aviso de que está listo, pueden
+  **publicarlo** o **descartarlo**, y si nadie hace nada se publica solo a los
+  **tres días**. Un bloque flojo (menos de tres eventos, o ninguna
+  inscripción) nunca se publica solo — se ofrece, y decide una persona.
+
+  Solo participan los pueblos que han confirmado las fechas exactas de ese
+  año. Un resumen publicado se abre sin estar registrado, para que el enlace
+  siga funcionando en manos de quien lo reciba.
 
 - **La historia del pueblo, en una línea del tiempo.** Cada pueblo tiene ahora
   un botón **Historia** que abre su cronología: el presente arriba y, según se

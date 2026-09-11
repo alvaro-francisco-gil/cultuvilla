@@ -25,6 +25,7 @@ import { adminConverterAdmin } from '../converters/adminConverter.admin';
 import { membershipEventConverterAdmin } from '../converters/membershipEventConverter.admin';
 import { moderationEventConverterAdmin } from '../converters/moderationEventConverter.admin';
 import { festivalPosterConverterAdmin } from '../converters/festivalPosterConverter.admin';
+import { villageWrappedConverterAdmin } from '../converters/villageWrappedConverter.admin';
 import { municipalityPersonConverterAdmin } from '../converters/municipalityPersonConverter.admin';
 import { contentReportConverterAdmin } from '../converters/contentReportConverter.admin';
 import { blockedUserConverterAdmin } from '../converters/blockedUserConverter.admin';
@@ -290,3 +291,9 @@ export const vocabularyWordsCollection = (db: Firestore) =>
 
 export const vocabularyWordDoc = (db: Firestore, slug: string) =>
   db.collection('vocabularyWords').doc(slug).withConverter(vocabularyWordConverterAdmin);
+
+export const villageWrappedCollection = (db: Firestore) =>
+  db.collection('villageWrapped').withConverter(villageWrappedConverterAdmin);
+
+export const villageWrappedDoc = (db: Firestore, wrappedId: string) =>
+  db.collection('villageWrapped').doc(wrappedId).withConverter(villageWrappedConverterAdmin);

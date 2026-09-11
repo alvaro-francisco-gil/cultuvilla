@@ -86,7 +86,9 @@ export const WrappedDataSchema = z.object({
   topOrganizations: z.array(WrappedOrgCreditSchema).max(5),
   topOrganizers: z.array(WrappedPersonCreditSchema).max(5),
 
-  /** Storage paths of the rendered PNGs, by card. Empty until rendering runs. */
+  /** Download URL of each rendered card. A URL rather than a storage path
+   *  because a Wrapped is made to be forwarded: the recipient may not be a
+   *  member, or signed in at all, and the link has to still resolve. */
   images: z.record(WrappedCardSchema, z.string()),
 });
 export type WrappedData = z.infer<typeof WrappedDataSchema>;
