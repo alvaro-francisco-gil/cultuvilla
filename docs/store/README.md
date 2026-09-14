@@ -55,4 +55,6 @@ binary's behaviour, and a mismatch gets the app pulled, not warned. So:
 > **Legal URLs moved to Spanish (2026-09).** The pages are now `/legal/privacidad`
 > and `/legal/terminos`; Hosting 301s the old `/legal/privacy` and `/legal/terms`,
 > so the URLs already declared in App Store Connect and Play Console keep working.
-> Update both consoles to the new URLs at the next listing edit.
+> **Do not update the consoles until the change is live on prod** — before that,
+> prod serves the SPA's not-found screen at the new paths. The ordered steps are
+> in [store-release.md](../plans/ongoing/store-release.md#rollout-of-the-village-first-urls).

@@ -58,13 +58,40 @@ Google's production review.
 
 Legend: ⬜ pending · ⏳ in progress · ✅ done · ⚠️ blocked (note inline)
 
-**Widening prod's iOS deep links waits on the next iOS build.** Prod's
-`apple-app-site-association` still claims only the legacy paths 1.0.0 can route
-(see [spanish-village-urls.md](../../decisions/spanish-village-urls.md#hosting-and-native-links)).
-Once an iOS build carrying the village-first routes is **on sale** (`status` in
-the App Store release workflow, not merely approved), set prod's `paths` to
-`["NOT /entrar", "NOT /entrar/*", "*"]` and update the pinned list in
-`packages/shared/test/ci/storeRelease.test.ts` in the same PR.
+## Rollout of the village-first URLs
+
+The Spanish, village-first URLs (#341, #348, #350) are on `develop` and live on
+dev. Why each step is ordered this way is in
+[spanish-village-urls.md](../../decisions/spanish-village-urls.md#hosting-and-native-links).
+Tick these off in order:
+
+1. ⬜ **Promote `develop → beta → main`** as usual. Nothing extra by hand: the two
+   backfills (`municipality-slug`, then `village-slug-denorm`) auto-apply before
+   the gates on each deploy.
+2. ⬜ **Check prod after the deploy.**
+   - `curl -sI https://cultuvilla.es/pueblo-que-no-existe` → `404`
+   - `curl -sI https://cultuvilla.es/legal/privacy` → `301` to `/legal/privacidad`
+   - `curl -s https://cultuvilla.es/.well-known/apple-app-site-association` →
+     still the **legacy** paths (`/event/*`, `/news/*`, `/village/*`, `/o/*`)
+3. ⬜ **Update the legal URLs in both consoles** — only once step 2 passes. Before
+   that, prod has no page at the new paths.
+   - App Store Connect → App Information → Privacy Policy URL →
+     `https://cultuvilla.es/legal/privacidad`
+   - Play Console → Policy and programs → App content → Privacy policy → same URL
+     (the Play API cannot set this field; it is a UI-only edit)
+4. ⬜ **Ship an iOS build carrying the new routes** — any build made from `main`
+   after step 1: `mobile-release`, then **App Store release** → `submit`. Wait
+   until `status` says **READY_FOR_SALE**, not merely approved.
+5. ⬜ **Widen prod's iOS deep links.** Set prod's `apple-app-site-association`
+   `paths` to `["NOT /entrar", "NOT /entrar/*", "*"]` and update the pinned list
+   in `packages/shared/test/ci/storeRelease.test.ts` in the same PR (and include
+   `prod` again in `apps/mobile/__tests__/appConfig.test.ts`).
+   - **Why it waits:** the live iOS 1.0.0 predates both the new routes and OTA, so
+     a wider claim would open new links inside an app with no screen for them.
+
+Android needs no step of its own: its path claim lives in the binary's manifest,
+so the first Android build made after step 1 claims the new URLs by itself.
+Until then, new links simply open on the web.
 
 ## Publicar iOS es automático (desde el 4 sep 2026)
 
