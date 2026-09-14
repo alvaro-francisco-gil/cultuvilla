@@ -6,6 +6,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Added
 
+- **Palabras y acontecimientos desde «Añadir contenido».** La hoja de añadir
+  contenido del pueblo ofrece ahora «Palabra» (vocabulario) y «Acontecimiento»
+  (línea de historia), que abren directamente sus pantallas de creación.
 - **Hasta 25 fotos por noticia.** El límite de imágenes dentro del cuerpo de una
   noticia sube de 10 a 25: una crónica de fiestas o una galería de una jornada ya
   no obliga a elegir. El coste de almacenamiento es marginal, porque cada foto se
