@@ -48,10 +48,8 @@ export interface WrappedRegistrationInput {
 }
 
 export interface WrappedInputs {
-  /** One or more date ranges. A Wrapped can cover a single fiestas block or
-   *  several (Santiago in July and the August fiestas, as one summer); an event
-   *  counts when it starts inside any of them. */
-  windows: { start: Date; end: Date }[];
+  /** The range everything is counted over; an event counts when it starts inside it. */
+  range: { start: Date; end: Date };
   events: WrappedEventInput[];
   registrations: WrappedRegistrationInput[];
   organizations: { id: string; name: string; imageURL: string | null }[];
@@ -89,9 +87,9 @@ function countIn(values: Set<string>, within: Set<string>): number {
   return n;
 }
 
-export function inAnyWindow(d: Date, windows: { start: Date; end: Date }[]): boolean {
+export function inRange(d: Date, range: { start: Date; end: Date }): boolean {
   const t = d.getTime();
-  return windows.some((w) => t >= w.start.getTime() && t <= w.end.getTime());
+  return t >= range.start.getTime() && t <= range.end.getTime();
 }
 
 /** Rank by count desc, then name asc, so a recompute never reshuffles a tie. */
@@ -103,7 +101,7 @@ function rank<T extends { eventCount: number }>(items: T[], name: (t: T) => stri
 
 export function aggregateWrapped(inputs: WrappedInputs): WrappedAggregate {
   const countedEvents = inputs.events
-    .filter((e) => e.status !== 'cancelled' && inAnyWindow(e.startDate, inputs.windows))
+    .filter((e) => e.status !== 'cancelled' && inRange(e.startDate, inputs.range))
     .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
   const counted = new Set(countedEvents.map((e) => e.id));
 

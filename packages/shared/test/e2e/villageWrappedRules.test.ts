@@ -10,8 +10,9 @@ const M = 'm1';
 
 function wrappedDoc(status: 'draft' | 'published' | 'discarded') {
   return {
-    municipalityId: M, villageName: 'Matabuena', year: 2026, blockId: 'agosto', blockName: 'Fiestas de agosto',
-    windowStart: new Date('2026-08-14T00:00:00Z'), windowEnd: new Date('2026-08-28T23:59:59Z'),
+    municipalityId: M, villageName: 'Matabuena', year: 2026,
+    blocks: [{ blockId: 'carmen', name: 'Carmen', start: new Date('2026-08-14T00:00:00Z'), end: new Date('2026-08-28T23:59:59Z') }],
+    rangeStart: new Date('2026-08-14T00:00:00Z'), rangeEnd: new Date('2026-08-28T23:59:59Z'),
     status, autoPublishAt: null, computedAt: new Date(),
     stats: {
       eventCount: 14, confirmedCount: 240, waitlistedCount: 12, uniquePersonCount: 174,

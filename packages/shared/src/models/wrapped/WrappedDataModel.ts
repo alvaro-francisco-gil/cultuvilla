@@ -1,10 +1,15 @@
 import { z } from 'zod';
 
 /**
- * A village's post-fiestas summary for one fiesta block in one year.
+ * A village's summary of one year's fiestas — every block of that year in one
+ * Wrapped (Santiago in July and the Carmen in August, together).
  *
- * Stored at `villageWrapped/{municipalityId}_{year}_{blockId}` — the id is
- * deterministic so recomputing overwrites in place rather than duplicating.
+ * Stored at `villageWrapped/{municipalityId}_{year}` — the id is deterministic
+ * so regenerating overwrites in place rather than duplicating.
+ *
+ * The exact dates live HERE, not on the village profile: a profile block is
+ * only a name and a month, and the days of one year are chosen by the admin
+ * who creates that year's Wrapped.
  *
  * The doc holds STATS and the rendered image paths, never the raw people or
  * event lists it was built from. Those are inputs to rendering; copying them
@@ -70,18 +75,30 @@ export const WrappedPersonCreditSchema = z.object({
   photoURL: z.string().nullable(),
 });
 
+/** One fiesta block as it happened in this Wrapped's year. Name snapshotted, so a later rename does not rewrite history. */
+export const WrappedBlockSchema = z.object({
+  blockId: z.string(),
+  name: z.string(),
+  start: z.date(),
+  end: z.date(),
+});
+export type WrappedBlock = z.infer<typeof WrappedBlockSchema>;
+
 export const WrappedDataSchema = z.object({
   municipalityId: z.string(),
   villageName: z.string(),
   year: z.number().int(),
-  blockId: z.string(),
-  blockName: z.string(),
-  windowStart: z.date(),
-  windowEnd: z.date(),
+  /** In date order; shown on the cover. */
+  blocks: z.array(WrappedBlockSchema).min(1),
+  /** Everything counted — events, sign-ups, comments, articles — falls inside
+   *  this range. Always contains every block, and may reach beyond them (the
+   *  articles written the week before the fiestas). */
+  rangeStart: z.date(),
+  rangeEnd: z.date(),
 
   status: WrappedStatusSchema,
   /** When the timer publishes a draft nobody acted on. Null once terminal, and
-   *  null while the quality floor holds a thin block back from auto-publishing. */
+   *  null while the quality floor holds a thin Wrapped back from auto-publishing. */
   autoPublishAt: z.date().nullable(),
   computedAt: z.date(),
 
@@ -100,6 +117,6 @@ export const WrappedDataSchema = z.object({
 });
 export type WrappedData = z.infer<typeof WrappedDataSchema>;
 
-export function wrappedId(municipalityId: string, year: number, blockId: string): string {
-  return `${municipalityId}_${String(year)}_${blockId}`;
+export function wrappedId(municipalityId: string, year: number): string {
+  return `${municipalityId}_${String(year)}`;
 }

@@ -29,7 +29,7 @@ function ev(over: Partial<WrappedInputs['events'][number]> & { id: string }): Wr
 
 function base(over: Partial<WrappedInputs> = {}): WrappedInputs {
   return {
-    windows: [WINDOW],
+    range: WINDOW,
     events: [],
     registrations: [],
     organizations: [],
