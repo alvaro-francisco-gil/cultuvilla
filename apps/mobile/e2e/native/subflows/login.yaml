@@ -40,11 +40,11 @@ appId: com.cultuvilla.app.dev
 - clearState
 # Cold start with no credentials. As a guest the profile screen renders nothing,
 # which is fine — we are only waiting for the app to be alive.
-- openLink: 'cultuvilla://profile'
+- openLink: 'cultuvilla://perfil'
 - extendedWaitUntil:
     visible: 'Explora'
     timeout: 90000
-- openLink: 'cultuvilla://profile?e2eLogin=${EMAIL}%7C${PASSWORD}'
+- openLink: 'cultuvilla://perfil?e2eLogin=${EMAIL}%7C${PASSWORD}'
 - repeat:
     times: 4
     commands:
@@ -53,7 +53,7 @@ appId: com.cultuvilla.app.dev
             notVisible:
               id: 'profile-edit-action'
           commands:
-            - openLink: 'cultuvilla://profile'
+            - openLink: 'cultuvilla://perfil'
             - waitForAnimationToEnd:
                 timeout: 4000
 - extendedWaitUntil:
