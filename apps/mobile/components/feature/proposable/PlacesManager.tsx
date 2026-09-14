@@ -3,7 +3,7 @@ import { ScrollView } from 'react-native';
 import {
   createPlace, newPlaceId,
 } from '@cultuvilla/shared/services/municipalityService';
-import { deleteImageByURL, uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
+import { uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
 import { PLACE_KINDS, type PlaceKind } from '@cultuvilla/shared/models/municipality';
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
 import { Stepper, type StepConfig } from '../Stepper';
@@ -71,9 +71,7 @@ export function PlacesManager({
   }
 
   function removeImage(index: number) {
-    const url = images[index];
     setImages((prev) => prev.filter((_, i) => i !== index));
-    if (url) void deleteImageByURL(url).catch(() => {}); // best-effort orphan cleanup
   }
 
   async function submit() {

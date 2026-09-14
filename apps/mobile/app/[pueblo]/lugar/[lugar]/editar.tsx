@@ -16,7 +16,7 @@ import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilitie
 import { pickImageAsBlob } from '../../../../lib/images';
 import { getPlace, updatePlace, deletePlace } from '@cultuvilla/shared/services/municipalityService';
 import { hideContent } from '@cultuvilla/shared/services/moderationService';
-import { deleteImageByURL, uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
+import { uploadPlaceImage } from '@cultuvilla/shared/services/imageService';
 import { PLACE_KINDS, type PlaceKind } from '@cultuvilla/shared/models/municipality';
 import type { VisibilityStatus } from '@cultuvilla/shared/models';
 import type { LatLng } from '@cultuvilla/shared/models/core/LocationDataModel';
@@ -111,11 +111,9 @@ function PlaceEditScreen() {
 
   async function removeImage(index: number) {
     if (!villageId || !placeId) return;
-    const url = images[index];
     const next = images.filter((_, i) => i !== index);
     await updatePlace(villageId, placeId, { images: next });
     setImages(next);
-    if (url) void deleteImageByURL(url).catch(() => {}); // best-effort orphan cleanup
   }
 
   async function submit() {

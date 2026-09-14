@@ -281,6 +281,15 @@ object with the original's basename plus `_card.webp` / `_thumb.webp`.
   is copied when it has one (a token bypasses `storage.rules`, so an auth-gated
   person photo needs it), and omitted when the original is served publicly
   through the rules.
+- **Delete path:** [functions/src/images/cleanupRemovedImages.ts](../../functions/src/images/cleanupRemovedImages.ts)
+  — one `onDocumentWritten` trigger per entity collection (news, events, orgs,
+  places, barrios, festival posters, history entries) diffs the image
+  references before/after the write and deletes each one no longer referenced,
+  original plus both renditions. It only ever deletes objects under the
+  entity's **own** upload prefix, so a copied URL or another entity's image is
+  never touched. Person/user photos and escudos are out of scope: they live
+  under the uploader's prefix, not the doc's, so ownership can't be proven from
+  the path (`deleteAccount` removes them by prefix).
 - **Backfill:** [scripts/backfill-image-variants.mjs](../../scripts/backfill-image-variants.mjs)
   for images uploaded before the trigger existed, and
   [scripts/backfill-image-cache-control.mjs](../../scripts/backfill-image-cache-control.mjs)

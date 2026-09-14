@@ -26,7 +26,6 @@ import {
 } from '@cultuvilla/shared/services/festivalPosterService';
 import { hideContent } from '@cultuvilla/shared/services/moderationService';
 import {
-  deleteImageByURL,
   uploadFestivalPosterImage,
 } from '@cultuvilla/shared/services/imageService';
 import type { VisibilityStatus } from '@cultuvilla/shared/models';
@@ -114,9 +113,7 @@ function FestivalPosterEditScreen() {
   }
 
   function removeImage(index: number) {
-    const url = images[index];
     setImages((prev) => prev.filter((_, i) => i !== index));
-    if (url) void deleteImageByURL(url).catch(() => {}); // best-effort orphan cleanup
   }
 
   async function submit() {

@@ -195,6 +195,16 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Fixed
 
+- **Las fotos que quitas ya no se quedan ocupando espacio.** Al borrar una
+  noticia, un evento, una entidad, un lugar, un barrio, un cartel o una entrada
+  de historia —o al quitar o cambiar una de sus fotos al editar— la imagen se
+  borra del almacenamiento junto con sus versiones reducidas. Antes se quedaban
+  para siempre: el móvil intentaba borrarlas, pero las reglas de Storage lo
+  rechazaban en silencio. En carteles e historia, además, el borrado ocurría
+  antes de guardar, así que cancelar la edición podía dejar la ficha apuntando a
+  una foto ya borrada. Ahora lo hace el servidor, después de guardar, y solo con
+  fotos subidas para esa misma ficha.
+
 - **En el iPhone, Safari no ofrecía la app — y la web se declaraba en inglés.**
   La v1.1.0 anunció que Safari mostraría su propia barra de descarga del App
   Store, y por eso nuestro aviso se aparta en Safari. Pero la etiqueta que la
