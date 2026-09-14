@@ -3,7 +3,7 @@ import type { WrappedCard } from '@cultuvilla/shared/models';
 import type { GatheredWrapped } from './gatherInputs';
 import {
   coverCard, eventsCard, organizersCard, peopleCard, postersCard, statsCard,
-  MAX_EVENT_TILES, POSTER_ASPECT, type CardContext,
+  MAX_EVENT_TILES, POSTER_ASPECT, eventTileImageHeight, type CardContext,
 } from './render/cards';
 import { fixedAspectGrid, hexLayout, mosaicLayout } from './render/layout';
 import { IMAGE_CONCURRENCY, loadImages } from './render/images';
@@ -95,7 +95,12 @@ export async function composeWrapped(
   const jobs = [
     { url: gathered.escudoUrl, width: 240, height: 240 },
     ...people.map((p) => ({ url: p.photoURL, width: bubble * 2, height: bubble * 2 })),
-    ...shownEvents.map((e) => ({ url: e.imageURL, width: tile.tileWidth * 2, height: tile.tileHeight * 2, anchor: 'top' as const })),
+    ...shownEvents.map((e) => ({
+      url: e.imageURL,
+      width: tile.tileWidth * 2,
+      height: eventTileImageHeight(tile.tileHeight) * 2,
+      anchor: 'top' as const,
+    })),
     ...orgs.map((o) => ({ url: o.imageURL, width: 260, height: 260 })),
     ...orgPeople.map((p) => ({ url: p.photoURL, width: 180, height: 180 })),
     ...archive.ordered.map((p) => ({ url: p.imageURL, width: poster.tileWidth * 2, height: poster.tileHeight * 2 })),

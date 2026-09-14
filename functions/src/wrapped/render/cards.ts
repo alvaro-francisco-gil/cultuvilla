@@ -99,55 +99,62 @@ function frame(ctx: CardContext, header: { kicker: string; title: string; subtit
 // ── cover ────────────────────────────────────────────────────────────────
 
 export function coverCard(ctx: CardContext, escudo: string | null): SatoriNode {
+  const width = CARD_WIDTH - GUTTER * 2;
+  const village = ctx.villageName.toUpperCase();
   return h(
     'div',
     {
       style: {
         display: 'flex',
         flexDirection: 'column',
+        alignItems: 'center',
         justifyContent: 'space-between',
         width: CARD_WIDTH,
         height: CARD_HEIGHT,
-        padding: `${String(GUTTER * 1.6)}px ${String(GUTTER)}px ${String(GUTTER)}px`,
+        padding: `${String(GUTTER * 1.4)}px ${String(GUTTER)}px ${String(GUTTER * 1.2)}px`,
         backgroundColor: colors.ground,
         backgroundImage: `linear-gradient(170deg, #4a2418 0%, ${colors.ground} 58%)`,
         color: colors.ink,
         fontFamily: 'Archivo',
+        textAlign: 'center',
       },
     },
     h(
       'div',
-      { style: { display: 'flex', alignItems: 'center', gap: 28 } },
+      { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 30 } },
       escudo
-        ? h('img', { src: escudo, width: 120, height: 120, style: { objectFit: 'cover', borderRadius: 28 } })
+        ? h('img', { src: escudo, width: 170, height: 170, style: { objectFit: 'cover', borderRadius: 40 } })
         : null,
-      text(ctx.villageName.toUpperCase(), { fontSize: 34, fontWeight: 600, letterSpacing: 6, color: colors.accentSoft }),
+      // Letter-spaced capitals run wide, so a long pueblo name is fitted
+      // rather than set at a size that spills off the card.
+      text(village, {
+        fontSize: fitFontSize(village, width, 52, 34, 0.78),
+        fontWeight: 700,
+        letterSpacing: 8,
+        color: colors.accentSoft,
+      }),
     ),
     h(
       'div',
-      { style: { display: 'flex', flexDirection: 'column' } },
+      { style: { display: 'flex', flexDirection: 'column', alignItems: 'center' } },
       text(copy.fiestas, { fontSize: 148, fontWeight: 800, lineHeight: 0.95, letterSpacing: -4 }),
       text(String(ctx.year), { fontSize: 220, fontWeight: 800, lineHeight: 1, color: colors.accent, letterSpacing: -8, marginTop: 8 }),
       h(
         'div',
-        { style: { display: 'flex', flexDirection: 'column', gap: 30, marginTop: 44 } },
+        { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 34, marginTop: 56 } },
         ...ctx.blocks.map((b) =>
           h(
             'div',
-            { style: { display: 'flex', flexDirection: 'column', borderLeft: `6px solid ${colors.accent}`, paddingLeft: 26 } },
+            { style: { display: 'flex', flexDirection: 'column', alignItems: 'center' } },
             // Free text a village admin types, with no length limit, so it is
             // fitted rather than set at a size that overflows the card.
-            text(b.name, {
-              fontSize: fitFontSize(b.name, CARD_WIDTH - GUTTER * 2 - 32, 64, 36),
-              fontWeight: 700,
-              lineHeight: 1.1,
-            }),
+            text(b.name, { fontSize: fitFontSize(b.name, width, 64, 36), fontWeight: 700, lineHeight: 1.1 }),
             text(b.dateRange, { fontSize: 40, color: colors.inkDim, marginTop: 6 }),
           ),
         ),
       ),
     ),
-    brandMark(36),
+    brandMark(60),
   );
 }
 
@@ -227,6 +234,17 @@ export interface EventTile {
 /** Most tiles the mosaic draws before collapsing the rest into "y N más". */
 export const MAX_EVENT_TILES = 24;
 
+/**
+ * Height of a flyer's picture inside its tile, above the caption band.
+ *
+ * Exported because the flyer must be FETCHED at this size, not at the tile's:
+ * fetched at the full tile and drawn into the shorter box, it was cropped a
+ * second time around its centre, cutting off the title at the top of the flyer.
+ */
+export function eventTileImageHeight(tileHeight: number): number {
+  return tileHeight - Math.round(Math.min(96, tileHeight * 0.34));
+}
+
 export function eventsCard(ctx: CardContext, events: EventTile[]): SatoriNode {
   const shown = events.slice(0, MAX_EVENT_TILES);
   const hidden = events.length - shown.length;
@@ -236,8 +254,8 @@ export function eventsCard(ctx: CardContext, events: EventTile[]): SatoriNode {
 
   // The flyers carry their own lettering, so a title laid over them collides
   // with it and neither reads. The caption sits in its own band underneath.
-  const captionHeight = Math.round(Math.min(96, g.tileHeight * 0.34));
-  const imageHeight = g.tileHeight - captionHeight;
+  const imageHeight = eventTileImageHeight(g.tileHeight);
+  const captionHeight = g.tileHeight - imageHeight;
   const tiles = shown.map((e) =>
     h(
       'div',
@@ -255,7 +273,7 @@ export function eventsCard(ctx: CardContext, events: EventTile[]): SatoriNode {
       h(
         'div',
         { style: { display: 'flex', width: g.tileWidth, height: imageHeight, backgroundColor: colorFor(e.title) } },
-        e.image ? h('img', { src: e.image, width: g.tileWidth, height: imageHeight, style: { objectFit: 'cover' } }) : null,
+        e.image ? h('img', { src: e.image, width: g.tileWidth, height: imageHeight, style: { objectFit: 'cover', objectPosition: 'top' } }) : null,
       ),
       h(
         'div',
