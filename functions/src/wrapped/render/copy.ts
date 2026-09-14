@@ -8,7 +8,6 @@
  * set, so nothing here may say "asistieron".
  */
 export const copy = {
-  brand: 'Cultuvilla',
   fiestas: 'Fiestas',
   fiestasYear: (year: number) => `Fiestas ${String(year)}`,
   peopleKicker: 'Todo el pueblo',
