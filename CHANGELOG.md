@@ -6,6 +6,15 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## v1.2.0 — 2026-09-14
 
+<!-- store-notes -->
+- **El resumen de las fiestas:** los administradores crean el resumen del año, listo para compartir por WhatsApp.
+- **Historia y palabra del día** en la portada de cada pueblo.
+- **Una palabra, muchos pueblos:** mira en qué otros pueblos se dice la misma palabra.
+- **Títulos y subtítulos** en los artículos, y hasta 25 fotos por artículo.
+- **Direcciones en español** con el nombre del pueblo: cultuvilla.es/tupueblo.
+- Correcciones y mejoras.
+<!-- /store-notes -->
+
 ### Fixed
 
 - **Pestañas «Mi pueblo» y «Perfil».** Volvían a salir sin icono y en orden cambiado tras el paso a URLs en español; recuperan su icono y su sitio.
