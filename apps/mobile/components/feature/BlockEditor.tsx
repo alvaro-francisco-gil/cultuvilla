@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { Image, Text as RNText, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, iconSizes } from '@cultuvilla/shared/design-system';
@@ -6,7 +6,7 @@ import { HStack, Pressable, Text, VStack } from '../primitives';
 import { useT } from '../../lib/i18n';
 import { pickImageWithSize } from '../../lib/images';
 import { MentionTextInput } from './MentionTextInput';
-import { HEADING_PRESENTATION, type HeadingLevel } from '../../lib/newsHeading';
+import { HEADING_LEVELS, HEADING_PRESENTATION, type HeadingLevel } from '../../lib/newsHeading';
 import { splitMentionsAtCaret, type MentionCandidate } from '../../lib/mentionText';
 import type {
   NewsMention,
@@ -58,7 +58,6 @@ export type EditorHeadingBlock = {
 };
 export type EditorBlock = EditorTextBlock | EditorImageBlock | EditorHeadingBlock;
 
-const HEADING_LEVELS: HeadingLevel[] = ['section', 'subsection'];
 
 // Cap to avoid unbounded arrays — the block editor's inline body images, not a
 // gallery, so this is a UI-only product decision rather than a schema limit.
@@ -88,6 +87,35 @@ export function editorBlockToNewsText(b: EditorTextBlock | EditorHeadingBlock): 
   return { type: 'text', text: b.text, mentions: b.mentions, links: b.links, marks: b.marks, style: 'paragraph' };
 }
 
+/** The part of a paragraph between `start` and `end`, with its spans rebased. */
+function sliceTextBlock(b: EditorTextBlock, start: number, end: number, id: string): EditorTextBlock {
+  const within = <T extends { offset: number; length: number }>(spans: T[]) =>
+    splitMentionsAtCaret(splitMentionsAtCaret(spans, start).after, end - start).before;
+  return {
+    id,
+    type: 'text',
+    text: b.text.slice(start, end),
+    mentions: within(b.mentions),
+    links: within(b.links),
+    marks: within(b.marks),
+  };
+}
+
+/** `a` then `b` as one paragraph (keeping `a`'s id), separated by `sep` when both have text. */
+function joinTextBlocks(a: EditorTextBlock, b: EditorTextBlock, sep: string): EditorTextBlock {
+  const gap = a.text && b.text ? sep : '';
+  const shift = a.text.length + gap.length;
+  const rebase = <T extends { offset: number }>(spans: T[]) => spans.map((s) => ({ ...s, offset: s.offset + shift }));
+  return {
+    id: a.id,
+    type: 'text',
+    text: a.text + gap + b.text,
+    mentions: [...a.mentions, ...rebase(b.mentions)],
+    links: [...a.links, ...rebase(b.links)],
+    marks: [...a.marks, ...rebase(b.marks)],
+  };
+}
+
 interface BlockEditorProps {
   blocks: EditorBlock[];
   onChange: (blocks: EditorBlock[]) => void;
@@ -97,12 +125,12 @@ interface BlockEditorProps {
 
 /**
  * A block editor for news bodies — the mobile analogue of a WordPress editor,
- * kept deliberately simple: you write in a text area, and the "add section" /
- * "add image" actions drop a heading or image at the caret. That splits the
- * current paragraph in two (text before the caret / text after) with the new
- * block between, and guarantees a text box after it so writing can continue.
- * There is no separate "add paragraph" or manual reorder — the structure follows
- * from where headings and images go.
+ * kept deliberately simple: you write in a text area. "Add image" drops an image
+ * at the caret, and the format toolbar's title buttons turn the selected line
+ * into a title. Either splits the current paragraph around the new block and
+ * guarantees a text box after it so writing can continue. There is no separate
+ * "add paragraph" or manual reorder — the structure follows from where titles
+ * and images go.
  */
 export function BlockEditor({ blocks, onChange, candidates, textTestIDPrefix }: BlockEditorProps) {
   const { t } = useT();
@@ -115,9 +143,6 @@ export function BlockEditor({ blocks, onChange, candidates, textTestIDPrefix }: 
     onChange(blocks.map((b) => (b.id === id ? ({ ...b, ...patch } as EditorBlock) : b)));
   }
 
-  // The block inserted last, focused on mount so the author can type its title.
-  const [autoFocusId, setAutoFocusId] = useState<string | null>(null);
-
   // Removing an image or heading between two paragraphs merges them back into
   // one, so the author never ends up with invisibly-adjacent text blocks.
   function removeBlock(id: string) {
@@ -126,17 +151,7 @@ export function BlockEditor({ blocks, onChange, candidates, textTestIDPrefix }: 
     const prev = blocks[i - 1];
     const next = blocks[i + 1];
     if (prev?.type === 'text' && next?.type === 'text') {
-      const sep = prev.text && next.text ? '\n\n' : '';
-      const shift = prev.text.length + sep.length;
-      const merged: EditorTextBlock = {
-        id: prev.id,
-        type: 'text',
-        text: prev.text + sep + next.text,
-        mentions: [...prev.mentions, ...next.mentions.map((m) => ({ ...m, offset: m.offset + shift }))],
-        links: [...prev.links, ...next.links.map((l) => ({ ...l, offset: l.offset + shift }))],
-        marks: [...prev.marks, ...next.marks.map((b) => ({ ...b, offset: b.offset + shift }))],
-      };
-      onChange([...blocks.slice(0, i - 1), merged, ...blocks.slice(i + 2)]);
+      onChange([...blocks.slice(0, i - 1), joinTextBlocks(prev, next, '\n\n'), ...blocks.slice(i + 2)]);
     } else {
       onChange(blocks.filter((b) => b.id !== id));
     }
@@ -154,25 +169,8 @@ export function BlockEditor({ blocks, onChange, candidates, textTestIDPrefix }: 
     }
 
     const caret = Math.min(Math.max(active.current.caret, 0), target.text.length);
-    const { before, after } = splitMentionsAtCaret(target.mentions, caret);
-    const { before: linksBefore, after: linksAfter } = splitMentionsAtCaret(target.links, caret);
-    const { before: marksBefore, after: marksAfter } = splitMentionsAtCaret(target.marks, caret);
-    const beforeBlock: EditorTextBlock = {
-      id: target.id,
-      type: 'text',
-      text: target.text.slice(0, caret),
-      mentions: before,
-      links: linksBefore,
-      marks: marksBefore,
-    };
-    const afterBlock: EditorTextBlock = {
-      id: newBlockId(),
-      type: 'text',
-      text: target.text.slice(caret),
-      mentions: after,
-      links: linksAfter,
-      marks: marksAfter,
-    };
+    const beforeBlock = sliceTextBlock(target, 0, caret, target.id);
+    const afterBlock = sliceTextBlock(target, caret, target.text.length, newBlockId());
     const middle: EditorBlock[] = [];
     if (beforeBlock.text.length > 0) middle.push(beforeBlock);
     middle.push(inserted);
@@ -181,6 +179,54 @@ export function BlockEditor({ blocks, onChange, candidates, textTestIDPrefix }: 
     // re-focus must not act on its stale caret.
     active.current = { id: null, caret: 0 };
     onChange([...blocks.slice(0, i), ...middle, ...blocks.slice(i + 1)]);
+  }
+
+  // Turn the line holding `at` into a title: the paragraph splits into the lines
+  // before it, the title, and the lines after it (always kept, so writing can
+  // continue). A title is plain text, so spans inside that line are dropped.
+  function lineToHeading(blockId: string, at: number, level: HeadingLevel) {
+    const i = blocks.findIndex((b) => b.id === blockId);
+    const target = blocks[i];
+    if (!target || target.type !== 'text') return;
+    const { text } = target;
+    const lineStart = text.lastIndexOf('\n', Math.max(at - 1, -1)) + 1;
+    const newline = text.indexOf('\n', at);
+    const lineEnd = newline === -1 ? text.length : newline;
+
+    const beforeBlock = sliceTextBlock(target, 0, Math.max(lineStart - 1, 0), target.id);
+    const heading: EditorHeadingBlock = {
+      id: newBlockId(),
+      type: 'heading',
+      text: text.slice(lineStart, lineEnd).trim(),
+      level,
+    };
+    const afterBlock = sliceTextBlock(target, Math.min(lineEnd + 1, text.length), text.length, newBlockId());
+    const middle: EditorBlock[] = [];
+    if (beforeBlock.text.length > 0) middle.push(beforeBlock);
+    middle.push(heading, afterBlock);
+    active.current = { id: null, caret: 0 };
+    onChange([...blocks.slice(0, i), ...middle, ...blocks.slice(i + 1)]);
+  }
+
+  // Turn a title back into a line, joined into the paragraphs around it.
+  function headingToText(id: string) {
+    const i = blocks.findIndex((b) => b.id === id);
+    const heading = blocks[i];
+    if (!heading || heading.type !== 'heading') return;
+    let merged: EditorTextBlock = { id: heading.id, type: 'text', text: heading.text, mentions: [], links: [], marks: [] };
+    let from = i;
+    let to = i + 1;
+    const prev = blocks[i - 1];
+    if (prev?.type === 'text') {
+      merged = joinTextBlocks(prev, merged, '\n');
+      from = i - 1;
+    }
+    const next = blocks[i + 1];
+    if (next?.type === 'text') {
+      merged = joinTextBlocks(merged, next, '\n');
+      to = i + 2;
+    }
+    onChange([...blocks.slice(0, from), merged, ...blocks.slice(to)]);
   }
 
   async function addImageAtCaret() {
@@ -201,12 +247,6 @@ export function BlockEditor({ blocks, onChange, candidates, textTestIDPrefix }: 
     });
   }
 
-  function addSectionAtCaret() {
-    const heading: EditorHeadingBlock = { id: newBlockId(), type: 'heading', text: '', level: 'section' };
-    setAutoFocusId(heading.id);
-    insertAtCaret(heading);
-  }
-
   return (
     <VStack gap={3}>
       {blocks.map((block, index) =>
@@ -224,6 +264,7 @@ export function BlockEditor({ blocks, onChange, candidates, textTestIDPrefix }: 
             onFocus={() => {
               active.current = { id: block.id, caret: block.text.length };
             }}
+            onHeading={(level, at) => lineToHeading(block.id, at, level)}
             onSelectionChange={(caret) => {
               if (active.current.id === block.id) active.current.caret = caret;
             }}
@@ -232,7 +273,7 @@ export function BlockEditor({ blocks, onChange, candidates, textTestIDPrefix }: 
           <HeadingBlock
             key={block.id}
             block={block}
-            autoFocus={block.id === autoFocusId}
+            onToText={() => headingToText(block.id)}
             onText={(text) => updateBlock(block.id, { text })}
             onLevel={(level) => updateBlock(block.id, { level })}
             onRemove={() => removeBlock(block.id)}
@@ -251,24 +292,13 @@ export function BlockEditor({ blocks, onChange, candidates, textTestIDPrefix }: 
         ),
       )}
 
-      <HStack gap={3}>
-        <View className="flex-1">
-          <AddBlockButton
-            icon="text-outline"
-            label={t('news.compose.block.addSection')}
-            onPress={addSectionAtCaret}
-          />
-        </View>
-        {imageBlockCount < MAX_IMAGE_BLOCKS ? (
-          <View className="flex-1">
-            <AddBlockButton
-              icon="image-outline"
-              label={t('news.compose.block.addImage')}
-              onPress={() => void addImageAtCaret()}
-            />
-          </View>
-        ) : null}
-      </HStack>
+      {imageBlockCount < MAX_IMAGE_BLOCKS ? (
+        <AddBlockButton
+          icon="image-outline"
+          label={t('news.compose.block.addImage')}
+          onPress={() => void addImageAtCaret()}
+        />
+      ) : null}
     </VStack>
   );
 }
@@ -332,13 +362,13 @@ function ImageBlock({
 
 function HeadingBlock({
   block,
-  autoFocus,
+  onToText,
   onText,
   onLevel,
   onRemove,
 }: {
   block: EditorHeadingBlock;
-  autoFocus: boolean;
+  onToText: () => void;
   onText: (text: string) => void;
   onLevel: (level: HeadingLevel) => void;
   onRemove: () => void;
@@ -365,6 +395,14 @@ function HeadingBlock({
             </Pressable>
           );
         })}
+        <Pressable
+          onPress={onToText}
+          accessibilityRole="button"
+          accessibilityLabel={t('news.compose.block.paragraph')}
+          className="rounded-full border border-subtle px-3 py-1"
+        >
+          <RNText className="text-caption text-muted">{t('news.compose.block.paragraph')}</RNText>
+        </Pressable>
         <View className="flex-1" />
         <Pressable
           onPress={onRemove}
@@ -379,7 +417,6 @@ function HeadingBlock({
       <TextInput
         value={block.text}
         onChangeText={onText}
-        autoFocus={autoFocus}
         placeholder={placeholder}
         placeholderTextColor={MUTED}
         accessibilityLabel={placeholder}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   NativeSyntheticEvent,
   Platform,
@@ -32,6 +32,8 @@ import {
 } from '../../lib/linkText';
 import { toggleMark, isRangeMarked } from '../../lib/markText';
 import { markPresentation } from '../../lib/markStyle';
+import { HEADING_LEVELS, type HeadingLevel } from '../../lib/newsHeading';
+import { tripleClickSelectAll, type SelectableField } from '../../lib/tripleClickSelectAll';
 import { LinkSheet } from './LinkSheet';
 import { LinkUrlSheet } from './LinkUrlSheet';
 import {
@@ -109,6 +111,11 @@ interface MentionTextInputProps {
   onFocus?: () => void;
   /** Reports the caret position so the editor can split here on image insert. */
   onSelectionChange?: (caret: number) => void;
+  /**
+   * Turns the line holding the selection into a title. When absent (image
+   * captions) the toolbar shows no title buttons.
+   */
+  onHeading?: (level: HeadingLevel, selectionStart: number) => void;
   testID?: string;
 }
 
@@ -129,6 +136,7 @@ export function MentionTextInput({
   placeholder,
   onFocus,
   onSelectionChange,
+  onHeading,
   testID,
 }: MentionTextInputProps) {
   const { t } = useT();
@@ -151,6 +159,22 @@ export function MentionTextInput({
   // A non-empty range awaiting a URL (the toolbar's link button opens LinkUrlSheet).
   const [linkRange, setLinkRange] = useState<{ start: number; end: number } | null>(null);
   const runs = useMemo(() => buildLinkRuns(value, mentions, links, marks), [value, mentions, links, marks]);
+
+  const inputRef = useRef<TextInput>(null);
+  const onSelectionChangeRef = useRef(onSelectionChange);
+  onSelectionChangeRef.current = onSelectionChange;
+  // On web the TextInput ref is the DOM <textarea>.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const field = inputRef.current as unknown as (SelectableField & HTMLElement) | null;
+    if (!field) return;
+    const onClick = tripleClickSelectAll(field, (sel) => {
+      setSelection(sel);
+      onSelectionChangeRef.current?.(sel.start);
+    });
+    field.addEventListener('click', onClick);
+    return () => field.removeEventListener('click', onClick);
+  }, []);
 
   const hasSelection = selection.start !== selection.end;
   const active = !hasSelection ? activeMentionQuery(value, selection.start, mentions) : null;
@@ -246,6 +270,7 @@ export function MentionTextInput({
             {TRAILING_ANCHOR}
           </Text>
           <TextInput
+            ref={inputRef}
             // A native input gets its text from the children below; passing
             // `value` as well is unsupported.
             value={STYLED_INPUT ? undefined : value}
@@ -312,6 +337,22 @@ export function MentionTextInput({
                   </Pressable>
                 );
               })}
+              {onHeading
+                ? HEADING_LEVELS.map((level) => (
+                    <Pressable
+                      key={level}
+                      onPress={() => onHeading(level, selection.start)}
+                      accessibilityRole="button"
+                      accessibilityLabel={t(`news.compose.format.${level}`)}
+                      hitSlop={4}
+                      className="h-8 items-center justify-center rounded px-2"
+                    >
+                      <RNText className={`text-accent ${level === 'section' ? 'font-bold' : 'text-bodySm font-semibold'}`}>
+                        {t(`news.compose.format.${level}`)}
+                      </RNText>
+                    </Pressable>
+                  ))
+                : null}
               <Pressable
                 onPress={openLinkForSelection}
                 accessibilityRole="button"
