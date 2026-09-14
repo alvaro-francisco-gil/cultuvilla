@@ -19,7 +19,6 @@ jest.mock('@cultuvilla/shared/services/organizationService', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadOrganizationImage: jest.fn().mockResolvedValue('https://example.com/org.jpg'),
-  deleteImageByURL: jest.fn(),
 }));
 jest.mock('../../../../lib/images', () => ({ pickImageAsBlob: jest.fn() }));
 jest.mock('../../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));

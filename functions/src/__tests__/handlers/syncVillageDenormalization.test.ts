@@ -50,6 +50,7 @@ async function seedEvent(villageCoverImage: string | null): Promise<void> {
     updatedAt: now,
     municipalityId: MUNICIPALITY_ID,
     villageName: 'Villarriba',
+    villageSlug: 'villarriba',
     villageCoverImage,
     villageCoordinates: null,
     confirmedCount: 0,

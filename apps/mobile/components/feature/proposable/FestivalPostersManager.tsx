@@ -5,7 +5,6 @@ import {
   createFestivalPoster,
 } from '@cultuvilla/shared/services/festivalPosterService';
 import {
-  deleteImageByURL,
   uploadFestivalPosterImage,
 } from '@cultuvilla/shared/services/imageService';
 import { VStack, Input, FieldLabel, DateField } from '../../primitives';
@@ -75,9 +74,7 @@ export function FestivalPostersManager({
   }
 
   function removeImage(index: number) {
-    const url = images[index];
     setImages((prev) => prev.filter((_, i) => i !== index));
-    if (url) void deleteImageByURL(url).catch(() => {}); // best-effort orphan cleanup
   }
 
   async function submit() {

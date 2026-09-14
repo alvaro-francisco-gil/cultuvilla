@@ -39,6 +39,9 @@ scripts/data/escudos-webp-thumb/
 # apps/mobile/scripts/copy-well-known.mjs (per env), never committed.
 apps/mobile/public/.well-known/apple-app-site-association
 apps/mobile/public/.well-known/assetlinks.json
+# Written per env at deploy time by apps/mobile/scripts/write-robots.mjs — only
+# prod may be indexed, so no single committed file is right for every env.
+apps/mobile/public/robots.txt
 
 # Tooling worktrees
 .claire/

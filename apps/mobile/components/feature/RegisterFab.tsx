@@ -1,3 +1,4 @@
+import { personHref } from '../../lib/navigation/routes';
 import { useCallback, useRef, useState } from 'react';
 import { Animated, Pressable as RNPressable, Text } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
@@ -27,6 +28,7 @@ import type { BirthYearWindow } from '@cultuvilla/shared/models/event/EventDataM
 import { birthYearRangeLabel } from '../../lib/events/birthYearLabel';
 import { useT } from '../../lib/i18n';
 import { useMyRegistrations } from '../../lib/registrations/MyRegistrationsContext';
+import { usePush } from '../../lib/push/PushProvider';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
 import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 
@@ -40,6 +42,10 @@ export interface RegisterFabProps {
   name: string;
   /** The event's title — what a shared seat-claim link names in its message. */
   eventTitle: string;
+  /** The event's pueblo slug — a seat-claim link is village-first like every other URL. */
+  villageSlug: string;
+  /** Non-null for an org-private event — its seat links must not carry the title. */
+  visibilityOrgId: string | null;
   /** When true, adding new attendees first requires a shared phone. */
   telephoneRequired: boolean;
   /** The event's custom sign-up fields, answered once per new attendee. */
@@ -71,6 +77,8 @@ export function RegisterFab({
   personId,
   name,
   eventTitle,
+  villageSlug,
+  visibilityOrgId,
   telephoneRequired,
   signupFields,
   villageId,
@@ -79,6 +87,7 @@ export function RegisterFab({
   birthYearWindow = { minBirthYear: null, maxBirthYear: null },
 }: RegisterFabProps) {
   const { t } = useT();
+  const { offerPush } = usePush();
   const { refresh: refreshRegistrations } = useMyRegistrations();
   const shareDeepLink = useShareDeepLink();
   const [registrations, setRegistrations] = useState<Map<string, AttendeeRegistration>>(new Map());
@@ -235,6 +244,10 @@ export function RegisterFab({
       setRegistrations(next);
       setAutoSelectIds([]);
       setSheetOpen(false);
+      // The moment push earns its ask: a seat was just booked, and "we'll tell
+      // you if it changes" is a concrete, true promise. The policy decides
+      // whether the sheet actually shows.
+      if (diff.toAdd.length > 0) offerPush('event_signup');
       // Keep the feed's "apuntado" ribbons honest without waiting for the next
       // focus refresh.
       refreshRegistrations();
@@ -276,7 +289,10 @@ export function RegisterFab({
       // unclaimed seat carries its own send-link row. Firing the OS share sheet
       // unasked hijacked the moment the booking was confirmed and gave no way
       // back to the other seats' links.
-      if (result.openSeats.length === 0) setSheetOpen(false);
+      if (result.openSeats.length === 0) {
+        setSheetOpen(false);
+        offerPush('event_signup');
+      }
     } catch (e) {
       if (!succeeded) observability.trackEvent(OBSERVABILITY_EVENTS.EVENT_SIGNUP_ERROR, { villageId });
       showAlert(e instanceof Error ? e.message : 'unknown', t('event.register.error'));
@@ -288,7 +304,10 @@ export function RegisterFab({
   async function shareSeat(token: string) {
     // `deeplink.share.event.invite` reads "Te he guardado una plaza en «{name}»",
     // so the slot is the event, not whoever is sending it.
-    await shareDeepLink(getSeatClaimLink(eventId, token), eventTitle);
+    await shareDeepLink(
+      getSeatClaimLink({ id: eventId, title: eventTitle, villageSlug, visibilityOrgId }, token),
+      eventTitle,
+    );
   }
 
   function handleCancelGroup(regId: string) {
@@ -424,7 +443,7 @@ export function RegisterFab({
           busy={busy}
           autoSelectIds={autoSelectIds}
           onClose={() => setSheetOpen(false)}
-          onCreateNew={() => router.push('/person/new')}
+          onCreateNew={() => router.push(personHref('new'))}
           onShareSeat={(token) => void shareSeat(token)}
           onCancelGroup={handleCancelGroup}
           onConfirm={(ids, openSeats, phone, answers) => {
@@ -442,7 +461,7 @@ export function RegisterFab({
           busy={busy}
           autoSelectIds={autoSelectIds}
           onClose={() => setSheetOpen(false)}
-          onCreateNew={() => router.push('/person/new')}
+          onCreateNew={() => router.push(personHref('new'))}
           onConfirm={handleConfirm}
         />
       )}

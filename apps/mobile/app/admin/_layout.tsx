@@ -1,3 +1,4 @@
+import { routes } from '../../lib/navigation/routes';
 import { useEffect } from 'react';
 import { Stack, Redirect, router } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
@@ -20,7 +21,7 @@ export default function AdminLayout() {
       </View>
     );
   }
-  if (!user) return <Redirect href="/login" />;
+  if (!user) return <Redirect href={routes.login} />;
   if (!isAppAdmin) return <Redirect href="/" />;
 
   return <Stack screenOptions={{ headerShown: false }} />;

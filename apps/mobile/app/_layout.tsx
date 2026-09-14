@@ -16,9 +16,11 @@ import { resolveAuthRoute, resolveIntentResume } from '../lib/auth/authRoute';
 import { RegisterGateProvider, useRegisterGate } from '../lib/auth/RegisterGateContext';
 import { GuestActiveVillageProvider } from '../lib/village/GuestActiveVillageContext';
 import { MyRegistrationsProvider } from '../lib/registrations/MyRegistrationsContext';
+import { PushProvider } from '../lib/push/PushProvider';
 import { useDeepLinkRouter } from '../lib/deeplink/useDeepLinkRouter';
 import { useRouteTracking } from '../lib/observability/useRouteTracking';
 import { CropperHost } from '../lib/imageCrop';
+import { useSeoShellFailsafe } from '../lib/seoShell';
 import { ActivityIndicator, View } from 'react-native';
 
 bootstrapFirebase();
@@ -26,6 +28,9 @@ bootstrapObservability();
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ Fraunces_700Bold });
+  // Before any early return: the overlay ogRenderer injects must be released
+  // even when the app never reaches a screen that knows about it.
+  useSeoShellFailsafe();
   if (!fontsLoaded) {
     return (
       <View className="flex-1 items-center justify-center bg-surface">
@@ -48,19 +53,21 @@ export default function RootLayout() {
               <AuthProvider>
                 <GuestActiveVillageProvider>
                   <MyRegistrationsProvider>
-                    <RegisterGateProvider>
-                      {/* Web-only "get the app" bar. A flex sibling above the
-                          navigator, so it pushes the app down instead of
-                          overlaying the tab bar or a detail header. Renders
-                          nothing on native and nothing until a store URL for
-                          the visitor's platform exists (lib/appStores.ts). */}
-                      <SmartAppBanner />
-                      <AuthGate />
-                      {/* Web-only image-crop overlay (no-op on native, which uses its
-                          own native cropper). Rendered above the app so it can cover
-                          any screen when pickImageAsBlob({ square }) opens it. */}
-                      <CropperHost />
-                    </RegisterGateProvider>
+                    <PushProvider>
+                      <RegisterGateProvider>
+                        {/* Web-only "get the app" bar. A flex sibling above the
+                            navigator, so it pushes the app down instead of
+                            overlaying the tab bar or a detail header. Renders
+                            nothing on native and nothing until a store URL for
+                            the visitor's platform exists (lib/appStores.ts). */}
+                        <SmartAppBanner />
+                        <AuthGate />
+                        {/* Web-only image-crop overlay (no-op on native, which uses its
+                            own native cropper). Rendered above the app so it can cover
+                            any screen when pickImageAsBlob({ square }) opens it. */}
+                        <CropperHost />
+                      </RegisterGateProvider>
+                    </PushProvider>
                   </MyRegistrationsProvider>
                 </GuestActiveVillageProvider>
               </AuthProvider>

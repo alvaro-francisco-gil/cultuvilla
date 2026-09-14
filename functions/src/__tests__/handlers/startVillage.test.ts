@@ -28,6 +28,7 @@ async function seedMunicipality(communityActive: boolean): Promise<void> {
       province: 'Madrid',
       comunidadAutonoma: 'Madrid',
       codigoINE: '28000',
+      slug: 'pueblo-28000',
       coordinates: null,
       locationLabel: null,
       mapZoom: null,
@@ -37,7 +38,7 @@ async function seedMunicipality(communityActive: boolean): Promise<void> {
       escudoManualUrl: null,
       communityActive,
       community: communityActive
-        ? { description: 'ya', organizerId: 'someone', profileForm: null, activatedAt: now }
+        ? { description: 'ya', organizerId: 'someone', profileForm: null, fiestas: [], activatedAt: now }
         : null,
     });
 }
@@ -212,6 +213,7 @@ describe('startVillage (callable)', () => {
         province: 'Madrid',
         comunidadAutonoma: 'Madrid',
         codigoINE: '28000',
+        slug: 'pueblo-28000',
         coordinates: null,
         locationLabel: null,
         mapZoom: null,

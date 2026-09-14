@@ -40,6 +40,7 @@ it('adds entity thumbnails to dynamically resolved censo options', async () => {
     {
       ...buildNewsPostData({
         municipalityId: 'village-1',
+        villageSlug: 'villa',
         createdBy: 'user-1',
         organizerUserIds: ['user-1'],
         title: 'Las fiestas',

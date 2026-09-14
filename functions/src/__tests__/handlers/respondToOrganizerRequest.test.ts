@@ -30,6 +30,7 @@ async function seedMunicipality(opts: {
       province: 'Madrid',
       comunidadAutonoma: 'Madrid',
       codigoINE: '28000',
+      slug: 'pueblo-28000',
       coordinates: null,
       locationLabel: null,
       mapZoom: null,
@@ -45,6 +46,7 @@ async function seedMunicipality(opts: {
             organizerId: opts.organizerId ?? null,
             description: 'Mi pueblo',
             profileForm: null,
+            fiestas: [],
             activatedAt: now,
           }
         : null,

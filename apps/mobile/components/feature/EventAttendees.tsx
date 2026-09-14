@@ -1,3 +1,4 @@
+import { personHref, userHref } from '../../lib/navigation/routes';
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -160,8 +161,8 @@ export function EventAttendees({
     // An open seat has no person behind it yet; there is nowhere to go.
     if (r.isOpenSeat) return null;
     if (isAnonymous(r)) return null;
-    if (r.personUserId) return `/user/${r.personUserId}`;
-    return r.personId ? `/person/${r.personId}` : null;
+    if (r.personUserId) return userHref(r.personUserId);
+    return r.personId ? personHref(r.personId) : null;
   };
 
   const renderRow = (r: Row) => {

@@ -11,7 +11,7 @@ test.describe('news lifecycle', () => {
     await page.goto('/');
     await fixtureLogin(page, fixtures.admin.email);
 
-    await page.goto(`/news/new?villageId=${fixtures.village.docId}`);
+    await page.goto(`/crear/noticia?villageId=${fixtures.village.docId}`);
     await page.getByTestId('news-title').fill(title);
     await page.getByTestId('news-category').click();
     await page.getByTestId('news-category-fiesta').click();
@@ -28,7 +28,7 @@ test.describe('news lifecycle', () => {
     );
     const postId = created!.id;
 
-    await page.goto(`/news/new?newsId=${postId}`);
+    await page.goto(`/crear/noticia?newsId=${postId}`);
     await page.getByTestId('news-title').fill(editedTitle);
     await page.getByTestId('news-form-primary').click();
     await page.getByTestId('news-form-primary').click();
@@ -40,7 +40,7 @@ test.describe('news lifecycle', () => {
       { timeoutMs: 20_000 },
     );
 
-    await page.goto(`/news/new?newsId=${postId}`);
+    await page.goto(`/crear/noticia?newsId=${postId}`);
     await expect(page.getByTestId('news-title')).toHaveValue(editedTitle, { timeout: 30_000 });
     page.once('dialog', (dialog) => dialog.accept());
     await page.getByTestId('news-delete').click();

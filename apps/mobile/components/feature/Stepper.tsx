@@ -1,23 +1,11 @@
 // apps/mobile/components/feature/Stepper.tsx
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Animated, Dimensions, PanResponder, Platform, View } from 'react-native';
+import { Animated, Dimensions, Platform, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Ionicons } from '@expo/vector-icons';
 import { Button, HStack, Text } from '../primitives';
 import { useT } from '../../lib/i18n';
 import { StepIndicator } from './StepIndicator';
-
-/**
- * Decide what a release gesture means for step navigation. Pure so the gesture
- * logic is unit-testable (PanResponder's gesture state can't be driven in jest).
- * A drag must be clearly horizontal — past `threshold` px and more horizontal
- * than vertical — so inner vertical scrolling is never hijacked.
- */
-export function classifySwipe(dx: number, dy: number, threshold = 40): 'forward' | 'back' | null {
-  if (Math.abs(dx) < threshold) return null;
-  if (Math.abs(dx) <= Math.abs(dy)) return null;
-  return dx < 0 ? 'forward' : 'back';
-}
 
 export interface StepConfig {
   key: string;
@@ -64,7 +52,7 @@ export function Stepper({
   const [highestReached, setHighestReached] = useState(allStepsReachable ? steps.length - 1 : 0);
 
   // Slide the incoming step in from the side whenever the step changes — by
-  // swipe, Next/Back, or a dot tap. Forward slides in from the right, back from
+  // Next/Back or a dot tap. Forward slides in from the right, back from
   // the left. `width` measures the content area so the offset matches the screen.
   const slideX = useRef(new Animated.Value(0)).current;
   const widthRef = useRef(Dimensions.get('window').width);
@@ -108,24 +96,6 @@ export function Stepper({
     if (current > 0) setCurrent(current - 1);
   }
 
-  // Swipe to move between steps. Forward swipe mirrors the Next button (gated by
-  // the current step's validity); back swipe mirrors Back. The handlers read
-  // `current`/`stepValid` from a ref so the responder, created once, always
-  // sees the latest values.
-  const swipeRef = useRef({ handleNext, goBack });
-  swipeRef.current = { handleNext, goBack };
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_e, g) =>
-        Math.abs(g.dx) > 12 && Math.abs(g.dx) > Math.abs(g.dy),
-      onPanResponderRelease: (_e, g) => {
-        const dir = classifySwipe(g.dx, g.dy);
-        if (dir === 'forward') swipeRef.current.handleNext();
-        else if (dir === 'back') swipeRef.current.goBack();
-      },
-    }),
-  ).current;
-
   return (
     <View className="flex-1">
       {/* Step band — distinct background, icon-only, no section name. */}
@@ -141,15 +111,16 @@ export function Stepper({
           allReachable={allStepsReachable}
         />
       </View>
-      {/* Content section. Swipe left/right moves between steps; the new step
-          slides in. Styles go on `style` — NativeWind drops className here. */}
+      {/* Content section; the new step slides in. No swipe-to-navigate: a
+          horizontal drag is how text gets selected (mouse on web, handles on
+          native), so a swipe gesture here changed steps mid-selection.
+          Styles go on `style` — NativeWind drops className here. */}
       <Animated.View
         style={{ flex: 1, transform: [{ translateX: slideX }] }}
         onLayout={(e) => {
           const w = e.nativeEvent.layout.width;
           if (w > 0) widthRef.current = w;
         }}
-        {...panResponder.panHandlers}
       >
         {step.render()}
       </Animated.View>

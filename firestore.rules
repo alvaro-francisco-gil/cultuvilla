@@ -195,18 +195,19 @@ service cloud.firestore {
 
     function isValidNewsPostCreate(d) {
       return d.keys().hasOnly([
-              'municipalityId', 'organizerUserIds', 'organizerOrgIds', 'title', 'body',
+              'municipalityId', 'villageSlug', 'organizerUserIds', 'organizerOrgIds', 'title', 'body',
               'content', 'category', 'images', 'coverImage', 'status', 'hiddenBy',
               'hiddenAt', 'hiddenReason', 'createdAt', 'publishedAt', 'createdBy',
               'updatedAt', 'readCount', 'commentCount',
             ])
           && d.keys().hasAll([
-              'municipalityId', 'organizerUserIds', 'organizerOrgIds', 'title', 'body',
+              'municipalityId', 'villageSlug', 'organizerUserIds', 'organizerOrgIds', 'title', 'body',
               'content', 'category', 'images', 'coverImage', 'status', 'hiddenBy',
               'hiddenAt', 'hiddenReason', 'createdAt', 'publishedAt', 'createdBy',
               'updatedAt', 'readCount', 'commentCount',
             ])
           && isString(d.municipalityId)
+          && isString(d.villageSlug)
           && d.organizerUserIds is list
           && d.organizerOrgIds is list
           && isString(d.title)
@@ -278,12 +279,12 @@ service cloud.firestore {
 
     function isValidOrganizationCreate(d) {
       return d.keys().hasOnly([
-              'name', 'description', 'images', 'type', 'status', 'municipalityId',
+              'name', 'description', 'images', 'type', 'status', 'municipalityId', 'villageSlug',
               'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
               'commentCount', 'readCount', 'memberCount', 'membersPublic',
             ])
           && d.keys().hasAll([
-              'name', 'description', 'images', 'type', 'status', 'municipalityId',
+              'name', 'description', 'images', 'type', 'status', 'municipalityId', 'villageSlug',
               'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
               'commentCount', 'readCount', 'memberCount', 'membersPublic',
             ])
@@ -293,6 +294,7 @@ service cloud.firestore {
           && d.type in ['ayuntamiento', 'peña', 'asociación', 'otros']
           && d.status in ['pending', 'approved', 'rejected']
           && isString(d.municipalityId)
+          && isString(d.villageSlug)
           && isString(d.requestedBy)
           && isStringOrNull(d.reviewedBy)
           && isTimestamp(d.createdAt)
@@ -339,18 +341,19 @@ service cloud.firestore {
 
     function isValidFestivalPosterCreate(d) {
       return d.keys().hasOnly([
-              'municipalityId', 'proposedBy', 'contributorUserIds', 'contributorOrgIds', 'year', 'title', 'images',
+              'municipalityId', 'villageSlug', 'proposedBy', 'contributorUserIds', 'contributorOrgIds', 'year', 'title', 'images',
               'datePrecision', 'startsAt', 'endsAt', 'createdAt',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount',
             ])
           && d.keys().hasAll([
-              'municipalityId', 'proposedBy', 'contributorUserIds', 'contributorOrgIds', 'year', 'title', 'images',
+              'municipalityId', 'villageSlug', 'proposedBy', 'contributorUserIds', 'contributorOrgIds', 'year', 'title', 'images',
               'datePrecision', 'startsAt', 'endsAt', 'createdAt',
               'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
               'commentCount', 'readCount',
             ])
           && isString(d.municipalityId)
+          && isString(d.villageSlug)
           && isStringOrNull(d.proposedBy)
           && isList(d.contributorUserIds)
           && isList(d.contributorOrgIds)
@@ -434,7 +437,7 @@ service cloud.firestore {
               'minBirthYear', 'maxBirthYear',
               'visibility', 'visibilityOrgId',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
-              'createdAt', 'updatedAt', 'municipalityId', 'villageName',
+              'createdAt', 'updatedAt', 'municipalityId', 'villageName', 'villageSlug',
               'villageCoverImage', 'villageCoordinates',
               'confirmedCount', 'totalCount',
               'commentCount', 'readCount',
@@ -446,7 +449,7 @@ service cloud.firestore {
               'minBirthYear', 'maxBirthYear',
               'visibility', 'visibilityOrgId',
               'status', 'organizerUserIds', 'organizerOrgIds', 'createdBy',
-              'createdAt', 'updatedAt', 'municipalityId', 'villageName',
+              'createdAt', 'updatedAt', 'municipalityId', 'villageName', 'villageSlug',
               'villageCoverImage', 'villageCoordinates',
               'commentCount', 'readCount',
             ])
@@ -510,6 +513,7 @@ service cloud.firestore {
           && isTimestamp(d.updatedAt)
           && isString(d.municipalityId)
           && isString(d.villageName)
+          && isString(d.villageSlug)
           && isStringOrNull(d.villageCoverImage)
           && isLatLngOrNull(d.villageCoordinates)
           && d.commentCount == 0
@@ -517,7 +521,7 @@ service cloud.firestore {
     }
 
     function isValidEntityKind(v) {
-      return v in ['event', 'festivalPoster', 'place', 'barrio', 'organization', 'news'];
+      return v in ['event', 'festivalPoster', 'place', 'barrio', 'organization', 'news', 'vocabularyTerm', 'historyEntry'];
     }
 
     function isValidCommentCreate(d) {
@@ -539,7 +543,7 @@ service cloud.firestore {
       return d.keys().hasOnly(['municipalityId', 'targetKind', 'targetId', 'targetAuthorUserId', 'reporterUserId', 'reason', 'note', 'status', 'createdAt'])
           && d.keys().hasAll(['municipalityId', 'targetKind', 'targetId', 'targetAuthorUserId', 'reporterUserId', 'reason', 'note', 'status', 'createdAt'])
           && isString(d.municipalityId)
-          && d.targetKind in ['event', 'festivalPoster', 'place', 'barrio', 'organization', 'news', 'comment', 'person']
+          && d.targetKind in ['event', 'festivalPoster', 'place', 'barrio', 'organization', 'news', 'vocabularyTerm', 'historyEntry', 'comment', 'person']
           && isString(d.targetId)
           && isStringOrNull(d.targetAuthorUserId)
           && isString(d.reporterUserId)
@@ -547,6 +551,167 @@ service cloud.firestore {
           && (d.note == null || (isString(d.note) && d.note.size() <= 500))
           && d.status == 'open'
           && isTimestamp(d.createdAt);
+    }
+
+    // Digitization credit (ContributorsModel). Credit, never authority — so the
+    // only things worth enforcing are that the author cannot write themselves
+    // out of their own contribution, and that a list cannot grow unbounded.
+    // The cap is a spam brake, not a product limit: nobody digitalizes one word
+    // with twenty-one people, but a script could name the whole village.
+    function isValidDigitizationCredit(d) {
+      return isList(d.contributorUserIds)
+          && isList(d.contributorOrgIds)
+          && d.contributorUserIds.size() <= 20
+          && d.contributorOrgIds.size() <= 20
+          && d.createdBy in d.contributorUserIds;
+    }
+
+    // A term's doc id is derived (municipalityId + slug), so the create rule
+    // must pin the claimed municipalityId to the path — otherwise a member of
+    // pueblo A could seed `B__esbardo` and own B's headword.
+    function isValidVocabularyTermCreate(d, termId) {
+      return d.keys().hasOnly([
+              'municipalityId', 'term', 'normalized', 'kind', 'createdBy', 'createdAt',
+              'contributorUserIds', 'contributorOrgIds',
+              'definitionCount', 'commentCount', 'readCount',
+              'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+            ])
+          && d.keys().hasAll([
+              'municipalityId', 'term', 'normalized', 'kind', 'createdBy', 'createdAt',
+              'contributorUserIds', 'contributorOrgIds',
+              'definitionCount', 'commentCount', 'readCount',
+              'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+            ])
+          && isString(d.municipalityId)
+          && isString(d.term) && d.term.size() > 0 && d.term.size() <= 80
+          && isString(d.normalized) && d.normalized.size() > 0 && d.normalized.size() <= 80
+          && d.kind in ['palabra', 'dicho', 'mote', 'toponimo']
+          && isString(d.createdBy)
+          && isValidDigitizationCredit(d)
+          && isTimestamp(d.createdAt)
+          && d.definitionCount == 0
+          && d.commentCount == 0
+          && d.readCount == 0
+          && d.status == 'active'
+          && d.hiddenBy == null
+          && d.hiddenAt == null
+          && d.hiddenReason == null
+          && termId == d.municipalityId + '__' + d.normalized;
+    }
+
+    function isValidVocabularyDefinitionCreate(d) {
+      return d.keys().hasOnly([
+              'municipalityId', 'termId', 'definition', 'example', 'castellano',
+              'createdBy', 'contributorUserIds', 'contributorOrgIds', 'createdAt', 'updatedAt',
+              'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+            ])
+          && d.keys().hasAll([
+              'municipalityId', 'termId', 'definition', 'example', 'castellano',
+              'createdBy', 'contributorUserIds', 'contributorOrgIds', 'createdAt', 'updatedAt',
+              'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+            ])
+          && isString(d.municipalityId)
+          && isString(d.termId)
+          && isString(d.definition) && d.definition.size() > 0 && d.definition.size() <= 1000
+          && (d.example == null || (isString(d.example) && d.example.size() <= 500))
+          && (d.castellano == null || (isString(d.castellano) && d.castellano.size() <= 200))
+          && isString(d.createdBy)
+          && isValidDigitizationCredit(d)
+          && isTimestamp(d.createdAt)
+          && isTimestamp(d.updatedAt)
+          && d.status == 'active'
+          && d.hiddenBy == null
+          && d.hiddenAt == null
+          && d.hiddenReason == null
+          // Same anchoring as a comment: the definition's municipalityId is what
+          // its own delete rule reads for admin authority, so it must match the
+          // term it claims to define.
+          && topLevelEntityInVillage(/databases/$(database)/documents/vocabularyTerms/$(d.termId), d.municipalityId);
+    }
+
+    // ── Village history ──────────────────────────────────────────────────
+    // A historical date is plain integers, not a timestamp, so it can hold a
+    // BC year. `sortKey` is what the timeline orders on; it is re-derived here
+    // (same arithmetic as `historicalDateSortKey`) so a client cannot file an
+    // entry at a date it does not claim.
+    function isValidHistoricalDate(v) {
+      return isMap(v)
+          && v.keys().hasOnly(['year', 'month', 'day'])
+          && v.keys().hasAll(['year', 'month', 'day'])
+          && v.year is int && v.year >= -9999 && v.year <= 9999 && v.year != 0
+          && (v.month == null || (v.month is int && v.month >= 1 && v.month <= 12))
+          && (v.day == null || (v.month != null && v.day is int && v.day >= 1 && v.day <= 31));
+    }
+
+    function historicalDateSortKey(v) {
+      return v.year * 10000
+           + (v.month == null ? 0 : v.month * 100)
+           + (v.day == null ? 0 : v.day);
+    }
+
+    function isValidHistoryEntryShape(d) {
+      return d.keys().hasOnly([
+              'municipalityId', 'villageSlug', 'createdBy', 'title', 'body', 'images', 'start', 'end',
+              'approximate', 'sources', 'sortKey', 'createdAt', 'updatedAt',
+              'commentCount', 'readCount',
+              'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+            ])
+          && d.keys().hasAll([
+              'municipalityId', 'villageSlug', 'createdBy', 'title', 'body', 'images', 'start', 'end',
+              'approximate', 'sources', 'sortKey', 'createdAt', 'updatedAt',
+              'commentCount', 'readCount',
+              'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+            ])
+          && isString(d.municipalityId)
+          && isString(d.villageSlug)
+          && isString(d.createdBy)
+          && isString(d.title) && d.title.size() > 0 && d.title.size() <= 120
+          && isMap(d.body)
+          && d.body.keys().hasOnly(['text', 'mentions', 'links', 'marks'])
+          && isString(d.body.text) && d.body.text.size() <= 20000
+          && isList(d.body.mentions) && isList(d.body.links) && isList(d.body.marks)
+          && isList(d.images) && d.images.size() <= 3
+          && isValidHistoricalDate(d.start)
+          && (d.end == null
+              || (isValidHistoricalDate(d.end) && historicalDateSortKey(d.end) > historicalDateSortKey(d.start)))
+          && isBool(d.approximate)
+          && (d.sources == null || (isString(d.sources) && d.sources.size() <= 2000))
+          && d.sortKey == historicalDateSortKey(d.start)
+          && isTimestamp(d.createdAt)
+          && isTimestamp(d.updatedAt);
+    }
+
+    // The platform decides the transport: an Android token is an FCM token,
+    // an iOS token is a raw APNs token that must carry its gateway and bundle
+    // id (see DeviceTokenDataModel). The pairing is asserted here as well as in
+    // the converter so a malformed row can never reach a transport.
+    function isValidDeviceTokenWrite(d, token) {
+      let keys = ['token', 'platform', 'apnsEnvironment', 'apnsTopic', 'appVersion', 'createdAt', 'lastSeenAt'];
+      return d.keys().hasOnly(keys)
+          && d.keys().hasAll(keys)
+          && d.token == token
+          && d.appVersion is string
+          && isTimestamp(d.createdAt)
+          && isTimestamp(d.lastSeenAt)
+          && (
+               (d.platform == 'android'
+                 && d.apnsEnvironment == null
+                 && d.apnsTopic == null)
+            || (d.platform == 'ios'
+                 && d.apnsEnvironment in ['production', 'sandbox']
+                 && d.apnsTopic is string
+                 && d.apnsTopic.size() > 0)
+          );
+    }
+
+    function isValidNotificationPrefsWrite(d) {
+      return d.keys().hasOnly(['mine', 'village', 'social', 'quietHours', 'updatedAt'])
+          && d.keys().hasAll(['mine', 'village', 'social', 'quietHours', 'updatedAt'])
+          && d.mine is bool
+          && d.village is bool
+          && d.social is bool
+          && d.quietHours is bool
+          && isTimestamp(d.updatedAt);
     }
 
     function isValidBlockedUserCreate(d, blockedUserId) {
@@ -595,6 +760,10 @@ service cloud.firestore {
                ? topLevelEntityInVillage(/databases/$(database)/documents/organizations/$(id), mid)
            : kind == 'festivalPoster'
                ? topLevelEntityInVillage(/databases/$(database)/documents/festivalPosters/$(id), mid)
+           : kind == 'vocabularyTerm'
+               ? topLevelEntityInVillage(/databases/$(database)/documents/vocabularyTerms/$(id), mid)
+           : kind == 'historyEntry'
+               ? topLevelEntityInVillage(/databases/$(database)/documents/historyEntries/$(id), mid)
            : false;
     }
 
@@ -638,12 +807,120 @@ service cloud.firestore {
                       && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
                            'status','hiddenBy','hiddenAt','hiddenReason',
                            'publishedAt',
-                           'municipalityId','createdAt','createdBy',
+                           'municipalityId','villageSlug','createdAt','createdBy',
                            'readCount','commentCount'
                          ]);
       // Clients never delete a post directly — the deleteNewsPost callable
       // cascades comments with the admin SDK (author or admin).
       allow delete: if false;
+    }
+
+    // ── Vocabulary: a pueblo's own words ────────────────────────────────
+    // Members write, everyone reads — a word from a pueblo you don't live in is
+    // exactly the thing worth not losing, so the read side joins the open feed.
+    match /vocabularyTerms/{termId} {
+      // `resource == null` FIRST, and it is load-bearing rather than defensive.
+      // A term's id is derived from the word, so adding one begins by reading
+      // the id that does not exist yet (ensureVocabularyTerm) — a blind setDoc
+      // onto a word somebody already added would be an *update* in rules terms
+      // and is denied. Without this clause that probe dereferences a null
+      // `resource`, the rule errors, and Firestore reports it as
+      // permission-denied: adding any new word fails before it starts. It also
+      // makes a share link to a deleted term a plain "not found" instead of an
+      // error.
+      allow read: if resource == null
+                    || resource.data.status == 'active'
+                    || isVillageMember(resource.data.municipalityId)
+                    || isOwner(resource.data.createdBy);
+      allow create: if isVillageMember(request.resource.data.municipalityId)
+                      && isValidVocabularyTermCreate(request.resource.data, termId)
+                      && request.resource.data.createdBy == request.auth.uid;
+      // Nothing on a term is client-editable. `term`/`normalized`/`kind` fix the
+      // identity the doc id is derived from; the counters and the visibility
+      // fields are function-owned. Correcting a headword means adding the right
+      // one and letting the wrong one be deleted — which keeps the derived id
+      // and the stored word from ever disagreeing.
+      allow update: if false;
+      // A term with definitions still on it must not vanish under them; once the
+      // last one is gone the author may withdraw the empty headword. Admins are
+      // not bound by that — an abusive term should go immediately.
+      allow delete: if isVillageAdmin(resource.data.municipalityId)
+                      || isAppAdmin()
+                      || (isOwner(resource.data.createdBy)
+                          && resource.data.status == 'active'
+                          && resource.data.definitionCount == 0);
+    }
+
+    // The shared word index: one row per word across every village, derived
+    // from the entries below by syncVocabularyWordIndex. Public so the "añadir
+    // palabra" search works for anyone, and function-owned — a client write
+    // here would let one villager restyle a word's spelling for every pueblo,
+    // or invent a word no village records.
+    match /vocabularyWords/{slug} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /vocabularyDefinitions/{definitionId} {
+      // Same null-resource guard as vocabularyTerms above: a missing definition
+      // must read as "not found", not as denied.
+      allow read: if resource == null
+                    || resource.data.status == 'active'
+                    || isVillageMember(resource.data.municipalityId)
+                    || isOwner(resource.data.createdBy);
+      allow create: if isVillageMember(request.resource.data.municipalityId)
+                      && isValidVocabularyDefinitionCreate(request.resource.data)
+                      && request.resource.data.createdBy == request.auth.uid;
+      // Only the author edits their own meaning — a village admin's lever is
+      // hide (setContentVisibility) or delete, never rewriting what someone else
+      // said a word means.
+      allow update: if isOwner(resource.data.createdBy)
+                      && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+                           'municipalityId', 'termId', 'createdBy', 'createdAt',
+                           'status', 'hiddenBy', 'hiddenAt', 'hiddenReason',
+                         ])
+                      // Re-crediting is an ordinary author edit, held to the
+                      // same credit rules as the create.
+                      && isValidDigitizationCredit(request.resource.data);
+      allow delete: if isOwner(resource.data.createdBy)
+                      || isVillageAdmin(resource.data.municipalityId)
+                      || isAppAdmin();
+    }
+
+    // ── Village history: a pueblo's timeline ─────────────────────────────
+    // Members write, everyone reads, admins moderate after the fact — the same
+    // open posture as vocabulary. Admins may also correct someone else's entry
+    // (unlike a vocabulary definition, an entry is a shared account of an event,
+    // not one villager's opinion).
+    match /historyEntries/{entryId} {
+      allow read: if resource.data.status == 'active'
+                    || isVillageMember(resource.data.municipalityId)
+                    || isOwner(resource.data.createdBy);
+      allow create: if isVillageMember(request.resource.data.municipalityId)
+                      && isValidHistoryEntryShape(request.resource.data)
+                      && request.resource.data.createdBy == request.auth.uid
+                      && request.resource.data.commentCount == 0
+                      && request.resource.data.readCount == 0
+                      && request.resource.data.status == 'active'
+                      && request.resource.data.hiddenBy == null
+                      && request.resource.data.hiddenAt == null
+                      && request.resource.data.hiddenReason == null;
+      // Authority reads the STORED municipalityId, and the diff below keeps it
+      // immutable — otherwise an admin of pueblo A could walk an entry into B.
+      // Counters and visibility are function-owned.
+      allow update: if (
+                        isOwner(resource.data.createdBy)
+                        || isVillageAdmin(resource.data.municipalityId)
+                        || isAppAdmin()
+                      )
+                      && isValidHistoryEntryShape(request.resource.data)
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                           'title', 'body', 'images', 'start', 'end', 'approximate',
+                           'sources', 'sortKey', 'updatedAt',
+                         ]);
+      allow delete: if isVillageAdmin(resource.data.municipalityId)
+                      || isAppAdmin()
+                      || (isOwner(resource.data.createdBy) && resource.data.status == 'active');
     }
 
     match /comments/{commentId} {
@@ -687,6 +964,28 @@ service cloud.firestore {
         allow update: if isOwner(userId)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
         allow create, delete: if false;
+      }
+
+      // Push registration tokens. THE DOCUMENT ID IS THE TOKEN, so a device
+      // re-registering on every launch overwrites its own row instead of
+      // accumulating one per session. Owner-only in both directions: the token
+      // is what addresses a push at a person's pocket, and a readable list
+      // would let anyone enumerate a user's devices.
+      match /devices/{token} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && isValidDeviceTokenWrite(request.resource.data, token);
+      }
+
+      // Push preferences. Optional by design — an account with no doc gets
+      // DEFAULT_NOTIFICATION_PREFS — so there is no create/update split here.
+      // These gate PUSH only; the in-app Buzón always receives everything, so
+      // muting a category can never destroy the durable record.
+      match /preferences/{prefId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId)
+          && prefId == 'notifications'
+          && isValidNotificationPrefsWrite(request.resource.data);
       }
 
       // Per-user block list. Owner-only in BOTH directions: a readable list
@@ -892,7 +1191,7 @@ service cloud.firestore {
             || request.resource.data.status == 'rejected')
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
              'commentCount', 'readCount', 'memberCount',
-             'type', 'municipalityId', 'requestedBy', 'createdAt',
+             'type', 'municipalityId', 'villageSlug', 'requestedBy', 'createdAt',
            ]);
       allow delete: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
 
@@ -947,7 +1246,7 @@ service cloud.firestore {
       )
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.municipalityId == resource.data.municipalityId
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['commentCount', 'readCount'])
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['commentCount', 'readCount', 'villageSlug'])
         && isAdditiveSignupFieldsChange(resource.data, request.resource.data)
         && isFrozenGroupSizeChange(resource.data, request.resource.data)
         && isValidVisibilityChange(resource.data, request.resource.data);
@@ -1101,6 +1400,22 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // villageWrapped — the post-fiestas summary, one doc per village + year +
+    // block. Function-owned end to end: it is computed, rendered and published
+    // by Cloud Functions, and released or binned through
+    // respondToVillageWrapped, never by a client write.
+    //
+    // A published Wrapped reads publicly because the images it points at are
+    // made to be forwarded — a recipient who is not a member, or not signed in,
+    // must still be able to open the link. A draft is the admins' to decide on
+    // and is readable only by them.
+    match /villageWrapped/{wrappedId} {
+      allow read: if resource.data.status == 'published'
+        || isVillageAdmin(resource.data.municipalityId)
+        || isAppAdmin();
+      allow write: if false;
+    }
+
     // festivalPosters — top-level, scoped by municipalityId field (mirrors
     // the /places proposal pattern: members propose, admins/app-admins
     // approve/reject and may act directly).
@@ -1123,7 +1438,7 @@ service cloud.firestore {
              // Unlike places/barrios (nested, so the path fixes the village),
              // a poster is top-level and this rule reads municipalityId for
              // authority — mutable, it walks the doc into another pueblo.
-             'proposedBy', 'municipalityId',
+             'proposedBy', 'municipalityId', 'villageSlug',
            ]);
       allow delete: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin()
         || (isOwner(resource.data.proposedBy) && resource.data.status == 'active');
@@ -1163,6 +1478,15 @@ service cloud.firestore {
     // unmatched path — this explicit rule makes the invariant assertable and
     // stops a future broad rule from accidentally exposing operational state.
     match /_admin/{document=**} {
+      allow read, write: if false;
+    }
+
+    // pushQueue is the server-only spool that turns a notification doc into a
+    // device push (see PushQueueDataModel). Nothing in the app reads it, and a
+    // client-writable spool would let anyone send themselves — or suppress —
+    // an arbitrary push. The Admin SDK bypasses rules, so the triggers write it
+    // fine.
+    match /pushQueue/{queueId} {
       allow read, write: if false;
     }
 

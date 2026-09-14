@@ -1,63 +1,26 @@
 import Constants from 'expo-constants';
+import {
+  entityPath,
+  eventLinkTarget,
+  orgJoinPath,
+  parseAppPath,
+  seatClaimPath,
+  userPath,
+  villagePath,
+  type EntityLinkTarget,
+  type UrlEntityKind,
+} from '../utils/urls';
 
 export type LinkKind = 'content' | 'invite';
-export type DeepLinkResource =
-  | 'event'
-  | 'news'
-  | 'village'
-  | 'organization'
-  | 'place'
-  | 'barrio'
-  | 'user';
+export type DeepLinkResource = UrlEntityKind | 'village' | 'user';
 
 export interface DeepLink {
   url: string;
+  /** The in-app route — the URL's path, which expo-router resolves as-is. */
+  path: string;
   kind: LinkKind;
   resource: DeepLinkResource;
-  id: string;
-  /** Parent id for resources nested under a village (place, barrio). */
-  parentId?: string;
-  /** The single-use secret on a seat-claim link. */
-  token?: string;
 }
-
-const RESOURCE_TO_PATH: Record<DeepLinkResource, string> = {
-  event: 'event',
-  news: 'news',
-  village: 'village',
-  organization: 'o',
-  // Nested resources live under /village/<villageId>/...; see buildNestedLink.
-  place: 'village',
-  barrio: 'village',
-  user: 'user',
-};
-
-const SUPPORTS_INVITE: Record<DeepLinkResource, boolean> = {
-  event: false,
-  news: false,
-  village: false,
-  organization: true,
-  place: false,
-  barrio: false,
-  user: false,
-};
-
-/**
- * Resources nested under a village. The URL is
- * /village/<villageId>/<childPath>/<id> and the parsed link carries the village
- * id in `parentId`.
- */
-const NESTED_CHILD_PATH = {
-  place: 'place',
-  barrio: 'barrio',
-} as const;
-
-type NestedResource = keyof typeof NESTED_CHILD_PATH;
-const NESTED_PARENT_PATH = 'village';
-
-const INVITE_SUFFIX = 'join';
-/** /event/<eventId>/claim/<token> — see getSeatClaimLink. */
-const SEAT_CLAIM_SEGMENT = 'claim';
 
 export function getDeepLinkHost(): string {
   const extra = Constants.expoConfig?.extra ?? {};
@@ -70,136 +33,83 @@ export function getDeepLinkHost(): string {
   return host;
 }
 
-function buildLink(resource: DeepLinkResource, id: string, kind: LinkKind): DeepLink {
-  if (!id) throw new Error(`deepLinkService: id is required for ${resource}`);
-  if (kind === 'invite' && !SUPPORTS_INVITE[resource]) {
-    throw new Error(`deepLinkService: ${resource} does not have an invite link`);
-  }
-  const host = getDeepLinkHost();
-  const path = RESOURCE_TO_PATH[resource];
-  const suffix = kind === 'invite' ? `/${INVITE_SUFFIX}` : '';
-  return {
-    url: `https://${host}/${path}/${id}${suffix}`,
-    kind,
-    resource,
-    id,
-  };
+function link(resource: DeepLinkResource, path: string, kind: LinkKind = 'content'): DeepLink {
+  return { url: `https://${getDeepLinkHost()}${path}`, path, kind, resource };
 }
 
-export const getEventLink = (eventId: string): DeepLink => buildLink('event', eventId, 'content');
-export const getNewsLink = (newsId: string): DeepLink => buildLink('news', newsId, 'content');
+export const getVillageViewLink = (villageSlug: string): DeepLink =>
+  link('village', villagePath(villageSlug));
 
-export const getVillageViewLink = (villageId: string): DeepLink =>
-  buildLink('village', villageId, 'content');
+export const getUserViewLink = (uid: string): DeepLink => {
+  if (!uid) throw new Error('deepLinkService: uid is required');
+  return link('user', userPath(uid));
+};
 
-export const getUserViewLink = (uid: string): DeepLink =>
-  buildLink('user', uid, 'content');
-
-export const getOrgViewLink = (orgId: string): DeepLink =>
-  buildLink('organization', orgId, 'content');
-export const getOrgInviteLink = (orgId: string): DeepLink =>
-  buildLink('organization', orgId, 'invite');
-
-function buildNestedLink(resource: NestedResource, villageId: string, id: string): DeepLink {
-  if (!villageId) throw new Error(`deepLinkService: villageId is required for ${resource}`);
-  if (!id) throw new Error(`deepLinkService: id is required for ${resource}`);
-  const host = getDeepLinkHost();
-  const childPath = NESTED_CHILD_PATH[resource];
-  return {
-    url: `https://${host}/${NESTED_PARENT_PATH}/${villageId}/${childPath}/${id}`,
-    kind: 'content',
-    resource,
-    id,
-    parentId: villageId,
-  };
-}
+export const getEntityLink = (kind: UrlEntityKind, target: EntityLinkTarget): DeepLink =>
+  link(kind, entityPath(kind, target));
 
 /**
- * The link that hands one held open seat to whoever opens it. Deliberately not
- * routed through `buildLink`: the token is a secret, not an id, and folding it
- * into the generic invite shape would invite it into share sheets and previews
- * meant for public links.
+ * Event links go through `eventLinkTarget`, never straight to `getEntityLink`:
+ * a private event's URL must not carry its title, and taking the rule out of
+ * the caller's hands is what keeps a share sheet from leaking it.
  */
-export const getSeatClaimLink = (eventId: string, token: string): DeepLink => {
-  if (!eventId) throw new Error('deepLinkService: eventId is required for a seat claim');
-  if (!token) throw new Error('deepLinkService: token is required for a seat claim');
-  return {
-    url: `https://${getDeepLinkHost()}/event/${eventId}/${SEAT_CLAIM_SEGMENT}/${token}`,
-    kind: 'invite',
-    resource: 'event',
-    id: eventId,
-    token,
-  };
-};
+export const getEventLink = (event: Parameters<typeof eventLinkTarget>[0]): DeepLink =>
+  getEntityLink('event', eventLinkTarget(event));
+export const getNewsLink = (target: EntityLinkTarget): DeepLink => getEntityLink('news', target);
+export const getOrgViewLink = (target: EntityLinkTarget): DeepLink =>
+  getEntityLink('organization', target);
+export const getPlaceViewLink = (target: EntityLinkTarget): DeepLink => getEntityLink('place', target);
+export const getBarrioViewLink = (target: EntityLinkTarget): DeepLink =>
+  getEntityLink('barrio', target);
+export const getHistoryEntryViewLink = (target: EntityLinkTarget): DeepLink =>
+  getEntityLink('historyEntry', target);
 
-export const getPlaceViewLink = (villageId: string, placeId: string): DeepLink =>
-  buildNestedLink('place', villageId, placeId);
-export const getBarrioViewLink = (villageId: string, barrioId: string): DeepLink =>
-  buildNestedLink('barrio', villageId, barrioId);
+/** Same page as the view link; `unirse` makes the destination open its join flow. */
+export const getOrgInviteLink = (target: EntityLinkTarget): DeepLink =>
+  link('organization', orgJoinPath(target), 'invite');
+
+/**
+ * The link that hands one held open seat to whoever opens it. The token is a
+ * secret, not an id — it rides only in this link, never in the view link that
+ * share sheets and previews are built from.
+ */
+export const getSeatClaimLink = (
+  event: Parameters<typeof eventLinkTarget>[0],
+  token: string,
+): DeepLink => link('event', seatClaimPath(eventLinkTarget(event), token), 'invite');
 
 export interface ParsedDeepLink {
+  path: string;
   kind: LinkKind;
   resource: DeepLinkResource;
-  id: string;
-  /** Parent id for resources nested under a village (place, barrio). */
-  parentId?: string;
-  /** The single-use secret on a seat-claim link. */
-  token?: string;
 }
-
-const CHILD_PATH_TO_RESOURCE: { readonly [path: string]: NestedResource | undefined } = {
-  place: 'place',
-  barrio: 'barrio',
-};
-
-const PATH_TO_RESOURCE: { readonly [path: string]: DeepLinkResource | undefined } = {
-  event: 'event',
-  news: 'news',
-  village: 'village',
-  o: 'organization',
-  user: 'user',
-};
 
 const SCHEME = 'cultuvilla';
 
-function interpret(segments: string[]): ParsedDeepLink | null {
-  if (segments.length === 2) {
-    const [pathSegment, id] = segments as [string, string];
-    const resource = PATH_TO_RESOURCE[pathSegment];
-    if (!resource) return null;
-    return { kind: 'content', resource, id };
+function interpret(pathname: string): ParsedDeepLink | null {
+  const parsed = parseAppPath(pathname);
+  if (!parsed) return null;
+  const path = `/${pathname.split('/').filter(Boolean).join('/')}`;
+  switch (parsed.type) {
+    case 'village':
+      return { path, kind: 'content', resource: 'village' };
+    case 'user':
+      return { path, kind: 'content', resource: 'user' };
+    case 'seatClaim':
+      return { path, kind: 'invite', resource: 'event' };
+    case 'entity':
+      return { path, kind: parsed.join ? 'invite' : 'content', resource: parsed.kind };
   }
-  if (segments.length === 3) {
-    const [pathSegment, id, suffix] = segments as [string, string, string];
-    if (suffix !== INVITE_SUFFIX) return null;
-    const resource = PATH_TO_RESOURCE[pathSegment];
-    if (!resource || !SUPPORTS_INVITE[resource]) return null;
-    return { kind: 'invite', resource, id };
-  }
-  if (segments.length === 4) {
-    const [parentSegment, parentId, childSegment, id] = segments as [
-      string,
-      string,
-      string,
-      string,
-    ];
-    if (parentSegment === 'event' && childSegment === SEAT_CLAIM_SEGMENT) {
-      // id stays the event: the seat is identified by the token, and the
-      // registration it fills is server-side detail the link never carries.
-      return { kind: 'invite', resource: 'event', id: parentId, token: id };
-    }
-    if (parentSegment !== NESTED_PARENT_PATH) return null;
-    const resource = CHILD_PATH_TO_RESOURCE[childSegment];
-    if (!resource) return null;
-    return { kind: 'content', resource, id, parentId };
-  }
-  return null;
 }
 
+/**
+ * Accepts an https link on this env's host or a `cultuvilla://` scheme link.
+ * Returns null for anything else — callers treat null as "let the OS open the
+ * browser".
+ */
 export function parseLink(input: string): ParsedDeepLink | null {
   if (input.startsWith(`${SCHEME}://`)) {
-    const rest = input.slice(`${SCHEME}://`.length);
-    return interpret(rest.split('/').filter(Boolean));
+    return interpret(input.slice(`${SCHEME}://`.length).split(/[?#]/)[0] ?? '');
   }
   let url: URL;
   try {
@@ -209,7 +119,7 @@ export function parseLink(input: string): ParsedDeepLink | null {
   }
   if (url.protocol !== 'https:') return null;
   if (url.hostname !== getDeepLinkHost()) return null;
-  return interpret(url.pathname.split('/').filter(Boolean));
+  return interpret(url.pathname);
 }
 
 export type DeepLinkTranslate = (
@@ -218,13 +128,13 @@ export type DeepLinkTranslate = (
 ) => string;
 
 export function buildShareMessage(
-  link: DeepLink,
+  deepLink: DeepLink,
   t: DeepLinkTranslate,
   name: string,
 ): string {
-  const kindKey = link.kind === 'invite' ? 'invite' : 'view';
-  return t(`deeplink.share.${link.resource}.${kindKey}`, {
-    url: link.url,
+  const kindKey = deepLink.kind === 'invite' ? 'invite' : 'view';
+  return t(`deeplink.share.${deepLink.resource}.${kindKey}`, {
+    url: deepLink.url,
     name,
   });
 }

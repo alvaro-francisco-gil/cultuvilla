@@ -16,7 +16,7 @@ export const APP_STORES: { ios: string; android: string } = {
 };
 
 // Numeric App Store id (the `ASC_APP_ID` repo var). Safari builds its own smart
-// app banner from this via the `apple-itunes-app` meta tag in app/+html.tsx —
+// app banner from this via the `apple-itunes-app` meta tag in public/index.html —
 // see SmartAppBanner for how the two are kept from stacking.
 export const APP_STORE_ID = '6804756586';
 

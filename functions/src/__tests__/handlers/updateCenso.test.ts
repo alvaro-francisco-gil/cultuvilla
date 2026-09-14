@@ -18,12 +18,12 @@ async function seedCensoMunicipality(fields: unknown[]): Promise<void> {
     nameAliases: [],
     localityNames: [],
     searchPrefixes: ['v', 'vi', 'vil', 'vill', 'villa', 'villar', 'villarr', 'villarri', 'villarrib', 'villarriba'],
-    comunidadAutonoma: 'Madrid', codigoINE: '28000', coordinates: null,
+    comunidadAutonoma: 'Madrid', codigoINE: '28000', slug: 'pueblo-28000', coordinates: null,
     locationLabel: null,
     mapZoom: null,
     createdAt: now, escudoUrl: null, escudoThumbUrl: null, escudoManualUrl: null,
     communityActive: true,
-    community: { organizerId: ADMIN_ID, description: 'x', activatedAt: now,
+    community: { organizerId: ADMIN_ID, description: 'x', activatedAt: now, fiestas: [],
       profileForm: { fields, updatedAt: now } },
   });
 }

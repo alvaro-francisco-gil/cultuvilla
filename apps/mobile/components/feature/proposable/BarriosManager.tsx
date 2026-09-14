@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   createBarrio, newBarrioId,
 } from '@cultuvilla/shared/services/municipalityService';
-import { deleteImageByURL, uploadBarrioImage } from '@cultuvilla/shared/services/imageService';
+import { uploadBarrioImage } from '@cultuvilla/shared/services/imageService';
 import { VStack } from '../../primitives';
 import { pickImageAsBlob } from '../../../lib/images';
 import { useT } from '../../../lib/i18n';
@@ -46,9 +46,7 @@ export function BarriosManager({
   }
 
   function removeImage(index: number) {
-    const url = images[index];
     setImages((prev) => prev.filter((_, i) => i !== index));
-    if (url) void deleteImageByURL(url).catch(() => {}); // best-effort orphan cleanup
   }
 
   async function submit() {

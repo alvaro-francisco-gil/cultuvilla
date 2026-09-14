@@ -8,7 +8,7 @@ test.describe('village self-join', () => {
     await page.goto('/');
     await fixtureLogin(page, fixtures.joiner.email);
 
-    await page.goto(`/village/${fixtures.joinVillage.docId}`);
+    await page.goto(`/${fixtures.joinVillage.slug}`);
     const join = page.getByTestId('village-join-action');
     await expect(join).toBeVisible({ timeout: 30_000 });
     await join.click();

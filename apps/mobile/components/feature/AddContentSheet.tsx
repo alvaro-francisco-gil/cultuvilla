@@ -1,3 +1,10 @@
+import {
+  createEventHref,
+  createNewsHref,
+  newHistoryEntryHref,
+  newWordHref,
+  villageSectionHref,
+} from '../../lib/navigation/routes';
 import { Modal, Pressable as RNPressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -10,6 +17,8 @@ interface AddContentSheetProps {
   visible: boolean;
   onClose: () => void;
   villageId: string;
+  /** The pueblo's URL slug — every create route it opens is village-first. */
+  villageSlug: string;
   /** When true, prepend the admin-only "Detalles pueblo" row opening the edit stepper. */
   canManage: boolean;
 }
@@ -21,25 +30,26 @@ interface AddOption {
   href: string;
 }
 
-// The seven entities the village home can add, in the same order the sections
+// The entities the village home can add, in the same order the sections
 // appear on the screen. Each row just fans out to the entity's existing create
 // route — no create logic lives here. Peña and agrupación share the org create
 // screen; the `type` query preselects its picker (asociación = the non-peña
 // default, since "agrupación" is the whole non-peña bucket).
-function optionsFor(villageId: string, canManage: boolean): AddOption[] {
-  const base = `/village/${villageId}`;
+function optionsFor(villageId: string, villageSlug: string, canManage: boolean): AddOption[] {
   return [
     // Admin-only: opens the village edit stepper (was formerly the "Editar pueblo" pill).
     ...(canManage
-      ? [{ key: 'detalles', icon: 'create-outline' as const, href: `${base}/community` }]
+      ? [{ key: 'detalles', icon: 'create-outline' as const, href: villageSectionHref(villageSlug, 'comunidad') }]
       : []),
-    { key: 'evento', icon: 'calendar-outline', href: `/event/new?villageId=${villageId}` },
-    { key: 'articulo', icon: 'newspaper-outline', href: `/news/new?villageId=${villageId}` },
-    { key: 'agrupacion', icon: 'business-outline', href: `${base}/organizations?type=asociacion` },
-    { key: 'pena', icon: 'people-circle-outline', href: `${base}/organizations?type=pena` },
-    { key: 'barrio', icon: 'map-outline', href: `${base}/barrios` },
-    { key: 'lugar', icon: 'location-outline', href: `${base}/places` },
-    { key: 'cartel', icon: 'image-outline', href: `${base}/festival-posters` },
+    { key: 'evento', icon: 'calendar-outline', href: createEventHref({ villageId }) },
+    { key: 'articulo', icon: 'newspaper-outline', href: createNewsHref({ villageId }) },
+    { key: 'agrupacion', icon: 'business-outline', href: villageSectionHref(villageSlug, 'entidades', 'type=asociacion') },
+    { key: 'pena', icon: 'people-circle-outline', href: villageSectionHref(villageSlug, 'entidades', 'type=pena') },
+    { key: 'barrio', icon: 'map-outline', href: villageSectionHref(villageSlug, 'barrios') },
+    { key: 'lugar', icon: 'location-outline', href: villageSectionHref(villageSlug, 'lugares') },
+    { key: 'cartel', icon: 'image-outline', href: villageSectionHref(villageSlug, 'carteles') },
+    { key: 'palabra', icon: 'book-outline', href: newWordHref(villageSlug) },
+    { key: 'acontecimiento', icon: 'time-outline', href: newHistoryEntryHref(villageSlug) },
   ];
 }
 
@@ -48,7 +58,7 @@ function optionsFor(villageId: string, canManage: boolean): AddOption[] {
  * Uses a fade-in Modal + bottom-anchored card (not an Animated translateY) so it
  * behaves on the web build, where RN-Web translateY springs don't move.
  */
-export function AddContentSheet({ visible, onClose, villageId, canManage }: AddContentSheetProps) {
+export function AddContentSheet({ visible, onClose, villageId, villageSlug, canManage }: AddContentSheetProps) {
   const { t } = useT();
   const insets = useSafeAreaInsets();
 
@@ -104,7 +114,7 @@ export function AddContentSheet({ visible, onClose, villageId, canManage }: AddC
               visible at a glance without scrolling. ScrollView stays only as a
               fallback for viewports too short to hold the full list. */}
           <ScrollView style={{ maxHeight: '100%' }}>
-            {optionsFor(villageId, canManage).map((opt) => (
+            {optionsFor(villageId, villageSlug, canManage).map((opt) => (
               <RNPressable
                 key={opt.key}
                 onPress={() => pick(opt.href)}

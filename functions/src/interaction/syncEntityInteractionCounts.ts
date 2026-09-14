@@ -8,6 +8,8 @@ import {
   newsDoc,
   municipalityPlaceDoc,
   municipalityBarrioDoc,
+  vocabularyTermDoc,
+  historyEntryDoc,
   userNotificationsCollection,
   commentDoc,
 } from '@cultuvilla/shared/firebase/refs/admin';
@@ -44,6 +46,8 @@ export async function applyToParent(
       case 'news':           await newsDoc(db, entityId).update(field, value, ...more); break;
       case 'place':          await municipalityPlaceDoc(db, municipalityId, entityId).update(field, value, ...more); break;
       case 'barrio':         await municipalityBarrioDoc(db, municipalityId, entityId).update(field, value, ...more); break;
+      case 'vocabularyTerm': await vocabularyTermDoc(db, entityId).update(field, value, ...more); break;
+      case 'historyEntry':   await historyEntryDoc(db, entityId).update(field, value, ...more); break;
       default:               return 'unknown-kind';
     }
     return 'applied';

@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "790546266005",
+    "project_id": "villa-events",
+    "storage_bucket": "villa-events.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:790546266005:android:b0a988a6ffe9500922e89c",
+        "android_client_info": {
+          "package_name": "com.cultuvilla.app.dev"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "790546266005-uf5k8ca9d57j7llomnkj1h4nmji3celm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3ltWaOKjKFgcHMYVhALvEqbLXmTV3aB4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "790546266005-d00t7qjqj2d7m03qemubv30rugva41le.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "790546266005-6on9rltfnihba3mat9c73mvmvnfctscp.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.cultuvilla.app.dev"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

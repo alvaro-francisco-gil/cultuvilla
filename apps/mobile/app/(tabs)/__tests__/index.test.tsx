@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import FeedScreen from '../index';
 import {
   getPrivateUpcomingFeed,
@@ -81,6 +81,7 @@ const event = {
     organizerOrgIds: [],
     createdBy: 'uid-1',
     municipalityId: 'mun1',
+    villageSlug: 'villa',
     villageName: 'Sotos de Mayorga',
     villageCoordinates: { lat: 40.4, lng: -3.7 },
   }),
@@ -89,6 +90,7 @@ const event = {
 const post = {
   ...buildNewsPostData({
     municipalityId: 'mun1',
+    villageSlug: 'villa',
     createdBy: 'uid-1',
     organizerUserIds: ['uid-1'],
     title: 'Corte de agua',
@@ -111,21 +113,26 @@ describe('FeedScreen tab order', () => {
     (getAllVillagesFeed as jest.Mock).mockResolvedValue([post]);
   });
 
-  it('shows Eventos before Artículos in the toggle', async () => {
+  it('shows Artículos before Eventos in the toggle', async () => {
     const { findAllByText } = render(<FeedScreen />);
     const labels = (await findAllByText(/^(Artículos|Eventos)$/)).map((n) => n.props.children);
-    expect(labels).toEqual(['Eventos', 'Artículos']);
+    expect(labels).toEqual(['Artículos', 'Eventos']);
   });
 
-  it('opens on the Eventos feed and renders its page first', async () => {
-    const { findByText, queryByText } = render(<FeedScreen />);
-    // The news feed only loads once its tab is active. So the event card showing
-    // up with no interaction, while the article card is still absent, pins both
-    // halves at once: Eventos is the landing tab, and its page renders first.
-    expect(await findByText('Verbena', undefined, { timeout: 5000 })).toBeTruthy();
-    expect(queryByText('Corte de agua')).toBeNull();
+  it('opens on the Artículos feed', async () => {
+    const { findByText } = render(<FeedScreen />);
+    // The news feed only loads when its tab is the active one, so its content
+    // appearing without any interaction proves Artículos is the landing tab.
+    expect(await findByText('Corte de agua', undefined, { timeout: 5000 })).toBeTruthy();
   });
 });
+
+// Artículos is the landing tab, so suites about event cards switch to Eventos first.
+async function renderOnEventsTab() {
+  const utils = render(<FeedScreen />);
+  fireEvent.press(await utils.findByText('Eventos'));
+  return utils;
+}
 
 // The ribbon's own states are covered by EventCard.test.tsx; what this pins is
 // the wiring — the feed asks the registrations context about each event it
@@ -140,13 +147,13 @@ describe('FeedScreen sign-up ribbon', () => {
 
   it('marks an event the viewer is signed up for', async () => {
     mockRibbonFor.mockReturnValue({ kind: 'confirmed', count: 1 });
-    const { findByText } = render(<FeedScreen />);
+    const { findByText } = await renderOnEventsTab();
     expect(await findByText('Apuntado', undefined, { timeout: 5000 })).toBeTruthy();
     expect(mockRibbonFor).toHaveBeenCalledWith('event1');
   });
 
   it('leaves an event the viewer has no registrations on unmarked', async () => {
-    const { findByText, queryByText } = render(<FeedScreen />);
+    const { findByText, queryByText } = await renderOnEventsTab();
     await findByText('Verbena', undefined, { timeout: 5000 });
     expect(queryByText('Apuntado')).toBeNull();
   });
@@ -174,7 +181,7 @@ describe('FeedScreen private events', () => {
     (getUpcomingFeed as jest.Mock).mockResolvedValue({ events: [event] });
     (getPrivateUpcomingFeed as jest.Mock).mockResolvedValue([privateEvent]);
 
-    const { findByText } = render(<FeedScreen />);
+    const { findByText } = await renderOnEventsTab();
     expect(await findByText('Verbena', undefined, { timeout: 5000 })).toBeTruthy();
     expect(await findByText('Cena de la peña', undefined, { timeout: 5000 })).toBeTruthy();
   });
@@ -183,7 +190,7 @@ describe('FeedScreen private events', () => {
     (getUpcomingFeed as jest.Mock).mockResolvedValue({ events: [event] });
     (getPrivateUpcomingFeed as jest.Mock).mockRejectedValue(new Error('permission-denied'));
 
-    const { findByText } = render(<FeedScreen />);
+    const { findByText } = await renderOnEventsTab();
     expect(await findByText('Verbena', undefined, { timeout: 5000 })).toBeTruthy();
   });
 });

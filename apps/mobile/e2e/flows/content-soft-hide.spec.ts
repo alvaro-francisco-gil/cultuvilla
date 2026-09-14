@@ -11,10 +11,10 @@ test.describe('optimistic content moderation', () => {
     const currentStatus = await getPlaceStatus(fixtures.village.docId, fixtures.place.docId);
     if (currentStatus === 'hidden') return;
 
-    await page.goto(`/village/${fixtures.village.docId}/place/${fixtures.place.docId}`);
+    await page.goto(fixtures.place.path);
     await expect(page.getByText(fixtures.place.name)).toBeVisible({ timeout: 30_000 });
 
-    await page.goto(`/village/${fixtures.village.docId}/place/${fixtures.place.docId}/edit`);
+    await page.goto(`${fixtures.place.path}/editar`);
     await expect(page.getByTestId('place-edit-name-input')).toHaveValue(fixtures.place.name, {
       timeout: 30_000,
     });

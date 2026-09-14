@@ -2,6 +2,11 @@ import { renderHook, waitFor, act } from '@testing-library/react-native';
 import { getEventsByMunicipality } from '@cultuvilla/shared/services/eventService';
 import { getMunicipalityPeople } from '@cultuvilla/shared/services/municipalityPersonService';
 import { getMunicipality } from '@cultuvilla/shared/services/municipalityService';
+import { getHistoryEntries } from '@cultuvilla/shared/services/historyService';
+import {
+  getVocabularyDefinitions,
+  getVocabularyTerms,
+} from '@cultuvilla/shared/services/vocabularyService';
 import { useVillageHome } from '../useVillageHome';
 
 jest.mock('../auth/useAuth', () => {
@@ -56,7 +61,17 @@ jest.mock('@cultuvilla/shared/services/festivalPosterService', () => ({
   getFestivalPosters: jest.fn(async () => [{ id: 'p1', year: 2024, status: 'active' }]),
 }));
 
+jest.mock('@cultuvilla/shared/services/historyService', () => ({
+  getHistoryEntries: jest.fn(async () => []),
+}));
+jest.mock('@cultuvilla/shared/services/vocabularyService', () => ({
+  getVocabularyTerms: jest.fn(async () => []),
+  getVocabularyDefinitions: jest.fn(async () => []),
+}));
+
 describe('useVillageHome', () => {
+  beforeEach(() => jest.clearAllMocks());
+
   it('aggregates village data and derives isMember + peopleCount', async () => {
     const { result } = renderHook(() => useVillageHome('m1'));
     // The village doc is the only essential fetch; it clears coreLoading first.
@@ -155,5 +170,44 @@ describe('useVillageHome', () => {
     await waitFor(() => expect(result.current.coreLoading).toBe(false));
     expect(result.current.village).toBeNull();
     expect(result.current.isMember).toBe(false);
+  });
+
+  it('lays the history out oldest first, the way a timeline reads left to right', async () => {
+    // The service returns newest first (what the full timeline screen wants).
+    (getHistoryEntries as jest.Mock).mockResolvedValueOnce([{ id: 'h1956' }, { id: 'h1558' }, { id: 'h1136' }]);
+
+    const { result } = renderHook(() => useVillageHome('m1'));
+
+    await waitFor(() => expect(result.current.sectionStatus.history).toBe('ready'));
+    expect(getHistoryEntries).toHaveBeenCalledWith('m1');
+    expect(result.current.history.map((e) => e.id)).toEqual(['h1136', 'h1558', 'h1956']);
+  });
+
+  it('picks a word of the day and loads only that word’s first meaning', async () => {
+    (getVocabularyTerms as jest.Mock).mockResolvedValueOnce([{ id: 'm1__miaja', term: 'miaja' }]);
+    (getVocabularyDefinitions as jest.Mock).mockResolvedValueOnce([
+      { id: 'd1', definition: 'Un poco.' },
+      { id: 'd2', definition: 'Una migaja.' },
+    ]);
+
+    const { result } = renderHook(() => useVillageHome('m1'));
+
+    await waitFor(() => expect(result.current.sectionStatus.vocabulary).toBe('ready'));
+    expect(getVocabularyDefinitions).toHaveBeenCalledTimes(1);
+    expect(getVocabularyDefinitions).toHaveBeenCalledWith('m1__miaja');
+    expect(result.current.wordOfTheDay).toEqual({
+      term: { id: 'm1__miaja', term: 'miaja' },
+      definition: { id: 'd1', definition: 'Un poco.' },
+      more: [],
+    });
+    expect(result.current.vocabularyCount).toBe(1);
+  });
+
+  it('has no word of the day, and asks for no meaning, when the village has no words', async () => {
+    const { result } = renderHook(() => useVillageHome('m1'));
+
+    await waitFor(() => expect(result.current.sectionStatus.vocabulary).toBe('ready'));
+    expect(result.current.wordOfTheDay).toBeNull();
+    expect(getVocabularyDefinitions).not.toHaveBeenCalled();
   });
 });

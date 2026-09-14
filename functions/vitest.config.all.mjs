@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import { binaryFonts } from './vitest.fonts.mjs';
 
 // Runs every test category in functions/ under a single vitest invocation.
 // Intended for orchestration by scripts/run-tests-with-emulators.mjs where
@@ -6,6 +7,7 @@ import { defineConfig } from 'vitest/config';
 const RETRY = Number.parseInt(process.env.VITEST_RETRY_COUNT ?? '0', 10);
 
 export default defineConfig({
+  plugins: [binaryFonts],
   test: {
     globals: true,
     environment: 'node',

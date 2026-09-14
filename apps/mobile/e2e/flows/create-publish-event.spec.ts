@@ -21,7 +21,7 @@ test.describe('create & publish an event', () => {
     await page.goto('/');
     await fixtureLogin(page, fixtures.admin.email);
 
-    await page.goto('/event/new');
+    await page.goto('/crear/evento');
 
     // Step 1 — basics. The admin is a member of the seeded village, so the form
     // renders (rather than the "join a village first" eligibility message) and

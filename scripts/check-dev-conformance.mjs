@@ -56,6 +56,9 @@ import {
   personsCollection,
   usersCollection,
   userNotificationsCollection,
+  userDevicesCollection,
+  userPreferencesCollection,
+  pushQueueCollection,
   newsCollection,
   commentsCollection,
   occupationsCollection,
@@ -63,6 +66,12 @@ import {
   moderationEventsCollection,
   adminsCollection,
   municipalityPeopleCollection,
+  vocabularyTermsCollection,
+  vocabularyDefinitionsCollection,
+  vocabularyWordsCollection,
+  historyEntriesCollection,
+  contentReportsCollection,
+  villageWrappedCollection,
 } from '@cultuvilla/shared/firebase/refs/admin';
 
 // `--env dev|beta|prod` (default dev). Read-only check — safe against any env,
@@ -132,8 +141,13 @@ const REGISTRY = [
   {
     name: 'users',
     coll: (db) => usersCollection(db),
-    subs: [{ name: 'notifications', coll: (db, id) => userNotificationsCollection(db, id) }],
+    subs: [
+      { name: 'notifications', coll: (db, id) => userNotificationsCollection(db, id) },
+      { name: 'devices', coll: (db, id) => userDevicesCollection(db, id) },
+      { name: 'preferences', coll: (db, id) => userPreferencesCollection(db, id) },
+    ],
   },
+  { name: 'pushQueue', coll: (db) => pushQueueCollection(db) },
   { name: 'news', coll: (db) => newsCollection(db) },
   { name: 'comments', coll: (db) => commentsCollection(db) },
   { name: 'occupations', coll: (db) => occupationsCollection(db) },
@@ -141,6 +155,12 @@ const REGISTRY = [
   { name: 'moderationEvents', coll: (db) => moderationEventsCollection(db) },
   { name: 'admins', coll: (db) => adminsCollection(db) },
   { name: 'municipalityPeople', coll: (db) => municipalityPeopleCollection(db) },
+  { name: 'vocabularyTerms', coll: (db) => vocabularyTermsCollection(db) },
+  { name: 'vocabularyDefinitions', coll: (db) => vocabularyDefinitionsCollection(db) },
+  { name: 'vocabularyWords', coll: (db) => vocabularyWordsCollection(db) },
+  { name: 'historyEntries', coll: (db) => historyEntriesCollection(db) },
+  { name: 'contentReports', coll: (db) => contentReportsCollection(db) },
+  { name: 'villageWrapped', coll: (db) => villageWrappedCollection(db) },
 ];
 
 /** Format a caught converter error into `path: message` lines, one per zod issue. */

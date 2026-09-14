@@ -10,6 +10,15 @@ import {
 import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
 import { showConfirm } from '../../../lib/dialogs';
 
+const mockOfferPush = jest.fn();
+jest.mock('../../../lib/push/PushProvider', () => ({
+  usePush: () => ({
+    offerPush: mockOfferPush,
+    permission: 'undetermined',
+    refreshPermission: jest.fn(),
+    requestPermission: jest.fn(),
+  }),
+}));
 jest.mock('../../../lib/registrations/MyRegistrationsContext', () => ({
   useMyRegistrations: () => ({ ribbonFor: () => null, refresh: jest.fn() }),
 }));
@@ -66,7 +75,7 @@ const baseProps = {
   userId: 'u1',
   personId: 'p1',
   name: 'Ana',
-  eventTitle: 'Taller infantil',
+  eventTitle: 'Taller infantil', villageSlug: 'villa', visibilityOrgId: null,
   telephoneRequired: false,
 };
 

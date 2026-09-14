@@ -71,7 +71,7 @@ it('offers the App Store to an iPhone visitor not using Safari', async () => {
 });
 
 // Safari draws Apple's own install bar from the `apple-itunes-app` meta tag in
-// app/+html.tsx. Rendering ours too would stack two bars saying the same thing.
+// public/index.html. Rendering ours too would stack two bars saying the same thing.
 it('stands down on iOS Safari, which draws Apple\'s own banner', async () => {
   setUserAgent(IPHONE_SAFARI);
   const { queryByTestId } = render(<SmartAppBanner />);

@@ -24,6 +24,7 @@ type PersonDoc = PersonData & { id: string };
 type MemberOrg = {
   id: string;
   name: string;
+  villageSlug: string;
   type: OrganizationType;
   imageURL: string | null;
   role: OrgMemberRole;
@@ -166,6 +167,7 @@ export function useProfileData(
             .map((o) => ({
               id: o.id,
               name: o.name,
+              villageSlug: o.villageSlug,
               type: o.type,
               imageURL: o.images[0] ?? null,
               role: roleByOrgId.get(o.id) ?? 'member',

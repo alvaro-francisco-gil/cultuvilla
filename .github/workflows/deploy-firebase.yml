@@ -184,14 +184,17 @@ jobs:
       - name: Build web bundle
         run: |
           node apps/mobile/scripts/copy-well-known.mjs ${{ inputs.firebase_alias }}
+          node apps/mobile/scripts/write-robots.mjs ${{ inputs.firebase_alias }}
           pnpm app:web:build
 
       # Reject the deploy if a native-only module leaked into the web bundle
-      # (calls TurboModuleRegistry.getEnforcing -> crashes the app on load).
+      # (calls TurboModuleRegistry.getEnforcing -> crashes the app on load),
+      # if the document head lost lang="es" / the App Store tag, or if this
+      # env's robots.txt would let a staging site be indexed (--env).
       # Runs before hosting deploy so a broken bundle never reaches Firebase.
       # See .agents/skills/mobile-web-compat/SKILL.md.
       - name: Check web export
-        run: pnpm app:check-web-export
+        run: pnpm app:check-web-export --env=${{ inputs.firebase_alias }}
 
       - name: Deploy Hosting
         run: firebase deploy --only hosting --project ${{ inputs.firebase_alias }} --non-interactive

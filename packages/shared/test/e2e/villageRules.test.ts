@@ -51,6 +51,46 @@ describe('firestore.rules — /municipalities/{municipalityId}', () => {
     );
   });
 
+  // community.fiestas rides the existing community allow-update: affectedKeys()
+  // only reports the top-level `community` key, and fiestas is not on the
+  // diff-lock list. Pinned so a future tightening of that list cannot silently
+  // take the admin's ability to declare the village's fiestas away.
+  it('village admin can declare community.fiestas', async () => {
+    await seed(getEnv(), async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'municipalities/m1'), {
+        name: 'Matabuena',
+        communityActive: true,
+        community: { description: 'old', fiestas: [] },
+      });
+      await setDoc(doc(ctx.firestore(), 'municipalities/m1/members/alice'), { role: 'admin' });
+    });
+
+    const alice = asUser(getEnv(), 'alice');
+    await assertSucceeds(
+      updateDoc(doc(alice, 'municipalities/m1'), {
+        'community.fiestas': [
+          { id: 'agosto', name: 'Fiestas de agosto', anchor: { month: 8, day: 23, days: 6 }, years: {} },
+        ],
+      }),
+    );
+  });
+
+  it('a plain member cannot declare community.fiestas', async () => {
+    await seed(getEnv(), async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'municipalities/m1'), {
+        name: 'Matabuena',
+        communityActive: true,
+        community: { description: 'old', fiestas: [] },
+      });
+      await setDoc(doc(ctx.firestore(), 'municipalities/m1/members/bob'), { role: 'user' });
+    });
+
+    const bob = asUser(getEnv(), 'bob');
+    await assertFails(
+      updateDoc(doc(bob, 'municipalities/m1'), { 'community.fiestas': [] }),
+    );
+  });
+
   it('non-member cannot update a municipality', async () => {
     await seed(getEnv(), async (ctx) => {
       await setDoc(doc(ctx.firestore(), 'municipalities/m1'), { name: 'Salamanca' });

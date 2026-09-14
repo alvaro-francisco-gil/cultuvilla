@@ -148,8 +148,8 @@ without joining the persons collection.
 
 ### `commentCount` ← `comments/`
 
-Every entity kind (event, organization, festivalPoster, place, barrio, news)
-carries a running comment count on its own doc, so cards and detail screens
+Every comment-capable kind (event, organization, festivalPoster, place, barrio,
+news, vocabularyTerm, historyEntry) carries a running comment count on its own doc, so cards and detail screens
 can show it without a `getCountFromServer` per entity per render.
 
 - **Source of truth:** the generic top-level `comments/` collection, each doc
@@ -158,7 +158,7 @@ can show it without a `getCountFromServer` per entity per render.
 - **Trigger:** [functions/src/interaction/syncEntityInteractionCounts.ts](../../functions/src/interaction/syncEntityInteractionCounts.ts)
   — `syncEntityCommentCount`, an `onDocumentWritten` on `comments/`. Routes by
   `entityKind` to the right parent doc: top-level for `event` /
-  `organization` / `festivalPoster` / `news`, nested
+  `organization` / `festivalPoster` / `news` / `vocabularyTerm` / `historyEntry`, nested
   (`municipalities/{municipalityId}/places/{id}` or `.../barrios/{id}`) for
   `place` / `barrio`. The count is incremented/decremented with
   `FieldValue.increment`, not recomputed from a full scan — this is a
@@ -173,6 +173,58 @@ can show it without a `getCountFromServer` per entity per render.
   `deleteNewsPost`) still fires the trigger per deleted doc, so counts on a
   *surviving* parent stay correct. A parent deleted out from under a
   still-in-flight trigger is a no-op (`isNotFound` guard), not a retry loop.
+
+### `vocabularyWords/` ← `vocabularyTerms/`
+
+One row per *word*, across every village that records it — what the "añadir
+palabra" search reads so that a villager sees "esbardo · en 3 pueblos" while
+typing, instead of coining a second entry for a word the app already has.
+
+Unlike every other row here it projects whole documents, not a field: the index
+row **is** the word.
+
+- **Source of truth:** `vocabularyTerms/` — each village's own entry. A word
+  exists precisely because some village wrote it down, which is why the index is
+  derived rather than authored: when the last village drops the word, the row
+  goes with it, and no client can invent a word no pueblo records.
+- **Trigger:** [functions/src/vocabulary/syncVocabularyWordIndex.ts](../../functions/src/vocabulary/syncVocabularyWordIndex.ts)
+  — `syncVocabularyWordIndex`, an `onDocumentWritten` on `vocabularyTerms/`. It
+  **recounts** the word's active entries rather than incrementing a counter: a
+  term's status flips under moderation, and the entry that created the word can
+  be the one deleted. The display spelling and kind come from the village that
+  recorded it first, so a later pueblo cannot rename a shared word.
+- **Only `palabra` and `dicho` are indexed.** A `mote` names one village's
+  family and a `toponimo` one village's field — "El Cerro" in two pueblos is two
+  different places, so merging those would be a factual error, not
+  de-duplication. See `SHARED_VOCABULARY_KINDS`.
+- **Rules:** `vocabularyWords` is public-read and `allow write: if false`. A
+  client write would let one villager restyle a word's spelling for every pueblo.
+- **Backfill:** none — the index shipped before any village had recorded a word.
+  If it ever drifts, it rebuilds by re-writing the `vocabularyTerms` entries.
+- **Delete behavior:** the last active entry going away deletes the word row. A
+  stale row would offer villagers a word no pueblo actually has.
+
+### `definitionCount` ← `vocabularyDefinitions/`
+
+Every vocabulary term carries a running count of the active definitions
+pointing at it. Unlike the other counters here it is **not** cosmetic:
+`firestore.rules` reads it to decide whether the author of a headword may still
+withdraw it, so an incorrect value is a security fact, not a display glitch.
+
+- **Source of truth:** the top-level `vocabularyDefinitions/` collection,
+  filtered to `termId == {termId}` and `status == 'active'`.
+- **Trigger:** [functions/src/vocabulary/syncVocabularyDefinitionCount.ts](../../functions/src/vocabulary/syncVocabularyDefinitionCount.ts)
+  — `syncVocabularyDefinitionCount`, an `onDocumentWritten` on
+  `vocabularyDefinitions/`. Hiding and unhiding count as leaving and rejoining:
+  a hidden meaning is not visible to the pueblo, so it must not hold an
+  otherwise-empty headword hostage.
+- **Rules:** `vocabularyTerms` is `allow update: if false` for clients
+  outright, so the trigger (admin SDK) is the only writer. The create rule
+  requires the field present and zeroed.
+- **Backfill:** none — the collection is new, so there is no pre-existing data
+  to reconcile.
+- **Delete behavior:** a term deleted out from under an in-flight trigger is a
+  no-op (`isNotFound` guard), not a retry loop.
 
 ### `replyCount` ← `comments/`
 
@@ -229,6 +281,15 @@ object with the original's basename plus `_card.webp` / `_thumb.webp`.
   is copied when it has one (a token bypasses `storage.rules`, so an auth-gated
   person photo needs it), and omitted when the original is served publicly
   through the rules.
+- **Delete path:** [functions/src/images/cleanupRemovedImages.ts](../../functions/src/images/cleanupRemovedImages.ts)
+  — one `onDocumentWritten` trigger per entity collection (news, events, orgs,
+  places, barrios, festival posters, history entries) diffs the image
+  references before/after the write and deletes each one no longer referenced,
+  original plus both renditions. It only ever deletes objects under the
+  entity's **own** upload prefix, so a copied URL or another entity's image is
+  never touched. Person/user photos and escudos are out of scope: they live
+  under the uploader's prefix, not the doc's, so ownership can't be proven from
+  the path (`deleteAccount` removes them by prefix).
 - **Backfill:** [scripts/backfill-image-variants.mjs](../../scripts/backfill-image-variants.mjs)
   for images uploaded before the trigger existed, and
   [scripts/backfill-image-cache-control.mjs](../../scripts/backfill-image-cache-control.mjs)
@@ -283,6 +344,30 @@ with no extra reads and no visible reshuffle.
   and [scripts/backfill-barrio-resident-count.mjs](../../scripts/backfill-barrio-resident-count.mjs)
   recompute the true count from the source and write it; they double as repair
   tools if a trigger ever drifts.
+
+### `villageSlug` ← `municipalities/{id}.slug`
+
+Every URL starts with its pueblo (`/matabuena/evento/…`), and a feed card has to
+build its href synchronously, from the doc it already holds. So the top-level
+entities — `events`, `news`, `organizations`, `festivalPosters`,
+`historyEntries` — carry a copy of their municipality's `slug`. See
+[docs/decisions/spanish-village-urls.md](../decisions/spanish-village-urls.md).
+
+- **No sync trigger, on purpose.** A slug is a permalink: it is assigned once
+  and never changes, not even on a municipality rename. There is nothing to
+  propagate, so there is no trigger to keep in step.
+- **Written at create, by the service.** `createEvent`, `createNewsPost`,
+  `requestOrganization`, `createFestivalPoster` and `createHistoryEntry` look the
+  slug up (`getVillageSlug`, cached per session) and stamp it; callers never
+  pass it. The `requestAyuntamiento` callable does the same server-side.
+- **Rules:** `villageSlug` must be a string on create and is immutable on
+  update. It is not cross-checked against the municipality — a wrong value is
+  cosmetic (screens load by id, and the share-preview server 301s to the
+  canonical path), and checking would add a `get()` to every create.
+- **Backfill:** [scripts/backfill-municipality-slug.mjs](../../scripts/backfill-municipality-slug.mjs)
+  assigns the slugs, then [scripts/backfill-village-slug-denorm.mjs](../../scripts/backfill-village-slug-denorm.mjs)
+  (which `dependsOn` it) copies them onto the entities. Both are registered,
+  `pre-deploy`, and `autoApply` on every env.
 
 ## Adding a new denormalized field — checklist
 

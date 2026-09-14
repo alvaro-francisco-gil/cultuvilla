@@ -79,6 +79,7 @@ async function seedEvent(signupGroupSize = 1) {
       updatedAt: now,
       municipalityId: MUNICIPALITY_ID,
       villageName: 'Villarriba',
+      villageSlug: 'villarriba',
       villageCoverImage: null,
       villageCoordinates: null,
       confirmedCount: 0,

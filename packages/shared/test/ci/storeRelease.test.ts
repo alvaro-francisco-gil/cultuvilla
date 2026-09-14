@@ -42,7 +42,7 @@ interface AssetLinks {
 }
 
 interface AppleAppSiteAssociation {
-  applinks: { details: { appID: string }[] };
+  applinks: { details: { appID: string; paths: string[] }[] };
 }
 
 const repoRoot = resolve(__dirname, '../../../..');
@@ -204,6 +204,23 @@ describe('prod deep-link association files', () => {
     expect(association.applinks.details[0].appID).toMatch(
       new RegExp(`^[A-Z0-9]{10}\\.${PROD_PACKAGE.replace(/\./g, '\\.')}$`),
     );
+  });
+
+  it('claims only paths the App Store build can open', () => {
+    // The association file applies to EVERY installed version of the app, and
+    // the live App Store build (iOS 1.0.0) predates both the village-first URLs
+    // and expo-updates, so no OTA can teach it the new routes. Claiming `*` would
+    // open `/<pueblo>/evento/…` inside an app that has no such screen — a dead
+    // end in place of a web page that works. Until an iOS build carrying the
+    // village-first routes is live on the App Store, prod claims only the legacy
+    // paths 1.0.0 routes: links shared before the change still open the app, and
+    // every new URL opens on the web. Widen to the dev/beta claim then.
+    expect(association.applinks.details[0].paths).toEqual([
+      '/event/*',
+      '/news/*',
+      '/village/*',
+      '/o/*',
+    ]);
   });
 });
 

@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import { NotificationRow } from './NotificationRow';
 
 describe('<NotificationRow>', () => {
@@ -37,5 +37,21 @@ describe('<NotificationRow>', () => {
       />
     );
     expect(queryByTestId('notification-unread-dot')).toBeNull();
+  });
+
+  it('opens its destination when tapped', () => {
+    const onPress = jest.fn();
+    const { getByRole } = render(
+      <NotificationRow title="Nuevo evento" body="«Verbena»" read={false} createdAt={new Date()} onPress={onPress} />
+    );
+    fireEvent.press(getByRole('button'));
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it('is not a button when there is nothing to open', () => {
+    const { queryByRole } = render(
+      <NotificationRow title="Solicitud rechazada" body="x" read={true} createdAt={new Date()} />
+    );
+    expect(queryByRole('button')).toBeNull();
   });
 });

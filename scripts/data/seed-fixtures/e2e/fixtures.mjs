@@ -68,6 +68,7 @@ export const users = {
 
 export const village = {
   docId: 'e2e-village-altozano',
+  slug: 'altozano-de-prueba',
   name: 'Altozano de Prueba',
   province: 'Valencia',
   comunidadAutonoma: 'Comunitat Valenciana',
@@ -78,6 +79,7 @@ export const village = {
 
 export const joinVillage = {
   docId: 'e2e-village-join',
+  slug: 'pueblo-de-union-e2e',
   name: 'Pueblo de Unión E2E',
   province: 'Valencia',
   comunidadAutonoma: 'Comunitat Valenciana',
@@ -93,6 +95,7 @@ export const joinVillage = {
 // `village` so approving it never mutates state other flows rely on.
 export const organizerlessVillage = {
   docId: 'e2e-village-solana',
+  slug: 'solana-de-prueba',
   name: 'Solana de Prueba',
   province: 'Valencia',
   comunidadAutonoma: 'Comunitat Valenciana',

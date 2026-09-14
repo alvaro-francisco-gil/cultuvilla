@@ -78,7 +78,19 @@ export async function resolveVillage(dataset, v) {
           `run \`DATASET=${DATASET} pnpm seed:villages\` to activate it.`,
       );
     }
-    return { vDocId: doc.id, vKey: v.id, adminUid: await uidForEmail(v.organizerEmail) };
+    return {
+      vDocId: doc.id,
+      vKey: v.id,
+      villageSlug: doc.get('slug'),
+      adminUid: await uidForEmail(v.organizerEmail),
+    };
   }
-  return { vDocId: villageDocId(v.id), vKey: v.id, adminUid: await uidForRef(dataset, v.adminUserRef) };
+  const vDocId = villageDocId(v.id);
+  const seeded = await db.collection('municipalities').doc(vDocId).get();
+  return {
+    vDocId,
+    vKey: v.id,
+    villageSlug: seeded.get('slug'),
+    adminUid: await uidForRef(dataset, v.adminUserRef),
+  };
 }

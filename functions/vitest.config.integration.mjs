@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import { binaryFonts } from './vitest.fonts.mjs';
 
 const RETRY = Number.parseInt(process.env.VITEST_RETRY_COUNT ?? '0', 10);
 
@@ -6,6 +7,7 @@ const RETRY = Number.parseInt(process.env.VITEST_RETRY_COUNT ?? '0', 10);
 // against the Firebase emulator suite. Run via `pnpm test:functions` from
 // the repo root, which boots the emulators first.
 export default defineConfig({
+  plugins: [binaryFonts],
   test: {
     globals: true,
     environment: 'node',

@@ -4,6 +4,15 @@ import { joinVillage } from '@cultuvilla/shared/services/villageMemberService';
 
 const mockPush = jest.fn();
 const mockRefreshProfile = jest.fn().mockResolvedValue(undefined);
+const mockOfferPush = jest.fn();
+jest.mock('../../../lib/push/PushProvider', () => ({
+  usePush: () => ({
+    offerPush: mockOfferPush,
+    permission: 'undetermined',
+    refreshPermission: jest.fn(),
+    requestPermission: jest.fn(),
+  }),
+}));
 jest.mock('@cultuvilla/shared', () => ({
   ...jest.requireActual('@cultuvilla/shared'),
   observability: { trackEvent: jest.fn() },
@@ -30,6 +39,7 @@ const mockMuni = (
 ) => ({
   id,
   name,
+  slug: name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, '-'),
   province: 'Segovia',
   communityActive,
   localityNames,
@@ -84,21 +94,14 @@ it('opens an active village detail on tap', async () => {
   const { getAllByText } = render(<VillageDiscovery />);
   await waitFor(() => expect(getAllByText('Anaya').length).toBeGreaterThan(0), SEARCH_WAIT);
   fireEvent.press(getAllByText('Anaya')[0]!);
-  expect(mockPush).toHaveBeenCalledWith(
-    expect.objectContaining({ pathname: '/village/[villageId]', params: { villageId: 'm1' } }),
-  );
+  expect(mockPush).toHaveBeenCalledWith('/anaya');
 });
 
 it('routes a dormant municipality to the start flow', async () => {
   const { getByText } = render(<VillageDiscovery />);
   await waitFor(() => expect(getByText('Bernuy')).toBeTruthy(), SEARCH_WAIT);
   fireEvent.press(getByText('Bernuy'));
-  expect(mockPush).toHaveBeenCalledWith(
-    expect.objectContaining({
-      pathname: '/discover/start/[municipalityId]',
-      params: { municipalityId: 'm2' },
-    }),
-  );
+  expect(mockPush).toHaveBeenCalledWith('/descubrir/empezar/m2');
 });
 
 it('fires VILLAGE_JOIN_SUCCESS after confirming a join', async () => {
@@ -108,6 +111,8 @@ it('fires VILLAGE_JOIN_SUCCESS after confirming a join', async () => {
   fireEvent.press(getByText('village.joinConfirm.confirm'));
   await waitFor(() => expect(joinVillage).toHaveBeenCalledWith('m1', 'u1', null));
   expect(observability.trackEvent).toHaveBeenCalledWith('village.join.success', { villageId: 'm1' });
+  // Joining earns the push soft ask (the policy decides whether it shows).
+  expect(mockOfferPush).toHaveBeenCalledWith('village_join', { villageName: 'Anaya' });
 });
 
 describe('search matching', () => {

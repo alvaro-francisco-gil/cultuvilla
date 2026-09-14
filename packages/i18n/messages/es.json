@@ -14,7 +14,8 @@
       "person": "Eliminando persona…",
       "place": "Eliminando lugar…",
       "barrio": "Eliminando barrio…",
-      "festivalPoster": "Eliminando cartel…"
+      "festivalPoster": "Eliminando cartel…",
+      "historyEntry": "Eliminando acontecimiento…"
     },
     "edit": "Editar",
     "approve": "Aprobar",
@@ -33,7 +34,10 @@
       "hint": "Pellizca para acercar, desliza hacia abajo para cerrar",
       "close": "Cerrar la imagen"
     },
-    "stepper": { "back": "Anterior", "next": "Siguiente" },
+    "stepper": {
+      "back": "Anterior",
+      "next": "Siguiente"
+    },
     "close": "Cerrar",
     "moreInfo": "Más información",
     "photo": "Foto",
@@ -264,6 +268,90 @@
     "profile": "Perfil"
   },
   "village": {
+    "notFound": "No encontramos este pueblo. Puede que el enlace esté mal escrito.",
+    "vocabulary": {
+      "title": "Vocabulario",
+      "wordOfTheDay": "Palabra del día",
+      "seeAll": "Ver las {count}",
+      "more": "Más:",
+      "search": "Buscar una palabra",
+      "empty": "Todavía no hay ninguna palabra recogida. Añade la primera.",
+      "noMatches": "Ninguna palabra coincide con esa búsqueda.",
+      "notFound": "Esta palabra ya no existe.",
+      "add": "Añadir palabra",
+      "addDefinition": "Añadir otro significado",
+      "addingMeaningTo": "Nuevo significado para",
+      "alreadyRecorded": "Ya recogida en otros pueblos",
+      "inVillages": "en {count} pueblos",
+      "joiningWord": "Esta palabra ya está recogida en {count} pueblos. Añádela al tuyo con tu significado.",
+      "alsoSaidIn": "También se dice en",
+      "stepWord": "La palabra",
+      "stepMeaning": "El significado",
+      "stepDigitization": "Digitalización",
+      "term": "Palabra o expresión",
+      "termPlaceholder": "p. ej. esbardo",
+      "kindLabel": "Tipo",
+      "kind": {
+        "palabra": "Palabra",
+        "dicho": "Dicho",
+        "mote": "Mote",
+        "toponimo": "Topónimo"
+      },
+      "definition": "Qué significa",
+      "definitionPlaceholder": "Explícalo con tus palabras",
+      "definitions": "{count} significados",
+      "definitionCount": "{count} significados",
+      "example": "Ejemplo de uso",
+      "examplePlaceholder": "Úsala en una frase, como se dice aquí",
+      "castellano": "En castellano",
+      "castellanoPlaceholder": "La palabra equivalente, si la hay",
+      "save": "Guardar"
+    },
+    "history": {
+      "title": "Historia",
+      "empty": "Todavía no hay acontecimientos en la historia de este pueblo.",
+      "emptyMember": "Sé el primero en añadir uno: una fundación, una riada, la llegada de la luz…",
+      "add": "Añadir acontecimiento",
+      "newTitle": "Nuevo acontecimiento",
+      "editTitle": "Editar acontecimiento",
+      "sources": "Fuentes",
+      "form": {
+        "images": "Imágenes",
+        "imagesHint": "Hasta 3. La primera es la portada.",
+        "addImage": "Añadir imagen",
+        "removeImage": "Quitar imagen",
+        "caption": "Pie de foto {n}",
+        "captionPlaceholder": "Ej.: Archivo municipal, 1920",
+        "title": "Título",
+        "titlePlaceholder": "Ej.: Se construye la iglesia",
+        "date": "Fecha",
+        "from": "Desde",
+        "to": "Hasta",
+        "dateHint": "Deja el mes y el día vacíos si solo sabes el año.",
+        "isRange": "Es un periodo (desde – hasta)",
+        "approximate": "Fecha aproximada",
+        "year": "Año",
+        "bc": "a. C.",
+        "month": "Mes",
+        "day": "Día",
+        "body": "Relato",
+        "bodyPlaceholder": "Cuenta qué pasó, quién lo vivió, qué quedó…",
+        "sources": "Fuentes",
+        "sourcesPlaceholder": "Libros, archivos o personas que lo cuentan",
+        "save": "Guardar",
+        "errors": {
+          "titleRequired": "Pon un título.",
+          "yearRequired": "Indica el año.",
+          "yearZero": "El año 0 no existe: del 1 a. C. se pasa al 1.",
+          "dayInvalid": "Ese día no existe en ese mes.",
+          "endYearRequired": "Indica el año en que termina.",
+          "endYearZero": "El año 0 no existe: del 1 a. C. se pasa al 1.",
+          "endDayInvalid": "El día final no existe en ese mes.",
+          "endBeforeStart": "El final tiene que ser posterior al inicio.",
+          "saveFailed": "No se ha podido guardar. Inténtalo de nuevo."
+        }
+      }
+    },
     "title": "Pueblos",
     "proposals": {
       "pending": "Pendiente",
@@ -279,7 +367,12 @@
       "confirm": "Unirme",
       "cancel": "Cancelar"
     },
-    "share": { "title": "Compartir pueblo" },
+    "share": {
+      "title": "Compartir pueblo"
+    },
+    "home": {
+      "seeAll": "Ver todo"
+    },
     "addContent": {
       "button": "Añadir contenido",
       "title": "¿Qué quieres añadir?",
@@ -291,11 +384,17 @@
         "pena": "Peña",
         "barrio": "Barrio",
         "lugar": "Lugar",
-        "cartel": "Cartel de fiestas"
+        "cartel": "Cartel de fiestas",
+        "palabra": "Palabra",
+        "acontecimiento": "Acontecimiento"
       }
     },
-    "edit": { "title": "Editar pueblo" },
-    "villagers": { "title": "Personas" },
+    "edit": {
+      "title": "Editar pueblo"
+    },
+    "villagers": {
+      "title": "Personas"
+    },
     "membersList": {
       "colName": "Nombre",
       "colCenso": "Censo",
@@ -335,9 +434,9 @@
       "title": "Administración del pueblo",
       "hub": {
         "barrios": "Barrios",
-    "localidades": "Localidades",
-    "aldeas": "Aldeas",
-    "parroquias": "Parroquias",
+        "localidades": "Localidades",
+        "aldeas": "Aldeas",
+        "parroquias": "Parroquias",
         "places": "Lugares",
         "organizations": "Grupos",
         "invites": "Invitaciones",
@@ -364,7 +463,7 @@
         "addImage": "Añadir imagen",
         "removeImage": "Quitar imagen",
         "location": "Ubicación",
-      "kindLabel": "Tipo",
+        "kindLabel": "Tipo",
         "kind": {
           "cemetery": "Cementerio",
           "church": "Iglesia",
@@ -480,7 +579,69 @@
         "addImage": "Añadir imagen",
         "removeImage": "Quitar imagen"
       },
-      "viewer": { "close": "Cerrar" }
+      "viewer": {
+        "close": "Cerrar"
+      }
+    },
+    "fiestas": {
+      "title": "Fiestas del pueblo",
+      "help": "Pon el nombre de cada fiesta y el mes en que se celebra. Puedes añadir varias: unas en julio y otras en agosto, por ejemplo. Las fechas exactas de cada año se eligen al crear el resumen de fiestas.",
+      "namePlaceholder": "Nombre (p. ej. Fiestas de agosto)",
+      "add": "Añadir",
+      "remove": "Quitar estas fiestas",
+      "monthLabel": "Mes"
+    },
+    "wrapped": {
+      "entry": "Resumen de fiestas",
+      "title": "Resumen de Fiestas {year}",
+      "formHelp": "Elige las fechas en que se celebró cada fiesta este año. Aparecen en la portada del resumen.",
+      "blockDates": "Fechas de este año",
+      "blockSkipped": "No se incluye en el resumen de este año.",
+      "range": "Periodo del resumen",
+      "rangePlaceholder": "Elige primero las fechas de las fiestas",
+      "rangeHelp": "Se cuentan los eventos, las inscripciones y los artículos de este periodo. Va de la primera fiesta a la última; puedes ampliarlo, por ejemplo para incluir lo que se publicó la semana antes.",
+      "rangeCustomHelp": "Periodo elegido a mano: se cuentan los eventos, las inscripciones y los artículos de estas fechas.",
+      "rangeReset": "Volver a ajustar a las fiestas",
+      "submit": "Generar resumen",
+      "submitRegenerate": "Regenerar resumen",
+      "building": "Preparando las imágenes… puede tardar un minuto.",
+      "regenerate": "Cambiar fechas y regenerar",
+      "publish": "Publicar",
+      "discard": "Descartar",
+      "discardTitle": "¿Descartar el resumen?",
+      "discardMessage": "No se publicará. Podrás generarlo de nuevo cuando quieras.",
+      "noFiestas": "Para crear el resumen, primero añade las fiestas del pueblo con su nombre y su mes.",
+      "goFiestas": "Añadir fiestas",
+      "draftAutoPublish": "Nadie lo ha visto aún fuera de los administradores. Si no lo publicas ni lo descartas, se publicará solo en tres días.",
+      "draftHeldBack": "Tiene poca actividad, así que no se publicará solo: decide tú si merece la pena.",
+      "status": {
+        "draft": "Borrador",
+        "published": "Publicado",
+        "discarded": "Descartado"
+      },
+      "statusHelp": {
+        "published": "Cualquiera con el enlace puede verlo. Si lo regeneras, sigue publicado con las nuevas imágenes.",
+        "discarded": "No se ha publicado. Si lo regeneras, vuelve a ser un borrador."
+      },
+      "problem": {
+        "no-blocks": "Incluye al menos una fiesta.",
+        "malformed": "Revisa las fechas.",
+        "unknown-block": "Una de esas fiestas ya no está en el pueblo.",
+        "duplicate-block": "Cada fiesta solo puede aparecer una vez.",
+        "outside-year": "Todas las fechas tienen que ser de este año.",
+        "ends-before-start": "Un rango de fechas termina antes de empezar.",
+        "range-in-future": "El periodo no puede terminar después de hoy.",
+        "range-misses-block": "El periodo tiene que incluir las fechas de todas las fiestas."
+      },
+      "card": {
+        "cover": "Portada",
+        "stats": "En números",
+        "events": "Eventos",
+        "news": "Artículos",
+        "people": "Todo el pueblo",
+        "organizers": "Quién lo hizo posible",
+        "posters": "Carteles"
+      }
     }
   },
   "villages": {
@@ -906,7 +1067,62 @@
   "notifications": {
     "title": "Notificaciones",
     "markAllRead": "Marcar todo como leído",
-    "noNotifications": "No tienes notificaciones"
+    "noNotifications": "No tienes notificaciones",
+    "channels": {
+      "mine": "Mis inscripciones",
+      "village": "Novedades del pueblo",
+      "social": "Actividad y solicitudes"
+    },
+    "softAsk": {
+      "eventSignup": {
+        "title": "¿Te avisamos si cambia algo?",
+        "body": "Si se libera una plaza, cambia la hora o se cancela el evento, te llega al móvil al momento."
+      },
+      "villageJoin": {
+        "title": "Entérate de lo que pasa en {village}",
+        "body": "Eventos, noticias, lugares y peñas nuevas del pueblo, en tu móvil. Nunca de madrugada."
+      },
+      "accept": "Sí, avisadme",
+      "decline": "Ahora no",
+      "close": "Cerrar"
+    },
+    "settings": {
+      "label": "Notificaciones",
+      "title": "Notificaciones",
+      "intro": "Elige qué te llega al móvil. En el Buzón siempre verás todo.",
+      "categories": {
+        "mine": {
+          "label": "Mis inscripciones",
+          "hint": "Plazas liberadas, cambios y cancelaciones de los eventos a los que vas, y un recordatorio el día antes."
+        },
+        "village": {
+          "label": "Novedades del pueblo",
+          "hint": "Cuando se publica un evento, una noticia, un lugar, un barrio, una peña, un cartel o una entrada de historia en tus pueblos."
+        },
+        "social": {
+          "label": "Actividad y solicitudes",
+          "hint": "Respuestas a tus comentarios y el resultado de tus solicitudes."
+        }
+      },
+      "quietHours": {
+        "label": "No molestar de noche",
+        "hint": "Lo que llegue entre las 22:00 y las 8:00 te llega por la mañana. Lo de tus inscripciones llega siempre."
+      },
+      "permission": {
+        "undetermined": {
+          "title": "Aún no recibes avisos en el móvil",
+          "body": "Actívalos para que no se te pase nada.",
+          "action": "Activar notificaciones"
+        },
+        "denied": {
+          "title": "Las notificaciones están desactivadas",
+          "body": "Actívalas en los ajustes del móvil para recibir avisos.",
+          "action": "Abrir ajustes"
+        },
+        "unsupported": "Las notificaciones al móvil solo están disponibles en la app."
+      },
+      "saveError": "No se han podido guardar los cambios."
+    }
   },
   "tabs": {
     "explora": "Explora",
@@ -1058,8 +1274,14 @@
       "block": {
         "addImage": "Añadir imagen",
         "removeImage": "Quitar imagen",
+        "removeSection": "Quitar título",
+        "section": "Título",
+        "subsection": "Subtítulo",
+        "sectionPlaceholder": "Título",
+        "subsectionPlaceholder": "Subtítulo",
         "textPlaceholder": "Escribe aquí… usa @ para mencionar peñas, personas, eventos, lugares, pueblos o artículos",
-        "captionPlaceholder": "Pie de foto (opcional)"
+        "captionPlaceholder": "Pie de foto (opcional)",
+        "paragraph": "Texto"
       },
       "mentionType": {
         "organization": "Grupo",
@@ -1075,7 +1297,9 @@
         "italic": "Cursiva",
         "underline": "Subrayado",
         "strikethrough": "Tachado",
-        "link": "Enlace"
+        "link": "Enlace",
+        "section": "Título",
+        "subsection": "Subtítulo"
       }
     },
     "linkSheet": {
@@ -1131,15 +1355,31 @@
         "view": "Mira «{name}» en Cultuvilla: {url}",
         "invite": "Te he guardado una plaza en «{name}» en Cultuvilla: {url}"
       },
-      "news": { "view": "Mira «{name}» en Cultuvilla: {url}" },
-      "village": { "view": "Mira {name} en Cultuvilla: {url}" },
+      "news": {
+        "view": "Mira «{name}» en Cultuvilla: {url}"
+      },
+      "village": {
+        "view": "Mira {name} en Cultuvilla: {url}"
+      },
       "organization": {
         "view": "Mira {name} en Cultuvilla: {url}",
         "invite": "Te invito a unirte a {name} en Cultuvilla: {url}"
       },
-      "place": { "view": "Mira «{name}» en Cultuvilla: {url}" },
-      "barrio": { "view": "Mira {name} en Cultuvilla: {url}" },
-      "user": { "view": "Mira el perfil de {name} en Cultuvilla: {url}" }
+      "place": {
+        "view": "Mira «{name}» en Cultuvilla: {url}"
+      },
+      "barrio": {
+        "view": "Mira {name} en Cultuvilla: {url}"
+      },
+      "festivalPoster": {
+        "view": "Mira el cartel «{name}» en Cultuvilla: {url}"
+      },
+      "historyEntry": {
+        "view": "Mira «{name}» en Cultuvilla: {url}"
+      },
+      "user": {
+        "view": "Mira el perfil de {name} en Cultuvilla: {url}"
+      }
     },
     "shareViewLabel": "Compartir"
   },
@@ -1159,7 +1399,8 @@
     "title": "Ajustes",
     "section": {
       "account": "Cuenta",
-      "safety": "Seguridad"
+      "safety": "Seguridad",
+      "notifications": "Notificaciones"
     },
     "blocked": {
       "label": "Personas bloqueadas",
