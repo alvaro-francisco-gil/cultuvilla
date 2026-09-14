@@ -23,12 +23,13 @@ export function pickWordOfTheDay<T>(
   municipalityId: string,
   now: Date,
 ): { today: T; more: T[] } | null {
-  if (terms.length === 0) return null;
   const dayKey = `${String(now.getFullYear())}-${String(now.getMonth() + 1)}-${String(now.getDate())}`;
-  const index = hash(`${municipalityId}:${dayKey}`) % terms.length;
-  const more = Array.from(
-    { length: Math.min(MORE_COUNT, terms.length - 1) },
-    (_, i) => terms[(index + 1 + i) % terms.length],
-  );
-  return { today: terms[index], more };
+  const index = hash(`${municipalityId}:${dayKey}`) % Math.max(terms.length, 1);
+  // `find`/`slice` rather than indexing: the mobile app compiles this file with
+  // noUncheckedIndexedAccess and the shared package does not, so an index needs
+  // an assertion one side rejects as unnecessary and the other requires.
+  const today = terms.find((_, i) => i === index);
+  if (today === undefined) return null;
+  const more = [...terms.slice(index + 1), ...terms.slice(0, index)].slice(0, MORE_COUNT);
+  return { today, more };
 }
