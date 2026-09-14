@@ -3,6 +3,8 @@ import type { NewsTextStyle } from '@cultuvilla/shared/models/news/NewsPostDataM
 
 export type HeadingLevel = Exclude<NewsTextStyle, 'paragraph'>;
 
+export const HEADING_LEVELS: HeadingLevel[] = ['section', 'subsection'];
+
 /** How each heading level reads — shared by the editor and the reader so what
  *  the author types looks like what the village sees. */
 export const HEADING_PRESENTATION: Record<HeadingLevel, { variant: TypographyVariant; className: string }> = {

@@ -91,33 +91,77 @@ describe('BlockEditor', () => {
 describe('BlockEditor sections', () => {
   const para = (id: string, text: string): EditorTextBlock => ({ id, type: 'text', text, mentions: [], links: [], marks: [] });
 
-  it('splits the focused paragraph at the caret around a new section heading', () => {
+  it('turns the line holding the selection into a title from the format toolbar', () => {
     const onChange = jest.fn();
+    const text = 'intro\nPrograma de fiestas\nmisa a las 12';
     const { getAllByPlaceholderText, getByLabelText } = render(
       <BlockEditor blocks={[
-        { ...para('t1', 'hola mundo'), marks: [{ type: 'bold', offset: 5, length: 5 }] },
+        { ...para('t1', text), marks: [{ type: 'bold', offset: 0, length: 5 }, { type: 'italic', offset: 31, length: 5 }] },
       ]} onChange={onChange} candidates={[]} />,
     );
     const input = getAllByPlaceholderText('news.compose.block.textPlaceholder')[0]!;
-    fireEvent(input, 'focus');
-    fireEvent(input, 'selectionChange', { nativeEvent: { selection: { start: 5, end: 5 } } });
-    fireEvent.press(getByLabelText('news.compose.block.addSection'));
+    // Select "fiestas" — part of the middle line.
+    fireEvent(input, 'selectionChange', { nativeEvent: { selection: { start: 12, end: 19 } } });
+    fireEvent.press(getByLabelText('news.compose.format.section'));
 
     const next: EditorBlock[] = onChange.mock.calls.at(-1)![0];
     expect(next.map((b) => b.type)).toEqual(['text', 'heading', 'text']);
-    expect(next[0]).toMatchObject({ id: 't1', text: 'hola ', marks: [] });
-    expect(next[1]).toMatchObject({ text: '', level: 'section' });
-    expect(next[2]).toMatchObject({ text: 'mundo', marks: [{ type: 'bold', offset: 0, length: 5 }] });
+    expect(next[0]).toMatchObject({ id: 't1', text: 'intro', marks: [{ type: 'bold', offset: 0, length: 5 }] });
+    expect(next[1]).toMatchObject({ type: 'heading', text: 'Programa de fiestas', level: 'section' });
+    // "a las" italic at 31 in the original → 5 in the trailing paragraph.
+    expect(next[2]).toMatchObject({ text: 'misa a las 12', marks: [{ type: 'italic', offset: 5, length: 5 }] });
   });
 
-  it('appends a heading and a paragraph to write in when no paragraph is focused', () => {
+  it('keeps a text box after a title made from the last line', () => {
     const onChange = jest.fn();
-    const { getByLabelText } = render(
-      <BlockEditor blocks={[para('t1', 'hola')]} onChange={onChange} candidates={[]} />,
+    const { getAllByPlaceholderText, getByLabelText } = render(
+      <BlockEditor blocks={[para('t1', 'Programa')]} onChange={onChange} candidates={[]} />,
     );
-    fireEvent.press(getByLabelText('news.compose.block.addSection'));
+    const input = getAllByPlaceholderText('news.compose.block.textPlaceholder')[0]!;
+    fireEvent(input, 'selectionChange', { nativeEvent: { selection: { start: 0, end: 3 } } });
+    fireEvent.press(getByLabelText('news.compose.format.subsection'));
+
     const next: EditorBlock[] = onChange.mock.calls.at(-1)![0];
-    expect(next.map((b) => b.type)).toEqual(['text', 'heading', 'text']);
+    expect(next.map((b) => b.type)).toEqual(['heading', 'text']);
+    expect(next[0]).toMatchObject({ text: 'Programa', level: 'subsection' });
+    expect(next[1]).toMatchObject({ text: '' });
+  });
+
+  it('offers no title buttons on image captions', () => {
+    const { getByPlaceholderText, queryByLabelText } = render(
+      <BlockEditor blocks={[{ ...imageBlock('i1'), caption: 'Foto' }]} onChange={jest.fn()} candidates={[]} />,
+    );
+    fireEvent(getByPlaceholderText('news.compose.block.captionPlaceholder'), 'selectionChange', {
+      nativeEvent: { selection: { start: 0, end: 4 } },
+    });
+    expect(queryByLabelText('news.compose.format.bold')).not.toBeNull();
+    expect(queryByLabelText('news.compose.format.section')).toBeNull();
+  });
+
+  it('turns a title back into a line of the surrounding paragraphs', () => {
+    const onChange = jest.fn();
+    const blocks: EditorBlock[] = [
+      para('t1', 'intro'),
+      { id: 'h1', type: 'heading', text: 'Programa', level: 'section' },
+      { ...para('t2', 'misa'), marks: [{ type: 'bold', offset: 0, length: 4 }] },
+    ];
+    const { getByLabelText } = render(<BlockEditor blocks={blocks} onChange={onChange} candidates={[]} />);
+    fireEvent.press(getByLabelText('news.compose.block.paragraph'));
+
+    const next: EditorBlock[] = onChange.mock.calls.at(-1)![0];
+    expect(next).toHaveLength(1);
+    expect(next[0]).toMatchObject({
+      id: 't1',
+      type: 'text',
+      text: 'intro\nPrograma\nmisa',
+      marks: [{ type: 'bold', offset: 15, length: 4 }],
+    });
+  });
+
+  it('no longer shows a separate add-section button', () => {
+    const { queryByLabelText } = render(<BlockEditor blocks={[para('t1', '')]} onChange={jest.fn()} candidates={[]} />);
+    expect(queryByLabelText('news.compose.block.addSection')).toBeNull();
+    expect(queryByLabelText('news.compose.block.addImage')).not.toBeNull();
   });
 
   it('switches a heading between section and subsection', () => {

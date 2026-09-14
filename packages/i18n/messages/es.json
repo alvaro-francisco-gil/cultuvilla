@@ -320,12 +320,6 @@
         "imagesHint": "Hasta 3. La primera es la portada.",
         "addImage": "Añadir imagen",
         "removeImage": "Quitar imagen",
-        "addSection": "Añadir sección",
-        "removeSection": "Quitar sección",
-        "section": "Sección",
-        "subsection": "Subsección",
-        "sectionPlaceholder": "Título de la sección",
-        "subsectionPlaceholder": "Título de la subsección",
         "caption": "Pie de foto {n}",
         "captionPlaceholder": "Ej.: Archivo municipal, 1920",
         "title": "Título",
@@ -468,12 +462,6 @@
         "description": "Descripción",
         "addImage": "Añadir imagen",
         "removeImage": "Quitar imagen",
-        "addSection": "Añadir sección",
-        "removeSection": "Quitar sección",
-        "section": "Sección",
-        "subsection": "Subsección",
-        "sectionPlaceholder": "Título de la sección",
-        "subsectionPlaceholder": "Título de la subsección",
         "location": "Ubicación",
         "kindLabel": "Tipo",
         "kind": {
@@ -1286,14 +1274,14 @@
       "block": {
         "addImage": "Añadir imagen",
         "removeImage": "Quitar imagen",
-        "addSection": "Añadir sección",
-        "removeSection": "Quitar sección",
-        "section": "Sección",
-        "subsection": "Subsección",
-        "sectionPlaceholder": "Título de la sección",
-        "subsectionPlaceholder": "Título de la subsección",
+        "removeSection": "Quitar título",
+        "section": "Título",
+        "subsection": "Subtítulo",
+        "sectionPlaceholder": "Título",
+        "subsectionPlaceholder": "Subtítulo",
         "textPlaceholder": "Escribe aquí… usa @ para mencionar peñas, personas, eventos, lugares, pueblos o artículos",
-        "captionPlaceholder": "Pie de foto (opcional)"
+        "captionPlaceholder": "Pie de foto (opcional)",
+        "paragraph": "Texto"
       },
       "mentionType": {
         "organization": "Grupo",
@@ -1309,7 +1297,9 @@
         "italic": "Cursiva",
         "underline": "Subrayado",
         "strikethrough": "Tachado",
-        "link": "Enlace"
+        "link": "Enlace",
+        "section": "Título",
+        "subsection": "Subtítulo"
       }
     },
     "linkSheet": {
@@ -1385,13 +1375,10 @@
         "view": "Mira el cartel «{name}» en Cultuvilla: {url}"
       },
       "historyEntry": {
-        "view": "Mira «{name}» en la historia del pueblo, en Cultuvilla: {url}"
+        "view": "Mira «{name}» en Cultuvilla: {url}"
       },
       "user": {
         "view": "Mira el perfil de {name} en Cultuvilla: {url}"
-      },
-      "historyEntry": {
-        "view": "Mira «{name}» en Cultuvilla: {url}"
       }
     },
     "shareViewLabel": "Compartir"
