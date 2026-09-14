@@ -51,7 +51,17 @@ the **first** `_`. Slugs only ever contain `[a-z0-9-]`, while ids may contain
 
 The share-preview server (`ogRenderer`) answers any stale form — an edited
 title, a wrong pueblo — with a **301 to the canonical path**, so each doc has
-exactly one URL to rank.
+exactly one URL to rank. A well-formed path to nothing — an unknown pueblo, a
+deleted event — is a **404 with `noindex`**, still serving the SPA shell so the
+app shows its own not-found screen; a 200 there would make every mistyped
+village its own indexable page. A fetch that *throws* stays a 200, so a
+Firestore blip cannot deindex a real page.
+
+**On web, a cold visit to `/<pueblo>` keeps its URL.** Native sends a share-link
+arrival into the tab shell (`/mi-pueblo?villageId=<doc id>`), which is invisible
+there; on web the same redirect would put a doc id in the address bar of every
+visitor and crawler. Web renders the village in place instead, and back — with
+no history — goes into the tab shell showing that village.
 
 **A private event's URL never carries its title** (`evento-privado_<id>`): the
 share preview withholds the title from anyone outside the org, and a slug in the
