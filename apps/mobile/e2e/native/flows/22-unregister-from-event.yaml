@@ -39,6 +39,7 @@ env:
           id: 'attendee-row-${PERSON_ID}'
       - tapOn:
           id: 'attendee-confirm'
+      - runFlow: ../subflows/dismiss-push-soft-ask.yaml
       - extendedWaitUntil:
           visible: 'Apuntad.*'
           # This waits on state written by 21-register-family-member and then
