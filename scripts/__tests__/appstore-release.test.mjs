@@ -113,6 +113,25 @@ test('extractReleaseNotes refuses a version that was never stamped', () => {
   assert.throws(() => extractReleaseNotes(CHANGELOG, '1.1.0'), /no "## v1\.1\.0" section/);
 });
 
+test('extractReleaseNotes prefers a store-notes block over the whole section', () => {
+  // The CHANGELOG is written for the team; a release with many entries flattens
+  // into a 4000-char wall that Apple truncates mid-sentence.
+  const withNotes = [
+    '## v3.0.0 — 2026-01-01',
+    '',
+    '<!-- store-notes -->',
+    '- **Avisos** en el móvil.',
+    '<!-- /store-notes -->',
+    '',
+    '### Added',
+    '',
+    '- A long internal entry with `code` and a **Migration:** note.',
+    '',
+    '## v2.0.0 — 2025-12-01',
+  ].join('\n');
+  assert.equal(extractReleaseNotes(withNotes, '3.0.0'), '• Avisos en el móvil.');
+});
+
 test('extractReleaseNotes truncates to the App Store limit', () => {
   const long = `## v2.0.0 — 2026-01-01\n\n${'- padding padding padding\n'.repeat(400)}`;
   const notes = extractReleaseNotes(long, '2.0.0');

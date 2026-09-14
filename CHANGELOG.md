@@ -4,7 +4,35 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v1.2.1 — 2026-09-14
+
+<!-- store-notes -->
+- **El resumen de las fiestas:** los administradores crean el resumen del año, listo para compartir por WhatsApp.
+- **Historia y palabra del día** en la portada de cada pueblo.
+- **Una palabra, muchos pueblos:** mira en qué otros pueblos se dice la misma palabra.
+- **Títulos y subtítulos** en los artículos, y hasta 25 fotos por artículo.
+- **Direcciones en español** con el nombre del pueblo: cultuvilla.es/tupueblo.
+- Correcciones y mejoras.
+<!-- /store-notes -->
+
+### Fixed
+
+- **La app de iOS vuelve a compilar con notificaciones.** El identificador de la
+  app en Apple no tenía la capacidad de notificaciones push, y el primer build de
+  1.2.0 fallaba al firmar. Se ha activado y regenerado el perfil. Los avisos
+  urgentes («se libera una plaza») llegan en iOS como avisos normales hasta que
+  se active también *Time Sensitive Notifications* en el portal de Apple.
+
 ## v1.2.0 — 2026-09-14
+
+<!-- store-notes -->
+- **El resumen de las fiestas:** los administradores crean el resumen del año, listo para compartir por WhatsApp.
+- **Historia y palabra del día** en la portada de cada pueblo.
+- **Una palabra, muchos pueblos:** mira en qué otros pueblos se dice la misma palabra.
+- **Títulos y subtítulos** en los artículos, y hasta 25 fotos por artículo.
+- **Direcciones en español** con el nombre del pueblo: cultuvilla.es/tupueblo.
+- Correcciones y mejoras.
+<!-- /store-notes -->
 
 ### Fixed
 
