@@ -2,20 +2,28 @@
 
 ## Status
 
-- **Updated:** 2026-09-11
-- **Stage:** phase 1 merged (PR #337); **dev deploy blocked on `APNS_AUTH_KEY`**
-- **Dev state:** Firestore rules + indexes are live on `villa-events`; Cloud
-  Functions and Hosting are NOT — the deploy stops at `Deploy Cloud Functions`
-  with "In non-interactive mode but have no value for the secret:
-  APNS_AUTH_KEY", and every later merge to develop will stop there too until
-  the secret exists. Unblock (placeholder; iOS push is skipped with a warning):
-  `printf '%s' '{}' | gcloud secrets create APNS_AUTH_KEY --data-file=- --project=villa-events`,
-  then re-run the failed `Deploy dev` workflow.
-- **Before promoting to beta/prod:** the same secret in `cultuvilla-beta`
-  (placeholder is fine) and the real `.p8` JSON in `cultuvilla-prod` — the
-  promotion's deploy fails identically otherwise.
-- **Remaining human-only steps:** see *Prerequisites* below (google-services
-  files, App ID capability, Play Data Safety, store binary).
+- **Updated:** 2026-09-14
+- **Stage:** phase 1 merged (#337) and **live on dev** — the dev deploy is green
+  and all push functions are ACTIVE on `villa-events`.
+
+| Prerequisite | Dev | Beta | Prod |
+|---|---|---|---|
+| `APNS_AUTH_KEY` secret exists | ✅ placeholder `{}` | ⬜ | ⬜ |
+| Real APNs `.p8` key in the secret | n/a | n/a | ⬜ |
+| Android `google-services.json` committed (#344) | ✅ | n/a (sideload-only, no Android app) | ✅ |
+| Time-sensitive capability on the App ID | — | — | ⏳ synced by EAS on the next iOS build |
+| Play Data Safety declares device IDs | — | — | ⬜ after Android production review clears |
+| Store binary carrying push | — | — | ⬜ needs the next promotion + `mobile-release` |
+
+- **Next, before promoting to beta/prod:** create `APNS_AUTH_KEY` in
+  `cultuvilla-beta` and `cultuvilla-prod`, or the promotion's deploy fails at
+  `Deploy Cloud Functions` exactly as dev did:
+  `printf '%s' '{}' | gcloud secrets create APNS_AUTH_KEY --data-file=- --project=<project>`
+- **For iOS push to actually deliver in prod:** create an APNs key at
+  developer.apple.com → Keys (tick *Apple Push Notifications service*), then
+  replace prod's placeholder with `{"keyId":"…","privateKey":"<.p8 contents>"}`
+  via `gcloud secrets versions add APNS_AUTH_KEY --data-file=- --project=cultuvilla-prod`.
+  Until then iOS sends are skipped with a warning; Android is unaffected.
 
 ## Context
 
@@ -188,8 +196,8 @@ explaining a concrete promise, and is only reached if the user says yes there.
    ```
    dev/beta may use a placeholder (`{}`) — `sendApns` logs a warning and
    skips iOS rather than crashing.
-2. **`google-services.json` per env** under `apps/mobile/google-services/{env}/`
-   (see the README there). Android only. Committed: it carries no secret.
+2. **`google-services.json` per env** — done for dev and prod (#344), locked by
+   `googleServices.test.ts`. Beta has no Android app and needs none.
 3. **Time-sensitive notifications capability** on the `com.cultuvilla.app` App
    ID. EAS syncs capabilities for managed credentials on the next iOS build;
    verify it did.
