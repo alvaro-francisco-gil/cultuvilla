@@ -1,4 +1,5 @@
 import { render, fireEvent } from '@testing-library/react-native';
+import { router } from 'expo-router';
 import { AddContentSheet } from '../AddContentSheet';
 
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
@@ -27,5 +28,16 @@ describe('AddContentSheet', () => {
     const { getByLabelText } = render(<AddContentSheet {...baseProps} onClose={onClose} />);
     fireEvent.press(getByLabelText('common.close'));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['village.addContent.items.palabra', '/villa/palabra/nueva'],
+    ['village.addContent.items.acontecimiento', '/villa/acontecimiento/nuevo'],
+  ])('%s opens its create screen', (label, href) => {
+    const onClose = jest.fn();
+    const { getByLabelText } = render(<AddContentSheet {...baseProps} onClose={onClose} />);
+    fireEvent.press(getByLabelText(label));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(router.push).toHaveBeenCalledWith(href);
   });
 });

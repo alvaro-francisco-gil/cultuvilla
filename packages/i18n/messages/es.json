@@ -378,7 +378,9 @@
         "pena": "Peña",
         "barrio": "Barrio",
         "lugar": "Lugar",
-        "cartel": "Cartel de fiestas"
+        "cartel": "Cartel de fiestas",
+        "palabra": "Palabra",
+        "acontecimiento": "Acontecimiento"
       }
     },
     "edit": {

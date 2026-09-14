@@ -1,4 +1,10 @@
-import { createEventHref, createNewsHref, villageSectionHref } from '../../lib/navigation/routes';
+import {
+  createEventHref,
+  createNewsHref,
+  newHistoryEntryHref,
+  newWordHref,
+  villageSectionHref,
+} from '../../lib/navigation/routes';
 import { Modal, Pressable as RNPressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -24,7 +30,7 @@ interface AddOption {
   href: string;
 }
 
-// The seven entities the village home can add, in the same order the sections
+// The entities the village home can add, in the same order the sections
 // appear on the screen. Each row just fans out to the entity's existing create
 // route — no create logic lives here. Peña and agrupación share the org create
 // screen; the `type` query preselects its picker (asociación = the non-peña
@@ -42,6 +48,8 @@ function optionsFor(villageId: string, villageSlug: string, canManage: boolean):
     { key: 'barrio', icon: 'map-outline', href: villageSectionHref(villageSlug, 'barrios') },
     { key: 'lugar', icon: 'location-outline', href: villageSectionHref(villageSlug, 'lugares') },
     { key: 'cartel', icon: 'image-outline', href: villageSectionHref(villageSlug, 'carteles') },
+    { key: 'palabra', icon: 'book-outline', href: newWordHref(villageSlug) },
+    { key: 'acontecimiento', icon: 'time-outline', href: newHistoryEntryHref(villageSlug) },
   ];
 }
 
