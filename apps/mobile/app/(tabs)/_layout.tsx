@@ -49,7 +49,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="village"
+        name="mi-pueblo"
         options={{
           title: t('tabs.village'),
           tabBarIcon: ({ color, size, focused }) => (
@@ -68,7 +68,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="perfil"
         options={{
           title: t('tabs.profile'),
           tabBarIcon: ({ color, size, focused }) => (
