@@ -57,15 +57,18 @@ export interface ComposedWrapped {
  */
 export async function composeWrapped(
   gathered: GatheredWrapped,
-  meta: { blockName: string; year: number },
+  /** One name per window in `gathered.inputs.windows`, in the same order. */
+  meta: { blockNames: string[]; year: number },
   fetchImpl: typeof fetch = fetch,
 ): Promise<ComposedWrapped> {
   const aggregate = aggregateWrapped(gathered.inputs);
   const ctx: CardContext = {
     villageName: gathered.villageName,
-    blockName: meta.blockName,
     year: meta.year,
-    dateRange: formatDateRange(gathered.inputs.window.start, gathered.inputs.window.end),
+    blocks: gathered.inputs.windows.map((w, i) => ({
+      name: meta.blockNames[i] ?? '',
+      dateRange: formatDateRange(w.start, w.end),
+    })),
   };
 
   const bodyWidth = CARD_WIDTH - GUTTER * 2;
@@ -92,7 +95,7 @@ export async function composeWrapped(
   const jobs = [
     { url: gathered.escudoUrl, width: 240, height: 240 },
     ...people.map((p) => ({ url: p.photoURL, width: bubble * 2, height: bubble * 2 })),
-    ...shownEvents.map((e) => ({ url: e.imageURL, width: tile.tileWidth * 2, height: tile.tileHeight * 2 })),
+    ...shownEvents.map((e) => ({ url: e.imageURL, width: tile.tileWidth * 2, height: tile.tileHeight * 2, anchor: 'top' as const })),
     ...orgs.map((o) => ({ url: o.imageURL, width: 260, height: 260 })),
     ...orgPeople.map((p) => ({ url: p.photoURL, width: 180, height: 180 })),
     ...archive.ordered.map((p) => ({ url: p.imageURL, width: poster.tileWidth * 2, height: poster.tileHeight * 2 })),

@@ -44,6 +44,11 @@ export const WrappedStatsSchema = z.object({
 });
 export type WrappedStats = z.infer<typeof WrappedStatsSchema>;
 
+/** Bounds for the credits card. Big enough that a real village's organizers
+ *  all appear (Matabuena's August had 3 orgs and 10 people), small enough to lay out. */
+export const MAX_ORG_CREDITS = 6;
+export const MAX_PERSON_CREDITS = 12;
+
 export const WrappedEventHighlightSchema = z.object({
   eventId: z.string(),
   title: z.string(),
@@ -83,8 +88,8 @@ export const WrappedDataSchema = z.object({
   stats: WrappedStatsSchema,
   fullestEvent: WrappedEventHighlightSchema.nullable(),
   mostCommentedEvent: WrappedEventHighlightSchema.nullable(),
-  topOrganizations: z.array(WrappedOrgCreditSchema).max(5),
-  topOrganizers: z.array(WrappedPersonCreditSchema).max(5),
+  topOrganizations: z.array(WrappedOrgCreditSchema).max(MAX_ORG_CREDITS),
+  topOrganizers: z.array(WrappedPersonCreditSchema).max(MAX_PERSON_CREDITS),
 
   /** Download URL of each rendered card. A URL rather than a storage path
    *  because a Wrapped is made to be forwarded: the recipient may not be a

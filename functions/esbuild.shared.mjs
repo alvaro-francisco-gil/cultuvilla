@@ -15,8 +15,8 @@ export const sharedBuildOptions = {
     'firebase-functions/*',
     'sharp',
   ],
-  // Fonts are inlined into the bundle. Only `functions/` is uploaded and nothing
-  // copies loose assets into dist/, so reading a .ttf from disk at runtime would
-  // work in the emulator and throw ENOENT in the deployed container.
-  loader: { '.ttf': 'binary' },
+  // Fonts and the brand mark are inlined into the bundle. Only `functions/` is
+  // uploaded and nothing copies loose assets into dist/, so reading one from disk
+  // at runtime would work in the emulator and throw ENOENT in the deployed container.
+  loader: { '.ttf': 'binary', '.png': 'binary' },
 };

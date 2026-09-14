@@ -1,5 +1,5 @@
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
-import type { CartelInput, WrappedInputs } from '@cultuvilla/shared/wrapped';
+import { inAnyWindow, type CartelInput, type WrappedInputs } from '@cultuvilla/shared/wrapped';
 import { EventStatusSchema, RegistrationStatusSchema, isPrivateEvent, madridYear } from '@cultuvilla/shared/models';
 import {
   eventRegistrationsCollection,
@@ -8,11 +8,12 @@ import {
   municipalityDoc,
   municipalityPeopleCollection,
   organizationDoc,
+  personsCollection,
   userDoc,
 } from '@cultuvilla/shared/firebase/refs/admin';
 
 /**
- * Read everything a Wrapped is built from, for one municipality and window.
+ * Read everything a Wrapped is built from, for one municipality and its windows.
  *
  * Paths come from the typed factories in `firebase/refs/admin`, so collection
  * names still have one source of truth — but each ref is taken with
@@ -68,10 +69,34 @@ async function getByIds(
   return out;
 }
 
+/**
+ * The profile photo of each account, keyed by uid.
+ *
+ * It lives on the account's own persona (`persons.userId`), not on `users/{uid}`,
+ * which carries no photo at all — reading it there drew every organizer as
+ * initials. Only a public persona lends its face: the credits card is a
+ * forwardable image, and `isPublic: false` is someone opting out of exactly that.
+ */
+async function photosByUserId(db: Firestore, userIds: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  // `in` accepts at most 30 values per query.
+  for (let i = 0; i < userIds.length; i += 30) {
+    const chunk = userIds.slice(i, i + 30);
+    const snap = await personsCollection(db).withConverter(null).where('userId', 'in', chunk).get();
+    for (const d of snap.docs) {
+      const p = d.data();
+      const userId = str(p.userId);
+      const photo = str(p.photoURL);
+      if (userId && photo && p.isPublic === true && !out.has(userId)) out.set(userId, photo);
+    }
+  }
+  return out;
+}
+
 export async function gatherWrappedInputs(
   db: Firestore,
   municipalityId: string,
-  window: { start: Date; end: Date },
+  windows: { start: Date; end: Date }[],
 ): Promise<GatheredWrapped> {
   const muniSnap = await municipalityDoc(db, municipalityId).withConverter(null).get();
   if (!muniSnap.exists) throw new Error(`municipality ${municipalityId} not found`);
@@ -99,17 +124,14 @@ export async function gatherWrappedInputs(
         maxAttendees: typeof e.maxAttendees === 'number' ? e.maxAttendees : null,
         createdBy: str(e.createdBy),
         organizerOrgIds: strs(e.organizerOrgIds),
+        organizerUserIds: strs(e.organizerUserIds),
       },
     ];
   });
 
   // Registrations carry no municipalityId, so they are reachable only per
   // event. Only live, in-window events are worth reading.
-  const t0 = window.start.getTime();
-  const t1 = window.end.getTime();
-  const relevant = events.filter(
-    (e) => e.status !== 'cancelled' && e.startDate.getTime() >= t0 && e.startDate.getTime() <= t1,
-  );
+  const relevant = events.filter((e) => e.status !== 'cancelled' && inAnyWindow(e.startDate, windows));
   const regSnaps = await Promise.all(
     relevant.map((e) => eventRegistrationsCollection(db, e.id).withConverter(null).get()),
   );
@@ -140,13 +162,17 @@ export async function gatherWrappedInputs(
   });
 
   const orgIds = relevant.flatMap((e) => e.organizerOrgIds);
-  const creatorIds = relevant.flatMap((e) => (e.createdBy ? [e.createdBy] : []));
-  const [orgDocs, userDocs] = await Promise.all([
+  const organizerIds = [
+    ...new Set(relevant.flatMap((e) => (e.createdBy ? [...e.organizerUserIds, e.createdBy] : e.organizerUserIds))),
+  ];
+  const [orgDocs, userDocs, organizerPhotos] = await Promise.all([
     getByIds(db, orgIds, (id) => organizationDoc(db, id).withConverter(null)),
-    getByIds(db, creatorIds, (id) => userDoc(db, id).withConverter(null)),
+    getByIds(db, organizerIds, (id) => userDoc(db, id).withConverter(null)),
+    photosByUserId(db, organizerIds),
   ]);
 
-  const year = madridYear(window.start);
+  if (windows.length === 0) throw new Error('a Wrapped needs at least one window');
+  const year = madridYear(windows[0].start);
   // Every year, not just this one: the carteles card sets this year's posters
   // against the pueblo's whole archive. Only `active` posters: this becomes a
   // forwardable image, so it allowlists rather than excluding `hidden` — a
@@ -168,14 +194,16 @@ export async function gatherWrappedInputs(
     people,
     posters,
     inputs: {
-      window,
+      windows,
       events,
       registrations,
-      organizations: [...orgDocs].map(([id, o]) => ({ id, name: str(o.name) ?? '', imageURL: str(o.imageURL) })),
+      // An organization's picture is the first of its `images`; there is no
+      // `imageURL` on an org doc, so reading one drew every org as initials.
+      organizations: [...orgDocs].map(([id, o]) => ({ id, name: str(o.name) ?? '', imageURL: strs(o.images)[0] ?? null })),
       organizerProfiles: [...userDocs].map(([userId, u]) => ({
         userId,
         displayName: str(u.displayName) ?? '',
-        photoURL: str(u.photoURL),
+        photoURL: organizerPhotos.get(userId) ?? null,
       })),
       censoCount: people.length,
       censoPersonIds: people.map((p) => p.personId),

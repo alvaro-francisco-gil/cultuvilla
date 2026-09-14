@@ -84,9 +84,9 @@ export async function buildAndStoreWrapped(
   const existing = await ref.get();
   const previous = existing.data();
 
-  const gathered = await gatherWrappedInputs(db, municipalityId, window);
+  const gathered = await gatherWrappedInputs(db, municipalityId, [window]);
   const { aggregate, images } = await composeWrapped(gathered, {
-    blockName: block.name,
+    blockNames: [block.name],
     year: madridYear(window.start),
   });
 

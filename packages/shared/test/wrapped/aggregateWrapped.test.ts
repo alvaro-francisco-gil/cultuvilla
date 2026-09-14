@@ -4,6 +4,7 @@ import {
   meetsAutoPublishFloor,
   type WrappedInputs,
 } from '../../src/wrapped/aggregateWrapped';
+import { MAX_PERSON_CREDITS } from '../../src/models/wrapped/WrappedDataModel';
 
 // Window: Matabuena's fiestas de agosto 2026, declared as 14–28 Aug, Madrid time.
 const WINDOW = {
@@ -21,13 +22,14 @@ function ev(over: Partial<WrappedInputs['events'][number]> & { id: string }): Wr
     maxAttendees: null,
     createdBy: null,
     organizerOrgIds: [],
+    organizerUserIds: [],
     ...over,
   };
 }
 
 function base(over: Partial<WrappedInputs> = {}): WrappedInputs {
   return {
-    window: WINDOW,
+    windows: [WINDOW],
     events: [],
     registrations: [],
     organizations: [],
@@ -229,26 +231,67 @@ describe('aggregateWrapped — organizer credit', () => {
     ]);
   });
 
-  // organizerUserIds is the org's member roster — on 11 of Matabuena's 21
-  // events it is the same six people. Ranking by it ties six neighbours on an
-  // identical, meaningless count. createdBy is who actually posted the event.
-  it('credits people by createdBy, never by the organizerUserIds roster', () => {
+  // Shapes from Matabuena's August 2026: a comisión event lists its whole team
+  // in organizerUserIds, and each of them organized it. Crediting only the
+  // creator showed 2 of the 10 people who ran the fiestas.
+  it('credits everyone on organizerUserIds, not just the creator', () => {
+    const team = ['alvaro', 'angela', 'lucia'];
     const r = aggregateWrapped(
       base({
         events: [
-          ev({ id: 'a', createdBy: 'lucia' }),
-          ev({ id: 'b', createdBy: 'lucia' }),
-          ev({ id: 'c', createdBy: 'jesus' }),
+          ev({ id: 'brisca', createdBy: 'alvaro', organizerUserIds: team }),
+          ev({ id: 'laser', createdBy: 'lucia', organizerUserIds: team }),
+          ev({ id: 'frontenis', createdBy: 'alvaro', organizerUserIds: ['alvaro', 'sergio'] }),
         ],
         organizerProfiles: [
+          { userId: 'alvaro', displayName: 'Álvaro', photoURL: null },
+          { userId: 'angela', displayName: 'Ángela', photoURL: null },
           { userId: 'lucia', displayName: 'Lucía', photoURL: null },
-          { userId: 'jesus', displayName: 'Jesús', photoURL: null },
+          { userId: 'sergio', displayName: 'Sergio', photoURL: null },
         ],
       }),
     );
     expect(r.topOrganizers.map((p) => [p.displayName, p.eventCount])).toEqual([
+      ['Álvaro', 3],
+      ['Ángela', 2],
       ['Lucía', 2],
-      ['Jesús', 1],
+      ['Sergio', 1],
+    ]);
+  });
+
+  it('credits a creator who is missing from organizerUserIds', () => {
+    const r = aggregateWrapped(
+      base({
+        events: [ev({ id: 'a', createdBy: 'jesus', organizerUserIds: [] })],
+        organizerProfiles: [{ userId: 'jesus', displayName: 'Jesús', photoURL: null }],
+      }),
+    );
+    expect(r.topOrganizers.map((p) => [p.displayName, p.eventCount])).toEqual([['Jesús', 1]]);
+  });
+
+  it('counts one event once per organizer, however often they are listed on it', () => {
+    const r = aggregateWrapped(
+      base({
+        events: [
+          ev({
+            id: 'bolsas',
+            createdBy: 'alvaro',
+            organizerUserIds: ['alvaro', 'alvaro'],
+            organizerOrgIds: ['comision', 'destechaos', 'comision'],
+          }),
+        ],
+        organizations: [
+          { id: 'comision', name: 'Comisión de Festejos', imageURL: null },
+          { id: 'destechaos', name: 'Destechaos', imageURL: null },
+        ],
+        organizerProfiles: [{ userId: 'alvaro', displayName: 'Álvaro', photoURL: null }],
+      }),
+    );
+    expect(r.topOrganizers.map((p) => p.eventCount)).toEqual([1]);
+    // An event run jointly by two organizations credits both.
+    expect(r.topOrganizations.map((o) => [o.name, o.eventCount])).toEqual([
+      ['Comisión de Festejos', 1],
+      ['Destechaos', 1],
     ]);
   });
 
@@ -262,10 +305,11 @@ describe('aggregateWrapped — organizer credit', () => {
     expect(r.topOrganizations).toEqual([]);
   });
 
-  it('caps each credit list at five', () => {
-    const events = Array.from({ length: 8 }, (_, i) => ev({ id: `e${String(i)}`, createdBy: `u${String(i)}` }));
+  it('caps the credit lists at what the card can lay out', () => {
+    const n = MAX_PERSON_CREDITS + 3;
+    const events = Array.from({ length: n }, (_, i) => ev({ id: `e${String(i)}`, createdBy: `u${String(i)}` }));
     const organizerProfiles = events.map((e) => ({ userId: e.createdBy ?? '', displayName: e.id, photoURL: null }));
-    expect(aggregateWrapped(base({ events, organizerProfiles })).topOrganizers).toHaveLength(5);
+    expect(aggregateWrapped(base({ events, organizerProfiles })).topOrganizers).toHaveLength(MAX_PERSON_CREDITS);
   });
 
   it('breaks ties by name, so the order is stable across recomputes', () => {

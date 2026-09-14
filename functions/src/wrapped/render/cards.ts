@@ -4,6 +4,7 @@ import { CARD_HEIGHT, CARD_WIDTH, GUTTER, colors } from './theme';
 import { copy } from './copy';
 import { fitFontSize, fixedAspectGrid, hexLayout, mosaicLayout } from './layout';
 import { colorFor, initials } from './images';
+import { brandMark } from './brand/brandMark';
 
 /**
  * Satori element trees for the five Wrapped cards. Satori renders a subset of
@@ -14,10 +15,11 @@ import { colorFor, initials } from './images';
 
 export interface CardContext {
   villageName: string;
-  blockName: string;
   year: number;
-  /** Pre-formatted, e.g. "14 – 28 de agosto". */
-  dateRange: string;
+  /** The fiestas blocks this Wrapped covers, in date order. Names are free text
+   *  a village admin types ("Santiago", "Carmen"); dates are pre-formatted,
+   *  e.g. "14 – 28 de agosto". */
+  blocks: { name: string; dateRange: string }[];
 }
 
 const HEADER_HEIGHT = 380;
@@ -87,9 +89,9 @@ function frame(ctx: CardContext, header: { kicker: string; title: string; subtit
         'div',
         { style: { display: 'flex', flexDirection: 'column' } },
         text(ctx.villageName, { fontSize: 32, fontWeight: 700 }),
-        text(`${ctx.blockName} · ${String(ctx.year)}`, { fontSize: 26, color: colors.muted, marginTop: 4 }),
+        text(copy.fiestasYear(ctx.year), { fontSize: 26, color: colors.muted, marginTop: 4 }),
       ),
-      text(copy.brand, { fontSize: 30, fontWeight: 800, color: colors.accent, letterSpacing: -0.5 }),
+      brandMark(30),
     ),
   );
 }
@@ -124,19 +126,28 @@ export function coverCard(ctx: CardContext, escudo: string | null): SatoriNode {
     h(
       'div',
       { style: { display: 'flex', flexDirection: 'column' } },
-      // The block name is free text a village admin types, with no length
-      // limit, so it is fitted rather than set — an unfitted 148px overflows
-      // the card at about a dozen characters.
-      text(ctx.blockName, {
-        fontSize: fitFontSize(ctx.blockName, CARD_WIDTH - GUTTER * 2, 148, 56),
-        fontWeight: 800,
-        lineHeight: 0.95,
-        letterSpacing: -4,
-      }),
+      text(copy.fiestas, { fontSize: 148, fontWeight: 800, lineHeight: 0.95, letterSpacing: -4 }),
       text(String(ctx.year), { fontSize: 220, fontWeight: 800, lineHeight: 1, color: colors.accent, letterSpacing: -8, marginTop: 8 }),
-      text(ctx.dateRange, { fontSize: 44, color: colors.inkDim, marginTop: 28 }),
+      h(
+        'div',
+        { style: { display: 'flex', flexDirection: 'column', gap: 30, marginTop: 44 } },
+        ...ctx.blocks.map((b) =>
+          h(
+            'div',
+            { style: { display: 'flex', flexDirection: 'column', borderLeft: `6px solid ${colors.accent}`, paddingLeft: 26 } },
+            // Free text a village admin types, with no length limit, so it is
+            // fitted rather than set at a size that overflows the card.
+            text(b.name, {
+              fontSize: fitFontSize(b.name, CARD_WIDTH - GUTTER * 2 - 32, 64, 36),
+              fontWeight: 700,
+              lineHeight: 1.1,
+            }),
+            text(b.dateRange, { fontSize: 40, color: colors.inkDim, marginTop: 6 }),
+          ),
+        ),
+      ),
     ),
-    text(copy.brand, { fontSize: 36, fontWeight: 800, color: colors.accent }),
+    brandMark(36),
   );
 }
 
@@ -278,8 +289,8 @@ export interface CreditRow {
   image: string | null;
 }
 
-function creditRow(row: CreditRow, size: number, lead: boolean): SatoriNode {
-  const avatar = row.image
+function creditAvatar(row: CreditRow, size: number): SatoriNode {
+  return row.image
     ? h('img', { src: row.image, width: size, height: size, style: { objectFit: 'cover', borderRadius: size } })
     : h(
         'div',
@@ -291,48 +302,76 @@ function creditRow(row: CreditRow, size: number, lead: boolean): SatoriNode {
         },
         text(initials(row.name), { fontSize: size * 0.36, fontWeight: 700 }),
       );
+}
+
+/** The organization that ran the most, given the room its lead deserves. */
+function leadCredit(row: CreditRow): SatoriNode {
   return h(
     'div',
     {
       style: {
-        display: 'flex', alignItems: 'center', gap: 28,
-        padding: lead ? '28px 30px' : '18px 0',
-        backgroundColor: lead ? colors.groundRaised : 'transparent',
-        borderRadius: lead ? 24 : 0,
+        display: 'flex', alignItems: 'center', gap: 28, padding: '26px 30px',
+        backgroundColor: colors.groundRaised, borderRadius: 24,
       },
     },
-    avatar,
+    creditAvatar(row, 120),
     h(
       'div',
       { style: { display: 'flex', flexDirection: 'column', flex: 1 } },
-      text(row.name, { fontSize: lead ? 44 : 36, fontWeight: 700, lineHeight: 1.1 }),
-      text(copy.eventCount(row.count), { fontSize: lead ? 32 : 28, color: colors.accentSoft, marginTop: 6 }),
+      text(row.name, { fontSize: fitFontSize(row.name, BODY_WIDTH - 240, 44, 32), fontWeight: 700, lineHeight: 1.1 }),
+      text(copy.eventCount(row.count), { fontSize: 30, color: colors.accentSoft, marginTop: 6 }),
+    ),
+  );
+}
+
+const CREDIT_GAP = 24;
+const CREDIT_COLUMN = Math.floor((BODY_WIDTH - CREDIT_GAP) / 2);
+
+/**
+ * Everyone else, two to a row. A single column held five names; a comisión
+ * lists its whole team on every event it runs, so a real village's fiestas
+ * credit ten or more people, and every one of them organized something.
+ */
+function creditGrid(rows: CreditRow[], avatar: number): SatoriNode {
+  const nameWidth = CREDIT_COLUMN - avatar - 20;
+  return h(
+    'div',
+    { style: { display: 'flex', flexWrap: 'wrap', columnGap: CREDIT_GAP, rowGap: 22, width: BODY_WIDTH } },
+    ...rows.map((row) =>
+      h(
+        'div',
+        { style: { display: 'flex', alignItems: 'center', gap: 20, width: CREDIT_COLUMN } },
+        creditAvatar(row, avatar),
+        h(
+          'div',
+          { style: { display: 'flex', flexDirection: 'column', width: nameWidth } },
+          text(row.name, { fontSize: fitFontSize(row.name, nameWidth, 30, 22), fontWeight: 700, lineHeight: 1.1 }),
+          text(copy.eventCount(row.count), { fontSize: 24, color: colors.accentSoft, marginTop: 4 }),
+        ),
+      ),
     ),
   );
 }
 
 export function organizersCard(ctx: CardContext, orgs: CreditRow[], people: CreditRow[]): SatoriNode {
   const section = (label: string) =>
-    text(label.toUpperCase(), { fontSize: 24, fontWeight: 600, letterSpacing: 4, color: colors.muted, marginBottom: 14 });
+    text(label.toUpperCase(), { fontSize: 24, fontWeight: 600, letterSpacing: 4, color: colors.muted, marginBottom: 18 });
 
+  const [lead, ...otherOrgs] = orgs;
   const body = h(
     'div',
-    { style: { display: 'flex', flexDirection: 'column', position: 'absolute', left: GUTTER, top: BODY_TOP, width: BODY_WIDTH, gap: 40 } },
-    orgs.length > 0
+    { style: { display: 'flex', flexDirection: 'column', position: 'absolute', left: GUTTER, top: BODY_TOP, width: BODY_WIDTH, gap: 48 } },
+    lead
       ? h(
           'div',
-          { style: { display: 'flex', flexDirection: 'column', gap: 16 } },
+          { style: { display: 'flex', flexDirection: 'column', gap: 22 } },
           section(copy.organizersOrgs),
-          ...orgs.map((o, i) => creditRow(o, i === 0 ? 130 : 96, i === 0)),
+          leadCredit(lead),
+          otherOrgs.length > 0 ? creditGrid(otherOrgs, 88) : null,
         )
       : null,
     people.length > 0
-      ? h(
-          'div',
-          { style: { display: 'flex', flexDirection: 'column' } },
-          section(copy.organizersPeople),
-          ...people.map((p) => creditRow(p, 84, false)),
-        )
+      ? h('div', { style: { display: 'flex', flexDirection: 'column' } }, section(copy.organizersPeople), creditGrid(people, 76))
       : null,
   );
 
@@ -388,7 +427,7 @@ export function statsCard(ctx: CardContext, stats: WrappedStats, fullest: StatsH
           'div',
           {
             style: {
-              display: 'flex', flexDirection: 'column', marginTop: 24, padding: '30px 32px',
+              display: 'flex', flexDirection: 'column', marginTop: 72, padding: '30px 32px',
               borderRadius: 26, border: `2px solid ${colors.accent}`,
             },
           },
@@ -399,7 +438,7 @@ export function statsCard(ctx: CardContext, stats: WrappedStats, fullest: StatsH
       : null,
   );
 
-  return frame(ctx, { kicker: copy.statsKicker, title: ctx.blockName }, body);
+  return frame(ctx, { kicker: copy.statsKicker, title: copy.fiestasYear(ctx.year) }, body);
 }
 
 // ── carteles ─────────────────────────────────────────────────────────────

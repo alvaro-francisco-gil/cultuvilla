@@ -49,7 +49,7 @@ async function seedPerson(id: string, fields: Record<string, unknown>): Promise<
 }
 
 async function gather() {
-  return gatherWrappedInputs(db(), MID, WINDOW);
+  return gatherWrappedInputs(db(), MID, [WINDOW]);
 }
 
 describe('gatherWrappedInputs', () => {
@@ -59,7 +59,7 @@ describe('gatherWrappedInputs', () => {
   });
 
   it('throws when the municipality does not exist', async () => {
-    await expect(gatherWrappedInputs(db(), 'nope', WINDOW)).rejects.toThrow(/not found/);
+    await expect(gatherWrappedInputs(db(), 'nope', [WINDOW])).rejects.toThrow(/not found/);
   });
 
   it('prefers the manual escudo over the generated one', async () => {

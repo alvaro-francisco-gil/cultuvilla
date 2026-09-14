@@ -78,12 +78,18 @@ async function readCapped(res: Response, maxBytes: number): Promise<Buffer | nul
  * Returns null on any failure. One dead or refused URL must degrade that
  * single tile to its fallback, never fail the whole Wrapped.
  */
+/**
+ * Which part of an image survives the crop. `top` is for event flyers: their
+ * title and date sit at the top, and a centred crop cut them off.
+ */
+export type CropAnchor = 'attention' | 'top';
+
 export async function loadImage(
   url: string | null,
   width: number,
   height: number,
   fetchImpl: typeof fetch = fetch,
-  limits: { maxBytes?: number; timeoutMs?: number } = {},
+  limits: { maxBytes?: number; timeoutMs?: number; anchor?: CropAnchor } = {},
 ): Promise<string | null> {
   if (!url || !isAllowedImageUrl(url)) return null;
   const maxBytes = limits.maxBytes ?? MAX_IMAGE_BYTES;
@@ -96,7 +102,11 @@ export async function loadImage(
     const input = await readCapped(res, maxBytes);
     if (!input) return null;
     const out = await sharp(input, { limitInputPixels: MAX_IMAGE_PIXELS })
-      .resize(Math.round(width), Math.round(height), { fit: 'cover', position: 'attention' })
+      .resize(Math.round(width), Math.round(height), { fit: 'cover', position: limits.anchor ?? 'attention' })
+      // Tiles are re-encoded as JPEG, which has no alpha: a transparent logo
+      // would come out as a solid black disc. Logos are drawn for a light
+      // background, so that is what they get.
+      .flatten({ background: '#ffffff' })
       .jpeg({ quality: 82, mozjpeg: true })
       .toBuffer();
     return `data:image/jpeg;base64,${out.toString('base64')}`;
@@ -107,7 +117,7 @@ export async function loadImage(
 
 /** Load many images with bounded concurrency, preserving input order. */
 export async function loadImages(
-  jobs: { url: string | null; width: number; height: number }[],
+  jobs: { url: string | null; width: number; height: number; anchor?: CropAnchor }[],
   concurrency = IMAGE_CONCURRENCY,
   fetchImpl: typeof fetch = fetch,
 ): Promise<(string | null)[]> {
@@ -117,7 +127,7 @@ export async function loadImages(
     while (next < jobs.length) {
       const i = next++;
       const job = jobs[i];
-      results[i] = await loadImage(job.url, job.width, job.height, fetchImpl);
+      results[i] = await loadImage(job.url, job.width, job.height, fetchImpl, { anchor: job.anchor });
     }
   }
   await Promise.all(Array.from({ length: Math.min(concurrency, jobs.length) }, () => worker()));

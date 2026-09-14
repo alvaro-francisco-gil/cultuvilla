@@ -35,18 +35,24 @@ function madridWindow(startDay: string, endDay: string): { start: Date; end: Dat
 async function main(): Promise<void> {
   const projectId = env('PREVIEW_PROJECT');
   const municipalityId = env('PREVIEW_MUNICIPALITY');
-  const window = madridWindow(env('PREVIEW_START'), env('PREVIEW_END'));
+  const blocks = env('PREVIEW_BLOCKS').split('|').map((spec) => {
+    const [name, range] = spec.split('@');
+    const [startDay, endDay] = range.split('..');
+    return { name, window: madridWindow(startDay, endDay) };
+  });
+  blocks.sort((a, b) => a.window.start.getTime() - b.window.start.getTime());
+  const windows = blocks.map((b) => b.window);
   const out = env('PREVIEW_OUT');
 
   initializeApp({ projectId, credential: applicationDefault() });
   const db = getFirestore();
 
   const t0 = Date.now();
-  const gathered = await gatherWrappedInputs(db, municipalityId, window);
+  const gathered = await gatherWrappedInputs(db, municipalityId, windows);
   const t1 = Date.now();
   const { aggregate, images } = await composeWrapped(gathered, {
-    blockName: env('PREVIEW_BLOCK'),
-    year: madridYear(window.start),
+    blockNames: blocks.map((b) => b.name),
+    year: madridYear(windows[0].start),
   });
   const t2 = Date.now();
 
