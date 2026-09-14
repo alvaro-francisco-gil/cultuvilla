@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   formatHistoricalDate,
   formatHistoryEntryDate,
+  formatHistoryEntryYears,
   historicalCentury,
   historicalCenturyLabel,
 } from '../../src/utils/historyDates';
@@ -60,5 +61,29 @@ describe('historicalCenturyLabel', () => {
     expect(historicalCenturyLabel(20)).toBe('Siglo XX');
     expect(historicalCenturyLabel(12)).toBe('Siglo XII');
     expect(historicalCenturyLabel(-3)).toBe('Siglo III a. C.');
+  });
+});
+
+describe('formatHistoryEntryYears', () => {
+  it('keeps only the years, for a compact timeline label', () => {
+    expect(
+      formatHistoryEntryYears({ start: { year: 1956, month: 9, day: 14 }, end: null, approximate: false }),
+    ).toBe('1956');
+    expect(formatHistoryEntryYears({ start: y(-218), end: null, approximate: false })).toBe('218 a. C.');
+  });
+
+  it('spans a range across years and collapses one within a single year', () => {
+    expect(formatHistoryEntryYears({ start: y(1936), end: y(1939), approximate: false })).toBe('1936–1939');
+    expect(
+      formatHistoryEntryYears({
+        start: { year: 1956, month: 3, day: null },
+        end: { year: 1956, month: 5, day: null },
+        approximate: false,
+      }),
+    ).toBe('1956');
+  });
+
+  it('marks an estimate with "h."', () => {
+    expect(formatHistoryEntryYears({ start: y(1500), end: null, approximate: true })).toBe('h. 1500');
   });
 });

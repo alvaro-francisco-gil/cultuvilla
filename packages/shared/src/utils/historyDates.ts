@@ -28,6 +28,19 @@ export function formatHistoryEntryDate(entry: {
   return entry.approximate ? `h. ${span}` : span;
 }
 
+/** Years only — the compact label for a timeline that has no room for a full date. */
+export function formatHistoryEntryYears(entry: {
+  start: HistoricalDate;
+  end: HistoricalDate | null;
+  approximate: boolean;
+}): string {
+  const span =
+    entry.end && entry.end.year !== entry.start.year
+      ? `${formatYear(entry.start.year)}–${formatYear(entry.end.year)}`
+      : formatYear(entry.start.year);
+  return entry.approximate ? `h. ${span}` : span;
+}
+
 /** 1901–2000 is the 20th century; negative for BC (−1 is the 1st century a. C.). */
 export function historicalCentury(year: number): number {
   return Math.sign(year) * Math.ceil(Math.abs(year) / 100);

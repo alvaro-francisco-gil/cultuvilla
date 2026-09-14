@@ -47,3 +47,4 @@ export {
 } from './storeBanner';
 export { webOriginForProject } from './webOrigin';
 export * from './urls';
+export * from './wordOfTheDay';
