@@ -196,13 +196,12 @@ const config: ExpoConfig = {
       NSPhotoLibraryUsageDescription:
         'Cultuvilla necesita acceso a tus fotos para elegir y recortar tu imagen de perfil.',
     },
-    entitlements: {
-      // Lets a `mine` push (a released seat, a cancelled event) break through
-      // Focus modes. Without it iOS silently downgrades `time-sensitive` to
-      // `active` — nothing errors, the push just stops being urgent. The same
-      // capability must be on the App ID; EAS syncs it for managed credentials.
-      'com.apple.developer.usernotifications.time-sensitive': true,
-    },
+    // No `com.apple.developer.usernotifications.time-sensitive` entitlement yet:
+    // the App ID lacks the capability, and the App Store Connect API cannot add
+    // it (Apple's public capabilityType enum has no value for it) — only the
+    // Account Holder can, in the developer portal. Declaring it without the
+    // capability fails every iOS archive. Without it iOS silently downgrades our
+    // `time-sensitive` pushes to `active`. Restore it once the box is ticked.
   },
   android: {
     package: bundleIdPerEnv[env],
