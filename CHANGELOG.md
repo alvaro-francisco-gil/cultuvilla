@@ -4,6 +4,14 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Fixed
+
+- **Pestañas «Mi pueblo» y «Perfil».** Volvían a salir sin icono y en orden cambiado tras el paso a URLs en español; recuperan su icono y su sitio.
+
+### Changed
+
+- **Explora abre en Artículos.** El selector muestra «Artículos» antes que «Eventos».
+
 ### Added
 
 - **Historia y palabra del día en la portada del pueblo.** Los botones «Historia»
