@@ -4,6 +4,7 @@ import { useAuth } from './useAuth';
 import { readPendingIntent, setPendingIntent, clearPendingIntent } from './pendingIntent';
 import { setPendingVillage, clearPendingVillage } from './pendingVillage';
 import { RegisterSheet } from '../../components/feature/RegisterSheet';
+import { routes } from '../navigation/routes';
 
 interface RegisterGateValue {
   /**
@@ -50,7 +51,7 @@ export function RegisterGateProvider({ children }: { children: ReactNode }) {
     }
     if (intentVillage) void setPendingVillage(intentVillage);
     setVisible(false);
-    router.push('/(auth)/login');
+    router.push(routes.login);
   }, [intent, intentVillage]);
 
   const clearPending = useCallback(() => {
