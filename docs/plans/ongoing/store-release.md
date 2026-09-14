@@ -5,7 +5,7 @@ Google's production review.
 
 ## Status
 
-- **Updated:** 2026-09-11
+- **Updated:** 2026-09-14
 - **Stage:** last step — Play production review. iOS is live.
 - **Branch:** n/a — what remains is external (Play Console).
 - **Done:**
@@ -17,8 +17,12 @@ Google's production review.
     Android OAuth client, and `google.com` + `apple.com` enabled in all three
     Firebase envs — all re-verified by `pnpm check:store-claims` on 2026-09-11
     (17 pass, 0 fail).
+- **Play freeze while in review:** `beta-build-and-submit.yml` is **disabled**
+  (`gh workflow disable`, 2026-09-14) so a `beta` merge does not send a new
+  closed-track build into the production review. v1.2.0 reached beta and prod
+  without a Play submit. Re-enable it once Google approves (step 1 below).
 - **Next:**
-  1. When Google approves: paste the Play URL into `APP_STORES.android`
+  1. When Google approves: `gh workflow enable beta-build-and-submit.yml`; paste the Play URL into `APP_STORES.android`
      ([appStores.ts](../../../apps/mobile/lib/appStores.ts)) and run
      `pnpm check:store-claims`. Commit it **only** if the Android row is `PASS`.
      A listing still reachable only by testers returns 404 to a logged-out
@@ -65,10 +69,10 @@ dev. Why each step is ordered this way is in
 [spanish-village-urls.md](../../decisions/spanish-village-urls.md#hosting-and-native-links).
 Tick these off in order:
 
-1. ⬜ **Promote `develop → beta → main`** as usual. Nothing extra by hand: the two
+1. ✅ **Promote `develop → beta → main`** as usual — done in v1.2.0 (2026-09-14; backfills auto-applied on beta and prod). Nothing extra by hand: the two
    backfills (`municipality-slug`, then `village-slug-denorm`) auto-apply before
    the gates on each deploy.
-2. ⬜ **Check prod after the deploy.**
+2. ✅ **Check prod after the deploy.** — verified 2026-09-14: 404, 301, AASA still legacy.
    - `curl -sI https://cultuvilla.es/pueblo-que-no-existe` → `404`
    - `curl -sI https://cultuvilla.es/legal/privacy` → `301` to `/legal/privacidad`
    - `curl -s https://cultuvilla.es/.well-known/apple-app-site-association` →
