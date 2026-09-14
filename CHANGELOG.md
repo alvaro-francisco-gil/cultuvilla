@@ -6,6 +6,12 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Added
 
+- **Hasta 25 fotos por noticia.** El límite de imágenes dentro del cuerpo de una
+  noticia sube de 10 a 25: una crónica de fiestas o una galería de una jornada ya
+  no obliga a elegir. El coste de almacenamiento es marginal, porque cada foto se
+  reduce a 1600 px antes de subirla y los lectores descargan la versión de
+  tarjeta, de unos 150 KB.
+
 - **Una palabra, muchos pueblos.** Las palabras empiezan a repetirse entre
   pueblos, y eso deja de ser un problema de duplicados para convertirse en lo
   interesante: mientras escribes una palabra nueva, el formulario te muestra si

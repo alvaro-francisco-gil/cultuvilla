@@ -45,7 +45,7 @@ export type EditorBlock = EditorTextBlock | EditorImageBlock;
 
 // Cap to avoid unbounded arrays — the block editor's inline body images, not a
 // gallery, so this is a UI-only product decision rather than a schema limit.
-const MAX_IMAGE_BLOCKS = 10;
+const MAX_IMAGE_BLOCKS = 25;
 
 let blockSeq = 0;
 export function newBlockId(): string {
