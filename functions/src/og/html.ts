@@ -24,12 +24,12 @@ const DEFAULT_DESCRIPTION = 'Eventos y comunidad de tu pueblo.';
  * page can never end up with a title describing one doc and structured data
  * describing another.
  */
+export function defaultOg(): OgMeta {
+  return { title: DEFAULT_TITLE, description: DEFAULT_DESCRIPTION, imageUrl: null };
+}
+
 export function injectMeta(shell: string, og: OgMeta | null, url: string): string {
-  const meta = og ?? {
-    title: DEFAULT_TITLE,
-    description: DEFAULT_DESCRIPTION,
-    imageUrl: null,
-  };
+  const meta = og ?? defaultOg();
 
   const tags = buildMetaTags(meta, url) + (buildJsonLd(meta, url) ?? '');
 

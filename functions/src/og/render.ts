@@ -8,7 +8,7 @@ import {
   getOrgOg,
   type OgMeta,
 } from './fetchers';
-import { injectMeta, injectSeoBody } from './html';
+import { defaultOg, injectMeta, injectSeoBody } from './html';
 import { getSpaShell } from './spaShell';
 import { webOriginForProject } from '@cultuvilla/shared/utils';
 
@@ -64,8 +64,9 @@ function redirectTarget(pathname: string, route: ParsedAppPath, og: OgMeta): str
  *
  * Behaviour:
  *   - Known route, doc exists → 200 with og:* populated
- *   - Known route, doc missing (404 in Firestore) → 200 with default og,
- *     so the SPA's own /not-found UI renders normally
+ *   - Known route, doc missing → 404 + noindex with default og, still the
+ *     SPA shell, so the app's own not-found UI renders normally
+ *   - Known route, fetch threw → 200 with default og (best-effort)
  *   - Unknown URL pattern → 200 with default og (defensive; Hosting only
  *     routes matching paths here)
  *   - Internal error → 500 plain text (rare; logged)
@@ -102,10 +103,12 @@ export const ogRenderer = onRequest(
       // default preview, not a 500 — so swallow fetch errors down to null and
       // let injectMeta render the defaults.
       let og: OgMeta | null = null;
+      let fetchFailed = false;
       if (route) {
         try {
           og = await fetchOg(route);
         } catch (err) {
+          fetchFailed = true;
           logger.warn('OG fetch failed; rendering default preview', {
             handler: 'ogRenderer',
             path: url.pathname,
@@ -146,6 +149,13 @@ export const ogRenderer = onRequest(
 
       // The shell is still fetched from the request's own origin: that is the
       // Hosting site actually serving this deploy.
+      // A well-formed path to nothing — an unknown pueblo, a deleted event — is
+      // a 404, or Google indexes every mistyped village as its own page. The
+      // shell still ships so the app renders its own not-found screen. A fetch
+      // that threw stays a 200: a Firestore blip must not deindex a real page.
+      const notFound = route !== null && og === null && !fetchFailed;
+      if (notFound) og = { ...defaultOg(), noindex: true };
+
       const shell = await getSpaShell(origin);
       const withMeta = injectMeta(shell, og, canonical);
       // Only indexable pages get the content block. A noindex page (a private
@@ -158,14 +168,16 @@ export const ogRenderer = onRequest(
         handler: 'ogRenderer',
         path: url.pathname,
         ...(route ? describeRoute(route) : { kind: 'unmatched' }),
-        hasDoc: og !== null,
+        hasDoc: !notFound && og !== null,
         noindex: og?.noindex === true,
       });
 
       res
-        .status(200)
+        .status(notFound ? 404 : 200)
         .set('Content-Type', 'text/html; charset=utf-8')
-        .set('Cache-Control', 'public, max-age=600, s-maxage=3600')
+        // A 404 caches briefly: the doc may be created a minute from now, and
+        // an hour-long edge 404 would swallow the first share of it.
+        .set('Cache-Control', notFound ? 'public, max-age=60, s-maxage=300' : 'public, max-age=600, s-maxage=3600')
         .send(html);
     } catch (err) {
       logger.error('ogRenderer failed', {
