@@ -4,6 +4,7 @@ Runtime assets shared across the cultuvilla workspace (logos, icons, imagery).
 
 ## Layout
 
+- `brand/` — the CULTUVILLA lettering (wordmark), see [brand/README.md](brand/README.md)
 - `icons/` — SVG icons and logo marks
 - `images/` — raster imagery (photos, illustrations)
 - `web/` — web-specific assets (og:image, social previews)
