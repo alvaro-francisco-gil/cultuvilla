@@ -14,7 +14,7 @@ import { DeleteHeaderButton } from '../../../../components/feature/DeleteHeaderB
 import { useT } from '../../../../lib/i18n';
 import { useOrgCapabilities } from '../../../../lib/auth/useOrgCapabilities';
 import { getOrganization, updateOrganization, deleteOrganization } from '@cultuvilla/shared/services/organizationService';
-import { deleteImageByURL, uploadOrganizationImage } from '@cultuvilla/shared/services/imageService';
+import { uploadOrganizationImage } from '@cultuvilla/shared/services/imageService';
 import { pickImageAsBlob } from '../../../../lib/images';
 import {
   PROPOSABLE_ORGANIZATION_TYPES,
@@ -96,11 +96,9 @@ export default function OrgEditScreen() {
 
   async function removeImage(index: number) {
     if (!orgId) return;
-    const url = images[index];
     const next = images.filter((_, i) => i !== index);
     await updateOrganization(orgId, { images: next });
     setImages(next);
-    if (url) void deleteImageByURL(url).catch(() => {}); // best-effort orphan cleanup
   }
 
   async function submit() {

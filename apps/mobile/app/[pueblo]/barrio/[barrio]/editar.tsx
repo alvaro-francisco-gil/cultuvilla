@@ -14,7 +14,7 @@ import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilitie
 import { pickImageAsBlob } from '../../../../lib/images';
 import { getBarrio, updateBarrio, deleteBarrio } from '@cultuvilla/shared/services/municipalityService';
 import { hideContent } from '@cultuvilla/shared/services/moderationService';
-import { deleteImageByURL, uploadBarrioImage } from '@cultuvilla/shared/services/imageService';
+import { uploadBarrioImage } from '@cultuvilla/shared/services/imageService';
 import type { VisibilityStatus } from '@cultuvilla/shared/models';
 
 function BarrioEditScreen() {
@@ -93,11 +93,9 @@ function BarrioEditScreen() {
 
   async function removeImage(index: number) {
     if (!villageId || !barrioId) return;
-    const url = images[index];
     const next = images.filter((_, i) => i !== index);
     await updateBarrio(villageId, barrioId, { images: next });
     setImages(next);
-    if (url) void deleteImageByURL(url).catch(() => {}); // best-effort orphan cleanup
   }
 
   async function submit() {

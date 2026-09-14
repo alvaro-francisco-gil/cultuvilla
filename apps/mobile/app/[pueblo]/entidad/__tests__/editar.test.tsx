@@ -20,7 +20,6 @@ jest.mock('@cultuvilla/shared/services/organizationService', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadOrganizationImage: jest.fn(),
-  deleteImageByURL: jest.fn(),
 }));
 
 import { useOrgCapabilities } from '../../../../lib/auth/useOrgCapabilities';

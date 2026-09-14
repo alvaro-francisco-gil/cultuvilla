@@ -26,7 +26,6 @@ jest.mock('@cultuvilla/shared/services/moderationService', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadBarrioImage: jest.fn(),
-  deleteImageByURL: jest.fn(),
 }));
 
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';

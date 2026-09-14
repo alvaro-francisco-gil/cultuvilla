@@ -7,7 +7,7 @@ import {
   type HistoryEntryBody,
   type HistoryEntryImage,
 } from '@cultuvilla/shared/models/history';
-import { deleteImageByURL, uploadHistoryEntryImage } from '@cultuvilla/shared/services/imageService';
+import { uploadHistoryEntryImage } from '@cultuvilla/shared/services/imageService';
 import { Button } from '../../primitives/Button';
 import { FieldLabel } from '../../primitives/FieldLabel';
 import { Input } from '../../primitives/Input';
@@ -84,9 +84,7 @@ export function HistoryEntryForm({
   }
 
   function removeImage(index: number) {
-    const removed = images[index];
     setImages((prev) => prev.filter((_, i) => i !== index));
-    if (removed) void deleteImageByURL(removed.url).catch(() => {}); // best-effort orphan cleanup
   }
 
   function setCaption(index: number, caption: string) {

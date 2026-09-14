@@ -25,7 +25,6 @@ jest.mock('@cultuvilla/shared/services/moderationService', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadFestivalPosterImage: jest.fn(),
-  deleteImageByURL: jest.fn(),
 }));
 jest.mock('../../../../components/feature/OrganizerPicker', () => ({ OrganizerPicker: () => null }));
 

@@ -8,7 +8,6 @@ jest.mock('../../../../lib/useMentionSources', () => ({
 jest.mock('../../../../lib/images', () => ({ pickImageAsBlob: jest.fn() }));
 jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadHistoryEntryImage: jest.fn(),
-  deleteImageByURL: jest.fn(),
 }));
 jest.mock('../../MentionTextInput', () => ({
   MentionTextInput: ({ value, onChange, testID }: {

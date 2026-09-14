@@ -8,7 +8,6 @@ vi.mock('firebase/storage', () => ({
   ref: vi.fn(),
   uploadBytes: vi.fn(),
   getDownloadURL: vi.fn(),
-  deleteObject: vi.fn(),
 }));
 
 import { validateUploadableImage } from '../../src/services/imageService';

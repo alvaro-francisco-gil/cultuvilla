@@ -27,7 +27,6 @@ jest.mock('@cultuvilla/shared/services/moderationService', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadPlaceImage: jest.fn(),
-  deleteImageByURL: jest.fn(),
 }));
 jest.mock('../../../../components/feature/OrganizerPicker', () => {
   const { Text } = jest.requireActual('react-native');

@@ -1,4 +1,4 @@
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getFirebaseStorage } from '../firebase';
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -203,9 +203,4 @@ export async function uploadHistoryEntryImage(
 /** Resolve a download URL for a stored news image path. */
 export async function newsImageDownloadURL(storagePath: string): Promise<string> {
   return getDownloadURL(ref(getFirebaseStorage(), storagePath));
-}
-
-export async function deleteImageByURL(url: string): Promise<void> {
-  const storageRef = ref(getFirebaseStorage(), url);
-  await deleteObject(storageRef);
 }
