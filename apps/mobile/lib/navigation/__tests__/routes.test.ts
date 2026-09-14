@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { resolveAuthRoute } from '../../auth/authRoute';
 import {
@@ -66,6 +66,14 @@ function resolvesToRouteFile(path: string): boolean {
   return walk(appDir, segments);
 }
 
+const E2E_VILLAGE_SLUG = 'altozano-de-prueba';
+
+/** True when a first path segment names a file or folder in app/ (or a group), not [pueblo]. */
+function isStaticTopSegment(head: string): boolean {
+  const dirs = [appDir, ...readdirSync(appDir).filter((e) => /^\(.+\)$/.test(e)).map((g) => join(appDir, g))];
+  return dirs.some((dir) => isRouteFile(dir, head) || existsSync(join(dir, head)));
+}
+
 const event = { id: 'e1', title: 'Fiesta', villageSlug: 'villa', visibilityOrgId: null };
 const org = { id: 'o1', name: 'Peña', villageSlug: 'villa' };
 const poster = { id: 'c1', title: null, year: 1987, villageSlug: 'villa' };
@@ -117,6 +125,27 @@ describe('every in-app path lands on a route file', () => {
     ].filter((r): r is NonNullable<typeof r> => r != null);
     expect(redirects.length).toBeGreaterThan(0);
     for (const path of redirects) expect(resolvesToRouteFile(path)).toBe(true);
+  });
+
+  // A top-level segment that no file names still "resolves" — to [pueblo], as a
+  // village slug. So a Maestro link to a renamed screen (`cultuvilla://profile`
+  // after the move to `/perfil`) passes the check above and fails only on the
+  // AVD, as a village-not-found screen with no tab bar.
+  it('so does every deep link the native e2e suite opens', () => {
+    const nativeDir = resolve(__dirname, '../../../e2e/native');
+    const links = ['flows', 'subflows'].flatMap((sub) =>
+      readdirSync(join(nativeDir, sub))
+        .filter((f) => f.endsWith('.yaml'))
+        .flatMap((f) => [...readFileSync(join(nativeDir, sub, f), 'utf8').matchAll(/openLink:\s*'?cultuvilla:\/\/([^'\s]*)/g)])
+        .map((m) => m[1]!.split('?')[0]!),
+    );
+    expect(links.length).toBeGreaterThan(0);
+    for (const path of links) {
+      expect(resolvesToRouteFile(`/${path}`)).toBe(true);
+      const head = path.split('/')[0]!;
+      const isVillage = head === E2E_VILLAGE_SLUG || head.startsWith('${');
+      if (!isVillage) expect({ path, static: isStaticTopSegment(head) }).toEqual({ path, static: true });
+    }
   });
 
   it('does not resolve a path no file answers', () => {

@@ -11,11 +11,11 @@ appId: com.cultuvilla.app.dev
 - clearState
 # A concrete route, never the bare `cultuvilla://` — expo-dev-client's launcher
 # claims the schemeless link even in this release APK.
-- openLink: 'cultuvilla://profile'
+- openLink: 'cultuvilla://perfil'
 - extendedWaitUntil:
     visible: 'Explora'
     timeout: 90000
-- openLink: 'cultuvilla://profile?e2eLogin=${EMAIL}%7C${PASSWORD}'
+- openLink: 'cultuvilla://perfil?e2eLogin=${EMAIL}%7C${PASSWORD}'
 - extendedWaitUntil:
     visible:
       id: 'person-given-name'
