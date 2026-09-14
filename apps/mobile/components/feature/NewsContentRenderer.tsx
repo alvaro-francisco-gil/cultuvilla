@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Image, View } from 'react-native';
-import { VStack } from '../primitives';
+import { Text, VStack } from '../primitives';
+import { HEADING_PRESENTATION } from '../../lib/newsHeading';
 import { RichText } from './RichText';
 import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
 import type { NewsBlock, NewsImageBlock } from '@cultuvilla/shared/models/news/NewsPostDataModel';
@@ -69,8 +70,8 @@ interface NewsContentRendererProps {
 }
 
 /**
- * Render a news post's rich body: an ordered list of text (with inline
- * `@`-mentions) and image blocks. Falls back to the legacy `body` string for
+ * Render a news post's rich body: an ordered list of section/subsection
+ * headings, text (with inline `@`-mentions) and image blocks. Falls back to the legacy `body` string for
  * posts authored before the block model existed.
  */
 export function NewsContentRenderer({ content, body, villageSlug }: NewsContentRendererProps) {
@@ -81,7 +82,16 @@ export function NewsContentRenderer({ content, body, villageSlug }: NewsContentR
   return (
     <VStack gap={4}>
       {content.map((block, i) =>
-        block.type === 'text' ? (
+        block.type === 'text' && block.style !== 'paragraph' ? (
+          <Text
+            key={i}
+            accessibilityRole="header"
+            variant={HEADING_PRESENTATION[block.style].variant}
+            className={`${HEADING_PRESENTATION[block.style].className} ${i > 0 ? 'pt-2' : ''}`}
+          >
+            {block.text}
+          </Text>
+        ) : block.type === 'text' ? (
           <RichText
             key={i}
             text={block.text}

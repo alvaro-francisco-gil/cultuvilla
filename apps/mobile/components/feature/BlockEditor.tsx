@@ -1,15 +1,23 @@
-import { useRef } from 'react';
-import { Image, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Image, Text as RNText, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@cultuvilla/shared/design-system';
-import { Pressable, Text, VStack } from '../primitives';
+import { colors, iconSizes } from '@cultuvilla/shared/design-system';
+import { HStack, Pressable, Text, VStack } from '../primitives';
 import { useT } from '../../lib/i18n';
 import { pickImageWithSize } from '../../lib/images';
 import { MentionTextInput } from './MentionTextInput';
+import { HEADING_PRESENTATION, type HeadingLevel } from '../../lib/newsHeading';
 import { splitMentionsAtCaret, type MentionCandidate } from '../../lib/mentionText';
-import type { NewsMention, NewsLink, NewsMark } from '@cultuvilla/shared/models/news/NewsPostDataModel';
+import type {
+  NewsMention,
+  NewsLink,
+  NewsMark,
+  NewsTextBlock,
+} from '@cultuvilla/shared/models/news/NewsPostDataModel';
 
 const ACCENT = colors.light.fg.accent;
+const MUTED = colors.light.fg.muted;
+
 
 /**
  * Editor-side block. Distinct from the persisted `NewsBlock`: it carries a
@@ -41,7 +49,16 @@ export type EditorImageBlock = {
   captionLinks: NewsLink[];
   captionMarks: NewsMark[];
 };
-export type EditorBlock = EditorTextBlock | EditorImageBlock;
+/** A section / subsection title: plain text, no mentions, links or marks. */
+export type EditorHeadingBlock = {
+  id: string;
+  type: 'heading';
+  text: string;
+  level: HeadingLevel;
+};
+export type EditorBlock = EditorTextBlock | EditorImageBlock | EditorHeadingBlock;
+
+const HEADING_LEVELS: HeadingLevel[] = ['section', 'subsection'];
 
 // Cap to avoid unbounded arrays — the block editor's inline body images, not a
 // gallery, so this is a UI-only product decision rather than a schema limit.
@@ -57,6 +74,20 @@ export function emptyTextBlock(): EditorTextBlock {
   return { id: newBlockId(), type: 'text', text: '', mentions: [], links: [], marks: [] };
 }
 
+/** Stored text block → editor block. A heading is persisted as a styled text block. */
+export function newsTextToEditorBlock(b: NewsTextBlock): EditorTextBlock | EditorHeadingBlock {
+  if (b.style !== 'paragraph') return { id: newBlockId(), type: 'heading', text: b.text, level: b.style };
+  return { id: newBlockId(), type: 'text', text: b.text, mentions: b.mentions, links: b.links, marks: b.marks };
+}
+
+/** Editor text or heading block → stored text block. */
+export function editorBlockToNewsText(b: EditorTextBlock | EditorHeadingBlock): NewsTextBlock {
+  if (b.type === 'heading') {
+    return { type: 'text', text: b.text, mentions: [], links: [], marks: [], style: b.level };
+  }
+  return { type: 'text', text: b.text, mentions: b.mentions, links: b.links, marks: b.marks, style: 'paragraph' };
+}
+
 interface BlockEditorProps {
   blocks: EditorBlock[];
   onChange: (blocks: EditorBlock[]) => void;
@@ -66,11 +97,12 @@ interface BlockEditorProps {
 
 /**
  * A block editor for news bodies — the mobile analogue of a WordPress editor,
- * kept deliberately simple: you write in a text area, and the single "add image"
- * action drops an image at the caret. That splits the current paragraph in two
- * (text before the caret / text after) with the image between, and guarantees a
- * text box after the image so writing can continue. There is no separate
- * "add paragraph" or manual reorder — the structure follows from where images go.
+ * kept deliberately simple: you write in a text area, and the "add section" /
+ * "add image" actions drop a heading or image at the caret. That splits the
+ * current paragraph in two (text before the caret / text after) with the new
+ * block between, and guarantees a text box after it so writing can continue.
+ * There is no separate "add paragraph" or manual reorder — the structure follows
+ * from where headings and images go.
  */
 export function BlockEditor({ blocks, onChange, candidates, textTestIDPrefix }: BlockEditorProps) {
   const { t } = useT();
@@ -83,9 +115,12 @@ export function BlockEditor({ blocks, onChange, candidates, textTestIDPrefix }: 
     onChange(blocks.map((b) => (b.id === id ? ({ ...b, ...patch } as EditorBlock) : b)));
   }
 
-  // Removing an image between two text blocks merges them back into one, so the
-  // author never ends up with invisibly-adjacent text blocks.
-  function removeImage(id: string) {
+  // The block inserted last, focused on mount so the author can type its title.
+  const [autoFocusId, setAutoFocusId] = useState<string | null>(null);
+
+  // Removing an image or heading between two paragraphs merges them back into
+  // one, so the author never ends up with invisibly-adjacent text blocks.
+  function removeBlock(id: string) {
     const i = blocks.findIndex((b) => b.id === id);
     if (i < 0) return;
     const prev = blocks[i - 1];
@@ -107,28 +142,14 @@ export function BlockEditor({ blocks, onChange, candidates, textTestIDPrefix }: 
     }
   }
 
-  async function addImageAtCaret() {
-    const picked = await pickImageWithSize();
-    if (!picked) return;
-    const image: EditorImageBlock = {
-      id: newBlockId(),
-      type: 'image',
-      storagePath: null,
-      blob: picked.blob,
-      uri: picked.previewUri ?? null,
-      width: picked.width,
-      height: picked.height,
-      caption: '',
-      captionMentions: [],
-      captionLinks: [],
-      captionMarks: [],
-    };
-
+  // Drop `inserted` at the caret of the focused paragraph, splitting it in two
+  // (text before / text after). A text box always follows so writing can
+  // continue. With no focused paragraph, the block is appended.
+  function insertAtCaret(inserted: EditorBlock) {
     const i = active.current.id ? blocks.findIndex((b) => b.id === active.current.id) : -1;
     const target = i >= 0 ? blocks[i] : undefined;
     if (!target || target.type !== 'text') {
-      // No focused paragraph — append the image and a fresh text box to write in.
-      onChange([...blocks, image, emptyTextBlock()]);
+      onChange([...blocks, inserted, emptyTextBlock()]);
       return;
     }
 
@@ -154,9 +175,36 @@ export function BlockEditor({ blocks, onChange, candidates, textTestIDPrefix }: 
     };
     const middle: EditorBlock[] = [];
     if (beforeBlock.text.length > 0) middle.push(beforeBlock);
-    middle.push(image);
-    middle.push(afterBlock); // always leave a text box after the image
+    middle.push(inserted);
+    middle.push(afterBlock);
+    // The focused paragraph was consumed by the split; a later insert with no
+    // re-focus must not act on its stale caret.
+    active.current = { id: null, caret: 0 };
     onChange([...blocks.slice(0, i), ...middle, ...blocks.slice(i + 1)]);
+  }
+
+  async function addImageAtCaret() {
+    const picked = await pickImageWithSize();
+    if (!picked) return;
+    insertAtCaret({
+      id: newBlockId(),
+      type: 'image',
+      storagePath: null,
+      blob: picked.blob,
+      uri: picked.previewUri ?? null,
+      width: picked.width,
+      height: picked.height,
+      caption: '',
+      captionMentions: [],
+      captionLinks: [],
+      captionMarks: [],
+    });
+  }
+
+  function addSectionAtCaret() {
+    const heading: EditorHeadingBlock = { id: newBlockId(), type: 'heading', text: '', level: 'section' };
+    setAutoFocusId(heading.id);
+    insertAtCaret(heading);
   }
 
   return (
@@ -180,6 +228,15 @@ export function BlockEditor({ blocks, onChange, candidates, textTestIDPrefix }: 
               if (active.current.id === block.id) active.current.caret = caret;
             }}
           />
+        ) : block.type === 'heading' ? (
+          <HeadingBlock
+            key={block.id}
+            block={block}
+            autoFocus={block.id === autoFocusId}
+            onText={(text) => updateBlock(block.id, { text })}
+            onLevel={(level) => updateBlock(block.id, { level })}
+            onRemove={() => removeBlock(block.id)}
+          />
         ) : (
           <ImageBlock
             key={block.id}
@@ -189,18 +246,29 @@ export function BlockEditor({ blocks, onChange, candidates, textTestIDPrefix }: 
             removeLabel={t('news.compose.block.removeImage')}
             onCaption={(caption, captionMentions, captionLinks, captionMarks) =>
               updateBlock(block.id, { caption, captionMentions, captionLinks, captionMarks })}
-            onRemove={() => removeImage(block.id)}
+            onRemove={() => removeBlock(block.id)}
           />
         ),
       )}
 
-      {imageBlockCount < MAX_IMAGE_BLOCKS ? (
-        <AddBlockButton
-          icon="image-outline"
-          label={t('news.compose.block.addImage')}
-          onPress={() => void addImageAtCaret()}
-        />
-      ) : null}
+      <HStack gap={3}>
+        <View className="flex-1">
+          <AddBlockButton
+            icon="text-outline"
+            label={t('news.compose.block.addSection')}
+            onPress={addSectionAtCaret}
+          />
+        </View>
+        {imageBlockCount < MAX_IMAGE_BLOCKS ? (
+          <View className="flex-1">
+            <AddBlockButton
+              icon="image-outline"
+              label={t('news.compose.block.addImage')}
+              onPress={() => void addImageAtCaret()}
+            />
+          </View>
+        ) : null}
+      </HStack>
     </VStack>
   );
 }
@@ -257,6 +325,68 @@ function ImageBlock({
         candidates={candidates}
         placeholder={captionPlaceholder}
         onChange={onCaption}
+      />
+    </VStack>
+  );
+}
+
+function HeadingBlock({
+  block,
+  autoFocus,
+  onText,
+  onLevel,
+  onRemove,
+}: {
+  block: EditorHeadingBlock;
+  autoFocus: boolean;
+  onText: (text: string) => void;
+  onLevel: (level: HeadingLevel) => void;
+  onRemove: () => void;
+}) {
+  const { t } = useT();
+  const placeholder = t(`news.compose.block.${block.level}Placeholder`);
+  return (
+    <VStack gap={2} className="rounded-md border border-subtle bg-surface px-3 py-2">
+      <HStack gap={2} className="items-center">
+        {HEADING_LEVELS.map((level) => {
+          const selected = block.level === level;
+          return (
+            <Pressable
+              key={level}
+              onPress={() => onLevel(level)}
+              accessibilityRole="button"
+              accessibilityLabel={t(`news.compose.block.${level}`)}
+              accessibilityState={{ selected }}
+              className={`rounded-full border px-3 py-1 ${selected ? 'border-accent bg-surface-elevated' : 'border-subtle'}`}
+            >
+              <RNText className={`text-caption ${selected ? 'text-accent' : 'text-muted'}`}>
+                {t(`news.compose.block.${level}`)}
+              </RNText>
+            </Pressable>
+          );
+        })}
+        <View className="flex-1" />
+        <Pressable
+          onPress={onRemove}
+          accessibilityRole="button"
+          accessibilityLabel={t('news.compose.block.removeSection')}
+          hitSlop={8}
+          className="h-8 w-8 items-center justify-center"
+        >
+          <Ionicons name="close" size={iconSizes.md} color={MUTED} />
+        </Pressable>
+      </HStack>
+      <TextInput
+        value={block.text}
+        onChangeText={onText}
+        autoFocus={autoFocus}
+        placeholder={placeholder}
+        placeholderTextColor={MUTED}
+        accessibilityLabel={placeholder}
+        className={`text-primary text-${HEADING_PRESENTATION[block.level].variant} ${HEADING_PRESENTATION[block.level].className}`}
+        style={{ padding: 0 }}
+        cursorColor={ACCENT}
+        selectionColor={ACCENT}
       />
     </VStack>
   );

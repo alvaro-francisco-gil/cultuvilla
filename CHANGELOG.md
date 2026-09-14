@@ -19,6 +19,11 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   no obliga a elegir. El coste de almacenamiento es marginal, porque cada foto se
   reduce a 1600 px antes de subirla y los lectores descargan la versión de
   tarjeta, de unos 150 KB.
+- **Secciones en los artículos.** Al escribir un artículo, «Añadir sección»
+  inserta un título donde está el cursor, como una **Sección** o una
+  **Subsección**, para ordenar textos largos (el programa de fiestas, una
+  crónica por días). En el artículo publicado se ven como títulos. Las versiones
+  anteriores de la app los muestran como un párrafo normal.
 
 - **Una palabra, muchos pueblos.** Las palabras empiezan a repetirse entre
   pueblos, y eso deja de ser un problema de duplicados para convertirse en lo
@@ -230,6 +235,12 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   antes de guardar, así que cancelar la edición podía dejar la ficha apuntando a
   una foto ya borrada. Ahora lo hace el servidor, después de guardar, y solo con
   fotos subidas para esa misma ficha.
+- **Editar un artículo ya no salta de paso al seleccionar texto.** Los
+  formularios por pasos ya no cambian de paso deslizando: se avanza con los
+  botones o los puntos. Al arrastrar para seleccionar texto (sobre todo con el
+  ratón) se saltaba al paso siguiente.
+- **La negrita y la cursiva ya no se ven dobles al escribir en la app.** El
+  texto con formato aparecía como dos copias superpuestas en iOS y Android.
 
 - **En el iPhone, Safari no ofrecía la app — y la web se declaraba en inglés.**
   La v1.1.0 anunció que Safari mostraría su propia barra de descarga del App
