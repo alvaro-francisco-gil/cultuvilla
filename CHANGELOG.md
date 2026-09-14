@@ -37,27 +37,34 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   **Los motes y los topónimos nunca se comparten**, a propósito. Un mote nombra
   a una familia de un pueblo y un topónimo a un paraje suyo: «El Cerro» de dos
   pueblos son dos sitios distintos, y juntarlos sería un error, no una limpieza.
-- **El resumen de las fiestas.** Cuando terminan unas fiestas que el pueblo
-  había fijado en el calendario, la app prepara sola su **resumen**: siete
-  imágenes verticales, para compartir tal cual por WhatsApp — la portada, las
-  cifras (con la media de personas por evento), todos los eventos con su
-  cartel, los artículos del año, el pueblo entero en burbujas, todos los que
-  organizaron algo, y los carteles de este año sumados al archivo histórico.
+- **El resumen de las fiestas.** Un administrador del pueblo crea desde
+  *Editar pueblo → Resumen de fiestas* el **resumen del año**: siete imágenes
+  verticales, para compartir tal cual por WhatsApp — la portada, las cifras
+  (con la media de personas por evento), todos los eventos con su cartel, los
+  artículos, el pueblo entero en burbujas, todos los que organizaron algo, y los
+  carteles de este año sumados al archivo histórico.
+
+  **Un solo resumen por año, con todas sus fiestas**: Santiago en julio y el
+  Carmen en agosto van juntos, y la portada nombra cada una con sus fechas. Al
+  crearlo se eligen en un calendario **los días de cada fiesta** de ese año y el
+  **periodo del resumen**: de él salen los eventos, las inscripciones y los
+  artículos. Por defecto va de la primera fiesta a la última, y se puede ampliar
+  — por ejemplo, para incluir lo que se escribió la semana antes. Una fiesta que
+  este año no se celebró se deja fuera con un interruptor.
 
   En los créditos cuenta **cada organizador de cada evento** — todas las
   asociaciones y todas las personas del equipo, no solo quien lo dio de alta —
   con su foto de perfil si su persona es pública. Un año sin artículos no
   lleva esa imagen, en vez de una vacía.
 
-  No se publica a tus espaldas ni se queda esperando para siempre: los
-  administradores del pueblo reciben un aviso de que está listo, pueden
-  **publicarlo** o **descartarlo**, y si nadie hace nada se publica solo a los
-  **tres días**. Un bloque flojo (menos de tres eventos, o ninguna
-  inscripción) nunca se publica solo — se ofrece, y decide una persona.
-
-  Solo participan los pueblos que han confirmado las fechas exactas de ese
-  año. Un resumen publicado se abre sin estar registrado, para que el enlace
-  siga funcionando en manos de quien lo reciba.
+  El mes siguiente a las últimas fiestas del año, los administradores reciben
+  **un aviso** para crearlo. Tras generarlo lo ven como borrador y pueden
+  **publicarlo** o **descartarlo**; si nadie hace nada se publica solo a los
+  **tres días**, salvo que tenga poca actividad (menos de tres eventos, o
+  ninguna inscripción): entonces decide una persona. Se puede regenerar con
+  otras fechas — si ya estaba publicado sigue publicado con las imágenes nuevas.
+  Un resumen publicado se abre sin estar registrado, para que el enlace siga
+  funcionando en manos de quien lo reciba.
 - **Direcciones en español, con el nombre del pueblo.** Cada pueblo tiene su
   propia dirección, `cultuvilla.es/matabuena`, fácil de dictar o de imprimir en
   un bando, y todo lo que publica cuelga de ella:
@@ -184,28 +191,22 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   Un término sólo desaparece cuando se queda sin significados: `definitionCount`
   lo lleva un trigger y las reglas lo leen para permitir —o no— que su autor lo
   retire.
-- **Un pueblo ya puede declarar cuándo son sus fiestas — y pueden ser varias.**
-  Matabuena tiene dos: las de Santiago en julio y las de agosto, con semanas
-  normales por medio. Un único rango de fechas no describe el año, así que las
-  fiestas se declaran como una lista de bloques en la ficha del pueblo
+- **Un pueblo ya puede declarar sus fiestas — y pueden ser varias.**
+  Matabuena tiene dos: Santiago en julio y el Carmen en agosto, con semanas
+  normales por medio. Así que las fiestas son una lista en la ficha del pueblo
   (`community.fiestas`), editable por los administradores desde *Editar pueblo*.
 
-  Cada bloque lleva **dos cosas que responden a preguntas distintas**: un patrón
-  que se repite cada año (mes, día y duración), que contesta «¿cuándo son las
-  fiestas?» para cualquier año sin que nadie toque nada; y, opcionalmente, las
-  **fechas exactas confirmadas** de un año concreto. El patrón es exacto para una
-  festividad fija como Santiago y aproximado para unas fiestas que se mueven con
-  el fin de semana — por eso lo que se publique (el futuro resumen de fiestas)
-  exigirá siempre las fechas confirmadas, y nunca trabajará sobre una
-  aproximación que podría dejar fuera o meter de más los eventos de esos días.
-
-  Las fechas se calculan en la zona horaria de España, no en UTC: un bloque que
-  termina el 28 de agosto termina a las 23:59 de esa noche, y no a las 02:00 de
-  la madrugada del propio día, que es lo que pasaría con un límite en UTC.
+  Cada fiesta es **solo un nombre y un mes**. Los días exactos cambian de un año
+  a otro y nadie mantiene un calendario al día, así que no se guardan aquí: se
+  eligen cada año al crear el resumen de fiestas, y quedan guardados en ese
+  resumen.
 
   **Migration:** `scripts/backfill-village-fiestas.mjs` (registrado, `pre-deploy`,
   auto-aplicado por el deploy) siembra `community.fiestas: []` en los pueblos con
-  comunidad activa. Sin él el converter estricto no puede leer la ficha del pueblo.
+  comunidad activa, y `scripts/backfill-village-fiestas-month.mjs` (registrado,
+  `pre-deploy`, auto-aplicado, después del anterior) reduce cada fiesta ya
+  guardada a `{ id, name, month }`. Sin ellos el converter estricto no puede leer
+  la ficha del pueblo.
 
 ### Fixed
 

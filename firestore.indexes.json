@@ -436,7 +436,7 @@
       "fields": [
         { "fieldPath": "municipalityId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "windowStart", "order": "DESCENDING" }
+        { "fieldPath": "year", "order": "DESCENDING" }
       ]
     },
     {

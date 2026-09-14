@@ -32,7 +32,7 @@ function gathered(): GatheredWrapped {
       { id: 'n1', title: 'La carrera, mucho más que 5 kilómetros', publishedAt: new Date('2026-08-31T20:00:00+02:00'), imageURL: 'https://example.invalid/n1.jpg' },
     ],
     inputs: {
-      windows: [WINDOW],
+      range: WINDOW,
       events: [
         {
           id: 'e1', title: 'Torneo de Brisca', status: 'completed', startDate: new Date('2026-08-24T16:00:00+02:00'),
@@ -61,7 +61,7 @@ const offline: typeof fetch = () => Promise.resolve(new Response(null, { status:
 
 describe('composeWrapped', () => {
   it('renders every card at the 9:16 story size', async () => {
-    const { images } = await composeWrapped(gathered(), { blockNames: ['Fiestas de agosto'], year: 2026 }, offline);
+    const { images } = await composeWrapped(gathered(), { blocks: [{ name: 'Fiestas de agosto', ...WINDOW }], year: 2026 }, offline);
     expect(Object.keys(images).sort()).toEqual(['cover', 'events', 'news', 'organizers', 'people', 'posters', 'stats']);
     for (const [card, img] of Object.entries(images)) {
       const meta = await sharp(img.bytes).metadata();
@@ -72,20 +72,20 @@ describe('composeWrapped', () => {
 
   it('still renders the carteles card for a pueblo with no archive yet', async () => {
     const g = { ...gathered(), posters: [] };
-    const { images } = await composeWrapped(g, { blockNames: ['Fiestas de agosto'], year: 2026 }, offline);
+    const { images } = await composeWrapped(g, { blocks: [{ name: 'Fiestas de agosto', ...WINDOW }], year: 2026 }, offline);
     expect((await sharp(images.posters?.bytes).metadata()).width).toBe(1080);
   }, 60_000);
 
   // A blank "0 artículos" card would make a quiet year look dead; it is left out.
   it('leaves the articles card out of a year with no articles', async () => {
     const g = { ...gathered(), news: [] };
-    const { images } = await composeWrapped(g, { blockNames: ['Fiestas de agosto'], year: 2026 }, offline);
+    const { images } = await composeWrapped(g, { blocks: [{ name: 'Fiestas de agosto', ...WINDOW }], year: 2026 }, offline);
     expect(images.news).toBeUndefined();
     expect(images.events).toBeDefined();
   }, 60_000);
 
   it('ships photo cards as JPEG and flat cards as PNG', async () => {
-    const { images } = await composeWrapped(gathered(), { blockNames: ['Fiestas de agosto'], year: 2026 }, offline);
+    const { images } = await composeWrapped(gathered(), { blocks: [{ name: 'Fiestas de agosto', ...WINDOW }], year: 2026 }, offline);
     for (const card of Object.keys(CARD_FORMATS) as (keyof typeof CARD_FORMATS)[]) {
       expect(images[card]?.format).toBe(CARD_FORMATS[card]);
     }
@@ -94,7 +94,7 @@ describe('composeWrapped', () => {
   // A dead photo URL must cost one bubble its photo, never the whole Wrapped.
   it('still renders when every image fetch fails', async () => {
     await expect(
-      composeWrapped(gathered(), { blockNames: ['Fiestas de agosto'], year: 2026 }, offline),
+      composeWrapped(gathered(), { blocks: [{ name: 'Fiestas de agosto', ...WINDOW }], year: 2026 }, offline),
     ).resolves.toBeDefined();
   }, 60_000);
 
@@ -102,14 +102,14 @@ describe('composeWrapped', () => {
   // the cover fits it instead of setting it at a fixed size that overflows.
   it('renders a very long fiesta block name within the card', async () => {
     const blockName = 'Fiestas patronales de Nuestra Señora de la Asunción y San Roque';
-    const { images } = await composeWrapped(gathered(), { blockNames: [blockName], year: 2026 }, offline);
+    const { images } = await composeWrapped(gathered(), { blocks: [{ name: blockName, ...WINDOW }], year: 2026 }, offline);
     const meta = await sharp(images.cover?.bytes).metadata();
     expect({ w: meta.width, h: meta.height }).toEqual({ w: 1080, h: 1920 });
     expect(fitFontSize(blockName, 1080 - 72 * 2, 148, 56)).toBeLessThan(148);
   }, 60_000);
 
   it('reads the censo figure against the censo only', async () => {
-    const { aggregate } = await composeWrapped(gathered(), { blockNames: ['Fiestas de agosto'], year: 2026 }, offline);
+    const { aggregate } = await composeWrapped(gathered(), { blocks: [{ name: 'Fiestas de agosto', ...WINDOW }], year: 2026 }, offline);
     expect(aggregate.stats.uniquePersonCount).toBe(2);
     expect(aggregate.stats.censoParticipantCount).toBe(1);
   }, 60_000);

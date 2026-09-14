@@ -1,5 +1,5 @@
 import { aggregateWrapped, cartelHistory, type WrappedAggregate } from '@cultuvilla/shared/wrapped';
-import type { WrappedCard } from '@cultuvilla/shared/models';
+import type { WrappedBlock, WrappedCard } from '@cultuvilla/shared/models';
 import type { GatheredWrapped } from './gatherInputs';
 import {
   coverCard, eventsCard, newsCard, organizersCard, peopleCard, postersCard, statsCard,
@@ -60,18 +60,15 @@ export interface ComposedWrapped {
  */
 export async function composeWrapped(
   gathered: GatheredWrapped,
-  /** One name per window in `gathered.inputs.windows`, in the same order. */
-  meta: { blockNames: string[]; year: number },
+  /** The fiesta blocks shown on the cover, in date order. */
+  meta: { blocks: Pick<WrappedBlock, 'name' | 'start' | 'end'>[]; year: number },
   fetchImpl: typeof fetch = fetch,
 ): Promise<ComposedWrapped> {
   const aggregate = aggregateWrapped(gathered.inputs);
   const ctx: CardContext = {
     villageName: gathered.villageName,
     year: meta.year,
-    blocks: gathered.inputs.windows.map((w, i) => ({
-      name: meta.blockNames[i] ?? '',
-      dateRange: formatDateRange(w.start, w.end),
-    })),
+    blocks: meta.blocks.map((b) => ({ name: b.name, dateRange: formatDateRange(b.start, b.end) })),
   };
 
   const bodyWidth = CARD_WIDTH - GUTTER * 2;

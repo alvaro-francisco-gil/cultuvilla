@@ -86,6 +86,7 @@ export const VILLAGE_SECTIONS = [
   'historia',
   'lugares',
   'miembros',
+  'resumen',
   'vocabulario',
 ] as const;
 

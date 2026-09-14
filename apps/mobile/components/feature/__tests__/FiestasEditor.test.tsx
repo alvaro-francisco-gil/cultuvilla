@@ -1,27 +1,11 @@
 import { useState } from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { FiestasEditor } from '../FiestasEditor';
 import type { FiestaBlock } from '@cultuvilla/shared/models/municipality/FiestaBlockModel';
 
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 // The date picker is native-heavy; stub it down to a button that emits a date.
-jest.mock('../../primitives/DateField', () => ({
-  DateField: ({ label, value, onChange, testID }: any) => {
-    const { Text, Pressable } = require('react-native');
-    return (
-      <Pressable testID={testID} onPress={() => onChange(new Date('2026-08-30T00:00:00+02:00'))}>
-        <Text>{`${label}:${value ? (value as Date).toISOString() : 'null'}`}</Text>
-      </Pressable>
-    );
-  },
-}));
-
-const agosto: FiestaBlock = {
-  id: 'agosto',
-  name: 'Fiestas de agosto',
-  anchor: { month: 8, day: 23, days: 6 },
-  years: {},
-};
+const agosto: FiestaBlock = { id: 'agosto', name: 'Fiestas de agosto', month: 8 };
 
 /** Wraps the controlled editor so edits round-trip like they do in the screen. */
 function Harness({ initial, onChange }: { initial: FiestaBlock[]; onChange: jest.Mock }) {
@@ -29,7 +13,6 @@ function Harness({ initial, onChange }: { initial: FiestaBlock[]; onChange: jest
   return (
     <FiestasEditor
       blocks={blocks}
-      year={2026}
       onChange={(next) => {
         setBlocks(next);
         onChange(next);
@@ -91,7 +74,7 @@ describe('FiestasEditor', () => {
     expect(onChange.mock.calls[0][0][0].name).toBe('Fiestas grandes');
   });
 
-  it('keeps the id stable across a rename, since it keys the Wrapped', () => {
+  it('keeps the id stable across a rename', () => {
     const onChange = jest.fn();
     const { getByTestId } = render(<Harness initial={[agosto]} onChange={onChange} />);
     const input = getByTestId('fiesta-agosto-name');
@@ -100,57 +83,24 @@ describe('FiestasEditor', () => {
     expect(onChange.mock.calls[0][0][0].id).toBe('agosto');
   });
 
-  it('edits the anchor month and clamps an impossible day', () => {
+  it('adds a block with a month, and nothing else', () => {
     const onChange = jest.fn();
-    const { getByTestId } = render(<Harness initial={[{ ...agosto, anchor: { month: 8, day: 31, days: 1 } }]} onChange={onChange} />);
-    fireEvent.press(getByTestId('fiesta-agosto-month-2'));
-    expect(onChange.mock.calls[0][0][0].anchor).toMatchObject({ month: 2, day: 29 });
+    const { getByTestId } = render(<Harness initial={[]} onChange={onChange} />);
+    fireEvent.changeText(getByTestId('fiesta-new-name'), 'Carmen');
+    fireEvent.press(getByTestId('fiesta-add'));
+    expect(onChange.mock.calls[0][0][0]).toEqual({ id: 'carmen', name: 'Carmen', month: 8 });
   });
 
-  it('never steps the anchor below one day', () => {
-    const onChange = jest.fn();
-    const { getByTestId } = render(<Harness initial={[{ ...agosto, anchor: { month: 8, day: 1, days: 1 } }]} onChange={onChange} />);
-    fireEvent.press(getByTestId('fiesta-agosto-days-minus'));
-    expect(onChange.mock.calls[0][0][0].anchor.days).toBe(1);
-  });
-
-  it('confirming a year materializes the anchor into exact dates', () => {
+  it('sets the month', () => {
     const onChange = jest.fn();
     const { getByTestId } = render(<Harness initial={[agosto]} onChange={onChange} />);
-    fireEvent(getByTestId('fiesta-agosto-confirm'), 'valueChange', true);
-    const years = onChange.mock.calls[0][0][0].years;
-    expect(Object.keys(years)).toEqual(['2026']);
-    expect(years['2026'].start.toISOString()).toBe('2026-08-22T22:00:00.000Z');
+    fireEvent.press(getByTestId('fiesta-agosto-month-7'));
+    expect(onChange.mock.calls[0][0]).toEqual([{ ...agosto, month: 7 }]);
   });
 
-  it('unconfirming a year drops that year only', () => {
-    const withYears: FiestaBlock = {
-      ...agosto,
-      years: {
-        2025: { start: new Date('2025-08-23'), end: new Date('2025-08-28') },
-        2026: { start: new Date('2026-08-23'), end: new Date('2026-08-28') },
-      },
-    };
-    const onChange = jest.fn();
-    const { getByTestId } = render(<Harness initial={[withYears]} onChange={onChange} />);
-    fireEvent(getByTestId('fiesta-agosto-confirm'), 'valueChange', false);
-    expect(Object.keys(onChange.mock.calls[0][0][0].years)).toEqual(['2025']);
-  });
-
-  it('refuses a start date later than the end, rather than persisting an invalid window', () => {
-    const withYear: FiestaBlock = {
-      ...agosto,
-      years: { 2026: { start: new Date('2026-08-23T00:00:00+02:00'), end: new Date('2026-08-25T00:00:00+02:00') } },
-    };
-    const onChange = jest.fn();
-    const { getByTestId } = render(<Harness initial={[withYear]} onChange={onChange} />);
-    // The stubbed picker emits 30 August, which is after the 25 August end.
-    fireEvent.press(getByTestId('fiesta-agosto-start'));
-    expect(onChange).not.toHaveBeenCalled();
-  });
-
-  it('shows the approximate window while a year is unconfirmed', async () => {
-    const { queryByText } = render(<Harness initial={[agosto]} onChange={jest.fn()} />);
-    await waitFor(() => expect(queryByText(/village.fiestas.approximate/)).toBeTruthy());
+  it('marks the selected month', () => {
+    const { getByTestId } = render(<Harness initial={[agosto]} onChange={jest.fn()} />);
+    expect(getByTestId('fiesta-agosto-month-8').props.accessibilityState).toMatchObject({ selected: true });
+    expect(getByTestId('fiesta-agosto-month-7').props.accessibilityState).toMatchObject({ selected: false });
   });
 });

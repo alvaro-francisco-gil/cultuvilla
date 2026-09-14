@@ -1,72 +1,46 @@
 import { z } from 'zod';
-import { EVENT_TZ, madridDayKey } from '../event/EventDataModel';
+import { EVENT_TZ } from '../event/EventDataModel';
 
 /**
  * When a village's fiestas are. A village declares one block per distinct
- * celebration — Matabuena has two (Santiago in July, the fiestas de agosto),
- * with ordinary weeks between them, which is why this is a list and not a
- * single range.
+ * celebration — Matabuena has two (Santiago in July, the Carmen in August),
+ * with ordinary weeks between them, which is why this is a list.
  *
- * Each block carries BOTH a recurring anchor and optional exact per-year
- * windows, because they answer different questions:
- *
- *   anchor  — "when are the fiestas, roughly?", for any year, with no admin
- *             action. Exact for a fixed saint's day; approximate for a block
- *             that tracks a weekend.
- *   years   — the authoritative window for a year that has been scheduled or
- *             has happened.
- *
- * Consumers that publish something (the Wrapped) must pass `exactOnly` so an
- * approximate window can never silently clip or over-include events.
+ * A block is a NAME and a MONTH, nothing more. The exact days move every year
+ * (a block that tracks a weekend) and nobody keeps a calendar pattern up to
+ * date, so the profile holds only what is true every year. The exact dates of
+ * one year are chosen when that year's Wrapped is created, and are stored on
+ * the Wrapped they describe — see `WrappedDataModel`.
  */
 
-/** Days in `month`, counted in a leap year so 29 February is a legal anchor. */
-function daysInMonth(month: number): number {
-  return new Date(Date.UTC(2024, month, 0)).getUTCDate();
-}
-
-export const FiestaAnchorSchema = z
-  .object({
-    month: z.number().int().min(1).max(12),
-    day: z.number().int().min(1).max(31),
-    /** Length of the block in calendar days, inclusive of the first. */
-    days: z.number().int().min(1).max(31),
-  })
-  .refine((a) => a.day <= daysInMonth(a.month), {
-    message: 'anchor day does not exist in that month',
-    path: ['day'],
-  });
-export type FiestaAnchor = z.infer<typeof FiestaAnchorSchema>;
-
-export const FiestaWindowSchema = z
-  .object({ start: z.date(), end: z.date() })
-  .refine((w) => w.end.getTime() >= w.start.getTime(), {
-    message: 'fiesta window ends before it starts',
-    path: ['end'],
-  });
-export type FiestaWindow = z.infer<typeof FiestaWindowSchema>;
-
 export const FiestaBlockSchema = z.object({
-  /** Stable across renames — the Wrapped doc id embeds it. */
+  /** Stable across renames. */
   id: z.string().min(1),
   name: z.string().min(1),
-  anchor: FiestaAnchorSchema,
-  /** Keyed by year as a string, because that is how Firestore stores map keys. */
-  years: z.record(z.string(), FiestaWindowSchema),
+  month: z.number().int().min(1).max(12),
 });
 export type FiestaBlock = z.infer<typeof FiestaBlockSchema>;
 
-export interface FiestaBlockInput {
-  id: string;
-  name: string;
-  anchor: FiestaAnchor;
-  years?: Record<number | string, FiestaWindow>;
+export function buildFiestaBlock(input: FiestaBlock): FiestaBlock {
+  return { id: input.id, name: input.name, month: input.month };
 }
 
-export function buildFiestaBlock(input: FiestaBlockInput): FiestaBlock {
-  const years: Record<string, FiestaWindow> = {};
-  for (const [year, window] of Object.entries(input.years ?? {})) years[year] = window;
-  return { id: input.id, name: input.name, anchor: input.anchor, years };
+/**
+ * A stable, unique, human-readable id for a new block, generated once from the
+ * name and then left alone so a rename never changes it.
+ */
+export function fiestaBlockId(name: string, existingIds: string[]): string {
+  const base =
+    name
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'fiesta';
+  if (!existingIds.includes(base)) return base;
+  let n = 2;
+  while (existingIds.includes(`${base}-${String(n)}`)) n++;
+  return `${base}-${String(n)}`;
 }
 
 /**
@@ -92,105 +66,52 @@ function madridMidnight(year: number, month: number, day: number): Date {
   return new Date(guess - madridOffsetMs(new Date(guess)));
 }
 
-export interface ResolvedFiestaWindow extends FiestaWindow {
-  source: 'exact' | 'anchor';
+/** Year, month and day of a `YYYY-MM-DD` key. Sliced rather than split, so each is a plain number under every tsconfig. */
+function dayParts(key: string): { y: number; m: number; d: number } {
+  return { y: Number(key.slice(0, 4)), m: Number(key.slice(5, 7)), d: Number(key.slice(8, 10)) };
 }
 
-export function resolveFiestaWindow(
-  block: FiestaBlock,
-  year: number,
-  options: { exactOnly?: boolean } = {},
-): ResolvedFiestaWindow | null {
-  // A Zod record types an index read as always-present, so a truthiness guard on
-  // `block.years[key]` is rejected as an impossible condition — while `in`
-  // narrowing widens the value to a partial under the mobile tsconfig. Looking
-  // the entry up is the one form that types honestly in both workspaces.
-  const key = String(year);
-  const exact: FiestaWindow | undefined = Object.entries(block.years).find(([k]) => k === key)?.[1];
-  if (exact) return { ...exact, source: 'exact' };
-  if (options.exactOnly) return null;
-
-  const { month, day, days } = block.anchor;
-  // `Date.UTC` rolls 29 February in a non-leap year forward to 1 March, which
-  // would silently move the fiestas out of the month they were declared in. A
-  // block anchored to the end of February is a February block in every year, so
-  // the day is clamped to this year's month length BEFORE anything is derived
-  // from it — the end of the block is stepped from the clamped start, not the
-  // raw anchor, or it rolls over again.
-  const startDay = Math.min(day, new Date(Date.UTC(year, month, 0)).getUTCDate());
-  const start = madridMidnight(year, month, startDay);
-  // The block ends at the last instant of its final day: Madrid midnight of the
-  // day after, less a millisecond. The day-after is stepped in pure calendar
-  // space rather than off `start` — a Madrid midnight lands on the PREVIOUS UTC
-  // date, so reading UTC fields back off it is a silent day short. Recomputing
-  // the Madrid midnight also keeps the block right across a DST change inside it.
-  const after = new Date(Date.UTC(year, month - 1, startDay + days));
-  const end = new Date(
-    madridMidnight(after.getUTCFullYear(), after.getUTCMonth() + 1, after.getUTCDate()).getTime() - 1,
-  );
-  return { start, end, source: 'anchor' };
-}
+/** A Madrid calendar day as `YYYY-MM-DD` — how a picked day crosses the wire. */
+export const DayKeySchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((key) => {
+    const { y, m, d } = dayParts(key);
+    const probe = new Date(Date.UTC(y, m - 1, d));
+    return probe.getUTCFullYear() === y && probe.getUTCMonth() === m - 1 && probe.getUTCDate() === d;
+  }, 'not a calendar day');
+export type DayKey = z.infer<typeof DayKeySchema>;
 
 /**
- * True once the block's final Madrid calendar day is over. Keyed off the day
- * rather than the instant so a block never ends mid-evening on its last night.
+ * The instants spanning whole Madrid calendar days, first to last inclusive.
+ *
+ * Days, not instants, are what an admin picks, and they are resolved here — on
+ * one side of the wire — so a phone in another time zone can never shift a
+ * fiesta by a day. The end is the last instant of the final day: Madrid
+ * midnight of the day after, less a millisecond, recomputed in calendar space
+ * so a DST change inside the range cannot cut it an hour short.
  */
-export function isFiestaBlockOver(window: FiestaWindow, now: Date): boolean {
-  return madridDayKey(now) > madridDayKey(window.end);
-}
-
-/** The next block that has not finished yet, searching this year then the next. */
-export function nextFiestaWindow(
-  blocks: FiestaBlock[],
-  now: Date,
-): { block: FiestaBlock; window: ResolvedFiestaWindow } | null {
-  const year = Number(madridDayKey(now).slice(0, 4));
-  const candidates = [];
-  for (const offset of [0, 1]) {
-    for (const block of blocks) {
-      const window = resolveFiestaWindow(block, year + offset);
-      if (window && !isFiestaBlockOver(window, now)) candidates.push({ block, window });
-    }
-  }
-  candidates.sort((a, b) => a.window.start.getTime() - b.window.start.getTime());
-  return candidates[0] ?? null;
-}
-
-/**
- * A stable, unique, human-readable id for a new block. The id keys the Wrapped
- * document, so it must survive a later rename of the block — which is exactly
- * why it is generated once from the name and then left alone.
- */
-export function fiestaBlockId(name: string, existingIds: string[]): string {
-  const base =
-    name
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'fiesta';
-  if (!existingIds.includes(base)) return base;
-  let n = 2;
-  while (existingIds.includes(`${base}-${String(n)}`)) n++;
-  return `${base}-${String(n)}`;
-}
-
-/** Coerce a partially-edited anchor into one the schema accepts. */
-export function clampAnchor(anchor: FiestaAnchor): FiestaAnchor {
-  const month = Math.min(12, Math.max(1, Math.round(anchor.month) || 1));
-  const day = Math.min(daysInMonth(month), Math.max(1, Math.round(anchor.day) || 1));
-  const days = Math.min(31, Math.max(1, Math.round(anchor.days) || 1));
-  return { month, day, days };
+export function madridDayRange(startDay: DayKey, endDay: DayKey): { start: Date; end: Date } {
+  const s = dayParts(startDay);
+  const e = dayParts(endDay);
+  const after = new Date(Date.UTC(e.y, e.m - 1, e.d + 1));
+  return {
+    start: madridMidnight(s.y, s.m, s.d),
+    end: new Date(madridMidnight(after.getUTCFullYear(), after.getUTCMonth() + 1, after.getUTCDate()).getTime() - 1),
+  };
 }
 
 /**
  * The Madrid calendar year an instant falls in.
  *
- * A window is stored as UTC instants, so `getFullYear()` is wrong at the edges:
- * midnight on 1 January in Madrid is 23:00 on 31 December UTC, and a January
- * fiesta block would be attributed to — and would collect the carteles of —
- * the previous year.
+ * Instants are stored in UTC, so `getFullYear()` is wrong at the edges:
+ * midnight on 1 January in Madrid is 23:00 on 31 December UTC.
  */
 export function madridYear(at: Date): number {
   return Number(new Intl.DateTimeFormat('en-CA', { timeZone: EVENT_TZ, year: 'numeric' }).format(at));
+}
+
+/** The Madrid calendar month (1–12) an instant falls in. */
+export function madridMonth(at: Date): number {
+  return Number(new Intl.DateTimeFormat('en-CA', { timeZone: EVENT_TZ, month: 'numeric' }).format(at));
 }

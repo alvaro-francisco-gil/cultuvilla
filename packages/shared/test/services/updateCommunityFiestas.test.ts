@@ -29,12 +29,7 @@ vi.mock('firebase/firestore', () => ({
 
 import { updateCommunity } from '../../src/services/municipalityService';
 
-const valid = {
-  id: 'agosto',
-  name: 'Fiestas de agosto',
-  anchor: { month: 8, day: 23, days: 6 },
-  years: {},
-};
+const valid = { id: 'carmen', name: 'Carmen', month: 8 };
 
 beforeEach(() => {
   writes = [];
@@ -59,23 +54,18 @@ describe('updateCommunity — fiestas validation', () => {
     expect(writes).toHaveLength(0);
   });
 
-  it('rejects an impossible anchor', async () => {
-    await expect(
-      updateCommunity('m1', { fiestas: [{ ...valid, anchor: { month: 13, day: 1, days: 1 } }] }),
-    ).rejects.toThrow();
+  it('rejects a month that does not exist', async () => {
+    await expect(updateCommunity('m1', { fiestas: [{ ...valid, month: 13 }] })).rejects.toThrow();
     expect(writes).toHaveLength(0);
   });
 
-  it('rejects a window that ends before it starts', async () => {
-    await expect(
-      updateCommunity('m1', {
-        fiestas: [{ ...valid, years: { 2026: { start: new Date('2026-08-28'), end: new Date('2026-08-23') } } }],
-      }),
-    ).rejects.toThrow();
+  it('rejects the old dated shape, so a stale client cannot write days back', async () => {
+    const dated = { id: 'carmen', name: 'Carmen', anchor: { month: 8, day: 14, days: 3 }, years: {} };
+    await expect(updateCommunity('m1', { fiestas: [dated as never] })).rejects.toThrow();
     expect(writes).toHaveLength(0);
   });
 
-  it('rejects duplicate block ids, which would collide in the Wrapped doc id', async () => {
+  it('rejects duplicate block ids, which the Wrapped request refers to', async () => {
     await expect(updateCommunity('m1', { fiestas: [valid, valid] })).rejects.toThrow();
     expect(writes).toHaveLength(0);
   });

@@ -585,17 +585,63 @@
     },
     "fiestas": {
       "title": "Fiestas del pueblo",
-      "help": "Declara cuándo son las fiestas. Puedes añadir varias: unas de julio y otras de agosto, por ejemplo. Sin fechas declaradas no se genera el resumen de fiestas.",
+      "help": "Pon el nombre de cada fiesta y el mes en que se celebra. Puedes añadir varias: unas en julio y otras en agosto, por ejemplo. Las fechas exactas de cada año se eligen al crear el resumen de fiestas.",
       "namePlaceholder": "Nombre (p. ej. Fiestas de agosto)",
       "add": "Añadir",
       "remove": "Quitar estas fiestas",
-      "anchorLabel": "Mes y día en que suelen empezar",
-      "day": "Día",
-      "days": "Duración (días)",
-      "confirmYear": "Fechas confirmadas de {year}",
-      "startsAt": "Empiezan",
-      "endsAt": "Terminan",
-      "approximate": "Aproximadamente {dates}. Confirma las fechas para generar el resumen."
+      "monthLabel": "Mes"
+    },
+    "wrapped": {
+      "entry": "Resumen de fiestas",
+      "title": "Resumen de Fiestas {year}",
+      "formHelp": "Elige las fechas en que se celebró cada fiesta este año. Aparecen en la portada del resumen.",
+      "blockDates": "Fechas de este año",
+      "blockSkipped": "No se incluye en el resumen de este año.",
+      "range": "Periodo del resumen",
+      "rangePlaceholder": "Elige primero las fechas de las fiestas",
+      "rangeHelp": "Se cuentan los eventos, las inscripciones y los artículos de este periodo. Va de la primera fiesta a la última; puedes ampliarlo, por ejemplo para incluir lo que se publicó la semana antes.",
+      "rangeCustomHelp": "Periodo elegido a mano: se cuentan los eventos, las inscripciones y los artículos de estas fechas.",
+      "rangeReset": "Volver a ajustar a las fiestas",
+      "submit": "Generar resumen",
+      "submitRegenerate": "Regenerar resumen",
+      "building": "Preparando las imágenes… puede tardar un minuto.",
+      "regenerate": "Cambiar fechas y regenerar",
+      "publish": "Publicar",
+      "discard": "Descartar",
+      "discardTitle": "¿Descartar el resumen?",
+      "discardMessage": "No se publicará. Podrás generarlo de nuevo cuando quieras.",
+      "noFiestas": "Para crear el resumen, primero añade las fiestas del pueblo con su nombre y su mes.",
+      "goFiestas": "Añadir fiestas",
+      "draftAutoPublish": "Nadie lo ha visto aún fuera de los administradores. Si no lo publicas ni lo descartas, se publicará solo en tres días.",
+      "draftHeldBack": "Tiene poca actividad, así que no se publicará solo: decide tú si merece la pena.",
+      "status": {
+        "draft": "Borrador",
+        "published": "Publicado",
+        "discarded": "Descartado"
+      },
+      "statusHelp": {
+        "published": "Cualquiera con el enlace puede verlo. Si lo regeneras, sigue publicado con las nuevas imágenes.",
+        "discarded": "No se ha publicado. Si lo regeneras, vuelve a ser un borrador."
+      },
+      "problem": {
+        "no-blocks": "Incluye al menos una fiesta.",
+        "malformed": "Revisa las fechas.",
+        "unknown-block": "Una de esas fiestas ya no está en el pueblo.",
+        "duplicate-block": "Cada fiesta solo puede aparecer una vez.",
+        "outside-year": "Todas las fechas tienen que ser de este año.",
+        "ends-before-start": "Un rango de fechas termina antes de empezar.",
+        "range-in-future": "El periodo no puede terminar después de hoy.",
+        "range-misses-block": "El periodo tiene que incluir las fechas de todas las fiestas."
+      },
+      "card": {
+        "cover": "Portada",
+        "stats": "En números",
+        "events": "Eventos",
+        "news": "Artículos",
+        "people": "Todo el pueblo",
+        "organizers": "Quién lo hizo posible",
+        "posters": "Carteles"
+      }
     }
   },
   "villages": {

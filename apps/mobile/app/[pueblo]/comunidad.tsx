@@ -1,4 +1,4 @@
-import { villageHref } from '../../lib/navigation/routes';
+import { villageHref, villageSectionHref } from '../../lib/navigation/routes';
 import { useVillageRoute, withVillageRoute } from '../../lib/navigation/VillageRouteGate';
 import { Redirect, router } from 'expo-router';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, View } from 'react-native';
@@ -44,7 +44,15 @@ function CommunityScreen() {
         <View className="flex-1">
           <CommunitySettingsEditor villageId={villageId} />
         </View>
-        <View className="bg-surface-elevated px-4 pt-2" style={{ paddingBottom: insets.bottom + 8 }}>
+        <View className="gap-2 bg-surface-elevated px-4 pt-2" style={{ paddingBottom: insets.bottom + 8 }}>
+          <Button
+            variant="secondary"
+            onPress={() => router.push(villageSectionHref(villageSlug, 'resumen'))}
+            fullWidth
+            testID="community-wrapped"
+          >
+            {t('village.wrapped.entry')}
+          </Button>
           <Button onPress={() => router.back()} fullWidth>
             {t('common.done')}
           </Button>

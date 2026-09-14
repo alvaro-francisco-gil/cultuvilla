@@ -4,7 +4,7 @@ import { initializeApp, applicationDefault } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { gatherWrappedInputs } from '../src/wrapped/gatherInputs';
 import { composeWrapped } from '../src/wrapped/composeWrapped';
-import { buildFiestaBlock, resolveFiestaWindow, madridYear } from '@cultuvilla/shared/models';
+import { madridDayRange, madridYear } from '@cultuvilla/shared/models';
 
 /**
  * Render a village's Wrapped to local PNGs from real data, read-only.
@@ -18,30 +18,25 @@ const env = (k: string): string => {
   return v;
 };
 
-/**
- * A Madrid-local window over whole calendar days. Routed through
- * `resolveFiestaWindow` rather than re-derived here, so the preview and the
- * callable can never disagree about where a fiestas block starts and ends.
- */
-function madridWindow(startDay: string, endDay: string): { start: Date; end: Date } {
-  const [y, m, d] = startDay.split('-').map(Number);
-  const days = Math.round((Date.parse(endDay) - Date.parse(startDay)) / 86_400_000) + 1;
-  const block = buildFiestaBlock({ id: 'preview', name: 'preview', anchor: { month: m, day: d, days } });
-  const w = resolveFiestaWindow(block, y);
-  if (!w) throw new Error('could not resolve preview window');
-  return { start: w.start, end: w.end };
+/** `YYYY-MM-DD..YYYY-MM-DD` as Madrid whole days — the same resolution the callable uses. */
+function span(spec: string): { start: Date; end: Date } {
+  const [startDay, endDay] = spec.split('..');
+  return madridDayRange(startDay, endDay);
 }
 
 async function main(): Promise<void> {
   const projectId = env('PREVIEW_PROJECT');
   const municipalityId = env('PREVIEW_MUNICIPALITY');
-  const blocks = env('PREVIEW_BLOCKS').split('|').map((spec) => {
-    const [name, range] = spec.split('@');
-    const [startDay, endDay] = range.split('..');
-    return { name, window: madridWindow(startDay, endDay) };
-  });
-  blocks.sort((a, b) => a.window.start.getTime() - b.window.start.getTime());
-  const windows = blocks.map((b) => b.window);
+  const blocks = env('PREVIEW_BLOCKS')
+    .split('|')
+    .map((spec) => {
+      const [name, days] = spec.split('@');
+      return { name, ...span(days) };
+    })
+    .sort((a, b) => a.start.getTime() - b.start.getTime());
+  const range = process.env.PREVIEW_RANGE
+    ? span(process.env.PREVIEW_RANGE)
+    : { start: blocks[0].start, end: new Date(Math.max(...blocks.map((b) => b.end.getTime()))) };
   const out = env('PREVIEW_OUT');
 
   // Article covers are resolved from the default bucket. All three envs use the
@@ -50,12 +45,9 @@ async function main(): Promise<void> {
   const db = getFirestore();
 
   const t0 = Date.now();
-  const gathered = await gatherWrappedInputs(db, municipalityId, windows);
+  const gathered = await gatherWrappedInputs(db, municipalityId, range);
   const t1 = Date.now();
-  const { aggregate, images } = await composeWrapped(gathered, {
-    blockNames: blocks.map((b) => b.name),
-    year: madridYear(windows[0].start),
-  });
+  const { aggregate, images } = await composeWrapped(gathered, { blocks, year: madridYear(range.start) });
   const t2 = Date.now();
 
   mkdirSync(out, { recursive: true });

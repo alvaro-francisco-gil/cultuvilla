@@ -46,6 +46,10 @@ describe('notificationRoute', () => {
     expect(notificationRoute({ ...base, type: 'org_rejected' }, 'villa')).toBe('/villa/entidades');
   });
 
+  it('sends the Wrapped reminder to the create screen', () => {
+    expect(notificationRoute({ ...base, type: 'village_wrapped_reminder' }, 'villa')).toBe('/villa/resumen');
+  });
+
   it('sends organizer outcomes to the village', () => {
     expect(notificationRoute({ ...base, type: 'organizer_request_approved' }, 'villa')).toBe('/villa');
   });
