@@ -22,8 +22,7 @@ const DISMISS_VELOCITY = 0.6;
 
 /**
  * Decide what releasing a downward drag means. Pure so the rule is
- * unit-testable — PanResponder's gesture state cannot be driven in jest (same
- * reason `classifySwipe` is extracted from `Stepper`).
+ * unit-testable — PanResponder's gesture state cannot be driven in jest.
  *
  * Either a long enough pull or a fast enough flick dismisses; a short, slow
  * drag springs the sheet back.
