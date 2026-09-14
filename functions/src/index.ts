@@ -92,6 +92,15 @@ export { getUserIdHash } from './observability/getUserIdHash';
 // Image variants (downscaled WebP renditions written beside every upload, so
 // cards fetch tens of kilobytes instead of the full-size original)
 export { generateImageVariants } from './images/generateImageVariants';
+export {
+  cleanupRemovedBarrioImages,
+  cleanupRemovedEventImages,
+  cleanupRemovedFestivalPosterImages,
+  cleanupRemovedHistoryEntryImages,
+  cleanupRemovedNewsImages,
+  cleanupRemovedOrganizationImages,
+  cleanupRemovedPlaceImages,
+} from './images/cleanupRemovedImages';
 
 // Village Wrapped (post-fiestas summary cards: built and offered to the
 // village admins when a fiestas block ends, published on a timer if nobody acts)
