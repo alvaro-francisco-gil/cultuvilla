@@ -1,0 +1,21 @@
+# The push soft ask (PushSoftAskSheet) opens over the screen after an earned
+# moment — a first event sign-up or a village join. Every flow starts from
+# `clearState`, so each one that earns the moment gets the sheet, and anything
+# asserted underneath it is hidden. Decline it, as a user saying "Ahora no" would.
+#
+# Optional on both steps: the sheet is rate-limited, so its absence is not a
+# failure — only a sheet left open is.
+appId: com.cultuvilla.app.dev
+---
+- extendedWaitUntil:
+    visible:
+      id: 'push-soft-ask-decline'
+    timeout: 10000
+    optional: true
+- runFlow:
+    when:
+      visible:
+        id: 'push-soft-ask-decline'
+    commands:
+      - tapOn:
+          id: 'push-soft-ask-decline'
