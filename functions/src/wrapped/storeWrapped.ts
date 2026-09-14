@@ -5,11 +5,10 @@ import { logger } from 'firebase-functions/v2';
 import {
   WRAPPED_CARDS,
   wrappedId,
-  type FiestaBlock,
+  type WrappedBlock,
   type WrappedCard,
   type WrappedData,
 } from '@cultuvilla/shared/models';
-import { madridYear, resolveFiestaWindow } from '@cultuvilla/shared/models';
 import { meetsAutoPublishFloor } from '@cultuvilla/shared/wrapped';
 import { villageWrappedDoc } from '@cultuvilla/shared/firebase/refs/admin';
 import { gatherWrappedInputs } from './gatherInputs';
@@ -55,40 +54,33 @@ async function uploadCard(id: string, card: WrappedCard, bytes: Buffer, format: 
 export interface BuiltWrapped {
   id: string;
   data: WrappedData;
-  /** False when the block has no exact window for that year, so nothing was built. */
-  built: boolean;
 }
 
 /**
- * Compute, render, store and persist one block's Wrapped.
+ * Compute, render, store and persist a village's Wrapped for one year.
  *
- * Idempotent by construction: the doc id and every image path are derived from
- * `{municipalityId, year, blockId}`, so a rerun overwrites in place. What it
- * will NOT do is resurrect a decision — a doc already `published` or
- * `discarded` keeps that status and its `autoPublishAt` stays null.
+ * Called only by an admin, with dates already validated by
+ * `resolveWrappedRequest`. Idempotent by construction: the doc id and every
+ * image path derive from `{municipalityId, year}`, so regenerating overwrites
+ * in place.
+ *
+ * A published Wrapped stays published — regenerating replaces its cards, it
+ * does not take it back down. A discarded one returns to draft: asking for it
+ * again is the admin changing their mind.
  */
 export async function buildAndStoreWrapped(
   db: Firestore,
   municipalityId: string,
-  block: FiestaBlock,
-  year: number,
+  wrapped: { year: number; blocks: WrappedBlock[]; range: { start: Date; end: Date } },
   now: Date = new Date(),
-): Promise<BuiltWrapped | null> {
-  // `exactOnly`: an anchor is an approximation, and an approximate window
-  // would silently clip or over-include events in a published summary.
-  const window = resolveFiestaWindow(block, year, { exactOnly: true });
-  if (!window) return null;
-
-  const id = wrappedId(municipalityId, year, block.id);
+): Promise<BuiltWrapped> {
+  const { year, blocks, range } = wrapped;
+  const id = wrappedId(municipalityId, year);
   const ref = villageWrappedDoc(db, id);
-  const existing = await ref.get();
-  const previous = existing.data();
+  const previous = (await ref.get()).data();
 
-  const gathered = await gatherWrappedInputs(db, municipalityId, [window]);
-  const { aggregate, images } = await composeWrapped(gathered, {
-    blockNames: [block.name],
-    year: madridYear(window.start),
-  });
+  const gathered = await gatherWrappedInputs(db, municipalityId, range);
+  const { aggregate, images } = await composeWrapped(gathered, { blocks, year });
 
   const uploaded: [WrappedCard, string][] = [];
   for (const card of WRAPPED_CARDS) {
@@ -97,11 +89,11 @@ export async function buildAndStoreWrapped(
   }
   const urls: Partial<Record<WrappedCard, string>> = Object.fromEntries(uploaded);
 
-  // A thin block is computed and offered, never released on a timer: an
+  // A thin Wrapped is computed and offered, never released on a timer: an
   // auto-published Wrapped showing one event makes the pueblo look dead on its
   // own noticeboard. Only an admin can decide that is worth showing.
   const floor = meetsAutoPublishFloor(aggregate.stats);
-  const status = previous?.status ?? 'draft';
+  const status = previous?.status === 'published' ? 'published' : 'draft';
   const autoPublishAt =
     status === 'draft' && floor
       ? new Date(now.getTime() + AUTO_PUBLISH_GRACE_DAYS * 24 * 60 * 60 * 1000)
@@ -111,10 +103,9 @@ export async function buildAndStoreWrapped(
     municipalityId,
     villageName: gathered.villageName,
     year,
-    blockId: block.id,
-    blockName: block.name,
-    windowStart: window.start,
-    windowEnd: window.end,
+    blocks,
+    rangeStart: range.start,
+    rangeEnd: range.end,
     status,
     autoPublishAt,
     computedAt: now,
@@ -132,11 +123,11 @@ export async function buildAndStoreWrapped(
     municipalityId,
     wrappedId: id,
     year,
-    blockId: block.id,
+    blocks: blocks.length,
     status,
     eventCount: aggregate.stats.eventCount,
     autoPublishes: autoPublishAt !== null,
   });
 
-  return { id, data, built: true };
+  return { id, data };
 }

@@ -5,11 +5,12 @@
  *   node scripts/wrapped-preview.mjs --municipality=digSmD1NFyaOJCPQ99cC \
  *     --start=2026-08-14 --end=2026-08-28 --block="Fiestas de agosto" [--project=cultuvilla-prod] [--out=DIR]
  *
- * Or several blocks as one Wrapped:
+ * Or several blocks as one Wrapped, optionally counted over a wider range:
  *
- *   --blocks="Santiago@2026-07-24..2026-07-26|Fiestas de agosto@2026-08-14..2026-08-28"
+ *   --blocks="Santiago@2026-07-24..2026-07-26|Carmen@2026-08-14..2026-08-28" [--range=2026-07-15..2026-08-31]
  *
- * Dates are Madrid calendar days; each window spans the whole of both.
+ * Dates are Madrid calendar days; each span covers the whole of both. Without
+ * --range, everything is counted from the first block's start to the last one's end.
  */
 import { build } from 'esbuild';
 import { spawnSync } from 'node:child_process';
@@ -50,6 +51,7 @@ const res = spawnSync(process.execPath, [bundle], {
     PREVIEW_PROJECT: args.project || 'cultuvilla-prod',
     PREVIEW_MUNICIPALITY: args.municipality,
     PREVIEW_BLOCKS: blocks,
+    PREVIEW_RANGE: args.range || '',
     PREVIEW_OUT: out,
   },
 });

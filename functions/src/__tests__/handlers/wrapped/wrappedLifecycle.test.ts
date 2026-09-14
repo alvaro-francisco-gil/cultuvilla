@@ -1,24 +1,27 @@
-// The Wrapped lifecycle against the emulators: a block whose window closed is
-// built and offered to the village admins, and a draft nobody answered
-// publishes itself once its grace period runs out.
+// The Wrapped lifecycle against the emulators: an admin creates a year's
+// Wrapped from the dates they pick, the scheduler reminds admins to do so the
+// month after the last fiestas, and a draft nobody answered publishes itself
+// once its grace period runs out.
 
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import * as admin from 'firebase-admin';
 import functionsTestFactory from 'firebase-functions-test';
+import { madridDayKey, madridMonth, madridYear } from '@cultuvilla/shared/models';
 import { resetEmulators } from '../../helpers/firestoreEmulator';
 import { runVillageWrappedLifecycle } from '../../../wrapped/wrappedScheduler';
 import { respondToVillageWrapped } from '../../../wrapped/respondToVillageWrapped';
+import { buildVillageWrapped } from '../../../wrapped/buildVillageWrapped';
 
 const ft = functionsTestFactory({ projectId: process.env.GCLOUD_PROJECT || 'cultuvilla-test' });
 
 const MID = 'mun-wrapped';
 const ADMIN = 'ana';
 const MEMBER = 'luis';
-const BLOCK = 'agosto';
-const WRAPPED_ID = `${MID}_2026_${BLOCK}`;
-// The block closed yesterday, so the very next scheduler run picks it up.
-const END = new Date(Date.now() - 24 * 60 * 60 * 1000);
-const START = new Date(END.getTime() - 5 * 24 * 60 * 60 * 1000);
+const NOW = new Date();
+const YEAR = madridYear(NOW);
+const TODAY = madridDayKey(NOW);
+const WRAPPED_ID = `${MID}_${String(YEAR)}`;
+const BLOCK = { id: 'carmen', name: 'Carmen', month: madridMonth(NOW) };
 
 const db = () => admin.firestore();
 
@@ -38,17 +41,13 @@ async function seedVillage(fiestas: unknown[]): Promise<void> {
   }
 }
 
-const exactBlock = [{
-  id: BLOCK, name: 'Fiestas de agosto', anchor: { month: 8, day: 14, days: 15 },
-  years: { 2026: { start: START, end: END } },
-}];
-
+/** Events that start today, inside a request whose block and range are today. */
 async function seedEvents(count: number, confirmed: number): Promise<void> {
   for (let i = 0; i < count; i += 1) {
     const id = `ev-${String(i)}`;
     await db().doc(`events/${id}`).set({
       municipalityId: MID, villageSlug: 'matabuena', title: `Evento ${String(i)}`, status: 'published',
-      startDate: admin.firestore.Timestamp.fromDate(new Date(START.getTime() + 60_000)),
+      startDate: admin.firestore.Timestamp.fromDate(NOW),
       commentCount: 0, createdBy: ADMIN, organizerOrgIds: [], imageURL: null,
       visibility: 'public', visibilityOrgId: null,
     });
@@ -57,6 +56,21 @@ async function seedEvents(count: number, confirmed: number): Promise<void> {
         .set({ personId: `p-${String(i)}`, userId: MEMBER, status: 'confirmed' });
     }
   }
+}
+
+function todayRequest(overrides: Record<string, unknown> = {}) {
+  return {
+    municipalityId: MID,
+    year: YEAR,
+    blocks: [{ blockId: BLOCK.id, startDay: TODAY, endDay: TODAY }],
+    range: { startDay: TODAY, endDay: TODAY },
+    ...overrides,
+  };
+}
+
+async function build(uid: string | null, data: unknown = todayRequest()): Promise<unknown> {
+  const wrapped = ft.wrap(buildVillageWrapped);
+  return wrapped({ data, auth: uid ? { uid, token: {} } : undefined } as unknown as Parameters<typeof wrapped>[0]);
 }
 
 /**
@@ -78,6 +92,8 @@ async function respond(uid: string | null, decision: string): Promise<unknown> {
   } as unknown as Parameters<typeof wrapped>[0]);
 }
 
+const wrappedData = async () => (await db().doc(`villageWrapped/${WRAPPED_ID}`).get()).data();
+
 describe('village Wrapped lifecycle', () => {
   beforeEach(async () => {
     await resetEmulators();
@@ -86,105 +102,133 @@ describe('village Wrapped lifecycle', () => {
     ft.cleanup();
   });
 
-  it('builds a draft when a block ends, renders its cards, and tells the admins', async () => {
-    await seedVillage(exactBlock);
-    await seedEvents(4, 3);
+  describe('buildVillageWrapped', () => {
+    it('builds a draft from the picked dates and renders its cards', async () => {
+      await seedVillage([BLOCK]);
+      await seedEvents(4, 3);
 
-    await runScheduler();
+      await expect(build(ADMIN)).resolves.toEqual({ wrappedId: WRAPPED_ID, status: 'draft' });
 
-    const snap = await db().doc(`villageWrapped/${WRAPPED_ID}`).get();
-    expect(snap.exists).toBe(true);
-    const data = snap.data();
-    expect(data?.status).toBe('draft');
-    expect(data?.stats.eventCount).toBe(4);
-    // Every card rendered and got a forwardable URL.
-    expect(Object.keys(data?.images ?? {}).sort()).toEqual(
-      ['cover', 'events', 'organizers', 'people', 'posters', 'stats'],
-    );
-    expect(data?.images.cover).toContain('token=');
-    // A block that cleared the floor carries the timer that will release it.
-    expect(data?.autoPublishAt).not.toBeNull();
+      const data = await wrappedData();
+      expect(data?.stats.eventCount).toBe(4);
+      expect(data?.blocks).toHaveLength(1);
+      expect(data?.blocks[0]).toMatchObject({ blockId: 'carmen', name: 'Carmen' });
+      expect(data?.rangeStart).toBeDefined();
+      // Every card with something to show rendered and got a forwardable URL.
+      expect(Object.keys(data?.images ?? {}).sort()).toEqual(
+        ['cover', 'events', 'organizers', 'people', 'posters', 'stats'],
+      );
+      expect(data?.images.cover).toContain('token=');
+      // A Wrapped that cleared the floor carries the timer that will release it.
+      expect(data?.autoPublishAt).not.toBeNull();
+    }, 180_000);
 
-    const adminInbox = await db().collection(`users/${ADMIN}/notifications`).get();
-    expect(adminInbox.docs.map((d) => d.get('type'))).toEqual(['village_wrapped_ready']);
-    const memberInbox = await db().collection(`users/${MEMBER}/notifications`).get();
-    expect(memberInbox.empty).toBe(true);
-  }, 180_000);
+    it('refuses an ordinary member and an anonymous caller', async () => {
+      await seedVillage([BLOCK]);
+      await expect(build(MEMBER)).rejects.toThrow(/autorizado/);
+      await expect(build(null)).rejects.toThrow(/sesión/);
+      expect((await db().collection('villageWrapped').get()).empty).toBe(true);
+    }, 60_000);
 
-  it('leaves villages that never confirmed their dates alone', async () => {
-    await seedVillage([{ id: BLOCK, name: 'Fiestas de agosto', anchor: { month: 8, day: 14, days: 15 }, years: {} }]);
-    await seedEvents(4, 3);
+    it('refuses dates that fail the request rules, naming the problem', async () => {
+      await seedVillage([BLOCK]);
+      await expect(build(ADMIN, todayRequest({ blocks: [{ blockId: 'san-roque', startDay: TODAY, endDay: TODAY }] })))
+        .rejects.toThrow(/ya no está/);
+      await expect(build(ADMIN, { municipalityId: MID, year: 'este' })).rejects.toThrow(/inválidos/);
+      expect((await db().collection('villageWrapped').get()).empty).toBe(true);
+    }, 60_000);
 
-    await runScheduler();
+    // A thin Wrapped on the pueblo's own noticeboard reads as "nothing happened
+    // here". It is still built — an admin may decide it is worth showing.
+    it('never puts a thin Wrapped on the auto-publish timer', async () => {
+      await seedVillage([BLOCK]);
+      await seedEvents(1, 0);
 
-    expect((await db().collection('villageWrapped').get()).empty).toBe(true);
-    expect((await db().collection(`users/${ADMIN}/notifications`).get()).empty).toBe(true);
-  }, 120_000);
+      await build(ADMIN);
 
-  // A thin Wrapped on the pueblo's own noticeboard reads as "nothing happened
-  // here". It is still offered — an admin may decide it is worth showing.
-  it('never puts a thin block on the auto-publish timer', async () => {
-    await seedVillage(exactBlock);
-    await seedEvents(1, 0);
+      const data = await wrappedData();
+      expect(data?.status).toBe('draft');
+      expect(data?.autoPublishAt).toBeNull();
+    }, 120_000);
 
-    await runScheduler();
+    it('keeps a published Wrapped published when it is regenerated', async () => {
+      await seedVillage([BLOCK]);
+      await seedEvents(4, 3);
+      await build(ADMIN);
+      await respond(ADMIN, 'publish');
 
-    const data = (await db().doc(`villageWrapped/${WRAPPED_ID}`).get()).data();
-    expect(data?.status).toBe('draft');
-    expect(data?.autoPublishAt).toBeNull();
-    expect((await db().collection(`users/${ADMIN}/notifications`).get()).size).toBe(1);
-  }, 120_000);
+      await expect(build(ADMIN)).resolves.toEqual({ wrappedId: WRAPPED_ID, status: 'published' });
+      expect((await wrappedData())?.autoPublishAt).toBeNull();
+    }, 240_000);
+
+    it('brings a discarded Wrapped back as a draft when the admin asks again', async () => {
+      await seedVillage([BLOCK]);
+      await seedEvents(4, 3);
+      await build(ADMIN);
+      await respond(ADMIN, 'discard');
+
+      await expect(build(ADMIN)).resolves.toEqual({ wrappedId: WRAPPED_ID, status: 'draft' });
+    }, 240_000);
+  });
+
+  describe('reminder', () => {
+    // The fiestas month just ended: last month in Madrid (December in January).
+    const lastMonth = madridMonth(NOW) === 1 ? 12 : madridMonth(NOW) - 1;
+    const reminderYear = madridMonth(NOW) === 1 ? YEAR - 1 : YEAR;
+    const pastBlock = { id: 'carmen', name: 'Carmen', month: lastMonth };
+
+    it('asks the admins, and only the admins, once', async () => {
+      await seedVillage([pastBlock]);
+
+      await runScheduler();
+      await runScheduler();
+
+      const adminInbox = await db().collection(`users/${ADMIN}/notifications`).get();
+      expect(adminInbox.docs.map((d) => [d.id, d.get('type')])).toEqual([
+        [`wrapped_reminder_${MID}_${String(reminderYear)}`, 'village_wrapped_reminder'],
+      ]);
+      expect(adminInbox.docs[0].get('municipalityId')).toBe(MID);
+      expect((await db().collection(`users/${MEMBER}/notifications`).get()).empty).toBe(true);
+    }, 60_000);
+
+    it('does not remind while the fiestas month is still running', async () => {
+      await seedVillage([BLOCK]);
+      await runScheduler();
+      expect((await db().collection(`users/${ADMIN}/notifications`).get()).empty).toBe(true);
+    }, 60_000);
+
+    it('does not remind a village that already created the Wrapped', async () => {
+      await seedVillage([pastBlock]);
+      await db().doc(`villageWrapped/${MID}_${String(reminderYear)}`).set({ municipalityId: MID, status: 'draft' });
+      await runScheduler();
+      expect((await db().collection(`users/${ADMIN}/notifications`).get()).empty).toBe(true);
+    }, 60_000);
+  });
 
   it('publishes a draft whose grace period ran out', async () => {
-    await seedVillage(exactBlock);
+    await seedVillage([BLOCK]);
     await seedEvents(4, 3);
-    await runScheduler();
+    await build(ADMIN);
     await db().doc(`villageWrapped/${WRAPPED_ID}`)
       .update({ autoPublishAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() - 1000)) });
 
     await runScheduler();
 
-    const data = (await db().doc(`villageWrapped/${WRAPPED_ID}`).get()).data();
+    const data = await wrappedData();
     expect(data?.status).toBe('published');
     expect(data?.autoPublishAt).toBeNull();
   }, 180_000);
 
-  it('never rebuilds or re-notifies a Wrapped that already exists', async () => {
-    await seedVillage(exactBlock);
-    await seedEvents(4, 3);
-    await runScheduler();
-    const first = (await db().doc(`villageWrapped/${WRAPPED_ID}`).get()).get('computedAt');
-
-    await runScheduler();
-
-    const second = (await db().doc(`villageWrapped/${WRAPPED_ID}`).get()).get('computedAt');
-    expect(second).toEqual(first);
-    expect((await db().collection(`users/${ADMIN}/notifications`).get()).size).toBe(1);
-  }, 240_000);
-
-  it('leaves a discarded Wrapped alone forever', async () => {
-    await seedVillage(exactBlock);
-    await seedEvents(4, 3);
-    await runScheduler();
-    await respond(ADMIN, 'discard');
-
-    await runScheduler();
-
-    const data = (await db().doc(`villageWrapped/${WRAPPED_ID}`).get()).data();
-    expect(data?.status).toBe('discarded');
-    expect(data?.autoPublishAt).toBeNull();
-  }, 240_000);
-
   describe('respondToVillageWrapped', () => {
     beforeEach(async () => {
-      await seedVillage(exactBlock);
+      await seedVillage([BLOCK]);
       await seedEvents(4, 3);
-      await runScheduler();
+      await build(ADMIN);
     }, 180_000);
 
     it('lets a village admin publish', async () => {
       await expect(respond(ADMIN, 'publish')).resolves.toEqual({ status: 'published' });
-      const data = (await db().doc(`villageWrapped/${WRAPPED_ID}`).get()).data();
+      const data = await wrappedData();
       expect(data?.status).toBe('published');
       expect(data?.autoPublishAt).toBeNull();
     }, 120_000);

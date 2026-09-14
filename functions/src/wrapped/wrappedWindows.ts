@@ -1,33 +1,23 @@
-import { madridYear, resolveFiestaWindow, type FiestaBlock } from '@cultuvilla/shared/models';
+import { madridMonth, madridYear, type FiestaBlock } from '@cultuvilla/shared/models';
 
 /**
- * How far back a just-ended block is still picked up.
+ * The year whose Wrapped a village's admins should be reminded to create right
+ * now, or null.
  *
- * A block is built once, on the first run after its window closes. The lookback
- * covers a scheduler outage without ever reaching back into last year's
- * fiestas — and the doc's deterministic id makes a second attempt a no-op
- * anyway.
+ * A fiesta block only knows its month, so "the fiestas are over" is read at
+ * month grain: the reminder is due during the month right after the month of
+ * the year's LAST block — September for Matabuena, whose last fiestas are in
+ * August. One month, not "any time after", so a village that adds its fiestas
+ * in November is not nagged about a summer it never meant to summarise.
+ *
+ * A December block rolls over: its reminder falls in January, for the year
+ * that just ended.
  */
-export const END_LOOKBACK_DAYS = 7;
-
-/** Blocks of this village whose exact window closed inside the lookback. */
-export function blocksJustEnded(
-  fiestas: FiestaBlock[],
-  now: Date,
-  lookbackDays = END_LOOKBACK_DAYS,
-): { block: FiestaBlock; year: number }[] {
-  const floor = now.getTime() - lookbackDays * 24 * 60 * 60 * 1000;
-  const out: { block: FiestaBlock; year: number }[] = [];
-  for (const block of fiestas) {
-    // A window can close in a different Madrid year than it opened (a block
-    // straddling New Year), and the previous year is still in range early in
-    // January — so both are checked rather than assuming today's year.
-    for (const year of [madridYear(now), madridYear(now) - 1]) {
-      const window = resolveFiestaWindow(block, year, { exactOnly: true });
-      if (!window) continue;
-      const ended = window.end.getTime();
-      if (ended <= now.getTime() && ended >= floor) out.push({ block, year });
-    }
-  }
-  return out;
+export function wrappedReminderYear(fiestas: FiestaBlock[], now: Date): number | null {
+  if (fiestas.length === 0) return null;
+  const lastMonth = Math.max(...fiestas.map((b) => b.month));
+  const month = madridMonth(now);
+  const year = madridYear(now);
+  if (lastMonth === 12) return month === 1 ? year - 1 : null;
+  return month === lastMonth + 1 ? year : null;
 }

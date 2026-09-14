@@ -1,6 +1,6 @@
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
-import { inAnyWindow, type CartelInput, type WrappedInputs } from '@cultuvilla/shared/wrapped';
+import { inRange, type CartelInput, type WrappedInputs } from '@cultuvilla/shared/wrapped';
 import { EventStatusSchema, RegistrationStatusSchema, isPrivateEvent, madridYear } from '@cultuvilla/shared/models';
 import {
   eventRegistrationsCollection,
@@ -13,10 +13,9 @@ import {
   personsCollection,
   userDoc,
 } from '@cultuvilla/shared/firebase/refs/admin';
-import { END_LOOKBACK_DAYS } from './wrappedWindows';
 
 /**
- * Read everything a Wrapped is built from, for one municipality and its windows.
+ * Read everything a Wrapped is built from, for one municipality and one range.
  *
  * Paths come from the typed factories in `firebase/refs/admin`, so collection
  * names still have one source of truth — but each ref is taken with
@@ -39,7 +38,7 @@ export interface GatheredWrapped {
   people: { personId: string; displayName: string; photoURL: string | null }[];
   /** The whole poster archive, every year, for the carteles card. */
   posters: CartelInput[];
-  /** The year's articles, oldest first, for the news card. */
+  /** Articles published inside the range, oldest first, for the news card. */
   news: { id: string; title: string; publishedAt: Date; imageURL: string | null }[];
 }
 
@@ -133,7 +132,7 @@ function newsImagePath(n: Raw): string | null {
 export async function gatherWrappedInputs(
   db: Firestore,
   municipalityId: string,
-  windows: { start: Date; end: Date }[],
+  range: { start: Date; end: Date },
 ): Promise<GatheredWrapped> {
   const muniSnap = await municipalityDoc(db, municipalityId).withConverter(null).get();
   if (!muniSnap.exists) throw new Error(`municipality ${municipalityId} not found`);
@@ -168,7 +167,7 @@ export async function gatherWrappedInputs(
 
   // Registrations carry no municipalityId, so they are reachable only per
   // event. Only live, in-window events are worth reading.
-  const relevant = events.filter((e) => e.status !== 'cancelled' && inAnyWindow(e.startDate, windows));
+  const relevant = events.filter((e) => e.status !== 'cancelled' && inRange(e.startDate, range));
   const regSnaps = await Promise.all(
     relevant.map((e) => eventRegistrationsCollection(db, e.id).withConverter(null).get()),
   );
@@ -208,8 +207,7 @@ export async function gatherWrappedInputs(
     photosByUserId(db, organizerIds),
   ]);
 
-  if (windows.length === 0) throw new Error('a Wrapped needs at least one window');
-  const year = madridYear(windows[0].start);
+  const year = madridYear(range.start);
   // Every year, not just this one: the carteles card sets this year's posters
   // against the pueblo's whole archive. Only `active` posters: this becomes a
   // forwardable image, so it allowlists rather than excluding `hidden` — a
@@ -225,20 +223,16 @@ export async function gatherWrappedInputs(
     return [{ id: d.id, year: p.year, title: str(p.title), imageURL: images.length > 0 ? images[0] : null }];
   });
 
-  // The year's articles, up to the lookback after the last block ends: a
-  // Wrapped is built inside that lookback, and the chronicle of the fiestas is
-  // usually written in the days right after them. A fixed cutoff, rather than
-  // "until now", keeps a rebuild from growing a card the village already shared.
+  // The same range as everything else, so an admin who widens it to take in
+  // the chronicle written the week before the fiestas gets exactly that.
   // Only `active`, for the same allowlist reason as the carteles.
-  const lastEnd = Math.max(...windows.map((w) => w.end.getTime()));
-  const newsCutoff = lastEnd + END_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
   const newsSnap = await newsCollection(db).withConverter(null).where('municipalityId', '==', municipalityId).get();
   const newsDocs = newsSnap.docs
     .flatMap((d) => {
       const n = d.data();
       const publishedAt = date(n.publishedAt);
       if (!publishedAt || n.status !== 'active') return [];
-      if (madridYear(publishedAt) !== year || publishedAt.getTime() > newsCutoff) return [];
+      if (!inRange(publishedAt, range)) return [];
       return [{ id: d.id, title: str(n.title) ?? '', publishedAt, path: newsImagePath(n) }];
     })
     .sort((a, b) => a.publishedAt.getTime() - b.publishedAt.getTime());
@@ -253,7 +247,7 @@ export async function gatherWrappedInputs(
     posters,
     news,
     inputs: {
-      windows,
+      range,
       events,
       registrations,
       // An organization's picture is the first of its `images`; there is no

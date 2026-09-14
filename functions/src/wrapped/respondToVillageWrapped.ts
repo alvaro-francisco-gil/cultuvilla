@@ -18,9 +18,9 @@ export interface RespondToVillageWrappedResult {
  * A village admin releases or bins a draft Wrapped.
  *
  * Two actions, deliberately: the numbers are the numbers, and a Wrapped an
- * admin could edit would not be worth reading. `discarded` is terminal — the
- * scheduler skips it forever, so a pueblo that says no is not asked again
- * every hour.
+ * admin could edit would not be worth reading. `discarded` sticks: the doc
+ * still exists, so the scheduler never reminds that pueblo about the year
+ * again. Only an admin asking for it again (`buildVillageWrapped`) brings it back.
  */
 export const respondToVillageWrapped = onCall<
   RespondToVillageWrappedData,

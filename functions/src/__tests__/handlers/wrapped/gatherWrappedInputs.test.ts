@@ -49,7 +49,7 @@ async function seedPerson(id: string, fields: Record<string, unknown>): Promise<
 }
 
 async function gather() {
-  return gatherWrappedInputs(db(), MID, [WINDOW]);
+  return gatherWrappedInputs(db(), MID, WINDOW);
 }
 
 describe('gatherWrappedInputs', () => {
@@ -59,7 +59,7 @@ describe('gatherWrappedInputs', () => {
   });
 
   it('throws when the municipality does not exist', async () => {
-    await expect(gatherWrappedInputs(db(), 'nope', [WINDOW])).rejects.toThrow(/not found/);
+    await expect(gatherWrappedInputs(db(), 'nope', WINDOW)).rejects.toThrow(/not found/);
   });
 
   it('prefers the manual escudo over the generated one', async () => {
@@ -184,9 +184,9 @@ describe('gatherWrappedInputs', () => {
     expect(g.inputs.posterCount).toBe(1);
   });
 
-  // WINDOW ends 17 Aug; the lookback reaches 24 Aug. The chronicle written the
-  // week after the fiestas belongs to them, one written in November does not.
-  it("keeps the year's active articles up to the lookback after the last block, oldest first", async () => {
+  // Articles are counted over the same range as everything else, so an admin
+  // who widens it to take in the chronicle written before the fiestas gets it.
+  it('keeps the active articles published inside the range, oldest first', async () => {
     const article = (id: string, publishedAt: string, fields: Record<string, unknown> = {}) =>
       db()
         .doc(`news/${id}`)
@@ -199,17 +199,17 @@ describe('gatherWrappedInputs', () => {
           images: [],
           ...fields,
         });
-    await article('after-fiestas', '2026-08-20T10:00:00+02:00');
-    await article('july', '2026-07-17T10:00:00+02:00');
-    await article('november', '2026-11-02T10:00:00+01:00');
-    await article('last-year', '2025-08-20T10:00:00+02:00');
-    await article('hidden', '2026-08-01T10:00:00+02:00', { status: 'hidden' });
-    await article('draft', '2026-08-01T10:00:00+02:00', { publishedAt: null });
-    await article('elsewhere', '2026-08-01T10:00:00+02:00', { municipalityId: OTHER_MID });
+    await article('closing', '2026-08-17T23:30:00+02:00');
+    await article('opening', '2026-08-14T00:30:00+02:00');
+    await article('before', '2026-08-13T23:30:00+02:00');
+    await article('after', '2026-08-18T00:30:00+02:00');
+    await article('hidden', '2026-08-15T10:00:00+02:00', { status: 'hidden' });
+    await article('draft', '2026-08-15T10:00:00+02:00', { publishedAt: null });
+    await article('elsewhere', '2026-08-15T10:00:00+02:00', { municipalityId: OTHER_MID });
 
     const g = await gather();
 
-    expect(g.news.map((n) => n.id)).toEqual(['july', 'after-fiestas']);
+    expect(g.news.map((n) => n.id)).toEqual(['opening', 'closing']);
     expect(g.news[0].imageURL).toBeNull();
   });
 

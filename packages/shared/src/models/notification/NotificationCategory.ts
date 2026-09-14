@@ -33,7 +33,7 @@ export const NOTIFICATION_CATEGORY: Record<NotificationType, NotificationCategor
   // Addressed to village admins, but it is about the pueblo, not about them,
   // and nothing is lost by muting it: an unanswered Wrapped publishes itself.
   // Not worth breaking quiet hours for, so not `mine`.
-  village_wrapped_ready: 'village',
+  village_wrapped_reminder: 'village',
 
   org_approved: 'social',
   org_rejected: 'social',
