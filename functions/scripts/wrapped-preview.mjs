@@ -5,7 +5,11 @@
  *   node scripts/wrapped-preview.mjs --municipality=digSmD1NFyaOJCPQ99cC \
  *     --start=2026-08-14 --end=2026-08-28 --block="Fiestas de agosto" [--project=cultuvilla-prod] [--out=DIR]
  *
- * Dates are Madrid calendar days; the window spans the whole of both.
+ * Or several blocks as one Wrapped:
+ *
+ *   --blocks="Santiago@2026-07-24..2026-07-26|Fiestas de agosto@2026-08-14..2026-08-28"
+ *
+ * Dates are Madrid calendar days; each window spans the whole of both.
  */
 import { build } from 'esbuild';
 import { spawnSync } from 'node:child_process';
@@ -20,11 +24,10 @@ const args = Object.fromEntries(
     return [k, v.join('=')];
   }),
 );
-for (const k of ['municipality', 'start', 'end', 'block']) {
-  if (!args[k]) {
-    process.stderr.write(`missing --${k}\n`);
-    process.exit(1);
-  }
+const blocks = args.blocks || (args.block && args.start && args.end ? `${args.block}@${args.start}..${args.end}` : '');
+if (!args.municipality || !blocks) {
+  process.stderr.write('need --municipality and either --blocks or --block/--start/--end\n');
+  process.exit(1);
 }
 
 // Externals (firebase-admin, sharp) resolve by walking up from the bundle, so it
@@ -46,9 +49,7 @@ const res = spawnSync(process.execPath, [bundle], {
     GOOGLE_APPLICATION_CREDENTIALS: process.env.GOOGLE_APPLICATION_CREDENTIALS || (existsSync(adc) ? adc : ''),
     PREVIEW_PROJECT: args.project || 'cultuvilla-prod',
     PREVIEW_MUNICIPALITY: args.municipality,
-    PREVIEW_START: args.start,
-    PREVIEW_END: args.end,
-    PREVIEW_BLOCK: args.block,
+    PREVIEW_BLOCKS: blocks,
     PREVIEW_OUT: out,
   },
 });

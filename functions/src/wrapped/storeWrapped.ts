@@ -84,18 +84,18 @@ export async function buildAndStoreWrapped(
   const existing = await ref.get();
   const previous = existing.data();
 
-  const gathered = await gatherWrappedInputs(db, municipalityId, window);
+  const gathered = await gatherWrappedInputs(db, municipalityId, [window]);
   const { aggregate, images } = await composeWrapped(gathered, {
-    blockName: block.name,
+    blockNames: [block.name],
     year: madridYear(window.start),
   });
 
   const uploaded: [WrappedCard, string][] = [];
   for (const card of WRAPPED_CARDS) {
     const img = images[card];
-    uploaded.push([card, await uploadCard(id, card, img.bytes, img.format)]);
+    if (img) uploaded.push([card, await uploadCard(id, card, img.bytes, img.format)]);
   }
-  const urls = Object.fromEntries(uploaded) as Record<WrappedCard, string>;
+  const urls: Partial<Record<WrappedCard, string>> = Object.fromEntries(uploaded);
 
   // A thin block is computed and offered, never released on a timer: an
   // auto-published Wrapped showing one event makes the pueblo look dead on its

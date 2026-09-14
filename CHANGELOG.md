@@ -38,10 +38,16 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   a una familia de un pueblo y un topónimo a un paraje suyo: «El Cerro» de dos
   pueblos son dos sitios distintos, y juntarlos sería un error, no una limpieza.
 - **El resumen de las fiestas.** Cuando terminan unas fiestas que el pueblo
-  había fijado en el calendario, la app prepara sola su **resumen**: seis
+  había fijado en el calendario, la app prepara sola su **resumen**: siete
   imágenes verticales, para compartir tal cual por WhatsApp — la portada, las
-  cifras, todos los eventos con su cartel, el pueblo entero en burbujas, quién
-  organizó más cosas, y los carteles de este año sumados al archivo histórico.
+  cifras (con la media de personas por evento), todos los eventos con su
+  cartel, los artículos del año, el pueblo entero en burbujas, todos los que
+  organizaron algo, y los carteles de este año sumados al archivo histórico.
+
+  En los créditos cuenta **cada organizador de cada evento** — todas las
+  asociaciones y todas las personas del equipo, no solo quien lo dio de alta —
+  con su foto de perfil si su persona es pública. Un año sin artículos no
+  lleva esa imagen, en vez de una vacía.
 
   No se publica a tus espaldas ni se queda esperando para siempre: los
   administradores del pueblo reciben un aviso de que está listo, pueden

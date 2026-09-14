@@ -2,12 +2,13 @@ import { aggregateWrapped, cartelHistory, type WrappedAggregate } from '@cultuvi
 import type { WrappedCard } from '@cultuvilla/shared/models';
 import type { GatheredWrapped } from './gatherInputs';
 import {
-  coverCard, eventsCard, organizersCard, peopleCard, postersCard, statsCard,
-  MAX_EVENT_TILES, POSTER_ASPECT, type CardContext,
+  coverCard, eventsCard, newsCard, organizersCard, peopleCard, postersCard, statsCard,
+  MAX_EVENT_TILES, POSTER_ASPECT, eventTileImageHeight, type CardContext,
 } from './render/cards';
 import { fixedAspectGrid, hexLayout, mosaicLayout } from './render/layout';
 import { IMAGE_CONCURRENCY, loadImages } from './render/images';
 import { renderImage, type ImageFormat } from './render/renderCard';
+import type { SatoriNode } from './render/h';
 import { CARD_WIDTH, GUTTER } from './render/theme';
 
 const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -37,6 +38,7 @@ export const CARD_FORMATS: Record<WrappedCard, ImageFormat> = {
   cover: 'png',
   stats: 'png',
   events: 'jpeg',
+  news: 'jpeg',
   people: 'jpeg',
   organizers: 'png',
   posters: 'jpeg',
@@ -44,12 +46,13 @@ export const CARD_FORMATS: Record<WrappedCard, ImageFormat> = {
 
 export interface ComposedWrapped {
   aggregate: WrappedAggregate;
-  images: Record<WrappedCard, { format: ImageFormat; bytes: Buffer }>;
+  /** A card with nothing to show — the articles card in a year with none — is absent. */
+  images: Partial<Record<WrappedCard, { format: ImageFormat; bytes: Buffer }>>;
 }
 
 /**
  * Aggregate, fetch the images each card needs at the size it draws them, and
- * render all five cards.
+ * render the cards.
  *
  * Images are fetched at their RENDERED size: the layout is computed first so a
  * 60px bubble never pulls a 4MB photo. Every fetch is failure-tolerant (see
@@ -57,15 +60,18 @@ export interface ComposedWrapped {
  */
 export async function composeWrapped(
   gathered: GatheredWrapped,
-  meta: { blockName: string; year: number },
+  /** One name per window in `gathered.inputs.windows`, in the same order. */
+  meta: { blockNames: string[]; year: number },
   fetchImpl: typeof fetch = fetch,
 ): Promise<ComposedWrapped> {
   const aggregate = aggregateWrapped(gathered.inputs);
   const ctx: CardContext = {
     villageName: gathered.villageName,
-    blockName: meta.blockName,
     year: meta.year,
-    dateRange: formatDateRange(gathered.inputs.window.start, gathered.inputs.window.end),
+    blocks: gathered.inputs.windows.map((w, i) => ({
+      name: meta.blockNames[i] ?? '',
+      dateRange: formatDateRange(w.start, w.end),
+    })),
   };
 
   const bodyWidth = CARD_WIDTH - GUTTER * 2;
@@ -83,6 +89,9 @@ export async function composeWrapped(
   const shownEvents = aggregate.countedEvents.slice(0, MAX_EVENT_TILES);
   const tile = mosaicLayout(shownEvents.length, bodyWidth, 1300, 14, 0.92);
 
+  const shownNews = gathered.news.slice(0, MAX_EVENT_TILES);
+  const newsTile = mosaicLayout(shownNews.length, bodyWidth, 1300, 14, 0.92);
+
   const orgs = aggregate.topOrganizations;
   const orgPeople = aggregate.topOrganizers;
 
@@ -92,7 +101,17 @@ export async function composeWrapped(
   const jobs = [
     { url: gathered.escudoUrl, width: 240, height: 240 },
     ...people.map((p) => ({ url: p.photoURL, width: bubble * 2, height: bubble * 2 })),
-    ...shownEvents.map((e) => ({ url: e.imageURL, width: tile.tileWidth * 2, height: tile.tileHeight * 2 })),
+    ...shownEvents.map((e) => ({
+      url: e.imageURL,
+      width: tile.tileWidth * 2,
+      height: eventTileImageHeight(tile.tileHeight) * 2,
+      anchor: 'top' as const,
+    })),
+    ...shownNews.map((n) => ({
+      url: n.imageURL,
+      width: newsTile.tileWidth * 2,
+      height: eventTileImageHeight(newsTile.tileHeight) * 2,
+    })),
     ...orgs.map((o) => ({ url: o.imageURL, width: 260, height: 260 })),
     ...orgPeople.map((p) => ({ url: p.photoURL, width: 180, height: 180 })),
     ...archive.ordered.map((p) => ({ url: p.imageURL, width: poster.tileWidth * 2, height: poster.tileHeight * 2 })),
@@ -103,11 +122,12 @@ export async function composeWrapped(
   const [escudo] = take(1);
   const personImages = take(people.length);
   const eventImages = take(shownEvents.length);
+  const newsImages = take(shownNews.length);
   const orgImages = take(orgs.length);
   const organizerImages = take(orgPeople.length);
   const posterImages = take(archive.ordered.length);
 
-  const trees = {
+  const trees: Partial<Record<WrappedCard, SatoriNode>> = {
     cover: coverCard(ctx, escudo),
     people: peopleCard(
       ctx,
@@ -122,6 +142,17 @@ export async function composeWrapped(
         image: i < eventImages.length ? eventImages[i] : null,
       })),
     ),
+    news:
+      gathered.news.length > 0
+        ? newsCard(
+            ctx,
+            gathered.news.map((n, i) => ({
+              title: n.title,
+              dateLabel: shortDate(n.publishedAt),
+              image: i < newsImages.length ? newsImages[i] : null,
+            })),
+          )
+        : undefined,
     organizers: organizersCard(
       ctx,
       orgs.map((o, i) => ({ name: o.name, count: o.eventCount, image: orgImages[i] })),
@@ -141,10 +172,11 @@ export async function composeWrapped(
   };
 
   const entries = await Promise.all(
-    (Object.keys(trees) as WrappedCard[]).map(async (card) => {
+    (Object.entries(trees) as [WrappedCard, SatoriNode | undefined][]).flatMap(([card, tree]) => {
+      if (!tree) return [];
       const format = CARD_FORMATS[card];
-      return [card, { format, bytes: await renderImage(trees[card], format) }] as const;
+      return [(async () => [card, { format, bytes: await renderImage(tree, format) }] as const)()];
     }),
   );
-  return { aggregate, images: Object.fromEntries(entries) as ComposedWrapped['images'] };
+  return { aggregate, images: Object.fromEntries(entries) };
 }

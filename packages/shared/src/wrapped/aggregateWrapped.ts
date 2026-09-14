@@ -1,8 +1,10 @@
 import type { EventStatus } from '../models/event/EventDataModel';
 import type { RegistrationStatus } from '../models/event/RegistrationDataModel';
-import type {
-  WrappedStats,
-  WrappedData,
+import {
+  MAX_ORG_CREDITS,
+  MAX_PERSON_CREDITS,
+  type WrappedStats,
+  type WrappedData,
 } from '../models/wrapped/WrappedDataModel';
 
 /**
@@ -15,11 +17,12 @@ import type {
  *  - participation is distinct PERSONAS, not registrations (families sign up
  *    several each — summing overstated Matabuena by 38%);
  *  - everything is a sign-up, never attendance (`checkedInAt` is unused);
- *  - people are credited by `createdBy`, never by `organizerUserIds`, which is
- *    an org's member roster copied onto every event it runs.
+ *  - every organizer is credited, once per event: all of `organizerOrgIds`, and
+ *    all of `organizerUserIds` plus `createdBy`. An event run by a comisión
+ *    lists its whole team, and each of them organized it — crediting only the
+ *    person who typed the event in erased most of the people who did the work.
  */
 
-export const MAX_CREDITS = 5;
 /** Minimum a block needs before the timer may publish it unattended. */
 export const AUTO_PUBLISH_MIN_EVENTS = 3;
 export const AUTO_PUBLISH_MIN_CONFIRMED = 1;
@@ -34,6 +37,7 @@ export interface WrappedEventInput {
   maxAttendees: number | null;
   createdBy: string | null;
   organizerOrgIds: string[];
+  organizerUserIds: string[];
 }
 
 export interface WrappedRegistrationInput {
@@ -44,7 +48,10 @@ export interface WrappedRegistrationInput {
 }
 
 export interface WrappedInputs {
-  window: { start: Date; end: Date };
+  /** One or more date ranges. A Wrapped can cover a single fiestas block or
+   *  several (Santiago in July and the August fiestas, as one summer); an event
+   *  counts when it starts inside any of them. */
+  windows: { start: Date; end: Date }[];
   events: WrappedEventInput[];
   registrations: WrappedRegistrationInput[];
   organizations: { id: string; name: string; imageURL: string | null }[];
@@ -82,21 +89,21 @@ function countIn(values: Set<string>, within: Set<string>): number {
   return n;
 }
 
-function inWindow(d: Date, window: { start: Date; end: Date }): boolean {
+export function inAnyWindow(d: Date, windows: { start: Date; end: Date }[]): boolean {
   const t = d.getTime();
-  return t >= window.start.getTime() && t <= window.end.getTime();
+  return windows.some((w) => t >= w.start.getTime() && t <= w.end.getTime());
 }
 
 /** Rank by count desc, then name asc, so a recompute never reshuffles a tie. */
-function rank<T extends { eventCount: number }>(items: T[], name: (t: T) => string): T[] {
+function rank<T extends { eventCount: number }>(items: T[], name: (t: T) => string, max: number): T[] {
   return [...items]
     .sort((a, b) => b.eventCount - a.eventCount || name(a).localeCompare(name(b), 'es'))
-    .slice(0, MAX_CREDITS);
+    .slice(0, max);
 }
 
 export function aggregateWrapped(inputs: WrappedInputs): WrappedAggregate {
   const countedEvents = inputs.events
-    .filter((e) => e.status !== 'cancelled' && inWindow(e.startDate, inputs.window))
+    .filter((e) => e.status !== 'cancelled' && inAnyWindow(e.startDate, inputs.windows))
     .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
   const counted = new Set(countedEvents.map((e) => e.id));
 
@@ -146,8 +153,11 @@ export function aggregateWrapped(inputs: WrappedInputs): WrappedAggregate {
   const orgCounts = new Map<string, number>();
   const personCounts = new Map<string, number>();
   for (const e of countedEvents) {
-    for (const orgId of e.organizerOrgIds) orgCounts.set(orgId, (orgCounts.get(orgId) ?? 0) + 1);
-    if (e.createdBy) personCounts.set(e.createdBy, (personCounts.get(e.createdBy) ?? 0) + 1);
+    // A Set per event: an id listed twice, or a creator who is also on the
+    // organizer list, is still one event organized.
+    for (const orgId of new Set(e.organizerOrgIds)) orgCounts.set(orgId, (orgCounts.get(orgId) ?? 0) + 1);
+    const people = new Set(e.createdBy ? [...e.organizerUserIds, e.createdBy] : e.organizerUserIds);
+    for (const userId of people) personCounts.set(userId, (personCounts.get(userId) ?? 0) + 1);
   }
 
   // A credit whose profile is gone is dropped rather than rendered as a raw id.
@@ -158,6 +168,7 @@ export function aggregateWrapped(inputs: WrappedInputs): WrappedAggregate {
       return org ? [{ organizationId: id, name: org.name, eventCount, imageURL: org.imageURL }] : [];
     }),
     (o) => o.name,
+    MAX_ORG_CREDITS,
   );
 
   const profilesById = new Map(inputs.organizerProfiles.map((p) => [p.userId, p]));
@@ -167,6 +178,7 @@ export function aggregateWrapped(inputs: WrappedInputs): WrappedAggregate {
       return p ? [{ userId, displayName: p.displayName, eventCount, photoURL: p.photoURL }] : [];
     }),
     (p) => p.displayName,
+    MAX_PERSON_CREDITS,
   );
 
   return {
