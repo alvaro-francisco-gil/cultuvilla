@@ -67,14 +67,14 @@ describe('BlockEditor', () => {
     ]);
   });
 
-  it('hides the "add image" affordance once 10 image blocks are present', () => {
-    const blocks: EditorBlock[] = Array.from({ length: 10 }, (_, i) => imageBlock(`i${i}`));
+  it('hides the "add image" affordance once 25 image blocks are present', () => {
+    const blocks: EditorBlock[] = Array.from({ length: 25 }, (_, i) => imageBlock(`i${i}`));
     const { queryByLabelText } = render(<BlockEditor blocks={blocks} onChange={jest.fn()} candidates={[]} />);
     expect(queryByLabelText('news.compose.block.addImage')).toBeNull();
   });
 
   it('still shows the "add image" affordance under the cap', () => {
-    const blocks: EditorBlock[] = Array.from({ length: 9 }, (_, i) => imageBlock(`i${i}`));
+    const blocks: EditorBlock[] = Array.from({ length: 24 }, (_, i) => imageBlock(`i${i}`));
     const { queryByLabelText } = render(<BlockEditor blocks={blocks} onChange={jest.fn()} candidates={[]} />);
     expect(queryByLabelText('news.compose.block.addImage')).not.toBeNull();
   });
