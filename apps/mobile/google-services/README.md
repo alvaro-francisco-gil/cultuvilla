@@ -1,21 +1,33 @@
 # Android native Firebase config (push only)
 
 `expo-notifications` mints the Android FCM token from the native
-`google-services.json`. Drop each environment's file here:
+`google-services.json`. One file per environment:
 
+| Env | File | Firebase project | Package |
+|---|---|---|---|
+| dev | `dev/google-services.json` ✅ | `villa-events` | `com.cultuvilla.app.dev` |
+| beta | *(none — beta builds are sideload-only)* | `cultuvilla-beta` | `com.cultuvilla.app.beta` |
+| prod | `prod/google-services.json` ✅ | `cultuvilla-prod` | `com.cultuvilla.app` |
+
+Every Play track ships the **prod** build (see
+[store-tracks-share-prod.md](../../../docs/decisions/store-tracks-share-prod.md)),
+so prod is the one that matters for real users.
+
+To refresh one (the Android app must already exist in that Firebase project):
+
+```bash
+firebase apps:list ANDROID --project <project> --account cultuvilla.app@gmail.com
+firebase apps:sdkconfig ANDROID <appId> --project <project> --account cultuvilla.app@gmail.com \
+  --out apps/mobile/google-services/<env>/google-services.json
 ```
-google-services/dev/google-services.json    ← villa-events,    package com.cultuvilla.app.dev
-google-services/beta/google-services.json   ← cultuvilla-beta, package com.cultuvilla.app.beta
-google-services/prod/google-services.json   ← cultuvilla-prod, package com.cultuvilla.app
-```
 
-Download from Firebase console → Project settings → Your apps → the Android app
-with that package name (add it if missing). The file carries no secret — the API
-key inside is restricted by package + SHA — so it is committed, like the
-`.well-known` signing identities.
-
-`app.config.ts` only wires `android.googleServicesFile` when the file exists, so
-a checkout without it still builds; that build simply never registers for push.
+The files carry no secret — the API key inside ships in every APK and is
+restricted by package + signing SHA — so they are committed, like the
+`.well-known` signing identities. `app.config.ts` only wires
+`android.googleServicesFile` when the file exists, so a checkout without one
+still builds; that build simply never registers for push.
+[googleServices.test.ts](../../../packages/shared/test/ci/googleServices.test.ts)
+fails CI if a file is ever swapped for another env's.
 
 iOS has no counterpart on purpose: its tokens are raw APNs tokens sent to APNs
 directly. See [docs/plans/ongoing/device-notifications.md](../../../docs/plans/ongoing/device-notifications.md).

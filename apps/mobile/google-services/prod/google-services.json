@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "34340110439",
+    "project_id": "cultuvilla-prod",
+    "storage_bucket": "cultuvilla-prod.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:34340110439:android:35193d2197d4ca5a5414c2",
+        "android_client_info": {
+          "package_name": "com.cultuvilla.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "34340110439-34osiqq5b35dlt8b81rf1fe6ua8piu12.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.cultuvilla.app",
+            "certificate_hash": "3c934be3765fb6cb09e669756c0d658fe933d497"
+          }
+        },
+        {
+          "client_id": "34340110439-n3ueesrhejunc7vd5klea9vo9r9759rf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBQK9tvWPJzGjrl91RXKDCUR6jc1_cvGTE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "34340110439-7bo9clfo33smadu3gko3d06qg8io6u8f.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "34340110439-sd1n53nton2nb0m6eg319k9jueq265pa.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.cultuvilla.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
