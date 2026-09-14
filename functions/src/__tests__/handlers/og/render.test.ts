@@ -435,12 +435,20 @@ describe('ogRenderer', () => {
     expect(res.body).not.toContain('property="og:image"');
   });
 
-  it('missing doc: returns 200 with default og tags', async () => {
+  it('missing doc: answers 404 + noindex, still serving the shell', async () => {
     const res = await invoke('/villarriba/evento/x_does-not-exist');
 
-    expect(res.statusCode).toBe(200);
+    expect(res.statusCode).toBe(404);
     expect(res.body).toContain('<title>Cultuvilla</title>');
     expect(res.body).toContain('property="og:title" content="Cultuvilla"');
+    expect(res.body).toContain('<meta name="robots" content="noindex,follow"/>');
+  });
+
+  it('unknown pueblo: answers 404 rather than a page that calls itself canonical', async () => {
+    const res = await invoke('/pueblo-que-no-existe');
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body).toContain('<meta name="robots" content="noindex,follow"/>');
   });
 
   it('unmatched URL pattern: returns 200 with default og tags', async () => {

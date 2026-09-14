@@ -203,6 +203,12 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Fixed
 
+- **El enlace a un pueblo conserva su dirección en la web.** Abrir
+  `cultuvilla.es/<pueblo>` desde WhatsApp o desde Google ya no cambia la barra de
+  direcciones a `/mi-pueblo?villageId=…`: la ficha se muestra en su propia URL, y
+  el botón de volver lleva a la pestaña del pueblo. Un pueblo o una ficha que no
+  existen responden ahora con un 404 (y `noindex`) en lugar de una página vacía
+  que Google podía indexar.
 - **Las fotos que quitas ya no se quedan ocupando espacio.** Al borrar una
   noticia, un evento, una entidad, un lugar, un barrio, un cartel o una entrada
   de historia —o al quitar o cambiar una de sus fotos al editar— la imagen se

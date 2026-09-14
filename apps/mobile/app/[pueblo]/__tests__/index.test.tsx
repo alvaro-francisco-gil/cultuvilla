@@ -1,8 +1,10 @@
-import { render } from '@testing-library/react-native';
+import { Platform } from 'react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 
 // The body is exercised in its own suite; here we only verify the screen wires
 // the village name into the header when pushed in-app (has a back stack) and
-// redirects a cold share-link entry (no back stack) into the tab shell.
+// redirects a cold share-link entry (no back stack) into the tab shell — except
+// on web, where the address bar is the share link and must survive.
 jest.mock('../../../lib/useVillageHome', () => ({
   useVillageHome: () => ({
     coreLoading: false,
@@ -36,9 +38,15 @@ jest.mock('react-native-safe-area-context', () => ({
 
 const mockRedirect = jest.fn();
 const mockCanGoBack = jest.fn();
+const mockReplace = jest.fn();
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ pueblo: 'villa' }),
-  router: { push: jest.fn(), back: jest.fn(), canGoBack: () => mockCanGoBack() },
+  router: {
+    push: jest.fn(),
+    back: jest.fn(),
+    replace: (href: string) => mockReplace(href),
+    canGoBack: () => mockCanGoBack(),
+  },
   Redirect: ({ href }: { href: string }) => {
     mockRedirect(href);
     return null;
@@ -95,4 +103,30 @@ it('redirects a signed-in cold entry into the tab shell without switching their 
   // so the member's activeMunicipalityId is untouched.
   expect(mockActivate).not.toHaveBeenCalled();
   expect(mockRedirect).toHaveBeenCalledWith('/(tabs)/mi-pueblo?villageId=m1');
+});
+
+describe('on web', () => {
+  let web: jest.ReplaceProperty<typeof Platform.OS>;
+  beforeEach(() => {
+    web = jest.replaceProperty(Platform, 'OS', 'web');
+  });
+  afterEach(() => web.restore());
+
+  it('renders a cold entry in place, keeping /<pueblo> in the address bar', () => {
+    mockCanGoBack.mockReturnValue(false);
+    mockUseAuth.mockReturnValue({ user: null });
+    const { getByText } = render(<VillageHome />);
+    expect(getByText('Anaya')).toBeTruthy();
+    expect(mockRedirect).not.toHaveBeenCalled();
+    // A guest still gets the village as their active one.
+    expect(mockActivate).toHaveBeenCalledWith('m1');
+  });
+
+  it('sends back from a cold entry into the tab shell showing this village', () => {
+    mockCanGoBack.mockReturnValue(false);
+    mockUseAuth.mockReturnValue({ user: { uid: 'uid-1' } });
+    const { getByLabelText } = render(<VillageHome />);
+    fireEvent.press(getByLabelText('header.back'));
+    expect(mockReplace).toHaveBeenCalledWith('/(tabs)/mi-pueblo?villageId=m1');
+  });
 });
