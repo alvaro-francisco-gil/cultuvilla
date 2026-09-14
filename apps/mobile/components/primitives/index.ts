@@ -29,6 +29,8 @@ export { Escudo } from './Escudo';
 export type { EscudoProps } from './Escudo';
 export { DateField } from './DateField';
 export type { DateFieldProps } from './DateField';
+export { DateRangeField } from './DateRangeField';
+export type { DateRangeFieldProps } from './DateRangeField';
 export { BirthDateField } from './BirthDateField';
 export type { BirthDateFieldProps } from './BirthDateField';
 export { PartialDateField } from './PartialDateField';

@@ -2,12 +2,8 @@
 /**
  * Render a village's Wrapped cards to PNGs from real data, read-only.
  *
- *   node scripts/wrapped-preview.mjs --municipality=digSmD1NFyaOJCPQ99cC \
- *     --start=2026-08-14 --end=2026-08-28 --block="Fiestas de agosto" [--project=cultuvilla-prod] [--out=DIR]
- *
- * Or several blocks as one Wrapped, optionally counted over a wider range:
- *
- *   --blocks="Santiago@2026-07-24..2026-07-26|Carmen@2026-08-14..2026-08-28" [--range=2026-07-15..2026-08-31]
+ *   node scripts/wrapped-preview.mjs --municipality=digSmD1NFyaOJCPQ99cC [--project=cultuvilla-prod] [--out=DIR] \
+ *     --blocks="Santiago@2026-07-24..2026-07-26|Carmen@2026-08-14..2026-08-28" [--range=2026-07-15..2026-08-31]
  *
  * Dates are Madrid calendar days; each span covers the whole of both. Without
  * --range, everything is counted from the first block's start to the last one's end.
@@ -25,9 +21,9 @@ const args = Object.fromEntries(
     return [k, v.join('=')];
   }),
 );
-const blocks = args.blocks || (args.block && args.start && args.end ? `${args.block}@${args.start}..${args.end}` : '');
+const blocks = args.blocks;
 if (!args.municipality || !blocks) {
-  process.stderr.write('need --municipality and either --blocks or --block/--start/--end\n');
+  process.stderr.write('need --municipality and --blocks="Name@YYYY-MM-DD..YYYY-MM-DD|…"\n');
   process.exit(1);
 }
 

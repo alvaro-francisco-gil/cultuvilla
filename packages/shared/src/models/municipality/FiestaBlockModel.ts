@@ -66,12 +66,17 @@ function madridMidnight(year: number, month: number, day: number): Date {
   return new Date(guess - madridOffsetMs(new Date(guess)));
 }
 
+/** Year, month and day of a `YYYY-MM-DD` key. Sliced rather than split, so each is a plain number under every tsconfig. */
+function dayParts(key: string): { y: number; m: number; d: number } {
+  return { y: Number(key.slice(0, 4)), m: Number(key.slice(5, 7)), d: Number(key.slice(8, 10)) };
+}
+
 /** A Madrid calendar day as `YYYY-MM-DD` — how a picked day crosses the wire. */
 export const DayKeySchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
   .refine((key) => {
-    const [y, m, d] = key.split('-').map(Number);
+    const { y, m, d } = dayParts(key);
     const probe = new Date(Date.UTC(y, m - 1, d));
     return probe.getUTCFullYear() === y && probe.getUTCMonth() === m - 1 && probe.getUTCDate() === d;
   }, 'not a calendar day');
@@ -87,11 +92,11 @@ export type DayKey = z.infer<typeof DayKeySchema>;
  * so a DST change inside the range cannot cut it an hour short.
  */
 export function madridDayRange(startDay: DayKey, endDay: DayKey): { start: Date; end: Date } {
-  const [sy, sm, sd] = startDay.split('-').map(Number);
-  const [ey, em, ed] = endDay.split('-').map(Number);
-  const after = new Date(Date.UTC(ey, em - 1, ed + 1));
+  const s = dayParts(startDay);
+  const e = dayParts(endDay);
+  const after = new Date(Date.UTC(e.y, e.m - 1, e.d + 1));
   return {
-    start: madridMidnight(sy, sm, sd),
+    start: madridMidnight(s.y, s.m, s.d),
     end: new Date(madridMidnight(after.getUTCFullYear(), after.getUTCMonth() + 1, after.getUTCDate()).getTime() - 1),
   };
 }

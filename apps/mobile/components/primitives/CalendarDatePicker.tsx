@@ -24,6 +24,10 @@ function iso(d: Date): string {
 export interface CalendarDatePickerProps {
   value: Date | null;
   onChange: (date: Date) => void;
+  /** Marks `value` as the first day of a range ending here, and fills the days between. */
+  rangeEnd?: Date | null;
+  /** The month shown first when there is no `value` yet. */
+  initialMonth?: Date;
   minDate?: Date;
   maxDate?: Date;
   testID?: string;
@@ -32,11 +36,13 @@ export interface CalendarDatePickerProps {
 export function CalendarDatePicker({
   value,
   onChange,
+  rangeEnd,
+  initialMonth,
   minDate,
   maxDate,
   testID,
 }: CalendarDatePickerProps) {
-  const anchor = value ?? new Date();
+  const anchor = value ?? initialMonth ?? new Date();
   const [view, setView] = useState({ year: anchor.getFullYear(), month: anchor.getMonth() });
   const [jump, setJump] = useState(false);
 
@@ -107,7 +113,10 @@ export function CalendarDatePicker({
       <View className="flex-row flex-wrap">
         {cells.map(({ date, inMonth }) => {
           const disabled = isDayDisabled(date, minDate, maxDate);
-          const selected = value != null && isSameDay(date, value);
+          const selected =
+            (value != null && isSameDay(date, value)) || (rangeEnd != null && isSameDay(date, rangeEnd));
+          const between =
+            !selected && value != null && rangeEnd != null && date > value && date < rangeEnd;
           return (
             <Pressable
               key={iso(date)}
@@ -116,7 +125,8 @@ export function CalendarDatePicker({
               onPress={() =>
                 onChange(new Date(date.getFullYear(), date.getMonth(), date.getDate()))
               }
-              className={`items-center justify-center rounded-full ${selected ? 'bg-accent' : ''}`}
+              accessibilityState={{ selected, disabled }}
+              className={`items-center justify-center rounded-full ${selected ? 'bg-accent' : between ? 'bg-accent-subtle' : ''}`}
               style={{ width: `${100 / 7}%`, height: 40 }}
             >
               <Text tone={selected ? 'onAccent' : disabled || !inMonth ? 'muted' : 'primary'}>

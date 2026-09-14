@@ -32,9 +32,11 @@ export function cartelHistory(posters: CartelInput[], year: number): CartelHisto
     .filter((p) => p.year <= year)
     .sort((a, b) => a.year - b.year || a.id.localeCompare(b.id));
   const yearsWithCartel = [...new Set(ordered.map((p) => p.year))];
-  const firstYear = yearsWithCartel.length > 0 ? yearsWithCartel[0] : null;
+  // min/max rather than indexing the ends: typed as plain numbers under the
+  // mobile tsconfig's unchecked-index rule, which also compiles this file.
+  const firstYear = yearsWithCartel.length > 0 ? Math.min(...yearsWithCartel) : null;
   const spanYears = firstYear === null ? 0 : year - firstYear;
-  const lastYear = yearsWithCartel.length > 0 ? yearsWithCartel[yearsWithCartel.length - 1] : null;
+  const lastYear = yearsWithCartel.length > 0 ? Math.max(...yearsWithCartel) : null;
   const missingYears = firstYear === null || lastYear === null ? 0 : lastYear - firstYear + 1 - yearsWithCartel.length;
   return {
     total: ordered.length,

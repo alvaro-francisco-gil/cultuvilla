@@ -152,7 +152,6 @@ export function CommunitySettingsEditor({ villageId }: { villageId: string }) {
 
         <FiestasEditor
           blocks={fiestas}
-          year={new Date().getFullYear()}
           onChange={(next) => void saveFiestas(next)}
         />
       </VStack>

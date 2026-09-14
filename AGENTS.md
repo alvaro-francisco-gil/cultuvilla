@@ -516,8 +516,8 @@ deploy and no emulator.
 
 ```bash
 pnpm wrapped:preview --municipality=digSmD1NFyaOJCPQ99cC \
-  --start=2026-08-14 --end=2026-08-28 --block="Fiestas de agosto" [--project=cultuvilla-prod] [--out=DIR]
-# or several blocks as one: --blocks="Santiago@2026-07-24..2026-07-26|Fiestas de agosto@2026-08-14..2026-08-28"
+  --blocks="Santiago@2026-07-24..2026-07-26|Carmen@2026-08-14..2026-08-28" \
+  [--range=2026-07-15..2026-08-31] [--project=cultuvilla-prod] [--out=DIR]
 ```
 
 It bundles its entry with **the deploy's own esbuild options** (`functions/esbuild.shared.mjs`),
