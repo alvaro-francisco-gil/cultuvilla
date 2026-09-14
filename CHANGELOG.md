@@ -4,6 +4,10 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Fixed
+
+- **Registro desde una acción de invitado:** pulsar «Regístrate» en la hoja de registro (inscribirse a un evento, unirse a un pueblo, comentar…) ya no abre una pantalla «Unmatched route».
+
 ## v1.2.1 — 2026-09-14
 
 <!-- store-notes -->
