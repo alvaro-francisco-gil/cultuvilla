@@ -7,6 +7,7 @@ env:
   EMAIL: e2e-joiner@cultuvilla.test
   PASSWORD: e2e-cultuvilla-pw
   VILLAGE_ID: e2e-village-join
+  VILLAGE_SLUG: pueblo-de-union-e2e
   UID: e2e-joiner
 ---
 # `clearState` + cold-start openLink live in the login subflow — see the note
@@ -16,7 +17,7 @@ env:
     env:
       EMAIL: ${EMAIL}
       PASSWORD: ${PASSWORD}
-- openLink: 'cultuvilla://village/${VILLAGE_ID}'
+- openLink: 'cultuvilla://${VILLAGE_SLUG}'
 - extendedWaitUntil:
     visible:
       id: 'village-join-action'
@@ -35,6 +36,7 @@ env:
 # its own membership. That is a second round trip after the write the assertion
 # above already proved, so it gets a native-sized timeout rather than the web
 # suite's 15s.
+- runFlow: ../subflows/dismiss-push-soft-ask.yaml
 - extendedWaitUntil:
     visible:
       id: 'village-add-content-action'

@@ -15,15 +15,22 @@ import { organizerRequestConverterClient } from '../converters/organizerRequestC
 import { personConverterClient } from '../converters/personConverter.client';
 import { userConverterClient } from '../converters/userConverter.client';
 import { notificationConverterClient } from '../converters/notificationConverter.client';
+import { deviceTokenConverterClient } from '../converters/deviceTokenConverter.client';
+import { notificationPrefsConverterClient } from '../converters/notificationPrefsConverter.client';
 import { newsPostConverterClient } from '../converters/newsPostConverter.client';
 import { commentConverterClient } from '../converters/commentConverter.client';
 import { occupationConverterClient } from '../converters/occupationConverter.client';
 import { adminConverterClient } from '../converters/adminConverter.client';
 import { membershipEventConverterClient } from '../converters/membershipEventConverter.client';
 import { festivalPosterConverterClient } from '../converters/festivalPosterConverter.client';
+import { villageWrappedConverterClient } from '../converters/villageWrappedConverter.client';
 import { municipalityPersonConverterClient } from '../converters/municipalityPersonConverter.client';
 import { contentReportConverterClient } from '../converters/contentReportConverter.client';
 import { blockedUserConverterClient } from '../converters/blockedUserConverter.client';
+import { vocabularyTermConverterClient } from '../converters/vocabularyTermConverter.client';
+import { historyEntryConverterClient } from '../converters/historyEntryConverter.client';
+import { vocabularyDefinitionConverterClient } from '../converters/vocabularyDefinitionConverter.client';
+import { vocabularyWordConverterClient } from '../converters/vocabularyWordConverter.client';
 
 export const eventsCollection = (db: Firestore) =>
   collection(db, 'events').withConverter(eventConverterClient);
@@ -143,6 +150,23 @@ export const userNotificationsCollection = (db: Firestore, userId: string) =>
 export const userNotificationDoc = (db: Firestore, userId: string, notificationId: string) =>
   doc(db, 'users', userId, 'notifications', notificationId).withConverter(notificationConverterClient);
 
+// Push-capable devices. THE DOCUMENT ID IS THE FCM REGISTRATION TOKEN — see
+// DeviceTokenDataModel: that is what makes re-registering on every launch
+// idempotent instead of accumulating a row per session.
+export const userDevicesCollection = (db: Firestore, userId: string) =>
+  collection(db, 'users', userId, 'devices').withConverter(deviceTokenConverterClient);
+
+export const userDeviceDoc = (db: Firestore, userId: string, token: string) =>
+  doc(db, 'users', userId, 'devices', token).withConverter(deviceTokenConverterClient);
+
+// Optional: absent means DEFAULT_NOTIFICATION_PREFS. Fixed doc id so there is
+// exactly one preferences document per account.
+export const NOTIFICATION_PREFS_DOC_ID = 'notifications';
+
+export const userNotificationPrefsDoc = (db: Firestore, userId: string) =>
+  doc(db, 'users', userId, 'preferences', NOTIFICATION_PREFS_DOC_ID)
+    .withConverter(notificationPrefsConverterClient);
+
 // ── News domain (top-level collections) ──────────────────────────────────
 
 export const newsCollection = (db: Firestore) =>
@@ -204,3 +228,41 @@ export const userBlockedUsersCollection = (db: Firestore, userId: string) =>
 
 export const userBlockedUserDoc = (db: Firestore, userId: string, blockedUserId: string) =>
   doc(db, 'users', userId, 'blockedUsers', blockedUserId).withConverter(blockedUserConverterClient);
+
+// ── Vocabulary domain (top-level collections) ────────────────────────────
+// The term id is derived from `municipalityId` + slug (see `vocabularyTermId`),
+// never minted — that is what makes two villagers adding the same word land on
+// one shared doc instead of two.
+
+export const vocabularyTermsCollection = (db: Firestore) =>
+  collection(db, 'vocabularyTerms').withConverter(vocabularyTermConverterClient);
+
+export const vocabularyTermDoc = (db: Firestore, termId: string) =>
+  doc(db, 'vocabularyTerms', termId).withConverter(vocabularyTermConverterClient);
+
+export const vocabularyDefinitionsCollection = (db: Firestore) =>
+  collection(db, 'vocabularyDefinitions').withConverter(vocabularyDefinitionConverterClient);
+
+export const vocabularyDefinitionDoc = (db: Firestore, definitionId: string) =>
+  doc(db, 'vocabularyDefinitions', definitionId).withConverter(vocabularyDefinitionConverterClient);
+
+// ── Village history (top-level collection) ───────────────────────────────
+
+export const historyEntriesCollection = (db: Firestore) =>
+  collection(db, 'historyEntries').withConverter(historyEntryConverterClient);
+
+export const historyEntryDoc = (db: Firestore, entryId: string) =>
+  doc(db, 'historyEntries', entryId).withConverter(historyEntryConverterClient);
+
+/** The shared word index — one doc per word across every village. Function-owned. */
+export const vocabularyWordsCollection = (db: Firestore) =>
+  collection(db, 'vocabularyWords').withConverter(vocabularyWordConverterClient);
+
+export const vocabularyWordDoc = (db: Firestore, slug: string) =>
+  doc(db, 'vocabularyWords', slug).withConverter(vocabularyWordConverterClient);
+
+export const villageWrappedCollection = (db: Firestore) =>
+  collection(db, 'villageWrapped').withConverter(villageWrappedConverterClient);
+
+export const villageWrappedDoc = (db: Firestore, wrappedId: string) =>
+  doc(db, 'villageWrapped', wrappedId).withConverter(villageWrappedConverterClient);

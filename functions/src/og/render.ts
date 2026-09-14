@@ -1,44 +1,60 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
+import { JOIN_SEGMENT, parseAppPath, type ParsedAppPath } from '@cultuvilla/shared/utils';
 import {
   getEventOg,
   getNewsOg,
-  getVillageOg,
+  getVillageOgBySlug,
   getOrgOg,
   type OgMeta,
 } from './fetchers';
-import { injectMeta } from './html';
+import { defaultOg, injectMeta, injectSeoBody } from './html';
 import { getSpaShell } from './spaShell';
+import { webOriginForProject } from '@cultuvilla/shared/utils';
 
-type RouteKind = 'event' | 'news' | 'village' | 'org';
-type ParsedRoute = { kind: RouteKind; id: string } | null;
-
-const PATTERNS: { kind: RouteKind; re: RegExp }[] = [
-  { kind: 'event', re: /^\/event\/([^/]+)\/?$/ },
-  { kind: 'news', re: /^\/news\/([^/]+)\/?$/ },
-  { kind: 'village', re: /^\/village\/([^/]+)(?:\/join)?\/?$/ },
-  { kind: 'org', re: /^\/o\/([^/]+)(?:\/join)?\/?$/ },
-];
-
-function parsePath(pathname: string): ParsedRoute {
-  for (const { kind, re } of PATTERNS) {
-    const m = re.exec(pathname);
-    if (m && m[1]) return { kind, id: m[1] };
-  }
-  return null;
+/**
+ * An invite URL is reachable by anyone holding the link, which is exactly why it
+ * must never be indexed — an `/unirse` page ranking in Google turns a link
+ * someone chose to share into an open door. `follow` is kept so the org page it
+ * points at still gets crawled.
+ */
+function isInvite(route: ParsedAppPath | null): boolean {
+  return route?.type === 'entity' && route.join === true;
 }
 
-async function fetchOg(route: NonNullable<ParsedRoute>): Promise<OgMeta | null> {
+async function fetchOg(route: ParsedAppPath): Promise<OgMeta | null> {
+  if (route.type === 'village') return getVillageOgBySlug(route.villageSlug);
+  if (route.type !== 'entity') return null;
   switch (route.kind) {
     case 'event':
       return getEventOg(route.id);
     case 'news':
       return getNewsOg(route.id);
-    case 'village':
-      return getVillageOg(route.id);
-    case 'org':
+    case 'organization':
       return getOrgOg(route.id);
+    default:
+      return null;
   }
+}
+
+function describeRoute(route: ParsedAppPath): { kind: string; id?: string } {
+  switch (route.type) {
+    case 'village':
+      return { kind: 'village', id: route.villageSlug };
+    case 'entity':
+    case 'seatClaim':
+      return { kind: route.type === 'entity' ? route.kind : 'seatClaim', id: route.id };
+    case 'user':
+      return { kind: 'user', id: route.uid };
+  }
+}
+
+/** Where a request for `pathname` belongs, or null when it is already there. */
+function redirectTarget(pathname: string, route: ParsedAppPath, og: OgMeta): string | null {
+  if (!og.canonicalPath) return null;
+  const wanted = isInvite(route) ? `${og.canonicalPath}/${JOIN_SEGMENT}` : og.canonicalPath;
+  const requested = pathname.replace(/\/$/, '');
+  return requested === wanted ? null : wanted;
 }
 
 /**
@@ -48,8 +64,9 @@ async function fetchOg(route: NonNullable<ParsedRoute>): Promise<OgMeta | null> 
  *
  * Behaviour:
  *   - Known route, doc exists → 200 with og:* populated
- *   - Known route, doc missing (404 in Firestore) → 200 with default og,
- *     so the SPA's own /not-found UI renders normally
+ *   - Known route, doc missing → 404 + noindex with default og, still the
+ *     SPA shell, so the app's own not-found UI renders normally
+ *   - Known route, fetch threw → 200 with default og (best-effort)
  *   - Unknown URL pattern → 200 with default og (defensive; Hosting only
  *     routes matching paths here)
  *   - Internal error → 500 plain text (rare; logged)
@@ -79,41 +96,88 @@ export const ogRenderer = onRequest(
       const proto = (req.get('x-forwarded-proto') ?? 'https').split(',')[0]?.trim() ?? 'https';
       const origin = `${proto}://${host}`;
       const url = new URL(req.originalUrl, origin);
-      const route = parsePath(url.pathname);
+      const route = parseAppPath(url.pathname);
 
       // OG is best-effort: a malformed id (e.g. a Firestore-reserved `__x__`
       // segment) makes the fetch throw. A crawler must still get a valid 200
       // default preview, not a 500 — so swallow fetch errors down to null and
       // let injectMeta render the defaults.
       let og: OgMeta | null = null;
+      let fetchFailed = false;
       if (route) {
         try {
           og = await fetchOg(route);
         } catch (err) {
+          fetchFailed = true;
           logger.warn('OG fetch failed; rendering default preview', {
             handler: 'ogRenderer',
             path: url.pathname,
-            kind: route.kind,
-            id: route.id,
+            ...describeRoute(route),
             err: err instanceof Error ? err.message : String(err),
           });
         }
       }
+      if (og && isInvite(route)) og.noindex = true;
+
+      // One URL per doc: a stale title slug or a mistyped pueblo answers with a
+      // permanent redirect instead of a second copy of the page. The query
+      // string rides along — it is the sharer's, not ours to drop.
+      const target = route && og ? redirectTarget(url.pathname, route, og) : null;
+      if (target) {
+        logger.info('Redirected to canonical path', {
+          handler: 'ogRenderer',
+          path: url.pathname,
+          target,
+        });
+        res
+          .status(301)
+          .set('Location', `${target}${url.search}`)
+          .set('Cache-Control', 'public, max-age=600, s-maxage=3600')
+          .send('');
+        return;
+      }
+
+      // Canonical names the project's public origin, not the host this request
+      // arrived on: prod answers on both cultuvilla.es and
+      // cultuvilla-prod.web.app, and deriving it from the request made each
+      // declare itself canonical. It also drops the query string — WhatsApp,
+      // Instagram and mail clients append their own tracking params, and each
+      // variant would otherwise compete with the real URL.
+      const canonical = `${webOriginForProject(process.env['GCLOUD_PROJECT'])}${
+        url.pathname.replace(/\/$/, '') || '/'
+      }`;
+
+      // The shell is still fetched from the request's own origin: that is the
+      // Hosting site actually serving this deploy.
+      // A well-formed path to nothing — an unknown pueblo, a deleted event — is
+      // a 404, or Google indexes every mistyped village as its own page. The
+      // shell still ships so the app renders its own not-found screen. A fetch
+      // that threw stays a 200: a Firestore blip must not deindex a real page.
+      const notFound = route !== null && og === null && !fetchFailed;
+      if (notFound) og = { ...defaultOg(), noindex: true };
+
       const shell = await getSpaShell(origin);
-      const html = injectMeta(shell, og, url.toString());
+      const withMeta = injectMeta(shell, og, canonical);
+      // Only indexable pages get the content block. A noindex page (a private
+      // event, an invite link) has nothing a crawler should read, and an invite
+      // screen is not an entity detail screen, so nothing there would ever
+      // dismiss an overlay placed over it.
+      const html = og?.noindex ? withMeta : injectSeoBody(withMeta, og);
 
       logger.info('Rendered OG preview', {
         handler: 'ogRenderer',
         path: url.pathname,
-        kind: route?.kind ?? 'unmatched',
-        id: route?.id,
-        hasDoc: og !== null,
+        ...(route ? describeRoute(route) : { kind: 'unmatched' }),
+        hasDoc: !notFound && og !== null,
+        noindex: og?.noindex === true,
       });
 
       res
-        .status(200)
+        .status(notFound ? 404 : 200)
         .set('Content-Type', 'text/html; charset=utf-8')
-        .set('Cache-Control', 'public, max-age=600, s-maxage=3600')
+        // A 404 caches briefly: the doc may be created a minute from now, and
+        // an hour-long edge 404 would swallow the first share of it.
+        .set('Cache-Control', notFound ? 'public, max-age=60, s-maxage=300' : 'public, max-age=600, s-maxage=3600')
         .send(html);
     } catch (err) {
       logger.error('ogRenderer failed', {

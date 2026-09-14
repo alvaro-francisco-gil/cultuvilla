@@ -23,7 +23,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export async function seedEvents(dataset) {
   for (const v of dataset.villages) {
     if (!v.organizations?.some((o) => o.events?.length)) continue;
-    const { vDocId, vKey, adminUid } = await resolveVillage(dataset, v);
+    const { vDocId, vKey, villageSlug, adminUid } = await resolveVillage(dataset, v);
 
     // Denormalized village fields come off the seeded municipality doc.
     const muni = (await db.collection('municipalities').doc(vDocId).get()).data();
@@ -68,6 +68,7 @@ export async function seedEvents(dataset) {
               createdBy: adminUid,
               municipalityId: vDocId,
               villageName: v.name,
+              villageSlug,
               villageCoverImage: villageCover,
               villageCoordinates: coords,
               imageURL,

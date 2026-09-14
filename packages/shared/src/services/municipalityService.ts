@@ -16,8 +16,10 @@ import {
   type QueryConstraint,
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
+import { z } from 'zod';
 import { httpsCallable } from 'firebase/functions';
 import { getDb, getFirebaseFunctions } from '../firebase';
+import { FiestaBlockSchema, type FiestaBlock } from '../models/municipality/FiestaBlockModel';
 import {
   municipalitiesCollection,
   municipalityDoc,
@@ -48,7 +50,55 @@ import {
 export async function getMunicipality(id: string): Promise<(MunicipalityData & { id: string }) | null> {
   const snap = await getDoc(municipalityDoc(getDb(), id));
   if (!snap.exists()) return null;
+  rememberVillageSlug(snap.id, snap.data().slug);
   return { id: snap.id, ...snap.data() };
+}
+
+// ── Slugs ────────────────────────────────────────────────────────────────
+//
+// A slug is permanent once assigned, so both directions are safe to cache for
+// the life of the process: every village screen resolves its `/<pueblo>` route
+// segment, and every create path stamps the slug onto the new doc.
+
+const slugById = new Map<string, string>();
+const idBySlug = new Map<string, string>();
+
+/** Seed the cache from a municipality the caller already holds. */
+export function rememberVillageSlug(municipalityId: string, slug: string): void {
+  slugById.set(municipalityId, slug);
+  idBySlug.set(slug, municipalityId);
+}
+
+/** The cached slug, if this process has already seen the municipality. */
+export function peekVillageSlug(municipalityId: string): string | undefined {
+  return slugById.get(municipalityId);
+}
+
+export async function getVillageSlug(municipalityId: string): Promise<string> {
+  const cached = slugById.get(municipalityId);
+  if (cached) return cached;
+  const municipality = await getMunicipality(municipalityId);
+  if (!municipality) throw new Error(`getVillageSlug: municipality ${municipalityId} not found`);
+  return municipality.slug;
+}
+
+export async function getMunicipalityBySlug(
+  slug: string,
+): Promise<(MunicipalityData & { id: string }) | null> {
+  const snap = await getDocs(
+    query(municipalitiesCollection(getDb()), where('slug', '==', slug), firestoreLimit(1)),
+  );
+  const found = snap.docs.at(0);
+  if (!found) return null;
+  rememberVillageSlug(found.id, slug);
+  return { id: found.id, ...found.data() };
+}
+
+/** The municipality id behind a `/<pueblo>` route segment, or null when no village has it. */
+export async function resolveVillageSlug(slug: string): Promise<string | null> {
+  const cached = idBySlug.get(slug);
+  if (cached) return cached;
+  return (await getMunicipalityBySlug(slug))?.id ?? null;
 }
 
 /**
@@ -218,13 +268,33 @@ export async function updateVillageInfo(payload: UpdateVillageInfoPayload): Prom
   await fn(payload);
 }
 
+/**
+ * Refuse malformed fiesta data at the write boundary.
+ *
+ * This write goes through a bare `doc()` ref — no converter — while every read
+ * of a municipality parses strictly. A single invalid block (an empty name from
+ * a cleared input, say) therefore makes the village document unreadable for
+ * EVERY user, not just its author. Validating here is what keeps a UI slip from
+ * bricking a village, and it covers callers the editor doesn't own.
+ *
+ * Block ids must also be unique: the id keys the per-block Wrapped document, so
+ * a duplicate would silently make two blocks share one summary.
+ */
+function assertValidFiestas(fiestas: FiestaBlock[]): FiestaBlock[] {
+  const parsed = z.array(FiestaBlockSchema).parse(fiestas);
+  const ids = new Set(parsed.map((b) => b.id));
+  if (ids.size !== parsed.length) throw new Error('fiesta blocks must have unique ids');
+  return parsed;
+}
+
 export async function updateCommunity(
   municipalityId: string,
-  data: Partial<Pick<VillageCommunity, 'description' | 'organizerId'>>,
+  data: Partial<Pick<VillageCommunity, 'description' | 'organizerId' | 'fiestas'>>,
 ): Promise<void> {
   const updates: UpdateData<DocumentData> = {};
   if (data.description !== undefined) updates['community.description'] = data.description;
   if (data.organizerId !== undefined) updates['community.organizerId'] = data.organizerId;
+  if (data.fiestas !== undefined) updates['community.fiestas'] = assertValidFiestas(data.fiestas);
   await updateDoc(doc(getDb(), 'municipalities', municipalityId), updates);
 }
 

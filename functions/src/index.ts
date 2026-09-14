@@ -10,6 +10,7 @@ export { cancelRegistration } from './events/cancelRegistration';
 export { completeExpiredEvents } from './events/eventCompletion';
 export { onRegistrationDeleted } from './events/waitlistPromotion';
 export { onEventUpdated } from './events/notificationTriggers';
+export { sendEventReminders } from './events/eventReminders';
 
 // Village (memberships, organizer requests, invites, denormalization)
 export { acceptInvite } from './village/acceptInvite';
@@ -31,6 +32,21 @@ export { changeOrgMemberRole } from './organizations/changeOrgMemberRole';
 export { syncOrgMemberCount } from './organizations/syncOrgMemberCount';
 export { onOrganizationUpdated } from './organizations/notificationTriggers';
 
+// Push notifications. onNotificationCreated is the ONLY seam between the
+// notification log and a device: every producer just writes a notification doc.
+export { onNotificationCreated } from './push/onNotificationCreated';
+export { flushPushQueue } from './push/flushPushQueue';
+
+// "Something new appeared in your village" — one broadcast per entity kind.
+export {
+  onEventPublished,
+  onNewsPublished,
+  onHistoryEntryPublished,
+  onFestivalPosterPublished,
+  onPlacePublished,
+  onBarrioPublished,
+} from './village/entityPublishedTriggers';
+
 // Census (censo)
 export { updateCenso } from './census/updateCenso';
 
@@ -49,10 +65,13 @@ export { setContentVisibility } from './moderation/setContentVisibility';
 
 // Interaction (entity comment count sync + view count callable, entityKind-routed)
 export { syncEntityCommentCount } from './interaction/syncEntityInteractionCounts';
+export { syncVocabularyDefinitionCount } from './vocabulary/syncVocabularyDefinitionCount';
+export { syncVocabularyWordIndex } from './vocabulary/syncVocabularyWordIndex';
 export { recordEntityView } from './interaction/recordEntityView';
 
 // Share-link Open Graph preview renderer (HTTPS function behind a Hosting rewrite).
 export { ogRenderer } from './og/render';
+export { sitemap } from './seo/sitemap';
 
 // Maps (Google Static Maps proxy + geocoding — key stays server-side)
 export { staticMap } from './maps/staticMap';
@@ -73,3 +92,18 @@ export { getUserIdHash } from './observability/getUserIdHash';
 // Image variants (downscaled WebP renditions written beside every upload, so
 // cards fetch tens of kilobytes instead of the full-size original)
 export { generateImageVariants } from './images/generateImageVariants';
+export {
+  cleanupRemovedBarrioImages,
+  cleanupRemovedEventImages,
+  cleanupRemovedFestivalPosterImages,
+  cleanupRemovedHistoryEntryImages,
+  cleanupRemovedNewsImages,
+  cleanupRemovedOrganizationImages,
+  cleanupRemovedPlaceImages,
+} from './images/cleanupRemovedImages';
+
+// Village Wrapped (post-fiestas summary cards: built and offered to the
+// village admins when a fiestas block ends, published on a timer if nobody acts)
+export { buildVillageWrapped } from './wrapped/buildVillageWrapped';
+export { respondToVillageWrapped } from './wrapped/respondToVillageWrapped';
+export { runVillageWrappedLifecycle } from './wrapped/wrappedScheduler';

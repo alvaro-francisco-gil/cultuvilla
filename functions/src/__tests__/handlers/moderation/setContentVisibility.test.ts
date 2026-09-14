@@ -38,6 +38,7 @@ async function seedNewsPost(postId: string): Promise<void> {
       title: 'Fiesta del pueblo',
       body: 'Descripción',
       category: 'fiesta',
+      villageSlug: 'villarriba',
       images: [],
       status: 'active',
       hiddenBy: null,

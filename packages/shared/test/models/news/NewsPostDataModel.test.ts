@@ -8,7 +8,7 @@ import {
   type NewsPostCategory,
 } from '../../../src/models/news/NewsPostDataModel';
 import { NewsTextBlockSchema, NewsLinkSchema } from '../../../src/models/news/NewsPostDataModel';
-import { NewsMarkSchema, NEWS_MARK_TYPES } from '../../../src/models/news/NewsPostDataModel';
+import { NewsMarkSchema, NEWS_MARK_TYPES, NEWS_TEXT_STYLES } from '../../../src/models/news/NewsPostDataModel';
 
 describe('MENTION_ENTITY_TYPES', () => {
   it('is the entity family plus village, and excludes persons', () => {
@@ -123,7 +123,7 @@ describe('NewsPostDataSchema', () => {
   it('accepts a post with organizerUserIds + organizerOrgIds', () => {
     const now = new Date();
     const parsed = NewsPostDataSchema.parse({
-      municipalityId: 'm1',
+      municipalityId: 'm1', villageSlug: 'villa',
       organizerUserIds: ['u'],
       organizerOrgIds: [],
       createdBy: 'u',
@@ -180,7 +180,7 @@ describe('NewsPostDataSchema', () => {
     const now = new Date();
     expect(() =>
       NewsPostDataSchema.parse({
-        municipalityId: 'm1',
+        municipalityId: 'm1', villageSlug: 'villa',
         organizerUserIds: ['u1'],
         organizerOrgIds: [],
         createdBy: 'u1',
@@ -206,7 +206,7 @@ describe('buildNewsPostData', () => {
   it('produces an active post with zeroed counters by default', () => {
     const now = new Date();
     const p = buildNewsPostData({
-      municipalityId: 'm1',
+      municipalityId: 'm1', villageSlug: 'villa',
       organizerUserIds: ['u1'],
       organizerOrgIds: [],
       createdBy: 'u1',
@@ -239,7 +239,7 @@ describe('buildNewsPostData', () => {
     const published = new Date('2026-01-02T00:00:00Z');
 
     const withoutPublishedAt = buildNewsPostData({
-      municipalityId: 'm1',
+      municipalityId: 'm1', villageSlug: 'villa',
       organizerUserIds: ['u1'],
       organizerOrgIds: [],
       createdBy: 'u1',
@@ -252,7 +252,7 @@ describe('buildNewsPostData', () => {
     expect(withoutPublishedAt.publishedAt).toEqual(created);
 
     const withPublishedAt = buildNewsPostData({
-      municipalityId: 'm1',
+      municipalityId: 'm1', villageSlug: 'villa',
       organizerUserIds: ['u1'],
       organizerOrgIds: [],
       createdBy: 'u1',
@@ -269,5 +269,20 @@ describe('buildNewsPostData', () => {
   it('exposes the canonical category list', () => {
     const expected: NewsPostCategory[] = ['fiesta', 'tradicion', 'gastronomia', 'historia', 'otro'];
     expect(NEWS_POST_CATEGORIES).toEqual(expected);
+  });
+});
+
+describe('NewsTextBlockSchema style (sections)', () => {
+  it('defaults a text block written before sections existed to a paragraph', () => {
+    const parsed = NewsTextBlockSchema.parse({ type: 'text', text: 'hola', mentions: [] });
+    expect(parsed.style).toBe('paragraph');
+  });
+
+  it.each(NEWS_TEXT_STYLES)('keeps the %s style', (style) => {
+    expect(NewsTextBlockSchema.parse({ type: 'text', text: 'Fiestas', mentions: [], style }).style).toBe(style);
+  });
+
+  it('rejects an unknown style', () => {
+    expect(() => NewsTextBlockSchema.parse({ type: 'text', text: 'x', mentions: [], style: 'h1' })).toThrow();
   });
 });

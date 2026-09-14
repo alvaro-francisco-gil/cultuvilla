@@ -31,6 +31,7 @@ import path from 'path';
 import { initAdminForEnv } from './lib/env-credentials.mjs';
 import { parseEnvConfirm } from './lib/env-confirm.mjs';
 import { searchKey, searchPrefixes } from './lib/municipality-search.mjs';
+import { assignMunicipalitySlugs } from '@cultuvilla/shared/models';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -69,8 +70,9 @@ async function main() {
   const collection = db.collection('municipalities');
 
   // 1. Fetch all codigoINE values that already exist (single query, no per-doc reads)
-  const existingSnap = await collection.select('codigoINE').get();
+  const existingSnap = await collection.select('codigoINE', 'slug').get();
   const existingCodes = new Set(existingSnap.docs.map((d) => d.data().codigoINE));
+  const takenSlugs = existingSnap.docs.map((d) => d.data().slug).filter((s) => typeof s === 'string');
 
   console.log(`[seed] Existing municipalities in Firestore: ${existingCodes.size}`);
 
@@ -100,6 +102,11 @@ async function main() {
     process.exit(0);
   }
 
+  const slugs = assignMunicipalitySlugs(
+    toWrite.map((e) => ({ id: e.codigoINE, name: e.name, province: e.province, codigoINE: e.codigoINE })),
+    takenSlugs,
+  );
+
   // 3. Write in batches of max 500
   const BATCH_SIZE = 500;
   let created = 0;
@@ -122,6 +129,7 @@ async function main() {
         province: entry.province,
         comunidadAutonoma: entry.comunidadAutonoma,
         codigoINE: entry.codigoINE,
+        slug: slugs.get(entry.codigoINE),
         coordinates: null,
         locationLabel: null,
         mapZoom: null,

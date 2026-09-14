@@ -17,7 +17,7 @@ const baseInput = {
   organizerOrgIds: [],
   createdBy: 'u1',
   municipalityId: 'm1',
-  villageName: 'Villa',
+  villageName: 'Villa', villageSlug: 'villa',
   villageCoordinates: null,
 };
 

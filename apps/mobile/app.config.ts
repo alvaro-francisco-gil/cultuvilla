@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { ExpoConfig } from 'expo/config';
 import type { FirebaseOptions } from 'firebase/app';
 
@@ -106,6 +108,18 @@ const googleSignInPerEnv: Record<Env, GoogleSignInConfig> = {
   },
 };
 
+// Android push needs the NATIVE Firebase config: expo-notifications mints an FCM
+// token from it, and without the file Android push silently never registers.
+// (iOS needs no counterpart — its tokens are raw APNs and go to APNs directly;
+// see docs/plans/ongoing/device-notifications.md.) Committed per env under
+// google-services/ like the .well-known signing identities: it carries no
+// secret, and a value in git is reviewable and identical for a local prebuild.
+// Only wired when present, so a checkout without it still builds — minus push.
+const googleServicesFile = `./google-services/${env}/google-services.json`;
+// Resolved against this file, not the cwd: tests and CI evaluate the config
+// from the repo root as well as from apps/mobile.
+const hasGoogleServicesFile = existsSync(resolve(__dirname, googleServicesFile));
+
 const firebaseConfigPerEnv: Record<Env, FirebaseOptions> = {
   dev: {
     apiKey: process.env['FIREBASE_API_KEY_DEV'] ?? '',
@@ -141,7 +155,7 @@ const config: ExpoConfig = {
   // the shell would silently build one repo into the other's EAS project; owner
   // + projectId in the file make the routing per-repo by construction.
   owner: 'cultuvilla.app',
-  version: '1.1.0',
+  version: '1.2.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
 
@@ -182,9 +196,17 @@ const config: ExpoConfig = {
       NSPhotoLibraryUsageDescription:
         'Cultuvilla necesita acceso a tus fotos para elegir y recortar tu imagen de perfil.',
     },
+    entitlements: {
+      // Lets a `mine` push (a released seat, a cancelled event) break through
+      // Focus modes. Without it iOS silently downgrades `time-sensitive` to
+      // `active` — nothing errors, the push just stops being urgent. The same
+      // capability must be on the App ID; EAS syncs it for managed credentials.
+      'com.apple.developer.usernotifications.time-sensitive': true,
+    },
   },
   android: {
     package: bundleIdPerEnv[env],
+    ...(hasGoogleServicesFile ? { googleServicesFile } : {}),
     // Every permission in the manifest has to be justified in the Play Console
     // Data Safety form, and background location additionally needs a written
     // declaration plus a video review. expo-location and expo-image-picker each
@@ -207,12 +229,10 @@ const config: ExpoConfig = {
       {
         action: 'VIEW',
         autoVerify: true,
-        data: [
-          { scheme: 'https', host: deepLinkHostPerEnv[env], pathPrefix: '/event/' },
-          { scheme: 'https', host: deepLinkHostPerEnv[env], pathPrefix: '/news/' },
-          { scheme: 'https', host: deepLinkHostPerEnv[env], pathPrefix: '/village/' },
-          { scheme: 'https', host: deepLinkHostPerEnv[env], pathPrefix: '/o/' },
-        ],
+        // The whole host: URLs start with the pueblo's slug (`/matabuena/…`), so
+        // there is no fixed prefix to claim. Android cannot exclude paths; iOS
+        // excludes `/entrar` in the AASA so a sign-in link stays in the browser.
+        data: [{ scheme: 'https', host: deepLinkHostPerEnv[env] }],
         category: ['BROWSABLE', 'DEFAULT'],
       },
     ],
@@ -280,6 +300,17 @@ const config: ExpoConfig = {
       },
     ],
     'expo-apple-authentication',
+    [
+      'expo-notifications',
+      {
+        // Tints the small status-bar icon on Android.
+        color: '#bb5d3a',
+        // The channel a push lands in if it arrives before the app has ever
+        // run and created its own (see ensureAndroidChannels). Every push the
+        // server sends names a channel explicitly.
+        defaultChannel: 'mine',
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,

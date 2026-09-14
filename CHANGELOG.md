@@ -4,6 +4,306 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v1.2.0 — 2026-09-14
+
+### Fixed
+
+- **Pestañas «Mi pueblo» y «Perfil».** Volvían a salir sin icono y en orden cambiado tras el paso a URLs en español; recuperan su icono y su sitio.
+
+### Changed
+
+- **Explora abre en Artículos.** El selector muestra «Artículos» antes que «Eventos».
+
+### Added
+
+- **Historia y palabra del día en la portada del pueblo.** Los botones «Historia»
+  y «Vocabulario» se sustituyen por dos piezas visuales: una línea del tiempo
+  horizontal con el año de cada acontecimiento y su foto (o el comienzo del relato),
+  y una tarjeta con la palabra del día, su significado, un ejemplo y otras palabras
+  para seguir leyendo. La palabra cambia cada día y es la misma para todos.
+- **Palabras y acontecimientos desde «Añadir contenido».** La hoja de añadir
+  contenido del pueblo ofrece ahora «Palabra» (vocabulario) y «Acontecimiento»
+  (línea de historia), que abren directamente sus pantallas de creación.
+- **Hasta 25 fotos por noticia.** El límite de imágenes dentro del cuerpo de una
+  noticia sube de 10 a 25: una crónica de fiestas o una galería de una jornada ya
+  no obliga a elegir. El coste de almacenamiento es marginal, porque cada foto se
+  reduce a 1600 px antes de subirla y los lectores descargan la versión de
+  tarjeta, de unos 150 KB.
+- **Títulos y subtítulos en los artículos.** Selecciona una palabra de una
+  línea y pulsa **Título** o **Subtítulo** en la barra de formato (junto a
+  negrita y cursiva): esa línea pasa a ser un título, para ordenar textos largos
+  (el programa de fiestas, una crónica por días). Con **Texto** vuelve a ser una
+  línea normal. En el ordenador, un triple clic selecciona todo el texto del
+  bloque para darle formato de una vez. Las versiones anteriores de la app
+  muestran los títulos como un párrafo normal.
+
+- **Una palabra, muchos pueblos.** Las palabras empiezan a repetirse entre
+  pueblos, y eso deja de ser un problema de duplicados para convertirse en lo
+  interesante: mientras escribes una palabra nueva, el formulario te muestra si
+  ya está recogida en otros sitios («esbardo · en 3 pueblos»). La eliges, te
+  quedas con su grafía, y la añades al tuyo aportando **tu** significado. En la
+  pantalla de la palabra aparece **«También se dice en»**, con los demás pueblos
+  y cuántas acepciones tiene cada uno: la misma palabra y cómo cambia de un
+  pueblo a otro.
+
+  Los duplicados no los evita el buscador, los evita el identificador: se deriva
+  de la propia palabra, así que escribirla entera sin mirar las sugerencias
+  también acaba en la misma palabra. El buscador sirve para enterarte antes de
+  escribir, no para que el sistema funcione.
+
+  **Los motes y los topónimos nunca se comparten**, a propósito. Un mote nombra
+  a una familia de un pueblo y un topónimo a un paraje suyo: «El Cerro» de dos
+  pueblos son dos sitios distintos, y juntarlos sería un error, no una limpieza.
+- **El resumen de las fiestas.** Un administrador del pueblo crea desde
+  *Editar pueblo → Resumen de fiestas* el **resumen del año**: siete imágenes
+  verticales, para compartir tal cual por WhatsApp — la portada, las cifras
+  (con la media de personas por evento), todos los eventos con su cartel, los
+  artículos, el pueblo entero en burbujas, todos los que organizaron algo, y los
+  carteles de este año sumados al archivo histórico.
+
+  **Un solo resumen por año, con todas sus fiestas**: Santiago en julio y el
+  Carmen en agosto van juntos, y la portada nombra cada una con sus fechas. Al
+  crearlo se eligen en un calendario **los días de cada fiesta** de ese año y el
+  **periodo del resumen**: de él salen los eventos, las inscripciones y los
+  artículos. Por defecto va de la primera fiesta a la última, y se puede ampliar
+  — por ejemplo, para incluir lo que se escribió la semana antes. Una fiesta que
+  este año no se celebró se deja fuera con un interruptor.
+
+  En los créditos cuenta **cada organizador de cada evento** — todas las
+  asociaciones y todas las personas del equipo, no solo quien lo dio de alta —
+  con su foto de perfil si su persona es pública. Un año sin artículos no
+  lleva esa imagen, en vez de una vacía.
+
+  El mes siguiente a las últimas fiestas del año, los administradores reciben
+  **un aviso** para crearlo. Tras generarlo lo ven como borrador y pueden
+  **publicarlo** o **descartarlo**; si nadie hace nada se publica solo a los
+  **tres días**, salvo que tenga poca actividad (menos de tres eventos, o
+  ninguna inscripción): entonces decide una persona. Se puede regenerar con
+  otras fechas — si ya estaba publicado sigue publicado con las imágenes nuevas.
+  Un resumen publicado se abre sin estar registrado, para que el enlace siga
+  funcionando en manos de quien lo reciba.
+- **Direcciones en español, con el nombre del pueblo.** Cada pueblo tiene su
+  propia dirección, `cultuvilla.es/matabuena`, fácil de dictar o de imprimir en
+  un bando, y todo lo que publica cuelga de ella:
+  `cultuvilla.es/matabuena/evento/fiestas-de-san-roque_…`, `/noticia/…`,
+  `/entidad/…`, `/lugar/…`, `/barrio/…`, `/cartel/…`, `/acontecimiento/…`,
+  `/palabra/…`. Las pantallas de la app también hablan español (`/ajustes`,
+  `/buzon`, `/perfil`, `/crear/evento`…). Un enlace con el título ya cambiado,
+  o con otro pueblo, redirige al bueno; y un evento privado nunca muestra su
+  título en la dirección. Los nombres que comparten varios pueblos llevan la
+  provincia (`moya-cuenca`). Las antiguas direcciones (`/event/…`,
+  `/village/…`, `/o/…`) dejan de funcionar; `/legal/privacy` y `/legal/terms`
+  redirigen a `/legal/privacidad` y `/legal/terminos` porque las fichas de las
+  tiendas apuntan a ellas.
+  **Migration:** `scripts/backfill-municipality-slug.mjs` asigna
+  `municipalities.slug` y después `scripts/backfill-village-slug-denorm.mjs`
+  copia `villageSlug` a `events`, `news`, `organizations`, `festivalPosters` e
+  `historyEntries` (per env; ambos `pre-deploy` y `autoApply`, ya aplicados en
+  dev).
+
+- **La historia del pueblo, en una línea del tiempo.** Cada pueblo tiene ahora
+  un botón **Historia** que abre su cronología: el presente arriba y, según se
+  baja, más atrás en el tiempo, con un separador al empezar cada siglo. Cada
+  acontecimiento lleva un título, un relato con formato, hasta **tres imágenes
+  con pie de foto** (la primera es la portada) y, si se quiere, sus **fuentes**.
+
+  La fecha es tan precisa como lo que se sabe: un año, un mes o un día; un
+  momento o un periodo («1936 – 1939»); y puede marcarse como aproximada
+  («h. 1500»). Admite años **antes de Cristo** («218 a. C.»), que es donde
+  empiezan muchas historias de pueblo — por eso las fechas se guardan como
+  números y no como `Timestamp`, que no llega más atrás del año 1.
+
+  Igual que el vocabulario: cualquier vecino publica al instante, cualquiera lo
+  lee (también fuera de la app, con enlace para compartir), y los
+  administradores ocultan o corrigen después. Los acontecimientos admiten
+  comentarios.
+
+  Nueva colección `historyEntries/`: necesita desplegar reglas, índice y
+  `storage.rules`. Sin migración — la colección es nueva.
+- **Quién digitalizó cada palabra.** Al añadir una palabra al Vocabulario —o un
+  significado nuevo a una que ya existe— ahora se puede nombrar a los vecinos y
+  grupos que ayudaron a recogerla, igual que en los carteles y los lugares:
+  «Digitalizado por Ana, Luis · Peña El Botijo». El formulario pasa a tener dos
+  pasos, como el de añadir un lugar: primero la palabra, luego la digitalización.
+
+  **Se acredita la palabra, no sólo el significado**, a propósito: recoger una
+  palabra que nadie había escrito es justo la aportación que queremos premiar.
+  El crédito de la palabra es de quien la registró primero y no cambia; quien
+  añade después otro significado recibe el crédito en *ese* significado.
+
+  Es crédito, no autoría: aparecer nombrado no da permiso para editar. El autor
+  va siempre incluido y no puede quitarse, y las reglas limitan cada lista a 20
+  personas y 20 grupos para que no sirva para nombrar a medio pueblo.
+
+- **Los pueblos de Cultuvilla ya se pueden encontrar en Google.** La web era una
+  aplicación que se pintaba entera en el navegador: quien llegaba a
+  `cultuvilla.es/event/…` —o el robot de Google— recibía una página vacía hasta
+  que arrancaba la app y respondía la base de datos. Google no tenía nada que
+  leer ni ninguna lista de páginas que visitar, así que ningún pueblo aparecía.
+
+  Ahora cada enlace compartido de evento, noticia, pueblo u organización llega
+  **con su contenido ya escrito** —título, foto, fecha, lugar y descripción— y la
+  app lo sustituye en cuanto tiene sus datos. Es el mismo HTML para personas y
+  para buscadores: no hay una versión "para Google". Quien abre el enlace desde
+  un grupo de WhatsApp con mala cobertura ve la fiesta al instante en vez de una
+  pantalla en blanco.
+
+  Además: un **`/sitemap.xml`** vivo con los pueblos activos, los eventos
+  públicos, las noticias y las organizaciones; **datos estructurados**
+  (schema.org `Event`, `City`, `Organization`, `NewsArticle`) para que un evento
+  salga con su fecha y su lugar en los resultados; una URL canónica sin los
+  parámetros de rastreo que añaden WhatsApp o Instagram; y un título y una
+  descripción por defecto para el resto de la web, que hasta ahora no tenía
+  ninguno.
+
+  Lo que **no** se indexa, a propósito: las fichas de **personas** (un vecino
+  aceptó ser visible dentro de la app de su pueblo, no que su nombre salga en
+  Google), los **enlaces de invitación** `/join`, los **eventos privados** y las
+  pantallas personales (`/me`, `/inbox`, `/settings`, `/admin`).
+- **Notificaciones en el móvil.** Hasta ahora las notificaciones sólo vivían en
+  el Buzón; ahora llegan también al móvil, en iOS y Android, y **todo lo que se
+  añade a un pueblo avisa a sus vecinos**: un evento, una noticia, un lugar, un
+  barrio, una peña, un cartel de fiestas o una entrada de la historia del
+  pueblo. Además, el día antes de un evento al
+  que vas te llega un recordatorio.
+
+  El permiso **no se pide al abrir la app**. iOS sólo deja preguntarlo una vez en
+  la vida de la instalación, así que primero sale una hoja propia, en el momento
+  en que el aviso tiene sentido —justo después de apuntarte a un evento («¿Te
+  avisamos si cambia algo?») o de unirte a un pueblo— y sólo si dices que sí
+  aparece el diálogo del sistema. Como mucho dos veces, nunca dos en la misma
+  semana.
+
+  En **Ajustes → Notificaciones** eliges qué te llega (*Mis inscripciones*,
+  *Novedades del pueblo*, *Actividad y solicitudes*) y si quieres **no molestar
+  de noche**: lo que llegue entre las 22:00 y las 8:00 te llega por la mañana,
+  salvo lo de tus propias plazas, que llega siempre. En el Buzón sigues viendo
+  todo, y ahora cada aviso se puede tocar para ir a lo que anuncia.
+
+  Sólo en la app; la web no pide ni bloquea nada. Requiere una versión nueva de
+  la app (no llega por OTA) y, antes del despliegue, el secreto `APNS_AUTH_KEY`
+  en cada entorno — ver
+  [device-notifications.md](docs/plans/ongoing/device-notifications.md).
+
+- **El vocabulario del pueblo, escrito entre todos.** Cada pueblo tiene ahora un
+  **Vocabulario**: las palabras, dichos, motes y topónimos que sólo se dicen ahí
+  y que hoy no están escritos en ningún sitio. Cualquier vecino del pueblo añade
+  una palabra; cualquiera —también quien no vive allí— la lee, igual que el resto
+  del feed abierto.
+
+  Lo que lo hace realmente colaborativo no es que todos puedan publicar, sino que
+  **una palabra es un objeto compartido, no un post**. El id del término se
+  *deriva* de la propia palabra (`{municipalityId}__{slug}`, tildes y mayúsculas
+  plegadas), así que si Ana añade «esbardo» y Luis añade «Esbardo» un minuto
+  después, no salen dos entradas: sale una, con dos acepciones. Nadie
+  sobrescribe el significado de nadie —cada vecino añade el suyo al lado, con su
+  ejemplo de uso y, si la hay, la palabra equivalente en castellano— porque una
+  palabra puede querer decir dos cosas en dos barrios y las dos merecen quedarse.
+
+  Sin cola de aprobación, deliberadamente: una lista que hay que aprobar es una
+  lista que no se llena. Se publica al instante y los administradores del pueblo
+  ocultan o borran después, con la misma palanca (`setContentVisibility`) que el
+  resto del contenido. Las palabras admiten **comentarios** y se pueden reportar.
+
+  Un término sólo desaparece cuando se queda sin significados: `definitionCount`
+  lo lleva un trigger y las reglas lo leen para permitir —o no— que su autor lo
+  retire.
+- **Un pueblo ya puede declarar sus fiestas — y pueden ser varias.**
+  Matabuena tiene dos: Santiago en julio y el Carmen en agosto, con semanas
+  normales por medio. Así que las fiestas son una lista en la ficha del pueblo
+  (`community.fiestas`), editable por los administradores desde *Editar pueblo*.
+
+  Cada fiesta es **solo un nombre y un mes**. Los días exactos cambian de un año
+  a otro y nadie mantiene un calendario al día, así que no se guardan aquí: se
+  eligen cada año al crear el resumen de fiestas, y quedan guardados en ese
+  resumen.
+
+  **Migration:** `scripts/backfill-village-fiestas.mjs` (registrado, `pre-deploy`,
+  auto-aplicado por el deploy) siembra `community.fiestas: []` en los pueblos con
+  comunidad activa, y `scripts/backfill-village-fiestas-month.mjs` (registrado,
+  `pre-deploy`, auto-aplicado, después del anterior) reduce cada fiesta ya
+  guardada a `{ id, name, month }`. Sin ellos el converter estricto no puede leer
+  la ficha del pueblo.
+
+### Fixed
+
+- **El enlace a un pueblo conserva su dirección en la web.** Abrir
+  `cultuvilla.es/<pueblo>` desde WhatsApp o desde Google ya no cambia la barra de
+  direcciones a `/mi-pueblo?villageId=…`: la ficha se muestra en su propia URL, y
+  el botón de volver lleva a la pestaña del pueblo. Un pueblo o una ficha que no
+  existen responden ahora con un 404 (y `noindex`) en lugar de una página vacía
+  que Google podía indexar.
+- **Los enlaces nuevos no abren la app de iOS publicada en una pantalla vacía.**
+  La versión 1.0.0 de la App Store no conoce las nuevas direcciones por pueblo y
+  no puede actualizarse sin pasar por la tienda. Hasta que haya una versión de
+  iOS que sí las conozca, en producción esos enlaces se abren en la web (que
+  funciona siempre), y los enlaces antiguos siguen abriendo la app.
+- **Las fotos que quitas ya no se quedan ocupando espacio.** Al borrar una
+  noticia, un evento, una entidad, un lugar, un barrio, un cartel o una entrada
+  de historia —o al quitar o cambiar una de sus fotos al editar— la imagen se
+  borra del almacenamiento junto con sus versiones reducidas. Antes se quedaban
+  para siempre: el móvil intentaba borrarlas, pero las reglas de Storage lo
+  rechazaban en silencio. En carteles e historia, además, el borrado ocurría
+  antes de guardar, así que cancelar la edición podía dejar la ficha apuntando a
+  una foto ya borrada. Ahora lo hace el servidor, después de guardar, y solo con
+  fotos subidas para esa misma ficha.
+- **Editar un artículo ya no salta de paso al seleccionar texto.** Los
+  formularios por pasos ya no cambian de paso deslizando: se avanza con los
+  botones o los puntos. Al arrastrar para seleccionar texto (sobre todo con el
+  ratón) se saltaba al paso siguiente.
+- **La negrita y la cursiva ya no se ven dobles al escribir en la app.** El
+  texto con formato aparecía como dos copias superpuestas en iOS y Android.
+
+- **En el iPhone, Safari no ofrecía la app — y la web se declaraba en inglés.**
+  La v1.1.0 anunció que Safari mostraría su propia barra de descarga del App
+  Store, y por eso nuestro aviso se aparta en Safari. Pero la etiqueta que la
+  enciende vivía en `app/+html.tsx`, un archivo que la web **no usa**: en el
+  modo de página única, Expo construye el documento desde
+  `public/index.html` e ignora `+html.tsx` por completo. Así que en producción
+  la etiqueta nunca salió, y a un visitante de Safari en iPhone no se le
+  ofrecía **nada**. Por el mismo motivo la página iba en `lang="en"` desde
+  julio pese a un arreglo que decía lo contrario, y Chrome seguía ofreciendo
+  traducir una web en castellano. La cabecera vive ahora en
+  `public/index.html`, `+html.tsx` desaparece, y el despliegue **se rechaza**
+  si la página exportada pierde `lang="es"` o la etiqueta del App Store —
+  para que esto no pueda volver a romperse sin que nadie lo vea.
+- **Los entornos de pruebas ya no se pueden indexar.** La web de desarrollo y la
+  de beta —llenas de datos de demostración con el nombre de Cultuvilla— servían
+  un `robots.txt` que invitaba a Google a entrar. Ahora sólo producción se deja
+  indexar; dev y beta responden `Disallow: /`. El `robots.txt` es un archivo
+  estático por entorno: servirlo desde una función era imposible, porque el
+  framework de Cloud Functions contesta `/robots.txt` él mismo con un 404 vacío
+  antes de que el código llegue a ejecutarse.
+- **Una sola dirección para cada página.** Producción responde en
+  `cultuvilla.es` y en `cultuvilla-prod.web.app`, y cada una se anunciaba como
+  la dirección canónica, así que Google veía dos copias de todo compitiendo
+  entre sí. Ahora la canónica y el sitemap nombran siempre `cultuvilla.es` — y
+  también los enlaces de los correos de inscripción y cancelación, que hasta
+  ahora mandaban a los vecinos a `cultuvilla-prod.web.app`.
+- **Abrir un enlace compartido ya no descoloca la pantalla.** El contenido que
+  la web pinta antes de que arranque la app empujaba la app hacia abajo y
+  cortaba su parte inferior —barra de pestañas incluida— mientras estaba
+  visible. Ahora cubre la pantalla y la app carga debajo, así que al quitarse
+  aparece la pantalla ya terminada.
+
+- **Los botones de acción vuelven a verse como botones.** En Pueblo («Añadir
+  contenido», «Compartir pueblo», «Unirme», «Rellenar censo») y en Perfil, los
+  botones aparecían como texto suelto, sin el contorno terracota, en la app y en
+  la web. `ActionPill` pasaba su estilo como función (`style={({ pressed }) =>
+  …}`) junto a un `className`, y NativeWind aplica el estilo en línea con
+  `{ ...style }`: una función se expande a nada, así que se perdían borde,
+  relleno y ancho. El estilo es ahora un objeto y la atenuación al pulsar va por
+  la variante `active:opacity-70`. El `Pressable` base tenía el mismo defecto (la
+  atenuación al pulsar nunca se aplicaba) y queda arreglado igual; un test impide
+  volver a combinar un estilo-función con `className`.
+- **El icono de Android ya no toca los bordes.** Android recorta el icono
+  adaptativo con la máscara del lanzador (un círculo en Pixel y muchos otros) y
+  solo garantiza visible el círculo central de 66 dp de los 108 dp del lienzo.
+  El logo de `adaptive-icon.png` se salía de esa zona segura y las puntas de las
+  hojas quedaban cortadas o pegadas al borde. El logo se ha reducido al 80 % y
+  centrado, con margen dentro de la zona segura. Es un recurso nativo: llega con
+  el próximo binario, no por OTA.
+
 ## v1.1.0 — 2026-09-04
 
 ### Added

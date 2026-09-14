@@ -1,4 +1,5 @@
 // packages/shared/src/services/organizationService.ts
+import { getVillageSlug } from './municipalityService';
 import {
   doc,
   getDoc,
@@ -79,7 +80,9 @@ export function newOrganizationId(): string {
   return doc(organizationsCollection(getDb())).id;
 }
 
-export async function requestOrganization(input: OrganizationDataInput): Promise<string> {
+export async function requestOrganization(
+  input: Omit<OrganizationDataInput, 'villageSlug'>,
+): Promise<string> {
   // ayuntamiento is a singleton per village; the cap can only be enforced
   // server-side (rules can't query for an existing one), so it goes through the
   // requestAyuntamiento callable. peña / asociación are unlimited, written directly.
@@ -109,6 +112,7 @@ export async function requestOrganization(input: OrganizationDataInput): Promise
     type: input.type,
     status: 'pending',
     municipalityId: input.municipalityId,
+    villageSlug: await getVillageSlug(input.municipalityId),
     requestedBy: input.requestedBy,
     reviewedBy: null,
     createdAt: input.createdAt ?? new Date(),
@@ -147,7 +151,7 @@ export async function rejectOrganization(orgId: string): Promise<void> {
 
 export async function updateOrganization(
   orgId: string,
-  data: Partial<Omit<OrganizationData, 'createdAt' | 'requestedBy' | 'municipalityId'>>,
+  data: Partial<Omit<OrganizationData, 'createdAt' | 'requestedBy' | 'municipalityId' | 'villageSlug'>>,
 ): Promise<void> {
   const updates: UpdateData<DocumentData> = { ...data };
   await updateDoc(doc(getDb(), 'organizations', orgId), updates);

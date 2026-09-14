@@ -92,6 +92,7 @@ function validEvent(overrides: Record<string, unknown> = {}) {
     updatedAt: new Date(),
     municipalityId: 'm1',
     villageName: 'Villa',
+    villageSlug: 'villa',
     villageCoverImage: null,
     villageCoordinates: null,
     commentCount: 0,

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   requestOrganization, newOrganizationId, approveOrganization,
 } from '@cultuvilla/shared/services/organizationService';
-import { deleteImageByURL, uploadOrganizationImage } from '@cultuvilla/shared/services/imageService';
+import { uploadOrganizationImage } from '@cultuvilla/shared/services/imageService';
 import {
   PROPOSABLE_ORGANIZATION_TYPES,
   type OrganizationType,
@@ -57,9 +57,7 @@ export function OrganizationsManager({
   }
 
   function removeImage(index: number) {
-    const url = images[index];
     setImages((prev) => prev.filter((_, i) => i !== index));
-    if (url) void deleteImageByURL(url).catch(() => {}); // best-effort orphan cleanup
   }
 
   async function submit() {

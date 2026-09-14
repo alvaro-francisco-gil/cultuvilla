@@ -7,6 +7,15 @@ import { buildPlaceData } from '@cultuvilla/shared/models/municipality';
 
 const mockRefreshProfile = jest.fn(async () => undefined);
 let mockUser: { uid: string } | null = { uid: 'u1' };
+const mockOfferPush = jest.fn();
+jest.mock('../../../lib/push/PushProvider', () => ({
+  usePush: () => ({
+    offerPush: mockOfferPush,
+    permission: 'undetermined',
+    refreshPermission: jest.fn(),
+    requestPermission: jest.fn(),
+  }),
+}));
 jest.mock('../../../lib/auth/useAuth', () => ({
   useAuth: () => ({
     user: mockUser,
@@ -65,6 +74,7 @@ jest.mock('../../../lib/i18n', () => {
 const village = {
   id: 'm1',
   name: 'Anaya',
+  slug: 'anaya',
   province: 'Segovia',
   communityActive: true,
   community: { organizerId: null, description: null },
@@ -82,6 +92,9 @@ const base: VillageHomeState = {
   events: [],
   news: [],
   festivalPosters: [],
+  history: [],
+  wordOfTheDay: null,
+  vocabularyCount: 0,
   peopleCount: 3,
   pendingOrganizerRequest: false,
   myCensoAnswers: {},
@@ -92,6 +105,8 @@ const base: VillageHomeState = {
     barrios: 'ready',
     places: 'ready',
     organizations: 'ready',
+    history: 'ready',
+    vocabulary: 'ready',
   },
 };
 
@@ -127,6 +142,7 @@ describe('VillageHomeBody', () => {
     // Refresh the in-memory auth profile so the Pueblo tab picks up the new
     // activeMunicipalityId immediately, not only after an app restart.
     await waitFor(() => expect(mockRefreshProfile).toHaveBeenCalled());
+    expect(mockOfferPush).toHaveBeenCalledWith('village_join', { villageName: expect.any(String) });
   });
 
   it('logged-out "sign in to join" carries the village across auth', () => {
@@ -138,7 +154,7 @@ describe('VillageHomeBody', () => {
       <VillageHomeBody data={{ ...base, isMember: false }} reload={jest.fn()} />,
     );
     fireEvent.press(getByText('Inicia sesión para unirte'));
-    expect(mockRequireAuth).toHaveBeenCalledWith('/village/m1', expect.any(String), 'm1');
+    expect(mockRequireAuth).toHaveBeenCalledWith('/anaya', expect.any(String), 'm1');
   });
 
   it('renders the start-village notice when the community is dormant', () => {
@@ -225,6 +241,7 @@ describe('VillageHomeBody', () => {
       createdAt: new Date('2026-01-01T00:00:00Z'),
       updatedAt: new Date('2026-01-01T00:00:00Z'),
       municipalityId: 'm1',
+      villageSlug: 'villa',
       villageName: 'Anaya',
       villageCoverImage: null,
       villageCoordinates: null,
@@ -257,7 +274,36 @@ describe('VillageHomeBody', () => {
     );
     fireEvent.press(getByText('Añadir contenido'));
     fireEvent.press(getByText('Detalles pueblo'));
-    expect(router.push).toHaveBeenCalledWith('/village/m1/community');
+    expect(router.push).toHaveBeenCalledWith('/anaya/comunidad');
+  });
+
+  it('shows the history and the word of the day — for non-members too, reading is open to everyone', () => {
+    const history = [
+      {
+        id: 'h1',
+        title: 'Llega la luz eléctrica',
+        start: { year: 1956, month: null, day: null },
+        end: null,
+        approximate: false,
+        body: { text: '', mentions: [], links: [], marks: [] },
+        images: [],
+      },
+    ] as unknown as VillageHomeState['history'];
+    const wordOfTheDay = {
+      term: { id: 'm1__miaja', term: 'miaja', kind: 'palabra' },
+      definition: null,
+      more: [],
+    } as unknown as VillageHomeState['wordOfTheDay'];
+    const { getByText } = render(
+      <VillageHomeBody
+        data={{ ...base, isMember: false, history, wordOfTheDay, vocabularyCount: 12 }}
+        reload={jest.fn()}
+      />,
+    );
+    expect(getByText('Llega la luz eléctrica')).toBeTruthy();
+    expect(getByText('Palabra del día')).toBeTruthy();
+    fireEvent.press(getByText('Ver las 12'));
+    expect(router.push).toHaveBeenCalledWith('/anaya/vocabulario');
   });
 
   it('non-admin members do not see the "Detalles pueblo" option in the sheet', () => {
@@ -275,14 +321,14 @@ describe('VillageHomeBody', () => {
       (label) => expect(getByText(label)).toBeTruthy(),
     );
     fireEvent.press(getByText('Evento'));
-    expect(router.push).toHaveBeenCalledWith('/event/new?villageId=m1');
+    expect(router.push).toHaveBeenCalledWith('/crear/evento?villageId=m1');
   });
 
   it('routes peña and agrupación to the org create screen with a preselected type', () => {
     const { getByText } = render(<VillageHomeBody data={base} reload={jest.fn()} />);
     fireEvent.press(getByText('Añadir contenido'));
     fireEvent.press(getByText('Peña'));
-    expect(router.push).toHaveBeenCalledWith('/village/m1/organizations?type=pena');
+    expect(router.push).toHaveBeenCalledWith('/anaya/entidades?type=pena');
   });
 
   it('shows the censo fill CTA to a villager of a village with a configured censo', () => {
@@ -350,11 +396,12 @@ describe('VillageHomeBody', () => {
       id: 'news-1',
       ...buildNewsPostData({
         municipalityId: 'm1',
+        villageSlug: 'villa',
         createdBy: 'u1',
         organizerUserIds: ['u1'],
         title: 'Sabores de siempre',
         body: 'Recetas del pueblo',
-        category: 'historia',
+        category: 'gastronomia',
         createdAt: publishedAt,
         publishedAt,
         updatedAt: publishedAt,
@@ -365,7 +412,7 @@ describe('VillageHomeBody', () => {
       <VillageHomeBody data={{ ...base, news: [post] }} reload={jest.fn()} />,
     );
 
-    expect(getByText('Historia')).toBeTruthy();
+    expect(getByText('Gastronomía')).toBeTruthy();
     expect(queryByText('15/06/2026')).toBeNull();
   });
 });
@@ -382,6 +429,7 @@ describe('subdivision sections', () => {
       residentCount: 0,
       commentCount: 0,
       municipalityId: 'v1',
+      villageSlug: 'villa',
     }) as unknown as VillageHomeState['barrios'][number];
 
   it('renders one section per kind, titled with that region\'s word', () => {

@@ -89,6 +89,34 @@ When a query would require N reads or live across collection boundaries, write a
 
 `strict: true` everywhere. No `any`. No `@ts-nocheck`. If a type is genuinely unknown at the boundary, use `unknown` and narrow. `@typescript-eslint/no-explicit-any` is an error in `packages/shared` and `functions`; the same standard applies in `apps/mobile` even though it isn't lint-gated yet — fix at the source, never silence with `as any`.
 
+### 6. Web parity is not a build rule
+
+`apps/mobile/` ships to iOS, Android **and** the web (Expo web export → Firebase
+Hosting). It is one codebase: the whole web-specific surface is 3 `.web.*` override
+files and ~27 `Platform.OS === 'web'` branch sites, fenced by
+`pnpm app:check-web-compat` / `pnpm app:check-web-export` and the
+`mobile-web-compat` skill. Keeping the two "in sync" is not a cost we pay.
+
+Two rules, and they are deliberately not the same rule:
+
+- **A feature does not have to work on web to be done.** Ship it app-only when the
+  web version would be a compromise or a blocker (native camera, push, offline).
+  Say so in the PR. Web does not hold a veto over native capabilities.
+- **Never block a flow that already works on web.** No walls, no "continúa en la
+  app" interstitial in front of a working action. The app earns its install by
+  being better, not by web being worse — and a wall lands hardest on the visitor
+  who tapped a WhatsApp link on a phone with no app installed. Desktop has no app
+  to install at all.
+
+**Web's job is the anonymous reader** — the WhatsApp link recipient and Google
+search. Every read route must resolve on web, permanently: share previews
+(`ogRenderer`) and the printed `/descarga` QR depend on it. Work that improves
+anonymous read on web (SEO, share previews, first paint) is *more* valuable under
+this rule, not less.
+
+Read [docs/decisions/web-parity-not-a-build-rule.md](docs/decisions/web-parity-not-a-build-rule.md)
+before proposing that something be removed from, or blocked on, the web build.
+
 ## Conventions
 
 ### Forms
@@ -100,8 +128,10 @@ Currently controlled inputs with `useState`. No form library yet. New forms shou
 An **entity** is a village-scoped domain object that appears in a horizontal
 `Section` scroll (as a `BigCard` / `EntityCard`) and opens a hero-image detail
 screen. The family: **event, festival-poster (cartel), place, barrio,
-organization, news**. `person` and `village` are **not** entities — they open
-into forms (`ScreenHeader`), not hero-detail screens.
+organization, news**, plus **history entry**, which opens the same hero-detail
+screen but is listed on the village's timeline rather than in a `Section`
+scroll. `person` and `village` are **not** entities — they open into forms
+(`ScreenHeader`), not hero-detail screens.
 
 Every entity detail screen is a thin consumer of one scaffold,
 [apps/mobile/components/feature/EntityDetailScaffold.tsx](apps/mobile/components/feature/EntityDetailScaffold.tsx):
@@ -235,7 +265,7 @@ Header ≤ 100 chars. Direct-to-`develop` is fine for small self-contained chang
 
 ### Versioning & releases
 
-- **Store release is in progress; the web build is still the only shipped surface.** Web (Expo web export → Firebase Hosting) deploys on every promotion. The Android/iOS store release is being set up now — see [docs/plans/ongoing/store-release.md](docs/plans/ongoing/store-release.md) for the runbook and the current state of the external (Play Console / App Store Connect) side. Store **binaries**: a merge to `beta` builds and submits to Play's **closed** track automatically ([beta-build-and-submit.yml](.github/workflows/beta-build-and-submit.yml)); **production is never automatic** and moves only by an explicit `mobile-release` dispatch. The **JS bundle** is a separate matter — see *OTA updates* below.
+- **iOS is published; Android is in Play production review** (closed test completed, submitted 2026-09-08). iOS 1.0.0 was accepted by App Review on 2026-09-04 and `APP_STORES.ios` is filled in; `APP_STORES.android` stays empty until `pnpm check:store-claims` reports the Play listing public, so until then **the web build is the Android app**. Web (Expo web export → Firebase Hosting) deploys on every promotion and is not going away — see [invariant 6](#6-web-parity-is-not-a-build-rule). See [docs/plans/ongoing/store-release.md](docs/plans/ongoing/store-release.md) for the runbook and the current state of the external (Play Console / App Store Connect) side. Store **binaries**: a merge to `beta` builds and submits to Play's **closed** track automatically ([beta-build-and-submit.yml](.github/workflows/beta-build-and-submit.yml)); **production is never automatic** and moves only by an explicit `mobile-release` dispatch. The **JS bundle** is a separate matter — see *OTA updates* below.
 - **Closed-track releases are automatic from `beta`.** Closed testing is not a public release, and Play's "12 testers for 14 continuous days" clock only advances while testers actually *have* builds — every manual step in that loop is a day the clock does not move. So `beta` builds the **`production` EAS profile** (package `com.cultuvilla.app`; the requirement is per package name, so a `com.cultuvilla.app.beta` build earns nothing) and auto-submits to the closed track. Production rollout stays a deliberate `mobile-release` dispatch.
   - It needs `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` as a **repo-level** secret and fails fast with a pointer to the runbook when it is absent.
   - It deliberately declares **no GitHub `environment`**: the `Production` environment's branch policy allows only `main`, so naming it from a `beta` trigger would be rejected before any step ran.
@@ -247,13 +277,14 @@ Header ≤ 100 chars. Direct-to-`develop` is fine for small self-contained chang
   - **`production` is deliberately NOT automatic.** Pushing to real users is a release decision, not a side effect of a merge; publish it with a manual `workflow_dispatch` on the same workflow.
   - **A binary only receives updates if it was built after `expo-updates` landed** and its profile names a channel (all of `preview-dev` / `preview-beta` / `production` do). Testers on an older build need one manual install before OTA reaches them at all.
 
-- **Deep links:** the per-env association files (`apps/mobile/public/.well-known/{env}/{apple-app-site-association,assetlinks.json}`) are copied into place at hosting-deploy time by `apps/mobile/scripts/copy-well-known.mjs`. Signing identities are **committed** there, not injected from CI — they ship in a world-readable file, so there is nothing to hide, and a value in git is reviewable and identical for a local deploy. `prod` carries the real Apple Team ID and the Play **app signing** SHA-256 (Play re-signs every AAB, so it is never the upload key); `dev` and `beta` still hold `REPLACE_SHA256_FINGERPRINT_*` and get theirs when those builds are distributed. An env with a placeholder simply opens the web build instead of the app — expected, not a bug. What must always work is that every deep link resolves as a real **web route** (each share URL, including invite `…/join` paths, needs a matching file under `apps/mobile/app/**`).
+- **Deep links:** the per-env association files (`apps/mobile/public/.well-known/{env}/{apple-app-site-association,assetlinks.json}`) are copied into place at hosting-deploy time by `apps/mobile/scripts/copy-well-known.mjs`. Signing identities are **committed** there, not injected from CI — they ship in a world-readable file, so there is nothing to hide, and a value in git is reviewable and identical for a local deploy. `prod` carries the real Apple Team ID and the Play **app signing** SHA-256 (Play re-signs every AAB, so it is never the upload key); `dev` and `beta` still hold `REPLACE_SHA256_FINGERPRINT_*` and get theirs when those builds are distributed. An env with a placeholder simply opens the web build instead of the app — expected, not a bug. What must always work is that every deep link resolves as a real **web route** (each share URL, including invite `…/unirse` paths, needs a matching file under `apps/mobile/app/**`). URLs are Spanish and village-first (`/<pueblo>/evento/<titulo>_<id>`), built only by `packages/shared/src/utils/urls.ts` — read [docs/decisions/spanish-village-urls.md](docs/decisions/spanish-village-urls.md) before adding a route; a new top-level route must also be added to `RESERVED_ROOT_SEGMENTS` and the app-route rewrite in `firebase.json`. **Prod's AASA deliberately lags:** it claims only the legacy paths the live iOS 1.0.0 binary can route (it predates OTA), until an iOS build with the village-first routes is on sale — see that decision record before widening it.
 - **Marketing version** (`app.config.ts` `version`, semver `MAJOR.MINOR.PATCH`) is the single source of truth; `apps/mobile/package.json` mirrors it. MAJOR = redesign/breaking migration, MINOR = new feature, PATCH = fixes.
 - **Pre-release (now): stay on `0.x`.** Until the app is actually published to the stores, the MAJOR stays `0` — do **not** jump to `1.0.0`. Bump the **MINOR** on every `develop → beta` promotion (`0.1.0 → 0.2.0 → …`) as a running counter to track what's on beta. The `1.0.0` bump happens once, at the first real store release.
 - **Set the version in the `develop → beta` promotion PR** (beta = release candidate); it rides unchanged into `main`. Build numbers auto-increment (EAS `appVersionSource: remote`). **CI enforces this**: `.github/workflows/version-gate.yml` fails any PR targeting `beta` whose `app.config.ts` `version` isn't strictly greater than beta's, so the bump can't be forgotten. Use the `prepare-release` skill to do it.
 - **The version-bump commit message is the bare version string** — `0.10.0`, not `chore(release): 0.10.0`. commitlint (`commitlint.config.cjs`) has an `ignores` rule that exempts exactly a `X.Y.Z` header; every other commit still follows conventional commits. The bump commit contents are `apps/mobile/app.config.ts` + `apps/mobile/package.json` + the `CHANGELOG.md` stamp.
 - **Force-update gate is dormant pre-release.** `config/appVersion.minSupported` is `0.0.0` (never blocks) while unreleased; keep `latest` in step with the current `app.config.ts` version. Only raise `minSupported` above `0.0.0` once real store clients exist.
-- **`config/appVersion` is written from CI, not from a laptop.** It is a Firestore doc, so it is the one release step that is neither a code deploy (automatic on merge) nor a data migration (the backfill registry). Use **Actions → "Set App Version"** ([set-app-version.yml](.github/workflows/set-app-version.yml)) — keyless via WIF, dry-run by default. Blank `latest` means "the current `app.config.ts` version"; blank `min_supported` **preserves** whatever is stored, so a routine release can never accidentally un-wall the fleet. Locally the same script is `node scripts/seed-app-version-config.mjs --env=<env> [--latest=] [--min=] [--dry-run] [--confirm]`.
+- **`config/appVersion` is written by the deploy itself — a routine release needs no dispatch.** It is a Firestore doc, so it is neither a code deploy nor a data migration, and it used to be the one manual step left in a release. It no longer is: the last step of [deploy-firebase.yml](.github/workflows/deploy-firebase.yml), *"Announce the shipped version to clients"*, runs `seed-app-version-config.mjs --env=<alias> --confirm` on every env after hosting goes out. Blank `latest` there means "the current `app.config.ts` version", and blank `min_supported` **preserves** whatever is stored — so the promotion that ships `X.Y.Z` also announces it, and cannot accidentally un-wall the fleet.
+  Reach for **Actions → "Set App Version"** ([set-app-version.yml](.github/workflows/set-app-version.yml)) only to write a value the deploy would not: **raising `minSupported`** (the deliberate force-update decision), or correcting `latest` out of band. It is keyless via WIF and dry-run by default. Locally the same script is `node scripts/seed-app-version-config.mjs --env=<env> [--latest=] [--min=] [--dry-run] [--confirm]`.
 - **The `vX.Y.Z` tag is created by CI**, by the `tag` job in [deploy-prod.yml](.github/workflows/deploy-prod.yml), once the prod deploy is green — so a tag always names a commit that actually shipped. Don't tag by hand. It reads the version from `apps/mobile/package.json` and is idempotent, so a re-run (transient push failure, or re-deploying the same commit) succeeds rather than failing on an existing tag. It cannot retro-tag a release older than the job itself: a re-run uses the workflow file as it was at that commit. `v0.21.0` shipped before this existed and was tagged by hand — the only one.
 - **CHANGELOG:** on a cut release, stamp the version into the section heading (`## vX.Y.Z — YYYY-MM-DD`).
 - **Force-update gate:** clients read `config/appVersion` on launch (`appConfigService`) and block/nudge via `resolveVersionGate`. When you ship a client-breaking backend change (see *No retrocompat shims*), bump that doc's `minSupported` to the version carrying the client fix, at release time — that is the one case where you pass an explicit `min_supported`, since moving the wall is a deliberate product decision and never a side effect.
@@ -448,6 +479,52 @@ DATASET=real_villages_1 pnpm seed:villages:wipe
 ```
 
 It assumes `pnpm seed:dev` has been run (so the requester + approver users exist) and `pnpm seed:municipalities` has been run (so the target municipality with the matching `codigoINE` exists). Doc writes replay what the `requestOrganizeVillage` / `respondToOrganizerRequest` Cloud Functions do — `organizerRequests` records the audit trail.
+
+### Mirroring a real village into the emulator
+
+`pnpm mirror:village --municipality=<id|name>` copies one village's data from a
+real environment into the **local emulator**, so a feature can be developed
+against real shapes, counts and distributions instead of invented fixtures.
+Reads are read-only and default to prod; writes only ever reach an emulator.
+
+```bash
+export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
+pnpm mirror:village --municipality=Matabuena --dry-run   # counts, writes nothing
+pnpm mirror:village --municipality=Matabuena             # ~1.4k docs
+pnpm mirror:village --municipality=Matabuena --anonymize # scrub names/photos/emails
+```
+
+**Two guards make it safe to point at prod**, and both must hold: `FIRESTORE_EMULATOR_HOST`
+must be set, and the target project id must not be one of the three real ones. A
+mirror writes over a thousand documents, so a misconfigured target would not be a
+small mistake. They are unit-tested — don't weaken them.
+
+Not a registered backfill: it never mutates a real environment, so there is
+nothing for the deploy gate to verify.
+
+**`persons` is reached through the `municipalityPeople` projection**, not a
+`municipalityId` filter. A person is linked to a village by `municipalityLinks`,
+an array of `{municipalityId, barrioId}` **objects** — Firestore matches an array
+element whole, so a field filter returns zero rows silently rather than failing.
+Any future collection scoped that way needs the same treatment.
+
+### Previewing a village Wrapped
+
+`pnpm wrapped:preview` renders a village's post-fiestas Wrapped cards to local
+image files from real data, read-only — the design loop for the Wrapped, with no
+deploy and no emulator.
+
+```bash
+pnpm wrapped:preview --municipality=digSmD1NFyaOJCPQ99cC \
+  --blocks="Santiago@2026-07-24..2026-07-26|Carmen@2026-08-14..2026-08-28" \
+  [--range=2026-07-15..2026-08-31] [--project=cultuvilla-prod] [--out=DIR]
+```
+
+It bundles its entry with **the deploy's own esbuild options** (`functions/esbuild.shared.mjs`),
+so a preview that renders proves the deployed bundle renders: fonts inlined,
+Satori's layout engine bundled, `sharp` external. Keep those options shared —
+a preview built differently would prove nothing. Reads use the same ADC as the
+mirror (`~/.config/cultuvilla/adc.json`).
 
 ### Mobile app
 

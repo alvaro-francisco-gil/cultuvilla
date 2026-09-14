@@ -7,6 +7,8 @@ import { useT } from '../../lib/i18n';
 
 export interface VillageOption {
   id: string;
+  /** The pueblo's URL slug — what a link to anything created here is built from. */
+  slug: string;
   name: string;
   province: string;
   coordinates: LatLng | null;

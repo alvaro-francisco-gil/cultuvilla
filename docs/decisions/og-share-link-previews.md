@@ -1,5 +1,9 @@
 # Open Graph previews via a Hosting-edge Cloud Function
 
+> **Paths superseded** by [spanish-village-urls](spanish-village-urls.md): the renderer now
+> serves `/<pueblo>` and `/<pueblo>/{evento,noticia,entidad}/<ref>` (+ `/unirse`), looks
+> villages up by slug, and 301s a stale title or pueblo to the canonical path.
+
 ## Context
 
 The deeplink service produces working share URLs (`/event/<id>`, `/news/<id>`,
@@ -36,8 +40,10 @@ existing static CDN for every other path — no continuously-running SSR server.
   SPA is rebuilt. Falls back to a thin HTML skeleton (og:* + `<noscript>` link)
   if the fetch fails, so crawlers still get metadata.
 - **Router** ([functions/src/og/render.ts](../../functions/src/og/render.ts)) —
-  branches by path prefix, returns the shell with defaults (never a 404) on a
-  missing doc, sets `Cache-Control: public, max-age=600, s-maxage=3600`.
+  branches by path prefix, returns the shell with defaults and a **404 +
+  `noindex`** on a missing doc (a thrown fetch stays a 200), sets
+  `Cache-Control: public, max-age=600, s-maxage=3600` (5 min at the edge for a
+  404, so a doc created right after a miss is not hidden for an hour).
 - Rewrites live in [firebase.json](../../firebase.json); coverage is locked by
   [functions/src/__tests__/handlers/og/render.test.ts](../../functions/src/__tests__/handlers/og/render.test.ts).
 

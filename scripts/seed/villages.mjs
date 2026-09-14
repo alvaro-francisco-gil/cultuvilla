@@ -15,12 +15,27 @@ import {
   buildVillageCommunity,
   buildVillageMemberData,
 } from '@cultuvilla/shared/models';
+import { slugify } from '@cultuvilla/shared/utils';
 
 import { GeoPoint, WIPE, db, tag } from './lib/context.mjs';
 import { loadDataset, uidForRef } from './lib/dataset.mjs';
 import { uploadImage, wipeStorageFolder } from './lib/images.mjs';
 import { villageDocId } from './lib/ids.mjs';
 import { runAsMain } from './lib/run.mjs';
+
+/**
+ * A demo village is its own doc beside the real INE one, so its natural slug is
+ * often already the INE doc's. Take the first candidate no *other* doc holds —
+ * re-seeding keeps the slug this doc already has.
+ */
+async function freeSlugFor(docId, v) {
+  const base = slugify(v.name);
+  for (const candidate of [base, `${base}-${slugify(v.province)}`, `${base}-demo`]) {
+    const holders = await db.collection('municipalities').where('slug', '==', candidate).get();
+    if (holders.docs.every((d) => d.id === docId)) return candidate;
+  }
+  throw new Error(`[seed] no free slug for village ${v.id}`);
+}
 
 export async function seedVillage(v, adminUid) {
   const docId = villageDocId(v.id);
@@ -34,6 +49,7 @@ export async function seedVillage(v, adminUid) {
     province: v.province,
     comunidadAutonoma: v.comunidadAutonoma,
     codigoINE: v.codigoINE,
+    slug: await freeSlugFor(docId, v),
     coordinates: coords,
     locationLabel: v.locationLabel ?? `${v.name}, ${v.province}`,
     escudoUrl,

@@ -15,7 +15,7 @@ export interface ManagedEventsScrollProps {
   now: Date;
   ongoingLabel: string;
   emptyLabel: string;
-  onPressEvent: (id: string) => void;
+  onPressEvent: (event: ManagedEvent) => void;
 }
 
 export function ManagedEventsScroll({
@@ -61,7 +61,7 @@ export function ManagedEventsScroll({
                 icon="calendar-outline"
                 imageUri={item.imageURL ?? item.villageCoverImage}
                 accent={isOngoing}
-                onPress={() => onPressEvent(item.id)}
+                onPress={() => onPressEvent(item)}
               />
             );
           }}

@@ -34,7 +34,7 @@ async function readDismissal(): Promise<StoreBannerDismissal | null> {
  * (iOS and Android light up independently — see lib/appStores.ts).
  *
  * Also null on iOS Safari, which draws Apple's own bar from the
- * `apple-itunes-app` meta tag in app/+html.tsx — two bars offering the same
+ * `apple-itunes-app` meta tag in public/index.html — two bars offering the same
  * install is worse than either alone. Every other iOS browser ignores that tag
  * (including the in-app webviews that shared village links open in), so there
  * we are still the only offer.

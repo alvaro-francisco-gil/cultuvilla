@@ -1,3 +1,4 @@
+import { discoverStartHref, routes, villageHref } from '../../lib/navigation/routes';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, ActivityIndicator, View, TextInput } from 'react-native';
 import { router, type Href } from 'expo-router';
@@ -6,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { VStack, HStack, Text, Escudo, Pressable } from '../primitives';
 import { JoinVillageModal } from './JoinVillageModal';
 import { useT } from '../../lib/i18n';
+import { usePush } from '../../lib/push/PushProvider';
 import {
   getActiveCommunities,
   listMunicipalitiesPage,
@@ -50,6 +52,7 @@ export function VillageDiscovery() {
   const reqId = useRef(0);
 
   const { user, refreshProfile } = useAuth();
+  const { offerPush } = usePush();
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
   const [pendingJoin, setPendingJoin] = useState<Muni | null>(null);
   const [joining, setJoining] = useState(false);
@@ -163,15 +166,12 @@ export function VillageDiscovery() {
       observability.trackEvent(OBSERVABILITY_EVENTS.SEARCH_RESULT_SELECTED, { surface: 'village_discovery' });
     }
     // Active villages → the rich village home; dormant municipalities → the "start" flow.
-    const target: Href = m.communityActive
-      ? { pathname: '/village/[villageId]', params: { villageId: m.id } }
-      : { pathname: '/discover/start/[municipalityId]', params: { municipalityId: m.id } };
-    router.push(target);
+    router.push(m.communityActive ? villageHref(m.slug) : discoverStartHref(m.id));
   };
 
   const onPressJoin = (m: Muni) => {
     if (!user) {
-      router.push('/(auth)/login' as Href);
+      router.push(routes.login);
       return;
     }
     setPendingJoin(m);
@@ -188,10 +188,11 @@ export function VillageDiscovery() {
       observability.trackEvent(OBSERVABILITY_EVENTS.VILLAGE_JOIN_SUCCESS, { villageId: id });
       setJoinedIds((prev) => new Set(prev).add(id));
       setPendingJoin(null);
+      offerPush('village_join', { villageName: pendingJoin.name });
       // joinVillage set this village as active; refresh the auth profile so the
       // Pueblo tab reflects it now, not only after an app restart.
       await refreshProfile();
-      router.push({ pathname: '/village/[villageId]', params: { villageId: id } });
+      router.push(villageHref(pendingJoin.slug));
     } catch (e) {
       if (!succeeded) observability.trackEvent(OBSERVABILITY_EVENTS.VILLAGE_JOIN_ERROR, { villageId: id });
       throw e;

@@ -1,5 +1,6 @@
 import { build } from 'esbuild';
 import { rmSync } from 'node:fs';
+import { sharedBuildOptions } from './esbuild.shared.mjs';
 
 // Cloud Functions (gen2) uploads only the functions/ dir — node_modules is
 // ignored (firebase.json) and firebase-tools does not pack `file:` deps — so the
@@ -19,18 +20,7 @@ import { rmSync } from 'node:fs';
 rmSync(new URL('./dist', import.meta.url), { recursive: true, force: true });
 
 await build({
+  ...sharedBuildOptions,
   entryPoints: ['src/index.ts'],
   outfile: 'dist/index.js',
-  bundle: true,
-  platform: 'node',
-  target: 'node22',
-  format: 'cjs',
-  sourcemap: true,
-  external: [
-    'firebase-admin',
-    'firebase-admin/*',
-    'firebase-functions',
-    'firebase-functions/*',
-    'sharp',
-  ],
 });

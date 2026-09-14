@@ -1,3 +1,4 @@
+import { routes } from '../../lib/navigation/routes';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../lib/auth/useAuth';
@@ -48,7 +49,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="village"
+        name="mi-pueblo"
         options={{
           title: t('tabs.village'),
           tabBarIcon: ({ color, size, focused }) => (
@@ -61,13 +62,13 @@ export default function TabsLayout() {
             // village — let them re-open the tab instead of gating it.
             if (!user && !guestVillageId) {
               e.preventDefault();
-              gate.requireAuth('/(tabs)/village', t('guest.village'));
+              gate.requireAuth(routes.myVillage, t('guest.village'));
             }
           },
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="perfil"
         options={{
           title: t('tabs.profile'),
           tabBarIcon: ({ color, size, focused }) => (
@@ -76,7 +77,7 @@ export default function TabsLayout() {
         }}
         listeners={{
           tabPress: (e) => {
-            if (!user) { e.preventDefault(); gate.requireAuth('/(tabs)/profile', t('guest.profile')); }
+            if (!user) { e.preventDefault(); gate.requireAuth(routes.profile, t('guest.profile')); }
           },
         }}
       />

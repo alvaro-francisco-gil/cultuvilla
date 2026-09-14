@@ -20,7 +20,7 @@ test.describe('organization: create → approve → join', () => {
     await page.goto('/');
     await fixtureLogin(page, fixtures.attendee.email);
 
-    await page.goto(`/village/${village}/organizations`);
+    await page.goto(`/${fixtures.village.slug}/entidades`);
     const name = page.getByTestId('org-name-input');
     await expect(name).toBeVisible({ timeout: 30_000 });
     await name.fill(ORG_NAME);
@@ -36,7 +36,7 @@ test.describe('organization: create → approve → join', () => {
     // ── Village admin approves it from the Buzón's actionable section. ──
     await fixtureSignOut(page);
     await fixtureLogin(page, fixtures.admin.email);
-    await page.goto('/inbox');
+    await page.goto('/buzon');
 
     const approve = page.locator('[data-testid^="approve-org-"]').first();
     await expect(approve).toBeVisible({ timeout: 30_000 });
@@ -51,7 +51,7 @@ test.describe('organization: create → approve → join', () => {
     // ── A third user joins from the org detail screen. ──
     await fixtureSignOut(page);
     await fixtureLogin(page, fixtures.joiner.email);
-    await page.goto(`/o/${orgId}`);
+    await page.goto(`/${fixtures.village.slug}/entidad/_${orgId}`);
 
     const joinFab = page.getByTestId('join-org-fab');
     await expect(joinFab).toBeVisible({ timeout: 30_000 });

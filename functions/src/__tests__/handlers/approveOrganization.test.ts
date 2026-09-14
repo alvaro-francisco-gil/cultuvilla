@@ -24,6 +24,7 @@ async function seedOrg(status: 'pending' | 'approved' = 'pending'): Promise<void
     status,
     municipalityId: MUNICIPALITY_ID,
     requestedBy: REQUESTER_ID,
+    villageSlug: 'villarriba',
     reviewedBy: null,
     createdAt: new Date(),
     reviewedAt: null,

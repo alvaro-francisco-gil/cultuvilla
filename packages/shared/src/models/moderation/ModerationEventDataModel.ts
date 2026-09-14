@@ -5,6 +5,9 @@ export const ModeratedCollectionSchema = z.enum([
   'festivalPosters',
   'barrios',
   'places',
+  'vocabularyTerms',
+  'vocabularyDefinitions',
+  'historyEntries',
 ]);
 export type ModeratedCollection = z.infer<typeof ModeratedCollectionSchema>;
 

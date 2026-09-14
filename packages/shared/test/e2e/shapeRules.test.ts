@@ -41,6 +41,7 @@ async function seedMember(
 
 const validNewsPayload = {
   municipalityId: 'm1',
+  villageSlug: 'villa',
   organizerUserIds: ['alice'],
   organizerOrgIds: [],
   title: 'T',
@@ -203,6 +204,7 @@ describe('shape enforcement — /organizations/{orgId}', () => {
     type: 'peña' as const,
     status: 'pending' as const,
     municipalityId: 'm1',
+    villageSlug: 'villa',
     requestedBy: 'alice',
     reviewedBy: null,
     createdAt: new Date(),
@@ -333,6 +335,7 @@ describe('shape enforcement — /events/{eventId}', () => {
     updatedAt: new Date(),
     municipalityId: 'm1',
     villageName: 'Villa',
+    villageSlug: 'villa',
     villageCoverImage: null,
     // The converter persists {lat,lng} as a GeoPoint (rules type `latlng`), so
     // the stored villageCoordinates is a GeoPoint, not a map.

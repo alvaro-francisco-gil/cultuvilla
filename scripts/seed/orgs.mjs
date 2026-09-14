@@ -21,7 +21,7 @@ import { runAsMain } from './lib/run.mjs';
 export async function seedOrgs(dataset) {
   for (const v of dataset.villages) {
     if (!v.organizations?.length) continue;
-    const { vDocId, vKey, adminUid } = await resolveVillage(dataset, v);
+    const { vDocId, vKey, villageSlug, adminUid } = await resolveVillage(dataset, v);
     for (const org of v.organizations) {
       const oDocId = orgDocId(vKey, org.id);
       let imageURL = null;
@@ -35,6 +35,7 @@ export async function seedOrgs(dataset) {
             type: org.type,
             status: 'approved',
             municipalityId: vDocId,
+            villageSlug,
             requestedBy: adminUid,
             reviewedBy: adminUid,
             reviewedAt: new Date(),

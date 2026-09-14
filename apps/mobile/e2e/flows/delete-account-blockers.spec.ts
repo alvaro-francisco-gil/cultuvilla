@@ -7,7 +7,7 @@ test.describe('account deletion guard', () => {
     await page.goto('/');
     await fixtureLogin(page, fixtures.admin.email);
 
-    await page.goto('/settings/delete-account');
+    await page.goto('/ajustes/eliminar-cuenta');
     await expect(page.getByText('Antes de eliminar tu cuenta, debes ceder los permisos de administrador en:')).toBeVisible({
       timeout: 30_000,
     });

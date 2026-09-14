@@ -18,7 +18,7 @@ test.describe('register to an event', () => {
     await fixtureLogin(page, fixtures.attendee.email);
 
     // 3. Open the event and sign up: register FAB → own persona row → confirm.
-    await page.goto(`/event/${fixtures.event.docId}`);
+    await page.goto(fixtures.event.path);
     const fab = page.getByTestId('register-fab');
     await expect(fab).toBeVisible({ timeout: 30_000 });
     await fab.click();

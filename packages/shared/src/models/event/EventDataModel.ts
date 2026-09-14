@@ -119,6 +119,9 @@ export const EventDataSchema = z.object({
   // (the activated municipality) by syncVillageDenormalization for flat feed
   // reads. See docs/architecture/municipality-vs-village.md.
   villageName: z.string(),
+  // The village's permanent URL slug — see municipalitySlug.ts. Never synced:
+  // slugs do not move when a municipality is renamed.
+  villageSlug: z.string(),
   villageCoverImage: z.string().nullable(),
   villageCoordinates: LatLngSchema.nullable(),
   // Denormalized attendee counters, maintained server-side by the
@@ -169,6 +172,7 @@ export interface EventDataInput {
   updatedAt?: Date;
   municipalityId: string;
   villageName: string;
+  villageSlug: string;
   villageCoverImage?: string | null;
   villageCoordinates: LatLng | null;
 }
@@ -209,6 +213,7 @@ export function buildEventData(input: EventDataInput): EventData {
     updatedAt: input.updatedAt ?? now,
     municipalityId: input.municipalityId,
     villageName: input.villageName,
+    villageSlug: input.villageSlug,
     villageCoverImage: input.villageCoverImage ?? null,
     villageCoordinates: input.villageCoordinates,
     confirmedCount: 0,
@@ -275,7 +280,8 @@ export function isEventSignupOpen(
 
 /** The wall clock every event date is authored and displayed in. */
 export const EVENT_TZ = 'Europe/Madrid';
-function madridDayKey(d: Date): string {
+/** `YYYY-MM-DD` for the Europe/Madrid calendar day containing `d`. */
+export function madridDayKey(d: Date): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: EVENT_TZ, year: 'numeric', month: '2-digit', day: '2-digit',
   }).format(d);

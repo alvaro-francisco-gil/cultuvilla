@@ -1,3 +1,15 @@
+import {
+  barrioHref,
+  orgHref,
+  discoverOrganizeHref,
+  discoverStartHref,
+  eventHref,
+  festivalPosterHref,
+  newsHref,
+  placeHref,
+  villageHref,
+  villageSectionHref,
+} from '../../lib/navigation/routes';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
@@ -23,6 +35,8 @@ const BARRIO_SECTIONS: { kind: BarrioKind; titleKey: string }[] = [
   { kind: 'barrio', titleKey: 'village.admin.hub.barrios' },
 ];
 import { AddContentSheet } from './AddContentSheet';
+import { HistoryRail } from './history/HistoryRail';
+import { WordOfTheDayCard } from './vocabulary/WordOfTheDayCard';
 import { LocationMap } from './LocationMap';
 import { JoinVillageModal } from './JoinVillageModal';
 import { StatsRow } from './StatsRow';
@@ -31,6 +45,8 @@ import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useIsAppAdmin } from '../../lib/auth/useIsAppAdmin';
 import { useShareDeepLink } from '../../lib/deeplink/useShareDeepLink';
 import { useT } from '../../lib/i18n';
+import { dismissSeoShell } from '../../lib/seoShell';
+import { usePush } from '../../lib/push/PushProvider';
 import { isProposalVisible } from '../../lib/proposals';
 import { joinVillage } from '@cultuvilla/shared/services/villageMemberService';
 import { getVillageViewLink } from '@cultuvilla/shared/services/deepLinkService';
@@ -51,7 +67,7 @@ export interface VillageHomeBodyProps {
 
 /**
  * Presentational village home shared by the pueblo tab and the pushed
- * `/village/[villageId]` detail. Takes data from `useVillageHome`; the host
+ * `/[pueblo]` detail. Takes data from `useVillageHome`; the host
  * supplies the header chrome (AppHeader vs ScreenHeader). The action row's first
  * button is "Unirme" (join) for non-members and "Añadir contenido" (opens the
  * add sheet) for members; `!data.isMember` is the single source of truth for
@@ -59,6 +75,7 @@ export interface VillageHomeBodyProps {
  */
 export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
   const { user, refreshProfile } = useAuth();
+  const { offerPush } = usePush();
   const gate = useRegisterGate();
   const { isAppAdmin } = useIsAppAdmin();
   const share = useShareDeepLink();
@@ -68,6 +85,14 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
   const [addOpen, setAddOpen] = useState(false);
 
   const { coreLoading, coreError, village } = data;
+
+  // Village is not an entity (it opens a ScreenHeader, not EntityDetailScaffold),
+  // so it needs its own hand-over from the server-rendered block. This body is
+  // shared by /village/[villageId] and the village tab, which is where a cold
+  // entry to a shared village link actually lands after its redirect.
+  useEffect(() => {
+    if (!coreLoading) dismissSeoShell();
+  }, [coreLoading]);
 
   if (coreLoading) {
     return (
@@ -111,7 +136,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
           </Text>
           <Button
             className="mt-4"
-            onPress={() => router.push(`/discover/start/${village.id}` as never)}
+            onPress={() => router.push(discoverStartHref(village.id))}
           >
             {t('village.notRegistered.button')}
           </Button>
@@ -136,7 +161,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
   const canManage = isAppAdmin || villageAdmin;
   // Wiki phase: active but no organizer granted yet (community.organizerId null).
   const noOrganizer = village.community?.organizerId == null;
-  const villageBase = `/village/${village.id}` as const;
+  const villageSlug = village.slug;
 
   const caps = { canManage, uid: user?.uid ?? null };
   // Barrios/places already come back active-only from useVillageHome (see
@@ -162,7 +187,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
     if (!user) {
       // Carry this village across auth: after the guest registers, onboarding
       // pre-selects it and joins them; an already-onboarded user resumes to it.
-      gate.requireAuth(villageBase, t('guest.village'), village.id);
+      gate.requireAuth(villageHref(villageSlug), t('guest.village'), village.id);
       return;
     }
     // Open the shared modal (escudo + name + barrio picker). Replaces the old
@@ -177,6 +202,9 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
     try {
       await joinVillage(village.id, user.uid, barrioId);
       setPendingJoin(false);
+      // Joining earns the first ask: everything added to this village will now
+      // reach them. The policy only lets a join have the FIRST ask.
+      offerPush('village_join', { villageName: village.name });
       // joinVillage set this village as active; refresh the auth profile so the
       // Pueblo tab reflects it now, not only after an app restart.
       await refreshProfile();
@@ -221,7 +249,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
                 label: t('village.admin.overview.people'),
                 value: peopleCount,
                 onPress: isMember
-                  ? () => router.push(`/village/${village.id}/members` as never)
+                  ? () => router.push(villageSectionHref(villageSlug, 'miembros'))
                   : undefined,
               },
               {
@@ -256,7 +284,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
           ) : null}
           <ActionPill
             label={t('village.share.title')}
-            onPress={() => void share(getVillageViewLink(village.id), village.name)}
+            onPress={() => void share(getVillageViewLink(villageSlug), village.name)}
           />
         </HStack>
 
@@ -274,7 +302,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               <ActionPill
                 grow={false}
                 label={t('village.noOrganizer.cta')}
-                onPress={() => router.push(`/discover/organize/${village.id}` as never)}
+                onPress={() => router.push(discoverOrganizeHref(village.id))}
               />
             )}
             <Text variant="bodySm" className="text-center">
@@ -314,7 +342,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
                 count: e.confirmedCount,
                 testID: 'entity-card-event-attendee-count',
               }}
-              onPress={() => router.push(`/event/${e.id}` as never)}
+              onPress={() => router.push(eventHref({ ...e, villageSlug }))}
             />
           )}
         />
@@ -329,7 +357,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
             <NewsEntityCard
               key={n.id}
               post={n}
-              onPress={() => router.push(`/news/${n.id}` as never)}
+              onPress={() => router.push(newsHref({ ...n, villageSlug }))}
             />
           ))}
         </Section>
@@ -348,7 +376,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               icon="image-outline"
               imageUri={p.images[0] ?? null}
               commentCount={p.commentCount}
-              onPress={() => router.push(`${villageBase}/festival-poster/${p.id}` as never)}
+              onPress={() => router.push(festivalPosterHref({ ...p, villageSlug }))}
             />
           ))}
         </Section>
@@ -379,7 +407,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
                   icon="map-outline"
                   imageUri={b.images[0] ?? null}
                   commentCount={b.commentCount}
-                  onPress={() => router.push(`/village/${village.id}/barrio/${b.id}` as never)}
+                  onPress={() => router.push(barrioHref(villageSlug, b))}
                 />
               ))}
             </Section>
@@ -408,7 +436,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
                     }
                   : undefined
               }
-              onPress={() => router.push(`/village/${village.id}/place/${p.id}` as never)}
+              onPress={() => router.push(placeHref(villageSlug, p))}
             />
           ))}
         </Section>
@@ -427,7 +455,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               icon="business-outline"
               imageUri={o.images[0] ?? null}
               commentCount={o.commentCount}
-              onPress={() => router.push(`/o/${o.id}` as never)}
+              onPress={() => router.push(orgHref({ ...o, villageSlug }))}
             />
           ))}
         </Section>
@@ -446,10 +474,23 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
               icon="people-circle-outline"
               imageUri={o.images[0] ?? null}
               commentCount={o.commentCount}
-              onPress={() => router.push(`/o/${o.id}` as never)}
+              onPress={() => router.push(orgHref({ ...o, villageSlug }))}
             />
           ))}
         </Section>
+
+        {/* ── Historia + Vocabulario: open to everyone, including non-members —
+            a pueblo's past and its words are exactly what is worth not losing ─── */}
+        {sectionStatus.history === 'ready' ? (
+          <HistoryRail entries={data.history} villageSlug={villageSlug} />
+        ) : null}
+        {sectionStatus.vocabulary === 'ready' && data.wordOfTheDay ? (
+          <WordOfTheDayCard
+            word={data.wordOfTheDay}
+            count={data.vocabularyCount}
+            villageSlug={villageSlug}
+          />
+        ) : null}
 
         {/* ── Censo: only villagers of a configured village fill; admins also configure ─── */}
         {(isMember && censoConfigured) || canManage ? (
@@ -457,13 +498,13 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
             {isMember && censoConfigured ? (
               <ActionPill
                 label={censoFillLabel}
-                onPress={() => router.push(`/village/${village.id}/censo?mode=fill` as never)}
+                onPress={() => router.push(villageSectionHref(villageSlug, 'censo', 'mode=fill'))}
               />
             ) : null}
             {canManage ? (
               <ActionPill
                 label={t('village.censo.configure')}
-                onPress={() => router.push(`/village/${village.id}/censo?mode=configure` as never)}
+                onPress={() => router.push(villageSectionHref(villageSlug, 'censo', 'mode=configure'))}
               />
             ) : null}
           </HStack>
@@ -488,6 +529,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
         visible={addOpen}
         onClose={() => setAddOpen(false)}
         villageId={village.id}
+        villageSlug={villageSlug}
         canManage={canManage}
       />
     </>

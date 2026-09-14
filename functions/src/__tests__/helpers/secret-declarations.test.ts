@@ -17,8 +17,8 @@ import { dirname, resolve, join } from 'node:path';
 
 const FUNCTIONS_SRC = resolve(__dirname, '../..');
 
-/** Secrets defined in `auth/secret.ts` and mounted per-function. */
-const SECRETS = ['RESEND_API_KEY'] as const;
+/** Secrets mounted per-function (defined in `auth/secret.ts`, `push/secret.ts`). */
+const SECRETS = ['RESEND_API_KEY', 'APNS_AUTH_KEY'] as const;
 
 /** `export const foo = onCall(…)` / `onDocumentWritten(…)` / `onSchedule(…)` / … */
 const ENTRY_POINT = /=\s*on(Call|Request|Schedule|Document[A-Za-z]+|MessagePublished|ObjectFinalized)\b/;
@@ -114,5 +114,17 @@ describe('Cloud Functions secret declaration invariant', () => {
     // cancelRegistration is the regression: it must reach the mail transport.
     const cancel = resolve(FUNCTIONS_SRC, 'events/cancelRegistration.ts');
     expect([...reachableFrom(cancel)].map(relative)).toContain('events/eventEmail.ts');
+
+    // Push is the same trap: a trigger that sends without declaring the APNs key
+    // would deliver to Android and silently drop every iOS device.
+    const apnsConsumers = sourceFiles.filter((f) =>
+      /APNS_AUTH_KEY\s*\.\s*value\s*\(/.test(sourceOf.get(f) ?? ''),
+    );
+    expect(apnsConsumers.map(relative)).toContain('push/apnsTransport.ts');
+    for (const entry of ['push/onNotificationCreated.ts', 'push/flushPushQueue.ts']) {
+      expect([...reachableFrom(resolve(FUNCTIONS_SRC, entry))].map(relative)).toContain(
+        'push/apnsTransport.ts',
+      );
+    }
   });
 });

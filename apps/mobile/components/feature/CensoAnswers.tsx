@@ -12,7 +12,15 @@ import { useEntityOptions } from './censo/useEntityOptions';
  * Villager census: answer the schema and edit your own answers. Content-only
  * so it embeds in the shared censo screen behind a role check.
  */
-export function CensoAnswers({ villageId, userId }: { villageId: string; userId: string }) {
+export function CensoAnswers({
+  villageId,
+  villageSlug,
+  userId,
+}: {
+  villageId: string;
+  villageSlug: string;
+  userId: string;
+}) {
   const { t } = useT();
   const [schema, setSchema] = useState<ProfileFormField[] | null>(null);
   const [initialAnswers, setInitialAnswers] = useState<ProfileAnswers>({});
@@ -58,7 +66,7 @@ export function CensoAnswers({ villageId, userId }: { villageId: string; userId:
       <Text variant="h2" style={{ color: '#566047' }} className="px-1 mb-3">
         {t('censo.fillIntro')}
       </Text>
-      <CensoForm villageId={villageId} userId={userId} schema={schema ?? []} initialAnswers={initialAnswers} entityOptionsByField={optionsByField} />
+      <CensoForm villageId={villageId} villageSlug={villageSlug} userId={userId} schema={schema ?? []} initialAnswers={initialAnswers} entityOptionsByField={optionsByField} />
     </ScrollView>
   );
 }

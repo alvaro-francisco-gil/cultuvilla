@@ -24,7 +24,7 @@ const validMunicipality = {
   searchPrefixes: ['j', 'jo', 'jod', 'joda', 'jodar'],
   province: 'Jaén',
   comunidadAutonoma: 'Andalucía',
-  codigoINE: '23050',
+  codigoINE: '23050', slug: 'pueblo-23050',
   coordinates: { lat: 37.85, lng: -3.35 },
   locationLabel: 'Plaza de España, Jódar',
   mapZoom: null,
@@ -55,6 +55,7 @@ describe('MunicipalityDataSchema', () => {
           description: 'Hola',
           organizerId: 'u1',
           profileForm: null,
+          fiestas: [],
           activatedAt: new Date('2026-01-02T00:00:00Z'),
         },
         communityActive: true,
@@ -87,6 +88,7 @@ describe('VillageCommunitySchema', () => {
           fields: [{ source: 'predefined', key: 'barrio', required: true }],
           updatedAt: new Date(),
         },
+        fiestas: [],
         activatedAt: new Date(),
       }),
     ).not.toThrow();
@@ -99,7 +101,7 @@ describe('buildMunicipalityData', () => {
       name: 'Ávila',
       province: 'Ávila',
       comunidadAutonoma: 'Castilla y León',
-      codigoINE: '05019',
+      codigoINE: '05019', slug: 'pueblo-05019',
     });
     expect(built.nameLower).toBe(municipalitySearchKey('Ávila'));
     expect(built.coordinates).toBeNull();
@@ -114,7 +116,7 @@ describe('buildMunicipalityData', () => {
       name: 'X',
       province: 'P',
       comunidadAutonoma: 'C',
-      codigoINE: '00000',
+      codigoINE: '00000', slug: 'pueblo-00000',
       coordinates: { lat: 37.85, lng: -3.35 },
       locationLabel: 'Plaza Mayor, X',
     });
@@ -168,6 +170,7 @@ describe('buildVillageCommunity', () => {
         description: '',
         organizerId: null,
         profileForm: null,
+        fiestas: [],
         activatedAt: new Date(),
       }),
     ).not.toThrow();
@@ -317,7 +320,7 @@ describe('buildMunicipalityData search fields', () => {
       name: 'San Sebastián',
       province: 'Guipúzcoa',
       comunidadAutonoma: 'País Vasco',
-      codigoINE: '20069',
+      codigoINE: '20069', slug: 'pueblo-20069',
       nameAliases: ['Donostia'],
     });
     expect(built.nameAliases).toEqual(['Donostia']);
@@ -331,7 +334,7 @@ describe('buildMunicipalityData search fields', () => {
       name: 'Jódar',
       province: 'Jaén',
       comunidadAutonoma: 'Andalucía',
-      codigoINE: '23050',
+      codigoINE: '23050', slug: 'pueblo-23050',
     });
     expect(built.nameAliases).toEqual([]);
     expect(built.searchPrefixes).toContain('jodar');
@@ -412,7 +415,7 @@ describe('buildMunicipalityData localities', () => {
       name: 'Figueruela de Arriba',
       province: 'Zamora',
       comunidadAutonoma: 'Castilla y León',
-      codigoINE: '49069',
+      codigoINE: '49069', slug: 'pueblo-49069',
       localityNames: ['Villarino de Manzanas'],
     });
     expect(built.localityNames).toEqual(['Villarino de Manzanas']);
@@ -424,7 +427,7 @@ describe('buildMunicipalityData localities', () => {
       name: 'Jódar',
       province: 'Jaén',
       comunidadAutonoma: 'Andalucía',
-      codigoINE: '23050',
+      codigoINE: '23050', slug: 'pueblo-23050',
     });
     expect(built.localityNames).toEqual([]);
   });

@@ -11,6 +11,15 @@ import {
 import { getPersonsByCreator } from '@cultuvilla/shared/services/personService';
 import { observability } from '@cultuvilla/shared';
 
+const mockOfferPush = jest.fn();
+jest.mock('../../../lib/push/PushProvider', () => ({
+  usePush: () => ({
+    offerPush: mockOfferPush,
+    permission: 'undetermined',
+    refreshPermission: jest.fn(),
+    requestPermission: jest.fn(),
+  }),
+}));
 jest.mock('../../../lib/registrations/MyRegistrationsContext', () => ({
   useMyRegistrations: () => ({ ribbonFor: () => null, refresh: jest.fn() }),
 }));
@@ -43,13 +52,11 @@ jest.mock('@cultuvilla/shared/services/registrationService', () => ({
   getGroupRegistrations: jest.fn(),
 }));
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({
-  getSeatClaimLink: (eventId: string, token: string) => ({
-    url: `https://x.test/event/${eventId}/claim/${token}`,
-    kind: 'invite',
-    resource: 'event',
-    id: eventId,
-    token,
-  }),
+  getSeatClaimLink: (target: { id: string; title: string; villageSlug: string }, token: string) => {
+    const { seatClaimPath } = jest.requireActual('@cultuvilla/shared/utils');
+    const path = seatClaimPath(target, token);
+    return { url: `https://x.test${path}`, path, kind: 'invite', resource: 'event' };
+  },
 }));
 jest.mock('../../../lib/deeplink/useShareDeepLink', () => ({
   useShareDeepLink: () => mockShareDeepLink,
@@ -74,7 +81,7 @@ const baseProps = {
   userId: 'u1',
   personId: 'p1',
   name: 'Ana',
-  eventTitle: 'Fiestas de San Juan',
+  eventTitle: 'Fiestas de San Juan', villageSlug: 'villa', visibilityOrgId: null,
   telephoneRequired: false,
 };
 
@@ -158,6 +165,8 @@ describe('RegisterFab', () => {
       ]),
     );
     expect(observability.trackEvent).toHaveBeenCalledWith('event.signup.success', { villageId: undefined });
+    // A booked seat is the moment the push soft ask earns its place.
+    await waitFor(() => expect(mockOfferPush).toHaveBeenCalledWith('event_signup'));
   });
 
   it('shows a dependent full name with the apodo in parentheses, not the apodo alone', async () => {
@@ -381,7 +390,7 @@ describe('RegisterFab — group sign-up', () => {
     // The invite copy reads "…una plaza en «{name}»", so the slot is the event.
     fireEvent.press(getByTestId('group-share-rB'));
     await waitFor(() => expect(mockShareDeepLink).toHaveBeenCalled());
-    expect(mockShareDeepLink.mock.calls[0][0].url).toContain('/event/e1/claim/tok_xyz');
+    expect(mockShareDeepLink.mock.calls[0][0].url).toBe('https://x.test/villa/evento/fiestas-de-san-juan_e1/plaza/tok_xyz');
     expect(mockShareDeepLink.mock.calls[0][1]).toBe('Fiestas de San Juan');
   });
 

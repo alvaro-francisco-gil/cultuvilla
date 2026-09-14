@@ -9,7 +9,7 @@
 
 import type { EventData } from "@cultuvilla/shared";
 import { EVENT_TZ } from "@cultuvilla/shared/models";
-import { formatDate } from "@cultuvilla/shared/utils";
+import { eventLinkTarget, formatDate } from "@cultuvilla/shared/utils";
 import {
   eventWebUrl,
   type CancelledEmailAttendee,
@@ -39,7 +39,10 @@ export async function sendCancellationEmail(
     content: {
       kind: selfInflicted ? "cancellation" : "removed",
       eventTitle: event.title,
-      eventUrl: eventWebUrl(eventId, process.env["GCLOUD_PROJECT"]),
+      eventUrl: eventWebUrl(
+        eventLinkTarget({ ...event, id: eventId }),
+        process.env["GCLOUD_PROJECT"],
+      ),
       imageURL: event.imageURL,
       // Functions run in UTC; without the explicit zone the email would print
       // the event an hour or two off the Spanish wall clock.

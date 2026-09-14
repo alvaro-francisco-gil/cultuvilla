@@ -20,7 +20,7 @@ env:
     env:
       EMAIL: ${EMAIL}
       PASSWORD: ${PASSWORD}
-- openLink: 'cultuvilla://event/${EVENT_ID}'
+- openLink: 'cultuvilla://altozano-de-prueba/evento/_${EVENT_ID}'
 - extendedWaitUntil:
     visible:
       id: 'register-fab'
@@ -55,6 +55,7 @@ env:
 # signed-up tally ("Apuntado (1)"). Maestro text selectors are regexes matched
 # against the WHOLE string, hence the trailing `.*` — same shape as the web
 # spec's /Apuntad/.
+- runFlow: ../subflows/dismiss-push-soft-ask.yaml
 - extendedWaitUntil:
     visible: 'Apuntad.*'
     timeout: 20000

@@ -1,6 +1,6 @@
 {
   "name": "cultuvilla-mobile",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
@@ -31,7 +31,8 @@
     "exceljs": "^4.4.0",
     "expo": "~56.0.12",
     "expo-apple-authentication": "~56.0.4",
-    "expo-constants": "^56.0.18",
+    "expo-application": "~56.0.3",
+    "expo-constants": "^56.0.25",
     "expo-crypto": "~56.0.4",
     "expo-dev-client": "~56.0.20",
     "expo-file-system": "~56.0.10",
@@ -42,6 +43,7 @@
     "expo-linking": "~56.0.14",
     "expo-localization": "~56.0.6",
     "expo-location": "~56.0.18",
+    "expo-notifications": "~56.0.25",
     "expo-router": "~56.2.11",
     "expo-sharing": "~56.0.25",
     "expo-splash-screen": "~56.0.10",

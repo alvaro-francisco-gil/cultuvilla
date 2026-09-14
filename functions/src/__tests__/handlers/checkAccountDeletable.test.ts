@@ -27,6 +27,7 @@ async function seedMunicipality(): Promise<void> {
       province: 'Madrid',
       comunidadAutonoma: 'Madrid',
       codigoINE: '28000',
+      slug: 'pueblo-28000',
       coordinates: null,
       locationLabel: null,
       mapZoom: null,
@@ -35,7 +36,7 @@ async function seedMunicipality(): Promise<void> {
       escudoThumbUrl: null,
       escudoManualUrl: null,
       communityActive: true,
-      community: { organizerId: SOLE_ADMIN_ID, description: 'Mi pueblo', profileForm: null, activatedAt: now },
+      community: { organizerId: SOLE_ADMIN_ID, description: 'Mi pueblo', profileForm: null, activatedAt: now, fiestas: [] },
     });
 }
 
@@ -60,6 +61,7 @@ async function seedOrg(): Promise<void> {
     status: 'approved',
     municipalityId: MUNICIPALITY_ID,
     requestedBy: SOLE_ADMIN_ID,
+    villageSlug: 'villarriba',
     reviewedBy: 'someone',
     createdAt: new Date(),
     reviewedAt: new Date(),

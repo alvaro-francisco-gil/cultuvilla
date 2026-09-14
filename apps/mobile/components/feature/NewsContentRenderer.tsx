@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Image, View } from 'react-native';
-import { VStack } from '../primitives';
+import { Text, VStack } from '../primitives';
+import { HEADING_PRESENTATION } from '../../lib/newsHeading';
 import { RichText } from './RichText';
 import { newsImageDownloadURL } from '@cultuvilla/shared/services/imageService';
 import type { NewsBlock, NewsImageBlock } from '@cultuvilla/shared/models/news/NewsPostDataModel';
@@ -8,7 +9,7 @@ import { RemoteImage } from '../primitives/RemoteImage';
 import { ZoomableImage } from '../primitives/ZoomableImage';
 
 /** Resolve a stored inline image and render it at its natural aspect ratio. */
-function InlineImage({ block, municipalityId }: { block: NewsImageBlock; municipalityId: string }) {
+function InlineImage({ block, villageSlug }: { block: NewsImageBlock; villageSlug: string }) {
   const [uri, setUri] = useState<string | null>(null);
 
   useEffect(() => {
@@ -50,7 +51,7 @@ function InlineImage({ block, municipalityId }: { block: NewsImageBlock; municip
           mentions={block.captionMentions}
           links={block.captionLinks}
           marks={block.captionMarks}
-          municipalityId={municipalityId}
+          villageSlug={villageSlug}
           tone="muted"
           variant="caption"
           className="text-center"
@@ -65,33 +66,42 @@ interface NewsContentRendererProps {
   /** Legacy plain-text body, rendered when `content` is empty (pre-blocks posts). */
   body: string;
   /** The post's village — needed to resolve place deep-links inside mentions. */
-  municipalityId: string;
+  villageSlug: string;
 }
 
 /**
- * Render a news post's rich body: an ordered list of text (with inline
- * `@`-mentions) and image blocks. Falls back to the legacy `body` string for
+ * Render a news post's rich body: an ordered list of section/subsection
+ * headings, text (with inline `@`-mentions) and image blocks. Falls back to the legacy `body` string for
  * posts authored before the block model existed.
  */
-export function NewsContentRenderer({ content, body, municipalityId }: NewsContentRendererProps) {
+export function NewsContentRenderer({ content, body, villageSlug }: NewsContentRendererProps) {
   if (content.length === 0) {
-    return <RichText text={body} mentions={[]} links={[]} municipalityId={municipalityId} />;
+    return <RichText text={body} mentions={[]} links={[]} villageSlug={villageSlug} />;
   }
 
   return (
     <VStack gap={4}>
       {content.map((block, i) =>
-        block.type === 'text' ? (
+        block.type === 'text' && block.style !== 'paragraph' ? (
+          <Text
+            key={i}
+            accessibilityRole="header"
+            variant={HEADING_PRESENTATION[block.style].variant}
+            className={`${HEADING_PRESENTATION[block.style].className} ${i > 0 ? 'pt-2' : ''}`}
+          >
+            {block.text}
+          </Text>
+        ) : block.type === 'text' ? (
           <RichText
             key={i}
             text={block.text}
             mentions={block.mentions}
             links={block.links}
             marks={block.marks}
-            municipalityId={municipalityId}
+            villageSlug={villageSlug}
           />
         ) : (
-          <InlineImage key={i} block={block} municipalityId={municipalityId} />
+          <InlineImage key={i} block={block} villageSlug={villageSlug} />
         ),
       )}
     </VStack>

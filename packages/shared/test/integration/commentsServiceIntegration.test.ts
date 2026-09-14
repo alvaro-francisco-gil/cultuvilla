@@ -74,6 +74,7 @@ function testEventData(municipalityId: string) {
     createdBy: 'admin',
     municipalityId,
     villageName: 'Villatest',
+    villageSlug: 'villatest',
     villageCoordinates: null,
   });
 }

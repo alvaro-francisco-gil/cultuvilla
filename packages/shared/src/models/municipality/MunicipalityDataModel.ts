@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import { LatLngSchema, type LatLng } from '../core/LocationDataModel';
 import { visibilityFields, defaultVisibility } from '../core/VisibilityModel';
+import { contributorFields } from '../core/ContributorsModel';
 import { VillageProfileFormSchema } from './CensoTypes';
+import { FiestaBlockSchema } from './FiestaBlockModel';
 
 /**
  * A municipality is the canonical Spanish administrative unit (INE-coded).
@@ -20,6 +22,10 @@ export const VillageCommunitySchema = z.object({
    * during that window any member can edit the basic info (wiki phase). */
   organizerId: z.string().nullable(),
   profileForm: VillageProfileFormSchema.nullable(),
+  /** When this village's fiestas are — one block per distinct celebration.
+   *  Empty until an admin declares them; a village with none never gets a
+   *  Wrapped, which is the intended gate. See FiestaBlockModel. */
+  fiestas: z.array(FiestaBlockSchema),
   activatedAt: z.date(),
 });
 export type VillageCommunity = z.infer<typeof VillageCommunitySchema>;
@@ -157,6 +163,9 @@ export const MunicipalityDataSchema = z.object({
   province: z.string(),
   comunidadAutonoma: z.string(),
   codigoINE: z.string(),
+  /** Permanent URL slug — `/matabuena`. Assigned once by `assignMunicipalitySlugs`
+   *  and never changed, not even on a rename: it is a permalink. */
+  slug: z.string(),
   coordinates: LatLngSchema.nullable(),
   /** Human-readable name of `coordinates` ("Plaza Mayor, Abadía, Cáceres"),
    *  captured when the organizer picks the spot. Stored rather than resolved on
@@ -198,6 +207,7 @@ export interface MunicipalityDataInput {
   province: string;
   comunidadAutonoma: string;
   codigoINE: string;
+  slug: string;
   nameAliases?: string[];
   localityNames?: string[];
   coordinates?: LatLng | null;
@@ -247,6 +257,7 @@ export function buildMunicipalityData(input: MunicipalityDataInput): Municipalit
     province: input.province,
     comunidadAutonoma: input.comunidadAutonoma,
     codigoINE: input.codigoINE,
+    slug: input.slug,
     coordinates: input.coordinates ?? null,
     locationLabel: input.locationLabel ?? null,
     mapZoom: input.mapZoom ?? null,
@@ -270,6 +281,7 @@ export function buildVillageCommunity(input: ActivateCommunityInput): VillageCom
     description: input.description,
     organizerId: input.organizerId ?? null,
     profileForm: null,
+    fiestas: [],
     activatedAt: new Date(),
   };
 }
@@ -414,8 +426,7 @@ export const PlaceDataSchema = z.object({
   images: z.array(z.string()).max(5),
   createdAt: z.date(),
   proposedBy: z.string().nullable(),
-  contributorUserIds: z.array(z.string()),
-  contributorOrgIds: z.array(z.string()),
+  ...contributorFields,
   // Denormalized interaction counters, maintained server-side by the comments
   // Cloud Function trigger / the detail-screen view tracker. Initialized to 0
   // at create.

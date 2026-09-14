@@ -1,0 +1,54 @@
+#!/usr/bin/env node
+/**
+ * Render a village's Wrapped cards to PNGs from real data, read-only.
+ *
+ *   node scripts/wrapped-preview.mjs --municipality=digSmD1NFyaOJCPQ99cC [--project=cultuvilla-prod] [--out=DIR] \
+ *     --blocks="Santiago@2026-07-24..2026-07-26|Carmen@2026-08-14..2026-08-28" [--range=2026-07-15..2026-08-31]
+ *
+ * Dates are Madrid calendar days; each span covers the whole of both. Without
+ * --range, everything is counted from the first block's start to the last one's end.
+ */
+import { build } from 'esbuild';
+import { spawnSync } from 'node:child_process';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import { existsSync } from 'node:fs';
+import { sharedBuildOptions } from '../esbuild.shared.mjs';
+
+const args = Object.fromEntries(
+  process.argv.slice(2).map((a) => {
+    const [k, ...v] = a.replace(/^--/, '').split('=');
+    return [k, v.join('=')];
+  }),
+);
+const blocks = args.blocks;
+if (!args.municipality || !blocks) {
+  process.stderr.write('need --municipality and --blocks="Name@YYYY-MM-DD..YYYY-MM-DD|…"\n');
+  process.exit(1);
+}
+
+// Externals (firebase-admin, sharp) resolve by walking up from the bundle, so it
+// must live inside functions/ — under node_modules/.cache it is also never committed.
+const bundle = new URL('../node_modules/.cache/wrapped-preview.cjs', import.meta.url).pathname;
+await build({
+  ...sharedBuildOptions,
+  entryPoints: [new URL('./wrapped-preview.entry.ts', import.meta.url).pathname],
+  outfile: bundle,
+  logLevel: 'warning',
+});
+
+const adc = join(homedir(), '.config', 'cultuvilla', 'adc.json');
+const out = args.out || join(process.cwd(), 'wrapped-preview');
+const res = spawnSync(process.execPath, [bundle], {
+  stdio: 'inherit',
+  env: {
+    ...process.env,
+    GOOGLE_APPLICATION_CREDENTIALS: process.env.GOOGLE_APPLICATION_CREDENTIALS || (existsSync(adc) ? adc : ''),
+    PREVIEW_PROJECT: args.project || 'cultuvilla-prod',
+    PREVIEW_MUNICIPALITY: args.municipality,
+    PREVIEW_BLOCKS: blocks,
+    PREVIEW_RANGE: args.range || '',
+    PREVIEW_OUT: out,
+  },
+});
+process.exit(res.status ?? 1);

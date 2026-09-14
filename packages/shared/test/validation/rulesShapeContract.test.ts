@@ -33,9 +33,9 @@ const SHAPE_CONTRACTS: ShapeContract[] = [
   {
     label: 'organizations — isValidOrganizationCreate',
     build: () =>
-      buildOrganizationData({ name: 'Peña', type: 'peña', municipalityId: 'm1', requestedBy: 'u1' }),
+      buildOrganizationData({ name: 'Peña', type: 'peña', municipalityId: 'm1', villageSlug: 'matabuena', requestedBy: 'u1' }),
     ruleKeys: [
-      'name', 'description', 'images', 'type', 'status', 'municipalityId',
+      'name', 'description', 'images', 'type', 'status', 'municipalityId', 'villageSlug',
       'requestedBy', 'reviewedBy', 'createdAt', 'reviewedAt',
       'commentCount', 'readCount', 'memberCount', 'membersPublic',
     ],
@@ -80,7 +80,7 @@ describe('review-lifecycle create defaults', () => {
   // approveOrganization) all assume that starting state. Every approval-gated
   // builder must produce it.
   const PENDING_BUILDERS: Array<[string, Record<string, unknown>]> = [
-    ['organization', buildOrganizationData({ name: 'x', type: 'peña', municipalityId: 'm', requestedBy: 'u' })],
+    ['organization', buildOrganizationData({ name: 'x', type: 'peña', municipalityId: 'm', villageSlug: 'v', requestedBy: 'u' })],
     ['organizerRequest', buildOrganizerRequestData({ userId: 'u', municipalityId: 'm' })],
   ];
 

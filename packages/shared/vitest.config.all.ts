@@ -31,6 +31,7 @@ export default defineConfig({
       'test/design-system/**/*.test.ts',
       'test/email/**/*.test.ts',
       'test/utils/**/*.test.ts',
+      'test/wrapped/**/*.test.ts',
       'test/validation/**/*.test.ts',
       'test/integration/**/*.test.ts',
       'test/e2e/**/*.test.ts',

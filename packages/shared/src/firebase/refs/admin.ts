@@ -15,6 +15,9 @@ import { organizerRequestConverterAdmin } from '../converters/organizerRequestCo
 import { personConverterAdmin } from '../converters/personConverter.admin';
 import { userConverterAdmin } from '../converters/userConverter.admin';
 import { notificationConverterAdmin } from '../converters/notificationConverter.admin';
+import { deviceTokenConverterAdmin } from '../converters/deviceTokenConverter.admin';
+import { notificationPrefsConverterAdmin } from '../converters/notificationPrefsConverter.admin';
+import { pushQueueConverterAdmin } from '../converters/pushQueueConverter.admin';
 import { newsPostConverterAdmin } from '../converters/newsPostConverter.admin';
 import { commentConverterAdmin } from '../converters/commentConverter.admin';
 import { occupationConverterAdmin } from '../converters/occupationConverter.admin';
@@ -22,9 +25,14 @@ import { adminConverterAdmin } from '../converters/adminConverter.admin';
 import { membershipEventConverterAdmin } from '../converters/membershipEventConverter.admin';
 import { moderationEventConverterAdmin } from '../converters/moderationEventConverter.admin';
 import { festivalPosterConverterAdmin } from '../converters/festivalPosterConverter.admin';
+import { villageWrappedConverterAdmin } from '../converters/villageWrappedConverter.admin';
 import { municipalityPersonConverterAdmin } from '../converters/municipalityPersonConverter.admin';
 import { contentReportConverterAdmin } from '../converters/contentReportConverter.admin';
 import { blockedUserConverterAdmin } from '../converters/blockedUserConverter.admin';
+import { vocabularyTermConverterAdmin } from '../converters/vocabularyTermConverter.admin';
+import { historyEntryConverterAdmin } from '../converters/historyEntryConverter.admin';
+import { vocabularyDefinitionConverterAdmin } from '../converters/vocabularyDefinitionConverter.admin';
+import { vocabularyWordConverterAdmin } from '../converters/vocabularyWordConverter.admin';
 
 export const eventsCollection = (db: Firestore) =>
   db.collection('events').withConverter(eventConverterAdmin);
@@ -143,6 +151,33 @@ export const userNotificationsCollection = (db: Firestore, userId: string) =>
 export const userNotificationDoc = (db: Firestore, userId: string, notificationId: string) =>
   db.collection('users').doc(userId).collection('notifications').doc(notificationId).withConverter(notificationConverterAdmin);
 
+// Push-capable devices. THE DOCUMENT ID IS THE FCM REGISTRATION TOKEN — see
+// DeviceTokenDataModel. Dead tokens are pruned by path when FCM reports
+// `registration-token-not-registered`, so the send site needs no lookup.
+export const userDevicesCollection = (db: Firestore, userId: string) =>
+  db.collection('users').doc(userId).collection('devices').withConverter(deviceTokenConverterAdmin);
+
+export const userDeviceDoc = (db: Firestore, userId: string, token: string) =>
+  db.collection('users').doc(userId).collection('devices').doc(token).withConverter(deviceTokenConverterAdmin);
+
+// Rules admit exactly one doc here (`notifications`), so the whole collection
+// shares its schema — which is what lets the conformance gate walk it.
+export const userPreferencesCollection = (db: Firestore, userId: string) =>
+  db.collection('users').doc(userId).collection('preferences')
+    .withConverter(notificationPrefsConverterAdmin);
+
+// Optional: absent means DEFAULT_NOTIFICATION_PREFS.
+export const userNotificationPrefsDoc = (db: Firestore, userId: string) =>
+  userPreferencesCollection(db, userId).doc('notifications');
+
+// Server-only push spool — see PushQueueDataModel for why the id is
+// deterministic. `firestore.rules` denies clients both directions.
+export const pushQueueCollection = (db: Firestore) =>
+  db.collection('pushQueue').withConverter(pushQueueConverterAdmin);
+
+export const pushQueueDoc = (db: Firestore, id: string) =>
+  db.collection('pushQueue').doc(id).withConverter(pushQueueConverterAdmin);
+
 // ── News domain (top-level collections) ──────────────────────────────────
 
 export const newsCollection = (db: Firestore) =>
@@ -227,3 +262,38 @@ export const userBlockedUserDoc = (db: Firestore, userId: string, blockedUserId:
  */
 export const settlementSeedDoc = (db: Firestore, codigoINE: string) =>
   db.collection('_admin').doc('settlements').collection('seeds').doc(codigoINE);
+
+// ── Vocabulary domain (top-level collections) ────────────────────────────
+
+export const vocabularyTermsCollection = (db: Firestore) =>
+  db.collection('vocabularyTerms').withConverter(vocabularyTermConverterAdmin);
+
+export const vocabularyTermDoc = (db: Firestore, termId: string) =>
+  db.collection('vocabularyTerms').doc(termId).withConverter(vocabularyTermConverterAdmin);
+
+export const vocabularyDefinitionsCollection = (db: Firestore) =>
+  db.collection('vocabularyDefinitions').withConverter(vocabularyDefinitionConverterAdmin);
+
+export const vocabularyDefinitionDoc = (db: Firestore, definitionId: string) =>
+  db.collection('vocabularyDefinitions').doc(definitionId).withConverter(vocabularyDefinitionConverterAdmin);
+
+// ── Village history (top-level collection) ───────────────────────────────
+
+export const historyEntriesCollection = (db: Firestore) =>
+  db.collection('historyEntries').withConverter(historyEntryConverterAdmin);
+
+export const historyEntryDoc = (db: Firestore, entryId: string) =>
+  db.collection('historyEntries').doc(entryId).withConverter(historyEntryConverterAdmin);
+
+/** The shared word index — one doc per word across every village. Function-owned. */
+export const vocabularyWordsCollection = (db: Firestore) =>
+  db.collection('vocabularyWords').withConverter(vocabularyWordConverterAdmin);
+
+export const vocabularyWordDoc = (db: Firestore, slug: string) =>
+  db.collection('vocabularyWords').doc(slug).withConverter(vocabularyWordConverterAdmin);
+
+export const villageWrappedCollection = (db: Firestore) =>
+  db.collection('villageWrapped').withConverter(villageWrappedConverterAdmin);
+
+export const villageWrappedDoc = (db: Firestore, wrappedId: string) =>
+  db.collection('villageWrapped').doc(wrappedId).withConverter(villageWrappedConverterAdmin);

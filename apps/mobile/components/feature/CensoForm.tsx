@@ -1,3 +1,4 @@
+import { villageHref } from '../../lib/navigation/routes';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
@@ -14,6 +15,7 @@ import type { ChoiceOption } from './censo/ChoiceList';
 
 export type CensoFormProps = {
   villageId: string;
+  villageSlug: string;
   userId: string;
   schema: ProfileFormField[];
   initialAnswers?: ProfileAnswers;
@@ -26,7 +28,14 @@ export type CensoFormProps = {
  * Shows missing required fields as a warning before submit but does not block
  * saving — the server validates.
  */
-export function CensoForm({ villageId, userId, schema, initialAnswers, entityOptionsByField }: CensoFormProps) {
+export function CensoForm({
+  villageId,
+  villageSlug,
+  userId,
+  schema,
+  initialAnswers,
+  entityOptionsByField,
+}: CensoFormProps) {
   const { t } = useT();
   const [answers, setAnswers] = useState<ProfileAnswers>(initialAnswers ?? {});
   const [saving, setSaving] = useState(false);
@@ -48,11 +57,11 @@ export function CensoForm({ villageId, userId, schema, initialAnswers, entityOpt
   useEffect(() => {
     if (!saved) return;
     const id = setTimeout(
-      () => router.replace({ pathname: '/village/[villageId]', params: { villageId } }),
+      () => router.replace(villageHref(villageSlug)),
       1000,
     );
     return () => clearTimeout(id);
-  }, [saved, villageId]);
+  }, [saved, villageSlug]);
 
   async function onSubmit() {
     setSaving(true);
