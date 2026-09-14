@@ -1,4 +1,5 @@
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import { inAnyWindow, type CartelInput, type WrappedInputs } from '@cultuvilla/shared/wrapped';
 import { EventStatusSchema, RegistrationStatusSchema, isPrivateEvent, madridYear } from '@cultuvilla/shared/models';
 import {
@@ -7,10 +8,12 @@ import {
   festivalPostersCollection,
   municipalityDoc,
   municipalityPeopleCollection,
+  newsCollection,
   organizationDoc,
   personsCollection,
   userDoc,
 } from '@cultuvilla/shared/firebase/refs/admin';
+import { END_LOOKBACK_DAYS } from './wrappedWindows';
 
 /**
  * Read everything a Wrapped is built from, for one municipality and its windows.
@@ -36,6 +39,8 @@ export interface GatheredWrapped {
   people: { personId: string; displayName: string; photoURL: string | null }[];
   /** The whole poster archive, every year, for the carteles card. */
   posters: CartelInput[];
+  /** The year's articles, oldest first, for the news card. */
+  news: { id: string; title: string; publishedAt: Date; imageURL: string | null }[];
 }
 
 type Raw = Record<string, unknown>;
@@ -91,6 +96,38 @@ async function photosByUserId(db: Firestore, userIds: string[]): Promise<Map<str
     }
   }
   return out;
+}
+
+/**
+ * A download URL for a file in the default bucket, or null.
+ *
+ * News posts store a storage PATH, not a URL. The file's own download token
+ * (set by every client upload) gives a URL on the image allowlist, so the
+ * article covers go through the same bounded fetch as every other image —
+ * and it needs no `signBlob` grant, which a v4 signed URL would.
+ */
+async function downloadUrl(path: string): Promise<string | null> {
+  try {
+    const file = getStorage().bucket().file(path);
+    const [meta] = await file.getMetadata();
+    const token = str(String(meta.metadata?.firebaseStorageDownloadTokens ?? '').split(',')[0]);
+    if (!token) return null;
+    return `https://firebasestorage.googleapis.com/v0/b/${file.bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
+  } catch {
+    return null;
+  }
+}
+
+/** The picture an article is shown with: its cover, else its first image. */
+function newsImagePath(n: Raw): string | null {
+  const cover = n.coverImage as Raw | null | undefined;
+  const images = Array.isArray(n.images) ? (n.images as Raw[]) : [];
+  const blocks = Array.isArray(n.content) ? (n.content as Raw[]) : [];
+  return (
+    str(cover?.storagePath) ??
+    str(images[0]?.storagePath) ??
+    str(blocks.find((b) => b.type === 'image')?.storagePath)
+  );
 }
 
 export async function gatherWrappedInputs(
@@ -188,11 +225,33 @@ export async function gatherWrappedInputs(
     return [{ id: d.id, year: p.year, title: str(p.title), imageURL: images.length > 0 ? images[0] : null }];
   });
 
+  // The year's articles, up to the lookback after the last block ends: a
+  // Wrapped is built inside that lookback, and the chronicle of the fiestas is
+  // usually written in the days right after them. A fixed cutoff, rather than
+  // "until now", keeps a rebuild from growing a card the village already shared.
+  // Only `active`, for the same allowlist reason as the carteles.
+  const lastEnd = Math.max(...windows.map((w) => w.end.getTime()));
+  const newsCutoff = lastEnd + END_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
+  const newsSnap = await newsCollection(db).withConverter(null).where('municipalityId', '==', municipalityId).get();
+  const newsDocs = newsSnap.docs
+    .flatMap((d) => {
+      const n = d.data();
+      const publishedAt = date(n.publishedAt);
+      if (!publishedAt || n.status !== 'active') return [];
+      if (madridYear(publishedAt) !== year || publishedAt.getTime() > newsCutoff) return [];
+      return [{ id: d.id, title: str(n.title) ?? '', publishedAt, path: newsImagePath(n) }];
+    })
+    .sort((a, b) => a.publishedAt.getTime() - b.publishedAt.getTime());
+  const news = await Promise.all(
+    newsDocs.map(async ({ path, ...n }) => ({ ...n, imageURL: path ? await downloadUrl(path) : null })),
+  );
+
   return {
     villageName: str(muni.name) ?? '',
     escudoUrl: str(muni.escudoManualUrl) ?? str(muni.escudoUrl),
     people,
     posters,
+    news,
     inputs: {
       windows,
       events,

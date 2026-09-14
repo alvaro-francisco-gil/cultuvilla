@@ -13,7 +13,7 @@ import { z } from 'zod';
  */
 
 /** In the order they are shown. Carteles close the set: this year added to the pueblo's long history. */
-export const WRAPPED_CARDS = ['cover', 'stats', 'events', 'people', 'organizers', 'posters'] as const;
+export const WRAPPED_CARDS = ['cover', 'stats', 'events', 'news', 'people', 'organizers', 'posters'] as const;
 export const WrappedCardSchema = z.enum([...WRAPPED_CARDS]);
 export type WrappedCard = z.infer<typeof WrappedCardSchema>;
 
@@ -93,8 +93,10 @@ export const WrappedDataSchema = z.object({
 
   /** Download URL of each rendered card. A URL rather than a storage path
    *  because a Wrapped is made to be forwarded: the recipient may not be a
-   *  member, or signed in at all, and the link has to still resolve. */
-  images: z.record(WrappedCardSchema, z.string()),
+   *  member, or signed in at all, and the link has to still resolve.
+   *  Partial: a card with nothing to show (a year with no articles) is left
+   *  out rather than shipped blank. */
+  images: z.partialRecord(WrappedCardSchema, z.string()),
 });
 export type WrappedData = z.infer<typeof WrappedDataSchema>;
 

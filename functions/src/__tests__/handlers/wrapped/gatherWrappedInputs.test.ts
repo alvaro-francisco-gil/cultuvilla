@@ -184,6 +184,35 @@ describe('gatherWrappedInputs', () => {
     expect(g.inputs.posterCount).toBe(1);
   });
 
+  // WINDOW ends 17 Aug; the lookback reaches 24 Aug. The chronicle written the
+  // week after the fiestas belongs to them, one written in November does not.
+  it("keeps the year's active articles up to the lookback after the last block, oldest first", async () => {
+    const article = (id: string, publishedAt: string, fields: Record<string, unknown> = {}) =>
+      db()
+        .doc(`news/${id}`)
+        .set({
+          municipalityId: MID,
+          title: id,
+          status: 'active',
+          publishedAt: admin.firestore.Timestamp.fromDate(new Date(publishedAt)),
+          coverImage: null,
+          images: [],
+          ...fields,
+        });
+    await article('after-fiestas', '2026-08-20T10:00:00+02:00');
+    await article('july', '2026-07-17T10:00:00+02:00');
+    await article('november', '2026-11-02T10:00:00+01:00');
+    await article('last-year', '2025-08-20T10:00:00+02:00');
+    await article('hidden', '2026-08-01T10:00:00+02:00', { status: 'hidden' });
+    await article('draft', '2026-08-01T10:00:00+02:00', { publishedAt: null });
+    await article('elsewhere', '2026-08-01T10:00:00+02:00', { municipalityId: OTHER_MID });
+
+    const g = await gather();
+
+    expect(g.news.map((n) => n.id)).toEqual(['july', 'after-fiestas']);
+    expect(g.news[0].imageURL).toBeNull();
+  });
+
   it('resolves organizer orgs and creators of counted events only', async () => {
     await seedEvent('counted', { organizerOrgIds: ['org-a'], createdBy: 'maria' });
     await seedEvent('old', {
@@ -191,7 +220,7 @@ describe('gatherWrappedInputs', () => {
       createdBy: 'pedro',
       startDate: admin.firestore.Timestamp.fromDate(new Date('2025-08-15T20:00:00+02:00')),
     });
-    await db().doc('organizations/org-a').set({ name: 'Ayuntamiento', imageURL: 'https://x/a.png' });
+    await db().doc('organizations/org-a').set({ name: 'Ayuntamiento', images: ['https://x/a.png', 'https://x/a2.png'] });
     await db().doc('organizations/org-b').set({ name: 'Peña' });
     await db().doc('users/maria').set({ displayName: 'María' });
     await db().doc('users/pedro').set({ displayName: 'Pedro' });

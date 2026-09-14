@@ -19,6 +19,8 @@ export const copy = {
   eventsKicker: 'Lo que se hizo',
   eventsTitle: (n: number) => (n === 1 ? '1 evento' : `${String(n)} eventos`),
   eventsMore: (n: number) => `y ${String(n)} más`,
+  newsKicker: 'Lo que se contó',
+  newsTitle: (n: number) => (n === 1 ? '1 artículo' : `${String(n)} artículos`),
   organizersKicker: 'Quién lo hizo posible',
   organizersTitle: 'Gracias',
   organizersOrgs: 'Asociaciones y peñas',
@@ -33,7 +35,7 @@ export const copy = {
   statsPeople: 'personas se apuntaron',
   statsSignups: 'inscripciones',
   statsComments: 'comentarios',
-  statsWaitlist: 'en lista de espera',
+  statsPerEvent: 'media de personas por evento',
   statsFullest: 'El evento más lleno',
   statsFullestCount: (n: number, cap: number | null) =>
     cap ? `${String(n)} de ${String(cap)} plazas` : `${String(n)} apuntados`,

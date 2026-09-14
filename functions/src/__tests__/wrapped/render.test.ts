@@ -3,6 +3,7 @@ import sharp from 'sharp';
 import { composeWrapped, CARD_FORMATS, formatDateRange } from '../../wrapped/composeWrapped';
 import type { GatheredWrapped } from '../../wrapped/gatherInputs';
 import { fitFontSize } from '../../wrapped/render/layout';
+import { averagePerEvent } from '../../wrapped/render/cards';
 
 /**
  * Renders real cards end to end — Satori layout, embedded fonts, sharp
@@ -26,6 +27,9 @@ function gathered(): GatheredWrapped {
       { id: 'c1960', year: 1960, title: null, imageURL: 'https://example.invalid/1960.jpg' },
       { id: 'c1977', year: 1977, title: null, imageURL: null },
       { id: 'c2026', year: 2026, title: 'Fiestas en honor a la Virgen del Carmen', imageURL: 'https://example.invalid/2026.jpg' },
+    ],
+    news: [
+      { id: 'n1', title: 'La carrera, mucho más que 5 kilómetros', publishedAt: new Date('2026-08-31T20:00:00+02:00'), imageURL: 'https://example.invalid/n1.jpg' },
     ],
     inputs: {
       windows: [WINDOW],
@@ -58,7 +62,7 @@ const offline: typeof fetch = () => Promise.resolve(new Response(null, { status:
 describe('composeWrapped', () => {
   it('renders every card at the 9:16 story size', async () => {
     const { images } = await composeWrapped(gathered(), { blockNames: ['Fiestas de agosto'], year: 2026 }, offline);
-    expect(Object.keys(images).sort()).toEqual(['cover', 'events', 'organizers', 'people', 'posters', 'stats']);
+    expect(Object.keys(images).sort()).toEqual(['cover', 'events', 'news', 'organizers', 'people', 'posters', 'stats']);
     for (const [card, img] of Object.entries(images)) {
       const meta = await sharp(img.bytes).metadata();
       expect({ card, w: meta.width, h: meta.height }).toEqual({ card, w: 1080, h: 1920 });
@@ -69,13 +73,21 @@ describe('composeWrapped', () => {
   it('still renders the carteles card for a pueblo with no archive yet', async () => {
     const g = { ...gathered(), posters: [] };
     const { images } = await composeWrapped(g, { blockNames: ['Fiestas de agosto'], year: 2026 }, offline);
-    expect((await sharp(images.posters.bytes).metadata()).width).toBe(1080);
+    expect((await sharp(images.posters?.bytes).metadata()).width).toBe(1080);
+  }, 60_000);
+
+  // A blank "0 artículos" card would make a quiet year look dead; it is left out.
+  it('leaves the articles card out of a year with no articles', async () => {
+    const g = { ...gathered(), news: [] };
+    const { images } = await composeWrapped(g, { blockNames: ['Fiestas de agosto'], year: 2026 }, offline);
+    expect(images.news).toBeUndefined();
+    expect(images.events).toBeDefined();
   }, 60_000);
 
   it('ships photo cards as JPEG and flat cards as PNG', async () => {
     const { images } = await composeWrapped(gathered(), { blockNames: ['Fiestas de agosto'], year: 2026 }, offline);
     for (const card of Object.keys(CARD_FORMATS) as (keyof typeof CARD_FORMATS)[]) {
-      expect(images[card].format).toBe(CARD_FORMATS[card]);
+      expect(images[card]?.format).toBe(CARD_FORMATS[card]);
     }
   }, 60_000);
 
@@ -91,7 +103,7 @@ describe('composeWrapped', () => {
   it('renders a very long fiesta block name within the card', async () => {
     const blockName = 'Fiestas patronales de Nuestra Señora de la Asunción y San Roque';
     const { images } = await composeWrapped(gathered(), { blockNames: [blockName], year: 2026 }, offline);
-    const meta = await sharp(images.cover.bytes).metadata();
+    const meta = await sharp(images.cover?.bytes).metadata();
     expect({ w: meta.width, h: meta.height }).toEqual({ w: 1080, h: 1920 });
     expect(fitFontSize(blockName, 1080 - 72 * 2, 148, 56)).toBeLessThan(148);
   }, 60_000);
@@ -101,6 +113,20 @@ describe('composeWrapped', () => {
     expect(aggregate.stats.uniquePersonCount).toBe(2);
     expect(aggregate.stats.censoParticipantCount).toBe(1);
   }, 60_000);
+});
+
+describe('averagePerEvent', () => {
+  it('writes one decimal with a Spanish comma', () => {
+    expect(averagePerEvent({ eventCount: 20, confirmedCount: 258 })).toBe('12,9');
+  });
+
+  it('drops a trailing ,0', () => {
+    expect(averagePerEvent({ eventCount: 4, confirmedCount: 40 })).toBe('10');
+  });
+
+  it('is 0 for a Wrapped with no events, not NaN', () => {
+    expect(averagePerEvent({ eventCount: 0, confirmedCount: 0 })).toBe('0');
+  });
 });
 
 describe('formatDateRange', () => {

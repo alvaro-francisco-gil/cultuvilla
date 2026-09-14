@@ -7,7 +7,7 @@ import { colorFor, initials } from './images';
 import { brandMark } from './brand/brandMark';
 
 /**
- * Satori element trees for the five Wrapped cards. Satori renders a subset of
+ * Satori element trees for the Wrapped cards. Satori renders a subset of
  * CSS: every element with more than one child must be `display: flex`, and all
  * text must sit directly inside an element. The trees are plain objects built
  * with `h()` rather than JSX.
@@ -99,62 +99,55 @@ function frame(ctx: CardContext, header: { kicker: string; title: string; subtit
 // ── cover ────────────────────────────────────────────────────────────────
 
 export function coverCard(ctx: CardContext, escudo: string | null): SatoriNode {
-  const width = CARD_WIDTH - GUTTER * 2;
-  const village = ctx.villageName.toUpperCase();
   return h(
     'div',
     {
       style: {
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
         justifyContent: 'space-between',
         width: CARD_WIDTH,
         height: CARD_HEIGHT,
-        padding: `${String(GUTTER * 1.4)}px ${String(GUTTER)}px ${String(GUTTER * 1.2)}px`,
+        padding: `${String(GUTTER * 1.6)}px ${String(GUTTER)}px ${String(GUTTER)}px`,
         backgroundColor: colors.ground,
         backgroundImage: `linear-gradient(170deg, #4a2418 0%, ${colors.ground} 58%)`,
         color: colors.ink,
         fontFamily: 'Archivo',
-        textAlign: 'center',
       },
     },
     h(
       'div',
-      { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 30 } },
+      { style: { display: 'flex', alignItems: 'center', gap: 28 } },
       escudo
-        ? h('img', { src: escudo, width: 170, height: 170, style: { objectFit: 'cover', borderRadius: 40 } })
+        ? h('img', { src: escudo, width: 120, height: 120, style: { objectFit: 'cover', borderRadius: 28 } })
         : null,
-      // Letter-spaced capitals run wide, so a long pueblo name is fitted
-      // rather than set at a size that spills off the card.
-      text(village, {
-        fontSize: fitFontSize(village, width, 52, 34, 0.78),
-        fontWeight: 700,
-        letterSpacing: 8,
-        color: colors.accentSoft,
-      }),
+      text(ctx.villageName.toUpperCase(), { fontSize: 34, fontWeight: 600, letterSpacing: 6, color: colors.accentSoft }),
     ),
     h(
       'div',
-      { style: { display: 'flex', flexDirection: 'column', alignItems: 'center' } },
+      { style: { display: 'flex', flexDirection: 'column' } },
       text(copy.fiestas, { fontSize: 148, fontWeight: 800, lineHeight: 0.95, letterSpacing: -4 }),
       text(String(ctx.year), { fontSize: 220, fontWeight: 800, lineHeight: 1, color: colors.accent, letterSpacing: -8, marginTop: 8 }),
       h(
         'div',
-        { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 34, marginTop: 56 } },
+        { style: { display: 'flex', flexDirection: 'column', gap: 30, marginTop: 44 } },
         ...ctx.blocks.map((b) =>
           h(
             'div',
-            { style: { display: 'flex', flexDirection: 'column', alignItems: 'center' } },
+            { style: { display: 'flex', flexDirection: 'column', borderLeft: `6px solid ${colors.accent}`, paddingLeft: 26 } },
             // Free text a village admin types, with no length limit, so it is
             // fitted rather than set at a size that overflows the card.
-            text(b.name, { fontSize: fitFontSize(b.name, width, 64, 36), fontWeight: 700, lineHeight: 1.1 }),
+            text(b.name, {
+              fontSize: fitFontSize(b.name, CARD_WIDTH - GUTTER * 2 - 32, 64, 36),
+              fontWeight: 700,
+              lineHeight: 1.1,
+            }),
             text(b.dateRange, { fontSize: 40, color: colors.inkDim, marginTop: 6 }),
           ),
         ),
       ),
     ),
-    brandMark(60),
+    brandMark(36),
   );
 }
 
@@ -223,8 +216,9 @@ export function peopleCard(ctx: CardContext, people: PersonBubble[], censoPartic
   );
 }
 
-// ── events ───────────────────────────────────────────────────────────────
+// ── events & articles ────────────────────────────────────────────────────
 
+/** A picture with its date and title underneath: an event flyer or an article cover. */
 export interface EventTile {
   title: string;
   dateLabel: string;
@@ -245,9 +239,10 @@ export function eventTileImageHeight(tileHeight: number): number {
   return tileHeight - Math.round(Math.min(96, tileHeight * 0.34));
 }
 
-export function eventsCard(ctx: CardContext, events: EventTile[]): SatoriNode {
-  const shown = events.slice(0, MAX_EVENT_TILES);
-  const hidden = events.length - shown.length;
+/** The mosaic both the events and the articles cards are drawn with, so they read as a pair. */
+function tileMosaic(tiles: EventTile[], anchor: 'top' | 'center'): SatoriNode {
+  const shown = tiles.slice(0, MAX_EVENT_TILES);
+  const hidden = tiles.length - shown.length;
   const gap = 14;
   const g = mosaicLayout(shown.length, BODY_WIDTH, BODY_HEIGHT - (hidden > 0 ? 70 : 20), gap, 0.92);
   const titleSize = Math.max(20, Math.min(34, g.tileWidth / 11));
@@ -256,7 +251,7 @@ export function eventsCard(ctx: CardContext, events: EventTile[]): SatoriNode {
   // with it and neither reads. The caption sits in its own band underneath.
   const imageHeight = eventTileImageHeight(g.tileHeight);
   const captionHeight = g.tileHeight - imageHeight;
-  const tiles = shown.map((e) =>
+  const drawn = shown.map((e) =>
     h(
       'div',
       {
@@ -273,7 +268,7 @@ export function eventsCard(ctx: CardContext, events: EventTile[]): SatoriNode {
       h(
         'div',
         { style: { display: 'flex', width: g.tileWidth, height: imageHeight, backgroundColor: colorFor(e.title) } },
-        e.image ? h('img', { src: e.image, width: g.tileWidth, height: imageHeight, style: { objectFit: 'cover', objectPosition: 'top' } }) : null,
+        e.image ? h('img', { src: e.image, width: g.tileWidth, height: imageHeight, style: { objectFit: 'cover', objectPosition: anchor } }) : null,
       ),
       h(
         'div',
@@ -289,14 +284,21 @@ export function eventsCard(ctx: CardContext, events: EventTile[]): SatoriNode {
     ),
   );
 
-  const body = h(
+  return h(
     'div',
     { style: { display: 'flex', flexDirection: 'column', position: 'absolute', left: GUTTER, top: BODY_TOP, width: BODY_WIDTH } },
-    h('div', { style: { display: 'flex', flexWrap: 'wrap', gap, width: BODY_WIDTH } }, ...tiles),
+    h('div', { style: { display: 'flex', flexWrap: 'wrap', gap, width: BODY_WIDTH } }, ...drawn),
     hidden > 0 ? text(copy.eventsMore(hidden), { fontSize: 32, color: colors.inkDim, marginTop: 26 }) : null,
   );
+}
 
-  return frame(ctx, { kicker: copy.eventsKicker, title: copy.eventsTitle(events.length) }, body);
+export function eventsCard(ctx: CardContext, events: EventTile[]): SatoriNode {
+  return frame(ctx, { kicker: copy.eventsKicker, title: copy.eventsTitle(events.length) }, tileMosaic(events, 'top'));
+}
+
+/** Article covers are photos, not flyers, so they keep their centre rather than their top. */
+export function newsCard(ctx: CardContext, articles: EventTile[]): SatoriNode {
+  return frame(ctx, { kicker: copy.newsKicker, title: copy.newsTitle(articles.length) }, tileMosaic(articles, 'center'));
 }
 
 // ── organizers ───────────────────────────────────────────────────────────
@@ -375,7 +377,10 @@ export function organizersCard(ctx: CardContext, orgs: CreditRow[], people: Cred
   const section = (label: string) =>
     text(label.toUpperCase(), { fontSize: 24, fontWeight: 600, letterSpacing: 4, color: colors.muted, marginBottom: 18 });
 
-  const [lead, ...otherOrgs] = orgs;
+  // Destructured, `lead` is typed as always present, and the guard below would
+  // be flagged as dead — yet a Wrapped with no org-run events has none.
+  const lead = orgs.length > 0 ? orgs[0] : undefined;
+  const otherOrgs = orgs.slice(1);
   const body = h(
     'div',
     { style: { display: 'flex', flexDirection: 'column', position: 'absolute', left: GUTTER, top: BODY_TOP, width: BODY_WIDTH, gap: 48 } },
@@ -404,8 +409,19 @@ export interface StatsHighlight {
   capacity: number | null;
 }
 
+/**
+ * Confirmed sign-ups per counted event, to one decimal with a Spanish comma
+ * ("12,9"). Each confirmed registration is one persona on one event, so this is
+ * the average party size of an event, not distinct people.
+ */
+export function averagePerEvent(stats: Pick<WrappedStats, 'eventCount' | 'confirmedCount'>): string {
+  if (stats.eventCount === 0) return '0';
+  const avg = Math.round((stats.confirmedCount / stats.eventCount) * 10) / 10;
+  return String(avg).replace('.', ',');
+}
+
 export function statsCard(ctx: CardContext, stats: WrappedStats, fullest: StatsHighlight | null): SatoriNode {
-  const tile = (value: number, label: string, accent: boolean) =>
+  const tile = (value: string, label: string, accent: boolean) =>
     h(
       'div',
       {
@@ -415,7 +431,7 @@ export function statsCard(ctx: CardContext, stats: WrappedStats, fullest: StatsH
           backgroundColor: colors.groundRaised, borderRadius: 26,
         },
       },
-      text(String(value), { fontSize: 112, fontWeight: 800, lineHeight: 1, letterSpacing: -3, color: accent ? colors.accent : colors.ink }),
+      text(value, { fontSize: 112, fontWeight: 800, lineHeight: 1, letterSpacing: -3, color: accent ? colors.accent : colors.ink }),
       text(label, { fontSize: 30, color: colors.inkDim, marginTop: 10, lineHeight: 1.2 }),
     );
 
@@ -435,10 +451,10 @@ export function statsCard(ctx: CardContext, stats: WrappedStats, fullest: StatsH
     h(
       'div',
       { style: { display: 'flex', flexWrap: 'wrap', gap: 24 } },
-      tile(stats.eventCount, copy.statsEvents, false),
-      tile(stats.confirmedCount, copy.statsSignups, false),
-      tile(stats.commentCount, copy.statsComments, false),
-      tile(stats.waitlistedCount, copy.statsWaitlist, false),
+      tile(String(stats.eventCount), copy.statsEvents, false),
+      tile(String(stats.confirmedCount), copy.statsSignups, false),
+      tile(String(stats.commentCount), copy.statsComments, false),
+      tile(averagePerEvent(stats), copy.statsPerEvent, false),
     ),
     fullest
       ? h(
