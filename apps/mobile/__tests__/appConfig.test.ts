@@ -91,8 +91,10 @@ describe('E2E emulator flag guard', () => {
 });
 
 describe('universal link paths', () => {
+  // Prod is excluded on purpose: it keeps the legacy claim the live iOS 1.0.0
+  // binary can route, pinned in packages/shared/test/ci/storeRelease.test.ts.
   it('claims every path except sign-in, since URLs start with the pueblo slug', () => {
-    for (const env of ['dev', 'beta', 'prod'] as const) {
+    for (const env of ['dev', 'beta'] as const) {
       const path = join(__dirname, '..', 'public', '.well-known', env, 'apple-app-site-association');
       const aasa = JSON.parse(readFileSync(path, 'utf8'));
       expect(aasa.applinks.details[0].paths).toEqual(['NOT /entrar', 'NOT /entrar/*', '*']);
