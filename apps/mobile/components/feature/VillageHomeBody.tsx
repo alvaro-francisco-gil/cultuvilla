@@ -35,6 +35,8 @@ const BARRIO_SECTIONS: { kind: BarrioKind; titleKey: string }[] = [
   { kind: 'barrio', titleKey: 'village.admin.hub.barrios' },
 ];
 import { AddContentSheet } from './AddContentSheet';
+import { HistoryRail } from './history/HistoryRail';
+import { WordOfTheDayCard } from './vocabulary/WordOfTheDayCard';
 import { LocationMap } from './LocationMap';
 import { JoinVillageModal } from './JoinVillageModal';
 import { StatsRow } from './StatsRow';
@@ -479,18 +481,16 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
 
         {/* ── Historia + Vocabulario: open to everyone, including non-members —
             a pueblo's past and its words are exactly what is worth not losing ─── */}
-        <HStack gap={3} className="px-4 pt-8">
-          <ActionPill
-            label={t('village.history.title')}
-            onPress={() => router.push(villageSectionHref(villageSlug, 'historia'))}
-            testID="village-history-action"
+        {sectionStatus.history === 'ready' ? (
+          <HistoryRail entries={data.history} villageSlug={villageSlug} />
+        ) : null}
+        {sectionStatus.vocabulary === 'ready' && data.wordOfTheDay ? (
+          <WordOfTheDayCard
+            word={data.wordOfTheDay}
+            count={data.vocabularyCount}
+            villageSlug={villageSlug}
           />
-          <ActionPill
-            label={t('village.vocabulary.title')}
-            onPress={() => router.push(villageSectionHref(villageSlug, 'vocabulario'))}
-            testID="village-vocabulary-action"
-          />
-        </HStack>
+        ) : null}
 
         {/* ── Censo: only villagers of a configured village fill; admins also configure ─── */}
         {(isMember && censoConfigured) || canManage ? (

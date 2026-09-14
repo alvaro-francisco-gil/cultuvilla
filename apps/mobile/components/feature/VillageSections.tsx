@@ -67,6 +67,30 @@ function SkeletonRow({ count = 4 }: { count?: number }) {
   );
 }
 
+/** A village-home section title with an optional trailing text link ("Gestionar", "Ver todo"). */
+export function SectionHeader({
+  title,
+  actionLabel,
+  onAction,
+}: {
+  title: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <HStack className="items-center justify-between px-4">
+      <SectionTitle>{title}</SectionTitle>
+      {actionLabel && onAction ? (
+        <Pressable onPress={onAction} accessibilityLabel={actionLabel}>
+          <Text variant="bodySm" style={{ color: ACCENT }} className="font-medium">
+            {actionLabel}
+          </Text>
+        </Pressable>
+      ) : null}
+    </HStack>
+  );
+}
+
 export function Section<T>({
   title,
   onManage,
@@ -108,16 +132,11 @@ export function Section<T>({
   if (!showSkeleton && isEmpty) return null;
   return (
     <VStack gap={3} className="pt-4">
-      <HStack className="items-center justify-between px-4">
-        <SectionTitle>{title}</SectionTitle>
-        {onManage ? (
-          <Pressable onPress={onManage} accessibilityLabel={t('village.admin.overview.manage')}>
-            <Text variant="bodySm" style={{ color: ACCENT }} className="font-medium">
-              {t('village.admin.overview.manage')}
-            </Text>
-          </Pressable>
-        ) : null}
-      </HStack>
+      <SectionHeader
+        title={title}
+        actionLabel={onManage ? t('village.admin.overview.manage') : undefined}
+        onAction={onManage}
+      />
       {showSkeleton ? (
         <SkeletonRow />
       ) : data && renderItem ? (

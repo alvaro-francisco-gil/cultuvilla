@@ -92,6 +92,9 @@ const base: VillageHomeState = {
   events: [],
   news: [],
   festivalPosters: [],
+  history: [],
+  wordOfTheDay: null,
+  vocabularyCount: 0,
   peopleCount: 3,
   pendingOrganizerRequest: false,
   myCensoAnswers: {},
@@ -102,6 +105,8 @@ const base: VillageHomeState = {
     barrios: 'ready',
     places: 'ready',
     organizations: 'ready',
+    history: 'ready',
+    vocabulary: 'ready',
   },
 };
 
@@ -272,12 +277,33 @@ describe('VillageHomeBody', () => {
     expect(router.push).toHaveBeenCalledWith('/anaya/comunidad');
   });
 
-  it('opens the pueblo’s history — for non-members too, reading is open to everyone', () => {
-    const { getByTestId } = render(
-      <VillageHomeBody data={{ ...base, isMember: false }} reload={jest.fn()} />,
+  it('shows the history and the word of the day — for non-members too, reading is open to everyone', () => {
+    const history = [
+      {
+        id: 'h1',
+        title: 'Llega la luz eléctrica',
+        start: { year: 1956, month: null, day: null },
+        end: null,
+        approximate: false,
+        body: { text: '', mentions: [], links: [], marks: [] },
+        images: [],
+      },
+    ] as unknown as VillageHomeState['history'];
+    const wordOfTheDay = {
+      term: { id: 'm1__miaja', term: 'miaja', kind: 'palabra' },
+      definition: null,
+      more: [],
+    } as unknown as VillageHomeState['wordOfTheDay'];
+    const { getByText } = render(
+      <VillageHomeBody
+        data={{ ...base, isMember: false, history, wordOfTheDay, vocabularyCount: 12 }}
+        reload={jest.fn()}
+      />,
     );
-    fireEvent.press(getByTestId('village-history-action'));
-    expect(router.push).toHaveBeenCalledWith('/anaya/historia');
+    expect(getByText('Llega la luz eléctrica')).toBeTruthy();
+    expect(getByText('Palabra del día')).toBeTruthy();
+    fireEvent.press(getByText('Ver las 12'));
+    expect(router.push).toHaveBeenCalledWith('/anaya/vocabulario');
   });
 
   it('non-admin members do not see the "Detalles pueblo" option in the sheet', () => {

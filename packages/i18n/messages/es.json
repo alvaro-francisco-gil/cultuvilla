@@ -271,6 +271,9 @@
     "notFound": "No encontramos este pueblo. Puede que el enlace esté mal escrito.",
     "vocabulary": {
       "title": "Vocabulario",
+      "wordOfTheDay": "Palabra del día",
+      "seeAll": "Ver las {count}",
+      "more": "Más:",
       "search": "Buscar una palabra",
       "empty": "Todavía no hay ninguna palabra recogida. Añade la primera.",
       "noMatches": "Ninguna palabra coincide con esa búsqueda.",
@@ -366,6 +369,9 @@
     },
     "share": {
       "title": "Compartir pueblo"
+    },
+    "home": {
+      "seeAll": "Ver todo"
     },
     "addContent": {
       "button": "Añadir contenido",

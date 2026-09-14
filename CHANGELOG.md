@@ -6,6 +6,11 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Added
 
+- **Historia y palabra del día en la portada del pueblo.** Los botones «Historia»
+  y «Vocabulario» se sustituyen por dos piezas visuales: una línea del tiempo
+  horizontal con el año de cada acontecimiento y su foto (o el comienzo del relato),
+  y una tarjeta con la palabra del día, su significado, un ejemplo y otras palabras
+  para seguir leyendo. La palabra cambia cada día y es la misma para todos.
 - **Palabras y acontecimientos desde «Añadir contenido».** La hoja de añadir
   contenido del pueblo ofrece ahora «Palabra» (vocabulario) y «Acontecimiento»
   (línea de historia), que abren directamente sus pantallas de creación.

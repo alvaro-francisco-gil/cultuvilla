@@ -25,6 +25,17 @@ import {
   type FestivalPosterWithId,
 } from '@cultuvilla/shared/services/festivalPosterService';
 import {
+  getHistoryEntries,
+  type HistoryEntryWithId,
+} from '@cultuvilla/shared/services/historyService';
+import {
+  getVocabularyDefinitions,
+  getVocabularyTerms,
+  type VocabularyDefinitionWithId,
+  type VocabularyTermWithId,
+} from '@cultuvilla/shared/services/vocabularyService';
+import { pickWordOfTheDay } from '@cultuvilla/shared/utils/wordOfTheDay';
+import {
   eventEndBoundary,
   isStartDayOver,
 } from '@cultuvilla/shared/models/event/EventDataModel';
@@ -42,11 +53,21 @@ export type VillageSectionKey =
   | 'festivalPosters'
   | 'barrios'
   | 'places'
-  | 'organizations';
+  | 'organizations'
+  | 'history'
+  | 'vocabulary';
 
 export type SectionStatus = 'loading' | 'ready' | 'error';
 
 export type SectionStatusMap = Record<VillageSectionKey, SectionStatus>;
+
+export interface WordOfTheDay {
+  term: VocabularyTermWithId;
+  /** The term's first meaning; null when none has been added yet. */
+  definition: VocabularyDefinitionWithId | null;
+  /** A few other words to follow on to. */
+  more: VocabularyTermWithId[];
+}
 
 export interface VillageHomeState {
   /** The essential village doc is still loading — the whole tab waits on this. */
@@ -64,6 +85,10 @@ export interface VillageHomeState {
   events: (EventData & { id: string })[];
   news: (NewsPostData & { id: string })[];
   festivalPosters: FestivalPosterWithId[];
+  /** Oldest first — the home timeline reads left to right. */
+  history: HistoryEntryWithId[];
+  wordOfTheDay: WordOfTheDay | null;
+  vocabularyCount: number;
   /** null while the members fetch is in flight, so the stat renders "—". */
   peopleCount: number | null;
   pendingOrganizerRequest: boolean;
@@ -80,6 +105,8 @@ const ALL_LOADING: SectionStatusMap = {
   barrios: 'loading',
   places: 'loading',
   organizations: 'loading',
+  history: 'loading',
+  vocabulary: 'loading',
 };
 
 const EMPTY: VillageHomeState = {
@@ -94,6 +121,9 @@ const EMPTY: VillageHomeState = {
   events: [],
   news: [],
   festivalPosters: [],
+  history: [],
+  wordOfTheDay: null,
+  vocabularyCount: 0,
   peopleCount: null,
   pendingOrganizerRequest: false,
   myCensoAnswers: {},
@@ -345,6 +375,45 @@ export function useVillageHome(municipalityId: string | null) {
       }
     };
 
+    const loadHistory = async () => {
+      try {
+        const entries = await withFirestoreErrorLog('villageHome:getHistoryEntries', () =>
+          getHistoryEntries(municipalityId),
+        );
+        commit((s) => ({
+          ...s,
+          history: [...entries].reverse(),
+          sectionStatus: { ...s.sectionStatus, history: 'ready' },
+        }));
+      } catch {
+        markSection('history', 'error');
+      }
+    };
+
+    const loadVocabulary = async () => {
+      try {
+        const terms = await withFirestoreErrorLog('villageHome:getVocabularyTerms', () =>
+          getVocabularyTerms(municipalityId),
+        );
+        const pick = pickWordOfTheDay(terms, municipalityId, new Date());
+        const definitions = pick
+          ? await withFirestoreErrorLog('villageHome:getVocabularyDefinitions', () =>
+              getVocabularyDefinitions(pick.today.id),
+            )
+          : [];
+        commit((s) => ({
+          ...s,
+          wordOfTheDay: pick
+            ? { term: pick.today, definition: definitions[0] ?? null, more: pick.more }
+            : null,
+          vocabularyCount: terms.length,
+          sectionStatus: { ...s.sectionStatus, vocabulary: 'ready' },
+        }));
+      } catch {
+        markSection('vocabulary', 'error');
+      }
+    };
+
     await Promise.allSettled([
       loadChrome(),
       loadEvents(),
@@ -353,6 +422,8 @@ export function useVillageHome(municipalityId: string | null) {
       loadPlaces(),
       loadBarrios(),
       loadOrgs(),
+      loadHistory(),
+      loadVocabulary(),
     ]);
   }, [municipalityId, uid, orgIds]);
 
