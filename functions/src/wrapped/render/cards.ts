@@ -91,14 +91,18 @@ function frame(ctx: CardContext, header: { kicker: string; title: string; subtit
         text(ctx.villageName, { fontSize: 32, fontWeight: 700 }),
         text(copy.fiestasYear(ctx.year), { fontSize: 26, color: colors.muted, marginTop: 4 }),
       ),
-      brandMark(30, 'right'),
+      brandMark(30),
     ),
   );
 }
 
 // ── cover ────────────────────────────────────────────────────────────────
 
+/** The escudo and the Cultuvilla icon are drawn at the same size, top and bottom of the cover. */
+const COVER_BADGE = 120;
+
 export function coverCard(ctx: CardContext, escudo: string | null): SatoriNode {
+  const village = ctx.villageName.toUpperCase();
   return h(
     'div',
     {
@@ -119,9 +123,16 @@ export function coverCard(ctx: CardContext, escudo: string | null): SatoriNode {
       'div',
       { style: { display: 'flex', alignItems: 'center', gap: 28 } },
       escudo
-        ? h('img', { src: escudo, width: 120, height: 120, style: { objectFit: 'cover', borderRadius: 28 } })
+        ? h('img', { src: escudo, width: COVER_BADGE, height: COVER_BADGE, style: { objectFit: 'cover', borderRadius: 28 } })
         : null,
-      text(ctx.villageName.toUpperCase(), { fontSize: 34, fontWeight: 600, letterSpacing: 6, color: colors.accentSoft }),
+      // Letter-spaced capitals run wide, so a long pueblo name is fitted
+      // beside the escudo rather than set at a size that spills off the card.
+      text(village, {
+        fontSize: fitFontSize(village, CARD_WIDTH - GUTTER * 2 - COVER_BADGE - 28, 50, 30, 0.78),
+        fontWeight: 600,
+        letterSpacing: 6,
+        color: colors.accentSoft,
+      }),
     ),
     h(
       'div',
@@ -147,7 +158,7 @@ export function coverCard(ctx: CardContext, escudo: string | null): SatoriNode {
         ),
       ),
     ),
-    brandMark(36),
+    brandMark(36, { icon: COVER_BADGE }),
   );
 }
 

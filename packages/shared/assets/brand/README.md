@@ -16,7 +16,7 @@ font installed.
 - **Typeface:** Titan One (Rodrigo Fuenzalida), all caps. SIL Open Font License 1.1 —
   free for logo and commercial use.
 - **CUL:** `#496345` (the green of the app icon, `apps/mobile/assets/logo.png`)
-- **TU:** `#566047` (palette `olive`, a softer green)
+- **TU:** `#79845f` (a softer olive; not in the app palette)
 - **VILLA:** `#bb5d3a` (palette `terracotta`)
 - **Cream ground:** `#f9f0e8` (palette `cream`)
 - **Kerning:** the L–T pair is tightened by −0.09em on top of the font's own
