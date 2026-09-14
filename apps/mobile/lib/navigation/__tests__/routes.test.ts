@@ -148,6 +148,32 @@ describe('every in-app path lands on a route file', () => {
     }
   });
 
+  // The helpers above are only half the surface: a hand-written literal passed
+  // straight to the router bypasses them. The register sheet shipped
+  // `router.push('/(auth)/login')` past a rename to `entrar`, and every guest
+  // sign-up from a gated action hit "Unmatched route" in production.
+  it('so does every literal path handed to the router', () => {
+    const mobileDir = resolve(__dirname, '../../..');
+    const sources = (dir: string): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+        const full = join(dir, e.name);
+        if (e.isDirectory()) return e.name === '__tests__' || e.name === 'node_modules' ? [] : sources(full);
+        return /\.tsx?$/.test(e.name) && !/\.test\.tsx?$/.test(e.name) ? [full] : [];
+      });
+    const literal = /(?:\b(?:push|replace|navigate|dismissTo)\(\s*|\bhref=\{?\s*|\bpathname:\s*)(['"`])(\/[^'"`$]*)\1/g;
+    const paths = ['app', 'components', 'lib'].flatMap((sub) =>
+      sources(join(mobileDir, sub)).flatMap((file) =>
+        [...readFileSync(file, 'utf8').matchAll(literal)].map((m) => ({ file: file.slice(mobileDir.length + 1), path: m[2]! })),
+      ),
+    );
+    expect(paths.length).toBeGreaterThan(0);
+    for (const { file, path } of paths) {
+      const head = path.split('?')[0]!.split('/').filter(Boolean)[0];
+      const ok = resolvesToRouteFile(path) && (head === undefined || isStaticTopSegment(head));
+      expect({ file, path, ok }).toEqual({ file, path, ok: true });
+    }
+  });
+
   it('does not resolve a path no file answers', () => {
     expect(resolvesToRouteFile('/(onboarding)/complete-profile')).toBe(false);
     expect(resolvesToRouteFile('/ajustes/nada')).toBe(false);
