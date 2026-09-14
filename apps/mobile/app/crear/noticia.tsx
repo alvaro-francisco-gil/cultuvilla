@@ -12,9 +12,12 @@ import { Stepper, type StepConfig } from '../../components/feature/Stepper';
 import { DeleteHeaderButton } from '../../components/feature/DeleteHeaderButton';
 import {
   BlockEditor,
+  editorBlockToNewsText,
   emptyTextBlock,
   newBlockId,
+  newsTextToEditorBlock,
   type EditorBlock,
+  type EditorImageBlock,
 } from '../../components/feature/BlockEditor';
 import { pickImageWithSize } from '../../lib/images';
 import { useAuth } from '../../lib/auth/useAuth';
@@ -53,7 +56,7 @@ function stepBody(children: React.ReactNode) {
 /** Flatten the text blocks into the legacy plain-text `body` (search/previews). */
 function flattenBody(blocks: EditorBlock[]): string {
   return blocks
-    .filter((b): b is Extract<EditorBlock, { type: 'text' }> => b.type === 'text')
+    .filter((b): b is Exclude<EditorBlock, EditorImageBlock> => b.type !== 'image')
     .map((b) => b.text.trim())
     .filter(Boolean)
     .join('\n\n');
@@ -233,9 +236,7 @@ export default function NewNewsScreen() {
       const editorBlocks: EditorBlock[] = post.content.length
         ? await Promise.all(
             post.content.map(async (b): Promise<EditorBlock> => {
-              if (b.type === 'text') {
-                return { id: newBlockId(), type: 'text', text: b.text, mentions: b.mentions, links: b.links, marks: b.marks };
-              }
+              if (b.type === 'text') return newsTextToEditorBlock(b);
               const uri = await newsImageDownloadURL(b.storagePath);
               return {
                 id: newBlockId(),
@@ -303,9 +304,9 @@ export default function NewNewsScreen() {
       // Upload new inline images and assemble the final content array in order.
       const content: NewsBlock[] = [];
       for (const [i, block] of blocks.entries()) {
-        if (block.type === 'text') {
+        if (block.type !== 'image') {
           if (block.text.trim().length === 0) continue;
-          content.push({ type: 'text', text: block.text, mentions: block.mentions, links: block.links, marks: block.marks });
+          content.push(editorBlockToNewsText(block));
           continue;
         }
         let storagePath = block.storagePath;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { isSafeHttpUrl, detectPastedUrl, applyCustomTextLink, buildLinkRuns, addLinkSpan } from '../linkText';
+import { isSafeHttpUrl, detectPastedUrl, applyCustomTextLink, buildLinkRuns, addLinkSpan, sliceRuns } from '../linkText';
 import type { NewsMention } from '@cultuvilla/shared/models/news/NewsPostDataModel';
 
 describe('isSafeHttpUrl', () => {
@@ -119,5 +119,18 @@ describe('buildLinkRuns', () => {
       { type: 'underline', offset: 0, length: 4 },
     ]);
     expect(runs).toEqual([{ text: 'hola', marks: ['bold', 'underline'] }]);
+  });
+});
+
+describe('sliceRuns', () => {
+  const runs = buildLinkRuns('hola mundo feliz', [], [], [{ type: 'bold', offset: 5, length: 5 }]);
+
+  it('keeps whole runs before the cut and trims the run it falls in, preserving marks', () => {
+    expect(sliceRuns(runs, 8)).toEqual([{ text: 'hola ' }, { text: 'mun', marks: ['bold'] }]);
+  });
+
+  it('returns nothing for a cut at 0 and every run for a cut past the end', () => {
+    expect(sliceRuns(runs, 0)).toEqual([]);
+    expect(sliceRuns(runs, 99)).toEqual(runs);
   });
 });

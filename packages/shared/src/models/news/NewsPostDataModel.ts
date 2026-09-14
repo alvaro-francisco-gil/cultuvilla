@@ -91,6 +91,15 @@ export const NewsMarkSchema = z.object({
 });
 export type NewsMark = z.infer<typeof NewsMarkSchema>;
 
+/**
+ * How a text block reads: body prose, or a section / subsection heading. A
+ * heading is a text block rather than its own block type so installed clients
+ * that predate it still parse the post — Zod strips the unknown key and they
+ * render the heading as a paragraph instead of throwing on an unknown `type`.
+ */
+export const NEWS_TEXT_STYLES = ['paragraph', 'section', 'subsection'] as const;
+export type NewsTextStyle = (typeof NEWS_TEXT_STYLES)[number];
+
 export const NewsTextBlockSchema = z.object({
   type: z.literal('text'),
   text: z.string(),
@@ -100,6 +109,7 @@ export const NewsTextBlockSchema = z.object({
   links: z.array(NewsLinkSchema).default([]),
   // `.default([])` keeps text blocks written before formatting marks existed parseable on read.
   marks: z.array(NewsMarkSchema).default([]),
+  style: z.enum(NEWS_TEXT_STYLES).default('paragraph'),
 });
 export type NewsTextBlock = z.infer<typeof NewsTextBlockSchema>;
 
