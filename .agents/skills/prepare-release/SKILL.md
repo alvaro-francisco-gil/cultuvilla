@@ -50,7 +50,16 @@ If the user named a version, use it. Otherwise propose the next minor and **conf
 
 Keep the entries that were already accumulated under `[Unreleased]`; just move them under the new `vX.Y.Z` heading and re-open an empty `[Unreleased]` above it. Do not invent entries — if `[Unreleased]` is empty, say so and ask the user what the release note should be.
 
-> Store release notes (Play/App Store "what's new") are **not needed pre-release**. When the app is actually submitted, add a machine-extractable, ≤500-char es-ES store-notes block here and wire an extractor — track that as its own task; it's out of scope while unreleased.
+**Store notes.** Right under the new `## vX.Y.Z` heading, add a short es-ES block for the App Store "What's New" (≤500 chars, user-facing, no internals):
+
+```markdown
+<!-- store-notes -->
+- **Lo más visible:** una línea.
+- Correcciones y mejoras.
+<!-- /store-notes -->
+```
+
+`extractReleaseNotes` (`scripts/lib/changelog-notes.mjs`) uses only this block when present; without it the whole section is flattened and truncated at 4000 chars, which reads as a wall of internal notes on the store.
 
 ## 5. Surface pending backfills (data migrations)
 

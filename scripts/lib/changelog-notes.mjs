@@ -14,6 +14,10 @@ export const MAX_WHATS_NEW = 4000;
 /**
  * Pull the body of `## vX.Y.Z — date` out of a CHANGELOG.
  *
+ * When the section carries a `<!-- store-notes -->…<!-- /store-notes -->` block,
+ * only that block is used: the rest of the section is written for the team and
+ * a big release flattens into a wall Apple cuts off mid-sentence.
+ *
  * Markdown emphasis and links are flattened: the App Store renders plain text,
  * so `**bold**` would otherwise ship with its asterisks visible.
  */
@@ -28,7 +32,9 @@ export function extractReleaseNotes(changelog, version) {
   }
   const rest = lines.slice(start + 1);
   const end = rest.findIndex((l) => /^##\s/.test(l));
-  const body = (end === -1 ? rest : rest.slice(0, end)).join('\n');
+  const section = (end === -1 ? rest : rest.slice(0, end)).join('\n');
+  const storeNotes = section.match(/<!--\s*store-notes\s*-->([\s\S]*?)<!--\s*\/store-notes\s*-->/);
+  const body = storeNotes ? storeNotes[1] : section;
 
   const text = body
     .replace(/^###\s+/gm, '')
