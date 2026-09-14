@@ -8,22 +8,24 @@
 
 | Prerequisite | Dev | Beta | Prod |
 |---|---|---|---|
-| `APNS_AUTH_KEY` secret exists | ✅ placeholder `{}` | ⬜ | ⬜ |
+| `APNS_AUTH_KEY` secret exists | ✅ placeholder `{}` | ✅ placeholder `{}` | ✅ placeholder `{}` |
 | Real APNs `.p8` key in the secret | n/a | n/a | ⬜ |
 | Android `google-services.json` committed (#344) | ✅ | n/a (sideload-only, no Android app) | ✅ |
 | Time-sensitive capability on the App ID | — | — | ⏳ synced by EAS on the next iOS build |
 | Play Data Safety declares device IDs | — | — | ⬜ after Android production review clears |
 | Store binary carrying push | — | — | ⬜ needs the next promotion + `mobile-release` |
 
-- **Next, before promoting to beta/prod:** create `APNS_AUTH_KEY` in
-  `cultuvilla-beta` and `cultuvilla-prod`, or the promotion's deploy fails at
-  `Deploy Cloud Functions` exactly as dev did:
-  `printf '%s' '{}' | gcloud secrets create APNS_AUTH_KEY --data-file=- --project=<project>`
 - **For iOS push to actually deliver in prod:** create an APNs key at
   developer.apple.com → Keys (tick *Apple Push Notifications service*), then
   replace prod's placeholder with `{"keyId":"…","privateKey":"<.p8 contents>"}`
   via `gcloud secrets versions add APNS_AUTH_KEY --data-file=- --project=cultuvilla-prod`.
   Until then iOS sends are skipped with a warning; Android is unaffected.
+  A new secret version only takes effect on the next deploy of the push
+  functions (v2 binds the version at deploy time).
+- **The existing `AuthKey_533TUZ9L4M.p8` is NOT an APNs key** — `533TUZ9L4M` is
+  `APPLE_ASC_KEY_ID`, the App Store Connect API key used by the release
+  tooling. ASC API keys (Users and Access → Integrations) cannot authenticate to
+  APNs; a push key is a separate key (Certificates, IDs & Profiles → Keys).
 
 ## Context
 
