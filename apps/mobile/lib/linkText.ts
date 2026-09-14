@@ -190,3 +190,16 @@ export function buildLinkRuns(
   pushPlain(cursor, text.length);
   return applyMarks(runs, marks);
 }
+
+/** The prefix of `runs` covering the first `end` characters of their text. */
+export function sliceRuns(runs: LinkRun[], end: number): LinkRun[] {
+  const out: LinkRun[] = [];
+  let offset = 0;
+  for (const run of runs) {
+    if (offset >= end) break;
+    const room = end - offset;
+    out.push(run.text.length <= room ? run : { ...run, text: run.text.slice(0, room) });
+    offset += run.text.length;
+  }
+  return out;
+}

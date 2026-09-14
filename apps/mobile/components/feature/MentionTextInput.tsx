@@ -21,7 +21,15 @@ import {
   insertMention,
   type MentionCandidate,
 } from '../../lib/mentionText';
-import { detectPastedUrl, applyCustomTextLink, buildLinkRuns, isSafeHttpUrl, addLinkSpan } from '../../lib/linkText';
+import {
+  detectPastedUrl,
+  applyCustomTextLink,
+  buildLinkRuns,
+  isSafeHttpUrl,
+  addLinkSpan,
+  sliceRuns,
+  type LinkRun,
+} from '../../lib/linkText';
 import { toggleMark, isRangeMarked } from '../../lib/markText';
 import { markPresentation } from '../../lib/markStyle';
 import { LinkSheet } from './LinkSheet';
@@ -53,6 +61,31 @@ const TRAILING_ANCHOR = String.fromCodePoint(0x200b); // zero-width space
 // Vertical gap between the caret's line and the toolbar/link sheet anchored
 // beneath it.
 const ANCHOR_GAP = 6;
+
+// Native TextInputs accept styled <Text> children, so the input draws the
+// formatting itself and glyphs, caret and selection share one layout. RN-Web's
+// TextInput is a <textarea> that can't hold styled spans, so web keeps the
+// transparent-input-over-overlay technique.
+const STYLED_INPUT = Platform.OS !== 'web';
+
+function StyledRuns({ runs }: { runs: LinkRun[] }) {
+  return (
+    <>
+      {runs.map((run, i) => {
+        // Raw RNText (not the primitive Text) so `text-accent` isn't
+        // overridden by the primitive's default `text-primary` tone.
+        const linked = !!(run.mention || run.link || run.autoUrl);
+        const pres = markPresentation(run.marks, linked);
+        const color = linked ? 'text-accent' : 'text-primary';
+        return (
+          <RNText key={i} className={`${color} ${pres.className}`} style={pres.style}>
+            {run.text}
+          </RNText>
+        );
+      })}
+    </>
+  );
+}
 
 const ENTITY_ICON: Record<MentionEntityType, keyof typeof Ionicons.glyphMap> = {
   organization: 'people-outline',
@@ -186,30 +219,22 @@ export function MentionTextInput({
   return (
     <VStack gap={1}>
       <View className="border rounded-md px-3 py-2 bg-surface border-subtle">
-        {/* Auto-grow: the styled overlay sits in normal flow and drives the
-            box height, so it expands line-by-line as you type instead of
-            scrolling inside a fixed window. The transparent TextInput is
-            layered on top (absolute-fill) to own the caret and editing; since
-            it renders the same text it wraps to the same height as the overlay.
-            The trailing zero-width space keeps the overlay's final line present
-            when the text ends in a newline, so the two layers stay aligned. */}
+        {/* Auto-grow on both paths. Native: the input sits in normal flow with
+            scrolling off, so it grows line-by-line and renders the styled runs
+            as its own children. Web: the styled overlay sits in normal flow and
+            drives the box height; the transparent TextInput is layered on top
+            (absolute-fill) to own the caret and editing. The trailing zero-width
+            space keeps the overlay's final line present when the text ends in a
+            newline, so the two layers stay aligned. */}
         <View style={{ position: 'relative', minHeight: 80 }}>
-          <Text pointerEvents="none" className="text-body">
-            {runs.map((run, i) => {
-              // Raw RNText (not the primitive Text) so `text-accent` isn't
-              // overridden by the primitive's default `text-primary` tone —
-              // that override is why mentions weren't orange in the preview.
-              const linked = !!(run.mention || run.link || run.autoUrl);
-              const pres = markPresentation(run.marks, linked);
-              const color = linked ? 'text-accent' : 'text-primary';
-              return (
-                <RNText key={i} className={`${color} ${pres.className}`} style={pres.style}>
-                  {run.text}
-                </RNText>
-              );
-            })}
-            {TRAILING_ANCHOR}
-          </Text>
+          {STYLED_INPUT ? null : (
+            <Text pointerEvents="none" className="text-body">
+              <StyledRuns runs={runs} />
+              {TRAILING_ANCHOR}
+            </Text>
+          )}
+          {/* Mirrors the styled text up to the caret, so bold/italic widths wrap
+              it exactly like the visible text. */}
           <Text
             testID="caret-line-measurer"
             pointerEvents="none"
@@ -217,30 +242,37 @@ export function MentionTextInput({
             style={{ position: 'absolute', width: '100%', opacity: 0 }}
             onLayout={(e) => setCaretLineTop(e.nativeEvent.layout.height)}
           >
-            {value.slice(0, selection.start)}
+            <StyledRuns runs={sliceRuns(runs, selection.start)} />
             {TRAILING_ANCHOR}
           </Text>
           <TextInput
-            value={value}
+            // A native input gets its text from the children below; passing
+            // `value` as well is unsupported.
+            value={STYLED_INPUT ? undefined : value}
             onChangeText={handleChangeText}
             onKeyPress={handleKeyPress}
             multiline
+            scrollEnabled={STYLED_INPUT ? false : undefined}
             placeholder={placeholder}
             placeholderTextColor={colors.light.fg.muted}
             accessibilityLabel={placeholder}
             testID={testID}
             className="text-body"
             textAlignVertical="top"
-            // The text layer is transparent (glyphs come from the overlay Text
-            // above). On web the CSS caret-color inherits from `color`, so a
+            // Web: the text layer is transparent (glyphs come from the overlay
+            // Text above). The CSS caret-color inherits from `color`, so a
             // transparent color hides the caret too — force it back to the accent.
             // Native draws the caret from `cursorColor`, independent of text color.
-            style={[
-              StyleSheet.absoluteFill,
-              { color: 'transparent', padding: 0 },
-              // caretColor is a web-only CSS property not modelled by RN's TextStyle.
-              Platform.OS === 'web' ? ({ caretColor: ACCENT } as unknown as TextStyle) : null,
-            ]}
+            style={
+              STYLED_INPUT
+                ? { minHeight: 80, padding: 0 }
+                : [
+                    StyleSheet.absoluteFill,
+                    { color: 'transparent', padding: 0 },
+                    // caretColor is a web-only CSS property not modelled by RN's TextStyle.
+                    { caretColor: ACCENT } as unknown as TextStyle,
+                  ]
+            }
             cursorColor={ACCENT}
             selectionColor={ACCENT}
             onFocus={onFocus}
@@ -249,7 +281,9 @@ export function MentionTextInput({
               setSelection(sel);
               onSelectionChange?.(sel.start);
             }}
-          />
+          >
+            {STYLED_INPUT && value ? <StyledRuns runs={runs} /> : null}
+          </TextInput>
           {hasSelection ? (
             <View
               testID="format-toolbar"

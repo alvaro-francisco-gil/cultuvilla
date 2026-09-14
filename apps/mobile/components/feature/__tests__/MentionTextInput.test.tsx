@@ -1,4 +1,4 @@
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent, within } from '@testing-library/react-native';
 import { MentionTextInput } from '../MentionTextInput';
 
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
@@ -130,5 +130,32 @@ describe('MentionTextInput popup anchoring', () => {
     fireEvent.press(getByLabelText('news.compose.format.link'));
 
     expect(getByTestId('link-url-sheet').props.style).toEqual({ top: 18 });
+  });
+});
+
+describe('MentionTextInput native rendering', () => {
+  // Native used to draw a transparent TextInput under a styled overlay Text.
+  // Bold/italic glyphs are wider than the input's regular ones, so the layers
+  // drifted apart and showed as two overlapping copies. On native the input
+  // must render the styled runs itself — one layout for glyphs, caret and
+  // selection.
+  it('renders formatted runs inside the input instead of a separate overlay', () => {
+    const { getByPlaceholderText, queryAllByText } = render(
+      <MentionTextInput
+        value="hola mundo"
+        mentions={[]}
+        links={[]}
+        marks={[{ type: 'bold', offset: 5, length: 5 }]}
+        candidates={noopCandidates}
+        placeholder="Escribe…"
+        onChange={jest.fn()}
+      />,
+    );
+    const input = getByPlaceholderText('Escribe…');
+    expect(input.props.value).toBeUndefined();
+    const inside = within(input).getByText('mundo');
+    expect(inside).toBeTruthy();
+    // No second, overlay copy (the caret measurer is empty with the caret at 0).
+    expect(queryAllByText('mundo', { includeHiddenElements: true })).toHaveLength(1);
   });
 });
