@@ -97,6 +97,18 @@ the doc before navigating. Everything else passes the entity it already has.
 - Because a URL can start with any slug, the apps claim the **whole host**:
   Android intent filters take every path (Android cannot exclude), and the iOS
   AASA takes `*` except `/entrar`, so a sign-in link stays in the browser.
+- **Prod's AASA is the exception, until an iOS build with these routes is live.**
+  An association file applies to every installed version of the app, and the
+  App Store build (iOS 1.0.0) predates both these routes and `expo-updates`, so
+  no OTA can teach it them. Claiming `*` on prod would open `/<pueblo>/evento/…`
+  inside an app with no such screen — a dead end in place of a working web page.
+  So prod keeps the legacy claim (`/event/*`, `/news/*`, `/village/*`, `/o/*`):
+  links shared before the change still open 1.0.0, and every new URL opens on the
+  web. Widen prod to the dev/beta claim in the same change that confirms an iOS
+  build with the village-first routes is on sale — `storeRelease.test.ts` pins the
+  legacy list so that widening is a deliberate edit, not drift. Android has no
+  such split: the Play build never went public with the old paths, and its
+  path claim lives in the binary's manifest, not in `assetlinks.json`.
 
 ## Rejected alternatives
 

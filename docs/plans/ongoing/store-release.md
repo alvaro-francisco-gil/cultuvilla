@@ -58,6 +58,14 @@ Google's production review.
 
 Legend: ⬜ pending · ⏳ in progress · ✅ done · ⚠️ blocked (note inline)
 
+**Widening prod's iOS deep links waits on the next iOS build.** Prod's
+`apple-app-site-association` still claims only the legacy paths 1.0.0 can route
+(see [spanish-village-urls.md](../../decisions/spanish-village-urls.md#hosting-and-native-links)).
+Once an iOS build carrying the village-first routes is **on sale** (`status` in
+the App Store release workflow, not merely approved), set prod's `paths` to
+`["NOT /entrar", "NOT /entrar/*", "*"]` and update the pinned list in
+`packages/shared/test/ci/storeRelease.test.ts` in the same PR.
+
 ## Publicar iOS es automático (desde el 4 sep 2026)
 
 `eas submit` sube el binario y se detiene ahí. Todo lo posterior es API de App

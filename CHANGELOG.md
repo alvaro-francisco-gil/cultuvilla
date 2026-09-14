@@ -215,6 +215,11 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   el botón de volver lleva a la pestaña del pueblo. Un pueblo o una ficha que no
   existen responden ahora con un 404 (y `noindex`) en lugar de una página vacía
   que Google podía indexar.
+- **Los enlaces nuevos no abren la app de iOS publicada en una pantalla vacía.**
+  La versión 1.0.0 de la App Store no conoce las nuevas direcciones por pueblo y
+  no puede actualizarse sin pasar por la tienda. Hasta que haya una versión de
+  iOS que sí las conozca, en producción esos enlaces se abren en la web (que
+  funciona siempre), y los enlaces antiguos siguen abriendo la app.
 - **Las fotos que quitas ya no se quedan ocupando espacio.** Al borrar una
   noticia, un evento, una entidad, un lugar, un barrio, un cartel o una entrada
   de historia —o al quitar o cambiar una de sus fotos al editar— la imagen se
