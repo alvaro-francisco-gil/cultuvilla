@@ -4,6 +4,12 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v1.2.2 — 2026-09-15
+
+<!-- store-notes -->
+- **Registro arreglado:** ya puedes registrarte desde un evento, un pueblo o un comentario sin llegar a una pantalla de error.
+<!-- /store-notes -->
+
 ### Fixed
 
 - **Registro desde una acción de invitado:** pulsar «Regístrate» en la hoja de registro (inscribirse a un evento, unirse a un pueblo, comentar…) ya no abre una pantalla «Unmatched route».
