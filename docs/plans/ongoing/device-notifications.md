@@ -15,8 +15,14 @@
 | Play Data Safety declares device IDs | — | — | ⬜ after Android production review clears |
 | Store binary carrying push | — | — | ⬜ needs the next promotion + `mobile-release` |
 
-- **For iOS push to actually deliver in prod:** create an APNs key at
-  developer.apple.com → Keys (tick *Apple Push Notifications service*), then
+- **For iOS push to actually deliver in prod:** the APNs key must be created
+  by **Jaime, the Apple Account Holder**. The Apple account is *Individual*,
+  so only the Account Holder can use Certificates, Identifiers & Profiles —
+  App Store Connect roles cannot grant it. At developer.apple.com → Keys: tick
+  *Apple Push Notifications service*, Configure → Environment **Sandbox &
+  Production** (dev builds use the sandbox gateway, store builds production),
+  Key type **Team Scoped** (one key covers `.dev`, `.beta` and the store app).
+  The `.p8` downloads once. Then
   replace prod's placeholder with `{"keyId":"…","privateKey":"<.p8 contents>"}`
   via `gcloud secrets versions add APNS_AUTH_KEY --data-file=- --project=cultuvilla-prod`.
   Until then iOS sends are skipped with a warning; Android is unaffected.
