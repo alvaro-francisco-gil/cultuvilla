@@ -83,7 +83,7 @@ Tick these off in order:
      `https://cultuvilla.es/legal/privacidad`
    - Play Console → Policy and programs → App content → Privacy policy → same URL
      (the Play API cannot set this field; it is a UI-only edit)
-4. ⬜ **Ship an iOS build carrying the new routes** — any build made from `main`
+4. ⏳ **Ship an iOS build carrying the new routes** — iOS **1.2.1 (build 17)** submitted for review 2026-09-14 (AFTER_APPROVAL, phased). — any build made from `main`
    after step 1: `mobile-release`, then **App Store release** → `submit`. Wait
    until `status` says **READY_FOR_SALE**, not merely approved.
 5. ⬜ **Widen prod's iOS deep links.** Set prod's `apple-app-site-association`
