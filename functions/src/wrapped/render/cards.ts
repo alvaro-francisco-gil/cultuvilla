@@ -410,14 +410,13 @@ export interface StatsHighlight {
 }
 
 /**
- * Confirmed sign-ups per counted event, to one decimal with a Spanish comma
- * ("12,9"). Each confirmed registration is one persona on one event, so this is
- * the average party size of an event, not distinct people.
+ * Confirmed sign-ups per counted event, rounded to a whole person. Each
+ * confirmed registration is one persona on one event, so this is the average
+ * party size of an event, not distinct people.
  */
 export function averagePerEvent(stats: Pick<WrappedStats, 'eventCount' | 'confirmedCount'>): string {
   if (stats.eventCount === 0) return '0';
-  const avg = Math.round((stats.confirmedCount / stats.eventCount) * 10) / 10;
-  return String(avg).replace('.', ',');
+  return String(Math.round(stats.confirmedCount / stats.eventCount));
 }
 
 export function statsCard(ctx: CardContext, stats: WrappedStats, fullest: StatsHighlight | null): SatoriNode {

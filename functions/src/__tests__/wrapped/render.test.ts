@@ -116,12 +116,9 @@ describe('composeWrapped', () => {
 });
 
 describe('averagePerEvent', () => {
-  it('writes one decimal with a Spanish comma', () => {
-    expect(averagePerEvent({ eventCount: 20, confirmedCount: 258 })).toBe('12,9');
-  });
-
-  it('drops a trailing ,0', () => {
-    expect(averagePerEvent({ eventCount: 4, confirmedCount: 40 })).toBe('10');
+  it('rounds to a whole person', () => {
+    expect(averagePerEvent({ eventCount: 20, confirmedCount: 258 })).toBe('13');
+    expect(averagePerEvent({ eventCount: 4, confirmedCount: 41 })).toBe('10');
   });
 
   it('is 0 for a Wrapped with no events, not NaN', () => {
