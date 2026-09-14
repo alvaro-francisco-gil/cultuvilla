@@ -11,7 +11,8 @@
 | `APNS_AUTH_KEY` secret exists | ✅ placeholder `{}` | ✅ placeholder `{}` | ✅ placeholder `{}` |
 | Real APNs `.p8` key in the secret | n/a | n/a | ⬜ |
 | Android `google-services.json` committed (#344) | ✅ | n/a (sideload-only, no Android app) | ✅ |
-| Time-sensitive capability on the App ID | — | — | ⏳ synced by EAS on the next iOS build |
+| Push Notifications capability on the App ID | — | — | ✅ added via the ASC API (2026-09-14) |
+| Time-sensitive capability on the App ID | — | — | ⬜ portal-only (Jaime); then restore the entitlement in `app.config.ts` |
 | Play Data Safety declares device IDs | — | — | ⬜ after Android production review clears |
 | Store binary carrying push | — | — | ⬜ needs the next promotion + `mobile-release` |
 
@@ -125,8 +126,10 @@ Two iOS details that fail silently if wrong:
   Sending a sandbox token to production APNs answers `BadDeviceToken`,
   indistinguishable from a dead token.
 - **`time-sensitive` needs the
-  `com.apple.developer.usernotifications.time-sensitive` entitlement**
-  (declared in `app.config.ts`); without it iOS silently downgrades to `active`.
+  `com.apple.developer.usernotifications.time-sensitive` entitlement**; without
+  it iOS silently downgrades to `active`. It is **not declared yet**: the ASC API
+  cannot enable the capability, so it waits on the Account Holder (see
+  `app.config.ts`).
 
 ### Quiet hours, for broadcast only
 
