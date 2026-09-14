@@ -15,14 +15,22 @@ const LOGO_DATA_URI = `data:image/png;base64,${Buffer.from(logoPng).toString('ba
 const LETTERING_DATA_URI = `data:image/png;base64,${Buffer.from(letteringPng).toString('base64')}`;
 const LETTERING_ASPECT = 1000 / 120;
 
-/** The Cultuvilla icon beside its lettering, as every card signs off. `size` is the lettering's height. */
-export function brandMark(size: number): SatoriNode {
-  const icon = Math.round(size * 1.35);
+/** How much taller than the lettering the icon is drawn. */
+const ICON_SCALE = 2;
+
+/**
+ * The Cultuvilla icon beside its lettering, as every card signs off. `size` is
+ * the lettering's height. The cover leads with the icon; the card footers put
+ * it after the lettering, so it closes the row at the card's right edge.
+ */
+export function brandMark(size: number, iconSide: 'left' | 'right' = 'left'): SatoriNode {
+  const icon = Math.round(size * ICON_SCALE);
   const height = Math.round(size);
+  const logo = h('img', { src: LOGO_DATA_URI, width: icon, height: icon });
+  const lettering = h('img', { src: LETTERING_DATA_URI, width: Math.round(height * LETTERING_ASPECT), height });
   return h(
     'div',
-    { style: { display: 'flex', alignItems: 'center', gap: Math.round(size * 0.35) } },
-    h('img', { src: LOGO_DATA_URI, width: icon, height: icon }),
-    h('img', { src: LETTERING_DATA_URI, width: Math.round(height * LETTERING_ASPECT), height }),
+    { style: { display: 'flex', alignItems: 'center', gap: Math.round(size * 0.3) } },
+    ...(iconSide === 'left' ? [logo, lettering] : [lettering, logo]),
   );
 }

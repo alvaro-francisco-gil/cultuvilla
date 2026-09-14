@@ -91,7 +91,7 @@ function frame(ctx: CardContext, header: { kicker: string; title: string; subtit
         text(ctx.villageName, { fontSize: 32, fontWeight: 700 }),
         text(copy.fiestasYear(ctx.year), { fontSize: 26, color: colors.muted, marginTop: 4 }),
       ),
-      brandMark(30),
+      brandMark(30, 'right'),
     ),
   );
 }
