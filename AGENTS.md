@@ -92,7 +92,7 @@ When a query would require N reads or live across collection boundaries, write a
 ### 6. Web parity is not a build rule
 
 `apps/mobile/` ships to iOS, Android **and** the web (Expo web export → Firebase
-Hosting). It is one codebase: the whole web-specific surface is 3 `.web.*` override
+Hosting). It is one codebase: the whole web-specific surface is 6 `.web.*` override
 files and ~27 `Platform.OS === 'web'` branch sites, fenced by
 `pnpm app:check-web-compat` / `pnpm app:check-web-export` and the
 `mobile-web-compat` skill. Keeping the two "in sync" is not a cost we pay.

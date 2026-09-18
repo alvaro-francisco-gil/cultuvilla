@@ -17,9 +17,7 @@ other copy is a downscale of it:
 - `apps/mobile/lib/export/cultuvillaLogo.ts` — 128 px base64 for the xlsx export
 - `functions/src/wrapped/render/brand/logo.png` — 160 px for the Wrapped cards
 - `scripts/generate-qr.mjs` — QR centre logo
-- `apps/mobile/assets/{icon,adaptive-icon,splash-icon,favicon}.png` — store/OS icons
-- the intro Lottie — embeds the PNG as `image_1` (`logo_nobg.png`, inside the
-  door-matte precomp)
+- `apps/mobile/assets/{icon,adaptive-icon,favicon}.png` — store/OS icons
 
 472 px is already soft on tablets and high-DPI desktops, and each downscale
 re-quantises colour. The lettering showed the risk: the animator's PNG export of
@@ -37,11 +35,11 @@ it had drifted `CUL` from brand `#496345` to `#566047`. Vector masters don't dri
    `logo.png`, the Wrapped copy, the xlsx base64 and the QR logo stop being
    hand-made downscales. OS/store icons stay PNG (platform requirement) but are
    rendered from the master.
-3. **Swap the intro Lottie's `image_1` for vector shapes**, by the same
-   technique used for the wordmark: convert the SVG paths to Lottie shape layers
-   in the image's 472×472 coordinate space, so its existing matte, transform and
-   timing keep working. Verify with a frame-by-frame pixel diff against the PNG
-   version before swapping. After this the intro carries no raster at all.
+3. **The intro needs nothing.** The animator rebuilt the door without the logo
+   PNG, so `apps/mobile/assets/intro/cultuvilla-intro.json` is already fully
+   vector. Its wordmark comes from the lettering SVG via
+   `scripts/prepare-intro-lottie.mjs`; if the logo ever enters the animation
+   again, extend that script the same way rather than embedding a PNG.
 4. Where the app renders the logo in-UI (`AuthHeader`), consider
    `react-native-svg` so it is crisp at any size — only if it's already a
    dependency or worth adding for other reasons.

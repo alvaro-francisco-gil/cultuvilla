@@ -1459,5 +1459,8 @@
     "cancelReply": "Cancelar respuesta",
     "viewReplies": "{count, plural, one {Ver # respuesta} other {Ver # respuestas}}",
     "hideReplies": "Ocultar respuestas"
+  },
+  "intro": {
+    "skip": "Saltar la introducción"
   }
 }
