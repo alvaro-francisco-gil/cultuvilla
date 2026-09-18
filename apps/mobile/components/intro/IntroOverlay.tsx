@@ -3,6 +3,7 @@ import { AccessibilityInfo, Animated, Pressable, StyleSheet } from 'react-native
 import LottieView from 'lottie-react-native';
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { observability } from '@cultuvilla/shared';
+import { colors } from '@cultuvilla/shared/design-system';
 import { useT } from '../../lib/i18n';
 
 // Regenerate from the animator's export with scripts/prepare-intro-lottie.mjs.
@@ -13,9 +14,9 @@ const SOUND = require('../../assets/intro/cultuvilla-intro.mp3');
 export const INTRO_MAX_MS = 10_000;
 const FADE_MS = 300;
 
-// The animation's own background. Matching it (and the native splash) makes
-// splash → intro → app read as one continuous screen.
-const INTRO_BACKGROUND = '#ffffff';
+// The app's surface, which the animation and the native splash are also
+// painted on, so splash → intro → app reads as one continuous screen.
+const INTRO_BACKGROUND = colors.light.bg.surface;
 
 type Phase = 'starting' | 'playing' | 'leaving' | 'gone';
 

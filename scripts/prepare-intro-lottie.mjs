@@ -17,6 +17,9 @@
  * - The audio layer is dropped: players don't play it; the app plays the MP3.
  * - The whole animation is shifted by CONTENT_OFFSET_Y so the final logo +
  *   wordmark block lands on the vertical centre of the screen.
+ * - Pure white (the background, and the door/path drawn as white shapes over
+ *   the houses) becomes INTRO_BACKGROUND, so the intro fades into the app's
+ *   cream surface without a white flash.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -31,6 +34,9 @@ export const LETTERING_SVG = join(ROOT, 'packages/shared/assets/brand/cultuvilla
  * (render the last frame, take the non-white bounding box) after a new export.
  */
 export const CONTENT_OFFSET_Y = -62;
+
+/** palette.cream in packages/shared/src/design-system/tokens/colors.ts — the app's `bg-surface`. */
+export const INTRO_BACKGROUND = '#f9f0e8';
 
 const round = (n) => Math.round(n * 1000) / 1000;
 
@@ -218,7 +224,33 @@ export function offsetContent(anim, dy) {
   }
 }
 
-export function prepareIntro(anim, letteringSvg, { offsetY = CONTENT_OFFSET_Y } = {}) {
+const isWhite = (rgb) => rgb.slice(0, 3).every((v) => v >= 0.99);
+
+/**
+ * The animator drew on white, so white means "background": the solid behind
+ * everything, and the door and path painted over the houses. Static colours
+ * only — an animated colour is a deliberate transition, not background.
+ */
+export function recolorWhite(anim, hex) {
+  const rgba = hexToRgba(hex);
+  const visit = (node) => {
+    if (Array.isArray(node)) return node.forEach(visit);
+    if (!node || typeof node !== 'object') return;
+    if (node.ty === 1 && /^#ffffff$/i.test(node.sc ?? '')) node.sc = hex;
+    if ((node.ty === 'fl' || node.ty === 'st') && node.c && !node.c.a && isWhite(node.c.k)) {
+      node.c.k = [...rgba.slice(0, 3), node.c.k[3] ?? 1];
+    }
+    Object.values(node).forEach(visit);
+  };
+  visit(anim.layers);
+  anim.assets.forEach((a) => a.layers && visit(a.layers));
+}
+
+export function prepareIntro(
+  anim,
+  letteringSvg,
+  { offsetY = CONTENT_OFFSET_Y, background = INTRO_BACKGROUND } = {},
+) {
   const out = structuredClone(anim);
   const audioIds = new Set(out.assets.filter((a) => a.t === 2).map((a) => a.id));
   const dropAudio = (layers) => layers.filter((l) => l.ty !== 6);
@@ -229,6 +261,7 @@ export function prepareIntro(anim, letteringSvg, { offsetY = CONTENT_OFFSET_Y } 
     throw new Error('Wordmark image (6085×729) not found in the export');
   }
   offsetContent(out, offsetY);
+  recolorWhite(out, background);
   return out;
 }
 

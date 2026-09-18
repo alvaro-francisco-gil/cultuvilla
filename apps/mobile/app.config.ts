@@ -279,11 +279,12 @@ const config: ExpoConfig = {
       'expo-splash-screen',
       {
         // Deliberately blank: the startup intro (components/intro) starts on
-        // this same white and draws the logo itself, so a logo here would
-        // appear, vanish and regrow.
+        // this same colour and draws the logo itself, so a logo here would
+        // appear, vanish and regrow. The app's surface cream, kept in step with
+        // the intro by components/intro/__tests__/introBackground.test.ts.
         image: './assets/splash-blank.png',
         resizeMode: 'contain',
-        backgroundColor: '#ffffff',
+        backgroundColor: '#f9f0e8',
       },
     ],
     ...(googleSignInPerEnv[env].iosUrlScheme
