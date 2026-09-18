@@ -20,8 +20,9 @@ other copy is a downscale of it:
 - `apps/mobile/assets/{icon,adaptive-icon,favicon}.png` — store/OS icons
 
 472 px is already soft on tablets and high-DPI desktops, and each downscale
-re-quantises colour. The lettering showed the risk: the animator's PNG export of
-it had drifted `CUL` from brand `#496345` to `#566047`. Vector masters don't drift.
+re-quantises colour. The lettering showed how easily copies diverge: the
+animator's PNG of it had `CUL` in `#566047` (the app palette's `olive`) instead
+of the brand master's `#496345`. One vector master settles which is canonical.
 
 ## Design / approach
 
