@@ -89,6 +89,7 @@ export function IntroOverlay({ appReady }: { appReady: boolean }) {
     <Animated.View
       style={[StyleSheet.absoluteFill, { backgroundColor: INTRO_BACKGROUND, opacity }]}
       pointerEvents={phase === 'leaving' ? 'none' : 'auto'}
+      testID="intro-backdrop"
     >
       <Pressable
         style={StyleSheet.absoluteFill}
