@@ -278,7 +278,10 @@ const config: ExpoConfig = {
     [
       'expo-splash-screen',
       {
-        image: './assets/splash-icon.png',
+        // Deliberately blank: the startup intro (components/intro) starts on
+        // this same white and draws the logo itself, so a logo here would
+        // appear, vanish and regrow.
+        image: './assets/splash-blank.png',
         resizeMode: 'contain',
         backgroundColor: '#ffffff',
       },
