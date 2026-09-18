@@ -9,7 +9,9 @@ import {
   normalizeMattes,
   offsetContent,
   parseLetteringSvg,
+  INTRO_BACKGROUND,
   prepareIntro,
+  recolorWhite,
   svgPathToLottieShapes,
 } from '../prepare-intro-lottie.mjs';
 
@@ -98,6 +100,25 @@ test('offsetContent moves static, animated and split positions but not the full-
   assert.deepEqual(bg.ks.p.k, [540, 960, 0]);
 });
 
+test('recolorWhite turns the white solid and white shapes into the background colour, and nothing else', () => {
+  const white = { a: 0, k: [1, 1, 1, 1] };
+  const anim = {
+    assets: [{ id: 'comp_0', layers: [{ ty: 4, shapes: [{ ty: 'gr', it: [{ ty: 'fl', c: structuredClone(white) }] }] }] }],
+    layers: [
+      { ty: 1, sc: '#ffffff' },
+      { ty: 4, shapes: [{ ty: 'st', c: structuredClone(white) }, { ty: 'fl', c: { a: 0, k: [0.8, 0.39, 0.22, 1] } }] },
+      { ty: 4, shapes: [{ ty: 'fl', c: { a: 1, k: [{ t: 0, s: [1, 1, 1, 1] }] } }] },
+    ],
+  };
+  recolorWhite(anim, '#f9f0e8');
+  const cream = hexToRgba('#f9f0e8');
+  assert.equal(anim.layers[0].sc, '#f9f0e8');
+  assert.deepEqual(anim.layers[1].shapes[0].c.k, cream);
+  assert.deepEqual(anim.layers[1].shapes[1].c.k, [0.8, 0.39, 0.22, 1]);
+  assert.deepEqual(anim.layers[2].shapes[0].c.k[0].s, [1, 1, 1, 1], 'animated colours are left alone');
+  assert.deepEqual(anim.assets[0].layers[0].shapes[0].it[0].c.k, cream);
+});
+
 test('prepareIntro swaps the wordmark image for vectors and bakes the Fill effect', () => {
   const colorKeys = [
     { t: 86, s: [0.337, 0.376, 0.278, 1] },
@@ -159,4 +180,11 @@ test('the shipped intro only uses features every Lottie player renders', () => {
     else problems.push(`asset ${a.id}: embedded file`);
   }
   assert.deepEqual(problems, []);
+});
+
+test('the shipped intro is painted on the app background, with no white left', () => {
+  const anim = JSON.parse(readFileSync(SHIPPED, 'utf8'));
+  const solids = anim.layers.filter((l) => l.ty === 1).map((l) => l.sc);
+  assert.deepEqual(solids, [INTRO_BACKGROUND]);
+  assert.ok(!JSON.stringify(anim).includes('"k":[1,1,1,1]'), 'a pure-white static colour remains');
 });

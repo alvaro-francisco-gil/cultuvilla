@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { AccessibilityInfo } from 'react-native';
+import { colors } from '@cultuvilla/shared/design-system';
 import { IntroOverlay, INTRO_MAX_MS } from '../IntroOverlay';
 import { IntroOverlay as WebIntroOverlay } from '../IntroOverlay.web';
 
@@ -64,6 +65,13 @@ it('plays the animation and the sound', async () => {
     interruptionMode: 'mixWithOthers',
   });
   expect(mockPlayer.play).toHaveBeenCalled();
+});
+
+it('is painted on the app surface, so the fade into the app has no colour jump', async () => {
+  await mount(false);
+  expect(screen.getByTestId('intro-backdrop')).toHaveStyle({
+    backgroundColor: colors.light.bg.surface,
+  });
 });
 
 it('holds the final frame until the app is ready, then fades out', async () => {
