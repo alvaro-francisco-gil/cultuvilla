@@ -1,4 +1,5 @@
 import sharp from 'sharp';
+import { logger } from 'firebase-functions/v2';
 import { bubblePalette } from './theme';
 
 /**
@@ -29,6 +30,21 @@ export const IMAGE_FETCH_TIMEOUT_MS = 8_000;
  */
 export const MAX_IMAGE_PIXELS = 24_000_000;
 export const IMAGE_CONCURRENCY = 4;
+
+/**
+ * How many times one image may be fetched before the card gives up on it.
+ *
+ * A Wrapped is built once and kept, so an image lost to a blip is lost for
+ * good. Three real Matabuena flyers failed with `TypeError: fetch failed` in
+ * 177-524ms during one build and every one of them fetched fine immediately
+ * after -- far too fast to be the timeout, so these are connection-level
+ * blips. Retrying the cheap failures is what stops a card losing its picture
+ * to one unlucky moment.
+ */
+export const IMAGE_FETCH_ATTEMPTS = 3;
+
+/** Pauses between attempts. Short: the render is a user waiting on a callable. */
+const RETRY_BACKOFF_MS = [150, 400];
 
 export function isAllowedImageUrl(raw: string): boolean {
   let url: URL;
@@ -84,35 +100,109 @@ async function readCapped(res: Response, maxBytes: number): Promise<Buffer | nul
  */
 export type CropAnchor = 'attention' | 'top';
 
-export async function loadImage(
-  url: string | null,
+/** Origin and path only — a Storage download URL's query carries an access token. */
+function redactUrl(raw: string): string {
+  try {
+    const url = new URL(raw);
+    return `${url.origin}${url.pathname}`;
+  } catch {
+    return '(unparseable url)';
+  }
+}
+
+interface Attempt {
+  uri: string | null;
+  reason: string;
+  /** Whether trying again could plausibly succeed. */
+  retryable: boolean;
+}
+
+async function attemptLoad(
+  url: string,
   width: number,
   height: number,
-  fetchImpl: typeof fetch = fetch,
-  limits: { maxBytes?: number; timeoutMs?: number; anchor?: CropAnchor } = {},
-): Promise<string | null> {
-  if (!url || !isAllowedImageUrl(url)) return null;
-  const maxBytes = limits.maxBytes ?? MAX_IMAGE_BYTES;
+  fetchImpl: typeof fetch,
+  maxBytes: number,
+  timeoutMs: number,
+  anchor: CropAnchor,
+): Promise<Attempt> {
+  let res: Response;
   try {
-    const res = await fetchImpl(url, {
-      redirect: 'error',
-      signal: AbortSignal.timeout(limits.timeoutMs ?? IMAGE_FETCH_TIMEOUT_MS),
-    });
-    if (!res.ok) return null;
-    const input = await readCapped(res, maxBytes);
-    if (!input) return null;
+    res = await fetchImpl(url, { redirect: 'error', signal: AbortSignal.timeout(timeoutMs) });
+  } catch (error) {
+    // Our own deadline already spent the time budget once; spending it twice
+    // more is how one slow host turns into a slow render for everybody.
+    const timedOut = error instanceof Error && error.name === 'TimeoutError';
+    return { uri: null, reason: timedOut ? 'timeout' : 'network', retryable: !timedOut };
+  }
+  if (!res.ok) {
+    return { uri: null, reason: `http-${String(res.status)}`, retryable: res.status >= 500 || res.status === 429 };
+  }
+  let input: Buffer | null;
+  try {
+    input = await readCapped(res, maxBytes);
+  } catch {
+    // The connection died mid-body; the next attempt may well get all of it.
+    return { uri: null, reason: 'network', retryable: true };
+  }
+  if (!input) return { uri: null, reason: 'too-large', retryable: false };
+  try {
     const out = await sharp(input, { limitInputPixels: MAX_IMAGE_PIXELS })
-      .resize(Math.round(width), Math.round(height), { fit: 'cover', position: limits.anchor ?? 'attention' })
+      .resize(Math.round(width), Math.round(height), { fit: 'cover', position: anchor })
       // Tiles are re-encoded as JPEG, which has no alpha: a transparent logo
       // would come out as a solid black disc. Logos are drawn for a light
       // background, so that is what they get.
       .flatten({ background: '#ffffff' })
       .jpeg({ quality: 82, mozjpeg: true })
       .toBuffer();
-    return `data:image/jpeg;base64,${out.toString('base64')}`;
+    return { uri: `data:image/jpeg;base64,${out.toString('base64')}`, reason: 'ok', retryable: false };
   } catch {
+    // Not an image, or a decode bomb past the pixel ceiling. Same bytes next
+    // time, same result.
+    return { uri: null, reason: 'decode', retryable: false };
+  }
+}
+
+export async function loadImage(
+  url: string | null,
+  width: number,
+  height: number,
+  fetchImpl: typeof fetch = fetch,
+  limits: { maxBytes?: number; timeoutMs?: number; anchor?: CropAnchor; attempts?: number } = {},
+): Promise<string | null> {
+  if (!url) return null;
+  if (!isAllowedImageUrl(url)) {
+    logger.warn('wrapped image dropped', {
+      handler: 'loadImage',
+      reason: 'blocked-host',
+      attempts: 0,
+      url: redactUrl(url),
+    });
     return null;
   }
+  const maxBytes = limits.maxBytes ?? MAX_IMAGE_BYTES;
+  const timeoutMs = limits.timeoutMs ?? IMAGE_FETCH_TIMEOUT_MS;
+  const maxAttempts = limits.attempts ?? IMAGE_FETCH_ATTEMPTS;
+  const anchor = limits.anchor ?? 'attention';
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const outcome = await attemptLoad(url, width, height, fetchImpl, maxBytes, timeoutMs, anchor);
+    if (outcome.uri !== null) return outcome.uri;
+    if (!outcome.retryable || attempt === maxAttempts) {
+      // Surfaced, never swallowed: a dropped image used to be indistinguishable
+      // from an event that simply had no flyer, so a build logged clean while
+      // cards quietly lost their pictures.
+      logger.warn('wrapped image dropped', {
+        handler: 'loadImage',
+        reason: outcome.reason,
+        attempts: attempt,
+        url: redactUrl(url),
+      });
+      return null;
+    }
+    await new Promise((resolve) => setTimeout(resolve, RETRY_BACKOFF_MS[attempt - 1] ?? 400));
+  }
+  return null;
 }
 
 /** Load many images with bounded concurrency, preserving input order. */

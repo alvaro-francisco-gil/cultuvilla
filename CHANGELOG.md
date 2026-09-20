@@ -14,6 +14,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Fixed
 
+- **Fotos que faltaban en el resumen de las fiestas y en los carteles:** algunas fotos se quedaban fuera sin motivo aparente, y cambiaban de una vez a otra. La descarga de una foto fallaba de vez en cuando por un corte momentáneo de red y se daba por perdida al primer intento, sin dejar rastro en ningún registro. Ahora se reintenta, y si aun así no se consigue queda anotado con el motivo.
 - **Enlaces en las fuentes de un acontecimiento:** una dirección web citada en «Fuentes» ya se puede pulsar para abrirla, igual que en el relato. Antes se quedaba como texto muerto.
 - **El resumen de las fiestas ya abre en un pueblo que aún no lo ha creado:** la pantalla se quedaba cargando para siempre. Al preguntar si ya existe el resumen del año, las reglas denegaban la lectura de un documento que no existe en lugar de responder «no hay ninguno», y la pantalla se quedaba esperando una respuesta que no llegaba nunca. Además, quien no ha iniciado sesión ya no se queda en la rueda de carga: se le lleva al pueblo como corresponde. Si la lectura falla por cualquier otro motivo, la pantalla lo dice y ofrece reintentar.
 
