@@ -69,8 +69,8 @@ y para cualquier memoria de subvención.
 
 No es el plazo, es el cupo. Dos filtros:
 
-- **Edad hasta 35 años.** Álvaro (26) entra.
-  `[[confirmar: edad de Moisés — si pasa de 35 no puede ir]]`
+- **Edad hasta 35 años.** Los dos entran con holgura (Álvaro 26, Moisés 25), así
+  que este filtro no nos afecta.
 - **Preferencia territorial por la zona centro y sur** (Castilla-La Mancha,
   Andalucía, Comunidad Valenciana, Extremadura, Baleares, Ceuta, Melilla,
   Canarias). **Castilla y León no está en esa lista**, aunque dicen
@@ -104,10 +104,13 @@ su Instagram y en su web.
 ## Acciones
 
 - [ ] **Rellenar y enviar el formulario antes del 27 de septiembre.** Es la
-      acción con reloj de todo el registro.
-- [ ] Decidir si van Álvaro y Moisés o solo Álvaro (25 plazas: pedir dos
-      puede pesar en contra; `[[confirmar: edad de Moisés]]`).
-- [ ] Preparar las cuatro respuestas de fondo antes de abrir el formulario.
+      acción con reloj de todo el registro. Respuestas preparadas para los dos en
+      [proposals/chispa-galera-2026/formulario.md](../proposals/chispa-galera-2026/formulario.md)
+      — solo faltan los datos personales.
+- [ ] Decidir si se piden dos plazas de 25 o solo una. Los perfiles son
+      complementarios (software + periodismo/patrimonio), que para un encuentro
+      de metodologías e incidencia es un equipo y no una solicitud repetida; las
+      respuestas funcionan por separado si hay que elegir.
 - [ ] El 28 de septiembre: `registered` si confirman, `skipped` si no.
 - [ ] Si se confirma: anotar qué proyectos y pueblos asisten — es el activo que
       queda después del encuentro.
