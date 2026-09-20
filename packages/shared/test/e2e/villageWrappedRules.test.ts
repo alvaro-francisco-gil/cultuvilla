@@ -68,6 +68,22 @@ describe('firestore.rules — /villageWrapped', () => {
     await assertFails(getDoc(doc(asUser(getEnv(), 'alice'), 'villageWrapped/w1')));
   });
 
+  // A village with no Wrapped yet is the NORMAL state, and the admin's create
+  // screen has to be able to observe it: it reads `villageWrapped/{id}_{year}`
+  // and treats "absent" as "offer the create form". Every clause of the read
+  // rule dereferences `resource`, so on a missing doc the expression raises a
+  // Null value error rather than falling through to the admin branch — and an
+  // error in rules is a denial, not a `false`. That denial hung the screen on
+  // an endless spinner for every admin of a village that had never built one.
+  it('a village admin may look for a Wrapped that does not exist yet', async () => {
+    await seedMember('bob', 'admin');
+    await assertSucceeds(getDoc(doc(asUser(getEnv(), 'bob'), 'villageWrapped/missing')));
+  });
+
+  it('an anonymous reader may look for a Wrapped that does not exist yet', async () => {
+    await assertSucceeds(getDoc(doc(asAnon(getEnv()), 'villageWrapped/missing')));
+  });
+
   // Publishing goes through respondToVillageWrapped, which checks authority and
   // logs it. A client write would let an admin publish by editing a field, and
   // let anyone else forge the numbers.

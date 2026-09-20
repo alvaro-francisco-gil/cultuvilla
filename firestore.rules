@@ -1409,8 +1409,25 @@ service cloud.firestore {
     // made to be forwarded — a recipient who is not a member, or not signed in,
     // must still be able to open the link. A draft is the admins' to decide on
     // and is readable only by them.
+    //
+    // The `resource == null` clause is load-bearing, not defensive noise, and it
+    // must come first so `||` short-circuits past the dereferences below. Every
+    // other clause reads the stored doc, so on an id that holds no document
+    // `resource.data.status` raises a Null value error -- and an error in rules
+    // is a denial, never a `false` that falls through to the admin clause.
+    // "No Wrapped yet" is the normal state of a village and precisely the state
+    // the admin's create screen exists to resolve, so it has to be observable:
+    // without this, an admin asking "is there a 2026 one?" got permission-denied
+    // and the screen hung on a spinner forever.
+    //
+    // A missing doc has no content to protect, so this grants nothing: a
+    // not-found says only that the id holds nothing. It does let a stranger
+    // tell "an undecided draft exists" (denied) from "none was ever built"
+    // (not-found), since ids are the deterministic {municipalityId}_{year} --
+    // existence, never content, and worth it to make the create screen work.
     match /villageWrapped/{wrappedId} {
-      allow read: if resource.data.status == 'published'
+      allow read: if resource == null
+        || resource.data.status == 'published'
         || isVillageAdmin(resource.data.municipalityId)
         || isAppAdmin();
       allow write: if false;

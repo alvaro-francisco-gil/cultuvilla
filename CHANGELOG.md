@@ -11,6 +11,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 ### Fixed
 
 - **Enlaces en las fuentes de un acontecimiento:** una dirección web citada en «Fuentes» ya se puede pulsar para abrirla, igual que en el relato. Antes se quedaba como texto muerto.
+- **El resumen de las fiestas ya abre en un pueblo que aún no lo ha creado:** la pantalla se quedaba cargando para siempre. Al preguntar si ya existe el resumen del año, las reglas denegaban la lectura de un documento que no existe en lugar de responder «no hay ninguno», y la pantalla se quedaba esperando una respuesta que no llegaba nunca. Además, quien no ha iniciado sesión ya no se queda en la rueda de carga: se le lleva al pueblo como corresponde. Si la lectura falla por cualquier otro motivo, la pantalla lo dice y ofrece reintentar.
 
 ## v1.2.2 — 2026-09-15
 
