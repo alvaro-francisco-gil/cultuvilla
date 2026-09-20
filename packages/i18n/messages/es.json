@@ -270,7 +270,7 @@
   "village": {
     "notFound": "No encontramos este pueblo. Puede que el enlace esté mal escrito.",
     "vocabulary": {
-      "title": "Vocabulario",
+      "title": "Diccionario de {village}",
       "wordOfTheDay": "Palabra del día",
       "seeAll": "Ver las {count}",
       "more": "Más:",

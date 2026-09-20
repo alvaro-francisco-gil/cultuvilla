@@ -1,18 +1,20 @@
 import { Text } from 'react-native';
 import { render, waitFor } from '@testing-library/react-native';
-import { resolveVillageSlug } from '@cultuvilla/shared/services/municipalityService';
+import { resolveVillageRoute } from '@cultuvilla/shared/services/municipalityService';
 import { VillageRouteGate, useVillageRoute } from '../VillageRouteGate';
 
 const mockParams: Record<string, string> = { pueblo: 'matabuena' };
 jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams }));
-jest.mock('@cultuvilla/shared/services/municipalityService', () => ({ resolveVillageSlug: jest.fn() }));
+jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
+  resolveVillageRoute: jest.fn(),
+}));
 jest.mock('../../i18n', () => ({ useT: () => ({ t: (key: string) => key }) }));
 
-const resolve = resolveVillageSlug as jest.Mock;
+const resolve = resolveVillageRoute as jest.Mock;
 
 function Probe() {
-  const { municipalityId, slug } = useVillageRoute();
-  return <Text>{`${slug}:${municipalityId}`}</Text>;
+  const { municipalityId, slug, name } = useVillageRoute();
+  return <Text>{`${slug}:${municipalityId}:${name}`}</Text>;
 }
 
 function renderGate() {
@@ -27,9 +29,9 @@ describe('VillageRouteGate', () => {
   beforeEach(() => resolve.mockReset());
 
   it('renders the screen with the municipality behind the slug', async () => {
-    resolve.mockResolvedValue('m42');
+    resolve.mockResolvedValue({ id: 'm42', name: 'Matabuena' });
     const { findByText } = renderGate();
-    expect(await findByText('matabuena:m42')).toBeTruthy();
+    expect(await findByText('matabuena:m42:Matabuena')).toBeTruthy();
     expect(resolve).toHaveBeenCalledWith('matabuena');
   });
 
