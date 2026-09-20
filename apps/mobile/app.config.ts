@@ -31,11 +31,12 @@ if (process.env['USE_FIREBASE_EMULATOR'] === '1' && env !== 'dev') {
   );
 }
 
-// Home-screen labels. The non-prod ones are prefixed so a sideloaded APK is
-// identifiable next to the store app — an icon labelled just "Beta" tells its
-// owner nothing about which app it is.
+// Home-screen labels. Beta stays prefixed so a sideloaded APK is identifiable
+// next to the store app. Dev is deliberately just "Dev": it only ever lands on
+// a developer's own device, where the short label is easier to find on a
+// crowded home screen and there is no ambiguity about which app it is.
 const namePerEnv: Record<Env, string> = {
-  dev: 'Cultuvilla Dev',
+  dev: 'Dev',
   beta: 'Cultuvilla Beta',
   prod: 'Cultuvilla',
 };
