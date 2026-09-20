@@ -4,6 +4,15 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v1.3.0 — 2026-09-20
+
+<!-- store-notes -->
+- **Intro al abrir la app:** una animación con el logo mientras la app carga.
+- **Diccionario de tu pueblo:** la sección de palabras lleva ahora el nombre del pueblo.
+- **Fotos que faltaban** en el resumen de las fiestas y en los carteles ya aparecen.
+- Correcciones y mejoras.
+<!-- /store-notes -->
+
 ### Added
 
 - **Intro al abrir la app (iOS y Android):** una animación de 4 s con el logo y su sonido, sobre el mismo crema de la app, mientras la app carga por debajo; se funde con la portada en cuanto las dos cosas han terminado, y un toque la salta. No aparece en la web (quien llega por un enlace va directo al contenido) ni con «Reducir movimiento» activado, y el sonido respeta el modo silencio. Necesita un binario nuevo: `lottie-react-native` y `expo-audio` son módulos nativos, así que no llega por OTA a las instalaciones actuales. El archivo se regenera desde la exportación del animador con `scripts/prepare-intro-lottie.mjs`.
