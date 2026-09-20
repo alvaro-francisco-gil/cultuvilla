@@ -68,6 +68,17 @@ Search across, roughly in order of hit rate:
    **many different pueblos** outranks a bigger, more prestigious one that does
    not: the second pilot village is the constraint, not visibility.
 
+**Known recurring sources — check these by name every run**, because they are
+annual and the registry already knows what they are worth:
+
+| Source | Cycle | Why |
+|---|---|---|
+| **MITECO**, despoblación / reto demográfico | pending publication, expected Sept 2026 | Best fit in the registry. Check BOE + MITECO sede electrónica weekly until it appears. |
+| **Europa Nostra / European Heritage Awards** | call ~April, deadline ~September | Category 4 accepts **individuals** — one of the few open to a persona física. The 2027 edition was missed by 13 days; do not repeat it. |
+| **Junta de Castilla y León · Diputación de Segovia** | rolling | Where FEDER actually reaches us. Search the organisation, never the word "FEDER". |
+| **Town Twinning / CERV** | annual | Applicant is the **ayuntamiento**, not us. Needs a partner village lined up first. |
+| **LEADER via the comarcal GAL** | rolling | Smallest pool, best alignment. FEADER, not FEDER — a different door. |
+
 **The eligibility filter, applied before filing anything:**
 
 - Does a **persona física** qualify? If not, note it — that is an argument for the
