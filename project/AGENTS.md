@@ -12,7 +12,14 @@ project/
   eventos/         meetups, encuentros, congresos, ferias — rooms worth being in
   entidades/       funders, collaborators, administrations — people and orgs
   proposals/       applications actually submitted (the artifacts, not the tracking)
+  mercado/         where the users are — comarcas, pueblos vecinos, expansión
 ```
+
+`mercado/` is **not part of the registry**: `opportunities-cli.mjs` only walks
+the three directories in `KIND_BY_DIR`, so records here need no frontmatter and
+no `kind`. They are long-form research about *where* Cultuvilla grows, which has
+no lifecycle to track — a pueblo does not expire. The `[[confirmar]]` rule and
+the "this repo is public" rules below still apply in full.
 
 ## Start here, every time
 
