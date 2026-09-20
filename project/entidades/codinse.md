@@ -40,7 +40,10 @@ justificable, y casi siempre a **entidades jurídicas**. Dos incógnitas deciden
 esto es una vía real o no:
 
 - ¿Admite persona física, o hace falta la asociación?
-  Ver [entidad jurídica](../../docs/plans/ideas/entidad-juridica.md).
+  Ver [entidad jurídica](../../docs/plans/ideas/entidad-juridica.md). Ojo: si el
+  solicitante es el **Ayuntamiento de Matabuena o una asociación del pueblo** y
+  nosotros somos proveedor, esta pregunta desaparece — ver
+  [LEADER vía pueblos](../../docs/plans/ideas/leader-via-pueblos.md).
 - ¿Encaja un producto **digital** en su estrategia de desarrollo local, o su
   convocatoria está escrita para inversión física (obra, maquinaria, local)?
 
