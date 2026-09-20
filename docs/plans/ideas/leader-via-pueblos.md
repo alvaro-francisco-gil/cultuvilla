@@ -126,7 +126,7 @@ Objetivos por orden de interés:
 
 | Objetivo | Por qué | Estado |
 |---|---|---|
-| **[Segovia Sur](../../../project/entidades/segovia-sur.md)** | Muy probablemente el GAL de Matabuena. Entre sus socios hay **asociaciones culturales**: el GAL es una asamblea donde ya están sentados nuestros usuarios, con su ayuntamiento al lado. | Confirmar que Matabuena está ahí |
+| **[Segovia Sur](../../../project/entidades/segovia-sur.md)** | **El GAL de Matabuena** (confirmado). Entre sus socios hay **asociaciones culturales**: el GAL es una asamblea donde ya están sentados nuestros usuarios, con su ayuntamiento al lado. | Leer su estrategia y pedir presentación por el ayuntamiento |
 | **[CODINSE](../../../project/entidades/codinse.md)** | Precedente de compra digital y líneas estratégicas idénticas. El mejor caso demostrado. | Leer su estrategia y averiguar quién les hizo el portal |
 | **Sepúlveda, Ayllón, Riaza, Maderuelo** | Los municipios con más actividad visible del nordeste, primeros candidatos dentro de CODINSE. | Ver si tienen asociación activa |
 | **[ADEFO Cinco Villas](../../../project/entidades/adefoincovillas.md)** | Programas de dinamización propios («Vive en Cinco Villas») y coordina cooperación entre GALs. La pregunta que originó este documento. | Preguntar en Galera si hay proyectos de allí |
@@ -139,10 +139,11 @@ Ningún listado de municipios da eso.
 
 ## Siguientes pasos, en orden
 
-1. **Preguntar al Ayuntamiento de Matabuena a qué GAL pertenece.** Dos minutos,
-   coste cero, y desbloquea todo lo demás. Es el paso 1 porque hoy ni eso se sabe
-   con certeza: la geografía apunta a Segovia Sur, no a CODINSE.
-2. **Leer una Estrategia de Desarrollo Local** —la del GAL que sea, o la de
+1. **Leer la Estrategia de Desarrollo Local Participativo 2023-2027 de
+   [Segovia Sur](../../../project/entidades/segovia-sur.md)**, que es el GAL de
+   Matabuena, y localizar la medida donde encaja una herramienta digital
+   comunitaria. Es pública y gratis.
+2. **Leer también la estrategia de CODINSE** —la del GAL que sea, o la de
    CODINSE— y localizar la medida concreta. Son públicas y gratis.
 3. **Averiguar quién hizo el portal de CODINSE y con qué medida se financió.** Es
    el precedente exacto de lo que queremos hacer, ya ejecutado y ya pagado.

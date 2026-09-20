@@ -67,11 +67,16 @@ origin nobody can retrace is a record nobody trusts in three months.
 | `convocatoria` | `status` | `watching → candidate → preparing → submitted → won \| lost \| expired` |
 | `evento` | `status` | `watching → candidate → registered → attended \| skipped \| expired` |
 | `entidad` | `relacion` | `sin-contacto → contactado → conversando → colaborando \| descartado` |
+| `propuesta` | `status` | `borrador → lista → enviada \| retirada` |
 
 A funding call is won or lost; an event is attended or skipped. Collapsing them
 into one generic enum would cost the only distinction worth having when you look
 back over a year. An `entidad` has **no** `status` — it has a relationship, and
 putting one on it is a validation error.
+
+A `propuesta`'s lifecycle is about **readiness, not outcome**: `won`/`lost`
+belong to the convocatoria it targets, not to the document. That separation is
+why a proposal can be `enviada` while its convocatoria is still `submitted`.
 
 `watching`, `candidate` and `preparing` are the **open** statuses: the ones a
 lapsed deadline strands. That is what the deadline warnings key off.
@@ -110,6 +115,28 @@ public, and the strategy is not the moat. Consequences, which are rules:
 - **No unpublished financials**, ours or anyone's.
 - **No competitive assessment of named people or orgs.** `fit: high|medium|low`
   plus one factual line about why. Not a dossier.
+
+## Proposals are folders, and their readiness is computed
+
+`proposals/` is the one directory whose records are **folders**, because a
+candidacy is a bundle: form answers, a business plan, CVs, a render script. Each
+folder carries its state in `proposals/<slug>/propuesta.md`, whose `id` is the
+folder name.
+
+Two rules make the lifecycle worth having:
+
+- **`para` names the record it targets** (a convocatoria or an evento), and the
+  proposal **inherits that record's deadline**. Restating the deadline is a
+  validation error — the date lives in exactly one place, so it cannot drift.
+- **Readiness is counted, not claimed.** `pnpm opportunities:list` counts the
+  unresolved `[[...]]` markers across every `.md` in the folder and prints them.
+  A proposal marked `lista` that still has holes is **warned about**, because the
+  failure this catches is not forgetting a proposal — it is *believing one is
+  finished*. A `borrador` with holes is normal and silent.
+
+So the question "what have we got pending to fill in, and what is ready to send?"
+is answered by the tool from the files themselves, not from a status somebody
+remembered to update.
 
 ## Researching new ones
 

@@ -3,7 +3,12 @@ import assert from 'node:assert/strict';
 import {
   DIRS,
   KIND_BY_DIR,
+  NESTED_DIRS,
   OPEN_STATUSES,
+  countPlaceholders,
+  findDanglingProposals,
+  findFalseReady,
+  resolveProposalDeadlines,
   daysUntil,
   findDuplicateIds,
   findStranded,
@@ -192,11 +197,141 @@ describe('findUpcoming', () => {
 
 describe('registry vocabulary', () => {
   it('maps every directory to exactly one kind', () => {
-    assert.deepEqual(DIRS, ['convocatorias', 'eventos', 'entidades']);
+    assert.deepEqual(DIRS, ['convocatorias', 'eventos', 'entidades', 'proposals']);
     assert.equal(new Set(Object.values(KIND_BY_DIR)).size, DIRS.length);
   });
 
   it('treats only pre-commitment statuses as open', () => {
     assert.deepEqual(OPEN_STATUSES, ['watching', 'candidate', 'preparing']);
+  });
+});
+
+// --- proposals -------------------------------------------------------------
+
+const propuesta = (over = {}) => ({
+  dir: 'proposals',
+  slug: 'chispa-galera-2026',
+  data: {
+    id: 'chispa-galera-2026',
+    kind: 'propuesta',
+    titulo: 'Formulario ¡Chispa!',
+    status: 'borrador',
+    para: 'epa-encuentro-galera-2026',
+    ...over,
+  },
+});
+
+describe('propuesta records', () => {
+  it('accepts a well-formed proposal', () => {
+    assert.deepEqual(validateRecord(propuesta()), []);
+  });
+
+  it('requires `para`, the record it targets', () => {
+    const data = { ...propuesta().data };
+    delete data.para;
+    assert.match(validateRecord({ ...propuesta(), data }).join('\n'), /missing required field `para`/);
+  });
+
+  it('does not require `fit` — the convocatoria already scores that', () => {
+    assert.deepEqual(validateRecord(propuesta()), []);
+  });
+
+  it('uses a readiness lifecycle, not an outcome one', () => {
+    for (const status of ['borrador', 'lista', 'enviada', 'retirada']) {
+      assert.deepEqual(validateRecord(propuesta({ status })), [], status);
+    }
+    assert.match(validateRecord(propuesta({ status: 'won' })).join('\n'), /is not one of/);
+    assert.match(validateRecord(propuesta({ status: 'watching' })).join('\n'), /is not one of/);
+  });
+
+  it('refuses a restated deadline, so the date lives in one place', () => {
+    assert.match(validateRecord(propuesta({ deadline: '2026-09-27' })).join('\n'), /inherits its deadline/);
+  });
+
+  it('is the only kind whose directory holds folders', () => {
+    assert.deepEqual(NESTED_DIRS, ['proposals']);
+    assert.equal(KIND_BY_DIR.proposals, 'propuesta');
+  });
+});
+
+describe('countPlaceholders', () => {
+  it('counts every unresolved marker', () => {
+    assert.equal(countPlaceholders('| DNI | `[[DNI]]` |\n| Tel | `[[teléfono]]` |'), 2);
+  });
+
+  it('counts a marker carrying an explanatory note', () => {
+    assert.equal(countPlaceholders('`[[confirmar: edad de Moisés]]`'), 1);
+  });
+
+  it('returns 0 for text with none, and never throws on empty input', () => {
+    assert.equal(countPlaceholders('todo resuelto'), 0);
+    assert.equal(countPlaceholders(''), 0);
+  });
+
+  it('does not mistake a markdown link for a placeholder', () => {
+    assert.equal(countPlaceholders('[texto](https://cultuvilla.es)'), 0);
+  });
+});
+
+describe('findFalseReady', () => {
+  it('flags a proposal that claims `lista` while holes remain', () => {
+    const records = [{ path: 'a/propuesta.md', holes: 3, data: { kind: 'propuesta', status: 'lista' } }];
+    assert.equal(findFalseReady(records).length, 1);
+  });
+
+  it('accepts `lista` with zero holes', () => {
+    const records = [{ path: 'a/propuesta.md', holes: 0, data: { kind: 'propuesta', status: 'lista' } }];
+    assert.deepEqual(findFalseReady(records), []);
+  });
+
+  it('leaves a borrador alone — holes are expected there', () => {
+    const records = [{ path: 'a/propuesta.md', holes: 9, data: { kind: 'propuesta', status: 'borrador' } }];
+    assert.deepEqual(findFalseReady(records), []);
+  });
+
+  it('ignores holes in other kinds, which use them as `[[confirmar]]`', () => {
+    const records = [{ path: 'e.md', holes: 4, data: { kind: 'entidad', relacion: 'sin-contacto' } }];
+    assert.deepEqual(findFalseReady(records), []);
+  });
+});
+
+describe('resolveProposalDeadlines', () => {
+  const records = [
+    { path: 'ev.md', data: { id: 'galera', kind: 'evento', deadline: '2026-09-27' } },
+    { path: 'p/propuesta.md', data: { id: 'p', kind: 'propuesta', para: 'galera' } },
+  ];
+
+  it('inherits the deadline from the targeted record', () => {
+    const [resolved] = resolveProposalDeadlines(records);
+    assert.equal(resolved.deadline, '2026-09-27');
+    assert.equal(resolved.target.path, 'ev.md');
+  });
+
+  it('yields a null deadline when the target carries none', () => {
+    const [resolved] = resolveProposalDeadlines([
+      { path: 'c.md', data: { id: 'miteco', kind: 'convocatoria' } },
+      { path: 'p/propuesta.md', data: { id: 'p', kind: 'propuesta', para: 'miteco' } },
+    ]);
+    assert.equal(resolved.deadline, null);
+    assert.ok(resolved.target);
+  });
+});
+
+describe('findDanglingProposals', () => {
+  it('catches a `para` pointing at nothing — a typo in an id', () => {
+    const dangling = findDanglingProposals([
+      { path: 'p/propuesta.md', data: { id: 'p', kind: 'propuesta', para: 'no-existe' } },
+    ]);
+    assert.deepEqual(dangling, [{ path: 'p/propuesta.md', para: 'no-existe' }]);
+  });
+
+  it('is quiet when every `para` resolves', () => {
+    assert.deepEqual(
+      findDanglingProposals([
+        { path: 'ev.md', data: { id: 'galera', kind: 'evento' } },
+        { path: 'p/propuesta.md', data: { id: 'p', kind: 'propuesta', para: 'galera' } },
+      ]),
+      [],
+    );
   });
 });
