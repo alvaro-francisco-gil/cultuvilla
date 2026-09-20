@@ -107,16 +107,50 @@ del otro. Es la versión ambiciosa, y probablemente también la más lenta.
 
 ---
 
+## A quién contactar — y el objetivo no es un pueblo
+
+Buscando pueblos concretos apareció algo mejor: **el interlocutor natural es el
+propio grupo de acción local, no un pueblo suelto.**
+
+[CODINSE](../../../project/entidades/codinse.md), el GAL del nordeste de Segovia,
+**acaba de pagar un portal web para sus 119 localidades** con información de
+empleo, vivienda y servicios, y su presidente declara en público que «la
+digitalización es una oportunidad para el medio rural, no una amenaza». Eso
+resuelve la duda 1 por demostración —un GAL que ya gasta en digital para su
+territorio— y reencuadra la propuesta: **compran para la comarca entera, no para
+un municipio.** Y sus cuatro líneas estratégicas 2023-2027 son, una por una,
+nuevas tecnologías, reto demográfico, atención a mayores e incorporación de
+jóvenes.
+
+Objetivos por orden de interés:
+
+| Objetivo | Por qué | Estado |
+|---|---|---|
+| **[Segovia Sur](../../../project/entidades/segovia-sur.md)** | Muy probablemente el GAL de Matabuena. Entre sus socios hay **asociaciones culturales**: el GAL es una asamblea donde ya están sentados nuestros usuarios, con su ayuntamiento al lado. | Confirmar que Matabuena está ahí |
+| **[CODINSE](../../../project/entidades/codinse.md)** | Precedente de compra digital y líneas estratégicas idénticas. El mejor caso demostrado. | Leer su estrategia y averiguar quién les hizo el portal |
+| **Sepúlveda, Ayllón, Riaza, Maderuelo** | Los municipios con más actividad visible del nordeste, primeros candidatos dentro de CODINSE. | Ver si tienen asociación activa |
+| **[ADEFO Cinco Villas](../../../project/entidades/adefoincovillas.md)** | Programas de dinamización propios («Vive en Cinco Villas») y coordina cooperación entre GALs. La pregunta que originó este documento. | Preguntar en Galera si hay proyectos de allí |
+| **Pueblos Vivos Aragón** | Programa que agrupa a **ocho GAL aragoneses**: es la figura de cooperación interterritorial ya montada y funcionando. | `[[confirmar: qué hace exactamente]]` |
+| **Galera (Granada)** | Acoge el encuentro, así que su ayuntamiento y sus asociaciones ya trabajan con EPA!. | Conocerlos allí |
+
+**La vía corta a un pueblo concreto no es una búsqueda web, es Galera.** 25
+proyectos rurales de comarcas distintas en una sala, cada uno con su GAL detrás.
+Ningún listado de municipios da eso.
+
 ## Siguientes pasos, en orden
 
-1. **Leer una Estrategia de Desarrollo Local** (la de CODINSE o la de ADEFO) y
-   contestar la duda 1. Es gratis, es público y decide todo lo demás.
-2. **Preguntar en Galera** a proyectos de otras comarcas si han usado LEADER y
-   para qué. Información de primera mano de gente que ya lo ha pedido.
-3. **Hablar con el técnico del GAL de Matabuena**, presentados por el
-   ayuntamiento, que es socio del grupo. Preguntar por el caso hipotético antes
-   de traer un pueblo concreto.
-4. Solo entonces, **buscar el pueblo piloto** en otra comarca.
+1. **Preguntar al Ayuntamiento de Matabuena a qué GAL pertenece.** Dos minutos,
+   coste cero, y desbloquea todo lo demás. Es el paso 1 porque hoy ni eso se sabe
+   con certeza: la geografía apunta a Segovia Sur, no a CODINSE.
+2. **Leer una Estrategia de Desarrollo Local** —la del GAL que sea, o la de
+   CODINSE— y localizar la medida concreta. Son públicas y gratis.
+3. **Averiguar quién hizo el portal de CODINSE y con qué medida se financió.** Es
+   el precedente exacto de lo que queremos hacer, ya ejecutado y ya pagado.
+4. **Preguntar en Galera** a proyectos de otras comarcas si han usado LEADER y
+   para qué. Información de primera mano de gente que ya lo ha pedido, y la vía
+   más corta a un pueblo piloto de otra comarca.
+5. **Hablar con el técnico del GAL**, presentados por el ayuntamiento, que es
+   socio. Con los pasos 2 y 3 hechos, no antes.
 
 ---
 
@@ -128,3 +162,6 @@ del otro. Es la versión ambiciosa, y probablemente también la más lenta.
 - ¿La asociación se constituye para pedir subvenciones, para poder facturar, o
   para las dos? Cambia la urgencia y quizá la figura.
 - ¿Cuánto se cobra a un pueblo? Hoy no hay precio, y este modelo exige tener uno.
+- ¿Se vende a **un pueblo** o al **GAL para toda su comarca**? El precedente de
+  CODINSE dice que lo segundo es posible, y cambia el precio, el producto y a
+  quién se llama primero.
