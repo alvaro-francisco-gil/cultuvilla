@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { resolveVillageSlug } from '@cultuvilla/shared/services/municipalityService';
+import { resolveVillageRoute } from '@cultuvilla/shared/services/municipalityService';
 import { ErrorState, Screen } from '../../components/primitives';
 import { useT } from '../i18n';
 
@@ -9,13 +9,15 @@ export interface VillageRoute {
   municipalityId: string;
   /** The `/<pueblo>` segment — build child links from this, not from the id. */
   slug: string;
+  /** The village's display name, for screens that title themselves after it. */
+  name: string;
 }
 
 const VillageRouteContext = createContext<VillageRoute | null>(null);
 
 type Resolution =
   | { status: 'loading' }
-  | { status: 'ready'; municipalityId: string }
+  | { status: 'ready'; municipalityId: string; name: string }
   | { status: 'missing' }
   | { status: 'error'; error: unknown };
 
@@ -36,10 +38,14 @@ export function VillageRouteGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     setResolution({ status: 'loading' });
-    resolveVillageSlug(slug).then(
-      (municipalityId) => {
+    resolveVillageRoute(slug).then(
+      (village) => {
         if (cancelled) return;
-        setResolution(municipalityId ? { status: 'ready', municipalityId } : { status: 'missing' });
+        setResolution(
+          village
+            ? { status: 'ready', municipalityId: village.id, name: village.name }
+            : { status: 'missing' },
+        );
       },
       (error: unknown) => {
         if (!cancelled) setResolution({ status: 'error', error });
@@ -52,7 +58,9 @@ export function VillageRouteGate({ children }: { children: ReactNode }) {
 
   if (resolution.status === 'ready') {
     return (
-      <VillageRouteContext.Provider value={{ municipalityId: resolution.municipalityId, slug }}>
+      <VillageRouteContext.Provider
+        value={{ municipalityId: resolution.municipalityId, slug, name: resolution.name }}
+      >
         {children}
       </VillageRouteContext.Provider>
     );

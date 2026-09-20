@@ -20,10 +20,12 @@ export function WordOfTheDayCard({
   word,
   count,
   villageSlug,
+  villageName,
 }: {
   word: WordOfTheDay;
   count: number;
   villageSlug: string;
+  villageName: string;
 }) {
   const { t } = useT();
   const { term, definition, more } = word;
@@ -33,7 +35,7 @@ export function WordOfTheDayCard({
   return (
     <VStack gap={3} className="pt-4">
       <SectionHeader
-        title={t('village.vocabulary.title')}
+        title={t('village.vocabulary.title', { village: villageName })}
         actionLabel={t('village.vocabulary.seeAll', { count })}
         onAction={() => router.push(villageSectionHref(villageSlug, 'vocabulario'))}
       />

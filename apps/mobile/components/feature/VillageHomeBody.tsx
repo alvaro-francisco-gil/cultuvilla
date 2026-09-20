@@ -489,6 +489,7 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
             word={data.wordOfTheDay}
             count={data.vocabularyCount}
             villageSlug={villageSlug}
+            villageName={village.name}
           />
         ) : null}
 
