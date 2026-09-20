@@ -1,47 +1,63 @@
 ---
 id: epa-encuentro-galera-2026
 kind: evento
-titulo: "Encuentro EPA! rural — Galera (Granada)"
+titulo: "Encuentro de Proyectos Rurales ¡Chispa! — Galera (Granada)"
 status: candidate
 fit: high
-deadline: 2026-10-09
+deadline: 2026-09-27
 inicio: 2026-10-09
 fin: 2026-10-12
 lugar: "Galera, Granada"
-coste: "0 € — gastos pagados por la organización"
+coste: "0 € — alojamiento y comidas cubiertos, hasta 200 € de desplazamiento"
+plazas: "25 (hasta 35 años)"
 convocante: epa-asociacion
-url: "[[confirmar: enlace de inscripción — la convocatoria circuló por Instagram]]"
-fuente: "Instagram (@garlimdj + @epa.asociacion), visto 2026-09-20"
+url: "https://asociacionepa.org"
+fuente: "difusión de EPA! + formulario de inscripción, 2026-09-20"
 ---
 
-# Encuentro EPA! rural — Galera, 9–12 de octubre de 2026
+# Encuentro de Proyectos Rurales ¡Chispa! — Galera, 9–12 de octubre de 2026
 
-Encuentro de cuatro días para **conectar a quienes hacen pueblo desde
-ayuntamientos, asociaciones y proyectos**, compartir herramientas y pensar
-juntos el siguiente paso. Con **todos los gastos pagados** gracias al Ministerio
-de Cultura, la [Fundación Carasso](../entidades/fundacion-carasso.md) y
+**Inscripción hasta el 27 de septiembre. Confirmación el 28. 25 plazas.**
+
+Segunda fase del proyecto **¡Chispa! Jóvenes, Territorios y Tejidos**, coordinado
+por [EPA!](../entidades/epa-asociacion.md) en colaboración con
+[A Regenerar](../entidades/a-regenerar.md): tras meses de trabajo interno
+generando metodologías, estos «Encuentros Detonantes» las ponen en práctica. Este
+se centra en **incidencia política y formas de participación comunitaria**.
+
+Tres días de sesiones de trabajo colectivo, transmisión de metodologías, modelos
+de gobernanza, proyectos de incidencia política desde los pueblos y búsqueda de
+nuevas colaboraciones. Comida popular el sábado y conocimiento del territorio y
+sus asociaciones. Salida el lunes 12 después de comer.
+
+Cofinanciado por el [Ministerio de Cultura](../entidades/ministerio-de-cultura.md)
+y la [Fundación Carasso](../entidades/fundacion-carasso.md), con participación de
 [Enraíza Derechos](../entidades/enraiza-derechos.md).
 
 ## Por qué es `fit: high`
 
-El público del encuentro **es literalmente el usuario de Cultuvilla**: comisiones
-de festejos, asociaciones y ayuntamientos que organizan la vida del pueblo. No es
-un evento de tecnología al que haya que explicar el problema — es una sala llena
-de gente que ya lo tiene.
+El público **es el usuario de Cultuvilla**: entidades juveniles rurales,
+asociaciones y comisiones que sostienen la vida del pueblo. No hay que explicar
+el problema — la sala lo tiene.
 
-Tres cosas que solo pasan yendo:
+1. **Pueblos piloto.** El piloto es Matabuena. Veinticinco jóvenes de veinticinco
+   proyectos rurales distintos es la vía más corta al segundo y al tercero, y el
+   segundo pueblo es lo que convierte «una app para mi pueblo» en producto.
+2. **«Generar herramientas metodológicas compartidas» es literalmente la
+   propuesta.** El proyecto ¡Chispa! busca herramientas compartidas entre
+   entidades juveniles rurales. Cultuvilla es una herramienta compartida entre
+   entidades rurales que ya funciona. El encaje no es patrocinio: es ser **la
+   herramienta que la red adopta**.
+3. **Proximidad a los financiadores.** Los tres que pagan son el perfil exacto
+   que persigue [entidad jurídica](../../docs/plans/ideas/entidad-juridica.md).
+   Estar dentro de algo que ya financian vale más que un formulario.
+4. **Coste cero.** Alojamiento, comidas y hasta 200 € de viaje. El coste real son
+   cuatro días.
+5. **Socio para Town Twinning.** Es el sitio donde se conoce al pueblo que podría
+   ser el socio que [Town Twinning 2027](../convocatorias/town-twinning-cerv-2026.md)
+   exige y que hoy no existe.
 
-1. **Pueblos piloto.** Hoy el piloto es Matabuena. Cuatro días con decenas de
-   pueblos distintos es la vía más corta al segundo y al tercero, y el segundo
-   pueblo es lo que convierte «una app para mi pueblo» en producto.
-2. **Proximidad a los financiadores.** Los tres que pagan el encuentro son
-   exactamente el perfil de financiador que busca
-   [la entidad jurídica](../../docs/plans/ideas/entidad-juridica.md): Ministerio
-   de Cultura, Carasso y Enraíza Derechos. Estar en algo que ellos financian vale
-   más que un formulario.
-3. **Coste cero.** Gastos pagados. El único coste real son cuatro días.
-
-## Frase del post que conviene no perder
+## Frase que conviene no perder
 
 > «Nadie debería tener que empezar de cero y en soledad. En otro pueblo puede
 > haber alguien que ya haya resuelto lo que a ti te está frenando.»
@@ -49,26 +65,55 @@ Tres cosas que solo pasan yendo:
 Es la tesis de Cultuvilla dicha por otra gente. Sirve para el relato de producto
 y para cualquier memoria de subvención.
 
-## Riesgo real: la inscripción es informal
+## El riesgo real: 25 plazas y no somos el perfil territorial preferente
 
-La vía de inscripción que circuló es **comentar `RURAL`** en el post de Instagram
-y recibir la información por mensaje directo. Eso significa que no hay plazo
-publicado y que las plazas se reparten probablemente por orden de contacto: el
-riesgo no es llegar tarde a un plazo, es que se llene. **Comentar y escribir a
-@epa.asociacion es la acción de hoy**, no de la semana que viene.
+No es el plazo, es el cupo. Dos filtros:
 
-`deadline` está fijado al inicio del encuentro porque el plazo real de
-inscripción se desconoce — `[[confirmar]]` al recibir la información.
+- **Edad hasta 35 años.** Álvaro (26) entra.
+  `[[confirmar: edad de Moisés — si pasa de 35 no puede ir]]`
+- **Preferencia territorial por la zona centro y sur** (Castilla-La Mancha,
+  Andalucía, Comunidad Valenciana, Extremadura, Baleares, Ceuta, Melilla,
+  Canarias). **Castilla y León no está en esa lista**, aunque dicen
+  explícitamente «cualquiera es bienvenido». Con 25 plazas, eso nos deja fuera
+  del perfil prioritario.
+
+La conclusión práctica: **la solicitud tiene que ser buena, no un trámite.** Es
+un formulario corto pero de fondo, y hay margen para que la candidatura destaque
+por lo que trae en lugar de por la provincia.
+
+## El formulario, y qué responder bien
+
+Pide datos de identidad (nombre como en el DNI, año de nacimiento, DNI/NIE,
+género, teléfono) y luego cuatro preguntas que deciden:
+
+| Pregunta | Qué contestar |
+|---|---|
+| ¿Qué te motiva a participar? | Buscar los pueblos que serán el segundo y tercer piloto, y aprender gobernanza de quien ya la tiene resuelta. No «dar a conocer la app». |
+| ¿Vienes por parte de alguna organización? Cuéntanos tu proyecto y oficio | Cultuvilla + el piloto de Matabuena con cifras: ~25 % del censo, ~80 % de los jóvenes. Las cifras son lo que nos distingue de una idea. |
+| ¿Conoces EPA! o A Regenerar? ¿Cómo te enteraste? | Por la difusión de @garlimdj en Instagram. Honesto y verificable. |
+| RRSS o web de tu proyecto | https://cultuvilla.es |
+
+También: desde dónde vendrías (Segovia / Madrid `[[confirmar]]`), cómo llegarías
+(hay coches compartidos y hasta 200 € cubiertos) y necesidades alimentarias.
+
+El contacto de inscripción (correo y WhatsApp de EPA!) **no se guarda aquí a
+propósito** — este repo es público y la regla de
+[project/AGENTS.md](../AGENTS.md) prohíbe datos de contacto de terceros. Está en
+su Instagram y en su web.
 
 ## Acciones
 
-- [ ] Comentar `RURAL` en el post y pedir la información a @epa.asociacion.
-- [ ] Confirmar plazo de inscripción real y sustituir el `[[confirmar]]` de `url`.
-- [ ] Decidir quién va (Álvaro, Moisés, o los dos — @moises.rgz ya sigue el post).
-- [ ] Si se confirma: pasar a `status: registered` y anotar qué pueblos asisten.
+- [ ] **Rellenar y enviar el formulario antes del 27 de septiembre.** Es la
+      acción con reloj de todo el registro.
+- [ ] Decidir si van Álvaro y Moisés o solo Álvaro (25 plazas: pedir dos
+      puede pesar en contra; `[[confirmar: edad de Moisés]]`).
+- [ ] Preparar las cuatro respuestas de fondo antes de abrir el formulario.
+- [ ] El 28 de septiembre: `registered` si confirman, `skipped` si no.
+- [ ] Si se confirma: anotar qué proyectos y pueblos asisten — es el activo que
+      queda después del encuentro.
 
 ## Contexto
 
-Lo difundió [@garlimdj](../entidades/epa-asociacion.md) desde su experiencia
-entrando en un ayuntamiento, animando a jóvenes a implicarse en la vida
-municipal. `[[confirmar: quién es garlimdj y qué papel tiene en EPA!]]`
+Lo difundió **@garlimdj** desde su experiencia entrando en un ayuntamiento,
+animando a jóvenes a implicarse en la vida municipal.
+`[[confirmar: quién es garlimdj y su papel en EPA!]]`
