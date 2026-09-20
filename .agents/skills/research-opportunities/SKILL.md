@@ -42,6 +42,12 @@ Cheaper and higher-yield than any web search:
   lead the report, always. They are the only part with a cost to being late.
 - **`[[confirmar]]` markers** — `grep -rn '\[\[confirmar' project/`. Try to
   resolve them from public sources. Resolve or leave; never guess.
+- **Proposals mid-flight** — `pnpm opportunities:list --kind=propuesta` prints
+  each candidacy's state and its unresolved hole count, with the deadline
+  inherited from the record it targets. A `borrador` whose deadline is close is
+  the most actionable thing the registry can surface; a proposal marked `lista`
+  that still has holes is flagged separately. Never fill a hole by guessing — the
+  holes are personal data and logistics only the humans know.
 
 ### 3. Search
 
