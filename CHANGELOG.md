@@ -8,6 +8,10 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 - **Intro al abrir la app (iOS y Android):** una animación de 4 s con el logo y su sonido, sobre el mismo crema de la app, mientras la app carga por debajo; se funde con la portada en cuanto las dos cosas han terminado, y un toque la salta. No aparece en la web (quien llega por un enlace va directo al contenido) ni con «Reducir movimiento» activado, y el sonido respeta el modo silencio. Necesita un binario nuevo: `lottie-react-native` y `expo-audio` son módulos nativos, así que no llega por OTA a las instalaciones actuales. El archivo se regenera desde la exportación del animador con `scripts/prepare-intro-lottie.mjs`.
 
+### Changed
+
+- **«Vocabulario» pasa a llamarse «Diccionario de <pueblo>»:** la sección de palabras del pueblo lleva ahora el nombre del pueblo en su título — «Diccionario de Matabuena» — en la portada, en el listado A–Z y en la ficha de cada palabra. La dirección sigue siendo `/<pueblo>/vocabulario`, así que los enlaces compartidos siguen funcionando.
+
 ### Fixed
 
 - **Enlaces en las fuentes de un acontecimiento:** una dirección web citada en «Fuentes» ya se puede pulsar para abrirla, igual que en el relato. Antes se quedaba como texto muerto.
