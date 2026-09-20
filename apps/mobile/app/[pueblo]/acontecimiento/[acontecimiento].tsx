@@ -132,9 +132,13 @@ function HistoryEntryDetailScreen() {
               <Text variant="bodySm" className="font-bold">
                 {t('village.history.sources')}
               </Text>
-              <Text tone="muted" variant="bodySm">
-                {entry.sources}
-              </Text>
+              <RichText
+                text={entry.sources}
+                mentions={[]}
+                villageSlug={villageSlug}
+                tone="muted"
+                variant="bodySm"
+              />
             </VStack>
           ) : null}
           <EntityComments
