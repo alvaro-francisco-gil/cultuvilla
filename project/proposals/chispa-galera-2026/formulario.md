@@ -8,8 +8,9 @@
 > **Plazo: 27 de septiembre. Confirmación el 28. 25 plazas.**
 >
 > Los `[[campos entre dobles corchetes]]` son datos personales que hay que
-> rellenar a mano: **este repositorio es público y no se guardan aquí** fechas de
-> nacimiento, DNI ni teléfonos.
+> rellenar a mano. Este repositorio es **público**: las fechas de nacimiento se
+> guardan aquí por decisión de Álvaro (2026-09-20), pero **DNI/NIE, teléfonos y
+> correos no**, ni nuestros ni de terceros.
 
 ---
 
@@ -125,7 +126,7 @@ coordinarse con la organización.
 | Email | `[[correo de Moisés]]` |
 | Nombre y apellidos (como en el DNI) | Moisés Rodríguez Gil |
 | Año de nacimiento | 2001 |
-| Fecha | `[[fecha de nacimiento]]` |
+| Fecha | 28/07/2001 |
 | DNI / NIE | `[[DNI]]` |
 | Género | Masculino |
 | Teléfono | `[[teléfono]]` |
