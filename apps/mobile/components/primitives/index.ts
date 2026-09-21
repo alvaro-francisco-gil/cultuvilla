@@ -57,3 +57,5 @@ export { BottomSheet, shouldDismissOnRelease } from './BottomSheet';
 export type { BottomSheetProps } from './BottomSheet';
 export { RemoteImage } from './RemoteImage';
 export type { RemoteImageProps } from './RemoteImage';
+export { ErrorDialog } from './ErrorDialog';
+export type { ErrorDialogProps } from './ErrorDialog';

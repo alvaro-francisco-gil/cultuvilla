@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractVersion, currentAppVersion } from '../lib/app-version.mjs';
 import { DEFAULT_MIN_SUPPORTED, resolveAppVersionConfig } from '../lib/app-version-config.mjs';
+import { currentStoreUrl } from '../lib/app-stores.mjs';
 
 describe('extractVersion', () => {
   it('pulls the top-level version out of an app.config.ts source', () => {
@@ -78,6 +79,23 @@ describe('resolveAppVersionConfig', () => {
     const { payload } = resolveAppVersionConfig({ stored: null, defaultLatest });
     assert.ok(payload.storeUrl.ios.startsWith('https://'));
     assert.ok(payload.storeUrl.android.startsWith('https://'));
+  });
+
+  // The gate's whole job is to send a walled user somewhere they can update.
+  // `startsWith('https://')` above was true of the pre-launch placeholder
+  // `https://apps.apple.com/app/id000000000`, which is how a dead link survived
+  // into the published 1.x line.
+  it('points iOS at the real listing, not a placeholder', () => {
+    const { payload } = resolveAppVersionConfig({ stored: null, defaultLatest });
+    assert.equal(payload.storeUrl.ios, currentStoreUrl('ios'));
+    assert.doesNotMatch(payload.storeUrl.ios, /id0+$/);
+  });
+
+  it('refuses to write a config with no iOS destination at all', () => {
+    assert.throws(
+      () => resolveAppVersionConfig({ stored: null, defaultLatest, storeUrl: { ios: '', android: 'https://x' } }),
+      /storeUrl.ios/,
+    );
   });
 
   it('rejects a non-semver version', () => {
