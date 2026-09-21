@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { logger } from 'firebase-functions/v2';
 import sharp from 'sharp';
 import {
   IMAGE_CONCURRENCY,
+  IMAGE_FETCH_ATTEMPTS,
   MAX_IMAGE_PIXELS,
   isAllowedImageUrl,
   loadImage,
@@ -102,6 +104,113 @@ describe('loadImage', () => {
 
   it('returns null rather than throwing on a non-image body', async () => {
     expect(await loadImage(STORAGE, 8, 8, respond(Buffer.from('<html>not an image</html>')))).toBeNull();
+  });
+});
+
+/**
+ * A Wrapped card is built once and kept; an image lost to a blip is lost for
+ * good. Three real Matabuena flyers failed with `TypeError: fetch failed` in
+ * 177-524ms and every one of them fetched fine on retry -- far too fast to be
+ * the timeout, so these are connection-level blips, not slow images. Without a
+ * retry each blip silently costs a card its picture.
+ */
+describe('transient failures', () => {
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  it('retries a dropped connection and keeps the image', async () => {
+    const body = await png();
+    let calls = 0;
+    const flaky: typeof fetch = () => {
+      calls += 1;
+      if (calls === 1) return Promise.reject(new TypeError('fetch failed'));
+      return Promise.resolve(new Response(body, { status: 200 }));
+    };
+    expect(await loadImage(STORAGE, 8, 8, flaky)).toMatch(/^data:image\/jpeg;base64,/);
+    expect(calls).toBe(2);
+  });
+
+  for (const status of [500, 502, 503, 429]) {
+    it(`retries a ${String(status)} and keeps the image`, async () => {
+      const body = await png();
+      let calls = 0;
+      const flaky: typeof fetch = () => {
+        calls += 1;
+        if (calls === 1) return Promise.resolve(new Response(null, { status }));
+        return Promise.resolve(new Response(body, { status: 200 }));
+      };
+      expect(await loadImage(STORAGE, 8, 8, flaky)).toMatch(/^data:image\/jpeg;base64,/);
+      expect(calls).toBe(2);
+    });
+  }
+
+  it('gives up after IMAGE_FETCH_ATTEMPTS and returns null', async () => {
+    let calls = 0;
+    const dead: typeof fetch = () => {
+      calls += 1;
+      return Promise.reject(new TypeError('fetch failed'));
+    };
+    expect(await loadImage(STORAGE, 8, 8, dead)).toBeNull();
+    expect(calls).toBe(IMAGE_FETCH_ATTEMPTS);
+  });
+
+  // Retrying what will never succeed just burns the render's time budget.
+  for (const [label, status] of [['404', 404], ['403', 403]] as const) {
+    it(`does not retry a ${label}`, async () => {
+      let calls = 0;
+      const gone: typeof fetch = () => {
+        calls += 1;
+        return Promise.resolve(new Response(null, { status }));
+      };
+      expect(await loadImage(STORAGE, 8, 8, gone)).toBeNull();
+      expect(calls).toBe(1);
+    });
+  }
+
+  it('does not retry a body that blows the byte cap', async () => {
+    let calls = 0;
+    const big: typeof fetch = () => {
+      calls += 1;
+      return Promise.resolve(new Response(new Uint8Array(64 * 1024), { status: 200 }));
+    };
+    expect(await loadImage(STORAGE, 8, 8, big, { maxBytes: 1024 })).toBeNull();
+    expect(calls).toBe(1);
+  });
+
+  it('does not retry a body that is not an image', async () => {
+    let calls = 0;
+    const junk: typeof fetch = () => {
+      calls += 1;
+      return Promise.resolve(new Response(Buffer.from('<html>nope</html>'), { status: 200 }));
+    };
+    expect(await loadImage(STORAGE, 8, 8, junk)).toBeNull();
+    expect(calls).toBe(1);
+  });
+
+  // A dropped image used to be indistinguishable from an event that simply had
+  // no flyer: the catch returned null and logged nothing, so Cloud Logging
+  // showed a clean build while cards silently lost their pictures.
+  it('logs a warning naming why the image was dropped', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    await loadImage(STORAGE, 8, 8, () => Promise.resolve(new Response(null, { status: 404 })));
+    expect(warn).toHaveBeenCalledTimes(1);
+    const [message, payload] = warn.mock.calls[0] as [string, Record<string, unknown>];
+    expect(message).toMatch(/image/i);
+    expect(payload).toMatchObject({ handler: 'loadImage', reason: 'http-404', attempts: 1 });
+  });
+
+  it('does not log a warning when there is simply no image to load', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    expect(await loadImage(null, 8, 8, () => Promise.reject(new Error('unreachable')))).toBeNull();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  // A Storage download URL carries `?token=<uuid>`, which grants read access to
+  // the object. Logging the failure must not put that capability in the logs.
+  it('never writes the storage access token to the log', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    const tokened = `${STORAGE}&token=1b1b0d3e-dead-beef-cafe-000000000001`;
+    await loadImage(tokened, 8, 8, () => Promise.resolve(new Response(null, { status: 404 })));
+    expect(JSON.stringify(warn.mock.calls[0])).not.toContain('1b1b0d3e');
   });
 });
 

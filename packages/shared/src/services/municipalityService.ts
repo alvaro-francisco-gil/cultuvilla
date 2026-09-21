@@ -62,6 +62,7 @@ export async function getMunicipality(id: string): Promise<(MunicipalityData & {
 
 const slugById = new Map<string, string>();
 const idBySlug = new Map<string, string>();
+const nameBySlug = new Map<string, string>();
 
 /** Seed the cache from a municipality the caller already holds. */
 export function rememberVillageSlug(municipalityId: string, slug: string): void {
@@ -90,15 +91,26 @@ export async function getMunicipalityBySlug(
   );
   const found = snap.docs.at(0);
   if (!found) return null;
+  const data = found.data();
   rememberVillageSlug(found.id, slug);
-  return { id: found.id, ...found.data() };
+  nameBySlug.set(slug, data.name);
+  return { id: found.id, ...data };
 }
 
-/** The municipality id behind a `/<pueblo>` route segment, or null when no village has it. */
-export async function resolveVillageSlug(slug: string): Promise<string | null> {
-  const cached = idBySlug.get(slug);
-  if (cached) return cached;
-  return (await getMunicipalityBySlug(slug))?.id ?? null;
+/**
+ * The village behind a `/<pueblo>` route segment, or null when no village has
+ * it. The name rides along with the id because screens title themselves after
+ * the pueblo ("Diccionario de Matabuena") and would otherwise re-read the
+ * municipality doc for one string.
+ */
+export async function resolveVillageRoute(
+  slug: string,
+): Promise<{ id: string; name: string } | null> {
+  const cachedId = idBySlug.get(slug);
+  const cachedName = nameBySlug.get(slug);
+  if (cachedId && cachedName) return { id: cachedId, name: cachedName };
+  const municipality = await getMunicipalityBySlug(slug);
+  return municipality ? { id: municipality.id, name: municipality.name } : null;
 }
 
 /**

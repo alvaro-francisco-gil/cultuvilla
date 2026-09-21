@@ -10,7 +10,7 @@ import {
   type VillageWrapped,
 } from '@cultuvilla/shared/services/villageWrappedService';
 import type { WrappedRequest } from '@cultuvilla/shared/wrapped';
-import { Button, Screen, Text, VStack } from '../../components/primitives';
+import { Button, ErrorState, Screen, Text, VStack } from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { WrappedCreateForm } from '../../components/feature/wrapped/WrappedCreateForm';
 import { WrappedReview } from '../../components/feature/wrapped/WrappedReview';
@@ -40,14 +40,23 @@ function WrappedScreen() {
   const [wrapped, setWrapped] = useState<VillageWrapped | null>(null);
   const [form, setForm] = useState<WrappedFormState | null>(null);
   const [editing, setEditing] = useState(false);
+  const [loadError, setLoadError] = useState<unknown>(null);
 
   const load = useCallback(async () => {
     if (!villageId) return;
-    const [m, w] = await Promise.all([getMunicipality(villageId), getVillageWrappedForYear(villageId, year)]);
-    const blocks = m?.community?.fiestas ?? [];
-    setFiestas(blocks);
-    setWrapped(w);
-    setForm(initialWrappedForm(blocks, today, w));
+    setLoadError(null);
+    try {
+      const [m, w] = await Promise.all([getMunicipality(villageId), getVillageWrappedForYear(villageId, year)]);
+      const blocks = m?.community?.fiestas ?? [];
+      setFiestas(blocks);
+      setWrapped(w);
+      setForm(initialWrappedForm(blocks, today, w));
+    } catch (error) {
+      // Surfaced, not swallowed: the screen's whole render gates on `fiestas`,
+      // so a rejected read here is indistinguishable from a slow one and shows
+      // an endless spinner. Offer the retry rather than a dead screen.
+      setLoadError(error);
+    }
   }, [villageId, year, today]);
 
   useEffect(() => {
@@ -78,7 +87,9 @@ function WrappedScreen() {
   return (
     <Screen padded={false} topInset={false}>
       <ScreenHeader accent title={title} />
-      {!ready ? (
+      {loadError != null ? (
+        <ErrorState error={loadError} onRetry={load} />
+      ) : !ready ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
         </View>

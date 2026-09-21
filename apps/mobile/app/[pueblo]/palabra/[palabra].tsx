@@ -42,7 +42,11 @@ import { useVillageRoute, withVillageRoute } from '../../../lib/navigation/Villa
  * "comment-capable kinds", not the hero-detail entity family.
  */
 function VocabularyTermScreen() {
-  const { municipalityId: villageId, slug: villageSlug } = useVillageRoute();
+  const {
+    municipalityId: villageId,
+    slug: villageSlug,
+    name: villageName,
+  } = useVillageRoute();
   const { palabra } = useLocalSearchParams<{ palabra: string }>();
   // A term's doc id is `<municipalityId>__<slug>`; the URL carries the slug.
   const termId = palabra ? vocabularyTermId(villageId, palabra) : '';
@@ -110,7 +114,7 @@ function VocabularyTermScreen() {
   return (
     <Screen padded={false} bottomInset={false}>
       <ScreenHeader
-        title={t('village.vocabulary.title')}
+        title={t('village.vocabulary.title', { village: villageName })}
         rightSlot={
           canDeleteTerm ? (
             <Pressable onPress={() => void removeTerm()} testID="vocabulary-delete-term">

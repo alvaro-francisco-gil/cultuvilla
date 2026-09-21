@@ -32,7 +32,11 @@ import { slugifyTerm } from '@cultuvilla/shared/models/vocabulary';
  * "napa" finds "ñapa" and "esbardo" finds "Esbardo".
  */
 function VocabularyScreen() {
-  const { municipalityId: villageId, slug: villageSlug } = useVillageRoute();
+  const {
+    municipalityId: villageId,
+    slug: villageSlug,
+    name: villageName,
+  } = useVillageRoute();
   const { t } = useT();
   const { isMember } = useEntityCapabilities(villageId);
   const [terms, setTerms] = useState<VocabularyTermWithId[]>([]);
@@ -64,7 +68,7 @@ function VocabularyScreen() {
 
   return (
     <Screen padded={false} bottomInset={false}>
-      <ScreenHeader title={t('village.vocabulary.title')} />
+      <ScreenHeader title={t('village.vocabulary.title', { village: villageName })} />
       <View className="px-4 pt-2 pb-1">
         <Input
           value={search}

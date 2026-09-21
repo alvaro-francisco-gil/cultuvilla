@@ -27,8 +27,19 @@ const word: WordOfTheDay = {
 beforeEach(() => jest.clearAllMocks());
 
 describe('WordOfTheDayCard', () => {
+  // The section is named after the pueblo — "Diccionario de Matabuena", not a
+  // generic "Vocabulario" — so the title carries the village through.
+  it('titles the section after the village', () => {
+    const { getByText } = render(
+      <WordOfTheDayCard word={word} count={48} villageSlug="anaya" villageName="Anaya" />,
+    );
+    expect(getByText('village.vocabulary.title:{"village":"Anaya"}')).toBeTruthy();
+  });
+
   it('shows the word with its meaning and example', () => {
-    const { getByText } = render(<WordOfTheDayCard word={word} count={48} villageSlug="anaya" />);
+    const { getByText } = render(
+      <WordOfTheDayCard word={word} count={48} villageSlug="anaya" villageName="Anaya" />,
+    );
     expect(getByText('ajigolado')).toBeTruthy();
     expect(getByText('Que se queda sin aire.')).toBeTruthy();
     expect(getByText('«Subí la cuesta y llegué ajigolado.»')).toBeTruthy();
@@ -36,13 +47,20 @@ describe('WordOfTheDayCard', () => {
 
   it('still shows a word nobody has defined yet', () => {
     const { getByText } = render(
-      <WordOfTheDayCard word={{ ...word, definition: null }} count={48} villageSlug="anaya" />,
+      <WordOfTheDayCard
+        word={{ ...word, definition: null }}
+        count={48}
+        villageSlug="anaya"
+        villageName="Anaya"
+      />,
     );
     expect(getByText('ajigolado')).toBeTruthy();
   });
 
   it('opens the word, the other suggested words, and the whole vocabulary', () => {
-    const { getByText } = render(<WordOfTheDayCard word={word} count={48} villageSlug="anaya" />);
+    const { getByText } = render(
+      <WordOfTheDayCard word={word} count={48} villageSlug="anaya" villageName="Anaya" />,
+    );
     fireEvent.press(getByText('ajigolado'));
     expect(router.push).toHaveBeenLastCalledWith('/anaya/palabra/ajigolado');
     fireEvent.press(getByText('miaja'));

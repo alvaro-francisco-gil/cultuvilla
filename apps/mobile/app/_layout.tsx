@@ -8,6 +8,7 @@ import { bootstrapObservability } from '../lib/observability/configure';
 import { ObservabilityErrorBoundary } from '../lib/observability/ObservabilityErrorBoundary';
 import { AppVersionGate } from '../components/AppVersionGate';
 import { SmartAppBanner } from '../components/SmartAppBanner';
+import { IntroHost, useMarkAppReady } from '../components/intro/IntroHost';
 import { AuthProvider } from '../lib/auth/AuthContext';
 import { CallableErrorProvider } from '../lib/callableError';
 import { I18nProvider } from '../lib/i18n';
@@ -28,16 +29,27 @@ bootstrapObservability();
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ Fraunces_700Bold });
-  // Before any early return: the overlay ogRenderer injects must be released
-  // even when the app never reaches a screen that knows about it.
+  // At the root: the overlay ogRenderer injects must be released even when
+  // the app never reaches a screen that knows about it.
   useSeoShellFailsafe();
-  if (!fontsLoaded) {
-    return (
-      <View className="flex-1 items-center justify-center bg-surface">
-        <ActivityIndicator />
-      </View>
-    );
-  }
+  return (
+    // I18nProvider sits above IntroHost so the intro's skip label is translated;
+    // IntroHost sits above the font gate so the intro covers that wait too.
+    <I18nProvider>
+      <IntroHost>
+        {fontsLoaded ? (
+          <AppTree />
+        ) : (
+          <View className="flex-1 items-center justify-center bg-surface">
+            <ActivityIndicator />
+          </View>
+        )}
+      </IntroHost>
+    </I18nProvider>
+  );
+}
+
+function AppTree() {
   return (
     <SafeAreaProvider>
       <ObservabilityErrorBoundary
@@ -47,33 +59,31 @@ export default function RootLayout() {
           </View>
         }
       >
-        <I18nProvider>
-          <AppVersionGate>
-            <CallableErrorProvider>
-              <AuthProvider>
-                <GuestActiveVillageProvider>
-                  <MyRegistrationsProvider>
-                    <PushProvider>
-                      <RegisterGateProvider>
-                        {/* Web-only "get the app" bar. A flex sibling above the
-                            navigator, so it pushes the app down instead of
-                            overlaying the tab bar or a detail header. Renders
-                            nothing on native and nothing until a store URL for
-                            the visitor's platform exists (lib/appStores.ts). */}
-                        <SmartAppBanner />
-                        <AuthGate />
-                        {/* Web-only image-crop overlay (no-op on native, which uses its
-                            own native cropper). Rendered above the app so it can cover
-                            any screen when pickImageAsBlob({ square }) opens it. */}
-                        <CropperHost />
-                      </RegisterGateProvider>
-                    </PushProvider>
-                  </MyRegistrationsProvider>
-                </GuestActiveVillageProvider>
-              </AuthProvider>
-            </CallableErrorProvider>
-          </AppVersionGate>
-        </I18nProvider>
+        <AppVersionGate>
+          <CallableErrorProvider>
+            <AuthProvider>
+              <GuestActiveVillageProvider>
+                <MyRegistrationsProvider>
+                  <PushProvider>
+                    <RegisterGateProvider>
+                      {/* Web-only "get the app" bar. A flex sibling above the
+                          navigator, so it pushes the app down instead of
+                          overlaying the tab bar or a detail header. Renders
+                          nothing on native and nothing until a store URL for
+                          the visitor's platform exists (lib/appStores.ts). */}
+                      <SmartAppBanner />
+                      <AuthGate />
+                      {/* Web-only image-crop overlay (no-op on native, which uses its
+                          own native cropper). Rendered above the app so it can cover
+                          any screen when pickImageAsBlob({ square }) opens it. */}
+                      <CropperHost />
+                    </RegisterGateProvider>
+                  </PushProvider>
+                </MyRegistrationsProvider>
+              </GuestActiveVillageProvider>
+            </AuthProvider>
+          </CallableErrorProvider>
+        </AppVersionGate>
       </ObservabilityErrorBoundary>
     </SafeAreaProvider>
   );
@@ -85,6 +95,7 @@ function AuthGate() {
   useRouteTracking();
   useDeepLinkRouter();
   const { pendingIntent, clearPending } = useRegisterGate();
+  const markAppReady = useMarkAppReady();
 
   const intentTarget = resolveIntentResume({
     user: !!user,
@@ -104,6 +115,12 @@ function AuthGate() {
       router.push(intentTarget as Href);
     }
   }, [intentTarget, clearPending]);
+
+  // The intro holds the screen until the first real route is decided.
+  const resolving = loading || (user && !profileChecked) || !!intentTarget;
+  useEffect(() => {
+    if (!resolving) markAppReady();
+  }, [resolving, markAppReady]);
 
   if (loading || (user && !profileChecked)) {
     return (

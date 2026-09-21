@@ -86,6 +86,13 @@ jobs:
       - name: Lint backfill registry coverage (warn only)
         run: pnpm backfills:lint
 
+      # Structural check on the business-opportunity registry under project/.
+      # Fails on a malformed record (bad enum, id/filename drift, duplicate id);
+      # a lapsed deadline is only warned about, since time passing is not a
+      # commit anyone can be asked to fix.
+      - name: Verify opportunity registry
+        run: pnpm opportunities:verify
+
       - name: Test (unit — shared, mobile, functions)
         run: pnpm test:unit
 
