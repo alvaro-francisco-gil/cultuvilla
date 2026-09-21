@@ -1,22 +1,30 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { colors } from '@cultuvilla/shared/design-system';
 import { App } from './App';
+import { chipStyles, ink, onAccent, surfaces } from './theme';
 import './styles.css';
 
 /**
- * Publish the design-system tokens as CSS variables instead of copying hex
- * values into the stylesheet — the panel then follows the app's palette for free.
+ * Publish the measured theme as CSS variables. The stylesheet holds no hex
+ * values on purpose: every colour has to come from theme.ts, which is the file
+ * theme.test.ts checks against WCAG AA.
  */
-function applyTokens(): void {
+function applyTheme(): void {
   const root = document.documentElement;
-  const { bg, fg, border } = colors.light;
-  for (const [name, value] of Object.entries(bg)) root.style.setProperty(`--bg-${name}`, value);
-  for (const [name, value] of Object.entries(fg)) root.style.setProperty(`--fg-${name}`, value);
-  for (const [name, value] of Object.entries(border)) root.style.setProperty(`--border-${name}`, value);
+  root.style.setProperty('--page', surfaces.page);
+  root.style.setProperty('--card', surfaces.card);
+  root.style.setProperty('--card-alt', surfaces.cardAlt);
+  root.style.setProperty('--border', surfaces.border);
+  root.style.setProperty('--border-strong', surfaces.borderStrong);
+  root.style.setProperty('--ink', ink.strong);
+  root.style.setProperty('--ink-muted', ink.muted);
+  root.style.setProperty('--accent', ink.accent);
+  root.style.setProperty('--on-accent', onAccent);
+  root.style.setProperty('--danger', chipStyles.urgente.fg);
+  root.style.setProperty('--mark-bg', chipStyles.activo.bg);
 }
 
-applyTokens();
+applyTheme();
 
 const container = document.getElementById('root');
 if (!container) throw new Error('#root missing from index.html');
