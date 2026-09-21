@@ -17,8 +17,17 @@ import { z } from 'zod';
  * changes their photo.
  */
 
-/** In the order they are shown. Carteles close the set: this year added to the pueblo's long history. */
-export const WRAPPED_CARDS = ['cover', 'stats', 'events', 'news', 'people', 'organizers', 'posters'] as const;
+/**
+ * In the order they are shown, and the ONLY definition of that order — the
+ * review screen walks this array to lay the cards out, so changing it re-orders
+ * a Wrapped that was rendered long ago without re-rendering a thing.
+ *
+ * What the pueblo did comes before the count of it: "Lo que se hizo" is the
+ * story and "En números" is the evidence, so the numbers land as a payoff
+ * rather than as a preamble to cards the reader has not seen yet. Carteles
+ * close the set: this year added to the pueblo's long history.
+ */
+export const WRAPPED_CARDS = ['cover', 'events', 'stats', 'news', 'people', 'organizers', 'posters'] as const;
 export const WrappedCardSchema = z.enum([...WRAPPED_CARDS]);
 export type WrappedCard = z.infer<typeof WrappedCardSchema>;
 
