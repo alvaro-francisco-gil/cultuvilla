@@ -6,7 +6,7 @@ import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { useT } from '../../lib/i18n';
 
 type CardSpec = {
-  href: '/admin/solicitudes-organizador' | '/admin/denuncias' | '/admin/negocio';
+  href: '/admin/solicitudes-organizador' | '/admin/denuncias';
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   hint: string;
@@ -26,13 +26,6 @@ export default function AdminHubScreen() {
       icon: 'flag-outline',
       title: t('admin.hub.reports'),
       hint: t('admin.hub.reportsHint'),
-    },
-    {
-      href: '/admin/negocio',
-      icon: 'briefcase-outline',
-      // Hardcoded Spanish, like the screen it opens: internal admin surface.
-      title: 'Negocio',
-      hint: 'Convocatorias, encuentros, entidades y propuestas',
     },
   ];
 

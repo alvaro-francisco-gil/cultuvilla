@@ -4,5 +4,31 @@
     "dev": "villa-events",
     "beta": "cultuvilla-beta",
     "prod": "cultuvilla-prod"
+  },
+  "targets": {
+    "villa-events": {
+      "hosting": {
+        "app": [
+          "villa-events"
+        ],
+        "panel": [
+          "cultuvilla-panel"
+        ]
+      }
+    },
+    "cultuvilla-beta": {
+      "hosting": {
+        "app": [
+          "cultuvilla-beta"
+        ]
+      }
+    },
+    "cultuvilla-prod": {
+      "hosting": {
+        "app": [
+          "cultuvilla-prod"
+        ]
+      }
+    }
   }
 }
