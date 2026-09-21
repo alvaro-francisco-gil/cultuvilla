@@ -10,6 +10,8 @@ Design work lives under [docs/plans/](docs/plans/) by lifecycle stage (`ideas/` 
 
 The **business** side — public funding calls, encuentros worth attending, potential collaborators — lives under [project/](project/), governed by its own [project/AGENTS.md](project/AGENTS.md). It is a registry, not prose: `pnpm opportunities:list` prints the current state plus anything due in the next 30 days, and `pnpm opportunities:verify` gates it in CI. Research it with the `research-opportunities` skill / `opportunity-scout` agent, which may file and score but never contacts anyone and never submits anything.
 
+That registry is read by **[apps/panel/](apps/panel/)**, a small private Vite app for the two founders — governed by its own [apps/panel/AGENTS.md](apps/panel/AGENTS.md). It is dev-only with no release path, and its data is served by an authenticated callable rather than bundled, because an earlier version lived inside the mobile app where the route guard hid the screen while the JSON still shipped in the public web bundle.
+
 ## Repo health beats every rule below
 
 If a rule here makes the repo worse for a specific change, break the rule and update this file in the same PR. Rules exist to keep the codebase coherent, not to be obeyed mechanically.
