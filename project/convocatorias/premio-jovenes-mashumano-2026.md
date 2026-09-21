@@ -2,19 +2,20 @@
 id: premio-jovenes-mashumano-2026
 kind: convocatoria
 titulo: "Premio Jóvenes Máshumano 2026"
-status: submitted
+status: lost
 fit: high
 convocante: "Fundación Máshumano"
 categoria: "Categoría Fundación Máshumano (iniciativas sociales y culturales)"
 url: "[[confirmar: enlace de la convocatoria]]"
 fuente: "candidatura preparada en project/proposals/mashumano/"
+resolucion: 2026-09-21
 ---
 
 # Premio Jóvenes Máshumano 2026
 
-**Presentada.** Es la primera candidatura de Cultuvilla y el registro de
-referencia del formato: la candidatura completa vive en
-[project/proposals/mashumano/](../proposals/mashumano/) —
+**No seleccionada** (conocido el 2026-09-21). Fue la primera candidatura de
+Cultuvilla y sigue siendo el registro de referencia del formato: la candidatura
+completa vive en [project/proposals/mashumano/](../proposals/mashumano/) —
 [formulario.md](../proposals/mashumano/formulario.md),
 [plan-de-negocio.md](../proposals/mashumano/plan-de-negocio.md) y los CVs.
 
@@ -34,6 +35,6 @@ el problema, los beneficiarios y las cifras del piloto (Matabuena: ~25% del cens
 
 ## Acciones
 
-- [ ] `[[confirmar: fecha de resolución]]` y actualizar a `won` / `lost`.
-- [ ] Si `lost`: pedir feedback y anotarlo aquí — es lo único que hace que la
-      siguiente candidatura sea mejor y no solo otra.
+- [ ] Pedir feedback a la Fundación sobre por qué no se seleccionó y anotarlo
+      aquí — es lo único que hace que la siguiente candidatura sea mejor y no
+      solo otra. `[[confirmar: respuesta de la Fundación]]`
