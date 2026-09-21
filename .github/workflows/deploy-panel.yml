@@ -53,6 +53,15 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
+      # `functions/` keeps its own dependency tree, and the callable deploy below
+      # runs an esbuild predeploy over the WHOLE codebase — not just the one
+      # function named. Without this, that bundle cannot resolve `resend` or
+      # `satori` and the deploy dies in predeploy, so the panel silently keeps
+      # serving the previous snapshot. `deploy-firebase.yml` has the same step.
+      - name: Install functions dependencies
+        run: npm ci
+        working-directory: functions
+
       # The snapshot is committed, and CI already fails if it is stale — this
       # regenerates anyway so a deploy can never publish an older one than the
       # commit it is building.
