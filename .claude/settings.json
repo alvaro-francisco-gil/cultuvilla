@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "agent-plans": {
+      "source": {
+        "source": "github",
+        "repo": "alvaro-francisco-gil/agent-plans"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "plans-lifecycle@agent-plans": true
+  }
+}
