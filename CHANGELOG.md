@@ -4,6 +4,16 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Fixed
+
+- **The panel deploy never actually deployed.** `deploy-panel.yml` deploys the
+  `getBusinessSnapshot` callable, but never installed `functions/`'s own
+  dependencies — and `firebase deploy --only functions:<one>` runs an esbuild
+  predeploy over the whole functions codebase, not just the named function. It
+  died resolving `resend` and `satori`, so every panel deploy failed at that
+  step and the live panel kept serving the previous snapshot. Locked by
+  [functionsDeployDeps.test.ts](packages/shared/test/ci/functionsDeployDeps.test.ts).
+
 ### Added
 
 - **Panel: tabs, and a Fiestas tab.** The founders' panel is now `Registro` ·
