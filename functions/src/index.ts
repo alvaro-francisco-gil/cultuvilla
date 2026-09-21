@@ -87,6 +87,7 @@ export { verifyAuthOtpCode } from './auth/verifyAuthOtpCode';
 
 // Observability (client error ingestion + pseudonymized identity)
 export { logClientError } from './observability/logClientError';
+export { getBusinessSnapshot } from './business/getBusinessSnapshot';
 export { getUserIdHash } from './observability/getUserIdHash';
 
 // Image variants (downscaled WebP renditions written beside every upload, so
