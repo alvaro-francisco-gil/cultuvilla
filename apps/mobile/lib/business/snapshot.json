@@ -1,0 +1,305 @@
+{
+  "generatedAt": "2026-09-21",
+  "counts": {
+    "convocatoria": 6,
+    "evento": 1,
+    "entidad": 11,
+    "propuesta": 2
+  },
+  "urgente": [
+    {
+      "path": "project/convocatorias/horizon-europe-cl2-heritage-2026.md",
+      "holes": 1,
+      "id": "horizon-europe-cl2-heritage-2026",
+      "kind": "convocatoria",
+      "titulo": "Horizon Europe Cluster 2 — European cultural heritage and CCI (2026)",
+      "status": "watching",
+      "fit": "low",
+      "deadline": "2026-09-23",
+      "convocante": "Comisión Europea — REA, Horizon Europe Cluster 2",
+      "importe": "85,5 M€ indicativos repartidos en 7 topics",
+      "url": "https://rea.ec.europa.eu/funding-and-grants/horizon-europe-cluster-2-culture-creativity-and-inclusive-society/european-cultural-heritage-and-cultural-and-creative-industries_en",
+      "dias": 2
+    },
+    {
+      "path": "project/convocatorias/town-twinning-cerv-2026.md",
+      "holes": 1,
+      "id": "town-twinning-cerv-2026",
+      "kind": "convocatoria",
+      "titulo": "Town Twinning 2026 (hermanamientos) — CERV",
+      "status": "watching",
+      "fit": "medium",
+      "deadline": "2026-09-23",
+      "convocante": "Comisión Europea — programa CERV 2021-2027",
+      "importe": "8.455 € – 50.745 € por proyecto (suma global; 6 M€ en total)",
+      "url": "https://techfriendly.es/actualidad/convocatorias/convocatoria-town-twinning-2026/",
+      "dias": 2
+    },
+    {
+      "path": "project/eventos/epa-encuentro-galera-2026.md",
+      "holes": 2,
+      "id": "epa-encuentro-galera-2026",
+      "kind": "evento",
+      "titulo": "Encuentro de Proyectos Rurales ¡Chispa! — Galera (Granada)",
+      "status": "candidate",
+      "fit": "high",
+      "deadline": "2026-09-27",
+      "convocante": "epa-asociacion",
+      "lugar": "Galera, Granada",
+      "coste": "0 € — alojamiento y comidas cubiertos, hasta 200 € de desplazamiento",
+      "plazas": "25 (hasta 35 años)",
+      "url": "https://asociacionepa.org",
+      "dias": 6
+    },
+    {
+      "path": "project/proposals/chispa-galera-2026/propuesta.md",
+      "holes": 20,
+      "id": "chispa-galera-2026",
+      "kind": "propuesta",
+      "titulo": "Inscripción al encuentro ¡Chispa! (Galera)",
+      "status": "candidate",
+      "deadline": "2026-09-27",
+      "para": "epa-encuentro-galera-2026",
+      "dias": 6
+    }
+  ],
+  "caducadas": [],
+  "propuestasIncompletas": [],
+  "byKind": {
+    "convocatoria": [
+      {
+        "path": "project/convocatorias/european-heritage-awards-2027.md",
+        "holes": 1,
+        "id": "european-heritage-awards-2027",
+        "kind": "convocatoria",
+        "titulo": "European Heritage Awards / Europa Nostra Awards 2027",
+        "status": "expired",
+        "fit": "high",
+        "deadline": "2026-09-07",
+        "convocante": "Europa Nostra + Comisión Europea (Creative Europe)",
+        "importe": "10.000 € (Grand Prix) + 10.000 € (Public Choice Award)",
+        "url": "https://www.europeanheritageawards.eu/apply/"
+      },
+      {
+        "path": "project/convocatorias/town-twinning-cerv-2026.md",
+        "holes": 1,
+        "id": "town-twinning-cerv-2026",
+        "kind": "convocatoria",
+        "titulo": "Town Twinning 2026 (hermanamientos) — CERV",
+        "status": "watching",
+        "fit": "medium",
+        "deadline": "2026-09-23",
+        "convocante": "Comisión Europea — programa CERV 2021-2027",
+        "importe": "8.455 € – 50.745 € por proyecto (suma global; 6 M€ en total)",
+        "url": "https://techfriendly.es/actualidad/convocatorias/convocatoria-town-twinning-2026/"
+      },
+      {
+        "path": "project/convocatorias/horizon-europe-cl2-heritage-2026.md",
+        "holes": 1,
+        "id": "horizon-europe-cl2-heritage-2026",
+        "kind": "convocatoria",
+        "titulo": "Horizon Europe Cluster 2 — European cultural heritage and CCI (2026)",
+        "status": "watching",
+        "fit": "low",
+        "deadline": "2026-09-23",
+        "convocante": "Comisión Europea — REA, Horizon Europe Cluster 2",
+        "importe": "85,5 M€ indicativos repartidos en 7 topics",
+        "url": "https://rea.ec.europa.eu/funding-and-grants/horizon-europe-cluster-2-culture-creativity-and-inclusive-society/european-cultural-heritage-and-cultural-and-creative-industries_en"
+      },
+      {
+        "path": "project/convocatorias/miteco-despoblacion-2026.md",
+        "holes": 2,
+        "id": "miteco-despoblacion-2026",
+        "kind": "convocatoria",
+        "titulo": "MITECO — proyectos innovadores contra la despoblación",
+        "status": "watching",
+        "fit": "high",
+        "convocante": "Ministerio para la Transición Ecológica y el Reto Demográfico (MITECO)",
+        "url": "[[confirmar: enlace de la convocatoria cuando se publique]]"
+      },
+      {
+        "path": "project/convocatorias/premio-jovenes-mashumano-2026.md",
+        "holes": 2,
+        "id": "premio-jovenes-mashumano-2026",
+        "kind": "convocatoria",
+        "titulo": "Premio Jóvenes Máshumano 2026",
+        "status": "submitted",
+        "fit": "high",
+        "convocante": "Fundación Máshumano",
+        "url": "[[confirmar: enlace de la convocatoria]]"
+      },
+      {
+        "path": "project/convocatorias/fondos-feder.md",
+        "holes": 3,
+        "id": "fondos-feder",
+        "kind": "convocatoria",
+        "titulo": "Fondos FEDER — programas operativos (paraguas, no una convocatoria)",
+        "status": "watching",
+        "fit": "medium",
+        "convocante": "UE — gestionado por Junta de Castilla y León, Diputación y Estado",
+        "url": "[[confirmar: programa operativo FEDER de Castilla y León 2021-2027]]"
+      }
+    ],
+    "evento": [
+      {
+        "path": "project/eventos/epa-encuentro-galera-2026.md",
+        "holes": 2,
+        "id": "epa-encuentro-galera-2026",
+        "kind": "evento",
+        "titulo": "Encuentro de Proyectos Rurales ¡Chispa! — Galera (Granada)",
+        "status": "candidate",
+        "fit": "high",
+        "deadline": "2026-09-27",
+        "convocante": "epa-asociacion",
+        "lugar": "Galera, Granada",
+        "coste": "0 € — alojamiento y comidas cubiertos, hasta 200 € de desplazamiento",
+        "plazas": "25 (hasta 35 años)",
+        "url": "https://asociacionepa.org"
+      }
+    ],
+    "entidad": [
+      {
+        "path": "project/entidades/epa-asociacion.md",
+        "holes": 2,
+        "id": "epa-asociacion",
+        "kind": "entidad",
+        "titulo": "Asociación EPA! Jóvenes Rurales",
+        "relacion": "sin-contacto",
+        "fit": "high",
+        "tipo": "asociacion",
+        "url": "https://asociacionepa.org"
+      },
+      {
+        "path": "project/entidades/segovia-sur.md",
+        "holes": 2,
+        "id": "segovia-sur",
+        "kind": "entidad",
+        "titulo": "Asociación Segovia Sur — GAL de la Sierra",
+        "relacion": "sin-contacto",
+        "fit": "high",
+        "tipo": "grupo de accion local",
+        "url": "https://www.segoviasur.com"
+      },
+      {
+        "path": "project/entidades/ayer-dijimos-algo.md",
+        "holes": 3,
+        "id": "ayer-dijimos-algo",
+        "kind": "entidad",
+        "titulo": "Ayer Dijimos Algo (podcast)",
+        "relacion": "conversando",
+        "fit": "high",
+        "tipo": "podcast",
+        "url": "[[confirmar]]"
+      },
+      {
+        "path": "project/entidades/codinse.md",
+        "holes": 2,
+        "id": "codinse",
+        "kind": "entidad",
+        "titulo": "CODINSE — GAL del nordeste de Segovia",
+        "relacion": "sin-contacto",
+        "fit": "high",
+        "tipo": "grupo de accion local",
+        "url": "https://www.codinse.com"
+      },
+      {
+        "path": "project/entidades/fundacion-carasso.md",
+        "holes": 3,
+        "id": "fundacion-carasso",
+        "kind": "entidad",
+        "titulo": "Fundación Daniel y Nina Carasso",
+        "relacion": "sin-contacto",
+        "fit": "high",
+        "tipo": "fundacion",
+        "url": "[[confirmar: fondationcarasso.org / .es]]"
+      },
+      {
+        "path": "project/entidades/a-regenerar.md",
+        "holes": 3,
+        "id": "a-regenerar",
+        "kind": "entidad",
+        "titulo": "A Regenerar",
+        "relacion": "sin-contacto",
+        "fit": "medium",
+        "tipo": "asociacion",
+        "url": "[[confirmar]]"
+      },
+      {
+        "path": "project/entidades/adefoincovillas.md",
+        "holes": 3,
+        "id": "adefoincovillas",
+        "kind": "entidad",
+        "titulo": "ADEFO Cinco Villas (GAL de las Cinco Villas, Zaragoza)",
+        "relacion": "sin-contacto",
+        "fit": "medium",
+        "tipo": "grupo de accion local",
+        "url": "https://adefo.com"
+      },
+      {
+        "path": "project/entidades/dinamizar-tu-pueblo.md",
+        "holes": 3,
+        "id": "dinamizar-tu-pueblo",
+        "kind": "entidad",
+        "titulo": "Dinamizar Tu Pueblo (dinamizartupueblo.es)",
+        "relacion": "sin-contacto",
+        "fit": "medium",
+        "tipo": "[[confirmar]]",
+        "url": "https://dinamizartupueblo.es"
+      },
+      {
+        "path": "project/entidades/enraiza-derechos.md",
+        "holes": 4,
+        "id": "enraiza-derechos",
+        "kind": "entidad",
+        "titulo": "Enraíza Derechos",
+        "relacion": "sin-contacto",
+        "fit": "medium",
+        "tipo": "[[confirmar: fundación / ONG]]",
+        "url": "[[confirmar]]"
+      },
+      {
+        "path": "project/entidades/la-perdiz-roja.md",
+        "holes": 4,
+        "id": "la-perdiz-roja",
+        "kind": "entidad",
+        "titulo": "La Perdiz Roja",
+        "relacion": "sin-contacto",
+        "fit": "medium",
+        "tipo": "[[confirmar]]",
+        "url": "[[confirmar]]"
+      },
+      {
+        "path": "project/entidades/ministerio-de-cultura.md",
+        "holes": 1,
+        "id": "ministerio-de-cultura",
+        "kind": "entidad",
+        "titulo": "Ministerio de Cultura",
+        "relacion": "sin-contacto",
+        "fit": "medium",
+        "tipo": "administracion",
+        "url": "https://www.cultura.gob.es"
+      }
+    ],
+    "propuesta": [
+      {
+        "path": "project/proposals/chispa-galera-2026/propuesta.md",
+        "holes": 20,
+        "id": "chispa-galera-2026",
+        "kind": "propuesta",
+        "titulo": "Inscripción al encuentro ¡Chispa! (Galera)",
+        "status": "borrador",
+        "para": "epa-encuentro-galera-2026",
+        "deadline": "2026-09-27"
+      },
+      {
+        "path": "project/proposals/mashumano/propuesta.md",
+        "holes": 10,
+        "id": "mashumano",
+        "kind": "propuesta",
+        "titulo": "Candidatura al Premio Jóvenes Máshumano 2026",
+        "status": "enviada",
+        "para": "premio-jovenes-mashumano-2026"
+      }
+    ]
+  }
+}

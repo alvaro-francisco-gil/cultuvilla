@@ -40,6 +40,8 @@
     "backfills:verify": "node scripts/backfills-cli.mjs verify",
     "backfills:run": "node scripts/backfills-cli.mjs run",
     "backfills:auto-apply": "node scripts/backfills-cli.mjs auto-apply",
+    "business:snapshot": "node scripts/generate-business-snapshot.mjs",
+    "business:snapshot:check": "node scripts/generate-business-snapshot.mjs --check",
     "opportunities:list": "node scripts/opportunities-cli.mjs list",
     "opportunities:verify": "node scripts/opportunities-cli.mjs verify",
     "backfills:lint": "node scripts/lint-backfill-meta.mjs",

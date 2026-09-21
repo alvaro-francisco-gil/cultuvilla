@@ -12,6 +12,7 @@
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isMain } from './lib/backfill-harness.mjs';
 import {
   DIRS,
   KINDS,
@@ -203,10 +204,15 @@ function verify() {
   return 0;
 }
 
-const command = process.argv[2];
-const commands = { list, verify };
-if (!commands[command]) {
-  console.error(`Usage: node scripts/opportunities-cli.mjs <list|verify> [flags]`);
-  process.exit(2);
+// Guarded so `loadRegistry` can be imported by other scripts — without this the
+// import itself would dispatch on the *importer's* argv and call process.exit.
+// Same trap the backfill registry documents for its discovery step.
+if (isMain(import.meta.url)) {
+  const command = process.argv[2];
+  const commands = { list, verify };
+  if (!commands[command]) {
+    console.error(`Usage: node scripts/opportunities-cli.mjs <list|verify> [flags]`);
+    process.exit(2);
+  }
+  process.exit(commands[command]());
 }
-process.exit(commands[command]());
