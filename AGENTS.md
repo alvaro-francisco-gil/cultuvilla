@@ -8,6 +8,8 @@ Cultuvilla is a mobile-first web app for Spanish village communities. Organizati
 
 Design work lives under [docs/plans/](docs/plans/) by lifecycle stage (`ideas/` → `ready/` → `ongoing/`); durable rationale for shipped work is distilled into [docs/decisions/](docs/decisions/). **The code is the source of truth for *what* exists**; this file is the source of truth for *how* to build. See the `managing-plans-lifecycle` skill for where a given doc belongs. There is no `docs/superpowers/` or `docs/archive/`.
 
+The **business** side — public funding calls, encuentros worth attending, potential collaborators — lives under [project/](project/), governed by its own [project/AGENTS.md](project/AGENTS.md). It is a registry, not prose: `pnpm opportunities:list` prints the current state plus anything due in the next 30 days, and `pnpm opportunities:verify` gates it in CI. Research it with the `research-opportunities` skill / `opportunity-scout` agent, which may file and score but never contacts anyone and never submits anything.
+
 ## Repo health beats every rule below
 
 If a rule here makes the repo worse for a specific change, break the rule and update this file in the same PR. Rules exist to keep the codebase coherent, not to be obeyed mechanically.
@@ -92,7 +94,7 @@ When a query would require N reads or live across collection boundaries, write a
 ### 6. Web parity is not a build rule
 
 `apps/mobile/` ships to iOS, Android **and** the web (Expo web export → Firebase
-Hosting). It is one codebase: the whole web-specific surface is 3 `.web.*` override
+Hosting). It is one codebase: the whole web-specific surface is 6 `.web.*` override
 files and ~27 `Platform.OS === 'web'` branch sites, fenced by
 `pnpm app:check-web-compat` / `pnpm app:check-web-export` and the
 `mobile-web-compat` skill. Keeping the two "in sync" is not a cost we pay.

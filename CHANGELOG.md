@@ -4,6 +4,29 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v1.3.0 — 2026-09-20
+
+<!-- store-notes -->
+- **Intro al abrir la app:** una animación con el logo mientras la app carga.
+- **Diccionario de tu pueblo:** la sección de palabras lleva ahora el nombre del pueblo.
+- **Fotos que faltaban** en el resumen de las fiestas y en los carteles ya aparecen.
+- Correcciones y mejoras.
+<!-- /store-notes -->
+
+### Added
+
+- **Intro al abrir la app (iOS y Android):** una animación de 4 s con el logo y su sonido, sobre el mismo crema de la app, mientras la app carga por debajo; se funde con la portada en cuanto las dos cosas han terminado, y un toque la salta. No aparece en la web (quien llega por un enlace va directo al contenido) ni con «Reducir movimiento» activado, y el sonido respeta el modo silencio. Necesita un binario nuevo: `lottie-react-native` y `expo-audio` son módulos nativos, así que no llega por OTA a las instalaciones actuales. El archivo se regenera desde la exportación del animador con `scripts/prepare-intro-lottie.mjs`.
+
+### Changed
+
+- **«Vocabulario» pasa a llamarse «Diccionario de <pueblo>»:** la sección de palabras del pueblo lleva ahora el nombre del pueblo en su título — «Diccionario de Matabuena» — en la portada, en el listado A–Z y en la ficha de cada palabra. La dirección sigue siendo `/<pueblo>/vocabulario`, así que los enlaces compartidos siguen funcionando.
+
+### Fixed
+
+- **Fotos que faltaban en el resumen de las fiestas y en los carteles:** algunas fotos se quedaban fuera sin motivo aparente, y cambiaban de una vez a otra. La descarga de una foto fallaba de vez en cuando por un corte momentáneo de red y se daba por perdida al primer intento, sin dejar rastro en ningún registro. Ahora se reintenta, y si aun así no se consigue queda anotado con el motivo.
+- **Enlaces en las fuentes de un acontecimiento:** una dirección web citada en «Fuentes» ya se puede pulsar para abrirla, igual que en el relato. Antes se quedaba como texto muerto.
+- **El resumen de las fiestas ya abre en un pueblo que aún no lo ha creado:** la pantalla se quedaba cargando para siempre. Al preguntar si ya existe el resumen del año, las reglas denegaban la lectura de un documento que no existe en lugar de responder «no hay ninguno», y la pantalla se quedaba esperando una respuesta que no llegaba nunca. Además, quien no ha iniciado sesión ya no se queda en la rueda de carga: se le lleva al pueblo como corresponde. Si la lectura falla por cualquier otro motivo, la pantalla lo dice y ofrece reintentar.
+
 ## v1.2.2 — 2026-09-15
 
 <!-- store-notes -->

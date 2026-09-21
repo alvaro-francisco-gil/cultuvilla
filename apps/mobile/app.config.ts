@@ -31,11 +31,12 @@ if (process.env['USE_FIREBASE_EMULATOR'] === '1' && env !== 'dev') {
   );
 }
 
-// Home-screen labels. The non-prod ones are prefixed so a sideloaded APK is
-// identifiable next to the store app — an icon labelled just "Beta" tells its
-// owner nothing about which app it is.
+// Home-screen labels. Beta stays prefixed so a sideloaded APK is identifiable
+// next to the store app. Dev is deliberately just "Dev": it only ever lands on
+// a developer's own device, where the short label is easier to find on a
+// crowded home screen and there is no ambiguity about which app it is.
 const namePerEnv: Record<Env, string> = {
-  dev: 'Cultuvilla Dev',
+  dev: 'Dev',
   beta: 'Cultuvilla Beta',
   prod: 'Cultuvilla',
 };
@@ -155,7 +156,7 @@ const config: ExpoConfig = {
   // the shell would silently build one repo into the other's EAS project; owner
   // + projectId in the file make the routing per-repo by construction.
   owner: 'cultuvilla.app',
-  version: '1.2.2',
+  version: '1.3.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
 
@@ -278,9 +279,13 @@ const config: ExpoConfig = {
     [
       'expo-splash-screen',
       {
-        image: './assets/splash-icon.png',
+        // Deliberately blank: the startup intro (components/intro) starts on
+        // this same colour and draws the logo itself, so a logo here would
+        // appear, vanish and regrow. The app's surface cream, kept in step with
+        // the intro by components/intro/__tests__/introBackground.test.ts.
+        image: './assets/splash-blank.png',
         resizeMode: 'contain',
-        backgroundColor: '#ffffff',
+        backgroundColor: '#f9f0e8',
       },
     ],
     ...(googleSignInPerEnv[env].iosUrlScheme

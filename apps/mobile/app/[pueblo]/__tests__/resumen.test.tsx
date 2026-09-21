@@ -90,6 +90,17 @@ describe('WrappedScreen', () => {
     expect(buildVillageWrapped).not.toHaveBeenCalled();
   });
 
+  // A village that has never built a Wrapped has no doc to read, and the rules
+  // deny a read of a missing one rather than returning null. Whatever the read
+  // fails for, the screen must say so -- it used to leave `fiestas` null and
+  // spin forever, which is what an admin of a fresh village always saw.
+  it('surfaces a failed load instead of spinning forever', async () => {
+    mockWrapped.mockRejectedValue(new Error('permission-denied'));
+    const { findByText, queryByText } = render(<WrappedScreen />);
+    expect(await findByText('common.error.retry')).toBeTruthy();
+    expect(queryByText('village.wrapped.noFiestas')).toBeNull();
+  });
+
   it('opens the form prefilled from the built dates to regenerate', async () => {
     mockWrapped.mockResolvedValue({
       id: 'm1_2026',

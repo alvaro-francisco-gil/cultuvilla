@@ -31,22 +31,23 @@ jest.mock('@cultuvilla/shared/services/historyService', () => ({
     start: { year: 1212, month: null, day: null },
     end: null,
     approximate: true,
-    sources: 'Archivo Histórico Provincial',
+    sources: 'Archivo Histórico Provincial. https://bvpb.mcu.es/registro?id=397371',
     status: 'active',
   }),
 }));
 jest.mock('../../../../components/primitives/NaturalImage', () => ({ NaturalImage: () => null }));
 jest.mock('../../../../components/feature/EntityComments', () => ({ EntityComments: () => null }));
 jest.mock('../../../../components/feature/RichText', () => ({
-  RichText: ({ text }: { text: string }) => {
+  RichText: jest.fn(({ text }: { text: string }) => {
     const { Text } = require('react-native');
     return <Text>{text}</Text>;
-  },
+  }),
 }));
 jest.mock('@cultuvilla/shared/services/commentsService', () => ({
   recordEntityView: jest.fn().mockResolvedValue(undefined),
 }));
 
+import { RichText } from '../../../../components/feature/RichText';
 import { useEntityCapabilities } from '../../../../lib/auth/useEntityCapabilities';
 import { getHistoryEntry } from '@cultuvilla/shared/services/historyService';
 
@@ -70,8 +71,16 @@ describe('HistoryEntryDetailScreen', () => {
     expect(getByText('h. 1212')).toBeTruthy();
     expect(getByText('El rey concede fueros al concejo.')).toBeTruthy();
     expect(getByText('Pergamino original')).toBeTruthy();
-    expect(getByText('Archivo Histórico Provincial')).toBeTruthy();
+    expect(getByText('Archivo Histórico Provincial. https://bvpb.mcu.es/registro?id=397371')).toBeTruthy();
     expect(getHistoryEntry).toHaveBeenCalledWith('h1');
+  });
+
+  it('renders the sources through RichText, so a URL cited there is tappable', async () => {
+    mockCaps(false);
+    const { getByText } = render(<HistoryEntryDetailScreen />);
+    await waitFor(() => getByText('Carta puebla'));
+    const rendered = (RichText as unknown as jest.Mock).mock.calls.map((call) => call[0].text);
+    expect(rendered).toContain('Archivo Histórico Provincial. https://bvpb.mcu.es/registro?id=397371');
   });
 
   it('lets anyone share it', async () => {

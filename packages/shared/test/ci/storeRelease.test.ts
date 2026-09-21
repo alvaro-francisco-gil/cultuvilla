@@ -128,7 +128,9 @@ describe('per-env application identity', () => {
   });
 
   it('labels non-prod builds so a sideloaded icon is identifiable', () => {
-    expect(appConfig).toContain("dev: 'Cultuvilla Dev'");
+    // Dev is the exception: it never sits next to the store app on anyone's
+    // phone but a developer's, so it trades the prefix for a shorter label.
+    expect(appConfig).toContain("dev: 'Dev'");
     expect(appConfig).toContain("beta: 'Cultuvilla Beta'");
   });
 });

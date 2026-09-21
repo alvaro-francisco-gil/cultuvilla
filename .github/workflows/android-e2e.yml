@@ -109,6 +109,11 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        # The action's default also installs the legacy `tools` package, which the
+        # runner image's cmdline-tools 16.0 no longer carries: sdkmanager exits 1
+        # and every run died here from 2026-09-14 on, before a single flow ran.
+        with:
+          packages: platform-tools
 
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
