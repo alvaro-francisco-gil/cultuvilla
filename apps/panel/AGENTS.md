@@ -82,9 +82,36 @@ key instead.
   panel reads the same `FIREBASE_*_DEV` values the mobile build uses. Without it
   Vite looks only in `apps/panel/`, finds nothing, and silently builds a bundle
   with an empty Firebase config — the app then renders "Falta configuración".
-- **No Tailwind, no primitives.** Plain CSS, with the design-system tokens
-  published as CSS custom properties at boot rather than hex values copied in, so
-  the panel follows the app's palette without being able to drift from it.
+- **No Tailwind, no primitives.** Plain CSS, with the colours published as CSS
+  custom properties at boot. **[theme.ts](src/theme.ts) is the only place a colour
+  may be written**, and [styles.css](src/styles.css) contains no hex literal — a
+  test asserts that, because a hex chosen by eye in the stylesheet is a colour
+  that escapes the contrast check.
+- **The panel does NOT reuse the app's text tokens, and that is deliberate.** The
+  brand palette is tuned for a warm consumer app; on a dense table it fails
+  badly. The shipped `fg-muted` (sage) measures **2.15:1** on `bg-surface`
+  (cream) and **1.19:1** on `bg-subtle` (peach) — which is why the panel's first
+  version had secondary text nobody could read. Brand hues stay for accents; the
+  ink ramp is darker and measured. `theme.test.ts` asserts every pairing the
+  panel can render against WCAG AA (4.5:1), including the monogram colours, and
+  it keeps a regression test for that exact sage-on-cream failure.
+- **Chips are coloured by what a label means, not by which field it came from.**
+  `submitted` on a convocatoria and `enviada` on a propuesta are the same kind of
+  fact, so they share a colour — a reader learns five colours instead of twenty
+  words. The families are *nothing yet* / *working on it* / *handed over* / *it
+  worked* / *over*, plus urgency and hole-count. An unmapped state still renders,
+  as a grey chip with the raw word, so a new registry state is visible rather
+  than silently dropped. See [labels.ts](src/labels.ts).
+- **Entity marks are best-effort.** A favicon when the record has a real `url`,
+  otherwise a deterministic coloured monogram. Most entities carry
+  `[[confirmar]]` rather than a URL, so **the monogram is the normal case, not
+  the error case**. Favicons come from DuckDuckGo's icon endpoint rather than
+  Google's: this is internal, but a per-entity request to Google would still tell
+  Google which funders we are reading about.
+- **The calendar renders three months and marks only days that carry something.**
+  The registry is sparse, so a single month grid would usually be empty; three
+  compact months make "nothing due" read as an answer instead of as a broken
+  widget. Anything falling outside the window is listed rather than dropped.
 - **Hardcoded Spanish.** Two users, no localisation need — the carve-out root
   AGENTS.md makes for internal admin surfaces.
 - **Parse, never cast.** The panel runs the callable's response through
