@@ -4,6 +4,10 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Changed
+
+- **El resumen de las fiestas empieza por lo que se hizo:** la tarjeta «Lo que se hizo» pasa delante de «En números», así los números llegan como remate de lo que ya has visto y no como presentación de lo que viene. Los resúmenes ya creados se reordenan solos — el orden se aplica al mostrarlos, así que no hay que volver a generarlos.
+
 ## v1.3.0 — 2026-09-20
 
 <!-- store-notes -->
