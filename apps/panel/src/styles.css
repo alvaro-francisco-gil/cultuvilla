@@ -126,3 +126,20 @@ ul.agenda a:hover { text-decoration: underline; }
   main { padding: 16px 12px 64px; }
   header.bar { padding: 10px 12px; }
 }
+
+/* --- fiestas -------------------------------------------------------------- */
+
+.tabs.inline { display: inline-flex; margin-top: 18px; }
+
+.anillo { margin-top: 18px; }
+
+.fiesta {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+}
+.fiesta .body { display: grid; gap: 5px; min-width: 0; flex: 1; }
+.fiesta .titulo { font-weight: 600; letter-spacing: -0.005em; }
+.fiesta .detail { color: var(--ink-muted); font-size: 13px; }
+
+.daybadge.wide { min-width: 68px; padding: 0 8px; white-space: nowrap; }

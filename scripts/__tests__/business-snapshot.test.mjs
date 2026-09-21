@@ -151,3 +151,34 @@ describe('buildSnapshot carries only what the screen renders', () => {
     assert.equal('deadline' in card, false);
   });
 });
+
+describe('buildSnapshot fiestas', () => {
+  const dataset = {
+    referencia: 'Matabuena',
+    actualizado: '2026-09-21',
+    nota: 'El BOP no es la semana de fiestas.',
+    pueblos: [
+      { nombre: 'Gallegos', provincia: 'Segovia', km: 3.4, habitantes: 96, anillo: '1',
+        fiestas: [{ md: '06-24', nombre: 'San Juan', fuente: 'bop' }] },
+    ],
+  };
+
+  it('carries the pueblo dataset through untouched', () => {
+    const snap = buildSnapshot([], TODAY, dataset);
+    assert.deepEqual(snap.fiestas, dataset);
+  });
+
+  // Omitted, not emitted empty: the schema makes it optional so a snapshot
+  // generated before the dataset existed still parses.
+  it('omits the key entirely when there is no dataset', () => {
+    assert.equal('fiestas' in buildSnapshot([], TODAY), false);
+    assert.equal('fiestas' in buildSnapshot([], TODAY, null), false);
+  });
+
+  it('leaves the rest of the snapshot alone', () => {
+    const withData = buildSnapshot([convocatoria()], TODAY, dataset);
+    const without = buildSnapshot([convocatoria()], TODAY);
+    assert.deepEqual(withData.byKind, without.byKind);
+    assert.deepEqual(withData.counts, without.counts);
+  });
+});

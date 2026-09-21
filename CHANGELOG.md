@@ -4,6 +4,22 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+
+- **Panel: tabs, and a Fiestas tab.** The founders' panel is now `Registro` ·
+  `Propuestas` · `Fiestas` (the tab lives in the URL hash). Proposals get their
+  own tab together with the "marcadas listas pero con huecos" alert; `Con reloj`
+  stays in `Registro` and still spans every kind. The new Fiestas tab lists the
+  next fiestas of the 48 pueblos within 20 km of Matabuena, soonest first, plus
+  the full list grouped by distance ring. Every date is tagged `BOP` or
+  `verificada`, because a municipality's two declared *fiestas locales* are its
+  liturgical anchor and not the week it actually celebrates — Matabuena declares
+  16 and 25 July and holds four fiesta windows, the biggest 22–28 August. Data
+  lives in `project/mercado/pueblos-vecinos-matabuena.json`, validated against
+  `FiestasDatasetSchema` and carried through the existing `getBusinessSnapshot`
+  callable, so nothing new is shipped to a browser that has not proved it may
+  see it.
+
 ### Changed
 
 - **El resumen de las fiestas empieza por lo que se hizo:** la tarjeta «Lo que se hizo» pasa delante de «En números», así los números llegan como remate de lo que ya has visto y no como presentación de lo que viene. Los resúmenes ya creados se reordenan solos — el orden se aplica al mostrarlos, así que no hay que volver a generarlos.

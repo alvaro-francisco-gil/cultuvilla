@@ -30,6 +30,33 @@ project/**.md  →  pnpm business:snapshot  →  functions/src/business/snapshot
 
 `apps/panel/dist` is a shell. Nothing in it reveals the registry.
 
+## Three tabs, two of them registry
+
+`Registro` · `Propuestas` · `Fiestas`, in the hash so a reload keeps its place.
+
+Proposals earned their own tab because they are the only kind whose readiness is
+computed rather than declared — *"marcadas listas pero con huecos"* belongs next
+to the proposals, not floating above the whole registry. `Con reloj` deliberately
+stays in `Registro` and still spans every kind, proposals included: it answers
+"what has a clock on it", which is not a per-kind question.
+
+`Lista`/`Calendario` inside `Registro` is a *view* of the same records, so it is
+a second control inside that tab rather than two more top-level tabs.
+
+**Fiestas** reads `project/mercado/pueblos-vecinos-matabuena.json` — 48 pueblos
+around Matabuena and when they celebrate. Two things about it are load-bearing:
+
+- **Dates are `MM-DD` recurrences, not dates.** `nextOccurrence` resolves the
+  year in the browser, so a January fiesta viewed in December is next year's
+  rather than an eleven-month-old countdown. Same reason deadline day counts are
+  recomputed and not trusted from the snapshot.
+- **`fuente` is rendered, always.** A `bop` date is one of the two *fiestas
+  locales* a municipality declares in the provincial bulletin — the liturgical
+  anchor of the main núcleo, **not** the week the pueblo celebrates. Matabuena
+  declares 16 and 25 July and holds four fiesta windows, the biggest 22–28
+  August. Only `verificada` has a dated public source behind it. Showing the two
+  alike would make the panel confidently wrong, which is worse than incomplete.
+
 ## Dev only, on purpose
 
 One hosting target, on the dev project, with **no release path**. Its content
