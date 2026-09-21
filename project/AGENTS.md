@@ -21,6 +21,14 @@ no `kind`. They are long-form research about *where* Cultuvilla grows, which has
 no lifecycle to track — a pueblo does not expire. The `[[confirmar]]` rule and
 the "this repo is public" rules below still apply in full.
 
+A `mercado/` record may carry a sibling `.json` holding the same research as
+structured data — `pueblos-vecinos-matabuena.json` next to its `.md`. That is
+the frontmatter/body split again, one level up: **the JSON is the machine
+surface the panel reads, the Markdown is the reasoning a human reads.** The JSON
+is validated against `FiestasDatasetSchema` by `pnpm business:snapshot`, so a
+malformed dataset fails the build instead of blanking a panel tab. Change one
+and change the other — nothing checks that the prose still matches the data.
+
 ## Start here, every time
 
 ```bash

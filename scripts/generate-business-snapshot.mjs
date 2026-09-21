@@ -17,10 +17,33 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadRegistry } from './opportunities-cli.mjs';
 import { buildSnapshot } from './lib/business-snapshot.mjs';
-import { BusinessSnapshotSchema } from '../packages/shared/dist/models/business/BusinessSnapshot.js';
+import { BusinessSnapshotSchema, FiestasDatasetSchema } from '../packages/shared/dist/models/business/BusinessSnapshot.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const OUTPUT = join(ROOT, 'functions/src/business/snapshot.json');
+/**
+ * Structured data, not prose: the pueblo research has a Markdown narrative next
+ * to it in `project/mercado/`, but a table of 48 pueblos does not fit the flat
+ * frontmatter the registry uses, and parsing the prose would break on a column
+ * reorder. Same split as frontmatter/body — machine surface here, reasoning there.
+ */
+export const FIESTAS = join(ROOT, 'project/mercado/pueblos-vecinos-matabuena.json');
+
+/** @returns {{fiestas: object|null, error: string|null}} */
+function readFiestas() {
+  let raw;
+  try {
+    raw = readFileSync(FIESTAS, 'utf8');
+  } catch {
+    // Absent is legitimate — the panel renders the tab empty rather than failing.
+    return { fiestas: null, error: null };
+  }
+  const parsed = FiestasDatasetSchema.safeParse(JSON.parse(raw));
+  if (!parsed.success) {
+    return { fiestas: null, error: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('\n  - ') };
+  }
+  return { fiestas: parsed.data, error: null };
+}
 
 /** `generatedAt` is a date, not a timestamp: a timestamp would make every run a diff. */
 const today = () => new Date().toISOString().slice(0, 10);
@@ -33,7 +56,13 @@ function main() {
     return 1;
   }
 
-  const snapshot = buildSnapshot(records, today());
+  const { fiestas, error: fiestasError } = readFiestas();
+  if (fiestasError) {
+    console.error(`✗ ${FIESTAS} does not match FiestasDatasetSchema:\n\n  - ${fiestasError}`);
+    return 1;
+  }
+
+  const snapshot = buildSnapshot(records, today(), fiestas);
 
   // Parsed against the shared schema the panel and the callable also use, so a
   // generator bug fails here instead of rendering as a silently missing section.
@@ -68,7 +97,10 @@ function main() {
   }
 
   writeFileSync(OUTPUT, serialised);
-  console.log(`✓ wrote ${snapshot.urgente.length} urgent, ${records.length} records → functions/src/business/snapshot.json`);
+  const pueblos = snapshot.fiestas ? snapshot.fiestas.pueblos.length : 0;
+  console.log(
+    `✓ wrote ${snapshot.urgente.length} urgent, ${records.length} records, ${pueblos} pueblos → functions/src/business/snapshot.json`,
+  );
   return 0;
 }
 

@@ -11,6 +11,7 @@ import {
 import { auth, functions, googleProvider, missingConfig } from './firebase';
 import { CardRow } from './components';
 import { CalendarView } from './CalendarView';
+import { FiestasView } from './FiestasView';
 
 // Hardcoded Spanish: two users, no localisation need.
 const KIND_LABEL: Record<BusinessKind, string> = {
@@ -27,7 +28,39 @@ const KIND_HINT: Record<BusinessKind, string> = {
   entidad: 'Financiadores, colaboradores, administraciones',
 };
 
-const KIND_ORDER: BusinessKind[] = ['propuesta', 'convocatoria', 'evento', 'entidad'];
+/** `propuesta` has its own tab, so the registry tab lists the other three. */
+const REGISTRO_KINDS: BusinessKind[] = ['convocatoria', 'evento', 'entidad'];
+const KIND_ORDER: BusinessKind[] = ['propuesta', ...REGISTRO_KINDS];
+
+/**
+ * Top-level tabs. `Lista`/`Calendario` inside the registry tab is a *view* of
+ * the same records; these are different bodies of work, which is why they are a
+ * separate control rather than four more buttons in the same group.
+ */
+const TABS = { registro: 'Registro', propuestas: 'Propuestas', fiestas: 'Fiestas' } as const;
+type Tab = keyof typeof TABS;
+const isTab = (value: string): value is Tab => value in TABS;
+
+/** The tab lives in the hash so a reload, or a link to a founder, keeps it. */
+function useHashTab(): [Tab, (tab: Tab) => void] {
+  const read = (): Tab => {
+    const raw = window.location.hash.replace(/^#/, '');
+    return isTab(raw) ? raw : 'registro';
+  };
+  const [tab, setTab] = useState<Tab>(read);
+  useEffect(() => {
+    const onHash = () => setTab(read());
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  return [
+    tab,
+    (next: Tab) => {
+      window.location.hash = next;
+      setTab(next);
+    },
+  ];
+}
 const todayIso = (): string => new Date().toISOString().slice(0, 10);
 
 function Section({ title, hint, cards, today }: {
@@ -58,6 +91,7 @@ function Section({ title, hint, cards, today }: {
 }
 
 function Dashboard({ snapshot, user }: { snapshot: BusinessSnapshot; user: User }) {
+  const [tab, setTab] = useHashTab();
   const [view, setView] = useState<'lista' | 'calendario'>('lista');
   const today = todayIso();
   const age = daysBetweenIsoDates(snapshot.generatedAt, today);
@@ -82,13 +116,12 @@ function Dashboard({ snapshot, user }: { snapshot: BusinessSnapshot; user: User 
     <>
       <header className="bar">
         <h1>Panel · Cultuvilla</h1>
-        <div className="tabs" role="group" aria-label="Vista">
-          <button type="button" aria-pressed={view === 'lista'} onClick={() => setView('lista')}>
-            Lista
-          </button>
-          <button type="button" aria-pressed={view === 'calendario'} onClick={() => setView('calendario')}>
-            Calendario
-          </button>
+        <div className="tabs" role="group" aria-label="Sección">
+          {(Object.keys(TABS) as Tab[]).map((key) => (
+            <button key={key} type="button" aria-pressed={tab === key} onClick={() => setTab(key)}>
+              {TABS[key]}
+            </button>
+          ))}
         </div>
         <span className="spacer" />
         <button type="button" onClick={() => void signOut(auth)}>
@@ -103,33 +136,17 @@ function Dashboard({ snapshot, user }: { snapshot: BusinessSnapshot; user: User 
           {user.email ?? 'sesión activa'}
         </p>
 
-        {view === 'calendario' ? (
-          <section>
-            <div className="sectionhead">
-              <h2>Próximos tres meses</h2>
-            </div>
-            <p className="hint">Solo los días con algo. Un mes vacío significa que no vence nada.</p>
-            <CalendarView cards={allCards} today={today} />
-          </section>
-        ) : (
+        {tab === 'fiestas' ? (
+          snapshot.fiestas ? (
+            <FiestasView dataset={snapshot.fiestas} today={today} />
+          ) : (
+            <p className="meta">
+              El registro no trae el dataset de pueblos. Falta
+              project/mercado/pueblos-vecinos-matabuena.json.
+            </p>
+          )
+        ) : tab === 'propuestas' ? (
           <>
-            <section>
-              <div className="sectionhead">
-                <h2>Con reloj</h2>
-                <span className="count">{urgente.length}</span>
-              </div>
-              <p className="hint">Plazos en los próximos 30 días. Lo único con coste por llegar tarde.</p>
-              {urgente.length === 0 ? (
-                <p className="meta">Nada vence en los próximos 30 días.</p>
-              ) : (
-                <ul className="cards">
-                  {urgente.map(({ card, dias }) => (
-                    <CardRow key={`u-${card.id}`} card={card} dias={dias} />
-                  ))}
-                </ul>
-              )}
-            </section>
-
             <Section
               title="Marcadas listas pero con huecos"
               hint="Creer que una candidatura está terminada es el fallo que más cuesta."
@@ -137,27 +154,79 @@ function Dashboard({ snapshot, user }: { snapshot: BusinessSnapshot; user: User 
               today={today}
             />
             <Section
-              title="Plazo vencido sin cerrar"
-              hint="Hay que marcarlas como caducadas o avanzarlas."
-              cards={snapshot.caducadas}
+              title="Propuestas"
+              hint={KIND_HINT.propuesta}
+              cards={snapshot.byKind.propuesta}
               today={today}
             />
+            {snapshot.byKind.propuesta.length === 0 ? (
+              <p className="meta">Ninguna candidatura en marcha.</p>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <div className="tabs inline" role="group" aria-label="Vista">
+              <button type="button" aria-pressed={view === 'lista'} onClick={() => setView('lista')}>
+                Lista
+              </button>
+              <button type="button" aria-pressed={view === 'calendario'} onClick={() => setView('calendario')}>
+                Calendario
+              </button>
+            </div>
 
-            {KIND_ORDER.map((kind) => (
-              <Section
-                key={kind}
-                title={KIND_LABEL[kind]}
-                hint={KIND_HINT[kind]}
-                cards={snapshot.byKind[kind]}
-                today={today}
-              />
-            ))}
+            {view === 'calendario' ? (
+              <section>
+                <div className="sectionhead">
+                  <h2>Próximos tres meses</h2>
+                </div>
+                <p className="hint">Solo los días con algo. Un mes vacío significa que no vence nada.</p>
+                <CalendarView cards={allCards} today={today} />
+              </section>
+            ) : (
+              <>
+                <section>
+                  <div className="sectionhead">
+                    <h2>Con reloj</h2>
+                    <span className="count">{urgente.length}</span>
+                  </div>
+                  <p className="hint">Plazos en los próximos 30 días. Lo único con coste por llegar tarde.</p>
+                  {urgente.length === 0 ? (
+                    <p className="meta">Nada vence en los próximos 30 días.</p>
+                  ) : (
+                    <ul className="cards">
+                      {urgente.map(({ card, dias }) => (
+                        <CardRow key={`u-${card.id}`} card={card} dias={dias} />
+                      ))}
+                    </ul>
+                  )}
+                </section>
+
+                <Section
+                  title="Plazo vencido sin cerrar"
+                  hint="Hay que marcarlas como caducadas o avanzarlas."
+                  cards={snapshot.caducadas}
+                  today={today}
+                />
+
+                {REGISTRO_KINDS.map((kind) => (
+                  <Section
+                    key={kind}
+                    title={KIND_LABEL[kind]}
+                    hint={KIND_HINT[kind]}
+                    cards={snapshot.byKind[kind]}
+                    today={today}
+                  />
+                ))}
+              </>
+            )}
           </>
         )}
 
-        <p className="hint" style={{ marginTop: 32 }}>
-          Cada ficha abre su Markdown en GitHub, donde está el razonamiento completo.
-        </p>
+        {tab === 'fiestas' ? null : (
+          <p className="hint" style={{ marginTop: 32 }}>
+            Cada ficha abre su Markdown en GitHub, donde está el razonamiento completo.
+          </p>
+        )}
       </main>
     </>
   );

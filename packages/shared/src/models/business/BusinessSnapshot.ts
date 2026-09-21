@@ -46,6 +46,50 @@ const byKind = z.object({
   propuesta: z.array(BusinessCardSchema),
 });
 
+/**
+ * Where a fiesta's date came from, because the two are not equally trustworthy.
+ *
+ * `bop` is one of the two *fiestas locales* a municipality declares each year in
+ * the provincial bulletin. That is the liturgical anchor of the main núcleo, NOT
+ * the week the pueblo actually celebrates: Matabuena declares 16 and 25 July and
+ * holds four fiesta windows, the biggest of them 22–28 August. `verificada` is a
+ * window confirmed against a dated public source (ayuntamiento, local press).
+ *
+ * The panel renders them differently on purpose — a `bop` date presented as the
+ * semana de fiestas is worse than no date at all.
+ */
+export const FiestaSourceSchema = z.enum(['bop', 'verificada']);
+export type FiestaSource = z.infer<typeof FiestaSourceSchema>;
+
+export const FiestaSchema = z.object({
+  /** Month-day, `MM-DD`. A fiesta recurs; the year it next falls in is computed. */
+  md: z.string().regex(/^\d{2}-\d{2}$/),
+  nombre: z.string().min(1),
+  fuente: FiestaSourceSchema,
+  /** Human phrasing for a fiesta with no fixed date ("penúltimo fin de semana de agosto"). */
+  cuando: z.string().optional(),
+});
+export type Fiesta = z.infer<typeof FiestaSchema>;
+
+export const PuebloSchema = z.object({
+  nombre: z.string().min(1),
+  provincia: z.string().min(1),
+  /** Great-circle km from the reference pueblo; 0 for the reference itself. */
+  km: z.number().min(0),
+  habitantes: z.number().int().min(0),
+  anillo: z.enum(['referencia', '1', '2', '3']),
+  fiestas: z.array(FiestaSchema),
+});
+export type Pueblo = z.infer<typeof PuebloSchema>;
+
+export const FiestasDatasetSchema = z.object({
+  referencia: z.string().min(1),
+  actualizado: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  nota: z.string().min(1),
+  pueblos: z.array(PuebloSchema),
+});
+export type FiestasDataset = z.infer<typeof FiestasDatasetSchema>;
+
 export const BusinessSnapshotSchema = z.object({
   /** A date, not a timestamp: a timestamp would make every regeneration a diff. */
   generatedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -59,6 +103,11 @@ export const BusinessSnapshotSchema = z.object({
   caducadas: z.array(BusinessCardSchema),
   propuestasIncompletas: z.array(BusinessCardSchema),
   byKind,
+  /**
+   * Optional because the registry predates it: an older committed snapshot must
+   * still parse rather than blanking the whole panel over a new section.
+   */
+  fiestas: FiestasDatasetSchema.optional(),
 });
 export type BusinessSnapshot = z.infer<typeof BusinessSnapshotSchema>;
 
@@ -68,4 +117,33 @@ export function daysBetweenIsoDates(from: string, to: string): number {
   const b = Date.parse(`${to}T00:00:00Z`);
   if (Number.isNaN(a) || Number.isNaN(b)) return 0;
   return Math.round((b - a) / 86_400_000);
+}
+
+/**
+ * The ISO date on which `md` (a `MM-DD` recurrence) next falls, counting today.
+ *
+ * Computed rather than stored, for the same reason the panel recomputes deadline
+ * day counts: the snapshot is only as fresh as the last deploy, and a fiesta
+ * calendar that silently reports last year's date is worse than none.
+ *
+ * String comparison, not `Date` arithmetic, so 29 February survives a non-leap
+ * year instead of being normalised into 1 March.
+ */
+export function nextOccurrence(md: string, todayIso: string): string {
+  if (!/^\d{2}-\d{2}$/.test(md)) throw new Error(`not a MM-DD month-day: ${md}`);
+  const month = Number(md.slice(0, 2));
+  const day = Number(md.slice(3));
+  if (month < 1 || month > 12 || day < 1 || day > 31) throw new Error(`not a calendar day: ${md}`);
+  let year = Number(todayIso.slice(0, 4));
+  if (md < todayIso.slice(5)) year += 1;
+  // 29 February exists once every four years. Advancing to a year where the day
+  // is real keeps the result a parseable date; returning `2027-02-29` would make
+  // every consumer's `Date.parse` yield NaN, which renders as "today".
+  while (!isRealDay(year, month, day)) year += 1;
+  return `${String(year)}-${md}`;
+}
+
+function isRealDay(year: number, month: number, day: number): boolean {
+  const d = new Date(Date.UTC(year, month - 1, day));
+  return d.getUTCMonth() === month - 1 && d.getUTCDate() === day;
 }

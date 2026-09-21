@@ -33,8 +33,9 @@ function card(record, deadline = null) {
 /**
  * @param {object[]} records loaded registry records
  * @param {string} today ISO date, injected so the output is deterministic in tests
+ * @param {object|null} fiestas the `project/mercado` pueblo dataset, or null when absent
  */
-export function buildSnapshot(records, today) {
+export function buildSnapshot(records, today, fiestas = null) {
   const inherited = new Map(
     resolveProposalDeadlines(records)
       .filter((p) => p.deadline)
@@ -78,6 +79,9 @@ export function buildSnapshot(records, today) {
     caducadas: findStranded(enriched, today).map((r) => card(r)),
     propuestasIncompletas: findFalseReady(records).map((r) => card(r, inherited.get(r.data.id))),
     byKind,
+    // Omitted rather than emitted empty: the schema makes it optional so an
+    // older snapshot still parses, and `undefined` drops out of the JSON.
+    ...(fiestas ? { fiestas } : {}),
   };
 }
 
