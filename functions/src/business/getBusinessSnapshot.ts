@@ -1,5 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
+import { adminDoc } from '@cultuvilla/shared/firebase/refs/admin';
 import snapshot from './snapshot.json';
 
 /**
@@ -15,8 +16,8 @@ const handler = 'getBusinessSnapshot';
 
 export async function runGetBusinessSnapshot(uid: string | null): Promise<unknown> {
   if (!uid) throw new HttpsError('unauthenticated', 'Hay que iniciar sesión.');
-  const adminDoc = await getFirestore().collection('admins').doc(uid).get();
-  if (!adminDoc.exists) {
+  const caller = await adminDoc(getFirestore(), uid).get();
+  if (!caller.exists) {
     // Deliberately the same shape for "not signed in" and "not an admin" from
     // the panel's point of view, so the panel has one error path to render.
     throw new HttpsError('permission-denied', 'Esta herramienta es solo para el equipo.');
