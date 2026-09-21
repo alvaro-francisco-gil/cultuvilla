@@ -1,9 +1,18 @@
 import { openVillage } from '../../lib/navigation/openVillage';
 import { userHref } from '../../lib/navigation/routes';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
-import { Screen, VStack, HStack, Text, Button, Avatar, Pressable } from '../../components/primitives';
+import {
+  Screen,
+  VStack,
+  HStack,
+  Text,
+  Button,
+  Avatar,
+  Pressable,
+  ErrorDialog,
+} from '../../components/primitives';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { NotificationRow } from '../../components/feature/NotificationRow';
 import { useT } from '../../lib/i18n';
@@ -455,22 +464,7 @@ export default function InboxScreen() {
     <Screen padded={false}>
       <ScreenHeader title={t('inbox.title')} />
 
-      {/* Error modal — using Modal instead of native alert (no-op on RN-Web) */}
-      <Modal
-        visible={errorMessage !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setErrorMessage(null)}
-      >
-        <View style={styles.errorOverlay}>
-          <View style={styles.errorBox}>
-            <Text variant="body">{errorMessage ?? ''}</Text>
-            <View style={styles.errorButtonRow}>
-              <Button onPress={() => setErrorMessage(null)}>{t('common.close')}</Button>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <ErrorDialog message={errorMessage} onDismiss={() => setErrorMessage(null)} />
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 24 }}>
         {canApprove && renderActionable()}
@@ -484,25 +478,3 @@ export default function InboxScreen() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  errorOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  errorBox: {
-    backgroundColor: '#f9f0e8',
-    borderRadius: 12,
-    padding: 20,
-    gap: 12,
-    width: '100%',
-    maxWidth: 360,
-  },
-  errorButtonRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-});

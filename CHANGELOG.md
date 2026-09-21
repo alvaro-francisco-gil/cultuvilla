@@ -30,6 +30,21 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   callable, so nothing new is shipped to a browser that has not proved it may
   see it.
 
+### Fixed
+
+- **El Buzón ya no se puede quedar atascado.** Un aviso que la app no sabía leer
+  —porque su `type` es más nuevo que la versión instalada— tiraba abajo toda la
+  lista y dejaba en pantalla el error en crudo: un bloque de JSON tan largo que
+  empujaba el botón de cerrar fuera de la pantalla. En iOS no hay gesto para
+  cerrar un `Modal` ni botón atrás, así que la única salida era forzar el cierre
+  de la app. Ahora la lista se salta el aviso ilegible (y nos lo reporta) en vez
+  de caerse entera, y el diálogo de error vive en un `ErrorDialog` con el cuerpo
+  desplazable y cinco formas de salir.
+- **El aviso de «actualiza la app» llevaba a una página muerta en iOS.** El
+  `storeUrl.ios` de `config/appVersion` seguía siendo el marcador de posición
+  `id000000000`; ahora se lee de `apps/mobile/lib/appStores.ts`, la única fuente
+  de verdad, y escribir una URL vacía falla en vez de pasar desapercibido.
+
 ### Changed
 
 - **El resumen de las fiestas empieza por lo que se hizo:** la tarjeta «Lo que se hizo» pasa delante de «En números», así los números llegan como remate de lo que ya has visto y no como presentación de lo que viene. Los resúmenes ya creados se reordenan solos — el orden se aplica al mostrarlos, así que no hay que volver a generarlos.
