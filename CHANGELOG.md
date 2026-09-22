@@ -6,6 +6,25 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Fixed
 
+- **The "hay una actualización" modal pointed at a version that did not exist.**
+  `config/appVersion.latest` was derived from `apps/mobile/app.config.ts`, which
+  is the version a promotion deploys to the backend and the web — not the
+  version any store serves. Store binaries move only by an explicit
+  `mobile-release` dispatch and then wait for review, so the two drift by
+  design, and prod ended up announcing `1.3.0` while the App Store served
+  `1.2.2`: every iOS user already on the newest build available got the soft
+  update prompt every three days, and tapping it opened a store page that did
+  not have it. Android would have inherited the same the day Play approved.
+  `latest` is now per-platform and read from the new `APP_STORE_VERSIONS` in
+  [appStores.ts](apps/mobile/lib/appStores.ts) — the same single source as the
+  store URLs — with a platform that has nothing published announced as `0.0.0`,
+  which nobody is ever behind. `pnpm check:store-claims` now fails when the
+  declared iOS version and the live App Store disagree, and `minSupported` above
+  what a store serves is refused outright rather than walling the fleet with
+  nowhere to go. **No data migration:** prod and beta carry the stale `1.3.0`
+  (and the `id000000000` storeUrl fixed in `2ca83ec3`) until the next promotion
+  rewrites the doc.
+
 - **The panel deploy never actually deployed.** `deploy-panel.yml` deploys the
   `getBusinessSnapshot` callable, but never installed `functions/`'s own
   dependencies — and `firebase deploy --only functions:<one>` runs an esbuild
