@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-21",
+  "generatedAt": "2026-09-22",
   "counts": {
     "convocatoria": 6,
     "evento": 1,
@@ -19,7 +19,7 @@
       "convocante": "Comisión Europea — REA, Horizon Europe Cluster 2",
       "importe": "85,5 M€ indicativos repartidos en 7 topics",
       "url": "https://rea.ec.europa.eu/funding-and-grants/horizon-europe-cluster-2-culture-creativity-and-inclusive-society/european-cultural-heritage-and-cultural-and-creative-industries_en",
-      "dias": 2
+      "dias": 1
     },
     {
       "path": "project/convocatorias/town-twinning-cerv-2026.md",
@@ -33,7 +33,7 @@
       "convocante": "Comisión Europea — programa CERV 2021-2027",
       "importe": "8.455 € – 50.745 € por proyecto (suma global; 6 M€ en total)",
       "url": "https://techfriendly.es/actualidad/convocatorias/convocatoria-town-twinning-2026/",
-      "dias": 2
+      "dias": 1
     },
     {
       "path": "project/eventos/epa-encuentro-galera-2026.md",
@@ -49,7 +49,7 @@
       "coste": "0 € — alojamiento y comidas cubiertos, hasta 200 € de desplazamiento",
       "plazas": "25 (hasta 35 años)",
       "url": "https://asociacionepa.org",
-      "dias": 6
+      "dias": 5
     },
     {
       "path": "project/proposals/chispa-galera-2026/propuesta.md",
@@ -60,7 +60,7 @@
       "status": "candidate",
       "deadline": "2026-09-27",
       "para": "epa-encuentro-galera-2026",
-      "dias": 6
+      "dias": 5
     }
   ],
   "caducadas": [],
@@ -123,7 +123,7 @@
         "id": "premio-jovenes-mashumano-2026",
         "kind": "convocatoria",
         "titulo": "Premio Jóvenes Máshumano 2026",
-        "status": "submitted",
+        "status": "lost",
         "fit": "high",
         "convocante": "Fundación Máshumano",
         "url": "[[confirmar: enlace de la convocatoria]]"
