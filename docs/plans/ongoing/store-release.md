@@ -23,10 +23,15 @@ Google's production review.
   without a Play submit. Re-enable it once Google approves (step 1 below).
 - **Next:**
   1. When Google approves: `gh workflow enable beta-build-and-submit.yml`; paste the Play URL into `APP_STORES.android`
+     **and the approved version into `APP_STORE_VERSIONS.android`**
      ([appStores.ts](../../../apps/mobile/lib/appStores.ts)) and run
      `pnpm check:store-claims`. Commit it **only** if the Android row is `PASS`.
      A listing still reachable only by testers returns 404 to a logged-out
-     visitor, and the banner would send every Android visitor there.
+     visitor, and the banner would send every Android visitor there. The two
+     fields move together — a test enforces it — because the URL is what the
+     web build offers and the version is what `config/appVersion` announces;
+     one without the other is either a dead offer or a nudge nobody can
+     satisfy.
   2. Update the first bullet of AGENTS.md *Versioning & releases*, which still
      says Android is in the closed track.
   3. Retire this plan. Keep one decision doc for the lesson below: *what sinks a

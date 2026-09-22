@@ -28,7 +28,7 @@ on:
           - beta
           - prod
       latest:
-        description: 'latest version (blank = current apps/mobile/app.config.ts version)'
+        description: 'latest version, both platforms (blank = whatever each store serves, per APP_STORE_VERSIONS)'
         required: false
         type: string
       min_supported:
