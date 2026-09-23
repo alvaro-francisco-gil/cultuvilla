@@ -19,6 +19,13 @@ fuente: "difusión de EPA! + formulario de inscripción, 2026-09-20"
 
 **Inscripción hasta el 27 de septiembre. Confirmación el 28. 25 plazas.**
 
+**URL del formulario: `[[confirmar]]`.** Se perdió. El 2026-09-20 alguien lo tuvo
+abierto para redactar las respuestas y no anotó el enlace; llegó por la difusión
+de EPA! en Instagram y no está en [asociacionepa.org](https://asociacionepa.org)
+(comprobado 2026-09-23). **Cuando aparezca, se escribe aquí antes de usarlo** —
+un enlace de convocatoria que hay que volver a buscar es un enlace que nunca se
+guardó.
+
 Segunda fase del proyecto **¡Chispa! Jóvenes, Territorios y Tejidos**, coordinado
 por [EPA!](../entidades/epa-asociacion.md) en colaboración con
 [A Regenerar](../entidades/a-regenerar.md): tras meses de trabajo interno
