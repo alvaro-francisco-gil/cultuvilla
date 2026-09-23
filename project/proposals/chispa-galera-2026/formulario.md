@@ -70,11 +70,11 @@ respuestas de cada uno funcionan por separado. **Moisés ya mandó la suya**
 >
 > Vengo a aprender de proyectos que ya lo tienen resuelto y a poner lo nuestro a
 > disposición de quien lo necesite. Tenemos una herramienta funcionando, no una
-> idea, y está construida para que la use cualquier pueblo, no solo el mío: si en
-> el encuentro hay proyectos a los que les sirve, prefiero que la usen a seguir
-> desarrollándola solo para un sitio. Y me interesa especialmente el bloque de
-> incidencia política, porque el paso que tenemos delante es trabajar con
-> ayuntamientos y ahí no sabemos movernos.
+> idea. Una herramienta que solo sirve a un pueblo es media herramienta, y nos
+> encantaría que la usaran otros: está construida para eso desde el principio,
+> así que si en el encuentro hay proyectos a los que les encaja, ahí está. Y me
+> interesa especialmente el bloque de incidencia política, porque el paso que
+> tenemos delante es trabajar con ayuntamientos y ahí no sabemos movernos.
 
 **¿Vienes por parte de alguna organización, asociación o colectivo, comisión...?
 Cuéntanos de tu proyecto y oficio!**
