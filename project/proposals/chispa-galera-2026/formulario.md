@@ -30,10 +30,13 @@ decide es la solicitud. Tres decisiones deliberadas:
    que circulaban antes se han retirado:** el del censo no se puede calcular
    (estar registrado no es residir, y la app es también para quien se marchó) y
    el «~80 % de los jóvenes» estaba inventado (Álvaro, 2026-09-23).
-3. **Venir de Segovia se dice, no se esconde.** Una red interterritorial de
-   pueblos gana con un caso que ya funciona **fuera** de la zona prioritaria: es
-   la prueba de que lo que se comparta ahí es transferible. Convertirlo en
-   argumento es mejor que esperar que no lo miren.
+3. **Venir de Segovia se dice, no se esconde, y además vive allí.** Corregido
+   2026-09-23: Álvaro **reside en Matabuena**, no en Madrid. Eso cambia el perfil
+   por completo — no es un ingeniero de Madrid con un proyecto sobre pueblos, es
+   un vecino de un municipio de 204 habitantes que ha construido la herramienta
+   que usa su pueblo. Y una red interterritorial gana con un caso que ya funciona
+   **fuera** de la zona prioritaria: es la prueba de que lo que se comparta ahí
+   es transferible.
 
 **Sobre pedir dos plazas de 25:** se piden las dos. Los perfiles son
 complementarios de verdad (software + periodismo/historia y patrimonio), y para
@@ -76,9 +79,9 @@ respuestas de cada uno funcionan por separado. **Moisés ya mandó la suya**
 **¿Vienes por parte de alguna organización, asociación o colectivo, comisión...?
 Cuéntanos de tu proyecto y oficio!**
 
-> Soy ingeniero de software (UPM, con una etapa investigando en el MIT) y llevo
-> **Cultuvilla** junto a Moisés Rodríguez Gil, que también se inscribe a este
-> encuentro.
+> Soy ingeniero de software (UPM, con una etapa investigando en el MIT), vivo en
+> **Matabuena (Segovia)** y llevo **Cultuvilla** junto a Moisés Rodríguez Gil,
+> que también se inscribe a este encuentro.
 >
 > Cultuvilla es una aplicación para los pueblos de la España vaciada. Las
 > asociaciones y comisiones de festejos publican y gestionan sus eventos, los
@@ -112,11 +115,11 @@ Cuéntanos de tu proyecto y oficio!**
 
 > https://cultuvilla.es
 
-**¿Desde dónde vendrías?** — Madrid
+**¿Desde dónde vendrías?** — Matabuena (Segovia)
 
-**¿De dónde eres y dónde vives habitualmente?** — Vivo en Madrid; mi familia es
-de **Matabuena (Segovia)**, que es el pueblo donde está funcionando Cultuvilla y
-lo que explica el proyecto.
+**¿De dónde eres y dónde vives habitualmente?** — Vivo en **Matabuena
+(Segovia)**, 204 habitantes, que es el pueblo donde está funcionando Cultuvilla.
+Algún fin de semana lo paso en Madrid.
 
 **¿Cómo tienes pensado llegar a Galera?** — En coche con Moisés, que lo pone, y
 con sitio para compartir con quien venga desde Madrid o de camino.
