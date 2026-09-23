@@ -68,6 +68,31 @@ Free-form extra keys (`lugar`, `coste`, `convocante`, `importe`, `tipo`, `url`,
 information came from and when — is not optional in practice: a record whose
 origin nobody can retrace is a record nobody trusts in three months.
 
+<!-- record:routing -->
+
+## Where a fact goes
+
+| Fact | Goes to |
+|---|---|
+| Money Cultuvilla could win — subvención, premio, aceleradora | `convocatorias/<id>.md` |
+| A room worth being in — meetup, encuentro, congreso, feria | `eventos/<id>.md` |
+| A funder, collaborator or administration | `entidades/<id>.md` |
+| An application actually assembled | `proposals/<slug>/`, state in `propuesta.md` |
+| Where the users are — comarcas, pueblos vecinos, expansión | `mercado/<slug>.md`, with its `.json` sibling where the panel reads it |
+| Where a fact came from, and when | the record's `fuente` field — not optional in practice |
+| Anything unverified | marked `[[confirmar]]` in place, never resolved by inference |
+| A durable decision about the business | `../docs/decisions/<slug>.md` |
+| Something that might be worth doing | `../docs/plans/ideas/<slug>.md` |
+| A rule about how this tree works | this file |
+
+Product code is not a record: a fact that would still be true if every line of
+`apps/` were rewritten in another language belongs here, and nothing else does.
+
+This tree follows the `system-of-record` convention, installed from the
+[agent-record](https://github.com/alvaro-francisco-gil/agent-record) marketplace. The two
+`<!-- record:* -->` comments are anchors the checker finds by exact string; leave them
+where they are. `pnpm opportunities:markers` runs it over this tree.
+
 ## Two lifecycles, deliberately not one
 
 | kind | field | vocabulary |
@@ -105,6 +130,18 @@ blank one**, so anything unverified is marked rather than guessed — and an age
 must never quietly resolve a `[[confirmar]]` by inference. Verify it against a
 real source or leave it.
 
+**One word, two forms.** Bare `[[confirmar]]` says *this is unverified*; with a
+colon, `[[confirmar: ¿…?]]`, the text **is** the question to ask. Most records
+run two separate marker words for those two states. One word covering both is a
+spelling choice, not a third state, and `pnpm opportunities:markers` is told so
+by being passed `confirmar` as both markers. Never invent a third word — "por
+verificar", "TBC", "revisar" — because a marker that does not appear in one
+sweep might as well not exist.
+
+A question may wrap across lines; it ends at the closing `]]`, and a marker left
+unterminated is an error rather than a marker nobody ever sees again. When
+writing *about* the marker rather than using one, put it in backticks.
+
 ## Hard limits on what an agent may do here
 
 - **Never contact anyone.** No email, no DM, no form submission, no registration.
@@ -113,6 +150,8 @@ real source or leave it.
   description. `[[confirmar]]` exists for precisely this.
 - **Cap new records at 5 per research run.** A tree nobody reads is worse than no
   tree; every record must pass eligibility before it is filed.
+
+<!-- record:perimeter -->
 
 ## This repo is public
 

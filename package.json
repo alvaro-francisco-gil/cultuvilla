@@ -44,6 +44,7 @@
     "business:snapshot:check": "pnpm shared:build && node scripts/generate-business-snapshot.mjs --check",
     "opportunities:list": "node scripts/opportunities-cli.mjs list",
     "opportunities:verify": "node scripts/opportunities-cli.mjs verify",
+    "opportunities:markers": "python3 scripts/record-check.py --root project --inferred-marker confirmar --unknown-marker confirmar --list",
     "backfills:lint": "node scripts/lint-backfill-meta.mjs",
     "backfills:test": "node --test scripts/__tests__/backfill-registry.test.mjs scripts/__tests__/backfill-discovery.test.mjs scripts/__tests__/existing-village-settlements.test.mjs scripts/__tests__/backfill-village-fiestas-month.test.mjs",
     "scripts:test": "node --test \"scripts/__tests__/*.test.mjs\"",
