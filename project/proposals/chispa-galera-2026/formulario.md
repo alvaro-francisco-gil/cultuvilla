@@ -92,8 +92,10 @@ Cuéntanos de tu proyecto y oficio!**
 > tenido que marcharse. Está en las tiendas de aplicaciones y funciona también
 > desde el navegador, para que nadie quede fuera por no poder instalar nada.
 >
-> Es un proyecto de dos personas, sin financiación y sin ánimo de lucro por
-> ahora: lo que hay es una herramienta que funciona y un pueblo que la usa.
+> Somos dos personas y no tenemos financiación. Ahora mismo estamos **en proceso
+> de constituirnos como asociación sin ánimo de lucro**, que es justo el paso en
+> el que nos vendría bien aprender de quien ya lo ha dado. Lo que hay hoy es una
+> herramienta que funciona y un pueblo que la usa.
 
 **¿Conoces EPA! o A Regenerar? ¿Cómo llegaste a enterarte de este encuentro?**
 
