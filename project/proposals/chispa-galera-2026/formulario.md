@@ -72,7 +72,8 @@ respuestas de cada uno funcionan por separado. **Moisés ya mandó la suya**
 > disposición de quien lo necesite. Tenemos una herramienta funcionando, no una
 > idea. Una herramienta que solo sirve a un pueblo es media herramienta, y nos
 > encantaría que la usaran otros: está construida para eso desde el principio,
-> así que si en el encuentro hay proyectos a los que les encaja, ahí está. Y me
+> así que si en el encuentro hay proyectos a los que les encaja, estamos
+> encantados de ofrecerla y de acompañar la puesta en marcha. Y me
 > interesa especialmente el bloque de incidencia política, porque el paso que
 > tenemos delante es trabajar con ayuntamientos y ahí no sabemos movernos.
 
