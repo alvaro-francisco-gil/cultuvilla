@@ -48,7 +48,7 @@ Dos consecuencias, y la segunda es la grande:
 | Promoción de **nuevas tecnologías** | Es una app |
 | **Reto demográfico** | Mantiene el vínculo de quien emigró con su pueblo |
 | Atención a **mayores** | Recoge su memoria y patrimonio oral |
-| Incorporación de **jóvenes** para que se asienten | ~80 % de los jóvenes de Matabuena la usan |
+| Incorporación de **jóvenes** para que se asienten | 174 vecinos registrados en un municipio de 204 habitantes (`cultuvilla-prod`, 2026-09-23). No hay cifra de jóvenes: la que circulaba estaba inventada |
 
 No hay que forzar el encaje ni reescribir la propuesta. Coinciden las cuatro.
 

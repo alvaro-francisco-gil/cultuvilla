@@ -30,8 +30,9 @@ mayoría de convocatorias de subvención no admiten persona física. De ahí
 [entidad jurídica: asociación vs fundación](../../docs/plans/ideas/entidad-juridica.md).
 
 El material reutilizable para la siguiente convocatoria: el resumen del proyecto,
-el problema, los beneficiarios y las cifras del piloto (Matabuena: ~25% del censo,
-~80% de los jóvenes).
+el problema, los beneficiarios y las cifras del piloto. **Las cifras buenas son
+las de 2026-09-23:** 174 vecinos registrados en un municipio de 204 habitantes (`cultuvilla-prod`, 2026-09-23). Los porcentajes que se usaron
+en esta candidatura no valen — ver abajo.
 
 ## Acciones
 

@@ -24,19 +24,23 @@ decide es la solicitud. Tres decisiones deliberadas:
    metodológicas compartidas»* y *«activar nuevas colaboraciones entre proyectos
    y jóvenes de distintos pueblos»*. Las respuestas hablan de eso, en su
    lenguaje, porque es literalmente lo que hacemos.
-2. **Las cifras de Matabuena van delante.** ~25 % del censo y ~80 % de los
-   jóvenes usando la herramienta es lo que separa esto de una idea, y casi nadie
-   en esa sala llevará un piloto medido.
+2. **Las cifras de Matabuena van delante, y ahora tienen fuente.** 174 vecinos
+   registrados en un municipio de 204 habitantes, leído de `cultuvilla-prod` el
+   2026-09-23. Casi nadie en esa sala llevará un piloto medido. **Los porcentajes
+   que circulaban antes se han retirado:** el del censo no se puede calcular
+   (estar registrado no es residir, y la app es también para quien se marchó) y
+   el «~80 % de los jóvenes» estaba inventado (Álvaro, 2026-09-23).
 3. **Venir de Segovia se dice, no se esconde.** Una red interterritorial de
    pueblos gana con un caso que ya funciona **fuera** de la zona prioritaria: es
    la prueba de que lo que se comparta ahí es transferible. Convertirlo en
    argumento es mejor que esperar que no lo miren.
 
-**Sobre pedir dos plazas de 25:** los perfiles son complementarios de verdad
-(software + periodismo/historia y patrimonio), y para un encuentro sobre
-metodologías e incidencia política eso es un equipo, no dos solicitudes iguales.
-Aun así son dos de veinticinco: si hay que elegir, las respuestas de cada uno
-funcionan por separado.
+**Sobre pedir dos plazas de 25:** se piden las dos. Los perfiles son
+complementarios de verdad (software + periodismo/historia y patrimonio), y para
+un encuentro sobre metodologías e incidencia política eso es un equipo, no dos
+solicitudes iguales. Aun así son dos de veinticinco: si hay que elegir, las
+respuestas de cada uno funcionan por separado. **Moisés ya mandó la suya**
+(Álvaro, 2026-09-23), así que lo que queda es la de Álvaro.
 
 ---
 
@@ -46,8 +50,8 @@ funcionan por separado.
 |---|---|
 | Email | `[[correo de Álvaro]]` |
 | Nombre y apellidos (como en el DNI) | Álvaro Francisco Gil |
-| Año de nacimiento | `[[año]]` |
-| Fecha | `[[fecha de nacimiento]]` |
+| Año de nacimiento | 2000 |
+| Fecha | 13/07/2000 |
 | DNI / NIE | `[[DNI]]` |
 | Género | Masculino |
 | Teléfono | `[[teléfono]]` |
@@ -82,11 +86,11 @@ Cuéntanos de tu proyecto y oficio!**
 > patrimonio local se documenta antes de que se pierda: la memoria de los
 > mayores, el vocabulario propio, la historia del pueblo.
 >
-> No es un prototipo. Está en marcha en **Matabuena (Segovia)**, donde la
-> comisión de festejos gestiona sus eventos con ella y la usan cerca del **25 %
-> del censo** y en torno al **80 % de los jóvenes**. Está en las tiendas de
-> aplicaciones y funciona también desde el navegador, para que nadie quede fuera
-> por no poder instalar nada.
+> No es un prototipo. Está en marcha en **Matabuena (Segovia)**, un municipio de
+> **204 habitantes**, donde la comisión de festejos gestiona sus eventos con ella
+> y hay **174 vecinos registrados**: los que viven en el pueblo y los que han
+> tenido que marcharse. Está en las tiendas de aplicaciones y funciona también
+> desde el navegador, para que nadie quede fuera por no poder instalar nada.
 >
 > Es un proyecto de dos personas, sin financiación y sin ánimo de lucro por
 > ahora: lo que hay es una herramienta que funciona y un pueblo que la usa.
@@ -106,20 +110,28 @@ Cuéntanos de tu proyecto y oficio!**
 
 > https://cultuvilla.es
 
-**¿Desde dónde vendrías?** — `[[Madrid / Segovia — confirmar]]`
+**¿Desde dónde vendrías?** — Madrid
 
-**¿De dónde eres y dónde vives habitualmente?** — `[[confirmar]]`. Merece la pena
-mencionar el vínculo con Matabuena, que es lo que explica el proyecto.
+**¿De dónde eres y dónde vives habitualmente?** — Vivo en Madrid; mi familia es
+de **Matabuena (Segovia)**, que es el pueblo donde está funcionando Cultuvilla y
+lo que explica el proyecto.
 
-**¿Cómo tienes pensado llegar a Galera?** — En coche, con sitio para compartir
-`[[confirmar si hay coche disponible]]`. Si no, tren hasta `[[Guadix / Baza]]` y
-coordinarse con la organización.
+**¿Cómo tienes pensado llegar a Galera?** — En coche con Moisés, que lo pone, y
+con sitio para compartir con quien venga desde Madrid o de camino.
 
-**¿Tienes alguna necesidad alimentaria?** — `[[confirmar]]`
+**¿Tienes alguna necesidad alimentaria?** — Ninguna.
 
 ---
 
 # Moisés
+
+> **Moisés ya se inscribió por su cuenta** (Álvaro, 2026-09-23), así que lo de
+> abajo es el borrador que se le pasó, no necesariamente lo que envió.
+> `[[confirmar que Moisés ya mandó el suyo]]` — y si lo mandó con el texto de
+> antes, salió con «~25 % del censo» y con el «~80 % de los jóvenes» inventado.
+> No hay nada que retirar, pero conviene que lo sepa antes del encuentro.
+>
+> Álvaro solo tiene que mandar **el suyo**.
 
 | Campo | Respuesta |
 |---|---|
@@ -163,9 +175,9 @@ Cuéntanos de tu proyecto y oficio!**
 > Mi parte es esa última: qué se recoge, cómo se recoge y cómo se guarda para que
 > sirva dentro de veinte años.
 >
-> Funciona en **Matabuena (Segovia)**, donde la usan alrededor del 25 % del censo
-> y cerca del 80 % de los jóvenes. Somos dos personas sin financiación; lo que
-> tenemos es una herramienta en uso real y un pueblo que la sostiene.
+> Funciona en **Matabuena (Segovia)**, 204 habitantes, con **174 vecinos
+> registrados** dentro y fuera del pueblo. Somos dos personas sin financiación;
+> lo que tenemos es una herramienta en uso real y un pueblo que la sostiene.
 
 **¿Conoces EPA! o A Regenerar? ¿Cómo llegaste a enterarte de este encuentro?**
 
@@ -191,10 +203,14 @@ Cuéntanos de tu proyecto y oficio!**
 
 ## Antes de enviar
 
-- [ ] Rellenar todos los `[[...]]`.
-- [ ] Verificar las cifras de Matabuena (~25 % del censo, ~80 % de los jóvenes):
-      se repiten en los dos formularios y también están en
-      [Máshumano](../mashumano/formulario.md). Si han cambiado, cambiarlas aquí.
+- [ ] Rellenar en el formulario web el correo, el DNI y el teléfono. **No se
+      escriben aquí**: este repositorio es público.
+- [x] Cifras verificadas 2026-09-23 contra `cultuvilla-prod`: 214 usuarios
+      registrados en total, 174 en Matabuena, censo INE 204. Los porcentajes
+      quedan fuera — el del censo no se puede calcular y el de jóvenes estaba
+      inventado. Regla que sale de esto:
+      [venture-figures-are-sourced-before-they-go-out](https://github.com/alvaro-francisco-gil/professional)
+      en el repo personal de Álvaro.
 - [ ] Confirmar que https://cultuvilla.es es la URL pública correcta.
 - [ ] Aceptar la cláusula de protección de datos (LO 3/2018 + RGPD).
 - [ ] Enviar **antes del 27 de septiembre**.

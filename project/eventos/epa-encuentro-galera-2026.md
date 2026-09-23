@@ -89,7 +89,7 @@ género, teléfono) y luego cuatro preguntas que deciden:
 | Pregunta | Qué contestar |
 |---|---|
 | ¿Qué te motiva a participar? | Buscar los pueblos que serán el segundo y tercer piloto, y aprender gobernanza de quien ya la tiene resuelta. No «dar a conocer la app». |
-| ¿Vienes por parte de alguna organización? Cuéntanos tu proyecto y oficio | Cultuvilla + el piloto de Matabuena con cifras: ~25 % del censo, ~80 % de los jóvenes. Las cifras son lo que nos distingue de una idea. |
+| ¿Vienes por parte de alguna organización? Cuéntanos tu proyecto y oficio | Cultuvilla + el piloto de Matabuena con cifras: 174 vecinos registrados en un municipio de 204 habitantes (`cultuvilla-prod`, 2026-09-23). Las cifras son lo que nos distingue de una idea, y por eso tienen que ser las reales. |
 | ¿Conoces EPA! o A Regenerar? ¿Cómo te enteraste? | Por la difusión de @garlimdj en Instagram. Honesto y verificable. |
 | RRSS o web de tu proyecto | https://cultuvilla.es |
 

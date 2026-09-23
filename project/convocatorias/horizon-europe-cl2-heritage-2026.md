@@ -35,7 +35,7 @@ Presentarla sería tirar el tiempo de tres días que sí valen para
 **Como socio en el consorcio de otro, no como coordinador.** Un proyecto europeo
 de patrimonio digital o despoblación necesita exactamente lo que Cultuvilla es y
 casi nadie tiene: un **piloto real funcionando en un pueblo**, con censo, uso
-medible (~25 % del censo de Matabuena, ~80 % de los jóvenes) y patrimonio oral
+medible (174 vecinos registrados en un municipio de 204 habitantes (`cultuvilla-prod`, 2026-09-23)) y patrimonio oral
 documentándose. Eso es un *caso de estudio* y un *paquete de trabajo de
 validación*, no una anécdota — y es lo que los consorcios buscan y les cuesta
 encontrar.
