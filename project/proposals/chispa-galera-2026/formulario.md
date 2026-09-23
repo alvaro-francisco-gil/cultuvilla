@@ -79,26 +79,28 @@ respuestas de cada uno funcionan por separado. **Moisés ya mandó la suya**
 **¿Vienes por parte de alguna organización, asociación o colectivo, comisión...?
 Cuéntanos de tu proyecto y oficio!**
 
-> Soy ingeniero de software (UPM, con una etapa investigando en el MIT), vivo en
-> **Matabuena (Segovia)** y llevo **Cultuvilla** junto a Moisés Rodríguez Gil,
-> que también se inscribe a este encuentro.
+> Vengo por **Cultuvilla**, que ahora mismo estamos **constituyendo como
+> asociación sin ánimo de lucro**. Somos dos: yo, ingeniero de software (UPM, con
+> una etapa investigando en el MIT) y vecino de **Matabuena (Segovia)**, y Moisés
+> Rodríguez Gil, periodista e historiador, que también se inscribe a este
+> encuentro. **La asociación nace con las puertas abiertas**: queremos que se
+> sume gente de otros pueblos, y este encuentro es justo donde esperamos
+> encontrarla.
 >
-> Cultuvilla es una aplicación para los pueblos de la España vaciada. Las
-> asociaciones y comisiones de festejos publican y gestionan sus eventos, los
-> vecinos participan —vivan en el pueblo o se hayan tenido que ir— y el
-> patrimonio local se documenta antes de que se pierda: la memoria de los
+> Lo que hemos construido es una aplicación para los pueblos de la España
+> vaciada. Las asociaciones y comisiones de festejos publican y gestionan sus
+> eventos, los vecinos participan —vivan en el pueblo o se hayan tenido que ir— y
+> el patrimonio local se documenta antes de que se pierda: la memoria de los
 > mayores, el vocabulario propio, la historia del pueblo.
 >
-> No es un prototipo. Está en marcha en **Matabuena (Segovia)**, un municipio de
-> **204 habitantes**, donde la comisión de festejos gestiona sus eventos con ella
-> y hay **174 vecinos registrados**: los que viven en el pueblo y los que han
-> tenido que marcharse. Está en las tiendas de aplicaciones y funciona también
-> desde el navegador, para que nadie quede fuera por no poder instalar nada.
+> No es un prototipo. Está en marcha en **Matabuena**, un municipio de **204
+> habitantes**, donde la comisión de festejos gestiona sus eventos con ella y hay
+> **174 vecinos registrados**: los que viven en el pueblo y los que han tenido
+> que marcharse. Está en las tiendas de aplicaciones y funciona también desde el
+> navegador, para que nadie quede fuera por no poder instalar nada.
 >
-> Somos dos personas y no tenemos financiación. Ahora mismo estamos **en proceso
-> de constituirnos como asociación sin ánimo de lucro**, que es justo el paso en
-> el que nos vendría bien aprender de quien ya lo ha dado. Lo que hay hoy es una
-> herramienta que funciona y un pueblo que la usa.
+> No tenemos financiación. Lo que hay hoy es una herramienta que funciona, un
+> pueblo que la usa y una asociación a punto de existir.
 
 **¿Conoces EPA! o A Regenerar? ¿Cómo llegaste a enterarte de este encuentro?**
 
