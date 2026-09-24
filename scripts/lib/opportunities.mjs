@@ -12,7 +12,17 @@ export const KIND_BY_DIR = {
   convocatorias: 'convocatoria',
   eventos: 'evento',
   entidades: 'entidad',
+  proposals: 'propuesta',
+  busquedas: 'busqueda',
 };
+
+/**
+ * `proposals/` is the one directory whose records are folders, not files: a
+ * candidacy is a bundle (form answers, business plan, CVs, a render script). The
+ * folder's state lives in `proposals/<slug>/propuesta.md` and the slug is the id.
+ */
+export const NESTED_DIRS = ['proposals'];
+export const PROPOSAL_FILE = 'propuesta.md';
 
 export const DIRS = Object.keys(KIND_BY_DIR);
 export const KINDS = Object.values(KIND_BY_DIR);
@@ -25,6 +35,10 @@ export const KINDS = Object.values(KIND_BY_DIR);
 export const STATUSES = {
   convocatoria: ['watching', 'candidate', 'preparing', 'submitted', 'won', 'lost', 'expired'],
   evento: ['watching', 'candidate', 'registered', 'attended', 'skipped', 'expired'],
+  // A proposal is a document we are writing, so its lifecycle is about
+  // readiness, not about the outcome — the outcome belongs to the convocatoria
+  // it targets, which is why `won`/`lost` are deliberately absent here.
+  propuesta: ['borrador', 'lista', 'enviada', 'retirada'],
 };
 
 /** Statuses that still expect work from us — the ones a lapsed deadline strands. */
@@ -39,6 +53,14 @@ const REQUIRED = {
   convocatoria: ['id', 'kind', 'titulo', 'status', 'fit'],
   evento: ['id', 'kind', 'titulo', 'status', 'fit'],
   entidad: ['id', 'kind', 'titulo', 'relacion', 'fit'],
+  // `para` points at the convocatoria or evento this proposal targets, and is
+  // what lets a proposal inherit that record's deadline instead of restating it.
+  propuesta: ['id', 'kind', 'titulo', 'status', 'para'],
+  // A búsqueda records a sweep that was executed. `revisar` is what turns "we
+  // should look again sometime" into a date the tool reports, and `sinHallazgos`
+  // is what stops the next run re-searching what this one already ruled out — a
+  // sweep that records only its finds teaches the following one nothing.
+  busqueda: ['id', 'kind', 'titulo', 'ejecutada', 'revisar', 'fuentes', 'sinHallazgos'],
 };
 
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -96,6 +118,26 @@ export function validateRecord({ dir, slug, data }) {
   if (data.id && !KEBAB.test(data.id)) problems.push(`id \`${data.id}\` is not kebab-case`);
   if (data.fit && !FITS.includes(data.fit)) {
     problems.push(`fit \`${data.fit}\` is not one of ${FITS.join(' | ')}`);
+  }
+  if (expectedKind === 'propuesta' && data.deadline) {
+    problems.push('a propuesta inherits its deadline from `para` — do not restate it');
+  }
+
+  if (expectedKind === 'busqueda') {
+    // A sweep describes the past, so it has no lifecycle and no fit. Giving it
+    // one would invite reading recorded coverage as an ambition.
+    for (const field of ['status', 'relacion', 'fit', 'deadline']) {
+      if (data[field]) problems.push(`a busqueda has no \`${field}\` — it records a sweep that already happened`);
+    }
+    for (const field of ['ejecutada', 'revisar']) {
+      if (data[field] && !ISO_DATE.test(data[field])) {
+        problems.push(`${field} \`${data[field]}\` is not an ISO date (YYYY-MM-DD)`);
+      }
+    }
+    if (data.ejecutada && data.revisar && data.revisar < data.ejecutada) {
+      problems.push(`revisar \`${data.revisar}\` is before ejecutada \`${data.ejecutada}\``);
+    }
+    return problems;
   }
 
   if (expectedKind === 'entidad') {
@@ -161,4 +203,74 @@ export function findUpcoming(records, today, window = 30) {
     .map((r) => ({ ...r, days: daysUntil(r.data.deadline, today) }))
     .filter((r) => r.days !== null && r.days >= 0 && r.days <= window)
     .sort((a, b) => a.days - b.days);
+}
+
+/** Unresolved `[[...]]` markers — the convention for "verified by nobody yet". */
+const PLACEHOLDER = /\[\[[^\]]*\]\]/g;
+
+/** @returns {number} how many `[[...]]` markers the text still carries. */
+export function countPlaceholders(text) {
+  return (text.match(PLACEHOLDER) ?? []).length;
+}
+
+/**
+ * Proposals that claim to be `lista` while still carrying `[[...]]` holes.
+ *
+ * This is the failure the lifecycle exists to catch: not forgetting a proposal,
+ * but believing one is finished. A warning rather than an error — the only
+ * honest source for "is it ready" is the holes, and someone may legitimately be
+ * mid-edit.
+ */
+export function findFalseReady(records) {
+  return records.filter((r) => r.data.kind === 'propuesta' && r.data.status === 'lista' && r.holes > 0);
+}
+
+/**
+ * Resolve each proposal's deadline from the record named in `para`, so the date
+ * lives in exactly one place. Mutates nothing; returns the resolved pairs.
+ */
+export function resolveProposalDeadlines(records) {
+  const byId = new Map(records.map((r) => [r.data.id, r]));
+  return records
+    .filter((r) => r.data.kind === 'propuesta')
+    .map((r) => {
+      const target = byId.get(r.data.para);
+      return { proposal: r, target: target ?? null, deadline: target?.data.deadline ?? null };
+    });
+}
+
+/** Proposals whose `para` names a record that does not exist. */
+export function findDanglingProposals(records) {
+  return resolveProposalDeadlines(records)
+    .filter((p) => !p.target)
+    .map((p) => ({ path: p.proposal.path, para: p.proposal.data.para }));
+}
+
+/**
+ * Sweeps whose `revisar` date has arrived — the search is due again.
+ *
+ * A warning by default and an error only under `--strict`, like
+ * `fiestas:verify`: a review date lapses on a calendar boundary with no commit
+ * to blame, so gating every PR would redden `develop` in October for something
+ * nobody in that PR did.
+ */
+export function findDueSweeps(records, today) {
+  return records
+    .filter((r) => r.data.kind === 'busqueda' && r.data.revisar)
+    .map((r) => ({ ...r, days: daysUntil(r.data.revisar, today) }))
+    .filter((r) => r.days !== null && r.days <= 0)
+    .sort((a, b) => a.days - b.days);
+}
+
+/**
+ * The most recent sweep, or null when nothing has ever been swept.
+ *
+ * "When did we last actually look?" is the question a registry cannot answer from
+ * its records alone — every one of them is something we found, and none of them is
+ * evidence of the searches that found nothing.
+ */
+export function lastSweep(records) {
+  const sweeps = records.filter((r) => r.data.kind === 'busqueda' && r.data.ejecutada);
+  if (!sweeps.length) return null;
+  return sweeps.reduce((latest, r) => (r.data.ejecutada > latest.data.ejecutada ? r : latest));
 }

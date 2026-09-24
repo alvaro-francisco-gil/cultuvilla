@@ -1,5 +1,6 @@
 import { createHash, randomInt } from 'crypto';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { isValidEmail } from '@cultuvilla/shared/utils';
 import { logger } from 'firebase-functions/v2';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { Resend } from 'resend';
@@ -15,8 +16,6 @@ const handler = 'sendAuthOtpCode';
 // rules entirely). Doc id = bucketIdFor(email), same hashing as rate limits.
 const OTP_COLLECTION = 'authOtpCodes';
 const OTP_EXPIRY_MS = 10 * 60 * 1000;
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface SendAuthOtpCodeData {
   email?: string;
@@ -47,7 +46,7 @@ export async function runSendAuthOtpCode(
 ): Promise<SendAuthOtpCodeResult> {
   const email = data?.email;
 
-  if (typeof email !== 'string' || email.trim() === '' || !EMAIL_RE.test(email.trim())) {
+  if (typeof email !== 'string' || !isValidEmail(email)) {
     throw new HttpsError('invalid-argument', 'Email inválido.');
   }
 

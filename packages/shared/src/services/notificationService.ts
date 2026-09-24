@@ -32,6 +32,7 @@ import {
   type NotificationPrefsData,
   type NotificationPrefsDataInput,
 } from '../models/notification';
+import { observability } from './observability/observabilityService';
 
 export async function getNotifications(
   userId: string,
@@ -43,7 +44,23 @@ export async function getNotifications(
     limit(maxResults),
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  // The converter is strict, so a doc a client's schema predates (a `type`
+  // added after the binary shipped) makes `.data()` throw. Mapping straight
+  // over `docs` would take the whole Buzón down with it, and the ZodError —
+  // a pretty-printed JSON array — used to surface as an undismissable modal.
+  // One unreadable row is not worth the other forty-nine: drop it and report
+  // it, so schema drift is loud to us and invisible to the villager.
+  return snap.docs.flatMap((d) => {
+    try {
+      return [{ id: d.id, ...d.data() }];
+    } catch (err) {
+      observability.captureError(err, {
+        operation: 'notifications:getNotifications',
+        notificationId: d.id,
+      });
+      return [];
+    }
+  });
 }
 
 export async function getUnreadCount(userId: string): Promise<number> {

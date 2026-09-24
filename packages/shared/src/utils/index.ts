@@ -48,3 +48,4 @@ export {
 export { webOriginForProject } from './webOrigin';
 export * from './urls';
 export * from './wordOfTheDay';
+export { isValidEmail } from './email';

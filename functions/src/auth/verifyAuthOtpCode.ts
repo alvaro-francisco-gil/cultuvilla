@@ -1,5 +1,6 @@
 import { createHash } from 'crypto';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { isValidEmail } from '@cultuvilla/shared/utils';
 import { logger } from 'firebase-functions/v2';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
@@ -9,8 +10,6 @@ const handler = 'verifyAuthOtpCode';
 
 const OTP_COLLECTION = 'authOtpCodes';
 const MAX_ATTEMPTS = 5;
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface VerifyAuthOtpCodeData {
   email?: string;
@@ -39,7 +38,7 @@ export async function runVerifyAuthOtpCode(
   const email = data?.email;
   const code = data?.code;
 
-  if (typeof email !== 'string' || email.trim() === '' || !EMAIL_RE.test(email.trim())) {
+  if (typeof email !== 'string' || !isValidEmail(email)) {
     throw new HttpsError('invalid-argument', 'Email inválido.');
   }
   if (typeof code !== 'string' || !/^\d{6}$/.test(code)) {

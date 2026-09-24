@@ -1,6 +1,7 @@
 import { routes } from '../../lib/navigation/routes';
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
+import { isValidEmail } from '@cultuvilla/shared/utils';
 import { Screen } from '../../components/primitives/Screen';
 import { Card } from '../../components/primitives/Card';
 import { Input } from '../../components/primitives/Input';
@@ -37,6 +38,10 @@ export default function ChangeEmailScreen() {
 
   async function onSubmit() {
     setError(null);
+    if (!isValidEmail(newEmail)) {
+      setError(t('settings.changeEmail.error.invalidEmail'));
+      return;
+    }
     setStatus('submitting');
     try {
       await changeEmail(newEmail.trim());
@@ -88,7 +93,10 @@ export default function ChangeEmailScreen() {
             <Input
               label={t('settings.changeEmail.newEmailPlaceholder')}
               value={newEmail}
-              onChangeText={setNewEmail}
+              onChangeText={(next) => {
+                setNewEmail(next);
+                setError(null);
+              }}
               placeholder={t('settings.changeEmail.newEmailPlaceholder')}
               autoCapitalize="none"
               keyboardType="email-address"

@@ -5,6 +5,8 @@ import {
   buildVocabularyTermData,
   VocabularyTermDataSchema,
   VOCABULARY_TERM_KINDS,
+  presentVocabularyKinds,
+  vocabularyCreditsByTerm,
 } from '../../src/models/vocabulary/VocabularyTermDataModel';
 import {
   isSharedVocabularyKind,
@@ -62,6 +64,20 @@ describe('buildVocabularyTermData', () => {
     const data = buildVocabularyTermData(input);
     expect(data.term).toBe('Ñapa');
     expect(data.normalized).toBe('napa');
+  });
+
+  it('capitalizes the first letter so the listing does not mix "tenao" with "Melena"', () => {
+    expect(buildVocabularyTermData({ ...input, term: 'tenao' }).term).toBe('Tenao');
+    expect(buildVocabularyTermData({ ...input, term: 'ñapa' }).term).toBe('Ñapa');
+    expect(buildVocabularyTermData({ ...input, term: 'ágora' }).term).toBe('Ágora');
+  });
+
+  it('capitalizes the first letter, not the opening ¿ or ¡ of a dicho', () => {
+    expect(buildVocabularyTermData({ ...input, kind: 'dicho', term: '¡anda ya!' }).term).toBe('¡Anda ya!');
+  });
+
+  it('leaves the rest of the headword exactly as typed', () => {
+    expect(buildVocabularyTermData({ ...input, term: 'el Tío Pedro' }).term).toBe('El Tío Pedro');
   });
 
   it('starts every counter at zero and the term visible', () => {
@@ -172,5 +188,47 @@ describe('shared vocabulary kinds', () => {
     expect(() => VocabularyWordDataSchema.parse(word)).not.toThrow();
     expect(word.normalized).toBe('esbardo');
     expect(word.updatedAt).toEqual(word.createdAt);
+  });
+});
+
+describe('presentVocabularyKinds', () => {
+  it('lists only the kinds a village has recorded, in the fixed kind order', () => {
+    const kinds = presentVocabularyKinds([{ kind: 'dicho' }, { kind: 'palabra' }, { kind: 'dicho' }]);
+    expect(kinds).toEqual(['palabra', 'dicho']);
+  });
+
+  it('is empty for a village with no words', () => {
+    expect(presentVocabularyKinds([])).toEqual([]);
+  });
+});
+
+describe('vocabularyCreditsByTerm', () => {
+  const terms = [
+    { id: 't1', contributorUserIds: ['ana'], contributorOrgIds: ['pena'] },
+    { id: 't2', contributorUserIds: ['luis'], contributorOrgIds: [] },
+  ];
+
+  // A row credits everyone who put anything into the word — whoever recorded it
+  // and whoever added a meaning since — each once, the word's own credit first.
+  it('merges the word’s credit with every meaning’s, without repeats', () => {
+    const credits = vocabularyCreditsByTerm(terms, [
+      { termId: 't1', contributorUserIds: ['ana', 'eva'], contributorOrgIds: ['pena', 'podcast'] },
+      { termId: 't1', contributorUserIds: ['eva', 'jose'], contributorOrgIds: [] },
+    ]);
+    expect(credits.get('t1')).toEqual({
+      userIds: ['ana', 'eva', 'jose'],
+      orgIds: ['pena', 'podcast'],
+    });
+  });
+
+  it('keeps the word’s own credit when nobody added a meaning', () => {
+    expect(vocabularyCreditsByTerm(terms, []).get('t2')).toEqual({ userIds: ['luis'], orgIds: [] });
+  });
+
+  it('ignores meanings of words it was not asked about', () => {
+    const credits = vocabularyCreditsByTerm(terms, [
+      { termId: 'gone', contributorUserIds: ['x'], contributorOrgIds: [] },
+    ]);
+    expect([...credits.keys()]).toEqual(['t1', 't2']);
   });
 });

@@ -198,7 +198,6 @@ describe('useVillageHome', () => {
     expect(result.current.wordOfTheDay).toEqual({
       term: { id: 'm1__miaja', term: 'miaja' },
       definition: { id: 'd1', definition: 'Un poco.' },
-      more: [],
     });
     expect(result.current.vocabularyCount).toBe(1);
   });

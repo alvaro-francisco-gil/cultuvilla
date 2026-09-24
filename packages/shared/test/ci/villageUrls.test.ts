@@ -37,10 +37,15 @@ interface Rewrite {
   function?: { functionId: string };
 }
 
+// `hosting` is an array of targets: `app` (this one) and `panel`, the internal
+// founders' tool. These assertions are about the app's village-first routing, so
+// they must read the `app` target and not whichever entry happens to be first.
 const firebase = JSON.parse(readFileSync(resolve(repo, 'firebase.json'), 'utf8')) as {
-  hosting: { rewrites: Rewrite[] };
+  hosting: { target?: string; rewrites?: Rewrite[] }[];
 };
-const rewrites = firebase.hosting.rewrites;
+const appHosting = firebase.hosting.find((entry) => entry.target === 'app');
+if (!appHosting) throw new Error('firebase.json has no hosting target named `app`');
+const rewrites = appHosting.rewrites ?? [];
 
 /** Segments Hosting serves itself (static export, generated files) — no route file. */
 const HOSTING_ONLY = new Set(['_expo', 'assets', 'index.html', 'robots.txt', 'sitemap.xml', '.well-known']);

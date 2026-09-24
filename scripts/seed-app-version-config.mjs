@@ -10,9 +10,13 @@
  *        [--latest=0.18.0] [--min=0.0.0] [--dry-run] [--confirm]
  *
  *   --env      target environment (default: dev).
- *   --latest   latest version. Defaults to the CURRENT apps/mobile/app.config.ts
- *              version — the single source of truth per AGENTS.md, rather than a
- *              constant here that silently goes stale.
+ *   --latest   latest version, for BOTH platforms. Omit it: each platform then
+ *              gets the version its own store actually serves, declared in
+ *              `apps/mobile/lib/appStores.ts` (`APP_STORE_VERSIONS`). It is
+ *              deliberately NOT the app.config.ts version — that is what a
+ *              promotion deploys to the backend and the web, while a store
+ *              binary moves only by an explicit `mobile-release` dispatch, so
+ *              announcing it promises a download that does not exist yet.
  *   --min      minSupported. Omit to PRESERVE whatever is stored (see
  *              lib/app-version-config.mjs); only an explicit value moves the wall.
  *   --dry-run  print the diff and write nothing.
@@ -27,7 +31,7 @@
 import admin from 'firebase-admin';
 import { initAdminForEnv, ENVS } from './lib/env-credentials.mjs';
 import { currentAppVersion } from './lib/app-version.mjs';
-import { resolveAppVersionConfig } from './lib/app-version-config.mjs';
+import { resolveAppVersionConfig, PUBLISHED_VERSION } from './lib/app-version-config.mjs';
 
 function parseArgs(argv) {
   const out = {};
@@ -65,17 +69,30 @@ async function main() {
   const snap = await ref.get();
   const stored = snap.exists ? snap.data() : null;
 
-  const { payload, minSource, latestSource } = resolveAppVersionConfig({
+  const appVersion = currentAppVersion();
+  const { payload, minSource, latestSource, unreleased } = resolveAppVersionConfig({
     latest: typeof args.latest === 'string' ? args.latest : undefined,
     minSupported: typeof args.min === 'string' ? args.min : undefined,
     stored,
-    defaultLatest: currentAppVersion(),
+    appVersion,
   });
 
   console.log(`config/appVersion in ${env} (${projectId})`);
   console.log(`  stored: ${stored ? JSON.stringify(stored) : '(absent)'}`);
-  console.log(`  latest       -> ${payload.ios.latest} (${latestSource})`);
-  console.log(`  minSupported -> ${payload.ios.minSupported} (${minSource})`);
+  console.log(`  app.config.ts    ${appVersion} (deployed here; not announced)`);
+  for (const platform of ['ios', 'android']) {
+    const declared = PUBLISHED_VERSION[platform] || '(nothing published)';
+    console.log(
+      `  ${platform.padEnd(7)} latest -> ${payload[platform].latest} (${latestSource}; store serves ${declared})`,
+    );
+  }
+  console.log(`  minSupported  -> ${payload.ios.minSupported} (${minSource})`);
+  if (unreleased.length) {
+    console.log(
+      `\n  NOTE: ${appVersion} is deployed but not in the ${unreleased.join('/')} store yet, so it is not` +
+        `\n  announced. Ship it with \`mobile-release\`, then update APP_STORE_VERSIONS and re-run.`,
+    );
+  }
 
   if (dryRun) {
     console.log('\nDRY RUN — nothing written. Re-run without --dry-run to apply.');
