@@ -45,7 +45,7 @@ del boca a boca de Matabuena.
   las palabras y refranes de su sección. Tras comprobarlos en diccionarios
   quedaron 11 palabras locales y 9 refranes, en
   [`scripts/data/vocabulary/matabuena.json`](../../scripts/data/vocabulary/matabuena.json)
-  con enlace al segundo exacto de cada uno. Aún no se han subido a la app.
+  con enlace al segundo exacto de cada uno.
   *Polán* no está en ningún diccionario; su significado («chaval malo», dicho
   en broma) se tomó del propio episodio 13 el 2026-09-24.
 - **2026-09-20** — Grabación de un episodio con ellos sobre Cultuvilla.
@@ -53,12 +53,16 @@ del boca a boca de Matabuena.
 - **2026-09-20** — Ese mismo día crearon en Cultuvilla el grupo «Ayer dijimos
   algo» (Matabuena, aprobado, 3 miembros), y uno de ellos subió dos palabras,
   *tenao* y *atriscar*. El 2026-09-24 se acreditaron al grupo.
+- **2026-09-24** — Subido a la app todo el vocabulario sacado del podcast: 11
+  palabras y 9 refranes, acreditados a su grupo. *Miaja* y *modorro* ya estaban
+  (las había subido otro vecino), así que su significado quedó al lado del que
+  ya había.
 
 ## Acciones
 
 - [ ] Anotar la fecha de publicación del episodio en cuanto se sepa, y difundirlo.
 - [ ] Guardar aquí el enlace del episodio cuando se publique (sirve como prueba de
       repercusión en convocatorias).
-- [ ] Subir el vocabulario ya extraído (`matabuena.json`) acreditado a su grupo.
+- [x] Subir el vocabulario ya extraído (`matabuena.json`) acreditado a su grupo.
 - [ ] Proponerles que suban directamente las listas que les mandan los oyentes.
 - [ ] Repetir la extracción con cada episodio nuevo.
