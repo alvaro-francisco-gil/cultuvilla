@@ -303,6 +303,12 @@
         "mote": "Mote",
         "toponimo": "Topónimo"
       },
+      "kindPlural": {
+        "palabra": "Palabras",
+        "dicho": "Dichos",
+        "mote": "Motes",
+        "toponimo": "Topónimos"
+      },
       "definition": "Qué significa",
       "definitionPlaceholder": "Explícalo con tus palabras",
       "definitions": "Significados",

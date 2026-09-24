@@ -1,5 +1,5 @@
 import { newWordHref, wordHref } from '../../lib/navigation/routes';
-import { termSlugFromId } from '@cultuvilla/shared/models';
+import { presentVocabularyKinds, termSlugFromId, type VocabularyTermKind } from '@cultuvilla/shared/models';
 import { useVillageRoute, withVillageRoute } from '../../lib/navigation/VillageRouteGate';
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, View } from 'react-native';
@@ -14,6 +14,7 @@ import { Input } from '../../components/primitives/Input';
 import { Pressable } from '../../components/primitives/Pressable';
 import { Fab } from '../../components/primitives/Fab';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { SegmentedToggle } from '../../components/feature/SegmentedToggle';
 import { useT } from '../../lib/i18n';
 import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
 import {
@@ -23,13 +24,15 @@ import {
 import { slugifyTerm } from '@cultuvilla/shared/models/vocabulary';
 
 /**
- * The pueblo's shared vocabulary, A–Z.
+ * The pueblo's shared vocabulary, A–Z, one tab per kind it has recorded.
  *
  * The whole glossary is fetched once and the search box filters it in memory:
  * a village glossary is tens to a few hundred headwords, so a server-side
  * prefix query would cost an index and a round trip per keystroke to search a
  * list that already fits in one. Matching runs on the accent-folded form, so
- * "napa" finds "ñapa" and "esbardo" finds "Esbardo".
+ * "napa" finds "ñapa" and "esbardo" finds "Esbardo". A search spans every
+ * kind, so a saying is found from the Palabras tab too — someone looking a
+ * phrase up rarely knows which kind it was filed under.
  */
 function VocabularyScreen() {
   const {
@@ -42,6 +45,7 @@ function VocabularyScreen() {
   const [terms, setTerms] = useState<VocabularyTermWithId[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [selectedKind, setSelectedKind] = useState<VocabularyTermKind | null>(null);
 
   const load = useCallback(async () => {
     if (!villageId) return;
@@ -58,13 +62,17 @@ function VocabularyScreen() {
     }, [load]),
   );
 
+  const kinds = useMemo(() => presentVocabularyKinds(terms), [terms]);
+  const activeKind = selectedKind && kinds.includes(selectedKind) ? selectedKind : kinds[0];
+  const searching = slugifyTerm(search) !== '';
+
   const visible = useMemo(() => {
     const needle = slugifyTerm(search);
-    if (!needle) return terms;
+    if (!needle) return terms.filter((term) => term.kind === activeKind);
     return terms.filter(
       (term) => term.normalized.includes(needle) || slugifyTerm(term.term).includes(needle),
     );
-  }, [terms, search]);
+  }, [terms, search, activeKind]);
 
   return (
     <Screen padded={false} bottomInset={false}>
@@ -80,6 +88,18 @@ function VocabularyScreen() {
           testID="vocabulary-search"
         />
       </View>
+      {kinds.length > 1 && activeKind && !searching ? (
+        <View className="px-4 pt-2 pb-1">
+          <SegmentedToggle<VocabularyTermKind>
+            options={kinds.map((kind) => ({
+              value: kind,
+              label: t(`village.vocabulary.kindPlural.${kind}`),
+            }))}
+            value={activeKind}
+            onChange={setSelectedKind}
+          />
+        </View>
+      ) : null}
       <FlatList
         data={visible}
         keyExtractor={(item) => item.id}
@@ -100,15 +120,7 @@ function VocabularyScreen() {
             testID={`vocabulary-term-${item.id}`}
           >
             <HStack gap={3} className="items-center">
-              <VStack gap={0} className="flex-1">
-                <Text className="font-bold">{item.term}</Text>
-                <Text tone="muted" variant="bodySm">
-                  {[
-                    t(`village.vocabulary.kind.${item.kind}`),
-                    t('village.vocabulary.definitionCount', { count: item.definitionCount }),
-                  ].join(' · ')}
-                </Text>
-              </VStack>
+              <Text className="font-bold flex-1">{item.term}</Text>
               <Ionicons name="chevron-forward" size={iconSizes.sm} color={colors.light.fg.muted} />
             </HStack>
           </Pressable>

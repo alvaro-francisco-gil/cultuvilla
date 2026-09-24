@@ -28,6 +28,11 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Changed
 
+- **The village dictionary has a tab per kind.** "Diccionario de X" now has
+  tabs along the top — Palabras, Dichos, Motes, Topónimos — showing only the
+  kinds the village has recorded (no tabs at all when there is just one). The
+  search box still looks through every kind. Each row shows only the word,
+  without the kind and meaning count underneath.
 - **Horizon Europe CL2 and Town Twinning CERV are `expired`.** Both lapsed on
   2026-09-23 with nothing submitted. Kept rather than deleted: Town Twinning's
   blocker was never the date but the applicant (the ayuntamiento), and that is the

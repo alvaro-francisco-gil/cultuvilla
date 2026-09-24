@@ -28,12 +28,12 @@ jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: stri
 const mockCaps = useEntityCapabilities as jest.Mock;
 const mockTerms = getVocabularyTerms as jest.Mock;
 
-function term(id: string, word: string, normalized: string) {
+function term(id: string, word: string, normalized: string, kind = 'palabra') {
   return {
     id,
     term: word,
     normalized,
-    kind: 'palabra',
+    kind,
     municipalityId: 'm1',
     createdBy: 'alice',
     createdAt: new Date(),
@@ -87,6 +87,54 @@ describe('VocabularyScreen', () => {
     const { queryByTestId, getByText } = render(<VocabularyScreen />);
     await waitFor(() => expect(getByText('Esbardo')).toBeTruthy());
     expect(queryByTestId('vocabulary-add-fab')).toBeNull();
+  });
+
+  it('shows just the headword on each row, with no kind or meaning count', async () => {
+    const { getByText, queryByText } = render(<VocabularyScreen />);
+    await waitFor(() => expect(getByText('Esbardo')).toBeTruthy());
+    expect(queryByText(/village.vocabulary.kind/)).toBeNull();
+    expect(queryByText(/village.vocabulary.definitionCount/)).toBeNull();
+  });
+
+  it('needs no tabs while the pueblo has only one kind recorded', async () => {
+    const { getByText, queryByText } = render(<VocabularyScreen />);
+    await waitFor(() => expect(getByText('Esbardo')).toBeTruthy());
+    expect(queryByText('village.vocabulary.kindPlural.palabra')).toBeNull();
+  });
+
+  describe('with several kinds recorded', () => {
+    beforeEach(() => {
+      mockTerms.mockResolvedValue([
+        term('m1__esbardo', 'Esbardo', 'esbardo'),
+        term('m1__en-abril-aguas-mil', 'En abril, aguas mil', 'en-abril-aguas-mil', 'dicho'),
+      ]);
+    });
+
+    // Only kinds with entries get a tab — a village with no motes shows no Motes tab.
+    it('offers a tab per recorded kind and opens on the first', async () => {
+      const { getByText, queryByText } = render(<VocabularyScreen />);
+      await waitFor(() => expect(getByText('Esbardo')).toBeTruthy());
+      expect(getByText('village.vocabulary.kindPlural.palabra')).toBeTruthy();
+      expect(getByText('village.vocabulary.kindPlural.dicho')).toBeTruthy();
+      expect(queryByText('village.vocabulary.kindPlural.mote')).toBeNull();
+      expect(queryByText('En abril, aguas mil')).toBeNull();
+    });
+
+    it('switches the list to the chosen kind', async () => {
+      const { getByText, queryByText } = render(<VocabularyScreen />);
+      await waitFor(() => expect(getByText('Esbardo')).toBeTruthy());
+      fireEvent.press(getByText('village.vocabulary.kindPlural.dicho'));
+      await waitFor(() => expect(getByText('En abril, aguas mil')).toBeTruthy());
+      expect(queryByText('Esbardo')).toBeNull();
+    });
+
+    // Someone searching a saying from the Palabras tab still finds it.
+    it('searches every kind, whichever tab is open', async () => {
+      const { getByTestId, getByText } = render(<VocabularyScreen />);
+      await waitFor(() => expect(getByText('Esbardo')).toBeTruthy());
+      fireEvent.changeText(getByTestId('vocabulary-search'), 'abril');
+      await waitFor(() => expect(getByText('En abril, aguas mil')).toBeTruthy());
+    });
   });
 
   it('shows the empty state when the pueblo has recorded nothing yet', async () => {

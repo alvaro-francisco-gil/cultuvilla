@@ -15,6 +15,14 @@ export const VocabularyTermKindSchema = z.enum(VOCABULARY_TERM_KINDS);
 export type VocabularyTermKind = z.infer<typeof VocabularyTermKindSchema>;
 
 /**
+ * The kinds a village has actually recorded, in `VOCABULARY_TERM_KINDS` order —
+ * the tabs of its dictionary. An empty kind gets no tab rather than an empty list.
+ */
+export function presentVocabularyKinds(terms: readonly { kind: VocabularyTermKind }[]): VocabularyTermKind[] {
+  return VOCABULARY_TERM_KINDS.filter((kind) => terms.some((t) => t.kind === kind));
+}
+
+/**
  * A word, saying or nickname belonging to one pueblo. Stored top-level at
  * `vocabularyTerms/{municipalityId}__{slug}`.
  *
