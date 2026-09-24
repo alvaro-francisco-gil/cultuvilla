@@ -66,6 +66,13 @@ describe('ChangeEmailScreen', () => {
     expect(await findByText('settings.changeEmail.error.generic')).toBeTruthy();
   });
 
+  it('rejects a malformed address locally without calling changeEmail', async () => {
+    const { getByLabelText, getByText, findByText } = render(<ChangeEmailScreen />);
+    fillAndSubmit(getByLabelText, getByText, 'new@example');
+    expect(await findByText('settings.changeEmail.error.invalidEmail')).toBeTruthy();
+    expect(mockChangeEmail).not.toHaveBeenCalled();
+  });
+
   it('redirects to /ajustes and renders no form when the account cannot change email', async () => {
     mockUseAuth.mockReturnValue({ changeEmail: mockChangeEmail, canChangeEmail: false });
     const { queryByText } = render(<ChangeEmailScreen />);

@@ -4,6 +4,18 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Changed
+
+- **The guest sheet says "Entrar", not "Registrarse".** Signing in and signing
+  up are one email-code flow, so a returning user reading "Registrarse" thought
+  they were in the wrong place. The button now reads "Entrar", with a line
+  underneath saying an account is created if you don't have one, and the reason
+  copy follows ("Entra para ver tu pueblo.").
+- **A malformed email is flagged before anything is sent.** The login screen
+  warns under the field on submit or on leaving it, and change-email does the
+  same on submit. The check is `isValidEmail` in `@cultuvilla/shared/utils`,
+  now also used by the three auth callables in place of their own copies.
+
 ### Fixed
 
 - **The "hay una actualización" modal pointed at a version that did not exist.**

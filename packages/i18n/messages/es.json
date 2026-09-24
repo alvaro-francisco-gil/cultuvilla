@@ -74,7 +74,8 @@
     },
     "login": {
       "title": "Correo electrónico",
-      "submit": "Enviar código"
+      "submit": "Enviar código",
+      "invalidEmail": "Revisa el correo: debe ser como nombre@ejemplo.com"
     },
     "otp": {
       "hint": "Te enviaremos un código de acceso por correo.",
@@ -200,16 +201,17 @@
   },
   "guest": {
     "title": "Únete a Cultuvilla",
-    "village": "Regístrate para ver tu pueblo.",
-    "profile": "Regístrate para crear tu perfil.",
-    "event": "Regístrate para apuntarte a este evento.",
-    "org": "Regístrate para unirte a este grupo.",
-    "menu": "Regístrate para acceder al menú.",
-    "createEvent": "Regístrate para crear un evento.",
-    "createNews": "Regístrate para crear un artículo.",
-    "comment": "Regístrate para comentar.",
+    "village": "Entra para ver tu pueblo.",
+    "profile": "Entra para crear tu perfil.",
+    "event": "Entra para apuntarte a este evento.",
+    "org": "Entra para unirte a este grupo.",
+    "menu": "Entra para acceder al menú.",
+    "createEvent": "Entra para crear un evento.",
+    "createNews": "Entra para crear un artículo.",
+    "comment": "Entra para comentar.",
     "eventCta": "Apuntarme",
-    "register": "Registrarse",
+    "register": "Entrar",
+    "newAccountHint": "Si aún no tienes cuenta, la creamos al momento.",
     "dismiss": "Ahora no"
   },
   "header": {

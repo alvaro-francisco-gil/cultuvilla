@@ -67,6 +67,9 @@ export function RegisterSheet({ visible, reason, onRegister, onDismiss }: Regist
             <Button variant="primary" fullWidth onPress={onRegister}>
               {t('guest.register')}
             </Button>
+            <Text tone="muted" variant="bodySm" className="text-center">
+              {t('guest.newAccountHint')}
+            </Text>
             <Pressable onPress={onDismiss} accessibilityLabel={t('guest.dismiss')} className="items-center py-2">
               <Text tone="muted">{t('guest.dismiss')}</Text>
             </Pressable>
