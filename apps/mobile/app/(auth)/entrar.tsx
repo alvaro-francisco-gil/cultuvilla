@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Platform } from 'react-native';
+import { isValidEmail } from '@cultuvilla/shared/utils';
 import { Button, Input, Text, VStack } from '../../components/primitives';
 import {
   AppleButton,
@@ -22,6 +23,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [sendLoading, setSendLoading] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -29,6 +31,10 @@ export default function LoginScreen() {
 
   async function onSendCode() {
     setError(null);
+    if (!isValidEmail(email)) {
+      setEmailError(t('auth.login.invalidEmail'));
+      return;
+    }
     setSendLoading(true);
     try {
       await sendOtpCode(email);
@@ -53,6 +59,17 @@ export default function LoginScreen() {
     } finally {
       setVerifyLoading(false);
     }
+  }
+
+  function onChangeEmailText(next: string) {
+    setEmail(next);
+    setEmailError(null);
+  }
+
+  // Flagged on leaving the field, never mid-typing: 'ana@' is a valid prefix of
+  // a valid address, and shouting at it would be noise.
+  function onEmailBlur() {
+    if (email.trim() && !isValidEmail(email)) setEmailError(t('auth.login.invalidEmail'));
   }
 
   // A typo in the address is only visible once the code screen names it, so
@@ -128,10 +145,13 @@ export default function LoginScreen() {
       <VStack gap={3}>
         <Input
           value={email}
-          onChangeText={setEmail}
+          onChangeText={onChangeEmailText}
+          onBlur={onEmailBlur}
+          error={emailError ?? undefined}
           autoCapitalize="none"
           keyboardType="email-address"
           autoComplete="email"
+          testID="login-email-input"
         />
         <Text tone="muted" variant="bodySm">
           {t('auth.otp.hint')}
