@@ -30,7 +30,7 @@ export type VocabularyTermKind = z.infer<typeof VocabularyTermKindSchema>;
  */
 export const VocabularyTermDataSchema = z.object({
   municipalityId: z.string(),
-  /** The headword exactly as the first contributor wrote it, accents and all. */
+  /** The headword as the first contributor wrote it, accents and all — only the first letter is capitalized (`capitalizeTerm`). */
   term: z.string().min(1).max(80),
   normalized: z.string().min(1).max(80),
   kind: VocabularyTermKindSchema,
@@ -86,11 +86,20 @@ export function termSlugFromId(termId: string): string {
   return termId.slice(termId.lastIndexOf('__') + 2);
 }
 
+/**
+ * Upper-cases the first letter, skipping an opening `¿`/`¡` so a dicho reads
+ * "¡Anda ya!". Everything after it stays as typed — a mote like "el Tío Pedro"
+ * carries capitals of its own that lower-casing would destroy.
+ */
+export function capitalizeTerm(term: string): string {
+  return term.trim().replace(/\p{L}/u, (letter) => letter.toLocaleUpperCase('es-ES'));
+}
+
 export function buildVocabularyTermData(input: VocabularyTermDataInput): VocabularyTermData {
   const createdAt = input.createdAt ?? new Date();
   return {
     municipalityId: input.municipalityId,
-    term: input.term.trim(),
+    term: capitalizeTerm(input.term),
     normalized: slugifyTerm(input.term),
     kind: input.kind,
     createdBy: input.createdBy,
