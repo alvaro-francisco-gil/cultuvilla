@@ -122,7 +122,7 @@
     "prepare": "husky",
     "test:unit": "pnpm shared:test && pnpm i18n:test && pnpm app:test && pnpm functions:test",
     "test:coverage:unit": "pnpm --filter @cultuvilla/shared test:coverage && pnpm --filter @cultuvilla/i18n test:coverage && pnpm app:test:coverage && npm --prefix functions run test:coverage",
-    "fiestas:verify": "node scripts/fiestas-verify.mjs"
+    "fiestas:verify": "pnpm shared:build && node scripts/fiestas-verify.mjs"
   },
   "lint-staged": {
     "*.{json,md,yml,yaml}": []
