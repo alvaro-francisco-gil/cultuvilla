@@ -13,6 +13,7 @@ export const KIND_BY_DIR = {
   eventos: 'evento',
   entidades: 'entidad',
   proposals: 'propuesta',
+  busquedas: 'busqueda',
 };
 
 /**
@@ -55,6 +56,11 @@ const REQUIRED = {
   // `para` points at the convocatoria or evento this proposal targets, and is
   // what lets a proposal inherit that record's deadline instead of restating it.
   propuesta: ['id', 'kind', 'titulo', 'status', 'para'],
+  // A búsqueda records a sweep that was executed. `revisar` is what turns "we
+  // should look again sometime" into a date the tool reports, and `sinHallazgos`
+  // is what stops the next run re-searching what this one already ruled out — a
+  // sweep that records only its finds teaches the following one nothing.
+  busqueda: ['id', 'kind', 'titulo', 'ejecutada', 'revisar', 'fuentes', 'sinHallazgos'],
 };
 
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -115,6 +121,23 @@ export function validateRecord({ dir, slug, data }) {
   }
   if (expectedKind === 'propuesta' && data.deadline) {
     problems.push('a propuesta inherits its deadline from `para` — do not restate it');
+  }
+
+  if (expectedKind === 'busqueda') {
+    // A sweep describes the past, so it has no lifecycle and no fit. Giving it
+    // one would invite reading recorded coverage as an ambition.
+    for (const field of ['status', 'relacion', 'fit', 'deadline']) {
+      if (data[field]) problems.push(`a busqueda has no \`${field}\` — it records a sweep that already happened`);
+    }
+    for (const field of ['ejecutada', 'revisar']) {
+      if (data[field] && !ISO_DATE.test(data[field])) {
+        problems.push(`${field} \`${data[field]}\` is not an ISO date (YYYY-MM-DD)`);
+      }
+    }
+    if (data.ejecutada && data.revisar && data.revisar < data.ejecutada) {
+      problems.push(`revisar \`${data.revisar}\` is before ejecutada \`${data.ejecutada}\``);
+    }
+    return problems;
   }
 
   if (expectedKind === 'entidad') {
@@ -221,4 +244,33 @@ export function findDanglingProposals(records) {
   return resolveProposalDeadlines(records)
     .filter((p) => !p.target)
     .map((p) => ({ path: p.proposal.path, para: p.proposal.data.para }));
+}
+
+/**
+ * Sweeps whose `revisar` date has arrived — the search is due again.
+ *
+ * A warning by default and an error only under `--strict`, like
+ * `fiestas:verify`: a review date lapses on a calendar boundary with no commit
+ * to blame, so gating every PR would redden `develop` in October for something
+ * nobody in that PR did.
+ */
+export function findDueSweeps(records, today) {
+  return records
+    .filter((r) => r.data.kind === 'busqueda' && r.data.revisar)
+    .map((r) => ({ ...r, days: daysUntil(r.data.revisar, today) }))
+    .filter((r) => r.days !== null && r.days <= 0)
+    .sort((a, b) => a.days - b.days);
+}
+
+/**
+ * The most recent sweep, or null when nothing has ever been swept.
+ *
+ * "When did we last actually look?" is the question a registry cannot answer from
+ * its records alone — every one of them is something we found, and none of them is
+ * evidence of the searches that found nothing.
+ */
+export function lastSweep(records) {
+  const sweeps = records.filter((r) => r.data.kind === 'busqueda' && r.data.ejecutada);
+  if (!sweeps.length) return null;
+  return sweeps.reduce((latest, r) => (r.data.ejecutada > latest.data.ejecutada ? r : latest));
 }

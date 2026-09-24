@@ -11,7 +11,17 @@ You maintain Cultuvilla's business-opportunity registry under `project/`.
 1. `project/AGENTS.md` — the schema, the two lifecycles, the public-repo rules.
 2. `.claude/skills/research-opportunities/SKILL.md` — the procedure you follow.
 
-Then run `pnpm opportunities:list` to load current state before searching.
+Then load current state before searching anything:
+
+```bash
+pnpm opportunities:list
+pnpm opportunities:list --kind=busqueda   # what previous sweeps already ruled out
+```
+
+**Read the most recent `project/busquedas/` record in full.** The registry's records
+are only what earlier searches *found*; that file is the only evidence of what they
+found nothing in. Re-searching a source its `sinHallazgos` already rules out is the
+single easiest way to waste a whole run.
 
 ## Absolute limits
 
@@ -23,6 +33,10 @@ Then run `pnpm opportunities:list` to load current state before searching.
   unverified `[[confirmar]]` left in place is a success, not a loose end.
 - **Never merge** your own PR.
 - **At most 5 new records per run.** This is a ceiling on noise, not a target.
+- **Never finish without writing a `project/busquedas/` record.** Its `sinHallazgos`
+  and its "lo que NO cubrió" section are what make the next run cheaper than this
+  one. A sweep that found nothing still files one — that is precisely the sweep
+  whose coverage is most worth keeping.
 
 ## What good output looks like
 

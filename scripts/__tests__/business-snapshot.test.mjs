@@ -14,12 +14,33 @@ const entidad = (over = {}) =>
   rec({ id: 'epa', kind: 'entidad', titulo: 'EPA!', relacion: 'contactado', fit: 'high', ...over });
 const propuesta = (over = {}, holes = 0) =>
   rec({ id: 'p1', kind: 'propuesta', titulo: 'Formulario', status: 'borrador', para: 'galera', ...over }, holes);
+const busqueda = (over = {}) =>
+  rec({
+    id: '2026-09-barrido',
+    kind: 'busqueda',
+    titulo: 'Barrido de septiembre',
+    ejecutada: '2026-09-21',
+    revisar: '2026-10-06',
+    fuentes: 'BOE; MITECO',
+    sinHallazgos: 'ENISA (persona física no elegible)',
+    ...over,
+  });
 
 describe('buildSnapshot counts and grouping', () => {
   it('groups by kind and counts each', () => {
-    const snap = buildSnapshot([convocatoria(), evento(), entidad(), propuesta()], TODAY);
-    assert.deepEqual(snap.counts, { convocatoria: 1, evento: 1, entidad: 1, propuesta: 1 });
+    const snap = buildSnapshot([convocatoria(), evento(), entidad(), propuesta(), busqueda()], TODAY);
+    assert.deepEqual(snap.counts, { convocatoria: 1, evento: 1, entidad: 1, propuesta: 1, busqueda: 1 });
     assert.equal(snap.byKind.entidad[0].titulo, 'EPA!');
+  });
+
+  // The panel reads a sweep's coverage off the card, so these fields have to
+  // survive the generator — a búsqueda carries no deadline and no fit, and without
+  // them it would render as a bare title.
+  it('carries a sweep\u2019s scope, review date and misses onto its card', () => {
+    const [card] = buildSnapshot([busqueda()], TODAY).byKind.busqueda;
+    assert.equal(card.revisar, '2026-10-06');
+    assert.equal(card.sinHallazgos, 'ENISA (persona física no elegible)');
+    assert.equal(card.deadline, undefined);
   });
 
   it('stamps a date, not a timestamp, so a rerun makes no diff', () => {

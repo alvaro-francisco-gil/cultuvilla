@@ -55,8 +55,10 @@ function daysInMonth(year: number, month: number): number {
 /** Every dated record, newest last. A record with no deadline is not on a calendar. */
 export function datedItems(cards: BusinessCard[]): CalendarItem[] {
   return cards
-    .filter((card): card is BusinessCard & { deadline: string } => Boolean(card.deadline))
-    .map((card) => ({ card, deadline: card.deadline }))
+    // A sweep's date is when it is due again rather than a deadline, but on a
+    // calendar both answer the same question, so both belong on the grid.
+    .map((card) => ({ card, deadline: (card.kind === 'busqueda' ? card.revisar : card.deadline) ?? '' }))
+    .filter((item) => item.deadline !== '')
     .sort((a, b) => a.deadline.localeCompare(b.deadline));
 }
 

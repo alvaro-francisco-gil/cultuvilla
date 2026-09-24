@@ -19,6 +19,8 @@ import {
 const CARRIED = [
   'id', 'kind', 'titulo', 'status', 'relacion', 'fit', 'deadline',
   'convocante', 'importe', 'lugar', 'coste', 'plazas', 'tipo', 'para', 'url',
+  // A sweep's whole value is its scope, its review date and what it ruled out.
+  'ejecutada', 'revisar', 'ambito', 'cobertura', 'sinHallazgos',
 ];
 
 const FIT_ORDER = { high: 0, medium: 1, low: 2 };

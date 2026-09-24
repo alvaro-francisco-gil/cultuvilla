@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  BusinessCardSchema,
   BusinessSnapshotSchema,
   FiestaTipoSchema,
   FiestasDatasetSchema,
@@ -8,11 +9,11 @@ import {
 
 const base = {
   generatedAt: '2026-09-24',
-  counts: { convocatoria: 0, evento: 0, entidad: 0, propuesta: 0 },
+  counts: { convocatoria: 0, evento: 0, entidad: 0, propuesta: 0, busqueda: 0 },
   urgente: [],
   caducadas: [],
   propuestasIncompletas: [],
-  byKind: { convocatoria: [], evento: [], entidad: [], propuesta: [] },
+  byKind: { convocatoria: [], evento: [], entidad: [], propuesta: [], busqueda: [] },
 };
 
 const cobertura = {
@@ -156,5 +157,27 @@ describe('FiestasDatasetSchema rejects impossible dates', () => {
   it('accepts a pueblo with no fiestas but an open marker', () => {
     const blank = { ...dataset, pueblos: [{ ...dataset.pueblos[0], fiestas: [], confirmar: ['[[confirmar: nada publicado]]'] }] };
     expect(FiestasDatasetSchema.safeParse(blank).success).toBe(true);
+  });
+});
+
+describe('BusinessCardSchema sweeps', () => {
+  // The panel reads coverage off the card, so these four fields have to survive
+  // the generator. A sweep carries no deadline and no fit, so without them a
+  // búsqueda card would render as a bare title.
+  it('carries a sweep’s scope, review date and misses', () => {
+    const card = BusinessCardSchema.parse({
+      path: 'project/busquedas/2026-09-convocatorias-rural-digital.md',
+      holes: 0,
+      id: '2026-09-convocatorias-rural-digital',
+      kind: 'busqueda',
+      titulo: 'Barrido de convocatorias',
+      ejecutada: '2026-09-21',
+      revisar: '2026-10-06',
+      ambito: 'estatal · europeo',
+      cobertura: '6 fichadas',
+      sinHallazgos: 'ENISA; Red.es',
+    });
+    expect(card.revisar).toBe('2026-10-06');
+    expect(card.sinHallazgos).toBe('ENISA; Red.es');
   });
 });

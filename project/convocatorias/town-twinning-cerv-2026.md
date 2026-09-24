@@ -2,7 +2,7 @@
 id: town-twinning-cerv-2026
 kind: convocatoria
 titulo: "Town Twinning 2026 (hermanamientos) — CERV"
-status: watching
+status: expired
 fit: medium
 deadline: 2026-09-23
 convocante: "Comisión Europea — programa CERV 2021-2027"
@@ -49,3 +49,11 @@ ser solo un viaje — es el sitio donde se conocen los pueblos que podrían serl
       no cuando queden tres días.
 - [ ] `[[confirmar: enlace oficial de la convocatoria en el portal de la UE —
       la fuente es una consultora, no el portal]]`
+
+## Cierre — 2026-09-24
+
+Plazo vencido el 23-sep-2026. El bloqueo nunca fue la fecha: el solicitante tiene
+que ser el **ayuntamiento**, y no había ningún pueblo hermanado con el que
+presentarse. Se marca `expired`, no `lost` — no se presentó nada que perder. La
+convocatoria es anual: el trabajo previo que la haría viable es conseguir un
+ayuntamiento dispuesto y un municipio socio, no volver a leer las bases.

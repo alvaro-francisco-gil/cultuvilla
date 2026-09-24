@@ -3,7 +3,7 @@
  * Read the business-opportunity registry under `project/`.
  *
  *   pnpm opportunities:list   [--kind=convocatoria] [--window=30] [--json]
- *   pnpm opportunities:verify [--today=YYYY-MM-DD]
+ *   pnpm opportunities:verify [--today=YYYY-MM-DD] [--strict]
  *
  * `list` is what an agent calls to learn the current state in one shot; the
  * frontmatter is the machine surface and the Markdown body is for humans.
@@ -22,8 +22,10 @@ import {
   findDanglingProposals,
   findDuplicateIds,
   findFalseReady,
+  findDueSweeps,
   findStranded,
   findUpcoming,
+  lastSweep,
   parseFrontmatter,
   resolveProposalDeadlines,
   validateRecord,
@@ -106,6 +108,10 @@ const label = (record, deadlines = new Map()) => {
   const deadline = d.deadline ?? deadlines.get(d.id) ?? null;
   const when = deadline ? `  ⏳ ${deadline}` : '';
   // A proposal's readiness is the hole count, not its own claim about itself.
+  if (d.kind === 'busqueda') {
+    // A sweep has no state and no fit — what it has is a scope and a next date.
+    return `  ${String(d.ejecutada).padEnd(12)} ↻ ${String(d.revisar).padEnd(12)} ${d.titulo}\n      ${record.path}`;
+  }
   const extra =
     d.kind === 'propuesta'
       ? record.holes === 0
@@ -173,6 +179,14 @@ function list() {
     for (const record of stranded) console.log(`  ${record.data.deadline}  ${record.data.titulo}  (${record.path})`);
   }
 
+  const due = findDueSweeps(records, today());
+  if (due.length) {
+    console.log('\n⚠ BÚSQUEDAS VENCIDAS — toca volver a barrer');
+    for (const record of due) {
+      console.log(`  ${String(-record.days).padStart(3)}d de retraso  ${record.data.titulo}  (${record.path})`);
+    }
+  }
+
   const falseReady = findFalseReady(records);
   if (falseReady.length) {
     console.log('\n⚠ MARCADA `lista` PERO CON HUECOS SIN RELLENAR');
@@ -183,6 +197,7 @@ function list() {
 }
 
 function verify() {
+  const strict = flag('strict');
   const { records, errors } = loadRegistry();
   if (errors.length) {
     console.error(`✗ ${errors.length} problem(s) in the opportunity registry:\n`);
@@ -200,7 +215,25 @@ function verify() {
   for (const record of findFalseReady(records)) {
     console.warn(`⚠ ${record.path}: marked \`lista\` but still has ${record.holes} unresolved [[...]]`);
   }
+
+  const due = findDueSweeps(records, today());
+  for (const record of due) {
+    console.warn(`⚠ ${record.path}: revisar ${record.data.revisar} vencido hace ${String(-record.days)}d — el barrido toca otra vez`);
+    console.warn('             Refresh: use the `research-opportunities` skill (or the opportunity-scout agent).');
+  }
+
+  const last = lastSweep(records);
   console.log(`✓ ${records.length} record(s) valid${stranded.length ? `, ${stranded.length} stranded` : ''}`);
+  console.log(
+    last
+      ? `  último barrido ${String(last.data.ejecutada)} · próxima revisión ${String(last.data.revisar)} (${last.path})`
+      : '  ⚠ ningún barrido registrado — nadie sabe cuándo se buscó por última vez',
+  );
+
+  // Same posture as `fiestas:verify`: a due sweep trips on a calendar boundary,
+  // not on a diff, so only the scheduled job gates on it.
+  if (due.length && strict) return 1;
+  if (due.length) console.log(`\n${String(due.length)} barrido(s) vencido(s) — no falla; usa --strict para gatear.`);
   return 0;
 }
 
