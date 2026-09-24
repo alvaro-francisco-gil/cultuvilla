@@ -45,8 +45,9 @@ del boca a boca de Matabuena.
   las palabras y refranes de su sección. Tras comprobarlos en diccionarios
   quedaron 11 palabras locales y 9 refranes, en
   [`scripts/data/vocabulary/matabuena.json`](../../scripts/data/vocabulary/matabuena.json)
-  con enlace al segundo exacto de cada uno. Aún no se han subido a la app;
-  *polán* está sin verificar `[[confirmar: ¿se escribe «polán» y significa «chaval malo»?]]`.
+  con enlace al segundo exacto de cada uno. Aún no se han subido a la app.
+  *Polán* no está en ningún diccionario; su significado («chaval malo», dicho
+  en broma) se tomó del propio episodio 13 el 2026-09-24.
 - **2026-09-20** — Grabación de un episodio con ellos sobre Cultuvilla.
   `[[confirmar: de qué se habló, fecha de publicación, quién condujo]]`
 - **2026-09-20** — Ese mismo día crearon en Cultuvilla el grupo «Ayer dijimos
@@ -58,7 +59,6 @@ del boca a boca de Matabuena.
 - [ ] Anotar la fecha de publicación del episodio en cuanto se sepa, y difundirlo.
 - [ ] Guardar aquí el enlace del episodio cuando se publique (sirve como prueba de
       repercusión en convocatorias).
-- [ ] Subir el vocabulario ya extraído (`matabuena.json`) acreditado a su grupo,
-      tras confirmar *polán* con ellos.
+- [ ] Subir el vocabulario ya extraído (`matabuena.json`) acreditado a su grupo.
 - [ ] Proponerles que suban directamente las listas que les mandan los oyentes.
 - [ ] Repetir la extracción con cada episodio nuevo.
