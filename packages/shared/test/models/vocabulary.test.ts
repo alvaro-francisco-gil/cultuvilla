@@ -5,6 +5,7 @@ import {
   buildVocabularyTermData,
   VocabularyTermDataSchema,
   VOCABULARY_TERM_KINDS,
+  presentVocabularyKinds,
 } from '../../src/models/vocabulary/VocabularyTermDataModel';
 import {
   isSharedVocabularyKind,
@@ -186,5 +187,16 @@ describe('shared vocabulary kinds', () => {
     expect(() => VocabularyWordDataSchema.parse(word)).not.toThrow();
     expect(word.normalized).toBe('esbardo');
     expect(word.updatedAt).toEqual(word.createdAt);
+  });
+});
+
+describe('presentVocabularyKinds', () => {
+  it('lists only the kinds a village has recorded, in the fixed kind order', () => {
+    const kinds = presentVocabularyKinds([{ kind: 'dicho' }, { kind: 'palabra' }, { kind: 'dicho' }]);
+    expect(kinds).toEqual(['palabra', 'dicho']);
+  });
+
+  it('is empty for a village with no words', () => {
+    expect(presentVocabularyKinds([])).toEqual([]);
   });
 });
