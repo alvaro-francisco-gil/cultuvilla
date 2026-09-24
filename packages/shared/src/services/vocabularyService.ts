@@ -155,6 +155,23 @@ export async function getVocabularyDefinitions(
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+/**
+ * Every active meaning in a pueblo, in one query — for the list screen's
+ * per-row credit, which would otherwise cost a read per headword. Same
+ * whole-glossary reasoning as `getVocabularyTerms`.
+ */
+export async function getVillageVocabularyDefinitions(
+  municipalityId: string,
+): Promise<VocabularyDefinitionWithId[]> {
+  const q = query(
+    vocabularyDefinitionsCollection(getDb()),
+    where('municipalityId', '==', municipalityId),
+    where('status', '==', 'active'),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
 export async function addVocabularyDefinition(
   input: VocabularyDefinitionDataInput,
 ): Promise<string> {

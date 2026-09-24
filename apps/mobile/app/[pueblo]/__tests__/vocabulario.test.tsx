@@ -1,7 +1,10 @@
 import { render, waitFor, fireEvent } from '@testing-library/react-native';
 import VocabularyScreen from '../vocabulario';
 import { useEntityCapabilities } from '../../../lib/auth/useEntityCapabilities';
-import { getVocabularyTerms } from '@cultuvilla/shared/services/vocabularyService';
+import {
+  getVocabularyTerms,
+  getVillageVocabularyDefinitions,
+} from '@cultuvilla/shared/services/vocabularyService';
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ pueblo: 'villa' }),
@@ -19,6 +22,7 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/vocabularyService', () => ({
   getVocabularyTerms: jest.fn(),
+  getVillageVocabularyDefinitions: jest.fn(),
 }));
 jest.mock('../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: jest.fn(),
@@ -26,13 +30,16 @@ jest.mock('../../../lib/auth/useEntityCapabilities', () => ({
 jest.mock('../../../components/feature/ContributorAvatars', () => {
   const { Text } = require('react-native');
   return {
-    ContributorAvatars: ({ userIds }: { userIds: string[] }) => <Text>{`faces:${userIds.join(',')}`}</Text>,
+    ContributorAvatars: ({ userIds, orgIds }: { userIds: string[]; orgIds: string[] }) => (
+      <Text>{`faces:${[...orgIds, ...userIds].join(',')}`}</Text>
+    ),
   };
 });
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 
 const mockCaps = useEntityCapabilities as jest.Mock;
 const mockTerms = getVocabularyTerms as jest.Mock;
+const mockDefinitions = getVillageVocabularyDefinitions as jest.Mock;
 
 function term(id: string, word: string, normalized: string, kind = 'palabra') {
   return {
@@ -58,6 +65,7 @@ function term(id: string, word: string, normalized: string, kind = 'palabra') {
 beforeEach(() => {
   jest.clearAllMocks();
   mockCaps.mockReturnValue({ isMember: true, canManage: false, uid: 'u1', loading: false });
+  mockDefinitions.mockResolvedValue([]);
   mockTerms.mockResolvedValue([
     term('m1__esbardo', 'Esbardo', 'esbardo'),
     term('m1__napa', 'Ñapa', 'napa'),
@@ -108,6 +116,17 @@ describe('VocabularyScreen', () => {
     const { getByText, getAllByText } = render(<VocabularyScreen />);
     await waitFor(() => expect(getByText('Esbardo')).toBeTruthy());
     expect(getAllByText('faces:alice')).toHaveLength(2);
+  });
+
+  // Someone who only added a meaning — or the group they added it for — still
+  // shows on the word's row.
+  it('credits whoever added a meaning, groups included', async () => {
+    mockDefinitions.mockResolvedValue([
+      { termId: 'm1__napa', contributorUserIds: ['samu'], contributorOrgIds: ['podcast'] },
+    ]);
+    const { getByText } = render(<VocabularyScreen />);
+    await waitFor(() => expect(getByText('faces:podcast,alice,samu')).toBeTruthy());
+    expect(getByText('faces:alice')).toBeTruthy();
   });
 
   it('needs no tabs while the pueblo has only one kind recorded', async () => {

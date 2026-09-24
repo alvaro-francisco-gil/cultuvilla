@@ -1,5 +1,11 @@
 import { newWordHref, wordHref } from '../../lib/navigation/routes';
-import { presentVocabularyKinds, termSlugFromId, type VocabularyTermKind } from '@cultuvilla/shared/models';
+import {
+  presentVocabularyKinds,
+  termSlugFromId,
+  vocabularyCreditsByTerm,
+  type VocabularyCredit,
+  type VocabularyTermKind,
+} from '@cultuvilla/shared/models';
 import { useVillageRoute, withVillageRoute } from '../../lib/navigation/VillageRouteGate';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Animated, View } from 'react-native';
@@ -20,6 +26,7 @@ import { useT } from '../../lib/i18n';
 import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
 import {
   getVocabularyTerms,
+  getVillageVocabularyDefinitions,
   type VocabularyTermWithId,
 } from '@cultuvilla/shared/services/vocabularyService';
 import { slugifyTerm } from '@cultuvilla/shared/models/vocabulary';
@@ -46,6 +53,7 @@ function VocabularyScreen() {
   const { t } = useT();
   const { isMember } = useEntityCapabilities(villageId);
   const [terms, setTerms] = useState<VocabularyTermWithId[]>([]);
+  const [credits, setCredits] = useState<Map<string, VocabularyCredit>>(new Map());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedKind, setSelectedKind] = useState<VocabularyTermKind | null>(null);
@@ -53,7 +61,12 @@ function VocabularyScreen() {
   const load = useCallback(async () => {
     if (!villageId) return;
     try {
-      setTerms(await getVocabularyTerms(villageId));
+      const [loadedTerms, definitions] = await Promise.all([
+        getVocabularyTerms(villageId),
+        getVillageVocabularyDefinitions(villageId),
+      ]);
+      setTerms(loadedTerms);
+      setCredits(vocabularyCreditsByTerm(loadedTerms, definitions));
     } finally {
       setLoading(false);
     }
@@ -140,8 +153,12 @@ function VocabularyScreen() {
             testID={`vocabulary-term-${item.id}`}
           >
             <HStack gap={3} className="items-center">
-              <Text className="font-bold flex-1">{item.term}</Text>
-              <ContributorAvatars userIds={item.contributorUserIds} />
+              <Text className="font-bold shrink">{item.term}</Text>
+              <ContributorAvatars
+                userIds={credits.get(item.id)?.userIds ?? item.contributorUserIds}
+                orgIds={credits.get(item.id)?.orgIds ?? item.contributorOrgIds}
+              />
+              <View className="flex-1" />
               <Ionicons name="chevron-forward" size={iconSizes.sm} color={colors.light.fg.muted} />
             </HStack>
           </Pressable>
