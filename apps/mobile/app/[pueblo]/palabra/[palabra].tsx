@@ -7,8 +7,8 @@ import { Screen } from '../../../components/primitives/Screen';
 import { Text } from '../../../components/primitives/Text';
 import { HStack } from '../../../components/primitives/HStack';
 import { VStack } from '../../../components/primitives/VStack';
-import { Button } from '../../../components/primitives/Button';
 import { Pressable } from '../../../components/primitives/Pressable';
+import { Fab } from '../../../components/primitives/Fab';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { ScreenTitle } from '../../../components/primitives/ScreenTitle';
 import { DetailSectionHeading } from '../../../components/feature/DetailSectionHeading';
@@ -127,7 +127,7 @@ function VocabularyTermScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 48 }}>
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 96 }}>
           {!term ? (
             <Text tone="muted">{loading ? '' : t('village.vocabulary.notFound')}</Text>
           ) : (
@@ -213,17 +213,6 @@ function VocabularyTermScreen() {
                   </View>
                 ))}
 
-                {isMember ? (
-                  <Button
-                    variant="secondary"
-                    onPress={() =>
-                      router.push(defineWordHref(villageSlug, termSlugFromId(term.id)))
-                    }
-                    testID="vocabulary-add-definition"
-                  >
-                    {t('village.vocabulary.addDefinition')}
-                  </Button>
-                ) : null}
               </VStack>
 
               <OtherVillagesSaying
@@ -241,6 +230,13 @@ function VocabularyTermScreen() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+      {term && isMember ? (
+        <Fab
+          label={t('village.vocabulary.addDefinition')}
+          onPress={() => router.push(defineWordHref(villageSlug, termSlugFromId(term.id)))}
+          testID="vocabulary-add-definition"
+        />
+      ) : null}
       <ReportSheet
         visible={reportTarget != null}
         target={reportTarget}

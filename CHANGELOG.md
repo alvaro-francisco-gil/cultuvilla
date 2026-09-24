@@ -37,6 +37,10 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Changed
 
+- **"Añadir otro significado" is a floating button.** On a word's screen it now
+  floats at the bottom like "Añadir palabra" on the list, instead of sitting
+  under the last meaning. In the dictionary list the contributors' faces moved
+  to the far right of each row, replacing the arrow.
 - **Dictionary rows credit everyone who worked on a word.** The faces now sit
   right after the word and include the groups credited (their icon first) and
   every villager who added a meaning, not only whoever recorded the word first.
