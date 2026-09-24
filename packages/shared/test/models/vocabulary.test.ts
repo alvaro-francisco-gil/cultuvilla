@@ -64,6 +64,20 @@ describe('buildVocabularyTermData', () => {
     expect(data.normalized).toBe('napa');
   });
 
+  it('capitalizes the first letter so the listing does not mix "tenao" with "Melena"', () => {
+    expect(buildVocabularyTermData({ ...input, term: 'tenao' }).term).toBe('Tenao');
+    expect(buildVocabularyTermData({ ...input, term: 'ñapa' }).term).toBe('Ñapa');
+    expect(buildVocabularyTermData({ ...input, term: 'ágora' }).term).toBe('Ágora');
+  });
+
+  it('capitalizes the first letter, not the opening ¿ or ¡ of a dicho', () => {
+    expect(buildVocabularyTermData({ ...input, kind: 'dicho', term: '¡anda ya!' }).term).toBe('¡Anda ya!');
+  });
+
+  it('leaves the rest of the headword exactly as typed', () => {
+    expect(buildVocabularyTermData({ ...input, term: 'el Tío Pedro' }).term).toBe('El Tío Pedro');
+  });
+
   it('starts every counter at zero and the term visible', () => {
     const data = buildVocabularyTermData(input);
     expect(data.definitionCount).toBe(0);

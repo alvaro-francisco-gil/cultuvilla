@@ -6,6 +6,10 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Changed
 
+- **New vocabulary words always start with a capital letter.** "tenao" is saved
+  as "Tenao", so the alphabetical list no longer mixes both styles. A dicho keeps
+  its opening "¡" or "¿" ("¡Anda ya!"), and the rest of the word is kept as
+  typed. Existing words in prod were already fixed by hand.
 - **The guest sheet says "Entrar", not "Registrarse".** Signing in and signing
   up are one email-code flow, so a returning user reading "Registrarse" thought
   they were in the wrong place. The button now reads "Entrar", with a line
