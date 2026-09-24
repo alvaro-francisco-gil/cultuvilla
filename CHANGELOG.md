@@ -33,6 +33,12 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   blocker was never the date but the applicant (the ayuntamiento), and that is the
   work the next edition needs.
 
+- **The word of the day and the word screen are simpler.** The village card
+  names the kind in its heading ("Dicho del día", "Mote del día"…) instead of a
+  separate badge, and no longer lists other words under it. On the word screen
+  the headword is centred with its kind as a badge above it, the meanings are
+  headed just "Significados", and each meaning shows its date and who added it
+  without the "Digitalizado por" label.
 - **New vocabulary words always start with a capital letter.** "tenao" is saved
   as "Tenao", so the alphabetical list no longer mixes both styles. A dicho keeps
   its opening "¡" or "¿" ("¡Anda ya!"), and the rest of the word is kept as

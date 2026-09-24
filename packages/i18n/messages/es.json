@@ -273,9 +273,13 @@
     "notFound": "No encontramos este pueblo. Puede que el enlace esté mal escrito.",
     "vocabulary": {
       "title": "Diccionario de {village}",
-      "wordOfTheDay": "Palabra del día",
+      "wordOfTheDay": {
+        "palabra": "Palabra del día",
+        "dicho": "Dicho del día",
+        "mote": "Mote del día",
+        "toponimo": "Topónimo del día"
+      },
       "seeAll": "Ver las {count}",
-      "more": "Más:",
       "search": "Buscar una palabra",
       "empty": "Todavía no hay ninguna palabra recogida. Añade la primera.",
       "noMatches": "Ninguna palabra coincide con esa búsqueda.",
@@ -301,7 +305,7 @@
       },
       "definition": "Qué significa",
       "definitionPlaceholder": "Explícalo con tus palabras",
-      "definitions": "{count} significados",
+      "definitions": "Significados",
       "definitionCount": "{count} significados",
       "example": "Ejemplo de uso",
       "examplePlaceholder": "Úsala en una frase, como se dice aquí",

@@ -132,11 +132,21 @@ function VocabularyTermScreen() {
             <Text tone="muted">{loading ? '' : t('village.vocabulary.notFound')}</Text>
           ) : (
             <>
-              <VStack gap={1}>
-                <ScreenTitle>{term.term}</ScreenTitle>
-                <Text tone="muted" variant="bodySm">
-                  {t(`village.vocabulary.kind.${term.kind}`)}
-                </Text>
+              <VStack gap={3} className="items-center py-4">
+                <View
+                  className="rounded-full bg-accent-subtle"
+                  style={{ paddingHorizontal: 12, paddingVertical: 4 }}
+                >
+                  <Text
+                    variant="caption"
+                    className="font-semibold uppercase text-accent"
+                    style={{ letterSpacing: 1 }}
+                    testID="vocabulary-term-kind"
+                  >
+                    {t(`village.vocabulary.kind.${term.kind}`)}
+                  </Text>
+                </View>
+                <ScreenTitle className="text-center">{term.term}</ScreenTitle>
               </VStack>
 
               <EntityContributors
@@ -147,7 +157,7 @@ function VocabularyTermScreen() {
 
               <VStack gap={3}>
                 <DetailSectionHeading>
-                  {t('village.vocabulary.definitions', { count: definitions.length })}
+                  {t('village.vocabulary.definitions')}
                 </DetailSectionHeading>
                 {definitions.map((definition, index) => (
                   <View key={definition.id} className="border-b border-subtle pb-3">
@@ -171,7 +181,7 @@ function VocabularyTermScreen() {
                           variant="inline"
                           userIds={definition.contributorUserIds}
                           orgIds={definition.contributorOrgIds}
-                          label={`${t('village.contributors.label')} · ${formatDate(definition.createdAt)}`}
+                          label={formatDate(definition.createdAt)}
                         />
                       </VStack>
                       {user ? (

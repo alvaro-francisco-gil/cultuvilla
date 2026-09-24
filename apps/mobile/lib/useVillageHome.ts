@@ -65,8 +65,6 @@ export interface WordOfTheDay {
   term: VocabularyTermWithId;
   /** The term's first meaning; null when none has been added yet. */
   definition: VocabularyDefinitionWithId | null;
-  /** A few other words to follow on to. */
-  more: VocabularyTermWithId[];
 }
 
 export interface VillageHomeState {
@@ -398,14 +396,12 @@ export function useVillageHome(municipalityId: string | null) {
         const pick = pickWordOfTheDay(terms, municipalityId, new Date());
         const definitions = pick
           ? await withFirestoreErrorLog('villageHome:getVocabularyDefinitions', () =>
-              getVocabularyDefinitions(pick.today.id),
+              getVocabularyDefinitions(pick.id),
             )
           : [];
         commit((s) => ({
           ...s,
-          wordOfTheDay: pick
-            ? { term: pick.today, definition: definitions[0] ?? null, more: pick.more }
-            : null,
+          wordOfTheDay: pick ? { term: pick, definition: definitions[0] ?? null } : null,
           vocabularyCount: terms.length,
           sectionStatus: { ...s.sectionStatus, vocabulary: 'ready' },
         }));
