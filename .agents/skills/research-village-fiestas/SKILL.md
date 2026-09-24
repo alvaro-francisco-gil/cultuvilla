@@ -42,7 +42,7 @@ dated public source in `fuente`. Never promote one to the other by reasoning.
 ### 1. Load current state
 
 ```bash
-pnpm fiestas:verify
+pnpm fiestas:verify                        # rebuilds the shared package first
 grep -rn '\[\[confirmar' project/mercado/
 ```
 
