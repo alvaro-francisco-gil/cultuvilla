@@ -115,3 +115,46 @@ describe('BusinessSnapshotSchema fiestas', () => {
     expect(BusinessSnapshotSchema.parse(base).fiestas).toBeUndefined();
   });
 });
+
+describe('FiestasDatasetSchema rejects impossible dates', () => {
+  const withFiesta = (fiesta: Record<string, unknown>): unknown => ({
+    ...dataset,
+    pueblos: [{ ...dataset.pueblos[0], fiestas: [fiesta] }],
+  });
+  const fiesta = dataset.pueblos[0]?.fiestas[0] ?? {};
+
+  // Shape alone would admit these; they reach Date.parse as NaN downstream and
+  // render as "today" — a fabricated fiesta rather than a rejected dataset.
+  it.each(['99-99', '02-31', '00-10', '13-01', '06-00'])('rejects md %s', (md) => {
+    expect(FiestasDatasetSchema.safeParse(withFiesta({ ...fiesta, md })).success).toBe(false);
+  });
+
+  // A month-day carries no year, so 29 February is legitimate here;
+  // nextFiestaOccurrence advances it to a leap year.
+  it('accepts 02-29, which is a real day in a leap year', () => {
+    expect(FiestasDatasetSchema.safeParse(withFiesta({ ...fiesta, md: '02-29' })).success).toBe(true);
+  });
+
+  it.each(['2026-02-31', '2027-02-29', '2026-13-01', '2026-00-10'])('rejects verificadoEl %s', (verificadoEl) => {
+    expect(FiestasDatasetSchema.safeParse(withFiesta({ ...fiesta, verificadoEl })).success).toBe(false);
+  });
+
+  it('rejects an impossible actualizado or barrido date', () => {
+    expect(FiestasDatasetSchema.safeParse({ ...dataset, actualizado: '2026-02-30' }).success).toBe(false);
+    const badBarrido = { ...dataset, cobertura: { ...cobertura, barridos: [{ ...cobertura.barridos[0], fecha: '2026-06-31' }] } };
+    expect(FiestasDatasetSchema.safeParse(badBarrido).success).toBe(false);
+  });
+
+  // Every ratio computed from an empty dataset is undefined, and the panel would
+  // render 0/0 as fully verified.
+  it('rejects a dataset with no pueblos', () => {
+    expect(FiestasDatasetSchema.safeParse({ ...dataset, pueblos: [] }).success).toBe(false);
+  });
+
+  // But a pueblo with no fiestas is the whole point of recording coverage: found
+  // inside the radius, nothing published yet.
+  it('accepts a pueblo with no fiestas but an open marker', () => {
+    const blank = { ...dataset, pueblos: [{ ...dataset.pueblos[0], fiestas: [], confirmar: ['[[confirmar: nada publicado]]'] }] };
+    expect(FiestasDatasetSchema.safeParse(blank).success).toBe(true);
+  });
+});

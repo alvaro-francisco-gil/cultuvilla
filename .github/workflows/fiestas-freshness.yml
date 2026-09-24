@@ -45,17 +45,25 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "$OUT"
 
+      # The report reaches the script through the environment, NEVER through
+      # `${{ }}` interpolation: it is free text that contains backticks (it names
+      # `research-village-fiestas`), which would close the template literal and
+      # fail the script with a syntax error — precisely on the stale runs this
+      # job exists for.
       - name: Open or update the refresh issue
         if: steps.check.outputs.exit != '0'
         uses: actions/github-script@v7
+        env:
+          REPORT: ${{ steps.check.outputs.report }}
         with:
           script: |
+            const report = process.env.REPORT ?? '';
             const body = [
               'El boletín provincial ya debería haber publicado las fiestas locales del año siguiente.',
               '',
-              '```',
-              `${{ steps.check.outputs.report }}`,
-              '```',
+              '~~~',
+              report,
+              '~~~',
               '',
               'Para refrescarlo: usa la skill `research-village-fiestas`, o lanza el agente `mercado-scout`.',
             ].join('\n');

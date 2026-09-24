@@ -59,10 +59,19 @@ export function pendientes(dataset: FiestasDataset): { pueblo: string; marca: st
   return dataset.pueblos.flatMap((p) => (p.confirmar ?? []).map((marca) => ({ pueblo: p.nombre, marca })));
 }
 
-/** Verified fiestas over total — how much of the calendar rests on a real source. */
-export function cobertoraVerificada(dataset: FiestasDataset): { verificadas: number; total: number } {
+/**
+ * Verified fiestas over total — how much of the calendar rests on a real source.
+ *
+ * `bastante` is false for an empty dataset rather than vacuously true: 0 of 0
+ * verified is "we know nothing", which must not render as the same green as
+ * "we checked everything".
+ */
+export function cobertoraVerificada(
+  dataset: FiestasDataset,
+): { verificadas: number; total: number; bastante: boolean } {
   const all = dataset.pueblos.flatMap((p) => p.fiestas);
-  return { verificadas: all.filter((f) => f.tipo === 'verificada').length, total: all.length };
+  const verificadas = all.filter((f) => f.tipo === 'verificada').length;
+  return { verificadas, total: all.length, bastante: all.length > 0 && verificadas * 2 >= all.length };
 }
 
 /** Pueblos grouped by ring, nearest ring first and nearest pueblo first inside it. */

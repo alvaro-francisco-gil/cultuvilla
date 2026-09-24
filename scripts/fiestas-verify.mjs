@@ -49,7 +49,10 @@ function main() {
     console.log(`${outdated ? '⚠' : '✓'} ${file}`);
     console.log(`    centro      ${d.cobertura.centro.nombre}  ·  radio ${String(d.cobertura.radioKm)} km  ·  ${String(d.pueblos.length)} pueblos`);
     console.log(`    barridos    ${d.cobertura.barridos.map((b) => `${b.fecha} @${String(b.radioKm)}km (BOP ${String(b.anioBop)})`).join(', ')}`);
-    console.log(`    fiestas     ${String(fiestas.length)} · ${String(verificadas)} verificadas (${String(Math.round((verificadas / fiestas.length) * 100))}%)`);
+    // Guarded: a dataset whose pueblos are all still blank is a legitimate
+    // state (coverage recorded, nothing published yet) and must not print NaN%.
+    const pct = fiestas.length === 0 ? '—' : `${String(Math.round((verificadas / fiestas.length) * 100))}%`;
+    console.log(`    fiestas     ${String(fiestas.length)} · ${String(verificadas)} verificadas (${pct})`);
     console.log(`    pendientes  ${String(marcas)} [[confirmar]] · ${String(sinRegla)} fechas móviles sin regla`);
     if (outdated) {
       console.log(`    STALE       anioBop ${String(d.anioBop)} < ${String(minimum)} — el BOP de ${String(minimum)} ya debería estar publicado.`);

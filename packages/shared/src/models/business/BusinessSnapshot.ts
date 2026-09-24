@@ -60,6 +60,35 @@ const byKind = z.object({
  * the semana de fiestas is worse than no date at all.
  */
 export const FiestaTipoSchema = z.enum(['declarada', 'verificada']);
+
+/**
+ * A real day in the Gregorian calendar, not merely `NN-NN`.
+ *
+ * Shape alone would admit `99-99` and `02-31`, which reach `Date.parse` as NaN
+ * downstream and render as "today" — a fabricated fiesta rather than a rejected
+ * dataset. 29 February is accepted here because a month-day carries no year;
+ * `nextFiestaOccurrence` advances it to a leap year.
+ */
+function isRealMonthDay(md: string): boolean {
+  const month = Number(md.slice(0, 2));
+  const day = Number(md.slice(3));
+  if (month < 1 || month > 12) return false;
+  const longest = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1] ?? 0;
+  return day >= 1 && day <= longest;
+}
+
+
+/** `MM-DD` that is also a day that exists. */
+export const MonthDaySchema = z
+  .string()
+  .regex(/^\d{2}-\d{2}$/)
+  .refine(isRealMonthDay, 'not a day that exists in the calendar');
+
+/** `YYYY-MM-DD` that is also a day that exists. */
+export const IsoDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine(isRealIsoDate, 'not a day that exists in the calendar');
 export type FiestaTipo = z.infer<typeof FiestaTipoSchema>;
 
 /**
@@ -84,7 +113,7 @@ export const FiestaSchema = z.object({
    * Month-day, `MM-DD`. For a fixed feast this IS the date. For a moveable one
    * it is only a sort anchor and a fallback — `regla` is the truth.
    */
-  md: z.string().regex(/^\d{2}-\d{2}$/),
+  md: MonthDaySchema,
   nombre: z.string().min(1),
   tipo: FiestaTipoSchema,
   recurrencia: z.enum(['fija', 'movil']),
@@ -96,7 +125,7 @@ export const FiestaSchema = z.object({
    */
   fuente: z.string().min(1),
   /** ISO date this was last checked against `fuente`. */
-  verificadoEl: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  verificadoEl: IsoDateSchema,
   /** Human phrasing of the window ("22–28 de agosto", "penúltimo fin de semana"). */
   cuando: z.string().optional(),
 });
@@ -129,7 +158,7 @@ export type Pueblo = z.infer<typeof PuebloSchema>;
  * radius swept was simply never in scope.
  */
 export const BarridoSchema = z.object({
-  fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  fecha: IsoDateSchema,
   radioKm: z.number().positive(),
   provincias: z.array(z.string().min(1)).min(1),
   /** The year whose declared fiestas this sweep read. */
@@ -154,12 +183,19 @@ export type Cobertura = z.infer<typeof CoberturaSchema>;
 
 export const FiestasDatasetSchema = z.object({
   referencia: z.string().min(1),
-  actualizado: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  actualizado: IsoDateSchema,
   /** The bulletin year the declared dates come from. `fiestas:verify` gates this. */
   anioBop: z.number().int().min(2000).max(2100),
   nota: z.string().min(1),
   cobertura: CoberturaSchema,
-  pueblos: z.array(PuebloSchema),
+  /**
+   * At least one, because a dataset with no pueblos describes no coverage and
+   * makes every ratio computed from it undefined. An individual pueblo MAY have
+   * zero fiestas — that is the point of recording coverage: a municipality
+   * inside the swept radius that we found and for which nothing is published
+   * yet must still appear, or its absence would read as "out of scope".
+   */
+  pueblos: z.array(PuebloSchema).min(1),
 });
 export type FiestasDataset = z.infer<typeof FiestasDatasetSchema>;
 

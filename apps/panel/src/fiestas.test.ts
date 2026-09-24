@@ -96,6 +96,21 @@ describe('pendientes', () => {
 
 describe('cobertoraVerificada', () => {
   it('counts how much of the calendar rests on a dated source', () => {
-    expect(cobertoraVerificada(dataset)).toEqual({ verificadas: 1, total: 4 });
+    expect(cobertoraVerificada(dataset)).toEqual({ verificadas: 1, total: 4, bastante: false });
+  });
+
+  it('calls it enough once half the calendar is verified', () => {
+    const verificado: FiestasDataset = {
+      ...dataset,
+      pueblos: [{ ...dataset.pueblos[0]!, fiestas: dataset.pueblos[0]!.fiestas.map((f) => ({ ...f, tipo: 'verificada' })) }],
+    };
+    expect(cobertoraVerificada(verificado).bastante).toBe(true);
+  });
+
+  // 0 of 0 is "we know nothing", which must not render as the same green as
+  // "we checked everything".
+  it('never calls an empty calendar verified', () => {
+    const vacio: FiestasDataset = { ...dataset, pueblos: [{ ...dataset.pueblos[0]!, fiestas: [] }] };
+    expect(cobertoraVerificada(vacio)).toEqual({ verificadas: 0, total: 0, bastante: false });
   });
 });

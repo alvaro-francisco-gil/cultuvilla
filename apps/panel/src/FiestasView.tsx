@@ -61,7 +61,7 @@ export function FiestasView({ dataset, today }: { dataset: FiestasDataset; today
   const proximas = useMemo(() => proximasFiestas(dataset, today, 25), [dataset, today]);
   const grupos = useMemo(() => porAnillo(dataset), [dataset]);
 
-  const { verificadas, total } = useMemo(() => cobertoraVerificada(dataset), [dataset]);
+  const { verificadas, total, bastante } = useMemo(() => cobertoraVerificada(dataset), [dataset]);
   const abiertas = useMemo(() => pendientes(dataset), [dataset]);
 
   return (
@@ -82,7 +82,7 @@ export function FiestasView({ dataset, today }: { dataset: FiestasDataset; today
               <Chip label={`BOP ${String(dataset.anioBop)}`} style="neutral" />
               <Chip
                 label={`${String(verificadas)}/${String(total)} verificadas`}
-                style={verificadas * 2 >= total ? 'logrado' : 'aviso'}
+                style={bastante ? 'logrado' : 'aviso'}
               />
               {abiertas.length > 0 ? (
                 <Chip label={`${String(abiertas.length)} por confirmar`} style="aviso" />
