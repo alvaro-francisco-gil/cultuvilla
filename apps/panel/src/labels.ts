@@ -53,8 +53,28 @@ export function urgencyChip(dias: number): Chip {
   return { label: `${String(dias)} días`, style: 'neutral' };
 }
 
+/**
+ * A sweep's own vocabulary. Deliberately not `urgencyChip`: a deadline passing
+ * means an opportunity is gone, while a review date passing just means the search
+ * is due again — "vencido hace 3 d" on a búsqueda would read as a loss.
+ */
+export function sweepChips(card: BusinessCard, dias: number | null): Chip[] {
+  const chips: Chip[] = [];
+  if (dias !== null) {
+    chips.push(
+      dias <= 0
+        ? { label: 'toca volver a barrer', style: 'aviso' }
+        : { label: `revisión en ${String(dias)} días`, style: 'neutral' },
+    );
+  }
+  if (card.ejecutada) chips.push({ label: `barrida el ${card.ejecutada}`, style: 'neutral' });
+  return chips;
+}
+
 /** Every chip a card should show, in reading order. */
 export function chipsFor(card: BusinessCard, dias: number | null): Chip[] {
+  if (card.kind === 'busqueda') return sweepChips(card, dias);
+
   const chips: Chip[] = [];
   if (dias !== null) chips.push(urgencyChip(dias));
 

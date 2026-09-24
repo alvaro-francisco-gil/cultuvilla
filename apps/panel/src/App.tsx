@@ -19,6 +19,7 @@ const KIND_LABEL: Record<BusinessKind, string> = {
   convocatoria: 'Convocatorias',
   evento: 'Encuentros',
   entidad: 'Entidades',
+  busqueda: 'Búsquedas',
 };
 
 const KIND_HINT: Record<BusinessKind, string> = {
@@ -26,10 +27,11 @@ const KIND_HINT: Record<BusinessKind, string> = {
   convocatoria: 'Dinero que podríamos conseguir',
   evento: 'Salas en las que conviene estar',
   entidad: 'Financiadores, colaboradores, administraciones',
+  busqueda: 'Qué se ha buscado ya, qué se descartó, y cuándo toca repetirlo',
 };
 
 /** `propuesta` has its own tab, so the registry tab lists the other three. */
-const REGISTRO_KINDS: BusinessKind[] = ['convocatoria', 'evento', 'entidad'];
+const REGISTRO_KINDS: BusinessKind[] = ['convocatoria', 'evento', 'entidad', 'busqueda'];
 const KIND_ORDER: BusinessKind[] = ['propuesta', ...REGISTRO_KINDS];
 
 /**
@@ -82,7 +84,11 @@ function Section({ title, hint, cards, today }: {
           <CardRow
             key={`${title}-${card.id}`}
             card={card}
-            dias={card.deadline ? daysBetweenIsoDates(today, card.deadline) : null}
+            dias={(() => {
+              // A sweep's clock is its review date; everything else runs on a deadline.
+              const when = card.kind === 'busqueda' ? card.revisar : card.deadline;
+              return when ? daysBetweenIsoDates(today, when) : null;
+            })()}
           />
         ))}
       </ul>

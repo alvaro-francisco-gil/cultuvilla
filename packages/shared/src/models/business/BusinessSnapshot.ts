@@ -12,7 +12,7 @@ import { z } from 'zod';
  * render as silently missing sections.
  */
 
-export const BUSINESS_KINDS = ['convocatoria', 'evento', 'entidad', 'propuesta'] as const;
+export const BUSINESS_KINDS = ['convocatoria', 'evento', 'entidad', 'propuesta', 'busqueda'] as const;
 export const BusinessKindSchema = z.enum(BUSINESS_KINDS);
 export type BusinessKind = z.infer<typeof BusinessKindSchema>;
 
@@ -36,6 +36,15 @@ export const BusinessCardSchema = z.object({
   tipo: z.string().optional(),
   para: z.string().optional(),
   url: z.string().optional(),
+  /**
+   * `busqueda` only. A sweep has no deadline and no fit — what it has is when it
+   * ran, when it is due again, and what it deliberately did not cover.
+   */
+  ejecutada: z.string().optional(),
+  revisar: z.string().optional(),
+  ambito: z.string().optional(),
+  cobertura: z.string().optional(),
+  sinHallazgos: z.string().optional(),
 });
 export type BusinessCard = z.infer<typeof BusinessCardSchema>;
 
@@ -44,6 +53,7 @@ const byKind = z.object({
   evento: z.array(BusinessCardSchema),
   entidad: z.array(BusinessCardSchema),
   propuesta: z.array(BusinessCardSchema),
+  busqueda: z.array(BusinessCardSchema),
 });
 
 /**
@@ -207,6 +217,7 @@ export const BusinessSnapshotSchema = z.object({
     evento: z.number().int().min(0),
     entidad: z.number().int().min(0),
     propuesta: z.number().int().min(0),
+    busqueda: z.number().int().min(0),
   }),
   urgente: z.array(BusinessCardSchema.extend({ dias: z.number().int() })),
   caducadas: z.array(BusinessCardSchema),

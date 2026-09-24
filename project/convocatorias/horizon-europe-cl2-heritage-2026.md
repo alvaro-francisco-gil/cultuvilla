@@ -2,7 +2,7 @@
 id: horizon-europe-cl2-heritage-2026
 kind: convocatoria
 titulo: "Horizon Europe Cluster 2 — European cultural heritage and CCI (2026)"
-status: watching
+status: expired
 fit: low
 deadline: 2026-09-23
 convocante: "Comisión Europea — REA, Horizon Europe Cluster 2"
@@ -50,3 +50,10 @@ que está montando el consorcio.
       ~6–9 meses de plazo, tiempo suficiente para entrar en un consorcio.
 - [ ] Preguntar en Galera / a la [Fundación Carasso](../entidades/fundacion-carasso.md)
       quién está montando proyectos europeos de despoblación o patrimonio.
+
+## Cierre — 2026-09-24
+
+Plazo vencido el 23-sep-2026 sin presentar nada, como estaba previsto: la
+convocatoria pide consorcios y no había ninguno montado. Se marca `expired` en vez
+de borrarse porque la próxima edición de Cluster 2 abrirá con topics parecidos, y
+esta ficha es lo que dice qué pedían y por qué no encajábamos.

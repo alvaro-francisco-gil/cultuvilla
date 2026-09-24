@@ -4,7 +4,8 @@
     "convocatoria": 6,
     "evento": 1,
     "entidad": 11,
-    "propuesta": 2
+    "propuesta": 2,
+    "busqueda": 1
   },
   "urgente": [
     {
@@ -24,34 +25,7 @@
       "dias": 3
     }
   ],
-  "caducadas": [
-    {
-      "path": "project/convocatorias/horizon-europe-cl2-heritage-2026.md",
-      "holes": 1,
-      "id": "horizon-europe-cl2-heritage-2026",
-      "kind": "convocatoria",
-      "titulo": "Horizon Europe Cluster 2 — European cultural heritage and CCI (2026)",
-      "status": "watching",
-      "fit": "low",
-      "deadline": "2026-09-23",
-      "convocante": "Comisión Europea — REA, Horizon Europe Cluster 2",
-      "importe": "85,5 M€ indicativos repartidos en 7 topics",
-      "url": "https://rea.ec.europa.eu/funding-and-grants/horizon-europe-cluster-2-culture-creativity-and-inclusive-society/european-cultural-heritage-and-cultural-and-creative-industries_en"
-    },
-    {
-      "path": "project/convocatorias/town-twinning-cerv-2026.md",
-      "holes": 1,
-      "id": "town-twinning-cerv-2026",
-      "kind": "convocatoria",
-      "titulo": "Town Twinning 2026 (hermanamientos) — CERV",
-      "status": "watching",
-      "fit": "medium",
-      "deadline": "2026-09-23",
-      "convocante": "Comisión Europea — programa CERV 2021-2027",
-      "importe": "8.455 € – 50.745 € por proyecto (suma global; 6 M€ en total)",
-      "url": "https://techfriendly.es/actualidad/convocatorias/convocatoria-town-twinning-2026/"
-    }
-  ],
+  "caducadas": [],
   "propuestasIncompletas": [],
   "byKind": {
     "convocatoria": [
@@ -74,7 +48,7 @@
         "id": "town-twinning-cerv-2026",
         "kind": "convocatoria",
         "titulo": "Town Twinning 2026 (hermanamientos) — CERV",
-        "status": "watching",
+        "status": "expired",
         "fit": "medium",
         "deadline": "2026-09-23",
         "convocante": "Comisión Europea — programa CERV 2021-2027",
@@ -87,7 +61,7 @@
         "id": "horizon-europe-cl2-heritage-2026",
         "kind": "convocatoria",
         "titulo": "Horizon Europe Cluster 2 — European cultural heritage and CCI (2026)",
-        "status": "watching",
+        "status": "expired",
         "fit": "low",
         "deadline": "2026-09-23",
         "convocante": "Comisión Europea — REA, Horizon Europe Cluster 2",
@@ -287,6 +261,20 @@
         "titulo": "Candidatura al Premio Jóvenes Máshumano 2026",
         "status": "enviada",
         "para": "premio-jovenes-mashumano-2026"
+      }
+    ],
+    "busqueda": [
+      {
+        "path": "project/busquedas/2026-09-convocatorias-rural-digital.md",
+        "holes": 0,
+        "id": "2026-09-convocatorias-rural-digital",
+        "kind": "busqueda",
+        "titulo": "Convocatorias y premios para una app de pueblos — barrido de septiembre 2026",
+        "ejecutada": "2026-09-21",
+        "revisar": "2026-10-06",
+        "ambito": "comarcal (GAL de Segovia) · Castilla y León · estatal · europeo · fundaciones y premios",
+        "cobertura": "6 convocatorias fichadas; 5 líneas descartadas por elegibilidad; 1 pendiente de publicación",
+        "sinHallazgos": "ENISA (no encaja una persona física sin sociedad); Red.es (convocatorias cerradas); Google for Startups (sin línea rural); Fundación la Caixa (convocatoria de acción social cerrada hasta 2027)"
       }
     ]
   },

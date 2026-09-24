@@ -4,7 +4,34 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Added
+
+- **`project/busquedas/` — the searches, not just the findings.** Every record in
+  `convocatorias/`, `eventos/` and `entidades/` is something a search *found*; none
+  of them is evidence of the searches that found **nothing**. So each sweep of the
+  registry now files one record carrying its sources, its scope, its review date
+  and — required by validation — `sinHallazgos`, the funders and portals that
+  returned nothing and why. That last field is the whole point: without it the next
+  sweep re-searches ENISA and Red.es and reaches the same conclusion, which is how
+  a recurring agent ends up repeating itself instead of compounding. Filed the
+  September 2026 convocatorias sweep as the first record, including the five lines
+  ruled out on eligibility grounds.
+- **An overdue sweep opens an issue.** `pnpm opportunities:verify` warns once a
+  búsqueda's `revisar` date passes and names the skill to run; `--strict` exits 1
+  and runs weekly from `busquedas-freshness.yml`. Deliberately **not** part of
+  `pnpm check` — a review date passes on a calendar boundary rather than on a diff,
+  so gating PRs would red `develop` for something nobody in that PR did. Same
+  posture as `fiestas:verify`.
+- **The panel shows coverage, not only opportunities.** The Registro tab has a
+  *Búsquedas* section listing what has been swept, what it ruled out and when it is
+  due again, and a sweep's review date appears on the calendar alongside deadlines.
+
 ### Changed
+
+- **Horizon Europe CL2 and Town Twinning CERV are `expired`.** Both lapsed on
+  2026-09-23 with nothing submitted. Kept rather than deleted: Town Twinning's
+  blocker was never the date but the applicant (the ayuntamiento), and that is the
+  work the next edition needs.
 
 - **New vocabulary words always start with a capital letter.** "tenao" is saved
   as "Tenao", so the alphabetical list no longer mixes both styles. A dicho keeps

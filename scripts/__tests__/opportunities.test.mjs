@@ -7,6 +7,8 @@ import {
   OPEN_STATUSES,
   countPlaceholders,
   findDanglingProposals,
+  findDueSweeps,
+  lastSweep,
   findFalseReady,
   resolveProposalDeadlines,
   daysUntil,
@@ -197,7 +199,7 @@ describe('findUpcoming', () => {
 
 describe('registry vocabulary', () => {
   it('maps every directory to exactly one kind', () => {
-    assert.deepEqual(DIRS, ['convocatorias', 'eventos', 'entidades', 'proposals']);
+    assert.deepEqual(DIRS, ['convocatorias', 'eventos', 'entidades', 'proposals', 'busquedas']);
     assert.equal(new Set(Object.values(KIND_BY_DIR)).size, DIRS.length);
   });
 
@@ -333,5 +335,95 @@ describe('findDanglingProposals', () => {
       ]),
       [],
     );
+  });
+});
+
+// --- sweeps ----------------------------------------------------------------
+
+const busqueda = (over = {}) => ({
+  dir: 'busquedas',
+  slug: '2026-09-convocatorias-rural-digital',
+  data: {
+    id: '2026-09-convocatorias-rural-digital',
+    kind: 'busqueda',
+    titulo: 'Barrido de convocatorias',
+    ejecutada: '2026-09-21',
+    revisar: '2026-10-06',
+    fuentes: 'BOE; MITECO',
+    sinHallazgos: 'ENISA (persona física no elegible)',
+    ...over,
+  },
+});
+
+describe('busqueda records', () => {
+  it('accepts a sweep that records its sources, its misses and its next date', () => {
+    assert.deepEqual(validateRecord(busqueda()), []);
+  });
+
+  // The field that makes a recurring search compound instead of merely repeating:
+  // a sweep recording only what it found teaches the next one nothing, so it
+  // re-searches ENISA and Red.es and reaches the same conclusion.
+  it('refuses a sweep that does not record what returned nothing', () => {
+    assert.ok(validateRecord(busqueda({ sinHallazgos: undefined })).some((p) => p.includes('sinHallazgos')));
+  });
+
+  it('refuses a sweep with no review date', () => {
+    assert.ok(validateRecord(busqueda({ revisar: undefined })).some((p) => p.includes('revisar')));
+  });
+
+  it('requires the sources, because a sweep nobody can retrace is not coverage', () => {
+    assert.ok(validateRecord(busqueda({ fuentes: undefined })).some((p) => p.includes('fuentes')));
+  });
+
+  // A sweep describes the past. Giving it a lifecycle would invite reading
+  // recorded coverage as an ambition.
+  it('refuses a lifecycle on a record that describes the past', () => {
+    for (const field of ['status', 'relacion', 'fit', 'deadline']) {
+      const value = field === 'deadline' ? '2026-10-01' : 'watching';
+      assert.ok(
+        validateRecord(busqueda({ [field]: value })).some((p) => p.includes(field)),
+        `${field} should be rejected`,
+      );
+    }
+  });
+
+  it('refuses a review date that precedes the sweep', () => {
+    assert.ok(validateRecord(busqueda({ revisar: '2026-09-01' })).some((p) => p.includes('before ejecutada')));
+  });
+
+  it('refuses a non-ISO date', () => {
+    assert.ok(validateRecord(busqueda({ ejecutada: '21-09-2026' })).some((p) => p.includes('ejecutada')));
+  });
+});
+
+describe('findDueSweeps', () => {
+  const records = [busqueda(), busqueda({ id: 'otra', revisar: '2026-12-01' })].map((r) => ({ path: 'p', ...r }));
+
+  it('reports a sweep whose review date has arrived', () => {
+    const due = findDueSweeps(records, '2026-10-06');
+    assert.equal(due.length, 1);
+    assert.equal(due[0].data.id, '2026-09-convocatorias-rural-digital');
+  });
+
+  it('says nothing while every sweep is still current', () => {
+    assert.deepEqual(findDueSweeps(records, '2026-10-01'), []);
+  });
+
+  it('ignores records that are not sweeps', () => {
+    assert.deepEqual(findDueSweeps([{ path: 'p', ...convocatoria() }], '2027-01-01'), []);
+  });
+});
+
+describe('lastSweep', () => {
+  // "When did we last actually look?" is the one question the registry cannot
+  // answer from its own records: every record is something we found, and none of
+  // them is evidence of the searches that found nothing.
+  it('returns the most recent sweep, not the first filed', () => {
+    const records = [busqueda({ id: 'vieja', ejecutada: '2026-06-01' }), busqueda()].map((r) => ({ path: 'p', ...r }));
+    assert.equal(lastSweep(records).data.id, '2026-09-convocatorias-rural-digital');
+  });
+
+  it('is null when nothing has ever been swept', () => {
+    assert.equal(lastSweep([{ path: 'p', ...convocatoria() }]), null);
   });
 });

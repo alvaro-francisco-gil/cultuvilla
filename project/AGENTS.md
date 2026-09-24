@@ -12,6 +12,7 @@ project/
   eventos/         meetups, encuentros, congresos, ferias — rooms worth being in
   entidades/       funders, collaborators, administrations — people and orgs
   proposals/       applications actually submitted (the artifacts, not the tracking)
+  busquedas/       what we have already searched for, and what returned nothing
   mercado/         where the users are — comarcas, pueblos vecinos, expansión
 ```
 
@@ -94,6 +95,8 @@ origin nobody can retrace is a record nobody trusts in three months.
 | A room worth being in — meetup, encuentro, congreso, feria | `eventos/<id>.md` |
 | A funder, collaborator or administration | `entidades/<id>.md` |
 | An application actually assembled | `proposals/<slug>/`, state in `propuesta.md` |
+| A search we ran — its sources, its misses, when it is due again | `busquedas/<YYYY-MM>-<slug>.md` |
+| A funder or portal that returned **nothing** | that sweep's `sinHallazgos` — otherwise the next run searches it again |
 | Where the users are — comarcas, pueblos vecinos, expansión | `mercado/<slug>.md`, with its `.json` sibling where the panel reads it |
 | When a pueblo celebrates — fecha, regla de recurrencia | `mercado/<slug>.json` → `pueblos[].fiestas[]` |
 | How far a search actually reached | `mercado/<slug>.json` → `cobertura.barridos[]` — a 20 km sweep and a 300 km sweep look identical without it |
@@ -111,6 +114,58 @@ This tree follows the `system-of-record` convention, installed from the
 `<!-- record:* -->` comments are anchors the checker finds by exact string; leave them
 where they are. `pnpm opportunities:markers` runs it over this tree.
 
+## `busquedas/` — the searches, not the findings
+
+Every record in `convocatorias/`, `eventos/` and `entidades/` is something a search
+**found**. None of them is evidence of the searches that found *nothing* — and
+that is most of what a later run needs in order to be cheaper than this one.
+
+So each sweep of the registry files one record:
+
+```yaml
+---
+id: 2026-09-convocatorias-rural-digital
+kind: busqueda
+titulo: "Convocatorias y premios para una app de pueblos — septiembre 2026"
+ejecutada: 2026-09-21        # ISO, when the sweep ran
+revisar: 2026-10-06          # ISO, when it is due again
+ambito: "comarcal · CyL · estatal · europeo · fundaciones"
+fuentes: "BOE; MITECO sede electrónica; europeanheritageawards.eu; …"
+sinHallazgos: "ENISA (persona física no elegible); Red.es (cerradas); …"
+cobertura: "6 fichadas; 5 descartadas por elegibilidad; 1 sin publicar"
+---
+```
+
+`fuentes` and **`sinHallazgos` are required**. That is the load-bearing decision:
+a sweep that records only what it found teaches the next one nothing, so the next
+one searches ENISA and Red.es again and reaches the same conclusion. Recording the
+misses is what makes a recurring search *compound* rather than merely repeat.
+
+A búsqueda **has no lifecycle** — no `status`, no `relacion`, no `fit`, no
+`deadline`. It describes something that already happened; giving it a status would
+invite reading recorded coverage as an ambition. Its clock is `revisar`, and
+`pnpm opportunities:verify` reports it:
+
+```bash
+pnpm opportunities:list --kind=busqueda   # what has been swept and when it is due
+pnpm opportunities:verify                 # warns when a sweep is overdue
+pnpm opportunities:verify --strict        # exits 1 — the scheduled job, not CI
+```
+
+The strict form runs weekly from
+[busquedas-freshness.yml](../.github/workflows/busquedas-freshness.yml), which
+opens an issue. It is deliberately **not** in `pnpm check`: a review date passes on
+a calendar boundary, not on a diff, so gating PRs would red `develop` for something
+nobody in that PR did.
+
+**Why this lives in a record and `mercado/` coverage lives in its dataset.** They
+are the same idea about two different shapes. A mercado sweep's scope is a
+*geometry* — a radius around a centre — and it has a dataset to attach it to, so it
+goes in `cobertura.barridos[]` next to the pueblos it covers. A convocatorias
+sweep's scope is a *list of funders, portals and eligibility rules* with no dataset
+to hang off, so it gets a record. One home per domain; don't record the same
+coverage twice.
+
 ## Two lifecycles, deliberately not one
 
 | kind | field | vocabulary |
@@ -119,6 +174,7 @@ where they are. `pnpm opportunities:markers` runs it over this tree.
 | `evento` | `status` | `watching → candidate → registered → attended \| skipped \| expired` |
 | `entidad` | `relacion` | `sin-contacto → contactado → conversando → colaborando \| descartado` |
 | `propuesta` | `status` | `borrador → lista → enviada \| retirada` |
+| `busqueda` | — | none: it records the past, and its clock is `revisar` |
 
 A funding call is won or lost; an event is attended or skipped. Collapsing them
 into one generic enum would cost the only distinction worth having when you look

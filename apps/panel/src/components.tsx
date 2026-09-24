@@ -49,7 +49,7 @@ export function EntityMark({ card }: { card: BusinessCard }) {
 
 export function CardRow({ card, dias }: { card: BusinessCard; dias: number | null }) {
   const chips = chipsFor(card, dias);
-  const detail = [card.convocante, card.importe, card.lugar, card.plazas, card.tipo]
+  const detail = [card.convocante, card.importe, card.lugar, card.plazas, card.tipo, card.cobertura]
     .filter((value) => value && !value.includes('[['))
     .join(' · ');
 
@@ -70,6 +70,7 @@ export function CardRow({ card, dias }: { card: BusinessCard; dias: number | nul
             ))}
           </span>
           {detail ? <span className="detail">{detail}</span> : null}
+          {card.sinHallazgos ? <span className="detail">Sin resultado: {card.sinHallazgos}</span> : null}
         </span>
       </a>
     </li>
