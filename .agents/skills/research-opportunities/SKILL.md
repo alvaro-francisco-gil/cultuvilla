@@ -22,14 +22,26 @@ The human decides what to apply for and who to talk to. You file and score.
 
 ## Procedure
 
-### 1. Load current state
+### 1. Load current state — including what the last sweep already ruled out
 
 ```bash
 pnpm opportunities:list
+pnpm opportunities:list --kind=busqueda   # what has been searched, and when
 ```
 
-Read it before searching. Half of what you would "discover" is already filed, and
-a duplicate record is worse than a missing one.
+Read both before searching. Half of what you would "discover" is already filed,
+and a duplicate record is worse than a missing one.
+
+**Then read the most recent `busquedas/` record end to end**, especially its
+`sinHallazgos` and its *"Lo que este barrido NO cubrió"* section. Those two are the
+difference between this run being cheaper than the last one and being identical to
+it. The registry's records are only what previous searches *found*; the sweep
+record is the only evidence of what they found nothing in.
+
+Concretely: do not re-search a source listed in `sinHallazgos` unless its stated
+reason has changed. "ENISA — persona física no elegible" stops being true the day
+the asociación exists, and not before. Say in your report which of those you
+re-opened and why.
 
 ### 2. Sweep the existing tree first
 
@@ -42,6 +54,12 @@ Cheaper and higher-yield than any web search:
   lead the report, always. They are the only part with a cost to being late.
 - **`[[confirmar]]` markers** — `grep -rn '\[\[confirmar' project/`. Try to
   resolve them from public sources. Resolve or leave; never guess.
+- **Proposals mid-flight** — `pnpm opportunities:list --kind=propuesta` prints
+  each candidacy's state and its unresolved hole count, with the deadline
+  inherited from the record it targets. A `borrador` whose deadline is close is
+  the most actionable thing the registry can surface; a proposal marked `lista`
+  that still has holes is flagged separately. Never fill a hole by guessing — the
+  holes are personal data and logistics only the humans know.
 
 ### 3. Search
 
@@ -96,15 +114,40 @@ stopped carrying information.
 
 Always set `fuente` — where it came from and the date seen.
 
-### 5. Verify
+### 5. Write the sweep record
+
+**Every run ends with one**, at `project/busquedas/<YYYY-MM>-<slug>.md`. This is
+not paperwork — it is the mechanism that makes a recurring search compound instead
+of merely repeating. Required frontmatter: `id`, `kind`, `titulo`, `ejecutada`,
+`revisar`, `fuentes`, `sinHallazgos`; the last one is enforced.
+
+The body, in this order:
+
+1. **El filtro que decidió casi todo** — usually eligibility. Say it once, up top.
+2. **Fichado** — one line per new record and why it passed.
+3. **Descartado, y por qué — para no volver a mirarlo.** The highest-value section.
+   Name the source and the *reason*, so a later run knows when the reason expires.
+4. **Lo que NO cubrió** — the tablones, territories and programme families you did
+   not reach. Be specific; "no se recorrió el tablón de la Diputación de Segovia"
+   is a next task, "búsqueda no exhaustiva" is noise.
+5. **Por qué esa fecha de `revisar`** — tie it to something real (a call expected to
+   publish, a deadline approaching), not to a generic cadence.
+
+`revisar` is a commitment the tooling will hold you to: once it passes,
+`opportunities:verify` warns and the weekly job opens an issue. Pick a date with a
+reason behind it.
+
+### 6. Verify
 
 ```bash
-pnpm opportunities:verify
+pnpm opportunities:verify   # structural check + overdue-sweep warning
+pnpm business:snapshot      # regenerate what the panel reads (commit the result)
 ```
 
-Must pass. It catches enum typos, id/filename drift and duplicate ids.
+`verify` must pass. It catches enum typos, id/filename drift, duplicate ids, and a
+búsqueda missing its sources or its misses.
 
-### 6. Report
+### 7. Report
 
 Open a PR (branch `chore/opportunity-sweep-YYYY-MM-DD`) whose body is, in order:
 
@@ -112,14 +155,23 @@ Open a PR (branch `chore/opportunity-sweep-YYYY-MM-DD`) whose body is, in order:
 2. **New records** — one line each: what, why it fits, deadline.
 3. **Status changes** — what lapsed, what advanced.
 4. **`[[confirmar]]` resolved** — and what could not be, with why.
-5. **Nothing found** is a perfectly good report. Say it in one line and stop.
-   Padding a sweep with marginal records is the failure mode to avoid.
+5. **Sources re-opened from a previous `sinHallazgos`** — and what changed.
+6. **Nothing found** is a perfectly good report. Say it in one line and stop —
+   but still write the sweep record, because *a sweep that found nothing is exactly
+   the sweep whose coverage is most worth keeping.* Padding a sweep with marginal
+   records is the failure mode to avoid; skipping the record because there was
+   nothing to file is the second one.
 
 Never merge it yourself. The human decides.
 
 ## Cadence
 
-Weekly, Monday. Set it up with the `/schedule` skill:
+Weekly, Monday — and the repo now enforces it from the other end: once a sweep's
+`revisar` passes, [busquedas-freshness.yml](../../../.github/workflows/busquedas-freshness.yml)
+opens an issue. So a missed week is visible instead of silent, and the schedule
+below is the thing that keeps the issue from ever opening.
+
+Set it up with the `/schedule` skill:
 
 ```
 /schedule weekly on Monday at 09:00 — run the research-opportunities skill

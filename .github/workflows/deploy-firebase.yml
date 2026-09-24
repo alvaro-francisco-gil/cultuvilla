@@ -196,8 +196,12 @@ jobs:
       - name: Check web export
         run: pnpm app:check-web-export --env=${{ inputs.firebase_alias }}
 
+      # `hosting:app` and not `hosting` — the internal founders' panel is a second
+      # hosting target that exists on dev only. A bare `--only hosting` would try
+      # to deploy it from every env, and a missing panel build would block the
+      # app's promotion. See hostingTargets.test.ts.
       - name: Deploy Hosting
-        run: firebase deploy --only hosting --project ${{ inputs.firebase_alias }} --non-interactive
+        run: firebase deploy --only hosting:app --project ${{ inputs.firebase_alias }} --non-interactive
 
       # `config/appVersion.latest` is what the in-app update nudge compares the
       # installed build against — and it is a Firestore document, so unlike

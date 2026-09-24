@@ -15,6 +15,55 @@ export const VocabularyTermKindSchema = z.enum(VOCABULARY_TERM_KINDS);
 export type VocabularyTermKind = z.infer<typeof VocabularyTermKindSchema>;
 
 /**
+ * The kinds a village has actually recorded, in `VOCABULARY_TERM_KINDS` order —
+ * the tabs of its dictionary. An empty kind gets no tab rather than an empty list.
+ */
+export function presentVocabularyKinds(terms: readonly { kind: VocabularyTermKind }[]): VocabularyTermKind[] {
+  return VOCABULARY_TERM_KINDS.filter((kind) => terms.some((t) => t.kind === kind));
+}
+
+interface Credited {
+  contributorUserIds: string[];
+  contributorOrgIds: string[];
+}
+
+export interface VocabularyCredit {
+  userIds: string[];
+  orgIds: string[];
+}
+
+/**
+ * Everyone credited anywhere on each word: the term's own digitalizers first,
+ * then whoever added a meaning since, each once. The term's credit alone would
+ * miss the villager who only added a second meaning — which, for a word several
+ * people enrich, is most of the people who worked on it.
+ */
+export function vocabularyCreditsByTerm(
+  terms: readonly (Credited & { id: string })[],
+  definitions: readonly (Credited & { termId: string })[],
+): Map<string, VocabularyCredit> {
+  const credits = new Map<string, { userIds: Set<string>; orgIds: Set<string> }>();
+  for (const term of terms) {
+    credits.set(term.id, {
+      userIds: new Set(term.contributorUserIds),
+      orgIds: new Set(term.contributorOrgIds),
+    });
+  }
+  for (const definition of definitions) {
+    const credit = credits.get(definition.termId);
+    if (!credit) continue;
+    definition.contributorUserIds.forEach((id) => credit.userIds.add(id));
+    definition.contributorOrgIds.forEach((id) => credit.orgIds.add(id));
+  }
+  return new Map(
+    [...credits].map(([termId, { userIds, orgIds }]) => [
+      termId,
+      { userIds: [...userIds], orgIds: [...orgIds] },
+    ]),
+  );
+}
+
+/**
  * A word, saying or nickname belonging to one pueblo. Stored top-level at
  * `vocabularyTerms/{municipalityId}__{slug}`.
  *
@@ -30,7 +79,7 @@ export type VocabularyTermKind = z.infer<typeof VocabularyTermKindSchema>;
  */
 export const VocabularyTermDataSchema = z.object({
   municipalityId: z.string(),
-  /** The headword exactly as the first contributor wrote it, accents and all. */
+  /** The headword as the first contributor wrote it, accents and all — only the first letter is capitalized (`capitalizeTerm`). */
   term: z.string().min(1).max(80),
   normalized: z.string().min(1).max(80),
   kind: VocabularyTermKindSchema,
@@ -86,11 +135,20 @@ export function termSlugFromId(termId: string): string {
   return termId.slice(termId.lastIndexOf('__') + 2);
 }
 
+/**
+ * Upper-cases the first letter, skipping an opening `¿`/`¡` so a dicho reads
+ * "¡Anda ya!". Everything after it stays as typed — a mote like "el Tío Pedro"
+ * carries capitals of its own that lower-casing would destroy.
+ */
+export function capitalizeTerm(term: string): string {
+  return term.trim().replace(/\p{L}/u, (letter) => letter.toLocaleUpperCase('es-ES'));
+}
+
 export function buildVocabularyTermData(input: VocabularyTermDataInput): VocabularyTermData {
   const createdAt = input.createdAt ?? new Date();
   return {
     municipalityId: input.municipalityId,
-    term: input.term.trim(),
+    term: capitalizeTerm(input.term),
     normalized: slugifyTerm(input.term),
     kind: input.kind,
     createdBy: input.createdBy,

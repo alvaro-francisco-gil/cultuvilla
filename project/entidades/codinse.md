@@ -5,55 +5,69 @@ titulo: "CODINSE — GAL del nordeste de Segovia"
 relacion: sin-contacto
 fit: high
 tipo: "grupo de accion local"
-url: "[[confirmar: web oficial de CODINSE]]"
-fuente: "elnordestedesegovia.es y redr.es, 2026-09-20"
+url: "https://www.codinse.com"
+fuente: "codinse.com, elnordestedesegovia.es y redr.es, verificado 2026-09-20"
 ---
 
 # CODINSE — Coordinadora para el Desarrollo Integral del Nordeste de Segovia
 
-**El grupo de acción local que probablemente cubre Matabuena**, y por tanto
-nuestra puerta a los fondos **LEADER**. Gestiona el programa en la **comarca del
-nordeste de Segovia** y recibió 22.500 € de la Diputación para gastos de gestión
-de las ayudas LEADER 2026.
+Asociación sin ánimo de lucro de **1992**, formada por asociaciones culturales,
+empresarios, autónomos, ayuntamientos, mancomunidades, sindicatos y particulares
+de la comarca. Gestiona LEADER en el **nordeste de Segovia**: **57 municipios,
+119 núcleos de población, 1.820,85 km²**, con **2.152.285,42 €** para 2023-2027.
 
-Segovia tiene cuatro GAL: **AIDESCOM**, **HONORSE-Tierra de Pinares**,
-**Segovia Sur** y **CODINSE**. Matabuena está en el nordeste / sierra, lo que
-apunta a CODINSE, pero
-`[[confirmar: en qué GAL está exactamente Matabuena — comprobar la lista de
-municipios de los cuatro; Segovia Sur también cubre zona de sierra]]`.
+**Matabuena probablemente NO está en su territorio** — no aparece en su comarca, y
+la geografía apunta a [Segovia Sur](segovia-sur.md). Eso no rebaja el `fit: high`,
+porque lo que CODINSE ofrece no es una subvención para nosotros: es el mejor
+interlocutor identificado para la vía de
+[LEADER vía pueblos](../../docs/plans/ideas/leader-via-pueblos.md).
 
-## Por qué es el mejor encaje del registro
+## El hallazgo que cambia el análisis
 
-- **El pool más pequeño y menos competido.** Una convocatoria comarcal compite
-  con proyectos de unas decenas de municipios, no con toda España.
-- **Financia a entidades sociales**, no solo a empresas — es lo que ADEFO Cinco
-  Villas acaba de hacer en su convocatoria 2026.
-- **Está en nuestro territorio**, que es el requisito que descalifica
-  [ADEFO](adefoincovillas.md).
-- **Es FEADER, no FEDER** — puerta distinta de la de
-  [Fondos FEDER](../convocatorias/fondos-feder.md), y más accesible.
+**CODINSE ya ha pagado por un producto digital para su comarca.** Acaba de
+estrenar un portal web para sus 119 localidades con información de empleo,
+vivienda y servicios. Y su presidente lo dice en público:
 
-## Lo que hay que averiguar antes de llamar
+> «la digitalización es una oportunidad para el medio rural, no una amenaza»
 
-LEADER paga **proyectos ejecutados en el territorio**, normalmente con inversión
-justificable, y casi siempre a **entidades jurídicas**. Dos incógnitas deciden si
-esto es una vía real o no:
+Dos consecuencias, y la segunda es la grande:
 
-- ¿Admite persona física, o hace falta la asociación?
-  Ver [entidad jurídica](../../docs/plans/ideas/entidad-juridica.md). Ojo: si el
-  solicitante es el **Ayuntamiento de Matabuena o una asociación del pueblo** y
-  nosotros somos proveedor, esta pregunta desaparece — ver
-  [LEADER vía pueblos](../../docs/plans/ideas/leader-via-pueblos.md).
-- ¿Encaja un producto **digital** en su estrategia de desarrollo local, o su
-  convocatoria está escrita para inversión física (obra, maquinaria, local)?
+1. **Responde a la duda que podía tumbar toda la vía.** La pregunta era si un
+   servicio digital es gasto elegible en LEADER, porque muchas estrategias están
+   escritas para inversión física. Aquí ya no es una hipótesis: este GAL ha
+   gastado en digital para su territorio.
+2. **El cliente puede ser el GAL, no un pueblo.** CODINSE compró una herramienta
+   para las 119 localidades de golpe. Buscar «un pueblo que nos implante» es
+   pensar demasiado pequeño: el interlocutor natural compra para la comarca
+   entera, y ya ha demostrado que lo hace.
+
+## Sus líneas estratégicas 2023-2027 son, una por una, Cultuvilla
+
+| Línea de CODINSE | Qué hace Cultuvilla |
+|---|---|
+| Promoción de **nuevas tecnologías** | Es una app |
+| **Reto demográfico** | Mantiene el vínculo de quien emigró con su pueblo |
+| Atención a **mayores** | Recoge su memoria y patrimonio oral |
+| Incorporación de **jóvenes** para que se asienten | 174 vecinos registrados en un municipio de 204 habitantes (`cultuvilla-prod`, 2026-09-23). No hay cifra de jóvenes: la que circulaba estaba inventada |
+
+No hay que forzar el encaje ni reescribir la propuesta. Coinciden las cuatro.
+
+## Porcentajes de ayuda
+
+Hasta **40 % en proyectos productivos** (empresariales) y hasta **75-90 % en no
+productivos**. `[[confirmar: el porcentaje exacto de no productivos — las fuentes
+dan 75 % y 90 %]]`. Lo relevante es la figura: una asociación o un ayuntamiento
+que implanta una herramienta comunitaria es **proyecto no productivo**, que es el
+tramo bien financiado.
 
 ## Acciones
 
-- [ ] Confirmar el GAL de Matabuena consultando las listas de municipios.
-- [ ] Leer la **Estrategia de Desarrollo Local 2023-2027** del GAL que sea: dice
-      literalmente qué financia, y es pública.
-- [ ] `[[confirmar: convocatoria LEADER vigente y su plazo]]` → abrir ficha en
-      [convocatorias/](../convocatorias/) en cuanto se conozca.
-- [ ] El **Ayuntamiento de Matabuena es socio del GAL** (los GAL se integran de
-      ayuntamientos y agentes socioeconómicos): la presentación natural viene por
-      ahí, no por una llamada en frío.
+- [ ] Leer su **Estrategia de Desarrollo Local 2023-2027** completa (pública en
+      codinse.com/leader-23-27) y localizar la medida donde encaja una herramienta
+      digital comunitaria.
+- [ ] Averiguar **quién les hizo el portal y con qué medida lo financiaron**. Es
+      el precedente exacto y marca el camino a seguir.
+- [ ] Presentarse **después** de tener eso leído, no antes.
+- [ ] Municipios de la comarca con más actividad visible, como primeros
+      candidatos: **Sepúlveda, Ayllón, Riaza, Maderuelo**.
+      `[[confirmar: cuáles tienen asociación o comisión de festejos activa]]`

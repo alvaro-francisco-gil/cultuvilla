@@ -292,7 +292,6 @@ describe('VillageHomeBody', () => {
     const wordOfTheDay = {
       term: { id: 'm1__miaja', term: 'miaja', kind: 'palabra' },
       definition: null,
-      more: [],
     } as unknown as VillageHomeState['wordOfTheDay'];
     const { getByText } = render(
       <VillageHomeBody

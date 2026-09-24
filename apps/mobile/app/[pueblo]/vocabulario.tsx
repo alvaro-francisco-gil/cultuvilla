@@ -1,8 +1,14 @@
 import { newWordHref, wordHref } from '../../lib/navigation/routes';
-import { termSlugFromId } from '@cultuvilla/shared/models';
+import {
+  presentVocabularyKinds,
+  termSlugFromId,
+  vocabularyCreditsByTerm,
+  type VocabularyCredit,
+  type VocabularyTermKind,
+} from '@cultuvilla/shared/models';
 import { useVillageRoute, withVillageRoute } from '../../lib/navigation/VillageRouteGate';
-import { useCallback, useMemo, useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { Animated, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { iconSizes, colors } from '@cultuvilla/shared/design-system';
@@ -14,23 +20,30 @@ import { Input } from '../../components/primitives/Input';
 import { Pressable } from '../../components/primitives/Pressable';
 import { Fab } from '../../components/primitives/Fab';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { SegmentedToggle } from '../../components/feature/SegmentedToggle';
+import { ContributorAvatars } from '../../components/feature/ContributorAvatars';
 import { useT } from '../../lib/i18n';
 import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
 import {
   getVocabularyTerms,
+  getVillageVocabularyDefinitions,
   type VocabularyTermWithId,
 } from '@cultuvilla/shared/services/vocabularyService';
 import { slugifyTerm } from '@cultuvilla/shared/models/vocabulary';
 
 /**
- * The pueblo's shared vocabulary, A–Z.
+ * The pueblo's shared vocabulary, A–Z, one tab per kind it has recorded.
  *
  * The whole glossary is fetched once and the search box filters it in memory:
  * a village glossary is tens to a few hundred headwords, so a server-side
  * prefix query would cost an index and a round trip per keystroke to search a
  * list that already fits in one. Matching runs on the accent-folded form, so
- * "napa" finds "ñapa" and "esbardo" finds "Esbardo".
+ * "napa" finds "ñapa" and "esbardo" finds "Esbardo". A search spans every
+ * kind, so a saying is found from the Palabras tab too — someone looking a
+ * phrase up rarely knows which kind it was filed under.
  */
+const SEARCH_FADE_DISTANCE = 48;
+
 function VocabularyScreen() {
   const {
     municipalityId: villageId,
@@ -40,13 +53,20 @@ function VocabularyScreen() {
   const { t } = useT();
   const { isMember } = useEntityCapabilities(villageId);
   const [terms, setTerms] = useState<VocabularyTermWithId[]>([]);
+  const [credits, setCredits] = useState<Map<string, VocabularyCredit>>(new Map());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [selectedKind, setSelectedKind] = useState<VocabularyTermKind | null>(null);
 
   const load = useCallback(async () => {
     if (!villageId) return;
     try {
-      setTerms(await getVocabularyTerms(villageId));
+      const [loadedTerms, definitions] = await Promise.all([
+        getVocabularyTerms(villageId),
+        getVillageVocabularyDefinitions(villageId),
+      ]);
+      setTerms(loadedTerms);
+      setCredits(vocabularyCreditsByTerm(loadedTerms, definitions));
     } finally {
       setLoading(false);
     }
@@ -58,32 +78,65 @@ function VocabularyScreen() {
     }, [load]),
   );
 
+  const kinds = useMemo(() => presentVocabularyKinds(terms), [terms]);
+  const activeKind = selectedKind && kinds.includes(selectedKind) ? selectedKind : kinds[0];
+
   const visible = useMemo(() => {
     const needle = slugifyTerm(search);
-    if (!needle) return terms;
+    if (!needle) return terms.filter((term) => term.kind === activeKind);
     return terms.filter(
       (term) => term.normalized.includes(needle) || slugifyTerm(term.term).includes(needle),
     );
-  }, [terms, search]);
+  }, [terms, search, activeKind]);
+
+  // The search field is the list's first row, so it scrolls away with the
+  // words; it also fades over its own height so it doesn't slide under the
+  // tabs with a hard edge. Styled via `style` only — NativeWind drops
+  // `className` on Animated views on web.
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const searchOpacity = scrollY.interpolate({
+    inputRange: [0, SEARCH_FADE_DISTANCE],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
 
   return (
     <Screen padded={false} bottomInset={false}>
       <ScreenHeader title={t('village.vocabulary.title', { village: villageName })} />
-      <View className="px-4 pt-2 pb-1">
-        <Input
-          value={search}
-          onChangeText={setSearch}
-          placeholder={t('village.vocabulary.search')}
-          autoCapitalize="none"
-          autoCorrect={false}
-          dense
-          testID="vocabulary-search"
-        />
-      </View>
-      <FlatList
+      {kinds.length > 1 && activeKind ? (
+        <View className="px-4 pt-2 pb-1">
+          <SegmentedToggle<VocabularyTermKind>
+            options={kinds.map((kind) => ({
+              value: kind,
+              label: t(`village.vocabulary.kindPlural.${kind}`),
+            }))}
+            value={activeKind}
+            onChange={setSelectedKind}
+          />
+        </View>
+      ) : null}
+      <Animated.FlatList
         data={visible}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: false,
+        })}
+        scrollEventThrottle={16}
+        keyboardShouldPersistTaps="handled"
+        ListHeaderComponent={
+          <Animated.View style={{ opacity: searchOpacity, paddingTop: 8, paddingBottom: 4 }}>
+            <Input
+              value={search}
+              onChangeText={setSearch}
+              placeholder={t('village.vocabulary.search')}
+              autoCapitalize="none"
+              autoCorrect={false}
+              dense
+              testID="vocabulary-search"
+            />
+          </Animated.View>
+        }
         ListEmptyComponent={
           loading ? null : (
             <VStack gap={2} className="pt-8 items-center">
@@ -100,15 +153,12 @@ function VocabularyScreen() {
             testID={`vocabulary-term-${item.id}`}
           >
             <HStack gap={3} className="items-center">
-              <VStack gap={0} className="flex-1">
-                <Text className="font-bold">{item.term}</Text>
-                <Text tone="muted" variant="bodySm">
-                  {[
-                    t(`village.vocabulary.kind.${item.kind}`),
-                    t('village.vocabulary.definitionCount', { count: item.definitionCount }),
-                  ].join(' · ')}
-                </Text>
-              </VStack>
+              <Text className="font-bold shrink">{item.term}</Text>
+              <ContributorAvatars
+                userIds={credits.get(item.id)?.userIds ?? item.contributorUserIds}
+                orgIds={credits.get(item.id)?.orgIds ?? item.contributorOrgIds}
+              />
+              <View className="flex-1" />
               <Ionicons name="chevron-forward" size={iconSizes.sm} color={colors.light.fg.muted} />
             </HStack>
           </Pressable>

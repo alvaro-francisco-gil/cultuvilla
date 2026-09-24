@@ -4,6 +4,174 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v1.4.0 — 2026-09-24
+
+<!-- store-notes -->
+- **Diccionario del pueblo por pestañas:** Palabras, Dichos, Motes y Topónimos, con las caras de quienes han aportado cada palabra.
+- **Palabra del día más sencilla** y las palabras nuevas empiezan siempre con mayúscula.
+- **Inicio de sesión más claro:** «Entrar» en vez de «Registrarse», y avisamos si el correo está mal escrito.
+- Correcciones y mejoras.
+<!-- /store-notes -->
+
+### Added
+
+- **`project/busquedas/` — the searches, not just the findings.** Every record in
+  `convocatorias/`, `eventos/` and `entidades/` is something a search *found*; none
+  of them is evidence of the searches that found **nothing**. So each sweep of the
+  registry now files one record carrying its sources, its scope, its review date
+  and — required by validation — `sinHallazgos`, the funders and portals that
+  returned nothing and why. That last field is the whole point: without it the next
+  sweep re-searches ENISA and Red.es and reaches the same conclusion, which is how
+  a recurring agent ends up repeating itself instead of compounding. Filed the
+  September 2026 convocatorias sweep as the first record, including the five lines
+  ruled out on eligibility grounds.
+- **An overdue sweep opens an issue.** `pnpm opportunities:verify` warns once a
+  búsqueda's `revisar` date passes and names the skill to run; `--strict` exits 1
+  and runs weekly from `busquedas-freshness.yml`. Deliberately **not** part of
+  `pnpm check` — a review date passes on a calendar boundary rather than on a diff,
+  so gating PRs would red `develop` for something nobody in that PR did. Same
+  posture as `fiestas:verify`.
+- **The panel shows coverage, not only opportunities.** The Registro tab has a
+  *Búsquedas* section listing what has been swept, what it ruled out and when it is
+  due again, and a sweep's review date appears on the calendar alongside deadlines.
+
+### Changed
+
+- **Dictionary rows credit everyone who worked on a word.** The faces now sit
+  right after the word and include the groups credited (their icon first) and
+  every villager who added a meaning, not only whoever recorded the word first.
+- **The dictionary's search scrolls away, and rows show who added each word.**
+  The search box ("Busca en el diccionario") now sits under the kind tabs as
+  the first row of the list, fading out as you scroll down instead of always
+  taking space; the tabs stay put while you type. Each word's row ends with the
+  faces of the villagers who digitalized it (up to three, then "+N").
+- **The village dictionary has a tab per kind.** "Diccionario de X" now has
+  tabs along the top — Palabras, Dichos, Motes, Topónimos — showing only the
+  kinds the village has recorded (no tabs at all when there is just one). The
+  search box still looks through every kind. Each row shows only the word,
+  without the kind and meaning count underneath.
+- **Horizon Europe CL2 and Town Twinning CERV are `expired`.** Both lapsed on
+  2026-09-23 with nothing submitted. Kept rather than deleted: Town Twinning's
+  blocker was never the date but the applicant (the ayuntamiento), and that is the
+  work the next edition needs.
+
+- **The word of the day and the word screen are simpler.** The village card
+  names the kind in its heading ("Dicho del día", "Mote del día"…) instead of a
+  separate badge, and no longer lists other words under it. On the word screen
+  the headword is centred with its kind as a badge above it, the meanings are
+  headed just "Significados", and each meaning shows its date and who added it
+  without the "Digitalizado por" label.
+- **New vocabulary words always start with a capital letter.** "tenao" is saved
+  as "Tenao", so the alphabetical list no longer mixes both styles. A dicho keeps
+  its opening "¡" or "¿" ("¡Anda ya!"), and the rest of the word is kept as
+  typed. Existing words in prod were already fixed by hand.
+- **The guest sheet says "Entrar", not "Registrarse".** Signing in and signing
+  up are one email-code flow, so a returning user reading "Registrarse" thought
+  they were in the wrong place. The button now reads "Entrar", with a line
+  underneath saying an account is created if you don't have one, and the reason
+  copy follows ("Entra para ver tu pueblo.").
+- **A malformed email is flagged before anything is sent.** The login screen
+  warns under the field on submit or on leaving it, and change-email does the
+  same on submit. The check is `isValidEmail` in `@cultuvilla/shared/utils`,
+  now also used by the three auth callables in place of their own copies.
+- **Las fiestas de los pueblos pasan a ser un registro, no una foto.** La
+  investigación de `project/mercado/` se rehacía entera cada año porque no
+  guardaba nada de lo aprendido. Ahora cada fecha lleva `fuente` (una URL o una
+  cita que se puede reabrir) y `verificadoEl`; `cobertura` registra hasta dónde
+  llegó cada barrido — sin eso una búsqueda de 20 km y una de 300 km producen
+  ficheros idénticos —; y los 45 pueblos sin semana confirmada llevan un
+  `[[confirmar]]`, así que los huecos salen en un grep en vez de ser invisibles.
+  **Migration:** `project/mercado/pueblos-vecinos-matabuena.json` cambia de forma
+  (`fuente` pasa de categoría a cita, entra `tipo`); es un fichero del repo, no
+  datos en Firestore, así que no hay backfill que ejecutar.
+
+### Fixed
+
+- **Una fecha móvil ya no se congela.** El boletín imprime igual «San Miguel, 29
+  de septiembre» (fijo para siempre) que «Virgen del Rosario, 5 de octubre»
+  (el primer domingo de octubre, trasladado al lunes). Guardar las dos como
+  mes-día dejaba el calendario silenciosamente mal a partir de 2027. Ahora una
+  fiesta móvil lleva su regla (`primer domingo de octubre` → `{n:1, weekday:7,
+  month:10}`) y se recalcula cada año; las que no sabemos si son fijas o
+  trasladadas se marcan `[[confirmar]]` en vez de adivinarlas.
+
+### Added
+
+- **`pnpm fiestas:verify`** informa de cobertura, porcentaje verificado y
+  marcadores abiertos. No entra en `pnpm check`: la caducidad salta por
+  calendario, no por un diff, y tumbar cada PR de octubre pondría `develop` en
+  rojo por algo que nadie hizo en ese PR. La avisa
+  [fiestas-freshness.yml](.github/workflows/fiestas-freshness.yml), que abre una
+  issue el día 1 de cada mes cuando el BOP del año siguiente ya debería estar.
+- **Skill `research-village-fiestas` + agente `mercado-scout`**, con cadencia
+  event-driven (BOP de Segovia ~finales de septiembre, BOCM de Madrid ~mediados
+  de diciembre) en vez de semanal: los boletines salen una vez al año y un
+  barrido que no encuentra nada cincuenta veces enseña a ignorarlo.
+
+### Fixed
+
+- **The "hay una actualización" modal pointed at a version that did not exist.**
+  `config/appVersion.latest` was derived from `apps/mobile/app.config.ts`, which
+  is the version a promotion deploys to the backend and the web — not the
+  version any store serves. Store binaries move only by an explicit
+  `mobile-release` dispatch and then wait for review, so the two drift by
+  design, and prod ended up announcing `1.3.0` while the App Store served
+  `1.2.2`: every iOS user already on the newest build available got the soft
+  update prompt every three days, and tapping it opened a store page that did
+  not have it. Android would have inherited the same the day Play approved.
+  `latest` is now per-platform and read from the new `APP_STORE_VERSIONS` in
+  [appStores.ts](apps/mobile/lib/appStores.ts) — the same single source as the
+  store URLs — with a platform that has nothing published announced as `0.0.0`,
+  which nobody is ever behind. `pnpm check:store-claims` now fails when the
+  declared iOS version and the live App Store disagree, and `minSupported` above
+  what a store serves is refused outright rather than walling the fleet with
+  nowhere to go. **No data migration:** prod and beta carry the stale `1.3.0`
+  (and the `id000000000` storeUrl fixed in `2ca83ec3`) until the next promotion
+  rewrites the doc.
+
+- **The panel deploy never actually deployed.** `deploy-panel.yml` deploys the
+  `getBusinessSnapshot` callable, but never installed `functions/`'s own
+  dependencies — and `firebase deploy --only functions:<one>` runs an esbuild
+  predeploy over the whole functions codebase, not just the named function. It
+  died resolving `resend` and `satori`, so every panel deploy failed at that
+  step and the live panel kept serving the previous snapshot. Locked by
+  [functionsDeployDeps.test.ts](packages/shared/test/ci/functionsDeployDeps.test.ts).
+
+### Added
+
+- **Panel: tabs, and a Fiestas tab.** The founders' panel is now `Registro` ·
+  `Propuestas` · `Fiestas` (the tab lives in the URL hash). Proposals get their
+  own tab together with the "marcadas listas pero con huecos" alert; `Con reloj`
+  stays in `Registro` and still spans every kind. The new Fiestas tab lists the
+  next fiestas of the 48 pueblos within 20 km of Matabuena, soonest first, plus
+  the full list grouped by distance ring. Every date is tagged `BOP` or
+  `verificada`, because a municipality's two declared *fiestas locales* are its
+  liturgical anchor and not the week it actually celebrates — Matabuena declares
+  16 and 25 July and holds four fiesta windows, the biggest 22–28 August. Data
+  lives in `project/mercado/pueblos-vecinos-matabuena.json`, validated against
+  `FiestasDatasetSchema` and carried through the existing `getBusinessSnapshot`
+  callable, so nothing new is shipped to a browser that has not proved it may
+  see it.
+
+### Fixed
+
+- **El Buzón ya no se puede quedar atascado.** Un aviso que la app no sabía leer
+  —porque su `type` es más nuevo que la versión instalada— tiraba abajo toda la
+  lista y dejaba en pantalla el error en crudo: un bloque de JSON tan largo que
+  empujaba el botón de cerrar fuera de la pantalla. En iOS no hay gesto para
+  cerrar un `Modal` ni botón atrás, así que la única salida era forzar el cierre
+  de la app. Ahora la lista se salta el aviso ilegible (y nos lo reporta) en vez
+  de caerse entera, y el diálogo de error vive en un `ErrorDialog` con el cuerpo
+  desplazable y cinco formas de salir.
+- **El aviso de «actualiza la app» llevaba a una página muerta en iOS.** El
+  `storeUrl.ios` de `config/appVersion` seguía siendo el marcador de posición
+  `id000000000`; ahora se lee de `apps/mobile/lib/appStores.ts`, la única fuente
+  de verdad, y escribir una URL vacía falla en vez de pasar desapercibido.
+
+### Changed
+
+- **El resumen de las fiestas empieza por lo que se hizo:** la tarjeta «Lo que se hizo» pasa delante de «En números», así los números llegan como remate de lo que ya has visto y no como presentación de lo que viene. Los resúmenes ya creados se reordenan solos — el orden se aplica al mostrarlos, así que no hay que volver a generarlos.
+
 ## v1.3.0 — 2026-09-20
 
 <!-- store-notes -->

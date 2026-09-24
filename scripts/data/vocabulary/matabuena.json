@@ -5,8 +5,8 @@
       "name": "Ayer Dijimos Algo",
       "kind": "podcast",
       "url": "https://www.youtube.com/channel/UCld9WLRKEWoxjO7Af-3irwQ",
-      "credit": "Podcast Ayer Dijimos Algo — sección de Samuel Picazo",
-      "notes": "Podcast de Matabuena. Las palabras y refranes salen de la sección de Samuel Picazo al inicio de cada episodio (el tiempo según las cabañuelas, el refrán del mes y, desde el episodio 10, las palabritas). Transcrito de los subtítulos automáticos de YouTube; los pasajes dudosos se re-transcribieron con Whisper large-v3. Solo palabras locales: se descartaron las canarias (abobanicado, machango) y 'enmarañado', que es castellano general."
+      "credit": "Podcast Ayer Dijimos Algo — sección de Samu",
+      "notes": "Podcast de Matabuena. Las palabras y refranes salen de la sección de Samu al inicio de cada episodio (el tiempo según las cabañuelas, el refrán del mes y, desde el episodio 10, las palabritas). Transcrito de los subtítulos automáticos de YouTube; los pasajes dudosos se re-transcribieron con Whisper large-v3. Solo palabras locales: se descartaron las canarias (abobanicado, machango) y 'enmarañado', que es castellano general."
     }
   },
   "curatedAt": "2026-09-11",
@@ -142,20 +142,20 @@
     {
       "term": "polán",
       "kind": "palabra",
-      "definition": "Chaval malo, travieso.",
-      "castellano": "travieso",
-      "example": "Tú eres más polán que morgas.",
+      "definition": "Chaval malo. Se dice en broma, para chinchar a alguien.",
+      "castellano": "chaval malo",
+      "example": "Tú no eres morgas, eres más polán.",
       "said": {
         "sourceId": "ayer-dijimos-algo",
         "episode": 13,
         "videoId": "QNQb3Oc5Xjs",
-        "at": 583,
-        "asSaid": "Polán es un chaval malo"
+        "at": 622,
+        "asSaid": "Polán es un chaval malo. […] Eres más polán. […] Tú eres polán."
       },
       "verification": {
-        "status": "unverified",
-        "notes": "No aparece en ningún diccionario ni vocabulario segoviano consultado. Whisper confirma que se pronuncia 'polán' (varias veces). Confirmar grafía y significado con Samuel antes de subirla.",
-        "references": []
+        "status": "verified",
+        "notes": "No aparece en diccionarios ni vocabularios segovianos. Significado tomado del propio episodio: lo define Samu, autor de la sección, y lo usan en broma entre ellos. Re-transcrito con Whisper (2026-09-24): la pronunciación «polán» es clara.",
+        "references": ["https://youtu.be/QNQb3Oc5Xjs?t=622"]
       }
     },
     {

@@ -15,6 +15,26 @@ export const APP_STORES: { ios: string; android: string } = {
   android: '', // https://play.google.com/store/apps/details?id=com.cultuvilla.app
 };
 
+// What each store actually SERVES today — the newest build a real user can
+// download. Deliberately separate from the repo's own version: a promotion
+// deploys the backend and the web on every merge, while a store binary moves
+// only by an explicit `mobile-release` dispatch and then waits for review. The
+// two drift by design, so `config/appVersion.latest` is derived from HERE and
+// never from `app.config.ts` — announcing the repo's version told every iOS
+// user on 1.2.2 to update to a 1.3.0 that no store had.
+//
+// An empty string means "nothing published on that platform", which
+// `seed-app-version-config.mjs` writes as `0.0.0` — a `latest` nobody is ever
+// behind, so that platform is never nudged.
+//
+// Update it the day a build goes LIVE (not the day it is submitted), together
+// with the URL above; `pnpm check:store-claims` compares iOS against the live
+// App Store and fails when the two disagree.
+export const APP_STORE_VERSIONS: { ios: string; android: string } = {
+  ios: '1.2.2', // live since 2026-09-18
+  android: '', // no public listing yet — in Play production review
+};
+
 // Numeric App Store id (the `ASC_APP_ID` repo var). Safari builds its own smart
 // app banner from this via the `apple-itunes-app` meta tag in public/index.html —
 // see SmartAppBanner for how the two are kept from stacking.

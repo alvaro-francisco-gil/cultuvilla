@@ -27,9 +27,10 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { currentStoreUrl } from './lib/app-stores.mjs';
+import { currentStoreUrl, currentStoreVersion } from './lib/app-stores.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const APP_STORE_ID = currentStoreUrl('ios').match(/id(\d+)/)?.[1] ?? '';
 const PROD = 'cultuvilla-prod';
 const SA = `play-publisher@${PROD}.iam.gserviceaccount.com`;
 
@@ -247,6 +248,30 @@ for (const [key, probe] of [['ios', iosListingIsLive], ['android', androidListin
     meh(`could not reach the ${key} store`, err.message);
   }
 }
+
+// APP_STORE_VERSIONS is what `config/appVersion.latest` promises, so a stale
+// entry is a nudge nobody can satisfy — prod announced 1.3.0 for weeks while
+// the App Store served 1.2.2. Nothing in the repo can see a store's current
+// version; only the store can. Android has no free public equivalent, so it
+// stays declared-only until the listing is out of review.
+console.log('\nPublished versions (what config/appVersion announces)');
+const declaredIos = currentStoreVersion('ios');
+if (!declaredIos) {
+  meh('APP_STORE_VERSIONS.ios is empty', 'iOS would be announced as 0.0.0 — never nudged');
+} else {
+  try {
+    const body = await (await fetch(`https://itunes.apple.com/lookup?id=${APP_STORE_ID}&country=es`)).json();
+    const live = body.resultCount > 0 ? body.results[0].version : null;
+    if (!live) meh('App Store version unavailable', 'lookup returned no result — the index lags the page');
+    else if (live === declaredIos) ok('APP_STORE_VERSIONS.ios matches the App Store', live);
+    else bad('APP_STORE_VERSIONS.ios is STALE', `declared ${declaredIos}, App Store serves ${live}`);
+  } catch (err) {
+    meh('could not read the App Store version', err.message);
+  }
+}
+const declaredAndroid = currentStoreVersion('android');
+if (declaredAndroid) ok('APP_STORE_VERSIONS.android declared', `${declaredAndroid} — no public API to verify against`);
+else meh('APP_STORE_VERSIONS.android is empty', 'Android announced as 0.0.0 — never nudged, correct while in review');
 
 console.log(`\n\x1b[1m${pass} pass · ${fail} fail · ${skip} skipped\x1b[0m`);
 if (fail > 0) {

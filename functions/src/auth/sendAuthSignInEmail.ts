@@ -1,4 +1,5 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { isValidEmail } from '@cultuvilla/shared/utils';
 import { logger } from 'firebase-functions/v2';
 import { getAuth } from 'firebase-admin/auth';
 import { Resend } from 'resend';
@@ -11,8 +12,6 @@ import {
 } from './authEmailTemplate';
 
 const handler = 'sendAuthSignInEmail';
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface SendAuthSignInEmailData {
   email?: string;
@@ -30,7 +29,7 @@ export async function runSendAuthSignInEmail(
   const email = data?.email;
   const continueUrl = data?.continueUrl;
 
-  if (typeof email !== 'string' || email.trim() === '' || !EMAIL_RE.test(email.trim())) {
+  if (typeof email !== 'string' || !isValidEmail(email)) {
     throw new HttpsError('invalid-argument', 'Email inválido.');
   }
   if (typeof continueUrl !== 'string' || continueUrl.trim() === '') {

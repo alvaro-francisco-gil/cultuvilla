@@ -29,12 +29,50 @@ beforeEach(() => {
   });
 });
 
+const EMAIL = 'ana@correo.com';
+
+function submitEmail(getByTestId: ReturnType<typeof render>['getByTestId'], email = EMAIL) {
+  fireEvent.changeText(getByTestId('login-email-input'), email);
+  fireEvent.press(getByTestId('login-submit'));
+}
+
 describe('<LoginScreen>', () => {
+  describe('invalid email', () => {
+    it('warns inline and never asks the server for a code', async () => {
+      const { getByTestId, findByText, queryByTestId } = render(<LoginScreen />);
+
+      submitEmail(getByTestId, 'ana@correo');
+
+      await findByText('auth.login.invalidEmail');
+      expect(mockSendOtpCode).not.toHaveBeenCalled();
+      expect(queryByTestId('login-code-input')).toBeNull();
+    });
+
+    it('warns when leaving the field with an invalid address, and clears on edit', async () => {
+      const { getByTestId, findByText, queryByText } = render(<LoginScreen />);
+      const input = getByTestId('login-email-input');
+
+      fireEvent.changeText(input, 'ana');
+      expect(queryByText('auth.login.invalidEmail')).toBeNull();
+      fireEvent(input, 'blur');
+      await findByText('auth.login.invalidEmail');
+
+      fireEvent.changeText(input, 'ana@correo.com');
+      expect(queryByText('auth.login.invalidEmail')).toBeNull();
+    });
+
+    it('stays quiet when leaving an empty field', () => {
+      const { getByTestId, queryByText } = render(<LoginScreen />);
+      fireEvent(getByTestId('login-email-input'), 'blur');
+      expect(queryByText('auth.login.invalidEmail')).toBeNull();
+    });
+  });
+
   it('sends a code and advances to the code step', async () => {
     mockSendOtpCode.mockResolvedValue(undefined);
     const { getByTestId, queryByTestId } = render(<LoginScreen />);
 
-    fireEvent.press(getByTestId('login-submit'));
+    submitEmail(getByTestId);
 
     await waitFor(() => expect(getByTestId('login-code-input')).toBeTruthy());
     expect(mockSendOtpCode).toHaveBeenCalledTimes(1);
@@ -45,7 +83,7 @@ describe('<LoginScreen>', () => {
     mockSendOtpCode.mockRejectedValue(new Error('Email inválido.'));
     const { getByTestId, queryByTestId, findByText } = render(<LoginScreen />);
 
-    fireEvent.press(getByTestId('login-submit'));
+    submitEmail(getByTestId);
 
     await findByText('Email inválido.');
     expect(queryByTestId('login-code-input')).toBeNull();
@@ -56,20 +94,20 @@ describe('<LoginScreen>', () => {
     mockVerifyOtpCode.mockResolvedValue(undefined);
     const { getByTestId } = render(<LoginScreen />);
 
-    fireEvent.press(getByTestId('login-submit'));
+    submitEmail(getByTestId);
     await waitFor(() => expect(getByTestId('login-code-input')).toBeTruthy());
 
     fireEvent.changeText(getByTestId('login-code-input'), '123456');
     fireEvent.press(getByTestId('login-verify-code'));
 
-    await waitFor(() => expect(mockVerifyOtpCode).toHaveBeenCalledWith('', '123456'));
+    await waitFor(() => expect(mockVerifyOtpCode).toHaveBeenCalledWith(EMAIL, '123456'));
   });
 
   it('resends the code from the code step', async () => {
     mockSendOtpCode.mockResolvedValue(undefined);
     const { getByTestId } = render(<LoginScreen />);
 
-    fireEvent.press(getByTestId('login-submit'));
+    submitEmail(getByTestId);
     await waitFor(() => expect(getByTestId('login-code-input')).toBeTruthy());
 
     fireEvent.press(getByTestId('login-resend-code'));
@@ -81,7 +119,7 @@ describe('<LoginScreen>', () => {
     mockSendOtpCode.mockResolvedValue(undefined);
     const { getByTestId, queryByTestId } = render(<LoginScreen />);
 
-    fireEvent.press(getByTestId('login-submit'));
+    submitEmail(getByTestId);
     await waitFor(() => expect(getByTestId('login-code-input')).toBeTruthy());
     fireEvent.changeText(getByTestId('login-code-input'), '123456');
 
@@ -90,7 +128,7 @@ describe('<LoginScreen>', () => {
     // Back on the email step, with the stale code discarded.
     await waitFor(() => expect(getByTestId('login-submit')).toBeTruthy());
     expect(queryByTestId('login-code-input')).toBeNull();
-    fireEvent.press(getByTestId('login-submit'));
+    submitEmail(getByTestId);
     await waitFor(() => expect(getByTestId('login-code-input')).toBeTruthy());
     expect(getByTestId('login-code-input').props.value).toBe('');
   });
@@ -108,7 +146,7 @@ describe('<LoginScreen>', () => {
       mockSendOtpCode.mockRejectedValue(networkError());
       const { getByTestId, findByText, queryByText } = render(<LoginScreen />);
 
-      fireEvent.press(getByTestId('login-submit'));
+      submitEmail(getByTestId);
 
       await findByText(/conexión/i);
       expect(queryByText(/Firebase:/)).toBeNull();
@@ -120,7 +158,7 @@ describe('<LoginScreen>', () => {
       mockVerifyOtpCode.mockRejectedValue(networkError());
       const { getByTestId, findByText, queryByText } = render(<LoginScreen />);
 
-      fireEvent.press(getByTestId('login-submit'));
+      submitEmail(getByTestId);
       await waitFor(() => expect(getByTestId('login-code-input')).toBeTruthy());
       fireEvent.changeText(getByTestId('login-code-input'), '123456');
       fireEvent.press(getByTestId('login-verify-code'));
@@ -150,7 +188,7 @@ describe('<LoginScreen>', () => {
       );
       const { getByTestId, findByText } = render(<LoginScreen />);
 
-      fireEvent.press(getByTestId('login-submit'));
+      submitEmail(getByTestId);
       await waitFor(() => expect(getByTestId('login-code-input')).toBeTruthy());
       fireEvent.press(getByTestId('login-verify-code'));
 

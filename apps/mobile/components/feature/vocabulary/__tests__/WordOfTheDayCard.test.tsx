@@ -21,7 +21,6 @@ const word: WordOfTheDay = {
     definition: 'Que se queda sin aire.',
     example: 'Subí la cuesta y llegué ajigolado.',
   } as unknown as WordOfTheDay['definition'],
-  more: [term('modorro'), term('miaja')],
 };
 
 beforeEach(() => jest.clearAllMocks());
@@ -57,14 +56,33 @@ describe('WordOfTheDayCard', () => {
     expect(getByText('ajigolado')).toBeTruthy();
   });
 
-  it('opens the word, the other suggested words, and the whole vocabulary', () => {
+  // The eyebrow names the kind — "Dicho del día" — instead of a separate badge.
+  it('labels the card by the kind of term it features', () => {
+    const { getByText, queryByText } = render(
+      <WordOfTheDayCard
+        word={{ ...word, term: term('En abril, aguas mil', 'dicho') }}
+        count={48}
+        villageSlug="anaya"
+        villageName="Anaya"
+      />,
+    );
+    expect(getByText('village.vocabulary.wordOfTheDay.dicho')).toBeTruthy();
+    expect(queryByText('village.vocabulary.kind.dicho')).toBeNull();
+  });
+
+  it('features only the day’s word, with no list of others under it', () => {
+    const { queryByText } = render(
+      <WordOfTheDayCard word={word} count={48} villageSlug="anaya" villageName="Anaya" />,
+    );
+    expect(queryByText('village.vocabulary.more')).toBeNull();
+  });
+
+  it('opens the word and the whole vocabulary', () => {
     const { getByText } = render(
       <WordOfTheDayCard word={word} count={48} villageSlug="anaya" villageName="Anaya" />,
     );
     fireEvent.press(getByText('ajigolado'));
     expect(router.push).toHaveBeenLastCalledWith('/anaya/palabra/ajigolado');
-    fireEvent.press(getByText('miaja'));
-    expect(router.push).toHaveBeenLastCalledWith('/anaya/palabra/miaja');
     fireEvent.press(getByText('village.vocabulary.seeAll:{"count":48}'));
     expect(router.push).toHaveBeenLastCalledWith('/anaya/vocabulario');
   });
