@@ -15,6 +15,39 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   warns under the field on submit or on leaving it, and change-email does the
   same on submit. The check is `isValidEmail` in `@cultuvilla/shared/utils`,
   now also used by the three auth callables in place of their own copies.
+- **Las fiestas de los pueblos pasan a ser un registro, no una foto.** La
+  investigación de `project/mercado/` se rehacía entera cada año porque no
+  guardaba nada de lo aprendido. Ahora cada fecha lleva `fuente` (una URL o una
+  cita que se puede reabrir) y `verificadoEl`; `cobertura` registra hasta dónde
+  llegó cada barrido — sin eso una búsqueda de 20 km y una de 300 km producen
+  ficheros idénticos —; y los 45 pueblos sin semana confirmada llevan un
+  `[[confirmar]]`, así que los huecos salen en un grep en vez de ser invisibles.
+  **Migration:** `project/mercado/pueblos-vecinos-matabuena.json` cambia de forma
+  (`fuente` pasa de categoría a cita, entra `tipo`); es un fichero del repo, no
+  datos en Firestore, así que no hay backfill que ejecutar.
+
+### Fixed
+
+- **Una fecha móvil ya no se congela.** El boletín imprime igual «San Miguel, 29
+  de septiembre» (fijo para siempre) que «Virgen del Rosario, 5 de octubre»
+  (el primer domingo de octubre, trasladado al lunes). Guardar las dos como
+  mes-día dejaba el calendario silenciosamente mal a partir de 2027. Ahora una
+  fiesta móvil lleva su regla (`primer domingo de octubre` → `{n:1, weekday:7,
+  month:10}`) y se recalcula cada año; las que no sabemos si son fijas o
+  trasladadas se marcan `[[confirmar]]` en vez de adivinarlas.
+
+### Added
+
+- **`pnpm fiestas:verify`** informa de cobertura, porcentaje verificado y
+  marcadores abiertos. No entra en `pnpm check`: la caducidad salta por
+  calendario, no por un diff, y tumbar cada PR de octubre pondría `develop` en
+  rojo por algo que nadie hizo en ese PR. La avisa
+  [fiestas-freshness.yml](.github/workflows/fiestas-freshness.yml), que abre una
+  issue el día 1 de cada mes cuando el BOP del año siguiente ya debería estar.
+- **Skill `research-village-fiestas` + agente `mercado-scout`**, con cadencia
+  event-driven (BOP de Segovia ~finales de septiembre, BOCM de Madrid ~mediados
+  de diciembre) en vez de semanal: los boletines salen una vez al año y un
+  barrido que no encuentra nada cincuenta veces enseña a ignorarlo.
 
 ### Fixed
 

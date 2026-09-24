@@ -6,7 +6,7 @@
  * recomputed here instead of trusted from the snapshot. A calendar that quietly
  * shows last year's date is worse than no calendar.
  */
-import { nextOccurrence, daysBetweenIsoDates, type Fiesta, type FiestasDataset, type Pueblo } from '@cultuvilla/shared/models';
+import { nextFiestaOccurrence, daysBetweenIsoDates, type Fiesta, type FiestasDataset, type Pueblo } from '@cultuvilla/shared/models';
 
 export type ProximaFiesta = {
   pueblo: string;
@@ -34,7 +34,7 @@ const ANILLO_ORDER: Pueblo['anillo'][] = ['referencia', '1', '2', '3'];
 export function proximasFiestas(dataset: FiestasDataset, today: string, limit?: number): ProximaFiesta[] {
   const all = dataset.pueblos.flatMap((pueblo) =>
     pueblo.fiestas.map((fiesta) => {
-      const fecha = nextOccurrence(fiesta.md, today);
+      const fecha = nextFiestaOccurrence(fiesta, today);
       return {
         pueblo: pueblo.nombre,
         km: pueblo.km,
@@ -50,6 +50,20 @@ export function proximasFiestas(dataset: FiestasDataset, today: string, limit?: 
 }
 
 export type AnilloGroup = { anillo: Pueblo['anillo']; pueblos: Pueblo[] };
+
+/**
+ * Every open `[[confirmar: …]]` in the dataset, so the panel shows the size of
+ * the worklist instead of presenting a half-researched calendar as finished.
+ */
+export function pendientes(dataset: FiestasDataset): { pueblo: string; marca: string }[] {
+  return dataset.pueblos.flatMap((p) => (p.confirmar ?? []).map((marca) => ({ pueblo: p.nombre, marca })));
+}
+
+/** Verified fiestas over total — how much of the calendar rests on a real source. */
+export function cobertoraVerificada(dataset: FiestasDataset): { verificadas: number; total: number } {
+  const all = dataset.pueblos.flatMap((p) => p.fiestas);
+  return { verificadas: all.filter((f) => f.tipo === 'verificada').length, total: all.length };
+}
 
 /** Pueblos grouped by ring, nearest ring first and nearest pueblo first inside it. */
 export function porAnillo(dataset: FiestasDataset): AnilloGroup[] {

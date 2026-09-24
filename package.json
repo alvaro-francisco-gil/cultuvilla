@@ -121,7 +121,8 @@
     "deploy:all:prod": "pnpm functions:build && bash scripts/firebase.sh deploy --project prod",
     "prepare": "husky",
     "test:unit": "pnpm shared:test && pnpm i18n:test && pnpm app:test && pnpm functions:test",
-    "test:coverage:unit": "pnpm --filter @cultuvilla/shared test:coverage && pnpm --filter @cultuvilla/i18n test:coverage && pnpm app:test:coverage && npm --prefix functions run test:coverage"
+    "test:coverage:unit": "pnpm --filter @cultuvilla/shared test:coverage && pnpm --filter @cultuvilla/i18n test:coverage && pnpm app:test:coverage && npm --prefix functions run test:coverage",
+    "fiestas:verify": "node scripts/fiestas-verify.mjs"
   },
   "lint-staged": {
     "*.{json,md,yml,yaml}": []

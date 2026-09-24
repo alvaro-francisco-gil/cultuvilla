@@ -293,7 +293,30 @@
   "fiestas": {
     "referencia": "Matabuena",
     "actualizado": "2026-09-21",
-    "nota": "Las dos fiestas locales del BOP/BOCM son el ancla litúrgica declarada, no la semana de fiestas. Sólo las marcadas `verificada` tienen fuente pública fechada.",
+    "anioBop": 2026,
+    "nota": "Las dos fiestas locales del BOP/BOCM son el ancla litúrgica declarada, no la semana de fiestas. Sólo las marcadas `verificada` tienen fuente pública fechada. Dentro del radio de `cobertura` la ausencia de un pueblo es un hueco; fuera, es que nunca se buscó.",
+    "cobertura": {
+      "radioKm": 20,
+      "centro": {
+        "nombre": "Matabuena",
+        "lat": 41.095833,
+        "lon": -3.757222
+      },
+      "metodo": "distancia ortodrómica entre centroides municipales (Wikidata P625)",
+      "barridos": [
+        {
+          "fecha": "2026-09-21",
+          "radioKm": 20,
+          "provincias": [
+            "Segovia",
+            "Madrid"
+          ],
+          "anioBop": 2026,
+          "pueblosHallados": 48,
+          "nota": "Primer barrido. Todos los municipios de Segovia y Madrid a ≤20 km del centroide de Matabuena. Fuera de ese radio no se buscó: la ausencia de un pueblo a más de 20 km no significa nada."
+        }
+      ]
+    },
     "pueblos": [
       {
         "nombre": "Matabuena",
@@ -305,35 +328,53 @@
           {
             "md": "07-02",
             "nombre": "Fiestas de Cañicosa",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "fija",
+            "fuente": "Ayuntamiento de Matabuena — https://www.matabuena.es/fiestas (programas 2022)",
+            "verificadoEl": "2026-09-21",
             "cuando": "2–3 de julio"
           },
           {
             "md": "07-16",
             "nombre": "Virgen del Carmen",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "07-22",
             "nombre": "Fiestas de julio",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "fija",
+            "fuente": "Ayuntamiento de Matabuena — https://www.matabuena.es/fiestas (programas 2022)",
+            "verificadoEl": "2026-09-21",
             "cuando": "22–25 de julio"
           },
           {
             "md": "07-25",
             "nombre": "Santiago Apóstol",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "08-15",
             "nombre": "Fiestas de Matamala",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "fija",
+            "fuente": "Ayuntamiento de Matabuena — https://www.matabuena.es/fiestas (programas 2022)",
+            "verificadoEl": "2026-09-21",
             "cuando": "15–21 de agosto"
           },
           {
             "md": "08-22",
             "nombre": "Fiestas de agosto",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "fija",
+            "fuente": "Ayuntamiento de Matabuena — https://www.matabuena.es/fiestas (programas 2022)",
+            "verificadoEl": "2026-09-21",
             "cuando": "22–28 de agosto"
           }
         ]
@@ -348,19 +389,36 @@
           {
             "md": "06-24",
             "nombre": "San Juan",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "08-22",
             "nombre": "Sagrados Corazones",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "movil",
+            "regla": {
+              "n": -2,
+              "weekday": 6,
+              "month": 8
+            },
+            "fuente": "parquesierraguadarrama.com/segovia/gallegos/",
+            "verificadoEl": "2026-09-21",
             "cuando": "penúltimo fin de semana de agosto"
           },
           {
             "md": "10-05",
             "nombre": "Ntra. Sra. del Rosario",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: regla de recurrencia de Ntra. Sra. del Rosario — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -373,37 +431,68 @@
           {
             "md": "05-15",
             "nombre": "Romería de San Isidro",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "fija",
+            "fuente": "Wikipedia «Arcones» §Fiestas + https://www.arcones.es/fiestas",
+            "verificadoEl": "2026-09-21",
             "cuando": "15 de mayo"
           },
           {
             "md": "06-20",
             "nombre": "Ferias-fiestas del ganado",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "movil",
+            "regla": {
+              "n": 3,
+              "weekday": 6,
+              "month": 6
+            },
+            "fuente": "Wikipedia «Arcones» §Fiestas + https://www.arcones.es/fiestas",
+            "verificadoEl": "2026-09-21",
             "cuando": "tercer sábado de junio"
           },
           {
             "md": "08-15",
             "nombre": "Semana cultural",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "fija",
+            "fuente": "Wikipedia «Arcones» §Fiestas + https://www.arcones.es/fiestas",
+            "verificadoEl": "2026-09-21",
             "cuando": "15–24 de agosto, de Castillejo a Huerta"
           },
           {
             "md": "09-07",
             "nombre": "Virgen de la Lastra",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "09-12",
             "nombre": "Fiesta grande — Virgen de la Lastra",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "movil",
+            "regla": {
+              "n": 2,
+              "weekday": 6,
+              "month": 9
+            },
+            "fuente": "Wikipedia «Arcones» §Fiestas + https://www.arcones.es/fiestas",
+            "verificadoEl": "2026-09-21",
             "cuando": "segundo fin de semana de septiembre"
           },
           {
             "md": "09-29",
             "nombre": "San Miguel Arcángel",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: regla de recurrencia de Virgen de la Lastra — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -416,13 +505,23 @@
           {
             "md": "05-04",
             "nombre": "La Cruz",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "08-17",
             "nombre": "Ntra. Sra. de la Asunción",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Aldealengua de Pedraza — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de La Cruz, Ntra. Sra. de la Asunción — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -435,18 +534,27 @@
           {
             "md": "06-24",
             "nombre": "San Juan",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "09-04",
             "nombre": "Fiestas patronales",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "fija",
+            "fuente": "descubrepedraza.com — «Fiestas de Pedraza 2026» (28-08-2026)",
+            "verificadoEl": "2026-09-21",
             "cuando": "4–11 de septiembre; encierros el 9, novilladas el 9 y 10"
           },
           {
             "md": "09-08",
             "nombre": "Ntra. Sra. del Carrascal",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
         ]
       },
@@ -460,19 +568,31 @@
           {
             "md": "07-02",
             "nombre": "Santa Isabel",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "08-07",
             "nombre": "Fiestas de San Lorenzo",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "fija",
+            "fuente": "festivalesdeespana.com «Fiestas de San Lorenzo, Navafría» + segoviaturismo.es",
+            "verificadoEl": "2026-09-21",
             "cuando": "7–12 de agosto"
           },
           {
             "md": "08-10",
             "nombre": "San Lorenzo",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: regla de recurrencia de Santa Isabel — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -485,37 +605,68 @@
           {
             "md": "02-02",
             "nombre": "Día de las Candelas",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "fija",
+            "fuente": "Wikipedia «Prádena» §Fiestas + segoviaudaz.es «XIV Feria de Muestras de Prádena»",
+            "verificadoEl": "2026-09-21",
             "cuando": "2 de febrero, hoguera por barrio"
           },
           {
             "md": "07-04",
             "nombre": "Sagrado Corazón",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "movil",
+            "regla": {
+              "n": 1,
+              "weekday": 6,
+              "month": 7
+            },
+            "fuente": "Wikipedia «Prádena» §Fiestas + segoviaudaz.es «XIV Feria de Muestras de Prádena»",
+            "verificadoEl": "2026-09-21",
             "cuando": "primer fin de semana de julio"
           },
           {
             "md": "08-01",
             "nombre": "Feria de Muestras",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "fija",
+            "fuente": "Wikipedia «Prádena» §Fiestas + segoviaudaz.es «XIV Feria de Muestras de Prádena»",
+            "verificadoEl": "2026-09-21",
             "cuando": "1–2 de agosto"
           },
           {
             "md": "10-04",
             "nombre": "Virgen del Rosario — patrona",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "movil",
+            "regla": {
+              "n": 1,
+              "weekday": 7,
+              "month": 10
+            },
+            "fuente": "Wikipedia «Prádena» §Fiestas + segoviaudaz.es «XIV Feria de Muestras de Prádena»",
+            "verificadoEl": "2026-09-21",
             "cuando": "primer domingo de octubre"
           },
           {
             "md": "10-05",
             "nombre": "Virgen del Rosario",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "11-11",
             "nombre": "San Martín",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: regla de recurrencia de Virgen del Rosario — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -528,37 +679,63 @@
           {
             "md": "03-19",
             "nombre": "San José",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "fija",
+            "fuente": "Wikipedia «Orejana» §Fiestas patronales",
+            "verificadoEl": "2026-09-21",
             "cuando": "19 de marzo"
           },
           {
             "md": "06-24",
             "nombre": "San Juan Bautista",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "07-19",
             "nombre": "La Magdalena (Revilla)",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "fija",
+            "fuente": "Wikipedia «Orejana» §Fiestas patronales",
+            "verificadoEl": "2026-09-21",
             "cuando": "19 de julio"
           },
           {
             "md": "08-17",
             "nombre": "San Ramón (El Arenal)",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "movil",
+            "fuente": "Wikipedia «Orejana» §Fiestas patronales",
+            "verificadoEl": "2026-09-21",
             "cuando": "semana posterior al 15 de agosto"
           },
           {
             "md": "09-26",
             "nombre": "El Rosarillo (Orejanilla)",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "movil",
+            "regla": {
+              "n": -1,
+              "weekday": 6,
+              "month": 9
+            },
+            "fuente": "Wikipedia «Orejana» §Fiestas patronales",
+            "verificadoEl": "2026-09-21",
             "cuando": "último fin de semana de septiembre"
           },
           {
             "md": "10-07",
             "nombre": "Virgen del Rosario",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: regla de recurrencia de San Ramón (El Arenal) — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -571,24 +748,36 @@
           {
             "md": "02-03",
             "nombre": "San Blas",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "fija",
+            "fuente": "Wikipedia «Arahuetes» §Fiestas",
+            "verificadoEl": "2026-09-21",
             "cuando": "3 de febrero"
           },
           {
             "md": "05-15",
             "nombre": "San Isidro",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "fija",
+            "fuente": "Wikipedia «Arahuetes» §Fiestas",
+            "verificadoEl": "2026-09-21",
             "cuando": "15 de mayo"
           },
           {
             "md": "06-24",
             "nombre": "San Juan",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "10-07",
             "nombre": "Ntra. Sra. del Rosario",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
         ]
       },
@@ -602,37 +791,68 @@
           {
             "md": "07-19",
             "nombre": "Virgen del Carmen (El Valle)",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "movil",
+            "regla": {
+              "n": 3,
+              "weekday": 7,
+              "month": 7
+            },
+            "fuente": "Wikipedia «Torre Val de San Pedro» §Fiestas",
+            "verificadoEl": "2026-09-21",
             "cuando": "tercer domingo de julio"
           },
           {
             "md": "07-27",
             "nombre": "Santa Ana",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "08-15",
             "nombre": "Ntra. Sra. y San Roque (La Salceda)",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "fija",
+            "fuente": "Wikipedia «Torre Val de San Pedro» §Fiestas",
+            "verificadoEl": "2026-09-21",
             "cuando": "15–16 de agosto"
           },
           {
             "md": "08-16",
             "nombre": "Romería de San Roque",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "fija",
+            "fuente": "Wikipedia «Torre Val de San Pedro» §Fiestas",
+            "verificadoEl": "2026-09-21",
             "cuando": "16 de agosto"
           },
           {
             "md": "08-17",
             "nombre": "San Roque",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "10-11",
             "nombre": "Ofrenda de la Virgen del Rosario",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "movil",
+            "regla": {
+              "n": 2,
+              "weekday": 7,
+              "month": 10
+            },
+            "fuente": "Wikipedia «Torre Val de San Pedro» §Fiestas",
+            "verificadoEl": "2026-09-21",
             "cuando": "segundo domingo de octubre"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: regla de recurrencia de San Roque, Santa Ana — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -645,19 +865,31 @@
           {
             "md": "06-07",
             "nombre": "Corpus Christi",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "fija",
+            "fuente": "Wikipedia «Valleruela de Pedraza» §Fiestas + segoviasur.com",
+            "verificadoEl": "2026-09-21",
             "cuando": "junio, retorno de la Virgen del Amparo a la iglesia"
           },
           {
             "md": "07-14",
             "nombre": "San Cristóbal",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "09-15",
             "nombre": "Ntra. Sra. del Amparo",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: regla de recurrencia de Ntra. Sra. del Amparo, San Cristóbal — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -670,13 +902,23 @@
           {
             "md": "06-13",
             "nombre": "San Antonio",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "09-08",
             "nombre": "Ntra. Sra. del Barrio",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Valleruela de Sepúlveda — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Ntra. Sra. del Barrio — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -689,13 +931,23 @@
           {
             "md": "08-03",
             "nombre": "San Justo y Pastor",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "09-07",
             "nombre": "Ntra. Sra. de las Vegas",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Santiuste de Pedraza — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Ntra. Sra. de las Vegas, San Justo y Pastor — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -708,13 +960,23 @@
           {
             "md": "08-17",
             "nombre": "San Roque",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "08-24",
             "nombre": "San Bartolomé",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Ventosilla y Tejadilla — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de San Roque — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -727,13 +989,23 @@
           {
             "md": "06-13",
             "nombre": "San Antonio",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "08-14",
             "nombre": "San Roque",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de La Matilla — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de San Roque — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -746,13 +1018,23 @@
           {
             "md": "06-29",
             "nombre": "San Pedro",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "09-15",
             "nombre": "Virgen de la Estrella",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Casla — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Virgen de la Estrella — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -765,13 +1047,23 @@
           {
             "md": "09-29",
             "nombre": "San Miguel Arcángel",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "10-24",
             "nombre": "San Frutos",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Castroserna de Abajo — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de San Frutos — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -784,13 +1076,23 @@
           {
             "md": "05-04",
             "nombre": "San Juan Ante Portam",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "06-13",
             "nombre": "San Antonio de Padua",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Cubillo — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de San Juan Ante Portam — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -803,13 +1105,23 @@
           {
             "md": "05-15",
             "nombre": "San Isidro",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "08-21",
             "nombre": "San Mamés",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Arevalillo de Cega — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de San Mamés — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -822,13 +1134,23 @@
           {
             "md": "06-12",
             "nombre": "San Antonio",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "08-14",
             "nombre": "Asunción de la Virgen",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Rebollo — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Asunción de la Virgen, San Antonio — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -841,13 +1163,23 @@
           {
             "md": "05-15",
             "nombre": "San Isidro",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "10-05",
             "nombre": "Virgen del Rosario",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Valdevacas y Guijar — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Virgen del Rosario — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -860,13 +1192,22 @@
           {
             "md": "01-20",
             "nombre": "San Sebastián",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "07-29",
             "nombre": "Santa Marta",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Santa Marta del Cerro — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]"
         ]
       },
       {
@@ -879,19 +1220,31 @@
           {
             "md": "05-15",
             "nombre": "San Isidro",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "08-15",
             "nombre": "Fiestas patronales",
-            "fuente": "verificada",
+            "tipo": "verificada",
+            "recurrencia": "fija",
+            "fuente": "https://www.colladohermoso.es/fiestas",
+            "verificadoEl": "2026-09-21",
             "cuando": "15–21 de agosto"
           },
           {
             "md": "08-21",
             "nombre": "Virgen de la Salud",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: regla de recurrencia de Virgen de la Salud — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -904,13 +1257,22 @@
           {
             "md": "05-15",
             "nombre": "San Isidro",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "06-29",
             "nombre": "San Pedro",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de San Pedro de Gaíllos — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]"
         ]
       },
       {
@@ -923,13 +1285,23 @@
           {
             "md": "02-17",
             "nombre": "Martes de Carnaval",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "05-15",
             "nombre": "San Isidro",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Condado de Castilnovo — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Martes de Carnaval — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -942,13 +1314,22 @@
           {
             "md": "09-12",
             "nombre": "Dulce Nombre de María",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "09-29",
             "nombre": "San Miguel",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Pelayos del Arroyo — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]"
         ]
       },
       {
@@ -961,13 +1342,22 @@
           {
             "md": "05-15",
             "nombre": "San Isidro",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "11-11",
             "nombre": "San Martín",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Aldealcorvo — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]"
         ]
       },
       {
@@ -980,13 +1370,23 @@
           {
             "md": "05-25",
             "nombre": "Virgen de la Sierra",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "09-29",
             "nombre": "San Miguel",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Sotosalbos — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Virgen de la Sierra — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -999,13 +1399,23 @@
           {
             "md": "05-15",
             "nombre": "San Isidro",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "10-26",
             "nombre": "San Frutos",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Caballar — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de San Frutos — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -1018,13 +1428,23 @@
           {
             "md": "01-21",
             "nombre": "San Sebastián",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "10-07",
             "nombre": "Ntra. Sra. del Rosario",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Puebla de Pedraza — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de San Sebastián — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -1037,13 +1457,22 @@
           {
             "md": "05-15",
             "nombre": "San Isidro",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "07-16",
             "nombre": "El Carmen",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Duruelo — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]"
         ]
       },
       {
@@ -1056,13 +1485,23 @@
           {
             "md": "07-31",
             "nombre": "San Félix Mártir",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "09-14",
             "nombre": "Exaltación de la Santa Cruz",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Muñoveros — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de San Félix Mártir — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -1075,13 +1514,23 @@
           {
             "md": "09-07",
             "nombre": "Ntra. Sra. de la Natividad",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "09-08",
             "nombre": "Ntra. Sra. de la Natividad",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Santo Tomé del Puerto — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Ntra. Sra. de la Natividad — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -1094,13 +1543,23 @@
           {
             "md": "06-15",
             "nombre": "San Benito",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "10-05",
             "nombre": "Ntra. Sra. del Rosario",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Cerezo de Abajo — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Ntra. Sra. del Rosario, San Benito — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -1113,13 +1572,22 @@
           {
             "md": "05-15",
             "nombre": "San Isidro",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "12-21",
             "nombre": "Santo Domingo",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "fija",
+            "fuente": "BOP Segovia 19-09-2025 (resolución OTT de 16-09-2025), fiestas locales 2026 — https://www.laboral-social.com/sites/laboral-social.com/files/fiestas-locales-segovia-2026.pdf",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Santo Domingo de Pirón — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]"
         ]
       },
       {
@@ -1132,13 +1600,23 @@
           {
             "md": "01-22",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "09-08",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Braojos de la Sierra — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Fiesta local — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -1151,13 +1629,23 @@
           {
             "md": "01-19",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "09-29",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de La Acebeda — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Fiesta local — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -1170,13 +1658,23 @@
           {
             "md": "08-17",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "09-29",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Navarredonda y San Mamés — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Fiesta local — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -1189,13 +1687,23 @@
           {
             "md": "08-24",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "12-04",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Villavieja del Lozoya — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Fiesta local — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -1208,13 +1716,23 @@
           {
             "md": "08-03",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "10-05",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Gascones — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Fiesta local — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -1227,13 +1745,23 @@
           {
             "md": "08-27",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "08-28",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de La Serna del Monte — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Fiesta local — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -1246,13 +1774,23 @@
           {
             "md": "08-17",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "08-18",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Robregordo — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Fiesta local — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -1265,13 +1803,23 @@
           {
             "md": "05-15",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "08-17",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Horcajo de la Sierra-Aoslos — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Fiesta local — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -1284,13 +1832,23 @@
           {
             "md": "03-21",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "08-24",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Gargantilla del Lozoya y Pinilla de Buitrago — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Fiesta local — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -1303,13 +1861,23 @@
           {
             "md": "01-23",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "10-07",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Piñuécar-Gandullas — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Fiesta local — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -1322,13 +1890,23 @@
           {
             "md": "08-14",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "09-15",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Buitrago del Lozoya — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Fiesta local — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -1341,13 +1919,23 @@
           {
             "md": "07-31",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "08-03",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Somosierra — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Fiesta local — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       },
       {
@@ -1360,13 +1948,23 @@
           {
             "md": "03-02",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           },
           {
             "md": "07-27",
             "nombre": "Fiesta local",
-            "fuente": "bop"
+            "tipo": "declarada",
+            "recurrencia": "movil",
+            "fuente": "BOCM nº 296 de 12-12-2025 (resolución DG Trabajo de 02-12-2025), fiestas locales 2026 — https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.PDF",
+            "verificadoEl": "2026-09-21"
           }
+        ],
+        "confirmar": [
+          "[[confirmar: semana de fiestas real de Madarcos — sólo tenemos las dos fiestas locales declaradas en el BOP, que son el ancla litúrgica y no la semana celebrada]]",
+          "[[confirmar: regla de recurrencia de Fiesta local — la fecha guardada es la observada en 2026, no sabemos si es fija o se corre al fin de semana]]"
         ]
       }
     ]
