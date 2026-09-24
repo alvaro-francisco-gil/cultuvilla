@@ -10,8 +10,6 @@ import { useVillageRoute, withVillageRoute } from '../../lib/navigation/VillageR
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Animated, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { iconSizes, colors } from '@cultuvilla/shared/design-system';
 import { Screen } from '../../components/primitives/Screen';
 import { Text } from '../../components/primitives/Text';
 import { HStack } from '../../components/primitives/HStack';
@@ -153,13 +151,11 @@ function VocabularyScreen() {
             testID={`vocabulary-term-${item.id}`}
           >
             <HStack gap={3} className="items-center">
-              <Text className="font-bold shrink">{item.term}</Text>
+              <Text className="font-bold flex-1">{item.term}</Text>
               <ContributorAvatars
                 userIds={credits.get(item.id)?.userIds ?? item.contributorUserIds}
                 orgIds={credits.get(item.id)?.orgIds ?? item.contributorOrgIds}
               />
-              <View className="flex-1" />
-              <Ionicons name="chevron-forward" size={iconSizes.sm} color={colors.light.fg.muted} />
             </HStack>
           </Pressable>
         )}
