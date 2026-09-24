@@ -23,6 +23,12 @@ jest.mock('@cultuvilla/shared/services/vocabularyService', () => ({
 jest.mock('../../../lib/auth/useEntityCapabilities', () => ({
   useEntityCapabilities: jest.fn(),
 }));
+jest.mock('../../../components/feature/ContributorAvatars', () => {
+  const { Text } = require('react-native');
+  return {
+    ContributorAvatars: ({ userIds }: { userIds: string[] }) => <Text>{`faces:${userIds.join(',')}`}</Text>,
+  };
+});
 jest.mock('../../../lib/i18n', () => ({ useT: () => ({ locale: 'es', t: (k: string) => k }) }));
 
 const mockCaps = useEntityCapabilities as jest.Mock;
@@ -36,6 +42,8 @@ function term(id: string, word: string, normalized: string, kind = 'palabra') {
     kind,
     municipalityId: 'm1',
     createdBy: 'alice',
+    contributorUserIds: ['alice'],
+    contributorOrgIds: [],
     createdAt: new Date(),
     definitionCount: 1,
     commentCount: 0,
@@ -96,6 +104,12 @@ describe('VocabularyScreen', () => {
     expect(queryByText(/village.vocabulary.definitionCount/)).toBeNull();
   });
 
+  it('shows who digitalized each word at the end of its row', async () => {
+    const { getByText, getAllByText } = render(<VocabularyScreen />);
+    await waitFor(() => expect(getByText('Esbardo')).toBeTruthy());
+    expect(getAllByText('faces:alice')).toHaveLength(2);
+  });
+
   it('needs no tabs while the pueblo has only one kind recorded', async () => {
     const { getByText, queryByText } = render(<VocabularyScreen />);
     await waitFor(() => expect(getByText('Esbardo')).toBeTruthy());
@@ -134,6 +148,16 @@ describe('VocabularyScreen', () => {
       await waitFor(() => expect(getByText('Esbardo')).toBeTruthy());
       fireEvent.changeText(getByTestId('vocabulary-search'), 'abril');
       await waitFor(() => expect(getByText('En abril, aguas mil')).toBeTruthy());
+    });
+
+    // The search box sits under the tabs, so hiding them mid-search would yank
+    // the field upward while the user is typing into it.
+    it('keeps the tabs in place while searching', async () => {
+      const { getByTestId, getByText } = render(<VocabularyScreen />);
+      await waitFor(() => expect(getByText('Esbardo')).toBeTruthy());
+      fireEvent.changeText(getByTestId('vocabulary-search'), 'abril');
+      await waitFor(() => expect(getByText('En abril, aguas mil')).toBeTruthy());
+      expect(getByText('village.vocabulary.kindPlural.palabra')).toBeTruthy();
     });
   });
 

@@ -28,6 +28,11 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Changed
 
+- **The dictionary's search scrolls away, and rows show who added each word.**
+  The search box ("Busca en el diccionario") now sits under the kind tabs as
+  the first row of the list, fading out as you scroll down instead of always
+  taking space; the tabs stay put while you type. Each word's row ends with the
+  faces of the villagers who digitalized it (up to three, then "+N").
 - **The village dictionary has a tab per kind.** "Diccionario de X" now has
   tabs along the top — Palabras, Dichos, Motes, Topónimos — showing only the
   kinds the village has recorded (no tabs at all when there is just one). The

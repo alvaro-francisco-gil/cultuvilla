@@ -280,7 +280,7 @@
         "toponimo": "Topónimo del día"
       },
       "seeAll": "Ver las {count}",
-      "search": "Buscar una palabra",
+      "search": "Busca en el diccionario",
       "empty": "Todavía no hay ninguna palabra recogida. Añade la primera.",
       "noMatches": "Ninguna palabra coincide con esa búsqueda.",
       "notFound": "Esta palabra ya no existe.",

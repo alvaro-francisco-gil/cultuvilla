@@ -1,8 +1,8 @@
 import { newWordHref, wordHref } from '../../lib/navigation/routes';
 import { presentVocabularyKinds, termSlugFromId, type VocabularyTermKind } from '@cultuvilla/shared/models';
 import { useVillageRoute, withVillageRoute } from '../../lib/navigation/VillageRouteGate';
-import { useCallback, useMemo, useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { Animated, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { iconSizes, colors } from '@cultuvilla/shared/design-system';
@@ -15,6 +15,7 @@ import { Pressable } from '../../components/primitives/Pressable';
 import { Fab } from '../../components/primitives/Fab';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { SegmentedToggle } from '../../components/feature/SegmentedToggle';
+import { ContributorAvatars } from '../../components/feature/ContributorAvatars';
 import { useT } from '../../lib/i18n';
 import { useEntityCapabilities } from '../../lib/auth/useEntityCapabilities';
 import {
@@ -34,6 +35,8 @@ import { slugifyTerm } from '@cultuvilla/shared/models/vocabulary';
  * kind, so a saying is found from the Palabras tab too — someone looking a
  * phrase up rarely knows which kind it was filed under.
  */
+const SEARCH_FADE_DISTANCE = 48;
+
 function VocabularyScreen() {
   const {
     municipalityId: villageId,
@@ -64,7 +67,6 @@ function VocabularyScreen() {
 
   const kinds = useMemo(() => presentVocabularyKinds(terms), [terms]);
   const activeKind = selectedKind && kinds.includes(selectedKind) ? selectedKind : kinds[0];
-  const searching = slugifyTerm(search) !== '';
 
   const visible = useMemo(() => {
     const needle = slugifyTerm(search);
@@ -74,21 +76,21 @@ function VocabularyScreen() {
     );
   }, [terms, search, activeKind]);
 
+  // The search field is the list's first row, so it scrolls away with the
+  // words; it also fades over its own height so it doesn't slide under the
+  // tabs with a hard edge. Styled via `style` only — NativeWind drops
+  // `className` on Animated views on web.
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const searchOpacity = scrollY.interpolate({
+    inputRange: [0, SEARCH_FADE_DISTANCE],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
   return (
     <Screen padded={false} bottomInset={false}>
       <ScreenHeader title={t('village.vocabulary.title', { village: villageName })} />
-      <View className="px-4 pt-2 pb-1">
-        <Input
-          value={search}
-          onChangeText={setSearch}
-          placeholder={t('village.vocabulary.search')}
-          autoCapitalize="none"
-          autoCorrect={false}
-          dense
-          testID="vocabulary-search"
-        />
-      </View>
-      {kinds.length > 1 && activeKind && !searching ? (
+      {kinds.length > 1 && activeKind ? (
         <View className="px-4 pt-2 pb-1">
           <SegmentedToggle<VocabularyTermKind>
             options={kinds.map((kind) => ({
@@ -100,10 +102,28 @@ function VocabularyScreen() {
           />
         </View>
       ) : null}
-      <FlatList
+      <Animated.FlatList
         data={visible}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: false,
+        })}
+        scrollEventThrottle={16}
+        keyboardShouldPersistTaps="handled"
+        ListHeaderComponent={
+          <Animated.View style={{ opacity: searchOpacity, paddingTop: 8, paddingBottom: 4 }}>
+            <Input
+              value={search}
+              onChangeText={setSearch}
+              placeholder={t('village.vocabulary.search')}
+              autoCapitalize="none"
+              autoCorrect={false}
+              dense
+              testID="vocabulary-search"
+            />
+          </Animated.View>
+        }
         ListEmptyComponent={
           loading ? null : (
             <VStack gap={2} className="pt-8 items-center">
@@ -121,6 +141,7 @@ function VocabularyScreen() {
           >
             <HStack gap={3} className="items-center">
               <Text className="font-bold flex-1">{item.term}</Text>
+              <ContributorAvatars userIds={item.contributorUserIds} />
               <Ionicons name="chevron-forward" size={iconSizes.sm} color={colors.light.fg.muted} />
             </HStack>
           </Pressable>
