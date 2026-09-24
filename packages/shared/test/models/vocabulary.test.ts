@@ -6,6 +6,7 @@ import {
   VocabularyTermDataSchema,
   VOCABULARY_TERM_KINDS,
   presentVocabularyKinds,
+  vocabularyCreditsByTerm,
 } from '../../src/models/vocabulary/VocabularyTermDataModel';
 import {
   isSharedVocabularyKind,
@@ -198,5 +199,36 @@ describe('presentVocabularyKinds', () => {
 
   it('is empty for a village with no words', () => {
     expect(presentVocabularyKinds([])).toEqual([]);
+  });
+});
+
+describe('vocabularyCreditsByTerm', () => {
+  const terms = [
+    { id: 't1', contributorUserIds: ['ana'], contributorOrgIds: ['pena'] },
+    { id: 't2', contributorUserIds: ['luis'], contributorOrgIds: [] },
+  ];
+
+  // A row credits everyone who put anything into the word — whoever recorded it
+  // and whoever added a meaning since — each once, the word's own credit first.
+  it('merges the word’s credit with every meaning’s, without repeats', () => {
+    const credits = vocabularyCreditsByTerm(terms, [
+      { termId: 't1', contributorUserIds: ['ana', 'eva'], contributorOrgIds: ['pena', 'podcast'] },
+      { termId: 't1', contributorUserIds: ['eva', 'jose'], contributorOrgIds: [] },
+    ]);
+    expect(credits.get('t1')).toEqual({
+      userIds: ['ana', 'eva', 'jose'],
+      orgIds: ['pena', 'podcast'],
+    });
+  });
+
+  it('keeps the word’s own credit when nobody added a meaning', () => {
+    expect(vocabularyCreditsByTerm(terms, []).get('t2')).toEqual({ userIds: ['luis'], orgIds: [] });
+  });
+
+  it('ignores meanings of words it was not asked about', () => {
+    const credits = vocabularyCreditsByTerm(terms, [
+      { termId: 'gone', contributorUserIds: ['x'], contributorOrgIds: [] },
+    ]);
+    expect([...credits.keys()]).toEqual(['t1', 't2']);
   });
 });

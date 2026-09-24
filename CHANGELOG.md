@@ -28,6 +28,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Changed
 
+- **Dictionary rows credit everyone who worked on a word.** The faces now sit
+  right after the word and include the groups credited (their icon first) and
+  every villager who added a meaning, not only whoever recorded the word first.
 - **The dictionary's search scrolls away, and rows show who added each word.**
   The search box ("Busca en el diccionario") now sits under the kind tabs as
   the first row of the list, fading out as you scroll down instead of always

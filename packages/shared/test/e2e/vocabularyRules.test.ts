@@ -11,7 +11,18 @@
 //      client must never be able to write it.
 import { describe, it, expect } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, setDoc, updateDoc, deleteDoc, getDoc, addDoc, collection } from 'firebase/firestore';
+import {
+  doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  getDoc,
+  getDocs,
+  addDoc,
+  collection,
+  query,
+  where,
+} from 'firebase/firestore';
 import { useRulesTestEnv } from '../helpers/rulesTestEnv';
 import { asUser, asAnon, seed } from '../helpers/roles';
 
@@ -402,6 +413,21 @@ describe('firestore.rules — adding a word, as vocabularyService actually does 
 });
 
 describe('firestore.rules — /vocabularyDefinitions', () => {
+  // The dictionary list credits every contributor per row from one query over
+  // the village's meanings — which a signed-out web reader must be able to run.
+  it('anyone, signed out included, can list a village’s active meanings', async () => {
+    await seedDefinition('d1', 'alice');
+    await assertSucceeds(
+      getDocs(
+        query(
+          collection(asAnon(getEnv()), 'vocabularyDefinitions'),
+          where('municipalityId', '==', M),
+          where('status', '==', 'active'),
+        ),
+      ),
+    );
+  });
+
   it('a member adds a definition to an existing term', async () => {
     await seedMember('bob');
     await seedTerm('alice');

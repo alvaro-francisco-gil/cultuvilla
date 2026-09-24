@@ -22,6 +22,47 @@ export function presentVocabularyKinds(terms: readonly { kind: VocabularyTermKin
   return VOCABULARY_TERM_KINDS.filter((kind) => terms.some((t) => t.kind === kind));
 }
 
+interface Credited {
+  contributorUserIds: string[];
+  contributorOrgIds: string[];
+}
+
+export interface VocabularyCredit {
+  userIds: string[];
+  orgIds: string[];
+}
+
+/**
+ * Everyone credited anywhere on each word: the term's own digitalizers first,
+ * then whoever added a meaning since, each once. The term's credit alone would
+ * miss the villager who only added a second meaning — which, for a word several
+ * people enrich, is most of the people who worked on it.
+ */
+export function vocabularyCreditsByTerm(
+  terms: readonly (Credited & { id: string })[],
+  definitions: readonly (Credited & { termId: string })[],
+): Map<string, VocabularyCredit> {
+  const credits = new Map<string, { userIds: Set<string>; orgIds: Set<string> }>();
+  for (const term of terms) {
+    credits.set(term.id, {
+      userIds: new Set(term.contributorUserIds),
+      orgIds: new Set(term.contributorOrgIds),
+    });
+  }
+  for (const definition of definitions) {
+    const credit = credits.get(definition.termId);
+    if (!credit) continue;
+    definition.contributorUserIds.forEach((id) => credit.userIds.add(id));
+    definition.contributorOrgIds.forEach((id) => credit.orgIds.add(id));
+  }
+  return new Map(
+    [...credits].map(([termId, { userIds, orgIds }]) => [
+      termId,
+      { userIds: [...userIds], orgIds: [...orgIds] },
+    ]),
+  );
+}
+
 /**
  * A word, saying or nickname belonging to one pueblo. Stored top-level at
  * `vocabularyTerms/{municipalityId}__{slug}`.
