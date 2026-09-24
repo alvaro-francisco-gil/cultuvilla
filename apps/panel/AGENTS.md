@@ -46,16 +46,24 @@ a second control inside that tab rather than two more top-level tabs.
 **Fiestas** reads `project/mercado/pueblos-vecinos-matabuena.json` — 48 pueblos
 around Matabuena and when they celebrate. Two things about it are load-bearing:
 
-- **Dates are `MM-DD` recurrences, not dates.** `nextOccurrence` resolves the
-  year in the browser, so a January fiesta viewed in December is next year's
-  rather than an eleven-month-old countdown. Same reason deadline day counts are
-  recomputed and not trusted from the snapshot.
-- **`fuente` is rendered, always.** A `bop` date is one of the two *fiestas
-  locales* a municipality declares in the provincial bulletin — the liturgical
-  anchor of the main núcleo, **not** the week the pueblo celebrates. Matabuena
-  declares 16 and 25 July and holds four fiesta windows, the biggest 22–28
-  August. Only `verificada` has a dated public source behind it. Showing the two
-  alike would make the panel confidently wrong, which is worse than incomplete.
+- **Dates are recurrences, not dates,** and there are two kinds.
+  `nextFiestaOccurrence` resolves the year in the browser, so a January fiesta
+  viewed in December is next year's. A **fixed** feast is its month-day — San
+  Miguel is always 29 September. A **moveable** one is computed from `regla`
+  every year, because the bulletin prints "5 October 2026" for what is really
+  *the first Sunday of October observed on the Monday*; freezing that as a
+  month-day is wrong from 2027 on and nothing goes red. A moveable date with no
+  rule yet falls back to its anchor and shows a **"fecha sin regla"** chip.
+- **Provenance is rendered, always.** A `declarada` date is one of the two
+  *fiestas locales* a municipality declares in the bulletin — the liturgical
+  anchor of the main núcleo, **not** the week it celebrates. Matabuena declares
+  16 and 25 July and holds four fiesta windows, the biggest 22–28 August. Only
+  `verificada` has a dated public source, and the panel prints that source under
+  every row. Showing the two alike would make the panel confidently wrong.
+- **The tab opens with what the search did NOT cover.** `cobertura` — radius,
+  sweeps, verified percentage, open `[[confirmar]]` count — before any fiesta.
+  The dataset is 22 % verified; a calendar that looked finished at 22 % would be
+  the most expensive thing on this screen.
 
 ## Dev only, on purpose
 

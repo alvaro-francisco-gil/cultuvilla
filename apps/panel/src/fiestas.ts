@@ -6,7 +6,7 @@
  * recomputed here instead of trusted from the snapshot. A calendar that quietly
  * shows last year's date is worse than no calendar.
  */
-import { nextOccurrence, daysBetweenIsoDates, type Fiesta, type FiestasDataset, type Pueblo } from '@cultuvilla/shared/models';
+import { nextFiestaOccurrence, daysBetweenIsoDates, type Fiesta, type FiestasDataset, type Pueblo } from '@cultuvilla/shared/models';
 
 export type ProximaFiesta = {
   pueblo: string;
@@ -34,7 +34,7 @@ const ANILLO_ORDER: Pueblo['anillo'][] = ['referencia', '1', '2', '3'];
 export function proximasFiestas(dataset: FiestasDataset, today: string, limit?: number): ProximaFiesta[] {
   const all = dataset.pueblos.flatMap((pueblo) =>
     pueblo.fiestas.map((fiesta) => {
-      const fecha = nextOccurrence(fiesta.md, today);
+      const fecha = nextFiestaOccurrence(fiesta, today);
       return {
         pueblo: pueblo.nombre,
         km: pueblo.km,
@@ -50,6 +50,29 @@ export function proximasFiestas(dataset: FiestasDataset, today: string, limit?: 
 }
 
 export type AnilloGroup = { anillo: Pueblo['anillo']; pueblos: Pueblo[] };
+
+/**
+ * Every open `[[confirmar: …]]` in the dataset, so the panel shows the size of
+ * the worklist instead of presenting a half-researched calendar as finished.
+ */
+export function pendientes(dataset: FiestasDataset): { pueblo: string; marca: string }[] {
+  return dataset.pueblos.flatMap((p) => (p.confirmar ?? []).map((marca) => ({ pueblo: p.nombre, marca })));
+}
+
+/**
+ * Verified fiestas over total — how much of the calendar rests on a real source.
+ *
+ * `bastante` is false for an empty dataset rather than vacuously true: 0 of 0
+ * verified is "we know nothing", which must not render as the same green as
+ * "we checked everything".
+ */
+export function cobertoraVerificada(
+  dataset: FiestasDataset,
+): { verificadas: number; total: number; bastante: boolean } {
+  const all = dataset.pueblos.flatMap((p) => p.fiestas);
+  const verificadas = all.filter((f) => f.tipo === 'verificada').length;
+  return { verificadas, total: all.length, bastante: all.length > 0 && verificadas * 2 >= all.length };
+}
 
 /** Pueblos grouped by ring, nearest ring first and nearest pueblo first inside it. */
 export function porAnillo(dataset: FiestasDataset): AnilloGroup[] {

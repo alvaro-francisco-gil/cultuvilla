@@ -8,6 +8,13 @@ así que la expansión natural es el anillo que lo rodea.
 
 No es una decisión tomada. Es el sustrato para tomarla.
 
+**El fichero de al lado manda.** Este documento es el razonamiento;
+[pueblos-vecinos-matabuena.json](pueblos-vecinos-matabuena.json) es el dato —
+cada fecha con su `fuente` y su `verificadoEl`, y un bloque `cobertura` que dice
+hasta dónde llegó cada barrido. Dentro de ese radio la ausencia de un pueblo es
+un hueco; fuera, es que nunca se buscó. Se refresca con la skill
+`research-village-fiestas`; `pnpm fiestas:verify` dice cómo está.
+
 **Fecha del análisis:** 2026-09-20. Las fechas oficiales son las declaradas
 para el año **2026**; se vuelven a publicar cada septiembre y hay que rehacer
 esta tabla cada año.

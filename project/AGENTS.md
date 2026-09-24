@@ -15,19 +15,35 @@ project/
   mercado/         where the users are — comarcas, pueblos vecinos, expansión
 ```
 
-`mercado/` is **not part of the registry**: `opportunities-cli.mjs` only walks
-the three directories in `KIND_BY_DIR`, so records here need no frontmatter and
-no `kind`. They are long-form research about *where* Cultuvilla grows, which has
-no lifecycle to track — a pueblo does not expire. The `[[confirmar]]` rule and
-the "this repo is public" rules below still apply in full.
+`mercado/` is **not part of the opportunity registry**: `opportunities-cli.mjs`
+only walks the three directories in `KIND_BY_DIR`, so records here need no
+frontmatter and no `kind`. They are research about *where* Cultuvilla grows,
+which has no lifecycle to track — a pueblo does not expire.
 
-A `mercado/` record may carry a sibling `.json` holding the same research as
-structured data — `pueblos-vecinos-matabuena.json` next to its `.md`. That is
-the frontmatter/body split again, one level up: **the JSON is the machine
-surface the panel reads, the Markdown is the reasoning a human reads.** The JSON
-is validated against `FiestasDatasetSchema` by `pnpm business:snapshot`, so a
-malformed dataset fails the build instead of blanking a panel tab. Change one
-and change the other — nothing checks that the prose still matches the data.
+**`mercado/` is the record layer, and it has two halves.** A `.md` is the
+reasoning a human reads; the `.json` beside it is the machine surface the panel
+reads. Same split as frontmatter/body, one level up. The JSON is validated
+against `FiestasDatasetSchema` by `pnpm business:snapshot` and reported on by
+`pnpm fiestas:verify`, so a malformed dataset fails the build rather than
+blanking a panel tab.
+
+Three rules make the research compound instead of being redone every year:
+
+1. **Every date carries its origin.** `fuente` is a URL or a citation precise
+   enough to reopen, and `verificadoEl` says when it was last checked. `tipo`
+   separates a bulletin-`declarada` date from a `verificada` week; nothing is
+   promoted between them by reasoning.
+2. **Coverage is data.** `cobertura.radioKm` plus one `barrido` per sweep. Inside
+   the widest radius ever swept a missing municipality is a **gap**; outside it,
+   it was never in scope — and without that recorded, a 20 km search and a
+   300 km search produce identical-looking files. The radius only ever grows,
+   and widening it means adding every municipality inside the new one.
+3. **Unknowns are visible.** A pueblo with no verified week carries a
+   `[[confirmar: …]]`, so `grep -rn '\[\[confirmar' project/` is the worklist.
+   *Searched and found nothing* is a result worth writing down — otherwise the
+   next run repeats the search.
+
+The `[[confirmar]]` rule and the "this repo is public" rules below apply in full.
 
 ## Start here, every time
 
@@ -79,6 +95,8 @@ origin nobody can retrace is a record nobody trusts in three months.
 | A funder, collaborator or administration | `entidades/<id>.md` |
 | An application actually assembled | `proposals/<slug>/`, state in `propuesta.md` |
 | Where the users are — comarcas, pueblos vecinos, expansión | `mercado/<slug>.md`, with its `.json` sibling where the panel reads it |
+| When a pueblo celebrates — fecha, regla de recurrencia | `mercado/<slug>.json` → `pueblos[].fiestas[]` |
+| How far a search actually reached | `mercado/<slug>.json` → `cobertura.barridos[]` — a 20 km sweep and a 300 km sweep look identical without it |
 | Where a fact came from, and when | the record's `fuente` field — not optional in practice |
 | Anything unverified | marked `[[confirmar]]` in place, never resolved by inference |
 | A durable decision about the business | `../docs/decisions/<slug>.md` |
@@ -187,8 +205,18 @@ remembered to update.
 
 ## Researching new ones
 
-The `research-opportunities` skill owns the procedure; the `opportunity-scout`
-agent runs it. Weekly is the intended cadence — see the skill. They live at
+Two skill/agent pairs, on deliberately different cadences:
+
+| Tree | Skill | Agent | Cadence |
+|---|---|---|---|
+| `convocatorias/` `eventos/` `entidades/` `proposals/` | `research-opportunities` | `opportunity-scout` | weekly |
+| `mercado/` | `research-village-fiestas` | `mercado-scout` | event-driven: Segovia BOP ~late Sept, Madrid BOCM ~mid-Dec |
+
+Fiestas research is **not** weekly on purpose: the bulletins publish once a year
+and there is genuinely nothing to find in March, so a sweep that finds nothing
+fifty times teaches everyone to ignore it.
+[fiestas-freshness.yml](../.github/workflows/fiestas-freshness.yml) opens an
+issue when the dataset falls behind, so nobody has to remember. They live at
 [.agents/skills/research-opportunities/](../.agents/skills/research-opportunities/SKILL.md)
 and [.claude/agents/opportunity-scout.md](../.claude/agents/opportunity-scout.md)
 — `.claude/skills` is a symlink to `.agents/skills`, so edit the `.agents/` path.

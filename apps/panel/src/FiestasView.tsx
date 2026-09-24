@@ -3,7 +3,7 @@ import type { FiestasDataset } from '@cultuvilla/shared/models';
 import { chipStyles } from './theme';
 import { urgencyChip } from './labels';
 import { Chip } from './components';
-import { ANILLO_LABEL, porAnillo, proximasFiestas, type ProximaFiesta } from './fiestas';
+import { ANILLO_LABEL, cobertoraVerificada, pendientes, porAnillo, proximasFiestas, type ProximaFiesta } from './fiestas';
 
 const MESES = [
   'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
@@ -18,11 +18,11 @@ const diaMes = (iso: string): string =>
  * celebrates; a `verificada` one has a dated public source. Showing them alike
  * would make the panel confidently wrong, which is worse than incomplete.
  */
-function FuenteChip({ fuente }: { fuente: 'bop' | 'verificada' }) {
-  return fuente === 'verificada' ? (
+function FuenteChip({ tipo }: { tipo: 'declarada' | 'verificada' }) {
+  return tipo === 'verificada' ? (
     <Chip label="verificada" style="logrado" />
   ) : (
-    <Chip label="BOP" style="neutral" />
+    <Chip label="declarada" style="neutral" />
   );
 }
 
@@ -41,10 +41,16 @@ function ProximaRow({ item }: { item: ProximaFiesta }) {
           </span>
           <span className="chips">
             <Chip label={item.dias === 0 ? 'hoy' : `${String(item.dias)} días`} style={style} />
-            <FuenteChip fuente={item.fiesta.fuente} />
+            <FuenteChip tipo={item.fiesta.tipo} />
+            {item.fiesta.recurrencia === 'movil' && !item.fiesta.regla ? (
+              <Chip label="fecha sin regla" style="aviso" />
+            ) : null}
             {item.km > 0 ? <Chip label={`${item.km.toFixed(1)} km`} style="fitBajo" /> : null}
           </span>
           {item.fiesta.cuando ? <span className="detail">{item.fiesta.cuando}</span> : null}
+          <span className="detail fuente" title={item.fiesta.fuente}>
+            {item.fiesta.fuente} · comprobado {item.fiesta.verificadoEl}
+          </span>
         </span>
       </div>
     </li>
@@ -55,8 +61,47 @@ export function FiestasView({ dataset, today }: { dataset: FiestasDataset; today
   const proximas = useMemo(() => proximasFiestas(dataset, today, 25), [dataset, today]);
   const grupos = useMemo(() => porAnillo(dataset), [dataset]);
 
+  const { verificadas, total, bastante } = useMemo(() => cobertoraVerificada(dataset), [dataset]);
+  const abiertas = useMemo(() => pendientes(dataset), [dataset]);
+
   return (
     <>
+      <section>
+        <div className="sectionhead">
+          <h2>Cobertura</h2>
+        </div>
+        <p className="hint">
+          Lo que esta búsqueda abarcó. Fuera del radio no se buscó, así que la ausencia de un
+          pueblo a más distancia no significa nada.
+        </p>
+        <div className="fiesta pueblo">
+          <span className="body">
+            <span className="chips">
+              <Chip label={`radio ${String(dataset.cobertura.radioKm)} km`} style="comprometido" />
+              <Chip label={`${String(dataset.pueblos.length)} pueblos`} style="neutral" />
+              <Chip label={`BOP ${String(dataset.anioBop)}`} style="neutral" />
+              <Chip
+                label={`${String(verificadas)}/${String(total)} verificadas`}
+                style={bastante ? 'logrado' : 'aviso'}
+              />
+              {abiertas.length > 0 ? (
+                <Chip label={`${String(abiertas.length)} por confirmar`} style="aviso" />
+              ) : null}
+            </span>
+            <span className="detail">
+              Centro {dataset.cobertura.centro.nombre} · {dataset.cobertura.metodo}
+            </span>
+            {dataset.cobertura.barridos.map((barrido) => (
+              <span className="detail" key={barrido.fecha}>
+                Barrido {barrido.fecha}: {String(barrido.radioKm)} km ·{' '}
+                {barrido.provincias.join(', ')} · BOP {String(barrido.anioBop)} ·{' '}
+                {String(barrido.pueblosHallados)} pueblos
+              </span>
+            ))}
+          </span>
+        </div>
+      </section>
+
       <section>
         <div className="sectionhead">
           <h2>Próximas fiestas</h2>
@@ -97,10 +142,15 @@ export function FiestasView({ dataset, today }: { dataset: FiestasDataset; today
                           <Chip
                             key={`${pueblo.nombre}-${fiesta.md}-${fiesta.nombre}`}
                             label={`${diaMes(`0000-${fiesta.md}`)} · ${fiesta.nombre}`}
-                            style={fiesta.fuente === 'verificada' ? 'logrado' : 'neutral'}
+                            style={fiesta.tipo === 'verificada' ? 'logrado' : 'neutral'}
                           />
                         ))}
                       </span>
+                      {pueblo.confirmar?.map((marca) => (
+                        <span className="detail confirmar" key={marca}>
+                          {marca}
+                        </span>
+                      ))}
                     </span>
                   </div>
                 </li>
