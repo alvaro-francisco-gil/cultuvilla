@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-22",
+  "generatedAt": "2026-09-24",
   "counts": {
     "convocatoria": 6,
     "evento": 1,
@@ -7,6 +7,24 @@
     "propuesta": 2
   },
   "urgente": [
+    {
+      "path": "project/eventos/epa-encuentro-galera-2026.md",
+      "holes": 3,
+      "id": "epa-encuentro-galera-2026",
+      "kind": "evento",
+      "titulo": "Encuentro de Proyectos Rurales ¡Chispa! — Galera (Granada)",
+      "status": "candidate",
+      "fit": "high",
+      "deadline": "2026-09-27",
+      "convocante": "epa-asociacion",
+      "lugar": "Galera, Granada",
+      "coste": "0 € — alojamiento y comidas cubiertos, hasta 200 € de desplazamiento",
+      "plazas": "25 (hasta 35 años)",
+      "url": "https://asociacionepa.org",
+      "dias": 3
+    }
+  ],
+  "caducadas": [
     {
       "path": "project/convocatorias/horizon-europe-cl2-heritage-2026.md",
       "holes": 1,
@@ -18,8 +36,7 @@
       "deadline": "2026-09-23",
       "convocante": "Comisión Europea — REA, Horizon Europe Cluster 2",
       "importe": "85,5 M€ indicativos repartidos en 7 topics",
-      "url": "https://rea.ec.europa.eu/funding-and-grants/horizon-europe-cluster-2-culture-creativity-and-inclusive-society/european-cultural-heritage-and-cultural-and-creative-industries_en",
-      "dias": 1
+      "url": "https://rea.ec.europa.eu/funding-and-grants/horizon-europe-cluster-2-culture-creativity-and-inclusive-society/european-cultural-heritage-and-cultural-and-creative-industries_en"
     },
     {
       "path": "project/convocatorias/town-twinning-cerv-2026.md",
@@ -32,38 +49,9 @@
       "deadline": "2026-09-23",
       "convocante": "Comisión Europea — programa CERV 2021-2027",
       "importe": "8.455 € – 50.745 € por proyecto (suma global; 6 M€ en total)",
-      "url": "https://techfriendly.es/actualidad/convocatorias/convocatoria-town-twinning-2026/",
-      "dias": 1
-    },
-    {
-      "path": "project/eventos/epa-encuentro-galera-2026.md",
-      "holes": 2,
-      "id": "epa-encuentro-galera-2026",
-      "kind": "evento",
-      "titulo": "Encuentro de Proyectos Rurales ¡Chispa! — Galera (Granada)",
-      "status": "candidate",
-      "fit": "high",
-      "deadline": "2026-09-27",
-      "convocante": "epa-asociacion",
-      "lugar": "Galera, Granada",
-      "coste": "0 € — alojamiento y comidas cubiertos, hasta 200 € de desplazamiento",
-      "plazas": "25 (hasta 35 años)",
-      "url": "https://asociacionepa.org",
-      "dias": 5
-    },
-    {
-      "path": "project/proposals/chispa-galera-2026/propuesta.md",
-      "holes": 20,
-      "id": "chispa-galera-2026",
-      "kind": "propuesta",
-      "titulo": "Inscripción al encuentro ¡Chispa! (Galera)",
-      "status": "candidate",
-      "deadline": "2026-09-27",
-      "para": "epa-encuentro-galera-2026",
-      "dias": 5
+      "url": "https://techfriendly.es/actualidad/convocatorias/convocatoria-town-twinning-2026/"
     }
   ],
-  "caducadas": [],
   "propuestasIncompletas": [],
   "byKind": {
     "convocatoria": [
@@ -143,7 +131,7 @@
     "evento": [
       {
         "path": "project/eventos/epa-encuentro-galera-2026.md",
-        "holes": 2,
+        "holes": 3,
         "id": "epa-encuentro-galera-2026",
         "kind": "evento",
         "titulo": "Encuentro de Proyectos Rurales ¡Chispa! — Galera (Granada)",
@@ -182,14 +170,14 @@
       },
       {
         "path": "project/entidades/ayer-dijimos-algo.md",
-        "holes": 3,
+        "holes": 2,
         "id": "ayer-dijimos-algo",
         "kind": "entidad",
         "titulo": "Ayer Dijimos Algo (podcast)",
         "relacion": "conversando",
         "fit": "high",
         "tipo": "podcast",
-        "url": "[[confirmar]]"
+        "url": "https://www.instagram.com/ayerdijimosalgo"
       },
       {
         "path": "project/entidades/codinse.md",
@@ -283,11 +271,11 @@
     "propuesta": [
       {
         "path": "project/proposals/chispa-galera-2026/propuesta.md",
-        "holes": 20,
+        "holes": 13,
         "id": "chispa-galera-2026",
         "kind": "propuesta",
         "titulo": "Inscripción al encuentro ¡Chispa! (Galera)",
-        "status": "borrador",
+        "status": "enviada",
         "para": "epa-encuentro-galera-2026",
         "deadline": "2026-09-27"
       },
