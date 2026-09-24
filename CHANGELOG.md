@@ -4,6 +4,15 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v1.4.0 — 2026-09-24
+
+<!-- store-notes -->
+- **Diccionario del pueblo por pestañas:** Palabras, Dichos, Motes y Topónimos, con las caras de quienes han aportado cada palabra.
+- **Palabra del día más sencilla** y las palabras nuevas empiezan siempre con mayúscula.
+- **Inicio de sesión más claro:** «Entrar» en vez de «Registrarse», y avisamos si el correo está mal escrito.
+- Correcciones y mejoras.
+<!-- /store-notes -->
+
 ### Added
 
 - **`project/busquedas/` — the searches, not just the findings.** Every record in
