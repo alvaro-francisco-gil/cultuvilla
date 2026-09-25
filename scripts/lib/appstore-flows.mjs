@@ -11,6 +11,7 @@ import {
   classifyVersionState,
   isBuildReady,
   pickEditableVersion,
+  pickTestflightGroups,
   PENDING_RELEASE_STATE,
 } from './appstore.mjs';
 
@@ -383,4 +384,65 @@ export async function getAvailability(request, { ascAppId }) {
   }
 
   return { known: false, reason: attempts.join(' | ') };
+}
+
+/** The app's TestFlight groups, internal and external. */
+export async function listBetaGroups(request, { ascAppId }) {
+  const data = await request('GET', `/apps/${ascAppId}/betaGroups?limit=50`);
+  return data.data || [];
+}
+
+/**
+ * Put an uploaded build in front of TestFlight testers.
+ *
+ * `eas submit` uploads the binary but adds it to no group, so unless a group
+ * has "automatic distribution" nobody can install it — which is how 1.4.0 sat
+ * in App Store Connect with its internal testers unable to see it.
+ *
+ * External groups additionally need Beta App Review for the build; this adds
+ * the build to them but does not submit that review.
+ */
+export async function distributeToTestflight(
+  request,
+  { ascAppId, buildNumber, selector = 'internal', apply, sleep, log = () => {} },
+) {
+  const { targets, skipped, unknown } = pickTestflightGroups(
+    await listBetaGroups(request, { ascAppId }),
+    selector,
+  );
+  if (unknown.length) {
+    throw new Error(`distributeToTestflight: no TestFlight group named: ${unknown.join(', ')}`);
+  }
+  for (const s of skipped) log(`  skip ${s.name} — ${s.reason}`);
+  if (!targets.length) return { status: 'nothing-to-do', targets: [], skipped };
+
+  const buildId = await waitForBuild(request, { ascAppId, buildNumber, sleep, log });
+  for (const g of targets) log(`  ${apply ? 'add' : 'would add'} build ${buildNumber} → ${g.name}`);
+  if (!apply) return { status: 'dry-run', targets, skipped, buildId };
+
+  for (const g of targets) {
+    await request('POST', `/betaGroups/${g.id}/relationships/builds`, {
+      data: [{ type: 'builds', id: buildId }],
+    });
+  }
+  return { status: 'distributed', targets, skipped, buildId };
+}
+
+/**
+ * Whether testers can actually install a build. Being in a group is not enough:
+ * `internalBuildState` stays short of IN_BETA_TESTING while, for instance,
+ * export compliance is unanswered.
+ */
+export async function getBuildBetaState(request, { ascAppId, buildNumber }) {
+  const data = await request(
+    'GET',
+    `/builds?filter[app]=${encodeURIComponent(ascAppId)}&filter[version]=${encodeURIComponent(buildNumber)}&limit=1`,
+  );
+  const build = (data.data || [])[0];
+  if (!build) return { internal: 'NOT_FOUND', external: 'NOT_FOUND' };
+  const detail = await request('GET', `/builds/${build.id}/buildBetaDetail`);
+  return {
+    internal: detail?.data?.attributes?.internalBuildState ?? null,
+    external: detail?.data?.attributes?.externalBuildState ?? null,
+  };
 }

@@ -150,3 +150,36 @@ export function classifyReleasability(appStoreState) {
   }
   return { releasable: false, reason: `state is ${appStoreState}, not ${PENDING_RELEASE_STATE}` };
 }
+
+/**
+ * Which TestFlight groups a build should be added to.
+ *
+ * `selector` is `internal`, `external`, `all`, or a comma-separated list of
+ * group names. An internal group with `hasAccessToAllBuilds` already receives
+ * every build — ASC rejects adding one to it explicitly — so it is reported as
+ * skipped rather than targeted.
+ */
+export function pickTestflightGroups(groups, selector = 'internal') {
+  const all = (groups || []).map((g) => ({
+    id: g.id,
+    name: g.attributes?.name ?? g.id,
+    internal: g.attributes?.isInternalGroup === true,
+    automatic: g.attributes?.hasAccessToAllBuilds === true,
+  }));
+  const key = String(selector).trim();
+  let chosen;
+  let unknown = [];
+  if (key === 'internal') chosen = all.filter((g) => g.internal);
+  else if (key === 'external') chosen = all.filter((g) => !g.internal);
+  else if (key === 'all') chosen = all;
+  else {
+    const names = key.split(',').map((n) => n.trim()).filter(Boolean);
+    chosen = all.filter((g) => names.includes(g.name));
+    unknown = names.filter((n) => !all.some((g) => g.name === n));
+  }
+  const skipped = chosen
+    .filter((g) => g.internal && g.automatic)
+    .map((g) => ({ name: g.name, reason: 'already receives every build automatically' }));
+  const targets = chosen.filter((g) => !(g.internal && g.automatic));
+  return { targets, skipped, unknown };
+}
