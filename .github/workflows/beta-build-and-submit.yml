@@ -182,11 +182,20 @@ jobs:
             fs.writeFileSync(path, JSON.stringify(eas, null, 2) + '\n');
           "
 
+      # --json pins the exact build this run made. Asking EAS afterwards for "the
+      # latest finished build" could pick up a concurrent manual build instead,
+      # and hand testers (or App Review) a binary this run never produced.
       - name: Build iOS archive
+        id: ios_build
         working-directory: apps/mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas build --profile production --platform ios --non-interactive --wait
+        run: |
+          eas build --profile production --platform ios --non-interactive --wait --json > ios-build.json
+          node -e '
+            const [b] = JSON.parse(require("fs").readFileSync("ios-build.json", "utf8"));
+            require("fs").appendFileSync(process.env.GITHUB_OUTPUT, `id=${b.id}\nbuild_number=${b.appBuildVersion}\n`);
+          '
 
       - name: Submit to App Store Connect
         working-directory: apps/mobile
@@ -194,7 +203,7 @@ jobs:
           eas submit \
             --profile production \
             --platform ios \
-            --latest \
+            --id "${{ steps.ios_build.outputs.id }}" \
             --non-interactive
 
       # eas submit adds the upload to no group. Internal groups on automatic
@@ -202,13 +211,12 @@ jobs:
       # App Review, with the version's store notes as "What to Test".
       - name: Distribute to TestFlight testers
         env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           ASC_APP_ID: ${{ vars.ASC_APP_ID }}
           APPLE_ASC_KEY_ID: ${{ vars.APPLE_ASC_KEY_ID }}
           APPLE_ASC_ISSUER_ID: ${{ vars.APPLE_ASC_ISSUER_ID }}
           APPLE_ASC_API_KEY_P8: ${{ secrets.APPLE_ASC_API_KEY_P8 }}
         run: |
-          BUILD_NUMBER=$(cd apps/mobile && eas build:list --platform ios --limit 1 --status finished --json --non-interactive | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s)[0].appBuildVersion))')
+          BUILD_NUMBER="${{ steps.ios_build.outputs.build_number }}"
           node scripts/appstore-release.mjs testflight --build-number="${BUILD_NUMBER}" --groups=all --beta-review --apply
 
       - name: Remove the key

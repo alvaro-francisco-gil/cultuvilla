@@ -287,6 +287,22 @@ describe('beta auto-submit workflow', () => {
 
   // eas submit adds the build to no TestFlight group, so external testers
   // never saw a beta build until someone added it by hand.
+  // Resolving "the latest finished build" after the fact could pick up a
+  // concurrent manual build and ship a binary this run never made.
+  it.each([
+    ['beta-build-and-submit.yml', wf],
+    [
+      'mobile-release.yml',
+      readFileSync(resolve(__dirname, '../../../..', '.github/workflows/mobile-release.yml'), 'utf8'),
+    ],
+  ])('%s submits and distributes the exact iOS build it made', (_name, source) => {
+    const ios = source.slice(source.indexOf('  ios:'));
+    expect(ios).toMatch(/eas build[^\n]*--json/);
+    expect(ios).toContain('--id "${{ steps.ios_build.outputs.id }}"');
+    expect(ios).not.toContain('--latest');
+    expect(ios).not.toContain('build:list');
+  });
+
   it('puts the iOS build in front of every TestFlight group, external included', () => {
     expect(wf).toMatch(
       /appstore-release\.mjs testflight --build-number="\$\{BUILD_NUMBER\}" --groups=all --beta-review --apply/,
