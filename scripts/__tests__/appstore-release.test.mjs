@@ -14,6 +14,8 @@ import {
   findOrCreateVersion,
   getAvailability,
   getBuildBetaState,
+  latestBuildForVersion,
+  submitForBetaReview,
   releaseVersion,
   submitIosForReview,
   waitForBuild,
@@ -518,4 +520,102 @@ test('getBuildBetaState reads the internal and external TestFlight states', asyn
   ]);
   const state = await getBuildBetaState(request, { ascAppId: 'app1', buildNumber: '19' });
   assert.deepEqual(state, { internal: 'IN_BETA_TESTING', external: 'READY_FOR_BETA_SUBMISSION' });
+});
+
+// ── external testers + reusing the tested build ───────────────────────────
+
+test('submitForBetaReview writes What to Test and submits the build', async () => {
+  const { request, calls } = fakeAsc([
+    [/^GET \/builds\/b19\/betaBuildLocalizations/, { data: [] }],
+    [/^POST \/betaBuildLocalizations$/, { data: { id: 'loc1' } }],
+    [/^GET \/builds\/b19\/buildBetaDetail$/, { data: { attributes: { externalBuildState: 'READY_FOR_BETA_SUBMISSION' } } }],
+    [/^POST \/betaAppReviewSubmissions$/, { data: { id: 'sub1' } }],
+  ]);
+  const r = await submitForBetaReview(request, { buildId: 'b19', notes: '- Novedades' });
+  assert.equal(r.status, 'submitted');
+  const loc = calls.find((c) => c.path === '/betaBuildLocalizations');
+  assert.equal(loc.body.data.attributes.whatsNew, '- Novedades');
+  assert.equal(loc.body.data.attributes.locale, 'es-ES');
+  const sub = calls.find((c) => c.path === '/betaAppReviewSubmissions');
+  assert.deepEqual(sub.body.data.relationships.build.data, { type: 'builds', id: 'b19' });
+});
+
+test('submitForBetaReview updates an existing What to Test instead of duplicating it', async () => {
+  const { request, calls } = fakeAsc([
+    [/^GET \/builds\/b19\/betaBuildLocalizations/, { data: [{ id: 'loc1', attributes: { locale: 'es-ES' } }] }],
+    [/^PATCH \/betaBuildLocalizations\/loc1$/, null],
+    [/^GET \/builds\/b19\/buildBetaDetail$/, { data: { attributes: { externalBuildState: 'READY_FOR_BETA_SUBMISSION' } } }],
+    [/^POST \/betaAppReviewSubmissions$/, { data: { id: 'sub1' } }],
+  ]);
+  await submitForBetaReview(request, { buildId: 'b19', notes: 'x' });
+  assert.ok(calls.some((c) => c.method === 'PATCH'));
+  assert.ok(!calls.some((c) => c.path === '/betaBuildLocalizations' && c.method === 'POST'));
+});
+
+test('submitForBetaReview does not resubmit a build already in or past review', async () => {
+  const { request, calls } = fakeAsc([
+    [/^GET \/builds\/b19\/betaBuildLocalizations/, { data: [] }],
+    [/^POST \/betaBuildLocalizations$/, { data: { id: 'loc1' } }],
+    [/^GET \/builds\/b19\/buildBetaDetail$/, { data: { attributes: { externalBuildState: 'WAITING_FOR_BETA_REVIEW' } } }],
+  ]);
+  const r = await submitForBetaReview(request, { buildId: 'b19', notes: 'x' });
+  assert.equal(r.status, 'noop');
+  assert.ok(!calls.some((c) => c.path === '/betaAppReviewSubmissions'));
+});
+
+test('distributeToTestflight submits beta review only when an external group is targeted', async () => {
+  const routes = [
+    [/^GET \/apps\/app1\/betaGroups/, { data: GROUPS }],
+    [/^GET \/builds\?/, { data: [{ id: 'b19', attributes: { version: '19', processingState: 'VALID' } }] }],
+    [/^POST \/betaGroups\/.*\/relationships\/builds$/, null],
+    [/^GET \/builds\/b19\/betaBuildLocalizations/, { data: [] }],
+    [/^POST \/betaBuildLocalizations$/, { data: { id: 'loc1' } }],
+    [/^GET \/builds\/b19\/buildBetaDetail$/, { data: { attributes: { externalBuildState: 'READY_FOR_BETA_SUBMISSION' } } }],
+    [/^POST \/betaAppReviewSubmissions$/, { data: { id: 'sub1' } }],
+  ];
+  const all = fakeAsc(routes);
+  const r = await distributeToTestflight(all.request, {
+    ascAppId: 'app1', buildNumber: '19', selector: 'all', apply: true, betaReviewNotes: 'x', sleep: async () => {},
+  });
+  assert.equal(r.betaReview, 'submitted');
+
+  const internal = fakeAsc(routes);
+  await distributeToTestflight(internal.request, {
+    ascAppId: 'app1', buildNumber: '19', selector: 'Equipo', apply: true, betaReviewNotes: 'x', sleep: async () => {},
+  });
+  assert.ok(!internal.calls.some((c) => c.path === '/betaAppReviewSubmissions'));
+});
+
+test('latestBuildForVersion picks the newest processed build of a marketing version', async () => {
+  const { request, calls } = fakeAsc([
+    [/^GET \/builds\?/, { data: [{ id: 'b21', attributes: { version: '21', processingState: 'VALID' } }] }],
+  ]);
+  assert.equal(await latestBuildForVersion(request, { ascAppId: 'app1', versionString: '1.5.0' }), '21');
+  assert.match(calls[0].path, /filter\[preReleaseVersion\.version\]=1\.5\.0/);
+  assert.match(calls[0].path, /sort=-uploadedDate/);
+});
+
+test('latestBuildForVersion returns null when the version has no build', async () => {
+  const { request } = fakeAsc([[/^GET \/builds\?/, { data: [] }]]);
+  assert.equal(await latestBuildForVersion(request, { ascAppId: 'app1', versionString: '9.9.9' }), null);
+});
+
+test('submitForBetaReview reports a version already closed to beta review instead of failing', async () => {
+  // Apple closes a version to Beta App Review once it is submitted for App
+  // Store review; the upload and internal testing are unaffected.
+  const { request } = fakeAsc([
+    [/^GET \/builds\/b19\/betaBuildLocalizations/, { data: [] }],
+    [/^POST \/betaBuildLocalizations$/, { data: { id: 'loc1' } }],
+    [/^GET \/builds\/b19\/buildBetaDetail$/, { data: { attributes: { externalBuildState: 'READY_FOR_BETA_SUBMISSION' } } }],
+    [
+      /^POST \/betaAppReviewSubmissions$/,
+      () => {
+        throw new Error(
+          'ASC API POST /betaAppReviewSubmissions failed (422): This version and prior versions are closed for beta review submission.',
+        );
+      },
+    ],
+  ]);
+  const r = await submitForBetaReview(request, { buildId: 'b19', notes: 'x' });
+  assert.equal(r.status, 'version-closed');
 });
