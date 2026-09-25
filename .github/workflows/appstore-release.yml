@@ -20,14 +20,14 @@ on:
       command:
         description: What to do
         type: choice
-        options: [status, release, submit, set-release-type, phased]
+        options: [status, release, submit, set-release-type, phased, testflight]
         default: status
       apply:
         description: Actually send it to Apple (unchecked = dry run)
         type: boolean
         default: false
       build_number:
-        description: 'submit only: CFBundleVersion of the uploaded build (e.g. 9)'
+        description: 'submit / testflight: CFBundleVersion of the uploaded build (e.g. 9). testflight without it only lists the groups'
         type: string
         default: ''
       version:
@@ -39,6 +39,10 @@ on:
         type: choice
         options: [pause, resume, complete]
         default: pause
+      groups:
+        description: 'testflight only: internal | external | all | comma-separated group names'
+        type: string
+        default: internal
       ref:
         description: Git ref to run the release code from
         type: string
@@ -112,4 +116,5 @@ jobs:
             ${{ inputs.apply && '--apply' || '' }} \
             ${{ inputs.build_number != '' && format('--build-number={0}', inputs.build_number) || '' }} \
             ${{ inputs.version != '' && format('--version={0}', inputs.version) || '' }} \
-            ${{ inputs.command == 'phased' && format('--state={0}', inputs.phased_state) || '' }}
+            ${{ inputs.command == 'phased' && format('--state={0}', inputs.phased_state) || '' }} \
+            ${{ inputs.command == 'testflight' && format('--groups={0}', inputs.groups) || '' }}
