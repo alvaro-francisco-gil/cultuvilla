@@ -427,3 +427,22 @@ export async function distributeToTestflight(
   }
   return { status: 'distributed', targets, skipped, buildId };
 }
+
+/**
+ * Whether testers can actually install a build. Being in a group is not enough:
+ * `internalBuildState` stays short of IN_BETA_TESTING while, for instance,
+ * export compliance is unanswered.
+ */
+export async function getBuildBetaState(request, { ascAppId, buildNumber }) {
+  const data = await request(
+    'GET',
+    `/builds?filter[app]=${encodeURIComponent(ascAppId)}&filter[version]=${encodeURIComponent(buildNumber)}&limit=1`,
+  );
+  const build = (data.data || [])[0];
+  if (!build) return { internal: 'NOT_FOUND', external: 'NOT_FOUND' };
+  const detail = await request('GET', `/builds/${build.id}/buildBetaDetail`);
+  return {
+    internal: detail?.data?.attributes?.internalBuildState ?? null,
+    external: detail?.data?.attributes?.externalBuildState ?? null,
+  };
+}

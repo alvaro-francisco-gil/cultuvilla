@@ -13,6 +13,7 @@ import {
   distributeToTestflight,
   findOrCreateVersion,
   getAvailability,
+  getBuildBetaState,
   releaseVersion,
   submitIosForReview,
   waitForBuild,
@@ -505,4 +506,16 @@ test('distributeToTestflight refuses a group name that does not exist', async ()
     distributeToTestflight(request, { ascAppId: 'app1', buildNumber: '19', selector: 'Typo', apply: true }),
     /no TestFlight group named: Typo/,
   );
+});
+
+test('getBuildBetaState reads the internal and external TestFlight states', async () => {
+  const { request } = fakeAsc([
+    [/^GET \/builds\?/, { data: [{ id: 'b19', attributes: { version: '19', processingState: 'VALID' } }] }],
+    [
+      /^GET \/builds\/b19\/buildBetaDetail$/,
+      { data: { attributes: { internalBuildState: 'IN_BETA_TESTING', externalBuildState: 'READY_FOR_BETA_SUBMISSION' } } },
+    ],
+  ]);
+  const state = await getBuildBetaState(request, { ascAppId: 'app1', buildNumber: '19' });
+  assert.deepEqual(state, { internal: 'IN_BETA_TESTING', external: 'READY_FOR_BETA_SUBMISSION' });
 });

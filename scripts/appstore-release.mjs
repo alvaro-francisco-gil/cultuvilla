@@ -26,6 +26,7 @@ import { makeAscRequest } from './lib/appstore.mjs';
 import {
   distributeToTestflight,
   getAvailability,
+  getBuildBetaState,
   listBetaGroups,
   listVersions,
   releaseVersion,
@@ -243,6 +244,9 @@ switch (command) {
     }
     const buildNumber = args['build-number'];
     if (!buildNumber || buildNumber === true) break;
+
+    const beta = await getBuildBetaState(request, { ascAppId, buildNumber });
+    console.log(`\nBuild ${buildNumber}: internal=${beta.internal} external=${beta.external}`);
 
     const selector = typeof args.groups === 'string' ? args.groups : 'internal';
     console.log(`\nDistributing build ${buildNumber} to: ${selector}`);
