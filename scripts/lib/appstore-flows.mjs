@@ -399,12 +399,12 @@ export async function listBetaGroups(request, { ascAppId }) {
  * has "automatic distribution" nobody can install it — which is how 1.4.0 sat
  * in App Store Connect with its internal testers unable to see it.
  *
- * External groups additionally need Beta App Review for the build; this adds
- * the build to them but does not submit that review.
+ * External groups additionally need Beta App Review for the build; pass
+ * `betaReviewNotes` (the "What to Test" text) to submit it.
  */
 export async function distributeToTestflight(
   request,
-  { ascAppId, buildNumber, selector = 'internal', apply, sleep, log = () => {} },
+  { ascAppId, buildNumber, selector = 'internal', apply, betaReviewNotes, sleep, log = () => {} },
 ) {
   const { targets, skipped, unknown } = pickTestflightGroups(
     await listBetaGroups(request, { ascAppId }),
@@ -425,7 +425,14 @@ export async function distributeToTestflight(
       data: [{ type: 'builds', id: buildId }],
     });
   }
-  return { status: 'distributed', targets, skipped, buildId };
+
+  // Only external testers are gated by Beta App Review; asking for it with no
+  // external group in play would queue a review nobody is waiting on.
+  let betaReview = null;
+  if (betaReviewNotes && targets.some((g) => !g.internal)) {
+    betaReview = (await submitForBetaReview(request, { buildId, notes: betaReviewNotes, log })).status;
+  }
+  return { status: 'distributed', targets, skipped, buildId, betaReview };
 }
 
 /**
@@ -445,4 +452,67 @@ export async function getBuildBetaState(request, { ascAppId, buildNumber }) {
     internal: detail?.data?.attributes?.internalBuildState ?? null,
     external: detail?.data?.attributes?.externalBuildState ?? null,
   };
+}
+
+/** External build states from which a new Beta App Review submission is pointless or refused. */
+const BETA_REVIEW_DONE_STATES = new Set([
+  'WAITING_FOR_BETA_REVIEW',
+  'IN_BETA_REVIEW',
+  'BETA_APPROVED',
+  'IN_BETA_TESTING',
+]);
+
+/**
+ * Write the build's "What to Test" and submit it to Beta App Review, which
+ * external TestFlight testers wait on. Apple reviews the first build of each
+ * version; later builds of the same version are usually approved on arrival.
+ */
+export async function submitForBetaReview(request, { buildId, notes, locale = 'es-ES', log = () => {} }) {
+  const locs = await request('GET', `/builds/${buildId}/betaBuildLocalizations?limit=50`);
+  const existing = (locs.data || []).find((l) => l.attributes?.locale === locale);
+  if (existing) {
+    await request('PATCH', `/betaBuildLocalizations/${existing.id}`, {
+      data: { type: 'betaBuildLocalizations', id: existing.id, attributes: { whatsNew: notes } },
+    });
+  } else {
+    await request('POST', '/betaBuildLocalizations', {
+      data: {
+        type: 'betaBuildLocalizations',
+        attributes: { locale, whatsNew: notes },
+        relationships: { build: { data: { type: 'builds', id: buildId } } },
+      },
+    });
+  }
+  log(`  What to Test (${locale}) ${existing ? 'updated' : 'written'}`);
+
+  const detail = await request('GET', `/builds/${buildId}/buildBetaDetail`);
+  const state = detail?.data?.attributes?.externalBuildState ?? null;
+  if (BETA_REVIEW_DONE_STATES.has(state)) {
+    log(`  beta review: already ${state}`);
+    return { status: 'noop', state };
+  }
+  const created = await request('POST', '/betaAppReviewSubmissions', {
+    data: {
+      type: 'betaAppReviewSubmissions',
+      relationships: { build: { data: { type: 'builds', id: buildId } } },
+    },
+  });
+  log('  submitted for Beta App Review');
+  return { status: 'submitted', submissionId: created?.data?.id ?? null };
+}
+
+/**
+ * The newest processed build of a marketing version — the one testers have
+ * been running since it went to TestFlight from `beta`. Submitting this build
+ * for App Store review ships exactly the binary that was tested, instead of a
+ * fresh rebuild of the same commit.
+ */
+export async function latestBuildForVersion(request, { ascAppId, versionString }) {
+  const data = await request(
+    'GET',
+    `/builds?filter[app]=${encodeURIComponent(ascAppId)}` +
+      `&filter[preReleaseVersion.version]=${encodeURIComponent(versionString)}` +
+      `&filter[processingState]=VALID&sort=-uploadedDate&limit=1`,
+  );
+  return (data.data || [])[0]?.attributes?.version ?? null;
 }

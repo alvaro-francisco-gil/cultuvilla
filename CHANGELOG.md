@@ -4,6 +4,16 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Changed
+
+- **Every beta merge reaches TestFlight testers, internal and external.** The
+  iOS build a `beta` merge makes is added to every TestFlight group and
+  submitted for Beta App Review, with the version's store notes as "What to
+  Test"; before, it reached only the automatic internal group, and not at all
+  while the Play freeze had the workflow disabled. The Play freeze is now the
+  repo variable `PLAY_SUBMIT_PAUSED`, which skips only the Android job. iOS
+  production submits the build testers already ran instead of rebuilding it.
+
 ## v1.4.0 — 2026-09-24
 
 <!-- store-notes -->

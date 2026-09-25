@@ -27,7 +27,7 @@ on:
         type: boolean
         default: false
       build_number:
-        description: 'submit / testflight: CFBundleVersion of the uploaded build (e.g. 9). testflight without it only lists the groups'
+        description: 'submit / testflight: CFBundleVersion (e.g. 9). submit without it = the newest TestFlight build of the app.config version; testflight without it only lists the groups'
         type: string
         default: ''
       version:
@@ -43,6 +43,10 @@ on:
         description: 'testflight only: internal | external | all | comma-separated group names'
         type: string
         default: internal
+      beta_review:
+        description: 'testflight only: also submit the build to Beta App Review (external testers)'
+        type: boolean
+        default: false
       ref:
         description: Git ref to run the release code from
         type: string
@@ -117,4 +121,5 @@ jobs:
             ${{ inputs.build_number != '' && format('--build-number={0}', inputs.build_number) || '' }} \
             ${{ inputs.version != '' && format('--version={0}', inputs.version) || '' }} \
             ${{ inputs.command == 'phased' && format('--state={0}', inputs.phased_state) || '' }} \
-            ${{ inputs.command == 'testflight' && format('--groups={0}', inputs.groups) || '' }}
+            ${{ inputs.command == 'testflight' && format('--groups={0}', inputs.groups) || '' }} \
+            ${{ inputs.command == 'testflight' && inputs.beta_review && '--beta-review' || '' }}
