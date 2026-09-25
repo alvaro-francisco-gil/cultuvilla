@@ -491,12 +491,25 @@ export async function submitForBetaReview(request, { buildId, notes, locale = 'e
     log(`  beta review: already ${state}`);
     return { status: 'noop', state };
   }
-  const created = await request('POST', '/betaAppReviewSubmissions', {
-    data: {
-      type: 'betaAppReviewSubmissions',
-      relationships: { build: { data: { type: 'builds', id: buildId } } },
-    },
-  });
+  let created;
+  try {
+    created = await request('POST', '/betaAppReviewSubmissions', {
+      data: {
+        type: 'betaAppReviewSubmissions',
+        relationships: { build: { data: { type: 'builds', id: buildId } } },
+      },
+    });
+  } catch (err) {
+    // Submitting a version for App Store review closes it (and every earlier
+    // one) to Beta App Review — hit with 1.4.0 on 2026-09-25. External testers
+    // wait for the next version; internal testing and the upload are fine.
+    if (/closed for beta review submission/.test(String(err?.message))) {
+      log('  WARNING: this version is already submitted to the App Store, so Apple closed it to');
+      log('  external testing. External testers get the next version.');
+      return { status: 'version-closed' };
+    }
+    throw err;
+  }
   log('  submitted for Beta App Review');
   return { status: 'submitted', submissionId: created?.data?.id ?? null };
 }

@@ -599,3 +599,23 @@ test('latestBuildForVersion returns null when the version has no build', async (
   const { request } = fakeAsc([[/^GET \/builds\?/, { data: [] }]]);
   assert.equal(await latestBuildForVersion(request, { ascAppId: 'app1', versionString: '9.9.9' }), null);
 });
+
+test('submitForBetaReview reports a version already closed to beta review instead of failing', async () => {
+  // Apple closes a version to Beta App Review once it is submitted for App
+  // Store review; the upload and internal testing are unaffected.
+  const { request } = fakeAsc([
+    [/^GET \/builds\/b19\/betaBuildLocalizations/, { data: [] }],
+    [/^POST \/betaBuildLocalizations$/, { data: { id: 'loc1' } }],
+    [/^GET \/builds\/b19\/buildBetaDetail$/, { data: { attributes: { externalBuildState: 'READY_FOR_BETA_SUBMISSION' } } }],
+    [
+      /^POST \/betaAppReviewSubmissions$/,
+      () => {
+        throw new Error(
+          'ASC API POST /betaAppReviewSubmissions failed (422): This version and prior versions are closed for beta review submission.',
+        );
+      },
+    ],
+  ]);
+  const r = await submitForBetaReview(request, { buildId: 'b19', notes: 'x' });
+  assert.equal(r.status, 'version-closed');
+});
