@@ -4,6 +4,17 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Fixed
+
+- **Signing out works again on iOS and Android.** Since 1.4.0 the app deleted
+  this phone's push-token row before signing out, and waited for Firestore to
+  confirm it. On a phone whose Firestore connection had stalled that
+  confirmation never came, so "Cerrar sesión" did nothing. The cleanup is still
+  attempted first, but sign-out now waits at most three seconds for it (and for
+  the Google SDK sign-out) before signing out regardless; a row left behind is
+  pruned when the platform reports its token dead. Web never waited on it — it
+  registers no push token.
+
 ### Changed
 
 - **Every beta merge reaches TestFlight testers, internal and external.** The

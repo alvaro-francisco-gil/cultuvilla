@@ -155,6 +155,29 @@ function getEmailLinkContinueUrl(): string {
 
 type Profile = (UserData & { id: string }) | null;
 
+/**
+ * Upper bound on how long sign-out waits for its best-effort cleanup.
+ *
+ * The push-row delete and the Google SDK sign-out have to run BEFORE the
+ * Firebase sign-out (the delete needs the session's credentials), but neither
+ * is allowed to hold it hostage: a Firestore delete only resolves on a backend
+ * ack, so a phone whose Firestore stream has stalled would otherwise never sign
+ * out at all — the button did nothing, on iOS and Android alike. A row that
+ * outlives the deadline is pruned when the platform reports its token dead.
+ */
+export const SIGN_OUT_CLEANUP_TIMEOUT_MS = 3000;
+
+function settleWithin(work: Promise<unknown>, ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    const done = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    work.then(done, done);
+  });
+}
+
 export interface AuthContextValue {
   user: User | null;
   loading: boolean;
@@ -547,17 +570,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // This device's push row first, while the user can still delete it — the
     // rules are owner-only, and a shared phone must stop receiving the previous
     // account's pushes the moment it signs out.
-    await unregisterPushForSignOut();
+    await settleWithin(unregisterPushForSignOut(), SIGN_OUT_CLEANUP_TIMEOUT_MS);
     // Tear down every registered Firestore listener BEFORE auth flips closed,
     // so no listener fires a final permission-denied snapshot at the moment
     // the rules flip. See packages/shared/src/services/listenerManager.ts.
     await listenerManager.clearAll();
     if (googleConfigured.current) {
-      try {
-        await GoogleSignin.signOut();
-      } catch {
-        // Ignore — user may not have signed in with Google this session.
-      }
+      // Rejections are ignored — the user may not have signed in with Google
+      // this session — and a native call that never answers is bounded too.
+      await settleWithin(GoogleSignin.signOut(), SIGN_OUT_CLEANUP_TIMEOUT_MS);
     }
     await clearPendingIntent();
     // Never let a half-spent sign-in credential outlive the session it belongs to.
