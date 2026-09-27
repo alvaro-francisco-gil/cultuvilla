@@ -275,6 +275,39 @@ describe('beta auto-submit workflow', () => {
   it('deletes the Apple API key even when the build fails', () => {
     expect(wf).toMatch(/if: always\(\)[\s\S]*rm -f apps\/mobile\/apple-asc-api-key\.p8/);
   });
+
+  // A Play freeze must not freeze TestFlight: disabling the whole workflow for
+  // an open Play review (2026-09-14) silently stopped iOS beta builds as well.
+  it('pauses Play on a repo variable, on the Android job only', () => {
+    const android = wf.slice(wf.indexOf('  android:'), wf.indexOf('  ios:'));
+    const ios = wf.slice(wf.indexOf('  ios:'));
+    expect(android).toMatch(/if: \$\{\{ vars\.PLAY_SUBMIT_PAUSED != 'true' \}\}/);
+    expect(ios).not.toContain('PLAY_SUBMIT_PAUSED');
+  });
+
+  // eas submit adds the build to no TestFlight group, so external testers
+  // never saw a beta build until someone added it by hand.
+  // Resolving "the latest finished build" after the fact could pick up a
+  // concurrent manual build and ship a binary this run never made.
+  it.each([
+    ['beta-build-and-submit.yml', wf],
+    [
+      'mobile-release.yml',
+      readFileSync(resolve(__dirname, '../../../..', '.github/workflows/mobile-release.yml'), 'utf8'),
+    ],
+  ])('%s submits and distributes the exact iOS build it made', (_name, source) => {
+    const ios = source.slice(source.indexOf('  ios:'));
+    expect(ios).toMatch(/eas build[^\n]*--json/);
+    expect(ios).toContain('--id "${{ steps.ios_build.outputs.id }}"');
+    expect(ios).not.toContain('--latest');
+    expect(ios).not.toContain('build:list');
+  });
+
+  it('puts the iOS build in front of every TestFlight group, external included', () => {
+    expect(wf).toMatch(
+      /appstore-release\.mjs testflight --build-number="\$\{BUILD_NUMBER\}" --groups=all --beta-review --apply/,
+    );
+  });
 });
 
 // `eas submit --asc-app-id` doesn't exist in this eas-cli version — the flag
