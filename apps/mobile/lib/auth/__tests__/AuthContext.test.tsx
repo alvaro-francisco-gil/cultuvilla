@@ -2,13 +2,14 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { Platform } from 'react-native';
 import { signOut as fbSignOut } from 'firebase/auth';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { AuthProvider } from '../AuthContext';
+import { AuthProvider, SIGN_OUT_CLEANUP_TIMEOUT_MS } from '../AuthContext';
 import { useAuth } from '../useAuth';
 import { observability } from '@cultuvilla/shared';
 import { fetchUserIdHash } from '../../observability/errorBridge';
 import { signInWithCredential, signInWithCustomToken } from 'firebase/auth';
 import { verifyAuthOtpCode } from '@cultuvilla/shared/services/authEmailService';
 import { clearPendingToken } from '../otpTokenCache';
+import { unregisterPushForSignOut } from '../../push/pushSession';
 
 const FAKE_UID = 'user-raw-uid-123';
 const FAKE_HASH = 'a'.repeat(64);
@@ -82,6 +83,10 @@ jest.mock('@cultuvilla/shared/services/listenerManager', () => ({
 
 jest.mock('../../observability/errorBridge', () => ({
   fetchUserIdHash: jest.fn(),
+}));
+
+jest.mock('../../push/pushSession', () => ({
+  unregisterPushForSignOut: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('@cultuvilla/shared', () => ({
@@ -327,5 +332,56 @@ describe('signInWithApple', () => {
 
     await expect(result.current.signInWithApple()).rejects.toThrow(/identityToken/);
     expect(signInWithCredential).not.toHaveBeenCalled();
+  });
+});
+
+describe('signOut', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (fetchUserIdHash as jest.Mock).mockResolvedValue(FAKE_HASH);
+    mockAuthUser = { uid: FAKE_UID, email: 'a@b.com' };
+    (getUserProfile as jest.Mock).mockResolvedValue({ activeMunicipalityId: 'm1' });
+    (unregisterPushForSignOut as jest.Mock).mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('signs out of Firebase even when the push-row delete never settles', async () => {
+    // The device row is deleted with a Firestore write that only resolves on a
+    // backend ack. A phone whose Firestore connection has stalled must still be
+    // able to sign out — the delete is best-effort, the sign-out is not.
+    jest.useFakeTimers();
+    (unregisterPushForSignOut as jest.Mock).mockReturnValue(new Promise<void>(() => {}));
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+
+    let settled = false;
+    const signingOut = result.current.signOut().then(() => {
+      settled = true;
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(SIGN_OUT_CLEANUP_TIMEOUT_MS);
+    });
+
+    await waitFor(() => expect(fbSignOut).toHaveBeenCalledTimes(1));
+    await signingOut;
+    expect(settled).toBe(true);
+  });
+
+  it('waits for the push-row delete when it settles promptly', async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+
+    await act(async () => {
+      await result.current.signOut();
+    });
+
+    expect(unregisterPushForSignOut).toHaveBeenCalledTimes(1);
+    expect(fbSignOut).toHaveBeenCalledTimes(1);
+    const [unregisterOrder] = (unregisterPushForSignOut as jest.Mock).mock.invocationCallOrder;
+    const [signOutOrder] = (fbSignOut as jest.Mock).mock.invocationCallOrder;
+    expect(unregisterOrder).toBeLessThan(signOutOrder ?? -1);
   });
 });
