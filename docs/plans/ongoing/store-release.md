@@ -17,12 +17,14 @@ Google's production review.
     Android OAuth client, and `google.com` + `apple.com` enabled in all three
     Firebase envs — all re-verified by `pnpm check:store-claims` on 2026-09-11
     (17 pass, 0 fail).
-- **Play freeze while in review:** `beta-build-and-submit.yml` is **disabled**
-  (`gh workflow disable`, 2026-09-14) so a `beta` merge does not send a new
-  closed-track build into the production review. v1.2.0 reached beta and prod
-  without a Play submit. Re-enable it once Google approves (step 1 below).
+- **Play freeze while in review:** the repo variable `PLAY_SUBMIT_PAUSED=true`
+  skips the Android job of `beta-build-and-submit.yml`, so a `beta` merge does
+  not send a new closed-track build into the production review, while iOS still
+  goes to TestFlight. (From 2026-09-14 to 2026-09-25 the whole workflow was
+  disabled instead, which froze TestFlight too.) Lift it once Google approves
+  (step 1 below).
 - **Next:**
-  1. When Google approves: `gh workflow enable beta-build-and-submit.yml`; paste the Play URL into `APP_STORES.android`
+  1. When Google approves: `gh variable delete PLAY_SUBMIT_PAUSED`; paste the Play URL into `APP_STORES.android`
      **and the approved version into `APP_STORE_VERSIONS.android`**
      ([appStores.ts](../../../apps/mobile/lib/appStores.ts)) and run
      `pnpm check:store-claims`. Commit it **only** if the Android row is `PASS`.

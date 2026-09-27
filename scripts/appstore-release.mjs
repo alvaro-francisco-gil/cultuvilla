@@ -5,9 +5,13 @@
  * `eas submit` stops at the upload. This picks up there:
  *
  *   status                    what ASC thinks the recent versions are
- *   submit --build-number=N   attach the build, set notes, submit for review
+ *   submit [--build-number=N] attach the build, set notes, submit for review;
+ *                             without N, the newest build of the app.config version
  *   release [--version=X.Y.Z] release an approved version waiting on the button
  *   phased --state=…          pause / resume / complete a rollout
+ *   testflight [--build-number=N] [--groups=internal|external|all|Name,…] [--beta-review]
+ *                             list TestFlight groups; with a build, add it to them
+ *                             (--beta-review submits it for external testers)
  *
  * Everything that writes is dry-run by default and needs --apply, because these
  * calls are visible to Apple and to users and several are irreversible.
@@ -22,7 +26,11 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeAscRequest } from './lib/appstore.mjs';
 import {
+  distributeToTestflight,
   getAvailability,
+  getBuildBetaState,
+  latestBuildForVersion,
+  listBetaGroups,
   listVersions,
   releaseVersion,
   setPhasedReleaseState,
@@ -131,12 +139,20 @@ switch (command) {
   }
 
   case 'submit': {
-    const buildNumber = args['build-number'];
-    if (!buildNumber || buildNumber === true) {
-      console.error('submit needs --build-number=<CFBundleVersion of the uploaded build>');
-      process.exit(1);
-    }
     const versionString = typeof args.version === 'string' ? args.version : appVersion();
+    let buildNumber = args['build-number'];
+    if (!buildNumber || buildNumber === true) {
+      // The build `beta` already put in front of TestFlight testers.
+      buildNumber = await latestBuildForVersion(request, { ascAppId, versionString });
+      if (!buildNumber) {
+        console.error(
+          `No processed build of ${versionString} in App Store Connect. It reaches TestFlight when\n` +
+            'that version merges to beta; or build one with mobile-release (platform=ios).',
+        );
+        process.exit(1);
+      }
+      console.log(`Using build ${buildNumber}, the newest ${versionString} build in TestFlight.`);
+    }
     const notes =
       typeof args.notes === 'string'
         ? args.notes
@@ -224,7 +240,48 @@ switch (command) {
     break;
   }
 
+  case 'testflight': {
+    const groups = await listBetaGroups(request, { ascAppId });
+    console.log('\nTestFlight groups\n');
+    for (const g of groups) {
+      // Counts only: Actions logs of this public repo are public, and tester
+      // emails must not land in them.
+      const testers = await request('GET', `/betaGroups/${g.id}/betaTesters?limit=200`);
+      console.log(
+        `  ${String(g.attributes?.name).padEnd(28)} ${g.attributes?.isInternalGroup ? 'internal' : 'external'} ` +
+          `${String((testers.data || []).length).padStart(3)} testers` +
+          `${g.attributes?.hasAccessToAllBuilds ? '  (automatic: gets every build)' : ''}`,
+      );
+    }
+    const buildNumber = args['build-number'];
+    if (!buildNumber || buildNumber === true) break;
+
+    const beta = await getBuildBetaState(request, { ascAppId, buildNumber });
+    console.log(`\nBuild ${buildNumber}: internal=${beta.internal} external=${beta.external}`);
+
+    const selector = typeof args.groups === 'string' ? args.groups : 'internal';
+    console.log(`\nDistributing build ${buildNumber} to: ${selector}`);
+    const betaReviewNotes = args['beta-review']
+      ? extractReleaseNotes(readFileSync(resolve(ROOT, 'CHANGELOG.md'), 'utf8'), appVersion())
+      : undefined;
+    const result = await distributeToTestflight(request, {
+      ascAppId,
+      buildNumber,
+      selector,
+      apply,
+      betaReviewNotes,
+      log,
+    });
+    console.log(`\n${result.status}${result.betaReview ? ` (beta review: ${result.betaReview})` : ''}`);
+    if (result.status === 'dry-run') {
+      console.log('DRY RUN — nothing was sent to Apple. Re-run with --apply to distribute it.');
+    }
+    break;
+  }
+
   default:
-    console.error(`Unknown command "${command}". Use: status | submit | release | set-release-type | phased`);
+    console.error(
+      `Unknown command "${command}". Use: status | submit | release | set-release-type | phased | testflight`,
+    );
     process.exit(1);
 }

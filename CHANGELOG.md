@@ -4,6 +4,34 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v1.4.1 — 2026-09-27
+
+<!-- store-notes -->
+- **Cerrar sesión vuelve a funcionar** en iPhone y Android.
+- Correcciones y mejoras.
+<!-- /store-notes -->
+
+### Fixed
+
+- **Signing out works again on iOS and Android.** Since 1.4.0 the app deleted
+  this phone's push-token row before signing out, and waited for Firestore to
+  confirm it. On a phone whose Firestore connection had stalled that
+  confirmation never came, so "Cerrar sesión" did nothing. The cleanup is still
+  attempted first, but sign-out now waits at most three seconds for it (and for
+  the Google SDK sign-out) before signing out regardless; a row left behind is
+  pruned when the platform reports its token dead. Web never waited on it — it
+  registers no push token.
+
+### Changed
+
+- **Every beta merge reaches TestFlight testers, internal and external.** The
+  iOS build a `beta` merge makes is added to every TestFlight group and
+  submitted for Beta App Review, with the version's store notes as "What to
+  Test"; before, it reached only the automatic internal group, and not at all
+  while the Play freeze had the workflow disabled. The Play freeze is now the
+  repo variable `PLAY_SUBMIT_PAUSED`, which skips only the Android job. iOS
+  production submits the build testers already ran instead of rebuilding it.
+
 ## v1.4.0 — 2026-09-24
 
 <!-- store-notes -->
@@ -37,6 +65,10 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ### Changed
 
+- **"Añadir otro significado" is a floating button.** On a word's screen it now
+  floats at the bottom like "Añadir palabra" on the list, instead of sitting
+  under the last meaning. In the dictionary list the contributors' faces moved
+  to the far right of each row, replacing the arrow.
 - **Dictionary rows credit everyone who worked on a word.** The faces now sit
   right after the word and include the groups credited (their icon first) and
   every villager who added a meaning, not only whoever recorded the word first.
