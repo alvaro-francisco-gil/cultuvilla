@@ -4,6 +4,13 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v1.4.1 — 2026-09-27
+
+<!-- store-notes -->
+- **Cerrar sesión vuelve a funcionar** en iPhone y Android.
+- Correcciones y mejoras.
+<!-- /store-notes -->
+
 ### Fixed
 
 - **Signing out works again on iOS and Android.** Since 1.4.0 the app deleted
