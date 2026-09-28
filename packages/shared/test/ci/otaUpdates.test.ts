@@ -42,9 +42,18 @@ describe('OTA update wiring', () => {
   // Every build profile must name the channel it receives, or a binary silently
   // subscribes to nothing and OTA appears to work while reaching no one.
   it('maps every non-development build profile to a channel', () => {
-    for (const profile of ['preview-dev', 'preview-beta', 'production']) {
+    for (const profile of ['preview-dev', 'beta', 'production']) {
       expect(easJson.build[profile]?.channel, `${profile} has no channel`).toBeTruthy();
     }
+  });
+
+  // An update replaces the binary's app config, extra.firebaseConfig included.
+  // Without --environment no EAS variable is loaded and the update ships an
+  // empty Firebase config — every update up to 1.4.1 did exactly that.
+  it('loads the EAS environment matching the channel it publishes to', () => {
+    expect(otaWorkflow).toContain(
+      "--environment \"${{ github.event.inputs.channel == 'production' && 'production' || 'preview' }}\"",
+    );
   });
 
   it('publishes automatically on beta only, never on main', () => {

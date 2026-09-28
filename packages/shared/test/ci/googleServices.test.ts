@@ -28,17 +28,17 @@ function load(env: keyof typeof EXPECTED): GoogleServices | null {
 }
 
 describe('Android google-services.json', () => {
-  it('exists for prod — every Play track ships the prod build', () => {
-    // docs/decisions/store-tracks-share-prod.md: a store tester IS a prod user,
-    // so without this file no store install can receive push at all.
-    expect(load('prod')).not.toBeNull();
+  it.each(['prod', 'beta'] as const)('exists for %s — both ship through Play', (env) => {
+    // docs/decisions/beta-is-its-own-play-app.md: without this file no install
+    // of that app can receive push at all.
+    expect(load(env)).not.toBeNull();
   });
 
   it.each(Object.keys(EXPECTED) as (keyof typeof EXPECTED)[])(
     '%s, when present, belongs to its own Firebase project and package',
     (env) => {
       const config = load(env);
-      if (!config) return; // beta builds are sideload-only; the file is optional there
+      if (!config) return; // dev is sideload-only; the file is optional there
       expect(config.project_info.project_id).toBe(EXPECTED[env].projectId);
       expect(config.client.map((c) => c.client_info.android_client_info.package_name)).toContain(
         EXPECTED[env].packageName,

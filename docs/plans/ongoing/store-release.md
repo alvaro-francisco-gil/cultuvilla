@@ -192,9 +192,10 @@ días pero exige D‑U‑N‑S y una entidad jurídica registrada; la política 
 privacidad nombra a una persona física como responsable del tratamiento, así
 que personal es lo honesto y lo rápido.
 
-The requirement is **per package name**, which is why every track ships the
-single `production` build — recorded in
-[docs/decisions/store-tracks-share-prod.md](../../decisions/store-tracks-share-prod.md).
+The requirement is **per package name**. It is satisfied for `com.cultuvilla.app`;
+the tester app `com.cultuvilla.app.beta` lives on its own **internal** track,
+which the rule does not gate — see
+[docs/decisions/beta-is-its-own-play-app.md](../../decisions/beta-is-its-own-play-app.md).
 
 ## External facts and where each one lands
 
