@@ -1,44 +1,28 @@
 # Store release runbook — Google Play and App Store
 
-**Goal:** Cultuvilla 1.0.0 public on both stores. iOS is done; Android is in
-Google's production review.
+**Goal:** Cultuvilla public on both stores. **Done** — what remains is the
+open items below, then retiring this plan.
 
 ## Status
 
-- **Updated:** 2026-09-14
-- **Stage:** last step — Play production review. iOS is live.
-- **Branch:** n/a — what remains is external (Play Console).
+- **Updated:** 2026-09-28
+- **Stage:** both stores live; retiring.
+- **Branch:** n/a.
 - **Done:**
   - **iOS 1.0.0 live** on the App Store since 2026-09-04 (175 territories, free):
     <https://apps.apple.com/app/cultuvilla/id6804756586>. `APP_STORES.ios` filled in.
   - **Play closed test completed** (12 testers × 14 days).
-  - **Play production release submitted Tue 2026-09-08**, in Google review.
-  - Play service account, `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`, SHA-1/SHA-256, the
-    Android OAuth client, and `google.com` + `apple.com` enabled in all three
-    Firebase envs — all re-verified by `pnpm check:store-claims` on 2026-09-11
-    (17 pass, 0 fail).
-- **Play freeze while in review:** the repo variable `PLAY_SUBMIT_PAUSED=true`
-  skips the Android job of `beta-build-and-submit.yml`, so a `beta` merge does
-  not send a new closed-track build into the production review, while iOS still
-  goes to TestFlight. (From 2026-09-14 to 2026-09-25 the whole workflow was
-  disabled instead, which froze TestFlight too.) Lift it once Google approves
-  (step 1 below).
+  - **Play production approved**: 1.1.0, submitted 2026-09-08, public by
+    2026-09-28 (<https://play.google.com/store/apps/details?id=com.cultuvilla.app>).
+    `APP_STORES.android` + `APP_STORE_VERSIONS.android` filled in;
+    `pnpm check:store-claims` 20 pass, 0 fail.
+  - **Play freeze lifted** 2026-09-28 (`PLAY_SUBMIT_PAUSED` deleted): every
+    `beta` merge again submits Android to the closed track, iOS to TestFlight.
+  - AGENTS.md *Versioning & releases* updated.
 - **Next:**
-  1. When Google approves: `gh variable delete PLAY_SUBMIT_PAUSED`; paste the Play URL into `APP_STORES.android`
-     **and the approved version into `APP_STORE_VERSIONS.android`**
-     ([appStores.ts](../../../apps/mobile/lib/appStores.ts)) and run
-     `pnpm check:store-claims`. Commit it **only** if the Android row is `PASS`.
-     A listing still reachable only by testers returns 404 to a logged-out
-     visitor, and the banner would send every Android visitor there. The two
-     fields move together — a test enforces it — because the URL is what the
-     web build offers and the version is what `config/appVersion` announces;
-     one without the other is either a dead offer or a nudge nobody can
-     satisfy.
-  2. Update the first bullet of AGENTS.md *Versioning & releases*, which still
-     says Android is in the closed track.
-  3. Retire this plan. Keep one decision doc for the lesson below: *what sinks a
+  1. Retire this plan. Keep one decision doc for the lesson below: *what sinks a
      release is server-side config no test in the repo can see.* Delete the rest.
-- **Blockers:** Google's review (external, no action possible).
+- **Blockers:** none.
 - **Open, before retiring:**
   - **Sign in with Apple in TestFlight** (see *El rechazo de 1.0.0*). The logging
     that was the next step shipped in `55589f4a` (2026-09-03, `reportAuthError`),

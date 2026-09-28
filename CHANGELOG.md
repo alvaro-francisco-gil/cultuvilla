@@ -4,6 +4,12 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+### Changed
+
+- **Cultuvilla está en Google Play.** La web ofrece ahora la descarga para
+  Android (banner y `/descarga`) igual que para iPhone, y el aviso de «hay una
+  actualización» también llega a Android.
+
 ## v1.4.1 — 2026-09-27
 
 <!-- store-notes -->
