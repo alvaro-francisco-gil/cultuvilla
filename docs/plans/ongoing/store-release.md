@@ -211,16 +211,15 @@ single `production` build — recorded in
 
 Three access facts that are not obvious from the table:
 
-- **The Play service account needs explicit *release* permissions, per app.**
-  "Release Manager" is a legacy role name; Play Console now uses granular
-  permissions. Under *Users and permissions → play-publisher@… → App
-  permissions → Cultuvilla*, it needs **Release to production, exclude devices,
-  and use Play App Signing** and **Release apps to testing tracks** (plus *View
-  app information*). Without them the build succeeds and `eas submit` fails with
-  *"The service account is missing the necessary permissions"* — which is what
-  happened to the 1.4.1 production run (`36420081592`, 2026-09-28), the first
-  time CI ever submitted to Play: 1.1.0 was uploaded by hand and every beta run
-  before then had Play paused.
+- **Testing-track and production release are separate Play permissions.**
+  Under *Users and permissions → play-publisher@… → App permissions →
+  Cultuvilla*, the account has **Release apps to testing tracks** — closed-track
+  submits from `beta` succeed — but production also needs **Release to
+  production, exclude devices, and use Play App Signing**. Without it the build
+  succeeds and `eas submit` fails with *"The service account is missing the
+  necessary permissions"*: the 1.0.0 (`33186967970`) and 1.4.1 (`36420081592`)
+  production runs both did, so no production release has yet reached Play
+  through CI.
 
 - `cultuvilla-prod` **has no parent organization**, so the org-wide
   `iam.disableServiceAccountKeyCreation` never applied to it; only
