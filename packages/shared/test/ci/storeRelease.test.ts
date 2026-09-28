@@ -137,10 +137,10 @@ describe('per-env application identity', () => {
   });
 
   it('labels non-prod builds so each icon is identifiable next to the store app', () => {
-    // Dev is the exception: it never sits next to the store app on anyone's
-    // phone but a developer's, so it trades the prefix for a shorter label.
+    // One short word each: launchers truncate "Cultuvilla Beta", and next to
+    // the store app's "Cultuvilla" the bare word is the clearer tell.
     expect(appConfig).toContain("dev: 'Dev'");
-    expect(appConfig).toContain("beta: 'Cultuvilla Beta'");
+    expect(appConfig).toContain("beta: 'Beta'");
   });
 });
 

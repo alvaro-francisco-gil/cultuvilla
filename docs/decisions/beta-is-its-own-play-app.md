@@ -42,7 +42,8 @@ once:
 - **App Links** — beta claims `cultuvilla-beta.web.app`, never `cultuvilla.es`,
   so it cannot steal a prod link (the failure Órdago hit when beta claimed the
   prod domain). Its `assetlinks.json` needs the beta app signing SHA-256.
-- **Icon** — labelled "Cultuvilla Beta" (`namePerEnv`).
+- **Icon** — labelled just "Beta" (`namePerEnv`), like "Dev"; launchers
+  truncate "Cultuvilla Beta". The Play listing keeps the full name.
 
 The Play-side cost is one extra listing on the **internal** track: no review, no
 12-tester clock, up to 100 testers.
