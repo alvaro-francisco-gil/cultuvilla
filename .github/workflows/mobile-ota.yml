@@ -83,8 +83,15 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           APP_ENV: ${{ github.event.inputs.channel == 'production' && 'prod' || (github.event.inputs.channel || 'beta') }}
+        # An update carries its own app config, `extra.firebaseConfig` included,
+        # and replaces the one the binary was built with. Without --environment
+        # the EAS variables are never loaded and every update ships EMPTY
+        # Firebase and Google Sign-In config — invisible while no store build
+        # listened on `beta`, fatal the moment one does (and on any production
+        # dispatch). Same mapping as eas.json: production -> production, else preview.
         run: |
           eas update \
             --branch "${{ github.event.inputs.channel || 'beta' }}" \
+            --environment "${{ github.event.inputs.channel == 'production' && 'production' || 'preview' }}" \
             --message "${GITHUB_SHA::7}" \
             --non-interactive

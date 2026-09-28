@@ -31,28 +31,24 @@ if (process.env['USE_FIREBASE_EMULATOR'] === '1' && env !== 'dev') {
   );
 }
 
-// Home-screen labels. Beta stays prefixed so a sideloaded APK is identifiable
-// next to the store app. Dev is deliberately just "Dev": it only ever lands on
-// a developer's own device, where the short label is easier to find on a
-// crowded home screen and there is no ambiguity about which app it is.
+// Home-screen labels. Non-prod builds are one short word, as in Órdago: launchers
+// truncate "Cultuvilla Beta" to "Cultuvilla B…", and next to the store app's
+// "Cultuvilla" a bare "Beta" / "Dev" is the clearer tell. The Play listing is
+// still named "Cultuvilla Beta"; only the icon label is short.
 const namePerEnv: Record<Env, string> = {
   dev: 'Dev',
-  beta: 'Cultuvilla Beta',
+  beta: 'Beta',
   prod: 'Cultuvilla',
 };
 
 // Application identity per env. Read this together with
-// docs/decisions/store-tracks-share-prod.md — the two non-prod identifiers are
-// SIDELOAD-ONLY and must never reach a Play track.
+// docs/decisions/beta-is-its-own-play-app.md.
 //
-// A separate package is a separate INSTALL: its own FCM token, its own Google
-// Sign-In Android OAuth client (bound to package + SHA-1), its own App Links
-// verification, and its own icon on the home screen. So a tester who moves from
-// a `.beta` store build to the prod one is not updating an app, they are
-// installing a second one — which is how Órdago ended up with testers whose
-// beta and prod installs behaved as if they were entangled. Every Play track
-// here ships the SAME `com.cultuvilla.app` artifact, so a closed tester reaching
-// production receives an ordinary update and there is no migration to get wrong.
+// A separate package is a separate INSTALL — which is the point: the `.beta`
+// Play app and the `.dev` sideload sit next to the store app instead of
+// replacing it. Each one therefore needs its own FCM config
+// (google-services/<env>), its own Google Sign-In Android OAuth client (package
+// + signing SHA-1) and its own App Links host, never the prod one.
 const bundleIdPerEnv: Record<Env, string> = {
   dev: 'com.cultuvilla.app.dev',
   beta: 'com.cultuvilla.app.beta',
@@ -156,7 +152,7 @@ const config: ExpoConfig = {
   // the shell would silently build one repo into the other's EAS project; owner
   // + projectId in the file make the routing per-repo by construction.
   owner: 'cultuvilla.app',
-  version: '1.4.1',
+  version: '1.5.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
 

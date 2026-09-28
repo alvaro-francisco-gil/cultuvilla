@@ -50,7 +50,7 @@ If the app launches but immediately shows a red error screen:
 |---------------|---------|--------------|-----|
 | `development` | dev     | internal     | Dev client on simulators / devices |
 | `preview-dev` | dev     | internal     | Shareable dev build |
-| `preview-beta`| beta    | internal     | Internal beta testing |
+| `beta`        | beta    | store        | "Cultuvilla Beta" app, Play internal track (auto on merge to `beta`) |
 | `production`  | prod    | store        | App Store / Play Store |
 
 Trigger: `eas build --profile <name> --platform <ios|android>`
