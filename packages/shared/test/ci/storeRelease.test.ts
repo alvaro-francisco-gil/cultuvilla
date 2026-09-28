@@ -177,6 +177,12 @@ describe('mobile-release workflow', () => {
     expect(workflow).toContain('inputs.track');
   });
 
+  it('can resubmit a finished build to the chosen track without rebuilding', () => {
+    expect(workflow).toContain('androidBuildId');
+    expect(workflow).toMatch(/eas submit[\s\\]*--platform android[\s\\]*--profile "\$TRACK"/);
+    expect(workflow).toContain('TRACK: ${{ inputs.track }}');
+  });
+
   it('never triggers automatically — publishing is an explicit decision', () => {
     const triggers = workflow.slice(workflow.indexOf('\non:'), workflow.indexOf('\njobs:'));
     expect(triggers).toContain('workflow_dispatch');

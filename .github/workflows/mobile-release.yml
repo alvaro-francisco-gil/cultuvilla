@@ -37,6 +37,10 @@ on:
         description: 'iOS only: after uploading, attach the build to the App Store version and submit it for review (auto-releases on approval, phased over 7 days)'
         type: boolean
         default: false
+      androidBuildId:
+        description: 'Android only: submit this already-finished EAS build (its id) to the chosen track instead of building a new one'
+        type: string
+        default: ''
 
 concurrency:
   group: mobile-release
@@ -50,7 +54,10 @@ jobs:
     name: Android (build${{ inputs.submit && format(' + submit -> {0}', inputs.track) || '' }})
     if: ${{ inputs.platform == 'android' || inputs.platform == 'all' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # The EAS free-tier queue alone has exceeded an hour (1.4.1, 2026-09-28):
+    # a runner timeout cancels only the wait, never the build or its
+    # server-side auto-submit, so a short limit just hides the outcome.
+    timeout-minutes: 150
     environment: production
 
     steps:
@@ -87,7 +94,7 @@ jobs:
       # apps/mobile). Gitignored via the repo-wide *service-account*.json rule;
       # materialised here from the secret and never persisted.
       - name: Write Google Play service account key
-        if: ${{ inputs.submit }}
+        if: ${{ inputs.submit || inputs.androidBuildId != '' }}
         env:
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
@@ -98,10 +105,12 @@ jobs:
           printf '%s' "${GOOGLE_PLAY_SERVICE_ACCOUNT_JSON}" > apps/mobile/google-play-service-account.json
 
       - name: Show EAS remote version counters
+        if: ${{ inputs.androidBuildId == '' }}
         working-directory: apps/mobile
         run: eas build:version:get --platform android --profile production --non-interactive
 
       - name: Build Android app bundle${{ inputs.submit && ' and submit' || '' }}
+        if: ${{ inputs.androidBuildId == '' }}
         working-directory: apps/mobile
         run: |
           eas build \
@@ -110,6 +119,23 @@ jobs:
             --non-interactive \
             --wait \
             ${{ inputs.submit && format('--auto-submit-with-profile {0}', inputs.track) || '' }}
+
+      # Resubmitting a finished build skips the queue and keeps the versionCode:
+      # a submit that fails on Play's side (permissions, a pending review) should
+      # not cost a new build to retry.
+      - name: Submit existing build ${{ inputs.androidBuildId }}
+        if: ${{ inputs.androidBuildId != '' }}
+        working-directory: apps/mobile
+        env:
+          BUILD_ID: ${{ inputs.androidBuildId }}
+          TRACK: ${{ inputs.track }}
+        run: |
+          eas submit \
+            --platform android \
+            --profile "$TRACK" \
+            --id "$BUILD_ID" \
+            --non-interactive \
+            --wait
 
       - name: Remove service account key
         if: ${{ always() }}
