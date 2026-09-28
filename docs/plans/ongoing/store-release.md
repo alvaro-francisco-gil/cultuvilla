@@ -200,7 +200,7 @@ single `production` build — recorded in
 
 | Fact | Where you get it | Where it goes |
 |---|---|---|
-| Play service account JSON | GCP → service account key, then Play Console → Users and permissions → Release Manager | repo secret `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` |
+| Play service account JSON | GCP → service account key, then Play Console → Users and permissions → invite `play-publisher@cultuvilla-prod.iam.gserviceaccount.com` with the app permissions below | repo secret `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` |
 | App signing key SHA-256 | Play Console → **Protected with Play → Play Store protection → Play app signing** | committed into `apps/mobile/public/.well-known/{env}/assetlinks.json` |
 | App signing key SHA-1 | same screen | **new Android OAuth client** in the `cultuvilla-prod` GCP project |
 | Apple Team ID | Apple Developer → Membership | committed into `apps/mobile/public/.well-known/{env}/apple-app-site-association` **and** `apps/mobile/eas.json` (`submit.production.ios.appleTeamId`) |
@@ -209,7 +209,18 @@ single `production` build — recorded in
 | ASC API Key ID | same screen | repo var `APPLE_ASC_KEY_ID` |
 | ASC API Key Issuer ID | same screen (above the keys table) | repo var `APPLE_ASC_ISSUER_ID` |
 
-Two access facts that are not obvious from the table:
+Three access facts that are not obvious from the table:
+
+- **The Play service account needs explicit *release* permissions, per app.**
+  "Release Manager" is a legacy role name; Play Console now uses granular
+  permissions. Under *Users and permissions → play-publisher@… → App
+  permissions → Cultuvilla*, it needs **Release to production, exclude devices,
+  and use Play App Signing** and **Release apps to testing tracks** (plus *View
+  app information*). Without them the build succeeds and `eas submit` fails with
+  *"The service account is missing the necessary permissions"* — which is what
+  happened to the 1.4.1 production run (`36420081592`, 2026-09-28), the first
+  time CI ever submitted to Play: 1.1.0 was uploaded by hand and every beta run
+  before then had Play paused.
 
 - `cultuvilla-prod` **has no parent organization**, so the org-wide
   `iam.disableServiceAccountKeyCreation` never applied to it; only
