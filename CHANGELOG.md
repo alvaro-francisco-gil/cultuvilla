@@ -4,6 +4,13 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+## v1.5.0 — 2026-09-29
+
+<!-- store-notes -->
+- **Cultuvilla ya está en Google Play**: la web ofrece la descarga también para Android.
+- Correcciones y mejoras.
+<!-- /store-notes -->
+
 ### Changed
 
 - **Cultuvilla está en Google Play.** La web ofrece ahora la descarga para
