@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "336400380436-401c6ot7o6qis5dld9f1q5aecctishfa.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.cultuvilla.app.beta",
+            "certificate_hash": "a77a169cf513cac1d16ccd809bf94adcdf5d8aa4"
+          }
+        },
+        {
           "client_id": "336400380436-6bqsgte4dj1d2tl4997sl2fmkb0nkruq.apps.googleusercontent.com",
           "client_type": 3
         }
