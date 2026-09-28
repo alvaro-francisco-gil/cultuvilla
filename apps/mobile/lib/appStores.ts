@@ -32,7 +32,7 @@ export const APP_STORES: { ios: string; android: string } = {
 // with the URL above; `pnpm check:store-claims` compares iOS against the live
 // App Store and fails when the two disagree.
 export const APP_STORE_VERSIONS: { ios: string; android: string } = {
-  ios: '1.4.0', // live since 2026-09-25
+  ios: '1.4.1', // live since 2026-09-28
   android: '1.1.0', // live since 2026-09-28
 };
 
