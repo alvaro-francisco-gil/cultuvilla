@@ -31,13 +31,13 @@ if (process.env['USE_FIREBASE_EMULATOR'] === '1' && env !== 'dev') {
   );
 }
 
-// Home-screen labels. Beta stays prefixed so the "Cultuvilla Beta" Play app is
-// identifiable next to the store app. Dev is deliberately just "Dev": it only ever lands on
-// a developer's own device, where the short label is easier to find on a
-// crowded home screen and there is no ambiguity about which app it is.
+// Home-screen labels. Non-prod builds are one short word, as in Órdago: launchers
+// truncate "Cultuvilla Beta" to "Cultuvilla B…", and next to the store app's
+// "Cultuvilla" a bare "Beta" / "Dev" is the clearer tell. The Play listing is
+// still named "Cultuvilla Beta"; only the icon label is short.
 const namePerEnv: Record<Env, string> = {
   dev: 'Dev',
-  beta: 'Cultuvilla Beta',
+  beta: 'Beta',
   prod: 'Cultuvilla',
 };
 
