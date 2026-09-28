@@ -9,6 +9,10 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 - **Cultuvilla está en Google Play.** La web ofrece ahora la descarga para
   Android (banner y `/descarga`) igual que para iPhone, y el aviso de «hay una
   actualización» también llega a Android.
+- **Beta en Android es su propia app, «Cultuvilla Beta».** Se instala junto a
+  la app de la tienda (contra los datos de beta) en vez de sustituirla, así que
+  los testers vuelven a ver la Cultuvilla pública en Google Play. Las
+  actualizaciones OTA llevan ya la configuración de Firebase de su entorno.
 
 ## v1.4.1 — 2026-09-27
 

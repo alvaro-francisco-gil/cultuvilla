@@ -16,11 +16,12 @@
       "channel": "dev",
       "android": { "buildType": "apk" }
     },
-    "preview-beta": {
-      "distribution": "internal",
+    "beta": {
+      "environment": "preview",
       "env": { "APP_ENV": "beta" },
       "channel": "beta",
-      "android": { "buildType": "apk" }
+      "autoIncrement": true,
+      "android": { "buildType": "app-bundle" }
     },
     "production": {
       "environment": "production",
@@ -31,6 +32,14 @@
     }
   },
   "submit": {
+    "beta": {
+      "android": {
+        "track": "internal",
+        "applicationId": "com.cultuvilla.app.beta",
+        "serviceAccountKeyPath": "./google-play-service-account.json",
+        "releaseStatus": "completed"
+      }
+    },
     "internal": {
       "android": {
         "track": "internal",
