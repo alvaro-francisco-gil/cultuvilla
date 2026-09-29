@@ -14,14 +14,22 @@ The one seam between the two is the snapshot: the business repo's deploy writes 
 
 ## Sibling repos
 
-The `cultuvilla` org is checked out side by side under one folder
-(`~/githubs/cultuvilla/{app,business}`), so the other repo sits next to this one —
+The `cultuvilla` org is checked out side by side under one folder, each repo in a
+folder prefixed with the org so a terminal or editor title says which one you
+are in:
+
+```bash
+git clone git@github.com:cultuvilla/app.git      ~/githubs/cultuvilla/cultuvilla-app
+git clone git@github.com:cultuvilla/business.git ~/githubs/cultuvilla/cultuvilla-business
+```
+
+So the other repo sits next to this one —
 relative to the **main checkout**, not to a worktree. Start a session in the repo
 the work belongs to, never in the parent folder: a session loads only its own
 repo's rules, skills and memory.
 
-- `../business` — **private**: the business record and the founders' panel. Read
-  it when a task needs it (`claude --add-dir ../business`); never copy its facts
+- `../cultuvilla-business` — **private**: the business record and the founders' panel. Read
+  it when a task needs it (`claude --add-dir ../cultuvilla-business`); never copy its facts
   into this public repo — not into code, docs, commit messages or PR bodies.
   Edit it only from a session started there, under its own `AGENTS.md`.
 
