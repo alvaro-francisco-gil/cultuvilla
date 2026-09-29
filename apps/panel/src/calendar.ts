@@ -52,12 +52,15 @@ function daysInMonth(year: number, month: number): number {
   return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
-/** Every dated record, newest last. A record with no deadline is not on a calendar. */
+/**
+ * Every record with a deadline, soonest first. Búsquedas stay off the grid: their
+ * `revisar` is an internal reminder to search again, and beside real deadlines it
+ * read as one.
+ */
 export function datedItems(cards: BusinessCard[]): CalendarItem[] {
   return cards
-    // A sweep's date is when it is due again rather than a deadline, but on a
-    // calendar both answer the same question, so both belong on the grid.
-    .map((card) => ({ card, deadline: (card.kind === 'busqueda' ? card.revisar : card.deadline) ?? '' }))
+    .filter((card) => card.kind !== 'busqueda')
+    .map((card) => ({ card, deadline: card.deadline ?? '' }))
     .filter((item) => item.deadline !== '')
     .sort((a, b) => a.deadline.localeCompare(b.deadline));
 }

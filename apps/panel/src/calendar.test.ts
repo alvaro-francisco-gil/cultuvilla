@@ -19,6 +19,11 @@ describe('datedItems', () => {
     expect(items.map((i) => i.card.id)).toEqual(['a', 'b']);
   });
 
+  it('leaves búsquedas out — a review date is not a deadline', () => {
+    const sweep: BusinessCard = { ...card('barrido'), kind: 'busqueda', revisar: '2026-10-06' };
+    expect(datedItems([sweep, card('a', '2026-10-09')]).map((i) => i.card.id)).toEqual(['a']);
+  });
+
   it('is empty when nothing carries a deadline', () => {
     expect(datedItems([card('x'), card('y')])).toEqual([]);
   });
