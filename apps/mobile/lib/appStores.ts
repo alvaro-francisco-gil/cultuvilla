@@ -33,7 +33,7 @@ export const APP_STORES: { ios: string; android: string } = {
 // App Store and fails when the two disagree.
 export const APP_STORE_VERSIONS: { ios: string; android: string } = {
   ios: '1.4.1', // live since 2026-09-28
-  android: '1.1.0', // live since 2026-09-28
+  android: '1.5.0', // live since 2026-09-29
 };
 
 // Numeric App Store id (the `ASC_APP_ID` repo var). Safari builds its own smart
