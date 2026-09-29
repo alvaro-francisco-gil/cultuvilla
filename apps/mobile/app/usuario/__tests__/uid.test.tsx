@@ -54,6 +54,7 @@ jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   getMunicipality: jest.fn().mockResolvedValue(null),
+  getVillagesWhereAmbassador: jest.fn().mockResolvedValue([]),
 }));
 jest.mock('@cultuvilla/shared/services/imageService', () => ({
   uploadUserPhoto: jest.fn(),
