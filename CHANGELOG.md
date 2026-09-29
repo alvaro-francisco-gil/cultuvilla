@@ -14,6 +14,7 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   personas. **Migration:** `community.organizerSex` se rellena con
   `scripts/backfill-community-organizer-sex.mjs` (pre-deploy, autoApply en cada
   entorno).
+- The business registry (`project/`), the founders' panel (`apps/panel`), their scripts, research skills and scout agents moved to the private [cultuvilla/business](https://github.com/cultuvilla/business) repo, history included. `getBusinessSnapshot` now serves the snapshot that repo publishes to `_admin/businessSnapshot` instead of a JSON bundled into functions, so the daily-stale `business:snapshot:check` gate is gone from this repo's CI.
 - `/descarga` (the printed QR) now sends an iPhone/iPad straight to the App Store and an Android device straight to Google Play, with no picker page in between. Desktop still sees the picker.
 
 ## v1.5.0 — 2026-09-29

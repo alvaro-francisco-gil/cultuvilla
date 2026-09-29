@@ -121,31 +121,6 @@
         }
       ],
       "target": "app"
-    },
-    {
-      "target": "panel",
-      "public": "apps/panel/dist",
-      "ignore": [
-        "firebase.json",
-        "**/.DS_Store"
-      ],
-      "rewrites": [
-        {
-          "source": "**",
-          "destination": "/index.html"
-        }
-      ],
-      "headers": [
-        {
-          "source": "**",
-          "headers": [
-            {
-              "key": "X-Robots-Tag",
-              "value": "noindex, nofollow"
-            }
-          ]
-        }
-      ]
     }
   ],
   "emulators": {
