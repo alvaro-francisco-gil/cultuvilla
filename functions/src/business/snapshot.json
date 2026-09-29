@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-28",
+  "generatedAt": "2026-09-29",
   "counts": {
     "convocatoria": 6,
     "evento": 1,
@@ -8,23 +8,7 @@
     "busqueda": 1
   },
   "urgente": [],
-  "caducadas": [
-    {
-      "path": "project/eventos/epa-encuentro-galera-2026.md",
-      "holes": 3,
-      "id": "epa-encuentro-galera-2026",
-      "kind": "evento",
-      "titulo": "Encuentro de Proyectos Rurales ¡Chispa! — Galera (Granada)",
-      "status": "candidate",
-      "fit": "high",
-      "deadline": "2026-09-27",
-      "convocante": "epa-asociacion",
-      "lugar": "Galera, Granada",
-      "coste": "0 € — alojamiento y comidas cubiertos, hasta 200 € de desplazamiento",
-      "plazas": "25 (hasta 35 años)",
-      "url": "https://asociacionepa.org"
-    }
-  ],
+  "caducadas": [],
   "propuestasIncompletas": [],
   "byKind": {
     "convocatoria": [
@@ -104,11 +88,11 @@
     "evento": [
       {
         "path": "project/eventos/epa-encuentro-galera-2026.md",
-        "holes": 3,
+        "holes": 5,
         "id": "epa-encuentro-galera-2026",
         "kind": "evento",
         "titulo": "Encuentro de Proyectos Rurales ¡Chispa! — Galera (Granada)",
-        "status": "candidate",
+        "status": "registered",
         "fit": "high",
         "deadline": "2026-09-27",
         "convocante": "epa-asociacion",

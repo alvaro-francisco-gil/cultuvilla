@@ -2,7 +2,7 @@
 id: epa-encuentro-galera-2026
 kind: evento
 titulo: "Encuentro de Proyectos Rurales ¡Chispa! — Galera (Granada)"
-status: candidate
+status: registered
 fit: high
 deadline: 2026-09-27
 inicio: 2026-10-09
@@ -17,7 +17,13 @@ fuente: "difusión de EPA! + formulario de inscripción, 2026-09-20"
 
 # Encuentro de Proyectos Rurales ¡Chispa! — Galera, 9–12 de octubre de 2026
 
-**Inscripción hasta el 27 de septiembre. Confirmación el 28. 25 plazas.**
+**Aceptados (2026-09-29), pero con una plaza: va Moisés.** La organización
+confirmó la candidatura con, en principio, una sola plaza para Cultuvilla. Vamos a
+intentar ir los dos, pagando por nuestra cuenta el viaje y la estancia de Álvaro;
+está pendiente de que EPA! responda si lo aceptan. `[[confirmar: si EPA! admite a
+Álvaro como segundo asistente autofinanciado, y en qué condiciones]]`
+
+Inscripción cerrada el 27 de septiembre; 25 plazas.
 
 **URL del formulario: `[[confirmar]]`.** Se perdió. El 2026-09-20 alguien lo tuvo
 abierto para redactar las respuestas y no anotó el enlace; llegó por la difusión
@@ -110,15 +116,13 @@ su Instagram y en su web.
 
 ## Acciones
 
-- [ ] **Rellenar y enviar el formulario antes del 27 de septiembre.** Es la
-      acción con reloj de todo el registro. Respuestas preparadas para los dos en
-      [proposals/chispa-galera-2026/formulario.md](../proposals/chispa-galera-2026/formulario.md)
-      — solo faltan los datos personales.
-- [ ] Decidir si se piden dos plazas de 25 o solo una. Los perfiles son
-      complementarios (software + periodismo/patrimonio), que para un encuentro
-      de metodologías e incidencia es un equipo y no una solicitud repetida; las
-      respuestas funcionan por separado si hay que elegir.
-- [ ] El 28 de septiembre: `registered` si confirman, `skipped` si no.
+- [x] Formulario enviado; respuestas en
+      [proposals/chispa-galera-2026/formulario.md](../proposals/chispa-galera-2026/formulario.md).
+- [x] Confirmación: aceptados, con una plaza (Moisés).
+- [ ] Preguntar a EPA! si Álvaro puede asistir autofinanciándose, y cerrar el
+      `[[confirmar]]` de arriba con la respuesta.
+- [ ] Organizar el viaje de Moisés a Galera (llegada el 9, salida el 12 tras
+      comer; hasta 200 € de desplazamiento cubiertos).
 - [ ] Si se confirma: anotar qué proyectos y pueblos asisten — es el activo que
       queda después del encuentro.
 
