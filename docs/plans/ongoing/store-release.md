@@ -214,16 +214,12 @@ Three access facts that are not obvious from the table:
 
 - **Testing-track and production release are separate Play permissions.**
   Under *Users and permissions → play-publisher@… → App permissions →
-  Cultuvilla*, the account has **Release apps to testing tracks** — closed-track
-  submits from `beta` succeed — but production also needs **Release to
-  production, exclude devices, and use Play App Signing**. Without it the build
-  succeeds and `eas submit` fails with *"The service account is missing the
-  necessary permissions"*: the 1.0.0 (`33186967970`), 1.4.1 (`36420081592`)
-  and 1.5.0 (`36540669095`, 2026-09-29) production runs all did, so no
-  production release has yet reached Play through CI. The 1.5.0 build
-  (`406ae316-ba40-461f-88f9-3eaf7b28f3ce`) is finished: once the permission is
-  granted, dispatch `mobile-release` with platform=android, track=production and
-  `androidBuildId` set to it — no rebuild needed.
+  Cultuvilla*, production needs **Release to production, exclude devices, and
+  use Play App Signing** on top of **Release apps to testing tracks**. Without
+  it the build succeeds and `eas submit` fails with *"The service account is
+  missing the necessary permissions"* — the 1.0.0, 1.4.1 and first 1.5.0 runs
+  did. Granted 2026-09-29; 1.5.0 (`36545683742`) was the first production
+  release to reach Play through CI.
 
 - `cultuvilla-prod` **has no parent organization**, so the org-wide
   `iam.disableServiceAccountKeyCreation` never applied to it; only
