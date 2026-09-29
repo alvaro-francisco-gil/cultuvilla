@@ -12,6 +12,19 @@ The **business** side — funding calls, encuentros, collaborators, the pueblo/f
 
 The one seam between the two is the snapshot: the business repo's deploy writes it to `_admin/businessSnapshot` on the dev project, and [getBusinessSnapshot](functions/src/business/getBusinessSnapshot.ts) serves it to app admins. That callable owns only the access check — the snapshot's shape is the business repo's.
 
+## Sibling repos
+
+The `cultuvilla` org is checked out side by side under one folder
+(`~/githubs/cultuvilla/{app,business}`), so the other repo sits next to this one —
+relative to the **main checkout**, not to a worktree. Start a session in the repo
+the work belongs to, never in the parent folder: a session loads only its own
+repo's rules, skills and memory.
+
+- `../business` — **private**: the business record and the founders' panel. Read
+  it when a task needs it (`claude --add-dir ../business`); never copy its facts
+  into this public repo — not into code, docs, commit messages or PR bodies.
+  Edit it only from a session started there, under its own `AGENTS.md`.
+
 ## Repo health beats every rule below
 
 If a rule here makes the repo worse for a specific change, break the rule and update this file in the same PR. Rules exist to keep the codebase coherent, not to be obeyed mechanically.
