@@ -8,7 +8,7 @@ test.describe('account deletion guard', () => {
     await fixtureLogin(page, fixtures.admin.email);
 
     await page.goto('/ajustes/eliminar-cuenta');
-    await expect(page.getByText('Antes de eliminar tu cuenta, debes ceder los permisos de administrador en:')).toBeVisible({
+    await expect(page.getByText('Antes de eliminar tu cuenta, debes nombrar a otra persona en:')).toBeVisible({
       timeout: 30_000,
     });
     await expect(page.getByText(/Altozano de Prueba/)).toBeVisible();

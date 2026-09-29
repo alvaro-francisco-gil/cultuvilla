@@ -4,6 +4,16 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+- **Embajadores de Cultuvilla.** Quien cuida de un pueblo ya no es su
+  «administrador»: es su **Embajador** o **Embajadora de Cultuvilla** (según el
+  sexo de su perfil). Hay uno por pueblo y es un título público: aparece con nombre
+  y foto en la página del pueblo, como insignia en su perfil y en la lista de
+  vecinos, y al recibirlo se muestra una bienvenida con opción de compartirlo. El
+  resto de responsables pasan a ser el **Equipo del pueblo**, con los mismos
+  permisos. El Embajador puede **ceder el título** a otro vecino desde la lista de
+  personas. **Migration:** `community.organizerSex` se rellena con
+  `scripts/backfill-community-organizer-sex.mjs` (pre-deploy, autoApply en cada
+  entorno).
 - `/descarga` (the printed QR) now sends an iPhone/iPad straight to the App Store and an Android device straight to Google Play, with no picker page in between. Desktop still sees the picker.
 
 ## v1.5.0 — 2026-09-29

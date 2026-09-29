@@ -6,6 +6,8 @@
 import * as admin from 'firebase-admin';
 import { userNotificationsCollection } from '@cultuvilla/shared/firebase/refs/admin';
 import { buildNotificationData } from '@cultuvilla/shared/models';
+import type { Sex } from '@cultuvilla/shared';
+import { ambassadorTitle } from '../village/ambassador';
 
 const db = admin.firestore();
 
@@ -13,6 +15,7 @@ interface NotifyOrganizerRequestResolvedInput {
   municipalityId: string;
   municipalityName: string;
   requesterUid: string;
+  requesterSex: Sex | null;
   decision: 'approved' | 'rejected';
 }
 
@@ -24,10 +27,12 @@ export async function notifyOrganizerRequestResolved(
   await ref.set(
     buildNotificationData({
       type: approved ? 'organizer_request_approved' : 'organizer_request_rejected',
-      title: approved ? 'Solicitud aprobada' : 'Solicitud rechazada',
+      title: approved
+        ? `¡Ya eres ${ambassadorTitle(input.requesterSex)} de Cultuvilla!`
+        : 'Solicitud rechazada',
       body: approved
-        ? `Tu solicitud para organizar ${input.municipalityName} fue aprobada.`
-        : `Tu solicitud para organizar ${input.municipalityName} fue rechazada.`,
+        ? `Desde hoy representas a ${input.municipalityName} en Cultuvilla. Gracias por dar la cara por tu pueblo.`
+        : `Tu solicitud para representar a ${input.municipalityName} en Cultuvilla no ha salido adelante esta vez.`,
       municipalityId: input.municipalityId,
     }),
   );

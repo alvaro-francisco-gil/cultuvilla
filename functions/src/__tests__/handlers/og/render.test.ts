@@ -301,7 +301,7 @@ describe('ogRenderer', () => {
       escudoManualUrl: 'https://x/manual.png',
       community: {
         description: 'Comunidad pequeña pero apañada',
-        organizerId: 'admin-1',
+        organizerId: 'admin-1', organizerSex: null,
         createdAt: new Date(),
         fiestas: [],
       },
@@ -335,7 +335,7 @@ describe('ogRenderer', () => {
       escudoManualUrl: null,
       community: {
         description: 'Comunidad con escudo genérico',
-        organizerId: 'admin-1',
+        organizerId: 'admin-1', organizerSex: null,
         createdAt: new Date(),
         fiestas: [],
       },
@@ -367,7 +367,7 @@ describe('ogRenderer', () => {
       escudoManualUrl: null,
       community: {
         description: 'Comunidad con solo miniatura de escudo',
-        organizerId: 'admin-1',
+        organizerId: 'admin-1', organizerSex: null,
         createdAt: new Date(),
         fiestas: [],
       },

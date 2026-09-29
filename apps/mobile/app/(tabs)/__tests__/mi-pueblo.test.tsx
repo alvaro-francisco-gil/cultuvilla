@@ -48,6 +48,14 @@ jest.mock('@cultuvilla/shared/services/orgMemberService', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/personService', () => ({
   getBarrioResidentCount: jest.fn().mockResolvedValue(0),
+  getPersonByUserId: jest.fn().mockResolvedValue(null),
+}));
+jest.mock('@cultuvilla/shared/services/userService', () => ({
+  getUserProfile: jest.fn().mockResolvedValue(null),
+}));
+jest.mock('../../../lib/village/ambassadorWelcome', () => ({
+  hasSeenAmbassadorWelcome: jest.fn().mockResolvedValue(true),
+  markAmbassadorWelcomeSeen: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
