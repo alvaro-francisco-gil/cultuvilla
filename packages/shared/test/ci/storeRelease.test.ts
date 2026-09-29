@@ -2,15 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-// Google Play's "12 testers for 14 continuous days before production" rule is
-// scoped to a PACKAGE NAME. Submitting the `com.cultuvilla.app.beta` build to a
-// closed track would burn two weeks and earn nothing toward releasing
-// `com.cultuvilla.app`. The release pipeline therefore builds ONE artifact from
-// the `production` profile and promotes it across tracks.
+// Two apps reach Google Play, and only two: the public `com.cultuvilla.app`
+// (prod data, promoted across its tracks by an explicit `mobile-release`
+// dispatch) and the tester app `com.cultuvilla.app.beta` (beta data, internal
+// track only, published on every merge to `beta`). Being separate packages is
+// the point — the beta app installs next to the store one instead of replacing
+// it. See docs/decisions/beta-is-its-own-play-app.md.
 //
 // These are invariant tests in the spirit of conformanceGate.test.ts: they fail
-// the build if that arrangement is quietly undone. See
-// docs/plans/ongoing/store-release.md.
+// the build if that arrangement is quietly undone.
 
 // Only the fields these invariants actually assert on — this is a lens over
 // eas.json, not a mirror of its schema.
@@ -52,6 +52,7 @@ const easJson = JSON.parse(
 const workflow = readFileSync(resolve(repoRoot, '.github/workflows/mobile-release.yml'), 'utf-8');
 
 const PROD_PACKAGE = 'com.cultuvilla.app';
+const BETA_PACKAGE = 'com.cultuvilla.app.beta';
 const appConfig = readFileSync(resolve(repoRoot, 'apps/mobile/app.config.ts'), 'utf-8');
 
 describe('Play submit profiles', () => {
@@ -69,7 +70,7 @@ describe('Play submit profiles', () => {
     expect(easJson.submit.production.android.track).toBe('production');
   });
 
-  it.each(submitProfiles)('%s reads the gitignored service-account key path', (profile) => {
+  it.each([...submitProfiles, 'beta'])('%s reads the gitignored service-account key path', (profile) => {
     // Must stay matched by the repo-wide *service-account*.json gitignore rule,
     // and by the filename mobile-release.yml writes the secret to.
     expect(easJson.submit[profile].android.serviceAccountKeyPath).toBe(
@@ -79,39 +80,48 @@ describe('Play submit profiles', () => {
   });
 });
 
-describe('non-prod builds never reach a store', () => {
-  // The load-bearing invariant, and the reason the release pipeline looks the
-  // way it does: a separate package is a separate INSTALL, so a tester moving
-  // from a `.beta` store build to the prod one gets a second app rather than an
-  // update — new FCM token, new Google Sign-In Android OAuth client, unverified
-  // App Links, two icons. Every Play track ships the same com.cultuvilla.app
-  // artifact precisely so that migration never has to exist.
-  // See docs/decisions/store-tracks-share-prod.md.
+describe('the beta app is the only non-prod build a store sees', () => {
+  // A separate package is a separate INSTALL — its own FCM token, Google
+  // Sign-In Android OAuth client and App Links verification. That is exactly
+  // why the beta app can sit next to the store app, and exactly why no OTHER
+  // non-prod identity may reach a store: nobody has provisioned those for it.
   const nonProdBuildProfiles = Object.entries(easJson.build).filter(
     ([, profile]) => profile.env?.APP_ENV !== undefined && profile.env.APP_ENV !== 'prod',
   );
 
-  it('has non-prod build profiles at all (otherwise the checks below are vacuous)', () => {
-    expect(nonProdBuildProfiles.length).toBeGreaterThan(0);
-  });
-
-  it('submits nothing but the production package', () => {
+  it('submits only the production package and the beta app', () => {
     const submitted = new Set(
       Object.values(easJson.submit).map((profile) => profile.android.applicationId),
     );
-    expect(submitted).toEqual(new Set([PROD_PACKAGE]));
+    expect(submitted).toEqual(new Set([PROD_PACKAGE, BETA_PACKAGE]));
   });
 
-  it.each(nonProdBuildProfiles.map(([name]) => name))(
-    '%s is internal-distribution — it cannot be handed to a store',
-    (name) => {
-      expect(easJson.build[name].distribution).toBe('internal');
-    },
-  );
+  it('keeps the beta app on its internal track — it is never a public release', () => {
+    const betaSubmits = Object.values(easJson.submit).filter(
+      (profile) => profile.android.applicationId === BETA_PACKAGE,
+    );
+    expect(betaSubmits.map((profile) => profile.android.track)).toEqual(['internal']);
+  });
+
+  it('builds the beta app against beta data, from the EAS preview environment', () => {
+    // app.config.ts is evaluated on the EAS build server, where .env does not
+    // exist: without `environment` the FIREBASE_*_BETA values never arrive and
+    // the app ships an empty Firebase config.
+    expect(easJson.build.beta.env?.APP_ENV).toBe('beta');
+    expect(easJson.build.beta.environment).toBe('preview');
+    expect(easJson.build.beta.android?.buildType).toBe('app-bundle');
+    expect(easJson.build.beta.autoIncrement).toBe(true);
+  });
+
+  it.each(
+    nonProdBuildProfiles.filter(([name]) => name !== 'beta').map(([name]) => name),
+  )('%s is internal-distribution — it cannot be handed to a store', (name) => {
+    expect(easJson.build[name].distribution).toBe('internal');
+  });
 
   it('keeps every non-prod APP_ENV off the release workflow', () => {
     // mobile-release.yml builds --profile production only; if a second profile
-    // ever appears there, the build-invocation test above catches it. This one
+    // ever appears there, the build-invocation test below catches it. This one
     // catches the subtler version: the workflow overriding APP_ENV directly.
     expect(workflow).not.toMatch(/APP_ENV:\s*(dev|beta)\b/);
   });
@@ -119,19 +129,18 @@ describe('non-prod builds never reach a store', () => {
 
 describe('per-env application identity', () => {
   it('gives each env its own identifier, prod bare', () => {
-    // The `.dev` / `.beta` identifiers exist for sideloading — installing a
-    // non-prod build alongside the store app. They are only safe because
-    // nothing submits them (asserted above).
+    // The `.dev` / `.beta` identifiers are what let a non-prod build install
+    // alongside the store app instead of replacing it.
     expect(appConfig).toContain("dev: 'com.cultuvilla.app.dev'");
     expect(appConfig).toContain("beta: 'com.cultuvilla.app.beta'");
     expect(appConfig).toContain(`prod: '${PROD_PACKAGE}'`);
   });
 
-  it('labels non-prod builds so a sideloaded icon is identifiable', () => {
-    // Dev is the exception: it never sits next to the store app on anyone's
-    // phone but a developer's, so it trades the prefix for a shorter label.
+  it('labels non-prod builds so each icon is identifiable next to the store app', () => {
+    // One short word each: launchers truncate "Cultuvilla Beta", and next to
+    // the store app's "Cultuvilla" the bare word is the clearer tell.
     expect(appConfig).toContain("dev: 'Dev'");
-    expect(appConfig).toContain("beta: 'Cultuvilla Beta'");
+    expect(appConfig).toContain("beta: 'Beta'");
   });
 });
 
@@ -166,6 +175,12 @@ describe('mobile-release workflow', () => {
   it('routes the chosen track into the submit profile', () => {
     expect(workflow).toContain('--auto-submit-with-profile {0}');
     expect(workflow).toContain('inputs.track');
+  });
+
+  it('can resubmit a finished build to the chosen track without rebuilding', () => {
+    expect(workflow).toContain('androidBuildId');
+    expect(workflow).toMatch(/eas submit[\s\\]*--platform android[\s\\]*--profile "\$TRACK"/);
+    expect(workflow).toContain('TRACK: ${{ inputs.track }}');
   });
 
   it('never triggers automatically — publishing is an explicit decision', () => {
@@ -226,11 +241,10 @@ describe('prod deep-link association files', () => {
   });
 });
 
-// The beta branch auto-builds and submits to the CLOSED track
-// (.github/workflows/beta-build-and-submit.yml). Closed testing is not a public
-// release, and Play's "12 testers for 14 continuous days" clock only advances
-// while testers actually have builds — so this one step is automated while
-// production stays an explicit decision.
+// The beta branch auto-builds the beta app and submits it to its internal track,
+// and builds iOS for TestFlight (.github/workflows/beta-build-and-submit.yml).
+// Neither is a public release, so this step is automated while production
+// stays an explicit decision.
 describe('beta auto-submit workflow', () => {
   const wf = readFileSync(
     resolve(__dirname, '../../../..', '.github/workflows/beta-build-and-submit.yml'),
@@ -242,16 +256,14 @@ describe('beta auto-submit workflow', () => {
     expect(wf).not.toMatch(/branches:\s*\[[^\]]*main/);
   });
 
-  // Play's closed-testing requirement is per package name, so a
-  // com.cultuvilla.app.beta build earns nothing toward com.cultuvilla.app.
-  it('builds the production profile, not a beta-package profile', () => {
-    expect(wf).toMatch(/--profile production/);
-    expect(wf).not.toMatch(/--profile preview-beta/);
-  });
-
-  it('submits to the closed track by default', () => {
-    expect(wf).toMatch(/--auto-submit-with-profile/);
-    expect(wf).toMatch(/inputs\.track \|\| 'closed'/);
+  // Submitting the production profile from here is what made every Android
+  // tester's store listing say "(Internal testing)": Play serves the highest
+  // version code across the tracks a user has joined, and beta was always ahead.
+  it('builds and submits the beta app on Android, never the production package', () => {
+    const android = wf.slice(wf.indexOf('  android:'), wf.indexOf('  ios:'));
+    expect(android).toMatch(/--profile beta\b/);
+    expect(android).toMatch(/--auto-submit-with-profile beta\b/);
+    expect(android).not.toMatch(/--profile production/);
   });
 
   // A GitHub `environment` here would be rejected outright: the Production

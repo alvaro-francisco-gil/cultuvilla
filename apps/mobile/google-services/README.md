@@ -6,12 +6,12 @@
 | Env | File | Firebase project | Package |
 |---|---|---|---|
 | dev | `dev/google-services.json` ✅ | `villa-events` | `com.cultuvilla.app.dev` |
-| beta | *(none — beta builds are sideload-only)* | `cultuvilla-beta` | `com.cultuvilla.app.beta` |
+| beta | `beta/google-services.json` ✅ | `cultuvilla-beta` | `com.cultuvilla.app.beta` |
 | prod | `prod/google-services.json` ✅ | `cultuvilla-prod` | `com.cultuvilla.app` |
 
-Every Play track ships the **prod** build (see
-[store-tracks-share-prod.md](../../../docs/decisions/store-tracks-share-prod.md)),
-so prod is the one that matters for real users.
+Prod and the "Cultuvilla Beta" app both ship through Play (see
+[beta-is-its-own-play-app.md](../../../docs/decisions/beta-is-its-own-play-app.md)),
+so both files are required; dev is sideload-only.
 
 To refresh one (the Android app must already exist in that Firebase project):
 

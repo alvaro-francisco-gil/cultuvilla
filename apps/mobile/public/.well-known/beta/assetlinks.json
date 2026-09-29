@@ -4,7 +4,7 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.cultuvilla.app.beta",
-      "sha256_cert_fingerprints": ["REPLACE_SHA256_FINGERPRINT_BETA"]
+      "sha256_cert_fingerprints": ["FF:46:86:78:4F:2E:39:F2:D9:85:12:13:90:83:D0:81:E8:14:35:39:38:5D:BB:35:56:28:9B:E6:59:E4:AC:65"]
     }
   }
 ]

@@ -7,12 +7,13 @@
 // store banner and /descarga both simply omit it.
 //
 // iOS: 1.0.0 was accepted by App Review on 2026-09-04 and the listing is public.
-// Android is still Play closed-track, so `android` stays empty — its listing
-// 404s for a logged-out visitor, and a link to a 404 is worse than no banner at
-// all. Paste the Play URL in once its page actually loads.
+// Android: Google approved the production release (1.1.0) and the Play listing
+// loads for a logged-out visitor since 2026-09-28. The URL stayed empty until
+// then on purpose — a closed-track listing 404s, and a link to a 404 is worse
+// than no banner at all.
 export const APP_STORES: { ios: string; android: string } = {
   ios: 'https://apps.apple.com/es/app/cultuvilla/id6804756586',
-  android: '', // https://play.google.com/store/apps/details?id=com.cultuvilla.app
+  android: 'https://play.google.com/store/apps/details?id=com.cultuvilla.app',
 };
 
 // What each store actually SERVES today — the newest build a real user can
@@ -31,8 +32,8 @@ export const APP_STORES: { ios: string; android: string } = {
 // with the URL above; `pnpm check:store-claims` compares iOS against the live
 // App Store and fails when the two disagree.
 export const APP_STORE_VERSIONS: { ios: string; android: string } = {
-  ios: '1.4.0', // live since 2026-09-25
-  android: '', // no public listing yet — in Play production review
+  ios: '1.4.1', // live since 2026-09-28
+  android: '1.1.0', // live since 2026-09-28
 };
 
 // Numeric App Store id (the `ASC_APP_ID` repo var). Safari builds its own smart
