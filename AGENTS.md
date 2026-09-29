@@ -57,7 +57,7 @@ arrive as notifications.
 
 | Request | Collection | Created by | Approved by |
 |---|---|---|---|
-| Organizer (be the pueblo's organizer) | `organizerRequests/` | any user | super admin (`respondToOrganizerRequest` callable) |
+| Organizer (be the pueblo's **Embajador**) | `organizerRequests/` | any user | super admin (`respondToOrganizerRequest` callable) |
 | Organization (create peña/asociación/ayuntamiento) | `organizations/` (status `pending`) | village member | village admin (own village) or super admin (`approveOrganization` callable; `rejectOrganization` stays a client write) |
 
 **Joining a peña/asociación is not a request — it is instant self-service.** The
@@ -72,9 +72,15 @@ a membership group with members that carry a `role` and one *founder*. Authority
 ALWAYS the role flag, never the founder pointer:
 
 - **Village:** members at `municipalities/{id}/members/{uid}` with `role: 'admin' | 'user'`.
-  `community.organizerId` is the *founding organizer* — a single, nullable pointer
+  `community.organizerId` is the pueblo's **Embajador** — a single, nullable pointer
   (`null` during the wiki phase, where any member may edit basic info). It grants no
   authority of its own and it is **not** "the admin": a village can have many admins.
+  **User-facing names differ from code names on purpose:** the pointer's holder is
+  the *Embajador/Embajadora de Cultuvilla* (gendered from `community.organizerSex`),
+  every other admin is *Equipo del pueblo*. Never say "administrador" or
+  "organizador" for the village role in copy; keep the identifiers. The title moves
+  only via `transferVillageAmbassador`. Read
+  [docs/decisions/embajador-title.md](docs/decisions/embajador-title.md).
 - **Org:** members at `organizations/{orgId}/members/{uid}` with `role: 'admin' | 'member'`;
   `requestedBy` is the founder, seeded as admin on approval.
 
