@@ -735,11 +735,15 @@ service cloud.firestore {
     // organizer pointer has no such key, and a bare `.organizerId` on it is an
     // evaluation error, which denies the write outright — locking admins out
     // of editing their own pueblo rather than merely pinning the pointer.
+    // `organizerSex` rides with the pointer: it is the Embajador's own
+    // denormalized sex, owned by the functions that move the pointer.
     function organizerIdUnchanged(before, after) {
       return (before.get('community', null) == null && after.get('community', null) == null)
           || (before.get('community', null) != null && after.get('community', null) != null
               && before.community.get('organizerId', null)
-                 == after.community.get('organizerId', null));
+                 == after.community.get('organizerId', null)
+              && before.community.get('organizerSex', null)
+                 == after.community.get('organizerSex', null));
     }
 
     // A comment carries the municipalityId that its own delete rule reads for
