@@ -12,6 +12,7 @@ import { auth, functions, googleProvider, missingConfig } from './firebase';
 import { CardRow } from './components';
 import { CalendarView } from './CalendarView';
 import { FiestasView } from './FiestasView';
+import { isArchived, splitArchived } from './archive';
 
 // Hardcoded Spanish: two users, no localisation need.
 const KIND_LABEL: Record<BusinessKind, string> = {
@@ -107,13 +108,18 @@ function Dashboard({ snapshot, user }: { snapshot: BusinessSnapshot; user: User 
     [snapshot],
   );
 
+  const registro = useMemo(() => {
+    const split = REGISTRO_KINDS.map((kind) => ({ kind, ...splitArchived(snapshot.byKind[kind], today) }));
+    return { split, archived: split.flatMap((s) => s.archived) };
+  }, [snapshot, today]);
+
   // Recomputed against today rather than trusted from the file: the snapshot is
   // only as fresh as the last deploy, and a wrong day count is worse than none.
   const urgente = useMemo(
     () =>
       snapshot.urgente
         .map((card) => ({ card: card as BusinessCard, dias: daysBetweenIsoDates(today, card.deadline ?? today) }))
-        .filter(({ dias }) => dias >= 0)
+        .filter(({ card, dias }) => dias >= 0 && !isArchived(card, today))
         .sort((a, b) => a.dias - b.dias),
     [snapshot, today],
   );
@@ -207,22 +213,36 @@ function Dashboard({ snapshot, user }: { snapshot: BusinessSnapshot; user: User 
                   )}
                 </section>
 
-                <Section
-                  title="Plazo vencido sin cerrar"
-                  hint="Hay que marcarlas como caducadas o avanzarlas."
-                  cards={snapshot.caducadas}
-                  today={today}
-                />
-
-                {REGISTRO_KINDS.map((kind) => (
+                {registro.split.map(({ kind, active }) => (
                   <Section
                     key={kind}
                     title={KIND_LABEL[kind]}
                     hint={KIND_HINT[kind]}
-                    cards={snapshot.byKind[kind]}
+                    cards={active}
                     today={today}
                   />
                 ))}
+
+                {registro.archived.length === 0 ? null : (
+                  <details className="archive">
+                    <summary>
+                      Archivadas <span className="count">{registro.archived.length}</span>
+                    </summary>
+                    <p className="hint">
+                      Plazo pasado o cerradas. Las presentadas, inscritas o ganadas siguen arriba hasta
+                      que se cierren.
+                    </p>
+                    <ul className="cards">
+                      {registro.archived.map((card) => (
+                        <CardRow
+                          key={`a-${card.id}`}
+                          card={card}
+                          dias={card.deadline ? daysBetweenIsoDates(today, card.deadline) : null}
+                        />
+                      ))}
+                    </ul>
+                  </details>
+                )}
               </>
             )}
           </>
@@ -230,7 +250,8 @@ function Dashboard({ snapshot, user }: { snapshot: BusinessSnapshot; user: User 
 
         {tab === 'fiestas' ? null : (
           <p className="hint" style={{ marginTop: 32 }}>
-            Cada ficha abre su Markdown en GitHub, donde está el razonamiento completo.
+            Cada tarjeta abre la web de la iniciativa; «ficha» abre su Markdown en GitHub, con el
+            razonamiento completo. Sin enlace verificado, la tarjeta va directamente a la ficha.
           </p>
         )}
       </main>
