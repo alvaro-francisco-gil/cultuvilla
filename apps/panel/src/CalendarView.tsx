@@ -44,15 +44,12 @@ export function CalendarView({ cards, today }: { cards: BusinessCard[]; today: s
               <ul className="agenda">
                 {month.items.map(({ card, deadline }) => {
                   const dia = Number(deadline.slice(8, 10));
-                  // A sweep's date is when to search again, not a deadline — it
-                  // must not wear a deadline's urgency colours or read like one.
-                  const sweep = card.kind === 'busqueda';
-                  const { fg, bg } = chipStyles[sweep ? 'neutral' : urgencyChip(Math.round((Date.parse(`${deadline}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000)).style];
+                  const { fg, bg } = chipStyles[urgencyChip(Math.round((Date.parse(`${deadline}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000)).style];
                   return (
-                    <li key={card.id} className={sweep ? 'sweep' : undefined}>
+                    <li key={card.id}>
                       <a href={destinationUrl(card)} target="_blank" rel="noreferrer">
                         <span className="daybadge" style={{ color: fg, background: bg }}>{dia}</span>
-                        <span>{sweep ? `Repetir búsqueda: ${card.titulo}` : card.titulo}</span>
+                        <span>{card.titulo}</span>
                       </a>
                     </li>
                   );
