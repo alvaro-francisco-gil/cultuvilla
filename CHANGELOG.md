@@ -4,6 +4,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+- `/descarga` (the printed QR) now sends an iPhone/iPad straight to the App Store and an Android device straight to Google Play, with no picker page in between. Desktop still sees the picker.
+
 ## v1.5.0 — 2026-09-29
 
 <!-- store-notes -->

@@ -41,10 +41,6 @@ export const APP_STORE_VERSIONS: { ios: string; android: string } = {
 // see SmartAppBanner for how the two are kept from stacking.
 export const APP_STORE_ID = '6804756586';
 
-// True once ANY store listing exists. Gates the /descarga landing page, which
-// is a store picker and has nothing to show while both URLs are empty.
-export const APP_AVAILABLE = Boolean(APP_STORES.ios || APP_STORES.android);
-
 // Must match `scheme` in apps/mobile/app.config.ts. Used to attempt opening an
 // already-installed app before falling back to the store.
 export const APP_SCHEME = 'cultuvilla';
