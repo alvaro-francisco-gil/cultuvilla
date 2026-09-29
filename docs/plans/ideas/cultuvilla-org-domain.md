@@ -21,7 +21,7 @@ Two things make now the moment rather than later:
 
 - **Cultuvilla is about to become an asociación sin ánimo de lucro** — decided
   2026-09-14, constitution planned for the end of September 2026
-  ([entidad-juridica](entidad-juridica.md)). In the third sector a `.org` reads
+  ([entidad-juridica](https://github.com/cultuvilla/business/blob/main/docs/entidad-juridica.md), in the private business repo). In the third sector a `.org` reads
   as an entity rather than a product, and the audience that matters here is
   exactly that: ministerios, fundaciones, other asociaciones.
 - **The name is now in circulation.** It has gone into a SEDIA form, a Máshumano
