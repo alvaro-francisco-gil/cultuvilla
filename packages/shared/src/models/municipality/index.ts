@@ -10,3 +10,4 @@ export * from './MunicipalityPersonDataModel'
 export * from './SettlementSeedModel'
 export * from './FiestaBlockModel';
 export * from './municipalitySlug';
+export * from './villageTitle';

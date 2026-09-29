@@ -166,6 +166,21 @@ export async function getActiveCommunities(): Promise<(MunicipalityData & { id: 
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+/**
+ * Pueblos where `userId` holds the Embajador title (`community.organizerId`).
+ * Public read: the title is a public role, shown on the user's profile.
+ */
+export async function getVillagesWhereAmbassador(
+  userId: string,
+): Promise<(MunicipalityData & { id: string })[]> {
+  const q = query(
+    municipalitiesCollection(getDb()),
+    where('community.organizerId', '==', userId),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
 export interface MunicipalitiesPage {
   items: (MunicipalityData & { id: string })[];
   nextCursor: QueryDocumentSnapshot | null;
@@ -301,11 +316,10 @@ function assertValidFiestas(fiestas: FiestaBlock[]): FiestaBlock[] {
 
 export async function updateCommunity(
   municipalityId: string,
-  data: Partial<Pick<VillageCommunity, 'description' | 'organizerId' | 'fiestas'>>,
+  data: Partial<Pick<VillageCommunity, 'description' | 'fiestas'>>,
 ): Promise<void> {
   const updates: UpdateData<DocumentData> = {};
   if (data.description !== undefined) updates['community.description'] = data.description;
-  if (data.organizerId !== undefined) updates['community.organizerId'] = data.organizerId;
   if (data.fiestas !== undefined) updates['community.fiestas'] = assertValidFiestas(data.fiestas);
   await updateDoc(doc(getDb(), 'municipalities', municipalityId), updates);
 }
