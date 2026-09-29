@@ -43,6 +43,18 @@ stays in `Registro` and still spans every kind, proposals included: it answers
 `Lista`/`Calendario` inside `Registro` is a *view* of the same records, so it is
 a second control inside that tab rather than two more top-level tabs.
 
+**Stale records archive themselves** (`archive.ts`). A convocatoria or encuentro
+whose deadline has passed, or whose status is closed, drops into a collapsed
+`Archivadas` block at the foot of `Registro` — no Markdown edit needed. The
+exception is `submitted`/`registered`/`won`/`attended`: the deadline is behind
+them but the outcome (or the trip) is not. It is computed against today in the
+browser, not in the snapshot, because the snapshot is only as fresh as the last
+deploy.
+
+**A click opens the initiative, not the record.** Cards and calendar entries go
+to the record's `url`; a card's small `ficha` link opens the Markdown. A
+`[[confirmar]]` placeholder is not a URL, so those fall back to the Markdown.
+
 **Fiestas** reads `project/mercado/pueblos-vecinos-matabuena.json` — 48 pueblos
 around Matabuena and when they celebrate. Two things about it are load-bearing:
 

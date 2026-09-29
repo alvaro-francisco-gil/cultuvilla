@@ -2,7 +2,7 @@ import type { BusinessCard } from '@cultuvilla/shared/models';
 import { buildMonths, datedItems, itemsAfterWindow, WEEKDAYS, type CalendarItem } from './calendar';
 import { urgencyChip } from './labels';
 import { chipStyles } from './theme';
-import { sourceUrl } from './components';
+import { destinationUrl } from './links';
 
 function DayCell({ items, day, isToday, isPast }: { items: CalendarItem[]; day: number | null; isToday: boolean; isPast: boolean }) {
   if (day === null) return <span className="cell blank" />;
@@ -44,12 +44,15 @@ export function CalendarView({ cards, today }: { cards: BusinessCard[]; today: s
               <ul className="agenda">
                 {month.items.map(({ card, deadline }) => {
                   const dia = Number(deadline.slice(8, 10));
-                  const { fg, bg } = chipStyles[urgencyChip(Math.round((Date.parse(`${deadline}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000)).style];
+                  // A sweep's date is when to search again, not a deadline — it
+                  // must not wear a deadline's urgency colours or read like one.
+                  const sweep = card.kind === 'busqueda';
+                  const { fg, bg } = chipStyles[sweep ? 'neutral' : urgencyChip(Math.round((Date.parse(`${deadline}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000)).style];
                   return (
-                    <li key={card.id}>
-                      <a href={sourceUrl(card)} target="_blank" rel="noreferrer">
+                    <li key={card.id} className={sweep ? 'sweep' : undefined}>
+                      <a href={destinationUrl(card)} target="_blank" rel="noreferrer">
                         <span className="daybadge" style={{ color: fg, background: bg }}>{dia}</span>
-                        <span>{card.titulo}</span>
+                        <span>{sweep ? `Repetir búsqueda: ${card.titulo}` : card.titulo}</span>
                       </a>
                     </li>
                   );

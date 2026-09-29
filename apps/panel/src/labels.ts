@@ -95,8 +95,13 @@ export function chipsFor(card: BusinessCard, dias: number | null): Chip[] {
   return chips;
 }
 
+/** The meaning group of the record's state, or undefined when it has none or it is unmapped. */
+export function estadoStyle(card: BusinessCard): ChipStyle | undefined {
+  const estado = card.status ?? card.relacion;
+  return estado === undefined ? undefined : ESTADO[estado]?.style;
+}
+
 /** True when the record is finished, so the card can be visually de-emphasised. */
 export function isClosed(card: BusinessCard): boolean {
-  const estado = card.status ?? card.relacion;
-  return estado !== undefined && ESTADO[estado]?.style === 'cerrado';
+  return estadoStyle(card) === 'cerrado';
 }

@@ -3,9 +3,7 @@ import type { BusinessCard } from '@cultuvilla/shared/models';
 import { chipStyles, monogramColors, type ChipStyle } from './theme';
 import { chipsFor, isClosed } from './labels';
 import { faviconUrl, monogram, monogramColorIndex } from './logo';
-
-const REPO = 'https://github.com/alvaro-francisco-gil/cultuvilla/blob/develop';
-export const sourceUrl = (card: BusinessCard): string => `${REPO}/${card.path}`;
+import { destinationUrl, sourceUrl } from './links';
 
 export function Chip({ label, style }: { label: string; style: ChipStyle }) {
   const { fg, bg } = chipStyles[style];
@@ -53,11 +51,14 @@ export function CardRow({ card, dias }: { card: BusinessCard; dias: number | nul
     .filter((value) => value && !value.includes('[['))
     .join(' · ');
 
+  const href = destinationUrl(card);
+  const record = sourceUrl(card);
+
   return (
-    <li>
+    <li className="cardrow">
       <a
         className={isClosed(card) ? 'card closed' : 'card'}
-        href={sourceUrl(card)}
+        href={href}
         target="_blank"
         rel="noreferrer"
       >
@@ -73,6 +74,11 @@ export function CardRow({ card, dias }: { card: BusinessCard; dias: number | nul
           {card.sinHallazgos ? <span className="detail">Sin resultado: {card.sinHallazgos}</span> : null}
         </span>
       </a>
+      {href === record ? null : (
+        <a className="ficha" href={record} target="_blank" rel="noreferrer">
+          ficha
+        </a>
+      )}
     </li>
   );
 }
