@@ -43,9 +43,10 @@ cultuvilla/app       getBusinessSnapshot  →  checks admins/{uid}, returns the 
   Firestore cannot hold.
 - `_admin/**` is denied to every client by `firestore.rules`, so the callable is
   the only way a browser reads it.
-- The callable owns only the access check. It does not parse the snapshot; its
-  shape (`BusinessSnapshotSchema`) belongs to the business repo, which parses it
-  on both ends (generator and panel). A shape change there needs no change here.
+- The callable owns only the access check. It decodes the JSON string and returns
+  it, but never validates its shape: `BusinessSnapshotSchema` belongs to the
+  business repo, which validates it on both ends (generator and panel). A shape
+  change there needs no change here.
 
 ## Why the business repo has its own Workload Identity provider
 
