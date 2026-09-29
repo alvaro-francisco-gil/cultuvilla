@@ -654,7 +654,7 @@ reviewer. All daily work targets `develop`. See
 
 **The user is a decider, not a merge gate.** A change should cost them two messages: their request, and one decision. The `ship-a-feature` skill owns the procedure — front-load every business and technical question into ONE message with a recommended pick on each, take `go` as "all your picks", then implement and land without check-ins.
 
-- **`ship-a-feature` and `managing-plans-lifecycle` are shared, not local.** Both are symlinks into the `.agents/_shared` submodule ([agent-skills](https://github.com/alvaro-francisco-gil/agent-skills)), consumed by several repos. **Do not edit them to fix something about this repo** — they carry procedure only. Every Cultuvilla-specific value lives here and in `.agents/land.config.json`. Run `git submodule update --init` after cloning, or the skills are empty.
+- **`ship-a-feature` and `managing-plans-lifecycle` are shared, not local.** `ship-a-feature` is a symlink into the `.agents/_shared` submodule; `managing-plans-lifecycle` is vendored from agent-plans (see `.agents/README.md`). The [agent-skills](https://github.com/alvaro-francisco-gil/agent-skills) submodule is consumed by several repos. **Do not edit them to fix something about this repo** — they carry procedure only. Every Cultuvilla-specific value lives here and in `.agents/land.config.json`. Run `git submodule update --init` after cloning, or the skills are empty.
 - **Merge bar: CI green. The agent merges to `develop` itself** — the user is not the gate, on an explicit decision (2026-08-22). Say plainly what that costs: no `ai-review` reviewer is wired here yet, so **nothing reads the diff but the test suite**. This is a weaker bar than ordago's, not an equal one. It is bounded rather than unbounded: the hard-stop list below still never self-merges, the vacuous-green guard still refuses to read "no run dispatched" as "tests passed", and `develop` is not a release branch — a bad merge is caught before it reaches `beta`.
 - **Restore the review requirement the day the reviewer works here.** Set `requireApprovingReview: true` in `land.config.json` — leaving it false past that point keeps the weaker bar for nothing.
 - **Reviews reach this repo by poll, and cannot reach it any other way.** ordago gets an immediate trigger from a `request-review` job that calls homelab's reusable workflow. That is impossible here: **this repo is public and homelab is private**, and a public repo cannot call a private repo's reusable workflow. GitHub resolves the callee when it *creates* the run, before evaluating any job-level `if` — so such a job is not inert-until-enabled, it fails the entire workflow to load and takes every other job down with it. Don't add one back; it was tried on 2026-08-22 and run `32594475090` completed with zero jobs. This repo is already registered in homelab's `personal/agent-review.yml`, so the 15-minute poll backstop is the path. The cost is latency, not capability.
@@ -681,9 +681,15 @@ reviewer. All daily work targets `develop`. See
 Surface these as a one-line suggestion (or an inline diff if the change is under ~10 lines) at the end of your response, when you notice:
 
 - **Repeated manual ops (2+ times)** → script in `scripts/`.
-- **Encodable workflow** (deploy recipe, migration ritual, audit playbook) → skill under `.claude/skills/<name>/SKILL.md`.
+- **Encodable workflow** (deploy recipe, migration ritual, audit playbook) → skill under `.agents/skills/<name>/SKILL.md`.
 - **Convention used in 3+ places but undocumented** → addition to this file, or a new sub-directory `AGENTS.md` (e.g. `functions/AGENTS.md`, `packages/shared/AGENTS.md`, `apps/mobile/AGENTS.md`) so agents working there don't load the whole root file.
 - **Single source of truth violated** (duplicated enum, status string, threshold, hex colour) → consolidate in the same commit if small, propose a follow-up if not.
 - **Docs contradicting code** → fix or delete the doc; don't work around it.
 - **Shipped plan still in `docs/plans/ongoing/`** → distil durable rationale into `docs/decisions/<slug>.md`, then delete the plan (code is the source of truth). See the `managing-plans-lifecycle` skill. Don't archive — there is no `docs/archive/`.
 - **Service touched without tests** → propose adding the missing coverage.
+
+## Shared agent setup
+
+`AGENTS.md` is the shared instruction entry point. Project skills live in
+`.agents/skills/`; `.claude/skills` points to that directory. See
+[`.agents/README.md`](.agents/README.md) for discovery requirements and dependencies.
