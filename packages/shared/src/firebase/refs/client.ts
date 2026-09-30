@@ -1,5 +1,5 @@
 // packages/shared/src/firebase/refs/client.ts
-import { collection, doc, type Firestore } from 'firebase/firestore';
+import { collection, collectionGroup, doc, type Firestore } from 'firebase/firestore';
 import { eventConverterClient } from '../converters/eventConverter.client';
 import { registrationConverterClient } from '../converters/registrationConverter.client';
 import { municipalityConverterClient } from '../converters/municipalityConverter.client';
@@ -13,6 +13,7 @@ import { seatTokenConverterClient } from '../converters/seatTokenConverter.clien
 import { registrationEventConverterClient } from '../converters/registrationEventConverter.client';
 import { organizationConverterClient } from '../converters/organizationConverter.client';
 import { orgMemberConverterClient } from '../converters/orgMemberConverter.client';
+import { orgJoinRequestConverterClient } from '../converters/orgJoinRequestConverter.client';
 import { organizerRequestConverterClient } from '../converters/organizerRequestConverter.client';
 import { personConverterClient } from '../converters/personConverter.client';
 import { userConverterClient } from '../converters/userConverter.client';
@@ -128,6 +129,15 @@ export const organizationMembersCollection = (db: Firestore, organizationId: str
 
 export const organizationMemberDoc = (db: Firestore, organizationId: string, memberId: string) =>
   doc(db, 'organizations', organizationId, 'members', memberId).withConverter(orgMemberConverterClient);
+
+export const organizationJoinRequestsCollection = (db: Firestore, organizationId: string) =>
+  collection(db, 'organizations', organizationId, 'joinRequests').withConverter(orgJoinRequestConverterClient);
+
+export const organizationJoinRequestDoc = (db: Firestore, organizationId: string, userId: string) =>
+  doc(db, 'organizations', organizationId, 'joinRequests', userId).withConverter(orgJoinRequestConverterClient);
+
+export const joinRequestsGroup = (db: Firestore) =>
+  collectionGroup(db, 'joinRequests').withConverter(orgJoinRequestConverterClient);
 
 // ── Organizer requests ───────────────────────────────────────────────────
 

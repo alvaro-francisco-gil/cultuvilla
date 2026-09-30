@@ -40,6 +40,9 @@ export const NOTIFICATION_CATEGORY: Record<NotificationType, NotificationCategor
   organizer_request_created: 'social',
   organizer_request_approved: 'social',
   organizer_request_rejected: 'social',
+  org_join_request_created: 'social',
+  org_join_request_approved: 'social',
+  org_join_request_rejected: 'social',
   comment_reply: 'social',
 };
 

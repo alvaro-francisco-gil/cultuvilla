@@ -933,7 +933,8 @@
       "waitlisted": "En espera",
       "waitlistedMany": "En espera ×{count}",
       "waitlistedCount": "En espera ×{count}"
-    }
+    },
+    "privateToOrgNeedsApproval": "Solo los grupos en los que unirse requiere aprobación pueden tener eventos privados. Cámbialo en los ajustes del grupo."
   },
   "organization": {
     "title": "Grupo",
@@ -977,6 +978,23 @@
       "confirmRemoveBody": "¿Eliminar a {name} del grupo?",
       "roleChangeError": "No se pudo cambiar el rol. Inténtalo de nuevo.",
       "removeError": "No se pudo eliminar al miembro. Inténtalo de nuevo."
+    },
+    "requestToJoin": "Solicitar unirme",
+    "requestPending": "Solicitud enviada",
+    "cancelRequestTitle": "Retirar solicitud",
+    "cancelRequestBody": "¿Quieres retirar tu solicitud para unirte a {name}?",
+    "joinPolicy": {
+      "label": "Unirse requiere aprobación",
+      "approvalHint": "Quien quiera unirse lo solicita y un administrador del grupo lo acepta. Solo los grupos así pueden tener eventos privados.",
+      "openHint": "Cualquiera puede unirse al momento.",
+      "switchToOpenTitle": "Abrir el grupo",
+      "switchToOpenBody": "Cualquiera podrá unirse sin aprobación, y los eventos privados del grupo dejarán de verse hasta que vuelvas a exigir aprobación."
+    },
+    "joinRequests": {
+      "title": "Solicitudes para unirse",
+      "wantsToJoin": "quiere unirse",
+      "approve": "Aceptar",
+      "reject": "Rechazar"
     }
   },
   "partialDate": {
@@ -1201,7 +1219,8 @@
     "empty": "No tienes nada nuevo",
     "tab": {
       "organizer": "Embajadores",
-      "org": "Grupos"
+      "org": "Grupos",
+      "orgJoin": "Solicitudes para unirse"
     },
     "approve": "Aprobar",
     "reject": "Rechazar",
@@ -1211,7 +1230,8 @@
     "pendingSent": {
       "organizer": "Quieres ser embajador de {name}",
       "org": "Quieres crear {name}",
-      "waiting": "Esperando aprobación"
+      "waiting": "Esperando aprobación",
+      "orgJoin": "Quieres unirte a {name}"
     }
   },
   "requests": {
