@@ -951,7 +951,8 @@ service cloud.firestore {
       // syncPersonDenormalization Cloud Function — clients must not touch it.
       allow create: if isOwner(userId)
                     && !request.resource.data.keys().hasAny(['displayName'])
-                    && isValidUserCreate(request.resource.data);
+                    && isValidUserCreate(request.resource.data)
+                    && request.resource.data.email == request.auth.token.email;
       allow update: if isOwner(userId)
                     && isEmailUpdateVerified(
                          request.resource.data,
@@ -1122,8 +1123,11 @@ service cloud.firestore {
         allow delete: if isVillageAdmin(municipalityId) || isAppAdmin() || isOwner(userId);
       }
 
+      // The token id is the invite secret: holding it lets you fetch that one
+      // token, but enumerating a village's tokens is for its admins.
       match /inviteTokens/{tokenId} {
-        allow read: if true;
+        allow get: if true;
+        allow list: if isVillageAdmin(municipalityId) || isAppAdmin();
         allow create: if isVillageAdmin(municipalityId) || isAppAdmin();
         // acceptInvite Cloud Function handles redemption via admin SDK.
         allow update: if false;

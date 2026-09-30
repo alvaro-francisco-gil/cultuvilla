@@ -66,7 +66,6 @@ export async function deleteInviteToken(
 
 export interface AcceptInviteProfile {
   displayName: string;
-  email: string;
   birthday: Date;
   photoURL?: string | null;
 }
@@ -88,7 +87,6 @@ export async function acceptInvite(
       tokenId: string;
       profile?: {
         displayName: string;
-        email: string;
         birthday: string;
         photoURL: string | null;
       };
@@ -102,7 +100,6 @@ export async function acceptInvite(
         tokenId,
         profile: {
           displayName: profile.displayName,
-          email: profile.email,
           birthday: profile.birthday.toISOString().slice(0, 10),
           photoURL: profile.photoURL ?? null,
         },
