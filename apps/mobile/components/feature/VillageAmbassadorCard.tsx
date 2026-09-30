@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
-import { getUserProfile } from '@cultuvilla/shared/services/userService';
+import { getPublicProfile } from '@cultuvilla/shared/services/userService';
 import { getPersonByUserId } from '@cultuvilla/shared/services/personService';
 import type { Sex } from '@cultuvilla/shared/models/core/SexModel';
 import { Avatar, HStack, Pressable, Text, VStack } from '../primitives';
@@ -36,7 +36,7 @@ export function VillageAmbassadorCard({
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      getUserProfile(organizerId),
+      getPublicProfile(organizerId),
       getPersonByUserId(organizerId, viewerUid).catch(() => null),
     ])
       .then(([user, person]) => {

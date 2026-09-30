@@ -146,6 +146,25 @@ without joining the persons collection.
   person delete — the user's name is still a useful last-known value; an
   explicit account flow can clear it later if needed.
 
+### `publicProfiles/{uid}` ← `users/{uid}`
+
+The account doc holds private contact fields and is readable only by its owner
+(and app admins). Everything the app shows about *another* account — its name
+and active village — comes from this projection instead: a comment author, the
+Embajador card, an org's member list, `/usuario/{uid}`.
+
+- **Source of truth:** `users/{uid}.displayName` (itself projected from the
+  linked person, see below) and `users/{uid}.activeMunicipalityId`.
+- **Trigger:** [functions/src/users/syncPublicProfile.ts](../../functions/src/users/syncPublicProfile.ts).
+  Fires `onDocumentWritten` on `users/{uid}`, writes exactly those two fields,
+  short-circuits when they are unchanged, and deletes the row with the account.
+- **Rules:** single-doc `get` is public; `list` and every client write are
+  denied. A listable projection would be an account directory.
+- **Backfill:** [scripts/backfill-public-profiles.mjs](../../scripts/backfill-public-profiles.mjs)
+  (registered, `pre-deploy`, auto-applied). Reconciles rows and deletes orphans.
+- **Adding a field:** only if anyone, signed out included, may read it. Contact
+  details never belong here.
+
 ### `commentCount` ← `comments/`
 
 Every comment-capable kind (event, organization, festivalPoster, place, barrio,

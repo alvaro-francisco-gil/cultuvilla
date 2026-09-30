@@ -53,6 +53,7 @@ export { updateCenso } from './census/updateCenso';
 
 // Users (profile + persona denormalization)
 export { syncPersonDenormalization } from './users/syncPersonDenormalization';
+export { syncPublicProfile } from './users/syncPublicProfile';
 
 // Account (deletion lifecycle)
 export { checkAccountDeletable } from './account/checkAccountDeletable';

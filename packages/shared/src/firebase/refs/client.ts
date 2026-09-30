@@ -14,6 +14,7 @@ import { orgMemberConverterClient } from '../converters/orgMemberConverter.clien
 import { organizerRequestConverterClient } from '../converters/organizerRequestConverter.client';
 import { personConverterClient } from '../converters/personConverter.client';
 import { userConverterClient } from '../converters/userConverter.client';
+import { publicProfileConverterClient } from '../converters/publicProfileConverter.client';
 import { notificationConverterClient } from '../converters/notificationConverter.client';
 import { deviceTokenConverterClient } from '../converters/deviceTokenConverter.client';
 import { notificationPrefsConverterClient } from '../converters/notificationPrefsConverter.client';
@@ -143,6 +144,9 @@ export const usersCollection = (db: Firestore) =>
 
 export const userDoc = (db: Firestore, userId: string) =>
   doc(db, 'users', userId).withConverter(userConverterClient);
+
+export const publicProfileDoc = (db: Firestore, userId: string) =>
+  doc(db, 'publicProfiles', userId).withConverter(publicProfileConverterClient);
 
 export const userNotificationsCollection = (db: Firestore, userId: string) =>
   collection(db, 'users', userId, 'notifications').withConverter(notificationConverterClient);
