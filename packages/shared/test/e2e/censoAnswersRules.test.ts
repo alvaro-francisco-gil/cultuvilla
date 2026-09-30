@@ -120,9 +120,21 @@ describe('firestore.rules — censoAnswers writes', () => {
     );
   });
 
+  // Its own village: under CI's live functions emulator, clearing the previous
+  // test's members fires purgeMemberCensoAnswers, which could delete a freshly
+  // seeded mActive answers doc before this test reaches it.
   it('owner and village admin may delete; another villager may not', async () => {
-    await seedVillage();
-    await assertFails(deleteDoc(doc(asUser(getEnv(), BOB), ALICE_DOC)));
-    await assertSucceeds(deleteDoc(doc(asUser(getEnv(), VADMIN), ALICE_DOC)));
+    const DEL = 'mDelete';
+    const delDoc = `censoAnswers/${DEL}_${ALICE}`;
+    await seed(getEnv(), async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, `municipalities/${DEL}`), { communityActive: true });
+      await setDoc(doc(db, `municipalities/${DEL}/members/${ALICE}`), { userId: ALICE, role: 'user' });
+      await setDoc(doc(db, `municipalities/${DEL}/members/${BOB}`), { userId: BOB, role: 'user' });
+      await setDoc(doc(db, `municipalities/${DEL}/members/${VADMIN}`), { userId: VADMIN, role: 'admin' });
+      await setDoc(doc(db, delDoc), answers(ALICE, DEL));
+    });
+    await assertFails(deleteDoc(doc(asUser(getEnv(), BOB), delDoc)));
+    await assertSucceeds(deleteDoc(doc(asUser(getEnv(), VADMIN), delDoc)));
   });
 });
