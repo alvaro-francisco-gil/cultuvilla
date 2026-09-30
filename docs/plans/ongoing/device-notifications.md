@@ -1,74 +1,82 @@
 # Device notifications (push) — design and rollout
 
-## Status
+**Priority:** high
+**Gate:** blocked:the Apple developer Account Holder must create the APNs key (.p8 + Key ID) — see *Blocker: the APNs key*
+**Next:** load the real APNs key into `APNS_AUTH_KEY` on `cultuvilla-prod`, redeploy the push functions, and verify delivery on an iPhone
 
-- **Updated:** 2026-09-29
-- **Stage:** shipped and **verified working in prod** for Android-capable
-  delivery; **iOS is dead in the water** for one reason only — the real APNs key
-  was never created. Everything else in phase 1 is done.
-- **Branch:** n/a — merged (#337 code, #344 Android config). No branch open.
-- **Done** (each verified from the source of truth today, not from a checklist):
-  - All 9 push functions ACTIVE on `cultuvilla-prod`
-    (`gcloud functions list --project=cultuvilla-prod`).
-  - The published store builds carry the push code (iOS 1.4.1, Android 1.5.0).
-  - The mechanism provably works end to end: prod logs show
-    `onNotificationCreated` deferring overnight broadcasts and `flushPushQueue`
-    draining them the next morning — ~1,389 in 14 days (6 runs at the 200 cap,
-    plus 178 and 11), zero errors.
-  - `APNS_AUTH_KEY` exists in all three envs, so no deploy can fail on it.
-  - Android `google-services.json` committed for **all three** envs, locked by
-    `packages/shared/test/ci/googleServices.test.ts`. Beta gained its own
-    (`com.cultuvilla.app.beta`) when beta became its own Play app — see
-    [beta-is-its-own-play-app.md](../../decisions/beta-is-its-own-play-app.md).
-  - `PUSH_NOTIFICATIONS` capability on bundle id `com.cultuvilla.app`, added via
-    the ASC API on 2026-09-14.
-- **Next** (in order — the first is the whole blocker):
-  1. **Load the real APNs key.** Ask Jaime for it (see *Blockers*), then:
-     `printf '%s' '{"keyId":"<KEYID>","privateKey":"<.p8 contents with real newlines>"}' | gcloud secrets versions add APNS_AUTH_KEY --data-file=- --project=cultuvilla-prod`
-     (repeat for `villa-events` to test on a dev build). **A new version only
-     takes effect on the next deploy of the push functions** — v2 binds the
-     version at deploy time — so re-run the env's deploy afterwards.
-  2. **Verify it worked** rather than assuming: sign in on an iPhone, accept the
-     ask, then
-     `gcloud logging read 'jsonPayload.handler="deliverPush"' --project=cultuvilla-prod --freshness=1d --format="value(jsonPayload.iosCount,jsonPayload.delivered,jsonPayload.failed)"`.
-     Success is `delivered >= 1` with `failed 0`; while the key is missing the
-     line reads `iosCount 1, delivered 0, failed 1` next to a
-     `sendApns: APNS_AUTH_KEY is missing or malformed` warning.
-  3. **Restore the time-sensitive entitlement** in `apps/mobile/app.config.ts`
-     (currently commented out, ~line 196) once Jaime ticks that box in the
-     portal. It needs a new store build to reach anyone.
-  4. **Play Data Safety:** declare "Device or other IDs". The Android listing is
-     public since 2026-09-29, so the reason for holding off is gone.
-- **Blockers:**
-  - **Only Jaime can create the APNs key.** The Apple account is *Individual*,
-    so Certificates, Identifiers & Profiles is Account-Holder-only and no App
-    Store Connect role delegates it. Exact ask: developer.apple.com → Keys →
-    **+**, tick *Apple Push Notifications service*, **Configure** → Environment
-    **Sandbox & Production**, Key type **Team Scoped**, Register, Download. The
-    `.p8` downloads **once**. Needed: the file plus its **Key ID**.
-    Sandbox & Production because dev builds use the sandbox gateway and store
-    builds production; Team Scoped so one key covers `.dev`, `.beta` and the
-    store app.
-  - `AuthKey_533TUZ9L4M.p8` (in `/mnt/c/Users/alvar/Downloads`) is **not** it —
-    that Key ID is `APPLE_ASC_KEY_ID`, the App Store Connect API key. ASC keys
-    cannot authenticate to APNs. Don't retry it.
-- **Handoff:**
-  - **Android has 0 registered device tokens so far** (every `deliverPush` line
-    shows `androidCount 0`). Expected — the listing went public 2026-09-29 — but
-    if it is still 0 a week later, verify the Android token path on a real device
-    instead of trusting it; that path depends on the committed
-    `google-services.json` and fails silently when wrong.
-  - `deliverPush` **returns before logging** when a user has no device, which is
-    why ~1,389 flushed pushes produced only 2 delivery lines. Low log volume is
-    not evidence of a broken queue.
-  - **`pushQueue` docs are never deleted** — ~1,400 already. Harmless now;
-    the clean fix is a Firestore TTL policy on `sentAt`. Not yet done.
-  - iOS failure is silent by design: a missing key logs a warning and skips iOS,
-    so nothing alerts. The log query in *Next* step 2 is the only check.
-  - The whole Android/iOS behaviour split lives in one file,
-    `packages/shared/src/models/notification/PushEnvelope.ts`; the only seam
-    between the notification log and a device is
-    `functions/src/push/onNotificationCreated.ts`.
+## Done
+
+Merged: #337 (code), #344 (Android config). Each item below was verified from the source of truth, not from a checklist:
+
+- All 9 push functions ACTIVE on `cultuvilla-prod`
+  (`gcloud functions list --project=cultuvilla-prod`).
+- The published store builds carry the push code (iOS 1.4.1, Android 1.5.0).
+- The mechanism provably works end to end: prod logs show
+  `onNotificationCreated` deferring overnight broadcasts and `flushPushQueue`
+  draining them the next morning — ~1,389 in 14 days (6 runs at the 200 cap,
+  plus 178 and 11), zero errors.
+- `APNS_AUTH_KEY` exists in all three envs, so no deploy can fail on it.
+- Android `google-services.json` committed for **all three** envs, locked by
+  `packages/shared/test/ci/googleServices.test.ts`. Beta gained its own
+  (`com.cultuvilla.app.beta`) when beta became its own Play app — see
+  [beta-is-its-own-play-app.md](../../decisions/beta-is-its-own-play-app.md).
+- `PUSH_NOTIFICATIONS` capability on bundle id `com.cultuvilla.app`, added via
+  the ASC API on 2026-09-14.
+
+## Next steps
+
+In order — the first is the whole blocker:
+
+1. **Load the real APNs key.** Ask Jaime for it (see *Blocker: the APNs key*), then:
+   `printf '%s' '{"keyId":"<KEYID>","privateKey":"<.p8 contents with real newlines>"}' | gcloud secrets versions add APNS_AUTH_KEY --data-file=- --project=cultuvilla-prod`
+   (repeat for `villa-events` to test on a dev build). **A new version only
+   takes effect on the next deploy of the push functions** — v2 binds the
+   version at deploy time — so re-run the env's deploy afterwards.
+2. **Verify it worked** rather than assuming: sign in on an iPhone, accept the
+   ask, then
+   `gcloud logging read 'jsonPayload.handler="deliverPush"' --project=cultuvilla-prod --freshness=1d --format="value(jsonPayload.iosCount,jsonPayload.delivered,jsonPayload.failed)"`.
+   Success is `delivered >= 1` with `failed 0`; while the key is missing the
+   line reads `iosCount 1, delivered 0, failed 1` next to a
+   `sendApns: APNS_AUTH_KEY is missing or malformed` warning.
+3. **Restore the time-sensitive entitlement** in `apps/mobile/app.config.ts`
+   (currently commented out, ~line 196) once Jaime ticks that box in the
+   portal. It needs a new store build to reach anyone.
+4. **Play Data Safety:** declare "Device or other IDs". The Android listing is
+   public since 2026-09-29, so the reason for holding off is gone.
+
+## Blocker: the APNs key
+
+- **Only Jaime can create the APNs key.** The Apple account is *Individual*,
+  so Certificates, Identifiers & Profiles is Account-Holder-only and no App
+  Store Connect role delegates it. Exact ask: developer.apple.com → Keys →
+  **+**, tick *Apple Push Notifications service*, **Configure** → Environment
+  **Sandbox & Production**, Key type **Team Scoped**, Register, Download. The
+  `.p8` downloads **once**. Needed: the file plus its **Key ID**.
+  Sandbox & Production because dev builds use the sandbox gateway and store
+  builds production; Team Scoped so one key covers `.dev`, `.beta` and the
+  store app.
+- `AuthKey_533TUZ9L4M.p8` (in `/mnt/c/Users/alvar/Downloads`) is **not** it —
+  that Key ID is `APPLE_ASC_KEY_ID`, the App Store Connect API key. ASC keys
+  cannot authenticate to APNs. Don't retry it.
+
+## Handoff
+
+- **Android has 0 registered device tokens so far** (every `deliverPush` line
+  shows `androidCount 0`). Expected — the listing went public 2026-09-29 — but
+  if it is still 0 a week later, verify the Android token path on a real device
+  instead of trusting it; that path depends on the committed
+  `google-services.json` and fails silently when wrong.
+- `deliverPush` **returns before logging** when a user has no device, which is
+  why ~1,389 flushed pushes produced only 2 delivery lines. Low log volume is
+  not evidence of a broken queue.
+- **`pushQueue` docs are never deleted** — ~1,400 already. Harmless now;
+  the clean fix is a Firestore TTL policy on `sentAt`. Not yet done.
+- iOS failure is silent by design: a missing key logs a warning and skips iOS,
+  so nothing alerts. The log query in *Next* step 2 is the only check.
+- The whole Android/iOS behaviour split lives in one file,
+  `packages/shared/src/models/notification/PushEnvelope.ts`; the only seam
+  between the notification log and a device is
+  `functions/src/push/onNotificationCreated.ts`.
 
 ## Rollout status
 

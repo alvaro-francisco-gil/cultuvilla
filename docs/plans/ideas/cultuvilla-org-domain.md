@@ -1,5 +1,9 @@
 # Register cultuvilla.org
 
+**Priority:** medium
+**Gate:** decision:register cultuvilla.org now in the founder's personal name, or wait for the asociación's CIF?
+**Next:** find which registrar and account hold cultuvilla.es, then buy .org (and decide on .com in the same sitting)
+
 ## Goal
 
 Own `cultuvilla.org` before someone else does, and decide **in whose name** it is

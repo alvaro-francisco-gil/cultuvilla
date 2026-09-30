@@ -1,45 +1,51 @@
 # Store release runbook — Google Play and App Store
 
+**Priority:** low
+**Gate:** none
+**Next:** check Error Reporting for iOS `surface: auth` failures since 1.0.0 went live; if none, retire this plan into one decision doc
+
 **Goal:** Cultuvilla public on both stores. **Done** — what remains is the
 open items below, then retiring this plan.
 
-## Status
+## Done
 
-- **Updated:** 2026-09-28
-- **Stage:** both stores live; retiring.
-- **Branch:** n/a.
-- **Done:**
-  - **iOS 1.0.0 live** on the App Store since 2026-09-04 (175 territories, free):
-    <https://apps.apple.com/app/cultuvilla/id6804756586>. `APP_STORES.ios` filled in.
-  - **Play closed test completed** (12 testers × 14 days).
-  - **Play production approved**: 1.1.0, submitted 2026-09-08, public by
-    2026-09-28 (<https://play.google.com/store/apps/details?id=com.cultuvilla.app>).
-    `APP_STORES.android` + `APP_STORE_VERSIONS.android` filled in;
-    `pnpm check:store-claims` 20 pass, 0 fail.
-  - **Play freeze lifted** 2026-09-28 (`PLAY_SUBMIT_PAUSED` deleted): every
-    `beta` merge again submits Android to the closed track, iOS to TestFlight.
-  - AGENTS.md *Versioning & releases* updated.
-- **Next:**
-  1. Retire this plan. Keep one decision doc for the lesson below: *what sinks a
-     release is server-side config no test in the repo can see.* Delete the rest.
-- **Blockers:** none.
-- **Open, before retiring:**
-  - **Sign in with Apple in TestFlight** (see *El rechazo de 1.0.0*). The logging
-    that was the next step shipped in `55589f4a` (2026-09-03, `reportAuthError`),
-    but nobody recorded what it caught. Check Error Reporting for `surface: auth`
-    failures on iOS. If there are none since 1.0.0 went live, close this.
-  - **iOS Safari install banner.** The `apple-itunes-app` tag this doc says Safari
-    draws its banner from never shipped: `+html.tsx` is ignored with
-    `web.output: 'single'`. So iOS Safari visitors may get no install offer at
-    all. Tracked, with evidence, in
-    [app-first-transition.md](app-first-transition.md) (Next #2), not here.
-- **Handoff:** this doc describes state that lives **outside the repo** and
-  drifts silently. Run `pnpm check:store-claims` before trusting any line of it.
-  Before 2026-09-11 (PR #331) that check never read `APP_STORES` correctly and
-  reported both platforms as empty. Release-pipeline follow-ups (the
-  `beta-build-and-submit` dispatch guard, four failed `mobile-release` runs on
-  26–28 Aug, announcing a version only once it is live in the store) moved to
-  [store-release-pipeline.md](../ideas/store-release-pipeline.md).
+- **iOS 1.0.0 live** on the App Store since 2026-09-04 (175 territories, free):
+  <https://apps.apple.com/app/cultuvilla/id6804756586>. `APP_STORES.ios` filled in.
+- **Play closed test completed** (12 testers × 14 days).
+- **Play production approved**: 1.1.0, submitted 2026-09-08, public by
+  2026-09-28 (<https://play.google.com/store/apps/details?id=com.cultuvilla.app>).
+  `APP_STORES.android` + `APP_STORE_VERSIONS.android` filled in;
+  `pnpm check:store-claims` 20 pass, 0 fail.
+- **Play freeze lifted** 2026-09-28 (`PLAY_SUBMIT_PAUSED` deleted): every
+  `beta` merge again submits Android to the closed track, iOS to TestFlight.
+- AGENTS.md *Versioning & releases* updated.
+
+## Next steps
+
+1. Retire this plan. Keep one decision doc for the lesson below: *what sinks a
+   release is server-side config no test in the repo can see.* Delete the rest.
+
+## Open, before retiring
+
+- **Sign in with Apple in TestFlight** (see *El rechazo de 1.0.0*). The logging
+  that was the next step shipped in `55589f4a` (2026-09-03, `reportAuthError`),
+  but nobody recorded what it caught. Check Error Reporting for `surface: auth`
+  failures on iOS. If there are none since 1.0.0 went live, close this.
+- **iOS Safari install banner.** The `apple-itunes-app` tag this doc says Safari
+  draws its banner from never shipped: `+html.tsx` is ignored with
+  `web.output: 'single'`. So iOS Safari visitors may get no install offer at
+  all. Tracked, with evidence, in
+  [app-first-transition.md](app-first-transition.md) (Next #2), not here.
+
+## Handoff
+
+This doc describes state that lives **outside the repo** and
+drifts silently. Run `pnpm check:store-claims` before trusting any line of it.
+Before 2026-09-11 (PR #331) that check never read `APP_STORES` correctly and
+reported both platforms as empty. Release-pipeline follow-ups (the
+`beta-build-and-submit` dispatch guard, four failed `mobile-release` runs on
+26–28 Aug, announcing a version only once it is live in the store) moved to
+[store-release-pipeline.md](../ideas/store-release-pipeline.md).
 
 ## Rollout status
 

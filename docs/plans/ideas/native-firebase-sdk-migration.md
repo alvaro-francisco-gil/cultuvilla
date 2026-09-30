@@ -1,5 +1,7 @@
 # Migrate to `@react-native-firebase/*` (native SDK)
 
+**Priority:** low
+
 ## Context
 
 Cultuvilla currently uses the Firebase **JS Web SDK** (`firebase` ^11.x) across `packages/shared` and `apps/mobile`. This was a deliberate choice so the same shared services run on:

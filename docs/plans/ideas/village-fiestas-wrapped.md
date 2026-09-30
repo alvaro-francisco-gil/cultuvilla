@@ -1,5 +1,7 @@
 # Village fiestas windows + post-fiestas Wrapped
 
+**Priority:** medium
+
 ## Goal
 
 Let a village declare **when its fiestas are** (more than one block per year), and use those windows to generate a shareable post-fiestas **Wrapped** — a village-level summary of what happened, with a personal cut layered on top. Once a block ends, its Wrapped is computed and offered to the village admins, and publishes itself after a grace period if they don't act.

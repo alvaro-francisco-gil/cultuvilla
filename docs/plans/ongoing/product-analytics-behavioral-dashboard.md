@@ -1,17 +1,27 @@
 # Product analytics — behavioral dashboard + ops monitoring
 
+**Priority:** high — analytics pings may be sent before consent; rule that out first
+**Gate:** none
+**Next:** explain why every exported GA4 event has `user_pseudo_id = NULL` — check the consent wiring in `packages/shared/src/services/observability/` against a real consented session
+
 Builds directly on the shipped
 [observability foundation](../../decisions/observability-foundation.md).
 
-## Status
+## Done
 
-- **Updated:** 2026-09-11
-- **Stage:** Phase 0 ✅ verified on prod. **Phase 2 is blocked on a data-quality finding** (below), not on infra.
-- **Branch:** n/a — Phase 1 merged; nothing in flight.
-- **Done:** Phase 1 full-engagement instrumentation merged to `develop` (PR #150, merge `295a6d9e`, 2026-07-19). **Google Analytics enabled on all three Firebase projects (dev/beta/prod) on 2026-07-19** — until then no GA4 property existed and no web analytics data was being collected anywhere (the app config carries no `measurementId`; the SDK relies on the runtime dynamic-config fetch, which only resolves once GA is enabled server-side). GA4→BigQuery export linked on `cultuvilla-prod` 2026-07-19 — EU (`eu-west`), Daily + Streaming. **Phase 0 verified 2026-09-11:** dataset `cultuvilla-prod.analytics_546204987` holds ~100 daily tables from `events_20260719` onward, with events every day (13–54/day in the week to 2026-09-10).
-- **Next:** (1) **Explain why every exported event has `user_pseudo_id = NULL`** — see Blockers. (2) Decide whether to add explicit `measurementId` to `firebaseConfigPerEnv`. (3) Then Phase 2.
-- **Blockers:** **The export carries no user identity.** Since 2026-08-01, 100% of events (all `platform = WEB`) have a null `user_pseudo_id`, and `first_visit` = `page_view` = 1,967 — every page view is somebody's "first". That is the signature of GA4 running with `analytics_storage` denied (cookieless pings), so nothing can be tied to a returning visitor: Phase 2's funnels, cohorts and retention are impossible on this data. Either the consent grant never flips `analytics_storage` to granted, or pings are sent before consent. Check the consent wiring in `packages/shared/src/services/observability/` against a real consented session. The native apps send nothing (the known web-first deferral).
-- **Handoff:** read prod BigQuery as `cultuvilla.app@gmail.com` (the default gcloud account; it can `bq query --project_id=cultuvilla-prod`). `matabuena.unida@gmail.com` lost prod access by 2026-08-21, and without access `bq ls` returns an **empty listing, not an error** — never read an empty listing as "no datasets". **Phase 2's Firestore→BigQuery export must use the same region (`eu-west`)** or cross-location joins break. **Open finding:** `measurementId` is absent from `apps/mobile/app.config.ts` `firebaseConfigPerEnv` for all envs — analytics relies on the Firebase JS SDK's runtime dynamic-config fetch (works now that GA is enabled, but worth making explicit). Dev's GA property is under a different Google account (not visible to the prod/beta account).
+Phase 1 full-engagement instrumentation merged to `develop` (PR #150, merge `295a6d9e`, 2026-07-19). **Google Analytics enabled on all three Firebase projects (dev/beta/prod) on 2026-07-19** — until then no GA4 property existed and no web analytics data was being collected anywhere (the app config carries no `measurementId`; the SDK relies on the runtime dynamic-config fetch, which only resolves once GA is enabled server-side). GA4→BigQuery export linked on `cultuvilla-prod` 2026-07-19 — EU (`eu-west`), Daily + Streaming. **Phase 0 verified 2026-09-11:** dataset `cultuvilla-prod.analytics_546204987` holds ~100 daily tables from `events_20260719` onward, with events every day (13–54/day in the week to 2026-09-10).
+
+## Next steps
+
+(1) **Explain why every exported event has `user_pseudo_id = NULL`** — see *Open finding*. (2) Decide whether to add explicit `measurementId` to `firebaseConfigPerEnv`. (3) Then Phase 2.
+
+## Open finding: the export carries no user identity
+
+Phase 2 is blocked on this data-quality finding, not on infra. **The export carries no user identity.** Since 2026-08-01, 100% of events (all `platform = WEB`) have a null `user_pseudo_id`, and `first_visit` = `page_view` = 1,967 — every page view is somebody's "first". That is the signature of GA4 running with `analytics_storage` denied (cookieless pings), so nothing can be tied to a returning visitor: Phase 2's funnels, cohorts and retention are impossible on this data. Either the consent grant never flips `analytics_storage` to granted, or pings are sent before consent. Check the consent wiring in `packages/shared/src/services/observability/` against a real consented session. The native apps send nothing (the known web-first deferral).
+
+## Handoff
+
+Read prod BigQuery as `cultuvilla.app@gmail.com` (the default gcloud account; it can `bq query --project_id=cultuvilla-prod`). `matabuena.unida@gmail.com` lost prod access by 2026-08-21, and without access `bq ls` returns an **empty listing, not an error** — never read an empty listing as "no datasets". **Phase 2's Firestore→BigQuery export must use the same region (`eu-west`)** or cross-location joins break. **Open finding:** `measurementId` is absent from `apps/mobile/app.config.ts` `firebaseConfigPerEnv` for all envs — analytics relies on the Firebase JS SDK's runtime dynamic-config fetch (works now that GA is enabled, but worth making explicit). Dev's GA property is under a different Google account (not visible to the prod/beta account).
 
 ## Rollout status
 
@@ -20,7 +30,7 @@ Builds directly on the shipped
 | Prereq — Google Analytics enabled on Firebase project | ✅ | ✅ | ✅ |
 | Phase 1 — engagement instrumentation (code) | ✅ | ✅ | ✅ |
 | Phase 1 — DebugView smoke verified | ⏳ | — | — |
-| Phase 0 — GA4→BigQuery export enabled | ⏳ | ⬜ | ✅ verified 2026-09-11 — daily tables since 2026-07-19 (⚠️ no `user_pseudo_id`, see Blockers) |
+| Phase 0 — GA4→BigQuery export enabled | ⏳ | ⬜ | ✅ verified 2026-09-11 — daily tables since 2026-07-19 (⚠️ no `user_pseudo_id`, see *Open finding*) |
 | Phase 2 — Firestore→BigQuery export | ⬜ | ⬜ | ⬜ |
 | Phase 2 — Looker Studio dashboard | ⬜ | ⬜ | ⬜ |
 | Phase 3 — log-based metrics + Cloud Monitoring dashboard | ⬜ | ⬜ | ⬜ |

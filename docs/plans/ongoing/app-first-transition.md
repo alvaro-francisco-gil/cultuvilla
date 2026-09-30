@@ -1,5 +1,9 @@
 # App-first transition — web as the anonymous read surface
 
+**Priority:** medium
+**Gate:** none
+**Next:** re-run the `curl` checks against `cultuvilla-beta.web.app`, then `cultuvilla.es` — both promotions have merged since this plan was written
+
 **Goal:** move Cultuvilla toward the app as the primary product *without taking
 anything away from the web*: the web becomes an excellent anonymous read surface
 (share links + Google), and the app earns the install by being better — push
@@ -10,32 +14,34 @@ The principle is settled and lives in
 (AGENTS.md invariant 6). This plan tracks the work that follows from it until it
 is verified in production.
 
-## Status
+## Done
 
-- **Updated:** 2026-09-11
-- **Stage:** Phase 1 (SEO) — **shipped and verified on dev**. Next move is the promotion to beta, then prod.
-- **Branch:** n/a — #329, #336 and #338 all merged to `develop`.
-- **Done:**
-  - Phase 0: parity rule dropped, decision recorded — `89c4d6f1`.
-  - Phase 1 code (#329, `85e34d62`): server-rendered share-link content, JSON-LD, canonical, `noindex` for private events and `/join`, live `/sitemap.xml`.
-  - Phase 1 fixes (#336, `f3de0061`): static per-env `robots.txt` (only prod indexable); the document head moved to `apps/mobile/public/index.html` with `+html.tsx` deleted; one canonical host per project (`webOriginForProject`, which also fixed prod emails linking to `cultuvilla-prod.web.app`); the content block turned into an overlay; a root-layout failsafe to release it. `check-web-export` now gates the document and the env's robots.
-  - Phase 1 regression fix (#338, `8a115ad1`): `ogRenderer` drops HTML comments before rewriting the head.
-  - **Verified on dev 2026-09-11** — every `curl` check below passes on `villa-events.web.app`.
-- **Next:**
-  1. **Promote `develop → beta`.** Nothing else is pending on dev. Read the **Playwright web E2E** run closely: it only runs on PRs to `beta`/`main`, so this is its first pass over the server-rendered first paint.
-  2. Re-run the `curl` checks against `cultuvilla-beta.web.app` (expect `Disallow: /`).
-  3. Promote `beta → main`, re-run the checks on `cultuvilla.es`, then the prod-only items (Search Console, Rich Results).
-  4. The manual mobile-web and WhatsApp checks — neither has been done on any env yet; both need a phone.
-- **Blockers:**
-  - **Search Console needs Alvaro** — property verification for `cultuvilla.es` and the sitemap submission are console actions under the domain owner's account.
-  - Phase 3 is gated on **Android reaching Play production** (submitted 2026-09-08, in review) — tracked in [store-release.md](store-release.md), not here.
-- **Handoff:**
-  - **`+html.tsx` does nothing in this app.** `web.output` is `'single'`, and Expo only uses that file for `static`/`server` output; the head lives in `apps/mobile/public/index.html`. That file swallowed the July `lang="es"` fix and the 4 Sep iOS App Store tag without a single failing check. `check-web-export` now asserts both in the built output, and `webDocument.test.ts` pins the template.
-  - **Expo fills the title placeholder with `String.replace` — first occurrence only.** Never name it above `<title>`, comments included, or the literal placeholder becomes the page title. Pinned by a test.
-  - **A Cloud Function can never serve `/robots.txt` or `/favicon.ico`.** The Functions Framework answers both itself with an empty 404 before any handler runs, so a Hosting rewrite to a function silently 404s while the function answers fine on its own URL (path `/`). That is why robots is a static per-env file.
-  - **Test the renderer against the real template, not a fixture.** `stripExistingMeta`'s regexes cannot tell markup from prose: a comment merely *mentioning* `<title>` gave the title regex a start point and deleted `<html lang>`, charset and the viewport meta on every share page. Every hand-written-shell test passed. `functions/src/__tests__/og/template.test.ts` now renders `apps/mobile/public/index.html` itself — keep new renderer assertions there.
-  - **The sitemap uses no composite index, on purpose** — single-field order plus a limit, filtered in memory. Keep it that way: an index would put `firestore.indexes.json` (a hard-stop path) into every sitemap change.
-  - **Verifying a deploy:** `curl` the checks below with a cache-busting query (`?cb=$RANDOM`) — Hosting caches a 404 for 10 minutes, which reads exactly like a broken rewrite.
+- Phase 0: parity rule dropped, decision recorded — `89c4d6f1`.
+- Phase 1 code (#329, `85e34d62`): server-rendered share-link content, JSON-LD, canonical, `noindex` for private events and `/join`, live `/sitemap.xml`.
+- Phase 1 fixes (#336, `f3de0061`): static per-env `robots.txt` (only prod indexable); the document head moved to `apps/mobile/public/index.html` with `+html.tsx` deleted; one canonical host per project (`webOriginForProject`, which also fixed prod emails linking to `cultuvilla-prod.web.app`); the content block turned into an overlay; a root-layout failsafe to release it. `check-web-export` now gates the document and the env's robots.
+- Phase 1 regression fix (#338, `8a115ad1`): `ogRenderer` drops HTML comments before rewriting the head.
+- **Verified on dev 2026-09-11** — every `curl` check below passes on `villa-events.web.app`.
+
+## Next steps
+
+1. **Promote `develop → beta`.** Nothing else is pending on dev. Read the **Playwright web E2E** run closely: it only runs on PRs to `beta`/`main`, so this is its first pass over the server-rendered first paint.
+2. Re-run the `curl` checks against `cultuvilla-beta.web.app` (expect `Disallow: /`).
+3. Promote `beta → main`, re-run the checks on `cultuvilla.es`, then the prod-only items (Search Console, Rich Results).
+4. The manual mobile-web and WhatsApp checks — neither has been done on any env yet; both need a phone.
+
+## Dependencies
+
+- **Search Console** — property verification for `cultuvilla.es` and the sitemap submission are console actions under the domain owner's account.
+- Phase 3 is gated on **Android reaching Play production** (submitted 2026-09-08, in review) — tracked in [store-release.md](store-release.md), not here.
+
+## Handoff
+
+- **`+html.tsx` does nothing in this app.** `web.output` is `'single'`, and Expo only uses that file for `static`/`server` output; the head lives in `apps/mobile/public/index.html`. That file swallowed the July `lang="es"` fix and the 4 Sep iOS App Store tag without a single failing check. `check-web-export` now asserts both in the built output, and `webDocument.test.ts` pins the template.
+- **Expo fills the title placeholder with `String.replace` — first occurrence only.** Never name it above `<title>`, comments included, or the literal placeholder becomes the page title. Pinned by a test.
+- **A Cloud Function can never serve `/robots.txt` or `/favicon.ico`.** The Functions Framework answers both itself with an empty 404 before any handler runs, so a Hosting rewrite to a function silently 404s while the function answers fine on its own URL (path `/`). That is why robots is a static per-env file.
+- **Test the renderer against the real template, not a fixture.** `stripExistingMeta`'s regexes cannot tell markup from prose: a comment merely *mentioning* `<title>` gave the title regex a start point and deleted `<html lang>`, charset and the viewport meta on every share page. Every hand-written-shell test passed. `functions/src/__tests__/og/template.test.ts` now renders `apps/mobile/public/index.html` itself — keep new renderer assertions there.
+- **The sitemap uses no composite index, on purpose** — single-field order plus a limit, filtered in memory. Keep it that way: an index would put `firestore.indexes.json` (a hard-stop path) into every sitemap change.
+- **Verifying a deploy:** `curl` the checks below with a cache-busting query (`?cb=$RANDOM`) — Hosting caches a 404 for 10 minutes, which reads exactly like a broken rewrite.
 
 ## Rollout status
 

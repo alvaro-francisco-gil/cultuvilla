@@ -1,5 +1,7 @@
 # Village first steps — from "started" to "alive"
 
+**Priority:** medium
+
 **Goal:** make the path for a new pueblo *find it → "Es mi pueblo" → post one
 thing → share the link*, with the Embajador as something that emerges from
 activity rather than a prompt in the way of it.
