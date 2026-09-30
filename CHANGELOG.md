@@ -4,6 +4,11 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+- Tighten `users` read access to the account owner (and app admins). Names and
+  active villages of other accounts are now read from a new `publicProfiles/{uid}`
+  projection, kept in sync by the `syncPublicProfile` trigger. **Migration:**
+  `publicProfiles` is seeded by `scripts/backfill-public-profiles.mjs`
+  (pre-deploy, autoApply on every env).
 - **Embajadores de Cultuvilla.** Quien cuida de un pueblo ya no es su
   «administrador»: es su **Embajador** o **Embajadora de Cultuvilla** (según el
   sexo de su perfil). Hay uno por pueblo y es un título público: aparece con nombre

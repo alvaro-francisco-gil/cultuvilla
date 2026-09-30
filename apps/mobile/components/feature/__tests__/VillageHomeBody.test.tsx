@@ -53,9 +53,9 @@ jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
   deletePlace: jest.fn(),
   deleteBarrio: jest.fn(),
 }));
-const mockGetUserProfile = jest.fn();
+const mockGetPublicProfile = jest.fn();
 jest.mock('@cultuvilla/shared/services/userService', () => ({
-  getUserProfile: (...a: unknown[]) => mockGetUserProfile(...a),
+  getPublicProfile: (...a: unknown[]) => mockGetPublicProfile(...a),
 }));
 jest.mock('@cultuvilla/shared/services/personService', () => ({
   getPersonByUserId: jest.fn().mockResolvedValue(null),
@@ -131,8 +131,8 @@ beforeEach(() => {
   mockIsAppAdmin = false;
   mockWelcomeSeen = true;
   mockMarkWelcomeSeen.mockClear();
-  mockGetUserProfile.mockReset();
-  mockGetUserProfile.mockResolvedValue({ id: 'amb', displayName: 'Ana Pérez' });
+  mockGetPublicProfile.mockReset();
+  mockGetPublicProfile.mockResolvedValue({ id: 'amb', displayName: 'Ana Pérez' });
 });
 
 const withAmbassador = (sex: 'male' | 'female' | null): VillageHomeState => ({
@@ -156,7 +156,7 @@ describe('VillageHomeBody — Embajador', () => {
     expect(await findByText('Ana Pérez')).toBeTruthy();
     expect(getByText('Embajadora del pueblo')).toBeTruthy();
     expect(getByText('Embajadora')).toBeTruthy();
-    expect(mockGetUserProfile).toHaveBeenCalledWith('amb');
+    expect(mockGetPublicProfile).toHaveBeenCalledWith('amb');
   });
 
   it('welcomes a new Embajador once, then remembers it', async () => {

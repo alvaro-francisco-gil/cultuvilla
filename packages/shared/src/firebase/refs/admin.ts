@@ -14,6 +14,7 @@ import { orgMemberConverterAdmin } from '../converters/orgMemberConverter.admin'
 import { organizerRequestConverterAdmin } from '../converters/organizerRequestConverter.admin';
 import { personConverterAdmin } from '../converters/personConverter.admin';
 import { userConverterAdmin } from '../converters/userConverter.admin';
+import { publicProfileConverterAdmin } from '../converters/publicProfileConverter.admin';
 import { notificationConverterAdmin } from '../converters/notificationConverter.admin';
 import { deviceTokenConverterAdmin } from '../converters/deviceTokenConverter.admin';
 import { notificationPrefsConverterAdmin } from '../converters/notificationPrefsConverter.admin';
@@ -144,6 +145,12 @@ export const usersCollection = (db: Firestore) =>
 
 export const userDoc = (db: Firestore, userId: string) =>
   db.collection('users').doc(userId).withConverter(userConverterAdmin);
+
+export const publicProfilesCollection = (db: Firestore) =>
+  db.collection('publicProfiles').withConverter(publicProfileConverterAdmin);
+
+export const publicProfileDoc = (db: Firestore, userId: string) =>
+  db.collection('publicProfiles').doc(userId).withConverter(publicProfileConverterAdmin);
 
 export const userNotificationsCollection = (db: Firestore, userId: string) =>
   db.collection('users').doc(userId).collection('notifications').withConverter(notificationConverterAdmin);

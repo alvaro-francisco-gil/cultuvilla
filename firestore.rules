@@ -943,8 +943,10 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // The account doc holds private contact fields (email, telephone). What
+    // other people may see of an account is projected to publicProfiles/{uid}.
     match /users/{userId} {
-      allow read: if true;
+      allow read: if isOwner(userId) || isAppAdmin();
       // displayName is denormalized from persons/{id} by the
       // syncPersonDenormalization Cloud Function — clients must not touch it.
       allow create: if isOwner(userId)
@@ -1002,6 +1004,14 @@ service cloud.firestore {
           && isValidBlockedUserCreate(request.resource.data, blockedUserId);
         allow update: if false;
       }
+    }
+
+    // Public projection of users/{uid}: only what other people may see of an
+    // account. Function-owned (syncPublicProfile). Single-doc reads only — a
+    // list would hand anyone a directory of every account.
+    match /publicProfiles/{userId} {
+      allow get: if true;
+      allow list, write: if false;
     }
 
     // municipalities: reference data + optional community overlay.

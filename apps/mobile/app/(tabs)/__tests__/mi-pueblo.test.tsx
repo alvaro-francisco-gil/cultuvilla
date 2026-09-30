@@ -52,6 +52,7 @@ jest.mock('@cultuvilla/shared/services/personService', () => ({
 }));
 jest.mock('@cultuvilla/shared/services/userService', () => ({
   getUserProfile: jest.fn().mockResolvedValue(null),
+  getPublicProfile: jest.fn().mockResolvedValue(null),
 }));
 jest.mock('../../../lib/village/ambassadorWelcome', () => ({
   hasSeenAmbassadorWelcome: jest.fn().mockResolvedValue(true),
