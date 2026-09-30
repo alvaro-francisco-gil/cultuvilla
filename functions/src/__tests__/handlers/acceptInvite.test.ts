@@ -40,11 +40,15 @@ interface AcceptResult {
   profileCreated: boolean;
 }
 
-async function callAccept(opts: { uid: string; data: unknown }): Promise<AcceptResult> {
+async function callAccept(opts: {
+  uid: string;
+  data: unknown;
+  tokenEmail?: string;
+}): Promise<AcceptResult> {
   const wrapped = ft.wrap(acceptInvite as unknown as Parameters<typeof ft.wrap>[0]);
   return (await wrapped({
     data: opts.data,
-    auth: { uid: opts.uid, token: {} },
+    auth: { uid: opts.uid, token: opts.tokenEmail ? { email: opts.tokenEmail } : {} },
   } as unknown as Parameters<typeof wrapped>[0])) as unknown as AcceptResult;
 }
 
@@ -66,6 +70,7 @@ describe('acceptInvite — residence link projection', () => {
   it('gives a NEW user a whole-village residence link on their created person', async () => {
     const result = await callAccept({
       uid: NEW_USER,
+      tokenEmail: 'nuevo@example.com',
       data: {
         municipalityId: MUNI,
         tokenId: TOKEN,
@@ -166,5 +171,33 @@ describe('acceptInvite — residence link projection', () => {
       'municipalityLinks',
     ) as unknown[];
     expect(links).toEqual([{ municipalityId: MUNI, barrioId: null }]);
+  });
+});
+
+describe('acceptInvite — account email comes from the verified auth token', () => {
+  const newProfile = (email: string) => ({
+    municipalityId: MUNI,
+    tokenId: TOKEN,
+    profile: { displayName: 'Nuevo Vecino', email, birthday: '1990-05-01' },
+  });
+
+  it('stores the token email, ignoring a different client-supplied one', async () => {
+    await callAccept({
+      uid: NEW_USER,
+      tokenEmail: 'nuevo@example.com',
+      data: newProfile('otra-persona@example.com'),
+    });
+
+    const user = await admin.firestore().doc(`users/${NEW_USER}`).get();
+    expect(user.get('email')).toBe('nuevo@example.com');
+  });
+
+  it('refuses to create an account doc when the token carries no email', async () => {
+    await expect(
+      callAccept({ uid: NEW_USER, data: newProfile('nuevo@example.com') }),
+    ).rejects.toMatchObject({ code: 'failed-precondition' });
+
+    const user = await admin.firestore().doc(`users/${NEW_USER}`).get();
+    expect(user.exists).toBe(false);
   });
 });

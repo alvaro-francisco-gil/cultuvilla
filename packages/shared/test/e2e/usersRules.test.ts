@@ -93,8 +93,26 @@ describe('firestore.rules — /users/{userId}', () => {
 
   describe('create (no pre-existing doc)', () => {
     it('owner can create their own profile', async () => {
-      const ownerDb = asUser(getEnv(), OWNER);
+      const ownerDb = asUserWithEmail(getEnv(), OWNER, OWNER_EMAIL);
       await assertSucceeds(
+        setDoc(doc(ownerDb, `users/${OWNER}`), createUserProfilePayload(), { merge: true }),
+      );
+    });
+
+    it('rejects a create whose email is not the verified auth email', async () => {
+      const ownerDb = asUserWithEmail(getEnv(), OWNER, OWNER_EMAIL);
+      await assertFails(
+        setDoc(
+          doc(ownerDb, `users/${OWNER}`),
+          { ...createUserProfilePayload(), email: 'someone-else@example.com' },
+          { merge: true },
+        ),
+      );
+    });
+
+    it('rejects a create when the auth token carries no email', async () => {
+      const ownerDb = asUser(getEnv(), OWNER);
+      await assertFails(
         setDoc(doc(ownerDb, `users/${OWNER}`), createUserProfilePayload(), { merge: true }),
       );
     });

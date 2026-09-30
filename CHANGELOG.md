@@ -9,6 +9,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   projection, kept in sync by the `syncPublicProfile` trigger. **Migration:**
   `publicProfiles` is seeded by `scripts/backfill-public-profiles.mjs`
   (pre-deploy, autoApply on every env).
+- Bind `users.email` to the verified auth email on account creation (client
+  writes and the `acceptInvite` callable), and limit listing a village's invite
+  tokens to its admins.
 - **Embajadores de Cultuvilla.** Quien cuida de un pueblo ya no es su
   «administrador»: es su **Embajador** o **Embajadora de Cultuvilla** (según el
   sexo de su perfil). Hay uno por pueblo y es un título público: aparece con nombre

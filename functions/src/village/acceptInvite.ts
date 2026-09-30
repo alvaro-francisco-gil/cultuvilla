@@ -15,7 +15,6 @@ const db = getFirestore();
 
 interface InviteProfileInput {
   displayName: string;
-  email: string;
   birthday: string; // ISO yyyy-mm-dd
   photoURL?: string | null;
 }
@@ -90,8 +89,14 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
             'Falta el perfil del usuario.',
           );
         }
-        if (!profile.displayName.trim() || !profile.email || !profile.birthday) {
+        if (!profile.displayName.trim() || !profile.birthday) {
           throw new HttpsError('invalid-argument', 'Perfil incompleto.');
+        }
+        // The account email is the verified one on the auth token, never the
+        // client's: the rules bind users.email to it on every client write.
+        const email = auth.token.email;
+        if (!email) {
+          throw new HttpsError('failed-precondition', 'Tu cuenta no tiene un email verificado.');
         }
         const birthdayDate = new Date(profile.birthday);
         if (Number.isNaN(birthdayDate.getTime())) {
@@ -121,7 +126,7 @@ export const acceptInvite = onCall<AcceptInviteData, Promise<AcceptInviteResult>
           userRef,
           buildUserData({
             displayName: profile.displayName.trim(),
-            email: profile.email,
+            email,
             telephone: null,
             activeMunicipalityId: municipalityId,
             personId: personRef.id,
