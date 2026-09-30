@@ -1156,15 +1156,10 @@ service cloud.firestore {
         allow delete: if isVillageAdmin(municipalityId) || isAppAdmin() || isOwner(userId);
       }
 
-      // The token id is the invite secret: holding it lets you fetch that one
-      // token, but enumerating a village's tokens is for its admins.
+      // Village invite tokens were retired with their admin screen; no client
+      // path reads or writes them. Explicit so a broader rule can't reopen it.
       match /inviteTokens/{tokenId} {
-        allow get: if true;
-        allow list: if isVillageAdmin(municipalityId) || isAppAdmin();
-        allow create: if isVillageAdmin(municipalityId) || isAppAdmin();
-        // acceptInvite Cloud Function handles redemption via admin SDK.
-        allow update: if false;
-        allow delete: if isVillageAdmin(municipalityId) || isAppAdmin();
+        allow read, write: if false;
       }
 
     }
