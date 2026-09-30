@@ -13,6 +13,7 @@ import {
   getVillageMembers,
 } from '@cultuvilla/shared/services/villageMemberService';
 import { getMunicipalityPeople } from '@cultuvilla/shared/services/municipalityPersonService';
+import { getMyCensoAnswers } from '@cultuvilla/shared/services/membershipProfileService';
 import { getOrganizationsByMunicipality } from '@cultuvilla/shared/services/organizationService';
 import { getMyOrganizerRequests } from '@cultuvilla/shared/services/organizerRequestService';
 import {
@@ -231,16 +232,23 @@ export function useVillageHome(municipalityId: string | null) {
             getVillageMembers(municipalityId),
           ),
         ]);
+        const isMember = uid != null && members.some((m) => m.userId === uid);
+        // Answers are private (censoAnswers/), so only a member's own are fetched.
+        const myCensoAnswers =
+          uid != null && isMember
+            ? await withFirestoreErrorLog('villageHome:getMyCensoAnswers', () =>
+                getMyCensoAnswers(municipalityId, uid),
+              ).catch(() => ({}))
+            : {};
         commit((s) => ({
           ...s,
           villageAdmin: isAdmin,
-          isMember: uid != null && members.some((m) => m.userId === uid),
+          isMember,
           peopleCount,
           pendingOrganizerRequest: myReqs.some(
             (r) => r.municipalityId === municipalityId && r.status === 'pending',
           ),
-          myCensoAnswers:
-            (uid != null ? members.find((m) => m.userId === uid)?.profileAnswers : undefined) ?? {},
+          myCensoAnswers,
         }));
       } catch {
         // Chrome degrades silently to the non-member view; the error is already

@@ -136,11 +136,12 @@ requiere aprobación del administrador. Los campos de residencia del censo son
 
 - El administrador de cada pueblo define un **censo** — un formulario de perfil
   que captura información específica del pueblo (barrio, tipo de residencia,
-  hogar, …). El esquema es **de lectura pública**; las respuestas solo son
-  visibles para co-miembros autenticados.
+  hogar, …). El esquema es **de lectura pública**; las respuestas solo las ven
+  el propio vecino, el equipo del pueblo y los administradores de la app.
 - **Solo para miembros.** El censo es el padrón del pueblo sobre *sus propios
-  miembros*. Las respuestas de un miembro viven en su documento de membresía
-  (`profileAnswers` + `profileCompletedAt`). **Los visitantes no tienen censo.**
+  miembros*. Las respuestas de un miembro viven en `censoAnswers/{pueblo}_{uid}`;
+  su documento de membresía solo guarda si lo ha completado
+  (`profileCompletedAt`). **Los visitantes no tienen censo.**
 - **Relleno diferido, exigido en la primera inscripción.** Unirse nunca solicita
   el censo. A un miembro que no haya completado los campos obligatorios se le
   **fuerza a rellenarlo la primera vez que se inscribe** a un evento de ese
