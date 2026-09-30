@@ -8,6 +8,8 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   `inviteTokenService` and the invite-token model. Nothing in the app has used
   them since the admin screen was retired in v0.10.0; the rules now deny the
   collection outright.
+- Sign-in emails (code and link) are also rate-limited per caller IP, across
+  addresses, on top of the existing per-address limit.
 - Tighten `users` read access to the account owner (and app admins). Names and
   active villages of other accounts are now read from a new `publicProfiles/{uid}`
   projection, kept in sync by the `syncPublicProfile` trigger. **Migration:**
