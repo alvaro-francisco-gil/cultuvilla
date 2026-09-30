@@ -27,6 +27,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   `scripts/backfill-org-join-policy.mjs` (pre-deploy, autoApply en beta/prod;
   en dev hay que lanzarlo al fusionar): los grupos con eventos privados pasan a
   `approval`, el resto a `open`.
+- Image uploads are checked against the same authority as the content they
+  illustrate (village membership, org or village admin, news author), and a
+  private persona's photo is readable only by whoever manages it.
 - **Embajadores de Cultuvilla.** Quien cuida de un pueblo ya no es su
   «administrador»: es su **Embajador** o **Embajadora de Cultuvilla** (según el
   sexo de su perfil). Hay uno por pueblo y es un título público: aparece con nombre
