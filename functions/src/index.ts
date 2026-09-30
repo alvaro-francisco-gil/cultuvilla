@@ -22,6 +22,7 @@ export { changeVillageMemberRole } from './village/changeVillageMemberRole';
 export { transferVillageAmbassador } from './village/transferVillageAmbassador';
 export { syncVillageDenormalization } from './village/syncVillageDenormalization';
 export { syncMemberBarrioToResidence } from './village/syncMemberBarrioToResidence';
+export { purgeMemberCensoAnswers } from './village/purgeMemberCensoAnswers';
 export { syncBarrioResidentCount } from './village/syncBarrioResidentCount';
 export { syncPlaceBurialCount } from './village/syncPlaceBurialCount';
 export { syncMunicipalityPeople } from './village/syncMunicipalityPeople';

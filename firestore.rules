@@ -269,6 +269,15 @@ service cloud.firestore {
       return d.userId == null || d.isPublic == true;
     }
 
+    function isValidCensoAnswersWrite(d) {
+      return d.keys().hasOnly(['municipalityId', 'userId', 'profileAnswers', 'updatedAt'])
+          && d.keys().hasAll(['municipalityId', 'userId', 'profileAnswers', 'updatedAt'])
+          && isString(d.municipalityId)
+          && isString(d.userId)
+          && isMap(d.profileAnswers)
+          && isTimestamp(d.updatedAt);
+    }
+
     function isValidOrgMemberCreate(d) {
       return d.keys().hasOnly(['userId', 'joinedAt', 'role'])
           && d.keys().hasAll(['userId', 'joinedAt', 'role'])
@@ -1100,7 +1109,10 @@ service cloud.firestore {
         // approval) go through the changeVillageMemberRole callable / admin SDK,
         // which audits the change. So the create paths are: a village/app admin
         // adding a plain member, or a self-service join (owner adds themselves).
+        // Census answers live in censoAnswers/ (owner + admins only); the member
+        // doc is world-readable, so its legacy `profileAnswers` stays empty.
         allow create: if request.resource.data.role == 'user'
+                       && request.resource.data.get('profileAnswers', {}) == {}
                        && (
                             isVillageAdmin(municipalityId)
                             || isAppAdmin()
@@ -1115,11 +1127,11 @@ service cloud.firestore {
         // only their profile.
         allow update: if (
                          (isVillageAdmin(municipalityId) || isAppAdmin())
-                         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])
+                         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'profileAnswers'])
                        )
                        || (isOwner(userId)
                            && request.resource.data.diff(resource.data).affectedKeys()
-                              .hasOnly(['profileAnswers', 'profileCompletedAt']));
+                              .hasOnly(['profileCompletedAt']));
         allow delete: if isVillageAdmin(municipalityId) || isAppAdmin() || isOwner(userId);
       }
 
@@ -1134,6 +1146,30 @@ service cloud.firestore {
         allow delete: if isVillageAdmin(municipalityId) || isAppAdmin();
       }
 
+    }
+
+    // A villager's census answers (residency, household, minors, origin…).
+    // Private: the villager, the village's admins and app admins. The doc id
+    // is {municipalityId}_{userId}, so the owner's own get works before the
+    // doc exists. A village-admin list must filter by municipalityId.
+    match /censoAnswers/{docId} {
+      allow get: if resource == null
+                   ? isAuthenticated() && docId.matches('.*_' + request.auth.uid)
+                   : isOwner(resource.data.userId)
+                     || isVillageAdmin(resource.data.municipalityId)
+                     || isAppAdmin();
+      allow list: if isVillageAdmin(resource.data.municipalityId) || isAppAdmin();
+      allow create, update: if isOwner(request.resource.data.userId)
+                              && docId == request.resource.data.municipalityId + '_' + request.auth.uid
+                              && isVillageMember(request.resource.data.municipalityId)
+                              && isValidCensoAnswersWrite(request.resource.data)
+                              && (resource == null || (
+                                   resource.data.userId == request.resource.data.userId
+                                   && resource.data.municipalityId == request.resource.data.municipalityId
+                                 ));
+      allow delete: if isOwner(resource.data.userId)
+                    || isVillageAdmin(resource.data.municipalityId)
+                    || isAppAdmin();
     }
 
     match /organizerRequests/{requestId} {

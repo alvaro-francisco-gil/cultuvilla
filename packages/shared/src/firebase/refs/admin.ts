@@ -8,6 +8,8 @@ import { municipalityConverterAdmin } from '../converters/municipalityConverter.
 import { barrioConverterAdmin } from '../converters/barrioConverter.admin';
 import { placeConverterAdmin } from '../converters/placeConverter.admin';
 import { villageMemberConverterAdmin } from '../converters/villageMemberConverter.admin';
+import { censoAnswersConverterAdmin } from '../converters/censoAnswersConverter.admin';
+import { censoAnswersId } from '../../models/municipality/CensoAnswersDataModel';
 import { inviteTokenConverterAdmin } from '../converters/inviteTokenConverter.admin';
 import { organizationConverterAdmin } from '../converters/organizationConverter.admin';
 import { orgMemberConverterAdmin } from '../converters/orgMemberConverter.admin';
@@ -92,6 +94,12 @@ export const municipalityPlaceDoc = (db: Firestore, municipalityId: string, plac
 
 export const municipalityMembersCollection = (db: Firestore, municipalityId: string) =>
   db.collection('municipalities').doc(municipalityId).collection('members').withConverter(villageMemberConverterAdmin);
+
+export const censoAnswersCollection = (db: Firestore) =>
+  db.collection('censoAnswers').withConverter(censoAnswersConverterAdmin);
+
+export const censoAnswersDoc = (db: Firestore, municipalityId: string, userId: string) =>
+  db.collection('censoAnswers').doc(censoAnswersId(municipalityId, userId)).withConverter(censoAnswersConverterAdmin);
 
 export const municipalityMemberDoc = (db: Firestore, municipalityId: string, memberId: string) =>
   db.collection('municipalities').doc(municipalityId).collection('members').doc(memberId).withConverter(villageMemberConverterAdmin);

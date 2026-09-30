@@ -7,6 +7,8 @@ import {
   getVocabularyDefinitions,
   getVocabularyTerms,
 } from '@cultuvilla/shared/services/vocabularyService';
+import { getMyCensoAnswers } from '@cultuvilla/shared/services/membershipProfileService';
+import { getVillageMembers } from '@cultuvilla/shared/services/villageMemberService';
 import { useVillageHome } from '../useVillageHome';
 
 jest.mock('../auth/useAuth', () => {
@@ -33,6 +35,9 @@ jest.mock('@cultuvilla/shared/services/municipalityService', () => ({
 jest.mock('@cultuvilla/shared/services/villageMemberService', () => ({
   isVillageAdmin: jest.fn(async () => false),
   getVillageMembers: jest.fn(async () => [{ userId: 'u1' }, { userId: 'u2' }]),
+}));
+jest.mock('@cultuvilla/shared/services/membershipProfileService', () => ({
+  getMyCensoAnswers: jest.fn(async () => ({ hijos: true })),
 }));
 jest.mock('@cultuvilla/shared/services/municipalityPersonService', () => ({
   getMunicipalityPeople: jest.fn(async () => [{ personId: 'p1' }, { personId: 'p2' }, { personId: 'p3' }]),
@@ -98,6 +103,25 @@ describe('useVillageHome', () => {
 
     await waitFor(() => expect(result.current.isMember).toBe(true));
     expect(result.current.peopleCount).toBeNull();
+  });
+
+  // Census answers are private (censoAnswers/), never read off member docs.
+  it("reads the member's own censo answers from the private doc", async () => {
+    const { result } = renderHook(() => useVillageHome('m1'));
+
+    await waitFor(() => expect(result.current.myCensoAnswers).toEqual({ hijos: true }));
+    expect(getMyCensoAnswers).toHaveBeenCalledWith('m1', 'u1');
+  });
+
+  it('does not read censo answers for a non-member', async () => {
+    (getVillageMembers as jest.Mock).mockResolvedValueOnce([{ userId: 'u2' }]);
+
+    const { result } = renderHook(() => useVillageHome('m1'));
+
+    await waitFor(() => expect(result.current.sectionStatus.events).toBe('ready'));
+    await waitFor(() => expect(result.current.isMember).toBe(false));
+    expect(getMyCensoAnswers).not.toHaveBeenCalled();
+    expect(result.current.myCensoAnswers).toEqual({});
   });
 
   it('fetches published + completed events and orders upcoming before past', async () => {
