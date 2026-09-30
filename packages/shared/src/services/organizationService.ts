@@ -121,6 +121,7 @@ export async function requestOrganization(
     readCount: 0,
     memberCount: 0,
     membersPublic: input.membersPublic ?? true,
+    joinPolicy: input.joinPolicy ?? 'open',
   };
   await setDoc(newRef, data);
   return newRef.id;

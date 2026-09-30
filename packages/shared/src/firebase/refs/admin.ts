@@ -13,6 +13,7 @@ import { censoAnswersId } from '../../models/municipality/CensoAnswersDataModel'
 import { inviteTokenConverterAdmin } from '../converters/inviteTokenConverter.admin';
 import { organizationConverterAdmin } from '../converters/organizationConverter.admin';
 import { orgMemberConverterAdmin } from '../converters/orgMemberConverter.admin';
+import { orgJoinRequestConverterAdmin } from '../converters/orgJoinRequestConverter.admin';
 import { organizerRequestConverterAdmin } from '../converters/organizerRequestConverter.admin';
 import { personConverterAdmin } from '../converters/personConverter.admin';
 import { userConverterAdmin } from '../converters/userConverter.admin';
@@ -129,6 +130,12 @@ export const organizationMembersCollection = (db: Firestore, organizationId: str
 
 export const organizationMemberDoc = (db: Firestore, organizationId: string, memberId: string) =>
   db.collection('organizations').doc(organizationId).collection('members').doc(memberId).withConverter(orgMemberConverterAdmin);
+
+export const organizationJoinRequestsCollection = (db: Firestore, organizationId: string) =>
+  db.collection('organizations').doc(organizationId).collection('joinRequests').withConverter(orgJoinRequestConverterAdmin);
+
+export const organizationJoinRequestDoc = (db: Firestore, organizationId: string, userId: string) =>
+  db.collection('organizations').doc(organizationId).collection('joinRequests').doc(userId).withConverter(orgJoinRequestConverterAdmin);
 
 // ── Organizer requests ───────────────────────────────────────────────────
 

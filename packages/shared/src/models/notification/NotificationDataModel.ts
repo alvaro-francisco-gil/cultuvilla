@@ -22,6 +22,12 @@ export const NotificationTypeSchema = z.enum([
   'organizer_request_created',
   'organizer_request_approved',
   'organizer_request_rejected',
+  // Joining an org whose joinPolicy is `approval`: `created` goes to its
+  // admins, `approved` / `rejected` to the requester. All carry
+  // entityKind 'organization' + entityId so they open the org.
+  'org_join_request_created',
+  'org_join_request_approved',
+  'org_join_request_rejected',
   'comment_reply',
   // A T-24h nudge for an event the recipient is signed up to. Written by the
   // scheduled `sendEventReminders`, keyed so a re-run cannot send it twice.

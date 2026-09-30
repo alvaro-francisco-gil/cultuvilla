@@ -1,4 +1,10 @@
-import { render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { getOrganization } from '@cultuvilla/shared/services/organizationService';
+import { addOrgMember } from '@cultuvilla/shared/services/orgMemberService';
+import {
+  hasPendingOrgJoinRequest,
+  requestToJoinOrganization,
+} from '@cultuvilla/shared/services/orgJoinRequestService';
 import OrgDetailScreen from '../[entidad]/index';
 
 jest.mock('react-native-safe-area-context', () => ({
@@ -32,6 +38,12 @@ jest.mock('@cultuvilla/shared/services/orgMemberService', () => ({
   getOrgMembers: jest.fn().mockResolvedValue([]),
   getUserOrgIds: jest.fn().mockResolvedValue([]),
 }));
+jest.mock('@cultuvilla/shared/services/orgJoinRequestService', () => ({
+  hasPendingOrgJoinRequest: jest.fn().mockResolvedValue(false),
+  requestToJoinOrganization: jest.fn().mockResolvedValue(undefined),
+  cancelOrgJoinRequest: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('../../../../components/feature/OrgJoinRequests', () => ({ OrgJoinRequests: () => null }));
 jest.mock('@cultuvilla/shared/services/deepLinkService', () => ({
   getOrgViewLink: () => ({
     url: 'https://x/villa/entidad/pena-la-union_o1',
@@ -49,5 +61,41 @@ describe('OrgDetailScreen', () => {
     await waitFor(() => getByText('Peña La Unión'));
     getByTestId('join-org-fab');
     getByText('organization.joinPeña');
+  });
+});
+
+describe('OrgDetailScreen — join policy', () => {
+  const approvalOrg = {
+    id: 'o1',
+    name: 'Peña La Unión',
+    type: 'peña',
+    images: [],
+    description: 'd',
+    municipalityId: 'm1',
+    villageSlug: 'villa',
+    joinPolicy: 'approval',
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (hasPendingOrgJoinRequest as jest.Mock).mockResolvedValue(false);
+  });
+
+  it('asks to join an approval org instead of joining it', async () => {
+    (getOrganization as jest.Mock).mockResolvedValue(approvalOrg);
+    const { getByText, getByTestId } = render(<OrgDetailScreen />);
+    await waitFor(() => getByText('organization.requestToJoin'));
+
+    fireEvent.press(getByTestId('join-org-fab'));
+
+    await waitFor(() => expect(requestToJoinOrganization).toHaveBeenCalledWith('o1', 'm1', 'u2'));
+    expect(addOrgMember).not.toHaveBeenCalled();
+  });
+
+  it('shows a request already sent as pending', async () => {
+    (getOrganization as jest.Mock).mockResolvedValue(approvalOrg);
+    (hasPendingOrgJoinRequest as jest.Mock).mockResolvedValue(true);
+    const { getByText } = render(<OrgDetailScreen />);
+    await waitFor(() => getByText('organization.requestPending'));
   });
 });

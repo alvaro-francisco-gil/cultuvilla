@@ -31,6 +31,8 @@ export { syncMunicipalityPeople } from './village/syncMunicipalityPeople';
 export { requestAyuntamiento } from './organizations/requestAyuntamiento';
 export { approveOrganization } from './organizations/approveOrganization';
 export { changeOrgMemberRole } from './organizations/changeOrgMemberRole';
+export { respondToOrgJoinRequest } from './organizations/respondToOrgJoinRequest';
+export { onOrgJoinRequestCreated } from './organizations/onOrgJoinRequestCreated';
 export { syncOrgMemberCount } from './organizations/syncOrgMemberCount';
 export { onOrganizationUpdated } from './organizations/notificationTriggers';
 

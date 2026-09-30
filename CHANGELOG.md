@@ -18,6 +18,15 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   **Migration:** existing answers are moved by
   `scripts/backfill-censo-answers-private.mjs` (pre-deploy, autoApply on
   beta/prod; run it on dev at merge).
+- **Grupos con admisión.** Un grupo puede exigir aprobación para unirse: quien
+  quiera entrar lo solicita y un administrador lo acepta o rechaza desde la
+  página del grupo o el Buzón, con aviso a ambos. Solo los grupos con admisión
+  pueden tener eventos privados; si un grupo vuelve a ser abierto, sus eventos
+  privados dejan de verse hasta que vuelva a exigir aprobación. **Migration:**
+  `organizations.joinPolicy` se rellena con
+  `scripts/backfill-org-join-policy.mjs` (pre-deploy, autoApply en beta/prod;
+  en dev hay que lanzarlo al fusionar): los grupos con eventos privados pasan a
+  `approval`, el resto a `open`.
 - **Embajadores de Cultuvilla.** Quien cuida de un pueblo ya no es su
   «administrador»: es su **Embajador** o **Embajadora de Cultuvilla** (según el
   sexo de su perfil). Hay uno por pueblo y es un título público: aparece con nombre

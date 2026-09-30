@@ -51,6 +51,7 @@ import {
   municipalityInviteTokensCollection,
   organizationsCollection,
   organizationMembersCollection,
+  organizationJoinRequestsCollection,
   festivalPostersCollection,
   organizerRequestsCollection,
   personsCollection,
@@ -135,7 +136,10 @@ const REGISTRY = [
   {
     name: 'organizations',
     coll: (db) => organizationsCollection(db),
-    subs: [{ name: 'members', coll: (db, id) => organizationMembersCollection(db, id) }],
+    subs: [
+      { name: 'members', coll: (db, id) => organizationMembersCollection(db, id) },
+      { name: 'joinRequests', coll: (db, id) => organizationJoinRequestsCollection(db, id) },
+    ],
   },
   { name: 'festivalPosters', coll: (db) => festivalPostersCollection(db) },
   { name: 'organizerRequests', coll: (db) => organizerRequestsCollection(db) },

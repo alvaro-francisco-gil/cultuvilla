@@ -68,23 +68,24 @@ This is the result of the migration recorded in [docs/decisions/open-feed-archit
 
 ### Request types (solicitudes)
 
-Two user-initiated requests exist. The Solicitudes screen (mobile) is open to
-everyone and has two tabs: **Recibidas** (inbox — items you can approve, scoped to
-what you administer) and **Enviadas** (outbox — requests you've sent). Non-admins
-simply see an empty inbox. Requests are created from in-context screens; outcomes
-arrive as notifications.
+Three user-initiated requests exist. They surface in the **Buzón** (mobile):
+*Necesita tu acción* lists what you can resolve, scoped to what you administer,
+and the activity feed shows the requests you've sent while they're pending.
+Requests are created from in-context screens; outcomes arrive as notifications.
 
 | Request | Collection | Created by | Approved by |
 |---|---|---|---|
 | Organizer (be the pueblo's **Embajador**) | `organizerRequests/` | any user | super admin (`respondToOrganizerRequest` callable) |
 | Organization (create peña/asociación/ayuntamiento) | `organizations/` (status `pending`) | village member | village admin (own village) or super admin (`approveOrganization` callable; `rejectOrganization` stays a client write) |
+| Join an `approval` org | `organizations/{orgId}/joinRequests/{uid}` | any user | org admin, admin of its village, or super admin (`respondToOrgJoinRequest` callable) |
 
-**Joining a peña/asociación is not a request — it is instant self-service.** The
-org detail FAB does a direct client write of `organizations/{orgId}/members/{uid}`
-(role `member`, function-owned), gated by Firestore rules: a user may add only
-themselves (`isOwner`), admins may add anyone. This mirrors village join
-(`joinVillage`) — both memberships are direct, approval-free client writes. (The
-legacy `organizationJoinRequests` approve-flow is superseded and slated for removal.)
+**Joining a peña/asociación depends on its `joinPolicy`.** An `open` org (the
+default) is instant self-service: the org detail FAB does a direct client write of
+`organizations/{orgId}/members/{uid}` (role `member`, function-owned), and a user
+may add only themselves, mirroring village join. An `approval` org takes a join
+request instead (table above). **Private events require an `approval` org**:
+anyone can walk into an open one, so its membership vets nobody. Read
+[docs/decisions/org-join-policy.md](docs/decisions/org-join-policy.md).
 
 **Membership roles & the audit log.** Villages and orgs are the same abstraction —
 a membership group with members that carry a `role` and one *founder*. Authority is
