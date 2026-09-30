@@ -78,7 +78,7 @@ describe('sendAuthOtpCode (callable)', () => {
   // per-email bucket alone never fills when every address is new.
   it('caps sends per caller IP across different emails, with the same {ok:true}', async () => {
     for (let i = 0; i < IP_RATE_LIMIT_MAX_SENDS; i++) {
-      await callSend({ email: `user${i}@example.com` }, '203.0.113.7');
+      await callSend({ email: `user${String(i)}@example.com` }, '203.0.113.7');
     }
     expect(sendMock).toHaveBeenCalledTimes(IP_RATE_LIMIT_MAX_SENDS);
 
