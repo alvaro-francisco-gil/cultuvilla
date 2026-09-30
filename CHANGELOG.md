@@ -4,6 +4,10 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+- Remove the retired village invite-token flow: the `acceptInvite` callable,
+  `inviteTokenService` and the invite-token model. Nothing in the app has used
+  them since the admin screen was retired in v0.10.0; the rules now deny the
+  collection outright.
 - Tighten `users` read access to the account owner (and app admins). Names and
   active villages of other accounts are now read from a new `publicProfiles/{uid}`
   projection, kept in sync by the `syncPublicProfile` trigger. **Migration:**

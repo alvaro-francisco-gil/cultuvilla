@@ -13,7 +13,6 @@ export { onEventUpdated } from './events/notificationTriggers';
 export { sendEventReminders } from './events/eventReminders';
 
 // Village (memberships, organizer requests, invites, denormalization)
-export { acceptInvite } from './village/acceptInvite';
 export { startVillage } from './village/startVillage';
 export { updateVillageInfo } from './village/updateVillageInfo';
 export { requestOrganizeVillage } from './village/requestOrganizeVillage';

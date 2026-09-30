@@ -8,7 +8,6 @@ import { placeConverterClient } from '../converters/placeConverter.client';
 import { villageMemberConverterClient } from '../converters/villageMemberConverter.client';
 import { censoAnswersConverterClient } from '../converters/censoAnswersConverter.client';
 import { censoAnswersId } from '../../models/municipality/CensoAnswersDataModel';
-import { inviteTokenConverterClient } from '../converters/inviteTokenConverter.client';
 import { seatTokenConverterClient } from '../converters/seatTokenConverter.client';
 import { registrationEventConverterClient } from '../converters/registrationEventConverter.client';
 import { organizationConverterClient } from '../converters/organizationConverter.client';
@@ -103,12 +102,6 @@ export const censoAnswersDoc = (db: Firestore, municipalityId: string, userId: s
 
 export const municipalityMemberDoc = (db: Firestore, municipalityId: string, memberId: string) =>
   doc(db, 'municipalities', municipalityId, 'members', memberId).withConverter(villageMemberConverterClient);
-
-export const municipalityInviteTokensCollection = (db: Firestore, municipalityId: string) =>
-  collection(db, 'municipalities', municipalityId, 'inviteTokens').withConverter(inviteTokenConverterClient);
-
-export const municipalityInviteTokenDoc = (db: Firestore, municipalityId: string, tokenId: string) =>
-  doc(db, 'municipalities', municipalityId, 'inviteTokens', tokenId).withConverter(inviteTokenConverterClient);
 
 export const municipalityPeopleCollection = (db: Firestore) =>
   collection(db, 'municipalityPeople').withConverter(municipalityPersonConverterClient);
