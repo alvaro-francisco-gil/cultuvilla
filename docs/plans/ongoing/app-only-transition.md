@@ -2,7 +2,7 @@
 
 **Priority:** high — unblocks offline-first, the main app-speed fix
 **Gate:** none
-**Next:** wire `@react-native-firebase/analytics` behind `apps/mobile/lib/observability/analytics.ts` so native events reach GA4 with a `platform` dimension
+**Next:** register an iOS app per env in Firebase and commit each `GoogleService-Info.plist` (see `apps/mobile/google-services/README.md`), then start phase 2
 **Due:** 2027-04-30
 
 The decision and the data behind it are in
@@ -32,18 +32,24 @@ Today `apps/mobile/lib/observability/analytics.ts` is a no-op on native; only
 `analytics.web.ts` reports. Without native events the phase 5 question cannot be
 answered.
 
-- [ ] `@react-native-firebase/app` + `analytics` with their config plugins;
-      `analytics.ts` forwards the same taxonomy as web (see the
-      `observability-conventions` skill — the allowlist and consent split apply
-      unchanged).
-- [ ] An `app.opened.from_link` (or equivalent through the review gate) event
-      on universal-link launch, carrying the entity kind — this is the
-      install-from-link signal.
+- [x] `@react-native-firebase/app` + `analytics`; `analytics.ts` forwards the
+      same taxonomy as web, dots mapped to underscores (GA4 native rejects
+      dotted names — join platforms with `REPLACE(event_name, '.', '_')`).
+- [x] `app.link.opened` on every routed deep link, with `entityKind`,
+      `viaInvite` and `surface` (`cold_start` / `running`).
+- [ ] **iOS:** register an iOS app in each Firebase project and commit
+      `google-services/<env>/GoogleService-Info.plist`. Until then iOS builds
+      fine but analytics is a no-op there; Android reports from its existing
+      `google-services.json`.
+- [ ] Ship in the next `mobile-release` (native: no OTA). Confirm events in
+      GA4 DebugView on one Android and one iOS build.
 - [ ] GA4 reports `user_pseudo_id` as null on web today (every row counts as 0
       users) — check whether that is consent mode or config, so the platform
       split counts people, not only events.
-- [ ] Native module → fingerprint changes → `mobile-release` store build, not
-      OTA (`expo-native-rebuild` skill). Bundle it with the next native release.
+- **Not measurable directly:** a user who installs from the store after
+      tapping a link arrives without the link (no deferred deep linking). The
+      proxy is web share-link visits vs. native `first_open` over the same
+      window, plus `app.link.opened` for people who already have the app.
 
 ## Phase 2 — the read site
 

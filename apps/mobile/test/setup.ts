@@ -19,6 +19,15 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
   isSuccessResponse: (r: { type?: string } | null | undefined) => r?.type === 'success',
 }));
 
+// The native Firebase module is absent under jest; the analytics adapter's own
+// suite overrides these per test.
+jest.mock('@react-native-firebase/analytics', () => ({
+  getAnalytics: jest.fn(() => ({})),
+  logEvent: jest.fn(async () => undefined),
+  setAnalyticsCollectionEnabled: jest.fn(async () => undefined),
+  setUserId: jest.fn(async () => undefined),
+}));
+
 jest.mock('expo-apple-authentication', () => ({
   signInAsync: jest.fn(async () => ({ identityToken: 'test-identity-token' })),
   AppleAuthenticationScope: { FULL_NAME: 0, EMAIL: 1 },
