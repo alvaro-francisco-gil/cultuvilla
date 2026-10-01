@@ -99,7 +99,7 @@ Order: 1 + 2 + 4 in one PR (mobile + copy, plus the join/start callable change),
 - **Does a dormant pueblo need anything to render?** The village home currently
   assumes `community != null` for the active branch; an empty-but-dormant render
   must not trip the strict converter or the web read routes
-  ([web-parity-not-a-build-rule](../../decisions/web-parity-not-a-build-rule.md)).
+  ([web-is-a-read-site](../../decisions/web-is-a-read-site.md)).
 - **Measurement.** Which observability events tell us whether this worked —
   e.g. time from `village_start` to first post, share taps from the empty state?
 - **The human side.** The data suggests the bigger lever is outreach (the

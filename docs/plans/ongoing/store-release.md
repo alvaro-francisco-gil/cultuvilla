@@ -34,8 +34,9 @@ open items below, then retiring this plan.
 - **iOS Safari install banner.** The `apple-itunes-app` tag this doc says Safari
   draws its banner from never shipped: `+html.tsx` is ignored with
   `web.output: 'single'`. So iOS Safari visitors may get no install offer at
-  all. Tracked, with evidence, in
-  [app-first-transition.md](app-first-transition.md) (Next #2), not here.
+  all. The fix shipped on dev in #336 and reaches prod with the next
+  promotion; the read site carries the tag from then on — see
+  [app-only-transition.md](app-only-transition.md) phase 2.
 
 ## Handoff
 

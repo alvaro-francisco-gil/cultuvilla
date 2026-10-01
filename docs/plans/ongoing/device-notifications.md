@@ -290,7 +290,7 @@ which failed once before it was understood.
    the native fingerprint, so it ships in a store binary or not at all.
 
 Web gets no push, deliberately and without a wall — see
-[web-parity-not-a-build-rule.md](../../decisions/web-parity-not-a-build-rule.md).
+[web-is-a-read-site.md](../../decisions/web-is-a-read-site.md).
 The web build ships a `.web.ts` twin of the push client that never imports
 `expo-notifications`; `check-web-export` confirms no native module leaks.
 

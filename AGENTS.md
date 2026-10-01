@@ -121,33 +121,27 @@ When a query would require N reads or live across collection boundaries, write a
 
 `strict: true` everywhere. No `any`. No `@ts-nocheck`. If a type is genuinely unknown at the boundary, use `unknown` and narrow. `@typescript-eslint/no-explicit-any` is an error in `packages/shared` and `functions`; the same standard applies in `apps/mobile` even though it isn't lint-gated yet — fix at the source, never silence with `as any`.
 
-### 6. Web parity is not a build rule
+### 6. The app is the product; the web is a read site
 
-`apps/mobile/` ships to iOS, Android **and** the web (Expo web export → Firebase
-Hosting). It is one codebase: the whole web-specific surface is 6 `.web.*` override
-files and ~27 `Platform.OS === 'web'` branch sites, fenced by
-`pnpm app:check-web-compat` / `pnpm app:check-web-export` and the
-`mobile-web-compat` skill. Keeping the two "in sync" is not a cost we pay.
+iOS and Android are the product. Every capability — writes, accounts, offline,
+push — is built for the app only, and web never shapes an app API or the app's
+data layer.
 
-Two rules, and they are deliberately not the same rule:
+The web's one job is the **anonymous reader** — the WhatsApp link recipient and
+Google search. Every public read route must resolve on web, permanently: share
+previews and the printed `/descarga` QR depend on it. Actions on web are app
+calls-to-action (universal link, store fallback), not flows.
 
-- **A feature does not have to work on web to be done.** Ship it app-only when the
-  web version would be a compromise or a blocker (native camera, push, offline).
-  Say so in the PR. Web does not hold a veto over native capabilities.
-- **Never block a flow that already works on web.** No walls, no "continúa en la
-  app" interstitial in front of a working action. The app earns its install by
-  being better, not by web being worse — and a wall lands hardest on the visitor
-  who tapped a WhatsApp link on a phone with no app installed. Desktop has no app
-  to install at all.
+**Transition in progress:** today `apps/mobile/` still ships an Expo web export,
+fenced by `pnpm app:check-web-compat` / `pnpm app:check-web-export` and the
+`mobile-web-compat` skill. It is being replaced route by route by a separate
+server-rendered read site, then deleted — tracked in
+[docs/plans/ongoing/app-only-transition.md](docs/plans/ongoing/app-only-transition.md).
+Until a route has moved, don't break it on the export; don't add web twins or
+web fallbacks for new app features either.
 
-**Web's job is the anonymous reader** — the WhatsApp link recipient and Google
-search. Every read route must resolve on web, permanently: share previews
-(`ogRenderer`) and the printed `/descarga` QR depend on it. Work that improves
-anonymous read on web (SEO, share previews, first paint) is *more* valuable under
-this rule, not less.
-
-Read [docs/decisions/web-parity-not-a-build-rule.md](docs/decisions/web-parity-not-a-build-rule.md)
-before proposing that something be removed from, or blocked on, the web build.
+Read [docs/decisions/web-is-a-read-site.md](docs/decisions/web-is-a-read-site.md)
+before adding anything to the web, or proposing that web sign-up return.
 
 ## Conventions
 
@@ -175,7 +169,7 @@ detail screen; add a scaffold consumer. The term is also carried by
 
 ### State and data fetching
 
-React Context for cross-tree state (auth, village). No global store. No query cache today — every component fetches its own data via services. If you add a feature where this hurts (revalidation, optimistic updates, dedup), surface it in the PR rather than rolling your own cache.
+React Context for cross-tree state (auth, village). No global store. No query cache today — every component fetches its own data via services. Don't roll your own cache: the fix is Firestore's own persistent cache on the native SDK, planned in [docs/plans/ready/offline-first-village.md](docs/plans/ready/offline-first-village.md).
 
 ### Styling
 
@@ -297,7 +291,7 @@ Header ≤ 100 chars. Direct-to-`develop` is fine for small self-contained chang
 
 ### Versioning & releases
 
-- **Both stores are published.** iOS 1.0.0 was accepted by App Review on 2026-09-04; Google approved the Play production release (1.1.0, submitted 2026-09-08) and the listing went public by 2026-09-28. Both URLs are in `APP_STORES`, and `pnpm check:store-claims` verifies each listing is public. Web (Expo web export → Firebase Hosting) deploys on every promotion and is not going away — see [invariant 6](#6-web-parity-is-not-a-build-rule). See [docs/plans/ongoing/store-release.md](docs/plans/ongoing/store-release.md) for the runbook and the current state of the external (Play Console / App Store Connect) side. Store **binaries**: a merge to `beta` builds the **Cultuvilla Beta** Android app (`com.cultuvilla.app.beta`) onto its own Play **internal** track, and the prod bundle to **TestFlight** (every internal and external group; external ones via an automatic Beta App Review) ([beta-build-and-submit.yml](.github/workflows/beta-build-and-submit.yml)); **production is never automatic** and moves only by an explicit dispatch. The **JS bundle** is a separate matter — see *OTA updates* below.
+- **Both stores are published.** iOS 1.0.0 was accepted by App Review on 2026-09-04; Google approved the Play production release (1.1.0, submitted 2026-09-08) and the listing went public by 2026-09-28. Both URLs are in `APP_STORES`, and `pnpm check:store-claims` verifies each listing is public. Web (today the Expo web export → Firebase Hosting, moving to a separate read site) deploys on every promotion — see [invariant 6](#6-the-app-is-the-product-the-web-is-a-read-site). See [docs/plans/ongoing/store-release.md](docs/plans/ongoing/store-release.md) for the runbook and the current state of the external (Play Console / App Store Connect) side. Store **binaries**: a merge to `beta` builds the **Cultuvilla Beta** Android app (`com.cultuvilla.app.beta`) onto its own Play **internal** track, and the prod bundle to **TestFlight** (every internal and external group; external ones via an automatic Beta App Review) ([beta-build-and-submit.yml](.github/workflows/beta-build-and-submit.yml)); **production is never automatic** and moves only by an explicit dispatch. The **JS bundle** is a separate matter — see *OTA updates* below.
 - **The Android beta is its own Play app, released automatically from `beta`.** Play serves a tester the highest version code across every track they joined, so shipping the prod package to a testing track put every tester on a testing build of the public listing. Instead `beta` builds the **`beta` EAS profile** (package `com.cultuvilla.app.beta`, "Cultuvilla Beta", Firebase `cultuvilla-beta`) and submits it to *that* app's **internal** track — it installs next to the store app, like Órdago's. The prod package reaches Play only by a deliberate `mobile-release` dispatch. iOS keeps building `production` for TestFlight, since TestFlight and the App Store share one install per bundle id. Read [docs/decisions/beta-is-its-own-play-app.md](docs/decisions/beta-is-its-own-play-app.md).
   - It needs `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` as a **repo-level** secret and fails fast with a pointer to the runbook when it is absent.
   - **Freeze Play with the repo variable `PLAY_SUBMIT_PAUSED=true`, never by disabling the workflow** — the Android job skips and TestFlight keeps flowing. Disabling it for the 2026-09 Play review silently stopped iOS beta builds too.
