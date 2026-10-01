@@ -273,7 +273,7 @@ Google/Apple and no loose credential works.
   map 1:1 to the Play tracks `internal` / `alpha` / `production`.
 - `.github/workflows/mobile-release.yml` — the manual build+submit entry point.
 - `.github/workflows/appstore-release.yml` — App Store Connect status / release / submit.
-- `apps/mobile/lib/appStores.ts` — the store URLs every download offer derives from.
+- `packages/shared/src/config/appStores.ts` — the store URLs every download offer derives from.
 - `apps/mobile/public/.well-known/{env}/` — the deep-link association files,
   signing identities committed; copied into place at hosting-deploy time by
   `apps/mobile/scripts/copy-well-known.mjs`.

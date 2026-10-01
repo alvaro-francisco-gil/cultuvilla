@@ -1,5 +1,5 @@
 import { test, expect } from '../lib/test';
-import { APP_STORES } from '../../lib/appStores';
+import { APP_STORES } from '@cultuvilla/shared/config';
 
 // /descarga is printed on a QR that is never reprinted, so this runs the real
 // web export: a phone must land on its store with no picker in between, and a
