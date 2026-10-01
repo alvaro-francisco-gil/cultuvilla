@@ -117,6 +117,14 @@ const googleServicesFile = `./google-services/${env}/google-services.json`;
 // from the repo root as well as from apps/mobile.
 const hasGoogleServicesFile = existsSync(resolve(__dirname, googleServicesFile));
 
+// iOS native Firebase config, read by @react-native-firebase/app (analytics).
+// Its config plugin throws at prebuild without the file, so the plugin is only
+// wired when this env has one — a build without it still runs, with native
+// analytics as a no-op. Android needs nothing extra: it initialises from the
+// google-services.json above. Same committed-per-env rule (no secret inside).
+const iosGoogleServicesFile = `./google-services/${env}/GoogleService-Info.plist`;
+const hasIosGoogleServicesFile = existsSync(resolve(__dirname, iosGoogleServicesFile));
+
 const firebaseConfigPerEnv: Record<Env, FirebaseOptions> = {
   dev: {
     apiKey: process.env['FIREBASE_API_KEY_DEV'] ?? '',
@@ -180,6 +188,7 @@ const config: ExpoConfig = {
   userInterfaceStyle: 'light',
   ios: {
     bundleIdentifier: bundleIdPerEnv[env],
+    ...(hasIosGoogleServicesFile ? { googleServicesFile: iosGoogleServicesFile } : {}),
     supportsTablet: true,
     associatedDomains: [`applinks:${deepLinkHostPerEnv[env]}`],
     infoPlist: {
@@ -270,6 +279,10 @@ const config: ExpoConfig = {
     },
   },
   plugins: [
+    ...(hasIosGoogleServicesFile ? ['@react-native-firebase/app'] : []),
+    // RNFirebase's pods are Swift and need static framework linkage. Always on,
+    // not gated with the plist: the pods are autolinked either way.
+    ['expo-build-properties', { ios: { useFrameworks: 'static' } }],
     'expo-router',
     'expo-image',
     [
