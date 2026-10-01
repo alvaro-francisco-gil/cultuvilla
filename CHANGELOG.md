@@ -4,6 +4,11 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+- The iOS and Android apps report the same usage analytics as the web
+  (Google Analytics for Firebase), plus an `app.link.opened` event when a
+  shared link opens the installed app. Native code: ships in the next store
+  build, not over OTA. iOS stays silent until its `GoogleService-Info.plist`
+  is committed per env.
 - Remove the retired village invite-token flow: the `acceptInvite` callable,
   `inviteTokenService` and the invite-token model. Nothing in the app has used
   them since the admin screen was retired in v0.10.0; the rules now deny the
