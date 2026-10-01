@@ -1,7 +1,7 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { logger } from 'firebase-functions/v2';
-import { entityPath, eventLinkTarget, villagePath } from '@cultuvilla/shared/utils';
+import { entityPath, eventLinkTarget, villagePath, wrappedPath } from '@cultuvilla/shared/utils';
 
 /**
  * Minimal Open Graph payload the renderer needs. `imageUrl` is null when the
@@ -227,6 +227,51 @@ function villageOg(municipalityId: string, v: RawVillage): OgMeta {
       lat: asNumber(v.coordinates?.lat),
       lng: asNumber(v.coordinates?.lng),
     },
+  };
+}
+
+interface RawWrapped {
+  villageName?: unknown;
+  status?: unknown;
+  stats?: { eventCount?: unknown; uniquePersonCount?: unknown } | null;
+  images?: { cover?: unknown } | null;
+}
+
+/**
+ * A village's fiestas Wrapped, previewed by its cover card.
+ *
+ * Only a published one: a draft is the village admins' to release, and a link
+ * must not show its cards before they decide to. A draft therefore answers
+ * exactly like a year with no Wrapped at all.
+ */
+export async function getWrappedOgBySlug(villageSlug: string, year: number): Promise<OgMeta | null> {
+  // typed-refs: allowed — intentional converter-less read; see file header.
+  const villages = await getFirestore()
+    .collection('municipalities')
+    .where('slug', '==', villageSlug)
+    .limit(1)
+    .get();
+  if (villages.empty) return null;
+  const municipalityId = villages.docs[0].id;
+
+  // typed-refs: allowed — intentional converter-less read; see file header.
+  const snap = await getFirestore().collection('villageWrapped').doc(`${municipalityId}_${String(year)}`).get();
+  const w = (snap.data() ?? null) as RawWrapped | null;
+  if (!w || asString(w.status) !== 'published') return null;
+
+  const villageName = asString(w.villageName) ?? asString(villages.docs[0].get('name')) ?? '';
+  const events = asNumber(w.stats?.eventCount);
+  const people = asNumber(w.stats?.uniquePersonCount);
+  const figures = [
+    events ? `${String(events)} eventos` : null,
+    people ? `${String(people)} personas apuntadas` : null,
+  ].filter((f): f is string => f !== null);
+  const lead = figures.length > 0 ? `${figures.join(', ')}. ` : '';
+  return {
+    title: `Fiestas ${String(year)} · ${villageName}`,
+    description: trim(`${lead}El resumen de las fiestas de ${villageName} en Cultuvilla.`),
+    imageUrl: asString(w.images?.cover),
+    canonicalPath: wrappedPath(villageSlug, year),
   };
 }
 

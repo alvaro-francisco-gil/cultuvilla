@@ -6,6 +6,7 @@ import {
   getNewsOg,
   getVillageOgBySlug,
   getOrgOg,
+  getWrappedOgBySlug,
   type OgMeta,
 } from './fetchers';
 import { defaultOg, injectMeta, injectSeoBody } from './html';
@@ -24,6 +25,7 @@ function isInvite(route: ParsedAppPath | null): boolean {
 
 async function fetchOg(route: ParsedAppPath): Promise<OgMeta | null> {
   if (route.type === 'village') return getVillageOgBySlug(route.villageSlug);
+  if (route.type === 'wrapped') return getWrappedOgBySlug(route.villageSlug, route.year);
   if (route.type !== 'entity') return null;
   switch (route.kind) {
     case 'event':
@@ -46,6 +48,8 @@ function describeRoute(route: ParsedAppPath): { kind: string; id?: string } {
       return { kind: route.type === 'entity' ? route.kind : 'seatClaim', id: route.id };
     case 'user':
       return { kind: 'user', id: route.uid };
+    case 'wrapped':
+      return { kind: 'wrapped', id: `${route.villageSlug}/${String(route.year)}` };
   }
 }
 

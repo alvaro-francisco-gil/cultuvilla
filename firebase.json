@@ -57,6 +57,13 @@
           }
         },
         {
+          "source": "/*/fiestas/*",
+          "function": {
+            "functionId": "ogRenderer",
+            "region": "europe-west1"
+          }
+        },
+        {
           "source": "/*/entidad/*/unirse",
           "function": {
             "functionId": "ogRenderer",

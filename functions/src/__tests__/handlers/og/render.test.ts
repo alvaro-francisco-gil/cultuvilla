@@ -435,6 +435,48 @@ describe('ogRenderer', () => {
     expect(res.body).not.toContain('property="og:image"');
   });
 
+  describe('wrapped', () => {
+    async function seedWrapped(status: string): Promise<void> {
+      await admin.firestore().doc('municipalities/mun-w').set({ name: 'Villarriba', slug: 'villarriba' });
+      await admin.firestore().doc('villageWrapped/mun-w_2026').set({
+        municipalityId: 'mun-w',
+        villageName: 'Villarriba',
+        year: 2026,
+        status,
+        stats: { eventCount: 14, uniquePersonCount: 230 },
+        images: { cover: 'https://img.test/cover.png', stats: 'https://img.test/stats.png' },
+      });
+    }
+
+    it('previews a published Wrapped with its cover card', async () => {
+      await seedWrapped('published');
+
+      const res = await invoke('/villarriba/fiestas/2026');
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toContain('<title>Fiestas 2026 · Villarriba</title>');
+      expect(res.body).toContain('property="og:image" content="https://img.test/cover.png"');
+      expect(res.body).toContain('14 eventos');
+      expect(res.body).toContain(`<link rel="canonical" href="${ORIGIN}/villarriba/fiestas/2026"/>`);
+    });
+
+    // A draft is the admins' to release: its link must not preview the cards
+    // before they decided to show them.
+    it('answers a draft like a Wrapped that does not exist', async () => {
+      await seedWrapped('draft');
+
+      const res = await invoke('/villarriba/fiestas/2026');
+
+      expect(res.statusCode).toBe(404);
+      expect(res.body).not.toContain('cover.png');
+    });
+
+    it('answers a year with no Wrapped with a 404', async () => {
+      await seedWrapped('published');
+      expect((await invoke('/villarriba/fiestas/2019')).statusCode).toBe(404);
+    });
+  });
+
   it('missing doc: answers 404 + noindex, still serving the shell', async () => {
     const res = await invoke('/villarriba/evento/x_does-not-exist');
 
