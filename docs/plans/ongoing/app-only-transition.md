@@ -2,7 +2,7 @@
 
 **Priority:** high — unblocks offline-first, the main app-speed fix
 **Gate:** none
-**Next:** register an iOS app per env in Firebase and commit each `GoogleService-Info.plist` (see `apps/mobile/google-services/README.md`), then start phase 2
+**Next:** ship phase 1 in the next `mobile-release` and confirm events in GA4 DebugView, then start the read site (phase 2)
 **Due:** 2027-04-30
 
 The decision and the data behind it are in
@@ -37,10 +37,10 @@ answered.
       dotted names — join platforms with `REPLACE(event_name, '.', '_')`).
 - [x] `app.link.opened` on every routed deep link, with `entityKind`,
       `viaInvite` and `surface` (`cold_start` / `running`).
-- [ ] **iOS:** register an iOS app in each Firebase project and commit
-      `google-services/<env>/GoogleService-Info.plist`. Until then iOS builds
-      fine but analytics is a no-op there; Android reports from its existing
-      `google-services.json`.
+- [x] **iOS:** an iOS app registered in each Firebase project (2026-10-02);
+      `google-services/<env>/GoogleService-Info.plist` committed and locked by
+      `googleServices.test.ts`. Prebuild verified; pod install + compile is
+      first exercised by the next TestFlight build.
 - [ ] Ship in the next `mobile-release` (native: no OTA). Confirm events in
       GA4 DebugView on one Android and one iOS build.
 - [ ] GA4 reports `user_pseudo_id` as null on web today (every row counts as 0
