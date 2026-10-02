@@ -15,12 +15,13 @@ export type Child = SafeHtml | string | number | null | undefined | false | read
 function serialize(child: Child): string {
   if (child === null || child === undefined || child === false) return '';
   if (child instanceof SafeHtml) return child.value;
-  if (Array.isArray(child)) return child.map(serialize).join('');
-  return escapeHtml(String(child));
+  if (typeof child === 'string') return escapeHtml(child);
+  if (typeof child === 'number') return String(child);
+  return child.map(serialize).join('');
 }
 
 export function html(strings: TemplateStringsArray, ...values: Child[]): SafeHtml {
-  let out = strings[0] ?? '';
+  let out = strings[0];
   values.forEach((value, i) => {
     out += serialize(value) + (strings[i + 1] ?? '');
   });

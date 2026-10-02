@@ -94,9 +94,14 @@ Two readings, kept separate on purpose:
   decision removes.
 - **Platform-split services** (`.native.ts` / `.web.ts` per service). Doubles
   the service layer and every mock.
-- **Grow `ogRenderer` into the whole site.** It already server-renders share
-  pages, but hand-written HTML templates do not age well across ~13 page kinds.
-  Its fetchers and JSON-LD move into the read site instead.
+- **Next.js on Cloud Run (ordago-web's shape).** Planned first, dropped at
+  build time (2026-10-02): it needs a Cloud Run service, a container build and
+  deploy-workflow changes in each of three projects, for ~13 read-only pages
+  that need no client JavaScript. The read site is instead one Cloud Function,
+  `readSite` (`functions/src/web/`), shipped by the existing functions deploy
+  and cached at the Hosting edge. What made "grow `ogRenderer`" a poor option —
+  hand-written HTML strings — is answered by a small escape-by-default template
+  layer (`html.ts`), so user content can never become markup.
 - **Drop web entirely.** Share previews, SEO and the printed QR need it.
 
 ## Revisit when

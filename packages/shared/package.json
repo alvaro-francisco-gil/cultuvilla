@@ -27,6 +27,10 @@
       "types": "./dist/config/index.d.ts",
       "default": "./dist/config/index.js"
     },
+    "./legal": {
+      "types": "./dist/legal/index.d.ts",
+      "default": "./dist/legal/index.js"
+    },
     "./email": {
       "types": "./dist/email/index.d.ts",
       "default": "./dist/email/index.js"

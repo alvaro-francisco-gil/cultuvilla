@@ -15,7 +15,7 @@ export interface RichTextInput {
   marks?: unknown;
 }
 
-const MENTION_KIND: Readonly<Record<string, UrlEntityKind>> = {
+const MENTION_KIND: Readonly<Partial<Record<string, UrlEntityKind>>> = {
   organization: 'organization',
   event: 'event',
   place: 'place',
@@ -24,7 +24,7 @@ const MENTION_KIND: Readonly<Record<string, UrlEntityKind>> = {
   news: 'news',
 };
 
-const MARK_TAG: Readonly<Record<string, string>> = {
+const MARK_TAG: Readonly<Partial<Record<string, string>>> = {
   bold: 'strong',
   italic: 'em',
   underline: 'u',
@@ -61,7 +61,7 @@ function autolink(text: string): SafeHtml {
     let url = m[0];
     while (url.length > 0 && TRAILING.has(url[url.length - 1] ?? '')) url = url.slice(0, -1);
     if (!url) continue;
-    const at = m.index ?? 0;
+    const at = m.index;
     parts.push(text.slice(last, at), html`<a href="${url}" rel="nofollow ugc">${url}</a>`);
     last = at + url.length;
   }
