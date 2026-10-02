@@ -1,6 +1,7 @@
 # Store release runbook — Google Play and App Store
 
 **Priority:** low
+**Landed:** prod
 **Gate:** none
 **Next:** check Error Reporting for iOS `surface: auth` failures since 1.0.0 went live; if none, retire this plan into one decision doc
 

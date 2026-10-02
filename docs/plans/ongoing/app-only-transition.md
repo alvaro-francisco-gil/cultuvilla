@@ -1,6 +1,7 @@
 # App-only transition — the app is the product, web is a read site
 
 **Priority:** high — unblocks offline-first, the main app-speed fix
+**Landed:** dev
 **Gate:** none
 **Next:** promote to beta and run the phase 3 `curl` checks there; meanwhile start the offline-first plan (its gate is now open)
 **Due:** 2027-04-30

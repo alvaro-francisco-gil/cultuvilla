@@ -1,6 +1,7 @@
 # Device notifications (push) — design and rollout
 
 **Priority:** high
+**Landed:** prod
 **Gate:** blocked:the Apple developer Account Holder must create the APNs key (.p8 + Key ID) — see *Blocker: the APNs key*
 **Next:** load the real APNs key into `APNS_AUTH_KEY` on `cultuvilla-prod`, redeploy the push functions, and verify delivery on an iPhone
 

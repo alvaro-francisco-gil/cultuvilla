@@ -1,6 +1,7 @@
 # Product analytics — behavioral dashboard + ops monitoring
 
 **Priority:** high — analytics pings may be sent before consent; rule that out first
+**Landed:** prod
 **Gate:** none
 **Next:** explain why every exported GA4 event has `user_pseudo_id = NULL` — check the consent wiring in `packages/shared/src/services/observability/` against a real consented session
 
