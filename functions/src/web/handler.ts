@@ -138,6 +138,7 @@ async function entity(
 
 async function activeVillageCards(db: Firestore): Promise<Card[]> {
   // Same shape as the sitemap's query — single-field, no composite index.
+  // typed-refs: allowed — converter-less read; see the header of data.ts.
   const snap = await db.collection('municipalities').where('communityActive', '==', true).limit(60).get();
   return snap.docs
     .map((d) => ({

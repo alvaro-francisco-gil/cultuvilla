@@ -65,12 +65,14 @@ function toVillage(id: string, d: Raw): Village {
 }
 
 export async function loadVillageBySlug(db: Firestore, slug: string): Promise<Village | null> {
+  // typed-refs: allowed — converter-less read; see the header of data.ts.
   const snap = await db.collection('municipalities').where('slug', '==', slug).limit(1).get();
   const [doc] = snap.docs;
   return snap.empty ? null : toVillage(doc.id, doc.data());
 }
 
 export async function loadVillageById(db: Firestore, id: string): Promise<Village | null> {
+  // typed-refs: allowed — converter-less read; see the header of data.ts.
   const snap = await db.collection('municipalities').doc(id).get();
   return snap.exists ? toVillage(snap.id, snap.data() ?? {}) : null;
 }
@@ -115,6 +117,7 @@ function toEvent(id: string, d: Raw): EventView {
 }
 
 export async function loadEvent(db: Firestore, id: string): Promise<EventView | null> {
+  // typed-refs: allowed — converter-less read; see the header of data.ts.
   const snap = await db.collection('events').doc(id).get();
   if (!snap.exists) return null;
   const d = snap.data() ?? {};
@@ -205,6 +208,7 @@ function toNews(id: string, d: Raw, bucket: string): NewsView {
 }
 
 export async function loadNews(db: Firestore, bucket: string, id: string): Promise<NewsView | null> {
+  // typed-refs: allowed — converter-less read; see the header of data.ts.
   const snap = await db.collection('news').doc(id).get();
   if (!snap.exists || snap.get('status') !== 'active') return null;
   return toNews(snap.id, snap.data() ?? {}, bucket);
@@ -244,6 +248,7 @@ function toOrg(id: string, d: Raw): OrgView {
 }
 
 export async function loadOrg(db: Firestore, id: string): Promise<OrgView | null> {
+  // typed-refs: allowed — converter-less read; see the header of data.ts.
   const snap = await db.collection('organizations').doc(id).get();
   // Pending and rejected orgs are readable by id in the app; the web shows only approved ones.
   if (!snap.exists || snap.get('status') !== 'approved') return null;
@@ -306,6 +311,7 @@ async function loadActiveSubdoc<T>(
   id: string,
   map: (id: string, d: Raw) => T,
 ): Promise<T | null> {
+  // typed-refs: allowed — converter-less read; see the header of data.ts.
   const snap = await db.collection('municipalities').doc(municipalityId).collection(collection).doc(id).get();
   // Readable by anyone in the rules, so the status gate is ours to apply.
   if (!snap.exists || snap.get('status') !== 'active') return null;
@@ -348,6 +354,7 @@ function toPoster(id: string, d: Raw): PosterView {
 }
 
 export async function loadPoster(db: Firestore, id: string): Promise<PosterView | null> {
+  // typed-refs: allowed — converter-less read; see the header of data.ts.
   const snap = await db.collection('festivalPosters').doc(id).get();
   if (!snap.exists || snap.get('status') !== 'active') return null;
   return toPoster(snap.id, snap.data() ?? {});
@@ -413,6 +420,7 @@ function toHistory(id: string, d: Raw): HistoryView {
 }
 
 export async function loadHistoryEntry(db: Firestore, id: string): Promise<HistoryView | null> {
+  // typed-refs: allowed — converter-less read; see the header of data.ts.
   const snap = await db.collection('historyEntries').doc(id).get();
   if (!snap.exists || snap.get('status') !== 'active') return null;
   return toHistory(snap.id, snap.data() ?? {});
@@ -442,6 +450,7 @@ export async function loadTerm(
   municipalityId: string,
   slug: string,
 ): Promise<{ term: TermView; definitions: DefinitionView[] } | null> {
+  // typed-refs: allowed — converter-less read; see the header of data.ts.
   const snap = await db.collection('vocabularyTerms').doc(`${municipalityId}__${slug}`).get();
   if (!snap.exists || snap.get('status') !== 'active') return null;
   return { term: toTerm(snap.id, snap.data() ?? {}), definitions: await loadDefinitions(db, snap.id) };
