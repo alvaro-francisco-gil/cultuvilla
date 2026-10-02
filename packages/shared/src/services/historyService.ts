@@ -8,7 +8,7 @@ import {
   type HistoryEntryData,
   type HistoryEntryDataInput,
 } from '../models/history/HistoryEntryDataModel';
-import { watchQuery, type Unwatch, type WatchError } from './watch';
+import { watchDoc, watchQuery, type Unwatch, type WatchError } from './watch';
 
 export type HistoryEntryWithId = HistoryEntryData & { id: string };
 
@@ -59,6 +59,14 @@ export async function getHistoryEntry(entryId: string): Promise<HistoryEntryWith
   const snap = await getDoc(historyEntryDoc(getDb(), entryId));
   const data = snap.data();
   return data ? { id: snap.id, ...data } : null;
+}
+
+export function watchHistoryEntry(
+  entryId: string,
+  onNext: (entry: HistoryEntryWithId | null) => void,
+  onError: WatchError,
+): Unwatch {
+  return watchDoc(historyEntryDoc(getDb(), entryId), onNext, onError);
 }
 
 export function updateHistoryEntry(

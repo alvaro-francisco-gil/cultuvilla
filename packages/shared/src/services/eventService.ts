@@ -28,7 +28,7 @@ import {
   type EventDataInput,
   type EventStatus,
 } from '../models/event/EventDataModel';
-import { watchMerged, watchQuery, type Unwatch, type WatchError } from './watch';
+import { watchDoc, watchMerged, watchQuery, type Unwatch, type WatchError } from './watch';
 
 type EventWithId = EventData & { id: string };
 
@@ -46,6 +46,14 @@ const publicOnly = () => where('visibility', '==', 'public');
 export async function getEvent(eventId: string): Promise<(EventData & { id: string }) | null> {
   const snap = await getDoc(eventDoc(getDb(), eventId));
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+
+export function watchEvent(
+  eventId: string,
+  onNext: (event: (EventData & { id: string }) | null) => void,
+  onError: WatchError,
+): Unwatch {
+  return watchDoc(eventDoc(getDb(), eventId), onNext, onError);
 }
 
 // A status array becomes an `in` filter (e.g. the pueblo tab wants

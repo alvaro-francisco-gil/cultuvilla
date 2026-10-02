@@ -412,6 +412,15 @@ export async function getBarrio(
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
+export function watchBarrio(
+  municipalityId: string,
+  barrioId: string,
+  onNext: (barrio: (BarrioData & { id: string }) | null) => void,
+  onError: WatchError,
+): Unwatch {
+  return watchDoc(municipalityBarrioDoc(getDb(), municipalityId, barrioId), onNext, onError);
+}
+
 // ── Places (cemeteries, churches, …) ───────────────────────────────────────
 //
 // Any village member may create a place; it lands `active` and is visible to
@@ -481,6 +490,15 @@ export async function getPlace(
 ): Promise<(PlaceData & { id: string }) | null> {
   const snap = await getDoc(municipalityPlaceDoc(getDb(), municipalityId, placeId));
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+
+export function watchPlace(
+  municipalityId: string,
+  placeId: string,
+  onNext: (place: (PlaceData & { id: string }) | null) => void,
+  onError: WatchError,
+): Unwatch {
+  return watchDoc(municipalityPlaceDoc(getDb(), municipalityId, placeId), onNext, onError);
 }
 
 // keep export so other code can call setDoc directly for seed-style work

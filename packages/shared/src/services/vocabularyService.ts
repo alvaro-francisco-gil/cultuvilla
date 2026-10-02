@@ -33,7 +33,7 @@ import {
   type VocabularyDefinitionData,
   type VocabularyDefinitionDataInput,
 } from '../models/vocabulary/VocabularyDefinitionDataModel';
-import { watchQuery, type Unwatch, type WatchError } from './watch';
+import { watchDoc, watchQuery, type Unwatch, type WatchError } from './watch';
 
 export type VocabularyTermWithId = VocabularyTermData & { id: string };
 export type VocabularyWordWithId = VocabularyWordData & { id: string };
@@ -45,6 +45,14 @@ export async function getVocabularyTerm(termId: string): Promise<VocabularyTermW
   const snap = await getDoc(vocabularyTermDoc(getDb(), termId));
   const data = snap.data();
   return data ? { id: snap.id, ...data } : null;
+}
+
+export function watchVocabularyTerm(
+  termId: string,
+  onNext: (term: VocabularyTermWithId | null) => void,
+  onError: WatchError,
+): Unwatch {
+  return watchDoc(vocabularyTermDoc(getDb(), termId), onNext, onError);
 }
 
 /**

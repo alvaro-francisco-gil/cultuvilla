@@ -17,7 +17,7 @@ import {
   type FestivalPosterData,
   type FestivalPosterDataInput,
 } from '../models/festivalPoster/FestivalPosterDataModel';
-import { watchQuery, type Unwatch, type WatchError } from './watch';
+import { watchDoc, watchQuery, type Unwatch, type WatchError } from './watch';
 
 export type FestivalPosterWithId = FestivalPosterData & { id: string };
 
@@ -70,6 +70,14 @@ export async function getFestivalPoster(posterId: string): Promise<FestivalPoste
   const snap = await getDoc(festivalPosterDoc(getDb(), posterId));
   const data = snap.data();
   return data ? { id: snap.id, ...data } : null;
+}
+
+export function watchFestivalPoster(
+  posterId: string,
+  onNext: (poster: FestivalPosterWithId | null) => void,
+  onError: WatchError,
+): Unwatch {
+  return watchDoc(festivalPosterDoc(getDb(), posterId), onNext, onError);
 }
 
 export function updateFestivalPoster(
