@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { checkIndexHtml, checkRobotsTxt } from '../check-web-export.mjs';
-import { buildRobotsTxt } from '../../apps/mobile/scripts/write-robots.mjs';
+import { buildRobotsTxt } from '../build-web-static.mjs';
 
 const GOOD =
   '<!DOCTYPE html><html lang="es"><head>' +

@@ -1,4 +1,4 @@
-import { escapeHtml } from '../og/escape';
+import { escapeHtml } from './escape';
 
 /**
  * Markup that is already safe to emit. Only `html` and `raw` construct it, so
