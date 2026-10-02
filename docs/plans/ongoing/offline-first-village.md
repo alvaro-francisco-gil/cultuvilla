@@ -1,8 +1,9 @@
 # Offline-first — the whole village on the device
 
 **Priority:** high — the main reason the app feels slow
+**Landed:** dev
 **Gate:** none
-**Next:** move the Inicio feed onto watchers, then entity detail screens (layer 2 continues)
+**Next:** clear the local cache on sign-out and add the offline banner (both product decisions below), before the next store build
 
 ## Goal
 
@@ -40,7 +41,7 @@ live sync; the JS SDK on RN just cannot use it.
 - Native → store build, not OTA. Android is exercised by Maestro; iOS first
   compiles on the next build.
 
-### 2. Cache-first reads — village home done
+### 2. Cache-first reads — village home, Inicio and detail screens done
 
 - Services gain `watch*` twins of their `get*` reads (`services/watch.ts`:
   `watchQuery`, `watchDoc`, `watchMerged`), built from the same query builder,
@@ -50,8 +51,12 @@ live sync; the JS SDK on RN just cannot use it.
 - `useVillageHome` runs on watchers: the village doc and all eight scrolls.
   Its per-user chrome (membership, admin, requests, censo) stays a one-shot
   read refreshed on focus.
-- [ ] Next screens, hottest first: the Inicio feed, entity detail screens,
-  mis-inscripciones. Delete each screen's `useFocusEffect` reload as it moves.
+- [x] The Inicio feeds and the eight entity detail screens read their entity
+  through single-doc watchers; their focus reloads remain only for secondary,
+  per-user data (residents, burials, org membership, the viewer's person).
+- [ ] Mis-inscripciones and the remaining list screens (historia,
+  vocabulario, mi-pueblo, perfil). Delete each screen's `useFocusEffect`
+  reload as it moves.
 - [ ] `getCountFromServer` call sites become cache-friendly (stored counters or
   local counts) — a server count cannot answer offline.
 
@@ -70,11 +75,14 @@ live sync; the JS SDK on RN just cannot use it.
 - Plain document writes queue offline (Firestore does it). Callables
   (registration, joins, approvals) need the server: offline they show
   "Sin conexión" — capacity and authority cannot be decided offline.
-- Sign-out clears the local cache (`clearPersistence`): it holds member-only data.
+- Sign-out clears the local cache (`clearPersistence`): it holds member-only
+  data, and a cache read is not checked against the security rules.
 - Offline state is a quiet banner ("Sin conexión — mostrando datos guardados"),
   never a blocking screen.
 
 ## Risks
 
-- `withConverter` + Zod converters on RNFirebase — the spike's whole point.
-- A long tail of JS-SDK assumptions (ordago's migration had one).
+- A long tail of JS-SDK assumptions (ordago's migration had one). The Zod
+  converters run unchanged on RNFirebase; Android passes the Maestro suite.
+- iOS has compiled but not yet run on the native SDKs — the next TestFlight
+  build is the first.

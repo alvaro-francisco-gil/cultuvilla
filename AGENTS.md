@@ -169,7 +169,7 @@ detail screen; add a scaffold consumer. The term is also carried by
 
 ### State and data fetching
 
-React Context for cross-tree state (auth, village). No global store. No query cache today — every component fetches its own data via services. Don't roll your own cache: the fix is Firestore's own persistent cache on the native SDK, planned in [docs/plans/ready/offline-first-village.md](docs/plans/ready/offline-first-village.md).
+React Context for cross-tree state (auth, village). No global store, no query cache: the cache is Firestore's own persistent one on the native SDK. A screen reads through a service's `watch*` function and `useWatch` (`apps/mobile/lib/hooks/useWatch.ts`), so it paints from the device and stays live; a `get*` read plus a `useFocusEffect` reload is the legacy shape, kept only for per-user data not yet moved. Don't roll your own cache — see [docs/plans/ongoing/offline-first-village.md](docs/plans/ongoing/offline-first-village.md).
 
 ### Styling
 

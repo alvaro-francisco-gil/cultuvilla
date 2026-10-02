@@ -9,7 +9,7 @@ never from `firebase/*` or `@react-native-firebase/*` directly.
 | `*.native.ts` | Metro and jest-expo (iOS/Android) | `@react-native-firebase/*` |
 
 The app runs the native SDK for its persistent offline cache
-(docs/plans/ready/offline-first-village.md); the shared tests keep running the
+(docs/plans/ongoing/offline-first-village.md); the shared tests keep running the
 JS SDK against the emulators. Both expose the same modular names, and
 `sdkParity.test.ts` fails if a value export exists on one side only.
 
