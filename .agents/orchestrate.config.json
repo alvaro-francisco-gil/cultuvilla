@@ -3,7 +3,7 @@
   "project": "cultuvilla",
   "_maxWorkers": "Not CI-bound: ci.yml runs on free GitHub-hosted runners (public repo). The ceiling is the machine — each worker holds a pnpm install, a functions install and, while testing, a JVM Firestore emulator.",
   "maxWorkers": 4,
-  "_maxConcurrentEmulatorSuites": "Measured on the sibling Órdago repo on the same 16 GB WSL2 host: two concurrent emulator suites, not three. Workers run targeted tests and let the PR's CI run the full gate, as AGENTS.md already asks of worktrees.",
+  "_maxConcurrentEmulatorSuites": "Measured here on 2026-10-02 (WSL2 sees 11 GB): two slotted `pnpm test:rules` runs side by side both passed (615/615 each). Minutes later a single `pnpm test:functions` run, with two worktrees' installs resident, ended in a WSL VM restart — cause unconfirmed, memory suspected. Treat 2 as the ceiling for rules/integration suites; run the functions suite alone, or leave it to CI.",
   "maxConcurrentEmulatorSuites": 2,
   "worktreesDir": ".claude/worktrees",
   "_worktreeSetup": "A fresh worktree has no node_modules, functions/ has its own npm install (AGENTS.md, Commands), and the functions bundle imports @cultuvilla/shared's BUILT output — without `shared:build` every emulator suite dies in the harness's functions build with 'Could not resolve @cultuvilla/shared/…'. Never symlink the main checkout's node_modules in: the workspace links are relative and would resolve to the main checkout's packages.",
