@@ -22,8 +22,13 @@ Do not fork their instructions locally: repository-specific policy belongs in
 if you separately installed that plugin globally, disable it for this project to
 avoid exposing two copies.
 
-Existing shared skills may link into `.agents/_shared`. Run
-`git submodule update --init --recursive` after cloning and in new worktrees.
+Shared skills link into the `.agents/_shared` submodule
+([agent-skills](https://github.com/alvaro-francisco-gil/agent-skills)): `ship-a-feature`,
+`orchestrate` and `advance-ongoing-plans`, plus the scripts `scripts/pr-land.js`,
+`scripts/plans-map.js` and `scripts/agent-env.sh`. Their repo-specific values live in
+`land.config.json` and `orchestrate.config.json` here — never edit the submodule to fit
+this repo. Run `git submodule update --init --recursive` after cloning and in new
+worktrees; until then every one of those links dangles.
 
 References: [Claude instructions](https://code.claude.com/docs/en/memory#read-agentsmd),
 [Claude skills](https://code.claude.com/docs/en/skills),

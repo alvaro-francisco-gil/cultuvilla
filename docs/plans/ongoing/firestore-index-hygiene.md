@@ -1,6 +1,7 @@
 # Firestore index hygiene — remove orphaned indexes
 
 **Priority:** low
+**Landed:** dev
 **Gate:** none
 **Next:** run the beta orphan cleanup (a `--force` index deploy from a clean `origin/main`, with explicit go for a beta deploy) and re-verify live == file
 

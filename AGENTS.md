@@ -458,6 +458,23 @@ pnpm backfills:test                                   # registry unit tests
   script. Deleting those would throw away the answer to "how do I repopulate
   this?", so retire one only after its entry in that doc goes too.
 
+### Plans carry a metadata block, and the map is generated
+
+<!-- plans:landed -->
+
+Every plan carries the block `managing-plans-lifecycle` defines (agent-plans v2):
+`**Priority:**` everywhere, plus `**Landed:** / **Gate:** / **Next:**` once it is in
+`ongoing/`. The comment above is the machine-readable switch that makes `Landed`
+required here: this repo deploys, and `Landed` (`none | dev | beta | prod | n/a`, the
+furthest env where the code is live) is the retirement gate — merged is not verified.
+Don't write `Status`/`Stage`/`Updated` lines; the folder and git carry them.
+
+[docs/plans/_plans-map.md](docs/plans/_plans-map.md) is **generated — never edit it,
+never commit it from a branch.** [plans-map.yml](.github/workflows/plans-map.yml)
+validates every block on a PR and regenerates the map on each push to `develop`.
+`pnpm plans:validate` checks your edit locally; `pnpm plans:map` renders it for a
+look. The generator is shared (`scripts/plans-map.js` links into `.agents/_shared`).
+
 ### Comments
 
 Don't explain *what* the code does — name things well instead. Only comment to explain *why* something non-obvious is the way it is: a security constraint, a Firestore quirk, a workaround for a specific bug.
@@ -662,6 +679,20 @@ reviewer. All daily work targets `develop`. See
 - **Rebase only when the base moved *into* your diff** — path intersection, or a `packages/shared/**` / lockfile / rules move. `pr:land` decides; don't pre-emptively rebase.
 - **Hard-stop list — these never self-merge, however green:** `firestore.rules`, `storage.rules`, `firestore.indexes.json`, `scripts/backfill*`, `packages/shared/src/firebase/converters/**`, and **any PR targeting `beta`/`main`**. "Green" answers *did the tests pass*, not *is the blast radius acceptable*.
 - **A red lane is not automatically your bug.** Read the log before changing code.
+
+**Parallel batches.** One leader session can run several workers at once with the
+shared `orchestrate` skill (pick a batch with the user, then dispatch), or
+`advance-ongoing-plans` (drain `docs/plans/ongoing/` with no `go`). Fleet facts —
+session names, `maxWorkers`, worktree setup — live in
+[.agents/orchestrate.config.json](.agents/orchestrate.config.json). Each worker
+inherits this whole contract, the hard-stop list included. In a worktree, run
+**`source scripts/agent-env.sh`** once before any emulator test: it installs
+dependencies and writes a gitignored `firebase.agent.json` that moves this worktree's
+emulators onto their own ports, which
+[run-tests-with-emulators.mjs](scripts/run-tests-with-emulators.mjs) then uses. Without
+it, two worktrees running emulator suites share 8080/9099 and one silently breaks the
+other's tests. The leader frees the slot with `source scripts/agent-env.sh --clean`
+before removing the worktree.
 
 **This repo overrides two `superpowers` skills.** `superpowers:brainstorming`'s one-question-per-message rule and `superpowers:finishing-a-development-branch`'s stop-and-ask merge menu are **superseded by `ship-a-feature`**. Every other superpowers skill still applies.
 

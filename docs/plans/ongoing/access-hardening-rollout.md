@@ -1,6 +1,7 @@
 # Access-hardening rollout
 
 **Priority:** high
+**Landed:** dev
 **Gate:** none
 **Next:** promote `develop → beta` (a `release/X.Y.Z` branch; the maintainer merges the PR)
 

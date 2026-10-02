@@ -1,6 +1,7 @@
 # Existing signup emails — retroactive send rollout
 
 **Priority:** low
+**Landed:** prod
 **Gate:** decision:run the retroactive signup emails on prod (and on beta, still undecided)?
 **Next:** grant the prod runner access to `RESEND_API_KEY`, dry-run prod, review the recipient list, apply
 
