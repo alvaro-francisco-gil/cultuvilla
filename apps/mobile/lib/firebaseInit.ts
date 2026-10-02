@@ -1,21 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
 // @firebase/auth exports `getReactNativePersistence` only via the "react-native"
-// export condition in its package.json. On native, Metro resolves it at
-// runtime; on web, the symbol is undefined and calling it throws. The branch
-// in bootstrapFirebase() ensures we never reach the call on web.
+// export condition in its package.json, which Metro resolves at runtime.
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error -- getReactNativePersistence is in the RN bundle but absent from auth-public.d.ts
 import { initializeAuth, getReactNativePersistence } from '@firebase/auth';
 import type { FirebaseOptions } from 'firebase/app';
 import Constants from 'expo-constants';
-import {
-  browserLocalPersistence,
-  browserPopupRedirectResolver,
-  connectAuthEmulator,
-  inMemoryPersistence,
-  indexedDBLocalPersistence,
-} from 'firebase/auth';
+import { connectAuthEmulator } from 'firebase/auth';
 import { connectFirestoreEmulator } from 'firebase/firestore';
 import { connectFunctionsEmulator } from 'firebase/functions';
 import { connectStorageEmulator } from 'firebase/storage';
@@ -95,7 +86,7 @@ function connectEmulatorsIfEnabled(): void {
 }
 
 /**
- * Initialise Firebase with explicit, platform-appropriate auth persistence.
+ * Initialise Firebase with AsyncStorage-backed auth persistence.
  *
  * Idempotent — `initFirebase` returns early if already initialised, and the
  * module-level guard prevents the options object from being rebuilt on every
@@ -103,28 +94,12 @@ function connectEmulatorsIfEnabled(): void {
  */
 export function bootstrapFirebase(): void {
   const config = getFirebaseOptions();
-  if (Platform.OS === 'web') {
-    // Pin the persistence chain explicitly rather than relying on
-    // firebase/auth's environment auto-detection (plain getAuth(app)): the
-    // default silently downgrades to session/in-memory persistence in
-    // storage-restricted contexts (Safari private browsing, in-app browsers
-    // like WhatsApp/Instagram webviews), which signs users out on every
-    // visit and forces them back through the email-link round-trip.
-    initFirebase(config, {
-      customizeAuth: (app) =>
-        initializeAuth(app, {
-          persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence],
-          popupRedirectResolver: browserPopupRedirectResolver,
-        }),
-    });
-  } else {
-    initFirebase(config, {
-      customizeAuth: (app) =>
-        initializeAuth(app, {
-          persistence: getReactNativePersistence(AsyncStorage),
-        }),
-    });
-  }
+  initFirebase(config, {
+    customizeAuth: (app) =>
+      initializeAuth(app, {
+        persistence: getReactNativePersistence(AsyncStorage),
+      }),
+  });
   // Must run before any service issues a read/write; connect*Emulator throws
   // once the SDK has been used against production hosts.
   connectEmulatorsIfEnabled();

@@ -289,10 +289,8 @@ which failed once before it was understood.
 4. **Push never reaches installed apps over OTA.** `expo-notifications` moves
    the native fingerprint, so it ships in a store binary or not at all.
 
-Web gets no push, deliberately and without a wall — see
+Push is app-only: the web is a server-rendered read site with no accounts — see
 [web-is-a-read-site.md](../../decisions/web-is-a-read-site.md).
-The web build ships a `.web.ts` twin of the push client that never imports
-`expo-notifications`; `check-web-export` confirms no native module leaks.
 
 ## Follow-ups
 

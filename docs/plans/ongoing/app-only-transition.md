@@ -2,7 +2,7 @@
 
 **Priority:** high — unblocks offline-first, the main app-speed fix
 **Gate:** none
-**Next:** delete the Expo web export code, checks and web E2E (phase 4), then verify the dev cutover with the `curl` checks below
+**Next:** promote to beta and run the phase 3 `curl` checks there; meanwhile start the offline-first plan (its gate is now open)
 **Due:** 2027-04-30
 
 The decision and the data behind it are in
@@ -110,12 +110,17 @@ weeks later.
 
 ## Phase 4 — delete the Expo web export
 
-- [ ] `.web.*` overrides, `Platform.OS === 'web'` branches, `seoShell`,
-      `useWebPullToRefresh`, `apps/mobile/public/index.html`
-- [ ] `app:web:build`, `check-web-compat`, `check-web-export`, the Playwright
-      web E2E (`test:e2e:web`) and its CI lane — replaced by the read site's tests
-- [ ] The `mobile-web-compat` skill and the web memories it encodes
-- [ ] AGENTS.md: drop the web sections that describe the export
+- [x] `.web.*` overrides, `Platform.OS === 'web'` branches, `seoShell`, web
+      pull-to-refresh, `SmartAppBanner`, the desktop carousel arrows,
+      `public/index.html`, the `web` block in `app.config.ts`
+- [x] `react-native-web`, `react-dom`, `react-easy-crop`, Playwright
+- [x] `app:web:build`, `check-web-compat`, `check-web-export`, the Playwright
+      suite (`test:e2e:web`) and its CI job
+- [x] The `mobile-web-compat` skill
+- [ ] Port the product flows only Playwright covered to Maestro: create and
+      publish an event, news lifecycle, org create → approve → join, organizer
+      request approval, waitlist promotion, content soft-hide, delete-account
+      blockers, register a family member
 
 ## Phase 5 — web sign-up decision
 

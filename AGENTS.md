@@ -132,13 +132,12 @@ Google search. Every public read route must resolve on web, permanently: share
 previews and the printed `/descarga` QR depend on it. Actions on web are app
 calls-to-action (universal link, store fallback), not flows.
 
-**Transition in progress:** today `apps/mobile/` still ships an Expo web export,
-fenced by `pnpm app:check-web-compat` / `pnpm app:check-web-export` and the
-`mobile-web-compat` skill. It is being replaced route by route by a separate
-server-rendered read site, then deleted — tracked in
-[docs/plans/ongoing/app-only-transition.md](docs/plans/ongoing/app-only-transition.md).
-Until a route has moved, don't break it on the export; don't add web twins or
-web fallbacks for new app features either.
+The web is the **read site**: the `readSite` Cloud Function
+([functions/src/web/](functions/src/web/)) server-renders every public page,
+and Hosting serves only its static files (`web/`). `apps/mobile/` builds for
+iOS and Android only — no Expo web export, no `.web.*` files, no
+`Platform.OS === 'web'` branches. A new entity needs a read page there as well
+as its app screen.
 
 Read [docs/decisions/web-is-a-read-site.md](docs/decisions/web-is-a-read-site.md)
 before adding anything to the web, or proposing that web sign-up return.
@@ -473,7 +472,6 @@ pnpm lint             # eslint --max-warnings 0 in packages/shared + functions
 pnpm typecheck        # tsc --noEmit in shared, functions, i18n, mobile
 pnpm test             # vitest (shared) + jest (mobile) + functions, under emulators
 pnpm backfills:list   # registered data migrations (see Backfills)
-pnpm test:e2e:web     # Playwright over the web export, under emulators
 pnpm test:e2e:android # Maestro on an Android AVD, under emulators (needs a device)
 pnpm check:store-claims # verify the store-release runbook against live infra
 ```
@@ -598,8 +596,7 @@ prefer targeted tests/typechecks locally and let the PR's CI run the full gate. 
 direct-to-`develop` mode, run the full gate locally before committing:
 
 - `pnpm check` (the full gate), `pnpm test`, `pnpm test:emulators`,
-  `pnpm test:integration`, `pnpm test:rules`, `pnpm test:functions`,
-  `pnpm test:e2e:web` (Playwright over the web export)
+  `pnpm test:integration`, `pnpm test:rules`, `pnpm test:functions`
 
 `pnpm test:e2e:android` (Maestro on an AVD) is the same shape but needs a booted
 Android emulator, which this environment usually lacks — CI's `android-e2e`

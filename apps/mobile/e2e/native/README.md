@@ -1,29 +1,16 @@
 # Native E2E (Maestro on Android)
 
-The native half of the E2E substrate described in
-[docs/decisions/e2e-testing-substrate.md](../../../../docs/decisions/e2e-testing-substrate.md).
-Same seeded fixtures, same "assert on Firestore emulator state, not on the view
-hierarchy" discipline as the web (Playwright) suite — **only the driver differs**.
-
-## Why it exists next to the web suite
-
-The web suite runs the same React tree through react-native-web, so it proves the
-product logic. It cannot prove the *platform*. Everything in this list is shipped
-to users and invisible to Playwright:
-
-- native app boot and the Expo Router **deep-link intent** path,
-- **AsyncStorage** auth persistence (web uses IndexedDB),
-- the native Firebase SDK,
-- RN `Modal`, bottom sheets, `FlatList` pickers and the **soft keyboard**,
-- **`Alert.alert`** — react-native-web ships it as a *no-op*, so the web driver
-  has never once executed a confirmation dialog (see the `mobile-web-compat`
-  skill). `22-unregister-from-event` is the first test that does.
+The app's end-to-end suite, described in
+[docs/decisions/e2e-testing-substrate.md](../../../../docs/decisions/e2e-testing-substrate.md):
+seeded fixtures, assertions on Firestore emulator state rather than the view
+hierarchy, Maestro driving the real Android build. It is the only E2E suite —
+the Playwright web suite went with the Expo web build
+(docs/decisions/web-is-a-read-site.md).
 
 ## In CI
 
 [.github/workflows/android-e2e.yml](../../../../.github/workflows/android-e2e.yml)
-runs the whole suite on an AVD, gated to the **beta/main release paths** exactly
-like `web-e2e` — a Gradle build plus an emulator boot is far too slow for
+runs the whole suite on an AVD, gated to the **beta/main release paths** — a Gradle build plus an emulator boot is far too slow for
 day-to-day `develop` PRs, and `beta` is the release candidate, the last point
 where a native-only regression can be caught before it becomes a store binary.
 `workflow_dispatch` is enabled so a native regression can be chased from any

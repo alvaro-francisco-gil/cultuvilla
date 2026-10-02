@@ -8,16 +8,11 @@
     "start:lan": "expo start --lan",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web",
-    "web:build": "expo export --platform web",
     "test": "jest",
     "eas-build-post-install": "pnpm --filter @cultuvilla/shared build",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "typecheck": "tsc --noEmit",
-    "e2e": "playwright test --config e2e/playwright.config.ts",
-    "e2e:ui": "playwright test --config e2e/playwright.config.ts --ui",
-    "e2e:browser": "playwright test --config e2e/browser.config.ts"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@cultuvilla/i18n": "workspace:*",
@@ -58,18 +53,14 @@
     "lottie-react-native": "~7.3.8",
     "nativewind": "^4.2.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "react-easy-crop": "^6.1.0",
     "react-native": "0.85.3",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.25.2",
-    "react-native-web": "^0.21.2",
     "scheduler": "^0.27.0",
     "semver": "^7.8.1"
   },
   "devDependencies": {
     "@expo/ngrok": "^4.1.3",
-    "@playwright/test": "^1.49.1",
     "@testing-library/jest-native": "^5.4.3",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^29.5.14",

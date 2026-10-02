@@ -24,7 +24,6 @@ import { NewsCard } from '../../components/feature/NewsCard';
 import { SegmentedToggle } from '../../components/feature/SegmentedToggle';
 import { FilterPill, FILTER_PILL_HEIGHT } from '../../components/feature/FilterPill';
 import { FilterSheet, type FilterSheetOption } from '../../components/feature/FilterSheet';
-import { PullSpinner } from '../../components/feature/PullSpinner';
 import { AppHeader } from '../../components/layout/AppHeader';
 import { useAuth } from '../../lib/auth/useAuth';
 import { useMyOrgIds } from '../../lib/orgs/useMyOrgIds';
@@ -32,8 +31,6 @@ import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useMyRegistrations } from '../../lib/registrations/MyRegistrationsContext';
 import { useT } from '../../lib/i18n';
 import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
-import { webSpread } from '../../lib/platform';
-import { useWebPullToRefresh } from '../../lib/useWebPullToRefresh';
 import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 import {
   getPrivateUpcomingFeed,
@@ -209,20 +206,6 @@ export default function FeedScreen() {
     if (activeTab === 'noticias' && news === null) void loadNews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
-
-  // Web-only pull-to-refresh (RefreshControl is inert on react-native-web). The
-  // hook owns the pull animation + spinner timing; it returns an offset we apply
-  // to the list wrapper so the cards follow the drag. Native uses RefreshControl.
-  const { translateY: eventsPull } = useWebPullToRefresh(
-    eventsListRef,
-    load,
-    events !== null && !error,
-  );
-  const { translateY: newsPull } = useWebPullToRefresh(
-    newsListRef,
-    loadNews,
-    news !== null && !newsError,
-  );
 
   // Reference point for proximity sort: the user's active village coordinates.
   const referenceCoords = useMemo<LatLng | null>(
@@ -451,9 +434,6 @@ export default function FeedScreen() {
     ) : error ? (
       <ErrorState error={error} onRetry={load} />
     ) : (
-      <View style={{ flex: 1 }}>
-        <PullSpinner pull={eventsPull} top={feedPaddingTop} />
-        <Animated.View style={{ flex: 1, transform: [{ translateY: eventsPull }] }}>
       <FlatList
         ref={eventsListRef}
         style={{ flex: 1 }}
@@ -505,8 +485,6 @@ export default function FeedScreen() {
           />
         }
       />
-        </Animated.View>
-      </View>
     );
 
   const newsPage =
@@ -517,9 +495,6 @@ export default function FeedScreen() {
     ) : newsError ? (
       <ErrorState error={newsError} onRetry={loadNews} />
     ) : (
-      <View style={{ flex: 1 }}>
-        <PullSpinner pull={newsPull} top={feedPaddingTop} />
-        <Animated.View style={{ flex: 1, transform: [{ translateY: newsPull }] }}>
       <FlatList
         ref={newsListRef}
         style={{ flex: 1 }}
@@ -562,8 +537,6 @@ export default function FeedScreen() {
           />
         }
       />
-        </Animated.View>
-      </View>
     );
 
   return (
@@ -578,17 +551,9 @@ export default function FeedScreen() {
           scrollEventThrottle={32}
           onScroll={onPagerScroll}
           style={{ flex: 1 }}
-          // Web-only: RN-Web doesn't stretch a horizontal ScrollView's children
-          // to its cross-axis height the way native does, so the page wrappers
-          // (and the FlatList's flex:1 inside) have no bounded height and the
-          // list grows to content height instead of becoming an internal
-          // scroller — vertical scroll silently dies. Bounding the content
-          // container to one viewport height gives the `height: '100%'` chain
-          // below something to resolve against. No-op on native.
-          contentContainerStyle={webSpread({ height: '100%' as const })}
         >
           {TABS.map((tab) => (
-            <View key={tab} style={{ width, ...webSpread({ height: '100%' as const }) }}>
+            <View key={tab} style={{ width }}>
               {tab === 'eventos' ? eventsPage : newsPage}
             </View>
           ))}
