@@ -33,6 +33,7 @@ import {
   type VocabularyDefinitionData,
   type VocabularyDefinitionDataInput,
 } from '../models/vocabulary/VocabularyDefinitionDataModel';
+import { watchQuery, type Unwatch, type WatchError } from './watch';
 
 export type VocabularyTermWithId = VocabularyTermData & { id: string };
 export type VocabularyWordWithId = VocabularyWordData & { id: string };
@@ -54,15 +55,26 @@ export async function getVocabularyTerm(termId: string): Promise<VocabularyTermW
  * search box in memory. A server-side prefix query would cost an extra index
  * and a round trip per keystroke to search a list that already fits in one.
  */
-export async function getVocabularyTerms(municipalityId: string): Promise<VocabularyTermWithId[]> {
-  const q = query(
+function vocabularyTermsQuery(municipalityId: string) {
+  return query(
     vocabularyTermsCollection(getDb()),
     where('municipalityId', '==', municipalityId),
     where('status', '==', 'active'),
     orderBy('normalized', 'asc'),
   );
-  const snap = await getDocs(q);
+}
+
+export async function getVocabularyTerms(municipalityId: string): Promise<VocabularyTermWithId[]> {
+  const snap = await getDocs(vocabularyTermsQuery(municipalityId));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export function watchVocabularyTerms(
+  municipalityId: string,
+  onNext: (terms: VocabularyTermWithId[]) => void,
+  onError: WatchError,
+): Unwatch {
+  return watchQuery(vocabularyTermsQuery(municipalityId), onNext, onError);
 }
 
 /**
@@ -142,17 +154,28 @@ export function deleteVocabularyTerm(termId: string): Promise<void> {
 
 // ── Definitions ──────────────────────────────────────────────────────────
 
-export async function getVocabularyDefinitions(
-  termId: string,
-): Promise<VocabularyDefinitionWithId[]> {
-  const q = query(
+function vocabularyDefinitionsQuery(termId: string) {
+  return query(
     vocabularyDefinitionsCollection(getDb()),
     where('termId', '==', termId),
     where('status', '==', 'active'),
     orderBy('createdAt', 'asc'),
   );
-  const snap = await getDocs(q);
+}
+
+export async function getVocabularyDefinitions(
+  termId: string,
+): Promise<VocabularyDefinitionWithId[]> {
+  const snap = await getDocs(vocabularyDefinitionsQuery(termId));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export function watchVocabularyDefinitions(
+  termId: string,
+  onNext: (definitions: VocabularyDefinitionWithId[]) => void,
+  onError: WatchError,
+): Unwatch {
+  return watchQuery(vocabularyDefinitionsQuery(termId), onNext, onError);
 }
 
 /**

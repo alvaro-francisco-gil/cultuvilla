@@ -2,7 +2,7 @@
 
 **Priority:** high — the main reason the app feels slow
 **Gate:** none
-**Next:** land layer 1 (SDK seam, native SDKs) once android-e2e is green on it, then move the hottest reads to listeners (layer 2, `useVillageHome` first)
+**Next:** move the Inicio feed onto watchers, then entity detail screens (layer 2 continues)
 
 ## Goal
 
@@ -40,14 +40,19 @@ live sync; the JS SDK on RN just cannot use it.
 - Native → store build, not OTA. Android is exercised by Maestro; iOS first
   compiles on the next build.
 
-### 2. Cache-first reads
+### 2. Cache-first reads — village home done
 
-- One-shot `getDocs` (89 call sites) become listeners through
-  `useFirestoreQuery` / `useFirestoreDoc` hooks (ordago has both): cache
-  answers in milliseconds, the server pushes updates.
-- Delete the 36 `useFocusEffect` reload sites as each screen moves over;
-  `useVillageHome` is the first and biggest.
-- `getCountFromServer` call sites become cache-friendly (stored counters or
+- Services gain `watch*` twins of their `get*` reads (`services/watch.ts`:
+  `watchQuery`, `watchDoc`, `watchMerged`), built from the same query builder,
+  so the query shape — and its index — has one source.
+- The app subscribes through `useWatch(label, key, watcher)`; a new key
+  resubscribes, the same key keeps the listener across renders and focus.
+- `useVillageHome` runs on watchers: the village doc and all eight scrolls.
+  Its per-user chrome (membership, admin, requests, censo) stays a one-shot
+  read refreshed on focus.
+- [ ] Next screens, hottest first: the Inicio feed, entity detail screens,
+  mis-inscripciones. Delete each screen's `useFocusEffect` reload as it moves.
+- [ ] `getCountFromServer` call sites become cache-friendly (stored counters or
   local counts) — a server count cannot answer offline.
 
 ### 3. Village sync

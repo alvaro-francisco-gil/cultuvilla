@@ -4,6 +4,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+- The village home is live: it paints from the on-device cache at once (offline
+  too) and updates as the village changes, instead of reloading every time
+  you return to it.
 - The app runs the native Firebase SDKs (`@react-native-firebase/*`) instead of
   the JS SDK: Firestore keeps a persistent on-device cache, the groundwork for
   opening offline. Services are unchanged; they reach Firebase through an SDK

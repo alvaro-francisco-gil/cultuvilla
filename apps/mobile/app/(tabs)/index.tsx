@@ -30,14 +30,14 @@ import { useMyOrgIds } from '../../lib/orgs/useMyOrgIds';
 import { useRegisterGate } from '../../lib/auth/RegisterGateContext';
 import { useMyRegistrations } from '../../lib/registrations/MyRegistrationsContext';
 import { useT } from '../../lib/i18n';
-import { withFirestoreErrorLog } from '../../lib/firestoreErrorLog';
+import { useWatch } from '../../lib/hooks/useWatch';
 import { observability, OBSERVABILITY_EVENTS } from '@cultuvilla/shared';
 import {
-  getPrivateUpcomingFeed,
-  getUpcomingFeed,
   haversineKm,
+  watchPrivateUpcomingFeed,
+  watchUpcomingFeed,
 } from '@cultuvilla/shared/services/feedService';
-import { getAllVillagesFeed } from '@cultuvilla/shared/services/newsService';
+import { watchAllVillagesFeed } from '@cultuvilla/shared/services/newsService';
 import { getActiveCommunities } from '@cultuvilla/shared/services/municipalityService';
 import type { EventData } from '@cultuvilla/shared/models/event/EventDataModel';
 import {
@@ -105,13 +105,48 @@ export default function FeedScreen() {
   const eventsListRef = useRef<FlatList<FeedEvent>>(null);
   const newsListRef = useRef<FlatList<FeedNews>>(null);
 
-  const [events, setEvents] = useState<FeedEvent[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  // Both feeds are live listeners: they paint from the on-device cache at once
+  // and update on their own, so focus no longer refetches them. Bumping a retry
+  // counter re-opens a listener after an error. The day is part of the events
+  // key because the feed's lower bound is "start of today".
+  const [eventsRetry, setEventsRetry] = useState(0);
+  const [newsRetry, setNewsRetry] = useState(0);
+  const [newsOpened, setNewsOpened] = useState(false);
+  const today = new Date().toDateString();
 
-  const [news, setNews] = useState<FeedNews[] | null>(null);
-  const [newsError, setNewsError] = useState<string | null>(null);
-  const [newsRefreshing, setNewsRefreshing] = useState(false);
+  // Two listeners, not one: the public feed is a single query, while the
+  // private half is one query per org the viewer belongs to — rules do not
+  // filter a list, so each query must ask only for rows this viewer may read.
+  // The private half is best-effort: losing it must not empty the feed.
+  const publicFeed = useWatch<FeedEvent[]>(
+    'feed:watchUpcomingFeed',
+    `${today}|${String(eventsRetry)}`,
+    (next, fail) => watchUpcomingFeed(50, next, fail),
+  );
+  const privateFeed = useWatch<FeedEvent[]>(
+    'feed:watchPrivateUpcomingFeed',
+    `${today}|${orgIds.join(',')}|${String(eventsRetry)}`,
+    (next, fail) => watchPrivateUpcomingFeed(orgIds, next, fail),
+  );
+  const events = useMemo<FeedEvent[] | null>(
+    () =>
+      publicFeed.data
+        ? [...publicFeed.data, ...(privateFeed.data ?? [])].sort(
+            (a, b) => a.endBoundary.getTime() - b.endBoundary.getTime(),
+          )
+        : null,
+    [publicFeed.data, privateFeed.data],
+  );
+  const error = publicFeed.error?.message ?? null;
+
+  // Lazily opened the first time the user visits the news tab.
+  const newsFeed = useWatch<FeedNews[]>(
+    'feed:watchAllVillagesFeed',
+    newsOpened ? `news|${String(newsRetry)}` : null,
+    (next, fail) => watchAllVillagesFeed({ limit: 50 }, next, fail),
+  );
+  const news = newsFeed.data ?? null;
+  const newsError = newsFeed.error?.message ?? null;
 
   const [activeTab, setActiveTab] = useState<FeedTab>(TABS[0]);
 
@@ -138,41 +173,6 @@ export default function FeedScreen() {
   // intercepting taps meant for the feed behind them.
   const [filterInteractive, setFilterInteractive] = useState(true);
 
-  async function load() {
-    try {
-      setError(null);
-      // Two queries, not one: the public feed is a single paged query, while
-      // the private half is one query per org the viewer belongs to — rules do
-      // not filter a list, so each query must ask only for rows this viewer may
-      // read. The private half is best-effort: losing it must not empty the feed.
-      const [result, mine] = await Promise.all([
-        withFirestoreErrorLog('feed:getUpcomingFeed', () => getUpcomingFeed(50)),
-        withFirestoreErrorLog('feed:getPrivateUpcomingFeed', () =>
-          getPrivateUpcomingFeed(orgIds),
-        ).catch(() => []),
-      ]);
-      setEvents(
-        [...result.events, ...mine].sort(
-          (a, b) => a.endBoundary.getTime() - b.endBoundary.getTime(),
-        ),
-      );
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'unknown');
-    }
-  }
-
-  async function loadNews() {
-    try {
-      setNewsError(null);
-      const result = await withFirestoreErrorLog('feed:getAllVillagesFeed', () =>
-        getAllVillagesFeed({ limit: 50 }),
-      );
-      setNews(result);
-    } catch (e) {
-      setNewsError(e instanceof Error ? e.message : 'unknown');
-    }
-  }
-
   // Village list for the filter pills — static enough to fetch once on mount.
   useEffect(() => {
     void getActiveCommunities()
@@ -188,23 +188,16 @@ export default function FeedScreen() {
       .catch(() => setVillages([]));
   }, []);
 
-  // Refetch the events feed whenever Explore regains focus (covers first mount
-  // too), so an event just created on another screen shows up on return without
-  // a manual refresh. Mirrors useVillageHome / the detail screens.
+  // Signing up happens on the event screen, so the tallies behind the
+  // "apuntado" ribbons are stale by the time the user comes back here.
   useFocusEffect(
     useCallback(() => {
-      void load();
-      // Signing up happens on the event screen, so the tallies behind the
-      // "apuntado" ribbons are stale by the time the user comes back here.
       refreshRegistrations();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [orgIds]),
+    }, [refreshRegistrations]),
   );
 
-  // Lazily load the news feed the first time the user opens the tab.
   useEffect(() => {
-    if (activeTab === 'noticias' && news === null) void loadNews();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (activeTab === 'noticias') setNewsOpened(true);
   }, [activeTab]);
 
   // Reference point for proximity sort: the user's active village coordinates.
@@ -432,7 +425,7 @@ export default function FeedScreen() {
         <ActivityIndicator />
       </View>
     ) : error ? (
-      <ErrorState error={error} onRetry={load} />
+      <ErrorState error={error} onRetry={() => setEventsRetry((n) => n + 1)} />
     ) : (
       <FlatList
         ref={eventsListRef}
@@ -475,14 +468,8 @@ export default function FeedScreen() {
           />
         )}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={async () => {
-              setRefreshing(true);
-              await load();
-              setRefreshing(false);
-            }}
-          />
+          // The feed is live; a pull only refreshes the "apuntado" ribbons.
+          <RefreshControl refreshing={false} onRefresh={refreshRegistrations} />
         }
       />
     );
@@ -493,7 +480,7 @@ export default function FeedScreen() {
         <ActivityIndicator />
       </View>
     ) : newsError ? (
-      <ErrorState error={newsError} onRetry={loadNews} />
+      <ErrorState error={newsError} onRetry={() => setNewsRetry((n) => n + 1)} />
     ) : (
       <FlatList
         ref={newsListRef}
@@ -526,16 +513,6 @@ export default function FeedScreen() {
             }}
           />
         )}
-        refreshControl={
-          <RefreshControl
-            refreshing={newsRefreshing}
-            onRefresh={async () => {
-              setNewsRefreshing(true);
-              await loadNews();
-              setNewsRefreshing(false);
-            }}
-          />
-        }
       />
     );
 
