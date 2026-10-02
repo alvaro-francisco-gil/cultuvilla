@@ -30,6 +30,17 @@ describe('app.config EAS identity', () => {
   });
 });
 
+describe('native Firebase on iOS', () => {
+  // SPM + static frameworks aborts `pod install`; the first iOS build after the
+  // native SDKs landed failed exactly there. Both settings must hold together.
+  it('links static frameworks with Firebase resolved through CocoaPods, not SPM', () => {
+    const plugins = (config.plugins ?? []) as (string | [string, unknown])[];
+    const options = (name: string) => plugins.find((p) => Array.isArray(p) && p[0] === name)?.[1];
+    expect(options('expo-build-properties')).toMatchObject({ ios: { useFrameworks: 'static' } });
+    expect(options('@react-native-firebase/app')).toEqual({ ios: { disableSPM: true } });
+  });
+});
+
 describe('apple-app-site-association', () => {
   const envs = ['dev', 'beta', 'prod'] as const;
   const bundleIdPerEnv = {

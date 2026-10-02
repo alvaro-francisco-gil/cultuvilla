@@ -279,7 +279,13 @@ const config: ExpoConfig = {
     },
   },
   plugins: [
-    ...(hasIosGoogleServicesFile ? ['@react-native-firebase/app'] : []),
+    // `disableSPM`: RNFirebase resolves the Firebase iOS SDK through Swift
+    // Package Manager by default, and SPM + the static linkage below aborts
+    // `pod install` ("SPM + static linkage is not supported" — each pod would
+    // embed its own Firebase copy). CocoaPods keeps a single copy.
+    ...(hasIosGoogleServicesFile
+      ? [['@react-native-firebase/app', { ios: { disableSPM: true } }] as [string, object]]
+      : []),
     // RNFirebase's pods are Swift and need static framework linkage. Always on,
     // not gated with the plist: the pods are autolinked either way.
     ['expo-build-properties', { ios: { useFrameworks: 'static' } }],
