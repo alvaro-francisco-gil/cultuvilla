@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildRobotsTxt } from '../../apps/mobile/scripts/write-robots.mjs';
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { buildRobotsTxt, buildWebStatic } from '../build-web-static.mjs';
 
 // dev and beta are public *.web.app sites full of demo seed data under the
 // Cultuvilla name. Allowing them is an invitation to index them.
@@ -23,4 +26,20 @@ test('prod: keeps people, invite links and private screens out', () => {
   }
   // A bare "Disallow: /" on prod would de-index the whole site.
   assert.doesNotMatch(txt, /^Disallow: \/$/m);
+});
+
+for (const env of ['dev', 'beta', 'prod']) {
+  test(`${env}: assembles its own deep-link identities, robots and brand files`, () => {
+    const out = buildWebStatic(env, mkdtempSync(join(tmpdir(), 'web-static-')));
+    const aasa = readFileSync(join(out, '.well-known/apple-app-site-association'), 'utf8');
+    assert.equal(aasa, readFileSync(new URL(`../../web/well-known/${env}/apple-app-site-association`, import.meta.url), 'utf8'));
+    assert.ok(existsSync(join(out, '.well-known/assetlinks.json')));
+    assert.equal(readFileSync(join(out, 'robots.txt'), 'utf8'), buildRobotsTxt(env));
+    assert.ok(existsSync(join(out, 'brand/logo-96.png')));
+    assert.ok(existsSync(join(out, 'favicon.ico')));
+  });
+}
+
+test('rejects an unknown env', () => {
+  assert.throws(() => buildWebStatic('staging'), /unknown env/);
 });

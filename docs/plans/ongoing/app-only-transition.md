@@ -2,7 +2,7 @@
 
 **Priority:** high — unblocks offline-first, the main app-speed fix
 **Gate:** none
-**Next:** verify `readSite` on dev through its function URL, then switch the dev Hosting rewrites to it (phase 3)
+**Next:** delete the Expo web export code, checks and web E2E (phase 4), then verify the dev cutover with the `curl` checks below
 **Due:** 2027-04-30
 
 The decision and the data behind it are in
@@ -79,10 +79,18 @@ and `__tests__/handlers/web/` (every page and gate against the emulator).
 
 ## Phase 3 — cutover
 
-Switch `firebase.json` rewrites one route family at a time from
-`ogRenderer` / `index.html` to the read site, on dev → beta → prod. A route
-moves only once its share preview and JSON-LD are verified with `curl` on that
-env. Then delete `ogRenderer` and `sitemap` functions.
+Done in one step rather than route by route: every page now goes to the read
+site, so there is no SPA left to share routes with.
+
+- [x] `firebase.json`: `public` is `web/dist` (assembled per env by
+      `scripts/build-web-static.mjs` — brand files, this env's `.well-known`,
+      `robots.txt`); rewrites are `/sitemap.xml` → `sitemap`, `**` → `readSite`
+- [x] The deploy assembles static files instead of building the Expo export
+- [x] `ogRenderer` deleted
+- [ ] Verify per env after its deploy (`curl` with `?cb=$RANDOM`): a pueblo, an
+      event, a news post, `/descarga` from a phone UA, `/robots.txt`,
+      `/.well-known/apple-app-site-association` (JSON content type),
+      `/sitemap.xml`, and a WhatsApp preview of one event link
 
 Carry-over gotchas from the previous web setup that still apply:
 

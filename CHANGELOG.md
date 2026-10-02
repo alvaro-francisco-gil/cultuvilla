@@ -7,8 +7,11 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 - New server-rendered read site (`readSite` function): every public page of a
   pueblo — events, news, peñas, places, barrios, carteles, history and
   vocabulary — readable without the app, with share previews and structured
-  data; every action hands over to the app. Not routed yet: Hosting still
-  serves the Expo web build until the cutover.
+  data; every action hands over to the app.
+- The web is now the read site: Hosting serves its static files (`web/`) and
+  sends every page to `readSite`. The Expo web app is no longer deployed, and
+  the share-preview function `ogRenderer` is gone. Account and creation screens
+  on the web answer with an "open the app" page.
 - The sitemap no longer lists hidden news posts.
 - The fiestas Wrapped is now for the whole pueblo, not just its admins. Once
   published it opens as a story (tap to move between cards, hold to pause) at

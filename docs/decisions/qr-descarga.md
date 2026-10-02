@@ -12,7 +12,7 @@ without invalidating printed copies.
   Expo Router web route. The printed bytes never change; behavior
   changes only server/app-side.
 - **`/descarga` is deliberately *not* a Universal/App Link** — no
-  `apps/mobile/public/.well-known/**` entries reference it. Its job is to reach
+  `web/well-known/**` entries reference it. Its job is to reach
   the store, so it must open in the browser even where the app is installed.
 - **Phones go straight to their store, with no page in between.** On web,
   `apps/mobile/app/descarga.tsx` detects the device with the shared

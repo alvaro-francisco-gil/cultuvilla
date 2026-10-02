@@ -56,7 +56,7 @@ const bundleIdPerEnv: Record<Env, string> = {
 };
 
 // Each env's deep-link host MUST be a Firebase Hosting domain of that env's
-// project (where the ogRenderer rewrites live). dev = villa-events project,
+// project (where the readSite rewrites live). dev = villa-events project,
 // beta = cultuvilla-beta, prod = cultuvilla-prod. Prod uses the brand custom
 // domain cultuvilla.es (attached to the cultuvilla-prod site) so shared links
 // carry the brand, not the *.web.app default. The old villa-events-*.web.app

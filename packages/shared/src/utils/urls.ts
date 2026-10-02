@@ -45,6 +45,8 @@ export const RESERVED_ROOT_SEGMENTS = [
   'usuario',
   // Served by Hosting / the web export, never by a route file.
   '_expo',
+  'brand',
+  'favicon.ico',
   'assets',
   'index.html',
   'robots.txt',
