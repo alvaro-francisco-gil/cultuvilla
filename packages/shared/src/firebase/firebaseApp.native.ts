@@ -4,7 +4,7 @@
 // accepted only to keep one call site for both SDKs.
 import { getApp, type ReactNativeFirebase } from '@react-native-firebase/app';
 import { getAuth as getNativeAuth } from '@react-native-firebase/auth';
-import { getFirestore, initializeFirestore } from '@react-native-firebase/firestore';
+import { getFirestore } from '@react-native-firebase/firestore';
 import { getFunctions } from '@react-native-firebase/functions';
 import { getStorage } from '@react-native-firebase/storage';
 
@@ -29,10 +29,10 @@ let state: InitializedState | null = null;
 export function initFirebase(_config: unknown, options: InitFirebaseOptions = {}): ReactNativeFirebase.FirebaseApp {
   if (state) return state.app;
   const app = getApp();
-  // The persistent on-device cache is the point of the native SDK: reads are
-  // answered from disk first and the app opens offline
-  // (docs/plans/ready/offline-first-village.md).
-  void initializeFirestore(app, { persistence: true });
+  // No settings call: the native SDKs keep Firestore's persistent on-device
+  // cache on by default — the reason the app runs on them
+  // (docs/plans/ready/offline-first-village.md) — and a settings call ahead of
+  // connectFirestoreEmulator is an ordering hazard in the E2E build.
   state = {
     app,
     auth: getNativeAuth(app),
