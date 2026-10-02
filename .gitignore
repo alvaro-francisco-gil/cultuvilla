@@ -51,3 +51,5 @@ scripts/data/escudos-webp-thumb/
 # settlements-es.json is what gets committed.
 scripts/data/.settlements-cache/
 firebase.emulator-bind.json
+# Per-worktree emulator config written by scripts/agent-env.sh (the slot's ports)
+firebase.agent.json

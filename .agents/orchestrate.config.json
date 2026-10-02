@@ -1,0 +1,16 @@
+{
+  "_doc": "Fleet facts for the shared orchestrate / advance-ongoing-plans skills and scripts/agent-env.sh. Field reference: .agents/_shared/README.md, 'Adding the orchestration layer'.",
+  "project": "cultuvilla",
+  "_maxWorkers": "Not CI-bound: ci.yml runs on free GitHub-hosted runners (public repo). The ceiling is the machine — each worker holds a pnpm install, a functions install and, while testing, a JVM Firestore emulator.",
+  "maxWorkers": 4,
+  "_maxConcurrentEmulatorSuites": "Measured on the sibling Órdago repo on the same 16 GB WSL2 host: two concurrent emulator suites, not three. Workers run targeted tests and let the PR's CI run the full gate, as AGENTS.md already asks of worktrees.",
+  "maxConcurrentEmulatorSuites": 2,
+  "worktreesDir": ".claude/worktrees",
+  "_worktreeSetup": "A fresh worktree has no node_modules, functions/ has its own npm install (AGENTS.md, Commands), and the functions bundle imports @cultuvilla/shared's BUILT output — without `shared:build` every emulator suite dies in the harness's functions build with 'Could not resolve @cultuvilla/shared/…'. Never symlink the main checkout's node_modules in: the workspace links are relative and would resolve to the main checkout's packages.",
+  "worktreeSetup": [
+    "pnpm install --frozen-lockfile --prefer-offline",
+    "npm --prefix functions ci --prefer-offline --no-audit --no-fund",
+    "pnpm shared:build"
+  ],
+  "ciCapacity": "GitHub-hosted runners, free for this public repo; ci.yml runs every lane on every PR with no shared lane budget, so PRs do not serialise on CI. A green ci.yml run takes ~5-6 min (measured 2026-10-02)."
+}
