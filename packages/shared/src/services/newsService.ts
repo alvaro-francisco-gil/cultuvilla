@@ -224,19 +224,31 @@ export function watchHomeFeed(
 
 // Cross-village feed: every active post regardless of municipality. Backs the
 // Explora "all villages" view; callers narrow by village client-side.
-export async function getAllVillagesFeed(
-  options: { limit?: number; afterPublishedAt?: Date } = {},
-): Promise<(NewsPostData & { id: string })[]> {
-  const constraints = [
+function allVillagesFeedQuery(options: { limit?: number; afterPublishedAt?: Date }) {
+  return query(
+    newsCollection(getDb()),
     where('status', '==', 'active'),
     orderBy('publishedAt', 'desc'),
     ...(options.afterPublishedAt
       ? [startAfter(Timestamp.fromDate(options.afterPublishedAt))]
       : []),
     ...(options.limit ? [fsLimit(options.limit)] : []),
-  ];
-  const snap = await getDocs(query(newsCollection(getDb()), ...constraints));
+  );
+}
+
+export async function getAllVillagesFeed(
+  options: { limit?: number; afterPublishedAt?: Date } = {},
+): Promise<(NewsPostData & { id: string })[]> {
+  const snap = await getDocs(allVillagesFeedQuery(options));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export function watchAllVillagesFeed(
+  options: { limit?: number },
+  onNext: (posts: (NewsPostData & { id: string })[]) => void,
+  onError: WatchError,
+): Unwatch {
+  return watchQuery(allVillagesFeedQuery(options), onNext, onError);
 }
 
 export async function getOtherVillagesFeed(
