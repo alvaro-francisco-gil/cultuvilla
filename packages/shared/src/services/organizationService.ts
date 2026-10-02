@@ -25,7 +25,7 @@ import type {
   OrganizationDataInput,
   OrganizationStatus,
 } from '../models/organization/OrganizationDataModel';
-import { watchQuery, type Unwatch, type WatchError } from './watch';
+import { watchDoc, watchQuery, type Unwatch, type WatchError } from './watch';
 
 export async function getPendingOrganizations(): Promise<(OrganizationData & { id: string })[]> {
   const q = query(
@@ -52,6 +52,14 @@ export async function getMyOrganizations(
 export async function getOrganization(orgId: string): Promise<(OrganizationData & { id: string }) | null> {
   const snap = await getDoc(organizationDoc(getDb(), orgId));
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+
+export function watchOrganization(
+  orgId: string,
+  onNext: (org: (OrganizationData & { id: string }) | null) => void,
+  onError: WatchError,
+): Unwatch {
+  return watchDoc(organizationDoc(getDb(), orgId), onNext, onError);
 }
 
 function municipalityOrganizationsQuery(municipalityId: string, status?: OrganizationStatus) {

@@ -25,7 +25,7 @@ import {
   type NewsPostStatus,
   type NewsBlock,
 } from '../models/news/NewsPostDataModel';
-import { watchQuery, type Unwatch, type WatchError } from './watch';
+import { watchDoc, watchQuery, type Unwatch, type WatchError } from './watch';
 
 // ────── input types ──────
 export interface CreateNewsPostInput {
@@ -105,6 +105,14 @@ export async function getNewsPost(
   const snap = await getDoc(newsDoc(getDb(), id));
   if (!snap.exists()) return null;
   return { id: snap.id, ...snap.data() };
+}
+
+export function watchNewsPost(
+  id: string,
+  onNext: (post: (NewsPostData & { id: string }) | null) => void,
+  onError: WatchError,
+): Unwatch {
+  return watchDoc(newsDoc(getDb(), id), onNext, onError);
 }
 
 export async function getNewsPostsByMunicipality(
