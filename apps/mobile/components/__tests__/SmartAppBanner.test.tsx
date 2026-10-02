@@ -5,11 +5,13 @@ import { SmartAppBanner } from '../SmartAppBanner';
 // APP_STORES is mocked through a `mock`-prefixed holder so each test can set the
 // URLs before rendering — jest.mock factories may only close over such names.
 let mockStores = { ios: '', android: '' };
-jest.mock('../../lib/appStores', () => ({
-  get APP_STORES() {
-    return mockStores;
-  },
-}));
+// defineProperty, not an object-literal getter beside a spread: the spread
+// transform copies the getter's value at factory time, before mockStores exists.
+jest.mock('@cultuvilla/shared/config', () =>
+  Object.defineProperty({ ...jest.requireActual('@cultuvilla/shared/config') }, 'APP_STORES', {
+    get: () => mockStores,
+  }),
+);
 
 let mockIsWeb = true;
 jest.mock('../../lib/platform', () => ({

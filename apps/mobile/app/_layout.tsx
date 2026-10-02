@@ -70,7 +70,7 @@ function AppTree() {
                           navigator, so it pushes the app down instead of
                           overlaying the tab bar or a detail header. Renders
                           nothing on native and nothing until a store URL for
-                          the visitor's platform exists (lib/appStores.ts). */}
+                          the visitor's platform exists (@cultuvilla/shared/config). */}
                       <SmartAppBanner />
                       <AuthGate />
                       {/* Web-only image-crop overlay (no-op on native, which uses its

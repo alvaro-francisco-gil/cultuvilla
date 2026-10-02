@@ -14,11 +14,13 @@ const originalOS = Platform.OS;
 let mockStores: { ios: string; android: string } = { ios: '', android: '' };
 const mockRedirect = jest.fn();
 
-jest.mock('../../lib/appStores', () => ({
-  get APP_STORES() {
-    return mockStores;
-  },
-}));
+// defineProperty, not an object-literal getter beside a spread: the spread
+// transform copies the getter's value at factory time, before mockStores exists.
+jest.mock('@cultuvilla/shared/config', () =>
+  Object.defineProperty({ ...jest.requireActual('@cultuvilla/shared/config') }, 'APP_STORES', {
+    get: () => mockStores,
+  }),
+);
 jest.mock('expo-router', () => ({
   useRouter: () => ({ replace: jest.fn() }),
   Redirect: (props: { href: string }) => {

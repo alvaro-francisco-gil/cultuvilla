@@ -1,4 +1,4 @@
-import { CURRENT_TERMS_VERSION } from '@cultuvilla/shared/models/user';
+import { CURRENT_TERMS_VERSION } from '../models/user';
 
 /**
  * Source of truth for the in-app legal documents. Transcribed verbatim from

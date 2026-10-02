@@ -38,5 +38,5 @@ without invalidating printed copies.
 
 - Don't make `/descarga` a Universal/App Link: a visitor with the app installed
   would be pulled into the app instead of the store page they scanned for.
-- The store URLs come only from `APP_STORES` in `apps/mobile/lib/appStores.ts`;
+- The store URLs come only from `APP_STORES` in `packages/shared/src/config/appStores.ts`;
   never hard-code one into the route or the QR.

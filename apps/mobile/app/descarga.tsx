@@ -4,7 +4,7 @@ import { Redirect, useRouter } from 'expo-router';
 import { resolveStorePlatform } from '@cultuvilla/shared';
 import { Screen, VStack, Text, Button } from '../components/primitives';
 import { useT } from '../lib/i18n';
-import { APP_STORES } from '../lib/appStores';
+import { APP_STORES } from '@cultuvilla/shared/config';
 
 // /descarga is the URL printed on the QR, so a phone should land in its store
 // with no page in between. Desktop has nothing to install, and a phone whose

@@ -11,7 +11,7 @@ import {
 } from '@cultuvilla/shared';
 import { iconSizes } from '@cultuvilla/shared/design-system';
 import { Button, HStack, Pressable, Text, VStack } from './primitives';
-import { APP_STORES } from '../lib/appStores';
+import { APP_STORES } from '@cultuvilla/shared/config';
 import { isWeb } from '../lib/platform';
 import { useT } from '../lib/i18n';
 
@@ -31,7 +31,7 @@ async function readDismissal(): Promise<StoreBannerDismissal | null> {
  * native build the visitor already has the app, and `navigator` doesn't exist.
  * Returns null when we have no listing for the detected platform, which is what
  * keeps the banner dormant until each `APP_STORES` URL is filled in at release
- * (iOS and Android light up independently — see lib/appStores.ts).
+ * (iOS and Android light up independently — see @cultuvilla/shared/config).
  *
  * Also null on iOS Safari, which draws Apple's own bar from the
  * `apple-itunes-app` meta tag in public/index.html — two bars offering the same

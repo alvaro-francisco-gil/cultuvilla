@@ -2,7 +2,7 @@
 
 **Priority:** high — unblocks offline-first, the main app-speed fix
 **Gate:** none
-**Next:** ship phase 1 in the next `mobile-release` and confirm events in GA4 DebugView, then start the read site (phase 2)
+**Next:** verify `readSite` on dev through its function URL, then switch the dev Hosting rewrites to it (phase 3)
 **Due:** 2027-04-30
 
 The decision and the data behind it are in
@@ -19,7 +19,7 @@ Replaces *app-first-transition* (which assumed web stays a full app) and the
 | Phase | What | Ships via |
 |---|---|---|
 | 1 | Native analytics | store build |
-| 2 | Read site (`apps/web`) | hosting + Cloud Run |
+| 2 | Read site (`readSite` function) | functions deploy |
 | 3 | Route-by-route cutover | `firebase.json` rewrites |
 | 4 | Delete the Expo web export | code removal |
 | 5 | Web sign-up decision | decision record |
@@ -53,30 +53,29 @@ answered.
 
 ## Phase 2 — the read site
 
-**Shape:** Next.js under `apps/web/`, modelled on ordago's `ordago-web`
-(Next.js on Cloud Run, Admin SDK reads on the server). Firebase Hosting stays in
-front — it keeps `cultuvilla.es`, the static `robots.txt`, `.well-known/` and
-`/descarga`, and rewrites page routes to the Cloud Run service. One service per
-env (dev / beta / prod), deployed by the existing promotion pipeline.
+**Shape:** one Cloud Function, `readSite` (`functions/src/web/`), not Next.js
+on Cloud Run — see the decision record for why. Escape-by-default templates
+(`html.ts`), a router over every URL the app emits (`routes.ts`), best-effort
+Admin SDK loaders that re-apply visibility (`data.ts`), pages (`pages.ts`).
+Firebase Hosting stays in front and rewrites page routes to it.
 
-Pages (public data only, Spanish village-first URLs from `urls.ts`):
+- [x] Village home `/<pueblo>`, and lists: carteles, lugares, entidades,
+      historia, vocabulario, barrios (the app's own screens at those paths are
+      member forms; on web they are lists)
+- [x] Details: evento, noticia, entidad, lugar, barrio, cartel, acontecimiento,
+      palabra — each with one canonical URL (stale slugs 301)
+- [x] `/<pueblo>/entidad/<ref>/unirse` → invite landing, `noindex`
+- [x] `/descarga` (phones 302 to their store), `/legal/*` (content moved to
+      `@cultuvilla/shared/legal`; account deletion is `/legal/eliminar-cuenta`)
+- [x] App-only paths (account, forms, member views) → app hand-off, `noindex`
+- [x] OG tags, JSON-LD, canonical on the project's public origin, Safari banner
+- [x] Every action → app CTA (scheme hand-off, `/descarga` fallback)
+- [x] Visibility: private events withheld (title not even in the URL), drafts,
+      hidden news, pending orgs, hidden places/barrios/carteles 404. The sitemap
+      no longer lists hidden news.
 
-- [ ] Village home `/<pueblo>` and its lists: carteles, lugares, entidades,
-      historia, vocabulario, barrios
-- [ ] Details: evento, noticia, entidad, lugar, barrio, cartel, acontecimiento,
-      palabra
-- [ ] `/<pueblo>/entidad/<id>/unirse` → landing that opens the app or the store
-- [ ] `/descarga`, `/legal/*`, `/borrar-cuenta` (Play's account-deletion URL)
-- [ ] `/sitemap.xml`, per-env `robots.txt`, canonical host, `noindex` for
-      private events and invite paths
-- [ ] OG tags + JSON-LD — port `functions/src/og/` (fetchers, `jsonLd.ts`,
-      `seoBody.ts`) rather than rewrite; it already reads best-effort, without
-      strict converters, on purpose
-- [ ] Every action button → app CTA (universal link, store fallback), plus
-      the `apple-itunes-app` meta so iOS Safari draws its install banner
-
-Tests: page-level rendering against seeded emulator data; the OG/JSON-LD
-assertions from `functions/src/__tests__/og/` move with the code.
+Tests: `functions/src/__tests__/web/` (templates, router, document, rich text)
+and `__tests__/handlers/web/` (every page and gate against the emulator).
 
 ## Phase 3 — cutover
 

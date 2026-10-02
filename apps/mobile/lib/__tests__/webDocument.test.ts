@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { APP_STORE_ID } from '../appStores';
+import { APP_STORE_ID } from '@cultuvilla/shared/config';
 
 // With web.output 'single', Expo builds the web document from public/index.html
 // and ignores app/+html.tsx — which is how a lang fix and the iOS App Store tag

@@ -4,6 +4,12 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+- New server-rendered read site (`readSite` function): every public page of a
+  pueblo — events, news, peñas, places, barrios, carteles, history and
+  vocabulary — readable without the app, with share previews and structured
+  data; every action hands over to the app. Not routed yet: Hosting still
+  serves the Expo web build until the cutover.
+- The sitemap no longer lists hidden news posts.
 - The iOS and Android apps report the same usage analytics as the web
   (Google Analytics for Firebase), plus an `app.link.opened` event when a
   shared link opens the installed app. Native code: ships in the next store
