@@ -92,6 +92,7 @@ export function EntityDetailScaffold({
               platforms. `padding` shrinks the scroll area instead, and the
               composer scrolls itself into view via DetailScrollProvider. */}
           <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+            <View style={{ flex: 1 }}>
               <ScrollView
                 ref={scrollRef}
                 contentContainerClassName={scrollContentClassName}
@@ -113,6 +114,7 @@ export function EntityDetailScaffold({
                   <DetailScrollProvider scrollRef={scrollRef}>{children}</DetailScrollProvider>
                 </VStack>
               </ScrollView>
+            </View>
           </KeyboardAvoidingView>
           {fab}
         </>
