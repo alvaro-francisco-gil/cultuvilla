@@ -7,7 +7,7 @@ import {
   getDocs,
   Timestamp,
   type QueryDocumentSnapshot,
-} from 'firebase/firestore';
+} from '../firebase/sdk/firestore';
 import { getDb } from '../firebase';
 import { eventsCollection } from '../firebase/refs/client';
 import type { EventData } from '../models/event/EventDataModel';

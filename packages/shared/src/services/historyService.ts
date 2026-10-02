@@ -1,4 +1,4 @@
-import { deleteDoc, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc, where } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc, where } from '../firebase/sdk/firestore';
 import { getDb } from '../firebase';
 import { getVillageSlug } from './municipalityService';
 import { historyEntriesCollection, historyEntryDoc } from '../firebase/refs/client';

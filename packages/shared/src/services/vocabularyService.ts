@@ -10,7 +10,7 @@ import {
   setDoc,
   updateDoc,
   where,
-} from 'firebase/firestore';
+} from '../firebase/sdk/firestore';
 import { getDb } from '../firebase';
 import {
   vocabularyTermsCollection,

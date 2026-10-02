@@ -15,9 +15,9 @@ import {
   type DocumentData,
   type QueryConstraint,
   type QueryDocumentSnapshot,
-} from 'firebase/firestore';
+} from '../firebase/sdk/firestore';
 import { z } from 'zod';
-import { httpsCallable } from 'firebase/functions';
+import { httpsCallable } from '../firebase/sdk/functions';
 import { getDb, getFirebaseFunctions } from '../firebase';
 import { FiestaBlockSchema, type FiestaBlock } from '../models/municipality/FiestaBlockModel';
 import {

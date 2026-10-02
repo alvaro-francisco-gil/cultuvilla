@@ -13,8 +13,8 @@ import {
   startAfter,
   serverTimestamp,
   Timestamp,
-} from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
+} from '../firebase/sdk/firestore';
+import { httpsCallable } from '../firebase/sdk/functions';
 import { getDb, getFirebaseFunctions } from '../firebase';
 import { newsCollection, newsDoc } from '../firebase/refs/client';
 import {
