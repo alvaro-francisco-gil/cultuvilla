@@ -1,12 +1,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { Platform } from 'react-native';
-import { signOut as fbSignOut } from 'firebase/auth';
+import { signOut as fbSignOut } from '@cultuvilla/shared/firebase/sdk/auth';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { AuthProvider, SIGN_OUT_CLEANUP_TIMEOUT_MS } from '../AuthContext';
 import { useAuth } from '../useAuth';
 import { observability } from '@cultuvilla/shared';
 import { fetchUserIdHash } from '../../observability/errorBridge';
-import { signInWithCredential, signInWithCustomToken } from 'firebase/auth';
+import { signInWithCredential, signInWithCustomToken } from '@cultuvilla/shared/firebase/sdk/auth';
 import { verifyAuthOtpCode } from '@cultuvilla/shared/services/authEmailService';
 import { clearPendingToken } from '../otpTokenCache';
 import { unregisterPushForSignOut } from '../../push/pushSession';
@@ -36,7 +36,7 @@ jest.mock('@cultuvilla/shared/firebase', () => ({
   }),
 }));
 
-jest.mock('firebase/auth', () => ({
+jest.mock('@cultuvilla/shared/firebase/sdk/auth', () => ({
   onAuthStateChanged: (_auth: unknown, cb: (u: unknown) => void) => {
     cb(mockAuthUser);
     return () => {};

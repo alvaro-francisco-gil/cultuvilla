@@ -15,7 +15,7 @@ import {
   doc,
   type UpdateData,
   type DocumentData,
-} from 'firebase/firestore';
+} from '../firebase/sdk/firestore';
 import { getDb } from '../firebase';
 import {
   eventsCollection,

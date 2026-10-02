@@ -18,7 +18,7 @@ import {
   verifyBeforeUpdateEmail,
   EmailAuthProvider,
   reauthenticateWithCredential,
-} from 'firebase/auth';
+} from '@cultuvilla/shared/firebase/sdk/auth';
 import {
   getUserProfile,
   setActiveMunicipality,

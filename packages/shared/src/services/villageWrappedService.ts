@@ -1,5 +1,5 @@
-import { getDoc, getDocs, orderBy, query, where } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
+import { getDoc, getDocs, orderBy, query, where } from '../firebase/sdk/firestore';
+import { httpsCallable } from '../firebase/sdk/functions';
 import { getDb, getFirebaseFunctions } from '../firebase';
 import { villageWrappedCollection, villageWrappedDoc } from '../firebase/refs/client';
 import { wrappedId, type WrappedData, type WrappedStatus } from '../models/wrapped/WrappedDataModel';

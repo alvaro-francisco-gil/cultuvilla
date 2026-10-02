@@ -2,7 +2,7 @@
 
 **Priority:** high — the main reason the app feels slow
 **Gate:** none
-**Next:** one-day spike: run one service (`eventService`) on `@react-native-firebase/firestore` with our Zod `withConverter` converters, on a dev-client build
+**Next:** land layer 1 (SDK seam, native SDKs) once android-e2e is green on it, then move the hottest reads to listeners (layer 2, `useVillageHome` first)
 
 ## Goal
 
@@ -22,20 +22,23 @@ live sync; the JS SDK on RN just cannot use it.
 
 ## Layers, in order
 
-### 1. Native Firestore SDK
+### 1. Native Firebase SDKs — built
 
-- `@react-native-firebase/{auth,firestore,functions,storage}` (`app` and
-  `analytics` are already in since #443); services import them directly — web
-  no longer bundles services
-  ([web-is-a-read-site.md](../../decisions/web-is-a-read-site.md)).
-- Persistence on, generous cache size. Auth moves to RNFirebase auth so an
-  offline cold start still knows the user.
-- Precedent: ordago-app (`packages/shared/src/services/firestoreClient.ts`).
-  Port its approach and its long-tail fixes rather than rediscover them.
-- Tests: `packages/shared` vitest and `functions` keep running on the JS SDK
-  against emulators (Node); the app side is covered by jest mocks and a
-  Maestro offline flow on the Android AVD.
-- Native → store build, not OTA.
+- Every client Firebase import goes through `packages/shared/src/firebase/sdk/`
+  (firestore, auth, functions, storage): a JS-SDK file for Node and a
+  `.native.ts` twin that Metro picks on device. One service codebase, two SDKs;
+  the shared emulator tests keep running unchanged.
+- Auth, Functions and Storage move with Firestore: native Firestore only sees
+  the native Auth user.
+- Persistence on (`initializeFirestore(app, { persistence: true })`).
+- Verified at bundle time: an Android export contains no `@firebase/*` module
+  and resolves every seam file to its native twin.
+- Divergences handled: native `uploadBytes` is unimplemented (wrapped over
+  `uploadBytesResumable`); error codes are prefixed differently
+  (`firebaseErrorCode()`); the shared package was bundled twice (`src` + `dist`)
+  and is now one copy.
+- Native → store build, not OTA. Android is exercised by Maestro; iOS first
+  compiles on the next build.
 
 ### 2. Cache-first reads
 

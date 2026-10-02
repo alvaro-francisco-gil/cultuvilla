@@ -112,7 +112,12 @@ const googleSignInPerEnv: Record<Env, GoogleSignInConfig> = {
 // google-services/ like the .well-known signing identities: it carries no
 // secret, and a value in git is reviewable and identical for a local prebuild.
 // Only wired when present, so a checkout without it still builds — minus push.
-const googleServicesFile = `./google-services/${env}/google-services.json`;
+// The native E2E build points the native SDKs at the emulators' test project
+// (scripts/build-android-e2e-apk.mjs); honoured only in that emulator build.
+const googleServicesFile =
+  process.env['USE_FIREBASE_EMULATOR'] === '1' && process.env['E2E_GOOGLE_SERVICES_FILE']
+    ? process.env['E2E_GOOGLE_SERVICES_FILE']
+    : `./google-services/${env}/google-services.json`;
 // Resolved against this file, not the cwd: tests and CI evaluate the config
 // from the repo root as well as from apps/mobile.
 const hasGoogleServicesFile = existsSync(resolve(__dirname, googleServicesFile));
