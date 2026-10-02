@@ -44,6 +44,7 @@ import {
   buildBarrioData,
   buildPlaceData,
 } from '../models/municipality/MunicipalityDataModel';
+import { watchDoc, watchQuery, type Unwatch, type WatchError } from './watch';
 
 // ── Municipality CRUD ────────────────────────────────────────────────────
 
@@ -52,6 +53,21 @@ export async function getMunicipality(id: string): Promise<(MunicipalityData & {
   if (!snap.exists()) return null;
   rememberVillageSlug(snap.id, snap.data().slug);
   return { id: snap.id, ...snap.data() };
+}
+
+export function watchMunicipality(
+  id: string,
+  onNext: (municipality: (MunicipalityData & { id: string }) | null) => void,
+  onError: WatchError,
+): Unwatch {
+  return watchDoc(
+    municipalityDoc(getDb(), id),
+    (row) => {
+      if (row) rememberVillageSlug(row.id, row.slug);
+      onNext(row);
+    },
+    onError,
+  );
 }
 
 // ── Slugs ────────────────────────────────────────────────────────────────
@@ -337,14 +353,25 @@ export async function deactivateCommunity(municipalityId: string): Promise<void>
 // everyone immediately. Village/app admins can hide it afterward via
 // `moderationService`. Enforcement lives in firestore.rules.
 
-export async function getBarrios(municipalityId: string): Promise<(BarrioData & { id: string })[]> {
-  const q = query(
+function activeBarriosQuery(municipalityId: string) {
+  return query(
     municipalityBarriosCollection(getDb(), municipalityId),
     where('status', '==', 'active'),
     orderBy('name', 'asc'),
   );
-  const snap = await getDocs(q);
+}
+
+export async function getBarrios(municipalityId: string): Promise<(BarrioData & { id: string })[]> {
+  const snap = await getDocs(activeBarriosQuery(municipalityId));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export function watchBarrios(
+  municipalityId: string,
+  onNext: (barrios: (BarrioData & { id: string })[]) => void,
+  onError: WatchError,
+): Unwatch {
+  return watchQuery(activeBarriosQuery(municipalityId), onNext, onError);
 }
 
 /** Mint a barrio doc id up front, so images can be uploaded to its storage
@@ -397,14 +424,25 @@ export async function getPlaces(
   municipalityId: string,
   kind?: PlaceKind,
 ): Promise<(PlaceData & { id: string })[]> {
-  const q = query(
+  const snap = await getDocs(activePlacesQuery(municipalityId));
+  const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return kind ? rows.filter((r) => r.kind === kind) : rows;
+}
+
+function activePlacesQuery(municipalityId: string) {
+  return query(
     municipalityPlacesCollection(getDb(), municipalityId),
     where('status', '==', 'active'),
     orderBy('name', 'asc'),
   );
-  const snap = await getDocs(q);
-  const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  return kind ? rows.filter((r) => r.kind === kind) : rows;
+}
+
+export function watchPlaces(
+  municipalityId: string,
+  onNext: (places: (PlaceData & { id: string })[]) => void,
+  onError: WatchError,
+): Unwatch {
+  return watchQuery(activePlacesQuery(municipalityId), onNext, onError);
 }
 
 /** Mint a place doc id up front, so images can be uploaded to its storage

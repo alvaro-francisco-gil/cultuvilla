@@ -25,6 +25,7 @@ import type {
   OrganizationDataInput,
   OrganizationStatus,
 } from '../models/organization/OrganizationDataModel';
+import { watchQuery, type Unwatch, type WatchError } from './watch';
 
 export async function getPendingOrganizations(): Promise<(OrganizationData & { id: string })[]> {
   const q = query(
@@ -53,25 +54,32 @@ export async function getOrganization(orgId: string): Promise<(OrganizationData 
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
-export async function getOrganizationsByMunicipality(
-  municipalityId: string,
-  status?: OrganizationStatus,
-): Promise<(OrganizationData & { id: string })[]> {
+function municipalityOrganizationsQuery(municipalityId: string, status?: OrganizationStatus) {
   const ref = organizationsCollection(getDb());
-  const q = status
+  return status
     ? query(
         ref,
         where('municipalityId', '==', municipalityId),
         where('status', '==', status),
         orderBy('name', 'asc'),
       )
-    : query(
-        ref,
-        where('municipalityId', '==', municipalityId),
-        orderBy('name', 'asc'),
-      );
-  const snap = await getDocs(q);
+    : query(ref, where('municipalityId', '==', municipalityId), orderBy('name', 'asc'));
+}
+
+export async function getOrganizationsByMunicipality(
+  municipalityId: string,
+  status?: OrganizationStatus,
+): Promise<(OrganizationData & { id: string })[]> {
+  const snap = await getDocs(municipalityOrganizationsQuery(municipalityId, status));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export function watchOrganizationsByMunicipality(
+  municipalityId: string,
+  onNext: (orgs: (OrganizationData & { id: string })[]) => void,
+  onError: WatchError,
+): Unwatch {
+  return watchQuery(municipalityOrganizationsQuery(municipalityId), onNext, onError);
 }
 
 /** Mint an organization doc id up front, so images can be uploaded to its
