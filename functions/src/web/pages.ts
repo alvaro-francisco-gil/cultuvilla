@@ -17,6 +17,7 @@ import {
   type TermView,
   type Village,
   type VillageHome,
+  type WrappedView,
 } from './data';
 import { appCta, type Page } from './document';
 import { html, type Child, type SafeHtml } from './html';
@@ -325,6 +326,27 @@ export function wordPage(v: Village, term: TermView, definitions: DefinitionView
           )}</ol>`
         : html`<p>Aún no tiene definición.</p>`
     }${appCta(appPath, 'Añade tu definición desde la app')}`,
+  };
+}
+
+export function wrappedPage(v: Village, w: WrappedView, appPath: string): Page {
+  const title = `Fiestas ${String(w.year)}`;
+  const figures = [
+    w.eventCount ? `${String(w.eventCount)} eventos` : null,
+    w.personCount ? `${String(w.personCount)} personas apuntadas` : null,
+  ].filter((f): f is string => f !== null);
+  const lead = figures.length ? `${figures.join(', ')}. ` : '';
+  return {
+    head: {
+      title: `${title} · ${v.name}`,
+      description: `${lead}El resumen de las fiestas de ${v.name} en Cultuvilla.`,
+      imageUrl: w.images[0] ?? null,
+    },
+    // The cards are already the whole story: drawn on the server, captioned on
+    // the image, so the page only stacks them.
+    body: html`${backTo(v)}<h1>${title}</h1>${figures.length ? html`<p class="meta">${figures.join(' · ')}</p>` : null}${w.images.map(
+      (u, i) => html`<p>${img(u, `${title} · ${v.name} (${String(i + 1)}/${String(w.images.length)})`)}</p>`,
+    )}${appCta(appPath, 'Verlo y compartirlo en la app')}`,
   };
 }
 

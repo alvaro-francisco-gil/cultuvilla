@@ -12,6 +12,7 @@ import {
   wordPath,
   type UrlEntityKind,
 } from '@cultuvilla/shared/utils';
+import { WRAPPED_CARDS, wrappedId } from '@cultuvilla/shared/models';
 import { arr, bool, date, num, obj, str, strArr, type Raw } from './read';
 import type { RichTextInput } from './richText';
 
@@ -469,6 +470,34 @@ async function loadDefinitions(db: Firestore, termId: string): Promise<Definitio
       ? [{ definition, example: str(doc.get('example')), castellano: str(doc.get('castellano')) }]
       : [];
   });
+}
+
+// ── Fiestas Wrapped ─────────────────────────────────────────────────────────
+
+export interface WrappedView {
+  year: number;
+  /** The rendered cards in display order, cover first. */
+  images: string[];
+  eventCount: number | null;
+  personCount: number | null;
+}
+
+/** Only a published Wrapped: a draft is its village admins' to release. */
+export async function loadWrapped(db: Firestore, municipalityId: string, year: number): Promise<WrappedView | null> {
+  // typed-refs: allowed — converter-less read; see the header of data.ts.
+  const snap = await db.collection('villageWrapped').doc(wrappedId(municipalityId, year)).get();
+  if (!snap.exists || snap.get('status') !== 'published') return null;
+  const images = obj(snap.get('images')) ?? {};
+  const stats = obj(snap.get('stats')) ?? {};
+  return {
+    year,
+    images: WRAPPED_CARDS.flatMap((card) => {
+      const url = str(images[card]);
+      return url ? [url] : [];
+    }),
+    eventCount: num(stats['eventCount']),
+    personCount: num(stats['uniquePersonCount']),
+  };
 }
 
 // ── Village-wide lists ──────────────────────────────────────────────────────

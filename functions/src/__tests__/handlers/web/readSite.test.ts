@@ -81,6 +81,14 @@ async function seed(): Promise<void> {
     status: 'active',
     createdAt: ts('2026-01-01T00:00:00Z'),
   });
+  const wrapped = {
+    municipalityId: 'm1',
+    villageName: 'Matabuena',
+    stats: { eventCount: 14, uniquePersonCount: 230 },
+    images: { stats: 'https://img.test/stats.png', cover: 'https://img.test/cover.png' },
+  };
+  await d.doc('villageWrapped/m1_2026').set({ ...wrapped, year: 2026, status: 'published' });
+  await d.doc('villageWrapped/m1_2025').set({ ...wrapped, year: 2025, status: 'draft' });
 }
 
 describe('readSite', () => {
@@ -166,6 +174,24 @@ describe('readSite', () => {
     expect(await get('/descarga', IPHONE)).toEqual({ kind: 'redirect', location: APP_STORES.ios, permanent: false });
     const { body } = await html('/descarga');
     expect(body).toContain(APP_STORES.android);
+  });
+
+  it('renders a published Wrapped as its cards, cover first', async () => {
+    const { status, body } = await html('/matabuena/fiestas/2026');
+    expect(status).toBe(200);
+    expect(body).toContain('Fiestas 2026');
+    expect(body).toContain('14 eventos');
+    expect(body.indexOf('cover.png')).toBeLessThan(body.indexOf('stats.png'));
+    expect(body).toContain('data-app-path="/matabuena/fiestas/2026"');
+  });
+
+  // A draft is the village admins' to release; its link shows nothing before they do.
+  it('answers a draft Wrapped, or a year without one, with a 404', async () => {
+    for (const path of ['/matabuena/fiestas/2025', '/matabuena/fiestas/2019', '/no-existe/fiestas/2026']) {
+      const { status, body } = await html(path);
+      expect(status, path).toBe(404);
+      expect(body).not.toContain('cover.png');
+    }
   });
 
   it('answers app-only screens with an app hand-off, not a 404', async () => {
