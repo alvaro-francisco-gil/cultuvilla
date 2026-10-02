@@ -21,7 +21,7 @@ Read this top-down: **Actionable now** is what a batch can pick up today; the re
 | [firestore-index-hygiene](ongoing/firestore-index-hygiene.md) ⚠️ | low | dev | 6 cycles ago \* | run the beta orphan cleanup (a `--force` index deploy from a clean `origin/main`, with explicit go for a beta deploy) and re-verify live == file |
 | [access-hardening-rollout](ongoing/access-hardening-rollout.md) | high | dev | this cycle \* | promote `develop → beta` (a `release/X.Y.Z` branch; the maintainer merges the PR) |
 | [app-only-transition](ongoing/app-only-transition.md) | high | dev | this cycle \* | promote to beta and run the phase 3 `curl` checks there; meanwhile start the offline-first plan (its gate is now open) |
-| [offline-first-village](ready/offline-first-village.md) `ready` | high | — | this cycle | land layer 1 (SDK seam, native SDKs) once android-e2e is green on it, then move the hottest reads to listeners (layer 2, `useVillageHome` first) |
+| [offline-first-village](ready/offline-first-village.md) `ready` | high | — | this cycle | move the Inicio feed onto watchers, then entity detail screens (layer 2 continues) |
 | [store-release](ongoing/store-release.md) | low | prod | this cycle \* | check Error Reporting for iOS `surface: auth` failures since 1.0.0 went live; if none, retire this plan into one decision doc |
 
 ## Soaking
