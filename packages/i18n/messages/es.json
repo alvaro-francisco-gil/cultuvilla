@@ -42,10 +42,6 @@
     "moreInfo": "Más información",
     "photo": "Foto",
     "and": "y",
-    "carousel": {
-      "prev": "Anterior",
-      "next": "Siguiente"
-    },
     "error": {
       "network": "Parece que no hay conexión. Comprueba tu internet.",
       "data": "No pudimos mostrar este contenido.",
@@ -1390,12 +1386,6 @@
     "blockUser": "Bloquear a esta persona",
     "blockHint": "No volverás a ver sus comentarios.",
     "blockDone": "Persona bloqueada. Ya no verás sus comentarios."
-  },
-  "descarga": {
-    "tagline": "La agenda de tu pueblo, en tu bolsillo.",
-    "getOnAppStore": "Descargar en el App Store",
-    "getOnPlayStore": "Descargar en Google Play",
-    "continueOnWeb": "Seguir en la web"
   },
   "smartBanner": {
     "title": "Cultuvilla en tu móvil",

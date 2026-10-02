@@ -13,7 +13,6 @@ import {
   OAuthProvider,
   signInWithCredential,
   signInWithCustomToken,
-  signInWithPopup,
   isSignInWithEmailLink,
   signInWithEmailAndPassword,
   verifyBeforeUpdateEmail,
@@ -246,7 +245,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (googleConfigured.current) return;
-    if (Platform.OS === 'web') return;
     const cfg = getGoogleSignInConfig();
     if (!cfg) return;
     GoogleSignin.configure({
@@ -257,11 +255,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // E2E fixture-login seam. Lets an automated driver sign in as a seeded fixture
-  // user without Google OAuth. Two drivers, two delivery mechanisms, ONE armed
-  // predicate and ONE auth primitive:
-  //   - web (Playwright) → `window.__cultuvillaE2E.login(email, password)`.
-  //   - native (Maestro) → a deep link, because Maestro drives the UI and cannot
-  //     call into the app's JS context. See `handleE2ELoginLink` below.
+  // user without Google OAuth, delivered as a deep link because Maestro drives
+  // the UI and cannot call into the app's JS context (see below).
   //
   // Guarded three independent ways so it can NEVER fire in a build a real user
   // could load:
@@ -302,15 +297,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return fbSignOut(auth);
     };
 
-    if (Platform.OS === 'web') {
-      (globalThis as { __cultuvillaE2E?: unknown }).__cultuvillaE2E = {
-        login,
-        signOut: signOutFixture,
-      };
-      return;
-    }
-
-    // Native: the driver hands us credentials over the app's own URL scheme
+    // The driver hands us credentials over the app's own URL scheme
     // (`cultuvilla://?e2eLogin=<email>%7C<password>`), because Maestro drives
     // the UI and has no way to call into the app's JS context. The query lands
     // on the index route, which ignores unknown params, so no extra screen and
@@ -398,11 +385,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, profile, loadProfile]);
 
   const signInWithGoogle = async (): Promise<void> => {
-    if (Platform.OS === 'web') {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(getAuth(), provider);
-      return;
-    }
     const cfg = getGoogleSignInConfig();
     if (!cfg) {
       throw new Error(

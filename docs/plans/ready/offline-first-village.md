@@ -1,7 +1,7 @@
 # Offline-first — the whole village on the device
 
 **Priority:** high — the main reason the app feels slow
-**Gate:** blocked:app-only-transition
+**Gate:** none
 **Next:** one-day spike: run one service (`eventService`) on `@react-native-firebase/firestore` with our Zod `withConverter` converters, on a dev-client build
 
 ## Goal
@@ -24,8 +24,9 @@ live sync; the JS SDK on RN just cannot use it.
 
 ### 1. Native Firestore SDK
 
-- `@react-native-firebase/{app,auth,firestore,functions,storage}`; services
-  import them directly — web no longer bundles services
+- `@react-native-firebase/{auth,firestore,functions,storage}` (`app` and
+  `analytics` are already in since #443); services import them directly — web
+  no longer bundles services
   ([web-is-a-read-site.md](../../decisions/web-is-a-read-site.md)).
 - Persistence on, generous cache size. Auth moves to RNFirebase auth so an
   offline cold start still knows the user.

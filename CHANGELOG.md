@@ -4,6 +4,9 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+- The app no longer builds for the web: the Expo web export, its web-only
+  code paths, `react-native-web` and the Playwright web E2E suite are gone. The
+  web is the read site; the Android Maestro suite is the end-to-end gate.
 - New server-rendered read site (`readSite` function): every public page of a
   pueblo — events, news, peñas, places, barrios, carteles, history and
   vocabulary — readable without the app, with share previews and structured
