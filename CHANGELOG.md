@@ -4,6 +4,10 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
 
 ## [Unreleased]
 
+- The app runs the native Firebase SDKs (`@react-native-firebase/*`) instead of
+  the JS SDK: Firestore keeps a persistent on-device cache, the groundwork for
+  opening offline. Services are unchanged; they reach Firebase through an SDK
+  seam in `packages/shared`. Native code: ships in the next store build.
 - The app no longer builds for the web: the Expo web export, its web-only
   code paths, `react-native-web` and the Playwright web E2E suite are gone. The
   web is the read site; the Android Maestro suite is the end-to-end gate.

@@ -45,6 +45,7 @@ Components, pages, and hooks **must not** import from `firebase/firestore`, `fir
 
 - Need `GeoPoint`, `Timestamp`, or the `User` type? Import from `@cultuvilla/shared/firebase` (the shared package re-exports them).
 - The **only** exempt file is [apps/mobile/lib/auth/AuthContext.tsx](apps/mobile/lib/auth/AuthContext.tsx) — it owns the auth boundary (sign-in/out, listeners). Everything else routes through services.
+- **Services import Firebase from the SDK seam** ([packages/shared/src/firebase/sdk/](packages/shared/src/firebase/sdk/README.md)), never `firebase/*`. On device the seam resolves to `@react-native-firebase/*` — the persistent offline cache, and the native Auth session the other SDKs authenticate with; Node tests resolve it to the JS SDK against the emulators. A lint rule forbids direct imports, and `sdkParity.test.ts` fails when a name the code imports is missing from a `.native.ts` twin. Compare error codes with `firebaseErrorCode()` — the two SDKs prefix them differently.
 
 `packages/shared` and `functions/` are ESLint-gated ([packages/shared/eslint.config.mjs](packages/shared/eslint.config.mjs), [functions/eslint.config.mjs](functions/eslint.config.mjs)); `apps/mobile` has no ESLint config yet, so there the rule is convention — don't import `firebase/*` from a screen, add a service instead.
 

@@ -1,6 +1,6 @@
-import { FirebaseError } from '@firebase/util';
-import { getAuth } from '@firebase/auth';
 import { observability } from '@cultuvilla/shared';
+import { getAuth } from '@cultuvilla/shared/firebase';
+import { firebaseErrorCode } from '@cultuvilla/shared/firebase/sdk/errors';
 
 declare const __DEV__: boolean;
 
@@ -24,7 +24,7 @@ export async function withFirestoreErrorLog<T>(
   try {
     return await op();
   } catch (err) {
-    if (err instanceof FirebaseError && err.code === 'permission-denied') {
+    if (firebaseErrorCode(err) === 'permission-denied') {
       observability.captureError(err, { operation: label });
       if (__DEV__) {
         let uid = 'anon';
@@ -33,7 +33,7 @@ export async function withFirestoreErrorLog<T>(
         } catch {
           // Auth may not be initialised yet in odd edge cases — keep 'anon'.
         }
-        console.warn(`[firestore-deny] label=${label} code=${err.code} uid=${uid}`);
+        console.warn(`[firestore-deny] label=${label} uid=${uid}`);
       }
     }
     throw err;
