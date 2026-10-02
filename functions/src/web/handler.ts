@@ -23,6 +23,7 @@ import {
   loadVillageById,
   loadVillageBySlug,
   loadVillageHome,
+  loadWrapped,
   type Card,
   type Village,
 } from './data';
@@ -43,6 +44,7 @@ import {
   sectionPage,
   villagePage,
   wordPage,
+  wrappedPage,
 } from './pages';
 import { matchRoute, type WebRoute } from './routes';
 
@@ -186,6 +188,11 @@ export async function handle(req: WebRequest, deps: WebDeps): Promise<WebRespons
       if (!v || !found) return notFound(path);
       const wanted = wordPath(v.slug, found.term.slug);
       return canonical(path, wanted, () => wordPage(v, found.term, found.definitions, wanted));
+    }
+    case 'wrapped': {
+      const v = await loadVillageBySlug(db, route.villageSlug);
+      const w = v ? await loadWrapped(db, v.id, route.year) : null;
+      return v && w ? page(wrappedPage(v, w, path), path) : notFound(path);
     }
     case 'entity':
       return entity(deps, route, route.kind, path);

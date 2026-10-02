@@ -658,6 +658,24 @@
         "people": "Todo el pueblo",
         "organizers": "Quién lo hizo posible",
         "posters": "Carteles"
+      },
+      "preview": "Ver como lo verá el pueblo",
+      "viewer": {
+        "title": "Fiestas {year} · {name}",
+        "next": "Siguiente imagen",
+        "close": "Cerrar el resumen",
+        "shareCard": "Compartir esta imagen",
+        "shareLink": "Compartir el resumen",
+        "shareName": "las Fiestas {year} de {name}",
+        "shareFailed": "No se ha podido compartir la imagen. Inténtalo de nuevo.",
+        "openVillage": "Ver el pueblo",
+        "replay": "Volver a verlo",
+        "closingBody": "Compártelo con quien estuvo y con quien no pudo venir.",
+        "missing": "Este resumen no existe o todavía no se ha publicado."
+      },
+      "banner": {
+        "title": "Ya está el resumen de Fiestas {year}",
+        "body": "Lo que se hizo, en números y en fotos."
       }
     }
   },
@@ -1416,6 +1434,9 @@
       },
       "user": {
         "view": "Mira el perfil de {name} en Cultuvilla: {url}"
+      },
+      "wrapped": {
+        "view": "Mira cómo fueron {name} en Cultuvilla: {url}"
       }
     },
     "shareViewLabel": "Compartir"

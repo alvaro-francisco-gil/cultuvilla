@@ -40,6 +40,7 @@ import { WordOfTheDayCard } from './vocabulary/WordOfTheDayCard';
 import { LocationMap } from './LocationMap';
 import { JoinVillageModal } from './JoinVillageModal';
 import { VillageAmbassadorCard } from './VillageAmbassadorCard';
+import { VillageWrappedBanner } from './wrapped/VillageWrappedBanner';
 import { AmbassadorWelcomeSheet } from './AmbassadorWelcomeSheet';
 import {
   hasSeenAmbassadorWelcome,
@@ -314,6 +315,9 @@ export function VillageHomeBody({ data, reload }: VillageHomeBodyProps) {
             onPress={() => void share(getVillageViewLink(villageSlug), village.name)}
           />
         </HStack>
+
+        {/* ── The latest fiestas Wrapped, while it is recent ────── */}
+        <VillageWrappedBanner municipalityId={village.id} villageSlug={villageSlug} />
 
         {/* ── No organizer yet (wiki phase) ─────────────────────── */}
         {noOrganizer ? (

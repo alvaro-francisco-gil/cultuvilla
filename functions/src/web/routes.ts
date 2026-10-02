@@ -6,6 +6,7 @@ import {
   SEAT_CLAIM_SEGMENT,
   VILLAGE_SECTIONS,
   WORD_SEGMENT,
+  WRAPPED_SEGMENT,
   isReservedRootSegment,
   parseEntityRef,
   type UrlEntityKind,
@@ -36,6 +37,7 @@ export type WebRoute =
   | { type: 'entity'; kind: UrlEntityKind; villageSlug: string; ref: string; id: string }
   | { type: 'invite'; villageSlug: string; ref: string; id: string }
   | { type: 'word'; villageSlug: string; termSlug: string }
+  | { type: 'wrapped'; villageSlug: string; year: number }
   /** A screen that exists only in the app: forms, account, member/admin views. */
   | { type: 'appOnly' }
   | { type: 'notFound' };
@@ -82,6 +84,12 @@ export function matchRoute(pathname: string): WebRoute {
     if (includes(PUBLIC_SECTIONS, second)) return { type: 'section', villageSlug, section: second };
     if (includes(VILLAGE_SECTIONS, second)) return APP_ONLY;
     return NOT_FOUND;
+  }
+
+  if (second === WRAPPED_SEGMENT) {
+    return segments.length === 3 && third && /^\d{4}$/.test(third)
+      ? { type: 'wrapped', villageSlug, year: Number(third) }
+      : NOT_FOUND;
   }
 
   if (second === WORD_SEGMENT && third) {

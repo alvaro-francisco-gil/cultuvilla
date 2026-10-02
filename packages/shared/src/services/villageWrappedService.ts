@@ -38,6 +38,24 @@ export async function getVillageWrappedForYear(municipalityId: string, year: num
 }
 
 /**
+ * A year's Wrapped as a reader may see it: published, or null.
+ *
+ * The rules deny a draft to everyone but the village admins, and to a reader a
+ * withheld draft is the same as no Wrapped at all — not an error to show them.
+ * An admin's own draft is null here too: the public link must never look
+ * published before it is.
+ */
+export async function getReadableWrapped(municipalityId: string, year: number): Promise<VillageWrapped | null> {
+  try {
+    const w = await getVillageWrappedForYear(municipalityId, year);
+    return w?.status === 'published' ? w : null;
+  } catch (error) {
+    if ((error as { code?: unknown } | null)?.code === 'permission-denied') return null;
+    throw error;
+  }
+}
+
+/**
  * Render (or re-render) a year's Wrapped from the dates the admin picked.
  *
  * Rendering fetches every photo and flyer and takes up to a minute, past the

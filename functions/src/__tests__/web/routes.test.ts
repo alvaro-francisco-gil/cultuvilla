@@ -25,6 +25,7 @@ describe('matchRoute', () => {
       { type: 'invite', villageSlug: 'matabuena', ref: 'pena_o1', id: 'o1' },
     ],
     ['/matabuena/palabra/zagal', { type: 'word', villageSlug: 'matabuena', termSlug: 'zagal' }],
+    ['/matabuena/fiestas/2026', { type: 'wrapped', villageSlug: 'matabuena', year: 2026 }],
   ])('%s', (path, expected) => {
     expect(matchRoute(path)).toEqual(expected);
   });
@@ -48,7 +49,7 @@ describe('matchRoute', () => {
     expect(matchRoute(path)).toEqual({ type: 'appOnly' });
   });
 
-  it.each(['/matabuena/nada', '/matabuena/evento', '/matabuena/evento/x_e1/otra', '/legal/otra', '/%E0%A4%A'])(
+  it.each(['/matabuena/fiestas', '/matabuena/fiestas/agosto', '/matabuena/fiestas/2026/x', '/matabuena/nada', '/matabuena/evento', '/matabuena/evento/x_e1/otra', '/legal/otra', '/%E0%A4%A'])(
     '%s is not found',
     (path) => {
       expect(matchRoute(path)).toEqual({ type: 'notFound' });

@@ -10,6 +10,16 @@ All notable changes to this project. Format adapted from [Keep a Changelog](http
   data; every action hands over to the app. Not routed yet: Hosting still
   serves the Expo web build until the cutover.
 - The sitemap no longer lists hidden news posts.
+- The fiestas Wrapped is now for the whole pueblo, not just its admins. Once
+  published it opens as a story (tap to move between cards, hold to pause) at
+  `/<pueblo>/fiestas/<año>`, a link that previews in WhatsApp with its cover
+  card and opens without an account. Each card can be shared as an image from
+  the app, straight to WhatsApp status or Instagram stories, and every card
+  now prints its own address. Every village member gets a notification when it
+  is published, and the village home shows it for two months afterwards. The
+  admin review screen previews it in the same story viewer, and a January
+  reminder about December's fiestas now opens last year's Wrapped.
+
 - The iOS and Android apps report the same usage analytics as the web
   (Google Analytics for Firebase), plus an `app.link.opened` event when a
   shared link opens the installed app. Native code: ships in the next store
