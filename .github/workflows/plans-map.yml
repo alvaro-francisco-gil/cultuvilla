@@ -13,7 +13,7 @@ name: Plans map
 
 on:
   push:
-    branches: [develop]
+    branches: [develop] # BASE
     paths:
       - 'docs/plans/**'
       # A release cut changes the map without touching a plan: the cycle header,
@@ -52,6 +52,10 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          # setup-node v5 enables package-manager caching on its own when package.json
+          # declares `packageManager`, then fails with "Unable to locate executable
+          # file: pnpm". This job runs one dependency-free script; it needs no install.
+          package-manager-cache: false
       - run: node scripts/plans-map.js --validate
 
   regenerate:
@@ -69,6 +73,10 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          # setup-node v5 enables package-manager caching on its own when package.json
+          # declares `packageManager`, then fails with "Unable to locate executable
+          # file: pnpm". This job runs one dependency-free script; it needs no install.
+          package-manager-cache: false
       # Still FAILS on an invalid block: that is an author error a human must fix.
       - run: node scripts/plans-map.js
       - name: Commit the regenerated map
